@@ -1,0 +1,142 @@
+name: Release and Publish
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+
+# Prevent concurrent runs of the same workflow on the same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Required permissions for creating releases
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # Environment setup
+  determine_environment:
+    name: Determine Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+    steps:
+      - name: Set environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+  release:
+    name: Release
+    uses: ./.github/workflows/release.yml
+    needs: [determine_environment]
+    with:
+      environment: ${{ needs.determine_environment.outputs.environment }}
+      release_strategy: 'semantic'
+      skip_jobs: 'claude_security_scan,code_quality_check'
+      require_approval: false
+      require_signatures: false
+      generate_sbom: true
+      node_version: '20'
+      package_manager: 'npm'
+    secrets: inherit
+
+  # Publish to npm
+  publish_npm:
+    name: Publish to npm
+    needs: [determine_environment, release]
+    if: ${{ needs.determine_environment.outputs.environment == 'main' && !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for tag to be available
+        run: |
+          echo "Waiting for tag ${{ needs.release.outputs.tag }} to be available..."
+          for i in {1..30}; do
+            git fetch --tags
+            if git tag --list | grep -q "^${{ needs.release.outputs.tag }}$"; then
+              echo "Tag ${{ needs.release.outputs.tag }} is now available"
+              git checkout ${{ needs.release.outputs.tag }}
+              break
+            fi
+            echo "Attempt $i/30: Tag not found yet, waiting 10 seconds..."
+            sleep 10
+          done
+
+          # Final check
+          if [ "$(git describe --exact-match --tags 2>/dev/null)" != "${{ needs.release.outputs.tag }}" ]; then
+            echo "Error: Tag ${{ needs.release.outputs.tag }} is still not available after 5 minutes"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Update package version
+        run: |
+          # Update package.json to match the release version
+          VERSION="${{ needs.release.outputs.version }}"
+          if [ -n "$VERSION" ]; then
+            echo "Updating package.json to version $VERSION"
+            npm version $VERSION --no-git-tag-version --allow-same-version
+          fi
+
+      - name: Check npm token
+        id: check-npm-token
+        run: |
+          if [[ -z "${{ secrets.NPM_TOKEN }}" ]]; then
+            echo "NPM_TOKEN is not set, skipping publish"
+            echo "has_npm_token=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_npm_token=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        if: steps.check-npm-token.outputs.has_npm_token == 'true'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify on success
+        if: steps.check-npm-token.outputs.has_npm_token == 'true'
+        run: echo "Successfully published version ${{ needs.release.outputs.version }} to npm"
+
+  create_github_issue_on_failure:
+    name: Create Github Issue on Failure
+    needs: [release]
+    if: ${{ failure() && !contains(github.event.head_commit.message, '[skip ci]') }}
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    with:
+      workflow_name: 'Release and Publish'
+    secrets: inherit

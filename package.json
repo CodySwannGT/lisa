@@ -94,8 +94,16 @@
     "linting",
     "configuration"
   ],
-  "author": "",
+  "author": "Cody Swann",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CodySwannGT/lisa.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CodySwannGT/lisa/issues"
+  },
+  "homepage": "https://github.com/CodySwannGT/lisa#readme",
   "dependencies": {
     "@inquirer/prompts": "^7.0.0",
     "commander": "^12.0.0",
@@ -105,6 +113,12 @@
   },
   "files": [
     "dist",
-    "configs"
+    "all",
+    "typescript",
+    "expo",
+    "nestjs",
+    "cdk",
+    "eslint-plugin-code-organization",
+    "lisa.sh"
   ]
 }
