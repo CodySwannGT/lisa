@@ -1,0 +1,29 @@
+{
+  "name": "soak",
+  "description": "Extended duration test to identify memory leaks and performance degradation",
+  "executor": "constant-vus",
+  "vus": 10,
+  "duration": "30m",
+  "thresholds": {
+    "http_req_failed": ["rate<0.02"],
+    "http_req_duration": ["p(95)<1000", "p(99)<2000"],
+    "http_req_receiving": ["p(95)<500"],
+    "checks": ["rate>0.95"],
+    "iterations": ["count>1000"],
+    "vus": ["value==10"]
+  },
+  "env": {
+    "SCENARIO_NAME": "soak",
+    "SOAK_DURATION": "30m",
+    "MEMORY_CHECK_INTERVAL": "5m"
+  },
+  "tags": {
+    "test_type": "soak",
+    "environment": "${K6_ENVIRONMENT}",
+    "long_running": "true"
+  },
+  "notes": {
+    "monitoring": "Monitor memory usage, CPU, and response time trends over the duration",
+    "duration_override": "Can be extended to 1h, 2h, or 4h based on requirements"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "thresholds": {
+    "http_req_failed": {
+      "threshold": "rate<0.2",
+      "abortOnFail": false
+    },
+    "http_req_duration": {
+      "threshold": "p(95)<3000"
+    },
+    "http_req_duration{name:Home}": {
+      "threshold": "p(95)<2000"
+    },
+    "http_req_duration{name:API}": {
+      "threshold": "p(95)<5000"
+    },
+    "checks": {
+      "threshold": "rate>0.8"
+    }
+  },
+  "description": "Relaxed thresholds for development and initial testing"
+}

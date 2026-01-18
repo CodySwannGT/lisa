@@ -1,0 +1,30 @@
+{
+  "thresholds": {
+    "http_req_failed": {
+      "threshold": "rate<0.05",
+      "abortOnFail": false
+    },
+    "http_req_duration": {
+      "threshold": "p(95)<1000"
+    },
+    "http_req_duration{name:Home}": {
+      "threshold": "p(95)<500"
+    },
+    "http_req_duration{name:API}": {
+      "threshold": "p(95)<1500"
+    },
+    "http_req_waiting": {
+      "threshold": "p(95)<800"
+    },
+    "http_req_receiving": {
+      "threshold": "p(95)<200"
+    },
+    "checks": {
+      "threshold": "rate>0.9"
+    },
+    "iterations": {
+      "threshold": "count>50"
+    }
+  },
+  "description": "Standard thresholds for production-ready applications"
+}

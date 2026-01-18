@@ -1,0 +1,29 @@
+{
+  "thresholds": {
+    "http_req_failed": {
+      "threshold": "rate<0.01",
+      "abortOnFail": true,
+      "delayAbortEval": "10s"
+    },
+    "http_req_duration": {
+      "threshold": "p(95)<200",
+      "abortOnFail": false
+    },
+    "http_req_duration{name:Home}": {
+      "threshold": "p(95)<150"
+    },
+    "http_req_duration{name:API}": {
+      "threshold": "p(95)<300"
+    },
+    "http_reqs": {
+      "threshold": "rate>10",
+      "abortOnFail": false
+    },
+    "checks": {
+      "threshold": "rate>0.95"
+    },
+    "iterations": {
+      "threshold": "count>100"
+    }
+  }
+}
