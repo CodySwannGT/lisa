@@ -1,7 +1,10 @@
-import * as path from 'node:path';
-import type { IProjectTypeDetector } from '../detector.interface.js';
-import { readJsonOrNull } from '../../utils/index.js';
+import * as path from "node:path";
+import type { IProjectTypeDetector } from "../detector.interface.js";
+import { readJsonOrNull } from "../../utils/index.js";
 
+/**
+ * Package.json structure for npm package detection
+ */
 interface PackageJson {
   private?: boolean;
   main?: string;
@@ -18,10 +21,16 @@ interface PackageJson {
  * - Has at least one of: main, bin, exports, or files fields
  */
 export class NpmPackageDetector implements IProjectTypeDetector {
-  readonly type = 'npm-package' as const;
+  readonly type = "npm-package" as const;
 
+  /**
+   * Detect if the project is an npm package
+   *
+   * @param destDir - Project directory to check
+   * @returns True if npm package is detected
+   */
   async detect(destDir: string): Promise<boolean> {
-    const packageJsonPath = path.join(destDir, 'package.json');
+    const packageJsonPath = path.join(destDir, "package.json");
     const packageJson = await readJsonOrNull<PackageJson>(packageJsonPath);
 
     if (!packageJson) {
@@ -37,7 +46,8 @@ export class NpmPackageDetector implements IProjectTypeDetector {
     const hasMain = packageJson.main !== undefined;
     const hasBin = packageJson.bin !== undefined;
     const hasExports = packageJson.exports !== undefined;
-    const hasFiles = packageJson.files !== undefined && packageJson.files.length > 0;
+    const hasFiles =
+      packageJson.files !== undefined && packageJson.files.length > 0;
 
     return hasMain || hasBin || hasExports || hasFiles;
   }

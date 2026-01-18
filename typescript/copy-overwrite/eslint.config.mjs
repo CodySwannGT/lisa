@@ -278,8 +278,8 @@ export default [
         {
           require: {
             FunctionDeclaration: true,
-            MethodDefinition: false,
-            ClassDeclaration: false,
+            MethodDefinition: true,  // Changed: AI can document class methods
+            ClassDeclaration: true,  // Changed: AI can document classes
             ArrowFunctionExpression: false,
             FunctionExpression: false,
           },
@@ -290,6 +290,9 @@ export default [
           ],
         },
       ],
+      "jsdoc/require-description": "error",  // Add: require main description
+      "jsdoc/require-param": "error",        // Add: force @param tags
+      "jsdoc/require-returns": "error",      // Add: force @returns tags
       "jsdoc/require-param-description": "error",
       "jsdoc/require-returns-description": "error",
       "jsdoc/require-property-description": "error",
@@ -329,6 +332,7 @@ export default [
       "jest.setup.ts",
       "jest.setup.pre.js",
       "**/__tests__/*",
+      "**/test/**",
     ],
     languageOptions: {
       globals: {
@@ -339,6 +343,8 @@ export default [
       "@typescript-eslint/no-explicit-any": "off",
       // Tests often need to mutate state for mocks, setup, and assertions
       "functional/immutable-data": "off",
+      // Tests often need let for setup/teardown and incrementing counters
+      "functional/no-let": "off",
       // Tests need to manipulate process.env for environment setup
       "no-restricted-syntax": "off",
     },

@@ -400,7 +400,11 @@ export default [
     rules: {
       "max-lines": [
         "error",
-        { max: thresholds.maxLinesView, skipBlankLines: true, skipComments: true },
+        {
+          max: thresholds.maxLinesView,
+          skipBlankLines: true,
+          skipComments: true,
+        },
       ],
     },
   },

@@ -1,10 +1,10 @@
-import * as fse from 'fs-extra';
-import { copyFile } from 'node:fs/promises';
-import type { FileOperationResult } from '../core/config.js';
-import type { ICopyStrategy, StrategyContext } from './strategy.interface.js';
-import { ensureParentDir } from '../utils/file-operations.js';
-import { readJson, writeJson, deepMerge } from '../utils/json-utils.js';
-import { JsonMergeError } from '../errors/index.js';
+import * as fse from "fs-extra";
+import { copyFile } from "node:fs/promises";
+import type { FileOperationResult } from "../core/config.js";
+import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
+import { ensureParentDir } from "../utils/file-operations.js";
+import { readJson, writeJson, deepMerge } from "../utils/json-utils.js";
+import { JsonMergeError } from "../errors/index.js";
 
 /**
  * Merge strategy: Deep merge JSON files (project values take precedence)
@@ -13,13 +13,22 @@ import { JsonMergeError } from '../errors/index.js';
  * - Handle nested paths (.claude/settings.json)
  */
 export class MergeStrategy implements ICopyStrategy {
-  readonly name = 'merge' as const;
+  readonly name = "merge" as const;
 
+  /**
+   * Apply merge strategy: Deep merge JSON files with project values taking precedence
+   *
+   * @param sourcePath - Source JSON file path
+   * @param destPath - Destination JSON file path
+   * @param relativePath - Relative path for recording
+   * @param context - Strategy context with config and callbacks
+   * @returns Result of the merge operation
+   */
   async apply(
     sourcePath: string,
     destPath: string,
     relativePath: string,
-    context: StrategyContext,
+    context: StrategyContext
   ): Promise<FileOperationResult> {
     const { config, recordFile, backupFile } = context;
     const destExists = await fse.pathExists(destPath);
@@ -31,24 +40,23 @@ export class MergeStrategy implements ICopyStrategy {
         await copyFile(sourcePath, destPath);
         recordFile(relativePath, this.name);
       }
-      return { relativePath, strategy: this.name, action: 'copied' };
+      return { relativePath, strategy: this.name, action: "copied" };
     }
 
     // Both files exist - merge them
-    let sourceJson: object;
-    let destJson: object;
+    const sourceJson = await readJson<object>(sourcePath).catch(() => {
+      throw new JsonMergeError(
+        relativePath,
+        `Failed to parse source: ${sourcePath}`
+      );
+    });
 
-    try {
-      sourceJson = await readJson<object>(sourcePath);
-    } catch (error) {
-      throw new JsonMergeError(relativePath, `Failed to parse source: ${sourcePath}`);
-    }
-
-    try {
-      destJson = await readJson<object>(destPath);
-    } catch (error) {
-      throw new JsonMergeError(relativePath, `Failed to parse destination: ${destPath}`);
-    }
+    const destJson = await readJson<object>(destPath).catch(() => {
+      throw new JsonMergeError(
+        relativePath,
+        `Failed to parse destination: ${destPath}`
+      );
+    });
 
     // Deep merge: Lisa (source) provides defaults, project (dest) values win
     const merged = deepMerge(sourceJson, destJson);
@@ -61,7 +69,7 @@ export class MergeStrategy implements ICopyStrategy {
       if (!config.dryRun) {
         recordFile(relativePath, this.name);
       }
-      return { relativePath, strategy: this.name, action: 'skipped' };
+      return { relativePath, strategy: this.name, action: "skipped" };
     }
 
     if (!config.dryRun) {
@@ -70,6 +78,6 @@ export class MergeStrategy implements ICopyStrategy {
       recordFile(relativePath, this.name);
     }
 
-    return { relativePath, strategy: this.name, action: 'merged' };
+    return { relativePath, strategy: this.name, action: "merged" };
   }
 }

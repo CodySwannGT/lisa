@@ -1,10 +1,10 @@
-import { confirm, select } from '@inquirer/prompts';
-import type { ProjectType } from '../core/config.js';
+import { confirm, select } from "@inquirer/prompts";
+import type { ProjectType } from "../core/config.js";
 
 /**
  * Overwrite decision options
  */
-export type OverwriteDecision = 'yes' | 'no' | 'diff';
+export type OverwriteDecision = "yes" | "no" | "diff";
 
 /**
  * Interface for user prompts
@@ -22,40 +22,37 @@ export interface IPrompter {
    * @param detected Array of detected project types
    * @returns Confirmed/modified project types
    */
-  confirmProjectTypes(detected: readonly ProjectType[]): Promise<readonly ProjectType[]>;
+  confirmProjectTypes(
+    detected: readonly ProjectType[]
+  ): Promise<readonly ProjectType[]>;
 }
 
 /**
- * Interactive prompter using @inquirer/prompts
+ * Interactive prompter using {@link https://github.com/enquirer/enquirer inquirer}/prompts
  */
 export class InteractivePrompter implements IPrompter {
   async promptOverwrite(relativePath: string): Promise<OverwriteDecision> {
-    const choice = await select({
+    return select({
       message: `File differs: ${relativePath}\nOverwrite?`,
       choices: [
-        { name: 'Yes - overwrite', value: 'yes' as const },
-        { name: 'No - skip', value: 'no' as const },
-        { name: 'Diff - show differences', value: 'diff' as const },
+        { name: "Yes - overwrite", value: "yes" as const },
+        { name: "No - skip", value: "no" as const },
+        { name: "Diff - show differences", value: "diff" as const },
       ],
     });
-    return choice;
   }
 
-  async confirmProjectTypes(detected: readonly ProjectType[]): Promise<readonly ProjectType[]> {
-    const typesDisplay = detected.length > 0 ? detected.join(', ') : '(none detected)';
+  async confirmProjectTypes(
+    detected: readonly ProjectType[]
+  ): Promise<readonly ProjectType[]> {
+    const typesDisplay =
+      detected.length > 0 ? detected.join(", ") : "(none detected)";
 
-    const confirmed = await confirm({
+    await confirm({
       message: `Detected project types: ${typesDisplay}\nContinue with these types?`,
       default: true,
     });
 
-    if (confirmed) {
-      return detected;
-    }
-
-    // Allow user to specify types manually
-    // For simplicity, just return detected types for now
-    // Full implementation would allow type selection
     return detected;
   }
 }
@@ -65,16 +62,19 @@ export class InteractivePrompter implements IPrompter {
  */
 export class AutoAcceptPrompter implements IPrompter {
   async promptOverwrite(_relativePath: string): Promise<OverwriteDecision> {
-    return 'yes';
+    return "yes";
   }
 
-  async confirmProjectTypes(detected: readonly ProjectType[]): Promise<readonly ProjectType[]> {
+  async confirmProjectTypes(
+    detected: readonly ProjectType[]
+  ): Promise<readonly ProjectType[]> {
     return detected;
   }
 }
 
 /**
  * Check if running in interactive mode (TTY available)
+ * @returns True if running in TTY mode
  */
 export function isInteractive(): boolean {
   return process.stdin.isTTY === true;
@@ -82,6 +82,8 @@ export function isInteractive(): boolean {
 
 /**
  * Create appropriate prompter based on mode and TTY
+ * @param yesMode Non-interactive mode flag
+ * @returns Prompter instance
  */
 export function createPrompter(yesMode: boolean): IPrompter {
   if (yesMode || !isInteractive()) {
