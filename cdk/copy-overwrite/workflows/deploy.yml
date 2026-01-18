@@ -1,0 +1,56 @@
+name: 🚀 Release and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+
+# Prevent concurrent runs of the same workflow on the same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Environment setup
+  determine_environment:
+    name: 🌍 Determine Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+    steps:
+      - name: 🔄 Set environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+  release:
+    name: 📦 Release
+    # Reference to the quality checks workflow
+    uses: ./.github/workflows/release.yml
+    needs: [determine_environment]
+    with:
+      environment: ${{ needs.determine_environment.outputs.environment }}
+      release_strategy: 'semantic'
+      skip_jobs: 'test:e2e,test:integration'
+      require_approval: false
+      require_signatures: false
+      generate_sbom: true
+      override_blackout: true
+      node_version: '20'
+      package_manager: 'npm'
+    secrets: inherit
+# Trigger staging deployment after CDK trust fix
