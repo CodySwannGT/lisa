@@ -1,5 +1,5 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-18T15:35:36.096Z
+# Generated: 2026-01-18T16:11:21.714Z
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.claude/README.md
@@ -60,6 +60,7 @@ copy-overwrite:.claude/hooks/lint-on-edit.sh
 copy-overwrite:.claude/skills/jsdoc-best-practices/SKILL.md
 copy-overwrite:.github/README.md
 copy-overwrite:.github/dependabot.yml
+copy-overwrite:.github/workflows/ci.yml
 copy-overwrite:.github/workflows/claude.yml
 copy-overwrite:.github/workflows/create-github-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-issue-on-failure.yml
