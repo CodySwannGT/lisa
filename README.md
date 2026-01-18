@@ -332,6 +332,74 @@ all/                    ← Applied to every project
 
 An Expo project receives configs from: `all/` → `typescript/` → `expo/`
 
+### Why Stack-Specific Rules Matter
+
+**Generic AI rules don't work.** Each technology stack has its own:
+- Architectural patterns (NestJS modules vs. Expo screens vs. CDK constructs)
+- Testing approaches (Jest + Testing Library vs. Supertest vs. CDK assertions)
+- File organization conventions
+- Performance pitfalls
+- Security considerations
+
+When Claude writes code without stack-specific guidance, it produces "generic" solutions that miss the idioms and best practices of your stack. For example:
+
+| Stack | Generic AI Output | With Lisa Stack Rules |
+|-------|-------------------|----------------------|
+| **Expo** | Inline styles, direct RN imports | Uses design system, container/view pattern |
+| **NestJS** | Mixed concerns in controllers | Proper service/repository separation |
+| **CDK** | Hardcoded values, no constructs | Parameterized, reusable L3 constructs |
+
+The more specific the guidance, the better the output. That's why Lisa is structured around project types rather than one-size-fits-all rules.
+
+### Extending Lisa for Other Stacks
+
+Lisa currently supports TypeScript, Expo, NestJS, and CDK—but the architecture is designed for extension. **We're calling on the community to contribute stack-specific configurations.**
+
+**Stacks that would benefit from Lisa extensions:**
+
+| Stack | Potential Rules |
+|-------|-----------------|
+| **Next.js** | App Router patterns, Server Components vs. Client, caching strategies |
+| **React Native (non-Expo)** | Native module patterns, platform-specific code |
+| **Django** | Model/View/Template separation, ORM patterns, admin customization |
+| **FastAPI** | Dependency injection, Pydantic models, async patterns |
+| **Spring Boot** | Bean lifecycle, annotation patterns, JPA repositories |
+| **Laravel** | Eloquent patterns, Blade templates, queue workers |
+| **Rails** | Convention over configuration, concerns, ActiveRecord |
+| **Go (Gin/Echo)** | Error handling, middleware patterns, struct design |
+| **Rust (Axum/Actix)** | Ownership patterns, error types, async runtime |
+| **Flutter** | Widget composition, BLoC pattern, platform channels |
+| **Vue/Nuxt** | Composition API, Pinia stores, auto-imports |
+| **Svelte/SvelteKit** | Reactive statements, load functions, form actions |
+| **Terraform** | Module structure, state management, provider patterns |
+| **Kubernetes** | Helm charts, operator patterns, RBAC |
+
+**To contribute a new stack:**
+
+```bash
+# Create the stack directory
+mkdir -p your-stack/{copy-overwrite,merge}
+
+# Add stack-specific skills
+mkdir -p your-stack/copy-overwrite/.claude/skills/your-pattern
+cat > your-stack/copy-overwrite/.claude/skills/your-pattern/SKILL.md << 'EOF'
+---
+name: your-pattern
+description: Teaches Claude the idioms of your stack
+---
+# Your Pattern
+...
+EOF
+
+# Add stack-specific ESLint rules
+mkdir -p your-stack/copy-overwrite/eslint-plugin-your-stack
+
+# Add stack detection to lisa.sh (in detect_project_types function)
+# Add package.json dependencies via merge/
+```
+
+See the `expo/` directory for a comprehensive example of stack-specific configuration.
+
 ## Copy Strategies
 
 Each type directory contains subdirectories that control how files are applied:
