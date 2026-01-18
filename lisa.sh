@@ -358,24 +358,24 @@ copy_overwrite() {
             record_file "$rel_path" "copy-overwrite"
             log_success "Copied: $rel_path"
         fi
-        ((COPIED++))
+        ((++COPIED))
     elif files_identical "$src" "$dest"; then
         # Files are identical - still record for uninstall tracking
         record_file "$rel_path" "copy-overwrite"
-        ((SKIPPED++))
+        ((++SKIPPED))
     else
         # Files differ - prompt (or just report in dry run)
         if [[ "$DRY_RUN" == "true" ]]; then
             log_dry "Would prompt to overwrite: $rel_path"
-            ((OVERWRITTEN++))
+            ((++OVERWRITTEN))
         elif prompt_overwrite "$rel_path" "$dest" "$src"; then
             backup_file "$dest"
             cp "$src" "$dest"
             record_file "$rel_path" "copy-overwrite"
-            ((OVERWRITTEN++))
+            ((++OVERWRITTEN))
             log_success "Overwritten: $rel_path"
         else
-            ((SKIPPED++))
+            ((++SKIPPED))
             log_warn "Skipped: $rel_path"
         fi
     fi
@@ -397,10 +397,10 @@ copy_create_only() {
             record_file "$rel_path" "create-only"
             log_success "Created: $rel_path"
         fi
-        ((COPIED++))
+        ((++COPIED))
     else
         # Destination exists - skip silently (whether identical or different)
-        ((SKIPPED++))
+        ((++SKIPPED))
     fi
 }
 
@@ -421,11 +421,11 @@ copy_contents() {
             record_file "$rel_path" "copy-contents"
             log_success "Copied: $rel_path"
         fi
-        ((COPIED++))
+        ((++COPIED))
     elif files_identical "$src" "$dest"; then
         # Files are identical - still record for tracking
         record_file "$rel_path" "copy-contents"
-        ((SKIPPED++))
+        ((++SKIPPED))
     else
         # Find lines in src that are not in dest using comm (O(n log n))
         # Filter out empty lines from src before comparison
@@ -444,10 +444,10 @@ copy_contents() {
                 record_file "$rel_path" "copy-contents"
                 log_success "Appended $added_lines lines to: $rel_path"
             fi
-            ((APPENDED++))
+            ((++APPENDED))
         else
             record_file "$rel_path" "copy-contents"
-            ((SKIPPED++))
+            ((++SKIPPED))
         fi
     fi
 }
@@ -482,7 +482,7 @@ merge_json() {
             record_file "$rel_path" "merge"
             log_success "Copied: $rel_path"
         fi
-        ((COPIED++))
+        ((++COPIED))
     else
         # Deep merge: Lisa values as defaults, project values win conflicts
         local merged
@@ -501,7 +501,7 @@ merge_json() {
         current=$(cat "$dest")
         if [[ "$merged" == "$current" ]]; then
             record_file "$rel_path" "merge"
-            ((SKIPPED++))
+            ((++SKIPPED))
         else
             if [[ "$DRY_RUN" == "true" ]]; then
                 log_dry "Would merge: $rel_path"
@@ -511,7 +511,7 @@ merge_json() {
                 record_file "$rel_path" "merge"
                 log_success "Merged: $rel_path"
             fi
-            ((MERGED++))
+            ((++MERGED))
         fi
     fi
 }
