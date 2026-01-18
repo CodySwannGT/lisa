@@ -50,7 +50,7 @@ jobs:
       require_signatures: false
       generate_sbom: true
       override_blackout: true
-      node_version: '20'
-      package_manager: 'npm'
+      node_version: '22.21.1'
+      package_manager: 'bun'
     secrets: inherit
 # Trigger staging deployment after CDK trust fix
