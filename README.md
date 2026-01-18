@@ -389,8 +389,7 @@ Configurable limits in `eslint.thresholds.config.json`:
 ```json
 {
   "cognitiveComplexity": 10,
-  "maxLines": 300,
-  "maxLinesView": 300
+  "maxLines": 300
 }
 ```
 
@@ -784,7 +783,7 @@ npm test
 npm run test:watch
 
 # Run with coverage
-npm run test:coverage
+npm run test:cov
 ```
 
 ### Type Checking
