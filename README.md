@@ -193,6 +193,16 @@ npx @codyswann/lisa /path/to/project
 - **Node.js 18+**
 - **npm**, **bun**, or **pnpm**
 
+### Optional Tools
+
+These tools enhance Lisa's capabilities but are not required:
+
+- **[CodeRabbit](https://coderabbit.ai/)** - AI-powered code review tool used by `/project:review`
+  ```bash
+  npm install -g coderabbit
+  ```
+  If not installed, the CodeRabbit review step in `/project:review` will be skipped silently.
+
 ## Usage
 
 Run Lisa against any project directory:
