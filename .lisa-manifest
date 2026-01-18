@@ -1,5 +1,5 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-18T03:53:05.327Z
+# Generated: 2026-01-18T03:58:46.700Z
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.claude/README.md
@@ -104,6 +104,7 @@ copy-overwrite:eslint-plugin-code-organization/__tests__/enforce-statement-order
 copy-overwrite:eslint-plugin-code-organization/index.js
 copy-overwrite:eslint-plugin-code-organization/package.json
 copy-overwrite:eslint-plugin-code-organization/rules/enforce-statement-order.js
+copy-overwrite:eslint.config.mjs
 copy-overwrite:eslint.ignore.config.json
 copy-overwrite:eslint.thresholds.config.json
 copy-contents:.husky/_/.gitignore
