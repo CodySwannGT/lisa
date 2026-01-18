@@ -357,7 +357,7 @@ jobs:
           elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
             yarn test
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun test
+            bun run test
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
