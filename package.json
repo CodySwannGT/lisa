@@ -20,7 +20,7 @@
   },
   "scripts": {
     "//docs": "The following commands MUST be defined for CI/CD to work properly - even if they're no-ops.",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "build": "tsc",
     "test": "vitest run",

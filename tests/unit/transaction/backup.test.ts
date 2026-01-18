@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs-extra';
-import * as path from 'node:path';
-import { BackupService } from '../../../src/transaction/backup.js';
-import { SilentLogger } from '../../../src/logging/silent-logger.js';
-import { createTempDir, cleanupTempDir } from '../../helpers/test-utils.js';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import * as fs from "fs-extra";
+import * as path from "node:path";
+import { BackupService } from "../../../src/transaction/backup.js";
+import { SilentLogger } from "../../../src/logging/silent-logger.js";
+import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
-describe('BackupService', () => {
+const TEST_FILE = "test.txt";
+const ORIGINAL_CONTENT = "original content";
+
+describe("BackupService", () => {
   let service: BackupService;
   let tempDir: string;
   let destDir: string;
@@ -13,7 +16,7 @@ describe('BackupService', () => {
   beforeEach(async () => {
     service = new BackupService(new SilentLogger());
     tempDir = await createTempDir();
-    destDir = path.join(tempDir, 'dest');
+    destDir = path.join(tempDir, "dest");
     await fs.ensureDir(destDir);
   });
 
@@ -21,8 +24,8 @@ describe('BackupService', () => {
     await cleanupTempDir(tempDir);
   });
 
-  describe('init', () => {
-    it('creates backup directory', async () => {
+  describe("init", () => {
+    it("creates backup directory", async () => {
       await service.init(destDir);
 
       // Should not throw
@@ -30,12 +33,12 @@ describe('BackupService', () => {
     });
   });
 
-  describe('backup', () => {
-    it('backs up existing file', async () => {
+  describe("backup", () => {
+    it("backs up existing file", async () => {
       await service.init(destDir);
 
-      const testFile = path.join(destDir, 'test.txt');
-      await fs.writeFile(testFile, 'original content');
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, ORIGINAL_CONTENT);
 
       await service.backup(testFile);
 
@@ -43,63 +46,65 @@ describe('BackupService', () => {
       expect(true).toBe(true);
     });
 
-    it('handles non-existent file gracefully', async () => {
+    it("handles non-existent file gracefully", async () => {
       await service.init(destDir);
 
-      const testFile = path.join(destDir, 'nonexistent.txt');
+      const testFile = path.join(destDir, "nonexistent.txt");
 
       // Should not throw
       await expect(service.backup(testFile)).resolves.not.toThrow();
     });
 
-    it('throws when not initialized', async () => {
-      await expect(service.backup('/some/file')).rejects.toThrow('not initialized');
+    it("throws when not initialized", async () => {
+      await expect(service.backup("/some/file")).rejects.toThrow(
+        "not initialized"
+      );
     });
   });
 
-  describe('rollback', () => {
-    it('restores backed up files', async () => {
+  describe("rollback", () => {
+    it("restores backed up files", async () => {
       await service.init(destDir);
 
-      const testFile = path.join(destDir, 'test.txt');
-      await fs.writeFile(testFile, 'original content');
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, ORIGINAL_CONTENT);
 
       await service.backup(testFile);
 
       // Modify the file
-      await fs.writeFile(testFile, 'modified content');
+      await fs.writeFile(testFile, "modified content");
 
       // Rollback
       await service.rollback();
 
       // File should be restored
-      const content = await fs.readFile(testFile, 'utf-8');
-      expect(content).toBe('original content');
+      const content = await fs.readFile(testFile, "utf-8");
+      expect(content).toBe(ORIGINAL_CONTENT);
     });
 
-    it('restores nested files', async () => {
+    it("restores nested files", async () => {
       await service.init(destDir);
 
-      const nestedFile = path.join(destDir, 'nested', 'deep', 'file.txt');
+      const nestedFile = path.join(destDir, "nested", "deep", "file.txt");
       await fs.ensureDir(path.dirname(nestedFile));
-      await fs.writeFile(nestedFile, 'nested content');
+      await fs.writeFile(nestedFile, "nested content");
 
       await service.backup(nestedFile);
-      await fs.writeFile(nestedFile, 'changed');
+      await fs.writeFile(nestedFile, "changed");
 
       await service.rollback();
 
-      const content = await fs.readFile(nestedFile, 'utf-8');
-      expect(content).toBe('nested content');
+      const content = await fs.readFile(nestedFile, "utf-8");
+      expect(content).toBe("nested content");
     });
   });
 
-  describe('cleanup', () => {
-    it('removes backup directory', async () => {
+  describe("cleanup", () => {
+    it("removes backup directory", async () => {
       await service.init(destDir);
 
-      const testFile = path.join(destDir, 'test.txt');
-      await fs.writeFile(testFile, 'content');
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, "content");
       await service.backup(testFile);
 
       await service.cleanup();
@@ -108,7 +113,7 @@ describe('BackupService', () => {
       await expect(service.init(destDir)).resolves.not.toThrow();
     });
 
-    it('handles multiple cleanup calls gracefully', async () => {
+    it("handles multiple cleanup calls gracefully", async () => {
       await service.init(destDir);
       await service.cleanup();
       await service.cleanup();
