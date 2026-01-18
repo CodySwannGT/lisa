@@ -278,8 +278,8 @@ export default [
         {
           require: {
             FunctionDeclaration: true,
-            MethodDefinition: true,  // Changed: AI can document class methods
-            ClassDeclaration: true,  // Changed: AI can document classes
+            MethodDefinition: true, // Changed: AI can document class methods
+            ClassDeclaration: true, // Changed: AI can document classes
             ArrowFunctionExpression: false,
             FunctionExpression: false,
           },
@@ -290,9 +290,9 @@ export default [
           ],
         },
       ],
-      "jsdoc/require-description": "error",  // Add: require main description
-      "jsdoc/require-param": "error",        // Add: force @param tags
-      "jsdoc/require-returns": "error",      // Add: force @returns tags
+      "jsdoc/require-description": "error", // Add: require main description
+      "jsdoc/require-param": "error", // Add: force @param tags
+      "jsdoc/require-returns": "error", // Add: force @returns tags
       "jsdoc/require-param-description": "error",
       "jsdoc/require-returns-description": "error",
       "jsdoc/require-property-description": "error",

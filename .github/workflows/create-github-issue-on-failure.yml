@@ -49,8 +49,8 @@ on:
         type: string
     secrets:
       PAT:
-        required: true
-        description: 'Personal Access Token with repo scope'
+        required: false
+        description: 'Personal Access Token with repo scope (falls back to GITHUB_TOKEN)'
 
 # Concurrency is managed by the parent workflow that calls this one
 # This avoids deadlocks between parent and child workflows
@@ -73,7 +73,7 @@ jobs:
       - name: 🔖 Create Issue
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT || github.token }}
           script: |
             // Get repository and run information
             const { owner, repo } = context.repo;
