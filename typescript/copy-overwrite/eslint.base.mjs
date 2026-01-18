@@ -126,7 +126,7 @@ export const getBaseConfigs = () => [
  * @param {number} thresholds.maxLines - Max lines per file
  * @returns {object} Rules configuration object
  */
-export const getSharedRules = (thresholds) => ({
+export const getSharedRules = thresholds => ({
   // Prettier: Disabled because running Prettier inside ESLint is redundant and slower.
   // We use `format:check` from package.json for formatting validation and editor Prettier integration.
   // The eslint-config-prettier (imported above) still disables conflicting ESLint rules.
@@ -381,4 +381,13 @@ export const getTsTestFilesOverride = (
 });
 
 // Re-export plugins and configs for use in project-specific configs
-export { eslintComments, functional, globals, jsdoc, js, prettier, sonarjs, tseslint };
+export {
+  eslintComments,
+  functional,
+  globals,
+  jsdoc,
+  js,
+  prettier,
+  sonarjs,
+  tseslint,
+};
