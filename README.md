@@ -13,6 +13,8 @@ Claude Code is powerful, but without guardrails it can:
 
 Lisa solves this by applying a comprehensive governance system that guides Claude's behavior at every step.
 
+**The key insight:** Not every developer needs to be an AI expert. Platform teams with deep AI knowledge can encode best practices into Lisa, and implementation teams get the benefits automatically through simple commands.
+
 ## How It Works
 
 Lisa applies multiple layers of quality control to your project:
@@ -34,6 +36,81 @@ These layers work together. When Claude writes code:
 3. **Hooks** automatically format and lint the code
 4. **ESLint plugins** catch structural violations
 5. **Git hooks** prevent commits that fail quality checks
+
+## Team & Organization Usage
+
+Lisa is designed for a **two-tier organizational model** that separates AI expertise from day-to-day development:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      PLATFORM TEAM                          │
+│                                                             │
+│  • Deep AI/LLM expertise (prompting, context engineering)  │
+│  • Domain knowledge of coding standards & best practices    │
+│  • Maintains and iterates on Lisa configurations           │
+│  • Writes skills, hooks, ESLint rules, slash commands      │
+│  • Tests guardrails against real-world edge cases          │
+│                                                             │
+│                         │                                   │
+│                         ▼                                   │
+│                   Lisa Repository                           │
+│                         │                                   │
+│                         ▼                                   │
+├─────────────────────────────────────────────────────────────┤
+│                   IMPLEMENTATION TEAMS                      │
+│                                                             │
+│  • Focus on building end-user software                      │
+│  • Run `lisa.sh` to bootstrap projects                      │
+│  • Use simple commands like `/project:implement`            │
+│  • Don't need deep AI expertise                             │
+│  • Automatically get guardrails & quality enforcement       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Why This Model Works
+
+**For Platform Teams:**
+- Centralize AI governance expertise in one place
+- Iterate on prompts, skills, and guardrails based on real feedback
+- A/B test different approaches across the organization
+- Push improvements to all teams instantly via Lisa updates
+
+**For Implementation Teams:**
+- No need to learn prompt engineering or context engineering
+- Simple commands produce high-quality, consistent code
+- Guardrails prevent common mistakes automatically
+- Focus on business logic, not AI wrangling
+
+### Workflow Example
+
+1. **Platform Team** discovers Claude sometimes creates overly complex functions
+2. **Platform Team** adds a `cognitiveComplexity: 10` threshold to ESLint config
+3. **Platform Team** writes a skill teaching Claude to decompose complex logic
+4. **Platform Team** pushes update to Lisa repository
+5. **Implementation Teams** run `lisa.sh` on their projects (or it happens via CI)
+6. **Implementation Teams** now automatically get simpler, more maintainable code
+
+### Forking for Your Organization
+
+```bash
+# Fork Lisa for your organization
+gh repo fork CodySwannGT/lisa --org your-org --clone
+
+# Customize configurations
+cd lisa
+# Edit skills, hooks, CLAUDE.md, ESLint rules, etc.
+
+# Push to your org's fork
+git push origin main
+```
+
+Implementation teams then clone from your organization's fork:
+
+```bash
+git clone https://github.com/your-org/lisa ~/lisa
+~/lisa/lisa.sh /path/to/project
+```
 
 ## Installation
 
