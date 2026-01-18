@@ -1,0 +1,143 @@
+name: 🔍 CI Quality Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  determine_environment:
+    name: 🌍 Determine Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      cdk_env: ${{ steps.env.outputs.cdk_env }}
+      aws_account_id: ${{ steps.env.outputs.aws_account_id }}
+      role_arn: ${{ steps.env.outputs.role_arn }}
+    steps:
+      - name: 🔄 Set environment
+        id: env
+        run: |
+          # For workflow dispatch, use the input
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TARGET_ENV="${{ github.event.inputs.environment }}"
+          # For pull requests, use the target branch
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
+            TARGET_BRANCH="${{ github.base_ref }}"
+            case $TARGET_BRANCH in
+              main)
+                TARGET_ENV="production"
+                ;;
+              staging)
+                TARGET_ENV="staging"
+                ;;
+              dev)
+                TARGET_ENV="dev"
+                ;;
+              *)
+                TARGET_ENV="dev"  # Default to dev for other branches
+                ;;
+            esac
+          else
+            TARGET_ENV="dev"  # Default fallback
+          fi
+
+          echo "environment=$TARGET_ENV" >> $GITHUB_OUTPUT
+
+          # Map to CDK environment name
+          case $TARGET_ENV in
+            production)
+              echo "cdk_env=production" >> $GITHUB_OUTPUT
+              echo "aws_account_id=017820663592" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::017820663592:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "cdk_env=staging" >> $GITHUB_OUTPUT
+              echo "aws_account_id=017820663537" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::017820663537:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              ;;
+            dev|*)
+              echo "cdk_env=dev" >> $GITHUB_OUTPUT
+              echo "aws_account_id=017820663466" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::017820663466:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+  cdk-checks:
+    name: 🏗️ CDK Validation
+    needs: [determine_environment]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write # needed to interact with GitHub's OIDC Token endpoint.
+      contents: read
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build project
+        run: npm run build
+
+      - name: 🔧 Install CDK
+        run: npm install -g aws-cdk
+
+      - name: 🔑 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ needs.determine_environment.outputs.role_arn }}
+          role-session-name: cdk-ci-checks
+          aws-region: us-east-1
+
+      - name: 📋 CDK Synth
+        run: |
+          echo "🔍 Running CDK synth for ${{ needs.determine_environment.outputs.environment }} environment..."
+          export CDK_DEFAULT_ACCOUNT=${{ secrets.AWS_INFRA_ACCOUNT_ID }}
+          export CDK_DEFAULT_REGION=us-east-1
+
+          npx cdk synth --all \
+            --quiet
+
+      - name: 🔍 CDK Diff
+        run: |
+          echo "📊 Running CDK diff for ${{ needs.determine_environment.outputs.environment }} environment..."
+          export CDK_DEFAULT_ACCOUNT=${{ secrets.AWS_INFRA_ACCOUNT_ID }}
+          export CDK_DEFAULT_REGION=us-east-1
+
+          npx cdk diff --all \
+            || true  # Don't fail on diff, just report changes
+
+      - name: 🧪 Run Tests (including snapshots)
+        run: |
+          echo "🧪 Running unit tests with snapshot validation..."
+          npm test
+
+  quality:
+    name: 🔍 Quality Checks
+    needs: [determine_environment, cdk-checks] # Ensure CDK checks pass first
+    # Reference to the quality checks workflow
+    uses: ./.github/workflows/quality.yml
+    with:
+      node_version: '20.x'
+      package_manager: 'npm'
+    secrets: inherit
+  create_jira_issue_on_failure:
+    name: 🚨 Create Jira Issue on Failure
+    needs: [determine_environment, cdk-checks, quality]
+    if: ${{ failure() && !contains(github.event.head_commit.message, '[skip ci]') }}
+    uses: ./.github/workflows/create-jira-issue-on-failure.yml
+    with:
+      workflow_name: 'CI Quality Checks'
+      failed_job: ${{ needs.cdk-checks.result == 'failure' && 'cdk-checks' || 'quality' }}
+      JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL }}
+      JIRA_USER_EMAIL: ${{ vars.JIRA_USER_EMAIL }}
+      JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
+    secrets:
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
