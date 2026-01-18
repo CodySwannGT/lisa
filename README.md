@@ -270,6 +270,8 @@ Hooks run automatically during Claude Code sessions:
 | `install_pkgs.sh` | Session start | Ensure dependencies installed |
 | `notify-ntfy.sh` | Permission prompt/Stop | Send notifications |
 
+**Async Workflow:** Lisa includes built-in [ntfy.sh](https://ntfy.sh) integration for push notifications. This enables a powerful async workflow with Claude Code Web - fire off tasks and get notified when they complete or need attention. See [Claude Code Web + Notifications](docs/workflows/claude-code-web-notifications.md) for setup instructions.
+
 ### Slash Commands - Guided Workflows
 
 Pre-built workflows for common tasks:
@@ -399,6 +401,46 @@ mkdir -p your-stack/copy-overwrite/eslint-plugin-your-stack
 ```
 
 See the `expo/` directory for a comprehensive example of stack-specific configuration.
+
+**Example prompts to bootstrap a new stack with Claude:**
+
+Use these prompts in Claude Code (with Lisa applied) to generate stack configurations:
+
+```
+Research Rails best practices and create a Lisa configuration for Ruby on Rails projects.
+Look at the expo/ directory as a reference for structure. Include:
+- Detection logic in lisa.sh (Gemfile with 'rails', config/routes.rb)
+- Skills for Rails conventions (MVC, ActiveRecord patterns, concerns)
+- ESLint equivalent rules using RuboCop (create a rubocop config, not an ESLint plugin)
+- Common .gitignore entries for Rails projects
+```
+
+```
+Create a Lisa configuration for Flutter projects. Reference expo/ for structure.
+Include:
+- Detection logic (pubspec.yaml with flutter dependency)
+- Skills for widget composition, BLoC/Riverpod patterns, platform channels
+- Dart analyzer rules (analysis_options.yaml instead of ESLint)
+- Flutter-specific .gitignore entries
+```
+
+```
+Add Next.js support to Lisa. This should be a child of typescript/ (like expo is).
+Include:
+- Detection logic (next.config.js or "next" in package.json)
+- Skills for App Router patterns, Server vs Client Components, caching
+- ESLint rules for Next.js idioms (or extend next/core-web-vitals)
+- Typical Next.js scripts in package.json
+```
+
+```
+Analyze the expo/ directory structure and create equivalent configuration for Django.
+Include:
+- Detection logic (manage.py, settings.py, or django in requirements.txt)
+- Skills for MVT pattern, ORM best practices, admin customization
+- Linting via flake8/ruff config (not ESLint)
+- Django-specific .gitignore entries
+```
 
 ## Copy Strategies
 
