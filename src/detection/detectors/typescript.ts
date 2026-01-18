@@ -2,6 +2,9 @@ import * as path from "node:path";
 import type { IProjectTypeDetector } from "../detector.interface.js";
 import { pathExists, readJsonOrNull } from "../../utils/index.js";
 
+/**
+ * Package.json structure for dependency checking
+ */
 interface PackageJson {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -14,6 +17,12 @@ interface PackageJson {
 export class TypeScriptDetector implements IProjectTypeDetector {
   readonly type = "typescript" as const;
 
+  /**
+   * Detect if the project uses TypeScript
+   *
+   * @param destDir - Project directory to check
+   * @returns True if TypeScript is detected
+   */
   async detect(destDir: string): Promise<boolean> {
     // Check for tsconfig.json
     const tsconfigPath = path.join(destDir, "tsconfig.json");

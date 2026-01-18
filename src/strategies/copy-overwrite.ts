@@ -14,6 +14,15 @@ import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
 export class CopyOverwriteStrategy implements ICopyStrategy {
   readonly name = "copy-overwrite" as const;
 
+  /**
+   * Apply copy-overwrite strategy: Create, skip, or prompt to overwrite file
+   *
+   * @param sourcePath - Source file path
+   * @param destPath - Destination file path
+   * @param relativePath - Relative path for recording
+   * @param context - Strategy context with config and callbacks
+   * @returns Result of the copy-overwrite operation
+   */
   async apply(
     sourcePath: string,
     destPath: string,

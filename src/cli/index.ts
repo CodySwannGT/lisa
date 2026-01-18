@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Get Lisa directory (where configs are stored)
+ * @returns Path to Lisa directory
  */
 function getLisaDir(): string {
   // Go up from dist/cli to project root
@@ -23,6 +24,7 @@ function getLisaDir(): string {
 
 /**
  * Create and configure the CLI program
+ * @returns Configured Commander program
  */
 export function createProgram(): Command {
   const program = new Command();
@@ -51,6 +53,9 @@ export function createProgram(): Command {
   return program;
 }
 
+/**
+ * CLI options parsed from command line arguments
+ */
 interface CLIOptions {
   dryRun?: boolean;
   yes?: boolean;
@@ -60,6 +65,9 @@ interface CLIOptions {
 
 /**
  * Run Lisa with the given options
+ * @param destination Path to destination directory
+ * @param options CLI options
+ * @returns Promise that completes when Lisa finishes
  */
 async function runLisa(
   destination: string | undefined,
@@ -129,15 +137,11 @@ async function runLisa(
   const lisa = new Lisa(config, deps);
 
   try {
-    let result;
-
-    if (options.uninstall) {
-      result = await lisa.uninstall();
-    } else if (options.validate) {
-      result = await lisa.validate();
-    } else {
-      result = await lisa.apply();
-    }
+    const result = options.uninstall
+      ? await lisa.uninstall()
+      : options.validate
+        ? await lisa.validate()
+        : await lisa.apply();
 
     if (!result.success) {
       process.exit(1);
