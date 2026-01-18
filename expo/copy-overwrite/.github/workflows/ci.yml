@@ -7,7 +7,6 @@ on:
 jobs:
   quality:
     name: 🔍 Quality Checks
-    timeout-minutes: 30
     # Reference to the quality checks workflow
     uses: ./.github/workflows/quality.yml
     with:
@@ -15,35 +14,20 @@ jobs:
       package_manager: 'bun'
       skip_jobs: 'test,test:integration,test:e2e'
     secrets: inherit
-
-  # playwright:
-  #   name: 🎭 Playwright Tests
-  #   timeout-minutes: 30
-  #   needs: [quality]
-  #   uses: ./.github/workflows/playwright.yml
-  #   with:
-  #     pr_number: ${{ github.event.pull_request.number }}
-  #     branch_ref: ${{ github.head_ref }}
-  #     base_ref: ${{ github.base_ref }}
-
   lighthouse:
     name: 💡 Lighthouse CI
-    timeout-minutes: 15
     needs: [quality]
     uses: ./.github/workflows/lighthouse.yml
     with:
       node_version: '22.21.1'
       package_manager: 'bun'
 
-  create_sentry_issue_on_failure:
-    name: 🚨 Create Sentry Issue on Failure
-    timeout-minutes: 5
+  create_issue_on_failure:
+    name: 📌 Create Issue on Failure
     needs: [quality]
     if: ${{ always() && (needs.quality.result == 'failure' || needs.quality.result == 'failure') && !contains(github.event.head_commit.message, '[skip ci]') }}
-    uses: ./.github/workflows/create-sentry-issue-on-failure.yml
+    uses: ./.github/workflows/create-issue-on-failure.yml
     with:
       workflow_name: 'CI Quality Checks'
       failed_job: ${{ needs.quality.result == 'failure' && 'quality' || 'playwright' }}
-      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
     secrets: inherit

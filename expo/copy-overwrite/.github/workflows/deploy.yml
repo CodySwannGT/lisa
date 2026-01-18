@@ -192,37 +192,14 @@ jobs:
 
       - name: 📢 Notify on success
         run: echo "Successfully deployed version ${{ steps.get_version.outputs.version }} to ${{ needs.determine_environment.outputs.environment }}"
-
-  # Step 3: Load testing for staging deployments
-  # load_testing:
-  #   name: 🔍 Load Testing
-  #   needs: [determine_environment, release, deploy]
-  #   if: |
-  #     always() &&
-  #     !cancelled() &&
-  #     needs.deploy.result == 'success' &&
-  #     (needs.determine_environment.outputs.environment == 'staging' || needs.determine_environment.outputs.environment == 'stage')
-  #   uses: ./.github/workflows/load-test.yml
-  #   with:
-  #     environment: ${{ needs.determine_environment.outputs.environment }}
-  #     test_scenario: 'smoke'  # Start with smoke test after deployment
-  #     base_url: ${{ needs.deploy.outputs.environment_url }}
-  #     test_duration: '5m'
-  #     virtual_users: 50
-  #     fail_on_threshold: false  # Don't fail the release if load test fails
-  #     upload_results: true
-  #   secrets: inherit
-
-  create_sentry_issue_on_failure:
-    name: 🚨 Create Sentry Issue on Failure
+  create_issue_on_failure:
+    name: 📌 Create Issue on Failure
     needs: [release, deploy]
     if: ${{ always() && (needs.release.result == 'failure' || needs.deploy.result == 'failure') && !contains(github.event.head_commit.message, '[skip ci]') }}
-    uses: ./.github/workflows/create-sentry-issue-on-failure.yml
+    uses: ./.github/workflows/create-issue-on-failure.yml
     with:
       package_manager: 'bun'
       node_version: '22.21.1'
       workflow_name: 'Release and Deploy'
       failed_job: ${{ needs.release.result == 'failure' && 'release' || 'deploy' }}
-      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
     secrets: inherit
