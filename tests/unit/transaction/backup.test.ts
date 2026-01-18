@@ -5,6 +5,9 @@ import { BackupService } from "../../../src/transaction/backup.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
+const TEST_FILE = "test.txt";
+const ORIGINAL_CONTENT = "original content";
+
 describe("BackupService", () => {
   let service: BackupService;
   let tempDir: string;
@@ -34,8 +37,8 @@ describe("BackupService", () => {
     it("backs up existing file", async () => {
       await service.init(destDir);
 
-      const testFile = path.join(destDir, "test.txt");
-      await fs.writeFile(testFile, "original content");
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, ORIGINAL_CONTENT);
 
       await service.backup(testFile);
 
@@ -63,8 +66,8 @@ describe("BackupService", () => {
     it("restores backed up files", async () => {
       await service.init(destDir);
 
-      const testFile = path.join(destDir, "test.txt");
-      await fs.writeFile(testFile, "original content");
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, ORIGINAL_CONTENT);
 
       await service.backup(testFile);
 
@@ -76,7 +79,7 @@ describe("BackupService", () => {
 
       // File should be restored
       const content = await fs.readFile(testFile, "utf-8");
-      expect(content).toBe("original content");
+      expect(content).toBe(ORIGINAL_CONTENT);
     });
 
     it("restores nested files", async () => {
@@ -100,7 +103,7 @@ describe("BackupService", () => {
     it("removes backup directory", async () => {
       await service.init(destDir);
 
-      const testFile = path.join(destDir, "test.txt");
+      const testFile = path.join(destDir, TEST_FILE);
       await fs.writeFile(testFile, "content");
       await service.backup(testFile);
 

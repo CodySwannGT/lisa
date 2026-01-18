@@ -8,6 +8,15 @@ import {
 } from "../../../src/core/manifest.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
+const COPY_OVERWRITE = "copy-overwrite";
+const COPY_CONTENTS = "copy-contents";
+const CREATE_ONLY = "create-only";
+const MERGE = "merge";
+const TEST_TXT = "test.txt";
+const GITIGNORE = ".gitignore";
+const README_MD = "README.md";
+const PACKAGE_JSON = "package.json";
+
 describe("ManifestService", () => {
   let service: ManifestService;
   let tempDir: string;
@@ -36,8 +45,8 @@ describe("ManifestService", () => {
   describe("record", () => {
     it("records entries", async () => {
       await service.init(tempDir, lisaDir);
-      service.record("test.txt", "copy-overwrite");
-      service.record(".gitignore", "copy-contents");
+      service.record(TEST_TXT, COPY_OVERWRITE);
+      service.record(GITIGNORE, COPY_CONTENTS);
 
       // Should not throw
       expect(true).toBe(true);
@@ -47,8 +56,8 @@ describe("ManifestService", () => {
   describe("finalize", () => {
     it("writes manifest file with entries", async () => {
       await service.init(tempDir, lisaDir);
-      service.record("test.txt", "copy-overwrite");
-      service.record(".gitignore", "copy-contents");
+      service.record(TEST_TXT, COPY_OVERWRITE);
+      service.record(GITIGNORE, COPY_CONTENTS);
       await service.finalize();
 
       const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
@@ -56,8 +65,8 @@ describe("ManifestService", () => {
 
       const content = await fs.readFile(manifestPath, "utf-8");
       expect(content).toContain("# Lisa manifest");
-      expect(content).toContain("copy-overwrite:test.txt");
-      expect(content).toContain("copy-contents:.gitignore");
+      expect(content).toContain(`${COPY_OVERWRITE}:${TEST_TXT}`);
+      expect(content).toContain(`${COPY_CONTENTS}:${GITIGNORE}`);
     });
 
     it("includes header with timestamp and lisa dir", async () => {
@@ -87,10 +96,10 @@ describe("ManifestService", () => {
 # Generated: 2024-01-01
 # Lisa directory: /path/to/lisa
 
-copy-overwrite:test.txt
-copy-contents:.gitignore
-create-only:README.md
-merge:package.json
+${COPY_OVERWRITE}:${TEST_TXT}
+${COPY_CONTENTS}:${GITIGNORE}
+${CREATE_ONLY}:${README_MD}
+${MERGE}:${PACKAGE_JSON}
 `
       );
 
@@ -98,20 +107,20 @@ merge:package.json
 
       expect(entries).toHaveLength(4);
       expect(entries[0]).toEqual({
-        strategy: "copy-overwrite",
-        relativePath: "test.txt",
+        strategy: COPY_OVERWRITE,
+        relativePath: TEST_TXT,
       });
       expect(entries[1]).toEqual({
-        strategy: "copy-contents",
-        relativePath: ".gitignore",
+        strategy: COPY_CONTENTS,
+        relativePath: GITIGNORE,
       });
       expect(entries[2]).toEqual({
-        strategy: "create-only",
-        relativePath: "README.md",
+        strategy: CREATE_ONLY,
+        relativePath: README_MD,
       });
       expect(entries[3]).toEqual({
-        strategy: "merge",
-        relativePath: "package.json",
+        strategy: MERGE,
+        relativePath: PACKAGE_JSON,
       });
     });
 
@@ -120,10 +129,10 @@ merge:package.json
       await fs.writeFile(
         manifestPath,
         `# This is a comment
-copy-overwrite:test.txt
+${COPY_OVERWRITE}:${TEST_TXT}
 
 # Another comment
-copy-contents:.gitignore
+${COPY_CONTENTS}:${GITIGNORE}
 `
       );
 
@@ -140,12 +149,15 @@ copy-contents:.gitignore
 
     it("handles paths with colons", async () => {
       const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
-      await fs.writeFile(manifestPath, "copy-overwrite:path:with:colons.txt\n");
+      await fs.writeFile(
+        manifestPath,
+        `${COPY_OVERWRITE}:path:with:colons.txt\n`
+      );
 
       const entries = await service.read(tempDir);
 
       expect(entries[0]).toEqual({
-        strategy: "copy-overwrite",
+        strategy: COPY_OVERWRITE,
         relativePath: "path:with:colons.txt",
       });
     });

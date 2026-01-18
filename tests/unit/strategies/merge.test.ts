@@ -6,6 +6,12 @@ import type { StrategyContext } from "../../../src/strategies/strategy.interface
 import type { LisaConfig } from "../../../src/core/config.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
+const PACKAGE_JSON = "package.json";
+const SETTINGS_JSON = "settings.json";
+const CONFIG_JSON = "config.json";
+const INVALID_JSON = "invalid.json";
+const VALID_JSON = "valid.json";
+
 describe("MergeStrategy", () => {
   let strategy: MergeStrategy;
   let tempDir: string;
@@ -25,6 +31,12 @@ describe("MergeStrategy", () => {
     await cleanupTempDir(tempDir);
   });
 
+  /**
+   * Create a strategy context for testing
+   *
+   * @param overrides - Configuration overrides
+   * @returns Strategy context with test defaults
+   */
   function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
     const config: LisaConfig = {
       lisaDir: srcDir,
@@ -48,14 +60,14 @@ describe("MergeStrategy", () => {
   });
 
   it("copies file when destination does not exist", async () => {
-    const srcFile = path.join(srcDir, "package.json");
-    const destFile = path.join(destDir, "package.json");
+    const srcFile = path.join(srcDir, PACKAGE_JSON);
+    const destFile = path.join(destDir, PACKAGE_JSON);
     await fs.writeJson(srcFile, { name: "test", scripts: { build: "tsc" } });
 
     const result = await strategy.apply(
       srcFile,
       destFile,
-      "package.json",
+      PACKAGE_JSON,
       createContext()
     );
 
@@ -66,8 +78,8 @@ describe("MergeStrategy", () => {
   });
 
   it("deep merges objects with project values taking precedence", async () => {
-    const srcFile = path.join(srcDir, "package.json");
-    const destFile = path.join(destDir, "package.json");
+    const srcFile = path.join(srcDir, PACKAGE_JSON);
+    const destFile = path.join(destDir, PACKAGE_JSON);
 
     // Lisa provides defaults
     await fs.writeJson(srcFile, {
@@ -84,7 +96,7 @@ describe("MergeStrategy", () => {
     const result = await strategy.apply(
       srcFile,
       destFile,
-      "package.json",
+      PACKAGE_JSON,
       createContext()
     );
 
@@ -102,8 +114,8 @@ describe("MergeStrategy", () => {
   });
 
   it("skips when merged result is same as destination", async () => {
-    const srcFile = path.join(srcDir, "package.json");
-    const destFile = path.join(destDir, "package.json");
+    const srcFile = path.join(srcDir, PACKAGE_JSON);
+    const destFile = path.join(destDir, PACKAGE_JSON);
 
     await fs.writeJson(srcFile, { scripts: { test: "vitest" } });
     await fs.writeJson(destFile, { scripts: { test: "vitest" } });
@@ -111,7 +123,7 @@ describe("MergeStrategy", () => {
     const result = await strategy.apply(
       srcFile,
       destFile,
-      "package.json",
+      PACKAGE_JSON,
       createContext()
     );
 
@@ -119,8 +131,8 @@ describe("MergeStrategy", () => {
   });
 
   it("backs up file before merging", async () => {
-    const srcFile = path.join(srcDir, "package.json");
-    const destFile = path.join(destDir, "package.json");
+    const srcFile = path.join(srcDir, PACKAGE_JSON);
+    const destFile = path.join(destDir, PACKAGE_JSON);
     await fs.writeJson(srcFile, { new: "value" });
     await fs.writeJson(destFile, { existing: "value" });
 
@@ -132,14 +144,14 @@ describe("MergeStrategy", () => {
       },
     };
 
-    await strategy.apply(srcFile, destFile, "package.json", context);
+    await strategy.apply(srcFile, destFile, PACKAGE_JSON, context);
 
     expect(backupCalled).toBe(true);
   });
 
   it("handles nested objects", async () => {
-    const srcFile = path.join(srcDir, "settings.json");
-    const destFile = path.join(destDir, "settings.json");
+    const srcFile = path.join(srcDir, SETTINGS_JSON);
+    const destFile = path.join(destDir, SETTINGS_JSON);
 
     await fs.writeJson(srcFile, {
       editor: {
@@ -154,7 +166,7 @@ describe("MergeStrategy", () => {
       },
     });
 
-    await strategy.apply(srcFile, destFile, "settings.json", createContext());
+    await strategy.apply(srcFile, destFile, SETTINGS_JSON, createContext());
 
     const content = await fs.readJson(destFile);
     expect(content.editor.tabSize).toBe(4); // User value preserved
@@ -162,13 +174,13 @@ describe("MergeStrategy", () => {
   });
 
   it("handles arrays (merges by index)", async () => {
-    const srcFile = path.join(srcDir, "config.json");
-    const destFile = path.join(destDir, "config.json");
+    const srcFile = path.join(srcDir, CONFIG_JSON);
+    const destFile = path.join(destDir, CONFIG_JSON);
 
     await fs.writeJson(srcFile, { plugins: ["a", "b"] });
     await fs.writeJson(destFile, { plugins: ["c"] });
 
-    await strategy.apply(srcFile, destFile, "config.json", createContext());
+    await strategy.apply(srcFile, destFile, CONFIG_JSON, createContext());
 
     const content = await fs.readJson(destFile);
     // lodash.merge merges arrays by index - dest[0]='c' overwrites src[0]='a', src[1]='b' is kept
@@ -176,15 +188,15 @@ describe("MergeStrategy", () => {
   });
 
   it("does not modify files in dry run mode", async () => {
-    const srcFile = path.join(srcDir, "package.json");
-    const destFile = path.join(destDir, "package.json");
+    const srcFile = path.join(srcDir, PACKAGE_JSON);
+    const destFile = path.join(destDir, PACKAGE_JSON);
     await fs.writeJson(srcFile, { new: "value" });
     await fs.writeJson(destFile, { existing: "value" });
 
     const result = await strategy.apply(
       srcFile,
       destFile,
-      "package.json",
+      PACKAGE_JSON,
       createContext({ dryRun: true })
     );
 
@@ -194,24 +206,24 @@ describe("MergeStrategy", () => {
   });
 
   it("throws error for invalid source JSON", async () => {
-    const srcFile = path.join(srcDir, "invalid.json");
-    const destFile = path.join(destDir, "invalid.json");
+    const srcFile = path.join(srcDir, INVALID_JSON);
+    const destFile = path.join(destDir, INVALID_JSON);
     await fs.writeFile(srcFile, "not valid json");
     await fs.writeJson(destFile, { valid: true });
 
     await expect(
-      strategy.apply(srcFile, destFile, "invalid.json", createContext())
+      strategy.apply(srcFile, destFile, INVALID_JSON, createContext())
     ).rejects.toThrow();
   });
 
   it("throws error for invalid destination JSON", async () => {
-    const srcFile = path.join(srcDir, "valid.json");
-    const destFile = path.join(destDir, "invalid.json");
+    const srcFile = path.join(srcDir, VALID_JSON);
+    const destFile = path.join(destDir, INVALID_JSON);
     await fs.writeJson(srcFile, { valid: true });
     await fs.writeFile(destFile, "not valid json");
 
     await expect(
-      strategy.apply(srcFile, destFile, "invalid.json", createContext())
+      strategy.apply(srcFile, destFile, INVALID_JSON, createContext())
     ).rejects.toThrow();
   });
 });
