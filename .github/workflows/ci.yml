@@ -35,15 +35,13 @@ jobs:
       node_version: '22.21.1'
       package_manager: 'bun'
 
-  create_sentry_issue_on_failure:
-    name: 🚨 Create Sentry Issue on Failure
+  create_issue_on_failure:
+    name: 📌 Create Issue on Failure
     timeout-minutes: 5
     needs: [quality]
     if: ${{ always() && (needs.quality.result == 'failure' || needs.quality.result == 'failure') && !contains(github.event.head_commit.message, '[skip ci]') }}
-    uses: ./.github/workflows/create-sentry-issue-on-failure.yml
+    uses: ./.github/workflows/create-issue-on-failure.yml
     with:
       workflow_name: 'CI Quality Checks'
       failed_job: ${{ needs.quality.result == 'failure' && 'quality' || 'playwright' }}
-      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
     secrets: inherit
