@@ -8,6 +8,8 @@
 #     with:
 #       tag: ${{ needs.release.outputs.tag }}
 #       version: ${{ needs.release.outputs.version }}
+#       node_version: '22.x'
+#       package_manager: 'bun'
 
 name: Publish to npm
 
@@ -21,6 +23,16 @@ on:
       version:
         description: 'Version to publish'
         required: true
+        type: string
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20.x'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'npm'
         type: string
 
 # Required permissions for OIDC publishing
@@ -59,6 +71,7 @@ jobs:
           fi
 
       - name: Setup bun
+        if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -66,17 +79,25 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.x'
+          node-version: ${{ inputs.node_version }}
           registry-url: 'https://registry.npmjs.org'
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: Update npm for OIDC support
         run: npm install -g npm@latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
 
       - name: Build package
-        run: bun run build
+        run: ${{ inputs.package_manager }} run build
 
       - name: Update package version
         run: |
