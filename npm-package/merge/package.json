@@ -1,38 +1,23 @@
 {
-  "lint-staged": {
-    "*.{js,ts,tsx}": [
-      "eslint --quiet --cache --fix"
-    ],
-    "*.{js,ts,jsx,tsx,html,css,scss,yaml,yml,graphql}": [
-      "prettier --write"
-    ]
-  },
-  "engines": {
-    "npm": "please-use-bun",
-    "yarn": "please-use-bun",
-    "bun": ">= 1.3.5",
-    "node": "22.21.1"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
-  },
   "scripts": {
     "//docs": "The following commands MUST be defined for CI/CD to work properly - even if they're no-ops.",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
-    "build": "tsc --noEmit",
-    "test": "echo 'No test runner configured'",
-    "test:unit": "echo 'No test runner configured'",
-    "test:integration": "echo 'No test runner configured'",
-    "test:cov": "echo 'No test runner configured'",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:cov": "vitest run --coverage",
     "types:check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check .",
     "format": "prettier --check . --write",
-    "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true",
-    "//end-docs": ""
+    "prepare": "npm run build",
+    "//end-docs": "",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test:watch": "vitest",
+    "update-node-version": "tsx scripts/update-node-version.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
@@ -56,11 +41,14 @@
     "standard-version": "^9.5.0",
     "ts-morph": "^27.0.2",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9.2",
-    "typescript-eslint": "^8.0.0"
-  },
-  "resolutions": {},
-  "trustedDependencies": [
-    "@sentry/cli"
-  ]
+    "typescript": "~5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "@types/fs-extra": "^11.0.0",
+    "@types/lodash.merge": "^4.6.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "memfs": "^4.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^3.0.0"
+  }
 }

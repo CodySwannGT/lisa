@@ -1,5 +1,9 @@
 {
   "scripts": {
+    "test": "NODE_ENV=test jest --passWithNoTests",
+    "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
+    "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
+    "test:cov": "NODE_ENV=test jest --coverage",
     "start:local": "IS_OFFLINE=true sls offline start --noTimeout",
     "start:dev": "IS_OFFLINE=true sls offline start --stage dev",
     "start:docker": "docker-compose up",
@@ -66,7 +70,11 @@
     "@nestjs/testing": "^11.1.11",
     "@types/aws-lambda": "^8.10.159",
     "@types/express": "^5.0.6",
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@jest/test-sequencer": "^30.2.0",
     "@types/jest": "^30.0.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.6",
     "serverless": "^4.30.0",
     "serverless-esbuild": "^1.57.0",
     "serverless-offline": "^14.4.0"
