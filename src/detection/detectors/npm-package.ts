@@ -2,6 +2,9 @@ import * as path from "node:path";
 import type { IProjectTypeDetector } from "../detector.interface.js";
 import { readJsonOrNull } from "../../utils/index.js";
 
+/**
+ * Package.json structure for npm package detection
+ */
 interface PackageJson {
   private?: boolean;
   main?: string;
@@ -20,6 +23,12 @@ interface PackageJson {
 export class NpmPackageDetector implements IProjectTypeDetector {
   readonly type = "npm-package" as const;
 
+  /**
+   * Detect if the project is an npm package
+   *
+   * @param destDir - Project directory to check
+   * @returns True if npm package is detected
+   */
   async detect(destDir: string): Promise<boolean> {
     const packageJsonPath = path.join(destDir, "package.json");
     const packageJson = await readJsonOrNull<PackageJson>(packageJsonPath);

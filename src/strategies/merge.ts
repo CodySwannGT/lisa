@@ -15,6 +15,15 @@ import { JsonMergeError } from "../errors/index.js";
 export class MergeStrategy implements ICopyStrategy {
   readonly name = "merge" as const;
 
+  /**
+   * Apply merge strategy: Deep merge JSON files with project values taking precedence
+   *
+   * @param sourcePath - Source JSON file path
+   * @param destPath - Destination JSON file path
+   * @param relativePath - Relative path for recording
+   * @param context - Strategy context with config and callbacks
+   * @returns Result of the merge operation
+   */
   async apply(
     sourcePath: string,
     destPath: string,
@@ -35,26 +44,19 @@ export class MergeStrategy implements ICopyStrategy {
     }
 
     // Both files exist - merge them
-    let sourceJson: object;
-    let destJson: object;
-
-    try {
-      sourceJson = await readJson<object>(sourcePath);
-    } catch (error) {
+    const sourceJson = await readJson<object>(sourcePath).catch(() => {
       throw new JsonMergeError(
         relativePath,
         `Failed to parse source: ${sourcePath}`
       );
-    }
+    });
 
-    try {
-      destJson = await readJson<object>(destPath);
-    } catch (error) {
+    const destJson = await readJson<object>(destPath).catch(() => {
       throw new JsonMergeError(
         relativePath,
         `Failed to parse destination: ${destPath}`
       );
-    }
+    });
 
     // Deep merge: Lisa (source) provides defaults, project (dest) values win
     const merged = deepMerge(sourceJson, destJson);

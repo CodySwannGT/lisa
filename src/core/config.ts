@@ -116,6 +116,7 @@ export interface LisaResult {
 
 /**
  * Create initial operation counters with all values at zero
+ * @returns Operation counters initialized to zero
  */
 export function createInitialCounters(): OperationCounters {
   return {

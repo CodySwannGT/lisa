@@ -13,6 +13,15 @@ import { ensureParentDir } from "../utils/file-operations.js";
 export class CreateOnlyStrategy implements ICopyStrategy {
   readonly name = "create-only" as const;
 
+  /**
+   * Apply create-only strategy: Create file if not exists, never update
+   *
+   * @param sourcePath - Source file path
+   * @param destPath - Destination file path
+   * @param relativePath - Relative path for recording
+   * @param context - Strategy context with config and callbacks
+   * @returns Result of the create-only operation
+   */
   async apply(
     sourcePath: string,
     destPath: string,

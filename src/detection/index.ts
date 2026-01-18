@@ -15,6 +15,11 @@ export type { IProjectTypeDetector } from "./detector.interface.js";
 export class DetectorRegistry {
   private readonly detectors: readonly IProjectTypeDetector[];
 
+  /**
+   * Initialize detector registry with provided or default detectors
+   *
+   * @param detectors - Optional array of detectors (uses defaults if omitted)
+   */
   constructor(detectors?: readonly IProjectTypeDetector[]) {
     this.detectors = detectors ?? [
       new TypeScriptDetector(),
@@ -27,6 +32,9 @@ export class DetectorRegistry {
 
   /**
    * Detect all project types in the given directory
+   *
+   * @param destDir - Project directory to scan
+   * @returns Array of detected project types
    */
   async detectAll(destDir: string): Promise<ProjectType[]> {
     const detectedTypes: ProjectType[] = [];
@@ -42,7 +50,11 @@ export class DetectorRegistry {
 
   /**
    * Expand detected types to include parent types and order correctly
+   *
    * Child types (expo, nestjs, cdk) automatically include their parent (typescript)
+   *
+   * @param detectedTypes - Project types to expand
+   * @returns Ordered array with parent types included
    */
   expandAndOrderTypes(detectedTypes: readonly ProjectType[]): ProjectType[] {
     const allTypes = new Set<ProjectType>();
@@ -64,6 +76,8 @@ export class DetectorRegistry {
 
 /**
  * Create default detector registry
+ *
+ * @returns New DetectorRegistry instance with all default detectors
  */
 export function createDetectorRegistry(): DetectorRegistry {
   return new DetectorRegistry();

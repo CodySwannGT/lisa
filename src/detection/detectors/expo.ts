@@ -2,6 +2,9 @@ import * as path from "node:path";
 import type { IProjectTypeDetector } from "../detector.interface.js";
 import { pathExists, readJsonOrNull } from "../../utils/index.js";
 
+/**
+ * Package.json structure for dependency checking
+ */
 interface PackageJson {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -14,6 +17,12 @@ interface PackageJson {
 export class ExpoDetector implements IProjectTypeDetector {
   readonly type = "expo" as const;
 
+  /**
+   * Detect if the project uses Expo
+   *
+   * @param destDir - Project directory to check
+   * @returns True if Expo is detected
+   */
   async detect(destDir: string): Promise<boolean> {
     // Check for app.json
     const appJsonPath = path.join(destDir, "app.json");

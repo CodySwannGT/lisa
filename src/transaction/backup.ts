@@ -30,6 +30,11 @@ export class BackupService implements IBackupService {
   private destDir: string = "";
   private readonly logger: ILogger;
 
+  /**
+   * Initialize backup service with logger
+   *
+   * @param logger - Logger instance for backup operations
+   */
   constructor(logger: ILogger) {
     this.logger = logger;
   }
@@ -96,6 +101,12 @@ export class BackupService implements IBackupService {
     }
   }
 
+  /**
+   * Recursively list all files in a directory
+   *
+   * @param dir - Directory to scan recursively
+   * @returns Array of absolute file paths
+   */
   private async listFilesRecursive(dir: string): Promise<string[]> {
     const files: string[] = [];
 

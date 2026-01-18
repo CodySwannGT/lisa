@@ -67,7 +67,7 @@ export class ManifestService implements IManifestService {
       ...this.entries.map(entry => `${entry.strategy}:${entry.relativePath}`),
     ];
 
-    await writeFile(this.manifestPath, lines.join("\n") + "\n", "utf-8");
+    await writeFile(this.manifestPath, `${lines.join("\n")}\n`, "utf-8");
   }
 
   async read(destDir: string): Promise<readonly ManifestEntry[]> {
@@ -112,6 +112,11 @@ export class ManifestService implements IManifestService {
  * Error thrown when manifest file is not found
  */
 export class ManifestNotFoundError extends Error {
+  /**
+   * Thrown when manifest file cannot be located
+   *
+   * @param manifestPath - Full path to the expected manifest file
+   */
   constructor(public readonly manifestPath: string) {
     super(`No Lisa manifest found at: ${manifestPath}`);
     this.name = "ManifestNotFoundError";
@@ -120,6 +125,8 @@ export class ManifestNotFoundError extends Error {
 
 /**
  * Check if a string is a valid copy strategy
+ * @param value String to check
+ * @returns True if value is a valid copy strategy
  */
 function isValidStrategy(value: string): value is CopyStrategy {
   return ["copy-overwrite", "copy-contents", "create-only", "merge"].includes(

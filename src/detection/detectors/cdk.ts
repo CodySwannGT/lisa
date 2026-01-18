@@ -2,6 +2,9 @@ import * as path from "node:path";
 import type { IProjectTypeDetector } from "../detector.interface.js";
 import { pathExists, readJsonOrNull } from "../../utils/index.js";
 
+/**
+ * Package.json structure for dependency checking
+ */
 interface PackageJson {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -9,6 +12,9 @@ interface PackageJson {
 
 /**
  * Check if any key in an object starts with a prefix
+ * @param obj Object to check
+ * @param prefix Prefix to search for
+ * @returns True if any key starts with prefix
  */
 function hasKeyStartingWith(
   obj: Record<string, unknown> | undefined,
@@ -27,6 +33,12 @@ function hasKeyStartingWith(
 export class CDKDetector implements IProjectTypeDetector {
   readonly type = "cdk" as const;
 
+  /**
+   * Detect if the project uses AWS CDK
+   *
+   * @param destDir - Project directory to check
+   * @returns True if AWS CDK is detected
+   */
   async detect(destDir: string): Promise<boolean> {
     // Check for cdk.json
     const cdkJsonPath = path.join(destDir, "cdk.json");
