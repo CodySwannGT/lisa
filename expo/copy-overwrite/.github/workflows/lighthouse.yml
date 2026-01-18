@@ -6,7 +6,7 @@ on:
       node_version:
         description: 'Node.js version to use'
         required: false
-        default: '20.x'
+        default: '22.21.1'
         type: string
       package_manager:
         description: 'Package manager to use (npm, yarn, or bun)'

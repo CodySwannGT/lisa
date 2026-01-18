@@ -67,12 +67,12 @@ jobs:
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'semantic'
-      skip_jobs: 'claude_security_scan,code_quality_check'
       require_approval: false
       require_signatures: false
       generate_sbom: true
-      node_version: '20'
-      package_manager: 'npm'
+      override_blackout: true
+      node_version: '22.21.1'
+      package_manager: 'bun'
     secrets: inherit
 
   # Publish to npm (only on main)
@@ -84,7 +84,8 @@ jobs:
     with:
       tag: ${{ needs.release.outputs.tag }}
       version: ${{ needs.release.outputs.version }}
-
+      node_version: '22.21.1'
+      package_manager: 'bun'
   create_issue_on_failure:
     name: 📌 Create Issue on Failure
     needs: [release, publish_npm]
