@@ -125,8 +125,8 @@ jobs:
     # Reference to the quality checks workflow
     uses: ./.github/workflows/quality.yml
     with:
-      node_version: '20.x'
-      package_manager: 'npm'
+      node_version: '22.21.1'
+      package_manager: 'bun'
     secrets: inherit
   create_jira_issue_on_failure:
     name: 🚨 Create Jira Issue on Failure
