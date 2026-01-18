@@ -1,0 +1,72 @@
+name: EAS Build
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to build for'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - main
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to build for'
+        required: true
+        type: string
+    secrets:
+      EXPO_TOKEN:
+        required: true
+  push:
+    branches:
+      - dev
+      - staging
+      - main
+    paths:
+      - app.config.ts # Only trigger builds if this file changes
+
+jobs:
+  build:
+    name: Install and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.21.1'
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install dependencies
+        run: bun install
+      - name: Determine Environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Build Dev Preview
+        if: steps.env.outputs.environment == 'dev'
+        run: eas build --platform all --non-interactive --no-wait --profile=dev-preview
+      - name: Build Dev
+        if: steps.env.outputs.environment == 'dev'
+        run: eas build --platform all --non-interactive --no-wait --profile=dev
+      - name: Build Staging
+        if: steps.env.outputs.environment == 'staging'
+        run: eas build --platform all --non-interactive --no-wait --profile=staging --auto-submit
+      - name: Build Production
+        if: steps.env.outputs.environment == 'main'
+        run: eas build --platform all --non-interactive --no-wait --profile=production --auto-submit
