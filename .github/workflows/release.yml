@@ -379,7 +379,8 @@ jobs:
       (needs.release_approval.result == 'success' || needs.release_approval.result == 'skipped') &&
       needs.check_promotion.outputs.is_promotion != 'true'
     runs-on: ubuntu-latest
-    # Note: Permissions inherited from calling workflow (requires contents: write)
+    permissions:
+      contents: write
     env:
       HUSKY: '0'
     outputs:
