@@ -1,0 +1,27 @@
+{
+  "name": "load",
+  "description": "Standard load test with normal expected traffic",
+  "executor": "ramping-vus",
+  "startVUs": 0,
+  "stages": [
+    { "duration": "2m", "target": 10 },
+    { "duration": "5m", "target": 10 },
+    { "duration": "2m", "target": 0 }
+  ],
+  "gracefulStop": "30s",
+  "thresholds": {
+    "http_req_failed": ["rate<0.05"],
+    "http_req_duration": ["p(95)<500", "p(99)<1000"],
+    "http_req_receiving": ["p(95)<300"],
+    "checks": ["rate>0.9"],
+    "iterations": ["count>100"]
+  },
+  "env": {
+    "SCENARIO_NAME": "load",
+    "STEADY_STATE_DURATION": "5m"
+  },
+  "tags": {
+    "test_type": "load",
+    "environment": "${K6_ENVIRONMENT}"
+  }
+}

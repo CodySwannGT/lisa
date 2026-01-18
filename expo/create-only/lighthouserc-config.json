@@ -1,0 +1,28 @@
+{
+  "collect": {
+    "staticDistDir": "./dist",
+    "numberOfRuns": 5
+  },
+  "assertions": {
+    "buttonName": { "minScore": 0.9 },
+    "validSourceMaps": { "minScore": 0.9 },
+    "errorsInConsole": { "minScore": 1 },
+    "performance": { "minScore": 0.55 },
+    "firstContentfulPaint": { "maxNumericValue": 1500 },
+    "largestContentfulPaint": { "maxNumericValue": 4000 },
+    "interactive": { "maxNumericValue": 6000 },
+    "cumulativeLayoutShift": { "maxNumericValue": 0.1 },
+    "totalByteWeight": { "maxNumericValue": 850000 },
+    "scriptSize": { "maxNumericValue": 750000 },
+    "fontDisplay": { "minScore": 0.9 },
+    "imageAspectRatio": { "minScore": 1 },
+    "metaDescription": { "minScore": 1 },
+    "unusedJavascript": { "maxLength": 2 },
+    "bootupTime": { "minScore": 0.9 },
+    "mainthreadWorkBreakdown": { "minScore": 0.9 },
+    "maxPotentialFid": { "minScore": 1 },
+    "legacyJavascript": { "maxLength": 2 },
+    "legacyJavascriptInsight": { "minScore": 0.4 },
+    "speedIndex": { "minScore": 0.9 }
+  }
+}

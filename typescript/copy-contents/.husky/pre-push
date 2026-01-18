@@ -1,0 +1,211 @@
+# BEGIN: AI GUARDRAILS 
+
+# Detect package manager (check if tool is available before using it)
+# Priority: bun > yarn > npm (bun first since package.json engines prefer it)
+if ([ -f "bun.lockb" ] || [ -f "bun.lock" ]) && command -v bun >/dev/null 2>&1; then
+  PACKAGE_MANAGER="bun"
+  RUNNER="bun run"
+elif [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+  PACKAGE_MANAGER="yarn"
+  RUNNER="yarn"
+elif [ -f "package-lock.json" ]; then
+  PACKAGE_MANAGER="npm"
+  RUNNER="npm run"
+else
+  # Default to npm if no lock file is found or tool is not available
+  PACKAGE_MANAGER="npm"
+  RUNNER="npm run"
+fi
+
+echo "📦 Using package manager: $PACKAGE_MANAGER"
+
+# Run security audit
+echo "🔒 Running security audit..."
+
+if [ "$PACKAGE_MANAGER" = "yarn" ]; then
+  # Check if jq is installed (required for yarn audit filtering)
+  if ! command -v jq >/dev/null 2>&1; then
+    echo ""
+    echo "⚠️  WARNING: jq is not installed - required for yarn audit filtering"
+    echo ""
+    echo "To install jq:"
+    echo "  macOS:    brew install jq"
+    echo "  Windows:  choco install jq  # or scoop install jq"
+    echo "  Linux:    apt-get install jq"
+    echo ""
+    echo "Continuing without security audit..."
+    echo ""
+  else
+    # Excluding GHSA-5j98-mcp5-4vw2 (CVE-2025-64756): glob CLI command injection
+    # This vulnerability only affects the glob CLI (--cmd flag), not library usage
+    # We only use glob as a library through Babel and other tools - never invoke CLI
+    # Risk: None - vulnerable code path is not executed in our application
+    # Run yarn audit and filter for high/critical vulnerabilities (excluding glob CLI vuln)
+    # Filter by both GHSA ID and CVE ID for robustness
+    yarn audit --groups dependencies --json | jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | select((.data.advisory.github_advisory_id == "GHSA-5j98-mcp5-4vw2" or (.data.advisory.cves | any(. == "CVE-2025-64756"))) | not) | .data.advisory' > high_vulns.json
+
+    if [ -s high_vulns.json ]; then
+      echo "❌ High or critical vulnerabilities found in production dependencies!"
+      cat high_vulns.json
+      rm high_vulns.json
+      exit 1
+    fi
+
+    echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
+    rm -f high_vulns.json
+  fi
+
+elif [ "$PACKAGE_MANAGER" = "npm" ]; then
+  # Run npm audit and only fail on high or critical vulnerabilities
+  npm audit --production --audit-level=high
+  if [ $? -ne 0 ]; then
+    echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
+    exit 1
+  fi
+  echo "✅ No high or critical vulnerabilities found in production dependencies"
+
+elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+  # Bun's 'bun pm scan' requires a configured scanner in bunfig.toml
+  # Fall back to npm audit which works with package.json
+  echo "   (using npm audit fallback for bun projects)"
+
+  # Check if jq is installed (required for filtering vulnerabilities)
+  if ! command -v jq >/dev/null 2>&1; then
+    echo ""
+    echo "⚠️  WARNING: jq is not installed - required for vulnerability filtering"
+    echo ""
+    echo "To install jq:"
+    echo "  macOS:    brew install jq"
+    echo "  Windows:  choco install jq  # or scoop install jq"
+    echo "  Linux:    apt-get install jq"
+    echo ""
+    echo "Continuing without security audit..."
+    echo ""
+  else
+    # npm audit requires a lockfile - generate temporary one if needed
+    TEMP_LOCKFILE=false
+    if [ ! -f "package-lock.json" ]; then
+      echo "   Generating temporary package-lock.json for audit..."
+      npm i --package-lock-only --ignore-scripts --legacy-peer-deps --silent 2>/dev/null
+      TEMP_LOCKFILE=true
+    fi
+
+    # Excluding GHSA-8qq5-rm4j-mr97: node-tar path sanitization vulnerability
+    # This is a nested dependency in @expo/cli that bun resolves to the patched version (7.5.3)
+    # npm audit generates its own lockfile and doesn't respect bun's resolutions
+    # Risk: None - bun.lock shows tar@7.5.3 is used, not the vulnerable version
+    VULN_COUNT=$(npm audit --omit=dev --json 2>/dev/null | jq '
+      .vulnerabilities | to_entries | map(select(
+        .value.severity == "high" or .value.severity == "critical"
+      )) | map(select(
+        .value.via | all(. | if type == "object" then (.url == "https://github.com/advisories/GHSA-8qq5-rm4j-mr97" | not) else true end)
+      )) | length
+    ')
+    if [ "$VULN_COUNT" -gt 0 ] 2>/dev/null; then
+      AUDIT_EXIT=1
+    else
+      AUDIT_EXIT=0
+    fi
+
+    # Clean up temporary lockfile
+    if [ "$TEMP_LOCKFILE" = "true" ]; then
+      rm -f package-lock.json
+    fi
+
+    if [ $AUDIT_EXIT -ne 0 ]; then
+      # Re-run to show the actual vulnerabilities (excluding the known one)
+      echo "⚠️ Security audit found high/critical vulnerabilities:"
+      npm audit --omit=dev 2>/dev/null | grep -v "GHSA-8qq5-rm4j-mr97" || true
+      exit 1
+    fi
+    echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
+  fi
+fi
+
+# Run unit tests with coverage
+echo "🧪 Running unit tests with coverage..."
+$RUNNER test:cov
+if [ $? -ne 0 ]; then
+  echo "❌ Unit tests or coverage thresholds failed. Please fix before pushing."
+  exit 1
+fi
+
+# Run integration tests
+echo "🧪 Running integration tests..."
+$RUNNER test:integration
+if [ $? -ne 0 ]; then
+  echo "❌ Integration tests failed. Please fix failing tests before pushing."
+  exit 1
+fi
+
+# Run Lighthouse CI performance audit (only if installed)
+# Check if lighthouse:check script exists in package.json
+if ! grep -q '"lighthouse:check"' package.json 2>/dev/null; then
+  echo ""
+  echo "ℹ️  Skipping Lighthouse CI audit (not configured for this project)"
+  echo ""
+else
+  # Check if Chrome is available (required for Lighthouse)
+  CHROME_AVAILABLE=false
+  if command -v google-chrome >/dev/null 2>&1 || \
+     command -v google-chrome-stable >/dev/null 2>&1 || \
+     command -v chromium >/dev/null 2>&1 || \
+     command -v chromium-browser >/dev/null 2>&1 || \
+     [ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
+    CHROME_AVAILABLE=true
+  fi
+
+  if [ "$CHROME_AVAILABLE" = "false" ]; then
+    echo ""
+    echo "⚠️  WARNING: Chrome/Chromium not found - skipping Lighthouse CI audit"
+    echo ""
+    echo "To enable Lighthouse performance audits, install Chrome:"
+    echo "  macOS:    brew install --cask google-chrome"
+    echo "  Linux:    apt-get install chromium-browser  # or google-chrome-stable"
+    echo "  Windows:  choco install googlechrome"
+    echo ""
+    echo "Continuing without Lighthouse audit..."
+    echo ""
+  else
+    echo "🔦 Building web export for Lighthouse..."
+    $RUNNER export:web
+    if [ $? -ne 0 ]; then
+      echo "❌ Web export failed. Please fix build errors before pushing."
+      exit 1
+    fi
+
+    echo "🔦 Running Lighthouse CI performance audit..."
+    LIGHTHOUSE_OUTPUT=$($RUNNER lighthouse:check 2>&1)
+    LIGHTHOUSE_EXIT=$?
+    echo "$LIGHTHOUSE_OUTPUT"
+
+    # Extract report URL from output
+    REPORT_URL=$(echo "$LIGHTHOUSE_OUTPUT" | grep -o 'https://storage.googleapis.com/[^ ]*\.html' | head -1)
+
+    if [ $LIGHTHOUSE_EXIT -ne 0 ]; then
+      echo ""
+      echo "❌ Lighthouse CI performance audit failed!"
+      echo ""
+      echo "Your changes caused performance regressions that exceed the allowed thresholds."
+      echo ""
+      if [ -n "$REPORT_URL" ]; then
+        echo "📊 View full report: $REPORT_URL"
+        echo ""
+      fi
+      echo "Common fixes:"
+      echo "  • Bundle size too large → Remove unused dependencies, add code splitting"
+      echo "  • LCP/FCP too slow → Optimize images, reduce render-blocking resources"
+      echo "  • CLS too high → Add explicit dimensions to images/containers"
+      echo "  • Too much unused JS → Implement lazy loading for non-critical code"
+      echo ""
+      echo "See lighthouserc.js for threshold details."
+      echo ""
+      exit 1
+    fi
+    echo "✅ Lighthouse CI performance audit passed"
+  fi
+fi
+
+exit 0
+
+# END: AI GUARDRAILS

@@ -1,0 +1,2 @@
+# Ignoring large assets not needed for build
+public/images/

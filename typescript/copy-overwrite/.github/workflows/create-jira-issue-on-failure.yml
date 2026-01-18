@@ -1,0 +1,195 @@
+# -----------------------------------------------------------------------------
+# Jira Issue Creation Workflow
+# -----------------------------------------------------------------------------
+# ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
+# Any changes may be overwritten by the generation process.
+# This workflow creates a Jira issue when another workflow fails.
+# It captures details about the failure and creates a standardized issue
+# to help track and resolve CI/CD problems in Jira.
+#
+# Example usage in another workflow:
+# ```yaml
+# create_jira_issue_on_failure:
+#   if: failure()
+#   uses: ./.github/workflows/jira-issue-on-failure.yml
+#   with:
+#     workflow_name: 'My Workflow'
+#     failed_job: 'build_and_test'
+#     JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL }}
+#     JIRA_USER_EMAIL: ${{ vars.JIRA_USER_EMAIL }}
+#     JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
+#   secrets:
+#     JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+# ```
+
+name: 🔖 Jira Issue on Workflow Failure
+
+on:
+  workflow_call:
+    inputs:
+      workflow_name:
+        required: true
+        type: string
+        description: 'Name of the workflow that failed'
+      failed_job:
+        required: false
+        type: string
+        description: 'Name of the job that failed (optional)'
+      issue_type:
+        required: false
+        type: string
+        default: 'Bug'
+        description: 'Type of Jira issue to create (Bug, Task, etc.)'
+      JIRA_BASE_URL:
+        required: true
+        type: string
+        description: 'Jira instance base URL (e.g., https://your-domain.atlassian.net)'
+      JIRA_USER_EMAIL:
+        required: true
+        type: string
+        description: 'Email address of the Jira user associated with the API token'
+      JIRA_PROJECT_KEY:
+        required: true
+        type: string
+        description: 'The key of the Jira project where issues should be created'
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20.x'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'npm'
+        type: string
+      working_directory:
+        description: 'Directory to run commands in (if not root)'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      JIRA_API_TOKEN:
+        required: true
+        description: 'Jira API token for authentication'
+
+# Concurrency is managed by the parent workflow that calls this one
+# This avoids deadlocks between parent and child workflows
+
+jobs:
+  create_jira_issue:
+    name: 📝 Create Jira Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager }}
+
+      - name: 🔖 Create Jira Issue
+        id: create_jira_issue
+        run: |
+          cd "${{ inputs.working_directory || '.' }}"
+
+          # Set variables
+          WORKFLOW_NAME="${{ inputs.workflow_name }}"
+          FAILED_JOB="${{ inputs.failed_job || 'Unknown' }}"
+          ISSUE_TYPE="${{ inputs.issue_type }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Get commit message, handling special characters properly
+          # Remove leading/trailing whitespace and escape for shell
+          COMMIT_MESSAGE="${{ github.event.head_commit.message || 'N/A' }}"
+
+          # Create summary with failure details
+          if [ "$FAILED_JOB" != "Unknown" ]; then
+            SUMMARY="🚨 CI Failure: ${WORKFLOW_NAME} - ${FAILED_JOB}"
+          else
+            SUMMARY="🚨 CI Failure: ${WORKFLOW_NAME}"
+          fi
+
+          # Create Jira description with properly escaped values
+          FAILED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Create JSON payload for Jira API using jq for proper escaping
+          # All dynamic content is passed as jq arguments to ensure proper escaping
+          PAYLOAD=$(jq -n \
+            --arg key "${{ inputs.JIRA_PROJECT_KEY }}" \
+            --arg summary "${SUMMARY}" \
+            --arg workflow_name "${WORKFLOW_NAME}" \
+            --arg failed_job "${FAILED_JOB}" \
+            --arg run_url "${RUN_URL}" \
+            --arg repository "${{ github.repository }}" \
+            --arg commit "${{ github.sha }}" \
+            --arg commit_message "${COMMIT_MESSAGE}" \
+            --arg triggered_by "${{ github.actor }}" \
+            --arg failed_at "${FAILED_AT}" \
+            --arg issuetype "${ISSUE_TYPE}" \
+            '{
+              "fields": {
+                "project": {
+                  "key": $key
+                },
+                "summary": $summary,
+                "description": ("h2. Workflow Failure\n\nThe \"" + $workflow_name + "\" workflow has failed" + (if $failed_job != "Unknown" then " in job: *" + $failed_job + "*" else "" end) + ".\n\nh3. Details\n* *Workflow Run*: [View Run Details|" + $run_url + "]\n* *Repository*: " + $repository + "\n* *Commit*: " + $commit + "\n* *Commit Message*: " + $commit_message + "\n* *Triggered by*: " + $triggered_by + "\n* *Failed at*: " + $failed_at + "\n\nPlease investigate the workflow logs for more details on the failure."),
+                "issuetype": {
+                  "name": $issuetype
+                },
+                "labels": ["ci-failure", "automated"]
+              }
+            }')
+
+          # Debug: Print the payload to see what's being sent
+          echo "Debug: Generated payload:"
+          echo "$PAYLOAD" | jq .
+
+          # Call Jira API to create issue
+          RESPONSE=$(curl -s -D- \
+            -u "${{ inputs.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            --data "${PAYLOAD}" \
+            "${{ inputs.JIRA_BASE_URL }}/rest/api/2/issue")
+
+          # Extract issue key from response
+          ISSUE_KEY=$(echo "$RESPONSE" | grep -o 'key":"[^"]*' | cut -d'"' -f3)
+
+          if [ -n "$ISSUE_KEY" ]; then
+            echo "Successfully created Jira issue: $ISSUE_KEY"
+            echo "issue_key=$ISSUE_KEY" >> $GITHUB_OUTPUT
+            echo "issue_url=${{ inputs.JIRA_BASE_URL }}/browse/$ISSUE_KEY" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to create Jira issue. API response:"
+            echo "$RESPONSE"
+
+            # Extract HTTP status code for better error diagnosis
+            HTTP_STATUS=$(echo "$RESPONSE" | grep -oE "^HTTP/[0-9.]+ [0-9]+" | awk '{print $2}')
+            if [ -n "$HTTP_STATUS" ]; then
+              echo "HTTP Status Code: $HTTP_STATUS"
+
+              if [ "$HTTP_STATUS" = "404" ]; then
+                echo "Error: API endpoint not found. Please check JIRA_BASE_URL configuration."
+              elif [ "$HTTP_STATUS" = "401" ]; then
+                echo "Error: Authentication failed. Please check JIRA_USER_EMAIL and JIRA_API_TOKEN."
+              elif [ "$HTTP_STATUS" = "403" ]; then
+                echo "Error: Permission denied. Please check user permissions."
+              fi
+            fi
+
+            # Print payload for debugging (with sensitive data redacted)
+            echo "Request payload (redacted):"
+            echo "$PAYLOAD" | sed 's/"key":"[^"]*"/"key":"***"/g'
+
+            exit 1
+          fi
+
+      - name: 📢 Report Issue Creation
+        if: steps.create_jira_issue.outputs.issue_key
+        run: |
+          cd "${{ inputs.working_directory || '.' }}"
+          echo "Created Jira issue: ${{ steps.create_jira_issue.outputs.issue_key }}"
+          echo "Issue URL: ${{ steps.create_jira_issue.outputs.issue_url }}"

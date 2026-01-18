@@ -1,0 +1,474 @@
+# Lisa
+
+Lisa is a **Claude Code governance framework** that ensures Claude produces high-quality, consistent code through multiple layers of guardrails, guidance, and automated enforcement.
+
+## Why Lisa Exists
+
+Claude Code is powerful, but without guardrails it can:
+- Produce inconsistent code styles across sessions
+- Skip tests or quality checks when not reminded
+- Over-engineer solutions or create unnecessary abstractions
+- Mutate data instead of using immutable patterns
+- Leave deprecated code instead of cleanly deleting it
+
+Lisa solves this by applying a comprehensive governance system that guides Claude's behavior at every step.
+
+## How It Works
+
+Lisa applies multiple layers of quality control to your project:
+
+| Layer | Purpose | Examples |
+|-------|---------|----------|
+| **CLAUDE.md** | Direct behavioral rules | "Never skip tests", "Always use immutable patterns" |
+| **Skills** | Teach patterns & philosophy | Immutability, TDD, YAGNI/SOLID/DRY/KISS |
+| **Hooks** | Auto-enforcement on every edit | Format and lint after Write/Edit operations |
+| **Slash Commands** | Guided workflows | `/project:implement`, `/project:review`, `/git:commit` |
+| **Custom ESLint Plugins** | Enforce code structure | Statement ordering, component structure |
+| **Thresholds** | Configurable limits | Max complexity, max file length |
+| **Git Hooks** | Pre-commit quality gates | Husky + lint-staged + commitlint |
+| **Agents** | Specialized sub-agents | Codebase analysis, pattern finding |
+
+These layers work together. When Claude writes code:
+1. **CLAUDE.md** tells it what patterns to follow
+2. **Skills** teach it the philosophy behind those patterns
+3. **Hooks** automatically format and lint the code
+4. **ESLint plugins** catch structural violations
+5. **Git hooks** prevent commits that fail quality checks
+
+## Installation
+
+Clone the Lisa repository to your machine:
+
+```bash
+git clone <lisa-repo-url> ~/lisa
+```
+
+### Requirements
+
+- **Bash 3.2+** (default on macOS)
+- **jq** for JSON processing
+
+Install jq:
+```bash
+# macOS
+brew install jq
+
+# Debian/Ubuntu
+sudo apt install jq
+
+# RHEL/CentOS
+sudo yum install jq
+```
+
+## Usage
+
+Run Lisa against any project directory:
+
+```bash
+~/lisa/lisa.sh /path/to/your-project
+
+# Or from within your project
+~/lisa/lisa.sh .
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-n, --dry-run` | Show what would be done without making changes |
+| `-y, --yes` | Non-interactive mode (auto-accept defaults, overwrite on conflict) |
+| `-v, --validate` | Validate project compatibility without applying changes |
+| `-u, --uninstall` | Remove Lisa-managed files from the project |
+| `-h, --help` | Show help message |
+
+### Dry Run
+
+Preview changes before applying them:
+
+```bash
+~/lisa/lisa.sh --dry-run /path/to/your-project
+```
+
+### CI/CD Usage
+
+For automated pipelines, use non-interactive mode:
+
+```bash
+~/lisa/lisa.sh --yes /path/to/project
+```
+
+### Validate Mode
+
+Check project compatibility without making changes:
+
+```bash
+~/lisa/lisa.sh --validate /path/to/project
+```
+
+### Uninstall
+
+Remove Lisa-managed files from a project:
+
+```bash
+~/lisa/lisa.sh --uninstall /path/to/project
+
+# Preview what would be removed
+~/lisa/lisa.sh --dry-run --uninstall /path/to/project
+```
+
+Note: Files applied with `copy-contents` or `merge` strategies require manual cleanup as they modify existing content.
+
+## What Lisa Applies
+
+### CLAUDE.md - Behavioral Rules
+
+Direct instructions for Claude Code:
+
+```markdown
+Always invoke /coding-philosophy skill to enforce immutable patterns
+Always make atomic commits with clear conventional messages
+Never skip or disable any tests or quality checks
+Never use --no-verify with git commands
+Never create TODOs or placeholders
+```
+
+### Skills - Teaching Philosophy
+
+Skills teach Claude the "why" behind coding decisions:
+
+- **coding-philosophy** - Immutability, function structure, TDD, clean deletion
+- **jsdoc-best-practices** - Documentation that explains "why" not "what"
+- **container-view-pattern** - Component architecture for React/Expo
+
+### Hooks - Automated Enforcement
+
+Hooks run automatically during Claude Code sessions:
+
+| Hook | Trigger | Action |
+|------|---------|--------|
+| `format-on-edit.sh` | After Write/Edit | Run Prettier on changed files |
+| `lint-on-edit.sh` | After Write/Edit | Run ESLint on changed files |
+| `install_pkgs.sh` | Session start | Ensure dependencies installed |
+| `notify-ntfy.sh` | Permission prompt/Stop | Send notifications |
+
+### Slash Commands - Guided Workflows
+
+Pre-built workflows for common tasks:
+
+| Command | Purpose |
+|---------|---------|
+| `/project:plan` | Create implementation plan |
+| `/project:implement` | Execute all planned tasks |
+| `/project:review` | Run code review |
+| `/project:verify` | Run all quality checks |
+| `/git:commit` | Create conventional commit |
+| `/git:submit-pr` | Create pull request |
+
+### Custom ESLint Plugins
+
+Lisa includes custom ESLint plugins that enforce code structure:
+
+**eslint-plugin-code-organization**
+- `enforce-statement-order` - Definitions → Side effects → Return
+
+**eslint-plugin-component-structure** (Expo)
+- `single-component-per-file` - One component per file
+- `require-memo-in-view` - Memoization in view components
+- `no-inline-styles` - Extract styles to StyleSheet
+
+### Thresholds
+
+Configurable limits in `eslint.thresholds.config.json`:
+
+```json
+{
+  "cognitiveComplexity": 10,
+  "maxLines": 300,
+  "maxLinesView": 300
+}
+```
+
+## Project Type Detection
+
+Lisa auto-detects project types and applies appropriate configurations:
+
+| Type | Detection |
+|------|-----------|
+| TypeScript | `tsconfig.json` or `"typescript"` in package.json |
+| Expo | `app.json`, `eas.json`, or `"expo"` in package.json |
+| NestJS | `nest-cli.json` or `"@nestjs"` in package.json |
+| CDK | `cdk.json` or `"aws-cdk"` in package.json |
+
+### Cascading Inheritance
+
+Types inherit from their parents:
+
+```
+all/                    ← Applied to every project
+└── typescript/         ← TypeScript-specific
+    ├── expo/           ← Expo (includes typescript)
+    ├── nestjs/         ← NestJS (includes typescript)
+    └── cdk/            ← CDK (includes typescript)
+```
+
+An Expo project receives configs from: `all/` → `typescript/` → `expo/`
+
+## Copy Strategies
+
+Each type directory contains subdirectories that control how files are applied:
+
+| Strategy | Dest doesn't exist | Dest identical | Dest differs |
+|----------|-------------------|----------------|--------------|
+| `copy-overwrite/` | Copy | Skip | Prompt (overwrite/skip) |
+| `copy-contents/` | Copy | Skip | Append missing lines |
+| `create-only/` | Copy | Skip | Skip |
+| `merge/` | Copy | Skip | JSON deep merge |
+
+### Strategy Details
+
+**copy-overwrite**: Standard config files that should match Lisa's version. Prompts when local changes exist.
+
+**copy-contents**: For files like `.gitignore` where you want to ensure certain lines exist without removing custom entries.
+
+**create-only**: Template files that should only be created once (e.g., `PROJECT_RULES.md` for project-specific customization).
+
+**merge**: For `package.json` files. Performs a deep merge where:
+- Lisa provides default values
+- Your project's values take precedence
+- Missing scripts/dependencies are added without overwriting existing ones
+
+## Directory Structure
+
+```
+lisa/
+├── lisa.sh                      # Main script
+├── all/                         # Applied to all projects
+│   ├── copy-overwrite/
+│   │   ├── CLAUDE.md            # Claude Code instructions
+│   │   ├── .claude/
+│   │   │   ├── settings.json    # Hooks, plugins, env
+│   │   │   ├── agents/          # Specialized sub-agents
+│   │   │   ├── commands/        # Slash commands
+│   │   │   ├── hooks/           # Automation scripts
+│   │   │   └── skills/          # Teaching documents
+│   │   └── eslint-plugin-code-organization/
+│   ├── copy-contents/
+│   │   └── .gitignore
+│   └── create-only/
+│       └── PROJECT_RULES.md
+├── typescript/                  # TypeScript projects
+│   ├── copy-overwrite/
+│   │   ├── .prettierrc.json
+│   │   ├── eslint.thresholds.config.json
+│   │   └── .github/workflows/   # CI/CD pipelines
+│   ├── copy-contents/
+│   │   └── .husky/              # Git hooks
+│   └── merge/
+│       └── package.json         # Dev dependencies, scripts
+├── expo/                        # Expo projects
+│   ├── copy-overwrite/
+│   │   ├── eslint-plugin-component-structure/
+│   │   └── .claude/skills/container-view-pattern/
+│   └── merge/
+│       └── package.json
+├── nestjs/                      # NestJS projects
+│   └── merge/
+│       └── package.json
+└── cdk/                         # CDK projects
+    └── merge/
+        └── package.json
+```
+
+## Coding Philosophy
+
+Lisa enforces a consistent coding philosophy through skills and linting:
+
+### Core Principles
+
+1. **Immutability First** - Never mutate data; always create new references
+2. **Function Structure** - Definitions → Side effects → Return
+3. **Functional Transformations** - Use `map`, `filter`, `reduce` over loops
+4. **Test-Driven Development** - Write failing tests before implementation
+5. **Clean Deletion** - Delete old code completely; no deprecation layers
+
+### YAGNI + SOLID + DRY + KISS
+
+When principles conflict, **KISS wins**. The decision framework:
+
+1. Do I need this now? (YAGNI) → If no, don't build it
+2. Is there a simpler way? (KISS) → Choose simpler
+3. Am I repeating 3+ times? (DRY) → Extract if simpler
+4. Does this do one thing? (SRP) → Split only if clearer
+
+## Configuration Customization
+
+### Project-Specific Rules
+
+Edit `PROJECT_RULES.md` (created by Lisa) to add project-specific instructions:
+
+```markdown
+# Project Rules
+
+This is a mobile app for sports betting.
+Always use the design system components from `@/ui`.
+Never import directly from react-native.
+```
+
+### Threshold Adjustment
+
+Edit `eslint.thresholds.config.json` to adjust limits:
+
+```json
+{
+  "cognitiveComplexity": 15,
+  "maxLines": 400
+}
+```
+
+### Local Settings
+
+Create `.claude/settings.local.json` for machine-specific overrides:
+
+```json
+{
+  "env": {
+    "CUSTOM_VAR": "value"
+  }
+}
+```
+
+This file should be in `.gitignore`.
+
+## Troubleshooting
+
+### Common Issues
+
+#### "jq: command not found"
+
+Install jq using your package manager:
+
+```bash
+# macOS
+brew install jq
+
+# Debian/Ubuntu
+sudo apt install jq
+```
+
+#### "Permission denied" when running lisa.sh
+
+Make the script executable:
+
+```bash
+chmod +x ~/lisa/lisa.sh
+```
+
+#### JSON merge fails with "parse error"
+
+Your project's `package.json` may have syntax errors. Validate it:
+
+```bash
+jq . package.json
+```
+
+#### Hooks not running
+
+Ensure `.claude/settings.json` was applied and hooks are executable:
+
+```bash
+chmod +x .claude/hooks/*.sh
+```
+
+### Debug Mode
+
+```bash
+# See all operations without making changes
+~/lisa/lisa.sh --dry-run /path/to/project
+
+# Check compatibility issues
+~/lisa/lisa.sh --validate /path/to/project
+```
+
+## Testing
+
+Lisa includes a test suite using [bats-core](https://github.com/bats-core/bats-core):
+
+```bash
+# Install bats
+brew install bats-core  # macOS
+apt install bats        # Debian/Ubuntu
+
+# Run tests
+bats tests/lisa.bats
+```
+
+## Adding New Configurations
+
+### Adding a Skill
+
+```bash
+mkdir -p all/copy-overwrite/.claude/skills/my-skill
+cat > all/copy-overwrite/.claude/skills/my-skill/SKILL.md << 'EOF'
+---
+name: my-skill
+description: What this skill teaches Claude
+---
+
+# My Skill
+
+## When to Use
+- Scenario 1
+- Scenario 2
+
+## Instructions
+1. Step one
+2. Step two
+EOF
+```
+
+### Adding a Slash Command
+
+```bash
+mkdir -p all/copy-overwrite/.claude/commands/my-category
+cat > all/copy-overwrite/.claude/commands/my-category/my-command.md << 'EOF'
+---
+description: What this command does
+argument-hint: <optional-args>
+---
+
+Instructions for Claude to follow...
+EOF
+```
+
+### Adding an ESLint Rule
+
+1. Add rule to appropriate plugin in `eslint-plugin-*/rules/`
+2. Register in plugin's `index.js`
+3. Add tests in `__tests__/`
+
+## Changelog
+
+### v1.0.0 (2026-01-17)
+
+**Features:**
+- Initial release
+- Multi-layer Claude Code governance (CLAUDE.md, skills, hooks, commands)
+- Custom ESLint plugins for code structure enforcement
+- Project type detection (TypeScript, Expo, NestJS, CDK)
+- Four copy strategies: copy-overwrite, copy-contents, create-only, merge
+- Cascading type inheritance
+- Dry-run and validate modes
+- Non-interactive mode for CI/CD
+- Uninstall capability with manifest tracking
+
+**Governance Layers:**
+- Behavioral rules via CLAUDE.md
+- Teaching skills for coding philosophy
+- Automated hooks for format/lint on edit
+- Pre-built slash commands for workflows
+- Threshold-based complexity limits
+- Git hooks via Husky for pre-commit gates
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details

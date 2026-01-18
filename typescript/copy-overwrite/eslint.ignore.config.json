@@ -1,0 +1,57 @@
+{
+  "ignores": [
+    "build/**",
+    "dist/**",
+    ".build/**",
+    ".esbuild/**",
+    ".serverless/**",
+    ".webpack/**",
+    "_warmup/**",
+
+    "node_modules/**",
+    "**/node_modules/**",
+
+    "src/graphql/**",
+    "src/graphql.ts",
+    "src/graphql-generated/**",
+    "src/generated/**",
+    "graphql/**",
+    "graphql-generated/**",
+    "generated/**",
+    "components/ui/**",
+
+    "coverage/**",
+    "**/*spec.ts",
+    "resolver-test.setup.ts",
+    "**/*.factory.ts",
+    "**/test-utils/**",
+    "**/test/**",
+    "**/database/migrations/**",
+    "cypress/**",
+    "e2e/**",
+    "playwright-report/**",
+    ".lighthouseci/**",
+
+    ".expo/**",
+    ".github/**",
+    "public/**",
+    ".dead/**",
+    "example/**",
+    "tmp/**",
+    ".vscode/**",
+
+    "*.config.js",
+    "*.config.mjs",
+    "babel.config.js",
+    "metro.config.js",
+    "webpack.*.js",
+    "*.d.ts",
+    "esbuild.plugins.js",
+
+    "projects/**/scripts/**",
+    "scripts/**",
+
+    "lib/**/*.js",
+    "cdk.out/**"
+  ]
+}

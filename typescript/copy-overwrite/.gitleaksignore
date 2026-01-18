@@ -1,0 +1,28 @@
+# CDK snapshot files contain asset hashes that can trigger false positives
+__tests__/infra/__snapshots__/sse-stream-stack.test.ts.snap:generic-api-key:380
+__tests__/infra/__snapshots__/sse-stream-stack.test.ts.snap:generic-api-key:398
+__tests__/infra/__snapshots__/sse-stream-stack.test.ts.snap:generic-api-key:638
+__tests__/infra/__snapshots__/sse-stream-stack.test.ts.snap:generic-api-key:656
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:348
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:389
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:525
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:686
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:692
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:727
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:831
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:346
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:662
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:986
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:992
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:1010
+__tests__/infra/__snapshots__/knowledge-base-stack.test.ts.snap:generic-api-key:1051
+__tests__/infra/__snapshots__/sse-stream-stack.test.ts.snap:generic-api-key:280
+
+# DynamoDB pagination keys are base64 encoded and can trigger false positives
+migration-progress.json:generic-api-key:103
+migration-progress.json:generic-api-key:111
+# Firebase public API keys - these are meant to be in client code
+firebase-web-staging.json:gcp-api-key:2
+google-services-prod.json:gcp-api-key:18
+google-services-staging.json:gcp-api-key:18
+firebase-web-prod.json:gcp-api-key:2
