@@ -1,0 +1,174 @@
+# -----------------------------------------------------------------------------
+# Cascading Issue Creation Workflow
+# -----------------------------------------------------------------------------
+# ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
+# Any changes may be overwritten by the generation process.
+#
+# This is a dispatcher workflow that intelligently routes failures to the
+# appropriate issue tracking system based on available credentials:
+#
+# 1. If Sentry credentials exist → Create Sentry issue
+# 2. Else if Jira credentials exist → Create Jira issue
+# 3. Else → Create GitHub issue (fallback)
+#
+# Example usage in another workflow:
+# ```yaml
+# create_issue_on_failure:
+#   if: failure()
+#   uses: ./.github/workflows/create-issue-on-failure.yml
+#   with:
+#     workflow_name: 'My Workflow'
+#     failed_job: 'build_and_test'
+#   secrets: inherit
+# ```
+#
+# The workflow automatically detects which system to use based on repository
+# variables and secrets. No configuration needed in the calling workflow.
+
+name: 📌 Create Issue on Failure (Auto-Dispatch)
+
+on:
+  workflow_call:
+    inputs:
+      workflow_name:
+        required: true
+        type: string
+        description: 'Name of the workflow that failed'
+      failed_job:
+        required: false
+        type: string
+        description: 'Name of the job that failed (optional)'
+      issue_type:
+        required: false
+        type: string
+        default: 'Bug'
+        description: 'Type of issue to create (Bug, Task, etc.)'
+      environment:
+        required: false
+        type: string
+        default: 'production'
+        description: 'Environment where the failure occurred'
+      level:
+        required: false
+        type: string
+        default: 'error'
+        description: 'Severity level (debug, info, warning, error, fatal)'
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20.x'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'npm'
+        type: string
+      working_directory:
+        description: 'Directory to run commands in (if not root)'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      SENTRY_AUTH_TOKEN:
+        required: false
+        description: 'Sentry Auth Token (if using Sentry)'
+      JIRA_API_TOKEN:
+        required: false
+        description: 'Jira API token (if using Jira)'
+      PAT:
+        required: false
+        description: 'Personal Access Token (if using GitHub Issues)'
+
+# Concurrency is managed by the parent workflow that calls this one
+# This avoids deadlocks between parent and child workflows
+
+jobs:
+  # Dispatch job determines which system to use based on available credentials
+  dispatch:
+    name: 🧭 Determine Issue Tracking System
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      use_sentry: ${{ steps.check.outputs.sentry }}
+      use_jira: ${{ steps.check.outputs.jira }}
+      use_github: ${{ steps.check.outputs.github }}
+    steps:
+      - name: 🔍 Check Available Credentials
+        id: check
+        run: |
+          # Check for Sentry (highest priority)
+          if [ -n "${{ vars.SENTRY_ORG }}" ] && [ -n "${{ vars.SENTRY_PROJECT }}" ] && [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
+            echo "sentry=true" >> $GITHUB_OUTPUT
+            echo "jira=false" >> $GITHUB_OUTPUT
+            echo "github=false" >> $GITHUB_OUTPUT
+            echo "✓ Using Sentry for issue tracking"
+            exit 0
+          fi
+
+          # Check for Jira (second priority)
+          if [ -n "${{ vars.JIRA_BASE_URL }}" ] && [ -n "${{ vars.JIRA_USER_EMAIL }}" ] && [ -n "${{ vars.JIRA_PROJECT_KEY }}" ] && [ -n "${{ secrets.JIRA_API_TOKEN }}" ]; then
+            echo "sentry=false" >> $GITHUB_OUTPUT
+            echo "jira=true" >> $GITHUB_OUTPUT
+            echo "github=false" >> $GITHUB_OUTPUT
+            echo "✓ Using Jira for issue tracking"
+            exit 0
+          fi
+
+          # Fall back to GitHub (always available)
+          echo "sentry=false" >> $GITHUB_OUTPUT
+          echo "jira=false" >> $GITHUB_OUTPUT
+          echo "github=true" >> $GITHUB_OUTPUT
+          echo "✓ Using GitHub Issues for issue tracking (fallback)"
+
+  # Create Sentry issue (if available)
+  create_sentry_issue:
+    name: 📌 Create Sentry Issue
+    needs: [dispatch]
+    if: ${{ needs.dispatch.outputs.use_sentry == 'true' }}
+    uses: ./.github/workflows/create-sentry-issue-on-failure.yml
+    with:
+      workflow_name: ${{ inputs.workflow_name }}
+      failed_job: ${{ inputs.failed_job }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      environment: ${{ inputs.environment }}
+      level: ${{ inputs.level }}
+      node_version: ${{ inputs.node_version }}
+      package_manager: ${{ inputs.package_manager }}
+      working_directory: ${{ inputs.working_directory }}
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+  # Create Jira issue (if available)
+  create_jira_issue:
+    name: 📌 Create Jira Issue
+    needs: [dispatch]
+    if: ${{ needs.dispatch.outputs.use_jira == 'true' }}
+    uses: ./.github/workflows/create-jira-issue-on-failure.yml
+    with:
+      workflow_name: ${{ inputs.workflow_name }}
+      failed_job: ${{ inputs.failed_job }}
+      issue_type: ${{ inputs.issue_type }}
+      JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL }}
+      JIRA_USER_EMAIL: ${{ vars.JIRA_USER_EMAIL }}
+      JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
+      node_version: ${{ inputs.node_version }}
+      package_manager: ${{ inputs.package_manager }}
+      working_directory: ${{ inputs.working_directory }}
+    secrets:
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+  # Create GitHub issue (fallback)
+  create_github_issue:
+    name: 📌 Create GitHub Issue
+    needs: [dispatch]
+    if: ${{ needs.dispatch.outputs.use_github == 'true' }}
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    with:
+      workflow_name: ${{ inputs.workflow_name }}
+      failed_job: ${{ inputs.failed_job }}
+      node_version: ${{ inputs.node_version }}
+      package_manager: ${{ inputs.package_manager }}
+      working_directory: ${{ inputs.working_directory }}
+    secrets:
+      PAT: ${{ secrets.PAT }}

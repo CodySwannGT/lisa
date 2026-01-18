@@ -85,11 +85,11 @@ jobs:
       tag: ${{ needs.release.outputs.tag }}
       version: ${{ needs.release.outputs.version }}
 
-  create_github_issue_on_failure:
-    name: Create Github Issue on Failure
+  create_issue_on_failure:
+    name: 📌 Create Issue on Failure
     needs: [release, publish_npm]
     if: ${{ failure() && !contains(github.event.head_commit.message, '[skip ci]') }}
-    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    uses: ./.github/workflows/create-issue-on-failure.yml
     with:
       workflow_name: 'Release and Deploy'
     secrets: inherit
