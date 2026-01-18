@@ -228,6 +228,70 @@ Remove Lisa-managed files from a project:
 
 Note: Files applied with `copy-contents` or `merge` strategies require manual cleanup as they modify existing content.
 
+### GitHub Rulesets
+
+Lisa can also apply GitHub repository rulesets via a separate script. This enforces branch protection rules like requiring PRs, status checks, and preventing force pushes.
+
+```bash
+# Apply rulesets to a project's GitHub repo
+~/lisa/lisa-github-rulesets.sh /path/to/project
+
+# Preview what would be applied
+~/lisa/lisa-github-rulesets.sh --dry-run /path/to/project
+
+# Non-interactive mode
+~/lisa/lisa-github-rulesets.sh --yes /path/to/project
+```
+
+**Requirements:**
+- `gh` CLI installed and authenticated (`gh auth login`)
+- Admin permissions on the repository
+- `jq` installed
+
+**How it works:**
+
+1. Detects project types (same as main Lisa script)
+2. Collects ruleset templates from `github-rulesets/` directories:
+   - `all/github-rulesets/` → applied to all projects
+   - `typescript/github-rulesets/` → TypeScript projects
+   - `expo/github-rulesets/` → Expo projects (inherits typescript)
+   - etc.
+3. Creates or updates rulesets via the GitHub API
+
+**Template format:**
+
+Place JSON files in `{type}/github-rulesets/`. The script strips read-only fields (`id`, `source`, `source_type`) before applying:
+
+```json
+{
+  "name": "Protect Main Branch",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": true,
+        "required_review_thread_resolution": true
+      }
+    }
+  ]
+}
+```
+
+You can export an existing ruleset from GitHub's UI or API and place it in the appropriate directory. The script handles idempotency—if a ruleset with the same name exists, it updates rather than creates.
+
 ## What Lisa Applies
 
 ### CLAUDE.md - Behavioral Rules
