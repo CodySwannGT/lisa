@@ -6,7 +6,7 @@ export type CopyStrategy = 'copy-overwrite' | 'copy-contents' | 'create-only' | 
 /**
  * Available project types that Lisa can detect and configure
  */
-export type ProjectType = 'typescript' | 'expo' | 'nestjs' | 'cdk';
+export type ProjectType = 'typescript' | 'expo' | 'nestjs' | 'cdk' | 'npm-package';
 
 /**
  * Project type hierarchy - child types include their parent types
@@ -15,13 +15,14 @@ export const PROJECT_TYPE_HIERARCHY: Readonly<Record<string, ProjectType | undef
   expo: 'typescript',
   nestjs: 'typescript',
   cdk: 'typescript',
+  'npm-package': 'typescript',
   typescript: undefined,
 } as const;
 
 /**
  * Canonical order for processing project types (parents before children)
  */
-export const PROJECT_TYPE_ORDER: readonly ProjectType[] = ['typescript', 'expo', 'nestjs', 'cdk'] as const;
+export const PROJECT_TYPE_ORDER: readonly ProjectType[] = ['typescript', 'npm-package', 'expo', 'nestjs', 'cdk'] as const;
 
 /**
  * All available copy strategies in processing order

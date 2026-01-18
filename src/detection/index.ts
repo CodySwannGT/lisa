@@ -5,6 +5,7 @@ import { TypeScriptDetector } from './detectors/typescript.js';
 import { ExpoDetector } from './detectors/expo.js';
 import { NestJSDetector } from './detectors/nestjs.js';
 import { CDKDetector } from './detectors/cdk.js';
+import { NpmPackageDetector } from './detectors/npm-package.js';
 
 export type { IProjectTypeDetector } from './detector.interface.js';
 
@@ -17,6 +18,7 @@ export class DetectorRegistry {
   constructor(detectors?: readonly IProjectTypeDetector[]) {
     this.detectors = detectors ?? [
       new TypeScriptDetector(),
+      new NpmPackageDetector(),
       new ExpoDetector(),
       new NestJSDetector(),
       new CDKDetector(),
