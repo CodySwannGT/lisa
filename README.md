@@ -190,7 +190,7 @@ npx @codyswann/lisa /path/to/project
 
 ### Requirements
 
-- **Node.js 18+**
+- **Node.js 18+** (workflows default to 22.x)
 - **npm**, **bun**, or **pnpm**
 
 ### Optional Tools
@@ -521,6 +521,28 @@ Once configured, all future releases are automatic:
 
 - npm CLI 11.5+ (workflow automatically installs latest)
 - Cannot use self-hosted GitHub runners (not yet supported by npm)
+
+**Workflow Configuration:**
+
+The `publish-to-npm.yml` workflow accepts configurable inputs:
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `node_version` | `20.x` | Node.js version to use |
+| `package_manager` | `npm` | Package manager (`npm`, `yarn`, or `bun`) |
+
+Example with custom configuration:
+
+```yaml
+publish:
+  uses: ./.github/workflows/publish-to-npm.yml
+  needs: [release]
+  with:
+    tag: ${{ needs.release.outputs.tag }}
+    version: ${{ needs.release.outputs.version }}
+    node_version: '22.x'
+    package_manager: 'bun'
+```
 
 ### Extending Lisa for Other Stacks
 
