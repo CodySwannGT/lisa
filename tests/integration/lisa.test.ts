@@ -26,6 +26,8 @@ import {
   countFiles,
 } from "../helpers/test-utils.js";
 
+const PACKAGE_JSON = "package.json";
+
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
   let lisaDir: string;
@@ -42,6 +44,12 @@ describe("Lisa Integration Tests", () => {
     await cleanupTempDir(tempDir);
   });
 
+  /**
+   * Create a Lisa config for testing
+   *
+   * @param overrides - Configuration overrides
+   * @returns Lisa configuration with test defaults
+   */
   function createConfig(overrides: Partial<LisaConfig> = {}): LisaConfig {
     return {
       lisaDir,
@@ -53,6 +61,12 @@ describe("Lisa Integration Tests", () => {
     };
   }
 
+  /**
+   * Create Lisa dependencies for testing
+   *
+   * @param config - Configuration to use for dependencies
+   * @returns Lisa dependencies with test implementations
+   */
   function createDeps(config: LisaConfig): LisaDependencies {
     const logger = new SilentLogger();
     return {
@@ -137,7 +151,7 @@ describe("Lisa Integration Tests", () => {
 
     it("applies all/ configs to project with no detected types", async () => {
       await fs.ensureDir(destDir);
-      await fs.writeJson(path.join(destDir, "package.json"), {});
+      await fs.writeJson(path.join(destDir, PACKAGE_JSON), {});
 
       const config = createConfig();
       const lisa = new Lisa(config, createDeps(config));
@@ -277,12 +291,14 @@ describe("Lisa Integration Tests", () => {
       const lisa1 = new Lisa(config, createDeps(config));
       const result1 = await lisa1.apply();
 
+      expect(result1.success).toBe(true);
+
       // Second run
       const lisa2 = new Lisa(config, createDeps(config));
       const result2 = await lisa2.apply();
 
       expect(result2.success).toBe(true);
-      // Second run should mostly skip files
+      // Second run should skip files since first run already applied them
       expect(result2.counters.skipped).toBeGreaterThan(0);
     });
   });
