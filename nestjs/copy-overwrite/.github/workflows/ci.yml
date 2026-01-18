@@ -1,0 +1,26 @@
+name: 🔍 CI Quality Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  quality:
+    name: 🔍 Quality Checks
+    # Reference to the quality checks workflow
+    uses: ./.github/workflows/quality.yml
+    with:
+      node_version: '22.21.1'
+      package_manager: 'bun'
+      skip_jobs: 'test,test:integration,test:e2e'
+    secrets: inherit
+
+  create_issue_on_failure:
+    name: 📌 Create Issue on Failure
+    needs: [quality]
+    if: ${{ always() && (needs.quality.result == 'failure' || needs.quality.result == 'failure') && !contains(github.event.head_commit.message, '[skip ci]') }}
+    uses: ./.github/workflows/create-issue-on-failure.yml
+    with:
+      workflow_name: 'CI Quality Checks'
+      failed_job: ${{ needs.quality.result == 'failure' && 'quality' || 'playwright' }}
+    secrets: inherit
