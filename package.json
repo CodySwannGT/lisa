@@ -36,7 +36,8 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "update-node-version": "tsx scripts/update-node-version.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
@@ -118,7 +119,6 @@
     "expo",
     "nestjs",
     "cdk",
-    "eslint-plugin-code-organization",
-    "lisa.sh"
+    "eslint-plugin-code-organization"
   ]
 }

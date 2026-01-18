@@ -60,7 +60,7 @@ Lisa is designed for a **two-tier organizational model** that separates AI exper
 │                   IMPLEMENTATION TEAMS                      │
 │                                                             │
 │  • Focus on building end-user software                      │
-│  • Run `lisa.sh` to bootstrap projects                      │
+│  • Run `npx @codyswann/lisa` to bootstrap projects          │
 │  • Use simple commands like `/project:implement`            │
 │  • Don't need deep AI expertise                             │
 │  • Automatically get guardrails & quality enforcement       │
@@ -130,8 +130,25 @@ That's it. Behind the scenes, Lisa ensures:
 2. **Platform Team** adds a `cognitiveComplexity: 10` threshold to ESLint config
 3. **Platform Team** writes a skill teaching Claude to decompose complex logic
 4. **Platform Team** pushes update to Lisa repository
-5. **Implementation Teams** run `lisa.sh` on their projects (or it happens via CI)
+5. **Implementation Teams** run `lisa` on their projects (or it happens via CI)
 6. **Implementation Teams** now automatically get simpler, more maintainable code
+
+### Upstreaming Improvements
+
+When implementation teams make improvements to Lisa-managed files (better CI configs, new hooks, etc.), the `/lisa:review-implementation` command helps upstream those changes back to Lisa:
+
+```bash
+# Start Claude Code with access to both your project and Lisa
+claude --add-dir ~/lisa
+
+# Run the review command
+/lisa:review-implementation
+```
+
+This command:
+1. Compares your project's Lisa-managed files against Lisa's source templates
+2. Generates a diff report showing what has changed
+3. Offers to copy improvements back to Lisa for all teams to benefit
 
 ### Forking for Your Organization
 
@@ -147,38 +164,47 @@ cd lisa
 git push origin main
 ```
 
-Implementation teams then clone from your organization's fork:
+Implementation teams then install from your organization's fork:
 
 ```bash
-git clone https://github.com/your-org/lisa ~/lisa
-~/lisa/lisa.sh /path/to/project
+# Install globally from your fork
+npm install -g github:your-org/lisa
+
+# Or use npx with your fork
+npx github:your-org/lisa /path/to/project
 ```
 
 ## Installation
 
-Clone the Lisa repository to your machine:
+Install Lisa globally via npm:
 
 ```bash
-git clone <lisa-repo-url> ~/lisa
-cd ~/lisa
-npm install
-npm run build
+npm install -g @codyswann/lisa
+```
+
+Or use npx to run without installing:
+
+```bash
+npx @codyswann/lisa /path/to/project
 ```
 
 ### Requirements
 
 - **Node.js 18+**
-- **npm** or **bun**
+- **npm**, **bun**, or **pnpm**
 
 ## Usage
 
 Run Lisa against any project directory:
 
 ```bash
-~/lisa/lisa.sh /path/to/your-project
+lisa /path/to/your-project
 
 # Or from within your project
-~/lisa/lisa.sh .
+lisa .
+
+# Or with npx (no install required)
+npx @codyswann/lisa .
 ```
 
 ### Options
@@ -196,7 +222,7 @@ Run Lisa against any project directory:
 Preview changes before applying them:
 
 ```bash
-~/lisa/lisa.sh --dry-run /path/to/your-project
+lisa --dry-run /path/to/your-project
 ```
 
 ### CI/CD Usage
@@ -204,7 +230,10 @@ Preview changes before applying them:
 For automated pipelines, use non-interactive mode:
 
 ```bash
-~/lisa/lisa.sh --yes /path/to/project
+lisa --yes /path/to/project
+
+# Or with npx
+npx @codyswann/lisa --yes /path/to/project
 ```
 
 ### Validate Mode
@@ -212,7 +241,7 @@ For automated pipelines, use non-interactive mode:
 Check project compatibility without making changes:
 
 ```bash
-~/lisa/lisa.sh --validate /path/to/project
+lisa --validate /path/to/project
 ```
 
 ### Uninstall
@@ -220,10 +249,10 @@ Check project compatibility without making changes:
 Remove Lisa-managed files from a project:
 
 ```bash
-~/lisa/lisa.sh --uninstall /path/to/project
+lisa --uninstall /path/to/project
 
 # Preview what would be removed
-~/lisa/lisa.sh --dry-run --uninstall /path/to/project
+lisa --dry-run --uninstall /path/to/project
 ```
 
 Note: Files applied with `copy-contents` or `merge` strategies require manual cleanup as they modify existing content.
@@ -339,6 +368,7 @@ Pre-built workflows for common tasks:
 | `/project:verify` | Run all quality checks |
 | `/git:commit` | Create conventional commit |
 | `/git:submit-pr` | Create pull request |
+| `/lisa:review-implementation` | Compare project files against Lisa templates, upstream changes |
 
 ### Custom ESLint Plugins
 
@@ -625,7 +655,6 @@ lisa/
 ├── nestjs/                         # NestJS projects
 ├── cdk/                            # CDK projects
 ├── tests/                          # Vitest test suite
-├── lisa.sh                         # Wrapper script
 ├── package.json
 ├── tsconfig.json
 └── vitest.config.ts
@@ -708,14 +737,6 @@ nvm install 18
 nvm use 18
 ```
 
-#### "Permission denied" when running lisa.sh
-
-Make the script executable:
-
-```bash
-chmod +x ~/lisa/lisa.sh
-```
-
 #### JSON merge fails with "parse error"
 
 Your project's `package.json` may have syntax errors. Validate it:
@@ -736,10 +757,10 @@ chmod +x .claude/hooks/*.sh
 
 ```bash
 # See all operations without making changes
-~/lisa/lisa.sh --dry-run /path/to/project
+lisa --dry-run /path/to/project
 
 # Check compatibility issues
-~/lisa/lisa.sh --validate /path/to/project
+lisa --validate /path/to/project
 ```
 
 ## Development
