@@ -4,10 +4,10 @@
 export class LisaError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
+    public readonly code: string
   ) {
     super(message);
-    this.name = 'LisaError';
+    this.name = "LisaError";
   }
 }
 
@@ -16,8 +16,8 @@ export class LisaError extends Error {
  */
 export class DestinationNotFoundError extends LisaError {
   constructor(public readonly path: string) {
-    super(`Destination path does not exist: ${path}`, 'DEST_NOT_FOUND');
-    this.name = 'DestinationNotFoundError';
+    super(`Destination path does not exist: ${path}`, "DEST_NOT_FOUND");
+    this.name = "DestinationNotFoundError";
   }
 }
 
@@ -26,8 +26,8 @@ export class DestinationNotFoundError extends LisaError {
  */
 export class DestinationNotDirectoryError extends LisaError {
   constructor(public readonly path: string) {
-    super(`Destination is not a directory: ${path}`, 'DEST_NOT_DIR');
-    this.name = 'DestinationNotDirectoryError';
+    super(`Destination is not a directory: ${path}`, "DEST_NOT_DIR");
+    this.name = "DestinationNotDirectoryError";
   }
 }
 
@@ -37,10 +37,10 @@ export class DestinationNotDirectoryError extends LisaError {
 export class JsonParseError extends LisaError {
   constructor(
     public readonly filePath: string,
-    public readonly originalError: Error,
+    public readonly originalError: Error
   ) {
-    super(`Failed to parse JSON file: ${filePath}`, 'JSON_PARSE_ERROR');
-    this.name = 'JsonParseError';
+    super(`Failed to parse JSON file: ${filePath}`, "JSON_PARSE_ERROR");
+    this.name = "JsonParseError";
   }
 }
 
@@ -50,10 +50,10 @@ export class JsonParseError extends LisaError {
 export class JsonMergeError extends LisaError {
   constructor(
     public readonly filePath: string,
-    public readonly reason: string,
+    public readonly reason: string
   ) {
-    super(`Failed to merge JSON: ${filePath} - ${reason}`, 'JSON_MERGE_ERROR');
-    this.name = 'JsonMergeError';
+    super(`Failed to merge JSON: ${filePath} - ${reason}`, "JSON_MERGE_ERROR");
+    this.name = "JsonMergeError";
   }
 }
 
@@ -64,10 +64,13 @@ export class FileOperationError extends LisaError {
   constructor(
     public readonly operation: string,
     public readonly filePath: string,
-    public readonly originalError: Error,
+    public readonly originalError: Error
   ) {
-    super(`File operation '${operation}' failed for: ${filePath}`, 'FILE_OP_ERROR');
-    this.name = 'FileOperationError';
+    super(
+      `File operation '${operation}' failed for: ${filePath}`,
+      "FILE_OP_ERROR"
+    );
+    this.name = "FileOperationError";
   }
 }
 
@@ -76,11 +79,11 @@ export class FileOperationError extends LisaError {
  */
 export class BackupError extends LisaError {
   constructor(
-    public readonly operation: 'backup' | 'restore' | 'cleanup',
-    public readonly reason: string,
+    public readonly operation: "backup" | "restore" | "cleanup",
+    public readonly reason: string
   ) {
-    super(`Backup ${operation} failed: ${reason}`, 'BACKUP_ERROR');
-    this.name = 'BackupError';
+    super(`Backup ${operation} failed: ${reason}`, "BACKUP_ERROR");
+    this.name = "BackupError";
   }
 }
 
@@ -89,8 +92,8 @@ export class BackupError extends LisaError {
  */
 export class RollbackError extends LisaError {
   constructor(public readonly reason: string) {
-    super(`Rollback failed: ${reason}`, 'ROLLBACK_ERROR');
-    this.name = 'RollbackError';
+    super(`Rollback failed: ${reason}`, "ROLLBACK_ERROR");
+    this.name = "RollbackError";
   }
 }
 
@@ -99,7 +102,10 @@ export class RollbackError extends LisaError {
  */
 export class DependencyMissingError extends LisaError {
   constructor(public readonly dependencies: readonly string[]) {
-    super(`Missing required dependencies: ${dependencies.join(', ')}`, 'DEP_MISSING');
-    this.name = 'DependencyMissingError';
+    super(
+      `Missing required dependencies: ${dependencies.join(", ")}`,
+      "DEP_MISSING"
+    );
+    this.name = "DependencyMissingError";
   }
 }

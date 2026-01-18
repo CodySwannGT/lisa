@@ -1,13 +1,13 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import merge from 'lodash.merge';
-import { JsonParseError } from '../errors/index.js';
+import { readFile, writeFile } from "node:fs/promises";
+import merge from "lodash.merge";
+import { JsonParseError } from "../errors/index.js";
 
 /**
  * Read and parse a JSON file
  */
 export async function readJson<T = unknown>(filePath: string): Promise<T> {
   try {
-    const content = await readFile(filePath, 'utf-8');
+    const content = await readFile(filePath, "utf-8");
     return JSON.parse(content) as T;
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -20,7 +20,9 @@ export async function readJson<T = unknown>(filePath: string): Promise<T> {
 /**
  * Read JSON file, returning null if file doesn't exist or is invalid
  */
-export async function readJsonOrNull<T = unknown>(filePath: string): Promise<T | null> {
+export async function readJsonOrNull<T = unknown>(
+  filePath: string
+): Promise<T | null> {
   try {
     return await readJson<T>(filePath);
   } catch {
@@ -31,9 +33,13 @@ export async function readJsonOrNull<T = unknown>(filePath: string): Promise<T |
 /**
  * Write object as JSON to a file
  */
-export async function writeJson(filePath: string, data: unknown, spaces = 2): Promise<void> {
+export async function writeJson(
+  filePath: string,
+  data: unknown,
+  spaces = 2
+): Promise<void> {
   const content = JSON.stringify(data, null, spaces);
-  await writeFile(filePath, content + '\n', 'utf-8');
+  await writeFile(filePath, content + "\n", "utf-8");
 }
 
 /**

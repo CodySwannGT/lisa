@@ -1,8 +1,8 @@
-import * as fse from 'fs-extra';
-import { readFile, copyFile, appendFile } from 'node:fs/promises';
-import type { FileOperationResult } from '../core/config.js';
-import type { ICopyStrategy, StrategyContext } from './strategy.interface.js';
-import { filesIdentical, ensureParentDir } from '../utils/file-operations.js';
+import * as fse from "fs-extra";
+import { readFile, copyFile, appendFile } from "node:fs/promises";
+import type { FileOperationResult } from "../core/config.js";
+import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
+import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
 
 /**
  * Copy-contents strategy: Append missing lines (for .gitignore-style files)
@@ -12,13 +12,13 @@ import { filesIdentical, ensureParentDir } from '../utils/file-operations.js';
  * - O(n log n) algorithm using Set operations
  */
 export class CopyContentsStrategy implements ICopyStrategy {
-  readonly name = 'copy-contents' as const;
+  readonly name = "copy-contents" as const;
 
   async apply(
     sourcePath: string,
     destPath: string,
     relativePath: string,
-    context: StrategyContext,
+    context: StrategyContext
   ): Promise<FileOperationResult> {
     const { config, recordFile, backupFile } = context;
     const destExists = await fse.pathExists(destPath);
@@ -30,7 +30,7 @@ export class CopyContentsStrategy implements ICopyStrategy {
         await copyFile(sourcePath, destPath);
         recordFile(relativePath, this.name);
       }
-      return { relativePath, strategy: this.name, action: 'copied' };
+      return { relativePath, strategy: this.name, action: "copied" };
     }
 
     // Check if files are identical
@@ -38,50 +38,52 @@ export class CopyContentsStrategy implements ICopyStrategy {
       if (!config.dryRun) {
         recordFile(relativePath, this.name);
       }
-      return { relativePath, strategy: this.name, action: 'skipped' };
+      return { relativePath, strategy: this.name, action: "skipped" };
     }
 
     // Find lines in source that are not in destination
-    const sourceContent = await readFile(sourcePath, 'utf-8');
-    const destContent = await readFile(destPath, 'utf-8');
+    const sourceContent = await readFile(sourcePath, "utf-8");
+    const destContent = await readFile(destPath, "utf-8");
 
     // Get non-empty lines from source
     const sourceLines = sourceContent
-      .split('\n')
-      .map((line) => line.trimEnd())
-      .filter((line) => line.length > 0);
+      .split("\n")
+      .map(line => line.trimEnd())
+      .filter(line => line.length > 0);
 
     // Get all lines from destination
-    const destLines = new Set(destContent.split('\n').map((line) => line.trimEnd()));
+    const destLines = new Set(
+      destContent.split("\n").map(line => line.trimEnd())
+    );
 
     // Find lines that need to be added
-    const newLines = sourceLines.filter((line) => !destLines.has(line));
+    const newLines = sourceLines.filter(line => !destLines.has(line));
 
     if (newLines.length === 0) {
       if (!config.dryRun) {
         recordFile(relativePath, this.name);
       }
-      return { relativePath, strategy: this.name, action: 'skipped' };
+      return { relativePath, strategy: this.name, action: "skipped" };
     }
 
     if (!config.dryRun) {
       await backupFile(destPath);
 
       // Ensure destination ends with newline before appending
-      let appendContent = newLines.join('\n');
-      if (!destContent.endsWith('\n')) {
-        appendContent = '\n' + appendContent;
+      let appendContent = newLines.join("\n");
+      if (!destContent.endsWith("\n")) {
+        appendContent = "\n" + appendContent;
       }
-      appendContent += '\n';
+      appendContent += "\n";
 
-      await appendFile(destPath, appendContent, 'utf-8');
+      await appendFile(destPath, appendContent, "utf-8");
       recordFile(relativePath, this.name);
     }
 
     return {
       relativePath,
       strategy: this.name,
-      action: 'appended',
+      action: "appended",
       linesAdded: newLines.length,
     };
   }

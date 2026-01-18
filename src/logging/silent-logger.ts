@@ -1,4 +1,4 @@
-import type { ILogger } from './logger.interface.js';
+import type { ILogger } from "./logger.interface.js";
 
 /**
  * Silent logger that produces no output (for testing)

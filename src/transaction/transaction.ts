@@ -1,5 +1,5 @@
-import type { IBackupService } from './backup.js';
-import type { ILogger } from '../logging/index.js';
+import type { IBackupService } from "./backup.js";
+import type { ILogger } from "../logging/index.js";
 
 /**
  * Transaction wrapper for atomic operations
@@ -10,7 +10,7 @@ export class Transaction {
 
   constructor(
     private readonly backupService: IBackupService,
-    private readonly logger: ILogger,
+    private readonly logger: ILogger
   ) {}
 
   /**
@@ -27,7 +27,7 @@ export class Transaction {
    */
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (!this.initialized) {
-      throw new Error('Transaction not initialized');
+      throw new Error("Transaction not initialized");
     }
 
     try {
@@ -36,14 +36,14 @@ export class Transaction {
       return result;
     } catch (error) {
       this.logger.error(
-        `Operation failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Operation failed: ${error instanceof Error ? error.message : String(error)}`
       );
 
       try {
         await this.backupService.rollback();
       } catch (rollbackError) {
         this.logger.error(
-          `Rollback also failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+          `Rollback also failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`
         );
       }
 
@@ -56,7 +56,7 @@ export class Transaction {
    */
   async backup(absolutePath: string): Promise<void> {
     if (!this.initialized) {
-      throw new Error('Transaction not initialized');
+      throw new Error("Transaction not initialized");
     }
     await this.backupService.backup(absolutePath);
   }
