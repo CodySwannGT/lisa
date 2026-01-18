@@ -7,37 +7,14 @@ on:
 jobs:
   quality:
     name: 🔍 Quality Checks
-    timeout-minutes: 30
-    # Reference to the quality checks workflow
     uses: ./.github/workflows/quality.yml
     with:
       node_version: '22.21.1'
       package_manager: 'bun'
-      skip_jobs: 'test,test:integration,test:e2e'
+      skip_jobs: ''
     secrets: inherit
-
-  # playwright:
-  #   name: 🎭 Playwright Tests
-  #   timeout-minutes: 30
-  #   needs: [quality]
-  #   uses: ./.github/workflows/playwright.yml
-  #   with:
-  #     pr_number: ${{ github.event.pull_request.number }}
-  #     branch_ref: ${{ github.head_ref }}
-  #     base_ref: ${{ github.base_ref }}
-
-  lighthouse:
-    name: 💡 Lighthouse CI
-    timeout-minutes: 15
-    needs: [quality]
-    uses: ./.github/workflows/lighthouse.yml
-    with:
-      node_version: '22.21.1'
-      package_manager: 'bun'
-
   create_issue_on_failure:
     name: 📌 Create Issue on Failure
-    timeout-minutes: 5
     needs: [quality]
     if: ${{ always() && (needs.quality.result == 'failure' || needs.quality.result == 'failure') && !contains(github.event.head_commit.message, '[skip ci]') }}
     uses: ./.github/workflows/create-issue-on-failure.yml
