@@ -20,6 +20,8 @@
     "generated/**",
     "components/ui/**",
 
+    "**/k6/**/*.js",
+
     "coverage/**",
     "**/*spec.ts",
     "resolver-test.setup.ts",
@@ -40,8 +42,10 @@
     "tmp/**",
     ".vscode/**",
 
-    "*.config.js",
-    "*.config.mjs",
+    "**/lighthouserc.js",
+
+    "**/*.config.js",
+    "**/*.config.mjs",
     "babel.config.js",
     "metro.config.js",
     "webpack.*.js",
