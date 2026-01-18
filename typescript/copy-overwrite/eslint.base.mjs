@@ -351,7 +351,7 @@ export const getTsFilesOverride = (filePatterns = ["**/*.ts"]) => ({
   rules: {
     // Enable immutable-data rule now that type-checking is available
     "functional/immutable-data": [
-      "off",
+      "error",
       {
         ignoreClasses: true,
         ignoreImmediateMutation: true,
@@ -384,10 +384,8 @@ export const getTsTestFilesOverride = (
 export {
   eslintComments,
   functional,
-  globals,
-  jsdoc,
-  js,
-  prettier,
+  globals, js, jsdoc, prettier,
   sonarjs,
-  tseslint,
+  tseslint
 };
+
