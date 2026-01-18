@@ -414,22 +414,63 @@ The more specific the guidance, the better the output. That's why Lisa is struct
 
 ### npm Package Publishing
 
-Projects detected as `npm-package` automatically receive a GitHub Actions workflow for publishing to npm. This workflow:
+Projects detected as `npm-package` automatically receive a GitHub Actions workflow for publishing to npm using **OIDC trusted publishing**. This workflow:
 
 1. Triggers on push to `main`
 2. Runs semantic versioning via `release.yml`
-3. Publishes to npm with `npm publish --access public`
+3. Publishes to npm with `npm publish --access public --provenance`
 
-**Required Setup:**
+**Step 1: First-Time Publish (Manual)**
 
-Add an `NPM_TOKEN` secret to your GitHub repository:
+OIDC trusted publishing requires the package to exist on npm first. For new packages, do a manual initial publish:
 
-1. Generate a token at [npmjs.com](https://www.npmjs.com/) → Access Tokens → Generate New Token (Automation)
-2. Go to your GitHub repo → Settings → Secrets and variables → Actions
-3. Click "New repository secret"
-4. Name: `NPM_TOKEN`, Value: your npm token
+```bash
+# Login to npm (opens browser for authentication)
+npm login
 
-If `NPM_TOKEN` is not set, the workflow will skip publishing and log a message.
+# Verify you're logged in
+npm whoami
+
+# Build the package
+npm run build
+
+# Publish for the first time
+npm publish --access public
+```
+
+**Step 2: Configure Trusted Publisher on npm**
+
+After the first publish, configure OIDC for automated future releases:
+
+1. Go to [npmjs.com](https://www.npmjs.com/) and navigate to your package
+2. Click **Settings** → **Trusted Publishers**
+3. Click **Add GitHub Actions**
+4. Fill in the required fields:
+   - **Organization/User**: Your GitHub username or org (e.g., `CodySwannGT`)
+   - **Repository**: Your repo name (e.g., `lisa`)
+   - **Workflow filename**: `publish.yml` (must match exactly, including `.yml`)
+   - **Environment**: Leave blank unless using GitHub environments
+5. Click **Save**
+
+**Step 3: Future Releases (Automatic)**
+
+Once configured, all future releases are automatic:
+- Push to `main` triggers the workflow
+- Semantic versioning determines the version bump
+- OIDC authenticates without tokens
+- Package publishes with provenance attestation
+
+**Benefits of OIDC Trusted Publishing:**
+
+- No tokens to manage, rotate, or risk leaking
+- Automatic provenance attestations for supply chain security
+- Short-lived, workflow-specific credentials
+- No 90-day expiration limits to worry about
+
+**Requirements:**
+
+- npm CLI 11.5+ (workflow automatically installs latest)
+- Cannot use self-hosted GitHub runners (not yet supported by npm)
 
 ### Extending Lisa for Other Stacks
 

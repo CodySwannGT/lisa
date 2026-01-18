@@ -79,7 +79,7 @@
   "trustedDependencies": [
     "@sentry/cli"
   ],
-  "name": "lisa",
+  "name": "@codyswann/lisa",
   "version": "1.0.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "type": "module",
