@@ -307,6 +307,7 @@ Lisa auto-detects project types and applies appropriate configurations:
 | Type | Detection |
 |------|-----------|
 | TypeScript | `tsconfig.json` or `"typescript"` in package.json |
+| npm-package | Not `"private": true` and has `main`, `bin`, `exports`, or `files` |
 | Expo | `app.json`, `eas.json`, or `"expo"` in package.json |
 | NestJS | `nest-cli.json` or `"@nestjs"` in package.json |
 | CDK | `cdk.json` or `"aws-cdk"` in package.json |
@@ -318,12 +319,15 @@ Types inherit from their parents:
 ```
 all/                    ← Applied to every project
 └── typescript/         ← TypeScript-specific
+    ├── npm-package/    ← Publishable npm packages (includes typescript)
     ├── expo/           ← Expo (includes typescript)
     ├── nestjs/         ← NestJS (includes typescript)
     └── cdk/            ← CDK (includes typescript)
 ```
 
 An Expo project receives configs from: `all/` → `typescript/` → `expo/`
+
+An npm package receives configs from: `all/` → `typescript/` → `npm-package/`
 
 ### Why Stack-Specific Rules Matter
 
@@ -344,9 +348,28 @@ When Claude writes code without stack-specific guidance, it produces "generic" s
 
 The more specific the guidance, the better the output. That's why Lisa is structured around project types rather than one-size-fits-all rules.
 
+### npm Package Publishing
+
+Projects detected as `npm-package` automatically receive a GitHub Actions workflow for publishing to npm. This workflow:
+
+1. Triggers on push to `main`
+2. Runs semantic versioning via `release.yml`
+3. Publishes to npm with `npm publish --access public`
+
+**Required Setup:**
+
+Add an `NPM_TOKEN` secret to your GitHub repository:
+
+1. Generate a token at [npmjs.com](https://www.npmjs.com/) → Access Tokens → Generate New Token (Automation)
+2. Go to your GitHub repo → Settings → Secrets and variables → Actions
+3. Click "New repository secret"
+4. Name: `NPM_TOKEN`, Value: your npm token
+
+If `NPM_TOKEN` is not set, the workflow will skip publishing and log a message.
+
 ### Extending Lisa for Other Stacks
 
-Lisa currently supports TypeScript, Expo, NestJS, and CDK—but the architecture is designed for extension. **We're calling on the community to contribute stack-specific configurations.**
+Lisa currently supports TypeScript, npm-package, Expo, NestJS, and CDK—but the architecture is designed for extension. **We're calling on the community to contribute stack-specific configurations.**
 
 **Stacks that would benefit from Lisa extensions:**
 
@@ -492,6 +515,7 @@ lisa/
 │   └── utils/                      # File and JSON utilities
 ├── all/                            # Applied to all projects
 ├── typescript/                     # TypeScript projects
+├── npm-package/                    # Publishable npm packages
 ├── expo/                           # Expo projects
 ├── nestjs/                         # NestJS projects
 ├── cdk/                            # CDK projects
@@ -709,6 +733,8 @@ EOF
 - Modular architecture with dependency injection
 - Atomic transactions with backup/rollback
 - Improved error handling with custom error types
+- New `npm-package` project type with automated npm publishing workflow
+- ESLint 9 flat config support for TypeScript projects
 
 ### v1.0.0 (2026-01-17)
 
