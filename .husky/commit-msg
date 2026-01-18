@@ -1,0 +1,91 @@
+# BEGIN: AI GUARDRAILS 
+
+# Detect package manager (check if tool is available before using it)
+# Priority: bun > yarn > npm (bun first since package.json engines prefer it)
+if ([ -f "bun.lockb" ] || [ -f "bun.lock" ]) && command -v bun >/dev/null 2>&1; then
+  PACKAGE_MANAGER="bun"
+  EXECUTOR="bunx"
+elif [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+  PACKAGE_MANAGER="yarn"
+  EXECUTOR="yarn"
+elif [ -f "package-lock.json" ]; then
+  PACKAGE_MANAGER="npm"
+  EXECUTOR="npx"
+else
+  # Default to npm if no lock file is found or tool is not available
+  PACKAGE_MANAGER="npm"
+  EXECUTOR="npx"
+fi
+
+# Get the commit message file path
+COMMIT_MSG_FILE=$1
+
+# Get the current branch name
+BRANCH_NAME=$(git branch --show-current)
+
+# Extract Jira key from branch name if present
+# Default pattern matches common Jira project keys (2-10 uppercase letters followed by a hyphen and numbers)
+# Can be overridden with JIRA_PROJECT_KEY environment variable (e.g., JIRA_PROJECT_KEY="SE|PROJ|ABC")
+JIRA_PROJECT_KEY=${JIRA_PROJECT_KEY:-"[A-Z]{2,10}"}
+
+# Extract Jira key from branch name using grep
+# Matches patterns like: feat/SE-2397-description, SE-2397-description, chore/PROJ-123-something
+JIRA_KEY=$(echo "$BRANCH_NAME" | grep -E "(^|/)($JIRA_PROJECT_KEY)-[0-9]+" | grep -E "($JIRA_PROJECT_KEY)-[0-9]+" -o | head -1)
+
+if [ -n "$JIRA_KEY" ]; then
+  # Read the current commit message
+  COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+  
+  # Check if the Jira key is already in the commit message
+  if ! echo "$COMMIT_MSG" | grep -q "\[$JIRA_KEY\]"; then
+    # Append the Jira key to the commit message
+    echo "$COMMIT_MSG [$JIRA_KEY]" > "$COMMIT_MSG_FILE"
+    echo "🎫 Auto-appended Jira key: [$JIRA_KEY]"
+  fi
+fi
+
+echo "📝 Validating commit message with commitlint..."
+$EXECUTOR commitlint --edit $1
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Commit message does not follow conventional commits format!"
+  echo ""
+  echo "📖 Examples of valid commit messages:"
+  echo "  - feat: add new feature"
+  echo "  - fix: resolve bug in login"
+  echo "  - docs: update README"
+  echo "  - style: format code"
+  echo "  - refactor: restructure auth module"
+  echo "  - test: add unit tests for utils"
+  echo "  - chore: update dependencies"
+  echo ""
+  echo "Format: <type>(<optional scope>): <subject>"
+  echo ""
+  echo "For more info, see: https://www.conventionalcommits.org/"
+  exit 1
+fi
+
+# Check for Co-Authored-By line (skip for merge commits)
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Skip AI co-authorship check for merge commits (e.g., from git pull)
+if echo "$COMMIT_MSG" | grep -qE "^Merge (branch|pull request|remote-tracking)"; then
+  echo "🔀 Merge commit detected, skipping AI co-authorship check"
+  exit 0
+fi
+
+echo "🤖 Checking for AI co-authorship..."
+
+if ! echo "$COMMIT_MSG" | grep -q "Co-Authored-By:.*Claude"; then
+  echo ""
+  echo "❌ Commit message must include AI co-authorship!"
+  echo ""
+  echo "All commits must include a Co-Authored-By line for Claude."
+  echo ""
+  echo "If you're using Claude Code, use the /git:commit command"
+  echo ""
+  exit 1
+fi
+
+# END: AI GUARDRAILS

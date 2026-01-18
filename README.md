@@ -160,24 +160,15 @@ Clone the Lisa repository to your machine:
 
 ```bash
 git clone <lisa-repo-url> ~/lisa
+cd ~/lisa
+npm install
+npm run build
 ```
 
 ### Requirements
 
-- **Bash 3.2+** (default on macOS)
-- **jq** for JSON processing
-
-Install jq:
-```bash
-# macOS
-brew install jq
-
-# Debian/Ubuntu
-sudo apt install jq
-
-# RHEL/CentOS
-sudo yum install jq
-```
+- **Node.js 18+**
+- **npm** or **bun**
 
 ## Usage
 
@@ -378,6 +369,10 @@ Lisa currently supports TypeScript, Expo, NestJS, and CDK—but the architecture
 
 **To contribute a new stack:**
 
+1. Create a new detector in `src/detection/detectors/`
+2. Register the detector in `src/detection/index.ts`
+3. Add the config directory structure:
+
 ```bash
 # Create the stack directory
 mkdir -p your-stack/{copy-overwrite,merge}
@@ -396,7 +391,6 @@ EOF
 # Add stack-specific ESLint rules
 mkdir -p your-stack/copy-overwrite/eslint-plugin-your-stack
 
-# Add stack detection to lisa.sh (in detect_project_types function)
 # Add package.json dependencies via merge/
 ```
 
@@ -409,7 +403,7 @@ Use these prompts in Claude Code (with Lisa applied) to generate stack configura
 ```
 Research Rails best practices and create a Lisa configuration for Ruby on Rails projects.
 Look at the expo/ directory as a reference for structure. Include:
-- Detection logic in lisa.sh (Gemfile with 'rails', config/routes.rb)
+- Detection logic as a new detector in src/detection/detectors/
 - Skills for Rails conventions (MVC, ActiveRecord patterns, concerns)
 - ESLint equivalent rules using RuboCop (create a rubocop config, not an ESLint plugin)
 - Common .gitignore entries for Rails projects
@@ -466,46 +460,46 @@ Each type directory contains subdirectories that control how files are applied:
 - Your project's values take precedence
 - Missing scripts/dependencies are added without overwriting existing ones
 
-## Directory Structure
+## Architecture
+
+Lisa is written in TypeScript with the following structure:
 
 ```
 lisa/
-├── lisa.sh                      # Main script
-├── all/                         # Applied to all projects
-│   ├── copy-overwrite/
-│   │   ├── CLAUDE.md            # Claude Code instructions
-│   │   ├── .claude/
-│   │   │   ├── settings.json    # Hooks, plugins, env
-│   │   │   ├── agents/          # Specialized sub-agents
-│   │   │   ├── commands/        # Slash commands
-│   │   │   ├── hooks/           # Automation scripts
-│   │   │   └── skills/          # Teaching documents
-│   │   └── eslint-plugin-code-organization/
-│   ├── copy-contents/
-│   │   └── .gitignore
-│   └── create-only/
-│       └── PROJECT_RULES.md
-├── typescript/                  # TypeScript projects
-│   ├── copy-overwrite/
-│   │   ├── .prettierrc.json
-│   │   ├── eslint.thresholds.config.json
-│   │   └── .github/workflows/   # CI/CD pipelines
-│   ├── copy-contents/
-│   │   └── .husky/              # Git hooks
-│   └── merge/
-│       └── package.json         # Dev dependencies, scripts
-├── expo/                        # Expo projects
-│   ├── copy-overwrite/
-│   │   ├── eslint-plugin-component-structure/
-│   │   └── .claude/skills/container-view-pattern/
-│   └── merge/
-│       └── package.json
-├── nestjs/                      # NestJS projects
-│   └── merge/
-│       └── package.json
-└── cdk/                         # CDK projects
-    └── merge/
-        └── package.json
+├── src/
+│   ├── index.ts                    # CLI entry point
+│   ├── cli/
+│   │   ├── index.ts                # Commander setup
+│   │   └── prompts.ts              # Interactive prompts
+│   ├── core/
+│   │   ├── lisa.ts                 # Main orchestrator
+│   │   ├── config.ts               # Types and configuration
+│   │   └── manifest.ts             # Manifest operations
+│   ├── detection/
+│   │   ├── index.ts                # Detector registry
+│   │   └── detectors/              # Project type detectors
+│   ├── strategies/
+│   │   ├── index.ts                # Strategy registry
+│   │   ├── copy-overwrite.ts
+│   │   ├── copy-contents.ts
+│   │   ├── create-only.ts
+│   │   └── merge.ts
+│   ├── transaction/
+│   │   ├── backup.ts               # Backup/restore
+│   │   └── transaction.ts          # Atomic wrapper
+│   ├── logging/                    # Console logger
+│   ├── errors/                     # Custom error types
+│   └── utils/                      # File and JSON utilities
+├── all/                            # Applied to all projects
+├── typescript/                     # TypeScript projects
+├── expo/                           # Expo projects
+├── nestjs/                         # NestJS projects
+├── cdk/                            # CDK projects
+├── tests/                          # Vitest test suite
+├── lisa.sh                         # Wrapper script
+├── package.json
+├── tsconfig.json
+└── vitest.config.ts
 ```
 
 ## Coding Philosophy
@@ -572,16 +566,17 @@ This file should be in `.gitignore`.
 
 ### Common Issues
 
-#### "jq: command not found"
+#### "Node.js not found"
 
-Install jq using your package manager:
+Install Node.js 18+:
 
 ```bash
-# macOS
-brew install jq
+# macOS with Homebrew
+brew install node
 
-# Debian/Ubuntu
-sudo apt install jq
+# Using nvm
+nvm install 18
+nvm use 18
 ```
 
 #### "Permission denied" when running lisa.sh
@@ -597,7 +592,7 @@ chmod +x ~/lisa/lisa.sh
 Your project's `package.json` may have syntax errors. Validate it:
 
 ```bash
-jq . package.json
+node -e "require('./package.json')"
 ```
 
 #### Hooks not running
@@ -618,17 +613,34 @@ chmod +x .claude/hooks/*.sh
 ~/lisa/lisa.sh --validate /path/to/project
 ```
 
-## Testing
+## Development
 
-Lisa includes a test suite using [bats-core](https://github.com/bats-core/bats-core):
+### Building
 
 ```bash
-# Install bats
-brew install bats-core  # macOS
-apt install bats        # Debian/Ubuntu
+npm install
+npm run build
+```
 
-# Run tests
-bats tests/lisa.bats
+### Testing
+
+Lisa includes a comprehensive test suite using Vitest:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+```
+
+### Type Checking
+
+```bash
+npm run typecheck
 ```
 
 ## Adding New Configurations
@@ -675,7 +687,28 @@ EOF
 2. Register in plugin's `index.js`
 3. Add tests in `__tests__/`
 
+### Adding a New Project Type Detector
+
+1. Create detector in `src/detection/detectors/your-type.ts`
+2. Register in `src/detection/index.ts`
+3. Update `PROJECT_TYPE_HIERARCHY` in `src/core/config.ts` if it has a parent
+4. Add tests in `tests/unit/detection/`
+
 ## Changelog
+
+### v2.0.0 (2026-01-17)
+
+**Breaking Changes:**
+- Rewritten from Bash to TypeScript
+- Removed dependency on `jq` - now uses native Node.js
+- Removed bats test suite - now uses Vitest
+
+**Features:**
+- Full TypeScript implementation with type safety
+- 97 comprehensive tests with Vitest
+- Modular architecture with dependency injection
+- Atomic transactions with backup/rollback
+- Improved error handling with custom error types
 
 ### v1.0.0 (2026-01-17)
 

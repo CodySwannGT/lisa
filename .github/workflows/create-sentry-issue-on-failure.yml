@@ -1,0 +1,267 @@
+# -----------------------------------------------------------------------------
+# Sentry Issue Creation Workflow
+# -----------------------------------------------------------------------------
+# ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
+# Any changes may be overwritten by the generation process.
+# This workflow creates a Sentry issue when another workflow fails.
+# It captures details about the failure and creates a standardized issue
+# to help track and resolve CI/CD problems in Sentry.
+#
+# Example usage in another workflow:
+# ```yaml
+# create_sentry_issue_on_failure:
+#   if: failure()
+#   uses: ./.github/workflows/create-sentry-issue-on-failure.yml
+#   with:
+#     workflow_name: 'My Workflow'
+#     failed_job: 'build_and_test'
+#     SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+#     SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+#   secrets:
+#     SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+# ```
+
+name: 🔴 Sentry Issue on Workflow Failure
+
+on:
+  workflow_call:
+    inputs:
+      workflow_name:
+        required: true
+        type: string
+        description: 'Name of the workflow that failed'
+      failed_job:
+        required: false
+        type: string
+        description: 'Name of the job that failed (optional)'
+      SENTRY_ORG:
+        required: true
+        type: string
+        description: 'Sentry organization slug (e.g., your-company)'
+      SENTRY_PROJECT:
+        required: true
+        type: string
+        description: 'Sentry project slug (e.g., serverless-knowledge-platform)'
+      environment:
+        required: false
+        type: string
+        default: 'production'
+        description: 'Environment where the failure occurred'
+      level:
+        required: false
+        type: string
+        default: 'error'
+        description: 'Sentry issue level (debug, info, warning, error, fatal)'
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20.x'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'npm'
+        type: string
+      working_directory:
+        description: 'Directory to run commands in (if not root)'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      SENTRY_AUTH_TOKEN:
+        required: true
+        description: 'Sentry Auth Token with project:write scope'
+
+# Concurrency is managed by the parent workflow that calls this one
+# This avoids deadlocks between parent and child workflows
+
+jobs:
+  create_sentry_issue:
+    name: 📝 Create Sentry Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager }}
+
+      - name: 🔴 Create Sentry Issue
+        id: create_sentry_issue
+        run: |
+          cd "${{ inputs.working_directory || '.' }}"
+
+          # Set variables
+          WORKFLOW_NAME="${{ inputs.workflow_name }}"
+          FAILED_JOB="${{ inputs.failed_job || 'Unknown' }}"
+          ENVIRONMENT="${{ inputs.environment }}"
+          LEVEL="${{ inputs.level }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Get commit message, handling special characters properly
+          COMMIT_MESSAGE="${{ github.event.head_commit.message || 'N/A' }}"
+
+          # Create error message
+          if [ "$FAILED_JOB" != "Unknown" ]; then
+            ERROR_MESSAGE="CI/CD Workflow Failure: ${WORKFLOW_NAME} - ${FAILED_JOB}"
+          else
+            ERROR_MESSAGE="CI/CD Workflow Failure: ${WORKFLOW_NAME}"
+          fi
+
+          # Get current timestamp in ISO format
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+
+          # Create JSON payload for Sentry API using jq for proper escaping
+          PAYLOAD=$(jq -n \
+            --arg message "${ERROR_MESSAGE}" \
+            --arg level "${LEVEL}" \
+            --arg timestamp "${TIMESTAMP}" \
+            --arg workflow_name "${WORKFLOW_NAME}" \
+            --arg failed_job "${FAILED_JOB}" \
+            --arg run_url "${RUN_URL}" \
+            --arg repository "${{ github.repository }}" \
+            --arg commit "${{ github.sha }}" \
+            --arg commit_message "${COMMIT_MESSAGE}" \
+            --arg triggered_by "${{ github.actor }}" \
+            --arg environment "${ENVIRONMENT}" \
+            --arg ref "${{ github.ref }}" \
+            --arg run_id "${{ github.run_id }}" \
+            '{
+              "message": $message,
+              "level": $level,
+              "timestamp": $timestamp,
+              "platform": "other",
+              "sdk": {
+                "name": "github-actions",
+                "version": "1.0.0"
+              },
+              "logger": "github-actions.ci",
+              "environment": $environment,
+              "tags": {
+                "workflow": $workflow_name,
+                "job": $failed_job,
+                "repository": $repository,
+                "triggered_by": $triggered_by,
+                "ref": $ref,
+                "source": "github-actions"
+              },
+              "extra": {
+                "workflow_run_url": $run_url,
+                "commit_sha": $commit,
+                "commit_message": $commit_message,
+                "run_id": $run_id,
+                "failure_type": "ci_cd_workflow"
+              },
+              "contexts": {
+                "runtime": {
+                  "name": "github-actions",
+                  "version": "latest"
+                },
+                "os": {
+                  "name": "ubuntu-latest"
+                }
+              },
+              "fingerprint": ["github-actions", $workflow_name, $failed_job]
+            }')
+
+          # Debug: Print the payload to see what'\''s being sent (without sensitive data)
+          echo "Debug: Generated payload:"
+          echo "$PAYLOAD" | jq 'del(.extra.commit_message)' | head -20
+
+          # Debug: Print Sentry configuration
+          echo "Debug: SENTRY_ORG=${{ inputs.SENTRY_ORG }}"
+          echo "Debug: SENTRY_PROJECT=${{ inputs.SENTRY_PROJECT }}"
+          echo "Debug: API URL=https://sentry.io/api/0/projects/${{ inputs.SENTRY_ORG }}/${{ inputs.SENTRY_PROJECT }}/store/"
+
+          # First, let's get the DSN for this project
+          DSN_RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
+            "https://sentry.io/api/0/projects/${{ inputs.SENTRY_ORG }}/${{ inputs.SENTRY_PROJECT }}/keys/")
+
+          DSN_STATUS=$(echo "$DSN_RESPONSE" | tail -n1)
+          DSN_BODY=$(echo "$DSN_RESPONSE" | head -n -1)
+
+          if [ "$DSN_STATUS" = "200" ]; then
+            # Extract the DSN from the first key
+            DSN=$(echo "$DSN_BODY" | jq -r '.[0].dsn.public // empty')
+            echo "Debug: Found DSN: ${DSN:0:50}..." # Show first 50 chars for security
+            
+            # Parse DSN to get the project ID and key
+            if [[ $DSN =~ https://([^@]+)@([^/]+)/([0-9]+) ]]; then
+              SENTRY_KEY="${BASH_REMATCH[1]}"
+              SENTRY_HOST="${BASH_REMATCH[2]}"
+              PROJECT_ID="${BASH_REMATCH[3]}"
+              
+              # Call Sentry API to create issue using the store endpoint with proper auth
+              RESPONSE=$(curl -s -w "\n%{http_code}" \
+                -H "X-Sentry-Auth: Sentry sentry_version=7, sentry_key=$SENTRY_KEY" \
+                -H "Content-Type: application/json" \
+                -X POST \
+                --data "${PAYLOAD}" \
+                "https://${SENTRY_HOST}/api/${PROJECT_ID}/store/")
+            else
+              echo "Error: Could not parse DSN"
+              exit 1
+            fi
+          else
+            echo "Error: Could not retrieve project DSN. Status: $DSN_STATUS"
+            echo "Response: $DSN_BODY"
+            exit 1
+          fi
+
+          # Extract HTTP status code from response
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP Status: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
+            # Extract issue ID from response
+            ISSUE_ID=$(echo "$RESPONSE_BODY" | jq -r '.id // empty')
+            
+            if [ -n "$ISSUE_ID" ] && [ "$ISSUE_ID" != "null" ]; then
+              echo "Successfully created Sentry issue: $ISSUE_ID"
+              echo "issue_id=$ISSUE_ID" >> $GITHUB_OUTPUT
+              echo "issue_url=https://sentry.io/organizations/${{ inputs.SENTRY_ORG }}/issues/?project=${{ inputs.SENTRY_PROJECT }}&query=$ISSUE_ID" >> $GITHUB_OUTPUT
+            else
+              echo "Issue created but no ID returned. Response:"
+              echo "$RESPONSE_BODY" | jq . || echo "$RESPONSE_BODY"
+            fi
+          else
+            echo "Failed to create Sentry issue. API response:"
+            echo "Status: $HTTP_STATUS"
+            echo "Body: $RESPONSE_BODY"
+            
+            # Provide helpful error messages
+            if [ "$HTTP_STATUS" = "400" ]; then
+              echo "Error: Bad request. Please check the payload format."
+            elif [ "$HTTP_STATUS" = "401" ]; then
+              echo "Error: Authentication failed. Please check SENTRY_AUTH_TOKEN."
+            elif [ "$HTTP_STATUS" = "403" ]; then
+              echo "Error: Permission denied. Please check token permissions (needs project:write)."
+            elif [ "$HTTP_STATUS" = "404" ]; then
+              echo "Error: Project not found. Please check SENTRY_ORG and SENTRY_PROJECT."
+            elif [ "$HTTP_STATUS" = "429" ]; then
+              echo "Error: Rate limit exceeded. Please try again later."
+            fi
+            
+            exit 1
+          fi
+
+      - name: 📢 Report Issue Creation
+        if: steps.create_sentry_issue.outputs.issue_id
+        run: |
+          cd "${{ inputs.working_directory || '.' }}"
+          echo "Created Sentry issue: ${{ steps.create_sentry_issue.outputs.issue_id }}"
+          echo "Issue URL: ${{ steps.create_sentry_issue.outputs.issue_url }}"
+
+      - name: 📢 Report Creation Attempt
+        if: steps.create_sentry_issue.conclusion == 'success' && !steps.create_sentry_issue.outputs.issue_id
+        run: |
+          cd "${{ inputs.working_directory || '.' }}"
+          echo "Sentry event was sent successfully, but issue ID was not returned."
+          echo "Check your Sentry dashboard: https://sentry.io/organizations/${{ inputs.SENTRY_ORG }}/issues/?project=${{ inputs.SENTRY_PROJECT }}"

@@ -1,0 +1,68 @@
+name: 💡 Lighthouse CI
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20.x'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'yarn'
+        type: string
+      target_branch:
+        description: 'Target branch for the PR (used to determine environment)'
+        required: false
+        default: 'staging'
+        type: string
+
+jobs:
+  lighthouse:
+    name: 💡 Performance Budget Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+
+      - name: 🏗️ Build web export
+        run: ${{ inputs.package_manager }} run export:web
+        env:
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+
+      - name: 💡 Run Lighthouse CI
+        run: ${{ inputs.package_manager }} run lighthouse:check
+
+      - name: 📊 Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 30

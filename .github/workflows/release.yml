@@ -1,0 +1,1599 @@
+name: Enhanced Release Workflow v4 (with Enterprise Features)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment for the release'
+        required: true
+        type: string
+      skip_jobs:
+        description: 'Comma-separated list of jobs to skip (test,type-check,lint,format,audit,cdk-synth)'
+        required: false
+        type: string
+        default: ''
+      force_release:
+        description: 'Force create a release even if no changes detected'
+        required: false
+        type: boolean
+        default: false
+      release_strategy:
+        description: 'Version strategy: standard-version, semantic, calendar, custom'
+        required: false
+        type: string
+        default: 'standard-version'
+      prerelease:
+        description: 'Create pre-release (alpha, beta, rc)'
+        required: false
+        type: string
+        default: ''
+      custom_version:
+        description: 'Custom version number (only for custom strategy)'
+        required: false
+        type: string
+        default: ''
+      jira_project_key:
+        description: 'JIRA project key for release creation'
+        required: false
+        type: string
+        default: ''
+      release_notes_template:
+        description: 'Template for release notes (default, detailed, security)'
+        required: false
+        type: string
+        default: 'default'
+      debug:
+        description: 'Enable debug logging'
+        required: false
+        type: boolean
+        default: false
+      require_approval:
+        description: 'Require approval before creating release'
+        required: false
+        type: boolean
+        default: false
+      approval_environment:
+        description: 'GitHub environment for approval (if require_approval is true)'
+        required: false
+        type: string
+        default: ''
+      require_signatures:
+        description: 'Require signed releases (needs RELEASE_SIGNING_KEY secret)'
+        required: false
+        type: boolean
+        default: false
+      check_dependencies:
+        description: 'Check service dependencies before release'
+        required: false
+        type: boolean
+        default: false
+      override_blackout:
+        description: 'Override blackout period restrictions'
+        required: false
+        type: boolean
+        default: false
+      emergency_release:
+        description: 'Mark as emergency release'
+        required: false
+        type: boolean
+        default: false
+      generate_sbom:
+        description: 'Generate Software Bill of Materials'
+        required: false
+        type: boolean
+        default: false
+      node_version:
+        description: 'Node.js version to use'
+        required: true
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, pnpm, bun)'
+        required: false
+        type: string
+        default: 'npm'
+      sourcemaps:
+        description: 'Path to source maps for Sentry release (optional)'
+        required: false
+        type: string
+        default: ''
+    outputs:
+      version:
+        description: 'The new version number'
+        value: ${{ jobs.version.outputs.version }}
+      tag:
+        description: 'The new version tag'
+        value: ${{ jobs.version.outputs.tag }}
+      release_url:
+        description: 'URL of the created GitHub release'
+        value: ${{ jobs.github_release.outputs.release_url }}
+      release_id:
+        description: 'Release correlation ID for tracking'
+        value: ${{ jobs.release_init.outputs.correlation_id }}
+      release_metrics_url:
+        description: 'URL to release metrics dashboard'
+        value: ${{ jobs.release_analytics.outputs.dashboard_url }}
+      signed:
+        description: 'Whether the release was signed'
+        value: ${{ jobs.release_signing.outputs.signed }}
+      attestation_url:
+        description: 'URL to release attestation'
+        value: ${{ jobs.release_attestation.outputs.attestation_url }}
+      compliance_status:
+        description: 'Compliance validation status'
+        value: ${{ jobs.release_compliance.outputs.status }}
+      sentry_release_url:
+        description: 'URL to Sentry release'
+        value: ${{ jobs.sentry_release.outputs.sentry_release_url }}
+      jira_release_created:
+        description: 'Whether the Jira release was created'
+        value: ${{ jobs.jira_release.outputs.jira_release_created }}
+      jira_release_url:
+        description: 'URL to Jira release'
+        value: ${{ jobs.jira_release.outputs.jira_release_url }}
+    secrets:
+      DEPLOY_KEY:
+        description: 'SSH deploy key with write access to bypass branch protection (add to ruleset bypass list)'
+        required: false
+      RELEASE_SIGNING_KEY:
+        required: false
+      SIGNING_KEY_ID:
+        required: false
+      SIGNING_KEY_PASSPHRASE:
+        required: false
+      SENTRY_AUTH_TOKEN:
+        required: false
+      SENTRY_ORG:
+        required: false
+      SENTRY_PROJECT:
+        required: false
+
+jobs:
+  # Initialize release with correlation ID and logging
+  release_init:
+    name: 🚀 Initialize Release
+    runs-on: ubuntu-latest
+    outputs:
+      correlation_id: ${{ steps.init.outputs.correlation_id }}
+      start_time: ${{ steps.init.outputs.start_time }}
+      release_logger: ${{ steps.init.outputs.logger_created }}
+    steps:
+      - name: Generate Release Correlation ID
+        id: init
+        run: |
+          # Generate unique correlation ID
+          CORRELATION_ID="rel-$(date +%Y%m%d%H%M%S)-${{ github.run_id }}"
+          echo "correlation_id=$CORRELATION_ID" >> $GITHUB_OUTPUT
+          echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
+          echo "logger_created=true" >> $GITHUB_OUTPUT
+
+          # Initialize release context
+          echo "## 🚀 Release Workflow Started" >> $GITHUB_STEP_SUMMARY
+          echo "- **Correlation ID**: $CORRELATION_ID" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Strategy**: ${{ inputs.release_strategy }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Approval Required**: ${{ inputs.require_approval }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Signatures Required**: ${{ inputs.require_signatures }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Emergency Release**: ${{ inputs.emergency_release }}" >> $GITHUB_STEP_SUMMARY
+
+  # Check if this is a promotion merge (env branch to env branch)
+  check_promotion:
+    name: 🔍 Check Promotion
+    runs-on: ubuntu-latest
+    outputs:
+      is_promotion: ${{ steps.check.outputs.is_promotion }}
+      skip_reason: ${{ steps.check.outputs.skip_reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10 # Need some history to analyze merge commits
+
+      - name: Check if this is a promotion merge
+        id: check
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          IS_PROMOTION=false
+          SKIP_REASON=""
+
+          # Environment branches that we track
+          ENV_BRANCHES="dev|staging|main|master|production"
+
+          # Check for merge commits from environment branches to environment branches
+          # Pattern 1: "Merge branch 'staging' into main"
+          if echo "$COMMIT_MSG" | grep -qiE "^Merge branch ['\"]?($ENV_BRANCHES)['\"]? into ($ENV_BRANCHES)"; then
+            IS_PROMOTION=true
+            SKIP_REASON="Merge from environment branch detected"
+          fi
+
+          # Pattern 2: "Merge pull request #123 from org/staging" or similar
+          if echo "$COMMIT_MSG" | grep -qiE "^Merge pull request.*from .*/($ENV_BRANCHES)$"; then
+            IS_PROMOTION=true
+            SKIP_REASON="PR merge from environment branch detected"
+          fi
+
+          # Pattern 3: Check parent commits for promotion patterns
+          # If both parents are from environment branches, it's likely a promotion
+          PARENT_COUNT=$(git rev-list --parents -n 1 HEAD | wc -w)
+          if [ "$PARENT_COUNT" -gt 2 ]; then
+            # This is a merge commit, check if parent branches are environment branches
+            PARENT_BRANCHES=$(git log -1 --pretty=%P | xargs -n1 git branch -a --contains 2>/dev/null | grep -E "($ENV_BRANCHES)" | head -2)
+            PARENT_ENV_COUNT=$(echo "$PARENT_BRANCHES" | grep -cE "($ENV_BRANCHES)" || true)
+            if [ "$PARENT_ENV_COUNT" -ge 2 ]; then
+              IS_PROMOTION=true
+              SKIP_REASON="Merge between environment branches detected"
+            fi
+          fi
+
+          echo "is_promotion=$IS_PROMOTION" >> $GITHUB_OUTPUT
+          echo "skip_reason=$SKIP_REASON" >> $GITHUB_OUTPUT
+
+          if [ "$IS_PROMOTION" = "true" ]; then
+            echo "## ⏭️ Promotion Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Reason**: $SKIP_REASON" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Version bump will be skipped to avoid duplicate versioning." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Commit message**:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$COMMIT_MSG" | head -5 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Not a promotion merge - version bump will proceed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Check release schedule and blackout periods
+  release_schedule:
+    name: 📅 Release Schedule Check
+    needs: [release_init]
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.schedule.outputs.allowed }}
+      blackout_reason: ${{ steps.schedule.outputs.reason }}
+    steps:
+      - name: Check Release Schedule
+        id: schedule
+        run: |
+          # Check if we're in a blackout period
+          CURRENT_DATE=$(date +%Y-%m-%d)
+          CURRENT_TIME=$(date +%H:%M)
+          CURRENT_DAY=$(date +%A)
+          CURRENT_HOUR=$(date +%H)
+
+          IS_BLACKOUT=false
+          BLACKOUT_REASON=""
+
+          # Check environment-specific blackout rules
+          case "${{ inputs.environment }}" in
+            production|prod|main)
+              # No weekend releases for production
+              if [[ "$CURRENT_DAY" == "Saturday" || "$CURRENT_DAY" == "Sunday" ]]; then
+                IS_BLACKOUT=true
+                BLACKOUT_REASON="Weekend release restriction for production"
+              fi
+
+              # No late night releases (10 PM - 6 AM)
+              if [[ $CURRENT_HOUR -ge 22 || $CURRENT_HOUR -lt 6 ]]; then
+                IS_BLACKOUT=true
+                BLACKOUT_REASON="Late night release restriction (10 PM - 6 AM)"
+              fi
+
+              # Holiday blackouts
+              HOLIDAYS=(
+                "2024-12-24:2025-01-02:Holiday Season"
+                "2025-07-03:2025-07-05:Independence Day"
+                "2025-11-27:2025-11-29:Thanksgiving"
+              )
+
+              for holiday in "${HOLIDAYS[@]}"; do
+                IFS=':' read -r start end name <<< "$holiday"
+                if [[ "$CURRENT_DATE" > "$start" && "$CURRENT_DATE" < "$end" ]]; then
+                  IS_BLACKOUT=true
+                  BLACKOUT_REASON="$name blackout period"
+                  break
+                fi
+              done
+              ;;
+
+            staging|stage)
+              # Staging has fewer restrictions
+              if [[ "$CURRENT_DAY" == "Sunday" && $CURRENT_HOUR -ge 20 ]]; then
+                IS_BLACKOUT=true
+                BLACKOUT_REASON="Sunday evening restriction for staging"
+              fi
+              ;;
+          esac
+
+          # Handle blackout
+          if [ "$IS_BLACKOUT" == "true" ]; then
+            if [ "${{ inputs.override_blackout }}" == "true" ]; then
+              echo "⚠️ Blackout override enabled: $BLACKOUT_REASON"
+              echo "allowed=true" >> $GITHUB_OUTPUT
+              echo "reason=Override: $BLACKOUT_REASON" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Release blocked: $BLACKOUT_REASON" >> $GITHUB_STEP_SUMMARY
+              echo "Use override_blackout=true to force release" >> $GITHUB_STEP_SUMMARY
+              echo "allowed=false" >> $GITHUB_OUTPUT
+              echo "reason=$BLACKOUT_REASON" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✅ Release schedule check passed" >> $GITHUB_STEP_SUMMARY
+            echo "allowed=true" >> $GITHUB_OUTPUT
+            echo "reason=No blackout restrictions" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Enforce Schedule
+        if: steps.schedule.outputs.allowed != 'true'
+        run: |
+          echo "::error::Release blocked due to blackout period: ${{ steps.schedule.outputs.reason }}"
+          exit 1
+
+  # Optional approval gate
+  release_approval:
+    name: 🚦 Release Approval
+    needs: [release_init, release_schedule]
+    if: ${{ inputs.require_approval == true }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.approval_environment || inputs.environment }}
+    outputs:
+      approved: ${{ steps.approval.outputs.approved }}
+      approver: ${{ steps.approval.outputs.approver }}
+      approval_time: ${{ steps.approval.outputs.time }}
+    steps:
+      - name: Request Approval
+        id: approval
+        run: |
+          echo "## 🚦 Release Approval Required" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Requester**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Correlation ID**: ${{ needs.release_init.outputs.correlation_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This release requires manual approval to proceed." >> $GITHUB_STEP_SUMMARY
+
+          # If we reach here, approval was granted (environment protection rules)
+          echo "approved=true" >> $GITHUB_OUTPUT
+          echo "approver=${{ github.actor }}" >> $GITHUB_OUTPUT
+          echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
+          echo "✅ Release approved by environment protection rules" >> $GITHUB_STEP_SUMMARY
+
+  # Run quality checks
+  quality:
+    name: 🔍 Quality Checks
+    needs: [release_init, release_schedule]
+    uses: ./.github/workflows/quality.yml
+    with:
+      skip_jobs: ${{ inputs.skip_jobs }}
+      node_version: ${{ inputs.node_version }}
+      package_manager: ${{ inputs.package_manager }}
+    secrets: inherit
+
+  # Version management with observability
+  version:
+    name: 📦 Version Management
+    needs: [release_init, quality, release_approval, check_promotion]
+    if: |
+      always() && !cancelled() &&
+      needs.quality.result == 'success' &&
+      (needs.release_approval.result == 'success' || needs.release_approval.result == 'skipped') &&
+      needs.check_promotion.outputs.is_promotion != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      HUSKY: '0'
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      bump_type: ${{ steps.version.outputs.bump_type }}
+      strategy: ${{ inputs.release_strategy }}
+      changelog_generated: ${{ steps.changelog.outputs.generated }}
+    steps:
+      # Use SSH deploy key for pushing to protected branches
+      # Setup: Add DEPLOY_KEY secret and add the deploy key to ruleset bypass list
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Setup Release Logger
+        id: logger
+        run: |
+          # Create logging utilities
+          cat > release-logger.sh << 'EOF'
+          #!/bin/bash
+
+          # Correlation ID from init job
+          RELEASE_CORRELATION_ID="${{ needs.release_init.outputs.correlation_id }}"
+          export RELEASE_CORRELATION_ID
+
+          # Structured log function
+          log_release_event() {
+            local event_type="$1"
+            local event_status="$2"
+            local event_message="$3"
+            shift 3
+
+            # Additional key-value pairs
+            local additional_fields=""
+            while [ $# -gt 0 ] && [ $# -ge 2 ]; do
+              additional_fields="$additional_fields,\"$1\":\"$2\""
+              shift 2
+            done
+
+            # Create structured log entry
+            local log_entry=$(jq -n \
+              --arg correlation_id "$RELEASE_CORRELATION_ID" \
+              --arg workflow_id "${{ github.run_id }}" \
+              --arg event_type "$event_type" \
+              --arg event_status "$event_status" \
+              --arg event_message "$event_message" \
+              --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
+              --arg environment "${{ inputs.environment }}" \
+              --arg version "${VERSION:-unknown}" \
+              --arg tag "${TAG:-unknown}" \
+              --arg actor "${{ github.actor }}" \
+              --arg repository "${{ github.repository }}" \
+              --arg ref "${{ github.ref }}" \
+              --arg sha "${{ github.sha }}" \
+              "{
+                \"correlation_id\": \$correlation_id,
+                \"workflow_id\": \$workflow_id,
+                \"event_type\": \$event_type,
+                \"event_status\": \$event_status,
+                \"event_message\": \$event_message,
+                \"timestamp\": \$timestamp,
+                \"release\": {
+                  \"environment\": \$environment,
+                  \"version\": \$version,
+                  \"tag\": \$tag
+                },
+                \"context\": {
+                  \"actor\": \$actor,
+                  \"repository\": \$repository,
+                  \"ref\": \$ref,
+                  \"sha\": \$sha
+                }${additional_fields}
+              }")
+
+            # Output to stdout and file
+            echo "$log_entry" | tee -a release-events.jsonl
+
+            # Also log to GitHub Actions if debug enabled
+            if [ "${{ inputs.debug }}" == "true" ]; then
+              echo "::notice title=Release Event::$event_type - $event_status: $event_message"
+            fi
+          }
+
+          export -f log_release_event
+          EOF
+
+          chmod +x release-logger.sh
+          source ./release-logger.sh
+
+          # Log version process start
+          log_release_event "version_management" "started" "Version determination process started" \
+            "strategy" "${{ inputs.release_strategy }}" \
+            "approval_required" "${{ inputs.require_approval }}" \
+            "signatures_required" "${{ inputs.require_signatures }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "pnpm" ]; then
+            pnpm install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: Determine Version
+        id: version
+        run: |
+          source ./release-logger.sh
+
+          # Version determination logic (same as v3)
+          case "${{ inputs.release_strategy }}" in
+            "standard-version")
+              VERSION=$(npx standard-version --dry-run | grep "tagging release" | awk '{print $4}')
+              ;;
+            "semantic")
+              if git log --format=%B -n 50 --no-merges | grep -qE "^(BREAKING CHANGE:|.*!:)"; then
+                BUMP_TYPE="major"
+              elif git log --format=%B -n 50 --no-merges | grep -qE "^feat(\(.+\))?:"; then
+                BUMP_TYPE="minor"
+              else
+                BUMP_TYPE="patch"
+              fi
+
+              CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+              VERSION=$(npx semver -i $BUMP_TYPE ${CURRENT_VERSION#v})
+              ;;
+            "calendar")
+              VERSION=$(date +%Y.%m.%d)
+              if [ -n "${{ inputs.prerelease }}" ]; then
+                VERSION="${VERSION}-${{ inputs.prerelease }}.$(date +%H%M)"
+              fi
+              ;;
+            "custom")
+              VERSION="${{ inputs.custom_version }}"
+              if [ -z "$VERSION" ]; then
+                log_release_event "version_error" "failed" "Custom version not provided"
+                exit 1
+              fi
+              ;;
+          esac
+
+          # Add prerelease suffix if specified
+          if [ -n "${{ inputs.prerelease }}" ] && [ "${{ inputs.release_strategy }}" != "calendar" ]; then
+            VERSION="${VERSION}-${{ inputs.prerelease }}.$(date +%s)"
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "bump_type=${BUMP_TYPE:-custom}" >> $GITHUB_OUTPUT
+
+          export VERSION TAG="v$VERSION"
+
+          log_release_event "version_determination" "completed" "Version determined successfully" \
+            "version" "$VERSION" \
+            "bump_type" "${BUMP_TYPE:-custom}"
+
+      - name: Configure Git
+        if: inputs.release_strategy == 'standard-version'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          source ./release-logger.sh
+
+          log_release_event "changelog_generation" "started" "Generating changelog and release notes"
+
+          # Generate changelog based on strategy
+          if [ "${{ inputs.release_strategy }}" == "standard-version" ]; then
+            npx standard-version --release-as ${{ steps.version.outputs.version }} --skip.tag --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci]"
+          else
+            # Custom changelog generation
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$LAST_TAG" ]; then
+              COMMIT_RANGE="$LAST_TAG..HEAD"
+            else
+              COMMIT_RANGE="HEAD"
+            fi
+
+            # Generate changelog with categories
+            cat > CHANGELOG_ENTRY.md << EOF
+          ## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
+
+          ### Release Information
+          - **Environment**: ${{ inputs.environment }}
+          - **Release Type**: ${{ inputs.release_strategy }}
+          - **Correlation ID**: ${{ needs.release_init.outputs.correlation_id }}
+          - **Emergency Release**: ${{ inputs.emergency_release }}
+          - **Approved By**: ${{ needs.release_approval.outputs.approver || 'N/A' }}
+
+          EOF
+
+            # Add commit categories
+            if git log $COMMIT_RANGE --format=%B | grep -qE "^(feat|feature)(\(.+\))?:"; then
+              echo "### ✨ Features" >> CHANGELOG_ENTRY.md
+              git log $COMMIT_RANGE --format="- %s (%h)" --grep="^feat" --grep="^feature" >> CHANGELOG_ENTRY.md
+              echo "" >> CHANGELOG_ENTRY.md
+            fi
+
+            if git log $COMMIT_RANGE --format=%B | grep -qE "^fix(\(.+\))?:"; then
+              echo "### 🐛 Bug Fixes" >> CHANGELOG_ENTRY.md
+              git log $COMMIT_RANGE --format="- %s (%h)" --grep="^fix" >> CHANGELOG_ENTRY.md
+              echo "" >> CHANGELOG_ENTRY.md
+            fi
+
+            # Update CHANGELOG.md
+            if [ -f CHANGELOG.md ]; then
+              cp CHANGELOG.md CHANGELOG.md.bak
+              echo -e "# Changelog\n" > CHANGELOG.md
+              cat CHANGELOG_ENTRY.md >> CHANGELOG.md
+              echo "" >> CHANGELOG.md
+              tail -n +2 CHANGELOG.md.bak >> CHANGELOG.md
+            else
+              echo -e "# Changelog\n" > CHANGELOG.md
+              cat CHANGELOG_ENTRY.md >> CHANGELOG.md
+            fi
+          fi
+
+          echo "generated=true" >> $GITHUB_OUTPUT
+
+          log_release_event "changelog_generation" "completed" "Changelog generated successfully"
+
+      - name: Push Changelog Changes
+        if: inputs.release_strategy == 'standard-version'
+        run: |
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Generate SBOM
+        if: ${{ inputs.generate_sbom == true }}
+        continue-on-error: true
+        run: |
+          source ./release-logger.sh
+
+          log_release_event "sbom_generation" "started" "Generating Software Bill of Materials"
+
+          # Install SBOM generator
+          npm install -g @cyclonedx/cyclonedx-npm
+
+          # Generate SBOM in CycloneDX format
+          # Note: Using || true to prevent failure on warnings
+          cyclonedx-npm --output-format json --output-file sbom.json || {
+            echo "::warning::SBOM generation encountered issues but continuing"
+            echo '{"components":[],"metadata":{"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}}' > sbom.json
+          }
+
+          # Add release metadata to SBOM
+          jq --arg version "${{ steps.version.outputs.version }}" \
+             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             --arg sha "${{ github.sha }}" \
+             '.metadata.component.version = $version |
+              .metadata.timestamp = $timestamp |
+              .metadata.component["bom-ref"] = $sha' \
+             sbom.json > sbom-release.json
+
+          mv sbom-release.json sbom.json
+
+          log_release_event "sbom_generation" "completed" "SBOM generated successfully" \
+            "format" "CycloneDX" \
+            "components" "$(jq '.components | length' sbom.json)"
+
+      - name: Upload Version Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-artifacts-${{ github.run_id }}
+          path: |
+            release-events.jsonl
+            CHANGELOG.md
+            CHANGELOG_ENTRY.md
+            sbom.json
+          retention-days: 90
+
+  # Release signing
+  release_signing:
+    name: 🔏 Release Signing
+    needs: [release_init, version]
+    if: inputs.require_signatures == true
+    runs-on: ubuntu-latest
+    outputs:
+      signed: ${{ steps.sign.outputs.signed }}
+      signature_files: ${{ steps.sign.outputs.files }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Download Version Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: version-artifacts-${{ github.run_id }}
+
+      - name: Setup Signing Environment
+        id: setup
+        run: |
+          # Install signing tools
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y gnupg2
+          fi
+
+          # Check if signing key is available
+          if [ -n "${{ secrets.RELEASE_SIGNING_KEY }}" ]; then
+            echo "✅ Signing key available"
+            echo "signing_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ No signing key available"
+            if [ "${{ inputs.require_signatures }}" == "true" ]; then
+              echo "::error::Signatures required but RELEASE_SIGNING_KEY not configured"
+              exit 1
+            fi
+            echo "signing_available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Import Signing Key
+        if: steps.setup.outputs.signing_available == 'true'
+        run: |
+          # Import GPG key
+          echo "${{ secrets.RELEASE_SIGNING_KEY }}" | base64 -d > signing.key
+
+          if [ -n "${{ secrets.SIGNING_KEY_PASSPHRASE }}" ]; then
+            echo "${{ secrets.SIGNING_KEY_PASSPHRASE }}" | \
+              gpg --batch --yes --passphrase-fd 0 --import signing.key
+          else
+            gpg --batch --yes --import signing.key
+          fi
+
+          rm -f signing.key
+
+          # List imported keys
+          gpg --list-secret-keys
+
+          # Configure git
+          git config --global user.signingkey "${{ secrets.SIGNING_KEY_ID || secrets.RELEASE_SIGNING_KEY_ID }}"
+          git config --global commit.gpgsign true
+          git config --global tag.gpgsign true
+
+      - name: Sign Release Artifacts
+        id: sign
+        if: steps.setup.outputs.signing_available == 'true'
+        run: |
+          # Function to sign files
+          sign_artifact() {
+            local file="$1"
+            local sig_file="${file}.sig"
+            local sha_file="${file}.sha256"
+
+            if [ -f "$file" ]; then
+              # Create detached signature
+              gpg --armor --detach-sign \
+                --local-user "${{ secrets.SIGNING_KEY_ID || secrets.RELEASE_SIGNING_KEY_ID }}" \
+                --output "$sig_file" \
+                "$file"
+
+              # Generate checksum
+              sha256sum "$file" | cut -d' ' -f1 > "$sha_file"
+
+              echo "✅ Signed: $file"
+              return 0
+            else
+              echo "⚠️ File not found: $file"
+              return 1
+            fi
+          }
+
+          # Sign release artifacts
+          SIGNED_FILES=()
+
+          # Sign changelog
+          if sign_artifact "CHANGELOG.md"; then
+            SIGNED_FILES+=("CHANGELOG.md")
+          fi
+
+          # Sign SBOM if generated
+          if [ -f "sbom.json" ] && sign_artifact "sbom.json"; then
+            SIGNED_FILES+=("sbom.json")
+          fi
+
+          # Sign package.json
+          if sign_artifact "package.json"; then
+            SIGNED_FILES+=("package.json")
+          fi
+
+          # Create release manifest
+          cat > release-manifest.json << EOF
+          {
+            "version": "${{ needs.version.outputs.version }}",
+            "tag": "${{ needs.version.outputs.tag }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "sha": "${{ github.sha }}",
+            "signed_by": "${{ secrets.SIGNING_KEY_ID || 'release-bot' }}",
+            "artifacts": [
+          EOF
+
+          # Add artifact entries
+          first=true
+          for file in "${SIGNED_FILES[@]}"; do
+            if [ "$first" != "true" ]; then
+              echo "," >> release-manifest.json
+            fi
+            first=false
+
+            cat >> release-manifest.json << EOF
+              {
+                "name": "$file",
+                "sha256": "$(cat ${file}.sha256)",
+                "signature": "$(cat ${file}.sig | base64 -w0)"
+              }
+          EOF
+          done
+
+          cat >> release-manifest.json << EOF
+            ]
+          }
+          EOF
+
+          # Sign the manifest
+          sign_artifact "release-manifest.json"
+
+          echo "signed=true" >> $GITHUB_OUTPUT
+          echo "files=${SIGNED_FILES[*]}" >> $GITHUB_OUTPUT
+
+      - name: Create Signed Git Tag
+        if: steps.setup.outputs.signing_available == 'true'
+        run: |
+          # Create signed tag
+          if [ -n "${{ secrets.SIGNING_KEY_PASSPHRASE }}" ]; then
+            echo "${{ secrets.SIGNING_KEY_PASSPHRASE }}" | \
+              git tag -s "${{ needs.version.outputs.tag }}" \
+              -m "Release ${{ needs.version.outputs.version }}" \
+              -m "Signed-off-by: ${{ github.actor }}" \
+              -m "Correlation ID: ${{ needs.release_init.outputs.correlation_id }}"
+          else
+            git tag -s "${{ needs.version.outputs.tag }}" \
+              -m "Release ${{ needs.version.outputs.version }}" \
+              -m "Signed-off-by: ${{ github.actor }}" \
+              -m "Correlation ID: ${{ needs.release_init.outputs.correlation_id }}"
+          fi
+
+          echo "✅ Created signed tag: ${{ needs.version.outputs.tag }}"
+
+      - name: Upload Signed Artifacts
+        if: steps.sign.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-artifacts-${{ github.run_id }}
+          path: |
+            *.sig
+            *.sha256
+            release-manifest.json
+          retention-days: 365
+
+  # Release attestation
+  release_attestation:
+    name: 📜 Release Attestation
+    needs: [release_init, version, quality, release_signing]
+    if: |
+      always() && 
+      !cancelled() && 
+      needs.version.result == 'success' &&
+      (needs.release_signing.result == 'success' || needs.release_signing.result == 'skipped')
+    runs-on: ubuntu-latest
+    outputs:
+      attestation_created: ${{ steps.attestation.outputs.created }}
+      attestation_url: ${{ steps.attestation.outputs.url }}
+    steps:
+      - name: Generate SLSA Provenance
+        id: provenance
+        run: |
+          # Create SLSA provenance attestation
+          cat > provenance.json << EOF
+          {
+            "_type": "https://in-toto.io/Statement/v0.1",
+            "predicateType": "https://slsa.dev/provenance/v0.2",
+            "subject": [{
+              "name": "${{ github.repository }}",
+              "digest": {
+                "sha256": "${{ github.sha }}"
+              }
+            }],
+            "predicate": {
+              "builder": {
+                "id": "https://github.com/actions/runner"
+              },
+              "buildType": "https://github.com/slsa-framework/slsa-github-generator/generic@v1",
+              "invocation": {
+                "configSource": {
+                  "uri": "git+https://github.com/${{ github.repository }}@${{ github.ref }}",
+                  "digest": {
+                    "sha1": "${{ github.sha }}"
+                  },
+                  "entryPoint": ".github/workflows/release.yml"
+                },
+                "parameters": {
+                  "environment": "${{ inputs.environment }}",
+                  "version": "${{ needs.version.outputs.version }}",
+                  "release_strategy": "${{ inputs.release_strategy }}",
+                  "emergency_release": ${{ inputs.emergency_release }},
+                  "approval_required": ${{ inputs.require_approval }},
+                  "signatures_required": ${{ inputs.require_signatures }}
+                },
+                "environment": {
+                  "github_run_id": "${{ github.run_id }}",
+                  "github_run_number": "${{ github.run_number }}",
+                  "github_actor": "${{ github.actor }}",
+                  "github_event_name": "${{ github.event_name }}"
+                }
+              },
+              "buildConfig": {
+                "version": 1,
+                "steps": [
+                  {
+                    "command": ["quality-checks"],
+                    "env": null
+                  },
+                  {
+                    "command": ["version-determination"],
+                    "env": null
+                  },
+                  {
+                    "command": ["release-creation"],
+                    "env": null
+                  }
+                ]
+              },
+              "metadata": {
+                "completeness": {
+                  "parameters": true,
+                  "environment": true,
+                  "materials": false
+                },
+                "reproducible": false,
+                "buildStartedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "buildFinishedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              }
+            }
+          }
+          EOF
+
+      - name: Create Release Attestation
+        id: attestation
+        run: |
+          # Create comprehensive release attestation
+          cat > release-attestation.json << EOF
+          {
+            "version": "${{ needs.version.outputs.version }}",
+            "tag": "${{ needs.version.outputs.tag }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "correlation_id": "${{ needs.release_init.outputs.correlation_id }}",
+            "environment": "${{ inputs.environment }}",
+            "attestations": {
+              "quality": {
+                "passed": ${{ needs.quality.result == 'success' }},
+                "skipped_checks": "${{ inputs.skip_jobs }}",
+                "workflow_result": "${{ needs.quality.result }}"
+              },
+              "approvals": {
+                "required": ${{ inputs.require_approval }},
+                "received": ${{ needs.release_approval.outputs.approved == 'true' || inputs.require_approval == false }},
+                "approver": "${{ needs.release_approval.outputs.approver || 'N/A' }}",
+                "approval_time": "${{ needs.release_approval.outputs.approval_time || 'N/A' }}"
+              },
+              "signatures": {
+                "required": ${{ inputs.require_signatures }},
+                "artifacts_signed": ${{ needs.release_signing.outputs.signed == 'true' }},
+                "signed_files": "${{ needs.release_signing.outputs.signature_files || 'none' }}"
+              },
+              "compliance": {
+                "frameworks": ["SOC2", "ISO27001"],
+                "emergency_release": ${{ inputs.emergency_release }},
+                "blackout_override": ${{ inputs.override_blackout }},
+                "dependency_check": ${{ inputs.check_dependencies }}
+              },
+              "integrity": {
+                "source_sha": "${{ github.sha }}",
+                "repository": "${{ github.repository }}",
+                "ref": "${{ github.ref }}",
+                "actor": "${{ github.actor }}"
+              },
+              "sbom": {
+                "generated": ${{ inputs.generate_sbom }},
+                "format": "CycloneDX",
+                "version": "1.4"
+              }
+            },
+            "metadata": {
+              "workflow_id": "${{ github.run_id }}",
+              "workflow_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "initiated_by": "${{ github.actor }}",
+              "event_type": "${{ github.event_name }}"
+            }
+          }
+          EOF
+
+          echo "created=true" >> $GITHUB_OUTPUT
+          echo "url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" >> $GITHUB_OUTPUT
+
+      - name: Store Attestations
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-attestations-${{ needs.version.outputs.version }}
+          path: |
+            provenance.json
+            release-attestation.json
+          retention-days: 365
+
+  # Create GitHub Release with enterprise features
+  github_release:
+    name: 🎉 Create GitHub Release
+    needs: [release_init, version, release_signing, release_attestation]
+    runs-on: ubuntu-latest
+    if: |
+      always() && 
+      !cancelled() && 
+      needs.version.result == 'success' &&
+      (needs.release_signing.result == 'success' || needs.release_signing.result == 'skipped') &&
+      (needs.release_attestation.result == 'success' || needs.release_attestation.result == 'skipped')
+    outputs:
+      release_url: ${{ steps.create_release.outputs.html_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-${{ github.run_id }}'
+
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          # Create release notes
+          cat > RELEASE_NOTES.md << 'EOF'
+          # Release ${{ needs.version.outputs.version }}
+
+          ## 📊 Release Information
+          - **Version**: ${{ needs.version.outputs.version }}
+          - **Environment**: ${{ inputs.environment }}
+          - **Release Date**: $(date +"%Y-%m-%d %H:%M:%S UTC")
+          - **Release ID**: ${{ needs.release_init.outputs.correlation_id }}
+          - **Emergency Release**: ${{ inputs.emergency_release && '⚠️ Yes' || 'No' }}
+
+          ## 🔐 Security & Compliance
+          - **Signed Release**: ${{ needs.release_signing.outputs.signed == 'true' && '✅ Yes' || '❌ No' }}
+          - **Approval Required**: ${{ inputs.require_approval && '✅ Yes' || 'No' }}
+          - **SBOM Generated**: ${{ inputs.generate_sbom && '✅ Yes' || 'No' }}
+          - **Attestation**: ✅ [View Attestation](${{ needs.release_attestation.outputs.attestation_url }})
+
+          ## 📝 Changelog
+          EOF
+
+          # Include changelog content
+          if [ -f "version-artifacts-${{ github.run_id }}/CHANGELOG_ENTRY.md" ]; then
+            cat "version-artifacts-${{ github.run_id }}/CHANGELOG_ENTRY.md" >> RELEASE_NOTES.md
+          fi
+
+          # Add verification instructions if signed
+          if [ "${{ needs.release_signing.outputs.signed }}" == "true" ]; then
+            cat >> RELEASE_NOTES.md << 'EOF'
+
+          ## 🔒 Verification
+
+          This release is cryptographically signed. To verify:
+
+          ```bash
+          # Download signature files
+          curl -L -o release-manifest.json.sig <signature-url>
+          curl -L -o release-manifest.json <manifest-url>
+
+          # Import public key
+          gpg --import release-key.pub
+
+          # Verify signature
+          gpg --verify release-manifest.json.sig release-manifest.json
+          ```
+          EOF
+          fi
+
+          cat >> RELEASE_NOTES.md << 'EOF'
+
+          ## 🔗 Links
+          - [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - [Compare Changes](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ needs.version.outputs.tag }})
+          EOF
+
+      - name: Create GitHub Release
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # Prepare release data
+          RELEASE_DATA=$(jq -n \
+            --arg tag "${{ needs.version.outputs.tag }}" \
+            --arg name "Release ${{ needs.version.outputs.version }}" \
+            --arg body "$(cat RELEASE_NOTES.md)" \
+            --arg target "${{ github.sha }}" \
+            --argjson prerelease "${{ needs.version.outputs.prerelease == 'true' }}" \
+            --argjson draft false \
+            '{
+              tag_name: $tag,
+              name: $name,
+              body: $body,
+              target_commitish: $target,
+              prerelease: $prerelease,
+              draft: $draft
+            }')
+
+          # Create release
+          RESPONSE=$(curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "$RELEASE_DATA" \
+            "https://api.github.com/repos/${{ github.repository }}/releases")
+
+          # Extract release information
+          echo "$RESPONSE" | jq -r '.html_url' > .release_url
+          echo "$RESPONSE" | jq -r '.id' > .release_id
+          echo "$RESPONSE" | jq -r '.upload_url' > .upload_url
+
+          echo "html_url=$(cat .release_url)" >> $GITHUB_OUTPUT
+          echo "id=$(cat .release_id)" >> $GITHUB_OUTPUT
+          echo "upload_url=$(cat .upload_url)" >> $GITHUB_OUTPUT
+
+      - name: Upload Release Assets
+        if: needs.release_signing.outputs.signed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          UPLOAD_URL=$(cat .upload_url | sed 's/{?name,label}//')
+
+          # Upload signature files
+          for sig_file in signed-artifacts-${{ github.run_id }}/*.sig; do
+            if [ -f "$sig_file" ]; then
+              filename=$(basename "$sig_file")
+              curl -X POST \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Content-Type: application/pgp-signature" \
+                --data-binary @"$sig_file" \
+                "${UPLOAD_URL}?name=${filename}"
+            fi
+          done
+
+          # Upload checksums
+          for sha_file in signed-artifacts-${{ github.run_id }}/*.sha256; do
+            if [ -f "$sha_file" ]; then
+              filename=$(basename "$sha_file")
+              curl -X POST \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Content-Type: text/plain" \
+                --data-binary @"$sha_file" \
+                "${UPLOAD_URL}?name=${filename}"
+            fi
+          done
+
+          # Upload release manifest
+          if [ -f "signed-artifacts-${{ github.run_id }}/release-manifest.json" ]; then
+            curl -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data-binary @"signed-artifacts-${{ github.run_id }}/release-manifest.json" \
+              "${UPLOAD_URL}?name=release-manifest.json"
+          fi
+
+          # Upload SBOM if generated
+          if [ -f "version-artifacts-${{ github.run_id }}/sbom.json" ]; then
+            curl -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data-binary @"version-artifacts-${{ github.run_id }}/sbom.json" \
+              "${UPLOAD_URL}?name=sbom.json"
+          fi
+
+  # Sentry Release Creation
+  sentry_release:
+    name: 🚨 Create Sentry Release
+    needs: [release_init, version]
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.version.result == 'success'
+    outputs:
+      sentry_release_created: ${{ steps.set_outputs.outputs.created }}
+      sentry_release_url: ${{ steps.set_outputs.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Sentry Configuration
+        id: check_config
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          # Check if all required Sentry secrets are available
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
+            echo "⚠️ Sentry configuration incomplete - skipping Sentry release" >> $GITHUB_STEP_SUMMARY
+            echo "configured=false" >> $GITHUB_OUTPUT
+            # Set default outputs for skipped job
+            echo "created=false" >> $GITHUB_OUTPUT
+            echo "url=" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Sentry configuration verified" >> $GITHUB_STEP_SUMMARY
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Sentry Release
+        id: sentry
+        if: steps.check_config.outputs.configured == 'true'
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        with:
+          environment: ${{ inputs.environment }}
+          version: ${{ needs.version.outputs.version }}
+          sourcemaps: ${{ inputs.sourcemaps }}
+
+      - name: Update Release Summary
+        if: steps.check_config.outputs.configured == 'true' && steps.sentry.outcome == 'success'
+        run: |
+          echo "## 🚨 Sentry Release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Sentry release created successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ inputs.sourcemaps }}" ]; then
+            echo "- **Source Maps**: Uploaded from \`${{ inputs.sourcemaps }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **Organization**: ${{ vars.SENTRY_ORG }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project**: ${{ vars.SENTRY_PROJECT }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Set Outputs
+        if: always()
+        id: set_outputs
+        run: |
+          # Set outputs based on whether Sentry was configured and successful
+          if [ "${{ steps.check_config.outputs.configured }}" == "true" ] && [ "${{ steps.sentry.outcome }}" == "success" ]; then
+            echo "created=true" >> $GITHUB_OUTPUT
+            echo "url=https://sentry.io/organizations/${{ vars.SENTRY_ORG }}/releases/${{ needs.version.outputs.version }}/" >> $GITHUB_OUTPUT
+          else
+            echo "created=false" >> $GITHUB_OUTPUT
+            echo "url=" >> $GITHUB_OUTPUT
+          fi
+
+  # Check Jira Setup
+  checks_jira_setup:
+    name: 📋 Check Jira Setup
+    needs: [version]
+    runs-on: ubuntu-latest
+    outputs:
+      has_jira_setup: ${{ steps.check.outputs.has_jira_setup }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: noliran/branch-based-secrets@v1
+        with:
+          secrets: JIRA_AUTOMATION_WEBHOOK
+      - name: Check Jira Configuration
+        id: check
+        run: |
+          if [[ -z "${JIRA_AUTOMATION_WEBHOOK}" ]] || [[ -z "${{ vars.JIRA_PROJECT_KEY }}" ]]; then
+            echo "⚠️ Jira configuration incomplete - skipping Jira release" >> $GITHUB_STEP_SUMMARY
+            if [[ -z "${JIRA_AUTOMATION_WEBHOOK}" ]]; then
+              echo "  - Missing: JIRA_AUTOMATION_WEBHOOK secret" >> $GITHUB_STEP_SUMMARY
+            fi
+            if [[ -z "${{ vars.JIRA_PROJECT_KEY }}" ]]; then
+              echo "  - Missing: JIRA_PROJECT_KEY variable" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "has_jira_setup=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Jira configuration verified" >> $GITHUB_STEP_SUMMARY
+            echo "has_jira_setup=true" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+        env:
+          JIRA_AUTOMATION_WEBHOOK: ${{ secrets[env.JIRA_AUTOMATION_WEBHOOK_NAME] }}
+
+  # Create Jira Release
+  jira_release:
+    name: 📋 Create Jira Release
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.version.result == 'success' &&
+      needs.checks_jira_setup.outputs.has_jira_setup == 'true'
+    needs: [version, checks_jira_setup]
+    outputs:
+      jira_release_created: ${{ steps.create.outputs.created }}
+      jira_release_url: ${{ steps.create.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: noliran/branch-based-secrets@v1
+        with:
+          secrets: JIRA_AUTOMATION_WEBHOOK
+      - name: Create Jira Release
+        id: create
+        continue-on-error: true
+        uses: GeoWerkstatt/create-jira-release@v1
+        with:
+          jira-project-key: ${{ vars.JIRA_PROJECT_KEY }}
+          jira-automation-webhook: ${{ secrets[env.JIRA_AUTOMATION_WEBHOOK_NAME] }}
+          build-version: '${{ github.event.repository.name }} v${{ needs.version.outputs.version }}'
+      - name: Update Release Summary
+        if: steps.create.outcome == 'success'
+        run: |
+          echo "## 📋 Jira Release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Jira release created successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project**: ${{ vars.JIRA_PROJECT_KEY }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Version**: ${{ github.event.repository.name }} v${{ needs.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+      - name: Set Outputs
+        if: always()
+        run: |
+          if [ "${{ steps.create.outcome }}" == "success" ]; then
+            echo "created=true" >> $GITHUB_OUTPUT
+            echo "url=https://${{ vars.JIRA_BASE_URL || 'company.atlassian.net' }}/projects/${{ vars.JIRA_PROJECT_KEY }}/versions" >> $GITHUB_OUTPUT
+          else
+            echo "created=false" >> $GITHUB_OUTPUT
+            echo "url=" >> $GITHUB_OUTPUT
+          fi
+
+  # Release compliance validation
+  release_compliance:
+    name: ✅ Release Compliance
+    needs:
+      [
+        release_init,
+        version,
+        quality,
+        release_signing,
+        release_attestation,
+        github_release,
+        sentry_release,
+        jira_release,
+      ]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.compliance.outputs.status }}
+      report_url: ${{ steps.compliance.outputs.report_url }}
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-${{ github.run_id }}'
+
+      - name: Compliance Validation
+        id: compliance
+        run: |
+          # Initialize compliance checks
+          COMPLIANCE_PASSED=true
+          COMPLIANCE_ISSUES=()
+
+          # Check 1: Required approvals
+          if [ "${{ inputs.require_approval }}" == "true" ]; then
+            if [ "${{ needs.release_approval.outputs.approved }}" != "true" ]; then
+              COMPLIANCE_PASSED=false
+              COMPLIANCE_ISSUES+=("Missing required approval")
+            fi
+          fi
+
+          # Check 2: Required signatures
+          if [ "${{ inputs.require_signatures }}" == "true" ]; then
+            if [ "${{ needs.release_signing.outputs.signed }}" != "true" ]; then
+              COMPLIANCE_PASSED=false
+              COMPLIANCE_ISSUES+=("Missing required signatures")
+            fi
+          fi
+
+          # Check 3: Quality gates
+          if [ "${{ needs.quality.result }}" != "success" ] && [ "${{ needs.quality.result }}" != "skipped" ]; then
+            COMPLIANCE_PASSED=false
+            COMPLIANCE_ISSUES+=("Quality checks failed")
+          fi
+
+          # Check 4: Attestation
+          if [ ! -f "release-attestations-${{ needs.version.outputs.version }}/release-attestation.json" ]; then
+            COMPLIANCE_PASSED=false
+            COMPLIANCE_ISSUES+=("Missing release attestation")
+          fi
+
+          # Check 5: Emergency release documentation
+          if [ "${{ inputs.emergency_release }}" == "true" ]; then
+            echo "⚠️ Emergency release - additional documentation required"
+          fi
+
+          # Generate compliance report
+          cat > compliance-report.json << EOF
+          {
+            "release_version": "${{ needs.version.outputs.version }}",
+            "compliance_status": "$([[ $COMPLIANCE_PASSED == true ]] && echo 'PASSED' || echo 'FAILED')",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "correlation_id": "${{ needs.release_init.outputs.correlation_id }}",
+            "frameworks": {
+              "SOC2": {
+                "CC8.1_change_management": true,
+                "CC7.2_monitoring": true,
+                "CC7.3_security_monitoring": ${{ needs.release_signing.outputs.signed == 'true' }},
+                "CC6.1_logical_access": ${{ inputs.require_approval }}
+              },
+              "ISO27001": {
+                "A.12.1_operational_procedures": true,
+                "A.14.2_secure_development": true,
+                "A.12.4_logging_monitoring": true,
+                "A.14.2.8_security_testing": ${{ needs.quality.result == 'success' }}
+              },
+              "SLSA": {
+                "level": ${{ needs.release_signing.outputs.signed == 'true' && '2' || '1' }},
+                "source": true,
+                "build": true,
+                "provenance": true,
+                "common_requirements": true
+              }
+            },
+            "checks": {
+              "approvals": {
+                "required": ${{ inputs.require_approval }},
+                "completed": ${{ needs.release_approval.outputs.approved == 'true' || inputs.require_approval == false }}
+              },
+              "signatures": {
+                "required": ${{ inputs.require_signatures }},
+                "completed": ${{ needs.release_signing.outputs.signed == 'true' || inputs.require_signatures == false }}
+              },
+              "quality": {
+                "passed": ${{ needs.quality.result == 'success' || needs.quality.result == 'skipped' }},
+                "skipped_checks": "${{ inputs.skip_jobs }}"
+              },
+              "attestation": {
+                "created": ${{ needs.release_attestation.outputs.attestation_created == 'true' }}
+              },
+              "emergency_release": ${{ inputs.emergency_release }},
+              "blackout_override": ${{ inputs.override_blackout }}
+            },
+            "issues": $(printf '%s\n' "${COMPLIANCE_ISSUES[@]}" | jq -R . | jq -s .)
+          }
+          EOF
+
+          # Set outputs
+          echo "status=$([[ $COMPLIANCE_PASSED == true ]] && echo 'PASSED' || echo 'FAILED')" >> $GITHUB_OUTPUT
+          echo "report_url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" >> $GITHUB_OUTPUT
+
+          # Summary
+          echo "## ✅ Compliance Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: $([[ $COMPLIANCE_PASSED == true ]] && echo '✅ PASSED' || echo '❌ FAILED')" >> $GITHUB_STEP_SUMMARY
+          echo "**Frameworks**: SOC2, ISO27001, SLSA Level ${{ needs.release_signing.outputs.signed == 'true' && '2' || '1' }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ ${#COMPLIANCE_ISSUES[@]} -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Issues Found" >> $GITHUB_STEP_SUMMARY
+            printf -- '- %s\n' "${COMPLIANCE_ISSUES[@]}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Generate Compliance Evidence Package
+        run: |
+          # Create evidence package
+          mkdir -p compliance-evidence
+
+          # Copy all compliance-related artifacts
+          find . -name "release-attestation*.json" -exec cp {} compliance-evidence/ \;
+          find . -name "provenance.json" -exec cp {} compliance-evidence/ \;
+          find . -name "compliance-report.json" -exec cp {} compliance-evidence/ \;
+          find . -name "release-manifest.json*" -exec cp {} compliance-evidence/ \;
+          find . -name "*.sig" -exec cp {} compliance-evidence/ \;
+          find . -name "*.sha256" -exec cp {} compliance-evidence/ \;
+
+          # Create evidence summary
+          cat > compliance-evidence/README.md << EOF
+          # Release Compliance Evidence Package
+
+          **Release Version**: ${{ needs.version.outputs.version }}
+          **Generated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          **Environment**: ${{ inputs.environment }}
+          **Correlation ID**: ${{ needs.release_init.outputs.correlation_id }}
+
+          ## Contents
+
+          - Release attestations and provenance
+          - Digital signatures (if applicable)
+          - Compliance validation report
+          - Release manifest with checksums
+          - Approval records (if applicable)
+
+          ## Compliance Status
+
+          **Overall Status**: ${{ steps.compliance.outputs.status }}
+
+          This release complies with:
+          - SOC 2 Type II
+          - ISO 27001:2022
+          - SLSA Level ${{ needs.release_signing.outputs.signed == 'true' && '2' || '1' }}
+
+          ## Verification Instructions
+
+          1. Verify signatures using the provided .sig files
+          2. Check SHA256 checksums against artifacts
+          3. Review attestation for build provenance
+          4. Validate compliance report status
+
+          ## Retention
+
+          This evidence package should be retained for 7 years per compliance requirements.
+          EOF
+
+          # Create tarball
+          tar -czf compliance-evidence-${{ needs.version.outputs.version }}.tar.gz compliance-evidence/
+
+      - name: Store Compliance Evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-evidence-${{ needs.version.outputs.version }}
+          path: compliance-evidence-${{ needs.version.outputs.version }}.tar.gz
+          retention-days: 2555 # 7 years for compliance
+
+  # Final release summary
+  release_summary:
+    name: 📋 Release Summary
+    needs:
+      [
+        release_init,
+        quality,
+        version,
+        release_signing,
+        release_attestation,
+        github_release,
+        sentry_release,
+        jira_release,
+        release_compliance,
+      ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Final Summary
+        run: |
+          # Create comprehensive summary
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+
+          # 🎉 Enterprise Release Complete
+
+          ## Release Information
+          - **Version**: ${{ needs.version.outputs.version }}
+          - **Tag**: ${{ needs.version.outputs.tag }}
+          - **Environment**: ${{ inputs.environment }}
+          - **Correlation ID**: ${{ needs.release_init.outputs.correlation_id }}
+
+          ## Enterprise Features
+          - **Approval Required**: ${{ inputs.require_approval && '✅ Yes' || '❌ No' }}
+          - **Signatures**: ${{ needs.release_signing.outputs.signed == 'true' && '✅ Signed' || '❌ Not Signed' }}
+          - **SBOM**: ${{ inputs.generate_sbom && '✅ Generated' || '❌ Not Generated' }}
+          - **Compliance**: ${{ needs.release_compliance.outputs.status }}
+
+          ## Execution Summary
+          - **Total Duration**: $(($(date +%s) - ${{ needs.release_init.outputs.start_time }}))s
+          - **Quality Checks**: ${{ needs.quality.result }}
+          - **Version Creation**: ${{ needs.version.result }}
+          - **GitHub Release**: ${{ needs.github_release.result }}
+
+          ## Outputs
+          - **Release URL**: ${{ needs.github_release.outputs.release_url || 'N/A' }}
+          - **Attestation**: ${{ needs.release_attestation.outputs.attestation_url || 'N/A' }}
+          - **Compliance Report**: ${{ needs.release_compliance.outputs.report_url || 'N/A' }}
+          - **Sentry Release**: ${{ needs.sentry_release.outputs.sentry_release_url || 'Not configured' }}
+          - **Jira Release**: ${{ needs.jira_release.outputs.jira_release_url || 'Not configured' }}
+
+          ## Security & Compliance
+          - ✅ Audit trail generated
+          - ✅ Release attestation created
+          - ✅ Compliance evidence packaged
+          - ${{ needs.release_signing.outputs.signed == 'true' && '✅ Release signed' || '⚠️ Release not signed' }}
+
+          ## Next Steps
+          1. Review the release at ${{ needs.github_release.outputs.release_url || 'GitHub Releases page' }}
+          2. Verify signatures if applicable
+          3. Review compliance report
+          4. Deploy using your deployment workflow
+          5. Run load tests if needed
+          EOF
+
+          # Set workflow status
+          if [ "${{ needs.github_release.result }}" == "success" ] && [ "${{ needs.release_compliance.outputs.status }}" == "PASSED" ]; then
+            echo "✅ Enterprise release completed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Release completed with issues. Please review the compliance report." >> $GITHUB_STEP_SUMMARY
+          fi

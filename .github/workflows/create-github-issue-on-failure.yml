@@ -1,0 +1,113 @@
+# -----------------------------------------------------------------------------
+# GitHub Issue Creation Workflow
+# -----------------------------------------------------------------------------
+# ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
+# Any changes may be overwritten by the generation process.
+# This workflow creates a GitHub issue when another workflow fails.
+# It captures details about the failure and creates a standardized issue
+# to help track and resolve CI/CD problems.
+#
+# Example usage in another workflow:
+# ```yaml
+# create_github_issue_on_failure:
+#   if: failure()
+#   uses: ./.github/workflows/github-issue-on-failure.yml
+#   with:
+#     workflow_name: 'My Workflow'
+#     failed_job: 'build_and_test'
+#   secrets:
+#     PAT: ${{ secrets.PAT }}
+# ```
+
+name: 🚨 GitHub Issue on Workflow Failure
+
+on:
+  workflow_call:
+    inputs:
+      workflow_name:
+        required: true
+        type: string
+        description: 'Name of the workflow that failed'
+      failed_job:
+        required: false
+        type: string
+        description: 'Name of the job that failed (optional)'
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '20.x'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'npm'
+        type: string
+      working_directory:
+        description: 'Directory to run commands in (if not root)'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      PAT:
+        required: true
+        description: 'Personal Access Token with repo scope'
+
+# Concurrency is managed by the parent workflow that calls this one
+# This avoids deadlocks between parent and child workflows
+
+jobs:
+  create_issue:
+    name: 📝 Create GitHub Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager }}
+
+      - name: 🔖 Create Issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT }}
+          script: |
+            // Get repository and run information
+            const { owner, repo } = context.repo;
+            const runId = context.runId;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            // Get workflow information from inputs
+            const workflowName = '${{ inputs.workflow_name }}';
+            const failedJob = '${{ inputs.failed_job }}' || 'Unknown';
+
+            // Create standardized issue title and body
+            const title = `🚨 Workflow Failure: ${workflowName}${failedJob !== 'Unknown' ? ` - ${failedJob}` : ''}`;
+            const body = `
+            ## Workflow Failure
+
+            The "${workflowName}" workflow has failed${failedJob !== 'Unknown' ? ` in job: **${failedJob}**` : ''}.
+
+            ### Details
+            - **Workflow Run**: [View Run Details](${runUrl})
+            - **Commit**: ${context.sha}
+            - **Commit Message**: ${context.payload.head_commit ? context.payload.head_commit.message : 'N/A'}
+            - **Triggered by**: ${context.actor}
+            - **Failed at**: ${new Date().toISOString()}
+
+            Please investigate the workflow logs for more details on the failure.
+            `;
+
+            // Create the issue
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body,
+              labels: ['bug', 'automation', 'ci-failure']
+            });
+
+            console.log(`Issue created for workflow failure: ${runUrl}`);

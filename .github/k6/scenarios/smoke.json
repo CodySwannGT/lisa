@@ -1,0 +1,20 @@
+{
+  "name": "smoke",
+  "description": "Minimal load test to verify basic functionality",
+  "executor": "constant-vus",
+  "vus": 1,
+  "duration": "1m",
+  "thresholds": {
+    "http_req_failed": ["rate<0.01"],
+    "http_req_duration": ["p(95)<300", "p(99)<500"],
+    "checks": ["rate>0.95"]
+  },
+  "env": {
+    "SCENARIO_NAME": "smoke",
+    "RAMP_TIME": "10s"
+  },
+  "tags": {
+    "test_type": "smoke",
+    "environment": "${K6_ENVIRONMENT}"
+  }
+}

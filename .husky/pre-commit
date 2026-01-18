@@ -1,0 +1,96 @@
+# BEGIN: AI GUARDRAILS 
+# Detect package manager (check if tool is available before using it)
+# Priority: bun > yarn > npm (bun first since package.json engines prefer it)
+if ([ -f "bun.lockb" ] || [ -f "bun.lock" ]) && command -v bun >/dev/null 2>&1; then
+  PACKAGE_MANAGER="bun"
+  RUNNER="bun run"
+  EXECUTOR="bunx"
+elif [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+  PACKAGE_MANAGER="yarn"
+  RUNNER="yarn"
+  EXECUTOR="yarn"
+elif [ -f "package-lock.json" ]; then
+  PACKAGE_MANAGER="npm"
+  RUNNER="npm run"
+  EXECUTOR="npx"
+else
+  # Default to npm if no lock file is found or tool is not available
+  PACKAGE_MANAGER="npm"
+  RUNNER="npm run"
+  EXECUTOR="npx"
+fi
+
+echo "📦 Using package manager: $PACKAGE_MANAGER"
+
+# Check for direct commits to environment branches
+echo "🔒 Checking branch protection..."
+BRANCH_NAME=$(git branch --show-current)
+
+# Skip check if running in CI (GitHub Actions sets CI=true)
+if [ "$CI" = "true" ]; then
+  echo "⚠️  Running in CI, skipping branch protection check"
+# Skip check if in detached HEAD state (empty branch name)
+elif [ -z "$BRANCH_NAME" ]; then
+  echo "⚠️  In detached HEAD state, skipping branch check"
+else
+  # Check if current branch is an environment branch
+  if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "staging" ] || [ "$BRANCH_NAME" = "main" ]; then
+    echo ""
+    echo "❌ You are not allowed to commit directly to $BRANCH_NAME because it is an environment branch."
+    echo "   Instead, create a new branch and open a pull request to $BRANCH_NAME"
+    echo ""
+    exit 1
+  fi
+fi
+
+# Check for Gitleaks and run secret detection
+echo "🔐 Checking for secrets with Gitleaks..."
+if command -v gitleaks >/dev/null 2>&1; then
+  # Run gitleaks on staged files
+  gitleaks protect --staged --redact -v
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Secrets detected in staged files!"
+    echo ""
+    echo "Please remove any secrets from your code before committing."
+    echo "If this is a false positive, you can add it to .gitleaksignore"
+    echo ""
+    exit 1
+  fi
+  echo "✅ No secrets detected"
+else
+  echo ""
+  echo "⚠️  WARNING: Gitleaks is not installed!"
+  echo ""
+  echo "Gitleaks helps prevent secrets from being committed to your repository."
+  echo ""
+  echo "To install Gitleaks:"
+  echo "  macOS:    brew install gitleaks"
+  echo "  Windows:  scoop install gitleaks  # or choco install gitleaks"
+  echo "  Linux:    See https://github.com/gitleaks/gitleaks#installing"
+  echo ""
+  echo "After installation, your commits will be automatically scanned for secrets."
+  echo ""
+  echo "Continuing without secret scanning..."
+  echo ""
+fi
+
+# Check if native changes require runtime version bump
+# echo "🔍 Checking for native dependency changes..."
+# node scripts/check-runtime-version.js
+# if [ $? -ne 0 ]; then
+#   exit 1
+# fi
+
+# Run type check on entire project (can't be done incrementally)
+echo "🔍 Running type check..."
+$RUNNER typecheck
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed. Please fix TypeScript errors before committing."
+  exit 1
+fi
+
+# Run lint-staged for incremental lint and format checks
+echo "🚀 Running lint-staged..."
+$EXECUTOR lint-staged --config package.json
+# END: AI GUARDRAILS

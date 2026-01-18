@@ -1,106 +1,77 @@
-# CLAUDE.md
+Always figure out the Package manager the project uses: !`ls package-lock.json yarn.lock pnpm-lock.yaml bun.lockb 2>/dev/null | head -1`
+Always invoke /prompt-complexity-scorer skill first on each user request to evaluate complexity (1-10 scale). For scores 5+, suggest writing to specs/<spec-name>.md before proceeding.
+Always invoke /coding-philosophy skill to enforce immutable coding principles, function structure ordering, and YAGNI+SOLID+DRY+KISS patterns
+Always invoke /jsdoc-best-practices skill when writing or reviewing JSDoc documentation to ensure "why" over "what" and proper tag usage
+Always read @README.md
+Always read @package.json without limit or offset to understand what third party packages are used
+Always read @package.json without limit or offset to understand what scripts are used
+Always read @eslint.config.mjs without limit or offset to understand this project's linting standards
+Always read @.prettierrc.json without limit or offset to understand this project's formatting standards
+Always make atomic commits with clear conventional messages
+Always create clear documentation preambles with JSDoc for new code
+Always update preambles when updating or modifying code
+Always add language specifiers to fenced code blocks in Markdown.
+Always use project-relative paths rather than absolute paths in documentation and Markdown.
+Always ignore build folders (dist, build, etc) unless specified otherwise
+Always delete and remove old code completely - no deprecation needed
+Always read @PROJECT_RULES.md without limit or offset to understand additional rules for this project
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+Never commit changes to an environment branch (dev, staging, main) directly. This is enforced by the pre-commit hook.
+Never skip or disable any tests or quality checks.
+Never add .skip to a test unless explicitly asked to
+Never directly modify a file in node_modules/
+Never use --no-verify with git commands.
+Never make assumptions about whether something worked. Test it empirically to confirm.
+Never cover up bugs or issues. Always fix them properly.
+Never write functions or methods unless they are needed.
+Never say "not related to our changes" or "not relevant to this task". Always provide a solution.
+Never create functions or variables with versioned names (processV2, handleNew, ClientOld)
+Never write migration code unless explicitly requested
+Never write unhelpful comments like "removed code"
+Never commit changes to an environment branch (dev, staging, main) directly. This is enforced by the pre-commit hook.
+Never skip or disable any tests or quality checks.
+Never use --no-verify or attempt to bypass a git hook
+Never create placeholders
+Never create TODOs
+Never create versions of files (i.e. V2 or Optimized)
+Never assume test expectations before verifying actual implementation behavior (run tests to learn the behavior, then adjust expectations to match)
+Never duplicate test helper functions without using eslint-disable comments for sonarjs/no-identical-functions when duplication is intentional for test isolation (exception to the general eslint-disable rule below)
+Never add eslint-disable for lint warnings (except sonarjs/no-identical-functions in tests as noted above)
+Never delete anything that isn't tracked in git
+Never delete anything outside of this project's directory
+Never add "BREAKING CHANGE" to a commit message unless there is actually a breaking change
 
-Lisa is a Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects. It distributes configurations (CLAUDE.md, skills, hooks, ESLint plugins, etc.) to target projects based on detected project types.
+ONLY use eslint-disable as a last resort and confirm with human before doing so
+ONLY use eslint-disable for test file max-lines when comprehensive test coverage requires extensive test cases (must include matching eslint-enable)
+ONLY use eslint-disable functional/no-loop-statements in tests when using loops for test consolidation improves readability over dozens of individual tests
+ONLY use ts-ignore as a last resort and confirm with human before doing so
+ONLY use ts-expect-error as a last resort and confirm with human before doing so
+ONLY use ts-nocheck as a last resort and confirm with human before doing so
 
-## Common Commands
 
-```bash
-# Run Lisa against a project
-./lisa.sh /path/to/project
+## Landing the Plane (Session Completion)
 
-# Dry run (preview changes)
-./lisa.sh --dry-run /path/to/project
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
-# Non-interactive mode (CI/CD)
-./lisa.sh --yes /path/to/project
+**MANDATORY WORKFLOW:**
 
-# Validate compatibility only
-./lisa.sh --validate /path/to/project
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
 
-# Uninstall Lisa from a project
-./lisa.sh --uninstall /path/to/project
-
-# Run tests
-bats tests/lisa.bats
-```
-
-## Architecture
-
-### Core Script
-
-`lisa.sh` is the main entry point. It:
-1. Detects project types (TypeScript, Expo, NestJS, CDK) from the target project
-2. Applies configurations in order: `all/` → `typescript/` → child types (expo, nestjs, cdk)
-3. Uses four copy strategies based on subdirectory names
-
-### Copy Strategies
-
-Files are organized into strategy subdirectories that control how they're applied:
-
-| Directory | Behavior |
-|-----------|----------|
-| `copy-overwrite/` | Replace if exists (prompts on conflict) |
-| `copy-contents/` | Append missing lines (for .gitignore) |
-| `create-only/` | Create once, never update |
-| `merge/` | JSON deep merge (project values win) |
-
-### Type Inheritance
-
-```
-all/                    ← Applied to every project
-└── typescript/         ← TypeScript-specific
-    ├── expo/           ← Expo (inherits typescript)
-    ├── nestjs/         ← NestJS (inherits typescript)
-    └── cdk/            ← CDK (inherits typescript)
-```
-
-### Key Distributed Files
-
-- `all/copy-overwrite/CLAUDE.md` - Behavioral rules for target projects
-- `all/copy-overwrite/.claude/` - Settings, hooks, commands, skills, agents
-- `all/copy-overwrite/eslint-plugin-code-organization/` - Custom ESLint rules
-- `typescript/merge/package.json` - Dev dependencies and scripts
-- `expo/copy-overwrite/eslint-plugin-component-structure/` - React component rules
-
-### Manifest Tracking
-
-Lisa creates `.lisa-manifest` in target projects to track installed files for uninstall capability.
-
-## Testing
-
-Tests use [bats-core](https://github.com/bats-core/bats-core):
-
-```bash
-# Install bats
-brew install bats-core  # macOS
-apt install bats        # Linux
-
-# Run all tests
-bats tests/lisa.bats
-
-# Run specific test
-bats tests/lisa.bats --filter "shows help"
-```
-
-## Adding Configurations
-
-### New file to all projects
-Place in `all/<strategy>/path/to/file`
-
-### New file for specific type
-Place in `<type>/<strategy>/path/to/file`
-
-### New ESLint rule
-1. Add rule to `eslint-plugin-*/rules/`
-2. Register in plugin's `index.js`
-3. Add tests in `__tests__/`
-
-### New skill
-Create `<type>/copy-overwrite/.claude/skills/<name>/SKILL.md`
-
-### New slash command
-Create `<type>/copy-overwrite/.claude/commands/<category>/<name>.md`
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
