@@ -25,6 +25,12 @@ describe("CreateOnlyStrategy", () => {
     await cleanupTempDir(tempDir);
   });
 
+  /**
+   * Create a strategy context for testing
+   *
+   * @param overrides - Configuration overrides
+   * @returns Strategy context with test defaults
+   */
   function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
     const config: LisaConfig = {
       lisaDir: srcDir,

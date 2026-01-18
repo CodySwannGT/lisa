@@ -2,15 +2,27 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import * as os from "node:os";
 
+const PACKAGE_JSON = "package.json";
+const TSCONFIG_JSON = "tsconfig.json";
+const APP_JSON = "app.json";
+const NEST_CLI_JSON = "nest-cli.json";
+const CDK_JSON = "cdk.json";
+const _EAS_JSON = "eas.json";
+const LISA_TEST_PREFIX = "lisa-test-";
+
 /**
  * Create a temporary directory for testing
+ *
+ * @returns Promise resolving to path of created temporary directory
  */
 export async function createTempDir(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "lisa-test-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), LISA_TEST_PREFIX));
 }
 
 /**
  * Clean up a temporary directory
+ *
+ * @param dir - Directory path to remove
  */
 export async function cleanupTempDir(dir: string): Promise<void> {
   if (dir && (await fs.pathExists(dir))) {
@@ -19,61 +31,73 @@ export async function cleanupTempDir(dir: string): Promise<void> {
 }
 
 /**
- * Create a minimal project structure
+ * Create a minimal project structure with package.json
+ *
+ * @param dir - Directory to create project structure in
  */
 export async function createMinimalProject(dir: string): Promise<void> {
   await fs.ensureDir(dir);
-  await fs.writeJson(path.join(dir, "package.json"), {});
+  await fs.writeJson(path.join(dir, PACKAGE_JSON), {});
 }
 
 /**
- * Create a TypeScript project structure
+ * Create a TypeScript project structure with tsconfig.json
+ *
+ * @param dir - Directory to create project structure in
  */
 export async function createTypeScriptProject(dir: string): Promise<void> {
   await fs.ensureDir(dir);
-  await fs.writeJson(path.join(dir, "package.json"), {
+  await fs.writeJson(path.join(dir, PACKAGE_JSON), {
     dependencies: { typescript: "^5.0.0" },
   });
-  await fs.writeJson(path.join(dir, "tsconfig.json"), {});
+  await fs.writeJson(path.join(dir, TSCONFIG_JSON), {});
 }
 
 /**
- * Create an Expo project structure
+ * Create an Expo project structure with app.json
+ *
+ * @param dir - Directory to create project structure in
  */
 export async function createExpoProject(dir: string): Promise<void> {
   await fs.ensureDir(dir);
-  await fs.writeJson(path.join(dir, "package.json"), {
+  await fs.writeJson(path.join(dir, PACKAGE_JSON), {
     dependencies: { expo: "^50.0.0" },
   });
-  await fs.writeJson(path.join(dir, "app.json"), {
+  await fs.writeJson(path.join(dir, APP_JSON), {
     expo: { name: "test-app" },
   });
 }
 
 /**
- * Create a NestJS project structure
+ * Create a NestJS project structure with nest-cli.json
+ *
+ * @param dir - Directory to create project structure in
  */
 export async function createNestJSProject(dir: string): Promise<void> {
   await fs.ensureDir(dir);
-  await fs.writeJson(path.join(dir, "package.json"), {
+  await fs.writeJson(path.join(dir, PACKAGE_JSON), {
     dependencies: { "@nestjs/core": "^10.0.0" },
   });
-  await fs.writeJson(path.join(dir, "nest-cli.json"), {});
+  await fs.writeJson(path.join(dir, NEST_CLI_JSON), {});
 }
 
 /**
- * Create a CDK project structure
+ * Create a CDK project structure with cdk.json
+ *
+ * @param dir - Directory to create project structure in
  */
 export async function createCDKProject(dir: string): Promise<void> {
   await fs.ensureDir(dir);
-  await fs.writeJson(path.join(dir, "package.json"), {
+  await fs.writeJson(path.join(dir, PACKAGE_JSON), {
     dependencies: { "aws-cdk-lib": "^2.0.0" },
   });
-  await fs.writeJson(path.join(dir, "cdk.json"), {});
+  await fs.writeJson(path.join(dir, CDK_JSON), {});
 }
 
 /**
- * Create a mock Lisa config directory structure
+ * Create a mock Lisa config directory structure with all strategies
+ *
+ * @param dir - Directory to create Lisa structure in
  */
 export async function createMockLisaDir(dir: string): Promise<void> {
   // Create all/ directory with test files
@@ -93,7 +117,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
     "node_modules\n.env\n"
   );
   await fs.writeFile(path.join(allCreateOnly, "README.md"), "# Test\n");
-  await fs.writeJson(path.join(allMerge, "package.json"), {
+  await fs.writeJson(path.join(allMerge, PACKAGE_JSON), {
     scripts: { test: "echo test" },
   });
 
@@ -105,10 +129,18 @@ export async function createMockLisaDir(dir: string): Promise<void> {
 
 /**
  * Count files in a directory recursively
+ *
+ * @param dir - Directory to count files in
+ * @returns Promise resolving to total file count
  */
 export async function countFiles(dir: string): Promise<number> {
-  let count = 0;
+  const count = { value: 0 };
 
+  /**
+   * Recursively walk directory tree and count files
+   *
+   * @param currentDir - Current directory being walked
+   */
   async function walk(currentDir: string): Promise<void> {
     const entries = await fs.readdir(currentDir, { withFileTypes: true });
     for (const entry of entries) {
@@ -116,7 +148,7 @@ export async function countFiles(dir: string): Promise<number> {
       if (entry.isDirectory()) {
         await walk(fullPath);
       } else if (entry.isFile()) {
-        count++;
+        count.value++;
       }
     }
   }
@@ -125,5 +157,5 @@ export async function countFiles(dir: string): Promise<number> {
     await walk(dir);
   }
 
-  return count;
+  return count.value;
 }
