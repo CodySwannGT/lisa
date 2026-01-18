@@ -82,7 +82,49 @@ Lisa is designed for a **two-tier organizational model** that separates AI exper
 - Guardrails prevent common mistakes automatically
 - Focus on business logic, not AI wrangling
 
-### Workflow Example
+### How Implementation Teams Work
+
+Once Lisa is applied to a project, developers have two paths:
+
+**Path 1: Just Type a Prompt**
+
+Even if a developer just types a vague request, Lisa's built-in `prompt-complexity-scorer` skill automatically evaluates it:
+
+```
+Developer: "Make the app faster"
+
+Claude: This request scores 8/10 on complexity. I suggest writing it
+        as a spec to plan it out properly.
+
+        Would you like me to create `specs/performance-optimization.md`?
+```
+
+Complex or vague prompts (score 5+) are automatically routed to the spec workflow. Simple, well-defined requests (score 1-4) proceed immediately. Developers don't need to know which path to take—Lisa routes them automatically.
+
+**Path 2: The Full Workflow**
+
+For planned work, the workflow is two commands:
+
+```bash
+# 1. Create a spec file describing what you want
+#    (or let Claude create it from your prompt)
+echo "Add user authentication with OAuth" > specs/add-auth.md
+
+# 2. Bootstrap: research, analyze, identify gaps
+/project:bootstrap @specs/add-auth.md
+
+# 3. Execute: plan tasks, implement with TDD, verify completion
+/project:execute @projects/add-auth
+```
+
+That's it. Behind the scenes, Lisa ensures:
+- Comprehensive codebase and web research
+- Knowledge gap detection (stops if questions need answering)
+- Task breakdown and TDD implementation
+- Verification that all tasks completed
+- New patterns captured in `PROJECT_RULES.md`
+
+### Platform Team Iteration Example
 
 1. **Platform Team** discovers Claude sometimes creates overly complex functions
 2. **Platform Team** adds a `cognitiveComplexity: 10` threshold to ESLint config
