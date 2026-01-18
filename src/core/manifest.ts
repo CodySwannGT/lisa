@@ -1,12 +1,12 @@
-import * as fse from 'fs-extra';
-import { readFile, writeFile } from 'node:fs/promises';
-import * as path from 'node:path';
-import type { CopyStrategy } from './config.js';
+import * as fse from "fs-extra";
+import { readFile, writeFile } from "node:fs/promises";
+import * as path from "node:path";
+import type { CopyStrategy } from "./config.js";
 
 /**
  * Manifest file name
  */
-export const MANIFEST_FILENAME = '.lisa-manifest';
+export const MANIFEST_FILENAME = ".lisa-manifest";
 
 /**
  * Entry in the manifest file
@@ -42,7 +42,7 @@ export interface IManifestService {
 export class ManifestService implements IManifestService {
   private entries: ManifestEntry[] = [];
   private manifestPath: string | null = null;
-  private lisaDir: string = '';
+  private lisaDir: string = "";
 
   async init(destDir: string, lisaDir: string): Promise<void> {
     this.entries = [];
@@ -56,18 +56,18 @@ export class ManifestService implements IManifestService {
 
   async finalize(): Promise<void> {
     if (!this.manifestPath) {
-      throw new Error('Manifest not initialized');
+      throw new Error("Manifest not initialized");
     }
 
     const lines = [
-      '# Lisa manifest - DO NOT EDIT',
+      "# Lisa manifest - DO NOT EDIT",
       `# Generated: ${new Date().toISOString()}`,
       `# Lisa directory: ${this.lisaDir}`,
-      '',
-      ...this.entries.map((entry) => `${entry.strategy}:${entry.relativePath}`),
+      "",
+      ...this.entries.map(entry => `${entry.strategy}:${entry.relativePath}`),
     ];
 
-    await writeFile(this.manifestPath, lines.join('\n') + '\n', 'utf-8');
+    await writeFile(this.manifestPath, lines.join("\n") + "\n", "utf-8");
   }
 
   async read(destDir: string): Promise<readonly ManifestEntry[]> {
@@ -77,16 +77,16 @@ export class ManifestService implements IManifestService {
       throw new ManifestNotFoundError(manifestPath);
     }
 
-    const content = await readFile(manifestPath, 'utf-8');
+    const content = await readFile(manifestPath, "utf-8");
     const entries: ManifestEntry[] = [];
 
-    for (const line of content.split('\n')) {
+    for (const line of content.split("\n")) {
       // Skip comments and empty lines
-      if (line.startsWith('#') || line.trim() === '') {
+      if (line.startsWith("#") || line.trim() === "") {
         continue;
       }
 
-      const colonIndex = line.indexOf(':');
+      const colonIndex = line.indexOf(":");
       if (colonIndex === -1) {
         continue;
       }
@@ -114,7 +114,7 @@ export class ManifestService implements IManifestService {
 export class ManifestNotFoundError extends Error {
   constructor(public readonly manifestPath: string) {
     super(`No Lisa manifest found at: ${manifestPath}`);
-    this.name = 'ManifestNotFoundError';
+    this.name = "ManifestNotFoundError";
   }
 }
 
@@ -122,7 +122,9 @@ export class ManifestNotFoundError extends Error {
  * Check if a string is a valid copy strategy
  */
 function isValidStrategy(value: string): value is CopyStrategy {
-  return ['copy-overwrite', 'copy-contents', 'create-only', 'merge'].includes(value);
+  return ["copy-overwrite", "copy-contents", "create-only", "merge"].includes(
+    value
+  );
 }
 
 /**

@@ -1,15 +1,15 @@
-import type { CopyStrategy } from '../core/config.js';
-import type { ICopyStrategy } from './strategy.interface.js';
-import { CopyOverwriteStrategy } from './copy-overwrite.js';
-import { CopyContentsStrategy } from './copy-contents.js';
-import { CreateOnlyStrategy } from './create-only.js';
-import { MergeStrategy } from './merge.js';
+import type { CopyStrategy } from "../core/config.js";
+import type { ICopyStrategy } from "./strategy.interface.js";
+import { CopyOverwriteStrategy } from "./copy-overwrite.js";
+import { CopyContentsStrategy } from "./copy-contents.js";
+import { CreateOnlyStrategy } from "./create-only.js";
+import { MergeStrategy } from "./merge.js";
 
-export type { ICopyStrategy, StrategyContext } from './strategy.interface.js';
-export { CopyOverwriteStrategy } from './copy-overwrite.js';
-export { CopyContentsStrategy } from './copy-contents.js';
-export { CreateOnlyStrategy } from './create-only.js';
-export { MergeStrategy } from './merge.js';
+export type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
+export { CopyOverwriteStrategy } from "./copy-overwrite.js";
+export { CopyContentsStrategy } from "./copy-contents.js";
+export { CreateOnlyStrategy } from "./create-only.js";
+export { MergeStrategy } from "./merge.js";
 
 /**
  * Registry for copy strategies
@@ -25,7 +25,7 @@ export class StrategyRegistry {
       new MergeStrategy(),
     ];
 
-    this.strategies = new Map(allStrategies.map((s) => [s.name, s]));
+    this.strategies = new Map(allStrategies.map(s => [s.name, s]));
   }
 
   /**

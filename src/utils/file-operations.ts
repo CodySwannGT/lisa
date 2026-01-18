@@ -1,12 +1,18 @@
-import * as fse from 'fs-extra';
-import { stat, readFile, readdir } from 'node:fs/promises';
+import * as fse from "fs-extra";
+import { stat, readFile, readdir } from "node:fs/promises";
 
 /**
  * Check if two files have identical content
  */
-export async function filesIdentical(path1: string, path2: string): Promise<boolean> {
+export async function filesIdentical(
+  path1: string,
+  path2: string
+): Promise<boolean> {
   try {
-    const [content1, content2] = await Promise.all([readFile(path1), readFile(path2)]);
+    const [content1, content2] = await Promise.all([
+      readFile(path1),
+      readFile(path2),
+    ]);
     return content1.equals(content2);
   } catch {
     return false;
@@ -17,7 +23,7 @@ export async function filesIdentical(path1: string, path2: string): Promise<bool
  * Ensure the parent directory of a file exists
  */
 export async function ensureParentDir(filePath: string): Promise<void> {
-  await fse.ensureDir(filePath.substring(0, filePath.lastIndexOf('/')));
+  await fse.ensureDir(filePath.substring(0, filePath.lastIndexOf("/")));
 }
 
 /**
@@ -25,7 +31,7 @@ export async function ensureParentDir(filePath: string): Promise<void> {
  */
 export async function readFileOrNull(filePath: string): Promise<string | null> {
   try {
-    return await readFile(filePath, 'utf-8');
+    return await readFile(filePath, "utf-8");
   } catch {
     return null;
   }

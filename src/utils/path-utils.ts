@@ -1,4 +1,4 @@
-import * as path from 'node:path';
+import * as path from "node:path";
 
 /**
  * Resolve a path to an absolute path

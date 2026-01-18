@@ -1,13 +1,13 @@
-import type { ProjectType } from '../core/config.js';
-import { PROJECT_TYPE_HIERARCHY, PROJECT_TYPE_ORDER } from '../core/config.js';
-import type { IProjectTypeDetector } from './detector.interface.js';
-import { TypeScriptDetector } from './detectors/typescript.js';
-import { ExpoDetector } from './detectors/expo.js';
-import { NestJSDetector } from './detectors/nestjs.js';
-import { CDKDetector } from './detectors/cdk.js';
-import { NpmPackageDetector } from './detectors/npm-package.js';
+import type { ProjectType } from "../core/config.js";
+import { PROJECT_TYPE_HIERARCHY, PROJECT_TYPE_ORDER } from "../core/config.js";
+import type { IProjectTypeDetector } from "./detector.interface.js";
+import { TypeScriptDetector } from "./detectors/typescript.js";
+import { ExpoDetector } from "./detectors/expo.js";
+import { NestJSDetector } from "./detectors/nestjs.js";
+import { CDKDetector } from "./detectors/cdk.js";
+import { NpmPackageDetector } from "./detectors/npm-package.js";
 
-export type { IProjectTypeDetector } from './detector.interface.js';
+export type { IProjectTypeDetector } from "./detector.interface.js";
 
 /**
  * Registry for project type detectors
@@ -58,7 +58,7 @@ export class DetectorRegistry {
     }
 
     // Return in canonical order (typescript first, then others)
-    return PROJECT_TYPE_ORDER.filter((type) => allTypes.has(type));
+    return PROJECT_TYPE_ORDER.filter(type => allTypes.has(type));
   }
 }
 

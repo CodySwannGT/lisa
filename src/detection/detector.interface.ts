@@ -1,4 +1,4 @@
-import type { ProjectType } from '../core/config.js';
+import type { ProjectType } from "../core/config.js";
 
 /**
  * Interface for project type detectors

@@ -1,9 +1,9 @@
-import * as fse from 'fs-extra';
-import { readdir, mkdtemp } from 'node:fs/promises';
-import * as path from 'node:path';
-import * as os from 'node:os';
-import { BackupError, RollbackError } from '../errors/index.js';
-import type { ILogger } from '../logging/index.js';
+import * as fse from "fs-extra";
+import { readdir, mkdtemp } from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";
+import { BackupError, RollbackError } from "../errors/index.js";
+import type { ILogger } from "../logging/index.js";
 
 /**
  * Interface for backup service
@@ -27,7 +27,7 @@ export interface IBackupService {
  */
 export class BackupService implements IBackupService {
   private backupDir: string | null = null;
-  private destDir: string = '';
+  private destDir: string = "";
   private readonly logger: ILogger;
 
   constructor(logger: ILogger) {
@@ -36,13 +36,13 @@ export class BackupService implements IBackupService {
 
   async init(destDir: string): Promise<void> {
     this.destDir = destDir;
-    this.backupDir = await mkdtemp(path.join(os.tmpdir(), 'lisa-backup-'));
+    this.backupDir = await mkdtemp(path.join(os.tmpdir(), "lisa-backup-"));
     this.logger.info(`Backup directory: ${this.backupDir}`);
   }
 
   async backup(absolutePath: string): Promise<void> {
     if (!this.backupDir) {
-      throw new BackupError('backup', 'Backup service not initialized');
+      throw new BackupError("backup", "Backup service not initialized");
     }
 
     try {
@@ -55,18 +55,18 @@ export class BackupService implements IBackupService {
       }
     } catch (error) {
       throw new BackupError(
-        'backup',
-        `Failed to backup ${absolutePath}: ${error instanceof Error ? error.message : String(error)}`,
+        "backup",
+        `Failed to backup ${absolutePath}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
 
   async rollback(): Promise<void> {
     if (!this.backupDir || !(await fse.pathExists(this.backupDir))) {
-      throw new RollbackError('No backup directory available');
+      throw new RollbackError("No backup directory available");
     }
 
-    this.logger.warn('Rolling back changes...');
+    this.logger.warn("Rolling back changes...");
 
     try {
       // Find all backed up files and restore them
@@ -81,10 +81,10 @@ export class BackupService implements IBackupService {
       }
 
       await this.cleanup();
-      this.logger.success('Rollback complete');
+      this.logger.success("Rollback complete");
     } catch (error) {
       throw new RollbackError(
-        `Failed to rollback: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to rollback: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

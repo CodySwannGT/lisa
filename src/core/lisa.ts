@@ -1,7 +1,7 @@
-import * as fse from 'fs-extra';
-import { stat, readdir, rmdir } from 'node:fs/promises';
-import * as path from 'node:path';
-import pc from 'picocolors';
+import * as fse from "fs-extra";
+import { stat, readdir, rmdir } from "node:fs/promises";
+import * as path from "node:path";
+import pc from "picocolors";
 import type {
   LisaConfig,
   LisaResult,
@@ -9,16 +9,19 @@ import type {
   ProjectType,
   CopyStrategy,
   FileOperationResult,
-} from './config.js';
-import { COPY_STRATEGIES, createInitialCounters } from './config.js';
-import { DetectorRegistry } from '../detection/index.js';
-import { StrategyRegistry, type StrategyContext } from '../strategies/index.js';
-import type { IManifestService } from './manifest.js';
-import type { IBackupService } from '../transaction/index.js';
-import type { ILogger } from '../logging/index.js';
-import type { IPrompter } from '../cli/prompts.js';
-import { listFilesRecursive } from '../utils/file-operations.js';
-import { DestinationNotFoundError, DestinationNotDirectoryError } from '../errors/index.js';
+} from "./config.js";
+import { COPY_STRATEGIES, createInitialCounters } from "./config.js";
+import { DetectorRegistry } from "../detection/index.js";
+import { StrategyRegistry, type StrategyContext } from "../strategies/index.js";
+import type { IManifestService } from "./manifest.js";
+import type { IBackupService } from "../transaction/index.js";
+import type { ILogger } from "../logging/index.js";
+import type { IPrompter } from "../cli/prompts.js";
+import { listFilesRecursive } from "../utils/file-operations.js";
+import {
+  DestinationNotFoundError,
+  DestinationNotDirectoryError,
+} from "../errors/index.js";
 
 /**
  * Dependencies for Lisa operations
@@ -41,14 +44,20 @@ export class Lisa {
 
   constructor(
     private readonly config: LisaConfig,
-    private readonly deps: LisaDependencies,
+    private readonly deps: LisaDependencies
   ) {}
 
   /**
    * Apply Lisa configurations to the destination project
    */
   async apply(): Promise<LisaResult> {
-    const { logger, prompter, manifestService, backupService, detectorRegistry } = this.deps;
+    const {
+      logger,
+      prompter,
+      manifestService,
+      backupService,
+      detectorRegistry,
+    } = this.deps;
 
     try {
       // Validate destination
@@ -67,11 +76,13 @@ export class Lisa {
       this.detectedTypes = detectorRegistry.expandAndOrderTypes(rawTypes);
 
       // Confirm with user
-      this.detectedTypes = [...(await prompter.confirmProjectTypes(this.detectedTypes))];
+      this.detectedTypes = [
+        ...(await prompter.confirmProjectTypes(this.detectedTypes)),
+      ];
 
       // Process 'all' directory first
-      logger.info('Processing common configurations (all/)...');
-      await this.processProjectType('all');
+      logger.info("Processing common configurations (all/)...");
+      await this.processProjectType("all");
 
       // Process each detected type
       for (const type of this.detectedTypes) {
@@ -96,7 +107,7 @@ export class Lisa {
         success: true,
         counters: { ...this.counters },
         detectedTypes: [...this.detectedTypes],
-        mode: this.config.validateOnly ? 'validate' : 'apply',
+        mode: this.config.validateOnly ? "validate" : "apply",
         errors: [],
       };
     } catch (error) {
@@ -112,7 +123,7 @@ export class Lisa {
         success: false,
         counters: { ...this.counters },
         detectedTypes: [...this.detectedTypes],
-        mode: this.config.validateOnly ? 'validate' : 'apply',
+        mode: this.config.validateOnly ? "validate" : "apply",
         errors: [error instanceof Error ? error.message : String(error)],
       };
     }
@@ -136,11 +147,11 @@ export class Lisa {
     await this.validateDestination();
 
     // Print header
-    console.log('');
-    console.log(pc.blue('========================================'));
-    console.log(pc.blue('    Lisa Uninstaller'));
-    console.log(pc.blue('========================================'));
-    console.log('');
+    console.log("");
+    console.log(pc.blue("========================================"));
+    console.log(pc.blue("    Lisa Uninstaller"));
+    console.log(pc.blue("========================================"));
+    console.log("");
 
     let removed = 0;
     let skipped = 0;
@@ -149,16 +160,18 @@ export class Lisa {
     try {
       // Read manifest
       const entries = await manifestService.read(this.config.destDir);
-      logger.info(`Reading manifest: ${path.join(this.config.destDir, '.lisa-manifest')}`);
-      console.log('');
+      logger.info(
+        `Reading manifest: ${path.join(this.config.destDir, ".lisa-manifest")}`
+      );
+      console.log("");
 
       // Process each entry
       for (const entry of entries) {
         const destFile = path.join(this.config.destDir, entry.relativePath);
 
         switch (entry.strategy) {
-          case 'copy-overwrite':
-          case 'create-only':
+          case "copy-overwrite":
+          case "create-only":
             // These files can be safely removed
             if (await fse.pathExists(destFile)) {
               if (this.config.dryRun) {
@@ -173,17 +186,21 @@ export class Lisa {
             }
             break;
 
-          case 'copy-contents':
+          case "copy-contents":
             // Cannot safely remove - would need to diff
-            logger.warn(`Cannot auto-remove (copy-contents): ${entry.relativePath}`);
-            logger.info('  Manually review and remove added lines if needed.');
+            logger.warn(
+              `Cannot auto-remove (copy-contents): ${entry.relativePath}`
+            );
+            logger.info("  Manually review and remove added lines if needed.");
             skipped++;
             break;
 
-          case 'merge':
+          case "merge":
             // Cannot safely remove merged JSON
-            logger.warn(`Cannot auto-remove (merged JSON): ${entry.relativePath}`);
-            logger.info('  Manually remove Lisa-added keys if needed.');
+            logger.warn(
+              `Cannot auto-remove (merged JSON): ${entry.relativePath}`
+            );
+            logger.info("  Manually remove Lisa-added keys if needed.");
             skipped++;
             break;
         }
@@ -193,28 +210,34 @@ export class Lisa {
       if (!this.config.dryRun) {
         await this.removeEmptyDirectories();
         await manifestService.remove(this.config.destDir);
-        logger.success('Removed manifest file');
+        logger.success("Removed manifest file");
       }
 
       // Print summary
-      console.log('');
-      console.log(pc.green('========================================'));
+      console.log("");
+      console.log(pc.green("========================================"));
       console.log(
         pc.green(
-          this.config.dryRun ? '    Lisa Uninstall Dry Run Complete' : '    Lisa Uninstall Complete!',
-        ),
+          this.config.dryRun
+            ? "    Lisa Uninstall Dry Run Complete"
+            : "    Lisa Uninstall Complete!"
+        )
       );
-      console.log(pc.green('========================================'));
-      console.log('');
-      console.log(`  ${pc.green('Removed:')}     ${String(removed).padStart(3)} files`);
-      console.log(`  ${pc.yellow('Skipped:')}     ${String(skipped).padStart(3)} files (manual review needed)`);
-      console.log('');
+      console.log(pc.green("========================================"));
+      console.log("");
+      console.log(
+        `  ${pc.green("Removed:")}     ${String(removed).padStart(3)} files`
+      );
+      console.log(
+        `  ${pc.yellow("Skipped:")}     ${String(skipped).padStart(3)} files (manual review needed)`
+      );
+      console.log("");
 
       return {
         success: true,
         counters: { ...this.counters, copied: removed, skipped },
         detectedTypes: [],
-        mode: 'uninstall',
+        mode: "uninstall",
         errors,
       };
     } catch (error) {
@@ -226,7 +249,7 @@ export class Lisa {
         success: false,
         counters: this.counters,
         detectedTypes: [],
-        mode: 'uninstall',
+        mode: "uninstall",
         errors,
       };
     }
@@ -253,7 +276,15 @@ export class Lisa {
    */
   private async processDirectory(
     srcDir: string,
-    strategy: { name: CopyStrategy; apply: (s: string, d: string, r: string, c: StrategyContext) => Promise<FileOperationResult> },
+    strategy: {
+      name: CopyStrategy;
+      apply: (
+        s: string,
+        d: string,
+        r: string,
+        c: StrategyContext
+      ) => Promise<FileOperationResult>;
+    }
   ): Promise<void> {
     const files = await listFilesRecursive(srcDir);
 
@@ -262,7 +293,7 @@ export class Lisa {
       recordFile: (relativePath, strat) => {
         this.deps.manifestService.record(relativePath, strat);
       },
-      backupFile: async (absolutePath) => {
+      backupFile: async absolutePath => {
         await this.deps.backupService.backup(absolutePath);
       },
       promptOverwrite: async (relativePath, sourcePath, destPath) => {
@@ -274,7 +305,12 @@ export class Lisa {
       const relativePath = path.relative(srcDir, srcFile);
       const destFile = path.join(this.config.destDir, relativePath);
 
-      const result = await strategy.apply(srcFile, destFile, relativePath, context);
+      const result = await strategy.apply(
+        srcFile,
+        destFile,
+        relativePath,
+        context
+      );
       this.updateCounters(result);
       this.logResult(result);
     }
@@ -286,20 +322,22 @@ export class Lisa {
   private async handleOverwritePrompt(
     relativePath: string,
     sourcePath: string,
-    destPath: string,
+    destPath: string
   ): Promise<boolean> {
     const { logger, prompter } = this.deps;
 
     const decision = await prompter.promptOverwrite(relativePath);
 
-    if (decision === 'diff') {
+    if (decision === "diff") {
       // Show diff and re-prompt
       await this.showDiff(sourcePath, destPath);
       return this.handleOverwritePrompt(relativePath, sourcePath, destPath);
     }
 
-    if (decision === 'yes') {
-      logger.info(`Auto-accepting overwrite (non-interactive): ${relativePath}`);
+    if (decision === "yes") {
+      logger.info(
+        `Auto-accepting overwrite (non-interactive): ${relativePath}`
+      );
       return true;
     }
 
@@ -310,13 +348,13 @@ export class Lisa {
    * Show diff between two files
    */
   private async showDiff(sourcePath: string, destPath: string): Promise<void> {
-    const { spawn } = await import('node:child_process');
+    const { spawn } = await import("node:child_process");
 
-    return new Promise((resolve) => {
-      console.log('--- Differences ---');
-      const diff = spawn('diff', [destPath, sourcePath], { stdio: 'inherit' });
-      diff.on('close', () => {
-        console.log('-------------------');
+    return new Promise(resolve => {
+      console.log("--- Differences ---");
+      const diff = spawn("diff", [destPath, sourcePath], { stdio: "inherit" });
+      diff.on("close", () => {
+        console.log("-------------------");
         resolve();
       });
     });
@@ -327,20 +365,20 @@ export class Lisa {
    */
   private updateCounters(result: FileOperationResult): void {
     switch (result.action) {
-      case 'copied':
-      case 'created':
+      case "copied":
+      case "created":
         this.counters.copied++;
         break;
-      case 'skipped':
+      case "skipped":
         this.counters.skipped++;
         break;
-      case 'overwritten':
+      case "overwritten":
         this.counters.overwritten++;
         break;
-      case 'appended':
+      case "appended":
         this.counters.appended++;
         break;
-      case 'merged':
+      case "merged":
         this.counters.merged++;
         break;
     }
@@ -353,38 +391,42 @@ export class Lisa {
     const { logger } = this.deps;
 
     switch (result.action) {
-      case 'copied':
+      case "copied":
         if (this.config.dryRun) {
           logger.dry(`Would copy: ${result.relativePath}`);
         } else {
           logger.success(`Copied: ${result.relativePath}`);
         }
         break;
-      case 'created':
+      case "created":
         if (this.config.dryRun) {
           logger.dry(`Would create: ${result.relativePath}`);
         } else {
           logger.success(`Created: ${result.relativePath}`);
         }
         break;
-      case 'skipped':
+      case "skipped":
         // Silent for skipped files
         break;
-      case 'overwritten':
+      case "overwritten":
         if (this.config.dryRun) {
           logger.dry(`Would prompt to overwrite: ${result.relativePath}`);
         } else {
           logger.success(`Overwritten: ${result.relativePath}`);
         }
         break;
-      case 'appended':
+      case "appended":
         if (this.config.dryRun) {
-          logger.dry(`Would append ${result.linesAdded} lines to: ${result.relativePath}`);
+          logger.dry(
+            `Would append ${result.linesAdded} lines to: ${result.relativePath}`
+          );
         } else {
-          logger.success(`Appended ${result.linesAdded} lines to: ${result.relativePath}`);
+          logger.success(
+            `Appended ${result.linesAdded} lines to: ${result.relativePath}`
+          );
         }
         break;
-      case 'merged':
+      case "merged":
         if (this.config.dryRun) {
           logger.dry(`Would merge: ${result.relativePath}`);
         } else {
@@ -416,89 +458,123 @@ export class Lisa {
   private printHeader(): void {
     const { logger } = this.deps;
 
-    console.log('');
-    console.log(pc.blue('========================================'));
+    console.log("");
+    console.log(pc.blue("========================================"));
 
     if (this.config.validateOnly) {
-      console.log(pc.blue('    Lisa Project Bootstrapper (VALIDATE)'));
+      console.log(pc.blue("    Lisa Project Bootstrapper (VALIDATE)"));
     } else if (this.config.dryRun) {
-      console.log(pc.blue('    Lisa Project Bootstrapper (DRY RUN)'));
+      console.log(pc.blue("    Lisa Project Bootstrapper (DRY RUN)"));
     } else {
-      console.log(pc.blue('    Lisa Project Bootstrapper'));
+      console.log(pc.blue("    Lisa Project Bootstrapper"));
     }
 
-    console.log(pc.blue('========================================'));
-    console.log('');
+    console.log(pc.blue("========================================"));
+    console.log("");
 
     if (this.config.validateOnly) {
-      logger.info('Validate mode - checking project compatibility');
+      logger.info("Validate mode - checking project compatibility");
     } else if (this.config.dryRun) {
-      logger.warn('Dry run mode - no changes will be made');
+      logger.warn("Dry run mode - no changes will be made");
     }
 
     logger.info(`Lisa directory: ${this.config.lisaDir}`);
     logger.info(`Destination:    ${this.config.destDir}`);
-    console.log('');
+    console.log("");
   }
 
   /**
    * Print summary
    */
   private printSummary(): void {
-    console.log('');
-    console.log(pc.green('========================================'));
+    console.log("");
+    console.log(pc.green("========================================"));
 
     if (this.config.validateOnly) {
-      console.log(pc.green('    Lisa Validation Complete'));
+      console.log(pc.green("    Lisa Validation Complete"));
     } else if (this.config.dryRun) {
-      console.log(pc.green('    Lisa Dry Run Complete'));
+      console.log(pc.green("    Lisa Dry Run Complete"));
     } else {
-      console.log(pc.green('    Lisa Installation Complete!'));
+      console.log(pc.green("    Lisa Installation Complete!"));
     }
 
-    console.log(pc.green('========================================'));
-    console.log('');
+    console.log(pc.green("========================================"));
+    console.log("");
 
     const { copied, skipped, overwritten, appended, merged } = this.counters;
 
     if (this.config.validateOnly) {
-      console.log(`  ${pc.green('Compatible files:')}    ${String(copied).padStart(3)} files`);
-      console.log(`  ${pc.blue('Already present:')}     ${String(skipped).padStart(3)} files`);
-      console.log(`  ${pc.yellow('Would conflict:')}      ${String(overwritten).padStart(3)} files`);
-      console.log(`  ${pc.blue('Would append:')}        ${String(appended).padStart(3)} files`);
-      console.log(`  ${pc.green('Would merge:')}         ${String(merged).padStart(3)} files`);
+      console.log(
+        `  ${pc.green("Compatible files:")}    ${String(copied).padStart(3)} files`
+      );
+      console.log(
+        `  ${pc.blue("Already present:")}     ${String(skipped).padStart(3)} files`
+      );
+      console.log(
+        `  ${pc.yellow("Would conflict:")}      ${String(overwritten).padStart(3)} files`
+      );
+      console.log(
+        `  ${pc.blue("Would append:")}        ${String(appended).padStart(3)} files`
+      );
+      console.log(
+        `  ${pc.green("Would merge:")}         ${String(merged).padStart(3)} files`
+      );
     } else if (this.config.dryRun) {
-      console.log(`  ${pc.green('Would copy:')}      ${String(copied).padStart(3)} files`);
-      console.log(`  ${pc.blue('Would skip:')}      ${String(skipped).padStart(3)} files (identical or create-only)`);
-      console.log(`  ${pc.yellow('Would prompt:')}    ${String(overwritten).padStart(3)} files (differ)`);
-      console.log(`  ${pc.blue('Would append:')}    ${String(appended).padStart(3)} files (copy-contents)`);
-      console.log(`  ${pc.green('Would merge:')}     ${String(merged).padStart(3)} files (JSON)`);
+      console.log(
+        `  ${pc.green("Would copy:")}      ${String(copied).padStart(3)} files`
+      );
+      console.log(
+        `  ${pc.blue("Would skip:")}      ${String(skipped).padStart(3)} files (identical or create-only)`
+      );
+      console.log(
+        `  ${pc.yellow("Would prompt:")}    ${String(overwritten).padStart(3)} files (differ)`
+      );
+      console.log(
+        `  ${pc.blue("Would append:")}    ${String(appended).padStart(3)} files (copy-contents)`
+      );
+      console.log(
+        `  ${pc.green("Would merge:")}     ${String(merged).padStart(3)} files (JSON)`
+      );
     } else {
-      console.log(`  ${pc.green('Copied:')}      ${String(copied).padStart(3)} files`);
-      console.log(`  ${pc.blue('Skipped:')}     ${String(skipped).padStart(3)} files (identical or create-only)`);
-      console.log(`  ${pc.yellow('Overwritten:')} ${String(overwritten).padStart(3)} files (user approved)`);
-      console.log(`  ${pc.blue('Appended:')}    ${String(appended).padStart(3)} files (copy-contents)`);
-      console.log(`  ${pc.green('Merged:')}      ${String(merged).padStart(3)} files (JSON merged)`);
+      console.log(
+        `  ${pc.green("Copied:")}      ${String(copied).padStart(3)} files`
+      );
+      console.log(
+        `  ${pc.blue("Skipped:")}     ${String(skipped).padStart(3)} files (identical or create-only)`
+      );
+      console.log(
+        `  ${pc.yellow("Overwritten:")} ${String(overwritten).padStart(3)} files (user approved)`
+      );
+      console.log(
+        `  ${pc.blue("Appended:")}    ${String(appended).padStart(3)} files (copy-contents)`
+      );
+      console.log(
+        `  ${pc.green("Merged:")}      ${String(merged).padStart(3)} files (JSON merged)`
+      );
     }
 
-    console.log('');
+    console.log("");
 
     if (this.detectedTypes.length > 0) {
-      console.log(`Project types: ${pc.green(this.detectedTypes.join(' '))}`);
+      console.log(`Project types: ${pc.green(this.detectedTypes.join(" "))}`);
     } else {
-      console.log(`Project types: ${pc.yellow("(none detected - only 'all' was applied)")}`);
+      console.log(
+        `Project types: ${pc.yellow("(none detected - only 'all' was applied)")}`
+      );
     }
 
-    console.log('');
+    console.log("");
 
     // Validation result for CI/CD
     if (this.config.validateOnly) {
       const { logger } = this.deps;
       if (overwritten > 0) {
-        logger.warn(`Validation found ${overwritten} file(s) that would conflict`);
-        console.log('Run without --validate to apply changes interactively');
+        logger.warn(
+          `Validation found ${overwritten} file(s) that would conflict`
+        );
+        console.log("Run without --validate to apply changes interactively");
       } else {
-        logger.success('Project is compatible with Lisa configurations');
+        logger.success("Project is compatible with Lisa configurations");
       }
     }
   }
@@ -511,7 +587,7 @@ export class Lisa {
 
     const removeEmpty = async (dir: string): Promise<void> => {
       if (dir === destDir) return;
-      if (dir.includes('.git') || dir.includes('node_modules')) return;
+      if (dir.includes(".git") || dir.includes("node_modules")) return;
 
       try {
         const entries = await readdir(dir);
@@ -528,7 +604,11 @@ export class Lisa {
     // Get all directories and check if empty
     const entries = await readdir(destDir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.isDirectory() && !entry.name.startsWith('.git') && entry.name !== 'node_modules') {
+      if (
+        entry.isDirectory() &&
+        !entry.name.startsWith(".git") &&
+        entry.name !== "node_modules"
+      ) {
         await removeEmpty(path.join(destDir, entry.name));
       }
     }

@@ -1,4 +1,8 @@
-import type { CopyStrategy, FileOperationResult, LisaConfig } from '../core/config.js';
+import type {
+  CopyStrategy,
+  FileOperationResult,
+  LisaConfig,
+} from "../core/config.js";
 
 /**
  * Context for strategy execution
@@ -14,7 +18,11 @@ export interface StrategyContext {
   readonly backupFile: (absolutePath: string) => Promise<void>;
 
   /** Prompt user for overwrite decision */
-  readonly promptOverwrite: (relativePath: string, sourcePath: string, destPath: string) => Promise<boolean>;
+  readonly promptOverwrite: (
+    relativePath: string,
+    sourcePath: string,
+    destPath: string
+  ) => Promise<boolean>;
 }
 
 /**
@@ -36,6 +44,6 @@ export interface ICopyStrategy {
     sourcePath: string,
     destPath: string,
     relativePath: string,
-    context: StrategyContext,
+    context: StrategyContext
   ): Promise<FileOperationResult>;
 }
