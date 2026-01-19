@@ -202,9 +202,9 @@ export default [
 
   // TypeScript files - enable type-checked linting (includes TSX)
   {
-    ...getTsFilesOverride(["**/*.ts", "**/*.tsx"]),
+    ...getTsFilesOverride(["**/*.ts", "**/*.tsx"], __dirname),
     rules: {
-      ...getTsFilesOverride(["**/*.ts", "**/*.tsx"]).rules,
+      ...getTsFilesOverride(["**/*.ts", "**/*.tsx"], __dirname).rules,
       "react/prop-types": "off",
     },
   },
