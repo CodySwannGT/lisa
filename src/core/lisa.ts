@@ -655,13 +655,12 @@ export class Lisa {
   private printProjectTypes(): void {
     console.log("");
 
-    if (this.detectedTypes.length > 0) {
-      console.log(`Project types: ${pc.green(this.detectedTypes.join(" "))}`);
-    } else {
-      console.log(
-        `Project types: ${pc.yellow("(none detected - only 'all' was applied)")}`
-      );
-    }
+    const allAndDetected =
+      this.detectedTypes.length > 0
+        ? `all ${this.detectedTypes.join(" ")}`
+        : "all";
+
+    console.log(`Project types: ${pc.green(allAndDetected)}`);
 
     console.log("");
   }
