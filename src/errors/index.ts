@@ -4,7 +4,6 @@
 export class LisaError extends Error {
   /**
    * Base Lisa error with error code
-   *
    * @param message - Error message description
    * @param code - Machine-readable error code
    */
@@ -23,7 +22,6 @@ export class LisaError extends Error {
 export class DestinationNotFoundError extends LisaError {
   /**
    * Thrown when destination directory path does not exist
-   *
    * @param path - Path that was not found
    */
   constructor(public readonly path: string) {
@@ -38,7 +36,6 @@ export class DestinationNotFoundError extends LisaError {
 export class DestinationNotDirectoryError extends LisaError {
   /**
    * Thrown when destination path exists but is not a directory
-   *
    * @param path - Path that is not a directory
    */
   constructor(public readonly path: string) {
@@ -53,7 +50,6 @@ export class DestinationNotDirectoryError extends LisaError {
 export class JsonParseError extends LisaError {
   /**
    * Thrown when JSON file parsing fails
-   *
    * @param filePath - Path to the JSON file that failed to parse
    * @param originalError - Underlying parsing error
    */
@@ -72,7 +68,6 @@ export class JsonParseError extends LisaError {
 export class JsonMergeError extends LisaError {
   /**
    * Thrown when JSON merge operation fails
-   *
    * @param filePath - Path to the JSON file that failed to merge
    * @param reason - Description of why the merge failed
    */
@@ -91,7 +86,6 @@ export class JsonMergeError extends LisaError {
 export class FileOperationError extends LisaError {
   /**
    * Thrown when a file operation (read/write/copy) fails
-   *
    * @param operation - Name of the operation that failed
    * @param filePath - Path to the file involved in the operation
    * @param originalError - Underlying file system error
@@ -115,7 +109,6 @@ export class FileOperationError extends LisaError {
 export class BackupError extends LisaError {
   /**
    * Thrown when backup, restore, or cleanup operation fails
-   *
    * @param operation - Type of backup operation that failed
    * @param reason - Description of why the operation failed
    */
@@ -134,7 +127,6 @@ export class BackupError extends LisaError {
 export class RollbackError extends LisaError {
   /**
    * Thrown when transaction rollback fails
-   *
    * @param reason - Description of why rollback failed
    */
   constructor(public readonly reason: string) {
@@ -149,7 +141,6 @@ export class RollbackError extends LisaError {
 export class DependencyMissingError extends LisaError {
   /**
    * Thrown when required dependencies are not available
-   *
    * @param dependencies - List of missing dependency names
    */
   constructor(public readonly dependencies: readonly string[]) {

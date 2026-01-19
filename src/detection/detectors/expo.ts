@@ -19,7 +19,6 @@ export class ExpoDetector implements IProjectTypeDetector {
 
   /**
    * Detect if the project uses Expo
-   *
    * @param destDir - Project directory to check
    * @returns True if Expo is detected
    */

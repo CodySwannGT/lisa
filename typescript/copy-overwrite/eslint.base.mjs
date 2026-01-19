@@ -4,7 +4,6 @@
  * This module exports shared configuration pieces that can be imported by
  * project-specific eslint.config.mjs files. This reduces duplication between
  * typescript, expo, nestjs, and other project type configurations.
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.base
  */
@@ -16,6 +15,8 @@ import prettier from "eslint-plugin-prettier/recommended";
 import sonarjs from "eslint-plugin-sonarjs";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+
+const specFilePattern = "**/*.spec.ts";
 
 /**
  * Default ignore patterns used when not specified in project config.
@@ -40,7 +41,7 @@ export const defaultIgnores = [
   "generated/**",
   "components/ui/**",
   "coverage/**",
-  "**/*spec.ts",
+  specFilePattern,
   "resolver-test.setup.ts",
   "**/*.factory.ts",
   "**/test-utils/**",
@@ -82,7 +83,6 @@ export const defaultThresholds = {
 /**
  * Base ESLint configurations that should be applied to all TypeScript projects.
  * This includes recommended configs from ESLint, TypeScript-ESLint, and plugins.
- *
  * @returns {Array} Array of ESLint flat config objects
  */
 export const getBaseConfigs = () => [
@@ -120,7 +120,6 @@ export const getBaseConfigs = () => [
 /**
  * Shared rules that apply to all TypeScript projects.
  * These are rules that should be identical across typescript, expo, nestjs, etc.
- *
  * @param {object} thresholds - Threshold values for configurable rules
  * @param {number} thresholds.cognitiveComplexity - Max cognitive complexity
  * @param {number} thresholds.maxLines - Max lines per file
@@ -265,7 +264,6 @@ export const getSharedRules = thresholds => ({
 
 /**
  * Base language options for all files.
- *
  * @returns {object} Language options configuration
  */
 export const getBaseLanguageOptions = () => ({
@@ -282,7 +280,6 @@ export const getBaseLanguageOptions = () => ({
 
 /**
  * JavaScript files override - relaxes certain rules for JS files.
- *
  * @returns {object} ESLint flat config object for JS files
  */
 export const getJsFilesOverride = () => ({
@@ -295,7 +292,6 @@ export const getJsFilesOverride = () => ({
 
 /**
  * Shared hooks and components override - relaxes import restrictions.
- *
  * @returns {object} ESLint flat config object for shared files
  */
 export const getSharedFilesOverride = () => ({
@@ -307,7 +303,6 @@ export const getSharedFilesOverride = () => ({
 
 /**
  * Test files override - configures Jest globals and relaxes rules for tests.
- *
  * @param additionalPatterns - Additional file patterns to include
  * @returns {object} ESLint flat config object for test files
  */
@@ -316,7 +311,7 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
     "**/*.test.js",
     "**/*.test.ts",
     "**/*.spec.js",
-    "**/*.spec.ts",
+    specFilePattern,
     "jest.setup.js",
     "jest.setup.ts",
     "jest.setup.pre.js",
@@ -342,7 +337,6 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
 
 /**
  * TypeScript files override - enables type-checked linting.
- *
  * @param filePatterns - File patterns to match
  * @param tsconfigRootDir - Root directory for tsconfig.json (pass __dirname from calling module)
  * @returns {object} ESLint flat config object for TypeScript files
@@ -376,12 +370,11 @@ export const getTsFilesOverride = (
 
 /**
  * TypeScript test files override - must come after TypeScript config.
- *
  * @param filePatterns - File patterns for test files
  * @returns {object} ESLint flat config object for TypeScript test files
  */
 export const getTsTestFilesOverride = (
-  filePatterns = ["**/*.test.ts", "**/*.spec.ts"]
+  filePatterns = ["**/*.test.ts", specFilePattern]
 ) => ({
   files: filePatterns,
   rules: {

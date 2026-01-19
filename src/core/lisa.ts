@@ -56,7 +56,6 @@ export class Lisa {
 
   /**
    * Initialize Lisa orchestrator
-   *
    * @param config - Configuration for the apply/uninstall operation
    * @param deps - Injected service dependencies
    */
@@ -112,7 +111,6 @@ export class Lisa {
 
   /**
    * Finalize operation
-   *
    * @returns Promise that resolves when finalization is complete
    */
   private async finalize(): Promise<void> {
@@ -126,7 +124,6 @@ export class Lisa {
 
   /**
    * Create success result
-   *
    * @returns Success result with operation counters and detected types
    */
   private getSuccessResult(): LisaResult {
@@ -187,7 +184,6 @@ export class Lisa {
 
   /**
    * Validate compatibility without applying changes
-   *
    * @returns Result of the validate operation
    */
   async validate(): Promise<LisaResult> {
@@ -197,7 +193,6 @@ export class Lisa {
 
   /**
    * Uninstall Lisa-managed files from the project
-   *
    * @returns Result of the uninstall operation with removal statistics
    */
   async uninstall(): Promise<LisaResult> {
@@ -281,7 +276,6 @@ export class Lisa {
 
   /**
    * Process single uninstall entry and return updated counts
-   *
    * @param entry - Manifest entry to process for removal
    * @param stats - Current removal statistics
    * @param stats.removed - Number of files removed so far
@@ -384,6 +378,7 @@ export class Lisa {
       },
       backupFile: async absolutePath => {
         await this.deps.backupService.backup(absolutePath);
+        await this.deps.backupService.persistentBackup(absolutePath);
       },
       promptOverwrite: async (relativePath, sourcePath, destPath) => {
         return this.handleOverwritePrompt(relativePath, sourcePath, destPath);

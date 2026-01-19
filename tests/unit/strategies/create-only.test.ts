@@ -27,7 +27,6 @@ describe("CreateOnlyStrategy", () => {
 
   /**
    * Create a strategy context for testing
-   *
    * @param overrides - Configuration overrides
    * @returns Strategy context with test defaults
    */

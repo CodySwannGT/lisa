@@ -114,7 +114,6 @@ export class ManifestService implements IManifestService {
 export class ManifestNotFoundError extends Error {
   /**
    * Thrown when manifest file cannot be located
-   *
    * @param manifestPath - Full path to the expected manifest file
    */
   constructor(public readonly manifestPath: string) {

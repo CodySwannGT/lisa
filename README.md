@@ -414,6 +414,26 @@ Configurable limits in `eslint.thresholds.config.json`:
 }
 ```
 
+### File Backups
+
+When Lisa overwrites files that have local modifications (conflicts), it automatically creates timestamped backup copies in the `.lisabak/` directory. This allows you to review or recover your original files if needed.
+
+**Backup naming format:** `<YYYY-MM-DD>-<filename>.<extension>.lisa.bak`
+
+**Example:**
+```
+.lisabak/
+├── 2026-01-19-eslint.config.mjs.lisa.bak
+├── 2026-01-19-package.json.lisa.bak
+└── 2026-01-19-.prettierrc.json.lisa.bak
+```
+
+**Key behaviors:**
+- Backups are created only when files are overwritten (not on first creation or when identical)
+- Multiple backups of the same file on the same day are all preserved
+- The `.lisabak/` directory is automatically added to `.gitignore` (backups are local-only)
+- Backups are meant for manual review; the `.lisabak/` directory can be safely deleted after reviewing
+
 ## Project Type Detection
 
 Lisa auto-detects project types and applies appropriate configurations:

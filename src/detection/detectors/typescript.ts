@@ -19,7 +19,6 @@ export class TypeScriptDetector implements IProjectTypeDetector {
 
   /**
    * Detect if the project uses TypeScript
-   *
    * @param destDir - Project directory to check
    * @returns True if TypeScript is detected
    */
