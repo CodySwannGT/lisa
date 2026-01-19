@@ -392,6 +392,5 @@ export {
   jsdoc,
   prettier,
   sonarjs,
-  tseslint
+  tseslint,
 };
-
