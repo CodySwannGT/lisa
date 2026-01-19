@@ -19,7 +19,6 @@ export class StrategyRegistry {
 
   /**
    * Initialize strategy registry with provided or default strategies
-   *
    * @param strategies - Optional array of strategies (uses defaults if omitted)
    */
   constructor(strategies?: readonly ICopyStrategy[]) {
@@ -35,7 +34,6 @@ export class StrategyRegistry {
 
   /**
    * Get a strategy by name
-   *
    * @param name - Name of the strategy to retrieve
    * @returns The strategy instance with the given name
    */
@@ -49,7 +47,6 @@ export class StrategyRegistry {
 
   /**
    * Check if a strategy exists
-   *
    * @param name - Name of the strategy to check
    * @returns True if the strategy is registered
    */
@@ -59,7 +56,6 @@ export class StrategyRegistry {
 
   /**
    * Get all registered strategies
-   *
    * @returns Array of all strategy instances
    */
   getAll(): readonly ICopyStrategy[] {
@@ -69,7 +65,6 @@ export class StrategyRegistry {
 
 /**
  * Create default strategy registry
- *
  * @returns New StrategyRegistry instance with all default strategies
  */
 export function createStrategyRegistry(): StrategyRegistry {

@@ -25,7 +25,6 @@ export class NpmPackageDetector implements IProjectTypeDetector {
 
   /**
    * Detect if the project is an npm package
-   *
    * @param destDir - Project directory to check
    * @returns True if npm package is detected
    */

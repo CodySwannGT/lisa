@@ -16,7 +16,6 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
 
   /**
    * Apply copy-overwrite strategy: Create, skip, or prompt to overwrite file
-   *
    * @param sourcePath - Source file path
    * @param destPath - Destination file path
    * @param relativePath - Relative path for recording

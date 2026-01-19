@@ -10,7 +10,6 @@ export class Transaction {
 
   /**
    * Initialize transaction with backup and logging services
-   *
    * @param backupService - Service for backup operations
    * @param logger - Logger instance for transaction events
    */
@@ -21,7 +20,6 @@ export class Transaction {
 
   /**
    * Initialize the transaction
-   *
    * @param destDir - Destination directory to protect during transaction
    */
   async init(destDir: string): Promise<void> {
@@ -33,7 +31,6 @@ export class Transaction {
    * Execute an operation within the transaction context
    *
    * Automatically rolls back on failure
-   *
    * @param operation - Async operation to execute atomically
    * @returns Promise resolving to operation result
    */
@@ -65,7 +62,6 @@ export class Transaction {
 
   /**
    * Create a backup of a file within this transaction
-   *
    * @param absolutePath - Absolute path to file to backup
    */
   async backup(absolutePath: string): Promise<void> {
@@ -82,7 +78,6 @@ export class Transaction {
 export class DryRunTransaction {
   /**
    * Initialize dry-run transaction (no-op)
-   *
    * @param _destDir - Destination directory (unused)
    */
   async init(_destDir: string): Promise<void> {
@@ -91,7 +86,6 @@ export class DryRunTransaction {
 
   /**
    * Execute operation without backup/rollback (no-op)
-   *
    * @param operation - Operation to execute
    * @returns Promise resolving to operation result
    */
@@ -101,7 +95,6 @@ export class DryRunTransaction {
 
   /**
    * Backup file (no-op)
-   *
    * @param _absolutePath - Absolute path (unused)
    */
   async backup(_absolutePath: string): Promise<void> {
