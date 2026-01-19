@@ -1,5 +1,5 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-19T13:01:29.346Z
+# Generated: 2026-01-19T23:45:24.574Z
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.claude/README.md
@@ -54,7 +54,6 @@ copy-overwrite:CLAUDE.md
 copy-overwrite:HUMAN.md
 copy-overwrite:specs/.keep
 copy-contents:.gitignore
-create-only:scripts/setup-deploy-key.sh
 copy-overwrite:.claude/hooks/format-on-edit.sh
 copy-overwrite:.claude/hooks/install_pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
@@ -67,6 +66,7 @@ copy-overwrite:.github/workflows/create-github-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-jira-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-sentry-issue-on-failure.yml
+copy-overwrite:.github/workflows/lint-slow.yml
 copy-overwrite:.github/workflows/quality.yml
 copy-overwrite:.github/workflows/release.yml
 copy-overwrite:.gitleaksignore
@@ -84,6 +84,7 @@ copy-overwrite:eslint-plugin-code-organization/rules/enforce-statement-order.js
 copy-overwrite:eslint.base.mjs
 copy-overwrite:eslint.config.mjs
 copy-overwrite:eslint.ignore.config.json
+copy-overwrite:eslint.slow.config.mjs
 copy-overwrite:tsconfig.eslint.json
 copy-contents:.husky/_/.gitignore
 copy-contents:.husky/_/husky.sh
