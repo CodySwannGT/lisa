@@ -7,6 +7,7 @@ import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
 const TEST_FILE = "test.txt";
 const ORIGINAL_CONTENT = "original content";
+const NESTED_CONTENT = "nested content";
 
 describe("BackupService", () => {
   let service: BackupService;
@@ -87,7 +88,7 @@ describe("BackupService", () => {
 
       const nestedFile = path.join(destDir, "nested", "deep", "file.txt");
       await fs.ensureDir(path.dirname(nestedFile));
-      await fs.writeFile(nestedFile, "nested content");
+      await fs.writeFile(nestedFile, NESTED_CONTENT);
 
       await service.backup(nestedFile);
       await fs.writeFile(nestedFile, "changed");
@@ -95,7 +96,7 @@ describe("BackupService", () => {
       await service.rollback();
 
       const content = await fs.readFile(nestedFile, "utf-8");
-      expect(content).toBe("nested content");
+      expect(content).toBe(NESTED_CONTENT);
     });
   });
 
@@ -177,7 +178,7 @@ describe("BackupService", () => {
 
       const nestedFile = path.join(destDir, "nested", "deep", "file.txt");
       await fs.ensureDir(path.dirname(nestedFile));
-      await fs.writeFile(nestedFile, "nested content");
+      await fs.writeFile(nestedFile, NESTED_CONTENT);
 
       await service.persistentBackup(nestedFile);
 
@@ -193,7 +194,7 @@ describe("BackupService", () => {
 
       expect(await fs.pathExists(backupFile)).toBe(true);
       const content = await fs.readFile(backupFile, "utf-8");
-      expect(content).toBe("nested content");
+      expect(content).toBe(NESTED_CONTENT);
     });
 
     it("handles non-existent file gracefully", async () => {
