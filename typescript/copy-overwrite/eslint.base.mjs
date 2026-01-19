@@ -344,10 +344,20 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
  * TypeScript files override - enables type-checked linting.
  *
  * @param filePatterns - File patterns to match
+ * @param tsconfigRootDir - Root directory for tsconfig.json (pass __dirname from calling module)
  * @returns {object} ESLint flat config object for TypeScript files
  */
-export const getTsFilesOverride = (filePatterns = ["**/*.ts"]) => ({
+export const getTsFilesOverride = (
+  filePatterns = ["**/*.ts"],
+  tsconfigRootDir
+) => ({
   files: filePatterns,
+  languageOptions: {
+    parserOptions: {
+      project: "tsconfig.eslint.json",
+      tsconfigRootDir,
+    },
+  },
   rules: {
     // Enable immutable-data rule now that type-checking is available
     "functional/immutable-data": [
@@ -384,8 +394,10 @@ export const getTsTestFilesOverride = (
 export {
   eslintComments,
   functional,
-  globals, js, jsdoc, prettier,
+  globals,
+  js,
+  jsdoc,
+  prettier,
   sonarjs,
-  tseslint
+  tseslint,
 };
-
