@@ -78,6 +78,7 @@ export const defaultIgnores = [
 export const defaultThresholds = {
   cognitiveComplexity: 10,
   maxLines: 300,
+  maxLinesPerFunction: 75
 };
 
 /**
@@ -123,6 +124,7 @@ export const getBaseConfigs = () => [
  * @param {object} thresholds - Threshold values for configurable rules
  * @param {number} thresholds.cognitiveComplexity - Max cognitive complexity
  * @param {number} thresholds.maxLines - Max lines per file
+ * @param {number} thresholds.maxLinesPerFunction - Max lines per function
  * @returns {object} Rules configuration object
  */
 export const getSharedRules = thresholds => ({
@@ -149,6 +151,14 @@ export const getSharedRules = thresholds => ({
       skipComments: true,
     },
   ],
+  "max-lines-per-function": [
+    "error",
+    {
+      max: thresholds.maxLinesPerFunction,
+      skipBlankLines: true,
+      skipComments: true,
+    },
+  ],
 
   // Folder naming
   // NOTE: eslint-plugin-folders is not compatible with ESLint 9 flat config
@@ -164,8 +174,6 @@ export const getSharedRules = thresholds => ({
   "sonarjs/prefer-immediate-return": "warn",
   "sonarjs/prefer-single-boolean-return": "warn",
   "sonarjs/no-collapsible-if": "warn",
-  // New rules in SonarJS v3 - disabled temporarily to allow migration
-  // These need to be addressed in a separate cleanup task
   "sonarjs/pseudo-random": "error",
   "sonarjs/no-clear-text-protocols": "error",
   "sonarjs/prefer-read-only-props": "error",
@@ -178,6 +186,10 @@ export const getSharedRules = thresholds => ({
   "sonarjs/deprecation": "off",
   // Next takes forever and doesn't provide value
   "sonarjs/aws-restricted-ip-admin-access": "off",
+  // This just seems to be wrong and gives all kinds of false positives
+  "sonarjs/different-types-comparison": "off", 
+  // This duplicates another lint check
+  "sonarjs/no-unused-vars": "off",
 
   // ESLint comments
   "@eslint-community/eslint-comments/require-description": "error",
@@ -288,10 +300,11 @@ export const getBaseLanguageOptions = () => ({
  * @returns {object} ESLint flat config object for JS files
  */
 export const getJsFilesOverride = () => ({
-  files: ["**/*.js"],
+  files: ["**/*.js", "**/*.mjs"],
   rules: {
     "sonarjs/cognitive-complexity": "off",
     "@typescript-eslint/no-require-imports": "off", // CommonJS files
+    "max-lines-per-function": "off",
   },
 });
 
@@ -337,6 +350,8 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
     "functional/no-let": "off",
     // Tests need to manipulate process.env for environment setup
     "no-restricted-syntax": "off",
+    // Tests can be longer than typical functions
+    "max-lines-per-function": "off",
   },
 });
 
@@ -385,6 +400,8 @@ export const getTsTestFilesOverride = (
   rules: {
     // Tests often need to mutate state for mocks, setup, and assertions
     "functional/immutable-data": "off",
+    // Tests can be longer than typical functions
+    "max-lines-per-function": "off",
   },
 });
 
@@ -397,5 +414,6 @@ export {
   jsdoc,
   prettier,
   sonarjs,
-  tseslint,
+  tseslint
 };
+
