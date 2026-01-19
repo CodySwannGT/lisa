@@ -99,6 +99,103 @@ describe("BackupService", () => {
     });
   });
 
+  describe("persistentBackup", () => {
+    it("creates timestamped backup in .lisabak directory", async () => {
+      await service.init(destDir);
+
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, ORIGINAL_CONTENT);
+
+      await service.persistentBackup(testFile);
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      const backupFiles = await fs.readdir(lisabakDir);
+
+      expect(backupFiles.length).toBe(1);
+      expect(backupFiles[0]).toMatch(/\d{4}-\d{2}-\d{2}-test\.txt\.lisa\.bak/);
+    });
+
+    it("creates backup file with original content", async () => {
+      await service.init(destDir);
+
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, ORIGINAL_CONTENT);
+
+      await service.persistentBackup(testFile);
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      const backupFiles = await fs.readdir(lisabakDir);
+      const backupPath = path.join(lisabakDir, backupFiles[0]);
+
+      const backupContent = await fs.readFile(backupPath, "utf-8");
+      expect(backupContent).toBe(ORIGINAL_CONTENT);
+    });
+
+    it("uses ISO date format (YYYY-MM-DD) in backup filename", async () => {
+      await service.init(destDir);
+
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, "content");
+
+      await service.persistentBackup(testFile);
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      const backupFiles = await fs.readdir(lisabakDir);
+      const filename = backupFiles[0];
+
+      // Match ISO date format
+      const dateRegex = /^(\d{4}-\d{2}-\d{2})-/;
+      const dateMatch = dateRegex.exec(filename);
+      expect(dateMatch).not.toBeNull();
+
+      if (dateMatch) {
+        const dateStr = dateMatch[1];
+        // Verify it's a valid date
+        const date = new Date(dateStr);
+        expect(date.toString()).not.toBe("Invalid Date");
+      }
+    });
+
+    it("handles non-existent file gracefully", async () => {
+      await service.init(destDir);
+
+      const nonexistentFile = path.join(destDir, "nonexistent.txt");
+
+      // Should not throw
+      await expect(
+        service.persistentBackup(nonexistentFile)
+      ).resolves.not.toThrow();
+    });
+
+    it("creates .lisabak directory if it doesn't exist", async () => {
+      await service.init(destDir);
+
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, "content");
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      expect(await fs.pathExists(lisabakDir)).toBe(false);
+
+      await service.persistentBackup(testFile);
+
+      expect(await fs.pathExists(lisabakDir)).toBe(true);
+    });
+
+    it("preserves file extension in backup filename", async () => {
+      await service.init(destDir);
+
+      const jsonFile = path.join(destDir, "config.json");
+      await fs.writeFile(jsonFile, '{"key": "value"}');
+
+      await service.persistentBackup(jsonFile);
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      const backupFiles = await fs.readdir(lisabakDir);
+
+      expect(backupFiles[0]).toMatch(/config\.json\.lisa\.bak$/);
+    });
+  });
+
   describe("cleanup", () => {
     it("removes backup directory", async () => {
       await service.init(destDir);
