@@ -110,10 +110,12 @@ export default [
       ],
 
       // Import rules
-      "import/no-cycle": "off", // Disable because this is very, very slow. TODO: debug and re-enable
+      // Slow rules - disabled by default, run via `lint:slow` script
+      // @see eslint.slow.config.mjs
+      "import/no-cycle": "off",
+      "import/namespace": "off",
       "import/no-unresolved": "off", // Disabled: doesn't understand React Native platform extensions (.native.tsx, .web.tsx)
       "import/prefer-default-export": "off",
-      "import/namespace": "off", // Disable because this is slow and typescript type check will catch this
       "import/no-duplicates": "error",
 
       // React performance
@@ -131,7 +133,10 @@ export default [
       "react-hooks/preserve-manual-memoization": "error",
       "react-hooks/refs": "error",
       "react-hooks/immutability": "error",
-      "react-compiler/react-compiler": "error",
+      // Slow rules - disabled by default, run via `lint:slow` script
+      // @see eslint.slow.config.mjs
+      "react-compiler/react-compiler": "off",
+      "react-hooks/static-components": "off",
 
       // Environment variables - enforce validated env module usage
       // @see .claude/skills/expo-env-config/SKILL.md
