@@ -12,7 +12,6 @@ const LISA_TEST_PREFIX = "lisa-test-";
 
 /**
  * Create a temporary directory for testing
- *
  * @returns Promise resolving to path of created temporary directory
  */
 export async function createTempDir(): Promise<string> {
@@ -21,7 +20,6 @@ export async function createTempDir(): Promise<string> {
 
 /**
  * Clean up a temporary directory
- *
  * @param dir - Directory path to remove
  */
 export async function cleanupTempDir(dir: string): Promise<void> {
@@ -32,7 +30,6 @@ export async function cleanupTempDir(dir: string): Promise<void> {
 
 /**
  * Create a minimal project structure with package.json
- *
  * @param dir - Directory to create project structure in
  */
 export async function createMinimalProject(dir: string): Promise<void> {
@@ -42,7 +39,6 @@ export async function createMinimalProject(dir: string): Promise<void> {
 
 /**
  * Create a TypeScript project structure with tsconfig.json
- *
  * @param dir - Directory to create project structure in
  */
 export async function createTypeScriptProject(dir: string): Promise<void> {
@@ -55,7 +51,6 @@ export async function createTypeScriptProject(dir: string): Promise<void> {
 
 /**
  * Create an Expo project structure with app.json
- *
  * @param dir - Directory to create project structure in
  */
 export async function createExpoProject(dir: string): Promise<void> {
@@ -70,7 +65,6 @@ export async function createExpoProject(dir: string): Promise<void> {
 
 /**
  * Create a NestJS project structure with nest-cli.json
- *
  * @param dir - Directory to create project structure in
  */
 export async function createNestJSProject(dir: string): Promise<void> {
@@ -83,7 +77,6 @@ export async function createNestJSProject(dir: string): Promise<void> {
 
 /**
  * Create a CDK project structure with cdk.json
- *
  * @param dir - Directory to create project structure in
  */
 export async function createCDKProject(dir: string): Promise<void> {
@@ -96,7 +89,6 @@ export async function createCDKProject(dir: string): Promise<void> {
 
 /**
  * Create a mock Lisa config directory structure with all strategies
- *
  * @param dir - Directory to create Lisa structure in
  */
 export async function createMockLisaDir(dir: string): Promise<void> {
@@ -129,7 +121,6 @@ export async function createMockLisaDir(dir: string): Promise<void> {
 
 /**
  * Count files in a directory recursively
- *
  * @param dir - Directory to count files in
  * @returns Promise resolving to total file count
  */
@@ -138,7 +129,6 @@ export async function countFiles(dir: string): Promise<number> {
 
   /**
    * Recursively walk directory tree and count files
-   *
    * @param currentDir - Current directory being walked
    */
   async function walk(currentDir: string): Promise<void> {

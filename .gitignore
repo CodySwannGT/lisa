@@ -57,6 +57,10 @@ yarn-error.log*
 lerna-debug.log*
 dev-debug.log
 
+# Lisa backups
+.lisabak/
+**/*.lisa.bak
+
 # Environment variables
 .env
 .env.local

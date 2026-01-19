@@ -35,7 +35,6 @@ export class NestJSDetector implements IProjectTypeDetector {
 
   /**
    * Detect if the project uses NestJS
-   *
    * @param destDir - Project directory to check
    * @returns True if NestJS is detected
    */

@@ -17,7 +17,6 @@ export class MergeStrategy implements ICopyStrategy {
 
   /**
    * Apply merge strategy: Deep merge JSON files with project values taking precedence
-   *
    * @param sourcePath - Source JSON file path
    * @param destPath - Destination JSON file path
    * @param relativePath - Relative path for recording

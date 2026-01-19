@@ -17,7 +17,6 @@ export class DetectorRegistry {
 
   /**
    * Initialize detector registry with provided or default detectors
-   *
    * @param detectors - Optional array of detectors (uses defaults if omitted)
    */
   constructor(detectors?: readonly IProjectTypeDetector[]) {
@@ -32,7 +31,6 @@ export class DetectorRegistry {
 
   /**
    * Detect all project types in the given directory
-   *
    * @param destDir - Project directory to scan
    * @returns Array of detected project types
    */
@@ -52,7 +50,6 @@ export class DetectorRegistry {
    * Expand detected types to include parent types and order correctly
    *
    * Child types (expo, nestjs, cdk) automatically include their parent (typescript)
-   *
    * @param detectedTypes - Project types to expand
    * @returns Ordered array with parent types included
    */
@@ -76,7 +73,6 @@ export class DetectorRegistry {
 
 /**
  * Create default detector registry
- *
  * @returns New DetectorRegistry instance with all default detectors
  */
 export function createDetectorRegistry(): DetectorRegistry {

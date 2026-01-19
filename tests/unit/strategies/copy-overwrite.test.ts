@@ -31,7 +31,6 @@ describe("CopyOverwriteStrategy", () => {
 
   /**
    * Create a strategy context for testing
-   *
    * @param overrides - Configuration overrides
    * @returns Strategy context with test defaults
    */
@@ -110,6 +109,26 @@ describe("CopyOverwriteStrategy", () => {
     expect(result.action).toBe("overwritten");
     expect(backupCalled).toBe(true);
     expect(await fs.readFile(destFile, "utf-8")).toBe(NEW_CONTENT);
+  });
+
+  it("calls backupFile with correct path before overwriting", async () => {
+    const srcFile = path.join(srcDir, TEST_FILE);
+    const destFile = path.join(destDir, TEST_FILE);
+    await fs.writeFile(srcFile, NEW_CONTENT);
+    await fs.writeFile(destFile, OLD_CONTENT);
+
+    let backupPath: string | null = null;
+    const context = {
+      ...createContext(),
+      backupFile: async (path: string) => {
+        backupPath = path;
+      },
+      promptOverwrite: async () => true,
+    };
+
+    await strategy.apply(srcFile, destFile, TEST_FILE, context);
+
+    expect(backupPath).toBe(destFile);
   });
 
   it("skips when files differ and promptOverwrite returns false", async () => {

@@ -15,7 +15,6 @@ export class CreateOnlyStrategy implements ICopyStrategy {
 
   /**
    * Apply create-only strategy: Create file if not exists, never update
-   *
    * @param sourcePath - Source file path
    * @param destPath - Destination file path
    * @param relativePath - Relative path for recording

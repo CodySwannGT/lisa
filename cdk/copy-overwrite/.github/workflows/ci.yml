@@ -128,16 +128,12 @@ jobs:
       node_version: '22.21.1'
       package_manager: 'bun'
     secrets: inherit
-  create_jira_issue_on_failure:
-    name: 🚨 Create Jira Issue on Failure
+  create_issue_on_failure:
+    name: 📌 Create Issue on Failure
     needs: [determine_environment, cdk-checks, quality]
-    if: ${{ failure() && !contains(github.event.head_commit.message, '[skip ci]') }}
-    uses: ./.github/workflows/create-jira-issue-on-failure.yml
+    if: ${{ always() && (needs.cdk-checks.result == 'failure' || needs.quality.result == 'failure') && !contains(github.event.head_commit.message, '[skip ci]') }}
+    uses: ./.github/workflows/create-issue-on-failure.yml
     with:
       workflow_name: 'CI Quality Checks'
       failed_job: ${{ needs.cdk-checks.result == 'failure' && 'cdk-checks' || 'quality' }}
-      JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL }}
-      JIRA_USER_EMAIL: ${{ vars.JIRA_USER_EMAIL }}
-      JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
-    secrets:
-      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+    secrets: inherit
