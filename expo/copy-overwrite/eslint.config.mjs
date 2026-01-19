@@ -114,6 +114,7 @@ export default [
       // @see eslint.slow.config.mjs
       "import/no-cycle": "off",
       "import/namespace": "off",
+      // End Slow rules - disabled by default, run via `lint:slow` script
       "import/no-unresolved": "off", // Disabled: doesn't understand React Native platform extensions (.native.tsx, .web.tsx)
       "import/prefer-default-export": "off",
       "import/no-duplicates": "error",
@@ -137,7 +138,7 @@ export default [
       // @see eslint.slow.config.mjs
       "react-compiler/react-compiler": "off",
       "react-hooks/static-components": "off",
-
+      // End Slow rules - disabled by default, run via `lint:slow` script
       // Environment variables - enforce validated env module usage
       // @see .claude/skills/expo-env-config/SKILL.md
       "no-restricted-syntax": [
