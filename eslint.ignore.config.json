@@ -23,7 +23,7 @@
     "**/k6/**/*.js",
 
     "coverage/**",
-    "**/*.spec.ts",
+    "**/*spec.ts",
     "resolver-test.setup.ts",
     "**/*.factory.ts",
     "**/test-utils/**",

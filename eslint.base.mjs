@@ -16,7 +16,7 @@ import sonarjs from "eslint-plugin-sonarjs";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-const specFilePattern = "**/*.spec.ts";
+const specFilePattern = "**/*spec.ts";
 
 /**
  * Default ignore patterns used when not specified in project config.
@@ -328,7 +328,7 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
   files: [
     "**/*.test.js",
     "**/*.test.ts",
-    "**/*.spec.js",
+    "**/*spec.js",
     specFilePattern,
     "jest.setup.js",
     "jest.setup.ts",
