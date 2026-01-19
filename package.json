@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check .",
     "format": "prettier --check . --write",
-    "prepare": "npm run build",
+    "prepare": "npm run build && husky install || true",
     "//end-docs": "",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
