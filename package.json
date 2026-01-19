@@ -75,7 +75,7 @@
     "@sentry/cli"
   ],
   "name": "@codyswann/lisa",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "type": "module",
   "main": "dist/index.js",
