@@ -86,29 +86,33 @@ export async function isDirectory(filePath: string): Promise<boolean> {
  * @returns Array of file paths
  */
 export async function listFilesRecursive(dir: string): Promise<string[]> {
-  const files: string[] = [];
-
   /**
    * Recursively walk directory tree collecting files
    * @param currentDir Current directory being walked
+   * @returns Array of file paths found in this directory and subdirectories
    */
-  async function walk(currentDir: string): Promise<void> {
+  async function walk(currentDir: string): Promise<readonly string[]> {
     const entries = await readdir(currentDir, { withFileTypes: true });
 
-    for (const entry of entries) {
-      const fullPath = `${currentDir}/${entry.name}`;
+    const results = await Promise.all(
+      entries.map(async entry => {
+        const fullPath = `${currentDir}/${entry.name}`;
 
-      if (entry.isDirectory()) {
-        await walk(fullPath);
-      } else if (entry.isFile()) {
-        files.push(fullPath);
-      }
-    }
+        if (entry.isDirectory()) {
+          return walk(fullPath);
+        } else if (entry.isFile()) {
+          return [fullPath];
+        }
+        return [];
+      })
+    );
+
+    return results.flat();
   }
 
   if (await isDirectory(dir)) {
-    await walk(dir);
+    return [...(await walk(dir))];
   }
 
-  return files;
+  return [];
 }

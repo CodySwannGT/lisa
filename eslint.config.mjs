@@ -91,7 +91,7 @@ export default [
   getTestFilesOverride(),
 
   // TypeScript files - enable type-checked linting
-  getTsFilesOverride(["**/*.ts"]),
+  getTsFilesOverride(["**/*.ts"], __dirname),
 
   // TypeScript test files - disable immutable-data (must come after TypeScript config)
   getTsTestFilesOverride(["**/*.test.ts", "**/*.spec.ts"]),
