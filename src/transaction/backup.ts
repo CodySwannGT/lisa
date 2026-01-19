@@ -4,6 +4,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { BackupError, RollbackError } from "../errors/index.js";
 import type { ILogger } from "../logging/index.js";
+import { generateBackupFilename } from "../utils/file-operations.js";
 
 /**
  * Interface for backup service
@@ -14,6 +15,9 @@ export interface IBackupService {
 
   /** Backup a file before modification */
   backup(absolutePath: string): Promise<void>;
+
+  /** Create persistent timestamped backup in project */
+  persistentBackup(absolutePath: string): Promise<void>;
 
   /** Rollback all changes from backup */
   rollback(): Promise<void>;
@@ -32,7 +36,6 @@ export class BackupService implements IBackupService {
 
   /**
    * Initialize backup service with logger
-   *
    * @param logger - Logger instance for backup operations
    */
   constructor(logger: ILogger) {
@@ -62,6 +65,25 @@ export class BackupService implements IBackupService {
       throw new BackupError(
         "backup",
         `Failed to backup ${absolutePath}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  async persistentBackup(absolutePath: string): Promise<void> {
+    try {
+      if (await fse.pathExists(absolutePath)) {
+        const backupDir = path.join(this.destDir, ".lisabak");
+        const backupFilename = generateBackupFilename(absolutePath);
+        const backupPath = path.join(backupDir, backupFilename);
+
+        await fse.ensureDir(backupDir);
+        await fse.copy(absolutePath, backupPath);
+        this.logger.info(`Backup created: ${backupFilename}`);
+      }
+    } catch (error) {
+      throw new BackupError(
+        "backup",
+        `Failed to create persistent backup of ${absolutePath}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -103,7 +125,6 @@ export class BackupService implements IBackupService {
 
   /**
    * Recursively list all files in a directory
-   *
    * @param dir - Directory to scan recursively
    * @returns Array of absolute file paths
    */
@@ -136,6 +157,10 @@ export class DryRunBackupService implements IBackupService {
   }
 
   async backup(_absolutePath: string): Promise<void> {
+    // No-op
+  }
+
+  async persistentBackup(_absolutePath: string): Promise<void> {
     // No-op
   }
 
