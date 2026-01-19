@@ -35,7 +35,6 @@ export class CDKDetector implements IProjectTypeDetector {
 
   /**
    * Detect if the project uses AWS CDK
-   *
    * @param destDir - Project directory to check
    * @returns True if AWS CDK is detected
    */

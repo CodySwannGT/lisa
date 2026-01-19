@@ -95,7 +95,6 @@ export class CopyContentsStrategy implements ICopyStrategy {
 
   /**
    * Apply copy-contents strategy: Create or append missing lines to file
-   *
    * @param sourcePath - Source file path
    * @param destPath - Destination file path
    * @param relativePath - Relative path for recording

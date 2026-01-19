@@ -46,7 +46,6 @@ describe("Lisa Integration Tests", () => {
 
   /**
    * Create a Lisa config for testing
-   *
    * @param overrides - Configuration overrides
    * @returns Lisa configuration with test defaults
    */
@@ -63,7 +62,6 @@ describe("Lisa Integration Tests", () => {
 
   /**
    * Create Lisa dependencies for testing
-   *
    * @param config - Configuration to use for dependencies
    * @returns Lisa dependencies with test implementations
    */

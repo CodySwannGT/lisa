@@ -6,7 +6,6 @@ import type { ILogger } from "./logger.interface.js";
 export class SilentLogger implements ILogger {
   /**
    * Silently ignore info-level messages
-   *
    * @param _message - Message to ignore
    */
   info(_message: string): void {
@@ -15,7 +14,6 @@ export class SilentLogger implements ILogger {
 
   /**
    * Silently ignore success-level messages
-   *
    * @param _message - Message to ignore
    */
   success(_message: string): void {
@@ -24,7 +22,6 @@ export class SilentLogger implements ILogger {
 
   /**
    * Silently ignore warning-level messages
-   *
    * @param _message - Message to ignore
    */
   warn(_message: string): void {
@@ -33,7 +30,6 @@ export class SilentLogger implements ILogger {
 
   /**
    * Silently ignore error-level messages
-   *
    * @param _message - Message to ignore
    */
   error(_message: string): void {
@@ -42,7 +38,6 @@ export class SilentLogger implements ILogger {
 
   /**
    * Silently ignore dry-run-level messages
-   *
    * @param _message - Message to ignore
    */
   dry(_message: string): void {
