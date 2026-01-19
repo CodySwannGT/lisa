@@ -280,6 +280,55 @@ sonar.organization=your-org
 
 ---
 
+#### DEPLOY_KEY
+**Purpose**: Push version bumps and releases to protected branches
+
+GitHub Actions workflows cannot push directly to protected branches using the default `GITHUB_TOKEN`. A deploy key (SSH key) with write access bypasses branch protection rules for automated releases.
+
+**How to set it up**:
+
+1. **Generate an SSH key pair locally**:
+   ```bash
+   # Generate a new SSH key (no passphrase for CI use)
+   ssh-keygen -t ed25519 -C "github-actions-deploy-key" -f deploy_key -N ""
+
+   # This creates two files:
+   # - deploy_key (private key - goes to GitHub Secrets)
+   # - deploy_key.pub (public key - goes to Deploy Keys)
+   ```
+
+2. **Add the public key to GitHub Deploy Keys**:
+   - Go to your repository **Settings** > **Deploy keys**
+   - Click **Add deploy key**
+   - Title: `GitHub Actions Deploy Key`
+   - Key: Paste contents of `deploy_key.pub`
+   - **Check "Allow write access"** (required for pushing)
+   - Click **Add key**
+
+3. **Add the private key as a repository secret**:
+   ```bash
+   # Using GitHub CLI
+   gh secret set DEPLOY_KEY < deploy_key
+
+   # Or manually:
+   # Go to Settings > Secrets and variables > Actions
+   # Click "New repository secret"
+   # Name: DEPLOY_KEY
+   # Value: Paste entire contents of deploy_key file (including BEGIN/END lines)
+   ```
+
+4. **Clean up local keys**:
+   ```bash
+   # Delete the local key files after setup
+   rm deploy_key deploy_key.pub
+   ```
+
+**Required for**: Automated releases pushing to protected branches (main, staging, dev)
+
+**Note**: If your branch protection rules require signed commits, you'll also need to set up GPG signing (see Release Signing Secrets below).
+
+---
+
 ### Release Signing Secrets (Optional)
 
 For GPG-signed releases:
@@ -289,7 +338,6 @@ For GPG-signed releases:
 | `RELEASE_SIGNING_KEY` | Base64-encoded GPG private key |
 | `SIGNING_KEY_ID` | GPG key ID |
 | `SIGNING_KEY_PASSPHRASE` | GPG key passphrase |
-| `DEPLOY_KEY` | SSH key for pushing to protected branches |
 
 To generate:
 ```bash
