@@ -100,7 +100,7 @@ describe("BackupService", () => {
   });
 
   describe("persistentBackup", () => {
-    it("creates timestamped backup in .lisabak directory", async () => {
+    it("creates timestamped directory with date and time", async () => {
       await service.init(destDir);
 
       const testFile = path.join(destDir, TEST_FILE);
@@ -109,10 +109,26 @@ describe("BackupService", () => {
       await service.persistentBackup(testFile);
 
       const lisabakDir = path.join(destDir, ".lisabak");
-      const backupFiles = await fs.readdir(lisabakDir);
+      const timestampDirs = await fs.readdir(lisabakDir);
 
-      expect(backupFiles.length).toBe(1);
-      expect(backupFiles[0]).toMatch(/\d{4}-\d{2}-\d{2}-test\.txt\.lisa\.bak/);
+      expect(timestampDirs.length).toBe(1);
+      // Should match YYYY-MM-DD-HHmmss format
+      expect(timestampDirs[0]).toMatch(/^\d{4}-\d{2}-\d{2}-\d{6}$/);
+    });
+
+    it("preserves relative path structure in backup", async () => {
+      await service.init(destDir);
+
+      const testFile = path.join(destDir, TEST_FILE);
+      await fs.writeFile(testFile, ORIGINAL_CONTENT);
+
+      await service.persistentBackup(testFile);
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      const timestampDirs = await fs.readdir(lisabakDir);
+      const backupFile = path.join(lisabakDir, timestampDirs[0], TEST_FILE);
+
+      expect(await fs.pathExists(backupFile)).toBe(true);
     });
 
     it("creates backup file with original content", async () => {
@@ -124,14 +140,14 @@ describe("BackupService", () => {
       await service.persistentBackup(testFile);
 
       const lisabakDir = path.join(destDir, ".lisabak");
-      const backupFiles = await fs.readdir(lisabakDir);
-      const backupPath = path.join(lisabakDir, backupFiles[0]);
+      const timestampDirs = await fs.readdir(lisabakDir);
+      const backupPath = path.join(lisabakDir, timestampDirs[0], TEST_FILE);
 
       const backupContent = await fs.readFile(backupPath, "utf-8");
       expect(backupContent).toBe(ORIGINAL_CONTENT);
     });
 
-    it("uses ISO date format (YYYY-MM-DD) in backup filename", async () => {
+    it("uses date and time in directory name format (YYYY-MM-DD-HHmmss)", async () => {
       await service.init(destDir);
 
       const testFile = path.join(destDir, TEST_FILE);
@@ -140,20 +156,44 @@ describe("BackupService", () => {
       await service.persistentBackup(testFile);
 
       const lisabakDir = path.join(destDir, ".lisabak");
-      const backupFiles = await fs.readdir(lisabakDir);
-      const filename = backupFiles[0];
+      const timestampDirs = await fs.readdir(lisabakDir);
+      const dirname = timestampDirs[0];
 
-      // Match ISO date format
-      const dateRegex = /^(\d{4}-\d{2}-\d{2})-/;
-      const dateMatch = dateRegex.exec(filename);
-      expect(dateMatch).not.toBeNull();
+      // Match date-time format
+      const dateTimeRegex = /^(\d{4}-\d{2}-\d{2})-(\d{6})$/;
+      const match = dateTimeRegex.exec(dirname);
+      expect(match).not.toBeNull();
 
-      if (dateMatch) {
-        const dateStr = dateMatch[1];
-        // Verify it's a valid date
+      if (match) {
+        const dateStr = match[1];
+        // Verify date is valid
         const date = new Date(dateStr);
         expect(date.toString()).not.toBe("Invalid Date");
       }
+    });
+
+    it("preserves nested directory structure", async () => {
+      await service.init(destDir);
+
+      const nestedFile = path.join(destDir, "nested", "deep", "file.txt");
+      await fs.ensureDir(path.dirname(nestedFile));
+      await fs.writeFile(nestedFile, "nested content");
+
+      await service.persistentBackup(nestedFile);
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      const timestampDirs = await fs.readdir(lisabakDir);
+      const backupFile = path.join(
+        lisabakDir,
+        timestampDirs[0],
+        "nested",
+        "deep",
+        "file.txt"
+      );
+
+      expect(await fs.pathExists(backupFile)).toBe(true);
+      const content = await fs.readFile(backupFile, "utf-8");
+      expect(content).toBe("nested content");
     });
 
     it("handles non-existent file gracefully", async () => {
@@ -181,7 +221,7 @@ describe("BackupService", () => {
       expect(await fs.pathExists(lisabakDir)).toBe(true);
     });
 
-    it("preserves file extension in backup filename", async () => {
+    it("does not add .lisa.bak extension to filenames", async () => {
       await service.init(destDir);
 
       const jsonFile = path.join(destDir, "config.json");
@@ -190,9 +230,40 @@ describe("BackupService", () => {
       await service.persistentBackup(jsonFile);
 
       const lisabakDir = path.join(destDir, ".lisabak");
-      const backupFiles = await fs.readdir(lisabakDir);
+      const timestampDirs = await fs.readdir(lisabakDir);
+      const backupFile = path.join(lisabakDir, timestampDirs[0], "config.json");
 
-      expect(backupFiles[0]).toMatch(/config\.json\.lisa\.bak$/);
+      expect(await fs.pathExists(backupFile)).toBe(true);
+      // Filename should not have .lisa.bak extension
+      expect(backupFile).not.toMatch(/\.lisa\.bak$/);
+    });
+
+    it("uses same timestamp directory for multiple files in same operation", async () => {
+      await service.init(destDir);
+
+      const file1 = path.join(destDir, "file1.txt");
+      const file2 = path.join(destDir, "file2.txt");
+      await fs.writeFile(file1, "content1");
+      await fs.writeFile(file2, "content2");
+
+      await service.persistentBackup(file1);
+      await service.persistentBackup(file2);
+
+      const lisabakDir = path.join(destDir, ".lisabak");
+      const timestampDirs = await fs.readdir(lisabakDir);
+
+      // Should only have one timestamp directory since calls are quick
+      expect(timestampDirs.length).toBe(1);
+      expect(
+        await fs.pathExists(
+          path.join(lisabakDir, timestampDirs[0], "file1.txt")
+        )
+      ).toBe(true);
+      expect(
+        await fs.pathExists(
+          path.join(lisabakDir, timestampDirs[0], "file2.txt")
+        )
+      ).toBe(true);
     });
   });
 

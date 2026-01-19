@@ -118,15 +118,16 @@ export async function listFilesRecursive(dir: string): Promise<string[]> {
 }
 
 /**
- * Generate timestamped backup filename
- * Format: <YYYY-MM-DD>-<filename>.<extension>.lisa.bak
- * Example: 2026-01-19-config.json.lisa.bak
- * @param originalPath Path to the original file
- * @returns Timestamped backup filename
+ * Generate timestamped backup directory name with date and time
+ * Format: <YYYY-MM-DD>-<HHmmss>
+ * Example: 2026-01-19-143056
+ * @returns Timestamped backup directory name
  */
-export function generateBackupFilename(originalPath: string): string {
-  const today = new Date().toISOString().split("T")[0];
-  const parts = originalPath.split("/");
-  const basename = parts[parts.length - 1] || "backup";
-  return `${today}-${basename}.lisa.bak`;
+export function generateBackupDirname(): string {
+  const now = new Date();
+  const date = now.toISOString().split("T")[0];
+  const time =
+    now.toISOString().split("T")[1]?.split(".")[0]?.replace(/:/g, "") ||
+    "000000";
+  return `${date}-${time}`;
 }
