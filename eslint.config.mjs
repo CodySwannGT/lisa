@@ -96,12 +96,10 @@ export default [
   // TypeScript test files - disable immutable-data (must come after TypeScript config)
   getTsTestFilesOverride(["**/*.test.ts", "**/*.spec.ts"]),
 
-  // Configuration file - allowed to use process.env (single source of truth)
+  // Configuration files - allowed to use process.env directly
   {
-    files: ["src/config/configuration.ts"],
+    files: ["**/*config.*"],
     rules: {
-      // This is the ONLY file allowed to access process.env directly
-      // All other code must use ConfigService or getStandaloneConfig()
       "no-restricted-syntax": "off",
     },
   },

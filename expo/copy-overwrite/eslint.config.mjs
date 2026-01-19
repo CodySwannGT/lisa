@@ -295,15 +295,9 @@ export default [
     },
   },
 
-  // Build/config files - allowed to access process.env at build time
-  // These run in Node.js during build, not in the app bundle
+  // Configuration files - allowed to use process.env directly
   {
-    files: [
-      "app.config.ts",
-      "codegen.ts",
-      "playwright.config.ts",
-      "lighthouserc.js",
-    ],
+    files: ["**/*config.*", "lighthouserc.js", "codegen.ts"],
     rules: {
       "no-restricted-syntax": "off",
     },

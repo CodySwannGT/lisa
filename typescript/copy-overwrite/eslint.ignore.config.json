@@ -22,6 +22,7 @@
 
     "**/k6/**/*.js",
 
+    ".lisabak/**",
     "coverage/**",
     "**/*spec.ts",
     "resolver-test.setup.ts",
