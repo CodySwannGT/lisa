@@ -44,6 +44,8 @@
 
     "**/lighthouserc.js",
 
+    "**/*.md",
+
     "**/*.config.js",
     "**/*.config.mjs",
     "babel.config.js",
