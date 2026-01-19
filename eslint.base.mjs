@@ -187,6 +187,8 @@ export const getSharedRules = thresholds => ({
   "sonarjs/deprecation": "off",
   // Next takes forever and doesn't provide value
   "sonarjs/aws-restricted-ip-admin-access": "off",
+  // This gives too many false positives
+  "sonarjs/no-hardcoded-ip": "off",
   // This just seems to be wrong and gives all kinds of false positives
   "sonarjs/different-types-comparison": "off", 
   // This duplicates another lint check

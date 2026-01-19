@@ -80,7 +80,6 @@
   "name": "@codyswann/lisa",
   "version": "1.0.2",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
-  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "lisa": "dist/index.js"

@@ -22,6 +22,12 @@
 
     "**/k6/**/*.js",
 
+    "ios",
+    "android",
+
+    ".beads",
+    ".maestro",
+
     ".lisabak/**",
     "coverage/**",
     "**/*spec.ts",
@@ -46,7 +52,7 @@
     "**/lighthouserc.js",
 
     "**/*.md",
-    
+
     "**/__fixtures__/**",
 
     "**/*.config.js",
