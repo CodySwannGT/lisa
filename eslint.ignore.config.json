@@ -46,6 +46,8 @@
 
     "**/*.md",
 
+    "**/__fixtures__/**",
+
     "**/*.config.js",
     "**/*.config.mjs",
     "babel.config.js",
