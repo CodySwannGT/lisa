@@ -410,7 +410,8 @@ Configurable limits in `eslint.thresholds.config.json`:
 ```json
 {
   "cognitiveComplexity": 10,
-  "maxLines": 300
+  "maxLines": 300,
+  "maxLinesPerFunction": 75
 }
 ```
 

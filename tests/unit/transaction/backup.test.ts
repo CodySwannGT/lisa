@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { BackupService } from "../../../src/transaction/backup.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
-import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
+import { BackupService } from "../../../src/transaction/backup.js";
+import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const TEST_FILE = "test.txt";
 const ORIGINAL_CONTENT = "original content";
