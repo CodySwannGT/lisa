@@ -45,6 +45,8 @@
     "**/lighthouserc.js",
 
     "**/*.md",
+    
+    "**/__fixtures__/**",
 
     "**/*.config.js",
     "**/*.config.mjs",
