@@ -174,6 +174,8 @@ export const getSharedRules = thresholds => ({
   "sonarjs/no-commented-code": "warn",
   "sonarjs/no-ignored-exceptions": "warn",
   "sonarjs/todo-tag": "warn",
+  // Next takes forever and doesn't provide much value
+  "sonarjs/deprecation": "off",
   // Next takes forever and doesn't provide value
   "sonarjs/aws-restricted-ip-admin-access": "off",
 
