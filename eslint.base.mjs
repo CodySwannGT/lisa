@@ -16,6 +16,8 @@ import sonarjs from "eslint-plugin-sonarjs";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
+const specFilePattern = "**/*.spec.ts";
+
 /**
  * Default ignore patterns used when not specified in project config.
  * Projects can override via eslint.ignore.config.json.
@@ -39,7 +41,7 @@ export const defaultIgnores = [
   "generated/**",
   "components/ui/**",
   "coverage/**",
-  "**/*spec.ts",
+  specFilePattern,
   "resolver-test.setup.ts",
   "**/*.factory.ts",
   "**/test-utils/**",
@@ -309,7 +311,7 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
     "**/*.test.js",
     "**/*.test.ts",
     "**/*.spec.js",
-    "**/*.spec.ts",
+    specFilePattern,
     "jest.setup.js",
     "jest.setup.ts",
     "jest.setup.pre.js",
@@ -372,7 +374,7 @@ export const getTsFilesOverride = (
  * @returns {object} ESLint flat config object for TypeScript test files
  */
 export const getTsTestFilesOverride = (
-  filePatterns = ["**/*.test.ts", "**/*.spec.ts"]
+  filePatterns = ["**/*.test.ts", specFilePattern]
 ) => ({
   files: filePatterns,
   rules: {
@@ -390,5 +392,6 @@ export {
   jsdoc,
   prettier,
   sonarjs,
-  tseslint,
+  tseslint
 };
+
