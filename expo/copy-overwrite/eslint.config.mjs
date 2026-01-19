@@ -202,8 +202,8 @@ export default [
   getTestFilesOverride([
     "**/*.test.jsx",
     "**/*.test.tsx",
-    "**/*.spec.jsx",
-    "**/*.spec.tsx",
+    "**/*spec.jsx",
+    "**/*spec.tsx",
   ]),
 
   // TypeScript files - enable type-checked linting (includes TSX)
@@ -227,8 +227,8 @@ export default [
   getTsTestFilesOverride([
     "**/*.test.ts",
     "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
+    "**/*spec.ts",
+    "**/*spec.tsx",
   ]),
 
   // Component structure rules
@@ -295,15 +295,9 @@ export default [
     },
   },
 
-  // Build/config files - allowed to access process.env at build time
-  // These run in Node.js during build, not in the app bundle
+  // Configuration files - allowed to use process.env directly
   {
-    files: [
-      "app.config.ts",
-      "codegen.ts",
-      "playwright.config.ts",
-      "lighthouserc.js",
-    ],
+    files: ["**/*config.*", "lighthouserc.js", "codegen.ts"],
     rules: {
       "no-restricted-syntax": "off",
     },
