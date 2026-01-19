@@ -40,6 +40,7 @@ export const defaultIgnores = [
   "graphql-generated/**",
   "generated/**",
   "components/ui/**",
+  ".lisabak/**",
   "coverage/**",
   specFilePattern,
   "resolver-test.setup.ts",
