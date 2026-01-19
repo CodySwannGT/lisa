@@ -79,7 +79,7 @@ export const defaultIgnores = [
 export const defaultThresholds = {
   cognitiveComplexity: 10,
   maxLines: 300,
-  maxLinesPerFunction: 75
+  maxLinesPerFunction: 75,
 };
 
 /**
@@ -190,7 +190,7 @@ export const getSharedRules = thresholds => ({
   // This gives too many false positives
   "sonarjs/no-hardcoded-ip": "off",
   // This just seems to be wrong and gives all kinds of false positives
-  "sonarjs/different-types-comparison": "off", 
+  "sonarjs/different-types-comparison": "off",
   // This duplicates another lint check
   "sonarjs/no-unused-vars": "off",
 
@@ -417,6 +417,5 @@ export {
   jsdoc,
   prettier,
   sonarjs,
-  tseslint
+  tseslint,
 };
-
