@@ -255,7 +255,10 @@ export const getSharedRules = thresholds => ({
   "jsdoc/require-param-description": "error",
   "jsdoc/require-returns-description": "error",
   "jsdoc/require-property-description": "error",
-  "jsdoc/check-tag-names": ["error", { definedTags: ["remarks"] }],
+  "jsdoc/check-tag-names": [
+    "error",
+    { definedTags: ["remarks", "precondition", "entity", "security"] },
+  ],
   "jsdoc/no-types": "off",
   "jsdoc/require-param-type": "off",
   "jsdoc/require-returns-type": "off",
