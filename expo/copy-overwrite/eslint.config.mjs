@@ -202,8 +202,8 @@ export default [
   getTestFilesOverride([
     "**/*.test.jsx",
     "**/*.test.tsx",
-    "**/*.spec.jsx",
-    "**/*.spec.tsx",
+    "**/*spec.jsx",
+    "**/*spec.tsx",
   ]),
 
   // TypeScript files - enable type-checked linting (includes TSX)
@@ -227,8 +227,8 @@ export default [
   getTsTestFilesOverride([
     "**/*.test.ts",
     "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
+    "**/*spec.ts",
+    "**/*spec.tsx",
   ]),
 
   // Component structure rules
