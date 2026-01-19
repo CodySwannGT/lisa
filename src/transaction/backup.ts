@@ -4,7 +4,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { BackupError, RollbackError } from "../errors/index.js";
 import type { ILogger } from "../logging/index.js";
-import { generateBackupFilename } from "../utils/file-operations.js";
+import { generateBackupDirname } from "../utils/file-operations.js";
 
 /**
  * Interface for backup service
@@ -32,6 +32,7 @@ export interface IBackupService {
 export class BackupService implements IBackupService {
   private backupDir: string | null = null;
   private destDir: string = "";
+  private persistentBackupDirname: string | null = null;
   private readonly logger: ILogger;
 
   /**
@@ -72,13 +73,27 @@ export class BackupService implements IBackupService {
   async persistentBackup(absolutePath: string): Promise<void> {
     try {
       if (await fse.pathExists(absolutePath)) {
-        const backupDir = path.join(this.destDir, ".lisabak");
-        const backupFilename = generateBackupFilename(absolutePath);
-        const backupPath = path.join(backupDir, backupFilename);
+        // Generate backup directory name on first call
+        if (!this.persistentBackupDirname) {
+          this.persistentBackupDirname = generateBackupDirname();
+        }
 
-        await fse.ensureDir(backupDir);
+        // Get relative path from destination directory
+        const relativePath = path.relative(this.destDir, absolutePath);
+
+        // Create backup in .lisabak/{timestamp}/{relative-path}
+        const backupBaseDir = path.join(
+          this.destDir,
+          ".lisabak",
+          this.persistentBackupDirname
+        );
+        const backupPath = path.join(backupBaseDir, relativePath);
+
+        await fse.ensureDir(path.dirname(backupPath));
         await fse.copy(absolutePath, backupPath);
-        this.logger.info(`Backup created: ${backupFilename}`);
+        this.logger.info(
+          `Backup created: .lisabak/${this.persistentBackupDirname}/${relativePath}`
+        );
       }
     } catch (error) {
       throw new BackupError(
