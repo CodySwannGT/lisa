@@ -312,6 +312,50 @@ const activeUsers = users.filter(u => u.active);
 const activeUsers = users.filter(u => u.active);
 ```
 
+## Escaping @ Symbols in JSDoc
+
+When documenting code that contains TypeScript/NestJS decorators (like `@Injectable()`, `@Processor('queue-name')`), JSDoc will interpret the `@` as a tag marker. This causes lint errors because JSDoc sees `@Processor('qpr-v2')` as a single unknown tag name (including the parentheses and arguments).
+
+**The problem:** Adding decorator names to `definedTags` doesn't help because JSDoc parses the entire string `@Processor('qpr-v2')` as the tag name, not just `@Processor`.
+
+### Solution 1: Backticks in Prose
+
+When mentioning decorators in description text, wrap them in backticks:
+
+```typescript
+/**
+ * Queue processor for QPR calculations
+ * @description Handles jobs from the `@Processor('qpr-v2')` queue
+ * @remarks Uses `@Injectable()` scope for request isolation
+ */
+```
+
+### Solution 2: Escape in @example Blocks
+
+In `@example` blocks, use fenced code blocks and escape `@` as `\@`:
+
+```typescript
+/**
+ * Creates a queue processor
+ * @example
+ * ```typescript
+ * \@Processor('my-queue')
+ * export class MyProcessor {
+ *   \@Process()
+ *   async handle(job: Job) { ... }
+ * }
+ * ```
+ */
+```
+
+### Quick Reference for Escaping
+
+| Context | Approach | Example |
+|---------|----------|---------|
+| Prose/description | Wrap in backticks | `` `@Injectable()` `` |
+| @example block | Escape with backslash | `\@Processor('name')` |
+| Code comments | No escaping needed | `// Uses @Injectable` |
+
 ## Quick Reference
 
 ### Required Structure for Services
