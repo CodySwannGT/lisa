@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "name": "block-git-commit-no-verify",
+      "command": "git",
+      "subcommand": "commit",
+      "block_args": ["--no-verify"],
+      "reason": "--no-verify is not allowed. Fix the commit to pass all checks."
+    },
+    {
+      "name": "block-git-push-no-verify",
+      "command": "git",
+      "subcommand": "push",
+      "block_args": ["--no-verify"],
+      "reason": "--no-verify is not allowed. Fix the push to pass all checks."
+    }
+  ]
+}
