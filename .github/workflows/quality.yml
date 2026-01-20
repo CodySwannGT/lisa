@@ -865,70 +865,14 @@ jobs:
               echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
             fi
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            # Bun's 'bun pm scan' requires a configured scanner in bunfig.toml
-            # Fall back to npm audit which works with package.json
-            echo "::notice::Using npm audit fallback for bun projects"
-
-            # npm audit requires a lockfile - generate temporary one if needed
-            TEMP_LOCKFILE=false
-            if [ ! -f "package-lock.json" ]; then
-              echo "Generating temporary package-lock.json for audit..."
-              npm i --package-lock-only --ignore-scripts --legacy-peer-deps --silent 2>/dev/null
-              TEMP_LOCKFILE=true
+            # Excluding GHSA-5j98-mcp5-4vw2 (CVE-2025-64756): glob CLI command injection
+            # This vulnerability only affects the glob CLI (--cmd flag), not library usage
+            # We only use glob as a library through Babel and other tools - never invoke CLI
+            if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2; then
+              echo "::warning::Found high or critical vulnerabilities"
+              exit 1
             fi
-
-            # Excluding GHSA-8qq5-rm4j-mr97: node-tar path sanitization vulnerability
-            # This is a nested dependency in @expo/cli that bun resolves to the patched version (7.5.3)
-            # npm audit generates its own lockfile and doesn't respect bun's resolutions
-            # Risk: None - bun.lock shows tar@7.5.3 is used, not the vulnerable version
-
-            # Step 1: Run npm audit and capture JSON output only
-            # npm audit returns non-zero when vulnerabilities are found, so we capture but don't fail on it
-            # Discard stderr to prevent warnings from mixing with JSON and breaking jq parsing
-            AUDIT_OUTPUT=$(npm audit --omit=dev --json 2>/dev/null) || true
-
-            # Step 2: Validate we got non-empty output
-            if [ -z "$AUDIT_OUTPUT" ]; then
-              echo "::error::npm audit returned empty output"
-              exit_code=1
-            # Step 3: Validate output is valid JSON
-            elif ! echo "$AUDIT_OUTPUT" | jq empty 2>/dev/null; then
-              echo "::error::npm audit returned invalid JSON"
-              echo "Raw output: $AUDIT_OUTPUT"
-              exit_code=1
-            else
-              # Step 4: Extract vulnerability count with jq, capturing jq exit status
-              VULN_COUNT=$(echo "$AUDIT_OUTPUT" | jq '
-                .vulnerabilities | to_entries | map(select(
-                  .value.severity == "high" or .value.severity == "critical"
-                )) | map(select(
-                  .value.via | all(. | if type == "object" then (.url == "https://github.com/advisories/GHSA-8qq5-rm4j-mr97" | not) else true end)
-                )) | length
-              ')
-              JQ_STATUS=$?
-
-              # Step 5: Validate jq succeeded and VULN_COUNT is numeric
-              if [ $JQ_STATUS -ne 0 ]; then
-                echo "::error::jq failed to parse npm audit output"
-                exit_code=1
-              elif ! [[ "$VULN_COUNT" =~ ^[0-9]+$ ]]; then
-                echo "::error::VULN_COUNT is not a valid number: '$VULN_COUNT'"
-                exit_code=1
-              elif [ "$VULN_COUNT" -gt 0 ]; then
-                exit_code=1
-              fi
-            fi
-
-            # Clean up temporary lockfile
-            if [ "$TEMP_LOCKFILE" = "true" ]; then
-              rm -f package-lock.json
-            fi
-
-            if [ "${exit_code:-0}" -ne 0 ]; then
-              echo "::warning::Found high or critical vulnerabilities (excluding known false positives)"
-              exit $exit_code
-            fi
-            echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
+            echo "::notice::No high or critical vulnerabilities found"
           else
             echo "Unsupported package manager: ${{ inputs.package_manager }}"
             exit 1

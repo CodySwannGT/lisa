@@ -55,10 +55,10 @@
     "vitest": "^3.0.0"
   },
   "lint-staged": {
-    "*.{js,ts,tsx}": [
+    "*.{js,mjs,ts,tsx}": [
       "eslint --quiet --cache --fix"
     ],
-    "*.{js,ts,jsx,tsx,html,css,scss,yaml,yml,graphql}": [
+    "*.{js,mjs,ts,jsx,tsx,html,css,scss,yaml,yml,graphql}": [
       "prettier --write"
     ]
   },
