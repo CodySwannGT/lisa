@@ -167,6 +167,9 @@ jobs:
       (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
     name: Deploy
     runs-on: ubuntu-latest
+    outputs:
+      environment_url: ${{ steps.deploy.outputs.environment_url }}
+      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
     permissions:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint
       contents: read
@@ -188,8 +191,23 @@ jobs:
       - name: Install dependencies
         run: bun install
       - name: serverless deploy
+        id: deploy
         run: |
-          bun run serverless deploy --stage ${{ needs.determine_environment.outputs.environment != 'main' && needs.determine_environment.outputs.environment || 'production' }}
+          STAGE=${{ needs.determine_environment.outputs.environment != 'main' && needs.determine_environment.outputs.environment || 'production' }}
+          OUTPUT=$(bun run serverless deploy --stage $STAGE 2>&1) || {
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            echo "$OUTPUT"
+            exit 1
+          }
+          echo "$OUTPUT"
+          # Extract endpoint URL from serverless output
+          ENDPOINT_URL=$(echo "$OUTPUT" | grep -oP 'endpoint: \K(https?://[^\s]+)' | head -1 || echo "")
+          if [ -z "$ENDPOINT_URL" ]; then
+            # Fallback: try to extract any URL from output
+            ENDPOINT_URL=$(echo "$OUTPUT" | grep -oP 'https?://[^\s]+' | head -1 || echo "")
+          fi
+          echo "environment_url=$ENDPOINT_URL" >> $GITHUB_OUTPUT
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_PROFILE: '' # Override serverless.yml profile with empty string for CI
