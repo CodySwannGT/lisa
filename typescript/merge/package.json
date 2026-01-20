@@ -30,9 +30,9 @@
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.0.0",
-    "eslint-import-resolver-typescript": "^4.0.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-code-organization": "file:./eslint-plugin-code-organization",
-    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-functional": "^9.0.0",
     "eslint-plugin-jsdoc": "^61.5.0",
     "eslint-plugin-prettier": "^5.5.0",
@@ -76,45 +76,5 @@
   "resolutions": {},
   "trustedDependencies": [
     "@sentry/cli"
-  ],
-  "name": "@codyswann/lisa",
-  "version": "1.0.2",
-  "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
-  "main": "dist/index.js",
-  "bin": {
-    "lisa": "dist/index.js"
-  },
-  "keywords": [
-    "claude",
-    "claude-code",
-    "governance",
-    "linting",
-    "configuration"
-  ],
-  "author": "Cody Swann",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/CodySwannGT/lisa.git"
-  },
-  "bugs": {
-    "url": "https://github.com/CodySwannGT/lisa/issues"
-  },
-  "homepage": "https://github.com/CodySwannGT/lisa#readme",
-  "dependencies": {
-    "@inquirer/prompts": "^7.0.0",
-    "commander": "^12.0.0",
-    "fs-extra": "^11.0.0",
-    "lodash.merge": "^4.6.2",
-    "picocolors": "^1.0.0"
-  },
-  "files": [
-    "dist",
-    "all",
-    "typescript",
-    "expo",
-    "nestjs",
-    "cdk",
-    "eslint-plugin-code-organization"
   ]
 }
