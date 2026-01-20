@@ -116,7 +116,7 @@ jobs:
   migrate:
     name: Schema Migrations
     runs-on: ubuntu-latest
-    needs: verify_vpn
+    needs: [determine_environment, verify_vpn]
     if: always() && needs.verify_vpn.outputs.has_vpn_setup == 'true'
     permissions:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint.
@@ -156,12 +156,12 @@ jobs:
       - name: Install dependencies
         run: bun install
       - name: Run Schema Migrations
-        run: STAGE=${{ github.ref_name != 'main' && github.ref_name || 'production' }} bun run migration:run
+        run: STAGE=${{ needs.determine_environment.outputs.environment != 'main' && needs.determine_environment.outputs.environment || 'production' }} bun run migration:run
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_PROFILE: '' # Override serverless.yml profile with empty string for CI
   deploy:
-    needs: [migrate]
+    needs: [determine_environment, migrate]
     if: |
       always() &&
       (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
@@ -189,7 +189,7 @@ jobs:
         run: bun install
       - name: serverless deploy
         run: |
-          bun run serverless deploy --stage ${{ github.ref_name != 'main' && github.ref_name || 'production' }}
+          bun run serverless deploy --stage ${{ needs.determine_environment.outputs.environment != 'main' && needs.determine_environment.outputs.environment || 'production' }}
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_PROFILE: '' # Override serverless.yml profile with empty string for CI
