@@ -90,7 +90,6 @@ jobs:
         shell: bash
         env:
           SKIP_MIGRATIONS: ${{ vars.SKIP_MIGRATIONS }}
-          GITHUB_OUTPUT: ${{ github.output }}
 
   verify_vpn:
     name: Verify VPN
@@ -114,7 +113,6 @@ jobs:
           fi
         env:
           OVPN_CONFIG: ${{ secrets[env.OVPN_CONFIG_NAME] }}
-          GITHUB_OUTPUT: ${{ github.output }}
   migrate:
     name: Schema Migrations
     runs-on: ubuntu-latest
