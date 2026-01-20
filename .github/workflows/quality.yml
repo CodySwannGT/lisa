@@ -882,9 +882,10 @@ jobs:
             # npm audit generates its own lockfile and doesn't respect bun's resolutions
             # Risk: None - bun.lock shows tar@7.5.3 is used, not the vulnerable version
 
-            # Step 1: Run npm audit and capture output separately from exit status
+            # Step 1: Run npm audit and capture JSON output only
             # npm audit returns non-zero when vulnerabilities are found, so we capture but don't fail on it
-            AUDIT_OUTPUT=$(npm audit --omit=dev --json 2>&1) || true
+            # Discard stderr to prevent warnings from mixing with JSON and breaking jq parsing
+            AUDIT_OUTPUT=$(npm audit --omit=dev --json 2>/dev/null) || true
 
             # Step 2: Validate we got non-empty output
             if [ -z "$AUDIT_OUTPUT" ]; then
