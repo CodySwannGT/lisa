@@ -26,9 +26,15 @@ export class CopyContentsStrategy implements ICopyStrategy {
     content: string
   ): { start: number; end: number } | null {
     const startIndex = content.indexOf(this.BEGIN_MARKER);
-    const endIndex = content.indexOf(this.END_MARKER);
+    if (startIndex === -1) {
+      return null;
+    }
 
-    if (startIndex === -1 || endIndex === -1) {
+    const endIndex = content.indexOf(
+      this.END_MARKER,
+      startIndex + this.BEGIN_MARKER.length
+    );
+    if (endIndex === -1) {
       return null;
     }
 
