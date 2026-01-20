@@ -25,7 +25,7 @@ Push current branch and create or update a pull request. Optional hint: $ARGUMEN
 
 1. **Branch Check**: Verify not on `dev`, `staging`, or `main` (cannot create PR from protected branches)
 2. **Commit Check**: Ensure all changes are committed before pushing
-3. **Push**: Push current branch to remote with `-u` flag and the following environment variable - GIT_SSH_COMMAND="ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=5"
+3. **Push**: Push current branch to remote with `-u` flag and the following environment variable - GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"
 4. **PR Management**:
    - Check for existing PR on this branch
    - If exists: Update description with latest changes

@@ -15,7 +15,7 @@ Always use project-relative paths rather than absolute paths in documentation an
 Always ignore build folders (dist, build, etc) unless specified otherwise
 Always delete and remove old code completely - no deprecation needed
 Always read @PROJECT_RULES.md without limit or offset to understand additional rules for this project
-Always add `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=5" ` when running `git push`
+Always add `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" ` when running `git push`
 
 
 Never commit changes to an environment branch (dev, staging, main) directly. This is enforced by the pre-commit hook.
