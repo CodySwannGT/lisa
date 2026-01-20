@@ -5,7 +5,7 @@
       "name": "block-git-commit-no-verify",
       "command": "git",
       "subcommand": "commit",
-      "block_args": ["--no-verify"],
+      "block_args": ["--no-verify", "-n"],
       "reason": "--no-verify is not allowed. Fix the commit to pass all checks."
     },
     {
