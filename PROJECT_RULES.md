@@ -1,0 +1,1 @@
+When updating a project file, always check to see if it has a cooresponding template file. IF it does, update it to match
