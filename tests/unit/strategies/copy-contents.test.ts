@@ -7,9 +7,8 @@ import type { LisaConfig } from "../../../src/core/config.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
 const GITIGNORE = ".gitignore";
-const NODE_MODULES = "node_modules\n";
-const NODE_MODULES_ENV = "node_modules\n.env\n";
-const ENV_ONLY = ".env\n";
+const BEGIN_MARKER = "# BEGIN: AI GUARDRAILS";
+const END_MARKER = "# END: AI GUARDRAILS";
 
 describe("CopyContentsStrategy", () => {
   let strategy: CopyContentsStrategy;
@@ -60,7 +59,8 @@ describe("CopyContentsStrategy", () => {
   it("copies new file when destination does not exist", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, NODE_MODULES_ENV);
+    const sourceContent = `${BEGIN_MARKER}\nnode_modules\n.env\n${END_MARKER}\n`;
+    await fs.writeFile(srcFile, sourceContent);
 
     const result = await strategy.apply(
       srcFile,
@@ -71,14 +71,15 @@ describe("CopyContentsStrategy", () => {
 
     expect(result.action).toBe("copied");
     expect(await fs.pathExists(destFile)).toBe(true);
-    expect(await fs.readFile(destFile, "utf-8")).toBe(NODE_MODULES_ENV);
+    expect(await fs.readFile(destFile, "utf-8")).toBe(sourceContent);
   });
 
   it("skips when files are identical", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, NODE_MODULES);
-    await fs.writeFile(destFile, NODE_MODULES);
+    const content = "node_modules\n";
+    await fs.writeFile(srcFile, content);
+    await fs.writeFile(destFile, content);
 
     const result = await strategy.apply(
       srcFile,
@@ -90,11 +91,14 @@ describe("CopyContentsStrategy", () => {
     expect(result.action).toBe("skipped");
   });
 
-  it("appends missing lines", async () => {
+  it("replaces block when markers exist in destination", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, "node_modules\n.env\ndist\n");
-    await fs.writeFile(destFile, NODE_MODULES);
+    const sourceContent = `${BEGIN_MARKER}\ndist\ncoverage\n${END_MARKER}`;
+    const destContent = `# My custom entries\nmy-dir\n${BEGIN_MARKER}\nold-entry\n${END_MARKER}\n# End\n`;
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
 
     const result = await strategy.apply(
       srcFile,
@@ -103,19 +107,25 @@ describe("CopyContentsStrategy", () => {
       createContext()
     );
 
-    expect(result.action).toBe("appended");
-    expect(result.linesAdded).toBe(2);
+    expect(result.action).toBe("merged");
 
     const content = await fs.readFile(destFile, "utf-8");
-    expect(content).toContain(ENV_ONLY.trim());
+    expect(content).toContain("# My custom entries");
+    expect(content).toContain("my-dir");
+    expect(content).toContain("# End");
     expect(content).toContain("dist");
+    expect(content).toContain("coverage");
+    expect(content).not.toContain("old-entry");
   });
 
-  it("does not add duplicate lines", async () => {
+  it("appends when markers do not exist in destination", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, NODE_MODULES_ENV);
-    await fs.writeFile(destFile, NODE_MODULES_ENV);
+    const sourceContent = `${BEGIN_MARKER}\nnode_modules\ndist\n${END_MARKER}`;
+    const destContent = "# My custom entries\nmy-dir\n";
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
 
     const result = await strategy.apply(
       srcFile,
@@ -124,14 +134,20 @@ describe("CopyContentsStrategy", () => {
       createContext()
     );
 
-    expect(result.action).toBe("skipped");
+    expect(result.action).toBe("merged");
+
+    const content = await fs.readFile(destFile, "utf-8");
+    expect(content).toContain("# My custom entries");
+    expect(content).toContain("my-dir");
+    expect(content).toContain(sourceContent);
   });
 
-  it("ignores empty lines in source", async () => {
+  it("adds double newline when appending to file without trailing newline", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, "node_modules\n\n\n.env\n");
-    await fs.writeFile(destFile, NODE_MODULES_ENV);
+    const sourceContent = `${BEGIN_MARKER}\ndist\n${END_MARKER}`;
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, "my-dir"); // No trailing newline
 
     const result = await strategy.apply(
       srcFile,
@@ -140,14 +156,19 @@ describe("CopyContentsStrategy", () => {
       createContext()
     );
 
-    expect(result.action).toBe("skipped");
+    expect(result.action).toBe("merged");
+
+    const content = await fs.readFile(destFile, "utf-8");
+    // When appending without trailing newline, add \n\n for visual separation
+    expect(content).toBe(`my-dir\n\n${sourceContent}`);
   });
 
-  it("handles lines with different endings", async () => {
+  it("adds double newline when appending to file with trailing newline", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, NODE_MODULES);
-    await fs.writeFile(destFile, "node_modules\r\n"); // Windows ending
+    const sourceContent = `${BEGIN_MARKER}\ndist\n${END_MARKER}`;
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, "my-dir\n"); // With trailing newline
 
     const result = await strategy.apply(
       srcFile,
@@ -156,15 +177,20 @@ describe("CopyContentsStrategy", () => {
       createContext()
     );
 
-    // Should skip because the line content is the same after trimming
-    expect(result.action).toBe("skipped");
+    expect(result.action).toBe("merged");
+
+    const content = await fs.readFile(destFile, "utf-8");
+    expect(content).toBe(`my-dir\n\n${sourceContent}`);
   });
 
-  it("backs up file before appending", async () => {
+  it("backs up file before merging", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, NODE_MODULES_ENV);
-    await fs.writeFile(destFile, NODE_MODULES);
+    const sourceContent = `${BEGIN_MARKER}\ndist\n${END_MARKER}`;
+    const destContent = `${BEGIN_MARKER}\nold\n${END_MARKER}`;
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
 
     let backupCalled = false;
     const context = {
@@ -182,8 +208,11 @@ describe("CopyContentsStrategy", () => {
   it("does not modify files in dry run mode", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, NODE_MODULES_ENV);
-    await fs.writeFile(destFile, NODE_MODULES);
+    const sourceContent = `${BEGIN_MARKER}\ndist\n${END_MARKER}`;
+    const destContent = `${BEGIN_MARKER}\nold\n${END_MARKER}`;
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
 
     const result = await strategy.apply(
       srcFile,
@@ -192,20 +221,49 @@ describe("CopyContentsStrategy", () => {
       createContext({ dryRun: true })
     );
 
-    expect(result.action).toBe("appended");
-    expect(result.linesAdded).toBe(1);
-    expect(await fs.readFile(destFile, "utf-8")).toBe(NODE_MODULES);
+    expect(result.action).toBe("merged");
+    expect(await fs.readFile(destFile, "utf-8")).toBe(destContent);
   });
 
-  it("adds newline before appending if destination does not end with newline", async () => {
+  it("skips when merged content is identical to destination", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
-    await fs.writeFile(srcFile, ".env\n");
-    await fs.writeFile(destFile, "node_modules"); // No trailing newline
+    const content = `${BEGIN_MARKER}\nnode_modules\n${END_MARKER}`;
 
-    await strategy.apply(srcFile, destFile, GITIGNORE, createContext());
+    await fs.writeFile(srcFile, content);
+    await fs.writeFile(destFile, content);
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GITIGNORE,
+      createContext()
+    );
+
+    expect(result.action).toBe("skipped");
+  });
+
+  it("handles only begin marker without end marker", async () => {
+    const srcFile = path.join(srcDir, GITIGNORE);
+    const destFile = path.join(destDir, GITIGNORE);
+    const sourceContent = `${BEGIN_MARKER}\ndist\n${END_MARKER}`;
+    const destContent = `${BEGIN_MARKER}\nold-content\n`;
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GITIGNORE,
+      createContext()
+    );
+
+    // Markers incomplete, should append
+    expect(result.action).toBe("merged");
 
     const content = await fs.readFile(destFile, "utf-8");
-    expect(content).toBe("node_modules\n.env\n");
+    expect(content).toContain(destContent);
+    expect(content).toContain(sourceContent);
   });
 });
