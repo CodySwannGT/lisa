@@ -1,5 +1,5 @@
-import http from "k6/http";
 import { check, group, sleep } from "k6";
+import http from "k6/http";
 import { Rate } from "k6/metrics";
 
 // Custom metrics
@@ -15,7 +15,6 @@ export const options = {
   thresholds: {
     http_req_failed: ["rate<0.05"], // http errors should be less than 5%
     http_req_duration: ["p(95)<500"], // 95% of requests should be below 500ms
-    http_req_duration: ["p(99)<1000"], // 99% of requests should be below 1s
     errors: ["rate<0.05"], // custom errors should be less than 5%
     api_errors: ["rate<0.02"], // API errors should be less than 2%
   },
