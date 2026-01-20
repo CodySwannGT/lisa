@@ -12,7 +12,7 @@
       "name": "block-git-push-no-verify",
       "command": "git",
       "subcommand": "push",
-      "block_args": ["--no-verify"],
+      "block_args": ["--no-verify", "-n"],
       "reason": "--no-verify is not allowed. Fix the push to pass all checks."
     }
   ]
