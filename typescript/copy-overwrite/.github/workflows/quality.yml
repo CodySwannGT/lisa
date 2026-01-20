@@ -881,15 +881,41 @@ jobs:
             # This is a nested dependency in @expo/cli that bun resolves to the patched version (7.5.3)
             # npm audit generates its own lockfile and doesn't respect bun's resolutions
             # Risk: None - bun.lock shows tar@7.5.3 is used, not the vulnerable version
-            VULN_COUNT=$(npm audit --omit=dev --json 2>/dev/null | jq '
-              .vulnerabilities | to_entries | map(select(
-                .value.severity == "high" or .value.severity == "critical"
-              )) | map(select(
-                .value.via | all(. | if type == "object" then (.url == "https://github.com/advisories/GHSA-8qq5-rm4j-mr97" | not) else true end)
-              )) | length
-            ')
-            if [ "$VULN_COUNT" -gt 0 ] 2>/dev/null; then
+
+            # Step 1: Run npm audit and capture output separately from exit status
+            # npm audit returns non-zero when vulnerabilities are found, so we capture but don't fail on it
+            AUDIT_OUTPUT=$(npm audit --omit=dev --json 2>&1) || true
+
+            # Step 2: Validate we got non-empty output
+            if [ -z "$AUDIT_OUTPUT" ]; then
+              echo "::error::npm audit returned empty output"
               exit_code=1
+            # Step 3: Validate output is valid JSON
+            elif ! echo "$AUDIT_OUTPUT" | jq empty 2>/dev/null; then
+              echo "::error::npm audit returned invalid JSON"
+              echo "Raw output: $AUDIT_OUTPUT"
+              exit_code=1
+            else
+              # Step 4: Extract vulnerability count with jq, capturing jq exit status
+              VULN_COUNT=$(echo "$AUDIT_OUTPUT" | jq '
+                .vulnerabilities | to_entries | map(select(
+                  .value.severity == "high" or .value.severity == "critical"
+                )) | map(select(
+                  .value.via | all(. | if type == "object" then (.url == "https://github.com/advisories/GHSA-8qq5-rm4j-mr97" | not) else true end)
+                )) | length
+              ')
+              JQ_STATUS=$?
+
+              # Step 5: Validate jq succeeded and VULN_COUNT is numeric
+              if [ $JQ_STATUS -ne 0 ]; then
+                echo "::error::jq failed to parse npm audit output"
+                exit_code=1
+              elif ! [[ "$VULN_COUNT" =~ ^[0-9]+$ ]]; then
+                echo "::error::VULN_COUNT is not a valid number: '$VULN_COUNT'"
+                exit_code=1
+              elif [ "$VULN_COUNT" -gt 0 ]; then
+                exit_code=1
+              fi
             fi
 
             # Clean up temporary lockfile
