@@ -171,6 +171,7 @@ export const getSharedRules = thresholds => ({
   "sonarjs/cognitive-complexity": ["error", thresholds.cognitiveComplexity],
   "sonarjs/no-identical-functions": "error",
   "sonarjs/no-duplicate-string": "error",
+  "sonarjs/no-nested-functions": "error",
   "sonarjs/no-nested-template-literals": "warn",
   "sonarjs/prefer-immediate-return": "warn",
   "sonarjs/prefer-single-boolean-return": "warn",
