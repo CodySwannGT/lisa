@@ -144,18 +144,18 @@ export const getSharedRules = thresholds => ({
   ],
 
   // File size - threshold loaded from eslint.thresholds.config.json
-  "max-lines-per-function": [
-    "error",
-    {
-      max: thresholds.maxLinesPerFunction,
-      skipBlankLines: true,
-      skipComments: true,
-    },
-  ],
   "max-lines": [
     "error",
     {
       max: thresholds.maxLines,
+      skipBlankLines: true,
+      skipComments: true,
+    },
+  ],
+  "max-lines-per-function": [
+    "error",
+    {
+      max: thresholds.maxLinesPerFunction,
       skipBlankLines: true,
       skipComments: true,
     },

@@ -17,7 +17,8 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test:watch": "vitest",
-    "update-node-version": "tsx scripts/update-node-version.ts"
+    "update-node-version": "tsx scripts/update-node-version.ts",
+    "lint:slow": "eslint . --config eslint.slow.config.mjs --quiet"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
@@ -25,33 +26,33 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.39.0",
-    "@types/fs-extra": "^11.0.0",
-    "@types/lodash.merge": "^4.6.0",
-    "@types/node": "^22.0.0",
-    "@vitest/coverage-v8": "^3.0.0",
     "commitizen": "^4.3.0",
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.0.0",
-    "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-code-organization": "file:./eslint-plugin-code-organization",
     "eslint-plugin-functional": "^9.0.0",
-    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsdoc": "^61.5.0",
     "eslint-plugin-prettier": "^5.5.0",
     "eslint-plugin-sonarjs": "^3.0.0",
     "husky": "^8.0.0",
     "jscodeshift": "0.15.2",
     "lint-staged": "^16.2.7",
-    "memfs": "^4.0.0",
     "prettier": "^3.3.3",
     "standard-version": "^9.5.0",
     "ts-morph": "^27.0.2",
     "ts-node": "^10.9.2",
-    "tsx": "^4.0.0",
     "typescript": "~5.7.0",
     "typescript-eslint": "^8.0.0",
-    "vitest": "^3.0.0"
+    "@types/fs-extra": "^11.0.0",
+    "@types/lodash.merge": "^4.6.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "memfs": "^4.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^3.0.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
@@ -79,7 +80,6 @@
   "name": "@codyswann/lisa",
   "version": "1.0.2",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
-  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "lisa": "dist/index.js"
@@ -116,5 +116,6 @@
     "nestjs",
     "cdk",
     "eslint-plugin-code-organization"
-  ]
+  ],
+  "type": "module"
 }
