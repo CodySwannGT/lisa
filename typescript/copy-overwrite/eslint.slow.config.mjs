@@ -51,6 +51,7 @@ export default [
       // ONLY slow rules - everything else runs in the main config
       "import/namespace": "error",
       "import/no-cycle": "error",
+      "sonarjs/deprecation": "error",
     },
   },
 ];
