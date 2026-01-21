@@ -67,6 +67,8 @@ export default [
       "import/namespace": "error",
       "import/no-cycle": "error",
 
+      "sonarjs/deprecation": "error",
+
       // React Compiler compatibility (slow)
       "react-compiler/react-compiler": "error",
 
