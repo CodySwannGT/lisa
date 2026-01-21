@@ -68,7 +68,11 @@ elif [ "$PACKAGE_MANAGER" = "bun" ]; then
   # Excluding GHSA-5j98-mcp5-4vw2 (CVE-2025-64756): glob CLI command injection
   # This vulnerability only affects the glob CLI (--cmd flag), not library usage
   # We only use glob as a library through Babel and other tools - never invoke CLI
-  if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2; then
+
+  # Excluding GHSA-8qq5-rm4j-mr97: node-tar path sanitization vulnerability
+  # Nested dependency in @expo/cli - bun resolves to patched version but audit still flags it
+  # Risk: Low - only affects tar extraction with malicious filenames, not our use case
+  if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97; then
     echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
     exit 1
   fi

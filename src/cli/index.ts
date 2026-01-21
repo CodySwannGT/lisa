@@ -64,64 +64,48 @@ interface CLIOptions {
 }
 
 /**
- * Run Lisa with the given options
- * @param destination Path to destination directory
- * @param options CLI options
- * @returns Promise that completes when Lisa finishes
+ * Print usage help and exit
  */
-async function runLisa(
-  destination: string | undefined,
-  options: CLIOptions
-): Promise<void> {
-  // Check for destination
-  if (!destination) {
-    console.error("Error: destination path is required");
-    console.log("");
-    console.log("Usage: lisa [options] <destination-path>");
-    console.log("");
-    console.log("Options:");
-    console.log(
-      "  -n, --dry-run     Show what would be done without making changes"
-    );
-    console.log(
-      "  -y, --yes         Non-interactive mode (auto-accept defaults, overwrite on conflict)"
-    );
-    console.log(
-      "  -v, --validate    Validate project compatibility without applying changes"
-    );
-    console.log(
-      "  -u, --uninstall   Remove Lisa-managed files from the project"
-    );
-    console.log("  -h, --help        Show this help message");
-    console.log("");
-    console.log("Examples:");
-    console.log("  lisa /path/to/my-project");
-    console.log("  lisa --dry-run .");
-    console.log("  lisa --yes /path/to/project    # CI/CD pipeline usage");
-    console.log("  lisa --validate .              # Check compatibility only");
-    console.log(
-      "  lisa --uninstall .             # Remove Lisa configurations"
-    );
-    process.exit(1);
-  }
+function printUsageAndExit(): never {
+  console.error("Error: destination path is required");
+  console.log("");
+  console.log("Usage: lisa [options] <destination-path>");
+  console.log("");
+  console.log("Options:");
+  console.log(
+    "  -n, --dry-run     Show what would be done without making changes"
+  );
+  console.log(
+    "  -y, --yes         Non-interactive mode (auto-accept defaults, overwrite on conflict)"
+  );
+  console.log(
+    "  -v, --validate    Validate project compatibility without applying changes"
+  );
+  console.log("  -u, --uninstall   Remove Lisa-managed files from the project");
+  console.log("  -h, --help        Show this help message");
+  console.log("");
+  console.log("Examples:");
+  console.log("  lisa /path/to/my-project");
+  console.log("  lisa --dry-run .");
+  console.log("  lisa --yes /path/to/project    # CI/CD pipeline usage");
+  console.log("  lisa --validate .              # Check compatibility only");
+  console.log("  lisa --uninstall .             # Remove Lisa configurations");
+  process.exit(1);
+}
 
-  const lisaDir = getLisaDir();
-  const destDir = toAbsolutePath(destination);
-  const dryRun = options.dryRun ?? options.validate ?? false;
-  const yesMode = options.yes ?? false;
-  const validateOnly = options.validate ?? false;
-
-  const config: LisaConfig = {
-    lisaDir,
-    destDir,
-    dryRun,
-    yesMode,
-    validateOnly,
-  };
-
-  const logger = new ConsoleLogger();
-
-  const deps: LisaDependencies = {
+/**
+ * Create Lisa dependencies based on options
+ * @param dryRun - Whether in dry run mode
+ * @param yesMode - Whether in non-interactive mode
+ * @param logger - Logger instance
+ * @returns Dependencies for Lisa
+ */
+function createDependencies(
+  dryRun: boolean,
+  yesMode: boolean,
+  logger: ConsoleLogger
+): LisaDependencies {
+  return {
     logger,
     prompter: createPrompter(yesMode),
     manifestService: dryRun
@@ -133,7 +117,34 @@ async function runLisa(
     detectorRegistry: new DetectorRegistry(),
     strategyRegistry: new StrategyRegistry(),
   };
+}
 
+/**
+ * Run Lisa with the given options
+ * @param destination - Path to destination directory
+ * @param options - CLI options
+ * @returns Promise that completes when Lisa finishes
+ */
+async function runLisa(
+  destination: string | undefined,
+  options: CLIOptions
+): Promise<void> {
+  if (!destination) {
+    printUsageAndExit();
+  }
+
+  const dryRun = options.dryRun ?? options.validate ?? false;
+  const yesMode = options.yes ?? false;
+  const config: LisaConfig = {
+    lisaDir: getLisaDir(),
+    destDir: toAbsolutePath(destination),
+    dryRun,
+    yesMode,
+    validateOnly: options.validate ?? false,
+  };
+
+  const logger = new ConsoleLogger();
+  const deps = createDependencies(dryRun, yesMode, logger);
   const lisa = new Lisa(config, deps);
 
   try {
@@ -144,6 +155,7 @@ async function runLisa(
         : await lisa.apply();
 
     if (!result.success) {
+      result.errors.forEach(error => logger.error(error));
       process.exit(1);
     }
   } catch (error) {
