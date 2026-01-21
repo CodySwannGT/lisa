@@ -8,7 +8,6 @@
  * Rules included:
  * - import/namespace - Type checks all namespace imports (slow)
  * - import/no-cycle - Detects circular dependencies (very slow)
- *
  * @see https://github.com/import-js/eslint-plugin-import
  * @module eslint.slow.config
  */
@@ -54,6 +53,7 @@ export default [
       // ONLY slow rules - everything else runs in the main config
       "import/namespace": "error",
       "import/no-cycle": "error",
+      "sonarjs/deprecation": "error",
     },
   },
 ];
