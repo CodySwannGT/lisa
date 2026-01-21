@@ -4,7 +4,6 @@
  * This configuration file is the base for all TypeScript projects.
  * It imports shared configuration from eslint.base.ts and adds
  * TypeScript-specific settings.
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config
  */
@@ -24,7 +23,7 @@ import {
   getTestFilesOverride,
   getTsFilesOverride,
   getTsTestFilesOverride,
-} from "./eslint.base.ts";
+} from "./eslint.base";
 
 // Project-specific configuration loaded from JSON files
 // Edit these files to customize for your project; this JS file can be shared unchanged

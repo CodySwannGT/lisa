@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function -- config file needs a lot of lines */
 /**
  * ESLint 9 Flat Config - Expo Stack
  *
@@ -9,13 +10,13 @@
  *   eslint.expo.ts (this file)
  *   └── eslint.typescript.ts
  *       └── eslint.base.ts
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.expo
  */
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
 import reactCompiler from "eslint-plugin-react-compiler";
+// @ts-expect-error -- eslint-plugin-react-perf lacks type declarations
 import reactPerf from "eslint-plugin-react-perf";
 import tailwind from "eslint-plugin-tailwindcss";
 import { createRequire } from "module";
@@ -33,7 +34,7 @@ import {
   getTestFilesOverride,
   getTsFilesOverride,
   getTsTestFilesOverride,
-} from "./eslint.typescript.ts";
+} from "./eslint.typescript";
 
 // Re-export for downstream configs
 export {
@@ -52,7 +53,6 @@ const expoConfig = require("eslint-config-expo/flat");
 
 /**
  * Creates the Expo ESLint configuration.
- *
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
  * @param {string[]} [options.ignorePatterns] - Patterns to ignore
@@ -63,6 +63,10 @@ export function getExpoConfig({
   tsconfigRootDir,
   ignorePatterns = defaultIgnores,
   thresholds = defaultThresholds,
+}: {
+  tsconfigRootDir: string;
+  ignorePatterns?: string[];
+  thresholds?: typeof defaultThresholds;
 }) {
   return [
     // Global ignores
@@ -319,3 +323,5 @@ export function getExpoConfig({
     },
   ];
 }
+
+/* eslint-enable max-lines-per-function -- config file needs a lot of lines */
