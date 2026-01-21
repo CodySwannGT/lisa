@@ -46,14 +46,17 @@ export default [
       },
     },
     plugins: {
-      ...importTypescriptConfig.plugins,
+      ...importTypescriptConfig?.plugins,
       "react-compiler": reactCompiler,
       "react-hooks": reactHooks,
     },
     settings: {
-      ...importTypescriptConfig.settings,
+      ...(importTypescriptConfig?.settings ?? {}),
       "import/resolver": {
-        ...importTypescriptConfig.settings["import/resolver"],
+        ...((importTypescriptConfig?.settings?.["import/resolver"] as Record<
+          string,
+          unknown
+        >) ?? {}),
         typescript: true,
       },
     },
@@ -63,6 +66,8 @@ export default [
       // Import rules (slow)
       "import/namespace": "error",
       "import/no-cycle": "error",
+
+      "sonarjs/deprecation": "error",
 
       // React Compiler compatibility (slow)
       "react-compiler/react-compiler": "error",

@@ -104,6 +104,8 @@
     "@react-native-community/cli-platform-ios": "^20.0.2",
     "@testing-library/react-native": "^13.0.0",
     "@types/base-64": "^1.0.2",
+    "@types/eslint-plugin-jsx-a11y": "^6.10.1",
+    "@types/eslint-plugin-tailwindcss": "^3.17.0",
     "@types/react": "~19.1.10",
     "@types/react-dom": "^19.1.7",
     "babel-plugin-istanbul": "^6.1.1",
