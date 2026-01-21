@@ -39,11 +39,14 @@ export default [
         project: "tsconfig.eslint.json",
       },
     },
-    plugins: importTypescriptConfig.plugins,
+    plugins: importTypescriptConfig?.plugins,
     settings: {
-      ...importTypescriptConfig.settings,
+      ...(importTypescriptConfig?.settings ?? {}),
       "import/resolver": {
-        ...importTypescriptConfig.settings["import/resolver"],
+        ...((importTypescriptConfig?.settings?.["import/resolver"] as Record<
+          string,
+          unknown
+        >) ?? {}),
         typescript: true,
       },
     },
