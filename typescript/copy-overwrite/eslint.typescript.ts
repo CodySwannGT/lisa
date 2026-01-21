@@ -24,7 +24,7 @@ import {
   getTestFilesOverride,
   getTsFilesOverride,
   getTsTestFilesOverride,
-} from "./eslint.base.ts";
+} from "./eslint.base";
 
 // Re-export base utilities for stack-specific configs to use
 export {
@@ -60,6 +60,10 @@ export function getTypescriptConfig({
   tsconfigRootDir,
   ignorePatterns = defaultIgnores,
   thresholds = defaultThresholds,
+}: {
+  tsconfigRootDir: string;
+  ignorePatterns?: string[];
+  thresholds?: typeof defaultThresholds;
 }) {
   return [
     // Global ignores

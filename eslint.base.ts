@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function -- config file needs a lot of lines */
 /**
  * ESLint 9 Flat Config - Shared Base
  *
@@ -128,7 +129,7 @@ export const getBaseConfigs = () => [
  * @param {number} thresholds.maxLinesPerFunction - Max lines per function
  * @returns {object} Rules configuration object
  */
-export const getSharedRules = thresholds => ({
+export const getSharedRules = (thresholds: typeof defaultThresholds) => ({
   // Prettier: Disabled because running Prettier inside ESLint is redundant and slower.
   // We use `format:check` from package.json for formatting validation and editor Prettier integration.
   // The eslint-config-prettier (imported above) still disables conflicting ESLint rules.
@@ -328,7 +329,7 @@ export const getSharedFilesOverride = () => ({
  * @param additionalPatterns - Additional file patterns to include
  * @returns {object} ESLint flat config object for test files
  */
-export const getTestFilesOverride = (additionalPatterns = []) => ({
+export const getTestFilesOverride = (additionalPatterns: string[] = []) => ({
   files: [
     "**/*.test.js",
     "**/*.test.ts",
@@ -366,8 +367,8 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
  * @returns {object} ESLint flat config object for TypeScript files
  */
 export const getTsFilesOverride = (
-  filePatterns = ["**/*.ts"],
-  tsconfigRootDir
+  filePatterns: string[] = ["**/*.ts"],
+  tsconfigRootDir: string
 ) => ({
   files: filePatterns,
   languageOptions: {
@@ -398,7 +399,7 @@ export const getTsFilesOverride = (
  * @returns {object} ESLint flat config object for TypeScript test files
  */
 export const getTsTestFilesOverride = (
-  filePatterns = ["**/*.test.ts", specFilePattern]
+  filePatterns: string[] = ["**/*.test.ts", specFilePattern]
 ) => ({
   files: filePatterns,
   rules: {
@@ -420,3 +421,4 @@ export {
   sonarjs,
   tseslint,
 };
+/* eslint-enable max-lines-per-function -- config file needs a lot of lines */
