@@ -20,7 +20,7 @@ import {
   defaultIgnores,
   defaultThresholds,
   getExpoConfig,
-} from "./eslint.expo.ts";
+} from "./eslint.expo";
 
 // Project-specific configuration loaded from JSON files
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
