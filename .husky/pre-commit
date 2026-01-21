@@ -92,5 +92,5 @@ fi
 
 # Run lint-staged for incremental lint and format checks
 echo "🚀 Running lint-staged..."
-$EXECUTOR lint-staged --config package.json
+$EXECUTOR lint-staged --config .lintstagedrc.json
 # END: AI GUARDRAILS

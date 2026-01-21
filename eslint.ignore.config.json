@@ -57,6 +57,15 @@
 
     "**/*.config.js",
     "**/*.config.mjs",
+    "**/*.config.ts",
+    "eslint.*.ts",
+
+    "typescript/**",
+    "expo/**",
+    "nestjs/**",
+    "cdk/**",
+    "npm-package/**",
+    "all/**",
     "babel.config.js",
     "metro.config.js",
     "webpack.*.js",

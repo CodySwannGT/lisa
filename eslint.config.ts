@@ -2,7 +2,7 @@
  * ESLint 9 Flat Config - TypeScript Base
  *
  * This configuration file is the base for all TypeScript projects.
- * It imports shared configuration from eslint.base.mjs and adds
+ * It imports shared configuration from eslint.base.ts and adds
  * TypeScript-specific settings.
  *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
@@ -24,12 +24,12 @@ import {
   getTestFilesOverride,
   getTsFilesOverride,
   getTsTestFilesOverride,
-} from "./eslint.base.mjs";
+} from "./eslint.base.ts";
 
 // Project-specific configuration loaded from JSON files
 // Edit these files to customize for your project; this JS file can be shared unchanged
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
-import thresholdsConfig from "./eslint.thresholds.config.json" with { type: "json" };
+import thresholdsConfig from "./eslint.thresholds.json" with { type: "json" };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "bin/**/*.ts",
+    "lib/**/*.ts",
+    "config/**/*.ts",
+    "util/**/*.ts",
+    "utils/**/*.ts",
+    "lambda/**/*.ts",
+    "lambdas/**/*.ts",
+    "functions/**/*.ts"
+  ],
+  "project": [
+    "bin/**/*.ts",
+    "lib/**/*.ts",
+    "config/**/*.ts",
+    "util/**/*.ts",
+    "utils/**/*.ts",
+    "lambda/**/*.ts",
+    "lambdas/**/*.ts",
+    "functions/**/*.ts"
+  ],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "**/tests/**",
+    "**/test/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/node_modules/**",
+    "**/cdk.out/**",
+    "**/scripts/**",
+    "**/eslint-plugin-*/**"
+  ],
+  "ignoreDependencies": [
+    "jscodeshift",
+    "ts-morph",
+    "commitizen",
+    "eslint-*",
+    "lint-staged",
+    "ts-node",
+    "@commitlint/*",
+    "aws-cdk",
+    "aws-cdk-lib",
+    "@aws-cdk/*",
+    "constructs",
+    "esbuild"
+  ],
+  "ignoreExportsUsedInFile": true
+}

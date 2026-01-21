@@ -2,7 +2,7 @@
  * ESLint 9 Flat Config - Shared Base
  *
  * This module exports shared configuration pieces that can be imported by
- * project-specific eslint.config.mjs files. This reduces duplication between
+ * project-specific eslint.config.ts files. This reduces duplication between
  * typescript, expo, nestjs, and other project type configurations.
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.base
@@ -60,7 +60,7 @@ export const defaultIgnores = [
   "tmp/**",
   ".vscode/**",
   "*.config.js",
-  "*.config.mjs",
+  "*.config.ts",
   "babel.config.js",
   "metro.config.js",
   "webpack.*.js",
