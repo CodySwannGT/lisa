@@ -46,14 +46,17 @@ export default [
       },
     },
     plugins: {
-      ...importTypescriptConfig.plugins,
+      ...importTypescriptConfig?.plugins,
       "react-compiler": reactCompiler,
       "react-hooks": reactHooks,
     },
     settings: {
-      ...importTypescriptConfig.settings,
+      ...(importTypescriptConfig?.settings ?? {}),
       "import/resolver": {
-        ...importTypescriptConfig.settings["import/resolver"],
+        ...((importTypescriptConfig?.settings?.["import/resolver"] as Record<
+          string,
+          unknown
+        >) ?? {}),
         typescript: true,
       },
     },
