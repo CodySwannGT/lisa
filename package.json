@@ -58,7 +58,7 @@
     "*.{js,mjs,ts,tsx}": [
       "eslint --quiet --cache --fix"
     ],
-    "*.{js,mjs,ts,jsx,tsx,html,css,scss,yaml,yml,graphql}": [
+    "*.{json,mjs,js,ts,jsx,tsx,html,md,mdx,css,scss,yaml,yml,graphql}": [
       "prettier --write"
     ]
   },
