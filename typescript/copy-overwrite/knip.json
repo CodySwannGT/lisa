@@ -1,0 +1,36 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "lib/**/*.ts",
+    "bin/**/*.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "bin/**/*.ts"
+  ],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "**/tests/**",
+    "**/test/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/node_modules/**"
+  ],
+  "ignoreDependencies": [
+    "jscodeshift",
+    "ts-morph",
+    "commitizen",
+    "eslint-*",
+    "lint-staged",
+    "ts-node",
+    "@commitlint/*"
+  ],
+  "ignoreExportsUsedInFile": true
+}

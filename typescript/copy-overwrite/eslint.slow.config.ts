@@ -2,7 +2,7 @@
  * ESLint 9 Flat Config - Slow Rules Only
  *
  * This configuration runs ONLY slow linting rules that are disabled in the
- * main eslint.config.mjs for performance. Run this periodically via `lint:slow`
+ * main eslint.config.ts for performance. Run this periodically via `lint:slow`
  * rather than on every lint pass.
  *
  * Rules included:
@@ -51,6 +51,7 @@ export default [
       // ONLY slow rules - everything else runs in the main config
       "import/namespace": "error",
       "import/no-cycle": "error",
+      "sonarjs/deprecation": "error",
     },
   },
 ];
