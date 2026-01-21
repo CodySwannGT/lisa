@@ -81,8 +81,13 @@ on:
         required: false
         default: false
         type: boolean
+      skip_dead_code:
+        description: 'Skip the dead code detection job (knip)'
+        required: false
+        default: false
+        type: boolean
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,npm_security_scan,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,npm_security_scan,github_issue)'
         required: false
         default: ''
         type: string
@@ -795,6 +800,42 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
 
+  dead_code:
+    name: 🗑️ Dead Code Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ !inputs.skip_dead_code && !contains(inputs.skip_jobs, 'dead_code') }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+      - name: 🗑️ Run dead code detection (knip)
+        run: ${{ inputs.package_manager }} run knip
+        working-directory: ${{ inputs.working_directory || '.' }}
+
   npm_security_scan:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
@@ -1203,6 +1244,7 @@ jobs:
         playwright_e2e,
         format,
         build,
+        dead_code,
         npm_security_scan,
         sonarcloud,
         snyk,
@@ -1413,6 +1455,7 @@ jobs:
         playwright_e2e,
         format,
         build,
+        dead_code,
         npm_security_scan,
         sonarcloud,
         snyk,
@@ -1464,7 +1507,8 @@ jobs:
                   maestro_e2e: '${{ needs.maestro_e2e.result }}',
                   playwright_e2e: '${{ needs.playwright_e2e.result }}',
                   format: '${{ needs.format.result }}',
-                  build: '${{ needs.build.result }}'
+                  build: '${{ needs.build.result }}',
+                  dead_code: '${{ needs.dead_code.result }}'
                 },
                 security: {
                   npm_audit: '${{ needs.npm_security_scan.result }}',
@@ -1622,6 +1666,7 @@ jobs:
         playwright_e2e,
         format,
         build,
+        dead_code,
         npm_security_scan,
         sonarcloud,
         snyk,
@@ -1670,6 +1715,7 @@ jobs:
           echo "| Playwright E2E | ${{ needs.playwright_e2e.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Format Check | ${{ needs.format.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} | Build |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dead Code | ${{ needs.dead_code.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| NPM Security | ${{ needs.npm_security_scan.result }} | Security |" >> $GITHUB_STEP_SUMMARY
           echo "| SonarCloud | ${{ needs.sonarcloud.result }} | Security |" >> $GITHUB_STEP_SUMMARY
           echo "| Snyk | ${{ needs.snyk.result }} | Security |" >> $GITHUB_STEP_SUMMARY
@@ -1697,6 +1743,7 @@ jobs:
           [ "${{ needs.maestro_e2e.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.playwright_e2e.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.format.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
+          [ "${{ needs.dead_code.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
 
           [ "${{ needs.sonarcloud.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
           [ "${{ needs.snyk.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
