@@ -27,7 +27,7 @@ import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
 import thresholdsConfig from "./eslint.thresholds.json" with { type: "json" };
 
 // Project-local customizations (create-only - safe to modify)
-import localConfig from "./eslint.config.local.ts";
+import localConfig from "./eslint.config.local";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

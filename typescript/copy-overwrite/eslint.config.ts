@@ -19,7 +19,7 @@ import {
   defaultIgnores,
   defaultThresholds,
   getTypescriptConfig,
-} from "./eslint.typescript.ts";
+} from "./eslint.typescript";
 
 // Project-specific configuration loaded from JSON files
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };

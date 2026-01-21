@@ -329,7 +329,7 @@ export const getSharedFilesOverride = () => ({
  * @param additionalPatterns - Additional file patterns to include
  * @returns {object} ESLint flat config object for test files
  */
-export const getTestFilesOverride = (additionalPatterns = []) => ({
+export const getTestFilesOverride = (additionalPatterns: string[] = []) => ({
   files: [
     "**/*.test.js",
     "**/*.test.ts",
@@ -367,7 +367,7 @@ export const getTestFilesOverride = (additionalPatterns = []) => ({
  * @returns {object} ESLint flat config object for TypeScript files
  */
 export const getTsFilesOverride = (
-  filePatterns = ["**/*.ts"],
+  filePatterns: string[] = ["**/*.ts"],
   tsconfigRootDir: string
 ) => ({
   files: filePatterns,
@@ -399,7 +399,7 @@ export const getTsFilesOverride = (
  * @returns {object} ESLint flat config object for TypeScript test files
  */
 export const getTsTestFilesOverride = (
-  filePatterns = ["**/*.test.ts", specFilePattern]
+  filePatterns: string[] = ["**/*.test.ts", specFilePattern]
 ) => ({
   files: filePatterns,
   rules: {

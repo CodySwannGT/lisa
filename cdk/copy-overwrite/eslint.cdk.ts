@@ -27,7 +27,7 @@ import {
   getTestFilesOverride,
   getTsFilesOverride,
   getTsTestFilesOverride,
-} from "./eslint.typescript.ts";
+} from "./eslint.typescript";
 
 // Re-export for downstream configs
 export {
@@ -59,6 +59,10 @@ export function getCdkConfig({
   tsconfigRootDir,
   ignorePatterns = cdkIgnores,
   thresholds = defaultThresholds,
+}: {
+  tsconfigRootDir: string;
+  ignorePatterns?: string[];
+  thresholds?: typeof defaultThresholds;
 }) {
   return [
     // Global ignores
