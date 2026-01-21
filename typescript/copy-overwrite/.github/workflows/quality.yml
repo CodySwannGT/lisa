@@ -833,28 +833,9 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      - name: 🔍 Check for knip script
-        id: check_script
-        run: |
-          if [ -f "package.json" ]; then
-            if grep -q '"knip"' package.json; then
-              echo "exists=true" >> $GITHUB_OUTPUT
-            else
-              echo "exists=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
       - name: 🗑️ Run dead code detection (knip)
-        if: steps.check_script.outputs.exists == 'true'
         run: ${{ inputs.package_manager }} run knip
         working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: ⏭️ Skip dead code detection (no knip script)
-        if: steps.check_script.outputs.exists == 'false'
-        run: echo "Skipping dead code detection - knip script not found in package.json"
 
   npm_security_scan:
     name: 🔒 Security Scan
