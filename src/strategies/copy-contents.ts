@@ -1,5 +1,5 @@
 import * as fse from "fs-extra";
-import { readFile, copyFile } from "node:fs/promises";
+import { readFile, copyFile, writeFile } from "node:fs/promises";
 import type { FileOperationResult } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
@@ -104,7 +104,7 @@ export class CopyContentsStrategy implements ICopyStrategy {
     const { config, recordFile, backupFile } = context;
     if (!config.dryRun) {
       await backupFile(destPath);
-      await fse.writeFile(destPath, mergedContent, "utf-8");
+      await writeFile(destPath, mergedContent, "utf-8");
       recordFile(relativePath, this.name);
     }
     return {
