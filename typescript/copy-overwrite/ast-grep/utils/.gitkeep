@@ -1,0 +1,3 @@
+# This directory contains shared utility rules for ast-grep.
+# Add reusable rule fragments here.
+# See: https://ast-grep.github.io/reference/sgconfig.html#utildirs
