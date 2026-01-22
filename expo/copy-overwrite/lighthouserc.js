@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * Lighthouse CI Configuration
  *
  * This configuration file defines performance budgets and assertion rules for

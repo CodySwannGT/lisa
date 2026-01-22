@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint 9 Flat Config - TypeScript Stack
  *
  * This configuration provides TypeScript-specific rules and settings.
