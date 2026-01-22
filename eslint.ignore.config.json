@@ -1,6 +1,12 @@
 {
   "ignores": [
     "sgconfig.yml",
+    "all/**",
+    "typescript/**",
+    "expo/**",
+    "nestjs/**",
+    "cdk/**",
+    "npm-package/**",
     "build/**",
     "dist/**",
     ".build/**",
