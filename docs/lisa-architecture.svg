@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900">
+  <!-- Background -->
+  <rect width="1000" height="900" fill="#FAFAFA"/>
+
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#111827">Lisa: Claude Code Governance Framework</text>
+  <text x="500" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#6B7280">Implementation teams provide the WHAT. Lisa handles the HOW.</text>
+
+  <!-- ==================== DEVELOPER EXPERIENCE (CENTER) ==================== -->
+
+  <!-- Main workflow container -->
+  <rect x="80" y="95" width="840" height="200" rx="16" fill="white" stroke="#E5E7EB" stroke-width="2"/>
+
+  <!-- Developer Experience header -->
+  <rect x="80" y="95" width="840" height="45" rx="16" fill="#4F46E5"/>
+  <rect x="80" y="125" width="840" height="15" fill="#4F46E5"/>
+  <text x="500" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">THE DEVELOPER EXPERIENCE</text>
+  <text x="900" y="125" text-anchor="end" font-family="Arial, sans-serif" font-size="11" fill="rgba(255,255,255,0.8)">No AI expertise required</text>
+
+  <!-- Step 1: Spec -->
+  <rect x="115" y="175" width="100" height="80" rx="10" fill="#F0FDF4" stroke="#22C55E" stroke-width="2"/>
+  <text x="165" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">📄</text>
+  <text x="165" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#166534">Create Spec</text>
+  <text x="165" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">specs/*.md</text>
+
+  <!-- Arrow 1 -->
+  <polygon points="225,215 255,215 245,210 255,215 245,220" fill="#D1D5DB"/>
+  <line x1="225" y1="215" x2="250" y2="215" stroke="#D1D5DB" stroke-width="2"/>
+
+  <!-- Step 2: Bootstrap -->
+  <rect x="265" y="175" width="130" height="80" rx="10" fill="#EEF2FF" stroke="#4F46E5" stroke-width="2"/>
+  <text x="330" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">🚀</text>
+  <text x="330" y="228" text-anchor="middle" font-family="Courier, monospace" font-size="10" font-weight="bold" fill="#4338CA">/project:bootstrap</text>
+  <text x="330" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Setup + Research</text>
+
+  <!-- Arrow 2 -->
+  <polygon points="405,215 435,215 425,210 435,215 425,220" fill="#D1D5DB"/>
+  <line x1="405" y1="215" x2="430" y2="215" stroke="#D1D5DB" stroke-width="2"/>
+
+  <!-- Step 3: Answer Gaps -->
+  <rect x="445" y="175" width="110" height="80" rx="10" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2"/>
+  <text x="500" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">💬</text>
+  <text x="500" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#B45309">Answer Gaps</text>
+  <text x="500" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">If questions</text>
+
+  <!-- Arrow 3 -->
+  <polygon points="565,215 595,215 585,210 595,215 585,220" fill="#D1D5DB"/>
+  <line x1="565" y1="215" x2="590" y2="215" stroke="#D1D5DB" stroke-width="2"/>
+
+  <!-- Step 4: Execute -->
+  <rect x="605" y="175" width="120" height="80" rx="10" fill="#EEF2FF" stroke="#4F46E5" stroke-width="2"/>
+  <text x="665" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">⚡</text>
+  <text x="665" y="228" text-anchor="middle" font-family="Courier, monospace" font-size="10" font-weight="bold" fill="#4338CA">/project:execute</text>
+  <text x="665" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">Plan + Implement</text>
+
+  <!-- Arrow 4 -->
+  <polygon points="735,215 765,215 755,210 765,215 755,220" fill="#D1D5DB"/>
+  <line x1="735" y1="215" x2="760" y2="215" stroke="#D1D5DB" stroke-width="2"/>
+
+  <!-- Step 5: Review -->
+  <rect x="775" y="175" width="110" height="80" rx="10" fill="#F0FDF4" stroke="#22C55E" stroke-width="2"/>
+  <text x="830" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="24">✅</text>
+  <text x="830" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#166534">Review PR</text>
+  <text x="830" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#6B7280">and Merge</text>
+
+  <!-- ==================== LOCAL VS REMOTE ==================== -->
+
+  <!-- Execution mode box -->
+  <rect x="80" y="310" width="840" height="85" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="80" y="310" width="840" height="28" rx="12" fill="#F0F9FF"/>
+  <rect x="80" y="326" width="840" height="12" fill="#F0F9FF"/>
+  <text x="500" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#0369A1">RUN LOCALLY OR REMOTELY — WORK ON MULTIPLE FEATURES IN PARALLEL</text>
+
+  <!-- Local option -->
+  <rect x="110" y="350" width="350" height="35" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="130" y="373" font-family="Arial, sans-serif" font-size="11" fill="#334155">💻</text>
+  <text x="150" y="373" font-family="Courier, monospace" font-size="11" font-weight="bold" fill="#4338CA">/project:execute</text>
+  <text x="295" y="373" font-family="Arial, sans-serif" font-size="11" fill="#64748B">→ Local (interactive)</text>
+
+  <!-- Remote option -->
+  <rect x="540" y="350" width="350" height="35" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="560" y="373" font-family="Arial, sans-serif" font-size="11" fill="#334155">☁️</text>
+  <text x="580" y="373" font-family="Courier, monospace" font-size="11" font-weight="bold" fill="#4338CA">/project:execute &amp;</text>
+  <text x="735" y="373" font-family="Arial, sans-serif" font-size="11" fill="#64748B">→ Claude Code Web (parallel)</text>
+
+  <!-- ==================== SUPPORTING INFRASTRUCTURE ==================== -->
+
+  <!-- Section title -->
+  <text x="500" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#9CA3AF" font-weight="bold">MULTI-LAYER GOVERNANCE</text>
+  <text x="500" y="447" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#D1D5DB">Skills teach • Hooks enforce • Plugins extend • CI/CD verifies</text>
+
+  <!-- Connecting line from dev experience to infrastructure -->
+  <line x1="500" y1="395" x2="500" y2="420" stroke="#E5E7EB" stroke-width="2" stroke-dasharray="4,4"/>
+
+  <!-- Infrastructure boxes row 1 -->
+
+  <!-- Skills -->
+  <rect x="40" y="465" width="180" height="100" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="40" y="465" width="180" height="32" rx="12" fill="#DBEAFE"/>
+  <rect x="40" y="485" width="180" height="12" fill="#DBEAFE"/>
+  <text x="55" y="487" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1E40AF">📚 Skills</text>
+  <text x="55" y="520" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Automatic knowledge</text>
+  <text x="55" y="537" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• coding-philosophy</text>
+  <text x="55" y="551" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• jsdoc-best-practices</text>
+
+  <!-- Subagents -->
+  <rect x="235" y="465" width="180" height="100" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="235" y="465" width="180" height="32" rx="12" fill="#E0E7FF"/>
+  <rect x="235" y="485" width="180" height="12" fill="#E0E7FF"/>
+  <text x="250" y="487" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#3730A3">🤖 Subagents</text>
+  <text x="250" y="520" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Isolated research context</text>
+  <text x="250" y="537" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• codebase-locator</text>
+  <text x="250" y="551" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• codebase-analyzer</text>
+
+  <!-- Plugins -->
+  <rect x="430" y="465" width="180" height="100" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="430" y="465" width="180" height="32" rx="12" fill="#F3E8FF"/>
+  <rect x="430" y="485" width="180" height="12" fill="#F3E8FF"/>
+  <text x="445" y="487" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#6B21A8">🔌 Plugins</text>
+  <text x="445" y="520" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Extended capabilities</text>
+  <text x="445" y="537" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• safety-net, beads</text>
+  <text x="445" y="551" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• typescript-lsp, playwright</text>
+
+  <!-- Quality Tools -->
+  <rect x="625" y="465" width="180" height="100" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="625" y="465" width="180" height="32" rx="12" fill="#DCFCE7"/>
+  <rect x="625" y="485" width="180" height="12" fill="#DCFCE7"/>
+  <text x="640" y="487" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#166534">🔍 Quality Tools</text>
+  <text x="640" y="520" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Pattern + dead code detection</text>
+  <text x="640" y="537" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• ast-grep (AST patterns)</text>
+  <text x="640" y="551" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• knip (unused code)</text>
+
+  <!-- TDD -->
+  <rect x="820" y="465" width="140" height="100" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="820" y="465" width="140" height="32" rx="12" fill="#FEF3C7"/>
+  <rect x="820" y="485" width="140" height="12" fill="#FEF3C7"/>
+  <text x="835" y="487" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#B45309">🧪 TDD</text>
+  <text x="835" y="520" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Code verified</text>
+  <text x="835" y="537" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• Tests first</text>
+  <text x="835" y="551" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• Green to commit</text>
+
+  <!-- Infrastructure boxes row 2 -->
+
+  <!-- Claude Hooks -->
+  <rect x="80" y="585" width="200" height="110" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="80" y="585" width="200" height="32" rx="12" fill="#FEE2E2"/>
+  <rect x="80" y="605" width="200" height="12" fill="#FEE2E2"/>
+  <text x="95" y="607" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#991B1B">⚡ Claude Hooks</text>
+  <text x="95" y="640" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Auto-enforce on every edit</text>
+  <text x="95" y="657" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• format-on-edit (Prettier)</text>
+  <text x="95" y="671" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• lint-on-edit (ESLint)</text>
+  <text x="95" y="685" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• sg-scan-on-edit (ast-grep)</text>
+
+  <!-- Git Hooks -->
+  <rect x="300" y="585" width="200" height="110" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="300" y="585" width="200" height="32" rx="12" fill="#FCE7F3"/>
+  <rect x="300" y="605" width="200" height="12" fill="#FCE7F3"/>
+  <text x="315" y="607" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#9D174D">🔒 Husky Git Hooks</text>
+  <text x="315" y="640" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Block bad commits locally</text>
+  <text x="315" y="657" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• pre-commit: lint, types, secrets</text>
+  <text x="315" y="671" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• pre-push: tests, knip, audit</text>
+  <text x="315" y="685" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• commitlint: conventional msgs</text>
+
+  <!-- CI/CD -->
+  <rect x="520" y="585" width="200" height="110" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="520" y="585" width="200" height="32" rx="12" fill="#DBEAFE"/>
+  <rect x="520" y="605" width="200" height="12" fill="#DBEAFE"/>
+  <text x="535" y="607" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1E40AF">🏗️ GitHub Actions</text>
+  <text x="535" y="640" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Final verification in clean env</text>
+  <text x="535" y="657" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• Lint, typecheck, test, build</text>
+  <text x="535" y="671" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• Playwright + Maestro E2E</text>
+  <text x="535" y="685" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• Dead code + ast-grep scan</text>
+
+  <!-- Enterprise Security -->
+  <rect x="740" y="585" width="200" height="110" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="740" y="585" width="200" height="32" rx="12" fill="#FEF3C7"/>
+  <rect x="740" y="605" width="200" height="12" fill="#FEF3C7"/>
+  <text x="755" y="607" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#B45309">🛡️ Security + Compliance</text>
+  <text x="755" y="640" font-family="Arial, sans-serif" font-size="11" fill="#4B5563">Enterprise-grade scanning</text>
+  <text x="755" y="657" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• SonarCloud, Snyk, FOSSA</text>
+  <text x="755" y="671" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• GitGuardian, Gitleaks</text>
+  <text x="755" y="685" font-family="Arial, sans-serif" font-size="10" fill="#9CA3AF">• SOC2, ISO27001, HIPAA</text>
+
+  <!-- ==================== FLOW ARROWS ==================== -->
+
+  <!-- Arrow from row 1 to row 2 -->
+  <line x1="500" y1="565" x2="500" y2="585" stroke="#E5E7EB" stroke-width="2" stroke-dasharray="4,4"/>
+
+  <!-- ==================== PROJECT TYPE DETECTION ==================== -->
+
+  <rect x="80" y="720" width="840" height="60" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+  <rect x="80" y="720" width="840" height="28" rx="12" fill="#F0FDF4"/>
+  <rect x="80" y="736" width="840" height="12" fill="#F0FDF4"/>
+  <text x="500" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#166534">AUTO-DETECT PROJECT TYPE → APPLY STACK-SPECIFIC CONFIGS</text>
+
+  <text x="170" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#6B7280">TypeScript</text>
+  <text x="310" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#6B7280">npm-package</text>
+  <text x="450" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#6B7280">Expo</text>
+  <text x="590" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#6B7280">NestJS</text>
+  <text x="730" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#6B7280">CDK</text>
+  <text x="860" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#6B7280">+ more</text>
+
+  <!-- Bottom tagline -->
+  <text x="500" y="820" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9CA3AF">Platform Expert builds once → All teams benefit automatically</text>
+  <text x="500" y="842" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-style="italic" fill="#D1D5DB">No prompt engineering. No context management. Just run commands and answer questions.</text>
+  <text x="500" y="865" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#4F46E5">npx @codyswann/lisa /path/to/project</text>
+</svg>
