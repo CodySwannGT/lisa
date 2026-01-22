@@ -13,14 +13,16 @@
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config
  */
+import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath } from "url";
 
 import { defaultIgnores, defaultThresholds, getCdkConfig } from "./eslint.cdk";
 
-// Project-specific configuration loaded from JSON files
-import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
-import thresholdsConfig from "./eslint.thresholds.json" with { type: "json" };
+// Project-specific configuration loaded from JSON files (use createRequire for compatibility)
+const require = createRequire(import.meta.url);
+const ignoreConfig = require("./eslint.ignore.config.json");
+const thresholdsConfig = require("./eslint.thresholds.json");
 
 // Project-local customizations (create-only - safe to modify)
 import localConfig from "./eslint.config.local";
