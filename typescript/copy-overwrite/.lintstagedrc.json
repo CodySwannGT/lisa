@@ -1,5 +1,5 @@
 {
-  "*.{js,mjs,ts,tsx}": ["eslint --quiet --cache --fix"],
+  "*.{js,mjs,ts,tsx}": ["eslint --quiet --cache --fix", "ast-grep scan"],
   "*.{json,mjs,js,ts,jsx,tsx,html,md,mdx,css,scss,yaml,yml,graphql}": [
     "prettier --write"
   ]

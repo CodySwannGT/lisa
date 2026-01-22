@@ -1,0 +1,8 @@
+# ast-grep configuration
+# See: https://ast-grep.github.io/reference/sgconfig.html
+ruleDirs:
+  - ast-grep/rules
+testConfigs:
+  - testDir: ast-grep/rule-tests
+utilDirs:
+  - ast-grep/utils
