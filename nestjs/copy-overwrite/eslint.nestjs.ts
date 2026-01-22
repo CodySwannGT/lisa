@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function -- config file requires many lines */
 /**
  * ESLint 9 Flat Config - NestJS Stack
  *
@@ -169,3 +170,4 @@ export function getNestjsConfig({
     },
   ];
 }
+/* eslint-enable max-lines-per-function -- config file requires many lines */

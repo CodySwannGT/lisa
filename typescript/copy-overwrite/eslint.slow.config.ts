@@ -13,6 +13,7 @@
  * @module eslint.slow.config
  */
 import importPlugin from "eslint-plugin-import";
+import sonarjsPlugin from "eslint-plugin-sonarjs";
 import tseslint from "typescript-eslint";
 
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
@@ -39,7 +40,10 @@ export default [
         project: "tsconfig.eslint.json",
       },
     },
-    plugins: importTypescriptConfig?.plugins,
+    plugins: {
+      ...(importTypescriptConfig?.plugins ?? {}),
+      sonarjs: sonarjsPlugin,
+    },
     settings: {
       ...(importTypescriptConfig?.settings ?? {}),
       "import/resolver": {

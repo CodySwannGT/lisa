@@ -8,10 +8,12 @@
  * Rules included:
  * - import/namespace - Type checks all namespace imports (slow)
  * - import/no-cycle - Detects circular dependencies (very slow)
+ *
  * @see https://github.com/import-js/eslint-plugin-import
  * @module eslint.slow.config
  */
 import importPlugin from "eslint-plugin-import";
+import sonarjsPlugin from "eslint-plugin-sonarjs";
 import tseslint from "typescript-eslint";
 
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
@@ -38,7 +40,10 @@ export default [
         project: "tsconfig.eslint.json",
       },
     },
-    plugins: importTypescriptConfig?.plugins,
+    plugins: {
+      ...(importTypescriptConfig?.plugins ?? {}),
+      sonarjs: sonarjsPlugin,
+    },
     settings: {
       ...(importTypescriptConfig?.settings ?? {}),
       "import/resolver": {

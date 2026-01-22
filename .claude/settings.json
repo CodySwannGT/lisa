@@ -20,6 +20,11 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/format-on-edit.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sg-scan-on-edit.sh",
+            "timeout": 30
           }
         ]
       }
