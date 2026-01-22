@@ -1,3 +1,8 @@
+/**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Rate } from "k6/metrics";

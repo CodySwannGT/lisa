@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * Unit tests for the single-component-per-file ESLint rule
  *
  * Tests that View and Container files contain exactly one React component.

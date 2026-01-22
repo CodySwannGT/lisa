@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint 9 Flat Config - Slow Rules Only (CDK)
  *
  * This configuration runs ONLY slow linting rules that are disabled in the

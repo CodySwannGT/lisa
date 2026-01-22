@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint 9 Flat Config - CDK Stack
  *
  * This configuration extends TypeScript config for AWS CDK projects.

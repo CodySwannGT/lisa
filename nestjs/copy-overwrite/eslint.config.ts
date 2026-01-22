@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint 9 Flat Config - Main Entry Point (NestJS)
  *
  * This file imports the NestJS-specific configuration and project-local customizations.

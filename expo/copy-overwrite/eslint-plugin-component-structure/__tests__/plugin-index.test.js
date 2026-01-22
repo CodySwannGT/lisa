@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * Unit tests for the plugin index
  *
  * Verifies that all rules are properly registered and exported from the plugin.

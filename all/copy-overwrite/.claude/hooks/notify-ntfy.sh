@@ -1,4 +1,6 @@
 #!/bin/bash
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
 # =============================================================================
 # ntfy.sh Notification Hook for Claude Code
 # =============================================================================

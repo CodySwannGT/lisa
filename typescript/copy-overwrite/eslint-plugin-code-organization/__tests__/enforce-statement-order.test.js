@@ -1,3 +1,8 @@
+/**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
 /* eslint-disable max-lines -- comprehensive test coverage requires extensive test cases */
 /**
  * Tests for enforce-statement-order ESLint rule
