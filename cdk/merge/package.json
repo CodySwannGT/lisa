@@ -23,6 +23,13 @@
     "jest": "^30.0.0",
     "ts-jest": "^29.4.6"
   },
+  "engines": {
+    "npm": ">= 10.9.4",
+    "yarn": "please-use-npm",
+    "pnpm": "please-use-npm",
+    "bun": "please-use-npm",
+    "node": "22.21.1"
+  },
   "bin": {
     "infrastructure": "bin/infrastructure.js"
   }
