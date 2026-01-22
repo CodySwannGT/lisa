@@ -20,7 +20,8 @@
     "test:watch": "vitest",
     "update-node-version": "tsx scripts/update-node-version.ts",
     "knip": "knip",
-    "knip:fix": "knip --fix"
+    "knip:fix": "knip --fix",
+    "sg:scan": "ast-grep scan"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
@@ -56,7 +57,8 @@
     "memfs": "^4.0.0",
     "tsx": "^4.0.0",
     "vitest": "^3.0.0",
-    "knip": "^5.0.0"
+    "knip": "^5.0.0",
+    "@ast-grep/cli": "^0.40.4"
   },
   "engines": {
     "npm": "please-use-bun",
@@ -72,6 +74,7 @@
   },
   "resolutions": {},
   "trustedDependencies": [
-    "@sentry/cli"
+    "@sentry/cli",
+    "@ast-grep/cli"
   ]
 }
