@@ -1,5 +1,5 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-19T23:45:24.574Z
+# Generated: 2026-01-22T21:30:39.135Z
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.claude/README.md
@@ -50,6 +50,7 @@ copy-overwrite:.claude/skills/skill-creator/scripts/__pycache__/quick_validate.c
 copy-overwrite:.claude/skills/skill-creator/scripts/init_skill.py
 copy-overwrite:.claude/skills/skill-creator/scripts/package_skill.py
 copy-overwrite:.claude/skills/skill-creator/scripts/quick_validate.py
+copy-overwrite:.safety-net.json
 copy-overwrite:CLAUDE.md
 copy-overwrite:HUMAN.md
 copy-overwrite:specs/.keep
@@ -57,6 +58,7 @@ copy-contents:.gitignore
 copy-overwrite:.claude/hooks/format-on-edit.sh
 copy-overwrite:.claude/hooks/install_pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
+copy-overwrite:.claude/hooks/sg-scan-on-edit.sh
 copy-overwrite:.claude/skills/jsdoc-best-practices/SKILL.md
 copy-overwrite:.github/README.md
 copy-overwrite:.github/dependabot.yml
@@ -70,27 +72,35 @@ copy-overwrite:.github/workflows/lint-slow.yml
 copy-overwrite:.github/workflows/quality.yml
 copy-overwrite:.github/workflows/release.yml
 copy-overwrite:.gitleaksignore
+copy-overwrite:.lintstagedrc.json
 copy-overwrite:.nvmrc
 copy-overwrite:.prettierignore
 copy-overwrite:.prettierrc.json
 copy-overwrite:.versionrc
 copy-overwrite:.yamllint
-copy-overwrite:commitlint.config.js
+copy-overwrite:ast-grep/rule-tests/.gitkeep
+copy-overwrite:ast-grep/rules/.gitkeep
+copy-overwrite:ast-grep/utils/.gitkeep
+copy-overwrite:commitlint.config.cjs
 copy-overwrite:eslint-plugin-code-organization/README.md
 copy-overwrite:eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js
 copy-overwrite:eslint-plugin-code-organization/index.js
 copy-overwrite:eslint-plugin-code-organization/package.json
 copy-overwrite:eslint-plugin-code-organization/rules/enforce-statement-order.js
-copy-overwrite:eslint.base.mjs
-copy-overwrite:eslint.config.mjs
+copy-overwrite:eslint.base.ts
+copy-overwrite:eslint.config.ts
 copy-overwrite:eslint.ignore.config.json
-copy-overwrite:eslint.slow.config.mjs
+copy-overwrite:eslint.slow.config.ts
+copy-overwrite:eslint.typescript.ts
+copy-overwrite:knip.json
+copy-overwrite:sgconfig.yml
 copy-overwrite:tsconfig.eslint.json
 copy-contents:.husky/_/.gitignore
 copy-contents:.husky/_/husky.sh
 copy-contents:.husky/commit-msg
 copy-contents:.husky/pre-commit
 copy-contents:.husky/pre-push
+create-only:eslint.config.local.ts
 merge:.claude/settings.json
 merge:package.json
 copy-overwrite:.github/workflows/publish-to-npm.yml

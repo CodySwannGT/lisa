@@ -1,25 +1,27 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/**/*.ts"],
-  "project": ["src/**/*.ts"],
+  "entry": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "lib/**/*.ts",
+    "bin/**/*.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "bin/**/*.ts"
+  ],
   "ignore": [
     "**/*.test.ts",
     "**/*.spec.ts",
     "**/__tests__/**",
     "**/__mocks__/**",
     "**/tests/**",
+    "**/test/**",
     "**/dist/**",
     "**/build/**",
-    "**/node_modules/**",
-    "all/**",
-    "typescript/**",
-    "expo/**",
-    "nestjs/**",
-    "cdk/**",
-    "npm-package/**",
-    "eslint-plugin-code-organization/**",
-    ".github/**",
-    ".husky/**"
+    "**/coverage/**",
+    "**/node_modules/**"
   ],
   "ignoreDependencies": [
     "jscodeshift",
@@ -28,8 +30,7 @@
     "eslint-*",
     "lint-staged",
     "ts-node",
-    "@commitlint/*",
-    "memfs"
+    "@commitlint/*"
   ],
   "ignoreExportsUsedInFile": true
 }

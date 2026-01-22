@@ -79,6 +79,21 @@ elif [ "$PACKAGE_MANAGER" = "bun" ]; then
   echo "✅ No high or critical vulnerabilities found in production dependencies"
 fi
 
+# Run dead code detection (knip) - only if script exists
+if grep -q '"knip"' package.json 2>/dev/null; then
+  echo "🗑️ Running dead code detection (knip)..."
+  $RUNNER knip
+  if [ $? -ne 0 ]; then
+    echo "❌ Dead code detected. Please remove unused exports/dependencies before pushing."
+    echo ""
+    echo "To auto-fix some issues, run: $RUNNER knip:fix"
+    exit 1
+  fi
+  echo "✅ No dead code detected"
+else
+  echo "ℹ️  Skipping dead code detection (knip not configured)"
+fi
+
 # Run unit tests with coverage
 echo "🧪 Running unit tests with coverage..."
 $RUNNER test:cov
