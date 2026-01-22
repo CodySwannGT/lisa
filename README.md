@@ -2,6 +2,8 @@
 
 Lisa is a **Claude Code governance framework** that ensures Claude produces high-quality, consistent code through multiple layers of guardrails, guidance, and automated enforcement.
 
+> **New to Lisa?** Start with the **[Architecture Overview](OVERVIEW.md)** for a visual guide to how Lisa works, including the developer workflow diagram and multi-layer governance architecture.
+
 ## Why Lisa Exists
 
 Claude Code is powerful, but without guardrails it can:
