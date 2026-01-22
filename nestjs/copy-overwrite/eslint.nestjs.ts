@@ -1,3 +1,8 @@
+/**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
 /* eslint-disable max-lines-per-function -- config file requires many lines */
 /**
  * ESLint 9 Flat Config - NestJS Stack

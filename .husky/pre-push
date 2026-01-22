@@ -80,7 +80,7 @@ elif [ "$PACKAGE_MANAGER" = "bun" ]; then
 fi
 
 # Run dead code detection (knip) - only if script exists
-if grep -q '"knip"' package.json 2>/dev/null; then
+if jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
   echo "🗑️ Running dead code detection (knip)..."
   $RUNNER knip
   if [ $? -ne 0 ]; then

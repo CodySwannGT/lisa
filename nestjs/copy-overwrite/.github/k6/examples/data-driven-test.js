@@ -1,3 +1,8 @@
+/**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
 import http from "k6/http";
 import { check, group } from "k6";
 import { SharedArray } from "k6/data";

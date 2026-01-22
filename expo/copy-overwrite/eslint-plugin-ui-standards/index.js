@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint plugin for UI standards
  *
  * This plugin enforces UI-related coding standards for React Native components.

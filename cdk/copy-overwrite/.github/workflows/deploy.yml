@@ -1,3 +1,6 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
 name: 🚀 Release and Deploy
 
 on:

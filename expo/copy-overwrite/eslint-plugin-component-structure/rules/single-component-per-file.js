@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint rule to enforce exactly one React component per file
  *
  * This rule ensures that View and Container files contain only one React component.

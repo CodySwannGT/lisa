@@ -1,3 +1,6 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
 # Reusable workflow for publishing to npm with OIDC trusted publishing
 # This workflow is not callable directly - it must be called from another workflow
 #

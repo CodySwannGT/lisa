@@ -1,3 +1,6 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
 # This is an example deployment workflow that demonstrates the recommended pattern:
 # 1. Call the release.yml workflow to create a release
 # 2. Implement your custom deployment logic
