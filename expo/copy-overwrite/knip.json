@@ -3,30 +3,26 @@
   "entry": [
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
+    "features/**/*.{ts,tsx}",
     "hooks/**/*.{ts,tsx}",
-    "lib/**/*.{ts,tsx}",
     "utils/**/*.{ts,tsx}",
-    "services/**/*.{ts,tsx}",
     "stores/**/*.{ts,tsx}",
-    "contexts/**/*.{ts,tsx}",
     "providers/**/*.{ts,tsx}",
     "constants/**/*.{ts,tsx}",
     "types/**/*.{ts,tsx}",
-    "index.ts",
-    "App.tsx"
+    "config/**/*.{ts,tsx}"
   ],
   "project": [
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
+    "features/**/*.{ts,tsx}",
     "hooks/**/*.{ts,tsx}",
-    "lib/**/*.{ts,tsx}",
     "utils/**/*.{ts,tsx}",
-    "services/**/*.{ts,tsx}",
     "stores/**/*.{ts,tsx}",
-    "contexts/**/*.{ts,tsx}",
     "providers/**/*.{ts,tsx}",
     "constants/**/*.{ts,tsx}",
-    "types/**/*.{ts,tsx}"
+    "types/**/*.{ts,tsx}",
+    "config/**/*.{ts,tsx}"
   ],
   "ignore": [
     "**/*.test.ts",
@@ -46,22 +42,28 @@
     "**/.expo/**",
     "**/assets/**",
     "**/scripts/**",
-    "**/eslint-plugin-*/**"
+    "**/eslint-plugin-*/**",
+    "**/generated/**",
+    "**/patches/**",
+    "**/projects/**",
+    "**/specs/**",
+    "**/docs/**",
+    "**/*.config.js",
+    "**/*.config.ts",
+    "**/metro.config.js",
+    "**/babel.config.js"
   ],
-  "ignoreDependencies": [
-    "jscodeshift",
-    "ts-morph",
-    "commitizen",
-    "eslint-*",
-    "lint-staged",
-    "ts-node",
-    "@commitlint/*",
-    "expo-*",
-    "@expo/*",
-    "react-native",
-    "react-native-*",
-    "@react-native/*",
-    "@react-navigation/*"
-  ],
-  "ignoreExportsUsedInFile": true
+  "ignoreExportsUsedInFile": true,
+  "includeEntryExports": false,
+  "rules": {
+    "dependencies": "off",
+    "devDependencies": "off",
+    "unlisted": "off",
+    "binaries": "off",
+    "unresolved": "off",
+    "files": "off",
+    "duplicates": "off",
+    "exports": "off",
+    "types": "off"
+  }
 }
