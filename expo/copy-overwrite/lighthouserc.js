@@ -57,15 +57,20 @@ const defaults = {
     totalByteWeight: { maxNumericValue: 850000 },
     scriptSize: { maxNumericValue: 750000 },
     fontDisplay: { minScore: 0.9 },
+    fontDisplayInsight: { minScore: 0.9 },
     imageAspectRatio: { minScore: 1 },
     metaDescription: { minScore: 1 },
     unusedJavascript: { maxLength: 2 },
+    unusedCssRules: { maxLength: 0 },
+    usesRelPreconnect: { maxLength: 0 },
     bootupTime: { minScore: 0.9 },
     mainthreadWorkBreakdown: { minScore: 0.9 },
     maxPotentialFid: { minScore: 1 },
     legacyJavascript: { maxLength: 2 },
     legacyJavascriptInsight: { minScore: 0.4 },
     speedIndex: { minScore: 0.9 },
+    networkDependencyTreeInsight: { minScore: 0.9 },
+    duplicatedJavascriptInsight: { minScore: 0.9 },
   },
 };
 
@@ -184,6 +189,23 @@ module.exports = {
           { minScore: a.legacyJavascriptInsight.minScore },
         ],
         "speed-index": ["error", { minScore: a.speedIndex.minScore }],
+        "unused-css-rules": ["warn", { maxLength: a.unusedCssRules.maxLength }],
+        "uses-rel-preconnect": [
+          "warn",
+          { maxLength: a.usesRelPreconnect.maxLength },
+        ],
+        "font-display-insight": [
+          "warn",
+          { minScore: a.fontDisplayInsight.minScore },
+        ],
+        "network-dependency-tree-insight": [
+          "warn",
+          { minScore: a.networkDependencyTreeInsight.minScore },
+        ],
+        "duplicated-javascript-insight": [
+          "warn",
+          { minScore: a.duplicatedJavascriptInsight.minScore },
+        ],
       },
     },
 
