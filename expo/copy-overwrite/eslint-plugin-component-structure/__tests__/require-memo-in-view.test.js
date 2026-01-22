@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * Unit tests for the require-memo-in-view ESLint rule
  *
  * Tests that View components are properly wrapped with React.memo() and have displayName.

@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint 9 Flat Config - Main Entry Point (CDK)
  *
  * This file imports the CDK-specific configuration and project-local customizations.

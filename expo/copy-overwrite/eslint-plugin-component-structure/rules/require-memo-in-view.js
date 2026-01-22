@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint rule to enforce React.memo usage with displayName in View components
  *
  * This rule ensures that all View components (*View.tsx, *View.jsx) follow the standardized pattern:
