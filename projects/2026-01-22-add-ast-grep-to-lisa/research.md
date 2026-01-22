@@ -342,25 +342,25 @@ export class TypeScriptDetector implements IProjectTypeDetector {
 **Question**: Should `@ast-grep/cli` be added to the `typescript/merge/package.json` devDependencies, or should it be a separate concern?
 **Context**: The brief mentions following the ESLint inheritance pattern. ESLint is in merge/package.json. However, ast-grep might not be needed for all TypeScript projects.
 **Impact**: Affects whether ast-grep is installed automatically for all TypeScript projects or requires opt-in.
-**Answer**: _[Human fills this in before running /project:plan]_
+**Answer**: Add to `typescript/merge/package.json` for all TypeScript projects automatically.
 
 ### Q2: Claude Hook Blocking vs Non-blocking
 **Question**: Should the ast-grep Claude hook block (fail) on scan errors, or should it always exit 0 like the existing lint hook?
 **Context**: The lint-on-edit.sh hook always exits 0 to "not interrupt Claude's workflow". However, ast-grep might catch more critical issues that should block.
 **Impact**: Determines the hook script behavior and user experience during Claude sessions.
-**Answer**: _[Human fills this in before running /project:plan]_
+**Answer**: Blocking. The hook should give Claude feedback so it has to fix the error.
 
 ### Q3: Base Rules to Include
 **Question**: Should Lisa ship with any default ast-grep rules in the `typescript/copy-overwrite/ast-grep/rules/` directory, or start with an empty rules directory?
 **Context**: The reference implementation (claude-code-safety-net) has a `no-dynamic-import` rule. Starting empty follows the pattern of eslint.config.local.ts being empty.
 **Impact**: Determines whether projects get immediate value from ast-grep or need to define their own rules.
-**Answer**: _[Human fills this in before running /project:plan]_
+**Answer**: Empty rules directory for now. Projects will define their own rules.
 
 ### Q4: Quality Workflow Skip Input Naming
 **Question**: What should the skip input be named: `skip_ast_grep`, `skip_sg_scan`, or something else?
 **Context**: Existing inputs use patterns like `skip_lint`, `skip_typecheck`, `skip_dead_code`. Need consistency.
 **Impact**: Affects the workflow_call input interface.
-**Answer**: _[Human fills this in before running /project:plan]_
+**Answer**: `skip_sg_scan`
 
 ## External References
 
