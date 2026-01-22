@@ -86,8 +86,13 @@ on:
         required: false
         default: false
         type: boolean
+      skip_sg_scan:
+        description: 'Skip the ast-grep scan job'
+        required: false
+        default: false
+        type: boolean
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,npm_security_scan,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,github_issue)'
         required: false
         default: ''
         type: string
@@ -837,6 +842,84 @@ jobs:
         run: ${{ inputs.package_manager }} run knip
         working-directory: ${{ inputs.working_directory || '.' }}
 
+  sg_scan:
+    name: 🔎 AST Grep Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ !inputs.skip_sg_scan && !contains(inputs.skip_jobs, 'sg_scan') }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔍 Check for sgconfig.yml
+        id: check_config
+        run: |
+          if [ -f "sgconfig.yml" ]; then
+            echo "has_config=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_config=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔍 Check for ast-grep rules
+        id: check_rules
+        if: steps.check_config.outputs.has_config == 'true'
+        run: |
+          RULES_DIR="ast-grep/rules"
+          if [ -d "$RULES_DIR" ]; then
+            RULE_COUNT=$(find "$RULES_DIR" -name "*.yml" -o -name "*.yaml" 2>/dev/null | grep -v ".gitkeep" | wc -l | tr -d ' ')
+            if [ "$RULE_COUNT" -gt 0 ]; then
+              echo "has_rules=true" >> $GITHUB_OUTPUT
+              echo "rule_count=$RULE_COUNT" >> $GITHUB_OUTPUT
+            else
+              echo "has_rules=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has_rules=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔎 Run ast-grep scan
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules == 'true'
+        run: ${{ inputs.package_manager }} run sg:scan
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ⏭️ AST Grep Skipped (no config)
+        if: steps.check_config.outputs.has_config != 'true'
+        run: |
+          echo "::warning::ast-grep scan skipped - no sgconfig.yml found"
+          echo "To enable ast-grep scanning, add sgconfig.yml to your project root"
+
+      - name: ⏭️ AST Grep Skipped (no rules)
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules != 'true'
+        run: |
+          echo "::warning::ast-grep scan skipped - no rules defined in ast-grep/rules/"
+          echo "To enable ast-grep scanning, add rule YAML files to ast-grep/rules/"
+
   npm_security_scan:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
@@ -1246,6 +1329,7 @@ jobs:
         format,
         build,
         dead_code,
+        sg_scan,
         npm_security_scan,
         sonarcloud,
         snyk,
@@ -1457,6 +1541,7 @@ jobs:
         format,
         build,
         dead_code,
+        sg_scan,
         npm_security_scan,
         sonarcloud,
         snyk,
@@ -1508,7 +1593,8 @@ jobs:
                   maestro_e2e: '${{ needs.maestro_e2e.result }}',
                   playwright_e2e: '${{ needs.playwright_e2e.result }}',
                   format: '${{ needs.format.result }}',
-                  build: '${{ needs.build.result }}'
+                  build: '${{ needs.build.result }}',
+                  sg_scan: '${{ needs.sg_scan.result }}'
                 },
                 security: {
                   npm_audit: '${{ needs.npm_security_scan.result }}',
@@ -1667,6 +1753,7 @@ jobs:
         format,
         build,
         dead_code,
+        sg_scan,
         npm_security_scan,
         sonarcloud,
         snyk,
@@ -1716,6 +1803,7 @@ jobs:
           echo "| Format Check | ${{ needs.format.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} | Build |" >> $GITHUB_STEP_SUMMARY
           echo "| Dead Code | ${{ needs.dead_code.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
+          echo "| AST Grep | ${{ needs.sg_scan.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| NPM Security | ${{ needs.npm_security_scan.result }} | Security |" >> $GITHUB_STEP_SUMMARY
           echo "| SonarCloud | ${{ needs.sonarcloud.result }} | Security |" >> $GITHUB_STEP_SUMMARY
           echo "| Snyk | ${{ needs.snyk.result }} | Security |" >> $GITHUB_STEP_SUMMARY
@@ -1744,6 +1832,7 @@ jobs:
           [ "${{ needs.playwright_e2e.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.format.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.dead_code.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
+          [ "${{ needs.sg_scan.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
 
           [ "${{ needs.sonarcloud.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
           [ "${{ needs.snyk.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
