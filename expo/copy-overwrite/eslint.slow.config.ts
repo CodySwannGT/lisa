@@ -18,6 +18,7 @@
 import importPlugin from "eslint-plugin-import";
 import reactCompiler from "eslint-plugin-react-compiler";
 import reactHooks from "eslint-plugin-react-hooks";
+import sonarjsPlugin from "eslint-plugin-sonarjs";
 import tseslint from "typescript-eslint";
 
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
@@ -47,6 +48,7 @@ export default [
     },
     plugins: {
       ...importTypescriptConfig?.plugins,
+      sonarjs: sonarjsPlugin,
       "react-compiler": reactCompiler,
       "react-hooks": reactHooks,
     },
