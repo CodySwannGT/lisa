@@ -1,16 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "lib/**/*.ts",
-    "bin/**/*.ts"
-  ],
-  "project": [
-    "src/**/*.{ts,tsx}",
-    "lib/**/*.{ts,tsx}",
-    "bin/**/*.ts"
-  ],
+  "entry": ["src/**/*.ts"],
+  "project": ["src/**/*.ts"],
   "ignore": [
     "**/*.test.ts",
     "**/*.spec.ts",
@@ -32,5 +23,6 @@
     "ts-node",
     "@commitlint/*"
   ],
+  "ignoreBinaries": ["expo", "playwright", "audit"],
   "ignoreExportsUsedInFile": true
 }
