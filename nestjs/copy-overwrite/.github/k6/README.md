@@ -60,14 +60,14 @@ For containerized testing:
 
 ```bash
 # Run smoke test
-docker compose -f docker compose.k6.yml run --rm k6-smoke
+docker compose -f docker-compose.k6.yml run --rm k6-smoke
 
 # Run against custom URL
-K6_BASE_URL=https://staging.example.com docker compose -f docker compose.k6.yml run --rm k6-load
+K6_BASE_URL=https://staging.example.com docker compose -f docker-compose.k6.yml run --rm k6-load
 
 # Run with other services
-docker compose -f docker compose.yml -f docker compose.k6.yml up -d postgres valkey
-docker compose -f docker compose.yml -f docker compose.k6.yml run --rm k6-smoke
+docker compose -f docker compose.yml -f docker-compose.k6.yml up -d postgres valkey
+docker compose -f docker compose.yml -f docker-compose.k6.yml run --rm k6-smoke
 ```
 
 ---
