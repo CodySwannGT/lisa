@@ -73,6 +73,9 @@ For each comment categorized as VALID:
 1. Make the requested code changes using Edit or Write tools
 2. Ensure changes follow project coding standards
 3. Run any relevant tests to verify the changes work
+4. Run `/git:commit` to commit the changes
+5. If hooks fail, fix the errors and re-run `/git:commit`
+6. Only consider the change complete after a successful commit
 
 If no VALID comments exist, skip implementation.
 
