@@ -123,7 +123,6 @@ export function getExpoConfig({
         // UI standards (all off by default)
         "ui-standards/no-classname-outside-ui": "off",
         "ui-standards/no-direct-rn-imports": "off",
-        "ui-standards/no-inline-styles": "off",
 
         // Tailwind
         "tailwindcss/classnames-order": [
@@ -218,7 +217,6 @@ export function getExpoConfig({
       ],
       rules: {
         "ui-standards/no-classname-outside-ui": "off",
-        "ui-standards/no-inline-styles": "off",
       },
     },
 

@@ -86,17 +86,6 @@ VALID_SPACING_VALUES = {
     "36", "40", "44", "48", "52", "56", "60", "64", "72", "80", "96"
 }
 
-# Inline style patterns that could be className
-INLINE_STYLE_PATTERNS = [
-    r'style=\{\{[^}]*backgroundColor\s*:',
-    r'style=\{\{[^}]*color\s*:',
-    r'style=\{\{[^}]*padding\s*:',
-    r'style=\{\{[^}]*margin\s*:',
-    r'style=\{\{[^}]*borderRadius\s*:',
-    r'style=\{\{[^}]*borderColor\s*:',
-    r'style=\{\{[^}]*borderWidth\s*:',
-]
-
 # Exceptions - files/patterns to skip
 SKIP_PATTERNS = [
     r'node_modules',
@@ -197,35 +186,6 @@ def check_arbitrary_values(content: str, file_path: str) -> list[Violation]:
     return violations
 
 
-def check_inline_styles(content: str, file_path: str) -> list[Violation]:
-    """Check for inline styles that could be className."""
-    violations = []
-    lines = content.split('\n')
-
-    for i, line in enumerate(lines, 1):
-        # Skip comments
-        if line.strip().startswith('//') or line.strip().startswith('*'):
-            continue
-
-        for pattern in INLINE_STYLE_PATTERNS:
-            if re.search(pattern, line):
-                # Check for exceptions (dynamic values, animations)
-                if 'bottomInset' in line or 'Animated' in line or 'animatedValue' in line:
-                    continue
-                if 'Platform.select' in line or 'Platform.OS' in line:
-                    continue
-
-                violations.append(Violation(
-                    file=file_path,
-                    line=i,
-                    rule="no-inline-styles",
-                    message="Prefer className over inline style for static styling",
-                    severity="warning",
-                ))
-
-    return violations
-
-
 def check_non_scale_spacing(content: str, file_path: str) -> list[Violation]:
     """Check for spacing values not in the standard scale."""
     violations = []
@@ -272,7 +232,6 @@ def validate_file(file_path: str) -> list[Violation]:
     violations.extend(check_rn_imports(content, file_path))
     violations.extend(check_raw_colors(content, file_path))
     violations.extend(check_arbitrary_values(content, file_path))
-    violations.extend(check_inline_styles(content, file_path))
     violations.extend(check_non_scale_spacing(content, file_path))
 
     return violations

@@ -403,7 +403,6 @@ Lisa includes custom ESLint plugins that enforce code structure:
 **eslint-plugin-component-structure** (Expo)
 - `single-component-per-file` - One component per file
 - `require-memo-in-view` - Memoization in view components
-- `no-inline-styles` - Extract styles to StyleSheet
 
 ### Thresholds
 
