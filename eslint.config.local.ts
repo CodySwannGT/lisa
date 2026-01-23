@@ -20,5 +20,15 @@
  * @module eslint.config.local
  */
 export default [
-  // Add project-specific rules here
+  {
+    // Lisa-specific: ignore template directories that get copied to target projects
+    ignores: [
+      "all/**",
+      "cdk/**",
+      "expo/**",
+      "nestjs/**",
+      "npm-package/**",
+      "typescript/**",
+    ],
+  },
 ];
