@@ -1,3 +1,8 @@
+/**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
 module.exports = {
   extends: ["@commitlint/config-conventional"],
   rules: {

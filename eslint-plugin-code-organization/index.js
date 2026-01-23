@@ -1,4 +1,9 @@
 /**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
  * ESLint plugin for code organization standards
  *
  * This plugin enforces code organization patterns for all functions
