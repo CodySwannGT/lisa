@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
 """
 Skill Initializer - Creates a new skill from template
 
