@@ -59,6 +59,6 @@
     "cache-manager",
     "@jest/globals"
   ],
-  "ignoreBinaries": ["expo", "playwright", "audit", "docker compose", "eval"],
+  "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true
 }
