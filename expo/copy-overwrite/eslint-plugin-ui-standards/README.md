@@ -146,73 +146,6 @@ const MyComponent = () => (
 
 ---
 
-### no-inline-styles
-
-Prevents inline style objects in favor of className-based styling.
-
-#### Rule Details
-
-This rule prohibits inline `style` props with object literals. All styling should use className with Tailwind/NativeWind classes.
-
-**Why this rule exists:**
-- Inline styles bypass the design system
-- Harder to maintain consistency
-- NativeWind provides better performance
-- Enables theme support
-
-#### Examples
-
-**Incorrect:**
-
-```tsx
-const MyView = () => (
-  <View style={{ padding: 16, backgroundColor: 'white' }}>
-    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Title</Text>
-  </View>
-);
-```
-
-**Incorrect** (StyleSheet is also discouraged):
-
-```tsx
-const styles = StyleSheet.create({
-  container: { padding: 16 }
-});
-
-const MyView = () => (
-  <View style={styles.container}>
-    <Text>Content</Text>
-  </View>
-);
-```
-
-**Correct:**
-
-```tsx
-const MyView = () => (
-  <View className="p-4 bg-white">
-    <Text className="text-lg font-bold">Title</Text>
-  </View>
-);
-```
-
-#### Configuration
-
-```javascript
-// eslint.config.mjs
-{
-  rules: {
-    'ui-standards/no-inline-styles': 'error'
-  }
-}
-```
-
-**Allowed exceptions:**
-- Dynamic styles computed at runtime (with eslint-disable comment)
-- Animation styles (Reanimated)
-
----
-
 ## Installation
 
 This plugin is installed locally as a file dependency:
@@ -239,7 +172,6 @@ export default [
     rules: {
       'ui-standards/no-classname-outside-ui': 'error',
       'ui-standards/no-direct-rn-imports': 'error',
-      'ui-standards/no-inline-styles': 'error',
     },
   },
 ];
