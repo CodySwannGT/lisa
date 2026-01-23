@@ -186,3 +186,4 @@ expo-env.d.ts
 .lisabak
 
 # END: AI GUARDRAILS
+.claude/env.local
