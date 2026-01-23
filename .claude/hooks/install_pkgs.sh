@@ -36,16 +36,7 @@ npx playwright install chromium
 # Use sort to ensure deterministic selection of the latest version
 CHROME_PATH=$(find ~/.cache/ms-playwright -name "chrome" -type f 2>/dev/null | grep "chrome-linux" | sort | tail -n 1)
 if [ -n "$CHROME_PATH" ]; then
-  # Write to .claude/env.local for project-specific env (preferred)
-  ENV_LOCAL="$CLAUDE_PROJECT_DIR/.claude/env.local"
-  if [ -f "$ENV_LOCAL" ]; then
-    # Remove old CHROME_PATH entries and add new one
-    grep -v "^export CHROME_PATH=" "$ENV_LOCAL" > "$ENV_LOCAL.tmp" 2>/dev/null || true
-    mv "$ENV_LOCAL.tmp" "$ENV_LOCAL"
-  fi
-  echo "export CHROME_PATH=\"$CHROME_PATH\"" >> "$ENV_LOCAL"
-
-  # Also append to ~/.bashrc for shell sessions (idempotent)
+  # Append to ~/.bashrc for shell sessions (idempotent)
   if ! grep -q "export CHROME_PATH=" ~/.bashrc 2>/dev/null; then
     echo "export CHROME_PATH=\"$CHROME_PATH\"" >> ~/.bashrc
   else
@@ -55,7 +46,6 @@ if [ -n "$CHROME_PATH" ]; then
 
   export CHROME_PATH="$CHROME_PATH"
   echo "Chromium installed at: $CHROME_PATH"
-  echo "CHROME_PATH exported to: $ENV_LOCAL and ~/.bashrc"
 fi
 
 exit 0
