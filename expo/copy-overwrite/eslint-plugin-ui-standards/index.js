@@ -12,12 +12,10 @@
  * Rules:
  * - no-classname-outside-ui: Disallows className prop outside UI components
  * - no-direct-rn-imports: Disallows direct React Native imports
- * - no-inline-styles: Disallows inline style objects
  * @module eslint-plugin-ui-standards
  */
 const noClassnameOutsideUi = require("./rules/no-classname-outside-ui");
 const noDirectRnImports = require("./rules/no-direct-rn-imports");
-const noInlineStyles = require("./rules/no-inline-styles");
 
 const plugin = {
   meta: {
@@ -27,7 +25,6 @@ const plugin = {
   rules: {
     "no-classname-outside-ui": noClassnameOutsideUi,
     "no-direct-rn-imports": noDirectRnImports,
-    "no-inline-styles": noInlineStyles,
   },
 };
 
