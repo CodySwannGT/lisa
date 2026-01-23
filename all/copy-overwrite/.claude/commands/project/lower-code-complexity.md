@@ -1,74 +1,71 @@
 ---
 description: Reduces the code complexity of the codebase by 2 on each run
-allowed-tools: Read, Write, Bash(git*), Glob, Grep, Task, TodoWrite
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TodoWrite
 ---
 
-## Step 0: MANDATORY SETUP
-
-Create workflow tracking todos:
-- Step 1: Lower complexity threshold
-- Step 2: Run lint
-- Step 3: Save spec file
-- Step 4: Bootstrap project
-- Step 5: Resolve questions
-- Step 6: Execute project
-
-⚠️ **CRITICAL**: DO NOT STOP until all 7 todos are marked completed.
-
 ## Step 1: Lower Complexity Threshold
-Mark "Step 1: Lower complexity threshold" as in_progress.
 
-In @eslint.config.mjs, lower the active cognitive complexity rule by two.
-Save the file.
+1. Read the eslint config file to find the current `cognitive-complexity` rule threshold
+2. Use Edit tool to lower the threshold by 2 (e.g., 15 → 13)
+3. Verify the change was applied
 
-Mark "Step 1: Lower complexity threshold" as completed. Proceed to Step 2.
+## Step 2: Identify Violations
 
-## Step 2: Run Lint
-Mark "Step 2: Run lint" as in_progress.
+1. Run the project's lint command to find all cognitive complexity violations
+2. For each violation, note the file path, function name, and current complexity score
 
-Run the lint command from @package.json.
+If no violations are found, skip to Step 4 and report success.
 
-Mark "Step 2: Run lint" as completed. Proceed to Step 3.
+## Step 3: Create Work Plan
 
-## Step 3: Save Spec File
-Mark "Step 3: Save spec file" as in_progress.
+Use TodoWrite to create a checklist of all files needing refactoring, ordered by complexity score (highest first).
 
-Save the output of the lint command to `specs/reduce-cognitive-complexity.md` along with the following instructions:
+Each todo should include:
+- File path
+- Function name
+- Current complexity score
+- Target threshold
 
-```text
+## Step 4: Parallel Execution
 
-Refactor the <files> to adhere to the cognitive complexity rule.
+Launch **5 sub-agents** using the `code-simplifier` subagent to refactor in parallel. Each agent should claim unclaimed files from the todo list and mark them complete when done.
 
-Common Solutions
+Each subagent should:
+1. Read the file and understand the complex function's purpose
+2. Apply refactoring strategies:
+   - **Extract functions**: Break complex logic into smaller, named functions
+   - **Early returns**: Reduce nesting with guard clauses
+   - **Extract conditions**: Move complex boolean logic into named variables
+   - **Use lookup tables**: Replace complex switch/if-else chains with object maps
+3. Use Edit tool to make changes while preserving function behavior
+4. Verify the function no longer violates the complexity threshold
+5. Run `/git:commit` to commit the changes
+6. If hooks fail, fix the errors and re-run `/git:commit`
+7. Only mark the todo as completed after a successful commit
 
-1. Extract functions: Break complex logic into smaller, named functions
-2. Early returns: Reduce nesting with guard clauses
-3. Extract conditions: Move complex boolean logic into named variables
-4. Use lookup tables: Replace complex switch/if-else chains
-5. Break larger components into smaller components with their own View/Container pattern
+## Step 5: Iterate
+
+Re-run lint. If violations remain, repeat from Step 3.
+
+Continue until all functions meet the new threshold.
+
+## Step 6: Commit and Push Changes
+
+Use Task tool with prompt: "run /git:commit"
+
+The commit message should follow this format:
+```
+refactor: reduce cognitive complexity threshold
+
+- Lowered sonarjs/cognitive-complexity from [X] to [Y]
+- Refactored [list functions] to reduce complexity
 ```
 
-Mark "Step 3: Save spec file" as completed. Proceed to Step 4.
-
-## Step 4: Bootstrap Project
-Mark "Step 4: Bootstrap project" as in_progress.
-
-Run /project:bootstrap @specs/reduce-cognitive-complexity.md
-
-Mark "Step 4: Bootstrap project" as completed. Proceed to Step 5.
-
-## Step 5: Resolve Questions
-Mark "Step 5: Resolve questions" as in_progress.
-
-Answer any unresolved questions in the new project's `research.md` file.
-
-Mark "Step 5: Resolve questions" as completed. Proceed to Step 6.
-
-## Step 6: Execute Project
-Mark "Step 6: Execute project" as in_progress.
-
-Run /project:execute [project-dir] where [project-dir] is the directory created from Step 4.
-
-Mark "Step 6: Execute project" as completed.
-
-Report: "🎉 Code complexity reduction complete"
+Report summary:
+```
+🎉 Code complexity reduction complete:
+- Previous threshold: [X]
+- New threshold: [Y]
+- Files refactored: [Z]
+- Functions simplified: [list]
+```
