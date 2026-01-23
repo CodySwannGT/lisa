@@ -94,7 +94,6 @@ copy-overwrite:eslint.config.ts
 copy-overwrite:eslint.ignore.config.json
 copy-overwrite:eslint.slow.config.ts
 copy-overwrite:eslint.typescript.ts
-copy-overwrite:knip.json
 copy-overwrite:sgconfig.yml
 copy-overwrite:tsconfig.eslint.json
 copy-contents:.husky/_/.gitignore
