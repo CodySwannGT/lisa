@@ -1,5 +1,5 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-23T00:04:13.760Z
+# Generated: 2026-01-23T11:11:40.201Z
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.claude/README.md
@@ -11,6 +11,7 @@ copy-overwrite:.claude/agents/git-history-analyzer.md
 copy-overwrite:.claude/agents/hooks-expert.md
 copy-overwrite:.claude/agents/skill-evaluator.md
 copy-overwrite:.claude/agents/slash-command-architect.md
+copy-overwrite:.claude/agents/test-coverage-agent.md
 copy-overwrite:.claude/agents/web-search-researcher.md
 copy-overwrite:.claude/commands/git/commit-and-submit-pr.md
 copy-overwrite:.claude/commands/git/commit.md
@@ -19,6 +20,7 @@ copy-overwrite:.claude/commands/git/submit-pr.md
 copy-overwrite:.claude/commands/jira/create.md
 copy-overwrite:.claude/commands/jira/verify.md
 copy-overwrite:.claude/commands/lisa/review-implementation.md
+copy-overwrite:.claude/commands/project/add-test-coverage.md
 copy-overwrite:.claude/commands/project/archive.md
 copy-overwrite:.claude/commands/project/bootstrap.md
 copy-overwrite:.claude/commands/project/complete-task.md
@@ -92,7 +94,6 @@ copy-overwrite:eslint.config.ts
 copy-overwrite:eslint.ignore.config.json
 copy-overwrite:eslint.slow.config.ts
 copy-overwrite:eslint.typescript.ts
-copy-overwrite:knip.json
 copy-overwrite:sgconfig.yml
 copy-overwrite:tsconfig.eslint.json
 copy-contents:.husky/_/.gitignore

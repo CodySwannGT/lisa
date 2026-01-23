@@ -4,6 +4,6 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": ["src/**/*", "tests/**/*", "test/**/*", "*.ts"],
+  "include": ["src/**/*", "tests/**/*", "test/**/*", "*.config.ts", "eslint.*.ts"],
   "exclude": ["node_modules", "dist", "build"]
 }

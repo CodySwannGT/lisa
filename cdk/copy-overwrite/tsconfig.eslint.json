@@ -6,6 +6,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
-  "include": ["lib/**/*", "bin/**/*", "test/**/*", "*.config.ts"],
+  "include": ["lib/**/*", "bin/**/*", "test/**/*", "*.config.ts", "eslint.*.ts"],
   "exclude": ["node_modules", "dist", "cdk.out"]
 }
