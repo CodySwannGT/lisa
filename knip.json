@@ -16,11 +16,9 @@
   ],
   "ignoreDependencies": [
     "jscodeshift",
-    "ts-morph",
     "commitizen",
     "eslint-*",
     "lint-staged",
-    "ts-node",
     "@commitlint/*"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit"],

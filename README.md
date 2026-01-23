@@ -948,6 +948,128 @@ EOF
 - Threshold-based complexity limits
 - Git hooks via Husky for pre-commit gates
 
+## Future Enhancements
+
+Planned improvements for future versions of Lisa:
+
+### Beads / Task Management Integration
+
+Integrate with [Beads](https://github.com/steveyegge/beads), a git-backed issue tracker engineered for AI-supervised coding workflows, and Claude Code's task management system (v2.1.16+).
+
+**Value:**
+- **Persistent Memory**: Beads stores tasks as JSONL in `.beads/`, version-controlled with code—agents maintain context across sessions
+- **Dependency-Aware Execution**: `bd ready` shows only unblocked work, enabling true parallel multi-agent execution
+- **Async Workflows**: Combine Claude Code Web + ntfy notifications + Beads status updates for fire-and-forget task execution
+- **Audit Trail**: Git-tracked task history provides immutable record of work decomposition and completion
+
+**Integration Points:**
+- Update `/project:plan` to create Beads issues with dependencies
+- Update `/project:execute` to claim and resolve tasks automatically
+- Enable multi-agent orchestration querying `bd ready` for unblocked work
+
+### Biome Migration
+
+Migrate formatting from Prettier to [Biome](https://biomejs.dev/) for 40x faster formatting, while keeping ESLint for governance-critical rules.
+
+**Value:**
+- **Performance**: Biome formats 10,000 files in 0.3s vs Prettier's 12.1s
+- **Unified Tooling**: Single binary replaces Prettier, reducing dependencies
+- **97% Prettier-Compatible**: Nearly identical output with minimal configuration changes
+
+**Approach:**
+- Replace Prettier with Biome formatter (low-risk, high-reward)
+- Keep ESLint for custom rules (enforce-statement-order, functional/immutable-data)
+- Monitor Biome's GritQL plugin system for future full migration when it matures
+
+**Note:** Full ESLint replacement is not recommended yet—Lisa's custom plugins and eslint-plugin-functional have no Biome equivalents.
+
+### ESLint Plugin Extraction
+
+Extract custom ESLint plugins to separate npm packages for independent versioning and broader adoption.
+
+**Current Plugins:**
+- `eslint-plugin-code-organization` (1 rule: enforce-statement-order)
+- `eslint-plugin-component-structure` (4 rules: container/view pattern enforcement)
+- `eslint-plugin-ui-standards` (3 rules: NativeWind/styling standards)
+
+**Value:**
+- **Independent Versioning**: Bug fixes ship without waiting for Lisa releases
+- **Reusability**: Any ESLint project can adopt these rules, not just Lisa users
+- **Easier Contribution**: Focused repos with clearer scope for community PRs
+- **Smaller Bundle**: Lisa package size reduced; users install only needed plugins
+- **Clear Ownership**: Each plugin has its own documentation and maintenance cycle
+
+**Extraction Order:**
+1. `eslint-plugin-code-organization` (generic, cleanest extraction)
+2. `eslint-plugin-ui-standards` (Expo-specific, smaller)
+3. `eslint-plugin-component-structure` (largest, most complex)
+
+### Test Library Standardization
+
+Standardize on Vitest across all Lisa-managed projects for consistent, fast testing.
+
+**Current State:** Lisa uses Vitest 3.0 with 97 tests, 90% coverage thresholds, and v8 provider.
+
+**Value:**
+- **Consistency**: All projects use same test APIs and patterns
+- **Performance**: Vitest is 10-20x faster than Jest in watch mode
+- **TypeScript-Native**: No ts-jest configuration needed
+- **Modern Ecosystem**: Growing adoption (20M+ weekly downloads), active maintenance
+
+**Trade-offs Considered:**
+- Jest: Industry standard but slower, requires ts-jest for TypeScript
+- Bun Test: Fastest but smallest ecosystem, 34% compatibility issues reported
+- Vitest: Best balance of speed, TypeScript support, and ecosystem maturity
+
+### Ruby on Rails Support
+
+Add Ruby on Rails as a project type with RuboCop integration and Rails-specific skills.
+
+**Detection:** Check for `Gemfile` + `Gemfile.lock` + `config/application.rb` + `app/` directory
+
+**What Lisa Would Provide:**
+- **RuboCop Configuration**: `.rubocop.yml` with rubocop-rails, rubocop-performance, rubocop-rspec
+- **Skills**: Rails conventions (MVC, service objects, concerns), RSpec testing, database/migrations
+- **Gemfile Merge**: Add development gems (rspec-rails, factory_bot_rails, faker) via merge strategy
+- **CI/CD**: GitHub workflows for RuboCop + RSpec
+
+**Skills to Create:**
+1. `rails-conventions` - MVC patterns, service objects, concerns, ActiveRecord
+2. `rspec-testing` - Test structure, shared examples, factories, isolation
+3. `rubocop-patterns` - Linting rules, Rails-specific cops
+4. `rails-database` - Migrations, models, scopes, associations
+
+**Note:** Rails would be a standalone type (not inheriting from TypeScript) since Ruby uses different tooling.
+
+### Plugin Publishing
+
+Publish Claude Code skills, commands, and agents as installable plugins via the Claude Code marketplace system.
+
+**Current Plugin Ecosystem:**
+- Official plugins: `claude-plugins-official` (typescript-lsp, code-review, playwright)
+- Community marketplaces: `cc-marketplace`, `beads-marketplace`
+- Community registry: [claude-plugins.dev](https://claude-plugins.dev/)
+
+**Lisa Components That Could Become Plugins:**
+- `coding-philosophy` skill - Teachable immutability and function structure patterns
+- `prompt-complexity-scorer` skill - Request complexity evaluation
+- `jsdoc-best-practices` skill - Documentation standards
+- `project:*` commands - Implementation workflows
+- Custom agents (skill-evaluator, codebase-analyzer)
+
+**Value:**
+- **À La Carte Adoption**: Teams install only relevant governance patterns
+- **Automatic Updates**: Plugin updates flow without re-running Lisa CLI
+- **Community Contributions**: Accept PRs for stack-specific patterns (Django, FastAPI, etc.)
+- **Ecosystem Discovery**: Listed on claude-plugins.dev for broader reach
+- **Mix-and-Match**: Combine Lisa's `coding-philosophy` with other teams' specialized plugins
+
+**Implementation Path:**
+1. Extract skills as standalone plugins with `.claude-plugin/plugin.json` manifests
+2. Create `lisa-governance-plugins` marketplace repository
+3. List on claude-plugins.dev community registry
+4. Provide marketplace.json for organizations to self-host
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details
