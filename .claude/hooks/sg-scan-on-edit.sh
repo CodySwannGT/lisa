@@ -1,4 +1,6 @@
 #!/bin/bash
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
 
 # Hook script to run ast-grep scan after Claude edits files
 # This script receives JSON input via stdin with tool information
