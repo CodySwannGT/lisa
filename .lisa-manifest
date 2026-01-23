@@ -1,5 +1,5 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-23T11:11:40.201Z
+# Generated: 2026-01-23T19:36:39.753Z
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.claude/README.md
@@ -94,6 +94,7 @@ copy-overwrite:eslint.config.ts
 copy-overwrite:eslint.ignore.config.json
 copy-overwrite:eslint.slow.config.ts
 copy-overwrite:eslint.typescript.ts
+copy-overwrite:knip.json
 copy-overwrite:sgconfig.yml
 copy-overwrite:tsconfig.eslint.json
 copy-contents:.husky/_/.gitignore
