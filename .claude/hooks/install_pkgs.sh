@@ -1,4 +1,6 @@
 #!/bin/bash
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
 
 # Only run package installation in remote (Claude Code web) environment
 # node_modules are gitignored, so they need to be installed remotely
