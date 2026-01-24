@@ -64,7 +64,6 @@
     "safety-net@cc-marketplace": true,
     "code-simplifier@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
-    "beads@beads-marketplace": true,
     "playwright@claude-plugins-official": true
   }
 }
