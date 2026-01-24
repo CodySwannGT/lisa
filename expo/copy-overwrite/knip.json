@@ -53,7 +53,7 @@
     "**/metro.config.js",
     "**/babel.config.js"
   ],
-  "ignoreBinaries": ["audit", "maestro", "eas", "source-map-explorer"],
+  "ignoreBinaries": ["audit", "ast-grep", "maestro", "eas", "source-map-explorer"],
   "ignoreDependencies": [
     "@babel/core",
     "@babel/plugin-proposal-export-namespace-from",
