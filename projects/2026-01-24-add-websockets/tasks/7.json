@@ -1,0 +1,9 @@
+{
+  "id": "7",
+  "subject": "Step 4: Wait and synthesize",
+  "description": "Wait for all sub-agents to complete and synthesize their findings",
+  "activeForm": "Waiting for agents and synthesizing findings",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

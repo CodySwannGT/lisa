@@ -1,7 +1,7 @@
 ---
 description: Moves a project to the projects/archive directory after it's completed
 argument-hint: <project-directory>
-allowed-tools: Read, Write, Bash(git*), Glob, Grep, Task, TodoWrite
+allowed-tools: Read, Write, Bash(git*), Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList
 ---
 
 1. Move $ARGUMENTS to `projects/archive`

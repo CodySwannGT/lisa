@@ -30,6 +30,7 @@
     ".maestro",
 
     ".lisabak/**",
+    ".claude-active-project/**",
     "coverage/**",
     "**/*spec.ts",
     "resolver-test.setup.ts",

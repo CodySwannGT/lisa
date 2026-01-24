@@ -18,7 +18,7 @@ rule:
 constraints:
   VALUE:
     not:
-      regex: '.*View"$'
+      regex: 'View[''"]$'
 files:
   - '**/features/**/*View.tsx'
   - '**/components/**/*View.tsx'
