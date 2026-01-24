@@ -3,7 +3,7 @@
   "subject": "Step 1: Setup",
   "description": "Run /project:setup to create project directory, brief.md, findings.md, and git branch",
   "activeForm": "Setting up project",
-  "status": "in_progress",
+  "status": "completed",
   "blocks": [],
   "blockedBy": []
 }

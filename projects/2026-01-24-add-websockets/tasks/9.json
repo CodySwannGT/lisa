@@ -1,0 +1,9 @@
+{
+  "id": "9",
+  "subject": "Step 6: Commit",
+  "description": "Commit the research document using /git:commit",
+  "activeForm": "Committing research document",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}
