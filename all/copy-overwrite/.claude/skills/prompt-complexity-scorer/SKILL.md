@@ -1,6 +1,6 @@
 ---
 name: prompt-complexity-scorer
-description: Evaluates user prompts for effort and complexity on a 1-10 scale. This skill should be invoked on every user request to determine if the request warrants planning via a spec file. For scores 5-10, the agent suggests writing the prompt to specs/<spec-name>.md for proper planning.
+description: Evaluates user prompts for effort and complexity on a 1-10 scale. This skill should be invoked on every user request to determine if the request warrants planning via a project. For scores 5-10, the agent suggests creating a project at projects/<project-name>/ to enable task tracking and team collaboration.
 model: haiku
 ---
 
@@ -32,21 +32,25 @@ Score each prompt on a 1-10 scale based on these factors:
 
 Do not mention the scoring. Proceed with the request immediately.
 
-### Score 5-10: Suggest Spec
+### Score 5-10: Suggest Project
 
 Pause and ask the user:
 
 ```text
-This request scores [X]/10 on complexity. I suggest writing it as a spec to plan it out properly.
+This request scores [X]/10 on complexity. I suggest creating a project to track this work properly.
 
-Would you like me to create `specs/<suggested-name>.md`?
+Would you like me to create `projects/<suggested-name>/` with a brief.md?
 ```
 
 Where `<suggested-name>` is a kebab-case name derived from the request (e.g., "add-websockets", "refactor-auth-system").
 
-## Spec File Format
+## Project Setup
 
-When creating a spec file, capture ONLY the user's original prompt:
+When creating a project, create the directory structure and brief.md:
+
+```bash
+mkdir -p projects/<suggested-name>/tasks
+```
 
 ```markdown
 # <Title derived from prompt>
@@ -54,7 +58,33 @@ When creating a spec file, capture ONLY the user's original prompt:
 ## Original Request
 
 <User's exact prompt/request>
+
+## Goals
+
+<Bullet points summarizing what needs to be accomplished>
+
+## Notes
+
+<Any additional context or constraints mentioned>
 ```
+
+After creating the project, inform the user:
+
+```text
+Project created at `projects/<suggested-name>/`.
+
+You can now:
+- Run `/project:bootstrap @projects/<suggested-name>` for full research and planning
+- Or continue with the request and tasks will be tracked in this project
+```
+
+**IMPORTANT**: After creating the project, set the active project context by creating a marker file:
+
+```bash
+echo "<suggested-name>" > .claude-active-project
+```
+
+This enables automatic task syncing to the project directory.
 
 ## Examples
 
@@ -82,7 +112,7 @@ When creating a spec file, capture ONLY the user's original prompt:
 - Unknowns: 7 (architecture decisions needed)
 - Risk: 7 (architectural change)
 
-**Score**: 7 → Suggest creating `specs/add-websockets.md`
+**Score**: 7 → Suggest creating `projects/add-websockets/`
 
 ### Example 3: Medium Request (Score 3)
 
@@ -108,7 +138,7 @@ When creating a spec file, capture ONLY the user's original prompt:
 - Unknowns: 9 (what's slow? why?)
 - Risk: 6 (depends on changes)
 
-**Score**: 8 → Suggest creating `specs/performance-optimization.md`
+**Score**: 8 → Suggest creating `projects/performance-optimization/`
 
 ## Important Notes
 

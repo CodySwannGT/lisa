@@ -27,6 +27,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "TaskCreate|TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sync-tasks.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Notification": [
