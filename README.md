@@ -1046,7 +1046,6 @@ Publish Claude Code skills, commands, and agents as installable plugins via the 
 
 **Current Plugin Ecosystem:**
 - Official plugins: `claude-plugins-official` (typescript-lsp, code-review, playwright)
-- Community marketplaces: `cc-marketplace`, `beads-marketplace`
 - Community registry: [claude-plugins.dev](https://claude-plugins.dev/)
 
 **Lisa Components That Could Become Plugins:**

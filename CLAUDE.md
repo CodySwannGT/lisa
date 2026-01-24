@@ -42,6 +42,7 @@ Never add eslint-disable for lint warnings (except sonarjs/no-identical-function
 Never delete anything that isn't tracked in git
 Never delete anything outside of this project's directory
 Never add "BREAKING CHANGE" to a commit message unless there is actually a breaking change
+Never stash changes you can't commit. Either fix whatever is prevening the commit or fail out and let the human know why.
 
 ONLY use eslint-disable as a last resort and confirm with human before doing so
 ONLY use eslint-disable for test file max-lines when comprehensive test coverage requires extensive test cases (must include matching eslint-enable)
@@ -49,30 +50,3 @@ ONLY use eslint-disable functional/no-loop-statements in tests when using loops 
 ONLY use ts-ignore as a last resort and confirm with human before doing so
 ONLY use ts-expect-error as a last resort and confirm with human before doing so
 ONLY use ts-nocheck as a last resort and confirm with human before doing so
-
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds

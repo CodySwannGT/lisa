@@ -9,6 +9,12 @@
       "reason": "--no-verify is not allowed. Fix the commit to pass all checks."
     },
     {
+      "name": "block-git-stash",
+      "command": "git",
+      "subcommand": "stash",
+      "reason": "Stashing changes is not allowed. Please commit or discard your changes before stashing. If a commit hook is preventing the commit, either fix whatever is preventing the commit or fail out and let the human know why."
+    },
+    {
       "name": "block-git-push-no-verify",
       "command": "git",
       "subcommand": "push",
