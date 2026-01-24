@@ -43,7 +43,6 @@ The `enabledPlugins` section in `settings.json` references Claude Code plugins. 
 |--------|-------------|--------------|
 | `claude-plugins-official` | Official Anthropic plugins | Built-in, no registration needed |
 | `cc-marketplace` | Community marketplace | Available at [Claude Code Marketplace](https://marketplace.claude.ai) |
-| `beads-marketplace` | Beads project plugins | See [Beads Documentation](https://beads.dev) |
 
 ### Enabled Plugins
 
@@ -53,7 +52,6 @@ The `enabledPlugins` section in `settings.json` references Claude Code plugins. 
 | `safety-net` | `cc-marketplace` | Backup and safety features |
 | `code-simplifier` | `claude-plugins-official` | Code complexity reduction suggestions |
 | `code-review` | `claude-plugins-official` | Automated code review capabilities |
-| `beads` | `beads-marketplace` | Beads project integration |
 | `playwright` | `claude-plugins-official` | Playwright test integration |
 
 ### Installing Plugins
@@ -85,7 +83,7 @@ Create `settings.local.json` to override settings for your local environment:
     "PostToolUse": []
   },
   "enabledPlugins": {
-    "beads@beads-marketplace": false
+    "playwright": false
   }
 }
 ```
