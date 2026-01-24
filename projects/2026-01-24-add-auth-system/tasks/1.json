@@ -1,0 +1,9 @@
+{
+  "id": "1",
+  "subject": "Add tests for ChatContainer.tsx (760 lines, 24% functions)",
+  "description": "Add unit tests for features/knowledge-graph/screens/Chat/ChatContainer.tsx. Current coverage: 39.45% statements, 13.22% branches, 24.32% functions, 40.71% lines. This is a large file (760 lines) with complex chat logic.",
+  "activeForm": "Adding tests for ChatContainer.tsx",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}
