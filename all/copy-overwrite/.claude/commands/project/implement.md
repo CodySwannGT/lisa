@@ -1,42 +1,38 @@
 ---
 description: Systematically implements all tasks in a specified project
 argument-hint: <project-directory>
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, TaskGet, Skill
 ---
 
-### Get Task State
+## Setup
 
-Read $ARGUMENTS/progress.md
+1. Set active project marker: `echo "$ARGUMENTS" | sed 's|.*/||' > .claude-active-project`
+2. Extract `<project-name>` from the last segment of `$ARGUMENTS`
+3. Use **TaskList** to verify tasks exist for this project (check metadata.project)
+4. If no tasks found, error: "No tasks found. Run /project:plan first"
 
-If the file does not exist or is empty, report an error: "Error: $ARGUMENTS/progress.md not found or empty. Run /project:plan first to create the task list."
+## Implementation
 
-If the file contains no task items (checkbox items), report an error: "Error: No tasks found in $ARGUMENTS/progress.md. The file should contain markdown checklist items."
+Use **TaskList** to get current task status.
 
-Count tasks: total=X, completed=Y, remaining=X-Y
+For each pending, unblocked task (filter by `metadata.project` = `<project-name>`):
 
-### Create Workflow Tracking for all tasks
-Use TodoWrite to create workflow todos for each task using the following format:
-- Step <task-number>: <task-name>
+1. Use **TaskUpdate** to mark it `in_progress`
+2. Use **TaskGet** to retrieve full task details (description contains all instructions)
+3. Launch a subagent to complete the task:
+   - Pass the task's full description (includes skills to invoke, verification, etc.)
+   - Subagent should follow the instructions in the description
+   - Subagent runs the verification command and confirms expected output
+4. When subagent completes successfully, use **TaskUpdate** to mark it `completed`
+5. If verification fails, keep task `in_progress` and report the failure
+6. Check **TaskList** for newly unblocked tasks
 
-### Sync with progress file
+Continue until all tasks are completed.
 
-If any of the tasks are marked as completed in $ARGUMENTS/progress.md, mark them as completed in the Workflow Tracking
+## Complete
 
-If any of the tasks are marked as in_progress in $ARGUMENTS/progress.md, mark them as in_progress in the Workflow Tracking
+Use **TaskList** to generate a summary showing:
+- Total tasks completed
+- Any tasks that failed or remain in progress
 
-### Complete the outstanding Workflow items
-
-Work on the non-completed tasks in sequence
-
-⚠️ **CRITICAL**: DO NOT STOP until all todos are marked completed.
-
-For each non-completed task:
-
-1. mark the task as in_progress in $ARGUMENTS/progress.md
-2. mark the task as in_progress in Workflow Tracking
-3. Use Task tool with subagent_type "general-purpose" and prompt: "run /project:complete-task <task-markdown-file>"
-4. Wait for the subagent to finish the task
-5. After subagent finishes with the task, mark the task as completed in $ARGUMENTS/progress.md
-6. After subagent finishes with the task, mark the task as completed in Workflow Tracking
-7. CRITICAL. DO NOT STOP. Move on to the next non-completed task
-
-Repeat until all tasks are marked completed
+Suggest running `/project:review`.

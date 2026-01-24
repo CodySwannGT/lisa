@@ -3,89 +3,47 @@ description: Reduces the code complexity of the codebase by 2 on each run
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
 
-## Step 0: Check Project Context
+## Setup
 
-Check if there's an active project for task syncing:
+Check for active project: `cat .claude-active-project 2>/dev/null`
 
-```bash
-cat .claude-active-project 2>/dev/null
-```
+If active, include `metadata: { "project": "<project-name>" }` in TaskCreate calls.
 
-If a project is active, include `metadata: { "project": "<project-name>" }` in all TaskCreate calls.
+## Step 1: Lower Threshold
 
-## Step 1: Lower Complexity Threshold
-
-1. Read the eslint config file to find the current `cognitive-complexity` rule threshold
-2. Use Edit tool to lower the threshold by 2 (e.g., 15 → 13)
-3. Verify the change was applied
+1. Read the eslint config to find the current `cognitive-complexity` threshold
+2. Lower the threshold by 2 (e.g., 15 → 13)
 
 ## Step 2: Identify Violations
 
-1. Run the project's lint command to find all cognitive complexity violations
-2. For each violation, note the file path, function name, and current complexity score
+Run lint to find all cognitive complexity violations. Note file path, function name, and complexity score.
 
-If no violations are found, skip to Step 4 and report success.
+If no violations, report success and exit.
 
-## Step 3: Create Task List
+## Step 3: Create Tasks
 
-Use TaskCreate to create a task for each function needing refactoring, ordered by complexity score (highest first).
+Create a task for each function needing refactoring, ordered by complexity score (highest first).
 
-Each task should have:
-- **subject**: "Reduce complexity in [function] ([file])" (imperative form)
-- **description**: Include file path, function name, current complexity score, target threshold, and refactoring instructions
-- **activeForm**: "Reducing complexity in [function]" (present continuous)
-- **metadata**: `{ "project": "<active-project>" }` if project context exists
+Each task should include:
+- File path and function name
+- Current complexity score and target threshold
+- Refactoring strategies:
+  - **Extract functions**: Break complex logic into smaller, named functions
+  - **Early returns**: Reduce nesting with guard clauses
+  - **Extract conditions**: Move complex boolean logic into named variables
+  - **Use lookup tables**: Replace complex switch/if-else chains with object maps
 
-Example:
-```
-TaskCreate(
-  subject: "Reduce complexity in processUserData (src/handlers/user.ts)",
-  description: "File: src/handlers/user.ts\nFunction: processUserData\nCurrent: 18\nTarget: 13\n\nApply: extract functions, early returns, extract conditions",
-  activeForm: "Reducing complexity in processUserData",
-  metadata: { "project": "reduce-complexity" }
-)
-```
+## Step 4: Execute
 
-## Step 4: Parallel Execution
+Launch up to 5 sub-agents using `code-simplifier` to refactor in parallel.
 
-Launch **up to 5 sub-agents** using the `code-simplifier` subagent to refactor in parallel.
+Work through all tasks until complete.
 
-Each subagent should:
-1. Use TaskList to find pending tasks with no blockers
-2. Use TaskUpdate to claim a task (set status to `in_progress`)
-3. Read the file and understand the complex function's purpose
-4. Apply refactoring strategies:
-   - **Extract functions**: Break complex logic into smaller, named functions
-   - **Early returns**: Reduce nesting with guard clauses
-   - **Extract conditions**: Move complex boolean logic into named variables
-   - **Use lookup tables**: Replace complex switch/if-else chains with object maps
-5. Use Edit tool to make changes while preserving function behavior
-6. Verify the function no longer violates the complexity threshold
-7. Run `/git:commit` to commit the changes
-8. If hooks fail, fix the errors and re-run `/git:commit`
-9. Use TaskUpdate to mark task as `completed` only after a successful commit
+## Step 5: Report
 
-## Step 5: Iterate
-
-Use TaskList to check for remaining pending tasks. If violations remain, repeat from Step 4.
-
-Continue until all tasks are completed.
-
-## Step 6: Final Commit
-
-Run `/git:commit` with message format:
-```
-refactor: reduce cognitive complexity threshold
-
-- Lowered sonarjs/cognitive-complexity from [X] to [Y]
-- Refactored [list functions] to reduce complexity
-```
-
-Report summary:
 ```
 Code complexity reduction complete:
 - Previous threshold: [X]
 - New threshold: [Y]
-- Files refactored: [Z]
 - Functions simplified: [list]
 ```

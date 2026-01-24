@@ -1,32 +1,26 @@
 ---
 description: Evaluates findings.md and uses skill-evaluator to decide where each learning belongs (new skill, PROJECT_RULES.md, or omit)
 argument-hint: <project-directory>
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, Skill
 ---
 
-## Step 0: MANDATORY SETUP
+## Setup
 
-Use TodoWrite to create workflow tracking todos:
-- Step 1: Read project findings
-- Step 2: Evaluate each finding
-- Step 3: Apply decisions
+Create workflow tracking tasks with `metadata: { "project": "<project-name>", "phase": "debrief" }`:
 
-⚠️ **CRITICAL**: DO NOT STOP until all 3 todos are marked completed.
+1. Read project findings
+2. Evaluate each finding
+3. Apply decisions
 
 ## Step 1: Read Project Findings
-Mark "Step 1: Read project findings" as in_progress.
 
-Read the `findings.md` file inside $ARGUMENTS FULLY (no limit/offset).
+Read `$ARGUMENTS/findings.md` FULLY (no limit/offset).
 
 Extract each distinct finding/learning as a separate item.
 
-Mark "Step 1: Read project findings" as completed. Proceed to Step 2.
-
 ## Step 2: Evaluate Each Finding
-Mark "Step 2: Evaluate each finding" as in_progress.
 
-For each finding extracted from findings.md:
-
-Use the Task tool with `subagent_type: "skill-evaluator"` to evaluate where (and if) the finding should be recorded:
+For each finding, use the Task tool with `subagent_type: "skill-evaluator"`:
 
 ```
 Evaluate this finding from a project debrief:
@@ -41,10 +35,7 @@ Determine if this should be:
 
 Collect all decisions from the skill-evaluator.
 
-Mark "Step 2: Evaluate each finding" as completed. Proceed to Step 3.
-
 ## Step 3: Apply Decisions
-Mark "Step 3: Apply decisions" as in_progress.
 
 For each finding based on skill-evaluator's decision:
 
@@ -54,11 +45,9 @@ For each finding based on skill-evaluator's decision:
 | ADD TO RULES | Add the rule succinctly to @PROJECT_RULES.md |
 | OMIT ENTIRELY | No action needed |
 
-Mark "Step 3: Apply decisions" as completed.
-
 Report summary:
 ```
-📝 Debrief complete:
+Debrief complete:
 - Skills created: [X]
 - Rules added: [Y]
 - Omitted (redundant/narrow): [Z]
