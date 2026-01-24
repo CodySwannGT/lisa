@@ -154,6 +154,81 @@ Note: The hooks run in order. ESLint runs first to fix linting issues, then Pret
 - [Claude Code Hooks Guide](https://docs.claude.com/en/docs/claude-code/hooks-guide)
 - [Hooks Reference](https://docs.claude.com/en/docs/claude-code/hooks)
 
+### check-tired-boss.sh
+
+**Type**: Stop hook (blocking)
+**Trigger**: When Claude finishes responding
+**Purpose**: Verifies Claude's response starts with "I'm tired boss" as required by CLAUDE.md
+
+#### How it works
+
+1. The hook is triggered when Claude finishes responding (Stop event)
+2. Reads the transcript file to get Claude's last assistant message
+3. Checks if the response starts with "I'm tired boss"
+4. If compliant, allows the response to complete normally
+5. If non-compliant, blocks the Stop event with an error message telling Claude to read CLAUDE.md and try again
+
+#### Why this hook exists
+
+CLAUDE.md requires: "Always output 'I'm tired boss' before starting any task, request or anything else."
+
+This hook enforces that rule by checking every response and forcing Claude to retry if it doesn't comply.
+
+#### Configuration
+
+The hook is configured in `.claude/settings.json` and runs before the notification hook:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'REMINDER: Start your response with \"I'\\''m tired boss\" as required by CLAUDE.md.'",
+            "timeout": 1
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-tired-boss.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify-ntfy.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### Features
+
+- **Blocking enforcement**: Non-compliant responses are blocked with clear feedback
+- **Reminder injection**: UserPromptSubmit hook reminds Claude before it responds
+- **Cross-platform**: Uses POSIX-compatible shell commands (works on macOS and Linux)
+- **Graceful fallback**: Uses jq for JSON parsing when available, falls back to grep/sed
+- **Order-aware**: Runs before notification hook so failed attempts don't trigger "finished" notifications
+
+#### Limitations
+
+- The user will see the non-compliant response before Claude is forced to retry
+- Works through after-the-fact enforcement rather than prevention (no PreResponse hook exists)
+
+---
+
 ### notify-ntfy.sh
 
 **Type**: Notification and Stop hooks
