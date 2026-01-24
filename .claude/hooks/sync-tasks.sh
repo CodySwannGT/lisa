@@ -66,13 +66,17 @@ fi
 CLAUDE_TASKS_DIR="${HOME}/.claude/tasks"
 TASK_FILE=""
 
-# Search for the task file across all session directories
-for session_dir in "$CLAUDE_TASKS_DIR"/*/; do
-  if [[ -f "${session_dir}${TASK_ID}.json" ]]; then
-    TASK_FILE="${session_dir}${TASK_ID}.json"
-    break
-  fi
-done
+# Get session ID from hook input (preferred - 100% accurate)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
+
+if [[ -n "$SESSION_ID" && -f "${CLAUDE_TASKS_DIR}/${SESSION_ID}/${TASK_ID}.json" ]]; then
+  # Use session ID directly - guaranteed correct session
+  TASK_FILE="${CLAUDE_TASKS_DIR}/${SESSION_ID}/${TASK_ID}.json"
+else
+  # Fallback: find most recently modified task file with this ID
+  # This handles edge cases where session_id isn't available
+  TASK_FILE=$(find "$CLAUDE_TASKS_DIR" -name "${TASK_ID}.json" -exec stat -f '%m %N' {} \; 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+fi
 
 if [[ -z "$TASK_FILE" || ! -f "$TASK_FILE" ]]; then
   exit 0
