@@ -47,6 +47,7 @@ export const defaultIgnores = [
   "generated/**",
   "components/ui/**",
   ".lisabak/**",
+  ".claude-active-project/**",
   "coverage/**",
   specFilePattern,
   "resolver-test.setup.ts",
@@ -424,6 +425,6 @@ export {
   jsdoc,
   prettier,
   sonarjs,
-  tseslint,
+  tseslint
 };
 /* eslint-enable max-lines-per-function -- config file needs a lot of lines */

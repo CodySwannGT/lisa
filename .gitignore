@@ -184,5 +184,6 @@ expo-env.d.ts
 # @end expo-cli
 
 .lisabak
+.claude-active-project
 
 # END: AI GUARDRAILS

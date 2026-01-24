@@ -184,5 +184,8 @@ expo-env.d.ts
 # @end expo-cli
 
 .lisabak
+.claude-active-project
 
 # END: AI GUARDRAILS
+# Claude Code active project marker (session-specific)
+.claude-active-project
