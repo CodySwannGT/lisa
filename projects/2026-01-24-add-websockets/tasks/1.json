@@ -1,0 +1,9 @@
+{
+  "id": "1",
+  "subject": "Step 1: Setup",
+  "description": "Run /project:setup to create project directory, brief.md, findings.md, and git branch",
+  "activeForm": "Setting up project",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

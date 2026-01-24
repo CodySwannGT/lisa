@@ -1,0 +1,9 @@
+{
+  "id": "8",
+  "subject": "Step 5: Generate document",
+  "description": "Generate the research.md document with all findings",
+  "activeForm": "Generating research document",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,63 +1,44 @@
 ---
 description: Performs extensive code review and optimization on the current project
 argument-hint: <project-directory>
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, Skill
 ---
 
-The current branch is a feature branch that contains full implementation of the project described in $ARGUMENTS
+The current branch is a feature branch with full implementation of the project in $ARGUMENTS.
 
-IMPORTANT: Perform each step and then move to the next one without stopping
+**IMPORTANT**: Perform each step and move to the next without stopping.
 
-## Step 0: MANDATORY SETUP
+## Setup
 
-Use TodoWrite to create workflow tracking todos:
-- Step 1: Perform Claude Review
-- Step 2: Implement Claude Review Fixes
-- Step 3: Perform CodeRabbit Review
-- Step 4: Implement CodeRabbit Review Fixes
-- Step 5: Perform Claude Optimizations
+Create workflow tracking tasks with `metadata: { "project": "<project-name>", "phase": "review" }`:
+
+1. Perform Claude Review
+2. Implement Claude Review Fixes
+3. Perform CodeRabbit Review
+4. Implement CodeRabbit Review Fixes
+5. Perform Claude Optimizations
 
 ## Step 1: Perform Claude Review
 
-Mark "Step 1: Perform Claude Review" as in_progress.
+If `$ARGUMENTS/claude-review.md` already exists, skip to Step 2.
 
-If $ARGUMENTS/claude-review.md already exists, Mark "Step 1: Perform Claude Review" as completed. Proceed to Step 2
-
-Otherwise, run /local-code-review $ARGUMENTS
-
-Mark "Step 1: Perform Claude Review" as completed. Proceed to Step 2
+Otherwise, run `/project:local-code-review $ARGUMENTS`
 
 ## Step 2: Implement Claude Review Fixes
 
-Mark "Step 2: Implement Claude Review Fixes" as in_progress.
-
-1. Read $ARGUMENTS/claude-review.md 
-2. Fix any suggestions that score above 45 in $ARGUMENTS/claude-review.md 
-
-Mark "Step 2: Implement Claude Review Fixes" as completed. Proceed to Step 3
+1. Read `$ARGUMENTS/claude-review.md`
+2. Fix any suggestions that score above 45
 
 ## Step 3: Perform CodeRabbit Review
 
-Mark "Step 3: Perform CodeRabbit Review" as in_progress.
+If `$ARGUMENTS/coderabbit-review.md` already exists, skip to Step 4.
 
-If $ARGUMENTS/coderabbit-review.md already exists, Mark "Step 3: Perform CodeRabbit Review" as completed. Proceed to Step 4
-
-Otherwise, use Task tool with prompt: "Run !`coderabbit review --plain || true` to get comprehensive code analysis and improvement suggestions and write the results to $ARGUMENTS/coderabbit-review.md"
-
-Mark "Step 3: Perform CodeRabbit Review" as completed. Proceed to Step 4
+Otherwise, use Task tool with prompt: "Run `coderabbit review --plain || true` and write results to $ARGUMENTS/coderabbit-review.md"
 
 ## Step 4: Implement CodeRabbit Review Fixes
 
-Mark "Step 4: Implement CodeRabbit Review Fixes" as in_progress.
-
-Evaluate the suggestions in $ARGUMENTS/coderabbit-review.md and implement fixes/changes for any valid findings
-
-Mark "Step 4: Implement CodeRabbit Review Fixes" as completed. Proceed to Step 5
+Evaluate suggestions in `$ARGUMENTS/coderabbit-review.md` and implement fixes for valid findings.
 
 ## Step 5: Perform Claude Optimizations
 
-Mark "Step 5: Perform Claude Optimizations" as in_progress.
-
-Use the code simplifier agent to clean up the code that was added to the current branch.
-
-Mark "Step 5: Perform Claude Optimizations" as completed. 
-
+Use the code simplifier agent to clean up code added to the current branch.

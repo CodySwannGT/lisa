@@ -18,7 +18,7 @@ rule:
 constraints:
   VALUE:
     not:
-      regex: '.*Container"$'
+      regex: 'Container[''"]$'
 files:
   - '**/features/**/*Container.tsx'
   - '**/components/**/*Container.tsx'

@@ -1,0 +1,9 @@
+{
+  "id": "3",
+  "subject": "Step 3: Gap Detection",
+  "description": "Read research.md and check for open questions that need human resolution before execution",
+  "activeForm": "Detecting gaps",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}
