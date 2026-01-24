@@ -1,6 +1,6 @@
 ---
 name: prompt-complexity-scorer
-description: Evaluates user prompts for effort and complexity on a 1-10 scale. This skill should be invoked on every user request to determine if the request warrants planning via a project. For scores 5-10, the agent suggests creating a project at projects/<project-name>/ to enable task tracking and team collaboration.
+description: Evaluates user prompts for effort and complexity on a 1-10 scale. This skill should be invoked on every user request to determine if the request warrants planning via a project. For scores 5-10, the agent suggests creating a project at projects/<date>-<project-name>/ to enable task tracking and team collaboration.
 model: haiku
 ---
 
@@ -39,17 +39,19 @@ Pause and ask the user:
 ```text
 This request scores [X]/10 on complexity. I suggest creating a project to track this work properly.
 
-Would you like me to create `projects/<suggested-name>/` with a brief.md?
+Would you like me to create `projects/<date>-<suggested-name>/` with a brief.md?
 ```
 
-Where `<suggested-name>` is a kebab-case name derived from the request (e.g., "add-websockets", "refactor-auth-system").
+Where `<date>` is today's date in YYYY-MM-DD format and `<suggested-name>` is a kebab-case name derived from the request (e.g., "2026-01-24-add-websockets", "2026-01-24-refactor-auth-system").
 
 ## Project Setup
 
 When creating a project, create the directory structure and brief.md:
 
 ```bash
-mkdir -p projects/<suggested-name>/tasks
+# Get today's date
+DATE=$(date +%Y-%m-%d)
+mkdir -p projects/${DATE}-<suggested-name>/tasks
 ```
 
 ```markdown
@@ -71,17 +73,17 @@ mkdir -p projects/<suggested-name>/tasks
 After creating the project, inform the user:
 
 ```text
-Project created at `projects/<suggested-name>/`.
+Project created at `projects/<date>-<suggested-name>/`.
 
 You can now:
-- Run `/project:bootstrap @projects/<suggested-name>` for full research and planning
+- Run `/project:bootstrap @projects/<date>-<suggested-name>` for full research and planning
 - Or continue with the request and tasks will be tracked in this project
 ```
 
 **IMPORTANT**: After creating the project, set the active project context by creating a marker file:
 
 ```bash
-echo "<suggested-name>" > .claude-active-project
+echo "${DATE}-<suggested-name>" > .claude-active-project
 ```
 
 This enables automatic task syncing to the project directory.
@@ -112,7 +114,7 @@ This enables automatic task syncing to the project directory.
 - Unknowns: 7 (architecture decisions needed)
 - Risk: 7 (architectural change)
 
-**Score**: 7 → Suggest creating `projects/add-websockets/`
+**Score**: 7 → Suggest creating `projects/YYYY-MM-DD-add-websockets/`
 
 ### Example 3: Medium Request (Score 3)
 
@@ -138,7 +140,7 @@ This enables automatic task syncing to the project directory.
 - Unknowns: 9 (what's slow? why?)
 - Risk: 6 (depends on changes)
 
-**Score**: 8 → Suggest creating `projects/performance-optimization/`
+**Score**: 8 → Suggest creating `projects/YYYY-MM-DD-performance-optimization/`
 
 ## Important Notes
 
