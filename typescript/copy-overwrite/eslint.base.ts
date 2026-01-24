@@ -425,6 +425,6 @@ export {
   jsdoc,
   prettier,
   sonarjs,
-  tseslint
+  tseslint,
 };
 /* eslint-enable max-lines-per-function -- config file needs a lot of lines */
