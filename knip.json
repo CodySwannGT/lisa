@@ -19,7 +19,11 @@
     "commitizen",
     "eslint-*",
     "lint-staged",
-    "@commitlint/*"
+    "@commitlint/*",
+    "@types/fs-extra",
+    "@types/lodash.merge",
+    "@vitest/coverage-v8",
+    "vitest"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit"],
   "ignoreExportsUsedInFile": true
