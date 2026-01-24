@@ -1,0 +1,24 @@
+id: no-inline-component-in-view
+language: tsx
+severity: error
+message: |
+  Inline component detected in View file. Extract to separate Container/View directory.
+
+  Create:
+  - features/.../components/ComponentName/ComponentNameView.tsx
+  - features/.../components/ComponentName/ComponentNameContainer.tsx
+  - features/.../components/ComponentName/index.tsx
+
+  See PROJECT_RULES.md for the full pattern.
+rule:
+  pattern: $NAME.displayName = $VALUE
+  inside:
+    kind: program
+    stopBy: end
+constraints:
+  VALUE:
+    not:
+      regex: '.*View"$'
+files:
+  - '**/features/**/*View.tsx'
+  - '**/components/**/*View.tsx'
