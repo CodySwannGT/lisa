@@ -235,7 +235,6 @@ When you run `/project:execute`:
 | **SonarQube** | `/sonarqube:check` | Get PR failure reasons |
 | | `/sonarqube:fix` | Check and fix SonarQube issues |
 | **Lisa** | `/lisa:review-implementation` | Compare against Lisa templates |
-| **Beads** | `/beads:*` | Issue tracking commands |
 
 ---
 
@@ -443,7 +442,6 @@ Lisa enables several official and marketplace plugins:
 |--------|---------|
 | **safety-net** | Block dangerous git commands |
 | **typescript-lsp** | TypeScript language server integration |
-| **beads** | Git-backed issue tracking for multi-session work |
 | **code-simplifier** | Automated code refactoring and simplification |
 | **code-review** | AI-powered code review |
 | **playwright** | Browser automation for E2E testing |
@@ -591,7 +589,6 @@ Connect to your tools:
 | **GitGuardian** | CI/CD workflow | Secret detection |
 | **FOSSA** | CI/CD workflow | License compliance |
 | **ntfy.sh** | Notification hooks | Push notifications |
-| **Beads** | `/beads:*` commands | Issue tracking |
 
 ---
 
