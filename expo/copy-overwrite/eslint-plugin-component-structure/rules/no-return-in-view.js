@@ -16,7 +16,7 @@ module.exports = {
     schema: [],
     messages: {
       noReturnInView:
-        "View components should use arrow function shorthand: () => (...) instead of () => { return (...) }. Move any definitions or logic to the corresponding Container file.",
+        "View components should use arrow function shorthand: () => (...) instead of () => { return (...) }. Hoist any definitions outside of the arrow function body or into the corresponding Container.",
     },
   },
 
