@@ -11,93 +11,41 @@ Target rule: $ARGUMENTS
 
 If no argument provided, prompt the user for a lint rule name.
 
-## Process
+## Setup
 
-### Step 0: Check Project Context
+Check for active project: `cat .claude-active-project 2>/dev/null`
 
-Check if there's an active project for task syncing:
+If active, include `metadata: { "project": "<project-name>" }` in TaskCreate calls.
 
-```bash
-cat .claude-active-project 2>/dev/null
-```
+## Step 1: Enable Rule
 
-If a project is active, include `metadata: { "project": "<project-name>" }` in all TaskCreate calls.
+Find the ESLint config and temporarily set `$ARGUMENTS` to `"error"` severity if not already.
 
-### Step 1: Locate Configuration
+## Step 2: Identify Violations
 
-Find the ESLint config (eslint.config.ts, eslint.config.local.ts, or similar).
+Run `npm run lint 2>&1 | grep "$ARGUMENTS"` and collect files with violations.
 
-### Step 2: Enable Rule as Error
+## Step 3: Create Tasks
 
-Temporarily set the rule `$ARGUMENTS` to `"error"` severity in the local config if not already an error.
+Create a task for each file with violations, ordered by violation count (highest first).
 
-### Step 3: Identify Violations
+Each task should include:
+- File path and violation count
+- Sample error messages
+- Fix approach based on rule type:
+  - **Complexity rules**: Extract functions, use early returns, simplify conditions
+  - **Style rules**: Apply formatting fixes
+  - **Best practice rules**: Refactor to follow recommended pattern
+  - **Type rules**: Add proper types, remove `any`
 
-Run `npm run lint 2>&1 | grep "$ARGUMENTS"` and collect all files with violations.
+## Step 4: Execute
 
-Parse the output to extract:
-- File path
-- Line number
-- Error message
+Launch up to 5 sub-agents to work through tasks in parallel.
 
-### Step 4: Create Task List
+Each fix should be verified and committed before marking complete.
 
-Use TaskCreate to create a task for each file with violations, ordered by number of violations (highest first).
+## Step 5: Report
 
-Each task should have:
-- **subject**: "Fix $ARGUMENTS violations in [file]" (imperative form)
-- **description**: Include file path, number of violations, sample error messages, and fix approach
-- **activeForm**: "Fixing $ARGUMENTS in [file]" (present continuous)
-- **metadata**: `{ "project": "<active-project>" }` if project context exists
-
-Example:
-```
-TaskCreate(
-  subject: "Fix no-explicit-any violations in src/utils/api.ts",
-  description: "File: src/utils/api.ts\nViolations: 5\nErrors: line 12, 34, 56...\n\nApply: Add proper TypeScript types",
-  activeForm: "Fixing no-explicit-any in api.ts",
-  metadata: { "project": "cleanup-types" }
-)
-```
-
-### Step 5: Parallel Execution
-
-Launch **up to 5 sub-agents** to fix tasks in parallel.
-
-Each subagent should:
-1. Use TaskList to find pending tasks with no blockers
-2. Use TaskUpdate to claim a task (set status to `in_progress`)
-3. Read the file and understand the violations
-4. Apply appropriate fixes based on the rule type:
-   - **Complexity rules**: Extract functions, use early returns, simplify conditions
-   - **Style rules**: Apply formatting fixes
-   - **Best practice rules**: Refactor to follow the recommended pattern
-   - **Type rules**: Add proper types, remove `any`
-5. Use Edit tool to make changes while preserving functionality
-6. Verify the file no longer has violations for that rule
-7. Run `/git:commit` to commit the changes
-8. If hooks fail, fix the errors and re-run `/git:commit`
-9. Use TaskUpdate to mark task as `completed` only after a successful commit
-
-### Step 6: Iterate
-
-Use TaskList to check for remaining pending tasks. Re-run lint for the specific rule.
-
-If violations remain, repeat from Step 4.
-
-Continue until all files pass the rule check.
-
-### Step 7: Final Commit
-
-Run `/git:commit` with message format:
-```
-fix(lint): resolve all $ARGUMENTS violations
-
-- Fixed [N] files with [rule-name] violations
-- [Brief description of fix pattern applied]
-```
-
-Report summary:
 ```
 Lint rule fix complete:
 - Rule: $ARGUMENTS

@@ -1,7 +1,7 @@
 ---
 description: Initialize a comprehensive NestJS backend project with full requirements analysis, planning, and structure setup
 argument-hint: <project-brief-file-or-jira-issue-number>
-allowed-tools: Read, Write, Bash(git*), Glob, Grep, Task, TodoWrite
+allowed-tools: Read, Write, Bash(git*), Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList
 ---
 
 1. Decide if $ARGUMENTS is a Jira issue number or a path to a file
