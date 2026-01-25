@@ -13,6 +13,7 @@
   - [TaskGet](#taskget)
 - [Status Workflow](#status-workflow)
 - [Task Dependencies](#task-dependencies)
+- [Task Verification](#task-verification)
 - [Multi-Session Coordination](#multi-session-coordination)
 - [Storage and Persistence](#storage-and-persistence)
 - [Integration with Claude Code Hooks](#integration-with-claude-code-hooks)
@@ -306,6 +307,89 @@ When a task is marked `completed`:
 │ 3. Write unit tests  │     │ 4. Write e2e tests   │
 └──────────────────────┘     └──────────────────────┘
 ```
+
+---
+
+## Task Verification
+
+Tasks can include verification metadata that describes how to verify the task was completed correctly. This enables automated or manual verification by humans or AI agents.
+
+### Verification Schema
+
+The `metadata.verification` object has three fields:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Verification type: `manual-check` |
+| `command` | string | Yes | Bash command to run for verification |
+| `expected` | string | Yes | Description of expected output or behavior |
+
+### Verification Types
+
+| Type | Description | Behavior |
+|------|-------------|----------|
+| `manual-check` | Requires running a command and verifying output | Run command, compare output to expected description |
+
+### Example Task with Verification
+
+```json
+{
+  "id": "1",
+  "subject": "Add language specifiers to HUMAN.md code blocks",
+  "description": "Add bash/text language tags to fenced code blocks...",
+  "activeForm": "Adding language specifiers to code blocks",
+  "status": "pending",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/example/repo/pull/72",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -n '```bash\\|```text' HUMAN.md | head -10",
+      "expected": "Code blocks at lines 15, 29, 47 should have bash specifier, line 470 should have text specifier"
+    }
+  }
+}
+```
+
+### Verification Workflow
+
+When completing a task with verification metadata:
+
+1. **Check for verification** - Read `metadata.verification` from the task
+2. **Run the command** - Execute `verification.command` via Bash
+3. **Compare output** - Verify output matches `verification.expected` description
+4. **Handle failures**:
+   - If verification fails → Do NOT mark task as complete
+   - If command cannot run (missing dependencies, Docker unavailable) → Mark task as BLOCKED
+   - Document blockers in `findings.md`
+
+### Creating Tasks with Verification
+
+When creating tasks, include verification metadata to enable automated verification:
+
+```json
+{
+  "subject": "Add ESLint configuration",
+  "description": "Create eslint.config.mjs with TypeScript rules...",
+  "activeForm": "Adding ESLint configuration",
+  "metadata": {
+    "verification": {
+      "type": "manual-check",
+      "command": "ls -la eslint.config.mjs && head -20 eslint.config.mjs",
+      "expected": "File should exist and contain TypeScript ESLint configuration with flat config format"
+    }
+  }
+}
+```
+
+### Best Practices for Verification
+
+1. **Make commands idempotent** - Commands should be safe to run multiple times
+2. **Use portable commands** - Prefer `grep`, `ls`, `cat` over platform-specific tools
+3. **Be specific in expected output** - Describe exactly what success looks like
+4. **Test the command first** - Verify the command works before adding it to the task
+5. **Handle edge cases** - Consider what happens if files don't exist
 
 ---
 
