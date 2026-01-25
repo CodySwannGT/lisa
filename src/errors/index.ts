@@ -151,3 +151,31 @@ export class DependencyMissingError extends LisaError {
     this.name = "DependencyMissingError";
   }
 }
+
+/**
+ * Error thrown when user aborts the operation
+ */
+export class UserAbortedError extends LisaError {
+  /**
+   * Thrown when user cancels or aborts the operation
+   * @param reason - Description of why the operation was aborted
+   */
+  constructor(public readonly reason: string = "User aborted the operation") {
+    super(reason, "USER_ABORTED");
+    this.name = "UserAbortedError";
+  }
+}
+
+/**
+ * Error thrown when git working directory has uncommitted changes
+ */
+export class DirtyGitError extends LisaError {
+  /**
+   * Thrown when git status shows uncommitted changes
+   * @param status - Git status output showing the changes
+   */
+  constructor(public readonly status: string) {
+    super("Working directory has uncommitted changes", "DIRTY_GIT");
+    this.name = "DirtyGitError";
+  }
+}

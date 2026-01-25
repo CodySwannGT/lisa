@@ -1,9 +1,12 @@
 {
   "id": "4",
-  "subject": "Step 1: Read mentioned files",
-  "description": "Read the brief.md and findings.md files from the project directory to understand the WebSocket implementation requirements",
-  "activeForm": "Reading mentioned files",
+  "subject": "Add language specifiers to claude-task-list.md code blocks",
+  "description": "**PR Comment ID**: 2725651740\n**File**: claude-task-list.md\n**Lines**: 57-61, 146-148, 248-252, 294-308, 338-342, 354-356, 493-502\n**Comment URL**: https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651740\n\n**Feedback**: Add language identifiers to fenced blocks. These blocks need language tags to satisfy Markdown rules. Use `text` for plain text content.\n\n**Specific blocks to fix**:\n- Task list example (\"Task 1: Set up database schema...\")\n- Status flow (\"pending → in_progress → completed\")\n- ASCII flow diagrams (boxed states)\n- Orchestrator/worker sample\n- Path example (\"~/.claude/tasks/\")\n- Main Agent sequence block\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for claude-task-list.md",
   "status": "completed",
   "blocks": [],
-  "blockedBy": []
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
 }

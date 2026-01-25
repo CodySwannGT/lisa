@@ -1,13 +1,6 @@
----
-name: coding-philosophy
-description: Enforces immutable coding principles, function structure ordering, functional programming patterns, TDD, clean deletion, and YAGNI+SOLID+DRY+KISS principles for this codebase. This skill should be used when writing or reviewing TypeScript/React code in this project, particularly when creating hooks, utility functions, or components. Use this skill to ensure code follows the established patterns for immutability, proper ordering of statements, functional transformations, test-driven development, and simplicity (preferring Occam's Razor/KISS when principles conflict).
----
-
 # Coding Philosophy
 
-## Overview
-
-This skill enforces the core coding philosophy for this project: **immutability**, **predictable structure**, **functional transformations**, **test-driven development**, **clean deletion**, and **simplicity**. All code should follow these principles to maintain consistency, testability, and clarity.
+This rule enforces the core coding philosophy: **immutability**, **predictable structure**, **functional transformations**, **test-driven development**, **clean deletion**, and **simplicity**.
 
 ## Guiding Principles: YAGNI + SOLID + DRY + KISS
 
@@ -15,7 +8,7 @@ Follow these software engineering principles, **deferring to Occam's Razor/KISS 
 
 ### KISS (Keep It Simple, Stupid) - The Tiebreaker
 
-When principles conflict, **always choose the simpler solution**. Occam's Razor applies to code: the simplest solution that works is usually correct.
+When principles conflict, **always choose the simpler solution**.
 
 ```typescript
 // KISS: Simple direct approach
@@ -46,17 +39,7 @@ Extract duplication only when:
 2. The abstraction is **simpler** than the duplication
 3. The extracted code has a **clear single purpose**
 
-```typescript
-// DRY + KISS: Extract when clearly beneficial
-const formatPlayerName = (first: string, last: string) => `${first} ${last}`;
-
-// Anti-pattern: Premature abstraction for 2 usages
-// Keep inline if simpler and only used twice
-```
-
 ### SOLID Principles - Applied Pragmatically
-
-Apply SOLID when it **reduces complexity**, not dogmatically:
 
 | Principle                 | Apply When                                    | Skip When                               |
 | ------------------------- | --------------------------------------------- | --------------------------------------- |
@@ -66,21 +49,15 @@ Apply SOLID when it **reduces complexity**, not dogmatically:
 | **I**nterface Segregation | Consumers need different subsets              | Interface is already small              |
 | **D**ependency Inversion  | Testing requires mocking external services    | Direct dependency is simpler            |
 
-```typescript
-// Good SRP: Each function has one job
-const validateEmail = (email: string) => EMAIL_REGEX.test(email);
-const formatEmail = (email: string) => email.toLowerCase().trim();
-
-// Over-applied SRP: Don't split a simple 3-line function into 3 files
-```
-
 ### Decision Framework
 
 When unsure, ask in order:
-1. **Do I need this now?** (YAGNI) → If no, don't build it
-2. **Is there a simpler way?** (KISS) → Choose the simpler option
-3. **Am I repeating myself 3+ times?** (DRY) → Extract if the abstraction is simpler
-4. **Does this function do one thing?** (SOLID-SRP) → Split only if clearer
+1. **Do I need this now?** (YAGNI) - If no, don't build it
+2. **Is there a simpler way?** (KISS) - Choose the simpler option
+3. **Am I repeating myself 3+ times?** (DRY) - Extract if the abstraction is simpler
+4. **Does this function do one thing?** (SOLID-SRP) - Split only if clearer
+
+---
 
 ## Core Principles
 
@@ -100,7 +77,7 @@ user.name = "New Name";
 
 All functions, hooks, and components follow a strict ordering:
 
-```
+```text
 1. Variable definitions and derived state (const, useState, useMemo, useCallback)
 2. Side effects (useEffect, function calls with no return value)
 3. Return statement
@@ -123,35 +100,12 @@ users.forEach(u => names.push(u.name));
 
 **Always write failing tests before implementation code.** This is mandatory, not optional.
 
-```
+```text
 TDD Cycle:
 1. RED: Write a failing test that defines expected behavior
 2. GREEN: Write the minimum code to make the test pass
 3. REFACTOR: Clean up while keeping tests green
 ```
-
-```typescript
-// Step 1: Write the failing test FIRST
-describe("formatPlayerName", () => {
-  it("should format first and last name", () => {
-    expect(formatPlayerName("John", "Doe")).toBe("John Doe");
-  });
-
-  it("should handle empty last name", () => {
-    expect(formatPlayerName("John", "")).toBe("John");
-  });
-});
-
-// Step 2: THEN write implementation to make tests pass
-const formatPlayerName = (first: string, last: string): string =>
-  last ? `${first} ${last}` : first;
-```
-
-**TDD is non-negotiable because it:**
-- Forces you to think about the API before implementation
-- Ensures every feature has test coverage
-- Prevents over-engineering (you only write what's needed to pass tests)
-- Documents expected behavior
 
 ### 5. Clean Deletion
 
@@ -159,13 +113,11 @@ const formatPlayerName = (first: string, last: string): string =>
 
 ```typescript
 // Correct: Remove the old code entirely
-// (Old function is gone, new function exists)
 const calculateScore = (player: Player): number => player.stats.overall;
 
 // Wrong: Keeping deprecated versions around
 /** @deprecated Use calculateScore instead */
 const getPlayerScore = (player: Player): number => calculateScore(player);
-const calculateScoreV2 = (player: Player): number => player.stats.overall;
 ```
 
 **Clean deletion rules:**
@@ -175,18 +127,7 @@ const calculateScoreV2 = (player: Player): number => player.stats.overall;
 - Never write migration code unless explicitly asked
 - Trust git history for recovery if needed
 
-**Why clean deletion:**
-- Reduces cognitive load (one way to do things)
-- Prevents confusion about which version to use
-- Keeps bundle size small
-- YAGNI: If no one is using it, delete it
-
-## Detailed Guidelines
-
-For comprehensive examples and patterns, see the reference files:
-
-- **[references/immutable-patterns.md](references/immutable-patterns.md)** - Detailed immutable patterns with reduce, spread, and functional transformations
-- **[references/function-structure.md](references/function-structure.md)** - Function ordering rules and examples for hooks, utilities, and components
+---
 
 ## Quick Reference
 
@@ -243,6 +184,8 @@ if (isComplete) {
   status = "done";
 }
 ```
+
+---
 
 ## Hook Structure Example
 
@@ -334,6 +277,8 @@ export const calculateTeamRankings = (
 };
 ```
 
+---
+
 ## Anti-Patterns to Avoid
 
 ### Never use `let` for conditional assignment
@@ -402,4 +347,82 @@ const value = useMemo(() => calculate(), [dep]);
 useEffect(() => {
   /* ... */
 }, [value]);
+```
+
+---
+
+## Immutable Patterns Reference
+
+### Building Lookup Objects with Reduce
+
+```typescript
+const colorMap =
+  edges?.reduce(
+    (acc, edge) => (edge.color ? { ...acc, [edge.tagId]: edge.color } : acc),
+    {} as Record<string, string>
+  ) ?? {};
+```
+
+### Accumulating Multiple Properties
+
+```typescript
+const teamGprAccumulator = validPlayers.reduce(
+  (acc, player) => {
+    const teamId = player.team?.id;
+    if (!teamId) return acc;
+
+    const existing = acc[teamId];
+    return {
+      ...acc,
+      [teamId]: {
+        teamId,
+        teamName: player.team.name,
+        gprSum: (existing?.gprSum ?? 0) + player.gpr,
+        playerCount: (existing?.playerCount ?? 0) + 1,
+      },
+    };
+  },
+  {} as Record<string, { teamId: string; teamName: string; gprSum: number; playerCount: number }>
+);
+```
+
+### Nested Object Updates
+
+```typescript
+const updated = {
+  ...state,
+  user: {
+    ...state.user,
+    profile: {
+      ...state.user.profile,
+      avatar: newAvatar,
+    },
+  },
+};
+```
+
+### Conditional Property Addition
+
+```typescript
+const result = {
+  ...baseObj,
+  ...(condition && { optionalProp: value }),
+};
+```
+
+### Ternary Chain for Multiple Conditions
+
+```typescript
+const priority = score > 90 ? "high" : score > 70 ? "medium" : "low";
+```
+
+### Readonly Types for Function Parameters
+
+```typescript
+export const calculateTeamGprRank = (
+  leaguePlayers: readonly (PlayerWithScores | null | undefined)[],
+  myTeamId: string | null | undefined
+): number | null => {
+  // ...
+};
 ```

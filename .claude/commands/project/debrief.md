@@ -1,5 +1,5 @@
 ---
-description: Evaluates findings.md and uses skill-evaluator to decide where each learning belongs (new skill, PROJECT_RULES.md, or omit)
+description: Evaluates findings.md and uses skill-evaluator to decide where each learning belongs (new skill, .claude/rules/PROJECT_RULES.md, or omit)
 argument-hint: <project-directory>
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, Skill
 ---
@@ -29,7 +29,7 @@ Evaluate this finding from a project debrief:
 
 Determine if this should be:
 1. CREATE SKILL - if it's a complex, reusable pattern
-2. ADD TO RULES - if it's a simple never/always rule for PROJECT_RULES.md
+2. ADD TO RULES - if it's a simple never/always rule for .claude/rules/PROJECT_RULES.md
 3. OMIT ENTIRELY - if it's already covered or too project-specific
 ```
 
@@ -42,7 +42,7 @@ For each finding based on skill-evaluator's decision:
 | Decision | Action |
 |----------|--------|
 | CREATE SKILL | Use Task tool: "run /skill-creator with [finding details]" |
-| ADD TO RULES | Add the rule succinctly to @PROJECT_RULES.md |
+| ADD TO RULES | Add the rule succinctly to @.claude/rules/PROJECT_RULES.md |
 | OMIT ENTIRELY | No action needed |
 
 Report summary:

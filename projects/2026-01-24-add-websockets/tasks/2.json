@@ -1,9 +1,12 @@
 {
   "id": "2",
-  "subject": "Step 2: Research",
-  "description": "Run /project:research to analyze codebase and generate research.md with findings",
-  "activeForm": "Researching codebase",
-  "status": "in_progress",
+  "subject": "Use placeholder paths in REFERENCE.md instead of absolute paths",
+  "description": "**PR Comment ID**: 2725651729\n**File**: all/copy-overwrite/.claude/REFERENCE.md\n**Lines**: 59-60, 99-100, 204-220\n**Comment URL**: https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651729\n\n**Feedback**: Use project-relative or placeholder paths instead of absolute paths. Replace absolute paths (e.g., home/system paths) with placeholder-based paths.\n\n**Suggested changes**:\n```diff\n-| User | `~/.claude/settings.json` | No | Normal |\n+| User | `<HOME>/.claude/settings.json` | No | Normal |\n```\n\n```diff\n-| macOS | `/Library/Application Support/ClaudeCode/` |\n+| macOS | `<SYSTEM_CONFIG>/ClaudeCode/` |\n```\n\nAlso check for statusLine command paths like `~/.claude/statusline.sh` and convert to relative or placeholder paths.\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for REFERENCE.md paths",
+  "status": "completed",
   "blocks": [],
-  "blockedBy": []
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
 }

@@ -1,0 +1,12 @@
+{
+  "id": "10",
+  "subject": "Add language specifiers to coding-philosophy.md code blocks",
+  "description": "**PR Comment**: Outside diff range comment from CodeRabbit review\n**Files**: \n- all/copy-overwrite/.claude/rules/coding-philosophy.md (lines 80-85, 103-108)\n- .claude/rules/coding-philosophy.md (lines 80-84, 103-108)\n**Comment URL**: Part of main review body\n\n**Feedback**: Add language identifiers to fenced blocks. These fences need language tags to comply with Markdown rules.\n\n**Specific blocks to fix**:\n- Lines 80-85: Function structure ordering list → add `text`\n- Lines 103-108: TDD Cycle list → add `text`\n\nApply to both files as they should be kept in sync.\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates to BOTH files\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for coding-philosophy.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
+}
