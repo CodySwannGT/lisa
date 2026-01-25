@@ -25,26 +25,46 @@ Verify the implementation completely and fully satisfies all requirements from S
 
 ## Step 3: Run Task Verification Commands
 
-For each task file in `$ARGUMENTS/tasks/`:
+### 3a: Create Verification Tasks
 
+First, read all task files in `$ARGUMENTS/tasks/` and create a new task for each one that has verification metadata:
+
+For each task file:
 1. **Read the task file** (JSON or markdown)
 2. **Check for verification metadata**:
    - JSON tasks: Look for `metadata.verification`
    - Markdown tasks: Look for `## Verification` section with `### Proof Command`
-3. **Run verification command** using Bash tool:
+3. **If verification exists**, create a new task:
+   ```
+   subject: "Verify: <original-task-subject>"
+   description: "Run verification for task <id>: <verification.command>"
+   activeForm: "Verifying <original-task-subject>"
+   metadata: {
+     "project": "<project-name>",
+     "phase": "verify",
+     "originalTaskId": "<id>",
+     "verification": <copy the verification object>
+   }
+   ```
+
+### 3b: Execute Verification Tasks
+
+Work through each verification task:
+
+1. **Run verification command** using Bash tool:
    - JSON: Execute `metadata.verification.command`
    - Markdown: Execute the command in `### Proof Command` code block
-4. **Compare output to expected**:
+2. **Compare output to expected**:
    - JSON: Compare to `metadata.verification.expected`
    - Markdown: Compare to `### Expected Output` section
-5. **Record results**:
-   - If verification passes → Task verified
-   - If verification fails → Document failure in drift.md
-   - If command cannot run → Document blocker in drift.md
+3. **Record results and mark task**:
+   - If verification passes → Mark task completed
+   - If verification fails → Keep task in_progress, document failure in drift.md
+   - If command cannot run → Keep task in_progress, document blocker in drift.md
 
 ### Verification Summary
 
-After running all verification commands, report:
+After running all verification tasks, report:
 - Total tasks with verification: X
 - Passed: Y
 - Failed: Z
