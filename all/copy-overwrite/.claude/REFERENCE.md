@@ -4,7 +4,7 @@ Complete expert reference for Claude Code hooks and `.claude/settings.json` conf
 
 ---
 
-## Hook Event Types (12 total)
+## Hook Event Types (13 total)
 
 | Event | Trigger | Matcher Support |
 |-------|---------|-----------------|
@@ -197,7 +197,23 @@ Prompt hooks must return JSON: `{"ok": true|false, "reason": "explanation"}`
 
 ### Common Tool Names for Matching
 
-`Bash`, `Write`, `Edit`, `Read`, `Glob`, `Grep`, `WebFetch`, `WebSearch`, `Task`, `Notebook`, `NotebookEdit`
+**Core Tools:**
+`Bash`, `Write`, `Edit`, `Read`, `Glob`, `Grep`, `WebFetch`, `WebSearch`
+
+**Notebook Tools:**
+`Notebook`, `NotebookEdit`
+
+**Agent & Task Tools:**
+`Task`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`
+
+**Skill & Planning Tools:**
+`Skill`, `EnterPlanMode`, `ExitPlanMode`, `AskUserQuestion`
+
+**Advanced Tools:**
+`LSP`, `Computer`, `ToolSearch`, `TeammateTool`
+
+**MCP Tools Pattern:**
+`mcp__<server>__<tool>` (e.g., `mcp__memory__create_entities`)
 
 ---
 
