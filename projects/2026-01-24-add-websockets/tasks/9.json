@@ -1,0 +1,12 @@
+{
+  "id": "9",
+  "subject": "Add schema validation for deletions.json parsing",
+  "description": "**PR Comment**: Nitpick comment from CodeRabbit review\n**File**: src/core/lisa.ts\n**Lines**: 143-157\n**Comment URL**: Part of main review body\n\n**Feedback**: Consider adding schema validation for parsed deletions.json. The `JSON.parse` call could succeed with valid JSON that doesn't match the `DeletionsConfig` structure. If `deletions.paths` is undefined or not an array, iterating over it at line 150 would throw a runtime error.\n\n**Suggested fix**:\n```diff\n    try {\n      const content = await fse.readFile(deletionsPath, \"utf-8\");\n      const deletions: DeletionsConfig = JSON.parse(content);\n\n+     if (!Array.isArray(deletions.paths)) {\n+       logger.warn(`Invalid deletions.json format: paths must be an array`);\n+       return;\n+     }\n+\n      for (const relativePath of deletions.paths) {\n        await this.processSingleDeletion(relativePath);\n      }\n```\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for deletions validation",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
+}

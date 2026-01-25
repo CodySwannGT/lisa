@@ -1,0 +1,12 @@
+{
+  "id": "8",
+  "subject": "Fix path traversal vulnerability in deletion logic",
+  "description": "**PR Comment ID**: 2725651747\n**File**: src/core/lisa.ts\n**Lines**: 167-175\n**Comment URL**: https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651747\n\n**Feedback**: Path traversal check has an edge case vulnerability. The `startsWith` check can be bypassed if `destDir` is a prefix of another directory name. For example, if `destDir` is `/home/user/proj` and a malicious `relativePath` resolves to `/home/user/project/sensitive-file`, the check would pass incorrectly.\n\n**Suggested fix**:\n```diff\n    // Safety check: ensure path is within destDir\n    const resolvedTarget = path.resolve(targetPath);\n    const resolvedDest = path.resolve(this.config.destDir);\n-   if (!resolvedTarget.startsWith(resolvedDest)) {\n+   if (\n+     !resolvedTarget.startsWith(resolvedDest + path.sep) &&\n+     resolvedTarget !== resolvedDest\n+   ) {\n      logger.warn(\n        `Skipping deletion outside project directory: ${relativePath}`\n      );\n      return;\n    }\n```\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for lisa.ts path check",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
+}
