@@ -1,0 +1,12 @@
+{
+  "id": "11",
+  "subject": "Improve JSDoc comments in prompts.ts",
+  "description": "**PR Comment**: Nitpick comment from CodeRabbit review\n**File**: src/cli/prompts.ts\n**Lines**: 4-13, 40-45\n**Comment URL**: Part of main review body\n\n**Feedback**: Prefer rationale-focused JSDoc for new prompts. These comments restate behavior; capturing the intent (explicit consent for risky operations) makes the \"why\" durable.\n\n**Suggested changes**:\n```diff\n/**\n- * Message shown when uncommitted changes are detected\n+ * Header printed before git status so users see context before deciding.\n */\nconst UNCOMMITTED_CHANGES_HEADER = \"\\\\nUncommitted changes detected:\";\n\n/**\n- * Confirmation message for dirty git prompt\n+ * Explicit consent prompt to avoid overwriting uncommitted work.\n */\nconst DIRTY_GIT_CONFIRM_MESSAGE = ...\n\n  /**\n-  * Confirm proceeding with dirty git working directory\n+  * Gate risky runs on explicit user consent, even in --yes mode.\n   * @param status Git status output showing uncommitted changes\n   * @returns True if user wants to proceed despite dirty state\n   */\n  confirmDirtyGit(status: string): Promise<boolean>;\n```\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for prompts.ts JSDoc",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
+}
