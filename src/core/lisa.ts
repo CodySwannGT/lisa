@@ -169,13 +169,19 @@ export class Lisa {
     const { logger } = this.deps;
     const targetPath = path.join(this.config.destDir, relativePath);
 
-    // Safety check: ensure path is within destDir
     const resolvedTarget = path.resolve(targetPath);
     const resolvedDest = path.resolve(this.config.destDir);
-    if (
-      !resolvedTarget.startsWith(resolvedDest + path.sep) &&
-      resolvedTarget !== resolvedDest
-    ) {
+
+    // Explicit guard: disallow deleting the project root itself
+    if (resolvedTarget === resolvedDest) {
+      logger.warn(
+        `Skipping deletion of project root directory: ${relativePath || "."}`
+      );
+      return;
+    }
+
+    // Safety check: only allow paths strictly inside destDir
+    if (!resolvedTarget.startsWith(resolvedDest + path.sep)) {
       logger.warn(
         `Skipping deletion outside project directory: ${relativePath}`
       );
@@ -188,11 +194,12 @@ export class Lisa {
 
     if (this.config.dryRun) {
       logger.dry(`Would delete: ${relativePath}`);
+      this.counters.deleted++;
     } else {
       await fse.remove(targetPath);
       logger.success(`Deleted: ${relativePath}`);
+      this.counters.deleted++;
     }
-    this.counters.deleted++;
   }
 
   /**
