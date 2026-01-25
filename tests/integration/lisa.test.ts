@@ -1,29 +1,30 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { Lisa, type LisaDependencies } from "../../src/core/lisa.js";
 import type { LisaConfig } from "../../src/core/config.js";
-import { DetectorRegistry } from "../../src/detection/index.js";
-import { StrategyRegistry } from "../../src/strategies/index.js";
+import { NoOpGitService } from "../../src/core/git-service.js";
+import { Lisa, type LisaDependencies } from "../../src/core/lisa.js";
 import {
-  ManifestService,
   DryRunManifestService,
+  ManifestService,
 } from "../../src/core/manifest.js";
+import { AutoAcceptPrompter } from "../../src/cli/prompts.js";
+import { DetectorRegistry } from "../../src/detection/index.js";
+import { SilentLogger } from "../../src/logging/silent-logger.js";
+import { StrategyRegistry } from "../../src/strategies/index.js";
 import {
   BackupService,
   DryRunBackupService,
 } from "../../src/transaction/index.js";
-import { SilentLogger } from "../../src/logging/silent-logger.js";
-import { AutoAcceptPrompter } from "../../src/cli/prompts.js";
 import {
-  createTempDir,
   cleanupTempDir,
-  createTypeScriptProject,
-  createExpoProject,
-  createNestJSProject,
-  createCDKProject,
-  createMockLisaDir,
   countFiles,
+  createCDKProject,
+  createExpoProject,
+  createMockLisaDir,
+  createNestJSProject,
+  createTempDir,
+  createTypeScriptProject,
 } from "../helpers/test-utils.js";
 
 const PACKAGE_JSON = "package.json";
@@ -78,6 +79,7 @@ describe("Lisa Integration Tests", () => {
         : new BackupService(logger),
       detectorRegistry: new DetectorRegistry(),
       strategyRegistry: new StrategyRegistry(),
+      gitService: new NoOpGitService(),
     };
   }
 

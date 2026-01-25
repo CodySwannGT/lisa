@@ -8,6 +8,7 @@ import { DetectorRegistry } from "../detection/index.js";
 import {
   DestinationNotDirectoryError,
   DestinationNotFoundError,
+  UserAbortedError,
 } from "../errors/index.js";
 import type { ILogger } from "../logging/index.js";
 import { StrategyRegistry, type StrategyContext } from "../strategies/index.js";
@@ -15,6 +16,7 @@ import type { IBackupService } from "../transaction/index.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
 import type {
   CopyStrategy,
+  DeletionsConfig,
   FileOperationResult,
   LisaConfig,
   LisaResult,
@@ -22,6 +24,7 @@ import type {
   ProjectType,
 } from "./config.js";
 import { COPY_STRATEGIES, createInitialCounters } from "./config.js";
+import type { IGitService } from "./git-service.js";
 import type { IManifestService, ManifestEntry } from "./manifest.js";
 
 /**
@@ -34,6 +37,7 @@ export interface LisaDependencies {
   readonly backupService: IBackupService;
   readonly detectorRegistry: DetectorRegistry;
   readonly strategyRegistry: StrategyRegistry;
+  readonly gitService: IGitService;
 }
 
 /**
@@ -110,6 +114,80 @@ export class Lisa {
   }
 
   /**
+   * Process deletions from deletions.json files
+   */
+  private async processDeletions(): Promise<void> {
+    const { logger } = this.deps;
+
+    // Process deletions for "all" and each detected type
+    const typesToProcess = ["all", ...this.detectedTypes];
+
+    for (const type of typesToProcess) {
+      const deletionsPath = path.join(
+        this.config.lisaDir,
+        type,
+        "deletions.json"
+      );
+
+      if (await fse.pathExists(deletionsPath)) {
+        logger.info(`Processing deletions for ${type}...`);
+        await this.processDeletionsFile(deletionsPath);
+      }
+    }
+  }
+
+  /**
+   * Process a single deletions.json file
+   * @param deletionsPath - Path to the deletions.json file
+   */
+  private async processDeletionsFile(deletionsPath: string): Promise<void> {
+    const { logger } = this.deps;
+
+    try {
+      const content = await fse.readFile(deletionsPath, "utf-8");
+      const deletions: DeletionsConfig = JSON.parse(content);
+
+      for (const relativePath of deletions.paths) {
+        await this.processSingleDeletion(relativePath);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn(`Failed to process deletions file: ${message}`);
+    }
+  }
+
+  /**
+   * Process a single deletion path
+   * @param relativePath - Relative path to delete
+   */
+  private async processSingleDeletion(relativePath: string): Promise<void> {
+    const { logger } = this.deps;
+    const targetPath = path.join(this.config.destDir, relativePath);
+
+    // Safety check: ensure path is within destDir
+    const resolvedTarget = path.resolve(targetPath);
+    const resolvedDest = path.resolve(this.config.destDir);
+    if (!resolvedTarget.startsWith(resolvedDest)) {
+      logger.warn(
+        `Skipping deletion outside project directory: ${relativePath}`
+      );
+      return;
+    }
+
+    if (!(await fse.pathExists(targetPath))) {
+      return;
+    }
+
+    if (this.config.dryRun) {
+      logger.dry(`Would delete: ${relativePath}`);
+    } else {
+      await fse.remove(targetPath);
+      logger.success(`Deleted: ${relativePath}`);
+    }
+    this.counters.deleted++;
+  }
+
+  /**
    * Finalize operation
    * @returns Promise that resolves when finalization is complete
    */
@@ -170,10 +248,12 @@ export class Lisa {
   async apply(): Promise<LisaResult> {
     try {
       await this.validateDestination();
+      await this.validateGitState();
       this.printHeader();
       await this.initServices();
       await this.detectTypes();
       await this.processConfigurations();
+      await this.processDeletions();
       await this.finalize();
       this.printSummary();
       return this.getSuccessResult();
@@ -543,6 +623,35 @@ export class Lisa {
   }
 
   /**
+   * Check for uncommitted git changes and prompt user if dirty
+   */
+  private async validateGitState(): Promise<void> {
+    const { gitService, prompter, logger } = this.deps;
+    const { destDir } = this.config;
+
+    // Skip git check if not a git repository
+    if (!(await gitService.isRepository(destDir))) {
+      return;
+    }
+
+    // Check for uncommitted changes
+    if (!(await gitService.isDirty(destDir))) {
+      return;
+    }
+
+    const status = await gitService.getStatus(destDir);
+    logger.warn("Git working directory has uncommitted changes");
+
+    // Always prompt for dirty git, even in yesMode
+    const proceed = await prompter.confirmDirtyGit(status);
+    if (!proceed) {
+      throw new UserAbortedError(
+        "Aborted: please commit or stash your changes before running Lisa"
+      );
+    }
+  }
+
+  /**
    * Print header banner
    */
   private printHeader(): void {
@@ -596,7 +705,8 @@ export class Lisa {
    * Print summary statistics
    */
   private printSummaryStats(): void {
-    const { copied, skipped, overwritten, appended, merged } = this.counters;
+    const { copied, skipped, overwritten, appended, merged, deleted } =
+      this.counters;
 
     if (this.config.validateOnly) {
       console.log(
@@ -614,6 +724,9 @@ export class Lisa {
       console.log(
         `  ${pc.green("Would merge:")}         ${String(merged).padStart(3)} files`
       );
+      console.log(
+        `  ${pc.red("Would delete:")}        ${String(deleted).padStart(3)} files`
+      );
     } else if (this.config.dryRun) {
       console.log(
         `  ${pc.green(this.dryRunPrefix)}      ${String(copied).padStart(3)} files`
@@ -630,6 +743,9 @@ export class Lisa {
       console.log(
         `  ${pc.green(this.dryRunMergeMsg)}     ${String(merged).padStart(3)} files (JSON)`
       );
+      console.log(
+        `  ${pc.red("Would delete:")}  ${String(deleted).padStart(3)} files`
+      );
     } else {
       console.log(
         `  ${pc.green(this.copyMsg)}      ${String(copied).padStart(3)} files`
@@ -645,6 +761,9 @@ export class Lisa {
       );
       console.log(
         `  ${pc.green(this.mergeMsg)}      ${String(merged).padStart(3)} files (JSON merged)`
+      );
+      console.log(
+        `  ${pc.red("Deleted:")}     ${String(deleted).padStart(3)} files`
       );
     }
   }
