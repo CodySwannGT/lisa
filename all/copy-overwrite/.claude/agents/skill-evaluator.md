@@ -80,13 +80,13 @@ Examples:
 #### Criterion 5: Non-Redundancy (Does it already exist?)
 
 **PASS**: Not already covered by existing skills or project documentation
-**FAIL**: Duplicates existing skills or belongs in CLAUDE.md/PROJECT_RULES.md
+**FAIL**: Duplicates existing skills or belongs in CLAUDE.md/.claude/rules/PROJECT_RULES.md
 
 Before recommending skill creation, always check:
 
 1. Existing skills in `.claude/skills/`
 2. CLAUDE.md for project-level instructions
-3. PROJECT_RULES.md for project rules
+3. .claude/rules/PROJECT_RULES.md for project rules
 
 ### Step 3: Make the Decision
 
@@ -101,7 +101,7 @@ Before recommending skill creation, always check:
 **DO NOT CREATE SKILL** if any criterion fails. Instead:
 
 - If **redundant** → **OMIT ENTIRELY** - reference the existing documentation instead
-- If too simple → Suggest adding to CLAUDE.md or PROJECT_RULES.md
+- If too simple → Suggest adding to CLAUDE.md or .claude/rules/PROJECT_RULES.md
 - If too narrow → Just apply the knowledge directly, no documentation needed
 - If temporary → Document as a code comment or temporary note
 
@@ -111,7 +111,7 @@ Before evaluating other criteria, check if the content already exists:
 
 1. **Existing skill covers it** → OMIT - just invoke the existing skill
 2. **Already in CLAUDE.md** → OMIT - it's already enforced
-3. **Already in PROJECT_RULES.md** → OMIT - it's already documented
+3. **Already in .claude/rules/PROJECT_RULES.md** → OMIT - it's already documented
 
 If redundant, stop evaluation and report: "This is already covered by [source]. No action needed."
 
@@ -190,9 +190,9 @@ When evaluating content, provide this assessment:
 - Reusability: ✅ Ongoing rule
 - Complexity: ❌ Single rule, easily remembered
 - Stability: ✅ Established pattern
-- Non-Redundancy: ✅ Not in PROJECT_RULES.md
+- Non-Redundancy: ✅ Not in .claude/rules/PROJECT_RULES.md
 
-**Decision**: ADD TO RULES → Add to PROJECT_RULES.md instead
+**Decision**: ADD TO RULES → Add to .claude/rules/PROJECT_RULES.md instead
 
 ### Example 4: Should OMIT ENTIRELY (Already Covered)
 
@@ -227,7 +227,7 @@ When evaluating content, provide this assessment:
 1. **Check for redundancy FIRST** - Before any other evaluation, verify it's not already covered
 2. **Default to NOT creating skills** - Skills should be rare
 3. **OMIT is a valid decision** - If it exists elsewhere, don't duplicate it
-4. **Simple rules go in CLAUDE.md or PROJECT_RULES.md** - Not every rule needs a skill
+4. **Simple rules go in CLAUDE.md or .claude/rules/PROJECT_RULES.md** - Not every rule needs a skill
 5. **When in doubt, don't create a skill** - It's better to have fewer, high-quality skills
 6. **Skills are for Claude, not humans** - Focus on what would help another Claude instance
 

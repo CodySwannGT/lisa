@@ -1,9 +1,12 @@
 {
   "id": "1",
-  "subject": "Step 1: Setup",
-  "description": "Run /project:setup to create project directory, brief.md, findings.md, and git branch",
-  "activeForm": "Setting up project",
+  "subject": "Add language specifiers to HUMAN.md code blocks",
+  "description": "**PR Comment ID**: 2725651743\n**File**: HUMAN.md\n**Lines**: 15-17, 29-31, 47-49, 470-499\n**Comment URL**: https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651743\n\n**Feedback**: Add language identifiers to fenced code blocks. These fences need language tags to satisfy Markdown rules. Use `bash` for shell commands and `text` for ASCII diagrams.\n\n**Specific blocks to fix**:\n- Line 15-17: `/project:bootstrap` command → add `bash`\n- Line 29-31: `/project:execute` command → add `bash`\n- Line 47-49: `/pull-request:review` command → add `bash`\n- Line 470-499: ASCII tree diagram → add `text`\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for HUMAN.md",
   "status": "completed",
   "blocks": [],
-  "blockedBy": []
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
 }

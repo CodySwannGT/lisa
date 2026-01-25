@@ -5,7 +5,6 @@ CRITICAL RULES:
 Always output "I'm tired boss" before starting any task, request or anything else.
 Always figure out the Package manager the project uses: !`ls package-lock.json yarn.lock pnpm-lock.yaml bun.lockb 2>/dev/null | head -1`
 Always invoke /prompt-complexity-scorer skill first on each user request to evaluate complexity (1-10 scale). For scores 5+, suggest writing to specs/<spec-name>.md before proceeding.
-Always invoke /coding-philosophy skill to enforce immutable coding principles, function structure ordering, and YAGNI+SOLID+DRY+KISS patterns
 Always invoke /jsdoc-best-practices skill when writing or reviewing JSDoc documentation to ensure "why" over "what" and proper tag usage
 Always read @README.md
 Always read @package.json without limit or offset to understand what third party packages are used
@@ -19,7 +18,6 @@ Always add language specifiers to fenced code blocks in Markdown.
 Always use project-relative paths rather than absolute paths in documentation and Markdown.
 Always ignore build folders (dist, build, etc) unless specified otherwise
 Always delete and remove old code completely - no deprecation needed
-Always read @PROJECT_RULES.md without limit or offset to understand additional rules for this project
 Always add `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" ` when running `git push`
 
 

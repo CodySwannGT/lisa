@@ -1,9 +1,12 @@
 {
   "id": "3",
-  "subject": "Step 3: Gap Detection",
-  "description": "Read research.md and check for open questions that need human resolution before execution",
-  "activeForm": "Detecting gaps",
+  "subject": "Add language specifiers to all/copy-overwrite/HUMAN.md code blocks",
+  "description": "**PR Comment IDs**: 2725651730, 2725651731, 2725651735, 2725651736\n**File**: all/copy-overwrite/HUMAN.md\n**Lines**: 15-17, 29-31, 47-49, 470-499\n**Comment URLs**: \n- https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651730\n- https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651731\n- https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651735\n- https://github.com/CodySwannGT/lisa/pull/72#discussion_r2725651736\n\n**Feedback**: Add language specifiers to fenced code blocks. Use `bash` for shell commands and `text` for ASCII diagrams.\n\n**Specific blocks to fix**:\n- Line 15-17: `/project:bootstrap` command → add `bash`\n- Line 29-31: `/project:execute` command → add `bash`\n- Line 47-49: `/pull-request:review` command → add `bash`\n- Line 470-499: ASCII tree diagram → add `text`\n\n**Instructions**:\n1. Evaluate if the requested change is valid\n2. If not valid, reply explaining why and mark resolved, skip remaining steps\n3. If valid, make appropriate code updates\n4. Ensure changes follow project coding standards\n5. Run relevant tests to verify changes work\n6. Run `/git:commit` to commit changes\n7. If hooks fail, fix errors and re-run `/git:commit`",
+  "activeForm": "Implementing PR feedback for all/copy-overwrite/HUMAN.md",
   "status": "completed",
   "blocks": [],
-  "blockedBy": []
+  "blockedBy": [],
+  "metadata": {
+    "pr": "https://github.com/CodySwannGT/lisa/pull/72"
+  }
 }

@@ -2,14 +2,15 @@ import { Command } from "commander";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LisaConfig } from "../core/config.js";
+import { GitService } from "../core/git-service.js";
 import { Lisa, type LisaDependencies } from "../core/lisa.js";
+import { DryRunManifestService, ManifestService } from "../core/manifest.js";
 import { DetectorRegistry } from "../detection/index.js";
-import { StrategyRegistry } from "../strategies/index.js";
-import { ManifestService, DryRunManifestService } from "../core/manifest.js";
-import { BackupService, DryRunBackupService } from "../transaction/index.js";
 import { ConsoleLogger } from "../logging/index.js";
-import { createPrompter } from "./prompts.js";
+import { StrategyRegistry } from "../strategies/index.js";
+import { BackupService, DryRunBackupService } from "../transaction/index.js";
 import { toAbsolutePath } from "../utils/path-utils.js";
+import { createPrompter } from "./prompts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -116,6 +117,7 @@ function createDependencies(
       : new BackupService(logger),
     detectorRegistry: new DetectorRegistry(),
     strategyRegistry: new StrategyRegistry(),
+    gitService: new GitService(),
   };
 }
 

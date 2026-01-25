@@ -2,6 +2,17 @@ import { confirm, select } from "@inquirer/prompts";
 import type { ProjectType } from "../core/config.js";
 
 /**
+ * Header printed before git status so users see context before deciding.
+ */
+const UNCOMMITTED_CHANGES_HEADER = "\nUncommitted changes detected:";
+
+/**
+ * Explicit consent prompt to avoid overwriting uncommitted work.
+ */
+const DIRTY_GIT_CONFIRM_MESSAGE =
+  "Your git working directory has uncommitted changes.\nContinue with Lisa anyway?";
+
+/**
  * Overwrite decision options
  */
 export type OverwriteDecision = "yes" | "no" | "diff";
@@ -25,6 +36,13 @@ export interface IPrompter {
   confirmProjectTypes(
     detected: readonly ProjectType[]
   ): Promise<readonly ProjectType[]>;
+
+  /**
+   * Gate risky runs on explicit user consent, even in --yes mode.
+   * @param status Git status output showing uncommitted changes
+   * @returns True if user wants to proceed despite dirty state
+   */
+  confirmDirtyGit(status: string): Promise<boolean>;
 }
 
 /**
@@ -55,10 +73,24 @@ export class InteractivePrompter implements IPrompter {
 
     return detected;
   }
+
+  async confirmDirtyGit(status: string): Promise<boolean> {
+    console.log(UNCOMMITTED_CHANGES_HEADER);
+    console.log(status);
+    console.log("");
+
+    return confirm({
+      message: DIRTY_GIT_CONFIRM_MESSAGE,
+      default: false,
+    });
+  }
 }
 
 /**
  * Auto-accepting prompter for non-interactive mode
+ *
+ * Note: confirmDirtyGit always prompts interactively even in auto-accept mode,
+ * as running Lisa on a dirty working directory requires explicit user consent.
  */
 export class AutoAcceptPrompter implements IPrompter {
   async promptOverwrite(_relativePath: string): Promise<OverwriteDecision> {
@@ -69,6 +101,31 @@ export class AutoAcceptPrompter implements IPrompter {
     detected: readonly ProjectType[]
   ): Promise<readonly ProjectType[]> {
     return detected;
+  }
+
+  async confirmDirtyGit(status: string): Promise<boolean> {
+    // Always prompt for dirty git, even in auto-accept mode
+    // This is intentional - running Lisa on uncommitted changes is risky
+    if (!isInteractive()) {
+      // If not in TTY, cannot prompt - fail safe by returning false
+      console.log(UNCOMMITTED_CHANGES_HEADER);
+      console.log(status);
+      console.log("");
+      console.log(
+        "Cannot proceed: working directory has uncommitted changes and no TTY available for confirmation."
+      );
+      console.log("Please commit or stash your changes before running Lisa.");
+      return false;
+    }
+
+    console.log(UNCOMMITTED_CHANGES_HEADER);
+    console.log(status);
+    console.log("");
+
+    return confirm({
+      message: DIRTY_GIT_CONFIRM_MESSAGE,
+      default: false,
+    });
   }
 }
 
