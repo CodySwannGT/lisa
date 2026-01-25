@@ -1,9 +1,0 @@
-{
-  "id": "2",
-  "subject": "Step 2: Research",
-  "description": "Run /project:research to analyze codebase and generate research.md with findings",
-  "activeForm": "Researching codebase",
-  "status": "in_progress",
-  "blocks": [],
-  "blockedBy": []
-}

@@ -1,9 +1,0 @@
-{
-  "id": "4",
-  "subject": "Step 1: Read mentioned files",
-  "description": "Read the brief.md and findings.md files from the project directory to understand the WebSocket implementation requirements",
-  "activeForm": "Reading mentioned files",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": []
-}
