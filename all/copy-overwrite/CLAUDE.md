@@ -5,7 +5,6 @@ CRITICAL RULES:
 Always output "I'm tired boss" before starting any task, request or anything else.
 Always figure out the Package manager the project uses: !`ls package-lock.json yarn.lock pnpm-lock.yaml bun.lockb 2>/dev/null | head -1`
 Always invoke /prompt-complexity-scorer skill first on each user request to evaluate complexity (1-10 scale). For scores 5+, suggest writing to specs/<spec-name>.md before proceeding.
-Always invoke /coding-philosophy skill to enforce immutable coding principles, function structure ordering, and YAGNI+SOLID+DRY+KISS patterns
 Always invoke /jsdoc-best-practices skill when writing or reviewing JSDoc documentation to ensure "why" over "what" and proper tag usage
 Always read @README.md
 Always read @package.json without limit or offset to understand what third party packages are used
