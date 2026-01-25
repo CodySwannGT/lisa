@@ -18,7 +18,6 @@ Always add language specifiers to fenced code blocks in Markdown.
 Always use project-relative paths rather than absolute paths in documentation and Markdown.
 Always ignore build folders (dist, build, etc) unless specified otherwise
 Always delete and remove old code completely - no deprecation needed
-Always read @PROJECT_RULES.md without limit or offset to understand additional rules for this project
 Always add `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" ` when running `git push`
 
 
