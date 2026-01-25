@@ -37,7 +37,7 @@ Create a file inside `specs/` called `<something>.md` and describe what you want
 3. **Implementation** (via `/project:implement`): Systematically implements all tasks using subagents
 4. **Review** (via `/project:review`): Performs Claude code review and CodeRabbit review, implements fixes
 5. **Verification** (via `/project:verify`): Verifies implementation matches all requirements, documents drift
-6. **Debrief** (via `/project:debrief`): Evaluates findings.md and creates skills or adds rules to PROJECT_RULES.md
+6. **Debrief** (via `/project:debrief`): Evaluates findings.md and creates skills or adds rules to .claude/rules/PROJECT_RULES.md
 7. **Archive** (via `/project:archive`): Moves project to projects/archive and submits PR
 
 ### Step 4: Address PR Feedback
@@ -278,7 +278,7 @@ Verifies the implementation completely satisfies all requirements from brief.md 
 
 Evaluates findings.md and uses skill-evaluator agent to decide where each learning belongs:
 - **CREATE SKILL**: Complex, reusable pattern
-- **ADD TO RULES**: Simple never/always rule for PROJECT_RULES.md
+- **ADD TO RULES**: Simple never/always rule for .claude/rules/PROJECT_RULES.md
 - **OMIT ENTIRELY**: Already covered or too project-specific
 
 **Called by:** `/project:execute`

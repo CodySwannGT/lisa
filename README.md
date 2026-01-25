@@ -124,7 +124,7 @@ That's it. Behind the scenes, Lisa ensures:
 - Knowledge gap detection (stops if questions need answering)
 - Task breakdown and TDD implementation
 - Verification that all tasks completed
-- New patterns captured in `PROJECT_RULES.md`
+- New patterns captured in `.claude/rules/PROJECT_RULES.md`
 
 ### Platform Team Iteration Example
 
@@ -675,7 +675,7 @@ Each type directory contains subdirectories that control how files are applied:
 
 **copy-contents**: For files like `.gitignore` where you want to ensure certain lines exist without removing custom entries.
 
-**create-only**: Template files that should only be created once (e.g., `PROJECT_RULES.md` for project-specific customization).
+**create-only**: Template files that should only be created once (e.g., `.claude/rules/PROJECT_RULES.md` for project-specific customization).
 
 **merge**: For `package.json` files. Performs a deep merge where:
 - Lisa provides default values
@@ -749,7 +749,7 @@ When principles conflict, **KISS wins**. The decision framework:
 
 ### Project-Specific Rules
 
-Edit `PROJECT_RULES.md` (created by Lisa) to add project-specific instructions:
+Edit `.claude/rules/PROJECT_RULES.md` (created by Lisa) to add project-specific instructions:
 
 ```markdown
 # Project Rules

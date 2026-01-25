@@ -153,7 +153,7 @@ When you run `/project:execute`:
 
 4. Debrief
    • Extract reusable patterns
-   • Update PROJECT_RULES.md for future projects
+   • Update .claude/rules/PROJECT_RULES.md for future projects
 
 5. Archive
    • Move completed project to archive
@@ -610,7 +610,7 @@ Each task in the plan must be:
 
 ### 3. Skills Compound Over Time
 
-Every project adds to `PROJECT_RULES.md` through the debrief phase. This creates an ever-growing knowledge base that improves future implementations.
+Every project adds to `.claude/rules/PROJECT_RULES.md` through the debrief phase. This creates an ever-growing knowledge base that improves future implementations.
 
 ### 4. TDD is Non-Negotiable
 
@@ -626,7 +626,7 @@ This ensures AI-generated code is verified, not assumed correct.
 The workflow has built-in human touchpoints:
 - **Before execute:** Human answers research gaps
 - **After execute:** Human reviews before merge
-- **After debrief:** Human can update PROJECT_RULES.md
+- **After debrief:** Human can update .claude/rules/PROJECT_RULES.md
 
 ---
 
@@ -739,7 +739,7 @@ Start small—one skill, one command, one hook—and expand as your team gains c
 | File/Directory | Purpose |
 |----------------|---------|
 | **CLAUDE.md** | Behavioral rules (Always/Never directives) |
-| **PROJECT_RULES.md** | Project-specific conventions |
+| **.claude/rules/PROJECT_RULES.md** | Project-specific conventions |
 | **.claude/settings.json** | Hooks, plugins, environment config |
 | **.claude/skills/** | Team knowledge and patterns |
 | **.claude/commands/** | Slash command definitions |
@@ -770,7 +770,7 @@ Start small—one skill, one command, one hook—and expand as your team gains c
 
 - **README.md** - Full technical documentation
 - **CLAUDE.md** - Behavioral rules for this project
-- **PROJECT_RULES.md** - Project-specific conventions
+- **.claude/rules/PROJECT_RULES.md** - Project-specific conventions
 - **.claude/skills/** - Team knowledge and patterns
 - **.claude/commands/** - Available slash commands
 - **.claude/hooks/** - Automated enforcement scripts

@@ -94,14 +94,14 @@ export function getTypescriptConfig({
 
         // Configuration enforcement - prevent direct process.env access
         // All configuration should go through ConfigService or getStandaloneConfig()
-        // @see PROJECT_RULES.md
+        // @see .claude/rules/PROJECT_RULES.md
         "no-restricted-syntax": [
           "error",
           {
             selector:
               "MemberExpression[object.name='process'][property.name='env']",
             message:
-              "Direct process.env access is forbidden. Use ConfigService (in NestJS context) or getStandaloneConfig() (in Lambda handlers). See PROJECT_RULES.md.",
+              "Direct process.env access is forbidden. Use ConfigService (in NestJS context) or getStandaloneConfig() (in Lambda handlers). See .claude/rules/PROJECT_RULES.md.",
           },
         ],
 

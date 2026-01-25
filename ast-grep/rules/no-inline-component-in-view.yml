@@ -9,7 +9,7 @@ message: |
   - features/.../components/ComponentName/ComponentNameContainer.tsx
   - features/.../components/ComponentName/index.tsx
 
-  See PROJECT_RULES.md for the full pattern.
+  See .claude/rules/PROJECT_RULES.md for the full pattern.
 rule:
   pattern: $NAME.displayName = $VALUE
   inside:
