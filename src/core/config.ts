@@ -101,6 +101,15 @@ export interface OperationCounters {
   overwritten: number;
   appended: number;
   merged: number;
+  deleted: number;
+}
+
+/**
+ * Structure of deletions.json file
+ */
+export interface DeletionsConfig {
+  /** Paths to delete (files or directories) */
+  readonly paths: readonly string[];
 }
 
 /**
@@ -125,5 +134,6 @@ export function createInitialCounters(): OperationCounters {
     overwritten: 0,
     appended: 0,
     merged: 0,
+    deleted: 0,
   };
 }
