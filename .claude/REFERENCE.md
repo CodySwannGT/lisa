@@ -475,7 +475,29 @@ Examples:
 
 ---
 
+---
+
+## Claude Code System Prompts Reference
+
+Comprehensive catalog of all 110+ system prompts used by Claude Code v2.1.19+. Maintained by Piebald AI and updated within minutes of each Claude Code release.
+
+**What It Contains:**
+- Main system prompt and ~40 system reminders
+- 18+ tool descriptions (Bash, Write, Edit, Read, WebFetch, WebSearch, etc.)
+- Specialized agent prompts (Explore, Plan, Task execution)
+- Creation assistants (Agent architect, CLAUDE.md generator, status line setup)
+- Slash command implementations (/security-review, /review-pr, /pr-comments)
+- Utility functions (summarization, session management, security analysis)
+
+**Why It's Useful:**
+Understand exactly how Claude Code is instructed to operate across different scenarios. Reference for customization via tweakcc tool.
+
+**Repository:** [Piebald-AI/claude-code-system-prompts](https://github.com/Piebald-AI/claude-code-system-prompts)
+
+---
+
 ## Sources
 
 - [Claude Code Hooks Reference](https://docs.anthropic.com/en/docs/claude-code/hooks)
 - [Claude Code Settings Documentation](https://docs.anthropic.com/en/docs/claude-code/settings)
+- [Claude Code System Prompts Repository](https://github.com/Piebald-AI/claude-code-system-prompts)
