@@ -2,12 +2,12 @@ import { confirm, select } from "@inquirer/prompts";
 import type { ProjectType } from "../core/config.js";
 
 /**
- * Message shown when uncommitted changes are detected
+ * Header printed before git status so users see context before deciding.
  */
 const UNCOMMITTED_CHANGES_HEADER = "\nUncommitted changes detected:";
 
 /**
- * Confirmation message for dirty git prompt
+ * Explicit consent prompt to avoid overwriting uncommitted work.
  */
 const DIRTY_GIT_CONFIRM_MESSAGE =
   "Your git working directory has uncommitted changes.\nContinue with Lisa anyway?";
@@ -38,7 +38,7 @@ export interface IPrompter {
   ): Promise<readonly ProjectType[]>;
 
   /**
-   * Confirm proceeding with dirty git working directory
+   * Gate risky runs on explicit user consent, even in --yes mode.
    * @param status Git status output showing uncommitted changes
    * @returns True if user wants to proceed despite dirty state
    */

@@ -147,6 +147,11 @@ export class Lisa {
       const content = await fse.readFile(deletionsPath, "utf-8");
       const deletions: DeletionsConfig = JSON.parse(content);
 
+      if (!Array.isArray(deletions.paths)) {
+        logger.warn(`Invalid deletions.json format: paths must be an array`);
+        return;
+      }
+
       for (const relativePath of deletions.paths) {
         await this.processSingleDeletion(relativePath);
       }
@@ -167,7 +172,10 @@ export class Lisa {
     // Safety check: ensure path is within destDir
     const resolvedTarget = path.resolve(targetPath);
     const resolvedDest = path.resolve(this.config.destDir);
-    if (!resolvedTarget.startsWith(resolvedDest)) {
+    if (
+      !resolvedTarget.startsWith(resolvedDest + path.sep) &&
+      resolvedTarget !== resolvedDest
+    ) {
       logger.warn(
         `Skipping deletion outside project directory: ${relativePath}`
       );

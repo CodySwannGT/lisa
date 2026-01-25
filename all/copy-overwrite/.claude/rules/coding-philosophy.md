@@ -77,7 +77,7 @@ user.name = "New Name";
 
 All functions, hooks, and components follow a strict ordering:
 
-```
+```text
 1. Variable definitions and derived state (const, useState, useMemo, useCallback)
 2. Side effects (useEffect, function calls with no return value)
 3. Return statement
@@ -100,7 +100,7 @@ users.forEach(u => names.push(u.name));
 
 **Always write failing tests before implementation code.** This is mandatory, not optional.
 
-```
+```text
 TDD Cycle:
 1. RED: Write a failing test that defines expected behavior
 2. GREEN: Write the minimum code to make the test pass

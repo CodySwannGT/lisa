@@ -54,7 +54,7 @@ The previous TodoWrite system was a simple checklist. The new Tasks system is a 
 
 Tasks can block other tasks. Claude won't proceed with Task B until Task A completes, ensuring logical sequencing of work.
 
-```
+```text
 Task 1: "Set up database schema"
 Task 2: "Create API endpoints" (blockedBy: Task 1)
 Task 3: "Write integration tests" (blockedBy: Task 2)
@@ -62,7 +62,7 @@ Task 3: "Write integration tests" (blockedBy: Task 2)
 
 ### Persistent Storage
 
-Tasks are stored in `~/.claude/tasks`, surviving across:
+Tasks are stored in `<HOME>/.claude/tasks`, surviving across:
 - Session restarts
 - Context window compaction
 - Terminal closures
@@ -143,7 +143,7 @@ Tasks can be claimed by specific agents using the `owner` parameter, enabling pa
 
 #### Status Transitions
 
-```
+```text
 pending → in_progress → completed
 ```
 
@@ -245,7 +245,7 @@ Returns full task details:
 
 Tasks follow a strict status progression:
 
-```
+```text
 ┌─────────┐     ┌─────────────┐     ┌───────────┐
 │ pending │ ──► │ in_progress │ ──► │ completed │
 └─────────┘     └─────────────┘     └───────────┘
@@ -291,7 +291,7 @@ When a task is marked `completed`:
 
 ### Dependency Graph Example
 
-```
+```text
 ┌──────────────────────┐
 │ 1. Set up database   │
 └──────────┬───────────┘
@@ -335,7 +335,7 @@ Both sessions now share the same task list. When one session updates a task, the
 
 In multi-agent systems, workers can autonomously claim tasks:
 
-```
+```text
 Orchestrator: Creates tasks with dependencies
 Worker-1: TaskUpdate(taskId="12", status="in_progress", owner="worker-1")
 Worker-2: TaskUpdate(taskId="7", status="in_progress", owner="worker-2")
@@ -351,8 +351,8 @@ If a worker fails (heartbeat timeout), the task is released for another worker t
 
 Tasks are stored in the filesystem at:
 
-```
-~/.claude/tasks/
+```text
+<HOME>/.claude/tasks/
 ```
 
 ### Persistence Benefits
@@ -385,7 +385,7 @@ Execute actions before task operations:
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Task operation: $TOOL_NAME' >> ~/.claude/task-audit.log"
+            "command": "echo 'Task operation: $TOOL_NAME' >> <HOME>/.claude/task-audit.log"
           }
         ]
       }
@@ -440,7 +440,7 @@ fi
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 TOOL_NAME="$1"
 
-echo "[$TIMESTAMP] $TOOL_NAME: $TOOL_INPUT" >> ~/.claude/task-audit.log
+echo "[$TIMESTAMP] $TOOL_NAME: $TOOL_INPUT" >> <HOME>/.claude/task-audit.log
 ```
 
 ### Integration with Project Workflows
@@ -490,7 +490,7 @@ Subagents can use the task management tools to:
 
 ### Example: Parallel Subagent Workflow
 
-```
+```text
 Main Agent:
   1. TaskCreate: "Implement feature A" (id: 1)
   2. TaskCreate: "Implement feature B" (id: 2)
@@ -523,7 +523,7 @@ The background agent can update task status independently, and the main agent ca
 
 | Aspect | TodoWrite | Tasks |
 |--------|-----------|-------|
-| Storage | In-memory/session | Filesystem (`~/.claude/tasks`) |
+| Storage | In-memory/session | Filesystem (`<HOME>/.claude/tasks`) |
 | Persistence | Session only | Cross-session |
 | Dependencies | None | Full `blockedBy`/`blocks` support |
 | Ownership | None | `owner` parameter |
@@ -546,7 +546,7 @@ The migration is automatic. Claude Code v2.1.16+ uses the Task tools instead of 
 
 | System | Scope | Storage | Best For |
 |--------|-------|---------|----------|
-| **Tasks** | Session-level | `~/.claude/tasks` | Immediate Claude Code coordination |
+| **Tasks** | Session-level | `<HOME>/.claude/tasks` | Immediate Claude Code coordination |
 | **Beads** | Project-level | Git repo (`.beads/`) | Long-term project memory, audit trail |
 | **Flux** | Team-level | Git/SQLite | Multi-person visibility, dashboards |
 | **Linear/Jira** | Organization | Cloud | Enterprise project management |

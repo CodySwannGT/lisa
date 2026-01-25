@@ -47,8 +47,8 @@ export class GitService implements IGitService {
       });
       return stdout.trim().length > 0;
     } catch {
-      // If git command fails, assume not dirty (or not a git repo)
-      return false;
+      // Fail safe: unknown git state should block risky operations
+      return true;
     }
   }
 

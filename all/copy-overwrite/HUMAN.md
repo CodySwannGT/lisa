@@ -12,7 +12,7 @@ Create a file inside `specs/` called `<something>.md` and describe what you want
 
 ### Step 2: Bootstrap the Project
 
-```
+```bash
 /project:bootstrap @specs/<something>.md
 ```
 
@@ -26,7 +26,7 @@ Create a file inside `specs/` called `<something>.md` and describe what you want
 
 ### Step 3: Execute the Project
 
-```
+```bash
 /project:execute @projects/<project-name>
 ```
 
@@ -44,7 +44,7 @@ Create a file inside `specs/` called `<something>.md` and describe what you want
 
 After `/project:execute` completes and submits a PR, wait for CI/CD and code review to finish. Then:
 
-```
+```bash
 /pull-request:review <github-pr-link>
 ```
 
@@ -467,7 +467,7 @@ Run FROM a project with Lisa applied. Compares the project's Lisa-managed files 
 
 ## Command Call Graph
 
-```
+```text
 /project:bootstrap
 ├── /project:setup
 │   └── /git:commit
