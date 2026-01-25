@@ -80,6 +80,8 @@ Commands are organized by category. Sub-commands (commands that are called by ot
 | `/project:fix-linter-error` | Fix all violations of a specific ESLint rule | `<eslint-rule-name>` (required) | - |
 | `/project:lower-code-complexity` | Reduce code complexity threshold by 2 and fix violations | none | - |
 | `/project:add-test-coverage` | Increase test coverage to a specified threshold | `<threshold-percentage>` (required) | - |
+| `/project:reduce-max-lines` | Reduce max file lines threshold and fix violations | `<max-lines-value>` (required) | - |
+| `/project:reduce-max-lines-per-function` | Reduce max lines per function threshold and fix violations | `<max-lines-per-function-value>` (required) | - |
 
 ### Git Commands
 
@@ -327,6 +329,22 @@ Lowers the cognitive complexity threshold by 2, identifies all functions exceedi
 **Arguments:** `<threshold-percentage>` (required)
 
 Updates coverage config thresholds, identifies the 20 files with lowest coverage, creates tasks for each, and launches up to 5 test-coverage-agents to add tests in parallel. Iterates until all thresholds meet or exceed the target.
+
+---
+
+### `/project:reduce-max-lines`
+
+**Arguments:** `<max-lines-value>` (required)
+
+Reduces the max file lines threshold, identifies all files exceeding the new limit, creates tasks ordered by line count, and launches up to 5 code-simplifier agents to refactor in parallel. Iterates until all files meet or are under the target.
+
+---
+
+### `/project:reduce-max-lines-per-function`
+
+**Arguments:** `<max-lines-per-function-value>` (required)
+
+Reduces the max lines per function threshold, identifies all functions exceeding the new limit, creates tasks ordered by line count, and launches up to 5 code-simplifier agents to refactor in parallel. Iterates until all functions meet or are under the target.
 
 ---
 
