@@ -5,4 +5,5 @@ allowed-tools: Read, Write, Bash(git*), Glob, Grep, Task, TaskCreate, TaskUpdate
 ---
 
 1. Move $ARGUMENTS to `projects/archive`
-2. run /git:commit-and-submit-pr
+2. Clear the active project marker: `rm -f .claude-active-project`
+3. run /git:commit-and-submit-pr

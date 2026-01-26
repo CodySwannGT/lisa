@@ -109,7 +109,16 @@ For each task, use **TaskCreate** with:
 [Or "N/A - no user-facing changes"]
 
 ## Verification
-**Type:** `ui-recording` | `test-coverage` | `api-test` | `manual-check` | `documentation`
+**Type:** `test` | `ui-recording` | `test-coverage` | `api-test` | `manual-check` | `documentation`
+
+| Type | When to Use | Example |
+|------|-------------|---------|
+| `test` | Run specific tests | `bun run test -- src/services/user.spec.ts` |
+| `ui-recording` | UI/UX changes | `bun run playwright:test ...` |
+| `test-coverage` | Coverage threshold | `bun run test:cov -- --collectCoverageFrom='...'` |
+| `api-test` | API endpoints | `./scripts/verify/<task-name>.sh` |
+| `documentation` | Docs, README | `cat path/to/doc.md` |
+| `manual-check` | Config, setup | Command showing config exists |
 
 **Proof Command:**
 ```bash
@@ -118,6 +127,21 @@ For each task, use **TaskCreate** with:
 
 **Expected Output:**
 [What success looks like]
+
+## Learnings
+During implementation, collect any discoveries valuable for future developers:
+- Gotchas or unexpected behavior encountered
+- Edge cases that weren't obvious from requirements
+- Better approaches discovered during implementation
+- Patterns that should be reused or avoided
+- Documentation gaps or misleading information found
+
+**On task completion**, use `TaskUpdate` to save learnings:
+```
+TaskUpdate:
+  taskId: "<this-task-id>"
+  metadata: { learnings: ["Learning 1", "Learning 2", ...] }
+```
 ```
 
 **metadata**:
@@ -127,7 +151,7 @@ For each task, use **TaskCreate** with:
   "type": "bug|task|epic|story",
   "skills": ["/coding-philosophy", ...],
   "verification": {
-    "type": "test-coverage|ui-recording|api-test|manual-check|documentation",
+    "type": "test|ui-recording|test-coverage|api-test|manual-check|documentation",
     "command": "the proof command",
     "expected": "what success looks like"
   }
@@ -137,16 +161,6 @@ For each task, use **TaskCreate** with:
 ### Set Up Dependencies
 
 After creating all tasks, use **TaskUpdate** with `addBlockedBy` to establish task order where needed.
-
-**Verification Type Reference:**
-
-| Type | When to Use | Example |
-|------|-------------|---------|
-| `ui-recording` | UI/UX changes | `bun run playwright:test ...` |
-| `test-coverage` | New code with tests | `bun run test:cov -- --collectCoverageFrom='...'` |
-| `api-test` | New API endpoints | `./scripts/verify/<task-name>.sh` |
-| `documentation` | Docs, README | `cat path/to/doc.md` |
-| `manual-check` | Config, setup | Command showing config exists |
 
 ## Step 5: Report
 
