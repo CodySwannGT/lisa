@@ -188,5 +188,3 @@ expo-env.d.ts
 .claude-active-project
 
 # END: AI GUARDRAILS
-# Claude Code active project marker (session-specific)
-.claude-active-project
