@@ -1,0 +1,16 @@
+{
+  "id": "23",
+  "subject": "Evaluate each learning",
+  "description": "For each learning, use Task tool with subagent_type 'skill-evaluator' to determine: CREATE SKILL (complex, reusable pattern), ADD TO RULES (simple never/always rule), or OMIT ENTIRELY (already covered or too project-specific). Collect all decisions.",
+  "activeForm": "Evaluating each learning",
+  "status": "completed",
+  "blocks": [
+    "21"
+  ],
+  "blockedBy": [
+    "22"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

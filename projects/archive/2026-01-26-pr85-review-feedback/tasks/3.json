@@ -1,0 +1,12 @@
+{
+  "id": "3",
+  "subject": "Review",
+  "description": "Run /project:review projects/2026-01-26-pr85-review-feedback to review code changes.",
+  "activeForm": "Reviewing code changes",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

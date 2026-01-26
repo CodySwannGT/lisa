@@ -1,0 +1,14 @@
+{
+  "id": "18",
+  "subject": "Review requirements",
+  "description": "Read all requirements for projects/2026-01-26-pr85-review-feedback (brief.md, research.md, task files).",
+  "activeForm": "Reviewing requirements",
+  "status": "completed",
+  "blocks": [
+    "17"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

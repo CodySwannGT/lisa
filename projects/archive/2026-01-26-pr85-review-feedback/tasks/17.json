@@ -1,0 +1,16 @@
+{
+  "id": "17",
+  "subject": "Verify implementation",
+  "description": "Verify the implementation completely and fully satisfies all requirements from the brief and research.",
+  "activeForm": "Verifying implementation",
+  "status": "completed",
+  "blocks": [
+    "19"
+  ],
+  "blockedBy": [
+    "18"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

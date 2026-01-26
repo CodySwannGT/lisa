@@ -1,0 +1,14 @@
+{
+  "id": "12",
+  "subject": "Perform Claude review",
+  "description": "If projects/2026-01-26-pr85-review-feedback/claude-review.md already exists, skip this task. Otherwise, run /project:local-code-review projects/2026-01-26-pr85-review-feedback",
+  "activeForm": "Performing Claude review",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

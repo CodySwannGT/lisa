@@ -1,0 +1,14 @@
+{
+  "id": "20",
+  "subject": "Document drift",
+  "description": "If there is any divergence from requirements or verification failures, ensure all drift is documented in projects/2026-01-26-pr85-review-feedback/drift.md.",
+  "activeForm": "Documenting drift",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "19"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

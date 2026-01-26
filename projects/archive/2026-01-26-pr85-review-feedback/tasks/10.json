@@ -1,0 +1,25 @@
+{
+  "id": "10",
+  "subject": "Add language specifier to PR review template markdown",
+  "description": "**Type:** Task\n\n## Description\nApply the same markdown fix to the template at `all/copy-overwrite/.claude/commands/pull-request/review.md`. This ensures the fix propagates to all Lisa-managed projects.\n\n## Acceptance Criteria\n- [ ] Template file matches project file changes\n- [ ] Line 33 code block has language specifier\n\n## Relevant Research\nThe template file is identical to the project file and needs the same fix.\nThis file is used by Lisa to apply PR review command to all projects.\n\n## Skills to Invoke\n- `/coding-philosophy` - Always required\n\n## Implementation Details\nFiles to modify:\n- `all/copy-overwrite/.claude/commands/pull-request/review.md` (line 33)\n\nCopy the exact same change from the project command file.\n\n## Testing Requirements\n### Unit Tests\n- N/A - markdown file changes\n\n### Integration Tests\n- N/A - markdown file changes\n\n### E2E Tests\n- N/A - markdown file changes\n\n## Verification\n**Type:** `manual-check`\n\n**Proof Command:**\n```bash\ndiff .claude/commands/pull-request/review.md all/copy-overwrite/.claude/commands/pull-request/review.md\n```\n\n**Expected Output:**\nNo differences (empty output)\n\n## Learnings\nDuring implementation, collect any discoveries valuable for future developers.",
+  "activeForm": "Adding language specifier to PR review template",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "diff .claude/commands/pull-request/review.md all/copy-overwrite/.claude/commands/pull-request/review.md",
+      "expected": "No differences (empty output)"
+    }
+  }
+}

@@ -1041,12 +1041,58 @@ jobs:
 
       - name: 📊 SonarCloud Scan
         if: steps.check_sonar.outputs.has_token == 'true'
+        id: sonar_scan
         uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: -Dsonar.qualitygate.wait=true
+        continue-on-error: true
+
+      - name: 🔍 Validate SonarCloud results
+        if: steps.check_sonar.outputs.has_token == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          OUTCOME="${{ steps.sonar_scan.outcome }}"
+
+          if [ "$OUTCOME" = "success" ]; then
+            echo "✅ SonarCloud scan and quality gate passed"
+            exit 0
+          fi
+
+          if [ "$OUTCOME" = "failure" ]; then
+            REPORT_FILE=".scannerwork/report-task.txt"
+
+            if [ ! -f "$REPORT_FILE" ]; then
+              echo "::error::SonarCloud scan failed and report-task.txt is missing; failing build."
+              exit 1
+            fi
+
+            # Extract serverUrl and ceTaskId from report-task.txt (key=value format)
+            SERVER_URL=$(grep -E '^serverUrl=' "$REPORT_FILE" | cut -d= -f2-)
+            CE_TASK_ID=$(grep -E '^ceTaskId=' "$REPORT_FILE" | cut -d= -f2-)
+
+            if [ -z "$SERVER_URL" ] || [ -z "$CE_TASK_ID" ]; then
+              echo "::error::Could not extract serverUrl or ceTaskId from report-task.txt; failing build."
+              exit 1
+            fi
+
+            # Query SonarCloud CE task API to get the actual error message
+            TASK_JSON=$(curl -s -u "$SONAR_TOKEN:" "$SERVER_URL/api/ce/task?id=$CE_TASK_ID")
+            ERROR_MSG=$(echo "$TASK_JSON" | jq -r '.task.errorMessage // ""')
+
+            # Only allow line-limit quota errors to pass
+            if echo "$ERROR_MSG" | grep -qi "maximum allowed lines limit"; then
+              echo "::warning::SonarCloud scan failed due to organization line-limit quota; not blocking build."
+              echo "ℹ️ Contact your SonarCloud organization admin to increase or manage line limits."
+              exit 0
+            fi
+
+            echo "::error::SonarCloud scan failed: $ERROR_MSG"
+            exit 1
+          fi
 
       - name: 📊 SonarCloud Scan Skipped
         if: steps.check_sonar.outputs.has_token != 'true'

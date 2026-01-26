@@ -1,0 +1,16 @@
+{
+  "id": "16",
+  "subject": "Implement CodeRabbit review fixes",
+  "description": "Evaluate suggestions in projects/2026-01-26-pr85-review-feedback/coderabbit-review.md and implement fixes for valid findings.",
+  "activeForm": "Implementing CodeRabbit review fixes",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "15"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}
