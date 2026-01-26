@@ -8,6 +8,20 @@ model: haiku
 
 This skill evaluates user prompts to determine if they require planning before implementation.
 
+## Skip Evaluation
+
+**Do not evaluate** prompts that are explicit slash command invocations. If the user's prompt starts with `/`, they are already invoking a workflow and no complexity scoring is needed.
+
+Examples of prompts to **skip** (just execute the command):
+- `/project:bootstrap @specs/add-auth.md`
+- `/git:commit`
+- `/project:implement @projects/2026-01-26-feature`
+
+Examples of prompts to **evaluate**:
+- "Add WebSocket support to this project"
+- "Make the app faster"
+- "Refactor the authentication system"
+
 ## Scoring Criteria
 
 Score each prompt on a 1-10 scale based on these factors:
