@@ -175,6 +175,22 @@ jobs:
         with:
           source: ".env.${{ needs.determine_environment.outputs.environment == 'dev' && 'development' || needs.determine_environment.outputs.environment }}"
           target: '.env.production'
+      - name: Copy amplify file (if exists)
+        run: |
+          ENV="${{ needs.determine_environment.outputs.environment }}"
+          if [ "$ENV" == "staging" ]; then
+            SOURCE_FILE="staging.aws-exports.js"
+          elif [ "$ENV" == "dev" ]; then
+            SOURCE_FILE="dev.aws-exports.js"
+          else
+            SOURCE_FILE="prod.aws-exports.js"
+          fi
+          if [ -f "$SOURCE_FILE" ]; then
+            cp "$SOURCE_FILE" aws-exports.js
+            echo "Copied $SOURCE_FILE to aws-exports.js"
+          else
+            echo "Skipping: $SOURCE_FILE does not exist"
+          fi
       - name: Get version for deploy message
         id: get_version
         run: |
