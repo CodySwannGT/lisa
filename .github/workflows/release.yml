@@ -213,18 +213,9 @@ jobs:
             SKIP_REASON="PR merge from environment branch detected"
           fi
 
-          # Pattern 3: Check parent commits for promotion patterns
-          # If both parents are from environment branches, it's likely a promotion
-          PARENT_COUNT=$(git rev-list --parents -n 1 HEAD | wc -w)
-          if [ "$PARENT_COUNT" -gt 2 ]; then
-            # This is a merge commit, check if parent branches are environment branches
-            PARENT_BRANCHES=$(git log -1 --pretty=%P | xargs -n1 git branch -a --contains 2>/dev/null | grep -E "($ENV_BRANCHES)" | head -2)
-            PARENT_ENV_COUNT=$(echo "$PARENT_BRANCHES" | grep -cE "($ENV_BRANCHES)" || true)
-            if [ "$PARENT_ENV_COUNT" -ge 2 ]; then
-              IS_PROMOTION=true
-              SKIP_REASON="Merge between environment branches detected"
-            fi
-          fi
+          # Note: Pattern 3 (checking parent branches) was removed because it caused false positives.
+          # After merging a feature branch into main, `git branch -a --contains` shows main for BOTH
+          # parents since main now contains both commits. Patterns 1 and 2 are sufficient.
 
           echo "is_promotion=$IS_PROMOTION" >> $GITHUB_OUTPUT
           echo "skip_reason=$SKIP_REASON" >> $GITHUB_OUTPUT
