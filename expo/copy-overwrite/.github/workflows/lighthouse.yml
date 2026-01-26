@@ -54,6 +54,23 @@ jobs:
             bun install --frozen-lockfile
           fi
 
+      - name: 📋 Copy amplify file (if exists)
+        run: |
+          ENV="${{ inputs.target_branch }}"
+          if [ "$ENV" == "staging" ]; then
+            SOURCE_FILE="staging.aws-exports.js"
+          elif [ "$ENV" == "dev" ]; then
+            SOURCE_FILE="dev.aws-exports.js"
+          else
+            SOURCE_FILE="prod.aws-exports.js"
+          fi
+          if [ -f "$SOURCE_FILE" ]; then
+            cp "$SOURCE_FILE" aws-exports.js
+            echo "Copied $SOURCE_FILE to aws-exports.js"
+          else
+            echo "Skipping: $SOURCE_FILE does not exist"
+          fi
+
       - name: 🏗️ Build web export
         run: ${{ inputs.package_manager }} run export:web
         env:
