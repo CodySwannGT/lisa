@@ -102,6 +102,7 @@ export interface OperationCounters {
   appended: number;
   merged: number;
   deleted: number;
+  ignored: number;
 }
 
 /**
@@ -135,5 +136,6 @@ export function createInitialCounters(): OperationCounters {
     appended: 0,
     merged: 0,
     deleted: 0,
+    ignored: 0,
   };
 }
