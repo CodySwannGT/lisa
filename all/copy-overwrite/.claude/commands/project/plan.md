@@ -176,4 +176,4 @@ Use **TaskList** to show the created tasks.
 
 ## Next Step
 
-If the implementation step doesn't start automatically, run `/project:implement $ARGUMENTS`.
+After completing this phase, tell the user: "To continue, run `/project:implement $ARGUMENTS`"

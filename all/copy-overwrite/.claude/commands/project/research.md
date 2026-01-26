@@ -168,4 +168,4 @@ Run `/git:commit`
 
 ## Next Step
 
-If the planning step doesn't start automatically, run `/project:plan $ARGUMENTS`.
+After completing this phase, tell the user: "To continue, run `/project:plan $ARGUMENTS`"

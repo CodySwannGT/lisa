@@ -51,4 +51,4 @@ Work through these tasks in order. Do not stop until all are completed.
 
 ## Next Step
 
-If the verification step doesn't start automatically, run `/project:verify $ARGUMENTS`.
+After completing this phase, tell the user: "To continue, run `/project:verify $ARGUMENTS`"
