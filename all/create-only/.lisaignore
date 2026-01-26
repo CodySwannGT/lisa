@@ -1,0 +1,7 @@
+# Lisa Ignore File
+# Add patterns here to skip files from Lisa's management
+# Supports gitignore-style syntax:
+#   - Lines starting with # are comments
+#   - Exact file names: eslint.config.mjs
+#   - Directory patterns: .claude/hooks/
+#   - Glob patterns: *.example.json, **/*.custom.ts

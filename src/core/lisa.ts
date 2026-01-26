@@ -14,6 +14,10 @@ import type { ILogger } from "../logging/index.js";
 import { StrategyRegistry, type StrategyContext } from "../strategies/index.js";
 import type { IBackupService } from "../transaction/index.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
+import {
+  loadIgnorePatterns,
+  type IgnorePatterns,
+} from "../utils/ignore-patterns.js";
 import type {
   CopyStrategy,
   DeletionsConfig,
@@ -46,17 +50,12 @@ export interface LisaDependencies {
 export class Lisa {
   private counters: OperationCounters = createInitialCounters();
   private detectedTypes: ProjectType[] = [];
+  private ignorePatterns: IgnorePatterns = {
+    patterns: [],
+    shouldIgnore: () => false,
+  };
   private readonly separator = "========================================";
-  private readonly dryRunPrefix = "Would copy:";
-  private readonly dryRunSkipMsg = "Would skip:";
-  private readonly dryRunPromptMsg = "Would prompt:";
-  private readonly dryRunAppendMsg = "Would append:";
-  private readonly dryRunMergeMsg = "Would merge:";
-  private readonly copyMsg = "Copied:";
-  private readonly skipMsg = "Skipped:";
-  private readonly promptMsg = "Overwritten:";
-  private readonly appendMsg = "Appended:";
-  private readonly mergeMsg = "Merged:";
+  private readonly lisaignoreSuffix = "(.lisaignore)";
 
   /**
    * Initialize Lisa orchestrator
@@ -98,6 +97,14 @@ export class Lisa {
    */
   private async processConfigurations(): Promise<void> {
     const { logger } = this.deps;
+
+    // Load ignore patterns from destination project
+    this.ignorePatterns = await loadIgnorePatterns(this.config.destDir);
+    if (this.ignorePatterns.patterns.length > 0) {
+      logger.info(
+        `Loaded .lisaignore with ${this.ignorePatterns.patterns.length} pattern(s)`
+      );
+    }
 
     logger.info("Processing common configurations (all/)...");
     await this.processProjectType("all");
@@ -464,7 +471,23 @@ export class Lisa {
       ) => Promise<FileOperationResult>;
     }
   ): Promise<void> {
-    const files = await listFilesRecursive(srcDir);
+    const { logger } = this.deps;
+    const allFiles = await listFilesRecursive(srcDir);
+
+    // Filter out ignored files
+    const files = allFiles.filter(srcFile => {
+      const relativePath = path.relative(srcDir, srcFile);
+      if (this.ignorePatterns.shouldIgnore(relativePath)) {
+        this.counters.ignored++;
+        if (this.config.dryRun) {
+          logger.dry(`Would skip (ignored): ${relativePath}`);
+        } else {
+          logger.info(`Ignored: ${relativePath}`);
+        }
+        return false;
+      }
+      return true;
+    });
 
     const context: StrategyContext = {
       config: this.config,
@@ -717,69 +740,101 @@ export class Lisa {
   }
 
   /**
+   * Print a single stat line with color
+   * @param label - Stat label
+   * @param value - Stat value
+   * @param color - Color function from picocolors
+   * @param suffix - Optional suffix after the count
+   */
+  private printStatLine(
+    label: string,
+    value: number,
+    color: (s: string) => string,
+    suffix = ""
+  ): void {
+    const suffixText = suffix ? ` ${suffix}` : "";
+    console.log(
+      `  ${color(label)} ${String(value).padStart(3)} files${suffixText}`
+    );
+  }
+
+  /**
    * Print summary statistics
    */
   private printSummaryStats(): void {
-    const { copied, skipped, overwritten, appended, merged, deleted } =
+    const { copied, skipped, overwritten, appended, merged, deleted, ignored } =
       this.counters;
 
     if (this.config.validateOnly) {
-      console.log(
-        `  ${pc.green("Compatible files:")}    ${String(copied).padStart(3)} files`
-      );
-      console.log(
-        `  ${pc.blue("Already present:")}     ${String(skipped).padStart(3)} files`
-      );
-      console.log(
-        `  ${pc.yellow("Would conflict:")}      ${String(overwritten).padStart(3)} files`
-      );
-      console.log(
-        `  ${pc.blue("Would append:")}        ${String(appended).padStart(3)} files`
-      );
-      console.log(
-        `  ${pc.green("Would merge:")}         ${String(merged).padStart(3)} files`
-      );
-      console.log(
-        `  ${pc.red("Would delete:")}        ${String(deleted).padStart(3)} files`
-      );
+      this.printStatLine("Compatible files:   ", copied, pc.green);
+      this.printStatLine("Already present:    ", skipped, pc.blue);
+      this.printStatLine("Would conflict:     ", overwritten, pc.yellow);
+      this.printStatLine("Would append:       ", appended, pc.blue);
+      this.printStatLine("Would merge:        ", merged, pc.green);
+      this.printStatLine("Would delete:       ", deleted, pc.red);
+      if (ignored > 0) {
+        this.printStatLine(
+          "Ignored:            ",
+          ignored,
+          pc.magenta,
+          this.lisaignoreSuffix
+        );
+      }
     } else if (this.config.dryRun) {
-      console.log(
-        `  ${pc.green(this.dryRunPrefix)}      ${String(copied).padStart(3)} files`
+      this.printStatLine("Would copy:     ", copied, pc.green);
+      this.printStatLine(
+        "Would skip:     ",
+        skipped,
+        pc.blue,
+        "(identical or create-only)"
       );
-      console.log(
-        `  ${pc.blue(this.dryRunSkipMsg)}      ${String(skipped).padStart(3)} files (identical or create-only)`
+      this.printStatLine(
+        "Would prompt:   ",
+        overwritten,
+        pc.yellow,
+        "(differ)"
       );
-      console.log(
-        `  ${pc.yellow(this.dryRunPromptMsg)}    ${String(overwritten).padStart(3)} files (differ)`
+      this.printStatLine(
+        "Would append:   ",
+        appended,
+        pc.blue,
+        "(copy-contents)"
       );
-      console.log(
-        `  ${pc.blue(this.dryRunAppendMsg)}    ${String(appended).padStart(3)} files (copy-contents)`
-      );
-      console.log(
-        `  ${pc.green(this.dryRunMergeMsg)}     ${String(merged).padStart(3)} files (JSON)`
-      );
-      console.log(
-        `  ${pc.red("Would delete:")}  ${String(deleted).padStart(3)} files`
-      );
+      this.printStatLine("Would merge:    ", merged, pc.green, "(JSON)");
+      this.printStatLine("Would delete:   ", deleted, pc.red);
+      if (ignored > 0) {
+        this.printStatLine(
+          "Would ignore:   ",
+          ignored,
+          pc.magenta,
+          this.lisaignoreSuffix
+        );
+      }
     } else {
-      console.log(
-        `  ${pc.green(this.copyMsg)}      ${String(copied).padStart(3)} files`
+      this.printStatLine("Copied:     ", copied, pc.green);
+      this.printStatLine(
+        "Skipped:    ",
+        skipped,
+        pc.blue,
+        "(identical or create-only)"
       );
-      console.log(
-        `  ${pc.blue(this.skipMsg)}     ${String(skipped).padStart(3)} files (identical or create-only)`
+      this.printStatLine(
+        "Overwritten:",
+        overwritten,
+        pc.yellow,
+        "(user approved)"
       );
-      console.log(
-        `  ${pc.yellow(this.promptMsg)} ${String(overwritten).padStart(3)} files (user approved)`
-      );
-      console.log(
-        `  ${pc.blue(this.appendMsg)}    ${String(appended).padStart(3)} files (copy-contents)`
-      );
-      console.log(
-        `  ${pc.green(this.mergeMsg)}      ${String(merged).padStart(3)} files (JSON merged)`
-      );
-      console.log(
-        `  ${pc.red("Deleted:")}     ${String(deleted).padStart(3)} files`
-      );
+      this.printStatLine("Appended:   ", appended, pc.blue, "(copy-contents)");
+      this.printStatLine("Merged:     ", merged, pc.green, "(JSON merged)");
+      this.printStatLine("Deleted:    ", deleted, pc.red);
+      if (ignored > 0) {
+        this.printStatLine(
+          "Ignored:    ",
+          ignored,
+          pc.magenta,
+          this.lisaignoreSuffix
+        );
+      }
     }
   }
 

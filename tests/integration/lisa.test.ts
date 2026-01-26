@@ -28,6 +28,9 @@ import {
 } from "../helpers/test-utils.js";
 
 const PACKAGE_JSON = "package.json";
+const TEST_TXT = "test.txt";
+const TSCONFIG_BASE = "tsconfig.base.json";
+const LISAIGNORE = ".lisaignore";
 
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
@@ -95,10 +98,8 @@ describe("Lisa Integration Tests", () => {
       expect(result.detectedTypes).toContain("typescript");
 
       // Check that files were copied
-      expect(await fs.pathExists(path.join(destDir, "test.txt"))).toBe(true);
-      expect(
-        await fs.pathExists(path.join(destDir, "tsconfig.base.json"))
-      ).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, TSCONFIG_BASE))).toBe(true);
     });
 
     it("applies configurations to Expo project", async () => {
@@ -161,7 +162,7 @@ describe("Lisa Integration Tests", () => {
       expect(result.detectedTypes).toHaveLength(0);
 
       // all/ configs should still be applied
-      expect(await fs.pathExists(path.join(destDir, "test.txt"))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
     });
   });
 
@@ -225,7 +226,7 @@ describe("Lisa Integration Tests", () => {
       await installLisa.apply();
 
       // Verify files exist
-      expect(await fs.pathExists(path.join(destDir, "test.txt"))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
 
       // Then uninstall
       const uninstallConfig = createConfig();
@@ -239,7 +240,7 @@ describe("Lisa Integration Tests", () => {
       expect(result.mode).toBe("uninstall");
 
       // Files should be removed
-      expect(await fs.pathExists(path.join(destDir, "test.txt"))).toBe(false);
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(false);
 
       // Manifest should be removed
       expect(await fs.pathExists(path.join(destDir, ".lisa-manifest"))).toBe(
@@ -311,6 +312,73 @@ describe("Lisa Integration Tests", () => {
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe(".lisaignore", () => {
+    it("skips files matching patterns in .lisaignore", async () => {
+      await createTypeScriptProject(destDir);
+
+      // Create .lisaignore to skip test.txt
+      await fs.writeFile(path.join(destDir, LISAIGNORE), TEST_TXT);
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      const result = await lisa.apply();
+
+      expect(result.success).toBe(true);
+      // test.txt should NOT be copied because it's ignored
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(false);
+      // Other files should still be copied
+      expect(await fs.pathExists(path.join(destDir, TSCONFIG_BASE))).toBe(true);
+      // Ignored count should be > 0
+      expect(result.counters.ignored).toBeGreaterThan(0);
+    });
+
+    it("skips entire directories matching patterns", async () => {
+      await createTypeScriptProject(destDir);
+
+      // Create .lisaignore to skip typescript/ directory files
+      // Since tsconfig.base.json comes from typescript/, ignoring it should work
+      await fs.writeFile(path.join(destDir, LISAIGNORE), TSCONFIG_BASE);
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      const result = await lisa.apply();
+
+      expect(result.success).toBe(true);
+      // tsconfig.base.json should NOT be copied
+      expect(await fs.pathExists(path.join(destDir, TSCONFIG_BASE))).toBe(
+        false
+      );
+      // test.txt should still be copied
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
+    });
+
+    it("works with dry run mode", async () => {
+      await createTypeScriptProject(destDir);
+      await fs.writeFile(path.join(destDir, LISAIGNORE), TEST_TXT);
+
+      const config = createConfig({ dryRun: true });
+      const lisa = new Lisa(config, createDeps(config));
+      const result = await lisa.apply();
+
+      expect(result.success).toBe(true);
+      expect(result.counters.ignored).toBeGreaterThan(0);
+    });
+
+    it("does nothing when .lisaignore is empty or missing", async () => {
+      await createTypeScriptProject(destDir);
+      // No .lisaignore file
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      const result = await lisa.apply();
+
+      expect(result.success).toBe(true);
+      expect(result.counters.ignored).toBe(0);
+      // All files should be copied
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
     });
   });
 });
