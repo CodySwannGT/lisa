@@ -41,3 +41,9 @@ Work through these tasks in order. Do not stop until all are completed.
 - Cannot be scoped to a skill that's invoked on-demand
 
 If a learning only applies to certain types of work (e.g., "when writing GraphQL resolvers..."), it should be a **skill** instead, not a rule.
+
+---
+
+## Next Step
+
+If the archive step doesn't start automatically, run `/project:archive $ARGUMENTS`.

@@ -60,3 +60,9 @@ TaskCreate:
 Work through these tasks in order. Do not stop until all are completed.
 
 Report "Project complete and archived" when done.
+
+---
+
+## Next Step
+
+The project workflow is now complete. The implementation is done, reviewed, verified, learnings captured, and the project is archived.

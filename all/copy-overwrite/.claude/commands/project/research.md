@@ -163,3 +163,9 @@ Run `/git:commit`
 - Focus on finding concrete file paths and line numbers
 - Each sub-agent prompt should be specific and focused on read-only documentation
 - **REMEMBER**: Document what IS, not what SHOULD BE
+
+---
+
+## Next Step
+
+If the planning step doesn't start automatically, run `/project:plan $ARGUMENTS`.
