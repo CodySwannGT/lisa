@@ -46,4 +46,4 @@ If a learning only applies to certain types of work (e.g., "when writing GraphQL
 
 ## Next Step
 
-If the archive step doesn't start automatically, run `/project:archive $ARGUMENTS`.
+After completing this phase, tell the user: "To continue, run `/project:archive $ARGUMENTS`"

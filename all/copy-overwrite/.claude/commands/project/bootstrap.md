@@ -41,4 +41,4 @@ Work through these tasks in order. Do not stop until both are completed.
 
 ## Next Step
 
-If the full execution doesn't start automatically after gap check, run `/project:execute @projects/<project-name>`.
+After completing this phase, tell the user: "To continue, run `/project:execute @projects/<project-name>`"
