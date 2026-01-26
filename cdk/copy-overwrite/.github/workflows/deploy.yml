@@ -47,7 +47,7 @@ jobs:
     needs: [determine_environment]
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
-      release_strategy: 'semantic'
+      release_strategy: 'standard-version'
       skip_jobs: 'test:e2e,test:integration'
       require_approval: false
       require_signatures: false
