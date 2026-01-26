@@ -33,4 +33,4 @@ Use **TaskList** to generate a summary showing:
 - Total tasks completed
 - Any tasks that failed or remain in progress
 
-Suggest running `/project:review`.
+After completing this phase, tell the user: "To continue, run `/project:review $ARGUMENTS`"
