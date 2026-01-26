@@ -786,6 +786,25 @@ Create `.claude/settings.local.json` for machine-specific overrides:
 
 This file should be in `.gitignore`.
 
+### Ignoring Files (.lisaignore)
+
+Create a `.lisaignore` file in your project root to skip specific files from Lisa's management. This is useful when you have custom configurations that shouldn't be overwritten.
+
+```bash
+# Ignore specific files
+eslint.config.mjs
+.prettierrc.json
+
+# Ignore entire directories
+.claude/hooks/
+
+# Use glob patterns
+*.example.json
+**/*.custom.ts
+```
+
+Lisa will skip any files matching these patterns during apply operations. The ignored file count appears in the summary output.
+
 ## Troubleshooting
 
 ### Common Issues
