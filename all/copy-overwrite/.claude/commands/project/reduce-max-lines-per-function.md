@@ -1,6 +1,6 @@
 ---
 description: Reduce max lines per function threshold and fix violations
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, TaskGet
+allowed-tools: Read, Bash, Glob, Grep
 argument-hint: <max-lines-per-function-value>
 model: sonnet
 ---
@@ -11,66 +11,55 @@ Target threshold: $ARGUMENTS lines per function
 
 If no argument provided, prompt the user for a target.
 
-## Process
+## Step 1: Gather Requirements
 
-### Step 0: Check Project Context
+1. **Read current config** from eslint thresholds (eslint.thresholds.json or similar)
+2. **Run lint** with the new threshold to find violations:
+   ```bash
+   bun run lint 2>&1 | grep "max-lines-per-function"
+   ```
+3. **Note for each violation**:
+   - File path and line number
+   - Function name
+   - Current line count
 
-Check if there's an active project for task syncing:
+If no violations at $ARGUMENTS, report success and exit.
 
-```bash
-cat .claude-active-project 2>/dev/null
+## Step 2: Generate Brief
+
+Compile findings into a detailed brief:
+
 ```
+Reduce max lines per function threshold to $ARGUMENTS.
 
-If a project is active, include `metadata: { "project": "<project-name>" }` in all TaskCreate calls.
+## Functions Exceeding Threshold (ordered by line count)
 
-### Step 1: Locate Configuration
+1. src/services/user.ts:processUser (95 lines, target: $ARGUMENTS)
+   - Line 45, function spans lines 45-140
+2. src/utils/helpers.ts:validateInput (82 lines, target: $ARGUMENTS)
+   - Line 23, function spans lines 23-105
+...
 
-Read the eslint thresholds config (`eslint.thresholds.json` or similar).
+## Configuration Change
+- File: eslint.thresholds.json
+- Change: maxLinesPerFunction to $ARGUMENTS
 
-### Step 2: Update Threshold
-
-Set the `maxLinesPerFunction` threshold to $ARGUMENTS (e.g., `"maxLinesPerFunction": $ARGUMENTS`).
-
-### Step 3: Identify Violations
-
-Run lint to find all functions exceeding the new threshold. Note file path, function name, and current line count.
-
-If no violations, report success and exit.
-
-### Step 4: Create Task List
-
-Create a task for each function needing refactoring, ordered by line count (highest first).
-
-Each task should have:
-- **subject**: "Reduce lines in [function-name]" (imperative form)
-- **description**: File path and line number, function name, current line count, target threshold, refactoring strategies
-- **activeForm**: "Reducing lines in [function-name]" (present continuous)
-- **metadata**: `{ "project": "<active-project>" }` if project context exists
-
-Refactoring strategies:
+## Refactoring Strategies
 - **Extract functions**: Break function into smaller named functions
 - **Early returns**: Reduce nesting with guard clauses
 - **Extract conditions**: Move complex boolean logic into named variables
 - **Use lookup tables**: Replace complex switch/if-else chains with object maps
 - **Consolidate logic**: Merge similar code paths
 
-### Step 5: Parallel Execution
+## Acceptance Criteria
+- All functions at or below $ARGUMENTS lines
+- `bun run lint` passes with no max-lines-per-function violations
 
-Launch **up to 5 sub-agents** using the `code-simplifier` subagent to refactor in parallel.
-
-### Step 6: Iterate
-
-Check for remaining pending tasks. Re-run lint to verify.
-
-If violations remain, repeat from Step 3.
-
-Continue until all functions meet or are under $ARGUMENTS lines.
-
-### Step 7: Report
-
+## Verification
+Command: `bun run lint 2>&1 | grep "max-lines-per-function" | wc -l`
+Expected: 0
 ```
-Max lines per function reduction complete:
-- Target threshold: $ARGUMENTS
-- Functions refactored: [count]
-- Functions reduced: [list with line counts]
-```
+
+## Step 3: Bootstrap Project
+
+Run `/project:bootstrap` with the generated brief as a text prompt.
