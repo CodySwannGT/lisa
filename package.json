@@ -18,6 +18,9 @@
     "dev": "tsx src/index.ts",
     "test:watch": "vitest",
     "update-node-version": "tsx scripts/update-node-version.ts",
+    "cleanup:amplify-branches": "bash scripts/cleanup-amplify-branches.sh",
+    "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
+    "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
     "knip": "knip",
     "knip:fix": "knip --fix",
@@ -75,7 +78,7 @@
     "@ast-grep/cli"
   ],
   "name": "@codyswann/lisa",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "bin": {
