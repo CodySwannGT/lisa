@@ -33,4 +33,7 @@ Use **TaskList** to generate a summary showing:
 - Total tasks completed
 - Any tasks that failed or remain in progress
 
-Suggest running `/project:review`.
+Output to human:
+```markdown
+If the review step doesn't start automatically, run `/project:review $ARGUMENTS`.
+```

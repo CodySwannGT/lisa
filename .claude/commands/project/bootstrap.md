@@ -36,3 +36,9 @@ Work through these tasks in order. Do not stop until both are completed.
 
 - If gaps exist: "⚠️ Bootstrap complete but needs human review - see Open Questions in research.md"
 - If no gaps: Execution will begin automatically
+
+---
+
+## Next Step
+
+If the full execution doesn't start automatically after gap check, run `/project:execute @projects/<project-name>`.
