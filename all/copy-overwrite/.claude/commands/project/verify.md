@@ -39,3 +39,9 @@ TaskCreate:
 ```
 
 Work through these tasks in order. Do not stop until all are completed.
+
+---
+
+## Next Step
+
+After completing this phase, tell the user: "To continue, run `/project:debrief $ARGUMENTS`"
