@@ -48,6 +48,19 @@ jobs:
     name: Publish to npm
     runs-on: ubuntu-latest
     steps:
+      - name: Validate inputs
+        run: |
+          if [ -z "${{ inputs.tag }}" ]; then
+            echo "::error::Tag input is empty - cannot publish without a version tag"
+            echo "This usually means the version job was skipped (e.g., promotion merge detected)"
+            exit 1
+          fi
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "::error::Version input is empty - cannot publish without a version"
+            exit 1
+          fi
+          echo "✅ Inputs validated: tag=${{ inputs.tag }}, version=${{ inputs.version }}"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
