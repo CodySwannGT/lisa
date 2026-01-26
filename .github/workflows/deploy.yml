@@ -75,11 +75,11 @@ jobs:
       package_manager: 'bun'
     secrets: inherit
 
-  # Publish to npm (only on main)
+  # Publish to npm (only on main, and only if a version was created)
   publish_npm:
     name: Publish to npm
     needs: [determine_environment, release]
-    if: ${{ needs.determine_environment.outputs.environment == 'main' && !contains(github.event.head_commit.message, '[skip ci]') }}
+    if: ${{ needs.determine_environment.outputs.environment == 'main' && !contains(github.event.head_commit.message, '[skip ci]') && needs.release.outputs.tag != '' }}
     uses: ./.github/workflows/publish-to-npm.yml
     with:
       tag: ${{ needs.release.outputs.tag }}
