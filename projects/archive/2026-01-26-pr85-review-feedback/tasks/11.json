@@ -1,0 +1,26 @@
+{
+  "id": "11",
+  "subject": "Run verification tests",
+  "description": "**Type:** Task\n\n## Description\nRun the final verification commands to ensure all changes pass lint and tests.\n\n## Acceptance Criteria\n- [ ] `bun run lint` passes\n- [ ] `bun run test` passes\n\n## Relevant Research\nFrom brief.md acceptance criteria:\n- Tests pass after changes\n- `bun run lint` passes\n\n## Skills to Invoke\n- `/coding-philosophy` - Always required\n\n## Implementation Details\nRun the verification commands and fix any issues that arise.\n\n## Testing Requirements\n### Unit Tests\n- All existing tests must pass\n\n### Integration Tests\n- All existing tests must pass\n\n### E2E Tests\n- N/A\n\n## Verification\n**Type:** `test`\n\n**Proof Command:**\n```bash\nbun run lint && bun run test\n```\n\n**Expected Output:**\nAll linting passes, all tests pass\n\n## Learnings\nDuring implementation, collect any discoveries valuable for future developers.",
+  "activeForm": "Running verification tests",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "7",
+    "8",
+    "9",
+    "10"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun run lint && bun run test",
+      "expected": "All linting and tests pass"
+    }
+  }
+}

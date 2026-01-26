@@ -1,0 +1,12 @@
+{
+  "id": "4",
+  "subject": "Debrief",
+  "description": "Run /project:debrief projects/2026-01-26-pr85-review-feedback to capture learnings.",
+  "activeForm": "Capturing learnings",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

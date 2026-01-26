@@ -1,0 +1,16 @@
+{
+  "id": "13",
+  "subject": "Implement Claude review fixes",
+  "description": "Read projects/2026-01-26-pr85-review-feedback/claude-review.md and fix any suggestions that score above 45.",
+  "activeForm": "Implementing Claude review fixes",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "12"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

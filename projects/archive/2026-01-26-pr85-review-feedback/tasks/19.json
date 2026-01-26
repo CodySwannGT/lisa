@@ -1,0 +1,16 @@
+{
+  "id": "19",
+  "subject": "Run task verification commands",
+  "description": "Read all task files in projects/2026-01-26-pr85-review-feedback/tasks/. For each task with verification metadata (JSON: metadata.verification, or Markdown: ## Verification section), create a verification task with subject 'Verify: <original-subject>' and metadata including originalTaskId and verification details. Then execute each verification task: run the command, compare output to expected. If pass, mark completed. If fail, keep in_progress and document failure in projects/2026-01-26-pr85-review-feedback/drift.md. Report summary: total tasks, passed, failed, blocked.",
+  "activeForm": "Running task verification commands",
+  "status": "completed",
+  "blocks": [
+    "20"
+  ],
+  "blockedBy": [
+    "17"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "15",
+  "subject": "Perform CodeRabbit review",
+  "description": "If projects/2026-01-26-pr85-review-feedback/coderabbit-review.md already exists, skip this task. Otherwise, run `coderabbit review --plain || true` and write results to projects/2026-01-26-pr85-review-feedback/coderabbit-review.md",
+  "activeForm": "Performing CodeRabbit review",
+  "status": "completed",
+  "blocks": [
+    "16"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

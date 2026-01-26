@@ -1,0 +1,12 @@
+{
+  "id": "1",
+  "subject": "Planning",
+  "description": "Run /project:plan projects/2026-01-26-pr85-review-feedback to create implementation tasks.",
+  "activeForm": "Planning implementation tasks",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "2",
+  "subject": "Implementation",
+  "description": "Run /project:implement projects/2026-01-26-pr85-review-feedback to execute all planned tasks.",
+  "activeForm": "Implementing planned tasks",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

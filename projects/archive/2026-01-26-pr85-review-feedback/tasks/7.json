@@ -1,0 +1,28 @@
+{
+  "id": "7",
+  "subject": "Fix SonarCloud validation to detect specific line-limit errors",
+  "description": "**Type:** Task\n\n## Description\nUpdate the SonarCloud validation step in `.github/workflows/quality.yml` to stop blanket-ignoring all failures. Instead, it should:\n1. Check for `.scannerwork/report-task.txt` file\n2. Extract `serverUrl` and `ceTaskId` from the report using jq (per PROJECT_RULES.md)\n3. Query SonarCloud CE task API to get the actual error message\n4. Only exit 0 if error contains \"maximum allowed lines limit\"\n5. Exit 1 for all other failures\n\n## Acceptance Criteria\n- [ ] Validation step checks for report-task.txt existence\n- [ ] Uses jq for parsing (not grep/sed/cut/awk per PROJECT_RULES.md)\n- [ ] Queries SonarCloud CE task API with SONAR_TOKEN\n- [ ] Only allows line-limit quota errors to pass\n- [ ] Fails CI for other SonarCloud failures\n\n## Relevant Research\nCurrent code at lines 1053-1069 unconditionally exits 0 on any failure.\nCodeRabbit suggested approach using curl and jq to query `/api/ce/task?id=$CE_TASK_ID`.\nReport-task.txt format is key=value properties file with serverUrl and ceTaskId.\n\n## Skills to Invoke\n- `/coding-philosophy` - Always required\n\n## Implementation Details\nFiles to modify:\n- `.github/workflows/quality.yml` (lines 1053-1069)\n\nThe validation step needs:\n1. Add `env: SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}`\n2. Check if `.scannerwork/report-task.txt` exists\n3. Extract serverUrl and ceTaskId (can use grep since it's key=value, but use jq for JSON parsing)\n4. curl the CE task API and parse error message with jq\n5. Check if error message contains \"maximum allowed lines limit\"\n\n## Testing Requirements\n### Unit Tests\n- N/A - workflow file changes\n\n### Integration Tests\n- N/A - workflow file changes\n\n### E2E Tests\n- N/A - workflow file changes\n\n## Verification\n**Type:** `manual-check`\n\n**Proof Command:**\n```bash\ngrep -A 30 \"Validate SonarCloud results\" .github/workflows/quality.yml | head -35\n```\n\n**Expected Output:**\nShould show the validation step with:\n- env section with SONAR_TOKEN\n- Check for report-task.txt\n- curl command to SonarCloud API\n- jq parsing of error message\n- Conditional exit based on \"maximum allowed lines limit\"\n\n## Learnings\nDuring implementation, collect any discoveries valuable for future developers.",
+  "activeForm": "Fixing SonarCloud validation logic",
+  "status": "completed",
+  "blocks": [
+    "11",
+    "9"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -A 30 'Validate SonarCloud results' .github/workflows/quality.yml | head -35",
+      "expected": "Validation step with SONAR_TOKEN env, report-task.txt check, curl/jq API query, conditional exit"
+    },
+    "learnings": [
+      "report-task.txt uses key=value format so grep is appropriate for extraction, jq is used for JSON API response parsing",
+      "SonarCloud CE task API endpoint is /api/ce/task?id={ceTaskId} and requires SONAR_TOKEN for authentication"
+    ]
+  }
+}
