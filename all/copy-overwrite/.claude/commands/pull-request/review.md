@@ -1,30 +1,72 @@
 ---
 description: Checks for code review comments on a PR and implements them if required.
 argument-hint: <github-pr-link>
-allowed-tools: Read, Write, Edit, Bash(git*), Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, TaskGet, Bash(gh*)
+allowed-tools: Read, Bash, Glob, Grep
 ---
 
-Use the GitHub CLI to fetch all review comments on $ARGUMENTS:
+# Review PR Comments
 
-```bash
-gh pr view $ARGUMENTS --json reviews,comments
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments
+Target PR: $ARGUMENTS
+
+If no argument provided, prompt the user for a PR link or number.
+
+## Step 1: Gather Requirements
+
+1. **Fetch PR metadata and comments** using the GitHub CLI:
+   ```bash
+   gh pr view $ARGUMENTS --json number,title,body,reviews,comments
+   gh api repos/{owner}/{repo}/pulls/{pr_number}/comments
+   ```
+2. **Extract each unresolved review comment**:
+   - Comment ID
+   - File path
+   - Line number
+   - Comment body
+   - Author
+
+If no unresolved comments exist, report success and exit.
+
+## Step 2: Generate Brief
+
+Compile findings into a detailed brief:
+
+```
+Implement PR review feedback for $ARGUMENTS.
+
+## PR Overview
+- Title: [PR title]
+- Description: [PR description summary]
+
+## Review Comments to Address (ordered by file)
+
+### 1. [file_path]:[line_number] (Comment ID: [id])
+**Reviewer**: [author]
+**Comment**: [full comment body]
+**Action Required**: [brief description of what needs to change]
+
+### 2. [file_path]:[line_number] (Comment ID: [id])
+**Reviewer**: [author]
+**Comment**: [full comment body]
+**Action Required**: [brief description of what needs to change]
+
+...
+
+## Implementation Guidelines
+- Evaluate each comment for validity before implementing
+- If a comment is not valid, document the reasoning
+- Ensure changes follow project coding standards
+- Run relevant tests to verify changes work
+
+## Acceptance Criteria
+- All valid review comments addressed
+- Tests pass after changes
+- `bun run lint` passes
+
+## Verification
+Command: `bun run lint && bun run test`
+Expected: All checks pass
 ```
 
-Extract each unresolved review comment as a separate item. Note the comment ID, file path, line number, and comment body.
+## Step 3: Bootstrap Project
 
-Create a task for each unresolved comment with `metadata: { "pr": "$ARGUMENTS" }`:
-- **subject**: Brief description of the requested change
-- **description**: Full comment body, file path, line number, comment ID, and these instructions:
-  1. Evaluate if the requested change is valid
-  2. If not valid, reply explaining why and mark resolved, skip remaining steps
-  3. If valid, make appropriate code updates
-  4. Ensure changes follow project coding standards
-  5. Run relevant tests to verify changes work
-  6. Run `/git:commit` to commit changes
-  7. If hooks fail, fix errors and re-run `/git:commit`
-- **activeForm**: "Implementing PR feedback for [file]"
-
-Launch up to 6 subagents to work through the task list in parallel.
-
-When all tasks are completed, run `/git:commit-and-submit-pr`.
+Run `/project:bootstrap` with the generated brief as a text prompt.
