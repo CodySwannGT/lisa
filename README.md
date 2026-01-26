@@ -389,6 +389,8 @@ Pre-built workflows for common tasks:
 | `/project:implement` | Execute all planned tasks |
 | `/project:review` | Run code review |
 | `/project:verify` | Run all quality checks |
+| `/project:reduce-max-lines` | Reduce max file lines threshold and fix violations |
+| `/project:reduce-max-lines-per-function` | Reduce max lines per function threshold and fix violations |
 | `/git:commit` | Create conventional commit |
 | `/git:submit-pr` | Create pull request |
 | `/lisa:review-implementation` | Compare project files against Lisa templates, upstream changes |
