@@ -103,6 +103,15 @@ last_updated: [YYYY-MM-DD]
 ## Code References
 - `path/to/file.py:123` - Description
 
+## Reusable Code
+### Existing Functions/Modules
+- `path/to/utils.ts:45` - `functionName()` - description of what it does and how it can be reused
+- `path/to/service.ts:120` - `ClassName` - description of reusable functionality
+
+### Existing Patterns to Follow
+- Similar feature implemented in `path/to/feature/` - follow same structure
+- Existing implementation of X in `path/to/file.ts` - can be extended/adapted
+
 ## Architecture Documentation
 [Patterns, conventions, design implementations]
 
@@ -119,6 +128,15 @@ last_updated: [YYYY-MM-DD]
 ### E2E Test Patterns
 [Similar structure]
 
+## Impacted Tests
+### Tests Requiring Modification
+- `tests/example.spec.ts` - tests X functionality, will need updates for Y
+- `e2e/feature.spec.ts` - may need new assertions for Z
+
+### Test Gaps
+- No existing tests for X functionality - will need new test file
+- Missing edge case coverage for Y scenario
+
 ## Documentation Patterns
 ### JSDoc Conventions
 ### Database Comments (Backend)
@@ -130,6 +148,7 @@ last_updated: [YYYY-MM-DD]
 **Question**: [Full question]
 **Context**: [Why this arose]
 **Impact**: [What it affects]
+**Recommendation**: [Researcher's best recommendation based on findings]
 **Answer**: _[Human fills before /project:plan]_
 ```
 

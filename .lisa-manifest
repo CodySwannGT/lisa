@@ -23,7 +23,6 @@ copy-overwrite:.claude/commands/lisa/review-implementation.md
 copy-overwrite:.claude/commands/project/add-test-coverage.md
 copy-overwrite:.claude/commands/project/archive.md
 copy-overwrite:.claude/commands/project/bootstrap.md
-copy-overwrite:.claude/commands/project/complete-task.md
 copy-overwrite:.claude/commands/project/debrief.md
 copy-overwrite:.claude/commands/project/execute.md
 copy-overwrite:.claude/commands/project/implement.md

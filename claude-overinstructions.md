@@ -360,7 +360,7 @@ For the next available task:
 Use Task tool with subagent_type "general-purpose" and prompt:
 
 \`\`\`
-Run /project:complete-task $ARGUMENTS/tasks/<task-spec-filename>
+Complete the task following the instructions in the task spec file at $ARGUMENTS/tasks/<task-spec-filename>
 \`\`\`
 
 Wait for the subagent to complete.
@@ -429,7 +429,7 @@ For each markdown file in `$ARGUMENTS/tasks/`:
 
 ## Implementation
 
-For each task, use a subagent to run `/project:complete-task` with the task's spec file.
+For each task, use a subagent to complete it following the task's spec file instructions.
 
 Work through all tasks until complete.
 

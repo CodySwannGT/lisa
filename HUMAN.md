@@ -75,7 +75,6 @@ Commands are organized by category. Sub-commands (commands that are called by ot
 | `/project:verify` | Verify implementation matches all project requirements | `<project-directory>` (required) | `/project:execute` |
 | `/project:debrief` | Evaluate findings and create skills or rules from learnings | `<project-directory>` (required) | `/project:execute` |
 | `/project:archive` | Move completed project to projects/archive | `<project-directory>` (required) | `/project:execute` |
-| `/project:complete-task` | Complete a single task using a subagent with fresh context | `<task-file>` (required) | `/project:implement` |
 | `/project:local-code-review` | Code review local changes on current branch | `<project-directory>` (required) | `/project:review` |
 | `/project:fix-linter-error` | Fix all violations of a specific ESLint rule | `<eslint-rule-name>` (required) | - |
 | `/project:lower-code-complexity` | Reduce code complexity threshold by 2 and fix violations | none | - |
@@ -298,16 +297,6 @@ Moves the completed project to `projects/archive` and submits a PR.
 
 ---
 
-### `/project:complete-task`
-
-**Arguments:** `<task-file>` (required)
-
-Completes a single task within a project using a subagent with fresh context. Must execute verification commands before marking complete. If verification requires Docker/external services and they're unavailable, marks task as blocked.
-
-**Called by:** `/project:implement`
-
----
-
 ### `/project:fix-linter-error`
 
 **Arguments:** `<eslint-rule-name>` (required)
@@ -495,7 +484,6 @@ Run FROM a project with Lisa applied. Compares the project's Lisa-managed files 
 /project:execute
 ├── /project:plan
 ├── /project:implement
-│   └── /project:complete-task
 ├── /project:review
 │   └── /project:local-code-review
 ├── /project:verify

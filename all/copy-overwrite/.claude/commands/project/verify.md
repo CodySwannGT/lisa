@@ -8,68 +8,34 @@ The current branch is a feature branch with full implementation of the project i
 
 ## Setup
 
-Create workflow tracking tasks with `metadata: { "project": "<project-name>", "phase": "verify" }`:
+Set active project marker: `echo "$ARGUMENTS" | sed 's|.*/||' > .claude-active-project`
 
-1. Review Requirements
-2. Verify Implementation
-3. Run Task Verification Commands
-4. Document Drift
+Extract `<project-name>` from the last segment of `$ARGUMENTS`.
 
-## Step 1: Review Requirements
+## Create and Execute Tasks
 
-Read all requirements for $ARGUMENTS.
+Create workflow tracking tasks with `metadata.project` set to the project name:
 
-## Step 2: Verify Implementation
+```
+TaskCreate:
+  subject: "Review requirements"
+  description: "Read all requirements for $ARGUMENTS (brief.md, research.md, task files)."
+  metadata: { project: "<project-name>" }
 
-Verify the implementation completely and fully satisfies all requirements from Step 1.
+TaskCreate:
+  subject: "Verify implementation"
+  description: "Verify the implementation completely and fully satisfies all requirements from the brief and research."
+  metadata: { project: "<project-name>" }
 
-## Step 3: Run Task Verification Commands
+TaskCreate:
+  subject: "Run task verification commands"
+  description: "Read all task files in $ARGUMENTS/tasks/. For each task with verification metadata (JSON: metadata.verification, or Markdown: ## Verification section), create a verification task with subject 'Verify: <original-subject>' and metadata including originalTaskId and verification details. Then execute each verification task: run the command, compare output to expected. If pass, mark completed. If fail, keep in_progress and document failure in $ARGUMENTS/drift.md. Report summary: total tasks, passed, failed, blocked."
+  metadata: { project: "<project-name>" }
 
-### 3a: Create Verification Tasks
+TaskCreate:
+  subject: "Document drift"
+  description: "If there is any divergence from requirements or verification failures, ensure all drift is documented in $ARGUMENTS/drift.md."
+  metadata: { project: "<project-name>" }
+```
 
-First, read all task files in `$ARGUMENTS/tasks/` and create a new task for each one that has verification metadata:
-
-For each task file:
-1. **Read the task file** (JSON or markdown)
-2. **Check for verification metadata**:
-   - JSON tasks: Look for `metadata.verification`
-   - Markdown tasks: Look for `## Verification` section with `### Proof Command`
-3. **If verification exists**, create a new task:
-   ```
-   subject: "Verify: <original-task-subject>"
-   description: "Run verification for task <id>: <verification.command>"
-   activeForm: "Verifying <original-task-subject>"
-   metadata: {
-     "project": "<project-name>",
-     "phase": "verify",
-     "originalTaskId": "<id>",
-     "verification": <copy the verification object>
-   }
-   ```
-
-### 3b: Execute Verification Tasks
-
-Work through each verification task:
-
-1. **Run verification command** using Bash tool:
-   - JSON: Execute `metadata.verification.command`
-   - Markdown: Execute the command in `### Proof Command` code block
-2. **Compare output to expected**:
-   - JSON: Compare to `metadata.verification.expected`
-   - Markdown: Compare to `### Expected Output` section
-3. **Record results and mark task**:
-   - If verification passes → Mark task completed
-   - If verification fails → Keep task in_progress, document failure in drift.md
-   - If command cannot run → Keep task in_progress, document blocker in drift.md
-
-### Verification Summary
-
-After running all verification tasks, report:
-- Total tasks with verification: X
-- Passed: Y
-- Failed: Z
-- Blocked: W
-
-## Step 4: Document Drift
-
-If there is any divergence from the requirements or verification failures, document the drift to `$ARGUMENTS/drift.md`.
+Work through these tasks in order. Do not stop until all are completed.

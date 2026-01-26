@@ -21,30 +21,42 @@ Execute complete implementation workflow for $ARGUMENTS.
 3. Check if planning is already complete: `ls $ARGUMENTS/tasks/*.md 2>/dev/null | head -3`
    - If task files exist: Skip planning, start at implementation
 
-## Workflow Tasks
+## Create and Execute Tasks
 
-Create workflow tracking tasks with `metadata: { "project": "<project-name>", "phase": "execution" }`:
+Create workflow tracking tasks with `metadata.project` set to the project name:
 
-1. Step 1: Planning
-2. Step 2: Implementation
-3. Step 3: Review
-4. Step 4: Verification
-5. Step 5: Debrief
-6. Step 6: Archive
+```
+TaskCreate:
+  subject: "Planning"
+  description: "Run /project:plan $ARGUMENTS to create implementation tasks."
+  metadata: { project: "<project-name>" }
 
-## Execution
+TaskCreate:
+  subject: "Implementation"
+  description: "Run /project:implement $ARGUMENTS to execute all planned tasks."
+  metadata: { project: "<project-name>" }
 
-Work through each workflow task:
+TaskCreate:
+  subject: "Review"
+  description: "Run /project:review $ARGUMENTS to review code changes."
+  metadata: { project: "<project-name>" }
 
-| Step | Command |
-|------|---------|
-| Planning | `run /project:plan $ARGUMENTS` |
-| Implementation | `run /project:implement $ARGUMENTS` |
-| Review | `run /project:review $ARGUMENTS` |
-| Verification | `run /project:verify $ARGUMENTS` |
-| Debrief | `run /project:debrief $ARGUMENTS` |
-| Archive | `run /project:archive $ARGUMENTS` |
+TaskCreate:
+  subject: "Verification"
+  description: "Run /project:verify $ARGUMENTS to verify all requirements are met."
+  metadata: { project: "<project-name>" }
 
-**CRITICAL**: Use Task tool with subagent for Planning, Implementation, Verification, Debrief, and Archive steps.
+TaskCreate:
+  subject: "Debrief"
+  description: "Run /project:debrief $ARGUMENTS to capture learnings."
+  metadata: { project: "<project-name>" }
+
+TaskCreate:
+  subject: "Archive"
+  description: "Run /project:archive $ARGUMENTS to archive the completed project."
+  metadata: { project: "<project-name>" }
+```
+
+Work through these tasks in order. Do not stop until all are completed.
 
 Report "Project complete and archived" when done.

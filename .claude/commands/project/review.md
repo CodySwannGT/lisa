@@ -10,35 +10,39 @@ The current branch is a feature branch with full implementation of the project i
 
 ## Setup
 
-Create workflow tracking tasks with `metadata: { "project": "<project-name>", "phase": "review" }`:
+Set active project marker: `echo "$ARGUMENTS" | sed 's|.*/||' > .claude-active-project`
 
-1. Perform Claude Review
-2. Implement Claude Review Fixes
-3. Perform CodeRabbit Review
-4. Implement CodeRabbit Review Fixes
-5. Perform Claude Optimizations
+Extract `<project-name>` from the last segment of `$ARGUMENTS`.
 
-## Step 1: Perform Claude Review
+## Create and Execute Tasks
 
-If `$ARGUMENTS/claude-review.md` already exists, skip to Step 2.
+Create workflow tracking tasks with `metadata.project` set to the project name:
 
-Otherwise, run `/project:local-code-review $ARGUMENTS`
+```
+TaskCreate:
+  subject: "Perform Claude review"
+  description: "If $ARGUMENTS/claude-review.md already exists, skip this task. Otherwise, run /project:local-code-review $ARGUMENTS"
+  metadata: { project: "<project-name>" }
 
-## Step 2: Implement Claude Review Fixes
+TaskCreate:
+  subject: "Implement Claude review fixes"
+  description: "Read $ARGUMENTS/claude-review.md and fix any suggestions that score above 45."
+  metadata: { project: "<project-name>" }
 
-1. Read `$ARGUMENTS/claude-review.md`
-2. Fix any suggestions that score above 45
+TaskCreate:
+  subject: "Perform CodeRabbit review"
+  description: "If $ARGUMENTS/coderabbit-review.md already exists, skip this task. Otherwise, run `coderabbit review --plain || true` and write results to $ARGUMENTS/coderabbit-review.md"
+  metadata: { project: "<project-name>" }
 
-## Step 3: Perform CodeRabbit Review
+TaskCreate:
+  subject: "Implement CodeRabbit review fixes"
+  description: "Evaluate suggestions in $ARGUMENTS/coderabbit-review.md and implement fixes for valid findings."
+  metadata: { project: "<project-name>" }
 
-If `$ARGUMENTS/coderabbit-review.md` already exists, skip to Step 4.
+TaskCreate:
+  subject: "Perform Claude optimizations"
+  description: "Use the code simplifier agent to clean up code added to the current branch."
+  metadata: { project: "<project-name>" }
+```
 
-Otherwise, use Task tool with prompt: "Run `coderabbit review --plain || true` and write results to $ARGUMENTS/coderabbit-review.md"
-
-## Step 4: Implement CodeRabbit Review Fixes
-
-Evaluate suggestions in `$ARGUMENTS/coderabbit-review.md` and implement fixes for valid findings.
-
-## Step 5: Perform Claude Optimizations
-
-Use the code simplifier agent to clean up code added to the current branch.
+Work through these tasks in order. Do not stop until all are completed.
