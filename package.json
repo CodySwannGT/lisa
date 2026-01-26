@@ -24,7 +24,8 @@
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
     "knip": "knip",
     "knip:fix": "knip --fix",
-    "sg:scan": "ast-grep scan"
+    "sg:scan": "ast-grep scan",
+    "lisa:update": "npx @codyswann/lisa ."
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
