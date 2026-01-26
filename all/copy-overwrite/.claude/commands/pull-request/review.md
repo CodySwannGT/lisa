@@ -30,7 +30,7 @@ If no unresolved comments exist, report success and exit.
 
 Compile findings into a detailed brief:
 
-```
+```markdown
 Implement PR review feedback for $ARGUMENTS.
 
 ## PR Overview
