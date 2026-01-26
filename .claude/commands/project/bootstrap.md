@@ -7,7 +7,7 @@ Complete all of the following steps for $ARGUMENTS:
 
 ## Step 1: Setup
 
-Run `/project:setup $ARGUMENTS`.
+Run `/project:setup $ARGUMENTS` directly (not via Task tool).
 - Creates project directory, brief.md, findings.md, git branch
 - Creates `.claude-active-project` marker file
 - Outputs the project name (e.g., `2026-01-26-my-feature`)
