@@ -1,0 +1,25 @@
+{
+  "id": "9",
+  "subject": "Update SonarCloud validation in typescript template",
+  "description": "**Type:** Task\n\n## Description\nApply the same SonarCloud validation fix to the TypeScript template at `typescript/copy-overwrite/.github/workflows/quality.yml`. This ensures the fix propagates to all Lisa-managed TypeScript projects.\n\n## Acceptance Criteria\n- [ ] Template file matches project file changes\n- [ ] Same validation logic as main workflow file\n\n## Relevant Research\nThe template file is identical to the project file and needs the same fix.\nThis file is used by Lisa to apply workflow configuration to TypeScript projects.\n\n## Skills to Invoke\n- `/coding-philosophy` - Always required\n\n## Implementation Details\nFiles to modify:\n- `typescript/copy-overwrite/.github/workflows/quality.yml` (same location as project file)\n\nCopy the exact same changes from the project workflow file.\n\n## Testing Requirements\n### Unit Tests\n- N/A - workflow file changes\n\n### Integration Tests\n- N/A - workflow file changes\n\n### E2E Tests\n- N/A - workflow file changes\n\n## Verification\n**Type:** `manual-check`\n\n**Proof Command:**\n```bash\ndiff .github/workflows/quality.yml typescript/copy-overwrite/.github/workflows/quality.yml | head -20\n```\n\n**Expected Output:**\nNo differences (empty output or minimal expected differences)\n\n## Learnings\nDuring implementation, collect any discoveries valuable for future developers.",
+  "activeForm": "Updating typescript template SonarCloud validation",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "diff .github/workflows/quality.yml typescript/copy-overwrite/.github/workflows/quality.yml | head -20",
+      "expected": "No differences or minimal expected differences"
+    }
+  }
+}
