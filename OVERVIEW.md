@@ -218,7 +218,6 @@ When you run `/project:execute`:
 | | `/project:plan` | Create implementation tasks |
 | | `/project:execute` | Full implementation loop |
 | | `/project:implement` | Execute all planned tasks |
-| | `/project:complete-task` | Complete single task with fresh context |
 | | `/project:verify` | Validate requirements met |
 | | `/project:review` | Run code review (CodeRabbit) |
 | | `/project:debrief` | Document lessons learned |
