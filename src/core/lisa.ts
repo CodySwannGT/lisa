@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- Main orchestrator class with apply/uninstall/validate operations */
 import * as fse from "fs-extra";
-import { readdir, rmdir, stat } from "node:fs/promises";
+import { readdir, readFile, rmdir, stat } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
@@ -144,7 +144,7 @@ export class Lisa {
     const { logger } = this.deps;
 
     try {
-      const content = await fse.readFile(deletionsPath, "utf-8");
+      const content = await readFile(deletionsPath, "utf-8");
       const deletions: DeletionsConfig = JSON.parse(content);
 
       if (!Array.isArray(deletions.paths)) {
