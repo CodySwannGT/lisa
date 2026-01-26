@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/CodySwannGT/lisa/compare/vv1.1.0...v1.2.0) (2026-01-26)
+
+
+### Features
+
+* **tasks:** preserve task history across /clear with session-based storage ([7297b6a](https://github.com/CodySwannGT/lisa/commit/7297b6aebced9683c21b786e4a25654e98828f8f))
+
 ## [1.1.0](https://github.com/CodySwannGT/lisa/compare/v0.1.0...v1.1.0) (2026-01-26)
 
 
