@@ -4,7 +4,10 @@
 #
 # This hook is triggered on PostToolUse for TaskCreate and TaskUpdate.
 # It reads the task metadata to determine the project and syncs
-# task JSON files to ./projects/{project}/tasks/
+# task JSON files to ./projects/{project}/tasks/{session-id}/
+#
+# This session-based structure preserves task history across /clear commands,
+# preventing overwrites when new sessions create tasks with the same IDs.
 #
 # Input (via stdin): JSON with tool_name, tool_input, tool_output
 #
@@ -82,8 +85,14 @@ if [[ -z "$TASK_FILE" || ! -f "$TASK_FILE" ]]; then
   exit 0
 fi
 
-# Ensure project tasks directory exists
-PROJECT_TASKS_DIR="./projects/${PROJECT}/tasks"
+# Require session ID for proper history tracking
+if [[ -z "$SESSION_ID" ]]; then
+  echo "Warning: No session_id available, skipping sync" >&2
+  exit 0
+fi
+
+# Ensure project tasks directory exists (includes session ID for history preservation)
+PROJECT_TASKS_DIR="./projects/${PROJECT}/tasks/${SESSION_ID}"
 mkdir -p "$PROJECT_TASKS_DIR"
 
 # Copy task file to project directory
