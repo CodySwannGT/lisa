@@ -30,7 +30,7 @@ TaskCreate:
   metadata: { project: "<project-name-from-step-1>" }
 ```
 
-Work through these tasks in order. Do not stop until both are completed.
+**Execute each task via a subagent** to preserve main context. Launch up to 6 in parallel where tasks don't have dependencies. Do not stop until both are completed.
 
 ## Output to Human
 
