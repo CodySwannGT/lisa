@@ -1,54 +1,43 @@
 ---
-description: Evaluates findings.md and uses skill-evaluator to decide where each learning belongs (new skill, .claude/rules/PROJECT_RULES.md, or omit)
+description: Aggregates learnings from tasks and findings, uses skill-evaluator to decide where each belongs (new skill, .claude/rules/PROJECT_RULES.md, or omit)
 argument-hint: <project-directory>
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, Skill
 ---
 
 ## Setup
 
-Create workflow tracking tasks with `metadata: { "project": "<project-name>", "phase": "debrief" }`:
+Set active project marker: `echo "$ARGUMENTS" | sed 's|.*/||' > .claude-active-project`
 
-1. Read project findings
-2. Evaluate each finding
-3. Apply decisions
+Extract `<project-name>` from the last segment of `$ARGUMENTS`.
 
-## Step 1: Read Project Findings
+## Create and Execute Tasks
 
-Read `$ARGUMENTS/findings.md` FULLY (no limit/offset).
-
-Extract each distinct finding/learning as a separate item.
-
-## Step 2: Evaluate Each Finding
-
-For each finding, use the Task tool with `subagent_type: "skill-evaluator"`:
+Create workflow tracking tasks with `metadata.project` set to the project name:
 
 ```
-Evaluate this finding from a project debrief:
+TaskCreate:
+  subject: "Aggregate project learnings"
+  description: "Collect all learnings from two sources: 1) Read $ARGUMENTS/findings.md for manual findings. 2) Read all task files in $ARGUMENTS/tasks/*.json and extract metadata.learnings arrays. Compile into a single list of distinct findings/learnings."
+  metadata: { project: "<project-name>" }
 
-"[FINDING TEXT]"
+TaskCreate:
+  subject: "Evaluate each learning"
+  description: "For each learning, use Task tool with subagent_type 'skill-evaluator' to determine: CREATE SKILL (complex, reusable pattern), ADD TO RULES (simple never/always rule), or OMIT ENTIRELY (already covered or too project-specific). Collect all decisions."
+  metadata: { project: "<project-name>" }
 
-Determine if this should be:
-1. CREATE SKILL - if it's a complex, reusable pattern
-2. ADD TO RULES - if it's a simple never/always rule for .claude/rules/PROJECT_RULES.md
-3. OMIT ENTIRELY - if it's already covered or too project-specific
+TaskCreate:
+  subject: "Apply decisions"
+  description: "For each learning based on skill-evaluator decision: CREATE SKILL → run /skill-creator with details. ADD TO RULES → add succinctly to .claude/rules/PROJECT_RULES.md. OMIT → no action. Report summary: skills created, rules added, omitted count."
+  metadata: { project: "<project-name>" }
 ```
 
-Collect all decisions from the skill-evaluator.
+Work through these tasks in order. Do not stop until all are completed.
 
-## Step 3: Apply Decisions
+## Important: Rules vs Skills
 
-For each finding based on skill-evaluator's decision:
+**⚠️ WARNING about PROJECT_RULES.md**: Rules in `.claude/rules/` are **always loaded** at session start for every request. Only add learnings to PROJECT_RULES.md if they:
+- Apply to **every** request in this codebase (not just specific features)
+- Are simple "never do X" or "always do Y" statements
+- Cannot be scoped to a skill that's invoked on-demand
 
-| Decision | Action |
-|----------|--------|
-| CREATE SKILL | Use Task tool: "run /skill-creator with [finding details]" |
-| ADD TO RULES | Add the rule succinctly to @.claude/rules/PROJECT_RULES.md |
-| OMIT ENTIRELY | No action needed |
-
-Report summary:
-```
-Debrief complete:
-- Skills created: [X]
-- Rules added: [Y]
-- Omitted (redundant/narrow): [Z]
-```
+If a learning only applies to certain types of work (e.g., "when writing GraphQL resolvers..."), it should be a **skill** instead, not a rule.

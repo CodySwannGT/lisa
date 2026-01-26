@@ -78,7 +78,7 @@
     "@ast-grep/cli"
   ],
   "name": "@codyswann/lisa",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "bin": {

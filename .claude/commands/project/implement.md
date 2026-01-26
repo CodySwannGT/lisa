@@ -18,14 +18,12 @@ Use **TaskList** to get current task status.
 For each pending, unblocked task (filter by `metadata.project` = `<project-name>`):
 
 1. Use **TaskUpdate** to mark it `in_progress`
-2. Use **TaskGet** to retrieve full task details (description contains all instructions)
-3. Launch a subagent to complete the task:
-   - Pass the task's full description (includes skills to invoke, verification, etc.)
-   - Subagent should follow the instructions in the description
-   - Subagent runs the verification command and confirms expected output
-4. When subagent completes successfully, use **TaskUpdate** to mark it `completed`
-5. If verification fails, keep task `in_progress` and report the failure
-6. Check **TaskList** for newly unblocked tasks
+2. Use **TaskGet** to retrieve full task details
+3. Complete the task following the instructions in its description
+4. Run the verification command and confirm expected output
+5. If verification passes, use **TaskUpdate** to mark it `completed`
+6. If verification fails, keep task `in_progress` and report the failure
+7. Check **TaskList** for newly unblocked tasks
 
 Continue until all tasks are completed.
 
