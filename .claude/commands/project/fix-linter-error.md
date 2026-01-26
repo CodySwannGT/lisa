@@ -28,7 +28,7 @@ Example inputs:
 
 ## Step 2: Enable Rules
 
-For each rule, find the ESLint config and set it to `"error"` severity if not already enabled.
+For each rule, find the ESLint config and set it to `"error"` severity if not already enabled. NOTE: Make sure to scan for overrides that need to be changed too. For example eslint.config.local.ts.
 
 ## Step 3: Identify Violations
 
