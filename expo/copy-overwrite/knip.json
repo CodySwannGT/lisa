@@ -55,6 +55,8 @@
   ],
   "ignoreBinaries": ["audit", "ast-grep", "maestro", "eas", "source-map-explorer"],
   "ignoreDependencies": [
+    "@react-native-community/netinfo",
+    "aws-exports",
     "@babel/core",
     "@babel/plugin-proposal-export-namespace-from",
     "@commitlint/cli",
