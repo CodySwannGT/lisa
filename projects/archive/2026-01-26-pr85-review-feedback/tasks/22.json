@@ -1,0 +1,14 @@
+{
+  "id": "22",
+  "subject": "Aggregate project learnings",
+  "description": "Collect all learnings from two sources: 1) Read projects/2026-01-26-pr85-review-feedback/findings.md for manual findings. 2) Read all task files in projects/2026-01-26-pr85-review-feedback/tasks/*.json and extract metadata.learnings arrays. Compile into a single list of distinct findings/learnings.",
+  "activeForm": "Aggregating project learnings",
+  "status": "completed",
+  "blocks": [
+    "23"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

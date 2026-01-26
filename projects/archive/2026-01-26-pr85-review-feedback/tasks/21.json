@@ -1,0 +1,14 @@
+{
+  "id": "21",
+  "subject": "Apply decisions",
+  "description": "For each learning based on skill-evaluator decision: CREATE SKILL → run /skill-creator with details. ADD TO RULES → add succinctly to .claude/rules/PROJECT_RULES.md. OMIT → no action. Report summary: skills created, rules added, omitted count.",
+  "activeForm": "Applying decisions",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "23"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

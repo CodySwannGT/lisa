@@ -1,0 +1,15 @@
+{
+  "id": "14",
+  "subject": "Perform Claude optimizations",
+  "description": "Use the code simplifier agent to clean up code added to the current branch.",
+  "activeForm": "Performing Claude optimizations",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "13",
+    "16"
+  ],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback"
+  }
+}

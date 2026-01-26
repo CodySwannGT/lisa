@@ -1,0 +1,24 @@
+{
+  "id": "8",
+  "subject": "Add language specifier to PR review command markdown",
+  "description": "**Type:** Task\n\n## Description\nAdd a language specifier to the fenced code block at line 33 in `.claude/commands/pull-request/review.md`. The code block currently starts with just ``` but should be ```markdown to satisfy markdownlint MD040 and improve editor readability.\n\n## Acceptance Criteria\n- [ ] Line 33 code block has language specifier\n- [ ] No markdownlint MD040 violations\n\n## Relevant Research\nCodeRabbit review comment: \"Add a language to the fenced code block. This fails markdownlint MD040 and reduces readability in editors.\"\nCurrent line 33 is just ``` but should be ```markdown\n\n## Skills to Invoke\n- `/coding-philosophy` - Always required\n\n## Implementation Details\nFiles to modify:\n- `.claude/commands/pull-request/review.md` (line 33)\n\nChange:\n```\n```\n```\nTo:\n```\n```markdown\n```\n\n## Testing Requirements\n### Unit Tests\n- N/A - markdown file changes\n\n### Integration Tests\n- N/A - markdown file changes\n\n### E2E Tests\n- N/A - markdown file changes\n\n## Verification\n**Type:** `manual-check`\n\n**Proof Command:**\n```bash\nsed -n '33p' .claude/commands/pull-request/review.md\n```\n\n**Expected Output:**\n```markdown\n\n## Learnings\nDuring implementation, collect any discoveries valuable for future developers.",
+  "activeForm": "Adding language specifier to PR review markdown",
+  "status": "completed",
+  "blocks": [
+    "11",
+    "10"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "project": "2026-01-26-pr85-review-feedback",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "sed -n '33p' .claude/commands/pull-request/review.md",
+      "expected": "```markdown"
+    }
+  }
+}
