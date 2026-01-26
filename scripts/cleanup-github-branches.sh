@@ -42,7 +42,7 @@ usage() {
   echo "  --dry-run     Show what would be deleted without actually deleting"
   echo ""
   echo "Example:"
-  echo "  $0 repo-org/repo-name
+  echo "  $0 repo-org/repo-name"
   echo "  $0 repo-org/repo-name --dry-run"
   exit 1
 }
@@ -119,13 +119,13 @@ echo ""
 # Get branches with open PRs
 log_info "Fetching open pull requests..."
 open_pr_branches=$(gh pr list --repo "$REPO" --state open --json headRefName --jq '.[].headRefName' | sort)
-open_pr_count=$(echo "$open_pr_branches" | grep -c . || echo "0")
+open_pr_count=$(echo "$open_pr_branches" | grep -c . || true)
 log_info "Found $open_pr_count branches with open PRs"
 
 # Get all remote branches
 log_info "Fetching all remote branches..."
 all_branches=$(gh api "repos/$REPO/branches" --paginate --jq '.[].name' | sort)
-total_branch_count=$(echo "$all_branches" | grep -c . || echo "0")
+total_branch_count=$(echo "$all_branches" | grep -c . || true)
 log_info "Found $total_branch_count total branches"
 echo ""
 
@@ -137,7 +137,7 @@ stale_branches=$(comm -23 <(echo "$all_branches") <(echo "$open_pr_branches") | 
   fi
 done)
 
-stale_count=$(echo "$stale_branches" | grep -c . || echo "0")
+stale_count=$(echo "$stale_branches" | grep -c . || true)
 
 if [[ "$stale_count" -eq 0 || -z "$stale_branches" ]]; then
   log_success "No stale branches found. Repository is clean!"
