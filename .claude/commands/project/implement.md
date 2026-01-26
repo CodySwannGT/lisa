@@ -15,6 +15,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate
 
 Use **TaskList** to get current task status.
 
+**Always execute tasks via subagents** to keep the main context window clean. Launch up to 6 subagents in parallel for unblocked tasks.
+
 For each pending, unblocked task (filter by `metadata.project` = `<project-name>`):
 
 1. Use **TaskUpdate** to mark it `in_progress`
