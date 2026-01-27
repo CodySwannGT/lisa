@@ -80,6 +80,65 @@ export class Lisa {
   }
 
   /**
+   * Check if project is already on the latest Lisa version
+   */
+  private async checkForLatestVersion(): Promise<void> {
+    const { prompter, manifestService, logger } = this.deps;
+
+    // Skip in dry run and validate modes
+    if (this.config.dryRun || this.config.validateOnly) {
+      return;
+    }
+
+    try {
+      const manifestVersion = await manifestService.readVersion(
+        this.config.destDir
+      );
+
+      // Only check if manifest exists (project has been initialized before)
+      if (!manifestVersion) {
+        return;
+      }
+
+      // Get current Lisa version
+      const currentVersion = await this.getCurrentLisaVersion();
+
+      if (manifestVersion === currentVersion) {
+        logger.info(`Project is on Lisa version ${manifestVersion}`);
+        const proceed = await prompter.confirmLatestVersion(manifestVersion);
+        if (!proceed) {
+          throw new UserAbortedError(
+            "Update cancelled: project is already on the latest version"
+          );
+        }
+      }
+    } catch (error) {
+      // If error is UserAbortedError, re-throw it
+      if (error instanceof UserAbortedError) {
+        throw error;
+      }
+      // For other errors, log and continue
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn(`Could not check version: ${message}`);
+    }
+  }
+
+  /**
+   * Get the current Lisa version
+   * @returns The version string from package.json, or "unknown" if it cannot be read
+   */
+  private async getCurrentLisaVersion(): Promise<string> {
+    try {
+      const packageJsonPath = path.join(this.config.lisaDir, "package.json");
+      const content = await readFile(packageJsonPath, "utf-8");
+      const packageJson = JSON.parse(content);
+      return packageJson.version || "unknown";
+    } catch {
+      return "unknown";
+    }
+  }
+
+  /**
    * Detect and confirm project types
    */
   private async detectTypes(): Promise<void> {
@@ -273,6 +332,7 @@ export class Lisa {
       await this.validateGitState();
       this.printHeader();
       await this.initServices();
+      await this.checkForLatestVersion();
       await this.detectTypes();
       await this.processConfigurations();
       await this.processDeletions();
