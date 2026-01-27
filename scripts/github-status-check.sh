@@ -24,6 +24,18 @@
 
 set -euo pipefail
 
+# Auto-load .env.local if it exists (look in script dir and current dir)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+if [[ -f "$PROJECT_ROOT/.env.local" ]]; then
+  # shellcheck source=/dev/null
+  source "$PROJECT_ROOT/.env.local"
+elif [[ -f ".env.local" ]]; then
+  # shellcheck source=/dev/null
+  source ".env.local"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
