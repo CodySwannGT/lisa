@@ -190,6 +190,66 @@ ${COPY_CONTENTS}:${GITIGNORE}
     });
   });
 
+  describe("readVersion", () => {
+    it("reads version from manifest header", async () => {
+      const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
+      await fs.writeFile(
+        manifestPath,
+        `# Lisa manifest - DO NOT EDIT
+# Generated: 2024-01-01
+# Lisa version: 1.5.0
+# Lisa directory: /path/to/lisa
+
+${COPY_OVERWRITE}:${TEST_TXT}
+`
+      );
+
+      const version = await service.readVersion(tempDir);
+
+      expect(version).toBe("1.5.0");
+    });
+
+    it("returns null when manifest does not exist", async () => {
+      const version = await service.readVersion(tempDir);
+
+      expect(version).toBeNull();
+    });
+
+    it("returns null when version header is missing", async () => {
+      const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
+      await fs.writeFile(
+        manifestPath,
+        `# Lisa manifest - DO NOT EDIT
+# Generated: 2024-01-01
+# Lisa directory: /path/to/lisa
+
+${COPY_OVERWRITE}:${TEST_TXT}
+`
+      );
+
+      const version = await service.readVersion(tempDir);
+
+      expect(version).toBeNull();
+    });
+
+    it("handles version with trailing whitespace", async () => {
+      const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
+      await fs.writeFile(
+        manifestPath,
+        `# Lisa manifest - DO NOT EDIT
+# Lisa version: 1.6.0
+# Lisa directory: /path/to/lisa
+
+${COPY_OVERWRITE}:${TEST_TXT}
+`
+      );
+
+      const version = await service.readVersion(tempDir);
+
+      expect(version).toBe("1.6.0");
+    });
+  });
+
   describe("remove", () => {
     it("removes manifest file", async () => {
       const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
