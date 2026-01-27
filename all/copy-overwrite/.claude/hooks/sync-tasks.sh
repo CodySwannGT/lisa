@@ -9,7 +9,7 @@
 # This session-based structure preserves task history across /clear commands,
 # preventing overwrites when new sessions create tasks with the same IDs.
 #
-# Input (via stdin): JSON with tool_name, tool_input, tool_output
+# Input (via stdin): JSON with tool_name, tool_input, tool_response
 #
 
 set -euo pipefail
@@ -53,8 +53,8 @@ fi
 # Get task ID
 TASK_ID=""
 if [[ "$TOOL_NAME" == "TaskCreate" ]]; then
-  # For TaskCreate, ID is in tool_output
-  TASK_ID=$(echo "$INPUT" | jq -r '.tool_output.taskId // .tool_output.id // empty')
+  # For TaskCreate, ID is in tool_response.task.id
+  TASK_ID=$(echo "$INPUT" | jq -r '.tool_response.task.id // empty')
 elif [[ "$TOOL_NAME" == "TaskUpdate" ]]; then
   # For TaskUpdate, ID is in tool_input
   TASK_ID=$(echo "$INPUT" | jq -r '.tool_input.taskId // empty')
