@@ -20,6 +20,7 @@
     "update-node-version": "tsx scripts/update-node-version.ts",
     "cleanup:amplify-branches": "bash scripts/cleanup-amplify-branches.sh",
     "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
+    "github:status": "bash scripts/github-status-check.sh",
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
     "knip": "knip",
