@@ -32,8 +32,20 @@ export default [
   // Use same ignores as main config, plus ignore all non-TS files
   // This prevents errors from inline eslint directives in JS files
   // that reference rules not loaded in this minimal config
+  // Also ignore template files in type-specific directories that don't have tsconfig
   {
-    ignores: [...ignorePatterns, "**/*.js", "**/*.mjs", "**/*.cjs", "**/*.jsx"],
+    ignores: [
+      ...ignorePatterns,
+      "**/*.js",
+      "**/*.mjs",
+      "**/*.cjs",
+      "**/*.jsx",
+      "cdk/**",
+      "expo/**",
+      "nestjs/**",
+      "typescript/**",
+      "npm-package/**",
+    ],
   },
 
   // TypeScript files - slow import rules only
