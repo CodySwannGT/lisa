@@ -27,6 +27,11 @@ describe("ManifestService", () => {
     tempDir = await createTempDir();
     lisaDir = path.join(tempDir, "lisa");
     await fs.ensureDir(lisaDir);
+    // Create package.json in lisaDir so getVersion() can read it
+    await fs.writeFile(
+      path.join(lisaDir, "package.json"),
+      JSON.stringify({ version: "1.3.0" })
+    );
   });
 
   afterEach(async () => {
@@ -78,6 +83,28 @@ describe("ManifestService", () => {
 
       expect(content).toContain("# Generated:");
       expect(content).toContain(`# Lisa directory: ${lisaDir}`);
+    });
+
+    it("includes lisa version in header", async () => {
+      await service.init(tempDir, lisaDir);
+      await service.finalize();
+
+      const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
+      const content = await fs.readFile(manifestPath, "utf-8");
+
+      expect(content).toContain("# Lisa version: 1.3.0");
+    });
+
+    it("includes unknown version if package.json is missing", async () => {
+      const lisaDirWithoutPackage = path.join(tempDir, "lisa-no-pkg");
+      await fs.ensureDir(lisaDirWithoutPackage);
+      await service.init(tempDir, lisaDirWithoutPackage);
+      await service.finalize();
+
+      const manifestPath = path.join(tempDir, MANIFEST_FILENAME);
+      const content = await fs.readFile(manifestPath, "utf-8");
+
+      expect(content).toContain("# Lisa version: unknown");
     });
 
     it("throws if not initialized", async () => {
