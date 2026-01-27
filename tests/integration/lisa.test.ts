@@ -31,6 +31,7 @@ const PACKAGE_JSON = "package.json";
 const TEST_TXT = "test.txt";
 const TSCONFIG_BASE = "tsconfig.base.json";
 const LISAIGNORE = ".lisaignore";
+const LISA_MANIFEST = ".lisa-manifest";
 
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
@@ -145,9 +146,7 @@ describe("Lisa Integration Tests", () => {
       const lisa = new Lisa(config, createDeps(config));
       await lisa.apply();
 
-      expect(await fs.pathExists(path.join(destDir, ".lisa-manifest"))).toBe(
-        true
-      );
+      expect(await fs.pathExists(path.join(destDir, LISA_MANIFEST))).toBe(true);
     });
 
     it("applies all/ configs to project with no detected types", async () => {
@@ -243,7 +242,7 @@ describe("Lisa Integration Tests", () => {
       expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(false);
 
       // Manifest should be removed
-      expect(await fs.pathExists(path.join(destDir, ".lisa-manifest"))).toBe(
+      expect(await fs.pathExists(path.join(destDir, LISA_MANIFEST))).toBe(
         false
       );
     });
@@ -301,6 +300,29 @@ describe("Lisa Integration Tests", () => {
       expect(result2.success).toBe(true);
       // Second run should skip files since first run already applied them
       expect(result2.counters.skipped).toBeGreaterThan(0);
+    });
+
+    it("prompts when running with latest version already installed", async () => {
+      await createTypeScriptProject(destDir);
+
+      const config = createConfig();
+
+      // First run
+      const lisa1 = new Lisa(config, createDeps(config));
+      const result1 = await lisa1.apply();
+
+      expect(result1.success).toBe(true);
+
+      // Check manifest contains version
+      const manifestPath = path.join(destDir, LISA_MANIFEST);
+      const manifestContent = await fs.readFile(manifestPath, "utf-8");
+      expect(manifestContent).toMatch(/# Lisa version:/);
+
+      // Second run should succeed with auto-accept
+      const lisa2 = new Lisa(config, createDeps(config));
+      const result2 = await lisa2.apply();
+
+      expect(result2.success).toBe(true);
     });
   });
 
