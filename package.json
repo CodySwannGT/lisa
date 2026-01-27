@@ -26,7 +26,7 @@
     "knip": "knip",
     "knip:fix": "knip --fix",
     "sg:scan": "ast-grep scan",
-    "lisa:update": "npx @codyswann/lisa ."
+    "lisa:update": "npx @codyswann/lisa@latest ."
   },
   "devDependencies": {
     "@ast-grep/cli": "^0.40.4",
