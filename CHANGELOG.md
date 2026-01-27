@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/CodySwannGT/lisa/compare/vv1.2.0...v1.3.0) (2026-01-27)
+
+
+### Features
+
+* make Lisa values take precedence in merge strategy ([5377ec4](https://github.com/CodySwannGT/lisa/commit/5377ec4ed92618b4e097d6d7174527fa4c3d2b65))
+
+
+### Bug Fixes
+
+* remove duplicate .gitignore content after guardrails marker ([d4adeb9](https://github.com/CodySwannGT/lisa/commit/d4adeb9e526cf9a80f1f1c415ae3a8e35484a6df))
+
 ## [1.2.0](https://github.com/CodySwannGT/lisa/compare/vv1.1.0...v1.2.0) (2026-01-26)
 
 
