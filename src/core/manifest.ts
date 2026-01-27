@@ -50,6 +50,21 @@ export class ManifestService implements IManifestService {
     this.lisaDir = lisaDir;
   }
 
+  /**
+   * Get the version of Lisa from package.json
+   * @returns The version string from package.json, or "unknown" if it cannot be read
+   */
+  private async getVersion(): Promise<string> {
+    try {
+      const packageJsonPath = path.join(this.lisaDir, "package.json");
+      const content = await readFile(packageJsonPath, "utf-8");
+      const packageJson = JSON.parse(content);
+      return packageJson.version || "unknown";
+    } catch {
+      return "unknown";
+    }
+  }
+
   record(relativePath: string, strategy: CopyStrategy): void {
     this.entries.push({ strategy, relativePath });
   }
@@ -59,9 +74,11 @@ export class ManifestService implements IManifestService {
       throw new Error("Manifest not initialized");
     }
 
+    const version = await this.getVersion();
     const lines = [
       "# Lisa manifest - DO NOT EDIT",
       `# Generated: ${new Date().toISOString()}`,
+      `# Lisa version: ${version}`,
       `# Lisa directory: ${this.lisaDir}`,
       "",
       ...this.entries.map(entry => `${entry.strategy}:${entry.relativePath}`),
