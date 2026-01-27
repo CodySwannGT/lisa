@@ -156,9 +156,8 @@ for REPO in "${REPOS[@]}"; do
   review_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,reviewRequests,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | select(.reviewRequests | length > 0) | select(.reviewRequests[].requestedReviewer.login == "'$CURRENT_USER'") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   review_prs_count=$(echo "$review_prs" | grep -c . || true)
 
-  # Get failed GitHub Actions
-  # Check the latest workflow runs and filter for failed ones
-  failed_actions=$(gh api "repos/$REPO/actions/runs" --jq '.workflow_runs[] | select(.status == "completed" and .conclusion == "failure") | "\(.id)|\(.name)|\(.head_branch)|\(.html_url)|\(.created_at)"' 2>/dev/null || echo "")
+  # Get failed GitHub Actions (excluding dependabot branches)
+  failed_actions=$(gh api "repos/$REPO/actions/runs" --jq '.workflow_runs[] | select(.status == "completed" and .conclusion == "failure") | select(.head_branch | startswith("dependabot/") | not) | "\(.id)|\(.name)|\(.head_branch)|\(.html_url)|\(.created_at)"' 2>/dev/null || echo "")
   failed_actions_count=$(echo "$failed_actions" | grep -c . || true)
 
   # Display results for this repo
