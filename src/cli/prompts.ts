@@ -43,6 +43,13 @@ export interface IPrompter {
    * @returns True if user wants to proceed despite dirty state
    */
   confirmDirtyGit(status: string): Promise<boolean>;
+
+  /**
+   * Prompt when project is already on the latest Lisa version
+   * @param version The current Lisa version
+   * @returns True if user wants to proceed with update anyway
+   */
+  confirmLatestVersion(version: string): Promise<boolean>;
 }
 
 /**
@@ -81,6 +88,13 @@ export class InteractivePrompter implements IPrompter {
 
     return confirm({
       message: DIRTY_GIT_CONFIRM_MESSAGE,
+      default: false,
+    });
+  }
+
+  async confirmLatestVersion(version: string): Promise<boolean> {
+    return confirm({
+      message: `You are already on the latest version of Lisa (${version}). Are you sure you want to update again?`,
       default: false,
     });
   }
@@ -126,6 +140,11 @@ export class AutoAcceptPrompter implements IPrompter {
       message: DIRTY_GIT_CONFIRM_MESSAGE,
       default: false,
     });
+  }
+
+  async confirmLatestVersion(_version: string): Promise<boolean> {
+    // In auto-accept mode, proceed with update even if on latest version
+    return true;
   }
 }
 

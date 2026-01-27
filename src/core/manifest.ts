@@ -32,6 +32,9 @@ export interface IManifestService {
   /** Read existing manifest from disk */
   read(destDir: string): Promise<readonly ManifestEntry[]>;
 
+  /** Read the Lisa version stored in an existing manifest */
+  readVersion(destDir: string): Promise<string | null>;
+
   /** Remove the manifest file */
   remove(destDir: string): Promise<void>;
 }
@@ -119,6 +122,25 @@ export class ManifestService implements IManifestService {
     return entries;
   }
 
+  async readVersion(destDir: string): Promise<string | null> {
+    const manifestPath = path.join(destDir, MANIFEST_FILENAME);
+
+    if (!(await fse.pathExists(manifestPath))) {
+      return null;
+    }
+
+    const content = await readFile(manifestPath, "utf-8");
+
+    for (const line of content.split("\n")) {
+      if (line.startsWith("# Lisa version:")) {
+        const version = line.substring("# Lisa version:".length).trim();
+        return version || null;
+      }
+    }
+
+    return null;
+  }
+
   async remove(destDir: string): Promise<void> {
     const manifestPath = path.join(destDir, MANIFEST_FILENAME);
     await fse.remove(manifestPath);
@@ -170,6 +192,12 @@ export class DryRunManifestService implements IManifestService {
     // Delegate to real service for reading
     const realService = new ManifestService();
     return realService.read(destDir);
+  }
+
+  async readVersion(destDir: string): Promise<string | null> {
+    // Delegate to real service for reading
+    const realService = new ManifestService();
+    return realService.readVersion(destDir);
   }
 
   async remove(_destDir: string): Promise<void> {

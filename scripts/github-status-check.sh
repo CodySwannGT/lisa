@@ -176,23 +176,20 @@ for REPO in "${REPOS[@]}"; do
   review_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,reviewRequests,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | select(.reviewRequests | length > 0) | select(.reviewRequests[].requestedReviewer.login == "'$CURRENT_USER'") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   review_prs_count=$(echo "$review_prs" | grep -c . || true)
 
-  # Get failed GitHub Actions (excluding dependabot branches and actions older than 7 days)
-  failed_actions=$(gh api "repos/$REPO/actions/runs" --jq '.workflow_runs[] | select(.status == "completed" and .conclusion == "failure") | select(.head_branch | startswith("dependabot/") | not) | "\(.id)|\(.name)|\(.head_branch)|\(.html_url)|\(.created_at)"' 2>/dev/null || echo "")
-
-  # Filter out actions older than 7 days
-  recent_failed_actions=""
-  if [[ -n "$failed_actions" ]]; then
-    while IFS='|' read -r action_id action_name branch url created_at; do
-      if ! is_older_than_days "$created_at" 7; then
-        if [[ -z "$recent_failed_actions" ]]; then
-          recent_failed_actions="$action_id|$action_name|$branch|$url|$created_at"
-        else
-          recent_failed_actions="$recent_failed_actions"$'\n'"$action_id|$action_name|$branch|$url|$created_at"
-        fi
-      fi
-    done <<< "$failed_actions"
-  fi
-  failed_actions="$recent_failed_actions"
+  # Get failed GitHub Actions where no subsequent success exists for the same workflow+branch
+  # Uses jq to: group by workflow name + branch, sort by date desc, keep only if most recent is a failure
+  seven_days_ago=$(date -v-7d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -d "7 days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)
+  failed_actions=$(gh api "repos/$REPO/actions/runs" --jq '
+    .workflow_runs
+    | map(select(.status == "completed"))
+    | map(select(.head_branch | startswith("dependabot/") | not))
+    | group_by(.name + "|" + .head_branch)
+    | map(sort_by(.created_at) | reverse | .[0])
+    | map(select(.conclusion == "failure"))
+    | map(select(.created_at > "'"$seven_days_ago"'"))
+    | .[]
+    | "\(.id)|\(.name)|\(.head_branch)|\(.html_url)|\(.created_at)"
+  ' 2>/dev/null || echo "")
   failed_actions_count=$(echo "$failed_actions" | grep -c . || true)
 
   # Display results for this repo
