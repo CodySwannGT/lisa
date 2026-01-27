@@ -42,6 +42,11 @@ TaskCreate:
   metadata: { project: "<project-name>" }
 
 TaskCreate:
+  subject: "Documentation"
+  description: "Run /project:document $ARGUMENTS to update documentation related to changes."
+  metadata: { project: "<project-name>" }
+
+TaskCreate:
   subject: "Verification"
   description: "Run /project:verify $ARGUMENTS to verify all requirements are met."
   metadata: { project: "<project-name>" }
