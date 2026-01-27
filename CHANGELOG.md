@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/CodySwannGT/lisa/compare/vv1.7.1...v1.8.0) (2026-01-27)
+
+
+### Features
+
+* add version check when lisa runs on latest version ([a745069](https://github.com/CodySwannGT/lisa/commit/a7450693d12da44ba58c8a2b7eb71cd03efb3fd3))
+
+
+### Bug Fixes
+
+* **hooks:** correct JSON path for TaskCreate task ID extraction ([a7f1599](https://github.com/CodySwannGT/lisa/commit/a7f159938d86e75fc4121bbb1c93a283a68a5e45))
+
+### [1.7.1](https://github.com/CodySwannGT/lisa/compare/vv1.7.0...v1.7.1) (2026-01-27)
+
+
+### Code Refactoring
+
+* simplify project slash commands by removing redundant sections ([de6cc52](https://github.com/CodySwannGT/lisa/commit/de6cc5207bcadba2311eab5506c99eedee313480))
+
+## [1.7.0](https://github.com/CodySwannGT/lisa/compare/vv1.6.0...v1.7.0) (2026-01-27)
+
+
+### Features
+
+* add /project:document command to update docs after implementation ([ce666ad](https://github.com/CodySwannGT/lisa/commit/ce666adffe5d38e24fed86640904333dcd714615))
+
 ## [1.6.0](https://github.com/CodySwannGT/lisa/compare/vv1.5.1...v1.6.0) (2026-01-27)
 
 
