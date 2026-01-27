@@ -99,6 +99,26 @@ time_ago() {
   fi
 }
 
+is_older_than_days() {
+  local timestamp="$1"
+  local days="$2"
+  local now
+  local then
+  local diff_seconds
+  local threshold_seconds
+
+  now=$(date +%s)
+  then=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null || date -d "$timestamp" +%s 2>/dev/null)
+  diff_seconds=$((now - then))
+  threshold_seconds=$((days * 86400))
+
+  if [[ $diff_seconds -gt $threshold_seconds ]]; then
+    return 0  # true - older than threshold
+  else
+    return 1  # false - newer than threshold
+  fi
+}
+
 # Check for LISA_GITHUB_REPOS environment variable
 if [[ -z "${LISA_GITHUB_REPOS:-}" ]]; then
   log_error "LISA_GITHUB_REPOS environment variable is not set"
@@ -156,8 +176,23 @@ for REPO in "${REPOS[@]}"; do
   review_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,reviewRequests,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | select(.reviewRequests | length > 0) | select(.reviewRequests[].requestedReviewer.login == "'$CURRENT_USER'") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   review_prs_count=$(echo "$review_prs" | grep -c . || true)
 
-  # Get failed GitHub Actions (excluding dependabot branches)
+  # Get failed GitHub Actions (excluding dependabot branches and actions older than 7 days)
   failed_actions=$(gh api "repos/$REPO/actions/runs" --jq '.workflow_runs[] | select(.status == "completed" and .conclusion == "failure") | select(.head_branch | startswith("dependabot/") | not) | "\(.id)|\(.name)|\(.head_branch)|\(.html_url)|\(.created_at)"' 2>/dev/null || echo "")
+
+  # Filter out actions older than 7 days
+  recent_failed_actions=""
+  if [[ -n "$failed_actions" ]]; then
+    while IFS='|' read -r action_id action_name branch url created_at; do
+      if ! is_older_than_days "$created_at" 7; then
+        if [[ -z "$recent_failed_actions" ]]; then
+          recent_failed_actions="$action_id|$action_name|$branch|$url|$created_at"
+        else
+          recent_failed_actions="$recent_failed_actions"$'\n'"$action_id|$action_name|$branch|$url|$created_at"
+        fi
+      fi
+    done <<< "$failed_actions"
+  fi
+  failed_actions="$recent_failed_actions"
   failed_actions_count=$(echo "$failed_actions" | grep -c . || true)
 
   # Display results for this repo
