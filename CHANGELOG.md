@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/CodySwannGT/lisa/compare/vv1.5.0...v1.5.1) (2026-01-27)
+
+
+### Bug Fixes
+
+* exclude type-specific template directories from eslint slow config type checking ([0acdb88](https://github.com/CodySwannGT/lisa/commit/0acdb88e5806e748694ffb10230977e30fd58eeb))
+
 ## [1.5.0](https://github.com/CodySwannGT/lisa/compare/vv1.4.0...v1.5.0) (2026-01-27)
 
 
