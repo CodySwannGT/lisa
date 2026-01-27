@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/CodySwannGT/lisa/compare/vv1.4.0...v1.5.0) (2026-01-27)
+
+
+### Features
+
+* add github-status-check script for PR and Actions monitoring ([cf4ab74](https://github.com/CodySwannGT/lisa/commit/cf4ab74cc8d46eee6228f15eb51480e4425d7a60))
+* auto-load .env.local in github-status-check script ([6f819a4](https://github.com/CodySwannGT/lisa/commit/6f819a48e5833b417b2185ac9331d55853d4ad3c))
+* filter dependabot PRs and add time ago display ([919fd4d](https://github.com/CodySwannGT/lisa/commit/919fd4dc65e14b006735fe68327b2e0c307fb46b))
+
+
+### Bug Fixes
+
+* filter out dependabot branches from failed actions ([adff697](https://github.com/CodySwannGT/lisa/commit/adff697f2b909d38017e93dd68011cd9a7d300db))
+* show only PRs created by current user in open PRs section ([cc86cd0](https://github.com/CodySwannGT/lisa/commit/cc86cd06a241a9b4619a5c572fe05b13d850b214))
+
 ## [1.4.0](https://github.com/CodySwannGT/lisa/compare/vv1.3.0...v1.4.0) (2026-01-27)
 
 
