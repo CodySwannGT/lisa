@@ -76,11 +76,11 @@ describe("MergeStrategy", () => {
     expect(content).toEqual({ name: "test", scripts: { build: "tsc" } });
   });
 
-  it("deep merges objects with project values taking precedence", async () => {
+  it("deep merges objects with Lisa values taking precedence", async () => {
     const srcFile = path.join(srcDir, PACKAGE_JSON);
     const destFile = path.join(destDir, PACKAGE_JSON);
 
-    // Lisa provides defaults
+    // Lisa provides enforced values
     await fs.writeJson(srcFile, {
       scripts: { test: "vitest", build: "tsc" },
       devDependencies: { vitest: "^1.0.0" },
@@ -89,7 +89,7 @@ describe("MergeStrategy", () => {
     // Project has its own values
     await fs.writeJson(destFile, {
       name: "my-project",
-      scripts: { build: "rollup" }, // Should override Lisa's build script
+      scripts: { build: "rollup" }, // Lisa's build script overrides this
     });
 
     const result = await strategy.apply(
@@ -106,7 +106,7 @@ describe("MergeStrategy", () => {
       name: "my-project",
       scripts: {
         test: "vitest", // Added from Lisa
-        build: "rollup", // Project value preserved
+        build: "tsc", // Lisa value wins
       },
       devDependencies: { vitest: "^1.0.0" }, // Added from Lisa
     });
@@ -161,14 +161,14 @@ describe("MergeStrategy", () => {
 
     await fs.writeJson(destFile, {
       editor: {
-        tabSize: 4, // User prefers 4 spaces
+        tabSize: 4, // Project prefers 4 spaces
       },
     });
 
     await strategy.apply(srcFile, destFile, SETTINGS_JSON, createContext());
 
     const content = await fs.readJson(destFile);
-    expect(content.editor.tabSize).toBe(4); // User value preserved
+    expect(content.editor.tabSize).toBe(2); // Lisa value wins
     expect(content.editor.formatOnSave).toBe(true); // Lisa value added
   });
 
@@ -182,8 +182,8 @@ describe("MergeStrategy", () => {
     await strategy.apply(srcFile, destFile, CONFIG_JSON, createContext());
 
     const content = await fs.readJson(destFile);
-    // lodash.merge merges arrays by index - dest[0]='c' overwrites src[0]='a', src[1]='b' is kept
-    expect(content.plugins).toEqual(["c", "b"]);
+    // lodash.merge merges arrays by index - src[0]='a' overwrites dest[0]='c', src[1]='b' is kept
+    expect(content.plugins).toEqual(["a", "b"]);
   });
 
   it("does not modify files in dry run mode", async () => {

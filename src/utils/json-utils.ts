@@ -64,11 +64,11 @@ export async function isValidJson(filePath: string): Promise<boolean> {
 }
 
 /**
- * Deep merge two objects (base values serve as defaults, override values take precedence)
+ * Deep merge two objects (Lisa values take precedence on conflicts)
  * Uses lodash.merge for deep merging
- * @param base Base object providing defaults
- * @param override Override object with precedence
- * @returns Merged object
+ * @param base Base object (project values)
+ * @param override Override object with precedence (Lisa values)
+ * @returns Merged object with Lisa values winning conflicts
  */
 export function deepMerge<T extends object>(base: T, override: T): T {
   // Create a new object to avoid mutating inputs
