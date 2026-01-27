@@ -42,6 +42,11 @@ TaskCreate:
   metadata: { project: "<project-name>" }
 
 TaskCreate:
+  subject: "Documentation"
+  description: "Run /project:document $ARGUMENTS to update documentation related to changes."
+  metadata: { project: "<project-name>" }
+
+TaskCreate:
   subject: "Verification"
   description: "Run /project:verify $ARGUMENTS to verify all requirements are met."
   metadata: { project: "<project-name>" }
@@ -60,9 +65,3 @@ TaskCreate:
 **Execute each task via a subagent** to preserve main context. Launch up to 6 in parallel where tasks don't have dependencies. Do not stop until all are completed.
 
 Report "Project complete and archived" when done.
-
----
-
-## Next Step
-
-The project workflow is now complete. The implementation is done, reviewed, verified, learnings captured, and the project is archived.
