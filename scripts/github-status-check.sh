@@ -144,8 +144,8 @@ for REPO in "${REPOS[@]}"; do
 
   log_info "Processing repository: $REPO"
 
-  # Get open PRs (excluding dependabot)
-  open_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
+  # Get open PRs created by current user
+  open_prs=$(gh pr list --repo "$REPO" --state open --author "$CURRENT_USER" --json number,title,url,createdAt --jq '.[] | "\(.number)|\(.title)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   open_prs_count=$(echo "$open_prs" | grep -c . || true)
 
   # Get PRs assigned to current user (excluding dependabot)
@@ -165,12 +165,12 @@ for REPO in "${REPOS[@]}"; do
   if [[ $open_prs_count -gt 0 || $assigned_prs_count -gt 0 || $review_prs_count -gt 0 || $failed_actions_count -gt 0 ]]; then
     log_header "Repository: $REPO"
 
-    # Display open PRs
+    # Display open PRs (created by current user)
     if [[ $open_prs_count -gt 0 ]]; then
-      echo -e "${CYAN}Open Pull Requests ($open_prs_count):${NC}"
-      echo "$open_prs" | while IFS='|' read -r pr_num title author url created_at; do
+      echo -e "${CYAN}Your Open Pull Requests ($open_prs_count):${NC}"
+      echo "$open_prs" | while IFS='|' read -r pr_num title url created_at; do
         age=$(time_ago "$created_at")
-        echo "  • #$pr_num - $title (by @$author) - $age"
+        echo "  • #$pr_num - $title - $age"
         echo "    🔗 $url"
       done
       echo ""
@@ -220,7 +220,7 @@ done
 # Display summary
 echo ""
 log_header "Summary"
-echo -e "Total ${CYAN}Open PRs${NC}: $total_open_prs"
+echo -e "Total ${CYAN}Your Open PRs${NC}: $total_open_prs"
 echo -e "Total ${CYAN}PRs Assigned to You${NC}: $total_assigned_prs"
 echo -e "Total ${CYAN}PRs Waiting for Review${NC}: $total_review_prs"
 echo -e "Total ${RED}Failed Actions${NC}: $total_failed_actions"
