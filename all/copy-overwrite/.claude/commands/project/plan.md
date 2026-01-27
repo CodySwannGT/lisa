@@ -171,9 +171,3 @@ Use **TaskList** to show the created tasks.
 ---
 
 **IMPORTANT**: Each task description should contain all necessary information from `brief.md` and `research.md` to complete in isolation. Tasks should be independent and as small in scope as possible.
-
----
-
-## Next Step
-
-After completing this phase, tell the user: "To continue, run `/project:implement $ARGUMENTS`"

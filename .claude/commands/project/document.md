@@ -49,8 +49,3 @@ TaskCreate:
 
 **Execute each task via a subagent** to preserve main context. Launch up to 5 in parallel where tasks don't have dependencies. Do not stop until all are completed.
 
----
-
-## Next Step
-
-After completing this phase, tell the user: "To continue, run `/project:verify $ARGUMENTS`"
