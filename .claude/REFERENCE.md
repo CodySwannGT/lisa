@@ -56,7 +56,7 @@ Complete expert reference for Claude Code hooks and `.claude/settings.json` conf
   "model": "string",
   "alwaysThinkingEnabled": false,
 
-  "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" },
+  "statusLine": { "type": "command", "command": "<HOME>/.claude/statusline.sh" },
   "outputStyle": "string",
   "language": "string",
   "spinnerTipsEnabled": true,
@@ -96,7 +96,7 @@ Complete expert reference for Claude Code hooks and `.claude/settings.json` conf
     "excludedCommands": ["git", "docker"],
     "allowUnsandboxedCommands": true,
     "network": {
-      "allowUnixSockets": ["~/.ssh/agent-socket"],
+      "allowUnixSockets": ["<HOME>/.ssh/agent-socket"],
       "allowLocalBinding": true,
       "httpProxyPort": 8080,
       "socksProxyPort": 8081
@@ -222,7 +222,7 @@ Prompt hooks must return JSON: `{"ok": true|false, "reason": "explanation"}`
 | Scope | Location | Shared | Precedence |
 |-------|----------|--------|------------|
 | Managed | System-level `managed-settings.json` | Yes (IT deployed) | Highest (cannot override) |
-| User | `~/.claude/settings.json` | No | Normal |
+| User | `<HOME>/.claude/settings.json` | No | Normal |
 | Project | `.claude/settings.json` | Yes (in git) | Normal |
 | Local | `.claude/settings.local.json` | No (gitignored) | Normal |
 
@@ -230,9 +230,9 @@ Prompt hooks must return JSON: `{"ok": true|false, "reason": "explanation"}`
 
 | OS | Path |
 |----|------|
-| macOS | `/Library/Application Support/ClaudeCode/` |
-| Linux/WSL | `/etc/claude-code/` |
-| Windows | `C:\Program Files\ClaudeCode\` |
+| macOS | `<SYSTEM_CONFIG>/ClaudeCode/` |
+| Linux/WSL | `<SYSTEM_CONFIG>/claude-code/` |
+| Windows | `<SYSTEM_CONFIG>\ClaudeCode\` |
 
 ---
 
