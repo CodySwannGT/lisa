@@ -139,11 +139,17 @@ CURRENT_USER=$(gh api user --jq '.login')
 log_success "Current user: $CURRENT_USER"
 echo ""
 
+# Get the current Lisa version from package.json
+CURRENT_LISA_VERSION=$(node -e "console.log(require('./package.json').version)" 2>/dev/null || echo "unknown")
+log_info "Current Lisa version: $CURRENT_LISA_VERSION"
+echo ""
+
 # Initialize counters
 total_open_prs=0
 total_assigned_prs=0
 total_review_prs=0
 total_failed_actions=0
+total_outdated_lisa=0
 
 # Parse repos from environment variable
 IFS=' ' read -ra REPOS <<< "$LISA_GITHUB_REPOS"
@@ -163,6 +169,18 @@ for REPO in "${REPOS[@]}"; do
   fi
 
   log_info "Processing repository: $REPO"
+
+  # Check Lisa version in the repo's manifest
+  manifest_version=$(gh api "repos/$REPO/contents/.lisa-manifest" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | grep "# Lisa version:" | sed 's/# Lisa version: //' | tr -d ' ' || echo "")
+
+  if [[ -z "$manifest_version" ]]; then
+    manifest_status="not-applied"
+  elif [[ "$manifest_version" != "$CURRENT_LISA_VERSION" ]]; then
+    manifest_status="outdated"
+    total_outdated_lisa=$((total_outdated_lisa + 1))
+  else
+    manifest_status="current"
+  fi
 
   # Get open PRs created by current user
   open_prs=$(gh pr list --repo "$REPO" --state open --author "$CURRENT_USER" --json number,title,url,createdAt --jq '.[] | "\(.number)|\(.title)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
@@ -193,8 +211,22 @@ for REPO in "${REPOS[@]}"; do
   failed_actions_count=$(echo "$failed_actions" | grep -c . || true)
 
   # Display results for this repo
-  if [[ $open_prs_count -gt 0 || $assigned_prs_count -gt 0 || $review_prs_count -gt 0 || $failed_actions_count -gt 0 ]]; then
+  if [[ $open_prs_count -gt 0 || $assigned_prs_count -gt 0 || $review_prs_count -gt 0 || $failed_actions_count -gt 0 || "$manifest_status" == "outdated" || "$manifest_status" == "not-applied" ]]; then
     log_header "Repository: $REPO"
+
+    # Display Lisa version status
+    if [[ "$manifest_status" == "outdated" ]]; then
+      echo -e "${RED}Lisa Version Status: Outdated (repo: $manifest_version, current: $CURRENT_LISA_VERSION)${NC}"
+      echo "  → Run 'npx @codyswann/lisa .' to update"
+      echo ""
+    elif [[ "$manifest_status" == "not-applied" ]]; then
+      echo -e "${YELLOW}Lisa Version Status: Not Applied${NC}"
+      echo "  → Run 'npx @codyswann/lisa .' to apply Lisa"
+      echo ""
+    else
+      echo -e "${GREEN}Lisa Version: $CURRENT_LISA_VERSION (up to date)${NC}"
+      echo ""
+    fi
 
     # Display open PRs (created by current user)
     if [[ $open_prs_count -gt 0 ]]; then
@@ -255,11 +287,12 @@ echo -e "Total ${CYAN}Your Open PRs${NC}: $total_open_prs"
 echo -e "Total ${CYAN}PRs Assigned to You${NC}: $total_assigned_prs"
 echo -e "Total ${CYAN}PRs Waiting for Review${NC}: $total_review_prs"
 echo -e "Total ${RED}Failed Actions${NC}: $total_failed_actions"
+echo -e "Total ${RED}Repos with Outdated Lisa${NC}: $total_outdated_lisa"
 echo ""
 
 # Exit with appropriate code
-if [[ $total_failed_actions -gt 0 || $total_review_prs -gt 0 ]]; then
-  log_warning "Action required: Check failed actions or pending reviews"
+if [[ $total_failed_actions -gt 0 || $total_review_prs -gt 0 || $total_outdated_lisa -gt 0 ]]; then
+  log_warning "Action required: Check failed actions, pending reviews, or outdated Lisa versions"
   exit 0
 else
   log_success "All systems normal"
