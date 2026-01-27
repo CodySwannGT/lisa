@@ -68,6 +68,37 @@ log_header() {
   echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
+time_ago() {
+  local timestamp="$1"
+  local now
+  local then
+  local diff_seconds
+  local diff_hours
+  local diff_days
+
+  now=$(date +%s)
+  then=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null || date -d "$timestamp" +%s 2>/dev/null)
+  diff_seconds=$((now - then))
+  diff_hours=$((diff_seconds / 3600))
+  diff_days=$((diff_hours / 24))
+
+  if [[ $diff_days -gt 0 ]]; then
+    if [[ $diff_days -eq 1 ]]; then
+      echo "1 day ago"
+    else
+      echo "$diff_days days ago"
+    fi
+  elif [[ $diff_hours -gt 0 ]]; then
+    if [[ $diff_hours -eq 1 ]]; then
+      echo "1 hour ago"
+    else
+      echo "$diff_hours hours ago"
+    fi
+  else
+    echo "just now"
+  fi
+}
+
 # Check for LISA_GITHUB_REPOS environment variable
 if [[ -z "${LISA_GITHUB_REPOS:-}" ]]; then
   log_error "LISA_GITHUB_REPOS environment variable is not set"
@@ -113,22 +144,21 @@ for REPO in "${REPOS[@]}"; do
 
   log_info "Processing repository: $REPO"
 
-  # Get open PRs
-  open_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,url --jq '.[] | "\(.number)|\(.title)|\(.author.login)|\(.url)"' 2>/dev/null || echo "")
+  # Get open PRs (excluding dependabot)
+  open_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   open_prs_count=$(echo "$open_prs" | grep -c . || true)
 
-  # Get PRs assigned to current user
-  assigned_prs=$(gh pr list --repo "$REPO" --state open --assignee "$CURRENT_USER" --json number,title,url --jq '.[] | "\(.number)|\(.title)|\(.url)"' 2>/dev/null || echo "")
+  # Get PRs assigned to current user (excluding dependabot)
+  assigned_prs=$(gh pr list --repo "$REPO" --state open --assignee "$CURRENT_USER" --json number,title,author,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | "\(.number)|\(.title)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   assigned_prs_count=$(echo "$assigned_prs" | grep -c . || true)
 
-  # Get PRs where current user is requested for review
-  # This requires fetching full PR data to check reviewRequested
-  review_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,reviewRequests,url --jq '.[] | select(.reviewRequests | length > 0) | select(.reviewRequests[].requestedReviewer.login == "'$CURRENT_USER'") | "\(.number)|\(.title)|\(.author.login)|\(.url)"' 2>/dev/null || echo "")
+  # Get PRs where current user is requested for review (excluding dependabot)
+  review_prs=$(gh pr list --repo "$REPO" --state open --json number,title,author,reviewRequests,url,createdAt --jq '.[] | select(.author.login != "dependabot[bot]" and .author.login != "app/dependabot") | select(.reviewRequests | length > 0) | select(.reviewRequests[].requestedReviewer.login == "'$CURRENT_USER'") | "\(.number)|\(.title)|\(.author.login)|\(.url)|\(.createdAt)"' 2>/dev/null || echo "")
   review_prs_count=$(echo "$review_prs" | grep -c . || true)
 
   # Get failed GitHub Actions
   # Check the latest workflow runs and filter for failed ones
-  failed_actions=$(gh api "repos/$REPO/actions/runs" --jq '.workflow_runs[] | select(.status == "completed" and .conclusion == "failure") | "\(.id)|\(.name)|\(.head_branch)|\(.html_url)"' 2>/dev/null || echo "")
+  failed_actions=$(gh api "repos/$REPO/actions/runs" --jq '.workflow_runs[] | select(.status == "completed" and .conclusion == "failure") | "\(.id)|\(.name)|\(.head_branch)|\(.html_url)|\(.created_at)"' 2>/dev/null || echo "")
   failed_actions_count=$(echo "$failed_actions" | grep -c . || true)
 
   # Display results for this repo
@@ -138,8 +168,9 @@ for REPO in "${REPOS[@]}"; do
     # Display open PRs
     if [[ $open_prs_count -gt 0 ]]; then
       echo -e "${CYAN}Open Pull Requests ($open_prs_count):${NC}"
-      echo "$open_prs" | while IFS='|' read -r pr_num title author url; do
-        echo "  • #$pr_num - $title (by @$author)"
+      echo "$open_prs" | while IFS='|' read -r pr_num title author url created_at; do
+        age=$(time_ago "$created_at")
+        echo "  • #$pr_num - $title (by @$author) - $age"
         echo "    🔗 $url"
       done
       echo ""
@@ -149,8 +180,9 @@ for REPO in "${REPOS[@]}"; do
     # Display assigned PRs
     if [[ $assigned_prs_count -gt 0 ]]; then
       echo -e "${CYAN}PRs Assigned to You ($assigned_prs_count):${NC}"
-      echo "$assigned_prs" | while IFS='|' read -r pr_num title url; do
-        echo "  • #$pr_num - $title"
+      echo "$assigned_prs" | while IFS='|' read -r pr_num title url created_at; do
+        age=$(time_ago "$created_at")
+        echo "  • #$pr_num - $title - $age"
         echo "    🔗 $url"
       done
       echo ""
@@ -160,8 +192,9 @@ for REPO in "${REPOS[@]}"; do
     # Display review requested PRs
     if [[ $review_prs_count -gt 0 ]]; then
       echo -e "${CYAN}PRs Waiting for Your Review ($review_prs_count):${NC}"
-      echo "$review_prs" | while IFS='|' read -r pr_num title author url; do
-        echo "  • #$pr_num - $title (by @$author)"
+      echo "$review_prs" | while IFS='|' read -r pr_num title author url created_at; do
+        age=$(time_ago "$created_at")
+        echo "  • #$pr_num - $title (by @$author) - $age"
         echo "    🔗 $url"
       done
       echo ""
@@ -171,8 +204,9 @@ for REPO in "${REPOS[@]}"; do
     # Display failed actions
     if [[ $failed_actions_count -gt 0 ]]; then
       echo -e "${RED}Failed GitHub Actions ($failed_actions_count):${NC}"
-      echo "$failed_actions" | while IFS='|' read -r action_id action_name branch url; do
-        echo "  • $action_name (branch: $branch)"
+      echo "$failed_actions" | while IFS='|' read -r action_id action_name branch url created_at; do
+        age=$(time_ago "$created_at")
+        echo "  • $action_name (branch: $branch) - $age"
         echo "    🔗 $url"
       done
       echo ""
