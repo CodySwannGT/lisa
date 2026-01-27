@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/CodySwannGT/lisa/compare/vv1.7.0...v1.7.1) (2026-01-27)
+
+
+### Code Refactoring
+
+* simplify project slash commands by removing redundant sections ([de6cc52](https://github.com/CodySwannGT/lisa/commit/de6cc5207bcadba2311eab5506c99eedee313480))
+
+## [1.7.0](https://github.com/CodySwannGT/lisa/compare/vv1.6.0...v1.7.0) (2026-01-27)
+
+
+### Features
+
+* add /project:document command to update docs after implementation ([ce666ad](https://github.com/CodySwannGT/lisa/commit/ce666adffe5d38e24fed86640904333dcd714615))
+
 ## [1.6.0](https://github.com/CodySwannGT/lisa/compare/vv1.5.1...v1.6.0) (2026-01-27)
 
 
