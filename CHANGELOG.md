@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/CodySwannGT/lisa/compare/vv1.3.0...v1.4.0) (2026-01-27)
+
+
+### Features
+
+* include Lisa version in generated manifest ([71fd867](https://github.com/CodySwannGT/lisa/commit/71fd8672b320b4fa81c9d135b6a19b3b37c28d78))
+
 ## [1.3.0](https://github.com/CodySwannGT/lisa/compare/vv1.2.0...v1.3.0) (2026-01-27)
 
 
