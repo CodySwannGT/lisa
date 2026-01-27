@@ -7,9 +7,9 @@ import { readJson, writeJson, deepMerge } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
 
 /**
- * Merge strategy: Deep merge JSON files (project values take precedence)
- * - Lisa values serve as defaults
- * - Project values take precedence on conflicts
+ * Merge strategy: Deep merge JSON files (Lisa values take precedence)
+ * - Project values serve as defaults
+ * - Lisa values take precedence on conflicts
  * - Handle nested paths (.claude/settings.json)
  */
 export class MergeStrategy implements ICopyStrategy {
@@ -57,8 +57,8 @@ export class MergeStrategy implements ICopyStrategy {
       );
     });
 
-    // Deep merge: Lisa (source) provides defaults, project (dest) values win
-    const merged = deepMerge(sourceJson, destJson);
+    // Deep merge: Lisa (source) takes precedence, project (dest) provides defaults
+    const merged = deepMerge(destJson, sourceJson);
 
     // Normalize for comparison (parse and re-stringify both)
     const normalizedDest = JSON.stringify(destJson, null, 2);
