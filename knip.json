@@ -16,7 +16,6 @@
   ],
   "ignoreDependencies": [
     "jscodeshift",
-    "commitizen",
     "eslint-*",
     "lint-staged",
     "@commitlint/*",

@@ -1,32 +1,32 @@
 {
   "scripts": {
-    "//docs": "The following commands MUST be defined for CI/CD to work properly - even if they're no-ops.",
+    "//lisa-force-scripts-quality-assurance": "Required by Lisa in ci/cd, git hooks and claude hooks to ensure governance",
+    "test": "NODE_ENV=test jest --passWithNoTests",
+    "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
+    "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
+    "test:cov": "NODE_ENV=test jest --coverage",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
-    "build": "tsc",
-    "types:check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check .",
     "format": "prettier --check . --write",
-    "prepare": "npm run build",
-    "//end-docs": "",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
-    "update-node-version": "tsx scripts/update-node-version.ts",
     "knip": "knip",
     "knip:fix": "knip --fix",
     "sg:scan": "ast-grep scan",
-    "lisa:update": "npx @codyswann/lisa@latest ."
+    "build": "tsc",
+    "//end-lisa-force-scripts-quality-assurance": "",
+    "//lisa-force-scripts-operations": "Required by Lisa for standard operations for this project",
+    "lisa:update": "npx @codyswann/lisa@latest .",
+    "//end-lisa-force-scripts-operations": ""
   },
   "devDependencies": {
+    "//lisa-force-dev-dependencies": "Required by Lisa to ensure all necessary dev dependencies are included for standard operations",
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.39.0",
-    "commitizen": "^4.3.0",
-    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-import-resolver-typescript": "^4.4.4",
@@ -51,23 +51,25 @@
     "@types/node": "^22.0.0",
     "tsx": "^4.0.0",
     "knip": "^5.0.0",
-    "@ast-grep/cli": "^0.40.4"
+    "@ast-grep/cli": "^0.40.4",
+    "@jest/test-sequencer": "^30.2.0",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.6",
+    "//end-lisa-force-dev-dependencies": ""
   },
   "engines": {
+    "//lisa-defaults-engines": "Suggested by Lisa to ensure consistent environment for CDK operations. Can be overridden by the user if necessary.",
     "npm": "please-use-bun",
     "yarn": "please-use-bun",
     "pnpm": "please-use-bun",
     "bun": ">= 1.3.5",
-    "node": "22.21.1"
+    "node": "22.21.1",
+    "//end-lisa-defaults-engines": ""
   },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
-  },
-  "resolutions": {},
+  "//lisa-merge-trusted-dependencies": "Suggested by Lisa to ensure that only trusted dependencies are used in this project",
   "trustedDependencies": [
-    "@sentry/cli",
     "@ast-grep/cli"
-  ]
+  ],
+  "//end-lisa-merge-trusted-dependencies": ""
 }

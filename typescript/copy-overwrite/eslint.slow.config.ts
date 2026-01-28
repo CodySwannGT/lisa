@@ -40,6 +40,7 @@ export default [
       "**/*.mjs",
       "**/*.cjs",
       "**/*.jsx",
+      "**/__tests__/**",
       "cdk/**",
       "expo/**",
       "nestjs/**",
@@ -51,6 +52,11 @@ export default [
   // TypeScript files - slow import rules only
   {
     files: ["**/*.ts", "**/*.tsx"],
+    linterOptions: {
+      // Ignore inline eslint-disable comments since they reference rules
+      // from the main config that aren't loaded in this minimal config
+      noInlineConfig: true,
+    },
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {

@@ -55,6 +55,11 @@ export default [
   // TypeScript/TSX files - slow import and React rules only
   {
     files: ["**/*.ts", "**/*.tsx"],
+    linterOptions: {
+      // Ignore inline eslint-disable comments since they reference rules
+      // from the main config that aren't loaded in this minimal config
+      noInlineConfig: true,
+    },
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {

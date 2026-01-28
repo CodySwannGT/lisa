@@ -5,7 +5,8 @@ export type CopyStrategy =
   | "copy-overwrite"
   | "copy-contents"
   | "create-only"
-  | "merge";
+  | "merge"
+  | "tagged-merge";
 
 /**
  * Available project types that Lisa can detect and configure
@@ -49,6 +50,7 @@ export const COPY_STRATEGIES: readonly CopyStrategy[] = [
   "copy-contents",
   "create-only",
   "merge",
+  "tagged-merge",
 ] as const;
 
 /**

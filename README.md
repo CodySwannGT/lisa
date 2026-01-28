@@ -670,6 +670,7 @@ Each type directory contains subdirectories that control how files are applied:
 | `copy-contents/` | Copy | Skip | Append missing lines |
 | `create-only/` | Copy | Skip | Skip |
 | `merge/` | Copy | Skip | JSON deep merge |
+| `tagged-merge/` | Copy | Skip | Merge by tagged sections |
 
 ### Strategy Details
 
@@ -679,10 +680,54 @@ Each type directory contains subdirectories that control how files are applied:
 
 **create-only**: Template files that should only be created once (e.g., `.claude/rules/PROJECT_RULES.md` for project-specific customization).
 
-**merge**: For `package.json` files. Performs a deep merge where:
+**merge**: For JSON files. Performs a deep merge where:
 - Lisa provides default values
 - Your project's values take precedence
 - Missing scripts/dependencies are added without overwriting existing ones
+
+**tagged-merge**: For JSON files with explicit section management via comment tags. Enables fine-grained control over which parts Lisa manages vs. which parts projects can customize:
+
+```json
+{
+  "scripts": {
+    "//lisa-force-scripts-quality-assurance": "Required by Lisa for CI/CD and governance",
+    "lint": "eslint . --quiet",
+    "build": "tsc",
+    "test": "vitest run",
+    "//end-lisa-force-scripts-quality-assurance": "",
+    "deploy": "my-custom-deploy"
+  },
+  "devDependencies": {
+    "//lisa-force-dev-dependencies": "Required by Lisa for standard governance",
+    "eslint": "^9.39.0",
+    "prettier": "^3.3.3",
+    "//end-lisa-force-dev-dependencies": ""
+  },
+  "engines": {
+    "//lisa-defaults-engines": "Defaults - projects can override",
+    "node": "22.21.1",
+    "bun": ">= 1.3.5",
+    "//end-lisa-defaults-engines": ""
+  },
+  "//lisa-merge-trusted-dependencies": "Lisa's + project's combined",
+  "trustedDependencies": ["@ast-grep/cli"],
+  "//end-lisa-merge-trusted-dependencies": ""
+}
+```
+
+**Tag Format:** `//lisa-<behavior>-<category>` with matching `//end-lisa-<behavior>-<category>`
+
+**Tag Semantics:**
+- `//lisa-force-<name>` → `//end-lisa-force-<name>`: Lisa replaces this section entirely; project changes within tags are ignored
+- `//lisa-defaults-<name>` → `//end-lisa-defaults-<name>`: Project can override the entire section; Lisa provides defaults if missing
+- `//lisa-merge-<name>` → `//end-lisa-merge-<name>`: For arrays—Lisa's items are merged with project's (deduplicated by value equality)
+
+**Benefits:**
+- Lisa controls critical configs (CI/CD scripts, required dependencies) via `force` tags
+- Projects can safely customize defaults via `defaults` tags
+- Array merging via `merge` tags enables shared dependency lists without overwriting project additions
+- Projects can safely extend with custom values outside tagged sections
+- Tags are visible in the file, making governance transparent to developers
 
 ## Architecture
 
@@ -707,7 +752,9 @@ lisa/
 │   │   ├── copy-overwrite.ts
 │   │   ├── copy-contents.ts
 │   │   ├── create-only.ts
-│   │   └── merge.ts
+│   │   ├── merge.ts
+│   │   ├── tagged-merge.ts         # Tagged merge with comment-based tags
+│   │   └── tagged-merge-types.ts   # Types for tagged merge
 │   ├── transaction/
 │   │   ├── backup.ts               # Backup/restore
 │   │   └── transaction.ts          # Atomic wrapper
@@ -930,6 +977,16 @@ EOF
 4. Add tests in `tests/unit/detection/`
 
 ## Changelog
+
+### v2.1.0 (2026-01-28)
+
+**Features:**
+- New `tagged-merge` copy strategy for fine-grained JSON section control
+  - `//lisa-force-*` tags: Lisa replaces section entirely
+  - `//lisa-defaults-*` tags: Project can override, Lisa provides defaults
+  - `//lisa-merge-*` tags: Arrays merged with deduplication
+- Tagged-merge templates for all project types (typescript, expo, nestjs, cdk)
+- Backward-compatible with existing `merge/` strategy
 
 ### v2.0.0 (2026-01-17)
 

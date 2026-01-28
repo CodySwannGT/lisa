@@ -1,0 +1,26 @@
+{
+  "src/strategies/tagged-merge.ts": [
+    "README.md#copy-strategies",
+    "README.md#tagged-merge"
+  ],
+  "src/strategies/tagged-merge-types.ts": [
+    "README.md#copy-strategies"
+  ],
+  "src/strategies/index.ts": [
+    "README.md#architecture"
+  ],
+  "typescript/tagged-merge/package.json": [
+    "README.md#copy-strategies",
+    "README.md#tagged-merge"
+  ],
+  "cdk/tagged-merge/package.json": [
+    "README.md#copy-strategies"
+  ],
+  "expo/tagged-merge/package.json": [
+    "README.md#copy-strategies"
+  ],
+  "nestjs/tagged-merge/package.json": [
+    "README.md#copy-strategies"
+  ],
+  "specs/tagged-merge.md": []
+}

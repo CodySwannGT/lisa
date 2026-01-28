@@ -472,7 +472,8 @@ export class Lisa {
         logger.info("  Manually review and remove added lines if needed.");
         return { ...stats, skipped: stats.skipped + 1 };
       }
-      case "merge": {
+      case "merge":
+      case "tagged-merge": {
         logger.warn(`Cannot auto-remove (merged JSON): ${entry.relativePath}`);
         logger.info("  Manually remove Lisa-added keys if needed.");
         return { ...stats, skipped: stats.skipped + 1 };
