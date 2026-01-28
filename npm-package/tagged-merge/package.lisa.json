@@ -1,0 +1,12 @@
+{
+  "force": {
+    "scripts": {
+      "prepublishOnly": "bun run build"
+    }
+  },
+  "defaults": {
+    "files": [
+      "dist"
+    ]
+  }
+}

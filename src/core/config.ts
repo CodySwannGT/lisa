@@ -6,7 +6,8 @@ export type CopyStrategy =
   | "copy-contents"
   | "create-only"
   | "merge"
-  | "tagged-merge";
+  | "tagged-merge"
+  | "package-lisa";
 
 /**
  * Available project types that Lisa can detect and configure
@@ -51,6 +52,7 @@ export const COPY_STRATEGIES: readonly CopyStrategy[] = [
   "create-only",
   "merge",
   "tagged-merge",
+  "package-lisa",
 ] as const;
 
 /**

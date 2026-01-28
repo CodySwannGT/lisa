@@ -660,6 +660,77 @@ Include:
 - Django-specific .gitignore entries
 ```
 
+## Package.lisa.json: Governance-Driven Package.json Management
+
+The `package.lisa.json` strategy provides a specialized approach to managing `package.json` files with structured governance. Instead of using `//lisa-*` tags directly in project `package.json` files, Lisa separates governance logic into `package.lisa.json` files within each type directory.
+
+### How It Works
+
+Each project type directory (all/, typescript/, expo/, nestjs/, cdk/, npm-package/) can contain a `package.lisa.json` file in the `tagged-merge/` subdirectory:
+
+```
+typescript/
+├── tagged-merge/
+│   └── package.lisa.json
+```
+
+The `package.lisa.json` file defines three sections:
+
+```json
+{
+  "force": {
+    "scripts": { "test": "jest", "lint": "eslint ." },
+    "devDependencies": { "typescript": "^5.0.0" }
+  },
+  "defaults": {
+    "engines": { "node": "22.x" }
+  },
+  "merge": {
+    "trustedDependencies": ["@ast-grep/cli"]
+  }
+}
+```
+
+### Section Semantics
+
+- **force**: Lisa's values completely override project values. Used for critical governance like test runners and linters.
+- **defaults**: Provides default values only when keys are missing from the project. Project values always win if present.
+- **merge**: Concatenates arrays and deduplicates. Useful for combining Lisa's required dependencies with project's custom ones.
+
+### Type Inheritance
+
+Templates follow the project type hierarchy:
+
+```
+all/tagged-merge/package.lisa.json
+└── typescript/tagged-merge/package.lisa.json
+    ├── expo/tagged-merge/package.lisa.json
+    ├── nestjs/tagged-merge/package.lisa.json
+    ├── cdk/tagged-merge/package.lisa.json
+    └── npm-package/tagged-merge/package.lisa.json
+```
+
+Child types inherit and override parent templates. For example, a NestJS project loads templates from `all/`, `typescript/`, and `nestjs/` in order, with later types overriding earlier ones.
+
+### Benefits vs Tagged Comments
+
+Unlike `//lisa-force-*` tags embedded in `package.json`:
+
+- **Clean Project Files**: Project `package.json` files remain completely free of Lisa governance markers
+- **Type-Specific Governance**: Different governance rules for different project types (TypeScript vs Expo vs NestJS)
+- **Inheritance Chain**: Automatically applies parent type templates (TypeScript rules apply to all TS projects)
+- **Separation of Concerns**: Governance lives in Lisa directory; project files are purely for application use
+- **Transparent Updates**: Lisa can update governance without modifying project files
+
+### Migration for Existing Users
+
+If you're currently using `//lisa-*` tags in your `package.json`:
+
+1. Extract the tagged sections into a `package.lisa.json` file
+2. Organize by section: move `//lisa-force-*` sections to `force`, etc.
+3. Remove the tags from your `package.json`
+4. Lisa will now manage those properties via `package.lisa.json`
+
 ## Copy Strategies
 
 Each type directory contains subdirectories that control how files are applied:

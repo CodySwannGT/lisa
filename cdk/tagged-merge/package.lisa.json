@@ -1,0 +1,31 @@
+{
+  "force": {
+    "scripts": {
+      "watch": "tsc -w",
+      "cdk": "cdk"
+    },
+    "dependencies": {
+      "@aws-cdk/aws-amplify-alpha": "^2.235.0-alpha.0",
+      "aws-cdk-github-oidc": "^2.4.1",
+      "aws-cdk-lib": "2.235.0",
+      "constructs": "^10.4.5",
+      "lodash": "^4.17.21",
+      "source-map-support": "^0.5.21"
+    },
+    "devDependencies": {
+      "aws-cdk": "2.235.0"
+    },
+    "bin": {
+      "infrastructure": "bin/infrastructure.js"
+    }
+  },
+  "defaults": {
+    "engines": {
+      "npm": ">= 10.9.4",
+      "yarn": "please-use-npm",
+      "pnpm": "please-use-npm",
+      "bun": "please-use-npm",
+      "node": "22.21.1"
+    }
+  }
+}
