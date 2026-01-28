@@ -1,17 +1,6 @@
 {
   "scripts": {
-    "test": "NODE_ENV=test jest --passWithNoTests",
-    "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
-    "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
-    "test:cov": "NODE_ENV=test jest --coverage",
-    "start:local": "cp .env.localhost .env.local && EXPO_ATLAS=true expo start",
-    "start:dev": "EXPO_ATLAS=true cp .env.development .env.local && EXPO_ATLAS=true expo start",
-    "start:staging": "cp .env.staging .env.local && EXPO_ATLAS=true expo start",
-    "start:production": "cp .env.production .env.local && EXPO_ATLAS=true expo start",
-    "fetch:graphql:schema:dev": "./scripts/fetch-graphql-schema.sh development",
-    "fetch:graphql:schema:staging": "./scripts/fetch-graphql-schema.sh staging",
-    "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
-    "export:web": "expo export --platform web --source-maps",
+    "//lisa-force-scripts-quality-assurance": "Required by Lisa in ci/cd, git hooks and claude hooks to ensure governance",
     "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless'",
     "playwright:build": "expo export --platform web",
     "playwright:test": "bun run playwright:build && playwright test",
@@ -19,12 +8,27 @@
     "maestro:test": "maestro test .maestro/flows",
     "maestro:test:smoke": "maestro test .maestro/flows --include-tags=smoke",
     "maestro:studio": "maestro studio",
+    "//end-lisa-force-scripts-quality-assurance": "",
+
+    "//lisa-force-scripts-operations": "Required by Lisa for standard operations to run this project locally",
+    "start:local": "cp .env.localhost .env.local && EXPO_ATLAS=true expo start",
+    "start:dev": "EXPO_ATLAS=true cp .env.development .env.local && EXPO_ATLAS=true expo start",
+    "start:staging": "cp .env.staging .env.local && EXPO_ATLAS=true expo start",
+    "start:production": "cp .env.production .env.local && EXPO_ATLAS=true expo start",
+    "build-and-run:local:android": "expo run:android",
+    "build-and-run:local:ios": "expo run:ios",
+    "fetch:graphql:schema:dev": "./scripts/fetch-graphql-schema.sh development",
+    "fetch:graphql:schema:staging": "./scripts/fetch-graphql-schema.sh staging",
+    "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
+    "//end-lisa-force-scripts-operations": "",
+
+    "//lisa-force-scripts-deployment": "Required by Lisa for deployment operations for this project",
+    "export:web": "expo export --platform web --source-maps",
     "pre-build:eas": "cat .gitignore > .easignore && cat .easignore.extra >> .easignore",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "//end-lisa-force-scripts-deployment": ""
   },
-  "main": "expo-router/entry",
   "dependencies": {
+    "//lisa-force-dependencies": "Required by Lisa to ensure all necessary dependencies are included for Expo/React Native/GraphQL/Gluestack operations",
     "@apollo/client": "^3.10.8",
     "@expo/metro-runtime": "~6.1.2",
     "@gluestack-ui/core": "^3.0.10",
@@ -82,15 +86,15 @@
     "react-native-store-version": "^1.4.1",
     "react-native-svg": "^15.15.1",
     "react-native-web": "^0.21.2",
-    "react-native-worklets": "0.7.1",
     "tailwindcss": "^3.4.7",
     "tar": "^7.5.6",
     "text-encoding-polyfill": "^0.6.7",
-    "use-debounce": "^10.1.0",
     "usehooks-ts": "^3.1.1",
-    "zod": "^4.3.5"
+    "zod": "^4.3.5",
+    "//end-lisa-force-dependencies": ""
   },
   "devDependencies": {
+    "//lisa-force-dev-dependencies": "Required by Lisa to ensure all necessary dev dependencies are included for Expo/React Native/GraphQL/Gluestack operations",
     "@babel/core": "^7.20.0",
     "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
     "@graphql-codegen/cli": "^6.1.0",
@@ -108,12 +112,9 @@
     "@types/eslint-plugin-tailwindcss": "^3.17.0",
     "@types/react": "~19.1.10",
     "@types/react-dom": "^19.1.7",
-    "babel-plugin-istanbul": "^6.1.1",
     "babel-plugin-module-resolver": "^5.0.2",
     "baseline-browser-mapping": "^2.9.2",
     "eslint-config-expo": "^10.0.0",
-    "eslint-import-resolver-typescript": "^4.0.0",
-    "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-component-structure": "file:./eslint-plugin-component-structure",
     "eslint-plugin-jsx-a11y": "^6.10.0",
     "eslint-plugin-react": "^7.37.0",
@@ -124,22 +125,22 @@
     "eslint-plugin-ui-standards": "file:./eslint-plugin-ui-standards",
     "expo-atlas": "^0.4.0",
     "globals": "^16.0.0",
-    "@istanbuljs/nyc-config-typescript": "^1.0.2",
-    "@jest/test-sequencer": "^30.2.0",
-    "@types/jest": "^30.0.0",
-    "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.2.0",
     "jest-expo": "^54.0.12",
-    "ts-jest": "^29.4.6",
-    "react-test-renderer": "19.1.0"
+    "react-test-renderer": "19.1.0",
+    "//end-lisa-force-dev-dependencies": ""
   },
   "resolutions": {
+    "//lisa-force-resolutions": "Required by Lisa for security and compatibility reasons",
     "eslint-plugin-react-hooks": "^7.0.0",
-    "tar": "^7.5.6"
+    "tar": "^7.5.6",
+    "//end-lisa-force-resolutions": ""
   },
   "overrides": {
+    "//lisa-force-overrides": "Required by Lisa for security and compatibility reasons",
     "eslint-plugin-react-hooks": "^7.0.0",
     "zod-validation-error": "^4.0.0",
-    "tar": "^7.5.6"
+    "tar": "^7.5.6",
+    "//end-lisa-force-overrides": ""
   }
 }

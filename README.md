@@ -670,6 +670,7 @@ Each type directory contains subdirectories that control how files are applied:
 | `copy-contents/` | Copy | Skip | Append missing lines |
 | `create-only/` | Copy | Skip | Skip |
 | `merge/` | Copy | Skip | JSON deep merge |
+| `tagged-merge/` | Copy | Skip | Merge by tagged sections |
 
 ### Strategy Details
 
@@ -679,10 +680,43 @@ Each type directory contains subdirectories that control how files are applied:
 
 **create-only**: Template files that should only be created once (e.g., `.claude/rules/PROJECT_RULES.md` for project-specific customization).
 
-**merge**: For `package.json` files. Performs a deep merge where:
+**merge**: For JSON files. Performs a deep merge where:
 - Lisa provides default values
 - Your project's values take precedence
 - Missing scripts/dependencies are added without overwriting existing ones
+
+**tagged-merge**: For JSON files with explicit section management via comment tags. Enables fine-grained control over which parts Lisa manages vs. which parts projects can customize:
+
+```json
+{
+  "scripts": {
+    "//lisa-force-ci-cd": "Required by Lisa - do not modify",
+    "lint": "eslint .",
+    "build": "tsc",
+    "//end-lisa-force-ci-cd": "",
+    "deploy": "my-custom-deploy"
+  },
+  "engines": {
+    "//lisa-defaults-engines": "Defaults - projects can override",
+    "node": "22.21.1",
+    "//end-lisa-defaults-engines": ""
+  },
+  "//lisa-merge-trusted-deps": "Lisa's + project's combined",
+  "trustedDependencies": ["@ast-grep/cli"],
+  "//end-lisa-merge-trusted-deps": ""
+}
+```
+
+**Tag Semantics:**
+- `//lisa-force-<name>` → `//end-lisa-force-<name>`: Lisa replaces this section entirely
+- `//lisa-defaults-<name>` → `//end-lisa-defaults-<name>`: Project can override; Lisa provides defaults
+- `//lisa-merge-<name>` → `//end-lisa-merge-<name>`: For arrays—Lisa's items are merged with project's (deduplicated)
+
+**Benefits:**
+- Lisa controls critical configs (CI/CD scripts, required dependencies)
+- Projects can safely extend with custom values outside tagged sections
+- Array merging enables shared dependency lists without overwriting project additions
+- Tags are visible in the file, making governance transparent to developers
 
 ## Architecture
 
