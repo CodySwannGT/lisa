@@ -7,7 +7,6 @@ const TSCONFIG_JSON = "tsconfig.json";
 const APP_JSON = "app.json";
 const NEST_CLI_JSON = "nest-cli.json";
 const CDK_JSON = "cdk.json";
-const _EAS_JSON = "eas.json";
 const LISA_TEST_PREFIX = "lisa-test-";
 
 /**

@@ -21,8 +21,6 @@
     "@commitlint/*",
     "@types/fs-extra",
     "@types/lodash.merge",
-    "@vitest/coverage-v8",
-    "vitest",
     "ts-morph",
     "ts-node",
     "@jest/test-sequencer",
