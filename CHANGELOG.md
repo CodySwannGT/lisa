@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.1](https://github.com/CodySwannGT/lisa/compare/vv1.9.0...v1.9.1) (2026-01-28)
+
+
+### Documentation
+
+* add empirical verification rule ([03f7c76](https://github.com/CodySwannGT/lisa/commit/03f7c762d1e6703d886f5068f909b03cfb9415bb))
+* improve verification section in plan template ([7fbcf12](https://github.com/CodySwannGT/lisa/commit/7fbcf12d032b5add2a1cbf50974eda687fb3ccd4))
+
 ## [1.9.0](https://github.com/CodySwannGT/lisa/compare/vv1.8.0...v1.9.0) (2026-01-27)
 
 
