@@ -36,7 +36,6 @@
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh"
   },
   "devDependencies": {
-    "//lisa-force-dev-dependencies": "Required by Lisa to ensure all necessary dev dependencies are included for standard operations",
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
@@ -70,8 +69,7 @@
     "@jest/test-sequencer": "^30.2.0",
     "@types/jest": "^30.0.0",
     "jest": "^30.0.0",
-    "ts-jest": "^29.4.6",
-    "//end-lisa-force-dev-dependencies": ""
+    "ts-jest": "^29.4.6"
   },
   "engines": {
     "//lisa-defaults-engines": "Suggested by Lisa to ensure consistent environment for CDK operations. Can be overridden by the user if necessary.",
