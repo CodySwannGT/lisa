@@ -1,8 +1,9 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-27T23:24:34.914Z
-# Lisa version: 1.8.0
-# Lisa directory: /private/tmp/bunx-501-@codyswann/lisa@latest/node_modules/@codyswann/lisa
+# Generated: 2026-01-28T16:50:43.659Z
+# Lisa version: 1.9.5
+# Lisa directory: /Users/cody/workspace/lisa
 
+copy-overwrite:.DS_Store
 copy-overwrite:.claude/README.md
 copy-overwrite:.claude/REFERENCE.md
 copy-overwrite:.claude/agents/agent-architect.md
@@ -48,8 +49,10 @@ copy-overwrite:.claude/hooks/README.md
 copy-overwrite:.claude/hooks/check-tired-boss.sh
 copy-overwrite:.claude/hooks/debug-hook.sh
 copy-overwrite:.claude/hooks/notify-ntfy.sh
+copy-overwrite:.claude/hooks/pre-push.sh
 copy-overwrite:.claude/hooks/sync-tasks.sh
 copy-overwrite:.claude/rules/coding-philosophy.md
+copy-overwrite:.claude/rules/verfication.md
 copy-overwrite:.claude/settings.json
 copy-overwrite:.claude/settings.local.json.example
 copy-overwrite:.claude/skills/prompt-complexity-scorer/SKILL.md
@@ -63,7 +66,7 @@ copy-overwrite:.safety-net.json
 copy-overwrite:CLAUDE.md
 copy-overwrite:HUMAN.md
 copy-overwrite:specs/.keep
-create-only:.lisaignore
+copy-contents:.gitignore
 copy-overwrite:.claude/hooks/format-on-edit.sh
 copy-overwrite:.claude/hooks/install_pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
@@ -78,7 +81,6 @@ copy-overwrite:.github/workflows/create-github-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-jira-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-sentry-issue-on-failure.yml
-copy-overwrite:.github/workflows/lint-slow.yml
 copy-overwrite:.github/workflows/quality.yml
 copy-overwrite:.github/workflows/release.yml
 copy-overwrite:.gitleaksignore
@@ -105,8 +107,11 @@ copy-overwrite:eslint.typescript.ts
 copy-overwrite:knip.json
 copy-overwrite:sgconfig.yml
 copy-overwrite:tsconfig.eslint.json
+copy-contents:.husky/_/.gitignore
+copy-contents:.husky/_/husky.sh
 copy-contents:.husky/commit-msg
 copy-contents:.husky/pre-commit
 copy-contents:.husky/pre-push
 merge:.claude/settings.json
-merge:package.json
+tagged-merge:package.json
+copy-overwrite:.github/workflows/publish-to-npm.yml

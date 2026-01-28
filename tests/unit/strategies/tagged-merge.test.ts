@@ -1,5 +1,5 @@
 /* eslint-disable max-lines,sonarjs/no-duplicate-string -- Comprehensive test suite requires extensive test cases with repeated fixtures */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { TaggedMergeStrategy } from "../../../src/strategies/tagged-merge.js";
