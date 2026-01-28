@@ -356,6 +356,63 @@ The hook is configured in `.claude/settings.json`:
 
 ntfy.sh topics are public by default. Use a unique, hard-to-guess topic name. For private notifications, you can [self-host ntfy](https://docs.ntfy.sh/install/) or use [ntfy.sh access control](https://docs.ntfy.sh/publish/#access-control).
 
+---
+
+### pre-push.sh
+
+**Type**: Pre-push git hook (blocking)
+**Trigger**: Before `git push` executes
+**Purpose**: Runs slow ESLint rules to catch linting issues before pushing to remote
+
+#### How it works
+
+1. Checks if the project has a `lint:slow` script defined in `package.json`
+2. Detects the project's package manager from lock files (bun, pnpm, yarn, npm)
+3. Runs the slow lint rules using the detected package manager
+4. If lint:slow passes, allows the push to proceed
+5. If lint:slow fails, blocks the push with an error message
+
+#### Features
+
+- **Blocking enforcement**: Prevents pushes with linting issues
+- **Package manager detection**: Uses the project's configured package manager
+- **Graceful skip**: If lint:slow script doesn't exist, skips silently without blocking
+- **Clear feedback**: Shows which rules failed for easy fixing
+- **Works with all package managers**: npm, yarn, pnpm, bun
+
+#### Configuration
+
+The hook is automatically registered via git when Lisa is applied. To manually configure or troubleshoot:
+
+```bash
+# Verify the hook is installed
+ls -la .git/hooks/pre-push
+
+# Run the hook manually to test
+./.claude/hooks/pre-push.sh
+
+# Bypass the hook (not recommended, only for emergencies)
+git push --no-verify
+```
+
+#### Typical Workflow
+
+1. Make code changes
+2. Run `git push`
+3. Pre-push hook runs slow lint rules
+4. If issues found: hook blocks push, shows errors, exit with code 1
+5. Fix the issues
+6. Run `git push` again
+7. If all clear: push proceeds normally
+
+#### Notes
+
+- This hook enforces blocking behavior (exits with code 1 on failure) to prevent pushing code with issues
+- The hook respects the project's package manager configuration
+- Only runs if a `lint:slow` script is defined in package.json (gracefully skips otherwise)
+
+---
+
 ## Adding New Hooks
 
 To add a new hook:
