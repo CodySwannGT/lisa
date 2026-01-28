@@ -93,8 +93,13 @@ on:
         required: false
         default: false
         type: boolean
+      skip_lint_slow:
+        description: 'Skip the slow lint rules job'
+        required: false
+        default: false
+        type: boolean
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,github_issue)'
         required: false
         default: ''
         type: string
@@ -286,6 +291,45 @@ jobs:
 
       - name: 🧹 Run linter
         run: ${{ inputs.package_manager }} run lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+  lint_slow:
+    name: 🐢 Slow Lint Rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !inputs.skip_lint_slow && !contains(inputs.skip_jobs, 'lint_slow') }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📥 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🐢 Run slow lint rules
+        run: ${{ inputs.package_manager }} run lint:slow
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
