@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.3](https://github.com/CodySwannGT/lisa/compare/vv1.9.2...v1.9.3) (2026-01-28)
+
+
+### Code Refactoring
+
+* **workflows:** consolidate lint-slow into quality.yml and add pre-push hook ([65a7763](https://github.com/CodySwannGT/lisa/commit/65a77639420b1b97af660f09f2e5d946ff8b16cc))
+
 ### [1.9.2](https://github.com/CodySwannGT/lisa/compare/vv1.9.1...v1.9.2) (2026-01-28)
 
 
