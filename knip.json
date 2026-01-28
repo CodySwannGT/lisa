@@ -37,7 +37,6 @@
     "graphql-scalars",
     "@graphql-codegen/*",
     "@nestjs/cli",
-    "@istanbuljs/nyc-config-typescript",
     "@jest/test-sequencer",
     "serverless-*",
     "@types/fs-extra",

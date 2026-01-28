@@ -65,7 +65,6 @@
     "@eslint/eslintrc",
     "@eslint/js",
     "@expo-google-fonts/inter",
-    "@istanbuljs/nyc-config-typescript",
     "@jest/test-sequencer",
     "@react-native-community/cli",
     "@react-native-community/cli-platform-android",
