@@ -114,10 +114,12 @@ export class TaggedMergeStrategy implements ICopyStrategy {
    * @param dest - Project JSON with potential customizations to preserve
    * @returns Merged JSON with tagged sections applied according to their behavior types
    * @remarks
-   * Processing order: 1) Process all tagged sections from source applying their behaviors,
-   * 2) Add unprocessed content from destination (preserves project customizations),
-   * 3) Add any remaining unprocessed tags from source. This ensures governance while
-   * preserving project-specific additions outside tagged regions.
+   * Processing supports tags at any nesting level. For each tagged section (whether at
+   * top level or nested in an object), applies its behavior rules. Order of processing:
+   * 1) Process all tagged sections from source recursively, applying their behaviors
+   * 2) Add unprocessed content from destination (preserves project customizations)
+   * 3) Add any remaining unprocessed tags from source
+   * This ensures governance while preserving project-specific additions outside tagged regions.
    */
   private mergeWithTags(
     source: Record<string, unknown>,
@@ -128,6 +130,116 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     const processed = new Set<string>();
     const processedTags = new Set<string>();
 
+    // First, process top-level tags
+    for (const key in source) {
+      if (this.isOpeningTag(key)) {
+        this.processTaggedSection(
+          key,
+          source,
+          dest,
+          sourceTags,
+          result,
+          processed,
+          processedTags
+        );
+      }
+    }
+
+    // Second, process unprocessed objects that might have nested tags
+    for (const key in source) {
+      if (!processed.has(key) && !this.isTagKey(key)) {
+        this.processNestedTaggedObject(key, source, dest, result, processed);
+      }
+    }
+
+    this.addUnprocessedContent(result, dest, processed, processedTags);
+    this.addUnprocessedTags(result, source, processedTags, processed);
+    return result;
+  }
+
+  /**
+   * Process an object that might contain nested tags
+   * @param key - The key of the object to process
+   * @param source - Source object containing the nested object
+   * @param dest - Destination object containing potential counterpart
+   * @param result - Result object being built
+   * @param processed - Set of processed keys
+   */
+  private processNestedTaggedObject(
+    key: string,
+    source: Record<string, unknown>,
+    dest: Record<string, unknown>,
+    result: Record<string, unknown>,
+    processed: Set<string>
+  ): void {
+    const sourceValue = source[key];
+
+    if (!this.isPlainObject(sourceValue)) {
+      return;
+    }
+
+    const sourceObj = sourceValue as Record<string, unknown>;
+
+    if (!this.hasNestedTags(sourceObj)) {
+      return;
+    }
+
+    const destObj = this.getDestinationObject(dest, key);
+    const mergedObj = this.mergeObjectWithNestedTags(sourceObj, destObj);
+    result[key] = mergedObj;
+    processed.add(key);
+  }
+
+  /**
+   * Check if a value is a plain object (not array, null, or primitive)
+   * @param value - Value to check
+   * @returns True if value is a plain object
+   */
+  private isPlainObject(value: unknown): boolean {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  /**
+   * Check if an object contains any nested tags
+   * @param obj - Object to check
+   * @returns True if object has opening tags as properties
+   */
+  private hasNestedTags(obj: Record<string, unknown>): boolean {
+    return Object.keys(obj).some(k => this.isOpeningTag(k));
+  }
+
+  /**
+   * Get the destination object for a key, or empty object if not found
+   * @param dest - Destination object
+   * @param key - Key to look for
+   * @returns Destination object or empty object
+   */
+  private getDestinationObject(
+    dest: Record<string, unknown>,
+    key: string
+  ): Record<string, unknown> {
+    const destValue = dest[key];
+    return this.isPlainObject(destValue)
+      ? (destValue as Record<string, unknown>)
+      : {};
+  }
+
+  /**
+   * Merge an object that may contain nested tags
+   * @param source - Source object potentially containing tags
+   * @param dest - Destination object to merge with
+   * @returns Merged object with tags applied appropriately
+   */
+  private mergeObjectWithNestedTags(
+    source: Record<string, unknown>,
+    dest: Record<string, unknown>
+  ): Record<string, unknown> {
+    const sourceTags = this.parseTaggedSections(source);
+    const result: Record<string, unknown> = {};
+    const processed = new Set<string>();
+    const processedTags = new Set<string>();
+
+    // Process tagged sections within this object
     for (const key in source) {
       if (this.isOpeningTag(key)) {
         this.processTaggedSection(
@@ -143,7 +255,18 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     }
 
     this.addUnprocessedContent(result, dest, processed, processedTags);
-    this.addUnprocessedTags(result, source, processedTags, processed);
+
+    // Add remaining tags from source
+    for (const key in source) {
+      if (
+        this.isTagKey(key) &&
+        !processedTags.has(key) &&
+        !processed.has(key)
+      ) {
+        result[key] = source[key];
+      }
+    }
+
     return result;
   }
 
