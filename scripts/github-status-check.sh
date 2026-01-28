@@ -201,6 +201,7 @@ for REPO in "${REPOS[@]}"; do
     .workflow_runs
     | map(select(.status == "completed"))
     | map(select(.head_branch | startswith("dependabot/") | not))
+    | map(select(.name != "Slow Lint Rules"))
     | group_by(.name + "|" + .head_branch)
     | map(sort_by(.created_at) | reverse | .[0])
     | map(select(.conclusion == "failure"))
