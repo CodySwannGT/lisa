@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.2](https://github.com/CodySwannGT/lisa/compare/vv1.9.1...v1.9.2) (2026-01-28)
+
+
+### Documentation
+
+* **setup-command:** clarify brief.md file handling instructions ([0e02184](https://github.com/CodySwannGT/lisa/commit/0e0218487283d7e97c5fe21fb44afd55b1660dfc))
+
 ### [1.9.1](https://github.com/CodySwannGT/lisa/compare/vv1.9.0...v1.9.1) (2026-01-28)
 
 
