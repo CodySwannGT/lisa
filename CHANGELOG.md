@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://github.com/CodySwannGT/lisa/compare/vv1.10.0...v1.11.0) (2026-01-28)
+
+
+### Features
+
+* implement package-lisa strategy for governance-driven package.json ([92651b2](https://github.com/CodySwannGT/lisa/commit/92651b2297d7a6a4cfee5f16599d747e1ba79b9a))
+
+
+### Documentation
+
+* research complete for package.lisa.json implementation ([179ed72](https://github.com/CodySwannGT/lisa/commit/179ed724bd95133b4992962973cb8ba6cec6bc63))
+* update commonalities documentation ([a09b21c](https://github.com/CodySwannGT/lisa/commit/a09b21c8c34210922216731de67e28957964b5be))
+
 ## [1.10.0](https://github.com/CodySwannGT/lisa/compare/vv1.9.5...v1.10.0) (2026-01-28)
 
 
