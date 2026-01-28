@@ -7,7 +7,7 @@ Write comprehensive documentation for the tagged-merge strategy.
 ## Files
 
 - `src/strategies/tagged-merge.ts` (JSDoc)
-- Relevant markdown docs if needed
+- Relevant Markdown docs if needed
 
 ## Key Responsibilities
 

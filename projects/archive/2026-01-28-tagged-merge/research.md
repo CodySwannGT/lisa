@@ -227,7 +227,7 @@ for (const strategy of COPY_STRATEGIES) {
 **Location**: `all/`, `typescript/`, `expo/`, `nestjs/`, `cdk/`, `npm-package/`
 
 **Example structure** (typescript/):
-```
+```text
 typescript/
 ├── copy-overwrite/        # Files to overwrite (ESLint, Prettier, tsconfig, etc.)
 │   ├── eslint.config.mjs
@@ -245,7 +245,7 @@ typescript/
 ```
 
 **New tagged-merge structure** (to be created):
-```
+```text
 typescript/
 └── tagged-merge/         # JSON with comment-based tags
     └── package.json      # With //lisa-force-*, //lisa-defaults-*, //lisa-merge-* tags
