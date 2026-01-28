@@ -63,7 +63,7 @@ Examples:
 
 - ✅ "Complete workflow for creating components with Container/View separation, proper memoization, JSDoc, and test structure" → Complex
 - ✅ "Expo Router best practices with nested layouts and dynamic routes" → Complex
-- ❌ "Always use const instead of let" → Too simple (belongs in CLAUDE.md)
+- ❌ "Always use const instead of let" → Too simple
 - ❌ "Run tests before committing" → Too simple
 
 #### Criterion 4: Stability (Is it stable knowledge?)
@@ -80,7 +80,7 @@ Examples:
 #### Criterion 5: Non-Redundancy (Does it already exist?)
 
 **PASS**: Not already covered by existing skills or project documentation
-**FAIL**: Duplicates existing skills or belongs in CLAUDE.md/.claude/rules/PROJECT_RULES.md
+**FAIL**: Duplicates existing skills or belongs in .claude/rules/PROJECT_RULES.md
 
 Before recommending skill creation, always check:
 
@@ -101,7 +101,7 @@ Before recommending skill creation, always check:
 **DO NOT CREATE SKILL** if any criterion fails. Instead:
 
 - If **redundant** → **OMIT ENTIRELY** - reference the existing documentation instead
-- If too simple → Suggest adding to CLAUDE.md or .claude/rules/PROJECT_RULES.md
+- If too simple → Suggest adding to .claude/rules/PROJECT_RULES.md
 - If too narrow → Just apply the knowledge directly, no documentation needed
 - If temporary → Document as a code comment or temporary note
 
@@ -227,7 +227,7 @@ When evaluating content, provide this assessment:
 1. **Check for redundancy FIRST** - Before any other evaluation, verify it's not already covered
 2. **Default to NOT creating skills** - Skills should be rare
 3. **OMIT is a valid decision** - If it exists elsewhere, don't duplicate it
-4. **Simple rules go in CLAUDE.md or .claude/rules/PROJECT_RULES.md** - Not every rule needs a skill
+4. **Simple rules go in .claude/rules/PROJECT_RULES.md** - Not every rule needs a skill
 5. **When in doubt, don't create a skill** - It's better to have fewer, high-quality skills
 6. **Skills are for Claude, not humans** - Focus on what would help another Claude instance
 

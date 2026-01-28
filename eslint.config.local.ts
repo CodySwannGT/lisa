@@ -15,7 +15,6 @@
  *   },
  * ];
  * ```
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config.local
  */

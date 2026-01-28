@@ -9,7 +9,6 @@
  * This configuration provides TypeScript-specific rules and settings.
  * It imports shared utilities from eslint.base.ts.
  * Stack-specific configs (expo, nestjs, cdk) should import and extend this.
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.typescript
  */
@@ -54,7 +53,6 @@ export { codeOrganization };
 
 /**
  * Creates the TypeScript ESLint configuration.
- *
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
  * @param {string[]} [options.ignorePatterns] - Patterns to ignore

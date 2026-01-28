@@ -478,6 +478,8 @@ export class Lisa {
         logger.info("  Manually remove Lisa-added keys if needed.");
         return { ...stats, skipped: stats.skipped + 1 };
       }
+      default:
+        return { ...stats, skipped: stats.skipped + 1 };
     }
   }
 
