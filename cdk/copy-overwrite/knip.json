@@ -49,5 +49,6 @@
     "esbuild",
     "globals"
   ],
+  "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true
 }
