@@ -54,7 +54,9 @@
     "tslint",
     "lodash",
     "cache-manager",
-    "@jest/globals"
+    "@jest/globals",
+    "ts-node",
+    "ts-morph"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true
