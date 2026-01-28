@@ -1,6 +1,6 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { BackupService } from "../../../src/transaction/backup.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
@@ -127,7 +127,11 @@ describe("BackupService", () => {
 
       const lisabakDir = path.join(destDir, ".lisabak");
       const timestampDirs = await fs.readdir(lisabakDir);
-      const backupFile = path.join(lisabakDir, timestampDirs[0], TEST_FILE);
+      const backupFile = path.join(
+        lisabakDir,
+        timestampDirs[0] ?? "",
+        TEST_FILE
+      );
 
       expect(await fs.pathExists(backupFile)).toBe(true);
     });
@@ -142,7 +146,11 @@ describe("BackupService", () => {
 
       const lisabakDir = path.join(destDir, ".lisabak");
       const timestampDirs = await fs.readdir(lisabakDir);
-      const backupPath = path.join(lisabakDir, timestampDirs[0], TEST_FILE);
+      const backupPath = path.join(
+        lisabakDir,
+        timestampDirs[0] ?? "",
+        TEST_FILE
+      );
 
       const backupContent = await fs.readFile(backupPath, "utf-8");
       expect(backupContent).toBe(ORIGINAL_CONTENT);
@@ -158,14 +166,14 @@ describe("BackupService", () => {
 
       const lisabakDir = path.join(destDir, ".lisabak");
       const timestampDirs = await fs.readdir(lisabakDir);
-      const dirname = timestampDirs[0];
+      const dirname = timestampDirs[0] ?? "";
 
       // Match date-time format
       const dateTimeRegex = /^(\d{4}-\d{2}-\d{2})-(\d{6})$/;
       const match = dateTimeRegex.exec(dirname);
       expect(match).not.toBeNull();
 
-      if (match) {
+      if (match?.[1]) {
         const dateStr = match[1];
         // Verify date is valid
         const date = new Date(dateStr);
@@ -186,7 +194,7 @@ describe("BackupService", () => {
       const timestampDirs = await fs.readdir(lisabakDir);
       const backupFile = path.join(
         lisabakDir,
-        timestampDirs[0],
+        timestampDirs[0] ?? "",
         "nested",
         "deep",
         "file.txt"
@@ -232,7 +240,11 @@ describe("BackupService", () => {
 
       const lisabakDir = path.join(destDir, ".lisabak");
       const timestampDirs = await fs.readdir(lisabakDir);
-      const backupFile = path.join(lisabakDir, timestampDirs[0], "config.json");
+      const backupFile = path.join(
+        lisabakDir,
+        timestampDirs[0] ?? "",
+        "config.json"
+      );
 
       expect(await fs.pathExists(backupFile)).toBe(true);
       // Filename should not have .lisa.bak extension
@@ -257,12 +269,12 @@ describe("BackupService", () => {
       expect(timestampDirs.length).toBe(1);
       expect(
         await fs.pathExists(
-          path.join(lisabakDir, timestampDirs[0], "file1.txt")
+          path.join(lisabakDir, timestampDirs[0] ?? "", "file1.txt")
         )
       ).toBe(true);
       expect(
         await fs.pathExists(
-          path.join(lisabakDir, timestampDirs[0], "file2.txt")
+          path.join(lisabakDir, timestampDirs[0] ?? "", "file2.txt")
         )
       ).toBe(true);
     });

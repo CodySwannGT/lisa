@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "@jest/globals";
 import { generateBackupDirname } from "../../../src/utils/file-operations.js";
 
 describe("file-operations utilities", () => {
@@ -22,7 +22,7 @@ describe("file-operations utilities", () => {
 
       // Extract time portion (after second dash)
       const parts = dirname.split("-");
-      const time = parts[3];
+      const time = parts[3] ?? "";
 
       // Should be 6 digits
       expect(time).toMatch(/^\d{6}$/);
@@ -40,7 +40,7 @@ describe("file-operations utilities", () => {
       const dateMatch = dateRegex.exec(dirname);
       expect(dateMatch).not.toBeNull();
 
-      if (dateMatch) {
+      if (dateMatch?.[1]) {
         const dateStr = dateMatch[1];
         const date = new Date(dateStr);
         expect(date.toString()).not.toBe("Invalid Date");

@@ -28,7 +28,7 @@
     "//end-lisa-force-scripts-operations": "",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test:watch": "vitest",
+    "test:watch": "jest --watch",
     "update-node-version": "tsx scripts/update-node-version.ts",
     "cleanup:amplify-branches": "bash scripts/cleanup-amplify-branches.sh",
     "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
@@ -69,9 +69,7 @@
     "@jest/test-sequencer": "^30.2.0",
     "@types/jest": "^30.0.0",
     "jest": "^30.0.0",
-    "ts-jest": "^29.4.6",
-    "@vitest/coverage-v8": "^3.0.0",
-    "vitest": "^3.0.0"
+    "ts-jest": "^29.4.6"
   },
   "engines": {
     "//lisa-defaults-engines": "Suggested by Lisa to ensure consistent environment for CDK operations. Can be overridden by the user if necessary.",
