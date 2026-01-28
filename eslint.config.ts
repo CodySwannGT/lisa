@@ -13,7 +13,6 @@
  *   eslint.config.ts (this file)
  *   └── eslint.typescript.ts (or eslint.expo.ts, eslint.nestjs.ts, etc.)
  *       └── eslint.base.ts (shared utilities)
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config
  */

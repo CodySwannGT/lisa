@@ -56,9 +56,7 @@
     "cache-manager",
     "@jest/globals",
     "ts-node",
-    "ts-morph",
-    "//lisa-force-dev-dependencies",
-    "//end-lisa-force-dev-dependencies"
+    "ts-morph"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true
