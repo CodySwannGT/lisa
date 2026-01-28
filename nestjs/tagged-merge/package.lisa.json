@@ -60,13 +60,11 @@
       "@graphql-codegen/cli": "^6.1.0",
       "@graphql-codegen/typescript": "^4.1.6",
       "@graphql-codegen/typescript-operations": "^4.4.2",
-      "@graphql-codegen/typescript-react-apollo": "^4.3.4",
       "@nestjs/cli": "^11.0.14",
       "@nestjs/schematics": "^11.0.9",
       "@nestjs/testing": "^11.1.11",
       "@types/aws-lambda": "^8.10.159",
       "@types/express": "^5.0.6",
-      "@istanbuljs/nyc-config-typescript": "^1.0.2",
       "serverless": "^4.30.0",
       "serverless-esbuild": "^1.57.0",
       "serverless-offline": "^14.4.0"
