@@ -46,7 +46,8 @@
     "aws-cdk-lib",
     "@aws-cdk/*",
     "constructs",
-    "esbuild"
+    "esbuild",
+    "globals"
   ],
   "ignoreExportsUsedInFile": true
 }
