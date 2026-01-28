@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.5](https://github.com/CodySwannGT/lisa/compare/vv1.9.4...v1.9.5) (2026-01-28)
+
+
+### Bug Fixes
+
+* **scripts:** use contains() for slow lint rules filter ([ffa0275](https://github.com/CodySwannGT/lisa/commit/ffa027593cc239e7fe9401606b78379a612fd93e))
+
 ### [1.9.4](https://github.com/CodySwannGT/lisa/compare/vv1.9.3...v1.9.4) (2026-01-28)
 
 
