@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.10.0](https://github.com/CodySwannGT/lisa/compare/vv1.9.5...v1.10.0) (2026-01-28)
+
+
+### Features
+
+* migrate from vitest to jest ([715b0fc](https://github.com/CodySwannGT/lisa/commit/715b0fc2f292e19e7986382a30e3b476de87a6f3))
+
+
+### Bug Fixes
+
+* **knip:** remove tagged-merge comments from source repo devDependencies ([f7295d3](https://github.com/CodySwannGT/lisa/commit/f7295d3537a99599a57cb86d4cb04de7ab8bb77e))
+* **tagged-merge:** support nested tags in objects ([9a438d4](https://github.com/CodySwannGT/lisa/commit/9a438d4a9f48300da8eae37eb7738fe1c7d14f6a))
+
 ### [1.9.5](https://github.com/CodySwannGT/lisa/compare/vv1.9.4...v1.9.5) (2026-01-28)
 
 
