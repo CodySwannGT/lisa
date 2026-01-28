@@ -13,7 +13,6 @@
  * Rules included:
  * - import/namespace - Type checks all namespace imports (slow)
  * - import/no-cycle - Detects circular dependencies (very slow)
- *
  * @see https://github.com/import-js/eslint-plugin-import
  * @module eslint.slow.config
  */
@@ -51,6 +50,11 @@ export default [
   // TypeScript files - slow import rules only
   {
     files: ["**/*.ts", "**/*.tsx"],
+    linterOptions: {
+      // Ignore inline eslint-disable comments since they reference rules
+      // from the main config that aren't loaded in this minimal config
+      noInlineConfig: true,
+    },
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
