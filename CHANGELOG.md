@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.9.0](https://github.com/CodySwannGT/lisa/compare/vv1.8.0...v1.9.0) (2026-01-27)
+
+
+### Features
+
+* **github-status-check:** add Lisa version checking ([ed954b6](https://github.com/CodySwannGT/lisa/commit/ed954b60657e7affb198bb57ca64e8aa031eaa05))
+
 ## [1.8.0](https://github.com/CodySwannGT/lisa/compare/vv1.7.1...v1.8.0) (2026-01-27)
 
 
