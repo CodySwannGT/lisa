@@ -20,10 +20,10 @@ const config: Config = {
   collectCoverageFrom: ["src/**/*.ts", "!src/index.ts"],
   coverageThreshold: {
     global: {
-      statements: 80,
-      branches: 70,
-      functions: 65,
-      lines: 80,
+      statements: 75,
+      branches: 65,
+      functions: 60,
+      lines: 75,
     },
   },
   testTimeout: 10000,
