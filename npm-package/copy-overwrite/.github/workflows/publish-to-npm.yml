@@ -102,6 +102,20 @@ jobs:
       - name: Update npm for OIDC support
         run: npm install -g npm@latest
 
+      - name: Get OIDC Token for npm
+        id: npm-oidc
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('https://registry.npmjs.org');
+            core.setOutput('npm-token', token);
+            core.setSecret(token);
+
+      - name: Configure npm with OIDC Token
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ steps.npm-oidc.outputs.npm-token }}" >> ~/.npmrc
+          npm config set registry https://registry.npmjs.org
+
       - name: Install dependencies
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
