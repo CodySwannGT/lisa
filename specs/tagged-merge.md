@@ -31,7 +31,7 @@ Tags use JSON comment keys with consistent naming: `//lisa-<behavior>-<category>
 
 ### Behaviors
 
-| Behavior | Tag Pattern | Behavior |
+| Behavior | Tag Pattern | Description |
 |----------|-------------|----------|
 | **Force** | `//lisa-force-*` | Lisa replaces entire section; project changes are ignored |
 | **Defaults** | `//lisa-defaults-*` | Lisa provides values; project can override entire section |
@@ -106,7 +106,7 @@ Update `src/core/config.ts` to support both `merge/` and `tagged-merge/` directo
 
 Create initial `tagged-merge/` directories:
 
-```
+```text
 typescript/tagged-merge/package.json
 cdk/tagged-merge/package.json
 expo/tagged-merge/package.json
