@@ -86,6 +86,19 @@ elif [ "$PACKAGE_MANAGER" = "bun" ]; then
   echo "✅ No high or critical vulnerabilities found in production dependencies"
 fi
 
+# Run slow lint rules - only if script exists
+if jq -e '.scripts["lint:slow"]' package.json >/dev/null 2>&1; then
+  echo "🐢 Running slow lint rules..."
+  $RUNNER lint:slow
+  if [ $? -ne 0 ]; then
+    echo "❌ Slow lint rules failed. Please fix linting issues before pushing."
+    exit 1
+  fi
+  echo "✅ Slow lint rules passed"
+else
+  echo "ℹ️  Skipping slow lint rules (lint:slow not configured)"
+fi
+
 # Run dead code detection (knip) - only if script exists
 if jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
   echo "🗑️ Running dead code detection (knip)..."
