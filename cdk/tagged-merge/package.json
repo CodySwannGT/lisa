@@ -1,0 +1,37 @@
+{
+  "scripts": {
+    "//lisa-force-scripts-operations": "Required by Lisa to perform standard cdk operations",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "//end-lisa-force-scripts-operations": ""
+  },
+  "dependencies": {
+    "//lisa-force-dependencies": "Required by Lisa to ensure all necessary dependencies are included for CDK operations",
+    "@aws-cdk/aws-amplify-alpha": "^2.235.0-alpha.0",
+    "aws-cdk-github-oidc": "^2.4.1",
+    "aws-cdk-lib": "2.235.0",
+    "constructs": "^10.4.5",
+    "lodash": "^4.17.21",
+    "source-map-support": "^0.5.21",
+    "//end-lisa-force-dependencies": ""
+  },
+  "devDependencies": {
+    "//lisa-force-dev-dependencies": "Required by Lisa to ensure all necessary dev dependencies are included for CDK operations",
+    "aws-cdk": "2.235.0",
+    "//end-lisa-force-dev-dependencies": ""
+  },
+  "engines": {
+    "//lisa-defaults-engines": "Suggested by Lisa to ensure consistent environment for CDK operations. Can be overridden by the user if necessary.",
+    "npm": ">= 10.9.4",
+    "yarn": "please-use-npm",
+    "pnpm": "please-use-npm",
+    "bun": "please-use-npm",
+    "node": "22.21.1",
+    "//end-lisa-defaults-engines": ""
+  },
+  "bin": {
+    "//lisa-force-bin": "Required by Lisa to ensure the CLI entry points are correctly defined",
+    "infrastructure": "bin/infrastructure.js",
+    "//end-lisa-force-bin": ""
+  }
+}

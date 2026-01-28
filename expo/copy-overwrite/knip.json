@@ -78,7 +78,6 @@
     "@types/lodash.merge",
     "babel-plugin-istanbul",
     "baseline-browser-mapping",
-    "commitizen",
     "date-fns-tz",
     "eslint-config-expo",
     "eslint-config-prettier",

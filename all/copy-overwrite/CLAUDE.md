@@ -7,9 +7,8 @@ Always figure out the Package manager the project uses: !`ls package-lock.json y
 Always invoke /prompt-complexity-scorer skill first on each user request to evaluate complexity (1-10 scale). For scores 5+, suggest writing to specs/<spec-name>.md before proceeding.
 Always invoke /jsdoc-best-practices skill when writing or reviewing JSDoc documentation to ensure "why" over "what" and proper tag usage
 Always read @README.md
-Always read @package.json without limit or offset to understand what third party packages are used
-Always read @package.json without limit or offset to understand what scripts are used
-Always read @eslint.config.mjs without limit or offset to understand this project's linting standards
+Always read @package.json without limit or offset to understand what scripts and third party packages are used
+Always read @eslint.config.ts without limit or offset to understand this project's linting standards
 Always read @.prettierrc.json without limit or offset to understand this project's formatting standards
 Always make atomic commits with clear conventional messages
 Always create clear documentation preambles with JSDoc for new code

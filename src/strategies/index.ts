@@ -4,12 +4,14 @@ import { CopyOverwriteStrategy } from "./copy-overwrite.js";
 import { CopyContentsStrategy } from "./copy-contents.js";
 import { CreateOnlyStrategy } from "./create-only.js";
 import { MergeStrategy } from "./merge.js";
+import { TaggedMergeStrategy } from "./tagged-merge.js";
 
 export type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 export { CopyOverwriteStrategy } from "./copy-overwrite.js";
 export { CopyContentsStrategy } from "./copy-contents.js";
 export { CreateOnlyStrategy } from "./create-only.js";
 export { MergeStrategy } from "./merge.js";
+export { TaggedMergeStrategy } from "./tagged-merge.js";
 
 /**
  * Registry for copy strategies
@@ -27,6 +29,7 @@ export class StrategyRegistry {
       new CopyContentsStrategy(),
       new CreateOnlyStrategy(),
       new MergeStrategy(),
+      new TaggedMergeStrategy(),
     ];
 
     this.strategies = new Map(allStrategies.map(s => [s.name, s]));
