@@ -15,6 +15,7 @@
     "knip:fix": "knip --fix",
     "sg:scan": "ast-grep scan",
     "build": "tsc",
+    "prepare": "tsc || husky install || true",
     "//end-lisa-force-scripts-quality-assurance": "",
     "//lisa-force-scripts-operations": "Required by Lisa for standard operations for this project",
     "lisa:update": "npx @codyswann/lisa@latest .",
