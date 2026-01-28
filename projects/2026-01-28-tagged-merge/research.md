@@ -520,7 +520,7 @@ function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
 
 **Recommendation**: Implement strict ordering—always use Lisa template order for tagged sections, append project's untagged content at the end. This provides predictable, auditable results.
 
-**Answer**: _[Awaiting user clarification]_
+**Answer**: The order has to match what is in the templates and start and end tags need to be preserved. this is a hard requirement
 
 ---
 
@@ -548,7 +548,7 @@ function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
 
 **Recommendation**: Use JSON.stringify() for value equality—if two items stringify identically, they're duplicates. This matches the brief's mention of "JSON value equality."
 
-**Answer**: _[Awaiting user clarification]_
+**Answer**: use the recommendation
 
 ---
 
@@ -571,7 +571,7 @@ function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
 
 **Recommendation**: Support tags only at top level of JSON object in Phase 1. Reserve nested tags for Phase 2.
 
-**Answer**: _[Awaiting user clarification]_
+**Answer**: Look at the existing tagged-merge/package.json - we need to support what they do today immediately.
 
 ---
 
@@ -588,7 +588,7 @@ function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
 
 **Recommendation**: Create new `tagged-merge/` directories with migrated files. Keep `merge/` for backward compatibility but deprecate with documentation. Only migrate files we actively use.
 
-**Answer**: _[Awaiting user clarification]_
+**Answer**: I've already taken care of this.
 
 ---
 
