@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.4](https://github.com/CodySwannGT/lisa/compare/vv1.9.3...v1.9.4) (2026-01-28)
+
+
+### Bug Fixes
+
+* address PR [#105](https://github.com/CodySwannGT/lisa/issues/105) review comments from CodeRabbit ([7ce9566](https://github.com/CodySwannGT/lisa/commit/7ce95661ec4a77882d386c3514e4b307b0eb59d1))
+
+
+### Documentation
+
+* **project:** comprehensive debrief of tagged-merge implementation ([6f61ccc](https://github.com/CodySwannGT/lisa/commit/6f61cccef9da38563767b5c78cb1cb47ed9161d8))
+* **research:** comprehensive analysis of tagged-merge implementation path ([6183a16](https://github.com/CodySwannGT/lisa/commit/6183a1687555350b5215811deb4b045f45ed54e8))
+
 ### [1.9.3](https://github.com/CodySwannGT/lisa/compare/vv1.9.2...v1.9.3) (2026-01-28)
 
 
