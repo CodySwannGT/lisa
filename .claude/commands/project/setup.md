@@ -34,7 +34,7 @@ Based on input type:
 
 2. Create `brief.md` in the project directory:
    - Jira: populate with issue number, title, and description
-   - File: move/copy the file and rename to `brief.md`
+   - File: copy contents of the file to `brief.md`
    - Text prompt: create `brief.md` with the prompt text as content
 
 3. Create empty `findings.md` in the project directory
