@@ -47,7 +47,8 @@
     "@aws-cdk/*",
     "constructs",
     "esbuild",
-    "globals"
+    "globals",
+    "tsx"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true
