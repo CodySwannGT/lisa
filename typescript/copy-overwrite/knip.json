@@ -37,7 +37,6 @@
     "graphql-scalars",
     "@graphql-codegen/*",
     "@nestjs/cli",
-    "@istanbuljs/nyc-config-typescript",
     "@jest/test-sequencer",
     "serverless-*",
     "@types/fs-extra",
@@ -54,7 +53,11 @@
     "tslint",
     "lodash",
     "cache-manager",
-    "@jest/globals"
+    "@jest/globals",
+    "ts-node",
+    "ts-morph",
+    "//lisa-force-dev-dependencies",
+    "//end-lisa-force-dev-dependencies"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true
