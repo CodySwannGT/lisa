@@ -22,7 +22,13 @@
     "@types/fs-extra",
     "@types/lodash.merge",
     "@vitest/coverage-v8",
-    "vitest"
+    "vitest",
+    "ts-morph",
+    "ts-node",
+    "@jest/test-sequencer",
+    "@types/jest",
+    "jest",
+    "ts-jest"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit"],
   "ignoreExportsUsedInFile": true
