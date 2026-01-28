@@ -29,7 +29,7 @@
 #   with:
 #     node_version: '22.21.1'
 #     package_manager: 'npm'
-#     skip_security: true
+#     skip_jobs: 'npm_security_scan,sonarcloud,snyk'
 #   secrets:
 #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # For SonarCloud SAST
 #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # For Snyk dependency scanning
@@ -53,51 +53,6 @@ on:
         required: false
         default: 'npm'
         type: string
-      skip_lint:
-        description: 'Skip the lint job'
-        required: false
-        default: false
-        type: boolean
-      skip_typecheck:
-        description: 'Skip the typecheck job'
-        required: false
-        default: false
-        type: boolean
-      skip_test:
-        description: 'Skip the test job'
-        required: false
-        default: false
-        type: boolean
-      skip_format:
-        description: 'Skip the format check job'
-        required: false
-        default: false
-        type: boolean
-      skip_build:
-        description: 'Skip the build job'
-        required: false
-        default: false
-        type: boolean
-      skip_security:
-        description: 'Skip the security scan job'
-        required: false
-        default: false
-        type: boolean
-      skip_dead_code:
-        description: 'Skip the dead code detection job (knip)'
-        required: false
-        default: false
-        type: boolean
-      skip_sg_scan:
-        description: 'Skip the ast-grep scan job'
-        required: false
-        default: false
-        type: boolean
-      skip_lint_slow:
-        description: 'Skip the slow lint rules job'
-        required: false
-        default: false
-        type: boolean
       skip_jobs:
         description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,github_issue)'
         required: false
@@ -261,7 +216,7 @@ jobs:
     name: 🧹 Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.skip_lint && !contains(inputs.skip_jobs, 'lint') }}
+    if: ${{ !contains(inputs.skip_jobs, 'lint') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -299,7 +254,7 @@ jobs:
     name: 🐢 Slow Lint Rules
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.skip_lint_slow && !contains(inputs.skip_jobs, 'lint_slow') }}
+    if: ${{ !contains(inputs.skip_jobs, 'lint_slow') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -338,7 +293,7 @@ jobs:
     name: 🔍 Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.skip_typecheck && !contains(inputs.skip_jobs, 'typecheck') }}
+    if: ${{ !contains(inputs.skip_jobs, 'typecheck') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -377,7 +332,7 @@ jobs:
     name: 🧪 Run Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.skip_test && !contains(inputs.skip_jobs, 'test') }}
+    if: ${{ !contains(inputs.skip_jobs, 'test') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -421,7 +376,7 @@ jobs:
     name: 🧪 Run Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: ${{ !inputs.skip_test && !contains(inputs.skip_jobs, 'test:unit') }}
+    if: ${{ !contains(inputs.skip_jobs, 'test:unit') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -484,7 +439,7 @@ jobs:
     name: 🧪 Run Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ !inputs.skip_test && !contains(inputs.skip_jobs, 'test:integration') }}
+    if: ${{ !contains(inputs.skip_jobs, 'test:integration') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -547,7 +502,7 @@ jobs:
     name: 🧪 Run E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    if: ${{ !inputs.skip_test && !contains(inputs.skip_jobs, 'test:e2e') }}
+    if: ${{ !contains(inputs.skip_jobs, 'test:e2e') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -610,7 +565,7 @@ jobs:
     name: 📱 Maestro Cloud E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ !inputs.skip_test && !contains(inputs.skip_jobs, 'maestro_e2e') }}
+    if: ${{ !contains(inputs.skip_jobs, 'maestro_e2e') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -690,7 +645,7 @@ jobs:
     name: 🎭 Playwright E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ !inputs.skip_test && !contains(inputs.skip_jobs, 'playwright_e2e') }}
+    if: ${{ !contains(inputs.skip_jobs, 'playwright_e2e') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -764,7 +719,7 @@ jobs:
     name: 📐 Check Formatting
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !inputs.skip_format && !contains(inputs.skip_jobs, 'format') }}
+    if: ${{ !contains(inputs.skip_jobs, 'format') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -803,7 +758,7 @@ jobs:
     name: 🏗️ Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.skip_build && !contains(inputs.skip_jobs, 'build') }}
+    if: ${{ !contains(inputs.skip_jobs, 'build') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -855,7 +810,7 @@ jobs:
     name: 🗑️ Dead Code Detection
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !inputs.skip_dead_code && !contains(inputs.skip_jobs, 'dead_code') }}
+    if: ${{ !contains(inputs.skip_jobs, 'dead_code') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -892,7 +847,7 @@ jobs:
     name: 🔎 AST Grep Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !inputs.skip_sg_scan && !contains(inputs.skip_jobs, 'sg_scan') }}
+    if: ${{ !contains(inputs.skip_jobs, 'sg_scan') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -970,7 +925,7 @@ jobs:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.skip_security && !contains(inputs.skip_jobs, 'npm_security_scan') }}
+    if: ${{ !contains(inputs.skip_jobs, 'npm_security_scan') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -1058,7 +1013,7 @@ jobs:
     name: 🔍 SonarCloud SAST
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.skip_security && !contains(inputs.skip_jobs, 'sonarcloud') }}
+    if: ${{ !contains(inputs.skip_jobs, 'sonarcloud') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -1148,7 +1103,7 @@ jobs:
     name: 🛡️ Snyk Dependency Scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.skip_security && !contains(inputs.skip_jobs, 'snyk') }}
+    if: ${{ !contains(inputs.skip_jobs, 'snyk') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -1217,7 +1172,7 @@ jobs:
     name: 🔐 GitGuardian Secret Detection
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.skip_security && !contains(inputs.skip_jobs, 'secret_scanning') }}
+    if: ${{ !contains(inputs.skip_jobs, 'secret_scanning') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -1255,7 +1210,7 @@ jobs:
     name: 📜 FOSSA License Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !inputs.skip_security && !contains(inputs.skip_jobs, 'license_compliance') }}
+    if: ${{ !contains(inputs.skip_jobs, 'license_compliance') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
