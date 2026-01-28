@@ -30,6 +30,6 @@
     "jest",
     "ts-jest"
   ],
-  "ignoreBinaries": ["expo", "playwright", "audit"],
+  "ignoreBinaries": ["expo", "playwright", "audit", "jest"],
   "ignoreExportsUsedInFile": true
 }
