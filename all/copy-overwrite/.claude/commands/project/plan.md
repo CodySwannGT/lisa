@@ -109,24 +109,29 @@ For each task, use **TaskCreate** with:
 [Or "N/A - no user-facing changes"]
 
 ## Verification
+
+Every task MUST have empirical verification - a command that proves the work is done.
+
+**Why?** Code that "looks correct" often isn't. The only way to know something works is to run it and observe the result. Verification isn't "I wrote the code" - it's running a command and seeing expected output.
+
 **Type:** `test` | `ui-recording` | `test-coverage` | `api-test` | `manual-check` | `documentation`
 
 | Type | When to Use | Example |
 |------|-------------|---------|
-| `test` | Run specific tests | `bun run test -- src/services/user.spec.ts` |
-| `ui-recording` | UI/UX changes | `bun run playwright:test ...` |
-| `test-coverage` | Coverage threshold | `bun run test:cov -- --collectCoverageFrom='...'` |
-| `api-test` | API endpoints | `./scripts/verify/<task-name>.sh` |
-| `documentation` | Docs, README | `cat path/to/doc.md` |
-| `manual-check` | Config, setup | Command showing config exists |
+| `test` | Run specific tests | `npm test -- src/services/user.spec.ts` |
+| `ui-recording` | UI/UX changes | `npm run playwright:test ...` |
+| `test-coverage` | Coverage threshold | `npm run test:cov -- --collectCoverageFrom='...'` |
+| `api-test` | API endpoints | `curl -s http://localhost:3000/api/endpoint` |
+| `documentation` | Docs, README | `cat path/to/doc.md \| grep "expected content"` |
+| `manual-check` | Config, setup | `cat config.json \| jq '.setting'` |
 
 **Proof Command:**
 ```bash
-[Single command to verify completion]
+[Single command that outputs observable proof of completion]
 ```
 
 **Expected Output:**
-[What success looks like]
+[Exact or pattern-matched output that proves success]
 
 ## Learnings
 During implementation, collect any discoveries valuable for future developers:
