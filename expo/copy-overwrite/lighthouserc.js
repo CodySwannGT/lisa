@@ -122,6 +122,9 @@ module.exports = {
       preset: "lighthouse:recommended",
 
       assertions: {
+        // Ignored — geolocation is required on page load for this app
+        "geolocation-on-start": "off",
+
         // Accessibility
         "button-name": ["error", { minScore: a.buttonName.minScore }],
         "valid-source-maps": [
