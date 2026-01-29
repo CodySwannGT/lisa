@@ -150,7 +150,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 🔑 Generate cache key
         id: cache
@@ -232,7 +232,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📥 Install dependencies
         run: |
@@ -270,7 +270,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📥 Install dependencies
         run: |
@@ -309,7 +309,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -348,7 +348,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -392,7 +392,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -455,7 +455,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -518,7 +518,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -661,7 +661,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -735,7 +735,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -774,7 +774,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -826,7 +826,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -863,7 +863,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -940,7 +940,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         run: |
@@ -1132,7 +1132,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
         if: steps.check_snyk.outputs.has_token == 'true'
