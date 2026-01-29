@@ -15,7 +15,7 @@
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "build": "tsc",
-      "prepare": "tsc || husky install || true",
+      "prepare": "$npm_execpath run build || husky install || true",
       "lisa:update": "npx @codyswann/lisa@latest ."
     },
     "devDependencies": {
