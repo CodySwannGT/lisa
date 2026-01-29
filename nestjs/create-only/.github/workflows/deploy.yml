@@ -1,6 +1,3 @@
-# This file is managed by Lisa.
-# Do not edit directly — changes will be overwritten on the next `lisa` run.
-
 # This is an example deployment workflow that demonstrates the recommended pattern:
 # 1. Call the release.yml workflow to create a release
 # 2. Implement your custom deployment logic
@@ -74,10 +71,34 @@ jobs:
       package_manager: 'bun'
     secrets: inherit
 
+  verify_aws_credentials:
+    name: Verify AWS Credentials
+    runs-on: ubuntu-latest
+    needs: [release]
+    outputs:
+      has_aws_credentials: ${{ steps.check.outputs.has_aws_credentials }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: noliran/branch-based-secrets@v1
+        with:
+          secrets: AWS_ACCOUNT_ID
+      - id: check
+        run: |
+          if [[ -z "${AWS_ACCOUNT_ID}" ]]; then
+            echo "has_aws_credentials=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_aws_credentials=true" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets[env.AWS_ACCOUNT_ID_NAME] }}
+
   check_migration_required:
     name: Check Migration Required
     runs-on: ubuntu-latest
-    needs: [release]
+    needs: [release, verify_aws_credentials]
+    if: needs.verify_aws_credentials.outputs.has_aws_credentials == 'true'
     outputs:
       requires_migration: ${{ steps.check.outputs.requires_migration }}
     steps:
@@ -93,6 +114,7 @@ jobs:
         shell: bash
         env:
           SKIP_MIGRATIONS: ${{ vars.SKIP_MIGRATIONS }}
+          GITHUB_OUTPUT: ${{ github.output }}
 
   verify_vpn:
     name: Verify VPN
@@ -116,10 +138,11 @@ jobs:
           fi
         env:
           OVPN_CONFIG: ${{ secrets[env.OVPN_CONFIG_NAME] }}
+          GITHUB_OUTPUT: ${{ github.output }}
   migrate:
     name: Schema Migrations
     runs-on: ubuntu-latest
-    needs: [determine_environment, verify_vpn]
+    needs: verify_vpn
     if: always() && needs.verify_vpn.outputs.has_vpn_setup == 'true'
     permissions:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint.
@@ -155,33 +178,31 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.3.8'
       - name: Install dependencies
         run: bun install
       - name: Run Schema Migrations
-        run: STAGE=${{ needs.determine_environment.outputs.environment != 'main' && needs.determine_environment.outputs.environment || 'production' }} bun run migration:run
+        run: STAGE=${{ github.ref_name != 'main' && github.ref_name || 'production' }} bun run migration:run
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_PROFILE: '' # Override serverless.yml profile with empty string for CI
   deploy:
-    needs: [determine_environment, migrate]
+    needs: [migrate, verify_aws_credentials]
     if: |
       always() &&
+      needs.verify_aws_credentials.outputs.has_aws_credentials == 'true' &&
       (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
     name: Deploy
     runs-on: ubuntu-latest
-    outputs:
-      environment_url: ${{ steps.deploy.outputs.environment_url }}
-      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
     permissions:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint
       contents: read
     steps:
       - uses: actions/checkout@v3
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Use Node.js 22.21.1
+        uses: actions/setup-node@v3
         with:
-          bun-version: latest
+          node-version: 22.21.1
       - uses: noliran/branch-based-secrets@v1
         with:
           secrets: AWS_ACCOUNT_ID
@@ -192,25 +213,10 @@ jobs:
           role-session-name: fedeploysession
           aws-region: us-east-1
       - name: Install dependencies
-        run: bun install
+        run: bun run install
       - name: serverless deploy
-        id: deploy
         run: |
-          STAGE=${{ needs.determine_environment.outputs.environment != 'main' && needs.determine_environment.outputs.environment || 'production' }}
-          OUTPUT=$(bun run serverless deploy --stage $STAGE 2>&1) || {
-            echo "deployment_status=failed" >> $GITHUB_OUTPUT
-            echo "$OUTPUT"
-            exit 1
-          }
-          echo "$OUTPUT"
-          # Extract endpoint URL from serverless output
-          ENDPOINT_URL=$(echo "$OUTPUT" | grep -oP 'endpoint: \K(https?://[^\s]+)' | head -1 || echo "")
-          if [ -z "$ENDPOINT_URL" ]; then
-            # Fallback: try to extract any URL from output
-            ENDPOINT_URL=$(echo "$OUTPUT" | grep -oP 'https?://[^\s]+' | head -1 || echo "")
-          fi
-          echo "environment_url=$ENDPOINT_URL" >> $GITHUB_OUTPUT
-          echo "deployment_status=success" >> $GITHUB_OUTPUT
+          bun run serverless deploy --stage ${{ github.ref_name != 'main' && github.ref_name || 'production' }}
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_PROFILE: '' # Override serverless.yml profile with empty string for CI
