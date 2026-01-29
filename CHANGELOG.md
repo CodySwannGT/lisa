@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.3](https://github.com/CodySwannGT/lisa/compare/vv1.12.2...v1.12.3) (2026-01-29)
+
+
+### Bug Fixes
+
+* **ci:** pin bun version to 1.3.8 in CI workflows ([cea84b3](https://github.com/CodySwannGT/lisa/commit/cea84b31c6907c85fa65f387c4812361923bf10e))
+* **eslint:** guard sonarjs recommended config access ([dced480](https://github.com/CodySwannGT/lisa/commit/dced480275f466d5e00404ff121e9befe6fa72c0))
+* **nestjs:** simplify deploy workflow and add AWS credential verification ([6e4cfda](https://github.com/CodySwannGT/lisa/commit/6e4cfda8ca389e823dab3278f04302c1450be836))
+* **package-lisa:** detect project types from dependencies instead of top-level keys ([a654cf7](https://github.com/CodySwannGT/lisa/commit/a654cf73b14342a3aa9657c62feab7561b0047c4))
+
+
+### Documentation
+
+* update bun version references to 1.3.8 ([20fcc87](https://github.com/CodySwannGT/lisa/commit/20fcc87bfb56de75b46000450a57e7800a382937))
+
 ### [1.12.2](https://github.com/CodySwannGT/lisa/compare/vv1.12.1...v1.12.2) (2026-01-29)
 
 
