@@ -29,6 +29,7 @@
     "cache-manager",
     "csv-parse",
     "graphql-query-complexity",
+    "graphql-request",
     "graphql-scalars",
     "graphql-subscriptions",
     "graphql-ws",
