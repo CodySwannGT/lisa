@@ -15,7 +15,7 @@ When updating package.json, always check if there's a corresponding `package.lis
 - **package.json** (destination): Remains clean with no `//lisa-*` tags
 
 For example:
-- Changes to `typescript/tagged-merge/package.lisa.json` apply to all TypeScript projects
+- Changes to `typescript/package-lisa/package.lisa.json` apply to all TypeScript projects
 - Changes to `package.lisa.json` force/defaults/merge sections determine how they affect project package.json files
 - Project package.json files should never contain governance markers; they're purely application files
 
