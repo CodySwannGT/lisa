@@ -13,6 +13,7 @@ import {
   createTypeScriptProject,
   createExpoProject,
   createNestJSProject,
+  createCDKProject,
 } from "../../helpers/test-utils.js";
 
 describe("PackageLisaStrategy", () => {
@@ -482,6 +483,50 @@ describe("PackageLisaStrategy", () => {
       expect(_result.action).toBe("merged");
       const content = await fs.readJson(destPath);
       expect(content.scripts.build).toBe("typescript-build");
+    });
+
+    it("CDK type overrides typescript type values", async () => {
+      await createPackageLisaTemplate("all", {
+        force: {
+          scripts: { lint: "eslint ." },
+        },
+      });
+
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          scripts: { build: "tsc" },
+        },
+      });
+
+      await createPackageLisaTemplate("cdk", {
+        force: {
+          scripts: { build: "tsc --noEmit" },
+        },
+      });
+
+      // Create CDK project (which inherits from typescript)
+      const sourcePath = path.join(
+        lisaDir,
+        "all",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createCDKProject(projectDir);
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      // CDK should override typescript's build script
+      expect(content.scripts.build).toBe("tsc --noEmit");
+      // All's lint script should still be applied
+      expect(content.scripts.lint).toBe("eslint .");
     });
   });
 
