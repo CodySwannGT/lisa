@@ -39,7 +39,7 @@ Create conventional commits for current changes. Optional hint: $ARGUMENTS
 - attempt to bypass tests or quality checks
 - skip tests or quality checks
 - stash changes - ALL changes must be committed
-- skip or exclude any files from the commit
+- skip or exclude any files from the commit - even if they're unrelated
 - leave uncommitted changes in the working directory
 - ask the user which files to commit - commit everything
 
