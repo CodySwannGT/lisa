@@ -666,11 +666,11 @@ The `package.lisa.json` strategy provides a specialized approach to managing `pa
 
 ### How It Works
 
-Each project type directory (all/, typescript/, expo/, nestjs/, cdk/, npm-package/) can contain a `package.lisa.json` file in the `tagged-merge/` subdirectory:
+Each project type directory (all/, typescript/, expo/, nestjs/, cdk/, npm-package/) can contain a `package.lisa.json` file in the `package-lisa/` subdirectory:
 
 ```
 typescript/
-├── tagged-merge/
+├── package-lisa/
 │   └── package.lisa.json
 ```
 
