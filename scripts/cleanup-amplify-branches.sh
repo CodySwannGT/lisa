@@ -22,7 +22,7 @@
 set -euo pipefail
 
 # Protected branches that should never be deleted
-PROTECTED_BRANCHES=("main" "dev" "staging")
+PROTECTED_BRANCHES=("main" "dev" "staging" "production" "prod")
 
 # Colors for output
 RED='\033[0;31m'
