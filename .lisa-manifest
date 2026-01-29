@@ -1,9 +1,8 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-28T20:08:56.556Z
-# Lisa version: 1.10.0
-# Lisa directory: /Users/cody/workspace/lisa
+# Generated: 2026-01-29T01:57:47.175Z
+# Lisa version: 1.11.7
+# Lisa directory: /private/tmp/bunx-501-@codyswann/lisa@latest/node_modules/@codyswann/lisa
 
-copy-overwrite:.DS_Store
 copy-overwrite:.claude/README.md
 copy-overwrite:.claude/REFERENCE.md
 copy-overwrite:.claude/agents/agent-architect.md
@@ -49,7 +48,6 @@ copy-overwrite:.claude/hooks/README.md
 copy-overwrite:.claude/hooks/check-tired-boss.sh
 copy-overwrite:.claude/hooks/debug-hook.sh
 copy-overwrite:.claude/hooks/notify-ntfy.sh
-copy-overwrite:.claude/hooks/pre-push.sh
 copy-overwrite:.claude/hooks/sync-tasks.sh
 copy-overwrite:.claude/rules/coding-philosophy.md
 copy-overwrite:.claude/rules/verfication.md
@@ -66,7 +64,6 @@ copy-overwrite:.safety-net.json
 copy-overwrite:CLAUDE.md
 copy-overwrite:HUMAN.md
 copy-overwrite:specs/.keep
-copy-contents:.gitignore
 copy-overwrite:.claude/hooks/format-on-edit.sh
 copy-overwrite:.claude/hooks/install_pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
@@ -75,7 +72,6 @@ copy-overwrite:.claude/settings.json
 copy-overwrite:.claude/skills/jsdoc-best-practices/SKILL.md
 copy-overwrite:.github/README.md
 copy-overwrite:.github/dependabot.yml
-copy-overwrite:.github/workflows/ci.yml
 copy-overwrite:.github/workflows/claude.yml
 copy-overwrite:.github/workflows/create-github-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-issue-on-failure.yml
@@ -107,12 +103,8 @@ copy-overwrite:eslint.typescript.ts
 copy-overwrite:knip.json
 copy-overwrite:sgconfig.yml
 copy-overwrite:tsconfig.eslint.json
-copy-contents:.husky/_/.gitignore
-copy-contents:.husky/_/husky.sh
 copy-contents:.husky/commit-msg
 copy-contents:.husky/pre-commit
 copy-contents:.husky/pre-push
 merge:.claude/settings.json
-tagged-merge:package.lisa.json
-copy-overwrite:.github/workflows/publish-to-npm.yml
 tagged-merge:package.lisa.json

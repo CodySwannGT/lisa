@@ -55,7 +55,8 @@
     "cache-manager",
     "@jest/globals",
     "ts-node",
-    "ts-morph"
+    "ts-morph",
+    "globals"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true
