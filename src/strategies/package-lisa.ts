@@ -328,7 +328,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       const templatePath = path.join(
         lisaDir,
         type,
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
 
