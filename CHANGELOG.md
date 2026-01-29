@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.1](https://github.com/CodySwannGT/lisa/compare/vv1.12.0...v1.12.1) (2026-01-29)
+
+
+### Bug Fixes
+
+* use npm_execpath for package manager agnostic prepare script ([bcae72f](https://github.com/CodySwannGT/lisa/commit/bcae72f29f5c1f4b5158bc70b4e0b9ca1feeaf97))
+
+
+### Documentation
+
+* rename GitHub README.md to GITHUB_ACTIONS.md ([e819cfe](https://github.com/CodySwannGT/lisa/commit/e819cfe5d0a7b421e9c8f8b6284696a65456bb0b))
+
 ## [1.12.0](https://github.com/CodySwannGT/lisa/compare/vv1.11.11...v1.12.0) (2026-01-29)
 
 
