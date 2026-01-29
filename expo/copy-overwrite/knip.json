@@ -83,6 +83,7 @@
     "expo-linear-gradient",
     "expo-localization",
     "expo-network",
+    "expo-notifications",
     "expo-status-bar",
     "firebase",
     "i18n-js",
