@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.11](https://github.com/CodySwannGT/lisa/compare/vv1.11.10...v1.11.11) (2026-01-29)
+
+
+### Bug Fixes
+
+* **package-lisa:** translate package.lisa.json destPath to package.json ([fa551ea](https://github.com/CodySwannGT/lisa/commit/fa551eace19621a8f1993c7ee80fca2678b9dacd))
+
+
+### Documentation
+
+* **readme:** fix remaining tagged-merge reference in How It Works section ([20979e4](https://github.com/CodySwannGT/lisa/commit/20979e4fe3c14c99571bf43ab3718d726c0a6702))
+
 ### [1.11.10](https://github.com/CodySwannGT/lisa/compare/vv1.11.9...v1.11.10) (2026-01-29)
 
 
