@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.12.0](https://github.com/CodySwannGT/lisa/compare/vv1.11.11...v1.12.0) (2026-01-29)
+
+
+### Features
+
+* **deps:** add @jest/globals to TypeScript template devDependencies ([cb5dc50](https://github.com/CodySwannGT/lisa/commit/cb5dc50c76cb2217502030872ce2d685e905bd20))
+* **skills:** remove prompt-complexity-scorer skill ([5cbc3cf](https://github.com/CodySwannGT/lisa/commit/5cbc3cf78d0d46b3c231764155173f588b97ec7a))
+
+
+### Documentation
+
+* add updated Claude Code settings and hooks reference ([1d7b8e0](https://github.com/CodySwannGT/lisa/commit/1d7b8e0aaeead04aa640683d76c325056e41a60c))
+* update documentation after prompt-complexity-scorer removal ([1220e73](https://github.com/CodySwannGT/lisa/commit/1220e73eb31ee7bdb106165cd91b78227ce48d96))
+
+### [1.11.11](https://github.com/CodySwannGT/lisa/compare/vv1.11.10...v1.11.11) (2026-01-29)
+
+
+### Bug Fixes
+
+* **package-lisa:** translate package.lisa.json destPath to package.json ([fa551ea](https://github.com/CodySwannGT/lisa/commit/fa551eace19621a8f1993c7ee80fca2678b9dacd))
+
+
+### Documentation
+
+* **readme:** fix remaining tagged-merge reference in How It Works section ([20979e4](https://github.com/CodySwannGT/lisa/commit/20979e4fe3c14c99571bf43ab3718d726c0a6702))
+
 ### [1.11.10](https://github.com/CodySwannGT/lisa/compare/vv1.11.9...v1.11.10) (2026-01-29)
 
 
