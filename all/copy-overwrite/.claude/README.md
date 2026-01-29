@@ -126,8 +126,7 @@ Skills in `skills/` provide domain-specific knowledge:
 
 | Skill | Purpose |
 |-------|---------|
-| `coding-philosophy/` | Core coding principles |
-| `prompt-complexity-scorer/` | Task complexity evaluation |
+| `jsdoc-best-practices/` | JSDoc documentation standards |
 | `skill-creator/` | Creating new skills |
 
 See each skill's `SKILL.md` for detailed documentation.
