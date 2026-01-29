@@ -217,26 +217,26 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // TypeScript detection
     const hasTypeScript =
       (await fse.pathExists(path.join(projectDir, this.TSCONFIG_JSON))) ||
-      (await this.packageJsonHasKey(projectDir, "typescript"));
+      (await this.packageJsonHasDependency(projectDir, "typescript"));
     if (hasTypeScript) types.push("typescript");
 
     // Expo detection
     const hasExpo =
       (await fse.pathExists(path.join(projectDir, this.APP_JSON))) ||
       (await fse.pathExists(path.join(projectDir, this.EAS_JSON))) ||
-      (await this.packageJsonHasKey(projectDir, "expo"));
+      (await this.packageJsonHasDependency(projectDir, "expo"));
     if (hasExpo) types.push("expo");
 
     // NestJS detection
     const hasNestJS =
       (await fse.pathExists(path.join(projectDir, this.NEST_CLI_JSON))) ||
-      (await this.packageJsonHasKeyPrefix(projectDir, "@nestjs"));
+      (await this.packageJsonHasDependencyPrefix(projectDir, "@nestjs"));
     if (hasNestJS) types.push("nestjs");
 
     // CDK detection
     const hasCDK =
       (await fse.pathExists(path.join(projectDir, this.CDK_JSON))) ||
-      (await this.packageJsonHasKey(projectDir, "aws-cdk"));
+      (await this.packageJsonHasDependencyPrefix(projectDir, "aws-cdk"));
     if (hasCDK) types.push("cdk");
 
     // npm-package detection
@@ -258,39 +258,52 @@ export class PackageLisaStrategy implements ICopyStrategy {
   }
 
   /**
-   * Check if package.json contains a key
+   * Check if package.json dependencies/devDependencies contain a specific package
    * @param projectDir - The project directory to check
-   * @param key - The key to check for in package.json
-   * @returns True if the key exists in package.json, false otherwise
+   * @param packageName - The exact package name to check for (e.g., "typescript", "expo")
+   * @returns True if the package is in dependencies or devDependencies, false otherwise
    * @private
    */
-  private async packageJsonHasKey(
+  private async packageJsonHasDependency(
     projectDir: string,
-    key: string
+    packageName: string
   ): Promise<boolean> {
-    const packageJson = await readJsonOrNull<Record<string, unknown>>(
-      path.join(projectDir, this.PACKAGE_JSON)
-    );
+    const packageJson = await readJsonOrNull<{
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    }>(path.join(projectDir, this.PACKAGE_JSON));
     if (!packageJson) return false;
-    return key in packageJson;
+
+    return (
+      packageJson.dependencies?.[packageName] !== undefined ||
+      packageJson.devDependencies?.[packageName] !== undefined
+    );
   }
 
   /**
-   * Check if package.json contains a key that starts with a prefix (for scoped packages)
+   * Check if package.json dependencies/devDependencies contain a package starting with prefix
    * @param projectDir - The project directory to check
-   * @param prefix - The prefix to check for (e.g., "@nestjs" or "@aws-sdk")
-   * @returns True if any key in package.json starts with the given prefix, false otherwise
+   * @param prefix - The prefix to check for (e.g., "@nestjs", "aws-cdk")
+   * @returns True if any dependency starts with the given prefix, false otherwise
    * @private
    */
-  private async packageJsonHasKeyPrefix(
+  private async packageJsonHasDependencyPrefix(
     projectDir: string,
     prefix: string
   ): Promise<boolean> {
-    const packageJson = await readJsonOrNull<Record<string, unknown>>(
-      path.join(projectDir, this.PACKAGE_JSON)
-    );
+    const packageJson = await readJsonOrNull<{
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    }>(path.join(projectDir, this.PACKAGE_JSON));
     if (!packageJson) return false;
-    return Object.keys(packageJson).some(key => key.startsWith(prefix));
+
+    const deps = packageJson.dependencies ?? {};
+    const devDeps = packageJson.devDependencies ?? {};
+
+    return (
+      Object.keys(deps).some(key => key.startsWith(prefix)) ||
+      Object.keys(devDeps).some(key => key.startsWith(prefix))
+    );
   }
 
   /**
