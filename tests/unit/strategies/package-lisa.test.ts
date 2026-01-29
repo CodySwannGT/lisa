@@ -76,7 +76,7 @@ describe("PackageLisaStrategy", () => {
     typeName: string,
     template: object
   ): Promise<void> {
-    const dir = path.join(lisaDir, typeName, "tagged-merge");
+    const dir = path.join(lisaDir, typeName, "package-lisa");
     await fs.ensureDir(dir);
     await fs.writeJson(path.join(dir, "package.lisa.json"), template);
   }
@@ -92,7 +92,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -119,7 +119,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -148,7 +148,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -182,7 +182,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -212,7 +212,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -240,7 +240,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -274,7 +274,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -308,7 +308,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -343,7 +343,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -371,7 +371,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -418,7 +418,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -458,7 +458,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -487,7 +487,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -516,7 +516,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -546,7 +546,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -581,7 +581,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -612,7 +612,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -640,7 +640,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -675,7 +675,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -708,7 +708,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
@@ -738,7 +738,7 @@ describe("PackageLisaStrategy", () => {
       const sourcePath = path.join(
         lisaDir,
         "all",
-        "tagged-merge",
+        "package-lisa",
         "package.lisa.json"
       );
       const destPath = path.join(projectDir, "package.json");
