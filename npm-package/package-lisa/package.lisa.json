@@ -1,7 +1,8 @@
 {
   "force": {
     "scripts": {
-      "prepublishOnly": "bun run build"
+      "prepublishOnly": "$npm_execpath run build",
+      "prepare": "$npm_execpath run build || husky install || true"
     }
   },
   "defaults": {

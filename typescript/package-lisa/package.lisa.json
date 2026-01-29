@@ -15,7 +15,7 @@
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "build": "tsc",
-      "prepare": "$npm_execpath run build || husky install || true",
+      "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true",
       "lisa:update": "npx @codyswann/lisa@latest ."
     },
     "devDependencies": {
@@ -61,7 +61,7 @@
       "npm": "please-use-bun",
       "yarn": "please-use-bun",
       "pnpm": "please-use-bun",
-      "bun": ">= 1.3.5",
+      "bun": "1.3.8",
       "node": "22.21.1"
     }
   },

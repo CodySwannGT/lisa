@@ -1,4 +1,20 @@
 {
+  "engines": {
+    "npm": "please-use-bun",
+    "yarn": "please-use-bun",
+    "pnpm": "please-use-bun",
+    "bun": "1.3.8",
+    "node": "22.21.1"
+  },
+  "files": [
+    "dist",
+    "all",
+    "typescript",
+    "expo",
+    "nestjs",
+    "cdk",
+    "eslint-plugin-code-organization"
+  ],
   "trustedDependencies": [
     "@ast-grep/cli",
     "@sentry/cli"
@@ -27,7 +43,8 @@
     "cleanup:amplify-branches": "bash scripts/cleanup-amplify-branches.sh",
     "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
     "github:status": "bash scripts/github-status-check.sh",
-    "setup:deploy-key": "bash scripts/setup-deploy-key.sh"
+    "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
+    "prepublishOnly": "$npm_execpath run build"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
@@ -63,14 +80,8 @@
     "@jest/test-sequencer": "^30.2.0",
     "@types/jest": "^30.0.0",
     "jest": "^30.0.0",
-    "ts-jest": "^29.4.6"
-  },
-  "engines": {
-    "npm": "please-use-bun",
-    "yarn": "please-use-bun",
-    "pnpm": "please-use-bun",
-    "bun": ">= 1.3.5",
-    "node": "22.21.1"
+    "ts-jest": "^29.4.6",
+    "@jest/globals": "^30.0.0"
   },
   "resolutions": {},
   "name": "@codyswann/lisa",
@@ -105,14 +116,5 @@
     "minimatch": "^10.1.1",
     "picocolors": "^1.0.0"
   },
-  "files": [
-    "dist",
-    "all",
-    "typescript",
-    "expo",
-    "nestjs",
-    "cdk",
-    "eslint-plugin-code-organization"
-  ],
   "type": "module"
 }

@@ -39,7 +39,8 @@
     "@aws-cdk/*",
     "aws-cdk",
     "aws-cdk-lib",
-    "constructs"
+    "constructs",
+    "aws-cdk-github-oidc"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
   "ignoreExportsUsedInFile": true,
