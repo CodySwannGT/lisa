@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.2](https://github.com/CodySwannGT/lisa/compare/vv1.12.1...v1.12.2) (2026-01-29)
+
+
+### Bug Fixes
+
+* **package-lisa:** sort expanded types so parents process before children ([e3e118b](https://github.com/CodySwannGT/lisa/commit/e3e118bafd9545ec303ef2db8194512687be7ed3))
+
+
+### Documentation
+
+* **commit:** clarify that all files must be committed regardless of relevance ([fab1d69](https://github.com/CodySwannGT/lisa/commit/fab1d69b0abca538db218afe0ab0a14fcdf14901))
+
 ### [1.12.1](https://github.com/CodySwannGT/lisa/compare/vv1.12.0...v1.12.1) (2026-01-29)
 
 
