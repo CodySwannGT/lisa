@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.9](https://github.com/CodySwannGT/lisa/compare/vv1.11.8...v1.11.9) (2026-01-29)
+
+
+### Bug Fixes
+
+* **scripts:** add production branches to protected list ([bd72930](https://github.com/CodySwannGT/lisa/commit/bd7293048d218d4fbb4658a764b8b1026f209d86))
+
 ### [1.11.8](https://github.com/CodySwannGT/lisa/compare/vv1.11.7...v1.11.8) (2026-01-29)
 
 ### [1.11.7](https://github.com/CodySwannGT/lisa/compare/vv1.11.6...v1.11.7) (2026-01-29)
