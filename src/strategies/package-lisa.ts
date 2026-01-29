@@ -58,9 +58,10 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * 1. It loads multiple source files from type hierarchy, not just one
    * 2. It applies structured merge logic (force/defaults/merge) instead of simple JSON merge
    * 3. It never applies changes if source file doesn't exist in ANY type directory
-   * @param sourcePath - Path to source package.lisa.json (only used for detecting when to apply)
-   * @param destPath - Destination package.json path
-   * @param relativePath - Relative path for recording ("package.json")
+   * 4. Source is package.lisa.json but destination is always package.json
+   * @param sourcePath - Path to source package.lisa.json (triggers the strategy)
+   * @param destPath - Passed as package.lisa.json path, but we target package.json instead
+   * @param relativePath - Passed as package.lisa.json, but we record package.json
    * @param context - Strategy context with config and callbacks
    * @returns Result with action "copied", "merged", or "skipped"
    */
@@ -77,23 +78,38 @@ export class PackageLisaStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
-    const destExists = await fse.pathExists(destPath);
+    // Translate package.lisa.json → package.json for the actual target
+    // The source file is package.lisa.json but we apply to package.json
+    const actualDestPath = path.join(path.dirname(destPath), this.PACKAGE_JSON);
+    const actualRelativePath = this.PACKAGE_JSON;
+
+    const destExists = await fse.pathExists(actualDestPath);
 
     try {
-      // Load templates and apply regardless of whether destination exists
-      const merged = await this.mergePackageJson(destPath, context);
+      // Load templates and apply to package.json
+      const merged = await this.mergePackageJson(actualDestPath, context);
 
       if (!destExists) {
-        return this.createDestination(destPath, merged, relativePath, context);
+        return this.createDestination(
+          actualDestPath,
+          merged,
+          actualRelativePath,
+          context
+        );
       }
 
-      return this.updateDestination(destPath, merged, relativePath, context);
+      return this.updateDestination(
+        actualDestPath,
+        merged,
+        actualRelativePath,
+        context
+      );
     } catch (error) {
       if (error instanceof JsonMergeError) {
         throw error;
       }
       throw new JsonMergeError(
-        relativePath,
+        actualRelativePath,
         `Failed to apply package-lisa strategy: ${error instanceof Error ? error.message : String(error)}`
       );
     }
