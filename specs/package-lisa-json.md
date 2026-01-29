@@ -48,12 +48,12 @@ The project's `package.json` remains 100% clean - no Lisa artifacts.
 Templates inherit and merge up the chain:
 
 ```
-all/tagged-merge/package.lisa.json
-└── typescript/tagged-merge/package.lisa.json
-    ├── expo/tagged-merge/package.lisa.json
-    ├── nestjs/tagged-merge/package.lisa.json
-    ├── npm-package/tagged-merge/package.lisa.json
-    └── cdk/tagged-merge/package.lisa.json
+all/package-lisa/package.lisa.json
+└── typescript/package-lisa/package.lisa.json
+    ├── expo/package-lisa/package.lisa.json
+    ├── nestjs/package-lisa/package.lisa.json
+    ├── npm-package/package-lisa/package.lisa.json
+    └── cdk/package-lisa/package.lisa.json
 ```
 
 **Merge rules for inheritance:**
@@ -117,39 +117,39 @@ Test cases:
 
 ### Phase 2: Create Template Files
 
-#### Task 2.1: all/tagged-merge/package.lisa.json
+#### Task 2.1: all/package-lisa/package.lisa.json
 
 Base template applied to all projects:
 - `force.scripts`: lint, test, build, format, typecheck
 - `force.devDependencies`: eslint, prettier, husky, lint-staged, commitlint
 - `merge.trustedDependencies`: base trusted deps
 
-#### Task 2.2: typescript/tagged-merge/package.lisa.json
+#### Task 2.2: typescript/package-lisa/package.lisa.json
 
 TypeScript-specific additions:
 - `force.devDependencies`: typescript, typescript-eslint, @types/node
 - `force.scripts`: typecheck
 - `defaults.engines`: node version
 
-#### Task 2.3: expo/tagged-merge/package.lisa.json
+#### Task 2.3: expo/package-lisa/package.lisa.json
 
 Expo-specific additions:
 - `force.devDependencies`: expo-specific eslint plugins
 - Any expo-specific scripts
 
-#### Task 2.4: nestjs/tagged-merge/package.lisa.json
+#### Task 2.4: nestjs/package-lisa/package.lisa.json
 
 NestJS-specific additions:
 - `force.devDependencies`: @nestjs/testing, etc.
 - `force.scripts`: NestJS-specific scripts
 
-#### Task 2.5: npm-package/tagged-merge/package.lisa.json
+#### Task 2.5: npm-package/package-lisa/package.lisa.json
 
 npm package-specific additions:
 - `force.scripts`: prepublishOnly, publish-related
 - `defaults.files`: dist directory
 
-#### Task 2.6: cdk/tagged-merge/package.lisa.json
+#### Task 2.6: cdk/package-lisa/package.lisa.json
 
 CDK-specific additions:
 - `force.devDependencies`: aws-cdk, constructs
@@ -234,12 +234,12 @@ File: `tests/integration/package-lisa.integration.test.ts`
 - `src/strategies/package-lisa-types.ts`
 - `tests/unit/strategies/package-lisa.test.ts`
 - `tests/integration/package-lisa.integration.test.ts`
-- `all/tagged-merge/package.lisa.json`
-- `typescript/tagged-merge/package.lisa.json`
-- `expo/tagged-merge/package.lisa.json`
-- `nestjs/tagged-merge/package.lisa.json`
-- `npm-package/tagged-merge/package.lisa.json`
-- `cdk/tagged-merge/package.lisa.json`
+- `all/package-lisa/package.lisa.json`
+- `typescript/package-lisa/package.lisa.json`
+- `expo/package-lisa/package.lisa.json`
+- `nestjs/package-lisa/package.lisa.json`
+- `npm-package/package-lisa/package.lisa.json`
+- `cdk/package-lisa/package.lisa.json`
 
 ### Modified Files
 - `src/strategies/index.ts` - Register new strategy
