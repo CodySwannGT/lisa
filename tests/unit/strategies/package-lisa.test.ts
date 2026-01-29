@@ -122,17 +122,22 @@ describe("PackageLisaStrategy", () => {
         "package-lisa",
         "package.lisa.json"
       );
-      const destPath = path.join(projectDir, "package.json");
+      // In production, Lisa passes package.lisa.json as destPath
+      // The strategy should translate this to package.json
+      const destPath = path.join(projectDir, "package.lisa.json");
+      const actualPackageJson = path.join(projectDir, "package.json");
 
       const _result = await strategy.apply(
         sourcePath,
         destPath,
-        "package.json",
+        "package.lisa.json",
         createContext()
       );
 
       expect(_result.action).toBe("copied");
-      const content = await fs.readJson(destPath);
+      // Strategy should write to package.json, not package.lisa.json
+      expect(_result.relativePath).toBe("package.json");
+      const content = await fs.readJson(actualPackageJson);
       expect(content).toEqual({ scripts: { test: "jest" } });
     });
   });
@@ -151,8 +156,10 @@ describe("PackageLisaStrategy", () => {
         "package-lisa",
         "package.lisa.json"
       );
-      const destPath = path.join(projectDir, "package.json");
-      await fs.writeJson(destPath, {
+      // Lisa passes package.lisa.json as destPath, strategy translates to package.json
+      const destPath = path.join(projectDir, "package.lisa.json");
+      const actualPackageJson = path.join(projectDir, "package.json");
+      await fs.writeJson(actualPackageJson, {
         name: "my-project",
         scripts: { build: "rollup", start: "node index.js" },
       });
@@ -160,12 +167,13 @@ describe("PackageLisaStrategy", () => {
       const _result = await strategy.apply(
         sourcePath,
         destPath,
-        "package.json",
+        "package.lisa.json",
         createContext()
       );
 
       expect(_result.action).toBe("merged");
-      const content = await fs.readJson(destPath);
+      expect(_result.relativePath).toBe("package.json");
+      const content = await fs.readJson(actualPackageJson);
       expect(content.scripts.test).toBe("jest");
       expect(content.scripts.build).toBe("tsc");
       expect(content.scripts.start).toBe("node index.js"); // Preserved
