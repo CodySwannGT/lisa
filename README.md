@@ -702,12 +702,12 @@ The `package.lisa.json` file defines three sections:
 Templates follow the project type hierarchy:
 
 ```
-all/tagged-merge/package.lisa.json
-└── typescript/tagged-merge/package.lisa.json
-    ├── expo/tagged-merge/package.lisa.json
-    ├── nestjs/tagged-merge/package.lisa.json
-    ├── cdk/tagged-merge/package.lisa.json
-    └── npm-package/tagged-merge/package.lisa.json
+all/package-lisa/package.lisa.json
+└── typescript/package-lisa/package.lisa.json
+    ├── expo/package-lisa/package.lisa.json
+    ├── nestjs/package-lisa/package.lisa.json
+    ├── cdk/package-lisa/package.lisa.json
+    └── npm-package/package-lisa/package.lisa.json
 ```
 
 Child types inherit and override parent templates. For example, a NestJS project loads templates from `all/`, `typescript/`, and `nestjs/` in order, with later types overriding earlier ones.
