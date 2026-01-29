@@ -1,7 +1,7 @@
 import * as fse from "fs-extra";
 import path from "node:path";
 import type { FileOperationResult, ProjectType } from "../core/config.js";
-import { PROJECT_TYPE_HIERARCHY } from "../core/config.js";
+import { PROJECT_TYPE_HIERARCHY, PROJECT_TYPE_ORDER } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { ensureParentDir } from "../utils/file-operations.js";
 import {
@@ -362,13 +362,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
   }
 
   /**
-   * Expand project types to include parent types
+   * Expand project types to include parent types, sorted by hierarchy order
    * @remarks
    * Type hierarchy: expo/nestjs/cdk/npm-package inherit from typescript
-   * This expands a list to include parents.
-   * Example: [expo] → [typescript, expo]
+   * This expands a list to include parents and sorts by PROJECT_TYPE_ORDER
+   * so parents are processed before children (enabling child overrides).
+   * Example: [cdk] → [typescript, cdk]
    * @param types - Project types detected
-   * @returns Expanded types including parents
+   * @returns Expanded types including parents, sorted parents-first
    * @private
    */
   private expandTypeHierarchy(types: ProjectType[]): ProjectType[] {
@@ -381,7 +382,10 @@ export class PackageLisaStrategy implements ICopyStrategy {
       }
     }
 
-    return Array.from(allTypes);
+    // Sort by PROJECT_TYPE_ORDER to ensure parents are processed before children
+    return Array.from(allTypes).sort(
+      (a, b) => PROJECT_TYPE_ORDER.indexOf(a) - PROJECT_TYPE_ORDER.indexOf(b)
+    );
   }
 
   /**
