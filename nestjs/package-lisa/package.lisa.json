@@ -19,10 +19,7 @@
       "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
       "deploy:dev": "sls deploy --stage dev",
       "deploy:staging": "sls deploy --stage staging",
-      "deploy:production": "sls deploy --stage production",
-      "migration:generate": "typeorm-ts-node-commonjs migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
-      "migration:run": "typeorm-ts-node-commonjs migration:run -d typeorm.config.ts",
-      "migration:revert": "typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts"
+      "deploy:production": "sls deploy --stage production"
     },
     "dependencies": {
       "@apollo/server": "^5.2.0",
