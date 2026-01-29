@@ -86,26 +86,21 @@ Lisa is designed for a **two-tier organizational model** that separates AI exper
 
 ### How Implementation Teams Work
 
-Once Lisa is applied to a project, developers have two paths:
+Once Lisa is applied to a project, developers use a simple workflow:
 
-**Path 1: Just Type a Prompt**
+**Simple Requests**
 
-Even if a developer just types a vague request, Lisa's built-in `prompt-complexity-scorer` skill automatically evaluates it:
+For straightforward tasks, just describe what you need:
 
 ```
-Developer: "Make the app faster"
+Developer: "Fix the typo in the login error message"
 
-Claude: This request scores 8/10 on complexity. I suggest writing it
-        as a spec to plan it out properly.
-
-        Would you like me to create `specs/performance-optimization.md`?
+Claude: [Immediately fixes the typo with proper verification]
 ```
 
-Complex or vague prompts (score 5+) are automatically routed to the spec workflow. Simple, well-defined requests (score 1-4) proceed immediately. Developers don't need to know which path to take—Lisa routes them automatically.
+**Complex Work: The Full Workflow**
 
-**Path 2: The Full Workflow**
-
-For planned work, the workflow is two commands:
+For larger features or complex changes, use the spec-driven workflow:
 
 ```bash
 # 1. Create a spec file describing what you want
@@ -1198,8 +1193,6 @@ Publish Claude Code skills, commands, and agents as installable plugins via the 
 - Community registry: [claude-plugins.dev](https://claude-plugins.dev/)
 
 **Lisa Components That Could Become Plugins:**
-- `coding-philosophy` skill - Teachable immutability and function structure patterns
-- `prompt-complexity-scorer` skill - Request complexity evaluation
 - `jsdoc-best-practices` skill - Documentation standards
 - `project:*` commands - Implementation workflows
 - Custom agents (skill-evaluator, codebase-analyzer)
