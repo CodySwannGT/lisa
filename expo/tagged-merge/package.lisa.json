@@ -22,6 +22,7 @@
     },
     "dependencies": {
       "@apollo/client": "^3.10.8",
+      "@expo/html-elements": "^0.12.5",
       "@expo/metro-runtime": "~6.1.2",
       "@gluestack-ui/core": "^3.0.10",
       "@gluestack-ui/utils": "^3.0.7",
