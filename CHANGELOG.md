@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.10](https://github.com/CodySwannGT/lisa/compare/vv1.11.9...v1.11.10) (2026-01-29)
+
+
+### Bug Fixes
+
+* **package-lisa:** move templates to package-lisa directory ([cd5ef88](https://github.com/CodySwannGT/lisa/commit/cd5ef88da9c78bf888c21d1b8c61b523548b2ebd))
+
+
+### Documentation
+
+* update references to new package-lisa directory structure ([fd2c278](https://github.com/CodySwannGT/lisa/commit/fd2c278fe66b426010fa5eb8e95c35f7a23b8a78))
+
 ### [1.11.9](https://github.com/CodySwannGT/lisa/compare/vv1.11.8...v1.11.9) (2026-01-29)
 
 
