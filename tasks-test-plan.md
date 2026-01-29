@@ -18,9 +18,7 @@ We needed a way to sync tasks to `./projects/{project-name}/tasks/` so they're v
 ### Solution Architecture
 
 ```
-User prompt (complex, score 5+)
-         ↓
-prompt-complexity-scorer suggests creating a project
+User creates a project via /project:bootstrap or /project:setup
          ↓
 Project created: projects/{name}/ + .claude-active-project marker
          ↓
@@ -45,7 +43,6 @@ Tasks are in repo, shareable with team
 
 | File | Changes |
 |------|---------|
-| `all/copy-overwrite/.claude/skills/prompt-complexity-scorer/SKILL.md` | Now suggests creating projects (not specs) for complex prompts; sets `.claude-active-project` marker |
 | `all/copy-overwrite/.claude/settings.json` | Added PostToolUse hook for `TaskCreate\|TaskUpdate` |
 | `all/copy-overwrite/.claude/commands/project/fix-linter-error.md` | Migrated from TodoWrite to Task tools; added project context check |
 | `all/copy-overwrite/.claude/commands/project/add-test-coverage.md` | Migrated from TodoWrite to Task tools; added project context check |
@@ -241,7 +238,6 @@ echo "=== All unit tests passed ==="
 - [ ] Project commands have "Step 0: Check Project Context"
 - [ ] TaskCreate examples include `metadata: { "project": "..." }`
 - [ ] `/tasks:load` and `/tasks:sync` commands exist
-- [ ] `prompt-complexity-scorer` suggests projects (not specs)
 
 ## Known Limitations
 
