@@ -772,7 +772,7 @@ Each type directory contains subdirectories that control how files are applied:
   "engines": {
     "//lisa-defaults-engines": "Defaults - projects can override",
     "node": "22.21.1",
-    "bun": ">= 1.3.5",
+    "bun": "1.3.8",
     "//end-lisa-defaults-engines": ""
   },
   "//lisa-merge-trusted-dependencies": "Lisa's + project's combined",
