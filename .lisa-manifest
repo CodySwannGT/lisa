@@ -1,8 +1,9 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-29T01:57:47.175Z
-# Lisa version: 1.11.7
-# Lisa directory: /private/tmp/bunx-501-@codyswann/lisa@latest/node_modules/@codyswann/lisa
+# Generated: 2026-01-29T16:17:20.601Z
+# Lisa version: 1.12.1
+# Lisa directory: /Users/cody/workspace/lisa
 
+copy-overwrite:.DS_Store
 copy-overwrite:.claude/README.md
 copy-overwrite:.claude/REFERENCE.md
 copy-overwrite:.claude/agents/agent-architect.md
@@ -53,7 +54,6 @@ copy-overwrite:.claude/rules/coding-philosophy.md
 copy-overwrite:.claude/rules/verfication.md
 copy-overwrite:.claude/settings.json
 copy-overwrite:.claude/settings.local.json.example
-copy-overwrite:.claude/skills/prompt-complexity-scorer/SKILL.md
 copy-overwrite:.claude/skills/skill-creator/LICENSE.txt
 copy-overwrite:.claude/skills/skill-creator/SKILL.md
 copy-overwrite:.claude/skills/skill-creator/scripts/__pycache__/quick_validate.cpython-312.pyc
@@ -64,13 +64,14 @@ copy-overwrite:.safety-net.json
 copy-overwrite:CLAUDE.md
 copy-overwrite:HUMAN.md
 copy-overwrite:specs/.keep
+copy-contents:.gitignore
 copy-overwrite:.claude/hooks/format-on-edit.sh
 copy-overwrite:.claude/hooks/install_pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
 copy-overwrite:.claude/hooks/sg-scan-on-edit.sh
 copy-overwrite:.claude/settings.json
 copy-overwrite:.claude/skills/jsdoc-best-practices/SKILL.md
-copy-overwrite:.github/README.md
+copy-overwrite:.github/GITHUB_ACTIONS.md
 copy-overwrite:.github/dependabot.yml
 copy-overwrite:.github/workflows/claude.yml
 copy-overwrite:.github/workflows/create-github-issue-on-failure.yml
@@ -103,8 +104,12 @@ copy-overwrite:eslint.typescript.ts
 copy-overwrite:knip.json
 copy-overwrite:sgconfig.yml
 copy-overwrite:tsconfig.eslint.json
+copy-contents:.husky/_/.gitignore
+copy-contents:.husky/_/husky.sh
 copy-contents:.husky/commit-msg
 copy-contents:.husky/pre-commit
 copy-contents:.husky/pre-push
 merge:.claude/settings.json
-tagged-merge:package.lisa.json
+package-lisa:package.json
+copy-overwrite:.github/workflows/publish-to-npm.yml
+package-lisa:package.json
