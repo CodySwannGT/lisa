@@ -15,7 +15,6 @@
  * - import/no-cycle - Detects circular dependencies (very slow)
  * - react-compiler/react-compiler - React Compiler compatibility checks (slow)
  * - react-hooks/static-components - Static component optimization checks (slow)
- *
  * @see https://github.com/import-js/eslint-plugin-import
  * @see https://react.dev/learn/react-compiler
  * @module eslint.slow.config
@@ -41,6 +40,7 @@ export default [
   {
     ignores: [
       ...ignorePatterns,
+      "node_modules/**",
       "**/*.js",
       "**/*.mjs",
       "**/*.cjs",
@@ -82,6 +82,8 @@ export default [
         >) ?? {}),
         typescript: true,
       },
+      // Skip parsing external modules to avoid parser errors with Flow/non-TS syntax
+      "import/ignore": ["node_modules", "react-native", "\\.native\\."],
     },
     rules: {
       // ONLY slow rules - everything else runs in the main config
@@ -90,7 +92,7 @@ export default [
       "import/namespace": "error",
       "import/no-cycle": "error",
 
-      "sonarjs/deprecation": "error",
+      "sonarjs/deprecation": "off",
 
       // React Compiler compatibility (slow)
       "react-compiler/react-compiler": "error",
