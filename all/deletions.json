@@ -1,5 +1,6 @@
 {
   "paths": [
-    ".claude/skills/coding-philosophy"
+    ".claude/skills/coding-philosophy",
+    ".claude/skills/prompt-complexity-scorer"
   ]
 }
