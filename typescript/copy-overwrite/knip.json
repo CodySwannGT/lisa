@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/**/*.ts"],
-  "project": ["src/**/*.ts"],
+  "entry": ["src/**/*.ts","lambdas/**/*.ts", "lib/**/*.ts", "scripts/**/*.ts"],
+  "project": ["src/**/*.ts","lambdas/**/*.ts", "lib/**/*.ts"],
   "ignore": [
     "**/*.test.ts",
     "**/*.spec.ts",
@@ -15,6 +15,8 @@
     "**/node_modules/**"
   ],
   "ignoreDependencies": [
+    "langsmith", 
+    "graphql",
     "@as-integrations/express5",
     "@aws-sdk/client-apigatewaymanagementapi",
     "@aws-sdk/client-appconfig",
