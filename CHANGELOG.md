@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.5](https://github.com/CodySwannGT/lisa/compare/vv1.12.4...v1.12.5) (2026-01-30)
+
+
+### Bug Fixes
+
+* consolidate TypeScript settings.json to prevent hooks from being overwritten ([f8e65ae](https://github.com/CodySwannGT/lisa/commit/f8e65aefb4e96bb9b80443e115d0325384e96840))
+
 ### [1.12.4](https://github.com/CodySwannGT/lisa/compare/vv1.12.3...v1.12.4) (2026-01-29)
 
 ### [1.12.3](https://github.com/CodySwannGT/lisa/compare/vv1.12.2...v1.12.3) (2026-01-29)
