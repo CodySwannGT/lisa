@@ -42,11 +42,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-tired-boss.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify-ntfy.sh",
             "timeout": 5
           }
