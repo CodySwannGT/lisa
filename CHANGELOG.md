@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.6](https://github.com/CodySwannGT/lisa/compare/vv1.12.5...v1.12.6) (2026-01-30)
+
+
+### Bug Fixes
+
+* remove check-tired-boss hook from settings templates ([4723829](https://github.com/CodySwannGT/lisa/commit/47238299ca913b790734e2a5113172a9b06fc517))
+
 ### [1.12.5](https://github.com/CodySwannGT/lisa/compare/vv1.12.4...v1.12.5) (2026-01-30)
 
 
