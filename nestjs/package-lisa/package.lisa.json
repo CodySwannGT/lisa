@@ -1,4 +1,11 @@
 {
+  "defaults": {
+    "scripts": {
+      "migration:generate": "typeorm-ts-node-commonjs migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
+      "migration:run": "typeorm-ts-node-commonjs migration:run -d typeorm.config.ts",
+      "migration:revert": "typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts"
+    }
+  },
   "force": {
     "scripts": {
       "k6": "./scripts/k6-run.sh",
