@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.9](https://github.com/CodySwannGT/lisa/compare/vv1.12.8...v1.12.9) (2026-02-01)
+
+
+### Documentation
+
+* add whitepaper, TODO, and black-box development documentation ([223454b](https://github.com/CodySwannGT/lisa/commit/223454bc11420e026d5a602a2fd192f2ad02131c))
+* expand and restructure OVERVIEW.md with detailed building blocks ([fc07988](https://github.com/CodySwannGT/lisa/commit/fc07988699eccebbee4557d71cdc6c709436a687))
+
 ### [1.12.8](https://github.com/CodySwannGT/lisa/compare/vv1.12.7...v1.12.8) (2026-01-30)
 
 ### [1.12.7](https://github.com/CodySwannGT/lisa/compare/vv1.12.6...v1.12.7) (2026-01-30)
