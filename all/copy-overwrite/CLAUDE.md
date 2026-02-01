@@ -51,3 +51,13 @@ ONLY use eslint-disable functional/no-loop-statements in tests when using loops 
 ONLY use ts-ignore as a last resort and confirm with human before doing so
 ONLY use ts-expect-error as a last resort and confirm with human before doing so
 ONLY use ts-nocheck as a last resort and confirm with human before doing so
+
+
+When making a plan, always determine which skills should be used during execution of the plan and include them in the plan
+When making a plan, always make sure you understand the correct versions of third party libraries
+When making a plan, always create a task list of items related to the plan and specify that subagents should handle as many in parallel as possible
+When making a plan, always save the plan with a name befitting the actual plan contents.
+When making a plan, always look for code that can be reused for implementation
+When making a plan, always include a task to update/add/remove documentation
+
+Never update CHANGELOG
