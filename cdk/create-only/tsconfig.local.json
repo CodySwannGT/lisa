@@ -1,0 +1,4 @@
+{
+  "include": ["lib/**/*", "bin/**/*", "test/**/*"],
+  "exclude": ["node_modules", "cdk.out"]
+}
