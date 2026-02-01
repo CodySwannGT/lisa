@@ -1,32 +1,34 @@
-import type { Config } from "jest";
+/**
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
 
-const config: Config = {
-  preset: "ts-jest/presets/default-esm",
-  testEnvironment: "node",
-  testMatch: ["<rootDir>/tests/**/*.test.ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
-  moduleNameMapper: {
-    "^(\\.{1,2}/.*)\\.js$": "$1",
-  },
-  transform: {
-    "^.+\\.tsx?$": [
-      "ts-jest",
-      {
-        useESM: true,
-      },
-    ],
-  },
-  extensionsToTreatAsEsm: [".ts"],
-  collectCoverageFrom: ["src/**/*.ts", "!src/index.ts"],
-  coverageThreshold: {
-    global: {
-      statements: 75,
-      branches: 65,
-      functions: 60,
-      lines: 75,
-    },
-  },
-  testTimeout: 10000,
-};
+/**
+ * Jest Configuration - Main Entry Point (TypeScript)
+ *
+ * Imports the TypeScript-specific configuration and project-local customizations.
+ * Do not modify this file directly - use jest.config.local.ts for project-specific settings.
+ *
+ * Inheritance chain:
+ *   jest.config.ts (this file)
+ *   └── jest.typescript.ts
+ *       └── jest.base.ts
+ *
+ * @see https://jestjs.io/docs/configuration
+ * @module jest.config
+ */
+import { mergeConfigs, mergeThresholds } from "./jest.base.ts";
+import {
+  defaultThresholds,
+  getTypescriptJestConfig,
+} from "./jest.typescript.ts";
 
-export default config;
+import localConfig from "./jest.config.local.ts";
+import thresholdsOverrides from "./jest.thresholds.json" with { type: "json" };
+
+const thresholds = mergeThresholds(defaultThresholds, thresholdsOverrides);
+
+export default mergeConfigs(
+  getTypescriptJestConfig({ thresholds }),
+  localConfig
+);
