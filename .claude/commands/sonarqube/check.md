@@ -1,6 +1,6 @@
 ---
-description: Uses SonarQube / SonarCloud to get the reason that last pull request failed to pass checks
-allowed-tools: ["mcp__sonarqube__*"]
+description: "Uses SonarQube / SonarCloud to get the reason that last pull request failed to pass checks"
+allowed-tools: ["Skill"]
 ---
 
-use the sonarqube mcp to get the reason the last PR failed checks
+Use the /sonarqube-check skill to check why the last PR failed SonarQube quality gates.
