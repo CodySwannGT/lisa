@@ -1,15 +1,7 @@
 ---
-description: "Create JIRA epics/stories/tasks from code files with comprehensive quality requirements"
-allowed-tools:
-  [
-    "Read",
-    "Glob",
-    "LS",
-    "mcp__atlassian__createJiraIssue",
-    "mcp__atlassian__getVisibleJiraProjects",
-    "mcp__atlassian__getJiraProjectIssueTypesMetadata",
-    "mcp__atlassian__getAccessibleAtlassianResources",
-  ]
+name: jira-create
+description: This skill should be used when creating JIRA epics, stories, and tasks from code files or descriptions. It analyzes the provided input, determines the appropriate issue hierarchy, and creates issues with comprehensive quality requirements including test-first development and documentation.
+allowed-tools: ["Read", "Glob", "LS", "mcp__atlassian__createJiraIssue", "mcp__atlassian__getVisibleJiraProjects", "mcp__atlassian__getJiraProjectIssueTypesMetadata", "mcp__atlassian__getAccessibleAtlassianResources"]
 argument-hint: "<file-or-directory-path> [project-key]"
 ---
 
