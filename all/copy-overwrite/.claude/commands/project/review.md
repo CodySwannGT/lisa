@@ -31,7 +31,7 @@ TaskCreate:
 
 TaskCreate:
   subject: "Perform CodeRabbit review"
-  description: "If $ARGUMENTS/coderabbit-review.md already exists, skip this task. Otherwise, run `coderabbit review --plain || true` and write results to $ARGUMENTS/coderabbit-review.md"
+  description: "If $ARGUMENTS/coderabbit-review.md already exists, skip this task. Otherwise, run `/coderabbit:review` and write results to $ARGUMENTS/coderabbit-review.md"
   metadata: { project: "<project-name>" }
 
 TaskCreate:
