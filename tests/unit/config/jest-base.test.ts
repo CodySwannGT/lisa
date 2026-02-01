@@ -46,7 +46,10 @@ describe("jest.base", () => {
 
   describe("mergeThresholds", () => {
     it("returns defaults when overrides have no global", () => {
-      const result = mergeThresholds(defaultThresholds, {});
+      const result = mergeThresholds(
+        defaultThresholds,
+        {} as Config["coverageThreshold"]
+      );
 
       expect(result?.global).toEqual(defaultThresholds?.global);
     });
@@ -89,7 +92,10 @@ describe("jest.base", () => {
         global: { statements: 50 },
       };
 
-      const result = mergeThresholds({}, overrides);
+      const result = mergeThresholds(
+        {} as Config["coverageThreshold"],
+        overrides
+      );
 
       expect((result?.global as Record<string, number>)?.statements).toBe(50);
     });
