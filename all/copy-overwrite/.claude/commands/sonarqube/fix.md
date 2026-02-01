@@ -1,3 +1,6 @@
-1. run /sonarqube:check
-2. fix the SonarQube quality gate failures identified in step 1
-3. run /git:commit
+---
+description: "Run SonarQube check, fix failures, and commit"
+allowed-tools: ["Skill"]
+---
+
+Use the /sonarqube-fix skill to check, fix, and commit SonarQube quality gate failures.
