@@ -1,11 +1,7 @@
 ---
-description: "Verify JIRA ticket meets standards for epic relationships and description quality"
-allowed-tools:
-  [
-    "mcp__atlassian__getJiraIssue",
-    "mcp__atlassian__searchJiraIssuesUsingJql",
-    "mcp__atlassian__getAccessibleAtlassianResources",
-  ]
+name: jira-verify
+description: This skill should be used when verifying that a JIRA ticket meets organizational standards for epic relationships and description quality. It checks epic parent relationships and validates description completeness for coding assistants, developers, and stakeholders.
+allowed-tools: ["mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
 argument-hint: "<TICKET-ID>"
 ---
 
@@ -26,7 +22,7 @@ Fetch ticket $ARGUMENTS and verify it meets organizational standards.
 Verify description adequately addresses:
 
 **Coding Assistants**: Acceptance criteria, requirements, constraints, I/O
-**Developers**: Technical context, integration points, testing, edge cases  
+**Developers**: Technical context, integration points, testing, edge cases
 **Stakeholders**: Business value, user impact, success metrics, summary
 
 ## Execute Verification
