@@ -21,7 +21,7 @@ The platform expert creates a "paved road" where implementation teams can levera
 
 **Lisa** is a multi-layer quality system that prevents AI from producing inconsistent or low-quality code. It works by:
 
-1. **Teaching Claude** the right patterns (Skills)
+1. **Teaching Claude** the right patterns (Skills & Rules)
 2. **Enforcing quality automatically** (Hooks, ESLint, Git Hooks)
 3. **Guiding workflows** with pre-built commands (Slash Commands)
 4. **Blocking bad code** before it's committed (Guardrails)
@@ -40,9 +40,10 @@ Without Lisa, Claude Code can:
 | Layer | What It Does | Example |
 |-------|--------------|---------|
 | **CLAUDE.md** | Direct behavioral rules | "Always use immutable patterns" |
-| **Skills** | Teach patterns & philosophy | Why immutability matters, when to use TDD |
+| **Rules** | Auto-loaded project conventions | Coding philosophy, verification requirements |
+| **Skills** | Teach patterns & philosophy | JSDoc best practices, skill creation |
 | **Hooks** | Auto-enforcement on every edit | Format, lint, ast-grep scan after writes |
-| **Plugins** | Extended capabilities | Safety Net, TypeScript LSP, Beads issue tracking |
+| **Plugins** | Extended capabilities | Safety Net, TypeScript LSP, Code Review |
 | **ESLint Plugins** | Enforce code structure | Require statement ordering, prevent inline styles |
 | **ast-grep** | Pattern-based linting | Custom AST rules for anti-patterns |
 | **Knip** | Dead code detection | Find unused exports, dependencies, files |
@@ -164,48 +165,73 @@ When you run `/project:execute`:
 
 ## Part 3: The Building Blocks
 
-### 1. Skills (Automatic Knowledge)
+### 1. Rules (Auto-Loaded Conventions)
+
+**What they are:** Markdown files in `.claude/rules/` that are automatically loaded at the start of every Claude Code session.
+
+**How it works:** Rules provide project-wide conventions, coding philosophy, and verification requirements that Claude follows without explicit invocation.
+
+**Current rules:**
+
+| Rule | Purpose |
+|------|---------|
+| `coding-philosophy.md` | Immutable patterns, function structure, TDD, YAGNI/SOLID/DRY/KISS |
+| `PROJECT_RULES.md` | Project-specific conventions (package.lisa.json management, JSON handling) |
+| `verfication.md` | Empirical verification requirements (proof commands for every task) |
+
+**Directory structure:**
+```
+.claude/rules/
+├── coding-philosophy.md
+├── PROJECT_RULES.md
+└── verfication.md
+```
+
+**Key distinction:** Rules are auto-loaded at session start and always active. Skills are invoked when relevant to the current task.
+
+### 2. Skills (Specialized Knowledge)
 
 **What they are:** Markdown files that teach Claude your team's patterns and philosophy.
 
 **How it works:** Claude automatically applies relevant skills when working, without being explicitly told.
 
-**Examples:**
-- `coding-philosophy` - Immutable patterns, function structure, TDD
-- `jsdoc-best-practices` - Documentation standards ("why" over "what")
-- `container-view-pattern` - React component architecture
-- `playwright-e2e` - E2E testing patterns
+**Current skills:**
+- `jsdoc-best-practices` — Documentation standards ("why" over "what"), JSDoc ESLint rules
+- `skill-creator` — Guide for creating effective new skills
 
 **Directory structure:**
 ```
 .claude/skills/
-├── coding-philosophy/
-│   ├── SKILL.md
-│   └── references/
 ├── jsdoc-best-practices/
 │   ├── SKILL.md
 │   └── references/
-├── container-view-pattern/
-├── playwright-e2e/
-└── ...
+└── skill-creator/
+    ├── SKILL.md
+    └── references/
 ```
 
-### 2. Subagents (Specialized Workers)
+### 3. Subagents (Specialized Workers)
 
-**What they are:** Pre-configured AI personas that handle specific research tasks.
+**What they are:** Pre-configured AI personas that handle specific research and implementation tasks.
 
 **Why they exist:** Research subagents work in isolated context windows, preventing pollution of the main conversation and allowing parallel research.
 
-**Examples:**
+**Available subagents:**
+
 | Subagent | Purpose |
 |----------|---------|
-| `codebase-locator` | Find WHERE code lives |
+| `agent-architect` | Design and optimize sub-agents |
 | `codebase-analyzer` | Explain HOW code works |
+| `codebase-locator` | Find WHERE code lives |
 | `codebase-pattern-finder` | Find existing patterns to model |
 | `git-history-analyzer` | Understand WHY code evolved |
+| `hooks-expert` | Create, modify, and troubleshoot hooks |
+| `skill-evaluator` | Evaluate whether learnings warrant new skills |
+| `slash-command-architect` | Design and optimize slash commands |
+| `test-coverage-agent` | Add comprehensive test coverage |
 | `web-search-researcher` | Find external documentation |
 
-### 3. Slash Commands (Explicit Actions)
+### 4. Slash Commands (Explicit Actions)
 
 **What they are:** Pre-built workflows you invoke with `/command-name`.
 
@@ -222,24 +248,77 @@ When you run `/project:execute`:
 | | `/project:review` | Run code review (CodeRabbit) |
 | | `/project:debrief` | Document lessons learned |
 | | `/project:archive` | Archive completed project |
+| | `/project:setup` | Initialize project with requirements analysis |
+| | `/project:document` | Update all documentation for changes |
 | | `/project:local-code-review` | Review local changes |
 | | `/project:lower-code-complexity` | Reduce complexity by 2 per run |
+| | `/project:fix-linter-error` | Fix all violations of ESLint rules |
+| | `/project:add-test-coverage` | Increase test coverage to threshold |
+| | `/project:reduce-max-lines` | Reduce max file lines threshold |
+| | `/project:reduce-max-lines-per-function` | Reduce max function lines threshold |
+| **Tasks** | `/tasks:load` | Load tasks from a project directory |
+| | `/tasks:sync` | Sync session tasks to a project directory |
 | **Git** | `/git:commit` | Create conventional commits |
 | | `/git:submit-pr` | Create/update pull request |
 | | `/git:commit-and-submit-pr` | Commit and create PR in one step |
 | | `/git:prune` | Clean up merged branches |
 | **Pull Request** | `/pull-request:review` | Check and implement PR comments |
+| **Code Review** | `/code-review:code-review` | Code review a pull request |
 | **Jira** | `/jira:create` | Create Jira tickets from code |
 | | `/jira:verify` | Verify ticket meets standards |
 | **SonarQube** | `/sonarqube:check` | Get PR failure reasons |
 | | `/sonarqube:fix` | Check and fix SonarQube issues |
+| **Safety Net** | `/safety-net:set-custom-rules` | Set custom Safety Net rules |
+| | `/safety-net:set-statusline` | Set Safety Net status line |
+| | `/safety-net:verify-custom-rules` | Verify custom Safety Net rules |
 | **Lisa** | `/lisa:review-implementation` | Compare against Lisa templates |
+| | `/lisa:review-project` | Compare templates against target project |
 
 ---
 
 ## Part 4: Guardrails (The Safety Net)
 
-Lisa enforces quality through **three layers of automatic checks**:
+Lisa's governance operates through two distinct layers that serve fundamentally different purposes.
+
+### The Context Layer (Non-Deterministic)
+
+The context layer tells the agent *what to build* and *how to build it*. It encodes the organization's standards, the team's conventions, and the project's architectural decisions. This layer is inherently non-deterministic — the agent interprets these instructions, and two runs with identical context may produce different implementations that both satisfy the requirements.
+
+| Context Source | What It Provides | Who Builds It |
+|----------------|-----------------|---------------|
+| **CLAUDE.md** | Direct behavioral rules and constraints | Platform Expert |
+| **`.claude/rules/`** | Coding philosophy, patterns, conventions | Platform Expert |
+| **Skills** | Reusable domain knowledge and workflows | Platform Expert |
+| **Slash commands** | Pre-built workflows and task orchestration | Platform Expert |
+| **`package.lisa.json`** | Governance templates (force/defaults/merge) | Platform Expert |
+| **JSDoc preambles** | Existing code intent and architectural context | Both |
+| **Project specification** | Functional requirements — what the artifact must do | Implementation Team |
+
+Without context, the agent produces technically valid but contextually wrong artifacts — code that compiles but doesn't belong in this codebase.
+
+### The Enforcement Layer (Deterministic)
+
+The enforcement layer *proves* the agent adhered to the context. It is binary — pass or fail — with no room for interpretation. Every check is automated, reproducible, and tamper-proof.
+
+| Enforcement Tool | What It Proves | Who Builds It |
+|-----------------|---------------|---------------|
+| **ESLint, Prettier, ast-grep** | Code structure matches mandated patterns | Platform Expert |
+| **Jest, Playwright, Maestro** | Behavior matches specification | Both |
+| **Snyk, SonarCloud, Gitleaks** | No known security vulnerabilities or leaked secrets | Platform Expert |
+| **Claude Code local review, CodeRabbit** | Semantic correctness, convention adherence, logical bugs | Platform Expert |
+| **k6, Lighthouse** | Performance and scalability meet SLOs | Platform Expert |
+| **commitlint, Husky** | Process traceability and commit hygiene | Platform Expert |
+| **GitHub Actions, branch protection** | All checks pass in a controlled environment | Platform Expert |
+| **Claude Code hooks** | Real-time validation during generation | Platform Expert |
+| **Safety Net** | Agents cannot bypass enforcement mechanisms | Platform Expert |
+
+Without enforcement, the organization relies on the agent's interpretation of context — which is "vibe coding." Context without enforcement is aspirational. Enforcement without context is technically valid but wrong. Both layers are required.
+
+The platform expert builds both layers. The implementation team operates within them without needing to understand how they work. This is the foundation of the "no AI expertise required" principle.
+
+### Three Enforcement Checkpoints
+
+Lisa enforces quality through **three checkpoints** — during generation, before commit, and in CI/CD:
 
 ### Layer 1: Claude Code Hooks (During Writing)
 
@@ -248,33 +327,59 @@ When Claude writes code, hooks automatically enforce quality:
 | Hook | Trigger | Action |
 |------|---------|--------|
 | `format-on-edit.sh` | After Write/Edit | Run Prettier on changed files |
-| `lint-on-edit.sh` | After Write/Edit | Run ESLint on changed files |
+| `lint-on-edit.sh` | After Write/Edit | Run ESLint on changed files (exists but not currently in PostToolUse config) |
 | `sg-scan-on-edit.sh` | After Write/Edit | Run ast-grep pattern scan |
 | `install_pkgs.sh` | Session start | Ensure dependencies installed |
-| `notify-ntfy.sh` | Permission/Stop | Send push notifications |
+| `notify-ntfy.sh` | Notification events | Send push notifications |
+| `sync-tasks.sh` | Task synchronization | Sync tasks between sessions and project directories |
+| `check-tired-boss.sh` | User prompt submit | Enforce "I'm tired boss" greeting |
+| `debug-hook.sh` | All events | Debug logging (when CLAUDE_DEBUG=1) |
+
+**Current settings.json hook configuration (13 event types):**
 
 ```json
 {
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          { "type": "command", "command": ".claude/hooks/format-on-edit.sh" },
-          { "type": "command", "command": ".claude/hooks/lint-on-edit.sh" },
-          { "type": "command", "command": ".claude/hooks/sg-scan-on-edit.sh" }
-        ]
-      }
+    "SessionStart": [
+      { "matcher": "startup", "hooks": [{ "type": "command", "command": ".claude/hooks/install_pkgs.sh" }] },
+      { "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }
     ],
-    "Notification": [
-      {
-        "matcher": "permission_prompt|idle_prompt",
-        "hooks": [{ "type": "command", "command": ".claude/hooks/notify-ntfy.sh" }]
-      }
-    ]
+    "PostToolUse": [
+      { "matcher": "Write|Edit", "hooks": [
+        { "type": "command", "command": ".claude/hooks/format-on-edit.sh" },
+        { "type": "command", "command": ".claude/hooks/sg-scan-on-edit.sh" }
+      ]},
+      { "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }
+    ],
+    "Notification": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "Stop": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "SessionEnd": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "Setup": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "PreToolUse": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "PostToolUseFailure": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "PermissionRequest": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "SubagentStart": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "SubagentStop": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "UserPromptSubmit": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }],
+    "PreCompact": [{ "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }]
   }
 }
 ```
+
+#### Agentic Code Review (During Writing / Before PR)
+
+In addition to hooks that enforce syntactic rules, Lisa runs **agentic code review** — AI-powered reviewers that analyze code changes for semantic correctness, convention adherence, and logical bugs that static analysis cannot detect.
+
+| Reviewer | When It Runs | What It Catches |
+|----------|-------------|-----------------|
+| **Claude Code local review** | Before PR submission (`/project:local-code-review`) | Convention violations, logical bugs, CLAUDE.md adherence, missing edge cases |
+| **CodeRabbit** | During CI/CD on pull request (`/project:review`) | Architectural drift, hardcoded values, fragile patterns, missing validation |
+
+**How it works:**
+- **Local review:** Multiple independent Claude agents analyze the changeset in parallel — each focused on a specific concern (convention compliance, bug detection, historical context). Findings above a confidence threshold are fed back to the generating agent for immediate correction.
+- **CI/CD review:** CodeRabbit analyzes the pull request in a clean environment, providing an independent second perspective. Findings are addressed before the artifact can merge.
+
+This dual-layer agentic review augments — but does not replace — human review. It reduces the burden on human reviewers by surfacing semantic issues before the PR reaches them.
 
 ### Layer 2: Git Hooks (Before Commit)
 
@@ -333,21 +438,73 @@ Security Jobs (parallel):
 ├── 🔐 GitGuardian Secret Detection
 └── 📜 FOSSA License Compliance
 
+Agentic Code Review:
+├── 🤖 CodeRabbit PR Review
+└── 🔎 Claude Code Local Review (pre-PR)
+
 ❌ Any failure blocks PR merge
 ✅ All pass → Ready for review
 ```
 
-### Why Three Layers?
+### Why Three Checkpoints?
 
-| Stage | Benefit |
-|-------|---------|
-| **Claude Hooks** | Fast feedback during development |
-| **Git Hooks** | Can't be bypassed locally |
-| **CI/CD** | Authoritative source of truth, clean environment |
+Each checkpoint serves a distinct purpose in the enforcement layer:
+
+| Checkpoint | Purpose | Failure Mode It Prevents |
+|------------|---------|--------------------------|
+| **Claude Code Hooks** | Real-time feedback during generation | Agent completes an entire artifact before discovering it violates a rule |
+| **Agentic Code Review** | Semantic analysis at local and CI/CD levels | Logical bugs, convention drift, and architectural issues that static analysis cannot detect |
+| **Git Hooks** | Local gate before code leaves the workstation | Broken code reaches the remote repository |
+| **CI/CD** | Authoritative gate in a clean, reproducible environment | Locally-passing code exploits environment-specific conditions (cached deps, stale data, permissive configs) |
+
+Without local enforcement (hooks), agents waste cycles pushing artifacts that will be rejected by the pipeline. Without CI/CD enforcement, locally-passing artifacts may mask real failures. Both local and pipeline enforcement must run the same tools with the same configurations to ensure parity.
 
 ---
 
-## Part 5: Advanced Quality Tools
+## Part 5: Package.lisa.json (Template Governance)
+
+### What It Is
+
+Lisa uses a two-file governance model to manage `package.json` in target projects:
+
+- **`package.lisa.json`** (source template) — Defines governance rules with `force`, `defaults`, and `merge` sections
+- **`package.json`** (destination) — Remains clean with no governance markers
+
+### Three Semantic Behaviors
+
+| Behavior | What It Does | Use Case |
+|----------|--------------|----------|
+| **`force`** | Lisa's values completely replace project's values | Governance-critical configs (lint rules, mandatory dependencies, commit hooks) |
+| **`defaults`** | Project's values preserved; Lisa provides fallback | Helpful templates projects can override (Node.js version, TypeScript version) |
+| **`merge`** | Arrays are concatenated and deduplicated | Shared lists where both Lisa and project contribute (trusted dependencies) |
+
+### Template Subdirectory Structure
+
+Each project type directory contains these subdirectories:
+
+| Subdirectory | Behavior |
+|-------------|----------|
+| `copy-overwrite/` | Files are overwritten on every Lisa run |
+| `create-only/` | Files are created only if they don't exist (safe to customize) |
+| `copy-contents/` | File contents are merged rather than replaced |
+| `package-lisa/` | Contains `package.lisa.json` for package.json governance |
+
+### Inheritance Chain
+
+```
+all/                    ← Applied to every project
+└── typescript/         ← All TypeScript projects
+    ├── expo/           ← Expo apps (inherits typescript)
+    ├── nestjs/         ← NestJS apps (inherits typescript)
+    ├── cdk/            ← CDK projects (inherits typescript)
+    └── npm-package/    ← Published packages (inherits typescript)
+```
+
+An Expo project receives configurations from: `all/` → `typescript/` → `expo/`
+
+---
+
+## Part 6: Advanced Quality Tools
 
 ### ast-grep (Pattern-Based Linting)
 
@@ -433,6 +590,34 @@ severity: error
 }
 ```
 
+**Slash commands for Safety Net configuration:**
+- `/safety-net:set-custom-rules` — Define custom blocking rules
+- `/safety-net:set-statusline` — Configure status line display
+- `/safety-net:verify-custom-rules` — Validate rule configuration
+
+### .lisaignore (Selective File Management)
+
+**What it is:** A file that allows granular control over which files Lisa processes.
+
+**Why it matters:** Projects may need to opt out of Lisa management for specific files without disabling Lisa entirely.
+
+**Syntax:** Supports gitignore-style patterns:
+
+```
+# Lines starting with # are comments
+# Exact file names:
+eslint.config.mjs
+# Directory patterns:
+.claude/hooks/
+# Glob patterns:
+*.example.json
+**/*.custom.ts
+```
+
+### Lisa Version Checking
+
+Lisa validates it's running the latest version during execution. A `.lisa-manifest` file tracks which version of Lisa generated the current configuration, ensuring projects stay up to date with governance changes.
+
 ### Claude Code Plugins
 
 Lisa enables several official and marketplace plugins:
@@ -463,7 +648,7 @@ Lisa enables several official and marketplace plugins:
 
 ---
 
-## Part 6: Enterprise Security Tools
+## Part 7: Enterprise Security Tools
 
 Lisa's CI/CD workflow includes enterprise-grade security scanning:
 
@@ -528,15 +713,26 @@ Lisa automatically detects your project type and applies appropriate configurati
 Configs inherit from parent types:
 
 ```
-all/              ← Applied to every project
-└── typescript/   ← All TypeScript projects
-    ├── expo/     ← Expo apps (inherits typescript)
-    ├── nestjs/   ← NestJS apps (inherits typescript)
-    ├── cdk/      ← CDK projects (inherits typescript)
-    └── npm-package/ ← Published packages (inherits typescript)
+all/                    ← Applied to every project
+└── typescript/         ← All TypeScript projects
+    ├── expo/           ← Expo apps (inherits typescript)
+    ├── nestjs/         ← NestJS apps (inherits typescript)
+    ├── cdk/            ← CDK projects (inherits typescript)
+    └── npm-package/    ← Published packages (inherits typescript)
 ```
 
 An Expo project receives configurations from: `all/` → `typescript/` → `expo/`
+
+### Template Subdirectory Structure
+
+Each project type directory can contain:
+
+| Subdirectory | Behavior |
+|-------------|----------|
+| `copy-overwrite/` | Files overwritten on every Lisa run |
+| `create-only/` | Files created only if absent |
+| `copy-contents/` | File contents merged |
+| `package-lisa/` | `package.lisa.json` for package.json governance |
 
 ---
 
@@ -549,28 +745,34 @@ Create your `.claude` directory structure:
 ```
 .claude/
 ├── settings.json          # Global hooks and configuration
+├── rules/                 # Auto-loaded conventions and philosophy
 ├── skills/                # Teach Claude your patterns
 ├── commands/              # Pre-built workflows
 ├── hooks/                 # Auto-enforcement scripts
-└── agents/                # Custom subagents (optional)
+└── agents/                # Custom subagents
 ```
 
-### Phase 2: Write Skills
+### Phase 2: Write Rules and Skills
 
-Start with these essential skills:
+Start with these essentials:
 
-1. **Coding standards** - Your team's patterns and conventions
-2. **Testing approach** - Unit/integration/E2E patterns
-3. **Architecture rules** - How components should be structured
+**Rules** (auto-loaded every session):
+1. **Coding philosophy** — Immutable patterns, function structure, TDD
+2. **Project conventions** — Team-specific patterns and guidelines
+3. **Verification requirements** — How to prove tasks are complete
+
+**Skills** (invoked when relevant):
+1. **Documentation standards** — JSDoc best practices
+2. **Skill creation** — How to build new skills
 
 ### Phase 3: Add Commands
 
 Create slash commands for your workflows:
 
-1. `/project:bootstrap` - Initialize and research
-2. `/project:execute` - Plan and implement
-3. `/git:commit` - Create conventional commits
-4. `/<your-workflow>` - Custom commands for your team
+1. `/project:bootstrap` — Initialize and research
+2. `/project:execute` — Plan and implement
+3. `/git:commit` — Create conventional commits
+4. `/<your-workflow>` — Custom commands for your team
 
 ### Phase 4: Integration
 
@@ -607,9 +809,9 @@ Each task in the plan must be:
 - Small enough to complete in one session
 - Clear about acceptance criteria
 
-### 3. Skills Compound Over Time
+### 3. Rules and Skills Compound Over Time
 
-Every project adds to `.claude/rules/PROJECT_RULES.md` through the debrief phase. This creates an ever-growing knowledge base that improves future implementations.
+Every project adds to `.claude/rules/PROJECT_RULES.md` through the debrief phase. The `skill-evaluator` agent determines whether learnings warrant new skills, new rules, or can be omitted. This creates an ever-growing knowledge base that improves future implementations.
 
 ### 4. TDD is Non-Negotiable
 
@@ -633,9 +835,9 @@ The workflow has built-in human touchpoints:
 
 ### For Implementation Teams
 
-- **No AI expertise required** - Just run commands and answer questions
-- **No prompt engineering** - The system handles context and instructions
-- **No context management** - Subagents isolate complexity
+- **No AI expertise required** — Just run commands and answer questions
+- **No prompt engineering** — The system handles context and instructions
+- **No context management** — Subagents isolate complexity
 - Faster onboarding (skills document patterns)
 - Consistent code quality (enforced standards)
 - Reduced boilerplate (AI handles scaffolding)
@@ -651,15 +853,15 @@ I have a ticket → Run /project:bootstrap → Answer questions → Run /project
 - Skills and commands can be shared across teams
 - Guardrails ensure AI output meets standards without manual review
 - Debrief phase captures learnings automatically
-- **Continuous improvement** - Monitor, identify patterns, refine the system
+- **Continuous improvement** — Monitor, identify patterns, refine the system
 
 ### For Teams
 
-- Institutional knowledge captured in skills
+- Institutional knowledge captured in rules and skills
 - Reproducible workflows across projects
-- Self-improving system (debrief → rules)
+- Self-improving system (debrief → rules/skills)
 - Clear project documentation
-- **Democratized AI access** - Every developer benefits equally
+- **Democratized AI access** — Every developer benefits equally
 
 ---
 
@@ -674,22 +876,22 @@ Lisa currently supports TypeScript, npm-package, Expo, NestJS, and CDK. The arch
 3. Add the config directory structure:
 
 ```bash
-mkdir -p your-stack/{copy-overwrite,merge}
+mkdir -p your-stack/{copy-overwrite,create-only,copy-contents,package-lisa}
 mkdir -p your-stack/copy-overwrite/.claude/skills/
 ```
 
 ### Stacks That Would Benefit from Lisa
 
-- **Next.js** - App Router patterns, Server Components
-- **React Native** - Native module patterns, platform-specific code
-- **Django** - Model/View/Template separation
-- **FastAPI** - Dependency injection, async patterns
-- **Spring Boot** - Bean lifecycle, annotation patterns
-- **Go** - Error handling, middleware patterns
-- **Rust** - Ownership patterns, async runtime
-- **Vue/Nuxt** - Composition API, store patterns
-- **Terraform** - Module structure, state management
-- **Kubernetes** - Helm charts, operator patterns
+- **Next.js** — App Router patterns, Server Components
+- **React Native** — Native module patterns, platform-specific code
+- **Django** — Model/View/Template separation
+- **FastAPI** — Dependency injection, async patterns
+- **Spring Boot** — Bean lifecycle, annotation patterns
+- **Go** — Error handling, middleware patterns
+- **Rust** — Ownership patterns, async runtime
+- **Vue/Nuxt** — Composition API, store patterns
+- **Terraform** — Module structure, state management
+- **Kubernetes** — Helm charts, operator patterns
 
 ---
 
@@ -709,25 +911,34 @@ That's it. No prompt engineering. No context management. No understanding of AI 
 
 ### What the Platform Expert Builds
 
-1. **Skills** - Document your team's knowledge so Claude applies it automatically
-2. **Subagents** - Create specialized workers that isolate complexity
-3. **Commands** - Build the simple interface teams actually use
-4. **Guardrails** - Enforce quality through hooks, plugins, and CI/CD
-5. **ast-grep Rules** - Define custom pattern-based lint rules
-6. **Integration** - Connect to your tools (Jira, GitHub, security scanners)
-7. **Compliance** - Configure security tools and compliance frameworks
+The platform expert builds both the context layer and the enforcement layer:
+
+**Context Layer** (tells the agent what/how):
+1. **Rules** — Define conventions that Claude follows automatically every session
+2. **Skills** — Document your team's knowledge so Claude applies it when relevant
+3. **Commands** — Build the simple interface teams actually use
+4. **Subagents** — Create specialized workers that isolate complexity
+
+**Enforcement Layer** (proves the agent adhered):
+5. **Hooks** — Real-time validation during generation (Claude Code hooks) and before commit (git hooks)
+6. **ESLint + ast-grep** — Static analysis and pattern-based enforcement
+7. **Agentic Code Review** — Semantic analysis via Claude Code local review (pre-PR) and CodeRabbit (CI/CD)
+8. **CI/CD** — Authoritative pipeline with security, performance, and quality gates
+9. **Safety Net** — Prevents agents from bypassing enforcement mechanisms
+10. **Integration** — Connect enforcement to external tools (SonarCloud, Snyk, GitGuardian, FOSSA)
+11. **Compliance** — Configure security tools and compliance frameworks
 
 ### The Trust Equation
 
 ```
-AI Autonomy = f(Guardrails × Skills × Human Checkpoints)
+AI Autonomy = f(Context × Enforcement × Human Checkpoints)
 ```
 
-Without guardrails, you need constant human oversight. With comprehensive guardrails, AI can work autonomously while humans focus on design decisions and code review.
+Context without enforcement is "vibe coding" — the agent interprets instructions with no proof it followed them. Enforcement without context produces technically valid but wrong artifacts. Both layers are required, and the platform expert builds both so implementation teams don't have to.
 
 ### Getting Started
 
-Start small—one skill, one command, one hook—and expand as your team gains confidence. The key insight is that **AI autonomy requires automated enforcement**. The more guardrails you have (formatting, linting, testing, secret scanning), the more freedom you can safely give the AI.
+Start small—one rule, one command, one hook—and expand as your team gains confidence. The key insight is that **AI autonomy requires automated enforcement**. The more guardrails you have (formatting, linting, testing, secret scanning), the more freedom you can safely give the AI.
 
 ---
 
@@ -738,12 +949,17 @@ Start small—one skill, one command, one hook—and expand as your team gains c
 | File/Directory | Purpose |
 |----------------|---------|
 | **CLAUDE.md** | Behavioral rules (Always/Never directives) |
+| **.claude/rules/** | Auto-loaded conventions and philosophy |
 | **.claude/rules/PROJECT_RULES.md** | Project-specific conventions |
 | **.claude/settings.json** | Hooks, plugins, environment config |
 | **.claude/skills/** | Team knowledge and patterns |
 | **.claude/commands/** | Slash command definitions |
 | **.claude/hooks/** | Enforcement shell scripts |
+| **.claude/agents/** | Specialized subagent definitions |
 | **.safety-net.json** | Safety Net plugin rules |
+| **.lisaignore** | Files to exclude from Lisa management |
+| **.lisa-manifest** | Lisa version and generation tracking |
+| **package.lisa.json** | Package.json governance template |
 | **sgconfig.yml** | ast-grep configuration |
 | **ast-grep/rules/** | Custom ast-grep lint rules |
 | **knip.json** | Dead code detection config |
@@ -756,7 +972,7 @@ Start small—one skill, one command, one hook—and expand as your team gains c
 |--------|---------|
 | `bun run lint` | Run ESLint |
 | `bun run typecheck` | TypeScript type checking |
-| `bun run test` | Run all tests |
+| `bun run test` | Run all tests (Jest) |
 | `bun run test:unit` | Run unit tests |
 | `bun run test:integration` | Run integration tests |
 | `bun run knip` | Dead code detection |
@@ -767,12 +983,13 @@ Start small—one skill, one command, one hook—and expand as your team gains c
 
 ## Resources
 
-- **README.md** - Full technical documentation
-- **CLAUDE.md** - Behavioral rules for this project
-- **.claude/rules/PROJECT_RULES.md** - Project-specific conventions
-- **.claude/skills/** - Team knowledge and patterns
-- **.claude/commands/** - Available slash commands
-- **.claude/hooks/** - Automated enforcement scripts
+- **README.md** — Full technical documentation
+- **CLAUDE.md** — Behavioral rules for this project
+- **.claude/rules/** — Auto-loaded conventions and philosophy
+- **.claude/skills/** — Team knowledge and patterns
+- **.claude/commands/** — Available slash commands
+- **.claude/hooks/** — Automated enforcement scripts
+- **.claude/agents/** — Specialized subagent definitions
 
 ---
 
