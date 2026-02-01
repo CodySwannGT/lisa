@@ -147,18 +147,26 @@ When you run `/project:execute`:
    • Run tests until passing
    • Create atomic commits
 
-3. Verify
-   • Confirm all requirements met
-   • Run code review
-   • Apply feedback
+3. Review
+   • Run local code review and CodeRabbit review
+   • Implement fixes from review feedback
 
-4. Debrief
+4. Documentation
+   • Update all documentation related to changes
+   • Update README, API docs, JSDoc documentation
+
+5. Verify
+   • Confirm all requirements met
+   • Run verification commands
+   • Document any drift
+
+6. Debrief
    • Extract reusable patterns
    • Update .claude/rules/PROJECT_RULES.md for future projects
 
-5. Archive
+7. Archive
    • Move completed project to archive
-   • Final commit
+   • Final commit and PR
 ```
 
 ---
@@ -191,23 +199,46 @@ When you run `/project:execute`:
 
 ### 2. Skills (Specialized Knowledge)
 
-**What they are:** Markdown files that teach Claude your team's patterns and philosophy.
+**What they are:** Markdown files that teach Claude your team's patterns and philosophy, or contain workflow logic delegated from slash commands.
 
-**How it works:** Claude automatically applies relevant skills when working, without being explicitly told.
+**How it works:** Skills operate in two tiers:
 
-**Current skills:**
-- `jsdoc-best-practices` — Documentation standards ("why" over "what"), JSDoc ESLint rules
-- `skill-creator` — Guide for creating effective new skills
+- **Foundational skills** (auto-applied) — Teach patterns and are automatically applied when relevant to the current task
+- **Workflow skills** (invoked by commands) — Contain the implementation logic for slash commands; each command delegates to a corresponding skill
+
+**Foundational skills:**
+
+| Skill | Purpose |
+|-------|---------|
+| `jsdoc-best-practices` | Documentation standards ("why" over "what"), JSDoc ESLint rules |
+| `skill-creator` | Guide for creating effective new skills |
+
+**Workflow skills (31 total, organized by category):**
+
+| Category | Skills |
+|----------|--------|
+| **Project** | `project-bootstrap`, `project-setup`, `project-research`, `project-plan`, `project-execute`, `project-implement`, `project-review`, `project-document`, `project-verify`, `project-debrief`, `project-archive`, `project-local-code-review`, `project-lower-code-complexity`, `project-fix-linter-error`, `project-add-test-coverage`, `project-reduce-max-lines`, `project-reduce-max-lines-per-function` |
+| **Git** | `git-commit`, `git-submit-pr`, `git-commit-and-submit-pr`, `git-prune` |
+| **Tasks** | `tasks-load`, `tasks-sync` |
+| **Pull Request** | `pull-request-review` |
+| **Jira** | `jira-create`, `jira-verify` |
+| **SonarQube** | `sonarqube-check`, `sonarqube-fix` |
+| **Lisa** | `lisa-review-implementation`, `lisa-review-project` |
 
 **Directory structure:**
 ```
 .claude/skills/
-├── jsdoc-best-practices/
+├── jsdoc-best-practices/       # Foundational (auto-applied)
 │   ├── SKILL.md
 │   └── references/
-└── skill-creator/
-    ├── SKILL.md
-    └── references/
+├── skill-creator/              # Foundational (auto-applied)
+│   ├── SKILL.md
+│   └── references/
+├── project-execute/            # Workflow (invoked by /project:execute)
+│   └── SKILL.md
+├── git-commit/                 # Workflow (invoked by /git:commit)
+│   └── SKILL.md
+└── ...                         # 27 more workflow skills
 ```
 
 ### 3. Subagents (Specialized Workers)
@@ -233,7 +264,7 @@ When you run `/project:execute`:
 
 ### 4. Slash Commands (Explicit Actions)
 
-**What they are:** Pre-built workflows you invoke with `/command-name`.
+**What they are:** Pre-built workflows you invoke with `/command-name`. Each command delegates to a corresponding skill in `.claude/skills/`. Commands serve as thin entry points; the workflow logic lives in the skill's `SKILL.md` file.
 
 **Available commands:**
 
@@ -504,6 +535,80 @@ An Expo project receives configurations from: `all/` → `typescript/` → `expo
 
 ---
 
+## Part 5b: Configuration Governance (TSConfig & Jest)
+
+Lisa governs TSConfig and Jest configurations using the same inheritance pattern as ESLint: Lisa owns entry points (copy-overwrite), stack-specific configs extend a shared base, and projects customize via create-only local files and threshold overrides.
+
+### TSConfig Inheritance Chain
+
+```
+tsconfig.json             (copy-overwrite, per-stack entry point)
+├── tsconfig.{stack}.json (copy-overwrite, stack config)
+│   └── tsconfig.base.json    (copy-overwrite, governance settings)
+└── tsconfig.local.json        (create-only, project paths/includes/excludes)
+```
+
+Uses TS 5.0+ array `extends`: `"extends": ["./tsconfig.{stack}.json", "./tsconfig.local.json"]`
+
+**What goes where:**
+
+| Setting | Base (governance) | Stack | Local (project) |
+|---------|:-:|:-:|:-:|
+| `strict: true` | Y | | |
+| `skipLibCheck`, `forceConsistentCasingInFileNames` | Y | | |
+| `esModuleInterop`, `resolveJsonModule` | Y | | |
+| `target`, `module`, `moduleResolution` | | Y | |
+| `jsx` (expo), `emitDecoratorMetadata` (nestjs) | | Y | |
+| `paths`, `include`/`exclude`, `outDir`/`rootDir` | | | Y |
+
+### Jest Inheritance Chain
+
+```
+jest.config.ts            (copy-overwrite, per-stack entry point)
+├── jest.{stack}.ts       (copy-overwrite, stack config)
+│   └── jest.base.ts          (copy-overwrite, shared utilities)
+├── jest.config.local.ts      (create-only, project customizations)
+└── jest.thresholds.json      (create-only, coverage thresholds)
+```
+
+**`jest.base.ts` exports:**
+- `defaultThresholds` — default 70/70/70/70 coverage thresholds
+- `defaultCoverageExclusions` — patterns excluded from coverage (`.d.ts`, tests, mocks, etc.)
+- `mergeThresholds(defaults, overrides)` — merge coverage thresholds from `jest.thresholds.json`
+- `mergeConfigs(...configs)` — merge Jest configs (arrays concatenate/deduplicate, objects shallow-merge)
+
+**What goes where:**
+
+| Setting | Base | Stack | Local (project) |
+|---------|:-:|:-:|:-:|
+| `testTimeout` | Y | | |
+| `coverageThreshold` | Y (default) | | via `jest.thresholds.json` |
+| `testEnvironment` | | Y | |
+| `transform` | | Y | |
+| `testMatch`/`testRegex` | | Y | Y (override) |
+| `moduleNameMapper`, `setupFiles` | | | Y |
+| `collectCoverageFrom` | | Y (default) | Y (override) |
+
+### Stack-Specific Configurations
+
+| Stack | TSConfig | Jest |
+|-------|----------|------|
+| **TypeScript** | ES2022, NodeNext, strict unused checks | ts-jest ESM preset, `tests/` + `src/` test directories |
+| **Expo** | react-native JSX, platform module suffixes | jest-expo preset, jsdom environment, React Native transforms |
+| **NestJS** | CommonJS, ES2021, decorators enabled | ts-jest, `spec.ts` convention, extensive boilerplate exclusions |
+| **CDK** | CommonJS, ES2020, relaxed unused checks | ts-jest, `test/` directory, `lib/` + `util/` coverage only |
+
+### Migration Notes
+
+When Lisa runs on existing projects:
+- **copy-overwrite files** (`tsconfig.json`, `jest.config.ts`) overwrite existing project files
+- **create-only files** (`tsconfig.local.json`, `jest.config.local.ts`, `jest.thresholds.json`) only created if absent
+- Projects move project-specific tsconfig settings (paths, includes, outDir) into `tsconfig.local.json`
+- Projects move project-specific jest settings (moduleNameMapper, setupFiles) into `jest.config.local.ts`
+- Projects move coverage thresholds into `jest.thresholds.json`
+
+---
+
 ## Part 6: Advanced Quality Tools
 
 ### ast-grep (Pattern-Based Linting)
@@ -761,9 +866,9 @@ Start with these essentials:
 2. **Project conventions** — Team-specific patterns and guidelines
 3. **Verification requirements** — How to prove tasks are complete
 
-**Skills** (invoked when relevant):
-1. **Documentation standards** — JSDoc best practices
-2. **Skill creation** — How to build new skills
+**Skills** (two tiers):
+1. **Foundational skills** (auto-applied) — Documentation standards, skill creation patterns. These teach Claude your team's conventions and are applied automatically when relevant.
+2. **Workflow skills** (command-delegated) — Automatically created when you build slash commands that delegate to skills. Each `/command:name` maps to a skill in `.claude/skills/`.
 
 ### Phase 3: Add Commands
 
@@ -964,6 +1069,15 @@ Start small—one rule, one command, one hook—and expand as your team gains co
 | **ast-grep/rules/** | Custom ast-grep lint rules |
 | **knip.json** | Dead code detection config |
 | **eslint.config.ts** | ESLint configuration |
+| **tsconfig.json** | TypeScript configuration (governed entry point) |
+| **tsconfig.base.json** | TSConfig governance settings (copy-overwrite) |
+| **tsconfig.{stack}.json** | Stack-specific TSConfig (copy-overwrite) |
+| **tsconfig.local.json** | Project-specific TSConfig (create-only) |
+| **jest.config.ts** | Jest configuration (governed entry point) |
+| **jest.base.ts** | Jest shared utilities (copy-overwrite) |
+| **jest.{stack}.ts** | Stack-specific Jest config (copy-overwrite) |
+| **jest.config.local.ts** | Project-specific Jest settings (create-only) |
+| **jest.thresholds.json** | Coverage threshold overrides (create-only) |
 | **.prettierrc.json** | Prettier formatting config |
 
 ### Key Scripts
