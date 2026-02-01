@@ -228,11 +228,13 @@
     "CLAUDE_DEBUG": "0"
   },
   "includeCoAuthoredBy": true,
+  "plansDirectory": "./plans",
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
     "safety-net@cc-marketplace": true,
     "code-simplifier@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true
+    "playwright@claude-plugins-official": true,
+    "coderabbit@claude-plugins-official": true
   }
 }
