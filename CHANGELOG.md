@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.13.0](https://github.com/CodySwannGT/lisa/compare/vv1.12.9...v1.13.0) (2026-02-01)
+
+
+### Features
+
+* add skill definitions for all commands ([af50022](https://github.com/CodySwannGT/lisa/commit/af5002212f8f8217cd6ef78fa461b9f810eea378))
+* add skill templates for copy-overwrite distribution ([dcfd6aa](https://github.com/CodySwannGT/lisa/commit/dcfd6aafe4fc9b13f77ec6f71d55e7bf6fa5bfe0))
+
+
+### Code Refactoring
+
+* convert commands to thin skill delegators ([284a16e](https://github.com/CodySwannGT/lisa/commit/284a16e6e931e72749d3e50efc5dd31feaeb8d5c))
+* convert template commands to thin skill delegators ([21aac9b](https://github.com/CodySwannGT/lisa/commit/21aac9b1588151f39f5f5e4b8a38cc5fffed533c))
+
+
+### Documentation
+
+* add command-to-skill conversion plan ([a17ec98](https://github.com/CodySwannGT/lisa/commit/a17ec98c52033c3cd5f0c699b09ba3d8492c7978))
+
 ### [1.12.9](https://github.com/CodySwannGT/lisa/compare/vv1.12.8...v1.12.9) (2026-02-01)
 
 
