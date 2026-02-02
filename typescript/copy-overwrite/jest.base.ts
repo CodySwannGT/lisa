@@ -44,6 +44,7 @@ export const defaultCoverageExclusions: readonly string[] = [
   "!**/tests/**",
   "!**/__tests__/**",
   "!**/__mocks__/**",
+  "!**/components/ui/**",
 ];
 
 /**
