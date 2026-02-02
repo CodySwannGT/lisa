@@ -1,0 +1,9 @@
+{
+  "extends": ["expo/tsconfig.base", "./tsconfig.base.json"],
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-native",
+    "baseUrl": "./",
+    "moduleSuffixes": [".ios", ".android", ".native", ".web", ""]
+  }
+}
