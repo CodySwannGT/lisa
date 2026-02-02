@@ -51,6 +51,12 @@ export const defaultCoverageExclusions: readonly string[] = [
  * Allows projects to selectively raise or lower coverage requirements
  * via jest.thresholds.json without replacing the entire threshold object.
  *
+ * Spreads all top-level keys from both defaults and overrides (including
+ * per-path/per-file patterns like `"./src/api/": { branches: 80 }`).
+ * The `global` key receives special treatment: its properties are
+ * shallow-merged so individual metrics can be overridden without
+ * replacing the entire global object.
+ *
  * @param defaults - Base thresholds from the stack config
  * @param overrides - Project-specific overrides from jest.thresholds.json
  * @returns Merged thresholds with overrides taking precedence
@@ -60,6 +66,7 @@ export const mergeThresholds = (
   overrides: Config["coverageThreshold"]
 ): Config["coverageThreshold"] => ({
   ...defaults,
+  ...overrides,
   global: {
     ...(defaults?.global as Record<string, number>),
     ...(overrides?.global as Record<string, number>),
