@@ -4,6 +4,9 @@
     "strict": true,
     "jsx": "react-native",
     "baseUrl": "./",
+    "paths": {
+      "@/*": ["./*"]
+    },
     "moduleSuffixes": [".ios", ".android", ".native", ".web", ""]
   }
 }
