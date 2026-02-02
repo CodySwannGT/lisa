@@ -53,7 +53,7 @@
     "**/metro.config.js",
     "**/babel.config.js"
   ],
-  "ignoreBinaries": ["audit", "ast-grep", "maestro", "eas", "source-map-explorer"],
+  "ignoreBinaries": ["ast-grep", "audit", "eas", "maestro", "serve", "source-map-explorer"],
   "ignoreDependencies": [
     "@dnd-kit/modifiers",
     "@expo-google-fonts/inter",
