@@ -1,0 +1,107 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: ZAP Baseline Scan (Expo)
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '22.21.1'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'bun'
+        type: string
+      zap_target_url:
+        description: 'Override URL for ZAP to scan (default: http://localhost:3000)'
+        required: false
+        default: 'http://localhost:3000'
+        type: string
+      zap_rules_file:
+        description: 'Path to ZAP rules configuration file'
+        required: false
+        default: '.zap/baseline.conf'
+        type: string
+
+jobs:
+  zap_baseline:
+    name: ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+
+      - name: Build web export
+        run: npx expo export --platform web
+
+      - name: Start static server
+        run: |
+          npx serve dist -l 3000 &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          sleep 5
+          curl -sf http://localhost:3000 > /dev/null || (echo "Static server failed to start" && exit 1)
+
+      - name: Check for ZAP rules file
+        id: check_rules
+        run: |
+          if [ -f "${{ inputs.zap_rules_file }}" ]; then
+            echo "has_rules=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_rules=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ inputs.zap_target_url }}
+          rules_file_name: ${{ steps.check_rules.outputs.has_rules == 'true' && inputs.zap_rules_file || '' }}
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: 'zap-report-expo'
+
+      - name: Stop static server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            kill "$SERVER_PID" 2>/dev/null || true
+          fi
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report-expo-${{ github.run_id }}
+          path: |
+            zap-report.html
+            zap-report.json
+            zap-report.md
+          retention-days: 14

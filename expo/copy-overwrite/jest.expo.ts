@@ -6,14 +6,26 @@
 /**
  * Jest Configuration - Expo Stack
  *
- * Provides Expo/React Native-specific Jest configuration.
- * Extends the base Jest utilities for coverage thresholds and merging.
+ * Provides Expo/React Native-specific Jest configuration without using
+ * the `jest-expo` preset directly. The preset's `setupFiles` include
+ * `react-native/jest/setup.js` which redefines `window` via
+ * `Object.defineProperties` — incompatible with jsdom's non-configurable
+ * `window` property, causing "Cannot redefine property: window" errors.
+ *
+ * Instead, this config manually replicates the preset's resolution,
+ * transform, and haste settings while using only `jest-expo/src/preset/setup.js`
+ * (the safe subset) in `setupFiles`.
+ *
+ * Coverage collection is scoped to standard Expo source directories
+ * rather than a catch-all glob, preventing config files, scripts, and
+ * plugins from distorting coverage numbers.
  *
  * Inheritance chain:
  *   jest.expo.ts (this file)
  *   └── jest.base.ts
  *
  * @see https://jestjs.io/docs/configuration
+ * @see https://github.com/expo/expo/issues/40184
  * @module jest.expo
  */
 import type { Config } from "jest";
@@ -47,14 +59,34 @@ interface ExpoJestOptions {
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
  * @returns Jest config object with jsdom environment, babel-jest transform, and React Native resolver
- * @remarks Uses jest-expo preset which provides platform-specific test resolution
- * and proper React Native module mocking out of the box.
+ * @remarks Avoids `jest-expo` preset to prevent jsdom + `react-native/jest/setup.js`
+ * incompatibility. Manually configures haste, resolver, transform, and setupFiles
+ * to match the preset's behavior without the problematic window redefinition.
  */
 export const getExpoJestConfig = ({
   thresholds = defaultThresholds,
 }: ExpoJestOptions = {}): Config => ({
-  preset: "jest-expo",
   testEnvironment: "jsdom",
+  haste: {
+    defaultPlatform: "ios",
+    platforms: ["android", "ios", "native"],
+  },
+  resolver: "react-native/jest/resolver.js",
+  setupFiles: ["jest-expo/src/preset/setup.js"],
+  transform: {
+    "\\.[jt]sx?$": [
+      "babel-jest",
+      {
+        caller: {
+          name: "metro",
+          bundler: "metro",
+          platform: "ios",
+        },
+      },
+    ],
+    "^.+\\.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp|ttf|otf|woff|woff2)$":
+      "jest-expo/src/preset/assetFileTransformer.js",
+  },
   testMatch: [
     "<rootDir>/**/*.test.ts",
     "<rootDir>/**/*.test.tsx",
@@ -67,7 +99,18 @@ export const getExpoJestConfig = ({
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   collectCoverageFrom: [
-    "**/*.{ts,tsx}",
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "config/**/*.{ts,tsx}",
+    "constants/**/*.{ts,tsx}",
+    "features/**/*.{ts,tsx}",
+    "hooks/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "providers/**/*.{ts,tsx}",
+    "shared/**/*.{ts,tsx}",
+    "stores/**/*.{ts,tsx}",
+    "types/**/*.{ts,tsx}",
+    "utils/**/*.{ts,tsx}",
     "!**/*.d.ts",
     ...defaultCoverageExclusions,
   ],

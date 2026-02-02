@@ -26,7 +26,8 @@
       "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
       "deploy:dev": "sls deploy --stage dev",
       "deploy:staging": "sls deploy --stage staging",
-      "deploy:production": "sls deploy --stage production"
+      "deploy:production": "sls deploy --stage production",
+      "security:zap": "bash scripts/zap-baseline.sh"
     },
     "dependencies": {
       "@apollo/server": "^5.2.0",

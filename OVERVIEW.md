@@ -594,7 +594,7 @@ jest.config.ts            (copy-overwrite, per-stack entry point)
 | Stack | TSConfig | Jest |
 |-------|----------|------|
 | **TypeScript** | ES2022, NodeNext, strict unused checks | ts-jest ESM preset, `tests/` + `src/` test directories |
-| **Expo** | react-native JSX, platform module suffixes | jest-expo preset, jsdom environment, React Native transforms |
+| **Expo** | react-native JSX, platform module suffixes | Manual React Native resolution (jsdom-compatible), scoped Expo directory coverage |
 | **NestJS** | CommonJS, ES2021, decorators enabled | ts-jest, `spec.ts` convention, extensive boilerplate exclusions |
 | **CDK** | CommonJS, ES2020, relaxed unused checks | ts-jest, `test/` directory, `lib/` + `util/` coverage only |
 

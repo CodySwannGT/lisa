@@ -3,9 +3,10 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
-  "include": ["lib/**/*", "bin/**/*", "test/**/*", "*.config.ts", "eslint.*.ts"],
+  "include": ["lib/**/*", "bin/**/*", "test/**/*", "*.config.ts", "eslint.*.ts", "jest.*.ts"],
   "exclude": ["node_modules", "dist", "cdk.out"]
 }

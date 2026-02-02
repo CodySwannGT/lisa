@@ -190,17 +190,12 @@ test("sets isSubmitting to true", () => {});
 
 ## Jest Configuration
 
-### Use jest-expo Universal Preset
+### Manual React Native Resolution (No Preset)
 
-Configure Jest to test across all Expo platforms:
-
-```json
-{
-  "jest": {
-    "preset": "jest-expo/universal"
-  }
-}
-```
+Lisa configures Jest manually instead of using the `jest-expo` preset to avoid
+jsdom incompatibility with `react-native/jest/setup.js`. The configuration in
+`jest.expo.ts` provides haste, resolver, transform, and setupFiles that match
+the preset's behavior without redefining `window`.
 
 ### Use Fake Timers with userEvent
 
