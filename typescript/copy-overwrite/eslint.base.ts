@@ -109,7 +109,7 @@ export const getBaseConfigs = () => [
   },
 
   // Code quality
-  sonarjs.configs.recommended,
+  ...(sonarjs.configs?.recommended ? [sonarjs.configs.recommended] : []),
   {
     plugins: {
       "@eslint-community/eslint-comments": eslintComments,
