@@ -13,8 +13,14 @@
  * `window` property, causing "Cannot redefine property: window" errors.
  *
  * Instead, this config manually replicates the preset's resolution,
- * transform, and haste settings while using only `jest-expo/src/preset/setup.js`
- * (the safe subset) in `setupFiles`.
+ * transform, and haste settings without any preset setupFiles.
+ *
+ * `setupFiles` is intentionally empty because `jest-expo/src/preset/setup.js`
+ * requires `__DEV__` to be defined before it runs, and `mergeConfigs`
+ * concatenates arrays with base entries first — making it impossible for
+ * project-local setupFiles to prepend a `__DEV__` definition. Projects
+ * should add their own setupFiles in `jest.config.local.ts` with the
+ * correct ordering (define globals first, then load jest-expo setup).
  *
  * Coverage collection is scoped to standard Expo source directories
  * rather than a catch-all glob, preventing config files, scripts, and
@@ -60,8 +66,10 @@ interface ExpoJestOptions {
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
  * @returns Jest config object with jsdom environment, babel-jest transform, and React Native resolver
  * @remarks Avoids `jest-expo` preset to prevent jsdom + `react-native/jest/setup.js`
- * incompatibility. Manually configures haste, resolver, transform, and setupFiles
- * to match the preset's behavior without the problematic window redefinition.
+ * incompatibility. Manually configures haste, resolver, and transform to match the
+ * preset's behavior without the problematic window redefinition. `setupFiles` is
+ * empty — projects must provide their own in `jest.config.local.ts` with correct
+ * ordering (define `__DEV__` before loading `jest-expo/src/preset/setup.js`).
  */
 export const getExpoJestConfig = ({
   thresholds = defaultThresholds,
@@ -72,7 +80,7 @@ export const getExpoJestConfig = ({
     platforms: ["android", "ios", "native"],
   },
   resolver: "react-native/jest/resolver.js",
-  setupFiles: ["jest-expo/src/preset/setup.js"],
+  setupFiles: [],
   transform: {
     "\\.[jt]sx?$": [
       "babel-jest",

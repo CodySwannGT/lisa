@@ -25,9 +25,8 @@ describe("jest.expo", () => {
       expect(config.resolver).toBe("react-native/jest/resolver.js");
     });
 
-    it("includes only jest-expo setup (not react-native/jest/setup.js)", () => {
-      expect(config.setupFiles).toEqual(["jest-expo/src/preset/setup.js"]);
-      expect(config.setupFiles).not.toContain("react-native/jest/setup.js");
+    it("leaves setupFiles empty for projects to control ordering", () => {
+      expect(config.setupFiles).toEqual([]);
     });
 
     it("configures babel-jest transform for JS/TS files", () => {
