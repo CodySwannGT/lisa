@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.15.0](https://github.com/CodySwannGT/lisa/compare/vv1.14.0...v1.15.0) (2026-02-02)
+
+
+### Features
+
+* add OWASP ZAP baseline scanning for expo and nestjs stacks ([bfa3323](https://github.com/CodySwannGT/lisa/commit/bfa33233ca9d6e91616e53d8a0aa2f25556d8510))
+
+
+### Bug Fixes
+
+* add allowImportingTsExtensions to tsconfig.eslint.json files ([2febdaa](https://github.com/CodySwannGT/lisa/commit/2febdaa758e177d4a62a7c2c36b2a61c34425588))
+* add jest.*.ts to tsconfig.eslint.json include patterns ([7fd8f34](https://github.com/CodySwannGT/lisa/commit/7fd8f34ffe283fe1f04c5d9c615aa456568aab90))
+* add moduleNameMapper and transform for stack template test imports ([4518c7b](https://github.com/CodySwannGT/lisa/commit/4518c7be9b43b2fed608cdc32266776d0c7a0a64))
+* move paths and include/exclude to copy-overwrite stack tsconfigs ([a7395f9](https://github.com/CodySwannGT/lisa/commit/a7395f95222754efae6189e9a11497ab01245301))
+* replace jest-expo preset with manual RN resolution for jsdom compatibility ([be37371](https://github.com/CodySwannGT/lisa/commit/be373715f56c157c205206d7a0ecfab9aba7dbbe))
+* use tsx instead of ts-node in CDK template to support array extends ([5e177f9](https://github.com/CodySwannGT/lisa/commit/5e177f98961278fd43d719783fdd594eceb96060))
+
+
+### Documentation
+
+* add project plan files ([bd613f9](https://github.com/CodySwannGT/lisa/commit/bd613f981552d467e958a14cc090a1966cd40ba5))
+* update expo jest description and mark ZAP scanning complete ([76f2e35](https://github.com/CodySwannGT/lisa/commit/76f2e35c9c14307701ab9ae1cd764cfb0b977079))
+
 ## [1.14.0](https://github.com/CodySwannGT/lisa/compare/vv1.13.0...v1.14.0) (2026-02-02)
 
 
