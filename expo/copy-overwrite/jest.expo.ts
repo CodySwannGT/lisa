@@ -95,15 +95,10 @@ export const getExpoJestConfig = ({
     "^.+\\.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp|ttf|otf|woff|woff2)$":
       "jest-expo/src/preset/assetFileTransformer.js",
   },
-  testMatch: [
-    "<rootDir>/**/*.test.ts",
-    "<rootDir>/**/*.test.tsx",
-    "<rootDir>/**/__tests__/**/*.ts",
-    "<rootDir>/**/__tests__/**/*.tsx",
-  ],
+  testMatch: ["<rootDir>/**/*.test.ts", "<rootDir>/**/*.test.tsx"],
   testPathIgnorePatterns: ["/node_modules/", "/dist/", "/.expo/"],
   transformIgnorePatterns: [
-    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@gluestack-ui/.*|@gluestack-style/.*|nativewind|react-native-css-interop)",
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@gluestack-ui/.*|@gluestack-style/.*|nativewind|react-native-css-interop|react-native-reanimated|react-native-worklets|lucide-react-native|@gorhom|@shopify)",
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   collectCoverageFrom: [
