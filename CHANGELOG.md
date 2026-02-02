@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.14.0](https://github.com/CodySwannGT/lisa/compare/vv1.13.0...v1.14.0) (2026-02-02)
+
+
+### Features
+
+* add tsconfig and jest governance for expo, nestjs, and cdk stacks ([e63e95c](https://github.com/CodySwannGT/lisa/commit/e63e95ce3af50e0a39dabab9f321e1040047827a))
+* add tsconfig and jest governance templates for typescript stack ([016fa85](https://github.com/CodySwannGT/lisa/commit/016fa85f0e9843c3898c1b1ad5c5151ae3ba24e8))
+
+
+### Bug Fixes
+
+* preserve per-path threshold keys in mergeThresholds ([f7a3b28](https://github.com/CodySwannGT/lisa/commit/f7a3b28bee9e222c0d7ff9b196bb021b780250df))
+* resolve strict type errors in jest-base tests ([8d0bdb6](https://github.com/CodySwannGT/lisa/commit/8d0bdb6d24c32e97bcf86949ad422361ceaefd3d))
+
+
+### Code Refactoring
+
+* migrate Lisa's own tsconfig and jest to governed pattern ([b918faa](https://github.com/CodySwannGT/lisa/commit/b918faad6460f40b52e46592f460ff245ec7916d))
+
+
+### Documentation
+
+* add and update project plan files ([4c4a10d](https://github.com/CodySwannGT/lisa/commit/4c4a10d95b4e02ade67426b8e52fbc37c7df91bd))
+* add tsconfig and jest governance documentation to OVERVIEW.md ([0893f0e](https://github.com/CodySwannGT/lisa/commit/0893f0e4239956fec761cdd5d289ed644476db45))
+
 ## [1.13.0](https://github.com/CodySwannGT/lisa/compare/vv1.12.9...v1.13.0) (2026-02-01)
 
 
