@@ -18,6 +18,14 @@ jobs:
       skip_jobs: 'test,test:integration,test:e2e'
     secrets: inherit
 
+  zap:
+    name: 🕷️ ZAP Baseline Scan
+    needs: [quality]
+    uses: ./.github/workflows/zap-baseline.yml
+    with:
+      node_version: '22.21.1'
+      package_manager: 'bun'
+
   create_issue_on_failure:
     name: 📌 Create Issue on Failure
     needs: [quality]

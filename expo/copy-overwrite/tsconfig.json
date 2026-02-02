@@ -1,3 +1,5 @@
 {
-  "extends": ["./tsconfig.expo.json", "./tsconfig.local.json"]
+  "extends": ["./tsconfig.expo.json", "./tsconfig.local.json"],
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist", "web-build"]
 }

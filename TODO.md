@@ -13,7 +13,7 @@ Enforcement capabilities Lisa can add to govern AI-generated artifacts against t
 
 ## Secure Invariant
 
-- [ ] Add ZAP (OWASP) DAST scanning to CI/CD workflow templates
+- [x] Add ZAP (OWASP) DAST scanning to CI/CD workflow templates
 - [ ] Add FOSSA license compliance scanning to CI/CD workflow templates
 - [ ] Add Snyk dependency scanning to CI/CD workflow templates (if not already present)
 - [ ] Add GitGuardian secrets scanning to CI/CD workflow templates (if not already present)

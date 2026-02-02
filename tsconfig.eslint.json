@@ -2,8 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*", "tests/**/*", "test/**/*", "*.config.ts", "eslint.*.ts"],
+  "include": ["src/**/*", "tests/**/*", "test/**/*", "*.config.ts", "eslint.*.ts", "jest.*.ts"],
   "exclude": ["node_modules", "dist", "build"]
 }

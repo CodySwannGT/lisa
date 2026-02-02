@@ -91,6 +91,11 @@ test-results/*
 maestro-screenshots/
 *.maestro.log
 
+# OWASP ZAP reports
+zap-report.html
+zap-report.json
+zap-report.md
+
 # Compiled TypeScript
 lambdas/**/*.js
 lambdas/**/*.js.map
