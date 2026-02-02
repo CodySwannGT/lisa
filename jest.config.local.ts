@@ -10,7 +10,9 @@
 import type { Config } from "jest";
 
 const config: Config = {
-  // Lisa uses tests/ directory instead of default src/**/*.test.ts
+  // Lisa prefers tests/ as the primary test location. Note: mergeConfigs
+  // concatenates arrays, so this entry combines with the stack's testMatch
+  // (which may include src/**/*.test.ts), resulting in both patterns being active.
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   // Exclude index.ts from coverage (entry point with no logic)
   collectCoverageFrom: ["src/**/*.ts", "!src/index.ts"],

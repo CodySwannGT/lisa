@@ -99,6 +99,50 @@ describe("jest.base", () => {
 
       expect((result?.global as Record<string, number>)?.statements).toBe(50);
     });
+
+    it("preserves per-path keys from overrides", () => {
+      const overrides: Config["coverageThreshold"] = {
+        global: { statements: 80 },
+        "./src/api/": { branches: 90 },
+      };
+
+      const result = mergeThresholds(defaultThresholds, overrides);
+      const resultRecord = result as Record<string, unknown>;
+
+      expect(resultRecord["./src/api/"]).toEqual({ branches: 90 });
+    });
+
+    it("preserves per-path keys from defaults when not in overrides", () => {
+      const defaults: Config["coverageThreshold"] = {
+        global: { statements: 70 },
+        "./src/core/": { lines: 95 },
+      };
+      const overrides: Config["coverageThreshold"] = {
+        global: { statements: 80 },
+      };
+
+      const result = mergeThresholds(defaults, overrides);
+      const resultRecord = result as Record<string, unknown>;
+
+      expect(resultRecord["./src/core/"]).toEqual({ lines: 95 });
+      expect((result?.global as Record<string, number>)?.statements).toBe(80);
+    });
+
+    it("override per-path keys take precedence over default per-path keys", () => {
+      const defaults: Config["coverageThreshold"] = {
+        global: { statements: 70 },
+        "./src/api/": { branches: 50 },
+      };
+      const overrides: Config["coverageThreshold"] = {
+        global: { statements: 80 },
+        "./src/api/": { branches: 90 },
+      };
+
+      const result = mergeThresholds(defaults, overrides);
+      const resultRecord = result as Record<string, unknown>;
+
+      expect(resultRecord["./src/api/"]).toEqual({ branches: 90 });
+    });
   });
 
   describe("mergeConfigs", () => {
