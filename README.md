@@ -8,6 +8,29 @@ Developers write specs and answer questions. Agents implement, test, verify, que
 
 > Ask Claude: "What is the purpose of Lisa and how does it work?"
 
+## Installation
+
+```bash
+# Install via npm
+npm install -g @codyswann/lisa
+
+# Or use npx (no install required)
+npx @codyswann/lisa /path/to/project
+```
+
+## How It Works
+
+Lisa applies multiple layers of quality control to Claude Code projects:
+
+| Layer | Purpose |
+|-------|---------|
+| **CLAUDE.md** | Direct behavioral rules for Claude |
+| **Skills** | Teach coding philosophy and patterns |
+| **Hooks** | Auto-format and lint on every edit |
+| **Slash Commands** | Guided workflows (`/project:implement`, `/git:commit`) |
+| **ESLint Plugins** | Enforce code structure and ordering |
+| **Git Hooks** | Pre-commit quality gates via Husky |
+
 ## Step 1: Install Claude Code
 
 ```bash
@@ -22,6 +45,13 @@ brew install claude-code
 
 ## Step 3: Apply Lisa to a Project
 
+```bash
+lisa /path/to/your-project
+
+# Or from within your project
+npx @codyswann/lisa .
+```
+
 > Ask Claude: "How do I apply Lisa to a project? Walk me through using the CLI on an existing codebase."
 
 ## Step 4: Work on a Feature
@@ -30,6 +60,7 @@ brew install claude-code
 
 Or break it down:
 
+- `/project:setup` - Set up the project from a spec or ticket
 - `/project:research` - Research the codebase
 - `/project:plan` - Create an implementation plan
 - `/project:implement` - Execute the plan

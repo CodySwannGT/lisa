@@ -56,9 +56,9 @@ Or break it down:
 
 > Ask Claude: "Run pending database migrations and verify the schema is up to date."
 
-### Access GraphQL IDE
+### Test API Endpoints
 
-> Ask Claude: "How do I access the GraphQL playground and run queries against the local API?"
+> Ask Claude: "How do I test the API endpoints locally?"
 
 ### Deploy
 
