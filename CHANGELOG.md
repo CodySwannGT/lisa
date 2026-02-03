@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.19.1](https://github.com/CodySwannGT/lisa/compare/vv1.19.0...v1.19.1) (2026-02-03)
+
+
+### Bug Fixes
+
+* address code review findings for project workflow removal ([367980c](https://github.com/CodySwannGT/lisa/commit/367980c0fdb99e4d3e3dfd60ba85e0b05c418fb8))
+
+
+### Documentation
+
+* add plan commands and rewrite HUMAN.md for plan workflow ([471455c](https://github.com/CodySwannGT/lisa/commit/471455c3aef041ab7320d8f033e69bed366e110c))
+
 ## [1.19.0](https://github.com/CodySwannGT/lisa/compare/vv1.18.1...v1.19.0) (2026-02-03)
 
 
