@@ -28,7 +28,7 @@ If no arguments provided, prompt the user for at least one lint rule name.
 
 Compile findings into a detailed brief:
 
-```
+```markdown
 Fix ESLint violations for rules: $ARGUMENTS
 
 ## Violations by Rule

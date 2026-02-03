@@ -24,11 +24,11 @@ If no arguments provided, prompt the user for at least one lint rule name.
    - Violation count per file
    - Sample error messages
 
-## Step 2: Generate Brief
+## Step 2: Create Plan
 
-Compile findings into a detailed brief:
+In plan mode, create a plan that includes the following details:
 
-```
+```markdown
 Fix ESLint violations for rules: $ARGUMENTS
 
 ## Violations by Rule
@@ -61,13 +61,3 @@ Fix ESLint violations for rules: $ARGUMENTS
 Command: `bun run lint 2>&1 | grep -E "($ARGUMENTS)" | wc -l`
 Expected: 0
 ```
-
-## Step 3: Create Plan
-
-1. Write the generated brief to a new plan file at `plans/<descriptive-name>.md`
-2. Use TaskCreate to create tasks for each item identified in the brief
-   - Size each task for a single verification command
-   - Include `/coding-philosophy` in skills metadata
-   - Include verification command and expected output
-   - Set `metadata.plan` to the plan name
-3. Report the plan file path and number of tasks created

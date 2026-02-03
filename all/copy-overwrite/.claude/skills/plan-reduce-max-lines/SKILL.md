@@ -29,7 +29,7 @@ If no violations at $ARGUMENTS, report success and exit.
 
 Compile findings into a detailed brief:
 
-```
+```markdown
 Reduce max file lines threshold to $ARGUMENTS.
 
 ## Files Exceeding Threshold (ordered by line count)
