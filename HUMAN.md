@@ -101,6 +101,13 @@ Commands are organized by category.
 | `/sonarqube:check` | Get reason last PR failed SonarQube checks | none |
 | `/sonarqube:fix` | Check SonarQube failures, fix them, and commit | none |
 
+### JIRA Commands
+
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/jira:create` | Create JIRA epics/stories/tasks from code files | `<file-or-directory-path> [project-key]` (path required, key optional) |
+| `/jira:verify` | Verify JIRA ticket meets standards for epic relationships | `<TICKET-ID>` (required) |
+
 ### Lisa Commands
 
 | Command | Description | Arguments |
@@ -307,6 +314,22 @@ Run FROM the Lisa repository. Compares Lisa's templates against a target project
 **Arguments:** `[lisa-dir]` (optional — auto-detects if Claude started with `--add-dir`)
 
 Run FROM a project with Lisa applied. Compares the project's Lisa-managed files against Lisa source templates and offers to upstream changes back to Lisa.
+
+---
+
+### `/jira:create`
+
+**Arguments:** `<file-or-directory-path> [project-key]` (path required, key optional)
+
+Creates JIRA epics, stories, and tasks from code files or descriptions with comprehensive quality requirements.
+
+---
+
+### `/jira:verify`
+
+**Arguments:** `<TICKET-ID>` (required)
+
+Verifies a JIRA ticket meets organizational standards for epic relationships and description quality.
 
 ---
 
