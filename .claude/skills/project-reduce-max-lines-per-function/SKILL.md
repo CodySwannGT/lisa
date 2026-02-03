@@ -6,6 +6,9 @@ argument-hint: "<max-lines-per-function-value>"
 model: sonnet
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use `/plan-reduce-max-lines-per-function` instead, which integrates with Claude's native plan mode.
+> This skill will be removed in a future release.
+
 # Reduce Max Lines Per Function
 
 Target threshold: $ARGUMENTS lines per function

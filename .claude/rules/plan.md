@@ -12,7 +12,7 @@ When making a plan:
 - The plan MUST include written instructions to create a task list using TaskCreate for each task (following the Task Creation Specification below). The list should contain items related to the plan and specify that subagents should handle as many in parallel as possible. The following should always be included in the task list
   - a task to be run after implementation to review the code with CodeRabbit
   - a task to be run after all code review to implement valid review suggestions
-  - a task to be run after implementation to review the code with /project-local-code-review
+  - a task to be run after implementation to review the code with /plan-local-code-review
   - a task to be run after code review implementation to simplify the implemented code with code simplifier agent
   - a task to be run after code review implementation to update/add/remove tests, containing the tests that need to get updated, added or removed
   - a task to be run after code review implementation to update/add/remove documentation (jsdocs, markdown files, etc), containing the documentation that need to get updated, added or removed

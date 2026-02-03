@@ -5,6 +5,10 @@ allowed-tools: ["Read", "Write", "Bash(git*)", "Glob", "Grep", "Task", "TaskCrea
 argument-hint: "<project-directory>"
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use Claude's native plan mode instead.
+> Enter plan mode with `/plan`, describe your requirements, and Claude will create a plan with tasks automatically.
+> This skill will be removed in a future release.
+
 1. Move $ARGUMENTS to `projects/archive`
 2. Clear the active project marker: `rm -f .claude-active-project`
 3. Run /git-commit-and-submit-pr

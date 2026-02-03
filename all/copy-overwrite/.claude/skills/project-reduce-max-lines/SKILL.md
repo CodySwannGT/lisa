@@ -6,6 +6,9 @@ argument-hint: "<max-lines-value>"
 model: sonnet
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use `/plan-reduce-max-lines` instead, which integrates with Claude's native plan mode.
+> This skill will be removed in a future release.
+
 # Reduce Max Lines
 
 Target threshold: $ARGUMENTS lines per file

@@ -6,6 +6,9 @@ argument-hint: "<threshold-percentage>"
 model: sonnet
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use `/plan-add-test-coverage` instead, which integrates with Claude's native plan mode.
+> This skill will be removed in a future release.
+
 # Increase Test Coverage
 
 Target threshold: $ARGUMENTS%
