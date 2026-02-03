@@ -91,7 +91,6 @@ project_count=$(jq 'length' "$CONFIG_FILE")
 log_info "Found $project_count project(s) in config"
 echo ""
 
-# Counters (using process substitution to avoid subshell issues)
 success_count=0
 fail_count=0
 

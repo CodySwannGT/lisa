@@ -177,16 +177,6 @@ while IFS=$'\t' read -r project_path target_branch; do
     continue
   fi
 
-  # Check for existing PR (use cd to let gh auto-detect repo from working directory)
-  existing_pr=$(cd "$expanded_path" && gh pr list --head "$branch_name" --base "$target_branch" --state open --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
-
-  if [[ -n "$existing_pr" ]]; then
-    log_warning "PR already exists: #$existing_pr, skipping PR creation"
-    log_success "Changes pushed to $branch_name"
-    ((success_count++)) || true
-    continue
-  fi
-
   # Create PR
   log_info "Creating pull request..."
   if ! (cd "$expanded_path" && gh pr create --title "chore: update Lisa configuration" --base "$target_branch" --body "Automated Lisa configuration update applied on $DATE_STAMP."); then
