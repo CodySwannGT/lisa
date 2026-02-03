@@ -1,12 +1,10 @@
-# Lisa
-
-A Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects.
+# [Project Name]
 
 Developers write specs and answer questions. Agents implement, test, verify, question, and document.
 
 ## About This Project
 
-> Ask Claude: "What is the purpose of Lisa and how does it work?"
+> Ask Claude: "What is the purpose of this project and how does it work?"
 
 ## Step 1: Install Claude Code
 
@@ -18,18 +16,19 @@ brew install claude-code
 
 ## Step 2: Set Up This Project
 
-> Ask Claude: "I just cloned this repo. Walk me through the full setup including installing dependencies and building the project."
+> Ask Claude: "I just cloned this repo. Walk me through the full setup including installing dependencies, environment variables, and any other configuration."
 
-## Step 3: Apply Lisa to a Project
+## Step 3: Run the App Locally
 
-> Ask Claude: "How do I apply Lisa to a project? Walk me through using the CLI on an existing codebase."
+> Ask Claude: "How do I start the app locally? Walk me through the steps and verify it's running."
 
 ## Step 4: Work on a Feature
 
-> Ask Claude: "I have a feature to implement: [describe feature]. Research the codebase and create a plan."
+> Ask Claude: "I have Jira ticket [TICKET-ID]. Research the codebase, create a plan, and implement it."
 
 Or break it down:
 
+- `/project:setup` - Set up the project from a spec or ticket
 - `/project:research` - Research the codebase
 - `/project:plan` - Create an implementation plan
 - `/project:implement` - Execute the plan
@@ -53,26 +52,18 @@ Or break it down:
 
 > Ask Claude: "Increase test coverage for the files I changed."
 
-### Run Tests
+### Deploy
 
-> Ask Claude: "Run the test suite and fix any failures."
-
-### Contributing
-
-> Ask Claude: "I want to add a new stack type to Lisa. Walk me through the process."
+> Ask Claude: "Walk me through deploying this project."
 
 ## Project Standards
 
-> Ask Claude: "What coding standards does this project follow?"
+> Ask Claude: "What coding standards and conventions does this project follow?"
 
 ## Architecture
 
-> Ask Claude: "Explain the architecture of this project and how the different layers work together."
+> Ask Claude: "Explain the architecture of this project, including key components and how they interact."
 
 ## Troubleshooting
 
 > Ask Claude: "I'm having an issue with [describe problem]. Help me debug it."
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.

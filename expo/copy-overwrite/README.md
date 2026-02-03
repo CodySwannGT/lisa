@@ -1,0 +1,85 @@
+# [Project Name]
+
+Developers write specs and answer questions. Agents implement, test, verify, question, and document.
+
+## About This Project
+
+> Ask Claude: "What is the purpose of this project and how does it work?"
+
+## Step 1: Install Claude Code
+
+```bash
+# Install Claude Code CLI
+brew install claude-code
+# Or: npm install -g @anthropic-ai/claude-code
+```
+
+## Step 2: Set Up This Project
+
+> Ask Claude: "I just cloned this repo. Walk me through the full setup including installing dependencies, environment variables, and any other configuration."
+
+## Step 3: Run the App Locally
+
+> Ask Claude: "How do I start the app locally? Walk me through the steps and verify it's running."
+
+## Step 4: Work on a Feature
+
+> Ask Claude: "I have Jira ticket [TICKET-ID]. Research the codebase, create a plan, and implement it."
+
+Or break it down:
+
+- `/project:setup` - Set up the project from a spec or ticket
+- `/project:research` - Research the codebase
+- `/project:plan` - Create an implementation plan
+- `/project:implement` - Execute the plan
+- `/project:review` - Review the changes
+
+## Common Tasks
+
+### Code Review
+
+> Ask Claude: "Review the changes on this branch and suggest improvements."
+
+### Submit a PR
+
+> Ask Claude: "Commit my changes and open a pull request."
+
+### Fix Lint Errors
+
+> Ask Claude: "Run the linter and fix all errors."
+
+### Add Test Coverage
+
+> Ask Claude: "Increase test coverage for the files I changed."
+
+### Run on iOS
+
+> Ask Claude: "Start the app on the iOS simulator and verify it launches correctly."
+
+### Run on Android
+
+> Ask Claude: "Start the app on the Android emulator and verify it launches correctly."
+
+### Run on Web
+
+> Ask Claude: "Start the app in a web browser and verify it loads correctly."
+
+### Generate Types After Schema Changes
+
+> Ask Claude: "The GraphQL schema has changed. Regenerate types and fix any resulting type errors."
+
+### Deploy
+
+> Ask Claude: "Walk me through deploying this project."
+
+## Project Standards
+
+> Ask Claude: "What coding standards and conventions does this project follow?"
+
+## Architecture
+
+> Ask Claude: "Explain the architecture of this project, including key components and how they interact."
+
+## Troubleshooting
+
+> Ask Claude: "I'm having an issue with [describe problem]. Help me debug it."
