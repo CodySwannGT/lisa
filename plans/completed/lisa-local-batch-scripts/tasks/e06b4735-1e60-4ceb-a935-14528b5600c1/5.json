@@ -1,0 +1,25 @@
+{
+  "id": "5",
+  "subject": "Review code with CodeRabbit",
+  "description": "**Type:** Task\n\n**Description:** Run CodeRabbit code review on the changes.\n\n**Skills to Invoke:** `/coderabbit:review`\n\n**Verification:**\n- Type: manual-check\n- Expected: Review completed with findings addressed",
+  "activeForm": "Running CodeRabbit review",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coderabbit:review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "N/A",
+      "expected": "Review completed"
+    }
+  }
+}

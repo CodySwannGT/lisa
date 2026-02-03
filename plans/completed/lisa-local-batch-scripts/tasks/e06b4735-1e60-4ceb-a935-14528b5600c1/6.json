@@ -1,0 +1,25 @@
+{
+  "id": "6",
+  "subject": "Review code with local code review",
+  "description": "**Type:** Task\n\n**Description:** Run local code review using `/plan-local-code-review`.\n\n**Skills to Invoke:** `/plan-local-code-review`\n\n**Verification:**\n- Type: manual-check\n- Expected: Review completed with findings addressed",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/plan-local-code-review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "N/A",
+      "expected": "Review completed"
+    }
+  }
+}
