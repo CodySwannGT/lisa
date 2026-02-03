@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.18.0](https://github.com/CodySwannGT/lisa/compare/vv1.17.0...v1.18.0) (2026-02-03)
+
+
+### Features
+
+* **rules:** add Task Creation Specification to plan mode rules ([e88af2e](https://github.com/CodySwannGT/lisa/commit/e88af2e6f9650d182063e0e64ec0b95c031afa77))
+
+
+### Bug Fixes
+
+* **hooks:** scope dedup grep to Sessions section in track-plan-sessions.sh ([c1722be](https://github.com/CodySwannGT/lisa/commit/c1722be1d59e98a047718a2df07577d9b3ecea5b))
+* **skills:** remove argument-hint from project-local-code-review skill ([5223ed5](https://github.com/CodySwannGT/lisa/commit/5223ed5450c4eb0c80b935576d243e53467574b0))
+
+
+### Documentation
+
+* add plan for task creation specification in plan rules ([8b87362](https://github.com/CodySwannGT/lisa/commit/8b8736286d57d74c12dd4c95a1f686d08aff3422))
+* **plan:** expand plan mode rules with review tasks, archive steps, and draft PR requirement ([b57040f](https://github.com/CodySwannGT/lisa/commit/b57040f0397e2bfd7bbf71c157cc1871833849aa))
+
 ## [1.17.0](https://github.com/CodySwannGT/lisa/compare/vv1.16.0...v1.17.0) (2026-02-03)
 
 
