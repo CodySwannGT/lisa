@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.19.2](https://github.com/CodySwannGT/lisa/compare/vv1.19.1...v1.19.2) (2026-02-03)
+
+
+### Bug Fixes
+
+* resolve @isaacs/brace-expansion vulnerability via resolutions ([36c1f8a](https://github.com/CodySwannGT/lisa/commit/36c1f8af696185954233cbe5bd6fc5bfc73f3e3f))
+* update @isaacs/brace-expansion to resolve critical vulnerability ([122a983](https://github.com/CodySwannGT/lisa/commit/122a98389af41a0e7ba7bbc2f944b95bf489a977))
+
+
+### Documentation
+
+* add Lisa Commands section to all README templates ([4c5007b](https://github.com/CodySwannGT/lisa/commit/4c5007bc13fb2595e9f0de1bd744784fbad15c61))
+
 ### [1.19.1](https://github.com/CodySwannGT/lisa/compare/vv1.19.0...v1.19.1) (2026-02-03)
 
 
