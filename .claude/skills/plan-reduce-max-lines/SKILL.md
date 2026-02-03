@@ -3,7 +3,7 @@ name: plan-reduce-max-lines
 description: This skill should be used when reducing the maximum file lines threshold and fixing all violations. It updates the eslint threshold configuration, identifies files exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized files.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 argument-hint: "<max-lines-value>"
-model: sonnet
+
 ---
 
 # Reduce Max Lines
@@ -25,9 +25,9 @@ If no argument provided, prompt the user for a target.
 
 If no violations at $ARGUMENTS, report success and exit.
 
-## Step 2: Generate Brief
+## Step 2: Create Plan
 
-Compile findings into a detailed brief:
+In plan mode, create a plan that includes the following details:
 
 ```markdown
 Reduce max file lines threshold to $ARGUMENTS.
@@ -57,13 +57,3 @@ Reduce max file lines threshold to $ARGUMENTS.
 Command: `bun run lint 2>&1 | grep "max-lines" | wc -l`
 Expected: 0
 ```
-
-## Step 3: Create Plan
-
-1. Write the generated brief to a new plan file at `plans/<descriptive-name>.md`
-2. Use TaskCreate to create tasks for each item identified in the brief
-   - Size each task for a single verification command
-   - Include `/coding-philosophy` in skills metadata
-   - Include verification command and expected output
-   - Set `metadata.plan` to the plan name
-3. Report the plan file path and number of tasks created

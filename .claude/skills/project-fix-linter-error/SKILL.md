@@ -3,7 +3,7 @@ name: project-fix-linter-error
 description: This skill should be used when fixing all violations of one or more ESLint rules across the codebase. It runs the linter, groups violations by rule and file, generates a brief with fix strategies, and bootstraps a project to implement the fixes.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 argument-hint: "<rule-1> [rule-2] [rule-3] ..."
-model: sonnet
+
 ---
 
 > **DEPRECATED**: This skill is deprecated. Use `/plan-fix-linter-error` instead, which integrates with Claude's native plan mode.

@@ -3,7 +3,7 @@ name: project-reduce-max-lines
 description: This skill should be used when reducing the maximum file lines threshold and fixing all violations. It updates the eslint threshold configuration, identifies files exceeding the new limit, generates a brief with refactoring strategies, and bootstraps a project to split oversized files.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 argument-hint: "<max-lines-value>"
-model: sonnet
+
 ---
 
 > **DEPRECATED**: This skill is deprecated. Use `/plan-reduce-max-lines` instead, which integrates with Claude's native plan mode.

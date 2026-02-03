@@ -3,7 +3,7 @@ name: plan-fix-linter-error
 description: This skill should be used when fixing all violations of one or more ESLint rules across the codebase. It runs the linter, groups violations by rule and file, generates a brief with fix strategies, and creates a plan with tasks to implement the fixes.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 argument-hint: "<rule-1> [rule-2] [rule-3] ..."
-model: sonnet
+
 ---
 
 # Fix Linter Errors
