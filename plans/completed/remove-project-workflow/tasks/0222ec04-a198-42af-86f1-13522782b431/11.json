@@ -1,0 +1,20 @@
+{
+  "id": "11",
+  "subject": "Update or remove tests related to project workflow",
+  "description": "Check for and fix any tests referencing deleted project workflow files. Run bun run test to verify.",
+  "activeForm": "Updating tests",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task",
+    "learnings": [
+      "All 217 tests pass, no tests referenced project workflow files"
+    ]
+  }
+}

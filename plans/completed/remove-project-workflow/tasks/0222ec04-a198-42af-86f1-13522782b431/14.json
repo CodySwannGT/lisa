@@ -1,0 +1,15 @@
+{
+  "id": "14",
+  "subject": "Archive the plan",
+  "description": "Create plans/completed/remove-project-workflow/, move plan file there, move task directories, commit and push.",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "13"
+  ],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}
