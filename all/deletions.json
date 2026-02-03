@@ -1,6 +1,24 @@
 {
   "paths": [
+    ".claude/commands/project",
     ".claude/skills/coding-philosophy",
+    ".claude/skills/project-add-test-coverage",
+    ".claude/skills/project-archive",
+    ".claude/skills/project-bootstrap",
+    ".claude/skills/project-debrief",
+    ".claude/skills/project-document",
+    ".claude/skills/project-execute",
+    ".claude/skills/project-fix-linter-error",
+    ".claude/skills/project-implement",
+    ".claude/skills/project-local-code-review",
+    ".claude/skills/project-lower-code-complexity",
+    ".claude/skills/project-plan",
+    ".claude/skills/project-reduce-max-lines",
+    ".claude/skills/project-reduce-max-lines-per-function",
+    ".claude/skills/project-research",
+    ".claude/skills/project-review",
+    ".claude/skills/project-setup",
+    ".claude/skills/project-verify",
     ".claude/skills/prompt-complexity-scorer"
   ]
 }
