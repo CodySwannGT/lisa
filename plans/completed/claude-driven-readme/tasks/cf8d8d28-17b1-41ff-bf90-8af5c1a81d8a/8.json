@@ -1,0 +1,18 @@
+{
+  "id": "8",
+  "subject": "Open draft PR",
+  "description": "Open draft PR chore/claude-driven-readme → main. Verification: `gh pr view --json state`",
+  "activeForm": "Opening draft PR",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "gh pr view --json state",
+      "expected": "draft PR exists"
+    }
+  }
+}

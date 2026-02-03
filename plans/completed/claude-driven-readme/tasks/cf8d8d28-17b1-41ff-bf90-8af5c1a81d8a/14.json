@@ -1,0 +1,18 @@
+{
+  "id": "14",
+  "subject": "Verify documentation cross-references",
+  "description": "Verify no broken links in markdown files. OVERVIEW.md was already deleted per git status. Verification: no broken links",
+  "activeForm": "Verifying documentation cross-references",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "documentation",
+      "command": "grep -r 'OVERVIEW.md' *.md **/*.md",
+      "expected": "no results"
+    }
+  }
+}

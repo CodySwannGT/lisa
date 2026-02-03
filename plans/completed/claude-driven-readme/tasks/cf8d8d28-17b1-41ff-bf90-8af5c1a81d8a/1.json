@@ -1,0 +1,18 @@
+{
+  "id": "1",
+  "subject": "Create branch chore/claude-driven-readme",
+  "description": "Branch off main to chore/claude-driven-readme. Verification: `git branch --show-current` → `chore/claude-driven-readme`",
+  "activeForm": "Creating branch chore/claude-driven-readme",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "git branch --show-current",
+      "expected": "chore/claude-driven-readme"
+    }
+  }
+}
