@@ -1,0 +1,15 @@
+{
+  "id": "4",
+  "subject": "Test the fix end-to-end",
+  "description": "Verify the fix works:\n1. Simulate PostToolUse event and verify marker file gets created with correct plan path\n2. Simulate UserPromptSubmit event and verify it reads from marker file\n3. Check debug log is populated with entries\n4. Verify fallback works when marker is deleted\n5. Verify stale cleanup works",
+  "activeForm": "Testing the fix end-to-end",
+  "status": "completed",
+  "blocks": [
+    "5"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3"
+  ]
+}
