@@ -1,0 +1,26 @@
+{
+  "id": "10",
+  "subject": "Update/add/remove documentation",
+  "description": "**Type:** Task\n\n**Description:** Ensure script preambles have proper JSDoc-style documentation. Update any relevant docs if needed.\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:**\n- Type: documentation\n- Command: `head -20 scripts/lisa-update-local.sh && head -20 scripts/lisa-commit-and-pr-local.sh`\n- Expected: Both scripts have proper preamble documentation",
+  "activeForm": "Updating documentation",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "documentation",
+      "command": "head -20 scripts/lisa-update-local.sh && head -20 scripts/lisa-commit-and-pr-local.sh",
+      "expected": "Both scripts have proper preamble documentation"
+    }
+  }
+}
