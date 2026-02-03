@@ -2,7 +2,7 @@
 description: "Reduce max lines per function threshold and fix violations"
 allowed-tools: ["Skill"]
 argument-hint: "<max-lines-per-function-value>"
-model: sonnet
+
 ---
 
 > **DEPRECATED**: This command is deprecated. Use `/plan:reduce-max-lines-per-function` instead.

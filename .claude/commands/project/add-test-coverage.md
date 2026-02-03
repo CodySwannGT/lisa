@@ -2,7 +2,7 @@
 description: "Increase test coverage to a specified threshold percentage"
 allowed-tools: ["Skill"]
 argument-hint: "<threshold-percentage>"
-model: sonnet
+
 ---
 
 > **DEPRECATED**: This command is deprecated. Use `/plan:add-test-coverage` instead.
