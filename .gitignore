@@ -187,4 +187,8 @@ expo-env.d.ts
 .lisabak
 .claude-active-project
 
+# Plan session tracking (auto-generated)
+.active-plan-*
+.track-plan-debug.log
+
 # END: AI GUARDRAILS
