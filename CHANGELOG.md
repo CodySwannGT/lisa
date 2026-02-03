@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.17.0](https://github.com/CodySwannGT/lisa/compare/vv1.16.0...v1.17.0) (2026-02-03)
+
+
+### Features
+
+* **all:** add Lisa-managed files list to CLAUDE.md template ([e905322](https://github.com/CodySwannGT/lisa/commit/e9053226c04bfd4ae554f7c1b0d536a98156b9fb))
+* **nestjs:** add NestJS-specific slow lint config ([89f4d19](https://github.com/CodySwannGT/lisa/commit/89f4d1925760fd8df2e5822bcdfb42ebcd62a165))
+* **nestjs:** exclude test files from tsconfig compilation ([12e9ce8](https://github.com/CodySwannGT/lisa/commit/12e9ce8b85956cfd2abcd33756a0ba2b874a5f62))
+
+
+### Code Refactoring
+
+* **all:** move managed files list from CLAUDE.md to .claude/rules/lisa.md ([04841b3](https://github.com/CodySwannGT/lisa/commit/04841b30a2e50fdf59122e4bcce3e0ef046cf590))
+
 ## [1.16.0](https://github.com/CodySwannGT/lisa/compare/vv1.15.0...v1.16.0) (2026-02-03)
 
 
