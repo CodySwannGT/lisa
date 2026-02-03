@@ -1,0 +1,17 @@
+{
+  "id": "7",
+  "subject": "Simplify implemented code with code simplifier",
+  "description": "**Type:** Task\n\n**Description:** Run code simplifier agent on any remaining changes.",
+  "activeForm": "Simplifying code",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "play-horn-sound-script",
+    "type": "task"
+  }
+}

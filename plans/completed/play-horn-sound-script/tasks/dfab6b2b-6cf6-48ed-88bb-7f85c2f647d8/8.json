@@ -1,0 +1,17 @@
+{
+  "id": "8",
+  "subject": "Update tests if needed",
+  "description": "**Type:** Task\n\n**Description:** No tests needed — this is a throwaway script with zero net file changes.",
+  "activeForm": "Updating tests",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "play-horn-sound-script",
+    "type": "task"
+  }
+}

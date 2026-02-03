@@ -1,0 +1,23 @@
+{
+  "id": "4",
+  "subject": "Review code with CodeRabbit",
+  "description": "**Type:** Task\n\n**Description:** Run CodeRabbit review on changes. Since the net change is zero (file created then deleted), this may be a no-op.\n\n**Skills to Invoke:** `/coderabbit:review`",
+  "activeForm": "Reviewing code with CodeRabbit",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "play-horn-sound-script",
+    "type": "task",
+    "skills": [
+      "/coderabbit:review"
+    ],
+    "learnings": [
+      "CodeRabbit found typo 'verfication.md' should be 'verification.md' in plan rules and grammar 'including' should be 'include' in multiple files"
+    ]
+  }
+}

@@ -15,6 +15,10 @@
 # Marker files: $PLANS_DIR/.active-plan-<session-id> contain the absolute path to the
 # active plan file. Stale markers (>24h) are cleaned up on each invocation.
 #
+# Dedup: Session ID dedup is scoped to the ## Sessions section only, not the entire
+# file. This prevents false positives when session IDs appear elsewhere in plan content
+# (e.g., scratchpad directory paths like /private/tmp/claude-501/.../SESSION_ID/...).
+#
 # Debug logging: All key decisions are logged to $PLANS_DIR/.track-plan-debug.log for
 # diagnostics if session IDs land in the wrong plan file.
 #
@@ -123,9 +127,11 @@ if [[ ! -f "$PLAN_FILE" ]]; then
   exit 0
 fi
 
-# Check if session ID already exists in the file (dedup)
-if grep -qF "$SESSION_ID" "$PLAN_FILE" 2>/dev/null; then
-  log_debug "dedup: session ID already in $PLAN_FILE (resolved via $RESOLUTION_METHOD), skipping write"
+# Check if session ID already exists in the ## Sessions section (dedup)
+# Only search within the Sessions section to avoid false positives from session IDs
+# appearing in plan content (e.g., scratchpad paths contain session IDs)
+if sed -n '/^## Sessions$/,$p' "$PLAN_FILE" 2>/dev/null | grep -qF "$SESSION_ID"; then
+  log_debug "dedup: session ID already in $PLAN_FILE sessions section (resolved via $RESOLUTION_METHOD), skipping write"
   exit 0
 fi
 
