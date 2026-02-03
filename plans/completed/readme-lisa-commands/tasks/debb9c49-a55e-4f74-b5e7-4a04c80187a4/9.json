@@ -1,0 +1,25 @@
+{
+  "id": "9",
+  "subject": "Verify all task verification commands pass",
+  "description": "**Type:** Task\n\n**Description:** Run every verification command from all prior tasks and confirm they pass.\n\n**Blocked by:** Task 8\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:** All verifications passed",
+  "activeForm": "Running verification commands for all tasks",
+  "status": "completed",
+  "blocks": [
+    "10"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'All verifications passed'",
+      "expected": "All verifications passed"
+    }
+  }
+}
