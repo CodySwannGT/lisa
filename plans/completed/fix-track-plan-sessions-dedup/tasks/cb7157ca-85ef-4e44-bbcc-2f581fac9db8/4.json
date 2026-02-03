@@ -1,0 +1,25 @@
+{
+  "id": "4",
+  "subject": "Archive fix-track-plan-sessions-dedup plan",
+  "description": "**Type:** Task\n\n**Description:** Archive the plan after all other tasks are completed.\n\n**Acceptance Criteria:**\n- [ ] Create folder `fix-track-plan-sessions-dedup` in `./plans/completed`\n- [ ] Rename this plan to `fix-track-plan-sessions-dedup.md`\n- [ ] Move it into `./plans/completed/fix-track-plan-sessions-dedup/`\n- [ ] Read session IDs from the plan file\n- [ ] For each session ID, move `~/.claude/tasks/<session-id>` directory to `./plans/completed/fix-track-plan-sessions-dedup/tasks`\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- Type: `manual-check`\n- Command: `ls ./plans/completed/fix-track-plan-sessions-dedup/fix-track-plan-sessions-dedup.md`\n- Expected: File exists",
+  "activeForm": "Archiving fix-track-plan-sessions-dedup plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "1",
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "fix-track-plan-sessions-dedup",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls ./plans/completed/fix-track-plan-sessions-dedup/fix-track-plan-sessions-dedup.md",
+      "expected": "File exists"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "1",
+  "subject": "Fix dedup grep to only search Sessions section in track-plan-sessions.sh",
+  "description": "**Type:** Bug\n\n**Description:** The dedup check on line 127 of `track-plan-sessions.sh` uses `grep -qF \"$SESSION_ID\" \"$PLAN_FILE\"` which searches the entire file. Session IDs appearing in plan content (e.g., scratchpad paths) cause false-positive dedup matches, preventing the `## Sessions` table from being created.\n\n**Acceptance Criteria:**\n- [ ] Dedup grep restricted to `## Sessions` section only\n- [ ] Both files updated: `.claude/hooks/track-plan-sessions.sh` and `all/copy-overwrite/.claude/hooks/track-plan-sessions.sh`\n- [ ] Debug log message updated to say \"sessions section\"\n- [ ] Hook comment updated to explain why the restriction exists\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Implementation Details:**\n- Replace lines 126-130 in both files with the `sed` + `grep` pipeline\n- Update the comment from \"already exists in the file\" to \"already exists in the ## Sessions section\"\n- Update the debug log message similarly\n\n**Verification:**\n- Type: `manual-check`\n- Command: `grep -c 'sed -n' .claude/hooks/track-plan-sessions.sh && diff .claude/hooks/track-plan-sessions.sh all/copy-overwrite/.claude/hooks/track-plan-sessions.sh`\n- Expected: 1 (sed usage present) and no diff (files in sync)",
+  "activeForm": "Fixing dedup grep in track-plan-sessions.sh",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "fix-track-plan-sessions-dedup",
+    "type": "bug",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c 'sed -n' .claude/hooks/track-plan-sessions.sh && diff .claude/hooks/track-plan-sessions.sh all/copy-overwrite/.claude/hooks/track-plan-sessions.sh",
+      "expected": "1 and no diff"
+    },
+    "learnings": [
+      "sed -n '/^## Sessions$/,$p' correctly outputs nothing when section doesn't exist, making grep fail and allowing the write to proceed"
+    ]
+  }
+}

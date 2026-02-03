@@ -1,0 +1,24 @@
+{
+  "id": "3",
+  "subject": "Update track-plan-sessions.sh preamble comment",
+  "description": "**Type:** Task\n\n**Description:** Update the file preamble comment in `track-plan-sessions.sh` to document the scoped dedup behavior and the false-positive bug it fixes.\n\n**Acceptance Criteria:**\n- [ ] Preamble mentions that dedup is scoped to the `## Sessions` section\n- [ ] Both files updated (project and template)\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:**\n- Type: `documentation`\n- Command: `head -25 .claude/hooks/track-plan-sessions.sh | grep -c 'Sessions section'`\n- Expected: At least 1 match",
+  "activeForm": "Updating track-plan-sessions.sh preamble",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "fix-track-plan-sessions-dedup",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "documentation",
+      "command": "head -25 .claude/hooks/track-plan-sessions.sh | grep -c 'Sessions section'",
+      "expected": "1"
+    }
+  }
+}
