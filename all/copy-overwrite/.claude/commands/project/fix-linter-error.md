@@ -2,7 +2,7 @@
 description: "Fix all violations of one or more ESLint rules across the codebase"
 allowed-tools: ["Skill"]
 argument-hint: "<rule-1> [rule-2] [rule-3] ..."
-model: sonnet
+
 ---
 
 > **DEPRECATED**: This command is deprecated. Use `/plan:fix-linter-error` instead.
