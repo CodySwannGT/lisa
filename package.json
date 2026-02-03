@@ -44,6 +44,8 @@
     "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
     "github:status": "bash scripts/github-status-check.sh",
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
+    "lisa:update:local": "bash scripts/lisa-update-local.sh",
+    "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
     "prepublishOnly": "$npm_execpath run build"
   },
   "devDependencies": {
