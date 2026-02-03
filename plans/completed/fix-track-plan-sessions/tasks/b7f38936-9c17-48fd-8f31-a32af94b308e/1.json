@@ -1,0 +1,12 @@
+{
+  "id": "1",
+  "subject": "Implement marker file and debug logging in track-plan-sessions.sh",
+  "description": "Edit `.claude/hooks/track-plan-sessions.sh` to:\n1. Add debug logging function (`log_debug`) writing to `$PLANS_DIR/.track-plan-debug.log`\n2. Add `MARKER_FILE=\"$PLANS_DIR/.active-plan-${SESSION_ID}\"` \n3. In PostToolUse block: after resolving PLAN_FILE, save marker with `echo \"$PLAN_FILE\" > \"$MARKER_FILE\"`\n4. In UserPromptSubmit block: check marker file first, fall back to `ls -tU` (creation time on macOS) instead of `ls -t`\n5. Add stale marker cleanup: `find \"$PLANS_DIR\" -name \".active-plan-*\" -mmin +1440 -delete 2>/dev/null || true`\n6. Add log_debug calls at key decision points (plan file resolution, dedup check, write performed/skipped)\n7. Update the preamble comments to explain marker file approach and mtime vs ctime issue",
+  "activeForm": "Implementing marker file and debug logging",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "5"
+  ],
+  "blockedBy": []
+}

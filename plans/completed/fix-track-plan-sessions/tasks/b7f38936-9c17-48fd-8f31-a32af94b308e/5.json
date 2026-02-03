@@ -1,0 +1,14 @@
+{
+  "id": "5",
+  "subject": "Archive the plan",
+  "description": "After all other tasks complete:\n1. Create folder `fix-track-plan-sessions` in `./plans/completed`\n2. Rename the plan to a name befitting the actual plan contents\n3. Move it into `./plans/completed/fix-track-plan-sessions`\n4. Read the session IDs from `./plans/completed/fix-track-plan-sessions`\n5. For each session ID, move `~/.claude/tasks/<session-id>` directory to `./plans/completed/fix-track-plan-sessions/tasks`",
+  "activeForm": "Archiving the plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "1",
+    "2",
+    "3",
+    "4"
+  ]
+}

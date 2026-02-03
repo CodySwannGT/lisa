@@ -1,0 +1,12 @@
+{
+  "id": "3",
+  "subject": "Update .gitignore for marker and debug files",
+  "description": "Add `.active-plan-*` and `.track-plan-debug.log` patterns to `.gitignore` so marker files and debug logs are not committed.",
+  "activeForm": "Updating .gitignore",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "5"
+  ],
+  "blockedBy": []
+}

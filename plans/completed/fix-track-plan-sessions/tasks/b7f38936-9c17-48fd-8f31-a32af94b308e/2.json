@@ -1,0 +1,12 @@
+{
+  "id": "2",
+  "subject": "Sync template copy to all/copy-overwrite",
+  "description": "Copy the updated `.claude/hooks/track-plan-sessions.sh` to `all/copy-overwrite/.claude/hooks/track-plan-sessions.sh` to keep the template in sync.",
+  "activeForm": "Syncing template copy",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "5"
+  ],
+  "blockedBy": []
+}
