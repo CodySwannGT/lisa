@@ -115,7 +115,8 @@ Slash commands in `commands/` provide quick actions:
 
 - `git/` - Git-related commands
 - `jira/` - Jira integration commands
-- `project/` - Project management commands
+- `plan/` - Plan utility commands (test coverage, linting, code review, complexity)
+- `project/` - Project management commands (deprecated - use plan mode instead)
 - `pull-request/` - PR workflow commands
 - `rules/` - Rule management commands
 - `sonarqube/` - Code quality commands
@@ -128,6 +129,13 @@ Skills in `skills/` provide domain-specific knowledge:
 |-------|---------|
 | `jsdoc-best-practices/` | JSDoc documentation standards |
 | `skill-creator/` | Creating new skills |
+| `plan-add-test-coverage/` | Increase test coverage via plan mode |
+| `plan-fix-linter-error/` | Fix ESLint violations via plan mode |
+| `plan-local-code-review/` | Review local branch changes |
+| `plan-lower-code-complexity/` | Reduce cognitive complexity via plan mode |
+| `plan-reduce-max-lines/` | Reduce max file lines via plan mode |
+| `plan-reduce-max-lines-per-function/` | Reduce max function lines via plan mode |
+| `project-*/` | Project workflow skills (deprecated - use plan mode) |
 
 See each skill's `SKILL.md` for detailed documentation.
 

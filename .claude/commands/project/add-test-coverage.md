@@ -5,4 +5,7 @@ argument-hint: "<threshold-percentage>"
 model: sonnet
 ---
 
+> **DEPRECATED**: This command is deprecated. Use `/plan:add-test-coverage` instead.
+> This command will be removed in a future release.
+
 Use the /project-add-test-coverage skill to increase test coverage. $ARGUMENTS

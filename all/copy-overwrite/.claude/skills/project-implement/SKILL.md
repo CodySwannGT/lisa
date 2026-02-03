@@ -5,6 +5,10 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Task", "TaskCr
 argument-hint: "<project-directory>"
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use Claude's native plan mode instead.
+> Enter plan mode with `/plan`, describe your requirements, and Claude will create a plan with tasks automatically.
+> This skill will be removed in a future release.
+
 ## Setup
 
 1. Set active project marker: `echo "$ARGUMENTS" | sed 's|.*/||' > .claude-active-project`

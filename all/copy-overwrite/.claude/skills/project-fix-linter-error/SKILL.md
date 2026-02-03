@@ -6,6 +6,9 @@ argument-hint: "<rule-1> [rule-2] [rule-3] ..."
 model: sonnet
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use `/plan-fix-linter-error` instead, which integrates with Claude's native plan mode.
+> This skill will be removed in a future release.
+
 # Fix Linter Errors
 
 Target rules: $ARGUMENTS

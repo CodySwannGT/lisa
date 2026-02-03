@@ -5,6 +5,10 @@ allowed-tools: ["Read", "Write", "Bash", "Glob", "Grep", "Task", "TaskCreate", "
 argument-hint: "<project-directory>"
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use Claude's native plan mode instead.
+> Enter plan mode with `/plan`, describe your requirements, and Claude will create a plan with tasks automatically.
+> This skill will be removed in a future release.
+
 # Research Codebase
 
 Conduct comprehensive research across the codebase and web to help create an implementation plan for the brief in $ARGUMENTS.

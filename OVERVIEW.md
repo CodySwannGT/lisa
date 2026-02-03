@@ -79,93 +79,51 @@ For straightforward, well-defined tasks:
 
 Claude implements it immediately, following all Lisa guardrails.
 
-#### Path 2: Interactive Planning (Medium Tasks)
+#### Path 2: Plan Mode (Medium to Complex Tasks)
 
-For tasks that need some research and discussion:
-
-```bash
-> /project:bootstrap specs/add-logout.md
-
-# Claude researches, identifies gaps
-# You answer questions
-# Ready to implement
-```
-
-#### Path 3: Full Workflow (Complex Tasks)
-
-For major features or architectural changes:
+For tasks that need research, planning, and structured implementation:
 
 ```bash
-# 1. Create a spec
-echo "Add user authentication with OAuth" > specs/add-auth.md
+# Enter plan mode and describe your requirements
+> /plan I need to add user authentication with OAuth
 
-# 2. Bootstrap: research and identify gaps
-/project:bootstrap specs/add-auth.md
-
-# 3. Execute: plan, implement, test, verify
-/project:execute
+# Claude researches, creates a plan with tasks
+# You review and approve the plan
+# Claude implements, tests, and verifies
 ```
 
-### The Bootstrap Phase
+### The Plan Mode Workflow
 
-When you run `/project:bootstrap`:
-
-```
-1. Setup
-   • Create project directory structure
-   • Extract brief from Jira or spec file
-   • Create git branch
-
-2. Research (parallel subagents)
-   • Find relevant code in your codebase
-   • Understand how similar features work
-   • Find existing patterns to model
-   • Look up external documentation
-
-3. Gap Detection
-   • Identify what Claude needs to know to proceed
-
-   If gaps exist:
-   ❌ STOP - You must answer questions before proceeding
-
-   If no gaps:
-   ✅ Ready for /project:execute
-```
-
-### The Execute Phase
-
-When you run `/project:execute`:
+When you use Claude's native plan mode:
 
 ```
-1. Plan
+1. Research
+   • Claude explores the codebase
+   • Finds relevant patterns and architecture
+   • Looks up external documentation
+
+2. Plan
    • Break work into small, independent tasks
-   • Create progress tracking
+   • Create plan file in plans/ directory
+   • Create tasks with TaskCreate
+   • Each task has verification command
 
-2. Implement (TDD Loop)
+3. Implement (TDD Loop)
    • Write failing tests first
    • Write implementation
    • Run tests until passing
    • Create atomic commits
 
-3. Review
+4. Review
    • Run local code review and CodeRabbit review
    • Implement fixes from review feedback
 
-4. Documentation
-   • Update all documentation related to changes
-   • Update README, API docs, JSDoc documentation
-
 5. Verify
+   • Run verification commands for each task
    • Confirm all requirements met
-   • Run verification commands
-   • Document any drift
 
-6. Debrief
-   • Extract reusable patterns
-   • Update .claude/rules/PROJECT_RULES.md for future projects
-
-7. Archive
-   • Move completed project to archive
+6. Archive
+   • Move completed plan to plans/completed/
    • Final commit and PR
 ```
 
@@ -217,7 +175,8 @@ When you run `/project:execute`:
 
 | Category | Skills |
 |----------|--------|
-| **Project** | `project-bootstrap`, `project-setup`, `project-research`, `project-plan`, `project-execute`, `project-implement`, `project-review`, `project-document`, `project-verify`, `project-debrief`, `project-archive`, `project-local-code-review`, `project-lower-code-complexity`, `project-fix-linter-error`, `project-add-test-coverage`, `project-reduce-max-lines`, `project-reduce-max-lines-per-function` |
+| **Plan** | `plan-add-test-coverage`, `plan-fix-linter-error`, `plan-local-code-review`, `plan-lower-code-complexity`, `plan-reduce-max-lines`, `plan-reduce-max-lines-per-function` |
+| **Project** (deprecated) | `project-bootstrap`, `project-setup`, `project-research`, `project-plan`, `project-execute`, `project-implement`, `project-review`, `project-document`, `project-verify`, `project-debrief`, `project-archive`, `project-local-code-review`, `project-lower-code-complexity`, `project-fix-linter-error`, `project-add-test-coverage`, `project-reduce-max-lines`, `project-reduce-max-lines-per-function` |
 | **Git** | `git-commit`, `git-submit-pr`, `git-commit-and-submit-pr`, `git-prune` |
 | **Tasks** | `tasks-load`, `tasks-sync` |
 | **Pull Request** | `pull-request-review` |
@@ -234,11 +193,15 @@ When you run `/project:execute`:
 ├── skill-creator/              # Foundational (auto-applied)
 │   ├── SKILL.md
 │   └── references/
-├── project-execute/            # Workflow (invoked by /project:execute)
+├── plan-add-test-coverage/     # Workflow (invoked by /plan:add-test-coverage)
+│   └── SKILL.md
+├── plan-local-code-review/     # Workflow (invoked by /plan:local-code-review)
+│   └── SKILL.md
+├── project-execute/            # Deprecated (use plan mode instead)
 │   └── SKILL.md
 ├── git-commit/                 # Workflow (invoked by /git:commit)
 │   └── SKILL.md
-└── ...                         # 27 more workflow skills
+└── ...                         # More workflow skills
 ```
 
 ### 3. Subagents (Specialized Workers)
@@ -270,23 +233,13 @@ When you run `/project:execute`:
 
 | Category | Command | Purpose |
 |----------|---------|---------|
-| **Project** | `/project:bootstrap` | Setup + research with gap detection |
-| | `/project:research` | Codebase research phase |
-| | `/project:plan` | Create implementation tasks |
-| | `/project:execute` | Full implementation loop |
-| | `/project:implement` | Execute all planned tasks |
-| | `/project:verify` | Validate requirements met |
-| | `/project:review` | Run code review (CodeRabbit) |
-| | `/project:debrief` | Document lessons learned |
-| | `/project:archive` | Archive completed project |
-| | `/project:setup` | Initialize project with requirements analysis |
-| | `/project:document` | Update all documentation for changes |
-| | `/project:local-code-review` | Review local changes |
-| | `/project:lower-code-complexity` | Reduce complexity by 2 per run |
-| | `/project:fix-linter-error` | Fix all violations of ESLint rules |
-| | `/project:add-test-coverage` | Increase test coverage to threshold |
-| | `/project:reduce-max-lines` | Reduce max file lines threshold |
-| | `/project:reduce-max-lines-per-function` | Reduce max function lines threshold |
+| **Plan** | `/plan:add-test-coverage` | Increase test coverage to threshold |
+| | `/plan:fix-linter-error` | Fix all violations of ESLint rules |
+| | `/plan:local-code-review` | Review local changes |
+| | `/plan:lower-code-complexity` | Reduce complexity by 2 per run |
+| | `/plan:reduce-max-lines` | Reduce max file lines threshold |
+| | `/plan:reduce-max-lines-per-function` | Reduce max function lines threshold |
+| **Project** (deprecated) | All `/project:*` commands | Deprecated — use plan mode or `/plan:*` commands instead |
 | **Tasks** | `/tasks:load` | Load tasks from a project directory |
 | | `/tasks:sync` | Sync session tasks to a project directory |
 | **Git** | `/git:commit` | Create conventional commits |
@@ -403,8 +356,8 @@ In addition to hooks that enforce syntactic rules, Lisa runs **agentic code revi
 
 | Reviewer | When It Runs | What It Catches |
 |----------|-------------|-----------------|
-| **Claude Code local review** | Before PR submission (`/project:local-code-review`) | Convention violations, logical bugs, CLAUDE.md adherence, missing edge cases |
-| **CodeRabbit** | During CI/CD on pull request (`/project:review`) | Architectural drift, hardcoded values, fragile patterns, missing validation |
+| **Claude Code local review** | Before PR submission (`/plan:local-code-review`) | Convention violations, logical bugs, CLAUDE.md adherence, missing edge cases |
+| **CodeRabbit** | During CI/CD on pull request (`/coderabbit:review`) | Architectural drift, hardcoded values, fragile patterns, missing validation |
 
 **How it works:**
 - **Local review:** Multiple independent Claude agents analyze the changeset in parallel — each focused on a specific concern (convention compliance, bug detection, historical context). Findings above a confidence threshold are fed back to the generating agent for immediate correction.
@@ -874,8 +827,8 @@ Start with these essentials:
 
 Create slash commands for your workflows:
 
-1. `/project:bootstrap` — Initialize and research
-2. `/project:execute` — Plan and implement
+1. `/plan` — Enter plan mode, describe requirements
+2. `/plan:local-code-review` — Review local changes
 3. `/git:commit` — Create conventional commits
 4. `/<your-workflow>` — Custom commands for your team
 
@@ -889,7 +842,7 @@ Connect to your tools:
 | **GitHub** | `/git:submit-pr`, `/pull-request:review` | PR operations |
 | **Playwright** | Plugin + E2E workflow | Browser E2E testing |
 | **Maestro** | CI/CD workflow | Mobile E2E testing |
-| **CodeRabbit** | `/project:review` | AI code review |
+| **CodeRabbit** | `/coderabbit:review` | AI code review |
 | **SonarCloud** | CI/CD + `/sonarqube:*` | SAST analysis |
 | **Snyk** | CI/CD workflow | Dependency scanning |
 | **GitGuardian** | CI/CD workflow | Secret detection |
@@ -949,7 +902,7 @@ The workflow has built-in human touchpoints:
 
 **Mental model:**
 ```
-I have a ticket → Run /project:bootstrap → Answer questions → Run /project:execute → Review and merge
+I have a ticket → Enter /plan mode → Answer questions → Claude implements → Review and merge
 ```
 
 ### For Platform Experts

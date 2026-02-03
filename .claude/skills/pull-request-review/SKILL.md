@@ -68,6 +68,12 @@ Command: `bun run lint && bun run test`
 Expected: All checks pass
 ```
 
-## Step 3: Bootstrap Project
+## Step 3: Create Plan
 
-Run `/project-bootstrap` with the generated brief as a text prompt.
+1. Write the generated brief to a new plan file at `plans/<descriptive-name>.md`
+2. Use TaskCreate to create tasks for each item identified in the brief
+   - Size each task for a single verification command
+   - Include `/coding-philosophy` in skills metadata
+   - Include verification command and expected output
+   - Set `metadata.plan` to the plan name
+3. Report the plan file path and number of tasks created

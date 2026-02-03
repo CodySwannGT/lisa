@@ -5,4 +5,7 @@ argument-hint: "<rule-1> [rule-2] [rule-3] ..."
 model: sonnet
 ---
 
+> **DEPRECATED**: This command is deprecated. Use `/plan:fix-linter-error` instead.
+> This command will be removed in a future release.
+
 Use the /project-fix-linter-error skill to fix ESLint rule violations. $ARGUMENTS

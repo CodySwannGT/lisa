@@ -4,6 +4,9 @@ description: This skill should be used when reducing the cognitive complexity th
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use `/plan-lower-code-complexity` instead, which integrates with Claude's native plan mode.
+> This skill will be removed in a future release.
+
 # Lower Code Complexity
 
 Reduces the cognitive complexity threshold by 2 and fixes all violations.
