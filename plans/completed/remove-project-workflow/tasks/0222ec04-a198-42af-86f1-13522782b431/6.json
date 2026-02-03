@@ -1,0 +1,22 @@
+{
+  "id": "6",
+  "subject": "Commit all changes and open draft PR",
+  "description": "Commit with conventional messages and open draft PR targeting main",
+  "activeForm": "Committing changes and opening draft PR",
+  "status": "completed",
+  "blocks": [
+    "7",
+    "8"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+  ],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}

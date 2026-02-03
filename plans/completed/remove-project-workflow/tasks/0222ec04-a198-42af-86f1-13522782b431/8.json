@@ -1,0 +1,17 @@
+{
+  "id": "8",
+  "subject": "Run local code review",
+  "description": "Run /plan:local-code-review on changes",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "9"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}
