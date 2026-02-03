@@ -4,7 +4,11 @@
     "strict": true,
     "jsx": "react-native",
     "baseUrl": "./",
+    "noEmit": true,
+    "declaration": false,
+    "allowImportingTsExtensions": true,
     "paths": {
+      "@/graphql/*": ["./generated/*"],
       "@/*": ["./*"]
     },
     "moduleSuffixes": [".ios", ".android", ".native", ".web", ""]
