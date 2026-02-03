@@ -1,0 +1,23 @@
+{
+  "id": "1",
+  "subject": "Write horn sound Python script",
+  "description": "**Type:** Task\n\n**Description:** Create `scripts/horn.py` that generates a horn-like WAV tone using Python stdlib (`wave`, `struct`, `math`) and plays it with `afplay`\n\n**Acceptance Criteria:**\n- [ ] Script creates a horn-like tone (~200Hz with harmonics, ~1 second)\n- [ ] Uses only Python stdlib modules\n- [ ] Plays via `afplay`\n- [ ] Cleans up temp WAV file on exit\n- [ ] Exits with code 0\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Implementation Details:**\n- File: `scripts/horn.py`\n- Use `wave`, `struct`, `math` modules\n- Generate ~200Hz fundamental with harmonics for horn-like timbre\n- Write to temp WAV, play with `afplay`, cleanup\n\n**Verification:**\n- Type: manual-check\n- Command: `python3 scripts/horn.py`\n- Expected: Audible horn sound, exit code 0",
+  "activeForm": "Writing horn sound Python script",
+  "status": "completed",
+  "blocks": [
+    "2"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "play-horn-sound-script",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "python3 scripts/horn.py",
+      "expected": "Audible horn sound, exit code 0"
+    }
+  }
+}
