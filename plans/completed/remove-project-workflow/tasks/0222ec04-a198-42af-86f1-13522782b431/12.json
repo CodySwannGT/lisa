@@ -1,0 +1,20 @@
+{
+  "id": "12",
+  "subject": "Update documentation referencing project workflow",
+  "description": "Check README.md, .claude/REFERENCE.md, .claude/README.md for /project:* references and update them.",
+  "activeForm": "Updating documentation",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task",
+    "learnings": [
+      "Updated .claude/README.md (root and template) to remove project-*/ references, added plan commands and skills, added JIRA commands back to HUMAN.md"
+    ]
+  }
+}

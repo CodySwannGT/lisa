@@ -1,0 +1,15 @@
+{
+  "id": "3",
+  "subject": "Add project workflow paths to deletions.json",
+  "description": "Update all/deletions.json to include .claude/commands/project and all 17 .claude/skills/project-* paths",
+  "activeForm": "Adding project workflow paths to deletions.json",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}

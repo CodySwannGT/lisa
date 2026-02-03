@@ -4,45 +4,43 @@ This document describes all available slash commands and the recommended workflo
 
 ## Quick Start Workflow
 
-The automated workflow eliminates the need for `/clear` between phases.
-
-### Step 1: Create a Spec
-
-Create a file inside `specs/` called `<something>.md` and describe what you want Claude to do in as much detail as possible. See any `brief.md` for an example.
-
-### Step 2: Bootstrap the Project
+### Step 1: Create a Plan
 
 ```bash
-/project:bootstrap @specs/<something>.md
+/plan:create <description-of-what-you-want>
 ```
 
 **What happens:**
 
-1. **Setup** (via `/project:setup`): Creates a dated project directory in `projects/`, moves/creates brief.md, creates empty findings.md, creates a git branch
-2. **Research** (via `/project:research`): Conducts comprehensive codebase and web research, generates research.md with findings
-3. **Gap Detection**: Reads research.md and checks the "Open Questions" section
-   - **If gaps found**: Stops and reports "Research complete but has open questions. Review research.md and resolve questions before running /project:execute"
-   - **If no gaps**: Reports "Bootstrap complete. Research has no gaps. Ready to run /project:execute"
+1. Claude enters plan mode
+2. Researches the codebase and gathers context
+3. Creates a detailed implementation plan with tasks
+4. Presents the plan for your review and approval
 
-### Step 3: Execute the Project
+### Step 2: Review and Approve the Plan
+
+Review the generated plan. You can:
+
+- **Approve** the plan to proceed to implementation
+- **Reject** with feedback to refine the approach
+- **Edit** the plan file directly before approving
+
+### Step 3: Implement the Plan
 
 ```bash
-/project:execute @projects/<project-name>
+/plan:implement @plans/<plan-file>.md
 ```
 
 **What happens:**
 
-1. **Setup**: Sets active project marker, validates research.md has no unresolved open questions, checks if planning already complete
-2. **Planning** (via `/project:plan`): Creates detailed task list from research.md and brief.md using Claude's native task tools
-3. **Implementation** (via `/project:implement`): Systematically implements all tasks using subagents
-4. **Review** (via `/project:review`): Performs Claude code review and CodeRabbit review, implements fixes
-5. **Verification** (via `/project:verify`): Verifies implementation matches all requirements, documents drift
-6. **Debrief** (via `/project:debrief`): Evaluates findings.md and creates skills or adds rules to .claude/rules/PROJECT_RULES.md
-7. **Archive** (via `/project:archive`): Moves project to projects/archive and submits PR
+1. Reads the plan and creates tasks
+2. Launches parallel subagents to implement tasks
+3. Runs verification commands for each task
+4. Commits changes and submits a PR
 
 ### Step 4: Address PR Feedback
 
-After `/project:execute` completes and submits a PR, wait for CI/CD and code review to finish. Then:
+After implementation completes and a PR is submitted, wait for CI/CD and code review to finish. Then:
 
 ```bash
 /pull-request:review <github-pr-link>
@@ -59,281 +57,143 @@ After `/project:execute` completes and submits a PR, wait for CI/CD and code rev
 
 ## Command Reference
 
-Commands are organized by category. Sub-commands (commands that are called by other commands) are marked with their parent command(s).
+Commands are organized by category.
 
-### Project Commands
+### Plan Commands
 
-| Command | Description | Arguments | Called By |
-|---------|-------------|-----------|-----------|
-| `/project:bootstrap` | Automated project setup and research with gap detection | `<brief-file-or-jira-issue>` (required) | - |
-| `/project:execute` | Automated project execution from planning through debrief | `<project-directory>` (required) | - |
-| `/project:setup` | Initialize project directory, brief.md, findings.md, and git branch | `<brief-file-or-jira-issue>` (required) | `/project:bootstrap` |
-| `/project:research` | Conduct codebase and web research, compile to research.md | `<project-directory>` (required) | `/project:bootstrap` |
-| `/project:plan` | Create detailed task list from research.md and brief.md | `<project-directory>` (required) | `/project:execute` |
-| `/project:implement` | Systematically implement all tasks in a project | `<project-directory>` (required) | `/project:execute` |
-| `/project:review` | Perform extensive code review and optimization | `<project-directory>` (required) | `/project:execute` |
-| `/project:verify` | Verify implementation matches all project requirements | `<project-directory>` (required) | `/project:execute` |
-| `/project:debrief` | Evaluate findings and create skills or rules from learnings | `<project-directory>` (required) | `/project:execute` |
-| `/project:archive` | Move completed project to projects/archive | `<project-directory>` (required) | `/project:execute` |
-| `/project:local-code-review` | Code review local changes on current branch | `<project-directory>` (required) | `/project:review` |
-| `/project:fix-linter-error` | Fix all violations of a specific ESLint rule | `<eslint-rule-name>` (required) | - |
-| `/project:lower-code-complexity` | Reduce code complexity threshold by 2 and fix violations | none | - |
-| `/project:add-test-coverage` | Increase test coverage to a specified threshold | `<threshold-percentage>` (required) | - |
-| `/project:reduce-max-lines` | Reduce max file lines threshold and fix violations | `<max-lines-value>` (required) | - |
-| `/project:reduce-max-lines-per-function` | Reduce max lines per function threshold and fix violations | `<max-lines-per-function-value>` (required) | - |
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/plan:create` | Create an implementation plan for a given prompt | `<request>` (required) |
+| `/plan:implement` | Implement a plan | `<plan-file>` (required) |
+| `/plan:local-code-review` | Review local branch changes compared to main | none |
+| `/plan:fix-linter-error` | Fix all violations of one or more ESLint rules | `<rule-1> [rule-2] ...` (required) |
+| `/plan:lower-code-complexity` | Reduce cognitive complexity threshold by 2 and fix violations | none |
+| `/plan:add-test-coverage` | Increase test coverage to a specified threshold | `<threshold-percentage>` (required) |
+| `/plan:reduce-max-lines` | Reduce max file lines threshold and fix violations | `<max-lines-value>` (required) |
+| `/plan:reduce-max-lines-per-function` | Reduce max lines per function threshold and fix violations | `<max-lines-per-function-value>` (required) |
 
 ### Git Commands
 
-| Command | Description | Arguments | Called By |
-|---------|-------------|-----------|-----------|
-| `/git:commit` | Create conventional commits for current changes | `[commit-message-hint]` (optional) | `/project:setup`, `/project:research`, `/sonarqube:fix`, `/pull-request:review`, `/git:commit-and-submit-pr` |
-| `/git:submit-pr` | Push changes and create or update a pull request | `[pr-title-or-description-hint]` (optional) | `/git:commit-and-submit-pr` |
-| `/git:commit-and-submit-pr` | Create commits and submit PR for code review | `[commit-message-hint]` (optional) | `/project:archive`, `/pull-request:review` |
-| `/git:prune` | Remove local branches deleted on remote | none | - |
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/git:commit` | Create conventional commits for current changes | `[commit-message-hint]` (optional) |
+| `/git:submit-pr` | Push changes and create or update a pull request | `[pr-title-or-description-hint]` (optional) |
+| `/git:commit-and-submit-pr` | Create commits and submit PR for code review | `[commit-message-hint]` (optional) |
+| `/git:prune` | Remove local branches deleted on remote | none |
 
 ### Pull Request Commands
 
-| Command | Description | Arguments | Called By |
-|---------|-------------|-----------|-----------|
-| `/pull-request:review` | Fetch PR review comments and implement fixes | `<github-pr-link>` (required) | - |
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/pull-request:review` | Fetch PR review comments and implement fixes | `<github-pr-link>` (required) |
 
 ### Task Commands
 
-| Command | Description | Arguments | Called By |
-|---------|-------------|-----------|-----------|
-| `/tasks:load` | Load tasks from a project directory into current session | `<project-name>` (required) | - |
-| `/tasks:sync` | Sync current session tasks to a project directory | `<project-name>` (required) | - |
-
-### JIRA Commands
-
-| Command | Description | Arguments | Called By |
-|---------|-------------|-----------|-----------|
-| `/jira:create` | Create JIRA epics/stories/tasks from code files | `<file-or-directory-path> [project-key]` (path required, key optional) | - |
-| `/jira:verify` | Verify JIRA ticket meets standards for epic relationships | `<TICKET-ID>` (required) | - |
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/tasks:load` | Load tasks from a project directory into current session | `<project-name>` (required) |
+| `/tasks:sync` | Sync current session tasks to a project directory | `<project-name>` (required) |
 
 ### SonarQube Commands
 
-| Command | Description | Arguments | Called By |
-|---------|-------------|-----------|-----------|
-| `/sonarqube:check` | Get reason last PR failed SonarQube checks | none | `/sonarqube:fix` |
-| `/sonarqube:fix` | Check SonarQube failures, fix them, and commit | none | - |
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/sonarqube:check` | Get reason last PR failed SonarQube checks | none |
+| `/sonarqube:fix` | Check SonarQube failures, fix them, and commit | none |
+
+### JIRA Commands
+
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/jira:create` | Create JIRA epics/stories/tasks from code files | `<file-or-directory-path> [project-key]` (path required, key optional) |
+| `/jira:verify` | Verify JIRA ticket meets standards for epic relationships | `<TICKET-ID>` (required) |
 
 ### Lisa Commands
 
-| Command | Description | Arguments | Called By |
-|---------|-------------|-----------|-----------|
-| `/lisa:review-project` | Compare Lisa templates against a project's implementation | `<project-path>` (required) | - |
-| `/lisa:review-implementation` | Compare project files against Lisa templates, offer to upstream | `[lisa-dir]` (optional) | - |
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/lisa:review-project` | Compare Lisa templates against a project's implementation | `<project-path>` (required) |
+| `/lisa:review-implementation` | Compare project files against Lisa templates, offer to upstream | `[lisa-dir]` (optional) |
 
 ---
 
 ## Command Details
 
-### `/project:bootstrap`
+### `/plan:create`
 
-**Arguments:** `<project-brief-file-or-jira-issue-number>` (required)
+**Arguments:** `<request>` (required)
 
-Orchestrates project initialization in 3 steps:
+Enters Claude's native plan mode and creates an implementation plan. Claude will:
 
-1. **Setup**: Uses Task tool to run `/project:setup` - creates project directory, brief.md, findings.md, git branch
-2. **Research**: Uses Task tool to run `/project:research` - generates research.md with codebase and web findings
-3. **Gap Detection**: Reads research.md and checks "Open Questions" section for unresolved questions
+1. Research the codebase to understand existing patterns and architecture
+2. Create a detailed plan with tasks, dependencies, and verification commands
+3. Present the plan for review and approval
 
-**Calls:** `/project:setup` → `/project:research`
-
-**Output:**
-- "✅ Bootstrap complete with no gaps - ready for execution" OR
-- "⚠️ Bootstrap complete but needs human review - see Open Questions in research.md"
+**Output:** A plan file in `plans/` ready for review.
 
 ---
 
-### `/project:execute`
+### `/plan:implement`
 
-**Arguments:** `<project-directory>` (required)
+**Arguments:** `<plan-file>` (required)
 
-Orchestrates the full implementation workflow. Runs continuously without stopping between steps.
-
-**Setup phase:**
-1. Sets active project marker (`.claude-active-project`)
-2. Validates research.md has no unresolved open questions (stops if gaps exist)
-3. Checks if planning already complete (skips to implementation if task files exist)
-
-**Execution phase:**
-1. Planning → 2. Implementation → 3. Review → 4. Verification → 5. Debrief → 6. Archive
-
-**Calls:** `/project:plan` → `/project:implement` → `/project:review` → `/project:verify` → `/project:debrief` → `/project:archive`
-
-**Output:** "Project complete and archived"
+Implements the requirements described in the referenced plan file. Creates tasks from the plan and executes them systematically.
 
 ---
 
-### `/project:setup`
+### `/plan:local-code-review`
 
-**Arguments:** `<project-brief-file-or-jira-issue-number>` (required)
-
-Creates a dated project directory (`YYYY-MM-DD-<project-name>`), moves or creates brief.md, creates empty findings.md, and sets up a git branch. If argument is a Jira issue number, fetches the issue details via Atlassian MCP.
-
-**Called by:** `/project:bootstrap`
-**Calls:** `/git:commit`
-
----
-
-### `/project:research`
-
-**Arguments:** `<project-directory>` (required)
-
-Conducts comprehensive codebase and web research. Spawns parallel sub-agents:
-- **codebase-locator**: Find where files and components live
-- **codebase-analyzer**: Understand how specific code works
-- **codebase-pattern-finder**: Find examples of existing patterns
-- **git-history-analyzer**: Understand file change history
-- **web-search-researcher**: External documentation and resources
-
-Compiles results into research.md with: Summary, Detailed Findings, Code References, Architecture Documentation, Testing Patterns, Documentation Patterns, and Open Questions.
-
-**Called by:** `/project:bootstrap`
-**Calls:** `/git:commit`
-
----
-
-### `/project:plan`
-
-**Arguments:** `<project-directory>` (required)
-
-Creates a detailed task list using Claude Code's native task tools. Reads brief.md and research.md, validates research has no unanswered questions, discovers applicable skills, and creates tasks with:
-- Subject and activeForm
-- Type (Bug/Task/Epic/Story)
-- Description with acceptance criteria
-- Relevant research excerpts
-- Skills to invoke
-- Implementation details
-- Testing requirements (unit, integration, E2E)
-- Verification command and expected output
-
-**Called by:** `/project:execute`
-
----
-
-### `/project:implement`
-
-**Arguments:** `<project-directory>` (required)
-
-Systematically implements all tasks. For each pending, unblocked task:
-1. Marks it in_progress
-2. Retrieves full task details
-3. Launches a subagent with the task description
-4. Subagent runs verification command and confirms expected output
-5. Marks task completed (or keeps in_progress if verification fails)
-6. Checks for newly unblocked tasks
-
-**Called by:** `/project:execute`
-
----
-
-### `/project:review`
-
-**Arguments:** `<project-directory>` (required)
-
-Performs extensive code review in 5 steps:
-1. **Claude Review**: Runs `/project:local-code-review` (if not already done)
-2. **Implement Claude Fixes**: Fixes suggestions scoring above 45
-3. **CodeRabbit Review**: Runs `coderabbit review --plain` (if not already done)
-4. **Implement CodeRabbit Fixes**: Evaluates and implements valid findings
-5. **Claude Optimizations**: Uses code-simplifier agent to clean up code
-
-**Called by:** `/project:execute`
-**Calls:** `/project:local-code-review`
-
----
-
-### `/project:local-code-review`
-
-**Arguments:** `<project-directory>` (required)
+**Arguments:** none
 
 Performs code review on local branch changes using 5 parallel agents:
+
 1. CLAUDE.md compliance check
 2. Shallow scan for obvious bugs
 3. Git blame and history context
 4. Previous PR comments that may apply
 5. Code comments compliance
 
-Scores issues 0-100 and filters to findings with score ≥ 80. Writes results to `<project>/claude-review.md`.
-
-**Called by:** `/project:review`
+Scores issues 0-100 and filters to findings with score >= 80.
 
 ---
 
-### `/project:verify`
+### `/plan:fix-linter-error`
 
-**Arguments:** `<project-directory>` (required)
+**Arguments:** `<rule-1> [rule-2] [rule-3] ...` (required)
 
-Verifies the implementation completely satisfies all requirements from brief.md and research.md. Documents any divergence to `<project>/drift.md`.
-
-**Called by:** `/project:execute`
+Enables specific ESLint rules, identifies all violations, creates a task for each file (ordered by violation count), and launches parallel subagents to fix them.
 
 ---
 
-### `/project:debrief`
-
-**Arguments:** `<project-directory>` (required)
-
-Evaluates findings.md and uses skill-evaluator agent to decide where each learning belongs:
-- **CREATE SKILL**: Complex, reusable pattern
-- **ADD TO RULES**: Simple never/always rule for .claude/rules/PROJECT_RULES.md
-- **OMIT ENTIRELY**: Already covered or too project-specific
-
-**Called by:** `/project:execute`
-
----
-
-### `/project:archive`
-
-**Arguments:** `<project-directory>` (required)
-
-Moves the completed project to `projects/archive` and submits a PR.
-
-**Called by:** `/project:execute`
-**Calls:** `/git:commit-and-submit-pr`
-
----
-
-### `/project:fix-linter-error`
-
-**Arguments:** `<eslint-rule-name>` (required)
-
-Enables a specific ESLint rule, identifies all violations, creates a task for each file (ordered by violation count), and launches up to 5 parallel subagents to fix them.
-
----
-
-### `/project:lower-code-complexity`
+### `/plan:lower-code-complexity`
 
 **Arguments:** none
 
-Lowers the cognitive complexity threshold by 2, identifies all functions exceeding the new limit, creates tasks ordered by complexity score, and launches up to 5 code-simplifier agents to refactor in parallel.
+Lowers the cognitive complexity threshold by 2, identifies all functions exceeding the new limit, creates tasks ordered by complexity score, and launches parallel code-simplifier agents to refactor.
 
 ---
 
-### `/project:add-test-coverage`
+### `/plan:add-test-coverage`
 
 **Arguments:** `<threshold-percentage>` (required)
 
-Updates coverage config thresholds, identifies the 20 files with lowest coverage, creates tasks for each, and launches up to 5 test-coverage-agents to add tests in parallel. Iterates until all thresholds meet or exceed the target.
+Updates coverage config thresholds, identifies the 20 files with lowest coverage, creates tasks for each, and launches parallel test-coverage agents. Iterates until all thresholds meet or exceed the target.
 
 ---
 
-### `/project:reduce-max-lines`
+### `/plan:reduce-max-lines`
 
 **Arguments:** `<max-lines-value>` (required)
 
-Reduces the max file lines threshold, identifies all files exceeding the new limit, creates tasks ordered by line count, and launches up to 5 code-simplifier agents to refactor in parallel. Iterates until all files meet or are under the target.
+Reduces the max file lines threshold, identifies all files exceeding the new limit, creates tasks ordered by line count, and launches parallel code-simplifier agents. Iterates until all files are under the target.
 
 ---
 
-### `/project:reduce-max-lines-per-function`
+### `/plan:reduce-max-lines-per-function`
 
 **Arguments:** `<max-lines-per-function-value>` (required)
 
-Reduces the max lines per function threshold, identifies all functions exceeding the new limit, creates tasks ordered by line count, and launches up to 5 code-simplifier agents to refactor in parallel. Iterates until all functions meet or are under the target.
+Reduces the max lines per function threshold, identifies all functions exceeding the new limit, creates tasks ordered by line count, and launches parallel code-simplifier agents. Iterates until all functions are under the target.
 
 ---
 
@@ -342,12 +202,13 @@ Reduces the max lines per function threshold, identifies all functions exceeding
 **Arguments:** `[commit-message-hint]` (optional)
 
 Creates conventional commits for all current changes:
+
 1. If on protected branch (dev/staging/main), creates a feature branch
 2. Groups related changes into logical commits
 3. Uses conventional prefixes (feat, fix, chore, docs, style, refactor, test)
 4. Ensures working directory is clean
 
-**Called by:** `/project:setup`, `/project:research`, `/sonarqube:fix`, `/pull-request:review`, `/git:commit-and-submit-pr`
+**Called by:** `/sonarqube:fix`, `/pull-request:review`, `/git:commit-and-submit-pr`
 
 ---
 
@@ -356,6 +217,7 @@ Creates conventional commits for all current changes:
 **Arguments:** `[pr-title-or-description-hint]` (optional)
 
 Pushes current branch and creates or updates a pull request:
+
 1. Verifies not on protected branch
 2. Ensures all changes committed
 3. Pushes with `-u` flag
@@ -372,7 +234,7 @@ Pushes current branch and creates or updates a pull request:
 
 Commits all changes and submits the branch as a PR.
 
-**Called by:** `/project:archive`, `/pull-request:review`
+**Called by:** `/pull-request:review`
 **Calls:** `/git:commit` → `/git:submit-pr`
 
 ---
@@ -390,6 +252,7 @@ Removes local branches whose upstream tracking branches have been deleted on rem
 **Arguments:** `<github-pr-link>` (required)
 
 Fetches all review comments on a PR via GitHub CLI, creates a task for each unresolved comment with instructions to:
+
 1. Evaluate if the requested change is valid
 2. If not valid, reply explaining why
 3. If valid, make code updates following project standards
@@ -415,24 +278,6 @@ Loads tasks from `projects/<project-name>/tasks/` into the current Claude Code s
 **Arguments:** `<project-name>` (required)
 
 Syncs all tasks from the current session to `projects/<project-name>/tasks/` as JSON files. Stages files for git.
-
----
-
-### `/jira:create`
-
-**Arguments:** `<file-or-directory-path>` (required), `[project-key]` (optional, defaults to SE)
-
-Analyzes code files and creates a comprehensive JIRA hierarchy (Epic → User Story → Tasks) with mandatory quality gates: test-first, quality gates, documentation, feature flags, cleanup.
-
----
-
-### `/jira:verify`
-
-**Arguments:** `<TICKET-ID>` (required)
-
-Verifies a JIRA ticket:
-1. Has an epic parent (if not a bug or epic itself)
-2. Has quality description addressing coding assistants, developers, and stakeholders
 
 ---
 
@@ -466,32 +311,32 @@ Run FROM the Lisa repository. Compares Lisa's templates against a target project
 
 ### `/lisa:review-implementation`
 
-**Arguments:** `[lisa-dir]` (optional - auto-detects if Claude started with `--add-dir`)
+**Arguments:** `[lisa-dir]` (optional — auto-detects if Claude started with `--add-dir`)
 
 Run FROM a project with Lisa applied. Compares the project's Lisa-managed files against Lisa source templates and offers to upstream changes back to Lisa.
+
+---
+
+### `/jira:create`
+
+**Arguments:** `<file-or-directory-path> [project-key]` (path required, key optional)
+
+Creates JIRA epics, stories, and tasks from code files or descriptions with comprehensive quality requirements.
+
+---
+
+### `/jira:verify`
+
+**Arguments:** `<TICKET-ID>` (required)
+
+Verifies a JIRA ticket meets organizational standards for epic relationships and description quality.
 
 ---
 
 ## Command Call Graph
 
 ```text
-/project:bootstrap
-├── /project:setup
-│   └── /git:commit
-└── /project:research
-    └── /git:commit
-
-/project:execute
-├── /project:plan
-├── /project:implement
-├── /project:review
-│   └── /project:local-code-review
-├── /project:verify
-├── /project:debrief
-└── /project:archive
-    └── /git:commit-and-submit-pr
-        ├── /git:commit
-        └── /git:submit-pr
+/plan:create → (plan mode) → /plan:implement
 
 /sonarqube:fix
 ├── /sonarqube:check
@@ -502,4 +347,8 @@ Run FROM a project with Lisa applied. Compares the project's Lisa-managed files 
 └── /git:commit-and-submit-pr
     ├── /git:commit
     └── /git:submit-pr
+
+/git:commit-and-submit-pr
+├── /git:commit
+└── /git:submit-pr
 ```

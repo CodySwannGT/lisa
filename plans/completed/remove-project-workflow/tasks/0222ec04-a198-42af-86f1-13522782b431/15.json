@@ -1,0 +1,9 @@
+{
+  "id": "15",
+  "subject": "Execute local code review skill steps",
+  "description": "Follow the plan-local-code-review skill steps 1-8",
+  "activeForm": "Executing local code review",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

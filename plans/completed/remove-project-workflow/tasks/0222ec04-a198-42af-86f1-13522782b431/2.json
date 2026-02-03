@@ -1,0 +1,15 @@
+{
+  "id": "2",
+  "subject": "Delete template project commands and skills directories",
+  "description": "Delete all/copy-overwrite/.claude/commands/project/ and all project-* skill directories from all/copy-overwrite/.claude/skills/",
+  "activeForm": "Deleting template project commands and skills directories",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}

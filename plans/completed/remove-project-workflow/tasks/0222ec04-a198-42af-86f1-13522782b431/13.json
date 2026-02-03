@@ -1,0 +1,19 @@
+{
+  "id": "13",
+  "subject": "Verify all task verifications",
+  "description": "Run verification commands for every completed task to ensure they still pass.",
+  "activeForm": "Verifying all task verifications",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "10",
+    "11",
+    "12"
+  ],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}

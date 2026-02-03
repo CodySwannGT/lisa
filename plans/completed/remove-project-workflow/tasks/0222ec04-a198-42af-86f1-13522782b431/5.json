@@ -1,0 +1,15 @@
+{
+  "id": "5",
+  "subject": "Rewrite HUMAN.md to document plan-based workflow",
+  "description": "Replace all /project:* references with plan workflow. Both root HUMAN.md and all/copy-overwrite/HUMAN.md must be identical.",
+  "activeForm": "Rewriting HUMAN.md to document plan-based workflow",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}
