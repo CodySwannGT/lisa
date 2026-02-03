@@ -1,0 +1,15 @@
+{
+  "id": "1",
+  "subject": "Delete root project commands and skills directories",
+  "description": "Already done (staged as deletions). Verify they're gone.",
+  "activeForm": "Deleting root project commands and skills directories",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}

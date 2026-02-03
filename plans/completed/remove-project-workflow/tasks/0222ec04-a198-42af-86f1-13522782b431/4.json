@@ -1,0 +1,15 @@
+{
+  "id": "4",
+  "subject": "Copy plan create.md and implement.md to root commands",
+  "description": "Copy all/copy-overwrite/.claude/commands/plan/create.md and implement.md to .claude/commands/plan/",
+  "activeForm": "Copying plan create.md and implement.md to root commands",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "rustling-napping-lobster",
+    "type": "task"
+  }
+}
