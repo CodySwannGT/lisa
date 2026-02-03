@@ -1,0 +1,11 @@
+{
+  "id": "1",
+  "subject": "Add Lisa-managed files section to CLAUDE.md template",
+  "description": "Edit `all/copy-overwrite/CLAUDE.md` to insert the LISA-MANAGED FILES section after line 55 (after `Never update CHANGELOG`). Include both tables: files with local overrides and files/directories with no override. Verification: `grep -c \"LISA-MANAGED FILES\" all/copy-overwrite/CLAUDE.md` returns 1.",
+  "activeForm": "Adding managed files section to CLAUDE.md",
+  "status": "completed",
+  "blocks": [
+    "2"
+  ],
+  "blockedBy": []
+}
