@@ -27,9 +27,9 @@ If no argument provided, prompt the user for a PR link or number.
 
 If no unresolved comments exist, report success and exit.
 
-## Step 2: Generate Brief
+## Step 2: Create Plan
 
-Compile findings into a detailed brief:
+In plan mode, create a plan that includes the following details:
 
 ```markdown
 Implement PR review feedback for $ARGUMENTS.
@@ -67,7 +67,3 @@ Implement PR review feedback for $ARGUMENTS.
 Command: `bun run lint && bun run test`
 Expected: All checks pass
 ```
-
-## Step 3: Bootstrap Project
-
-Run `/project-bootstrap` with the generated brief as a text prompt.

@@ -5,6 +5,9 @@ disable-model-invocation: false
 argument-hint: "<project-directory>"
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use `/plan-local-code-review` instead, which integrates with Claude's native plan mode.
+> This skill will be removed in a future release.
+
 Provide a code review for the local changes on the current branch compared to the main branch.
 
 To do this, follow these steps precisely:

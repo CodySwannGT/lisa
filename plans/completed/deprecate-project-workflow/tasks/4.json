@@ -1,0 +1,23 @@
+{
+  "id": "4",
+  "subject": "Create plan command wrappers in both locations",
+  "description": "Create thin command wrappers in .claude/commands/plan/ and all/copy-overwrite/.claude/commands/plan/ for all 6 plan-* skills. Verification: `ls .claude/commands/plan/*.md all/copy-overwrite/.claude/commands/plan/*.md | wc -l` → `12`",
+  "activeForm": "Creating plan command wrappers",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "ls .claude/commands/plan/*.md all/copy-overwrite/.claude/commands/plan/*.md | wc -l",
+      "expected": "12"
+    }
+  }
+}

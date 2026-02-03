@@ -1,0 +1,20 @@
+{
+  "id": "13",
+  "subject": "Update OVERVIEW.md to replace project workflow with plan workflow documentation",
+  "description": "Replace Bootstrap/Execute phase docs, update command tables, update workflow references. Verification: `grep -c \"/project:bootstrap\\|/project:execute\" OVERVIEW.md` → `0`",
+  "activeForm": "Updating OVERVIEW.md",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -cE '/project:bootstrap|/project:execute' OVERVIEW.md",
+      "expected": "0"
+    }
+  }
+}

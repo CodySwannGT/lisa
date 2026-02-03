@@ -5,6 +5,10 @@ allowed-tools: ["Read", "Write", "Bash(git*)", "Glob", "Grep", "Task", "TaskCrea
 argument-hint: "<file-path|jira-issue|text-description>"
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use Claude's native plan mode instead.
+> Enter plan mode with `/plan`, describe your requirements, and Claude will create a plan with tasks automatically.
+> This skill will be removed in a future release.
+
 ## Step 1: Determine Input Type
 
 Examine $ARGUMENTS to determine which type:

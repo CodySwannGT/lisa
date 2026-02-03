@@ -1,0 +1,20 @@
+{
+  "id": "5",
+  "subject": "Add deprecation notices to project-* skills in .claude/skills/",
+  "description": "Add appropriate deprecation notice after YAML frontmatter in each of the 16 project-* SKILL.md files in .claude/skills/. Core workflow skills get plan mode notice, utility skills get /plan-* replacement notice. Verification: `grep -l \"DEPRECATED\" .claude/skills/project-*/SKILL.md | wc -l` → `16`",
+  "activeForm": "Adding deprecation notices to Lisa project skills",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -l 'DEPRECATED' .claude/skills/project-*/SKILL.md | wc -l",
+      "expected": "16"
+    }
+  }
+}
