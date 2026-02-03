@@ -1,0 +1,23 @@
+{
+  "id": "5",
+  "subject": "Review code with local code review",
+  "description": "**Type:** Task\n\n**Description:** Run `/project-local-code-review` on changes.\n\n**Skills to Invoke:** `/project-local-code-review`",
+  "activeForm": "Reviewing code with local code review",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "play-horn-sound-script",
+    "type": "task",
+    "skills": [
+      "/project-local-code-review"
+    ],
+    "learnings": [
+      "All issues found were either pre-existing (not changed on branch) or scored below confidence threshold of 80. Template sync divergence in plan.md scored 75 but is in uncommitted changes not part of the branch."
+    ]
+  }
+}
