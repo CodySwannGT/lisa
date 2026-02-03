@@ -1,0 +1,18 @@
+{
+  "id": "2",
+  "subject": "Replace Lisa's README.md",
+  "description": "Write the new minimal Claude-driven README for Lisa itself. Verification: `wc -l README.md` → under 100 lines",
+  "activeForm": "Replacing Lisa's README.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "wc -l README.md",
+      "expected": "under 100 lines"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "9",
+  "subject": "Review code with CodeRabbit",
+  "description": "Run /coderabbit:review on the changes. Verification: review completes without blocking issues",
+  "activeForm": "Running CodeRabbit review",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "/coderabbit:review",
+      "expected": "review completes"
+    }
+  }
+}

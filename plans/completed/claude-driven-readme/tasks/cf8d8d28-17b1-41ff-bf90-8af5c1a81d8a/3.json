@@ -1,0 +1,18 @@
+{
+  "id": "3",
+  "subject": "Create all/copy-overwrite/README.md",
+  "description": "Generic base Claude-driven README template. Verification: `test -f all/copy-overwrite/README.md && grep -q \"Ask Claude\" all/copy-overwrite/README.md`",
+  "activeForm": "Creating all/copy-overwrite/README.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "test -f all/copy-overwrite/README.md && grep -q 'Ask Claude' all/copy-overwrite/README.md",
+      "expected": "exit 0"
+    }
+  }
+}

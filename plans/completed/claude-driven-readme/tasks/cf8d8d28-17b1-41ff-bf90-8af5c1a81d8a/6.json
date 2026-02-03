@@ -1,0 +1,18 @@
+{
+  "id": "6",
+  "subject": "Create cdk/copy-overwrite/README.md",
+  "description": "CDK-specific Claude-driven README with infra tasks. Verification: `grep -q \"CloudFormation\\|Synth\\|Diff\" cdk/copy-overwrite/README.md`",
+  "activeForm": "Creating cdk/copy-overwrite/README.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -q 'CloudFormation\\|Synth\\|Diff' cdk/copy-overwrite/README.md",
+      "expected": "exit 0"
+    }
+  }
+}

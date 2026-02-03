@@ -1,0 +1,17 @@
+{
+  "id": "12",
+  "subject": "Simplify code with code-simplifier",
+  "description": "Run code-simplifier agent on changes. Verification: agent completes, no further simplifications needed",
+  "activeForm": "Simplifying code",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "learnings": [
+      "copy-overwrite templates intentionally duplicate content since each stack needs a standalone file",
+      "CDK and npm-package stacks don't naturally have 'run the app locally' workflows"
+    ]
+  }
+}

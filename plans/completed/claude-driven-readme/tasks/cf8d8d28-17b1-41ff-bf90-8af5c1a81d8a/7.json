@@ -1,0 +1,18 @@
+{
+  "id": "7",
+  "subject": "Create npm-package/copy-overwrite/README.md",
+  "description": "npm package Claude-driven README with publish tasks. Verification: `grep -q \"Publish\\|npm\" npm-package/copy-overwrite/README.md`",
+  "activeForm": "Creating npm-package/copy-overwrite/README.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -q 'Publish\\|npm' npm-package/copy-overwrite/README.md",
+      "expected": "exit 0"
+    }
+  }
+}
