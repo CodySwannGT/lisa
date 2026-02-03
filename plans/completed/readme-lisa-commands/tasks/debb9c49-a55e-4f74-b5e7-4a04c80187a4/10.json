@@ -1,0 +1,29 @@
+{
+  "id": "10",
+  "subject": "Archive the plan",
+  "description": "**Type:** Task\n\n**Description:** After all tasks are complete:\n1. Create a folder named `readme-lisa-commands` in `./plans/completed`\n2. Rename this plan to `readme-lisa-commands.md`\n3. Move it into `./plans/completed/readme-lisa-commands/`\n4. Read the session IDs from `./plans/completed/readme-lisa-commands/readme-lisa-commands.md`\n5. For each session ID, move `~/.claude/tasks/<session-id>` directory to `./plans/completed/readme-lisa-commands/tasks`\n6. Update any \"in_progress\" task in `./plans/completed/readme-lisa-commands/tasks` to \"completed\"\n7. Commit changes\n8. Push changes to the PR\n\n**Blocked by:** Task 9\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:** `ls ./plans/completed/readme-lisa-commands/` - Plan file and tasks directory exist",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls ./plans/completed/readme-lisa-commands/",
+      "expected": "Plan file and tasks directory exist"
+    }
+  }
+}
+## Sessions
+
+<!-- Auto-maintained by track-plan-sessions.sh -->
+| Session ID | First Seen | Phase |
+|------------|------------|-------|
+| debb9c49-a55e-4f74-b5e7-4a04c80187a4 | 2026-02-03T20:17:01Z | implement |

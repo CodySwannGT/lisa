@@ -1,0 +1,28 @@
+{
+  "id": "7",
+  "subject": "Simplify implemented code with code-simplifier",
+  "description": "**Type:** Task\n\n**Description:** Run code-simplifier agent on all modified files to ensure clarity and consistency.\n\n**Blocked by:** Task 6\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:** Code simplified",
+  "activeForm": "Simplifying implemented code",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Code simplified'",
+      "expected": "Code simplified"
+    },
+    "learnings": [
+      "Documentation-only changes with minimal content (3 lines per file) - no simplification needed"
+    ]
+  }
+}

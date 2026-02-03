@@ -83,7 +83,9 @@
     "ts-jest": "^29.4.6",
     "@jest/globals": "^30.0.0"
   },
-  "resolutions": {},
+  "resolutions": {
+    "@isaacs/brace-expansion": "^5.0.1"
+  },
   "name": "@codyswann/lisa",
   "version": "1.19.1",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
