@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.20.0](https://github.com/CodySwannGT/lisa/compare/vv1.19.2...v1.20.0) (2026-02-03)
+
+
+### Features
+
+* add batch update and commit-and-pr scripts for local Lisa projects ([e6e99ba](https://github.com/CodySwannGT/lisa/commit/e6e99bace042efc0dced8954e123f67e43cc2b1a))
+
+
+### Bug Fixes
+
+* address code review findings in batch scripts ([1a60956](https://github.com/CodySwannGT/lisa/commit/1a6095607f600acfccde87cf8b5f2784240831cd))
+
+
+### Code Refactoring
+
+* simplify batch scripts ([e98d9d0](https://github.com/CodySwannGT/lisa/commit/e98d9d02ec6b926cee86b716209a14d750feeddf))
+
 ### [1.19.2](https://github.com/CodySwannGT/lisa/compare/vv1.19.1...v1.19.2) (2026-02-03)
 
 
