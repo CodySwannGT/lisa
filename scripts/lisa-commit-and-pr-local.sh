@@ -150,7 +150,7 @@ while IFS=$'\t' read -r project_path target_branch; do
 
   # Create branch
   log_info "Creating branch: $branch_name"
-  if ! git -C "$expanded_path" checkout -b "$branch_name" 2>&1; then
+  if ! git -C "$expanded_path" checkout -b "$branch_name" "$target_branch" 2>&1; then
     log_error "Failed to create branch $branch_name in $expanded_path"
     ((fail_count++)) || true
     continue
@@ -158,7 +158,11 @@ while IFS=$'\t' read -r project_path target_branch; do
 
   # Stage and commit
   log_info "Staging and committing changes..."
-  git -C "$expanded_path" add -A
+  if ! git -C "$expanded_path" add -A 2>&1; then
+    log_error "Failed to stage changes in $expanded_path"
+    ((fail_count++)) || true
+    continue
+  fi
   if ! git -C "$expanded_path" commit -m "chore: update Lisa configuration" 2>&1; then
     log_error "Failed to commit changes in $expanded_path"
     ((fail_count++)) || true
@@ -173,8 +177,8 @@ while IFS=$'\t' read -r project_path target_branch; do
     continue
   fi
 
-  # Check for existing PR
-  existing_pr=$(gh pr list --repo "$(git -C "$expanded_path" remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/' | sed 's/.*github.com[:/]\(.*\)/\1/')" --head "$branch_name" --base "$target_branch" --state open --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
+  # Check for existing PR (use cd to let gh auto-detect repo from working directory)
+  existing_pr=$(cd "$expanded_path" && gh pr list --head "$branch_name" --base "$target_branch" --state open --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
 
   if [[ -n "$existing_pr" ]]; then
     log_warning "PR already exists: #$existing_pr, skipping PR creation"
@@ -185,7 +189,7 @@ while IFS=$'\t' read -r project_path target_branch; do
 
   # Create PR
   log_info "Creating pull request..."
-  if ! (cd "$expanded_path" && gh pr create --title "chore: update Lisa configuration" --base "$target_branch" --body "Automated Lisa configuration update applied on $DATE_STAMP.") 2>&1; then
+  if ! (cd "$expanded_path" && gh pr create --title "chore: update Lisa configuration" --base "$target_branch" --body "Automated Lisa configuration update applied on $DATE_STAMP."); then
     log_error "Failed to create PR for $expanded_path"
     ((fail_count++)) || true
     continue

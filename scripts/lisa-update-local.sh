@@ -70,6 +70,11 @@ if ! command -v jq &> /dev/null; then
   exit 1
 fi
 
+if ! command -v bun &> /dev/null; then
+  log_error "bun is required but not installed. Install from: https://bun.sh"
+  exit 1
+fi
+
 if [[ ! -f "$CONFIG_FILE" ]]; then
   log_error "Config file not found: $CONFIG_FILE"
   log_info "Create .lisa.config.local.json with project paths and target branches"
@@ -89,7 +94,6 @@ echo ""
 # Counters (using process substitution to avoid subshell issues)
 success_count=0
 fail_count=0
-skip_count=0
 
 while IFS=$'\t' read -r project_path target_branch; do
   # Expand tilde to $HOME
@@ -108,7 +112,7 @@ while IFS=$'\t' read -r project_path target_branch; do
   if [[ "$DRY_RUN" == true ]]; then
     log_dry_run "Would checkout '$target_branch' in $expanded_path"
     log_dry_run "Would pull latest from origin/$target_branch"
-    log_dry_run "Would run: bun run dev $expanded_path -y --dry-run"
+    log_dry_run "Would run: bun run dev $expanded_path -y"
     ((success_count++)) || true
     continue
   fi
@@ -152,5 +156,4 @@ else
   log_info "Update complete"
   echo -e "  ${GREEN}Succeeded${NC}: $success_count"
   echo -e "  ${RED}Failed${NC}:    $fail_count"
-  echo -e "  ${YELLOW}Skipped${NC}:   $skip_count"
 fi
