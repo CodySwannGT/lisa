@@ -1,0 +1,13 @@
+{
+  "id": "3",
+  "subject": "Commit and push changes",
+  "description": "Use `/git:commit` to commit the CLAUDE.md template change. Push to the current branch targeting main for PR.",
+  "activeForm": "Committing and pushing changes",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "2"
+  ]
+}

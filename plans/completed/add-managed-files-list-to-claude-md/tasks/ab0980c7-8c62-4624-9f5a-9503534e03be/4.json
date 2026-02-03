@@ -1,0 +1,11 @@
+{
+  "id": "4",
+  "subject": "Archive the plan",
+  "description": "To be completed after all other tasks are done. Create a folder named `add-managed-files-list-to-claude-md` in `./plans/completed`. Move the plan into `./plans/completed/add-managed-files-list-to-claude-md/`. Read the session IDs from the plan file. For each session ID, move the `~/.claude/tasks/<session-id>` directory to `./plans/completed/add-managed-files-list-to-claude-md/tasks`.",
+  "activeForm": "Archiving the plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "3"
+  ]
+}
