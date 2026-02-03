@@ -88,9 +88,6 @@ Every task description must be a markdown document with these sections:
 
 Each task must be small enough to have a **single, specific verification**. Ask: "Can I prove this is done with ONE command?" Split tasks that require multiple verifications.
 
-### Dependencies
-
-After all tasks are created, use **TaskUpdate** with `addBlockedBy` to establish ordering where needed.
 ```
 
 ### 3. Mirror to template
