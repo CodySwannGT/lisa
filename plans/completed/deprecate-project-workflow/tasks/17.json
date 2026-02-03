@@ -1,0 +1,25 @@
+{
+  "id": "17",
+  "subject": "Simplify implemented code with code simplifier agent",
+  "description": "Run code simplifier on changed files. Verification: manual-check — simplified code passes lint",
+  "activeForm": "Simplifying implemented code",
+  "status": "completed",
+  "blocks": [
+    "20"
+  ],
+  "blockedBy": [
+    "16"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "bun run lint",
+      "expected": "passes"
+    },
+    "learnings": [
+      "All changes in this PR are markdown files (skill definitions, commands, documentation). No TypeScript code to simplify."
+    ]
+  }
+}

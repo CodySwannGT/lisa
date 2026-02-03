@@ -1,0 +1,25 @@
+{
+  "id": "19",
+  "subject": "Update JSDoc and markdown documentation for changes",
+  "description": "Ensure all new skill SKILL.md files have proper preambles. Verification: `grep -l \"DEPRECATED\\|plan-\" .claude/skills/*/SKILL.md | wc -l` → at least 22",
+  "activeForm": "Updating documentation",
+  "status": "completed",
+  "blocks": [
+    "20"
+  ],
+  "blockedBy": [
+    "16"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "documentation",
+      "command": "grep -l 'DEPRECATED\\|plan-' .claude/skills/*/SKILL.md | wc -l",
+      "expected": "at least 22"
+    },
+    "learnings": [
+      "Language specifiers were the only documentation gap. All new plan-* SKILL.md files have proper preambles. No JSDoc needed since changes are all markdown."
+    ]
+  }
+}
