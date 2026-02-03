@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.19.0](https://github.com/CodySwannGT/lisa/compare/vv1.18.1...v1.19.0) (2026-02-03)
+
+
+### Features
+
+* deprecate project workflow, add plan-* skills and commands ([b42327f](https://github.com/CodySwannGT/lisa/commit/b42327f15f9547bc59673f1084a0dff8c16d5abf))
+
+
+### Bug Fixes
+
+* add language specifiers to fenced code blocks in plan-* skills ([f97f31e](https://github.com/CodySwannGT/lisa/commit/f97f31ef8d6bede6a3524c41287260371c6343c7))
+
+
+### Code Refactoring
+
+* simplify skill workflows by merging plan creation into step 2 ([c21ab8c](https://github.com/CodySwannGT/lisa/commit/c21ab8caf1d08df4c16aab27e209d3af749fc4a6))
+
 ### [1.18.1](https://github.com/CodySwannGT/lisa/compare/vv1.18.0...v1.18.1) (2026-02-03)
 
 
