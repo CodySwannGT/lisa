@@ -1,0 +1,18 @@
+{
+  "id": "13",
+  "subject": "Run tests to verify no regressions",
+  "description": "README-only changes, no code tests to update. Run `bun run test` to verify no regressions. Verification: `bun run test` passes",
+  "activeForm": "Running tests",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "all tests pass"
+    }
+  }
+}

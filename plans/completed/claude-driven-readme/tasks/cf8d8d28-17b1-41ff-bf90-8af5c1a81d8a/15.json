@@ -1,0 +1,13 @@
+{
+  "id": "15",
+  "subject": "Verify all task verification metadata",
+  "description": "Run each task's proof command to verify all work is complete. Verification: all proof commands pass",
+  "activeForm": "Verifying all task metadata",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task"
+  }
+}

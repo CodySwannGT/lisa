@@ -1,0 +1,13 @@
+{
+  "id": "16",
+  "subject": "Archive the plan",
+  "description": "Create ./plans/completed/claude-driven-readme/, rename plan, move it, move ~/.claude/tasks session directories, update in_progress tasks to completed, commit, push to PR.",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task"
+  }
+}
