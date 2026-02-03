@@ -1,0 +1,25 @@
+{
+  "id": "9",
+  "subject": "Update/add/remove tests",
+  "description": "**Type:** Task\n\n**Description:** These are bash scripts, so tests are manual verification commands. Ensure `--dry-run` mode exercises all code paths. Document test commands in PR description.\n\n**Verification:**\n- Type: manual-check\n- Command: `bash scripts/lisa-update-local.sh --dry-run && bash scripts/lisa-commit-and-pr-local.sh --dry-run`\n- Expected: Both dry-run executions pass",
+  "activeForm": "Updating tests",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "bash scripts/lisa-update-local.sh --dry-run && bash scripts/lisa-commit-and-pr-local.sh --dry-run",
+      "expected": "Both dry-run executions pass"
+    }
+  }
+}

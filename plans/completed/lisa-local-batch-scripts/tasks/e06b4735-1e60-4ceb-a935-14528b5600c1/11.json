@@ -1,0 +1,26 @@
+{
+  "id": "11",
+  "subject": "Verify all verification metadata",
+  "description": "**Type:** Task\n\n**Description:** Run all verification commands from all tasks and confirm they produce expected output.\n\n**Verification:**\n- Type: manual-check\n- Command: `bash scripts/lisa-update-local.sh --dry-run && bash scripts/lisa-commit-and-pr-local.sh --dry-run`\n- Expected: All verifications pass",
+  "activeForm": "Verifying all verification metadata",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "9",
+    "10"
+  ],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "bash scripts/lisa-update-local.sh --dry-run && bash scripts/lisa-commit-and-pr-local.sh --dry-run",
+      "expected": "All verifications pass"
+    }
+  }
+}

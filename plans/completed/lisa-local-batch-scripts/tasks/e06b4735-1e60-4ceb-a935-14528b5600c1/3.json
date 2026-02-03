@@ -1,0 +1,23 @@
+{
+  "id": "3",
+  "subject": "Add package.json script entries",
+  "description": "**Type:** Task\n\n**Description:** Add `\"lisa:update:local\"` and `\"lisa:commit-and-pr:local\"` script entries to `package.json`. Check if `package.lisa.json` needs a corresponding update.\n\n**Verification:**\n- Type: manual-check\n- Command: `jq '.scripts[\"lisa:update:local\"], .scripts[\"lisa:commit-and-pr:local\"]' package.json`\n- Expected: Both values returned",
+  "activeForm": "Adding package.json script entries",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "jq '.scripts[\"lisa:update:local\"], .scripts[\"lisa:commit-and-pr:local\"]' package.json",
+      "expected": "\"bash scripts/lisa-update-local.sh\"\n\"bash scripts/lisa-commit-and-pr-local.sh\""
+    }
+  }
+}

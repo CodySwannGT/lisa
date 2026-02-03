@@ -1,0 +1,28 @@
+{
+  "id": "4",
+  "subject": "Test both scripts with --dry-run",
+  "description": "**Type:** Task\n\n**Description:** Run both scripts with `--dry-run` to verify they correctly parse `.lisa.config.local.json`, expand paths, validate directories, and produce expected output.\n\n**Verification:**\n- Type: manual-check\n- Command: `bash scripts/lisa-update-local.sh --dry-run && bash scripts/lisa-commit-and-pr-local.sh --dry-run`\n- Expected: Both scripts print project lists with [DRY-RUN] messages and exit 0",
+  "activeForm": "Testing both scripts with --dry-run",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "bash scripts/lisa-update-local.sh --dry-run && bash scripts/lisa-commit-and-pr-local.sh --dry-run",
+      "expected": "Both scripts exit 0 with dry-run output"
+    }
+  }
+}
