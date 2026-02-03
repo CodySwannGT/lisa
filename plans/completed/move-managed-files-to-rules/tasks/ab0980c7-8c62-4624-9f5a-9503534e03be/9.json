@@ -1,0 +1,11 @@
+{
+  "id": "9",
+  "subject": "Archive the plan",
+  "description": "Create folder `move-managed-files-to-rules` in `./plans/completed`. Move plan into it. Read session IDs and move `~/.claude/tasks/<session-id>` directories to `./plans/completed/move-managed-files-to-rules/tasks`.",
+  "activeForm": "Archiving the plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "8"
+  ]
+}

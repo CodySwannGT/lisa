@@ -1,0 +1,11 @@
+{
+  "id": "5",
+  "subject": "Create .claude/rules/lisa.md with managed files content",
+  "description": "Create `all/copy-overwrite/.claude/rules/lisa.md` with the LISA-MANAGED FILES section from CLAUDE.md. Verification: `grep -c \"LISA-MANAGED FILES\" all/copy-overwrite/.claude/rules/lisa.md` returns 1.",
+  "activeForm": "Creating .claude/rules/lisa.md",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": []
+}
