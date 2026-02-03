@@ -9,7 +9,6 @@ Developers write specs and answer questions. Agents implement, test, verify, que
 ## Step 1: Install Claude Code
 
 ```bash
-# Install Claude Code CLI
 brew install claude-code
 # Or: npm install -g @anthropic-ai/claude-code
 ```

@@ -34,7 +34,6 @@ Lisa applies multiple layers of quality control to Claude Code projects:
 ## Step 1: Install Claude Code
 
 ```bash
-# Install Claude Code CLI
 brew install claude-code
 # Or: npm install -g @anthropic-ai/claude-code
 ```
@@ -94,11 +93,11 @@ Or break it down:
 
 ## Project Standards
 
-> Ask Claude: "What coding standards does this project follow?"
+> Ask Claude: "What coding standards and conventions does this project follow?"
 
 ## Architecture
 
-> Ask Claude: "Explain the architecture of this project and how the different layers work together."
+> Ask Claude: "Explain the architecture of this project, including key components and how they interact."
 
 ## Troubleshooting
 
