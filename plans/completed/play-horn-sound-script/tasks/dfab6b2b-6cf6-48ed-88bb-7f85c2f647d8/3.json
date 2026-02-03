@@ -1,0 +1,23 @@
+{
+  "id": "3",
+  "subject": "Delete the horn sound script",
+  "description": "**Type:** Task\n\n**Description:** Remove `scripts/horn.py` after successful execution.\n\n**Acceptance Criteria:**\n- [ ] `scripts/horn.py` no longer exists\n\n**Verification:**\n- Type: manual-check\n- Command: `test ! -f scripts/horn.py && echo deleted`\n- Expected: prints \"deleted\"",
+  "activeForm": "Deleting the horn sound script",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "5"
+  ],
+  "blockedBy": [
+    "2"
+  ],
+  "metadata": {
+    "plan": "play-horn-sound-script",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "test ! -f scripts/horn.py && echo deleted",
+      "expected": "prints deleted"
+    }
+  }
+}

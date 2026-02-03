@@ -1,0 +1,18 @@
+{
+  "id": "11",
+  "subject": "Archive the plan",
+  "description": "**Type:** Task\n\n**Description:**\n- Create folder `./plans/completed/play-horn-sound-script`\n- Rename this plan to match its contents and move to `./plans/completed/play-horn-sound-script/`\n- Read session IDs from `./plans/completed/play-horn-sound-script/`\n- For each session ID, move `~/.claude/tasks/<session-id>` to `./plans/completed/play-horn-sound-script/tasks`\n- Update any \"in_progress\" tasks to \"completed\"\n- Commit changes\n- Push changes to PR #139",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "7",
+    "8",
+    "9",
+    "10"
+  ],
+  "metadata": {
+    "plan": "play-horn-sound-script",
+    "type": "task"
+  }
+}
