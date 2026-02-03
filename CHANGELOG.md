@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.18.1](https://github.com/CodySwannGT/lisa/compare/vv1.18.0...v1.18.1) (2026-02-03)
+
+
+### Documentation
+
+* address review feedback on Claude-driven READMEs ([6409bc0](https://github.com/CodySwannGT/lisa/commit/6409bc0ca5fa03ba4cd891abb30d6121b42c5955))
+* replace READMEs with Claude-driven format ([9676640](https://github.com/CodySwannGT/lisa/commit/967664067c63cca78e2c21327ca80ca86ad3fd00))
+* simplify and align README templates ([c79a1c5](https://github.com/CodySwannGT/lisa/commit/c79a1c5c812701688e25e855887302ca2195072c))
+
 ## [1.18.0](https://github.com/CodySwannGT/lisa/compare/vv1.17.0...v1.18.0) (2026-02-03)
 
 
