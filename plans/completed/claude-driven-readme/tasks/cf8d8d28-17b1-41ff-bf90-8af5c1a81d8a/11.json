@@ -1,0 +1,13 @@
+{
+  "id": "11",
+  "subject": "Implement valid review suggestions",
+  "description": "Apply feedback from both code reviews. Verification: re-run reviews show no outstanding issues",
+  "activeForm": "Implementing review suggestions",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task"
+  }
+}

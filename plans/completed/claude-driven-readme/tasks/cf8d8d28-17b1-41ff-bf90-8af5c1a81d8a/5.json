@@ -1,0 +1,18 @@
+{
+  "id": "5",
+  "subject": "Create nestjs/copy-overwrite/README.md",
+  "description": "NestJS-specific Claude-driven README with API/DB tasks. Verification: `grep -q \"Migration\\|GraphQL\" nestjs/copy-overwrite/README.md`",
+  "activeForm": "Creating nestjs/copy-overwrite/README.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -q 'Migration\\|GraphQL' nestjs/copy-overwrite/README.md",
+      "expected": "exit 0"
+    }
+  }
+}

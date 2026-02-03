@@ -1,0 +1,18 @@
+{
+  "id": "10",
+  "subject": "Review code with local code review",
+  "description": "Run /project:local-code-review on the changes. Verification: review completes without blocking issues",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "/project:local-code-review",
+      "expected": "review completes"
+    }
+  }
+}

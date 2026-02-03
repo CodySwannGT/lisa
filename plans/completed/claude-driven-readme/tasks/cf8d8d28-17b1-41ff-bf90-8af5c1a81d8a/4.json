@@ -1,0 +1,18 @@
+{
+  "id": "4",
+  "subject": "Create expo/copy-overwrite/README.md",
+  "description": "Expo-specific Claude-driven README with mobile/web tasks. Verification: `grep -q \"iOS\\|Android\\|Schema\" expo/copy-overwrite/README.md`",
+  "activeForm": "Creating expo/copy-overwrite/README.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cached-toasting-fox",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -q 'iOS\\|Android\\|Schema' expo/copy-overwrite/README.md",
+      "expected": "exit 0"
+    }
+  }
+}
