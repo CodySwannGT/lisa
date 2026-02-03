@@ -3,7 +3,7 @@ name: project-add-test-coverage
 description: This skill should be used when increasing test coverage to a specified threshold percentage. It runs the coverage report, identifies files with the lowest coverage, generates a brief with coverage gaps, and bootstraps a project to add the missing tests.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 argument-hint: "<threshold-percentage>"
-model: sonnet
+
 ---
 
 > **DEPRECATED**: This skill is deprecated. Use `/plan-add-test-coverage` instead, which integrates with Claude's native plan mode.

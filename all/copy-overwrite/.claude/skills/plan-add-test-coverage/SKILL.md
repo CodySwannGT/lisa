@@ -3,7 +3,7 @@ name: plan-add-test-coverage
 description: This skill should be used when increasing test coverage to a specified threshold percentage. It runs the coverage report, identifies files with the lowest coverage, generates a brief with coverage gaps, and creates a plan with tasks to add the missing tests.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 argument-hint: "<threshold-percentage>"
-model: sonnet
+
 ---
 
 # Increase Test Coverage
@@ -24,9 +24,9 @@ If no argument provided, prompt the user for a target.
    - Current coverage % (lines, branches, functions)
    - Which lines/branches are uncovered
 
-## Step 2: Generate Brief
+## Step 2: Create Plan
 
-Compile findings into a detailed brief:
+In plan mode, create a plan that includes the following details:
 
 ```markdown
 Increase test coverage from [current]% to $ARGUMENTS%.
@@ -52,13 +52,3 @@ Increase test coverage from [current]% to $ARGUMENTS%.
 Command: `bun run test:cov`
 Expected: All thresholds pass at $ARGUMENTS%
 ```
-
-## Step 3: Create Plan
-
-1. Write the generated brief to a new plan file at `plans/<descriptive-name>.md`
-2. Use TaskCreate to create tasks for each item identified in the brief
-   - Size each task for a single verification command
-   - Include `/coding-philosophy` in skills metadata
-   - Include verification command and expected output
-   - Set `metadata.plan` to the plan name
-3. Report the plan file path and number of tasks created
