@@ -1,0 +1,23 @@
+{
+  "id": "1",
+  "subject": "Add Lisa Commands section to all template READMEs",
+  "description": "**Type:** Task\n\n**Description:** Add a `## Lisa Commands` section between \"Step 4: Work on a Feature\" and \"## Common Tasks\" in each template README. The section contains a single \"Ask Claude\" blockquote directing users to ask about Lisa commands via `HUMAN.md`.\n\n**Acceptance Criteria:**\n- [ ] `all/copy-overwrite/README.md` has Lisa Commands section\n- [ ] `expo/copy-overwrite/README.md` has Lisa Commands section\n- [ ] `nestjs/copy-overwrite/README.md` has Lisa Commands section\n- [ ] `cdk/copy-overwrite/README.md` has Lisa Commands section\n- [ ] `npm-package/copy-overwrite/README.md` has Lisa Commands section\n- [ ] Section is placed between Step 4 and Common Tasks\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Implementation Details:** Insert after the utility commands list under Step 4 and before `## Common Tasks`.\n\n**Testing Requirements:** N/A\n\n**Verification:** `grep -c 'Lisa Commands' all/copy-overwrite/README.md expo/copy-overwrite/README.md nestjs/copy-overwrite/README.md cdk/copy-overwrite/README.md npm-package/copy-overwrite/README.md` - each file shows count of 1",
+  "activeForm": "Adding Lisa Commands section to template READMEs",
+  "status": "completed",
+  "blocks": [
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c 'Lisa Commands' all/copy-overwrite/README.md expo/copy-overwrite/README.md nestjs/copy-overwrite/README.md cdk/copy-overwrite/README.md npm-package/copy-overwrite/README.md",
+      "expected": "Each file shows count of 1"
+    }
+  }
+}

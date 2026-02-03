@@ -1,0 +1,23 @@
+{
+  "id": "2",
+  "subject": "Add Lisa Commands section to Lisa's own README.md",
+  "description": "**Type:** Task\n\n**Description:** Add the same `## Lisa Commands` section to the root `README.md` between \"Step 4\" and \"## Common Tasks\".\n\n**Acceptance Criteria:**\n- [ ] `README.md` has Lisa Commands section\n- [ ] Section is placed between Step 4 and Common Tasks\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Implementation Details:** Insert after the utility commands list under Step 4 and before `## Common Tasks`.\n\n**Testing Requirements:** N/A\n\n**Verification:** `grep -c 'Lisa Commands' README.md` returns 1",
+  "activeForm": "Adding Lisa Commands section to Lisa README",
+  "status": "completed",
+  "blocks": [
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c 'Lisa Commands' README.md",
+      "expected": "1"
+    }
+  }
+}

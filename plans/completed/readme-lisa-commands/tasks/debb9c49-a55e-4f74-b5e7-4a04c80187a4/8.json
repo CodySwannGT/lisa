@@ -1,0 +1,26 @@
+{
+  "id": "8",
+  "subject": "Verify documentation is consistent",
+  "description": "**Type:** Task\n\n**Description:** Ensure all 6 README files have the identical \"Lisa Commands\" section. Verify HUMAN.md content is still accurate and referenced correctly.\n\n**Blocked by:** Task 7\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:** `grep -A2 '## Lisa Commands' README.md all/copy-overwrite/README.md expo/copy-overwrite/README.md nestjs/copy-overwrite/README.md cdk/copy-overwrite/README.md npm-package/copy-overwrite/README.md` - all 6 files show identical section",
+  "activeForm": "Verifying documentation consistency",
+  "status": "completed",
+  "blocks": [
+    "9"
+  ],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -A2 '## Lisa Commands' README.md all/copy-overwrite/README.md expo/copy-overwrite/README.md nestjs/copy-overwrite/README.md cdk/copy-overwrite/README.md npm-package/copy-overwrite/README.md",
+      "expected": "All 6 files show identical Lisa Commands section"
+    }
+  }
+}

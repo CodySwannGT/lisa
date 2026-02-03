@@ -1,0 +1,29 @@
+{
+  "id": "3",
+  "subject": "Create feature branch and open draft PR",
+  "description": "**Type:** Task\n\n**Description:** Commit changes, push, and open a draft PR targeting `main`.\n\n**Skills to Invoke:** `/coding-philosophy`, `/git:commit`, `/git:submit-pr`\n\n**Verification:** `gh pr view --json state,title` shows the draft PR",
+  "activeForm": "Creating feature branch and draft PR",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "5"
+  ],
+  "blockedBy": [
+    "1",
+    "2"
+  ],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/git:commit",
+      "/git:submit-pr"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "gh pr view --json state,title",
+      "expected": "Draft PR exists"
+    }
+  }
+}
