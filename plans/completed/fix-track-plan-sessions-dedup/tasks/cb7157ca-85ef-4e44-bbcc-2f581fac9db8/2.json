@@ -1,0 +1,28 @@
+{
+  "id": "2",
+  "subject": "Add test for track-plan-sessions.sh dedup false positive",
+  "description": "**Type:** Task\n\n**Description:** Create a shell-based integration test that verifies the dedup logic correctly distinguishes between session IDs in plan content vs. the `## Sessions` table.\n\n**Acceptance Criteria:**\n- [ ] Test verifies session ID in plan body does NOT trigger dedup\n- [ ] Test verifies session ID in Sessions table DOES trigger dedup\n- [ ] Test verifies missing Sessions section results in session being written\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- Type: `test`\n- Command: `bun test -- track-plan-sessions`\n- Expected: All tests pass",
+  "activeForm": "Adding test for dedup false positive fix",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "fix-track-plan-sessions-dedup",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun test -- track-plan-sessions",
+      "expected": "All tests pass"
+    },
+    "learnings": [
+      "macOS /var is a symlink to /private/var - use fs.realpathSync on mkdtempSync results to match bash cd+pwd resolution",
+      "Use spawnSync with input parameter instead of echo piping to avoid shell quoting issues",
+      "Use absolute path /bin/bash instead of 'bash' to satisfy sonarjs/no-os-command-from-path"
+    ]
+  }
+}
