@@ -1,0 +1,13 @@
+{
+  "id": "8",
+  "subject": "Commit and push",
+  "description": "Use `/git:commit` to commit changes. Push to remote.",
+  "activeForm": "Committing and pushing",
+  "status": "completed",
+  "blocks": [
+    "9"
+  ],
+  "blockedBy": [
+    "7"
+  ]
+}

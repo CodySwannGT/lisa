@@ -1,0 +1,11 @@
+{
+  "id": "6",
+  "subject": "Remove managed files section from CLAUDE.md",
+  "description": "Remove lines 57-93 (the LISA-MANAGED FILES section) from `all/copy-overwrite/CLAUDE.md`. Verification: `grep -c \"LISA-MANAGED FILES\" all/copy-overwrite/CLAUDE.md` returns 0.",
+  "activeForm": "Removing managed files section from CLAUDE.md",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": []
+}

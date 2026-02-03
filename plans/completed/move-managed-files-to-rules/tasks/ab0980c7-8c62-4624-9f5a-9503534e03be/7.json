@@ -1,0 +1,14 @@
+{
+  "id": "7",
+  "subject": "Run tests and lint",
+  "description": "Run `bun run test` and `bun run lint` to verify nothing breaks. Verification: both exit 0.",
+  "activeForm": "Running tests and lint",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "5",
+    "6"
+  ]
+}
