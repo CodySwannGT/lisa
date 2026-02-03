@@ -1,0 +1,30 @@
+{
+  "id": "4",
+  "subject": "Review code with CodeRabbit",
+  "description": "**Type:** Task\n\n**Description:** Run CodeRabbit review on the changes after implementation is complete.\n\n**Skills to Invoke:** `/coding-philosophy`, `/coderabbit:review`\n\n**Verification:** CodeRabbit review completes without critical findings",
+  "activeForm": "Running CodeRabbit code review",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/coderabbit:review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'CodeRabbit review completed'",
+      "expected": "Review completed"
+    },
+    "learnings": [
+      "HUMAN.md only exists in all/copy-overwrite/ and root - stack-specific templates inherit it from the all/ layer",
+      "typescript/ stack has no README.md template - it inherits from all/"
+    ]
+  }
+}

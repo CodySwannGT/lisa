@@ -1,0 +1,28 @@
+{
+  "id": "5",
+  "subject": "Review code with local code review",
+  "description": "**Type:** Task\n\n**Description:** Run `/plan:local-code-review` on the changes.\n\n**Skills to Invoke:** `/coding-philosophy`, `/plan:local-code-review`\n\n**Verification:** Local code review completes",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "curried-doodling-pearl",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Local code review completed'",
+      "expected": "Review completed"
+    },
+    "learnings": [
+      "All 5 stack template READMEs (all, expo, nestjs, cdk, npm-package) plus root README is the complete set of README files needing updates"
+    ]
+  }
+}
