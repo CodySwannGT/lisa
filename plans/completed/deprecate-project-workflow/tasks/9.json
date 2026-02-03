@@ -1,0 +1,23 @@
+{
+  "id": "9",
+  "subject": "Update plan.md rules to reference /plan-local-code-review",
+  "description": "Change /project-local-code-review to /plan-local-code-review in both .claude/rules/plan.md and all/copy-overwrite/.claude/rules/plan.md. Verification: `grep -c \"project-local-code-review\" .claude/rules/plan.md all/copy-overwrite/.claude/rules/plan.md` → `0` in both",
+  "activeForm": "Updating plan.md references",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c 'project-local-code-review' .claude/rules/plan.md all/copy-overwrite/.claude/rules/plan.md",
+      "expected": "0 in both"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "20",
+  "subject": "Run all verification commands from task metadata",
+  "description": "Run each task's proof command and confirm expected output. Verification: manual-check — all proof commands pass",
+  "activeForm": "Verifying all task verifications",
+  "status": "completed",
+  "blocks": [
+    "21"
+  ],
+  "blockedBy": [
+    "17",
+    "18",
+    "19"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "all proof commands pass",
+      "expected": "all pass"
+    }
+  }
+}

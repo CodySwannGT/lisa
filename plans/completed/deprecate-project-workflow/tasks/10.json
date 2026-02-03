@@ -1,0 +1,20 @@
+{
+  "id": "10",
+  "subject": "Update root README.md to replace project workflow with plan workflow",
+  "description": "Replace /project:* references with plan mode guidance and /plan:* commands. Verification: `grep -c \"/project:\" README.md` → `0`",
+  "activeForm": "Updating root README.md",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c '/project:' README.md",
+      "expected": "0"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "7",
+  "subject": "Add deprecation notices to project command wrappers",
+  "description": "Add deprecation notice to all 17 .claude/commands/project/*.md and 17 all/copy-overwrite/.claude/commands/project/*.md files. Verification: `grep -l \"DEPRECATED\" .claude/commands/project/*.md all/copy-overwrite/.claude/commands/project/*.md | wc -l` → `34`",
+  "activeForm": "Adding deprecation notices to project commands",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -l 'DEPRECATED' .claude/commands/project/*.md all/copy-overwrite/.claude/commands/project/*.md | wc -l",
+      "expected": "34"
+    }
+  }
+}

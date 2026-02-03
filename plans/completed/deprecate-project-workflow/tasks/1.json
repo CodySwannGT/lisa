@@ -1,0 +1,18 @@
+{
+  "id": "1",
+  "subject": "Create branch chore/deprecate-project-workflow and open draft PR",
+  "description": "Create branch off main, open draft PR targeting main. Verification: `gh pr view --json state,url | jq '.state'` → `\"OPEN\"`",
+  "activeForm": "Creating branch and draft PR",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "gh pr view --json state,url | jq '.state'",
+      "expected": "OPEN"
+    }
+  }
+}

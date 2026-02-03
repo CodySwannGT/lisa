@@ -1,0 +1,20 @@
+{
+  "id": "12",
+  "subject": "Update .claude/README.md to document plan commands and deprecate project commands",
+  "description": "Add plan/ to commands section, mark project/ as deprecated. Add note about plan-* skills. Verification: `grep \"plan/\" .claude/README.md` → matches found",
+  "activeForm": "Updating .claude/README.md",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep 'plan/' .claude/README.md",
+      "expected": "matches found"
+    }
+  }
+}

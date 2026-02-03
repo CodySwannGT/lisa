@@ -1,0 +1,20 @@
+{
+  "id": "6",
+  "subject": "Add deprecation notices to project-* skills in all/copy-overwrite/.claude/skills/",
+  "description": "Same as task 5 but for all/copy-overwrite/.claude/skills/project-*/SKILL.md. Verification: `grep -l \"DEPRECATED\" all/copy-overwrite/.claude/skills/project-*/SKILL.md | wc -l` → `16`",
+  "activeForm": "Adding deprecation notices to template project skills",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -l 'DEPRECATED' all/copy-overwrite/.claude/skills/project-*/SKILL.md | wc -l",
+      "expected": "16"
+    }
+  }
+}

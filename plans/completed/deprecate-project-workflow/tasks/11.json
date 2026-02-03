@@ -1,0 +1,20 @@
+{
+  "id": "11",
+  "subject": "Update template READMEs to replace project workflow with plan workflow",
+  "description": "Update all/copy-overwrite/README.md, expo/copy-overwrite/README.md, nestjs/copy-overwrite/README.md, cdk/copy-overwrite/README.md, npm-package/copy-overwrite/README.md. Verification: `grep -c \"/project:\" all/copy-overwrite/README.md expo/copy-overwrite/README.md nestjs/copy-overwrite/README.md cdk/copy-overwrite/README.md npm-package/copy-overwrite/README.md` → `0` in all",
+  "activeForm": "Updating template READMEs",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c '/project:' all/copy-overwrite/README.md expo/copy-overwrite/README.md nestjs/copy-overwrite/README.md cdk/copy-overwrite/README.md npm-package/copy-overwrite/README.md",
+      "expected": "0 in all"
+    }
+  }
+}
