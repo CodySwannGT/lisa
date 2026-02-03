@@ -66,7 +66,7 @@ Or break it down:
 
 ### Generate Types After Schema Changes
 
-> Ask Claude: "The GraphQL schema has changed. Regenerate types and fix any resulting type errors."
+> Ask Claude: "The API schema has changed. Regenerate types and fix any resulting type errors."
 
 ### Deploy
 
