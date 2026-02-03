@@ -27,7 +27,7 @@ Lisa applies multiple layers of quality control to Claude Code projects:
 | **CLAUDE.md** | Direct behavioral rules for Claude |
 | **Skills** | Teach coding philosophy and patterns |
 | **Hooks** | Auto-format and lint on every edit |
-| **Slash Commands** | Guided workflows (`/project:implement`, `/git:commit`) |
+| **Slash Commands** | Guided workflows (`/plan:add-test-coverage`, `/git:commit`) |
 | **ESLint Plugins** | Enforce code structure and ordering |
 | **Git Hooks** | Pre-commit quality gates via Husky |
 
@@ -57,13 +57,14 @@ npx @codyswann/lisa .
 
 > Ask Claude: "I have a feature to implement: [describe feature]. Research the codebase and create a plan."
 
-Or break it down:
+Or use utility commands:
 
-- `/project:setup` - Set up the project from a spec or ticket
-- `/project:research` - Research the codebase
-- `/project:plan` - Create an implementation plan
-- `/project:implement` - Execute the plan
-- `/project:review` - Review the changes
+- `/plan:add-test-coverage` - Increase test coverage to a threshold
+- `/plan:fix-linter-error` - Fix ESLint rule violations
+- `/plan:local-code-review` - Review local branch changes
+- `/plan:lower-code-complexity` - Reduce cognitive complexity
+- `/plan:reduce-max-lines` - Reduce max file lines threshold
+- `/plan:reduce-max-lines-per-function` - Reduce max function lines
 
 ## Common Tasks
 

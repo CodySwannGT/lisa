@@ -1,0 +1,22 @@
+{
+  "id": "15",
+  "subject": "Review changes with plan-local-code-review",
+  "description": "Invoke /plan:local-code-review (the newly created skill). Verification: manual-check — claude-review.md exists",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "16"
+  ],
+  "blockedBy": [
+    "14"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "ls claude-review.md",
+      "expected": "file exists"
+    }
+  }
+}

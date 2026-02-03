@@ -1,0 +1,25 @@
+{
+  "id": "16",
+  "subject": "Implement valid suggestions from code reviews",
+  "description": "Address findings from CodeRabbit and local code review. Verification: manual-check — all valid suggestions addressed",
+  "activeForm": "Implementing code review suggestions",
+  "status": "completed",
+  "blocks": [
+    "17",
+    "18",
+    "19"
+  ],
+  "blockedBy": [
+    "14",
+    "15"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "all valid suggestions addressed",
+      "expected": "done"
+    }
+  }
+}

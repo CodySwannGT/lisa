@@ -1,0 +1,23 @@
+{
+  "id": "3",
+  "subject": "Create plan-* skills in all/copy-overwrite/.claude/skills/",
+  "description": "Mirror of task 2 for the template location. Create same 6 plan-* skills. Verification: `ls all/copy-overwrite/.claude/skills/plan-*/SKILL.md | wc -l` → `6`",
+  "activeForm": "Creating plan-* template skills",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "8",
+    "9",
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "ls all/copy-overwrite/.claude/skills/plan-*/SKILL.md | wc -l",
+      "expected": "6"
+    }
+  }
+}

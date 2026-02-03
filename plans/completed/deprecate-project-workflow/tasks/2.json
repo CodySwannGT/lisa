@@ -1,0 +1,23 @@
+{
+  "id": "2",
+  "subject": "Create plan-* skills in .claude/skills/",
+  "description": "Create 6 plan-* skills: plan-add-test-coverage, plan-fix-linter-error, plan-local-code-review, plan-lower-code-complexity, plan-reduce-max-lines, plan-reduce-max-lines-per-function. Copy Step 1 and Step 2 from corresponding project-* skill, replace Step 3 with plan-mode integration. For plan-local-code-review: remove $ARGUMENTS dependency, write to claude-review.md in current directory. Verification: `ls .claude/skills/plan-*/SKILL.md | wc -l` → `6`",
+  "activeForm": "Creating plan-* skills in .claude/skills/",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "8",
+    "9",
+    "14"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "ls .claude/skills/plan-*/SKILL.md | wc -l",
+      "expected": "6"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "21",
+  "subject": "Archive the deprecate-project-workflow plan",
+  "description": "1. Create folder plans/completed/deprecate-project-workflow 2. Rename plan to deprecate-project-workflow.md 3. Move into plans/completed/deprecate-project-workflow/ 4. Read session IDs from the plan's Sessions section 5. For each session ID, move ~/.claude/tasks/<session-id> to plans/completed/deprecate-project-workflow/tasks/ 6. Update any \"in_progress\" tasks to \"completed\" 7. Commit changes 8. Push to PR. Verification: `ls plans/completed/deprecate-project-workflow/deprecate-project-workflow.md` → exists",
+  "activeForm": "Archiving plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "20"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "ls plans/completed/deprecate-project-workflow/deprecate-project-workflow.md",
+      "expected": "exists"
+    }
+  }
+}

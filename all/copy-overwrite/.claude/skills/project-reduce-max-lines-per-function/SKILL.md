@@ -3,8 +3,11 @@ name: project-reduce-max-lines-per-function
 description: This skill should be used when reducing the maximum lines per function threshold and fixing all violations. It updates the eslint threshold configuration, identifies functions exceeding the new limit, generates a brief with refactoring strategies, and bootstraps a project to split oversized functions.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 argument-hint: "<max-lines-per-function-value>"
-model: sonnet
+
 ---
+
+> **DEPRECATED**: This skill is deprecated. Use `/plan-reduce-max-lines-per-function` instead, which integrates with Claude's native plan mode.
+> This skill will be removed in a future release.
 
 # Reduce Max Lines Per Function
 

@@ -4,6 +4,10 @@ description: This skill should be used when performing automated project setup a
 argument-hint: "<file-path|jira-issue|\"text description\">"
 ---
 
+> **DEPRECATED**: This skill is deprecated. Use Claude's native plan mode instead.
+> Enter plan mode with `/plan`, describe your requirements, and Claude will create a plan with tasks automatically.
+> This skill will be removed in a future release.
+
 Complete all of the following steps for $ARGUMENTS:
 
 ## Step 1: Setup

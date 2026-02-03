@@ -1,0 +1,23 @@
+{
+  "id": "8",
+  "subject": "Update pull-request-review skill to use plan mode",
+  "description": "Update Step 3 in both .claude/skills/pull-request-review/SKILL.md and all/copy-overwrite/.claude/skills/pull-request-review/SKILL.md to use plan-mode instead of /project-bootstrap. Verification: `grep -c \"project-bootstrap\" .claude/skills/pull-request-review/SKILL.md all/copy-overwrite/.claude/skills/pull-request-review/SKILL.md` → `0` in both",
+  "activeForm": "Updating pull-request-review skill",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "deprecate-project-workflow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c 'project-bootstrap' .claude/skills/pull-request-review/SKILL.md all/copy-overwrite/.claude/skills/pull-request-review/SKILL.md",
+      "expected": "0 in both"
+    }
+  }
+}

@@ -25,13 +25,14 @@ brew install claude-code
 
 > Ask Claude: "I have Jira ticket [TICKET-ID]. Research the codebase, create a plan, and implement it."
 
-Or break it down:
+Or use utility commands:
 
-- `/project:setup` - Set up the project from a spec or ticket
-- `/project:research` - Research the codebase
-- `/project:plan` - Create an implementation plan
-- `/project:implement` - Execute the plan
-- `/project:review` - Review the changes
+- `/plan:add-test-coverage` - Increase test coverage to a threshold
+- `/plan:fix-linter-error` - Fix ESLint rule violations
+- `/plan:local-code-review` - Review local branch changes
+- `/plan:lower-code-complexity` - Reduce cognitive complexity
+- `/plan:reduce-max-lines` - Reduce max file lines threshold
+- `/plan:reduce-max-lines-per-function` - Reduce max function lines
 
 ## Common Tasks
 
