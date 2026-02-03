@@ -28,7 +28,7 @@ If no argument provided, prompt the user for a target.
 
 Compile findings into a detailed brief:
 
-```
+```markdown
 Increase test coverage from [current]% to $ARGUMENTS%.
 
 ## Files Needing Coverage (ordered by coverage gap)

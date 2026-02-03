@@ -30,7 +30,7 @@ If no violations at $ARGUMENTS, report success and exit.
 
 Compile findings into a detailed brief:
 
-```
+```markdown
 Reduce max lines per function threshold to $ARGUMENTS.
 
 ## Functions Exceeding Threshold (ordered by line count)
