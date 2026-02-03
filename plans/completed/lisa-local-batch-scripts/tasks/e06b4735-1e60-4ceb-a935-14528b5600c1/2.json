@@ -1,0 +1,24 @@
+{
+  "id": "2",
+  "subject": "Create scripts/lisa-commit-and-pr-local.sh",
+  "description": "**Type:** Task\n\n**Description:** Create the bash script that iterates over `.lisa.config.local.json`, creates date-stamped branches, commits changes, pushes, and opens PRs.\n\n**Acceptance Criteria:**\n- [ ] Script follows patterns from `scripts/cleanup-github-branches.sh`\n- [ ] Uses `jq` for JSON parsing\n- [ ] Handles: no changes (skip), branch name collisions (append suffix), existing PRs (log and skip), push failures, PR creation failures\n- [ ] Uses `GIT_SSH_COMMAND` for push\n- [ ] Uses `gh pr create` for PRs\n- [ ] Supports `--dry-run` flag\n- [ ] Summary output at end\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:**\n- Type: manual-check\n- Command: `bash scripts/lisa-commit-and-pr-local.sh --dry-run`\n- Expected: Lists all projects from config with [DRY-RUN] messages, exits 0",
+  "activeForm": "Creating lisa-commit-and-pr-local.sh script",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "bash scripts/lisa-commit-and-pr-local.sh --dry-run",
+      "expected": "Lists all projects from config with [DRY-RUN] messages, exits 0"
+    }
+  }
+}

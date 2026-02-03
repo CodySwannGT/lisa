@@ -1,0 +1,24 @@
+{
+  "id": "1",
+  "subject": "Create scripts/lisa-update-local.sh",
+  "description": "**Type:** Task\n\n**Description:** Create the bash script that iterates over `.lisa.config.local.json`, checks out target branches, pulls latest, and runs `bun run dev <path> -y` for each project.\n\n**Acceptance Criteria:**\n- [ ] Script follows patterns from `scripts/cleanup-github-branches.sh` for logging, colors, and dry-run support\n- [ ] Uses `jq` for JSON parsing\n- [ ] Handles edge cases: missing directories, checkout failures, pull failures, Lisa CLI failures\n- [ ] Uses process substitution to avoid subshell counter issues\n- [ ] Supports `--dry-run` flag\n- [ ] Tilde expansion works correctly\n- [ ] Summary output at end\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:**\n- Type: manual-check\n- Command: `bash scripts/lisa-update-local.sh --dry-run`\n- Expected: Lists all projects from config with [DRY-RUN] messages, exits 0",
+  "activeForm": "Creating lisa-update-local.sh script",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "iridescent-imagining-pixel",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "bash scripts/lisa-update-local.sh --dry-run",
+      "expected": "Lists all projects from config with [DRY-RUN] messages, exits 0"
+    }
+  }
+}
