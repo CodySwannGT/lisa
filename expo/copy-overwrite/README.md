@@ -34,6 +34,10 @@ Or use utility commands:
 - `/plan:reduce-max-lines` - Reduce max file lines threshold
 - `/plan:reduce-max-lines-per-function` - Reduce max function lines
 
+## Lisa Commands
+
+> Ask Claude: "What Lisa commands are available and how do I use them? Read HUMAN.md and give me a summary."
+
 ## Common Tasks
 
 ### Code Review
