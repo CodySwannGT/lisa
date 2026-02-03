@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.16.0](https://github.com/CodySwannGT/lisa/compare/vv1.15.0...v1.16.0) (2026-02-03)
+
+
+### Features
+
+* add plan mode enforcement hook and rules ([794dfd9](https://github.com/CodySwannGT/lisa/commit/794dfd93eeca76894a020cf114259de6fc77161d))
+* **expo:** add create-only jest and babel template files ([8e09fc3](https://github.com/CodySwannGT/lisa/commit/8e09fc3c20a2bf7bf3a6a42e239144931b9e012f))
+* **expo:** add nativewind-env.d.ts to tsconfig include array ([f9955cd](https://github.com/CodySwannGT/lisa/commit/f9955cd8792a9f38546583799eecb3bdb71b6ca9))
+
+
+### Bug Fixes
+
+* add serve to expo knip ignoreBinaries and fix expo tsconfig for .ts imports ([97a57a7](https://github.com/CodySwannGT/lisa/commit/97a57a7d3eb9ec884449b38acc5ee4d6729a096c))
+* exclude components/ui from default coverage exclusions ([7b32b3a](https://github.com/CodySwannGT/lisa/commit/7b32b3a61d6b1cf75ae637bfb060925a30976243))
+* guard sonarjs.configs access in eslint.base.ts template ([c51b51b](https://github.com/CodySwannGT/lisa/commit/c51b51bcc8b17853eaf2818c90b66544d388414d))
+* ignore fast-xml-parser GHSA-37qj-frw5-hhjh in pre-push audit template ([37ff900](https://github.com/CodySwannGT/lisa/commit/37ff90070ebe000c21d1490b12373f5ddda362d7))
+* remove jest-expo setup from expo setupFiles to prevent __DEV__ ordering issue ([80c986d](https://github.com/CodySwannGT/lisa/commit/80c986d84f2b7ede36bda1dcc58c3d381fb7f041))
+* replace marker file with most-recent-file detection in track-plan-sessions hook ([106acd1](https://github.com/CodySwannGT/lisa/commit/106acd116312581aec1f3a153d58574e8c0181fe))
+* update expo jest.expo.ts transformIgnorePatterns and testMatch ([39cc166](https://github.com/CodySwannGT/lisa/commit/39cc166929fc482e512c9215b8501bcbde9e2f42))
+* use session-specific marker files for reliable active-plan detection ([b4bde86](https://github.com/CodySwannGT/lisa/commit/b4bde86edeedb778c9cf3d3814df787d8f915ec2))
+
+
+### Documentation
+
+* move plan rules from CLAUDE.md to dedicated rules file ([bdabfbe](https://github.com/CodySwannGT/lisa/commit/bdabfbe45fffcf30c16af6454d2c250233e248bf))
+
 ## [1.15.0](https://github.com/CodySwannGT/lisa/compare/vv1.14.0...v1.15.0) (2026-02-02)
 
 
