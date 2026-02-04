@@ -1,0 +1,13 @@
+{
+  "id": "22",
+  "subject": "Run Lisa against ask-gemini",
+  "description": "Run bun run dev ~/workspace/geminisportsai/ask-gemini from Lisa repo",
+  "activeForm": "Running Lisa against ask-gemini",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

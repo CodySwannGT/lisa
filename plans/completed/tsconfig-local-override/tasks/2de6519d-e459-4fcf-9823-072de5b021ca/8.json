@@ -1,0 +1,17 @@
+{
+  "id": "8",
+  "subject": "CodeRabbit review",
+  "description": "Run CodeRabbit code review on changes",
+  "activeForm": "Running CodeRabbit review",
+  "status": "completed",
+  "blocks": [
+    "10"
+  ],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

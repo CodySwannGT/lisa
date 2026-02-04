@@ -1,0 +1,13 @@
+{
+  "id": "23",
+  "subject": "Update tsconfig.local.json with project paths",
+  "description": "Add include/exclude with lambdas/**/* and lib/**/* to tsconfig.local.json",
+  "activeForm": "Updating tsconfig.local.json",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "17",
+  "subject": "Find CLAUDE.md files for review",
+  "description": "Locate root and directory-specific CLAUDE.md files",
+  "activeForm": "Finding CLAUDE.md files",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}
