@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.21.0](https://github.com/CodySwannGT/lisa/compare/vv1.20.1...v1.21.0) (2026-02-04)
+
+
+### Features
+
+* add /lisa:integration-test slash command ([ee5a689](https://github.com/CodySwannGT/lisa/commit/ee5a689708d7c507179469f5d70e078679b42b46))
+
+
+### Bug Fixes
+
+* move include/exclude from tsconfig.json to stack-specific configs ([126bd0e](https://github.com/CodySwannGT/lisa/commit/126bd0e83b8a6e5f39661c918895c42746bf26a1))
+
 ### [1.20.1](https://github.com/CodySwannGT/lisa/compare/vv1.20.0...v1.20.1) (2026-02-04)
 
 
