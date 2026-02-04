@@ -12,5 +12,7 @@
       "@/*": ["./*"]
     },
     "moduleSuffixes": [".ios", ".android", ".native", ".web", ""]
-  }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", "dist", "web-build"]
 }
