@@ -1,0 +1,24 @@
+{
+  "id": "1",
+  "subject": "Add `.claude-active-plan/**` to defaultIgnores in eslint.base.ts",
+  "description": "**Type:** Task\n\n**Description:** Add `.claude-active-plan/**` after `.claude-active-project/**` (line 50) in the `defaultIgnores` array in `typescript/copy-overwrite/eslint.base.ts`.\n\n**Acceptance Criteria:**\n- [ ] `.claude-active-plan/**` is in the defaultIgnores array after `.claude-active-project/**`\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- Type: manual-check\n- Command: `grep -n \"claude-active-plan\" typescript/copy-overwrite/eslint.base.ts`\n- Expected: A line showing `.claude-active-plan/**` in the defaultIgnores array",
+  "activeForm": "Adding .claude-active-plan/** to defaultIgnores",
+  "status": "completed",
+  "blocks": [
+    "2",
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -n 'claude-active-plan' typescript/copy-overwrite/eslint.base.ts",
+      "expected": "A line showing .claude-active-plan/** in the defaultIgnores array"
+    }
+  }
+}
