@@ -1,0 +1,23 @@
+{
+  "id": "3",
+  "subject": "Review paper with local code review",
+  "description": "**Type:** Task\n\n**Description:** Run /plan:local-code-review on the paper changes.\n\n**Acceptance Criteria:**\n- [ ] Local review completed\n- [ ] Feedback documented\n\n**Verification:**\n- type: manual-check\n- command: Local review output\n- expected: Review completed with feedback",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task",
+    "learnings": [
+      "Anthropic study says 'more than half' not 'most' for delegation statistic",
+      "Simon Willison citation needs reference entry",
+      "Mediocre Model Paradox subsection is structurally misplaced in recommendations",
+      "MCP donation was to Linux Foundation (Agentic AI Foundation is a directed fund under LF)"
+    ]
+  }
+}

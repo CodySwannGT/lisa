@@ -1,0 +1,21 @@
+{
+  "id": "7",
+  "subject": "Verify all task verification metadata",
+  "description": "**Type:** Task\n\n**Description:** Confirm all tasks have proper empirical verification checks.\n\n**Acceptance Criteria:**\n- [ ] All tasks have verification metadata\n- [ ] All proof commands are valid\n\n**Verification:**\n- type: manual-check\n- command: Review task metadata\n- expected: All tasks have verification",
+  "activeForm": "Verifying task metadata",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task",
+    "learnings": [
+      "All tasks have verification metadata",
+      "Paper verification: wc -l shows 813 lines (800+ target met)"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "4",
+  "subject": "Implement valid review suggestions",
+  "description": "**Type:** Task\n\n**Description:** Address valid feedback from CodeRabbit and local code review.\n\n**Acceptance Criteria:**\n- [ ] All valid suggestions implemented\n- [ ] Paper quality improved\n\n**Verification:**\n- type: manual-check\n- command: Diff review of changes\n- expected: Suggestions addressed",
+  "activeForm": "Implementing review suggestions",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6",
+    "7"
+  ],
+  "blockedBy": [
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task",
+    "learnings": [
+      "Fixed section numbering (was two Section 11s)",
+      "Changed 'Most employees' to 'More than half' per Anthropic study",
+      "Updated Spec Kit stars from 28K to 50K+",
+      "Added Limitations section",
+      "Economics section now uses ranges not point estimates",
+      "Added OWASP reference, removed unverifiable IBM stat",
+      "Added Linux Foundation context to MCP description"
+    ]
+  }
+}

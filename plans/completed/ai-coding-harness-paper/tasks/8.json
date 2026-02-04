@@ -1,0 +1,17 @@
+{
+  "id": "8",
+  "subject": "Archive the plan",
+  "description": "**Type:** Task\n\n**Description:** Archive the plan after all tasks are complete:\n- Create folder `ai-coding-harness-paper` in `./plans/completed`\n- Rename the plan to a name befitting its contents\n- Move it into `./plans/completed/ai-coding-harness-paper/`\n- Read session IDs from `./plans/completed/ai-coding-harness-paper/`\n- For each session ID, move `~/.claude/tasks/<session-id>` directory to `./plans/completed/ai-coding-harness-paper/tasks`\n- Update any \"in_progress\" task to \"completed\"\n- Commit changes\n- Push changes to the PR\n\n**Verification:**\n- type: manual-check\n- command: `ls ./plans/completed/ai-coding-harness-paper/`\n- expected: Plan file and tasks directory present",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "5",
+    "6",
+    "7"
+  ],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task"
+  }
+}
