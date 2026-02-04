@@ -1,0 +1,13 @@
+{
+  "id": "26",
+  "subject": "Archive plan",
+  "description": "Archive the plan to plans/completed/apply-tsconfig-fix-ask-gemini, move tasks, commit and push",
+  "activeForm": "Archiving plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

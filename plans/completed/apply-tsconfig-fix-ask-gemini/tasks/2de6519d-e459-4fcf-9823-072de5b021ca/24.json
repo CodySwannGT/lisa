@@ -1,0 +1,13 @@
+{
+  "id": "24",
+  "subject": "Verify typecheck passes",
+  "description": "Run bun run typecheck in ask-gemini to verify",
+  "activeForm": "Verifying typecheck",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

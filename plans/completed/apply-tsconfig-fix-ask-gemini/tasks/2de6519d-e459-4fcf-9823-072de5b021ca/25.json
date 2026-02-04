@@ -1,0 +1,13 @@
+{
+  "id": "25",
+  "subject": "Commit and push to PR #29",
+  "description": "Commit changes and push to existing ask-gemini PR",
+  "activeForm": "Committing and pushing",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}
