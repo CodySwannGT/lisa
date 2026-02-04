@@ -8,23 +8,34 @@ When making a plan:
 
 - Always determine which skills should be used during execution of the plan and include them in the plan
 - Always make sure you understand the correct versions of third party libraries
-- Always save the plan with a name befitting the actual plan contents
 - Always look for code that can be reused for implementation
-- The plan MUST include written instructions to create a task list using TaskCreate for each task (following the Task Creation Specification below). The list should contain items related to the plan and specify that subagents should handle as many in parallel as possible. The following should always be included in the task list
-  - update/add/remove tests, containing the tests that need to get updated, added or removed
-  - update/add/remove documentation (jsdocs, markdown files, etc), containing the documentation that need to get updated, added or removed
-  - archive the plan (to be completed after all other tasks have been completed). This task should explcitly say to:
+- The plan MUST include written instructions to create a task list using TaskCreate for each task (following the Task Creation Specification below). The list should contain items related to the plan and specify that subagents should handle as many in parallel as possible. The following should always be included in the task list:
+  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with CodeRabbit
+  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with /plan-local-code-review
+  - (unless the plan includes only trivial changes) a task to be run after all code review to implement valid review suggestions
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to simplify the implemented code with code simplifier agent
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to update/add/remove tests, containing the tests that need to get updated, added or removed
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to update/add/remove documentation (jsdocs, markdown files, etc), containing the documentation that need to get updated, added or removed
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to verify all of the verification metadata in existing tasks
+  - a task to be run after all other tasks have been completed to archive the plan. This task should explcitly say to:
     - create a folder named <plan-name> in ./plans/completed
     - rename this plan to a name befitting the actual plan contents
     - move it into ./plans/completed/<plan-name>
     - read the session ids from ./plans/completed/<plan-name>
     - For each session id, move the ~/.claude/tasks/<session-id> directory to ./plans/completed/<plan-name>/tasks
+    - Update any "in_progress" task in ./plans/completed/<plan-name>/tasks to "completed"
+    - commit changes.
+    - push changes to the PR
 - If you're on a protected branch (dev, staging, main), create a new branch named based on the nature of the project and include in the plan pull requests should go to the protected branch you bracnehd from. 
 - If you're on a non-protected branch with an open pull request, submit pushes to the open pull request
 - If you're on a non-protected branch with no existing PR, clarify which protected branch to open the pull request to. 
 - If referencing a ticket (jira, linear, etc), always include the ticket url in your plan
 - If referencing a ticket (jira, linear, etc), always update the ticket with the branch you're working off of
 - If referencing a ticket (jira, linear, etc), always add a comment to the ticket with the finalized plan
+- Open a draft pull request
+- Include the branch name and pull request in the plan
+
+IMPORTANT:
 - The `## Sessions` section in plan files is auto-maintained by the `track-plan-sessions.sh` hook — do not manually edit it
 
 ## Task Creation Specification
@@ -76,4 +87,5 @@ Every task description must be a markdown document with these sections:
 ### Task Sizing
 
 Each task must be small enough to have a **single, specific verification**. Ask: "Can I prove this is done with ONE command?" Split tasks that require multiple verifications.
+
 
