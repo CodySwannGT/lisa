@@ -1,0 +1,22 @@
+{
+  "id": "11",
+  "subject": "Verify all verification metadata in existing tasks",
+  "description": "**Type:** Task\n\n**Description:** Run all proof commands from completed tasks to verify they pass.\n\n**Verification:**\n- Type: manual-check\n- Command: Run all proof commands\n- Expected: All pass",
+  "activeForm": "Verifying all task metadata",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "8",
+    "9",
+    "10"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "learnings": [
+      "All verification commands pass: grep confirms pattern at line 51, PR #145 exists"
+    ]
+  }
+}

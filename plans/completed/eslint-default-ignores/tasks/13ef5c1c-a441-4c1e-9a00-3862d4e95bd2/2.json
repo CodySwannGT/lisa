@@ -1,0 +1,22 @@
+{
+  "id": "2",
+  "subject": "Run linter to verify no regressions",
+  "description": "**Type:** Task\n\n**Description:** Run `bun run lint` to confirm the change doesn't break anything.\n\n**Verification:**\n- Type: manual-check\n- Command: `bun run lint`\n- Expected: exits 0",
+  "activeForm": "Running linter",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "bun run lint",
+      "expected": "exits 0"
+    }
+  }
+}

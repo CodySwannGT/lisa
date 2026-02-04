@@ -48,6 +48,7 @@ export const defaultIgnores = [
   "components/ui/**",
   ".lisabak/**",
   ".claude-active-project/**",
+  ".claude-active-plan/**",
   "coverage/**",
   specFilePattern,
   "resolver-test.setup.ts",

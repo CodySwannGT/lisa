@@ -1,0 +1,22 @@
+{
+  "id": "3",
+  "subject": "Run tests to verify no regressions",
+  "description": "**Type:** Task\n\n**Description:** Run `bun run test` to confirm no test failures.\n\n**Verification:**\n- Type: test\n- Command: `bun run test`\n- Expected: exits 0",
+  "activeForm": "Running tests",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "exits 0"
+    }
+  }
+}
