@@ -1,0 +1,22 @@
+{
+  "id": "14",
+  "subject": "Verify all verification metadata",
+  "description": "Verify all verification metadata in existing tasks",
+  "activeForm": "Verifying task metadata",
+  "status": "completed",
+  "blocks": [
+    "15"
+  ],
+  "blockedBy": [
+    "11",
+    "12",
+    "13"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "learnings": [
+      "All verifications passed: typecheck, lint, test (217 passed), jq checks on template content"
+    ]
+  }
+}

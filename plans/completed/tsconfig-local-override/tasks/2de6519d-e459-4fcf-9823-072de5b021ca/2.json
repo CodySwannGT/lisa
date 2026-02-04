@@ -1,0 +1,15 @@
+{
+  "id": "2",
+  "subject": "Update NestJS stack templates",
+  "description": "Move include/exclude from tsconfig.json to tsconfig.nestjs.json, update tsconfig.eslint.json to use broad pattern",
+  "activeForm": "Updating NestJS stack templates",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

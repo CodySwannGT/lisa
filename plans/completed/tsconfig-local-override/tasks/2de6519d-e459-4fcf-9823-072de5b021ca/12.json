@@ -1,0 +1,20 @@
+{
+  "id": "12",
+  "subject": "Update/add/remove tests",
+  "description": "Update tests to reflect tsconfig changes",
+  "activeForm": "Updating tests",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "10"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "learnings": [
+      "All 217 existing tests pass. No test changes needed for config-only changes."
+    ]
+  }
+}

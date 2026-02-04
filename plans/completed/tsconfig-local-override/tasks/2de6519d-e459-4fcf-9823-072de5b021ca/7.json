@@ -1,0 +1,18 @@
+{
+  "id": "7",
+  "subject": "Commit, push, and create PR",
+  "description": "Commit changes, push to remote, create PR targeting main",
+  "activeForm": "Creating commit and PR",
+  "status": "completed",
+  "blocks": [
+    "8",
+    "9"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

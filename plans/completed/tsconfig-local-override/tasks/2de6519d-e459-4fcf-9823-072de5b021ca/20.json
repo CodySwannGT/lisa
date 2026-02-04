@@ -1,0 +1,9 @@
+{
+  "id": "20",
+  "subject": "Score and filter issues",
+  "description": "Score each issue 0-100 and filter out below 80",
+  "activeForm": "Scoring and filtering issues",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -5,6 +5,6 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*", "test/**/*", "*.config.ts", "eslint.*.ts", "jest.*.ts"],
-  "exclude": ["node_modules", ".build"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", ".build", "dist"]
 }
