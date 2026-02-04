@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.20.1](https://github.com/CodySwannGT/lisa/compare/vv1.20.0...v1.20.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* add .claude-active-plan/** to eslint defaultIgnores ([43d841b](https://github.com/CodySwannGT/lisa/commit/43d841b134aac860f89a483d5b7acaa9a631b009))
+
 ## [1.20.0](https://github.com/CodySwannGT/lisa/compare/vv1.19.2...v1.20.0) (2026-02-03)
 
 
