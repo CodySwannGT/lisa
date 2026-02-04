@@ -1,0 +1,9 @@
+{
+  "id": "4",
+  "subject": "Archive plan",
+  "description": "Archive the serialized-scribbling-tulip plan after all tasks are done.",
+  "activeForm": "Archiving plan",
+  "status": "pending",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,17 @@
+{
+  "id": "9",
+  "subject": "Local code review",
+  "description": "Run /plan-local-code-review",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "10"
+  ],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

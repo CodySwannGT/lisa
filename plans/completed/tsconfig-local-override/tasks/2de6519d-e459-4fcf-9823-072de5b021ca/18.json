@@ -1,0 +1,9 @@
+{
+  "id": "18",
+  "subject": "Analyze branch changes",
+  "description": "Get commit messages and full diff summary",
+  "activeForm": "Analyzing branch changes",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

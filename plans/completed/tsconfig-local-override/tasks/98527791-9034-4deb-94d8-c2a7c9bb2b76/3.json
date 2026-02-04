@@ -1,0 +1,9 @@
+{
+  "id": "3",
+  "subject": "Analyze upstream changes needed in Lisa",
+  "description": "Review the changes in ask-gemini to determine what improvements should be upstreamed back to the Lisa templates.",
+  "activeForm": "Analyzing upstream changes needed in Lisa",
+  "status": "pending",
+  "blocks": [],
+  "blockedBy": []
+}

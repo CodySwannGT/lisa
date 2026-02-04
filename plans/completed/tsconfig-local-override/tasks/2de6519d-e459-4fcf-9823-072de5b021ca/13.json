@@ -1,0 +1,20 @@
+{
+  "id": "13",
+  "subject": "Update/add/remove documentation",
+  "description": "Update JSDoc and markdown documentation",
+  "activeForm": "Updating documentation",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "10"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "learnings": [
+      "No documentation changes needed - plan file already committed, JSON configs don't have JSDoc"
+    ]
+  }
+}
