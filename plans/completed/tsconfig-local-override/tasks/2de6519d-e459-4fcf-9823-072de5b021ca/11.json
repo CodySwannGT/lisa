@@ -1,0 +1,20 @@
+{
+  "id": "11",
+  "subject": "Simplify code with code simplifier",
+  "description": "Run code simplifier agent on implemented changes",
+  "activeForm": "Simplifying code",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "10"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "learnings": [
+      "JSON-only config changes - no code to simplify"
+    ]
+  }
+}

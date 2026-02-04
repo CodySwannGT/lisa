@@ -1,0 +1,9 @@
+{
+  "id": "19",
+  "subject": "Run 5 parallel review agents",
+  "description": "Launch 5 agents for CLAUDE.md compliance, bug scan, git history, PR comments, and code comments",
+  "activeForm": "Running parallel review agents",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

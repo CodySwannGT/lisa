@@ -1,0 +1,9 @@
+{
+  "id": "1",
+  "subject": "Commit pending changes in ask-gemini",
+  "description": "Commit the unstaged changes in ask-gemini (modified and new files from Lisa sync) to the `chore/lisa-tooling-and-security-updates` branch.",
+  "activeForm": "Committing pending changes in ask-gemini",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

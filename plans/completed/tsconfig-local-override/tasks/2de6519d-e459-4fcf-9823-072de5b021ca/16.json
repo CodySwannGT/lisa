@@ -1,0 +1,9 @@
+{
+  "id": "16",
+  "subject": "Check git state for code review",
+  "description": "Check current branch, commits, and changed files compared to main",
+  "activeForm": "Checking git state",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

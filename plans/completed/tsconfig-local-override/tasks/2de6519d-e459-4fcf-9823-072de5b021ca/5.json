@@ -1,0 +1,15 @@
+{
+  "id": "5",
+  "subject": "Update Lisa's own tsconfig files",
+  "description": "Apply same pattern to Lisa's root tsconfig.json, tsconfig.typescript.json, and tsconfig.eslint.json",
+  "activeForm": "Updating Lisa's own tsconfig files",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

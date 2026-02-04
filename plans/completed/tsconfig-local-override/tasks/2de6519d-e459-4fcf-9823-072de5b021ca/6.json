@@ -1,0 +1,21 @@
+{
+  "id": "6",
+  "subject": "Run tests, lint, and typecheck",
+  "description": "Verify with bun run typecheck, bun run lint, bun run test",
+  "activeForm": "Running verification checks",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

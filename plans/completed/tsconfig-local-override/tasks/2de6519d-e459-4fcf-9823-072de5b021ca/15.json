@@ -1,0 +1,15 @@
+{
+  "id": "15",
+  "subject": "Archive plan",
+  "description": "Archive the plan: create folder in ./plans/completed, rename plan, move tasks, commit and push",
+  "activeForm": "Archiving plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "14"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "4",
+  "subject": "Update CDK stack tsconfig.eslint.json",
+  "description": "Update tsconfig.eslint.json to use broad **/*.ts pattern",
+  "activeForm": "Updating CDK stack tsconfig.eslint.json",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}

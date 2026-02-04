@@ -1,0 +1,15 @@
+{
+  "id": "3",
+  "subject": "Update Expo stack templates",
+  "description": "Move include/exclude from tsconfig.json to tsconfig.expo.json, update tsconfig.eslint.json to use broad pattern",
+  "activeForm": "Updating Expo stack templates",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}
