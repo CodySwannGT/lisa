@@ -1,0 +1,24 @@
+{
+  "id": "4",
+  "subject": "Commit and open draft PR",
+  "description": "**Type:** Task\n\n**Description:** Commit the change and open a draft PR targeting main using `/git:commit-and-submit-pr` skill. Branch: `fix/eslint-default-ignores` targeting `main`.\n\n**Verification:**\n- Type: manual-check\n- Command: `gh pr view --json url`\n- Expected: PR URL returned",
+  "activeForm": "Committing and opening draft PR",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6"
+  ],
+  "blockedBy": [
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "gh pr view --json url",
+      "expected": "PR URL returned"
+    }
+  }
+}

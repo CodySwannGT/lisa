@@ -1,0 +1,21 @@
+{
+  "id": "12",
+  "subject": "Archive the plan",
+  "description": "**Type:** Task\n\n**Description:** Archive the plan:\n- Create folder `eslint-default-ignores` in `./plans/completed`\n- Rename the plan to a name befitting the actual contents\n- Move it into `./plans/completed/eslint-default-ignores`\n- Read the session IDs from `./plans/completed/eslint-default-ignores`\n- For each session ID, move `~/.claude/tasks/<session-id>` to `./plans/completed/eslint-default-ignores/tasks`\n- Update any \"in_progress\" task to \"completed\"\n- Commit changes\n- Push changes to the PR\n\n**Verification:**\n- Type: manual-check\n- Command: `ls ./plans/completed/eslint-default-ignores/`\n- Expected: Plan file and tasks directory present",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "11"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}
+## Sessions
+
+<!-- Auto-maintained by track-plan-sessions.sh -->
+| Session ID | First Seen | Phase |
+|------------|------------|-------|
+| 13ef5c1c-a441-4c1e-9a00-3862d4e95bd2 | 2026-02-04T00:32:07Z | implement |

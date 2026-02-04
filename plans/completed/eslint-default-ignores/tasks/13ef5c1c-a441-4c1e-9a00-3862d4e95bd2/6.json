@@ -1,0 +1,17 @@
+{
+  "id": "6",
+  "subject": "Review code with local code review",
+  "description": "**Type:** Task\n\n**Description:** Use `/plan-local-code-review` skill to review the implementation.\n\n**Verification:**\n- Type: manual-check\n- Command: Review output\n- Expected: No critical issues",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "serialized-scribbling-tulip",
+    "type": "task"
+  }
+}
