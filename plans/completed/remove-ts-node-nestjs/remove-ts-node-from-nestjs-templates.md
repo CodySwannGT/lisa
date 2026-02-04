@@ -14,8 +14,8 @@ This was previously fixed for CDK projects (`plans/completed/remove-ts-node-use-
 
 ## Branches & PRs
 
-- **Lisa**: `fix/tsconfig-local-override` branch, PR to `main` (draft, to be created)
-- **Backend-v2**: new branch `fix/remove-ts-node-use-tsx` off `dev`, PR to `dev`
+- **Lisa**: `fix/tsconfig-local-override` branch, PR #148 to `main` — https://github.com/CodySwannGT/lisa/pull/148
+- **Backend-v2**: `fix/remove-ts-node-use-tsx` branch, PR #425 to `dev` — https://github.com/geminisportsai/backend-v2/pull/425
 
 ## Changes
 
