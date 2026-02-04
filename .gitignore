@@ -192,3 +192,5 @@ expo-env.d.ts
 .track-plan-debug.log
 
 # END: AI GUARDRAILS
+
+.lisa.config.local.json
