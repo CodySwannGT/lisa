@@ -9,14 +9,14 @@ When making a plan:
 - Always determine which skills should be used during execution of the plan and include them in the plan
 - Always make sure you understand the correct versions of third party libraries
 - Always look for code that can be reused for implementation
-- The plan MUST include written instructions to create a task list using TaskCreate for each task (following the Task Creation Specification below). The list should contain items related to the plan and specify that subagents should handle as many in parallel as possible. The following should always be included in the task list
-  - a task to be run after implementation to review the code with CodeRabbit
-  - a task to be run after all code review to implement valid review suggestions
-  - a task to be run after implementation to review the code with /plan-local-code-review
-  - a task to be run after code review implementation to simplify the implemented code with code simplifier agent
-  - a task to be run after code review implementation to update/add/remove tests, containing the tests that need to get updated, added or removed
-  - a task to be run after code review implementation to update/add/remove documentation (jsdocs, markdown files, etc), containing the documentation that need to get updated, added or removed
-  - a task to be run after code review implementation to verify all of the verification metadata in existing tasks
+- The plan MUST include written instructions to create a task list using TaskCreate for each task (following the Task Creation Specification below). The list should contain items related to the plan and specify that subagents should handle as many in parallel as possible. The following should always be included in the task list:
+  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with CodeRabbit
+  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with /plan-local-code-review
+  - (unless the plan includes only trivial changes) a task to be run after all code review to implement valid review suggestions
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to simplify the implemented code with code simplifier agent
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to update/add/remove tests, containing the tests that need to get updated, added or removed
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to update/add/remove documentation (jsdocs, markdown files, etc), containing the documentation that need to get updated, added or removed
+  - (unless the plan includes only trivial changes) a task to be run after code review implementation to verify all of the verification metadata in existing tasks
   - a task to be run after all other tasks have been completed to archive the plan. This task should explcitly say to:
     - create a folder named <plan-name> in ./plans/completed
     - rename this plan to a name befitting the actual plan contents

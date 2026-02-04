@@ -1,4 +1,4 @@
-# [Project Name]
+# NPM
 
 Developers write specs and answer questions. Agents implement, test, verify, question, and document.
 
