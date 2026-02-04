@@ -86,6 +86,7 @@
     "expo-notifications",
     "expo-status-bar",
     "firebase",
+    "html2canvas",
     "i18n-js",
     "lucide-react-native",
     "patch-package",
