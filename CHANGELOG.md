@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.21.1](https://github.com/CodySwannGT/lisa/compare/vv1.21.0...v1.21.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* add trailing newline to .gitignore ([19d3dea](https://github.com/CodySwannGT/lisa/commit/19d3dea3a99efb009cd1db87c1beca69bbff81a4))
+* remove ts-node from forced dependencies, keep for NestJS only ([c24571c](https://github.com/CodySwannGT/lisa/commit/c24571c742901c17f83324f065ac43061bd678c2))
+
 ## [1.21.0](https://github.com/CodySwannGT/lisa/compare/vv1.20.1...v1.21.0) (2026-02-04)
 
 
