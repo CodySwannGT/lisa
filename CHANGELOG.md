@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.21.2](https://github.com/CodySwannGT/lisa/compare/vv1.21.1...v1.21.2) (2026-02-05)
+
+
+### Bug Fixes
+
+* add brace-expansion resolution and expo-modules-core to knip ignores ([5d1657e](https://github.com/CodySwannGT/lisa/commit/5d1657e86c5d65b7be5bb670c33010a64ba2a9dd))
+* add brace-expansion resolution to typescript package.lisa.json ([b75fb51](https://github.com/CodySwannGT/lisa/commit/b75fb51c4fef1084a4c5d2f54c6870d1dd215969))
+* add jest.config.js to typescript deletions ([6659af4](https://github.com/CodySwannGT/lisa/commit/6659af4d769bf83377a5360883373b5b41120f3e))
+* add NestJS-specific knip.json with runtime dependency ignores ([72f4253](https://github.com/CodySwannGT/lisa/commit/72f42531eb762d9bd350e0d229f9014203ab4dba))
+* replace ts-node with tsx in NestJS migration templates ([d210afb](https://github.com/CodySwannGT/lisa/commit/d210afbea8e2106dccf886814d2dc4980e51f741))
+
 ### [1.21.1](https://github.com/CodySwannGT/lisa/compare/vv1.21.0...v1.21.1) (2026-02-04)
 
 
