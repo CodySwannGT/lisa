@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.21.6](https://github.com/CodySwannGT/lisa/compare/vv1.21.5...v1.21.6) (2026-02-05)
+
+
+### Bug Fixes
+
+* **cdk:** scope build to app directories and add prepare script ([c7f0de4](https://github.com/CodySwannGT/lisa/commit/c7f0de41e6ae86c2ff5709cc0d7e4e5ffbc03f1e))
+* remove .ts extension from eslint.config.local import ([e92d3ab](https://github.com/CodySwannGT/lisa/commit/e92d3ab46963d18afd3852993f7aff893a8f3cb4))
+* use module preserve and bundler resolution in tsconfig.eslint.json ([76e482f](https://github.com/CodySwannGT/lisa/commit/76e482f56ee69c6a569aa0f41ac6c3d82c96193b))
+
 ### [1.21.5](https://github.com/CodySwannGT/lisa/compare/vv1.21.4...v1.21.5) (2026-02-05)
 
 
