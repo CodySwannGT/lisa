@@ -1,0 +1,30 @@
+{
+  "id": "8",
+  "subject": "Archive plan",
+  "description": "**Type:** Task\n\n**Description:** Archive the plan after all tasks are complete:\n- Create folder `dreamy-napping-tome` in `./plans/completed`\n- Rename the plan to a name befitting the actual plan contents\n- Move it into `./plans/completed/dreamy-napping-tome`\n- Read session ids from `./plans/completed/dreamy-napping-tome`\n- For each session id, move `~/.claude/tasks/<session-id>` to `./plans/completed/dreamy-napping-tome/tasks`\n- Update any \"in_progress\" task to \"completed\"\n- Commit changes\n- Push changes to the PR\n\n**Acceptance Criteria:**\n- [ ] Plan archived to `./plans/completed/`\n- [ ] Task sessions moved\n- [ ] Changes committed and pushed\n\n**Skills to Invoke:** `/git:commit`\n\n**Verification:**\n- Type: manual-check\n- Command: `ls ./plans/completed/dreamy-napping-tome/`\n- Expected: Plan file and tasks directory exist",
+  "activeForm": "Archiving plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "dreamy-napping-tome",
+    "type": "task",
+    "skills": [
+      "/git:commit"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls ./plans/completed/dreamy-napping-tome/",
+      "expected": "Plan file and tasks directory exist"
+    }
+  }
+}
+
+## Sessions
+
+<!-- Auto-maintained by track-plan-sessions.sh -->
+| Session ID | First Seen | Phase |
+|------------|------------|-------|
+| 7a45514c-4324-4d50-9c70-61f171dcecc7 | 2026-02-05T14:52:40Z | implement |

@@ -1,0 +1,28 @@
+{
+  "id": "2",
+  "subject": "Run CodeRabbit review",
+  "description": "**Type:** Task\n\n**Description:** Run CodeRabbit code review on the changes after implementation is complete.\n\n**Acceptance Criteria:**\n- [ ] CodeRabbit review completed\n\n**Skills to Invoke:** `/coderabbit:review`\n\n**Verification:**\n- Type: manual-check\n- Command: Run `/coderabbit:review`\n- Expected: Review completes with findings documented",
+  "activeForm": "Running CodeRabbit review",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "dreamy-napping-tome",
+    "type": "task",
+    "skills": [
+      "/coderabbit:review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "/coderabbit:review",
+      "expected": "Review completes"
+    },
+    "learnings": [
+      "CodeRabbit returned zero findings across three review modes (default, --base main, --base main --type committed)"
+    ]
+  }
+}

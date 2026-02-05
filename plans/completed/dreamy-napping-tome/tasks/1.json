@@ -1,0 +1,24 @@
+{
+  "id": "1",
+  "subject": "Add `__fixtures__` exclusion to jest.base.ts template and root",
+  "description": "**Type:** Task\n\n**Description:** Add `\"!**/__fixtures__/**\"` to the `defaultCoverageExclusions` array in both `typescript/copy-overwrite/jest.base.ts` (template) and `jest.base.ts` (root). Insert after `!**/__mocks__/**`, before `!**/components/ui/**`. Also add a test assertion in `tests/unit/config/jest-base.test.ts`.\n\n**Acceptance Criteria:**\n- [ ] `typescript/copy-overwrite/jest.base.ts` has `\"!**/__fixtures__/**\"` in `defaultCoverageExclusions`\n- [ ] `jest.base.ts` (root) has `\"!**/__fixtures__/**\"` in `defaultCoverageExclusions`\n- [ ] `tests/unit/config/jest-base.test.ts` has assertion for `__fixtures__` exclusion\n- [ ] Tests pass\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Implementation Details:**\n- Files to modify: `typescript/copy-overwrite/jest.base.ts`, `jest.base.ts`, `tests/unit/config/jest-base.test.ts`\n- Add after `\"!**/__mocks__/**\"` line, before `\"!**/components/ui/**\"` line\n\n**Testing Requirements:** `bun test -- tests/unit/config/jest-base.test.ts`\n\n**Verification:**\n- Type: test\n- Command: `bun test -- tests/unit/config/jest-base.test.ts`\n- Expected: All tests pass including the new `__fixtures__` assertion",
+  "activeForm": "Adding __fixtures__ exclusion to jest.base.ts files",
+  "status": "completed",
+  "blocks": [
+    "2",
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "dreamy-napping-tome",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun test -- tests/unit/config/jest-base.test.ts",
+      "expected": "All tests pass including new __fixtures__ assertion"
+    }
+  }
+}

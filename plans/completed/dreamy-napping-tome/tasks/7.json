@@ -1,0 +1,25 @@
+{
+  "id": "7",
+  "subject": "Verify all task verification metadata",
+  "description": "**Type:** Task\n\n**Description:** Run verification commands for all completed tasks to ensure they all pass.\n\n**Acceptance Criteria:**\n- [ ] All verification commands pass\n- [ ] All task metadata is accurate\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- Type: test\n- Command: `bun test -- tests/unit/config/jest-base.test.ts`\n- Expected: All tests pass",
+  "activeForm": "Verifying task metadata",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "dreamy-napping-tome",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun test -- tests/unit/config/jest-base.test.ts",
+      "expected": "All tests pass"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "6",
+  "subject": "Update/verify tests for __fixtures__ exclusion",
+  "description": "**Type:** Task\n\n**Description:** Ensure `jest-base.test.ts` fully covers the new `__fixtures__` exclusion pattern. Verify existing tests still pass and new assertion is correct.\n\n**Acceptance Criteria:**\n- [ ] Test assertion for `__fixtures__` exclusion exists and passes\n- [ ] All existing tests still pass\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- Type: test\n- Command: `bun test -- tests/unit/config/jest-base.test.ts`\n- Expected: All tests pass",
+  "activeForm": "Verifying tests",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "5"
+  ],
+  "metadata": {
+    "plan": "dreamy-napping-tome",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun test -- tests/unit/config/jest-base.test.ts",
+      "expected": "All tests pass"
+    }
+  }
+}
