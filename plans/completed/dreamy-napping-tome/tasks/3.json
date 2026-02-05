@@ -1,0 +1,25 @@
+{
+  "id": "3",
+  "subject": "Run local code review",
+  "description": "**Type:** Task\n\n**Description:** Run local code review on the changes after implementation.\n\n**Acceptance Criteria:**\n- [ ] Local code review completed\n\n**Skills to Invoke:** `/plan:local-code-review`\n\n**Verification:**\n- Type: manual-check\n- Command: Run `/plan:local-code-review`\n- Expected: Review completes with findings documented",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "dreamy-napping-tome",
+    "type": "task",
+    "skills": [
+      "/plan:local-code-review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "/plan:local-code-review",
+      "expected": "Review completes"
+    }
+  }
+}
