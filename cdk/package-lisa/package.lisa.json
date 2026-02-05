@@ -3,7 +3,8 @@
     "scripts": {
       "watch": "tsc -w",
       "cdk": "cdk",
-      "build": "tsc --noEmit"
+      "build": "tsc --noEmit",
+      "prepare": "husky install || true"
     },
     "dependencies": {
       "@aws-cdk/aws-amplify-alpha": "^2.235.0-alpha.0",
