@@ -1,0 +1,23 @@
+{
+  "id": "5",
+  "subject": "Open draft PR to main",
+  "description": "**Type:** Task\n\n**Description:** Push branch and open a draft PR to main.\n\n**Verification:**\n- type: manual-check\n- command: `gh pr view --json state,title`\n- expected: Draft PR exists",
+  "activeForm": "Opening draft PR",
+  "status": "completed",
+  "blocks": [
+    "6",
+    "7"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "gh pr view --json state,title",
+      "expected": "Draft PR exists"
+    }
+  }
+}

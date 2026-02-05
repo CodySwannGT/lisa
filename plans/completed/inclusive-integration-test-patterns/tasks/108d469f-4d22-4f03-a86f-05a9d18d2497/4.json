@@ -1,0 +1,20 @@
+{
+  "id": "4",
+  "subject": "Run lint and typecheck",
+  "description": "**Type:** Task\n\n**Description:** Run `bun run lint && bun run typecheck` to confirm no lint or type errors.\n\n**Verification:**\n- type: manual-check\n- command: `bun run lint && bun run typecheck`\n- expected: No errors",
+  "activeForm": "Running lint and typecheck",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "bun run lint && bun run typecheck",
+      "expected": "No errors"
+    }
+  }
+}
