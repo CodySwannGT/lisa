@@ -4,8 +4,8 @@
     "rootDir": ".",
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "module": "preserve",
+    "moduleResolution": "bundler"
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist", "cdk.out"]
