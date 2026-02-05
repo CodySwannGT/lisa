@@ -21,8 +21,8 @@
   ],
   "scripts": {
     "test": "NODE_ENV=test jest --passWithNoTests",
-    "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
-    "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests",
+    "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
+    "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
     "test:cov": "NODE_ENV=test jest --coverage",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
