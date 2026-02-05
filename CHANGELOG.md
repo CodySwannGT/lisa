@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.21.4](https://github.com/CodySwannGT/lisa/compare/vv1.21.3...v1.21.4) (2026-02-05)
+
+
+### Bug Fixes
+
+* broaden integration test file pattern matching ([e0224bd](https://github.com/CodySwannGT/lisa/commit/e0224bd6e128cb066757831fd7be382734521a42))
+* correct warmup directory ignore pattern from _warmup to .warmup ([44fb81a](https://github.com/CodySwannGT/lisa/commit/44fb81a13fef88e8db8e7598d0b20bf093df23eb))
+
 ### [1.21.3](https://github.com/CodySwannGT/lisa/compare/vv1.21.2...v1.21.3) (2026-02-05)
 
 
