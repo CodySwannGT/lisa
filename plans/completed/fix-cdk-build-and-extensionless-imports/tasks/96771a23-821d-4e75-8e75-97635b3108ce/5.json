@@ -1,0 +1,22 @@
+{
+  "id": "5",
+  "subject": "Update tests if needed",
+  "description": "**Type:** Task (after review implementation)\n\n**Description:** Check if any existing tests reference config file imports with `.ts` extensions or tsconfig.eslint.json content. Update if found. No CDK template tests were found in previous session, so likely N/A.\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:** `bun run test` passes",
+  "activeForm": "Updating tests",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "fix-cdk-build-and-extensionless-imports",
+    "type": "task",
+    "previousTaskId": "9",
+    "previousSession": "b861e8cd-8292-47b9-9efe-2878279cad75",
+    "learnings": [
+      "All 217 tests pass. No test changes needed - no tests reference tsconfig.eslint.json content or config import paths."
+    ]
+  }
+}

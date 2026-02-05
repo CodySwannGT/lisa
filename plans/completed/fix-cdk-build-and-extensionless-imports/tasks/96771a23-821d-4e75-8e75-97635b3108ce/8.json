@@ -1,0 +1,17 @@
+{
+  "id": "8",
+  "subject": "Archive plan",
+  "description": "**Type:** Task (after all other tasks)\n\n**Description:**\n- Create folder `fix-cdk-build-and-extensionless-imports` in `./plans/completed`\n- Rename this plan to a name befitting the actual plan contents\n- Move it into `./plans/completed/fix-cdk-build-and-extensionless-imports/`\n- Read the session IDs from `./plans/completed/fix-cdk-build-and-extensionless-imports/`\n- For each session ID, move the `~/.claude/tasks/<session-id>` directory to `./plans/completed/fix-cdk-build-and-extensionless-imports/tasks`\n- Update any `in_progress` tasks to `completed`\n- Commit and push changes to the PR\n\n**Verification:** Plan archived, tasks moved, changes committed and pushed",
+  "activeForm": "Archiving plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "fix-cdk-build-and-extensionless-imports",
+    "type": "task",
+    "previousTaskId": "12",
+    "previousSession": "b861e8cd-8292-47b9-9efe-2878279cad75"
+  }
+}

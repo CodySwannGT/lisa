@@ -1,0 +1,24 @@
+{
+  "id": "7",
+  "subject": "Verify all task verification metadata",
+  "description": "**Type:** Task (after tasks 4-6)\n\n**Description:** Re-run all verification commands from previous tasks:\n1. `bun run typecheck` passes\n2. `bun run lint` passes  \n3. `bun run test -- --listTests` succeeds\n4. `bun run test` passes\n5. `jq '.force.scripts.prepare' cdk/package-lisa/package.lisa.json` outputs `\"husky install || true\"`\n6. `jq '.include' cdk/copy-overwrite/tsconfig.cdk.json` outputs the array\n\n**Verification:** All commands produce expected output",
+  "activeForm": "Verifying all task metadata",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "4",
+    "5",
+    "6"
+  ],
+  "metadata": {
+    "plan": "fix-cdk-build-and-extensionless-imports",
+    "type": "task",
+    "previousTaskId": "11",
+    "previousSession": "b861e8cd-8292-47b9-9efe-2878279cad75",
+    "learnings": [
+      "All verification commands pass: typecheck, lint, test (217 passed), CDK prepare script correct, CDK include array correct."
+    ]
+  }
+}

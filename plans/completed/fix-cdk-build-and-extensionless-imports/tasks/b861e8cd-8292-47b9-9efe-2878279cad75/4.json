@@ -1,0 +1,35 @@
+{
+  "id": "4",
+  "subject": "Integration test against Qualis infrastructure",
+  "description": "**Type:** Task\n\n**Description:** Run Lisa locally against `/Users/cody/workspace/qualis/infrastructure`. Verify `npm run build` passes, `npm install` prepare step runs `husky install || true`, and `npm run lint` works.\n\n**Skills to Invoke:** `/coding-philosophy`, `/lisa:integration-test`\n\n**Verification:**\n- type: test\n- command: Build, install, and lint Qualis infrastructure\n- expected: All three commands exit 0",
+  "activeForm": "Running integration test against Qualis",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/lisa:integration-test"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "cd /Users/cody/workspace/qualis/infrastructure && npm run build && npm install && npm run lint",
+      "expected": "All commands exit 0"
+    },
+    "learnings": [
+      "Qualis CDK build was failing because tsc --noEmit with no include scope picks up eslint/jest config files that use ESM features incompatible with module: commonjs",
+      "Adding include: [lib/**/*, bin/**/*, test/**/*] to tsconfig.cdk.json fixes the build by scoping tsc to app directories only",
+      "tsconfig.eslint.json TS4023 errors with module: preserve are harmless — typescript-eslint parser handles them differently than direct tsc compilation",
+      "Qualis already had prepare: husky install || true from a previous manual fix"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "10",
+  "subject": "Update documentation (JSDoc preambles)",
+  "description": "**Type:** Task\n\n**Description:** Update JSDoc preamble comments in jest.*.ts files that reference \"jest.base.ts\" in inheritance chain descriptions (change to \"jest.base\"). Check README for CDK prepare script references.\n\n**Skills to Invoke:** `/jsdoc-best-practices`\n\n**Verification:**\n- type: documentation\n- command: `grep -r \"jest.base.ts\" typescript/ cdk/ nestjs/ expo/ jest.typescript.ts`\n- expected: No matches (all references updated to extensionless)",
+  "activeForm": "Updating documentation",
+  "status": "pending",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "skills": [
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "documentation",
+      "command": "grep -r 'jest.base.ts' typescript/ cdk/ nestjs/ expo/ jest.typescript.ts",
+      "expected": "No matches"
+    }
+  }
+}
