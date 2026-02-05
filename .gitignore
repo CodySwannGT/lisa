@@ -16,7 +16,7 @@ cdk.out.tmp/
 .cdk.context.json
 .cdk.staging/
 .esbuild
-/_warmup/
+/.warmup/
 
 # GraphQL generated schema (code-first approach)
 src/schema.gql
