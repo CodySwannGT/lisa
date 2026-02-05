@@ -35,7 +35,7 @@ export const defaultIgnores = [
   ".esbuild/**",
   ".serverless/**",
   ".webpack/**",
-  "_warmup/**",
+  ".warmup/**",
   "node_modules/**",
   "**/node_modules/**",
   "src/graphql/**",
