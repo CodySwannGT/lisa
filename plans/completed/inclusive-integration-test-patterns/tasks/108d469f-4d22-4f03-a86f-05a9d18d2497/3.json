@@ -1,0 +1,20 @@
+{
+  "id": "3",
+  "subject": "Run tests",
+  "description": "**Type:** Task\n\n**Description:** Run `bun run test` to confirm nothing breaks.\n\n**Verification:**\n- type: test\n- command: `bun run test`\n- expected: All tests pass",
+  "activeForm": "Running tests",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "All tests pass"
+    }
+  }
+}

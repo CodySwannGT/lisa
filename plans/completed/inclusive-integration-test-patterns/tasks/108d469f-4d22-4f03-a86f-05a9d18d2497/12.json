@@ -1,0 +1,19 @@
+{
+  "id": "12",
+  "subject": "Verify all task verifications",
+  "description": "**Type:** Task\n\n**Description:** Re-run all verification commands from previous tasks to confirm everything still passes.\n\n**Verification:**\n- type: manual-check\n- command: All verification commands from previous tasks\n- expected: All pass",
+  "activeForm": "Verifying all task verifications",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [
+    "9",
+    "10",
+    "11"
+  ],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task"
+  }
+}
