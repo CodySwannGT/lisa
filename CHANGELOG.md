@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.21.3](https://github.com/CodySwannGT/lisa/compare/vv1.21.2...v1.21.3) (2026-02-05)
+
+
+### Bug Fixes
+
+* broaden integration test file pattern matching ([#149](https://github.com/CodySwannGT/lisa/issues/149)) ([0de108e](https://github.com/CodySwannGT/lisa/commit/0de108e3df94aa51a089df94eb471f3a314e35d9))
+
 ### [1.21.2](https://github.com/CodySwannGT/lisa/compare/vv1.21.1...v1.21.2) (2026-02-05)
 
 
