@@ -1,0 +1,20 @@
+{
+  "id": "7",
+  "subject": "Run local code review",
+  "description": "**Type:** Task\n\n**Description:** Run `/plan-local-code-review` on the changes.\n\n**Skills to Invoke:** `/plan-local-code-review`\n\n**Verification:**\n- type: manual-check\n- command: Review completed\n- expected: Review output received",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "5"
+  ],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task",
+    "skills": [
+      "/plan-local-code-review"
+    ]
+  }
+}
