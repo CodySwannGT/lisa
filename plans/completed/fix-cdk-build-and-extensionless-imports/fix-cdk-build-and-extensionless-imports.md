@@ -2,7 +2,7 @@
 
 **Branch:** `fix/cdk-build-and-extensionless-imports`
 **PR Target:** `main`
-**PR:** TBD (open as draft during implementation)
+**PR:** https://github.com/CodySwannGT/lisa/pull/152
 
 ## Problem
 
@@ -270,3 +270,5 @@ Create these tasks using `TaskCreate`. Tasks 1-3 can run in parallel (independen
 
 ## Sessions
 | 452246a1-2be5-4a6d-9464-cca681298086 | 2026-02-05T16:44:02Z | plan |
+| b861e8cd-8292-47b9-9efe-2878279cad75 | 2026-02-05T16:52:16Z | implement |
+| 96771a23-821d-4e75-8e75-97635b3108ce | 2026-02-05T17:40:32Z | implement |

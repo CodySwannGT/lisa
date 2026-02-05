@@ -1,0 +1,25 @@
+{
+  "id": "7",
+  "subject": "Implement valid review suggestions",
+  "description": "**Type:** Task\n\n**Description:** Address actionable feedback from CodeRabbit and local code review.\n\n**Verification:**\n- type: manual-check\n- command: Re-run reviews\n- expected: No new critical issues",
+  "activeForm": "Implementing review suggestions",
+  "status": "pending",
+  "blocks": [
+    "8",
+    "9",
+    "10"
+  ],
+  "blockedBy": [
+    "5",
+    "6"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "Re-run reviews",
+      "expected": "No new critical issues"
+    }
+  }
+}

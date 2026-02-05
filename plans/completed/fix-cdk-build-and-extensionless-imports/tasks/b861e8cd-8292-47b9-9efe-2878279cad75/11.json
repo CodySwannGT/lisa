@@ -1,0 +1,24 @@
+{
+  "id": "11",
+  "subject": "Verify all task verification metadata",
+  "description": "**Type:** Task\n\n**Description:** Re-run all verification commands from previous tasks to ensure everything passes.\n\n**Verification:**\n- type: test\n- command: All verification commands from tasks 1-10\n- expected: All produce expected output",
+  "activeForm": "Verifying all task verification commands",
+  "status": "pending",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "8",
+    "9",
+    "10"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "all verification commands",
+      "expected": "All pass"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "3",
+  "subject": "Implement valid review suggestions",
+  "description": "**Type:** Task (blocked by CodeRabbit and local code review)\n\n**Description:** Address actionable feedback from CodeRabbit and local code review.\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:** Re-run reviews show no new critical issues",
+  "activeForm": "Implementing review suggestions",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "5",
+    "6"
+  ],
+  "blockedBy": [
+    "1",
+    "2"
+  ],
+  "metadata": {
+    "plan": "fix-cdk-build-and-extensionless-imports",
+    "type": "task",
+    "previousTaskId": "7",
+    "previousSession": "b861e8cd-8292-47b9-9efe-2878279cad75",
+    "learnings": [
+      "Finding 1 (Jest extensionless imports) was invalid - Jest config loader requires .ts extensions unlike ESLint's jiti loader. Empirically confirmed: removing .ts breaks `bun run test --listTests`. Finding 2 (duplicate include) is acceptable as defensive fallback. Finding 3 (allowImportingTsExtensions) is correct for transition. Finding 7 (JSDoc preambles) references file names not import paths, so technically correct. No actionable changes needed from reviews."
+    ]
+  }
+}

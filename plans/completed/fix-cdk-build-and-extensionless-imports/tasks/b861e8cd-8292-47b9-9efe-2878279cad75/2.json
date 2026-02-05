@@ -1,0 +1,28 @@
+{
+  "id": "2",
+  "subject": "Remove .ts extensions from all config file imports",
+  "description": "**Type:** Task\n\n**Description:** Remove `.ts` extensions from eslint config file local imports across all stacks (2 files total). Jest config files CANNOT use extensionless imports because Jest 30's config loader uses Node's native ESM resolution first, which doesn't resolve extensionless `.ts` imports. Only ESLint configs (loaded by jiti) can use extensionless imports.\n\n**Files changed:**\n- `typescript/copy-overwrite/eslint.config.ts` - `./eslint.config.local.ts` → `./eslint.config.local`\n- `eslint.config.ts` (root) - `./eslint.config.local.ts` → `./eslint.config.local`\n\n**Note:** Jest config `.ts` extensions were NOT removed because Jest 30 uses native Node TypeScript loading (ERR_MODULE_NOT_FOUND on extensionless `.ts` imports). The `tsconfig.eslint.json` changes with `module: \"preserve\"` only affect ESLint type-checking, not Jest runtime loading.\n\n**Verification:**\n- type: test\n- command: `bun run lint && bun run test -- --listTests`\n- expected: lint passes AND jest lists test files correctly",
+  "activeForm": "Removing .ts extensions from config imports",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun run lint && bun run test -- --listTests",
+      "expected": "lint passes AND jest lists test files"
+    },
+    "learnings": [
+      "Jest 30 config loader uses Node's native ESM resolution first, which cannot resolve extensionless .ts imports. Only falls through to ts-node for SyntaxError, not ERR_MODULE_NOT_FOUND. Therefore jest config files MUST keep .ts extensions.",
+      "ESLint configs loaded by jiti support extensionless .ts imports natively.",
+      "tsconfig.eslint.json with module: preserve + moduleResolution: bundler only affects ESLint type-checking, not Jest runtime config loading."
+    ]
+  }
+}

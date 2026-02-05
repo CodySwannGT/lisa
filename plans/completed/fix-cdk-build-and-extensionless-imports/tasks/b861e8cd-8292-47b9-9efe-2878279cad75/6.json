@@ -1,0 +1,25 @@
+{
+  "id": "6",
+  "subject": "Run local code review",
+  "description": "**Type:** Task\n\n**Description:** Review changes with plan-local-code-review skill.\n\n**Verification:**\n- type: manual-check\n- command: Run plan-local-code-review skill\n- expected: Review completes",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "skills": [
+      "/plan-local-code-review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "plan-local-code-review",
+      "expected": "Review completes"
+    }
+  }
+}
