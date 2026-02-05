@@ -53,6 +53,9 @@
       "@types/jest": "^30.0.0",
       "jest": "^30.0.0",
       "ts-jest": "^29.4.6"
+    },
+    "resolutions": {
+      "@isaacs/brace-expansion": "^5.0.1"
     }
   },
   "defaults": {

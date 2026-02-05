@@ -1,9 +1,9 @@
 {
   "defaults": {
     "scripts": {
-      "migration:generate": "typeorm-ts-node-commonjs migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
-      "migration:run": "typeorm-ts-node-commonjs migration:run -d typeorm.config.ts",
-      "migration:revert": "typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts"
+      "migration:generate": "tsx ./node_modules/typeorm/cli.js migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
+      "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d typeorm.config.ts",
+      "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d typeorm.config.ts"
     }
   },
   "force": {
@@ -72,8 +72,7 @@
       "@types/express": "^5.0.6",
       "serverless": "^4.30.0",
       "serverless-esbuild": "^1.57.0",
-      "serverless-offline": "^14.4.0",
-      "ts-node": "^10.9.2"
+      "serverless-offline": "^14.4.0"
     }
   }
 }

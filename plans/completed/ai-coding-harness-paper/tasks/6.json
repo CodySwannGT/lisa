@@ -1,0 +1,21 @@
+{
+  "id": "6",
+  "subject": "Update documentation references",
+  "description": "**Type:** Task\n\n**Description:** Ensure any referenced docs are accurate.\n\n**Acceptance Criteria:**\n- [ ] All doc references verified\n\n**Verification:**\n- type: manual-check\n- command: Review referenced docs\n- expected: All references accurate",
+  "activeForm": "Updating documentation references",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task",
+    "learnings": [
+      "Paper references all verified with URLs from web research agent",
+      "No other documentation to update - paper is standalone outside repo"
+    ]
+  }
+}

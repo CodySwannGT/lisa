@@ -1,0 +1,17 @@
+{
+  "id": "5",
+  "subject": "Simplify paper with code-simplifier",
+  "description": "**Type:** Task\n\n**Description:** Clean up prose and structure using code-simplifier agent.\n\n**Acceptance Criteria:**\n- [ ] Prose simplified where needed\n- [ ] Structure tightened\n\n**Verification:**\n- type: manual-check\n- command: Review simplified output\n- expected: Cleaner, more concise paper",
+  "activeForm": "Simplifying paper prose and structure",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task"
+  }
+}
