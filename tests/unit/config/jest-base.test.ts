@@ -42,6 +42,10 @@ describe("jest.base", () => {
       expect(defaultCoverageExclusions).toContain("!**/node_modules/**");
       expect(defaultCoverageExclusions).toContain("!**/dist/**");
     });
+
+    it("excludes __fixtures__ directories", () => {
+      expect(defaultCoverageExclusions).toContain("!**/__fixtures__/**");
+    });
   });
 
   describe("mergeThresholds", () => {
