@@ -1,0 +1,26 @@
+{
+  "id": "3",
+  "subject": "Commit and submit draft PR for CDK sourceMap fix",
+  "description": "**Type:** Task\n\n**Description:** Commit the fix and open a draft PR targeting `main`.\n\n**Acceptance Criteria:**\n- [ ] Changes committed with conventional commit message\n- [ ] Draft PR opened targeting `main`\n\n**Skills to Invoke:** `/coding-philosophy`, `/git:commit-and-submit-pr`\n\n**Implementation Details:**\n- Branch: `fix/cdk-tsconfig-sourcemap-conflict`\n- Commit message: `fix(cdk): disable sourceMap in tsconfig.cdk.json to prevent TS5053 conflict`\n- PR target: `main`\n\n**Testing Requirements:** N/A\n\n**Verification:**\n- **Type:** `manual-check`\n- **Command:** `gh pr view --json state,title`\n- **Expected:** PR exists with state \"OPEN\"",
+  "activeForm": "Committing and submitting draft PR",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "2"
+  ],
+  "metadata": {
+    "plan": "nifty-floating-thacker",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/git:commit-and-submit-pr"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "gh pr view --json state,title",
+      "expected": "PR exists with state OPEN"
+    }
+  }
+}

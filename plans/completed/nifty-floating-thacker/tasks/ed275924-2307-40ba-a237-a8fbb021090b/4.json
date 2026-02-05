@@ -1,0 +1,30 @@
+{
+  "id": "4",
+  "subject": "Archive the nifty-floating-thacker plan",
+  "description": "**Type:** Task\n\n**Description:** Archive this plan after all other tasks are complete.\n\n**Acceptance Criteria:**\n- [ ] Created folder `./plans/completed/nifty-floating-thacker`\n- [ ] Renamed plan file to reflect actual contents (e.g., `fix-cdk-tsconfig-sourcemap.md`)\n- [ ] Moved plan into `./plans/completed/nifty-floating-thacker/`\n- [ ] Read session IDs from the plan file\n- [ ] Moved `~/.claude/tasks/<session-id>` directories to `./plans/completed/nifty-floating-thacker/tasks`\n- [ ] Updated any `in_progress` tasks to `completed`\n- [ ] Committed changes\n- [ ] Pushed to PR\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Implementation Details:**\n1. Create folder `./plans/completed/nifty-floating-thacker`\n2. Rename this plan to `fix-cdk-tsconfig-sourcemap.md`\n3. Move it into `./plans/completed/nifty-floating-thacker/`\n4. Read session IDs from the moved plan file's `## Sessions` section\n5. For each session ID, move `~/.claude/tasks/<session-id>` to `./plans/completed/nifty-floating-thacker/tasks`\n6. Update any `in_progress` tasks to `completed`\n7. Commit changes\n8. Push to PR\n\n**Testing Requirements:** N/A\n\n**Verification:**\n- **Type:** `manual-check`\n- **Command:** `ls ./plans/completed/nifty-floating-thacker/`\n- **Expected:** Plan file and tasks directory present",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "nifty-floating-thacker",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls ./plans/completed/nifty-floating-thacker/",
+      "expected": "Plan file and tasks directory present"
+    }
+  }
+}
+
+## Sessions
+
+<!-- Auto-maintained by track-plan-sessions.sh -->
+| Session ID | First Seen | Phase |
+|------------|------------|-------|
+| ed275924-2307-40ba-a237-a8fbb021090b | 2026-02-05T16:24:20Z | implement |
