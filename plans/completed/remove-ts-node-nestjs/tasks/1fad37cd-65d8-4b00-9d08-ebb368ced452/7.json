@@ -1,0 +1,18 @@
+{
+  "id": "7",
+  "subject": "Run local code review on changes",
+  "description": "**Type:** Task\n**Description:** Run `/plan-local-code-review` on changes in both repos.\n**Skills to Invoke:** `/plan:local-code-review`",
+  "activeForm": "Running local code review on changes",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "replicated-jumping-ladybug",
+    "type": "task",
+    "skills": [
+      "/plan:local-code-review"
+    ]
+  }
+}

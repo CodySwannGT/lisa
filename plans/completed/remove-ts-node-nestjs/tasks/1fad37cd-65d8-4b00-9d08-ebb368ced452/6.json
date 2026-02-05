@@ -1,0 +1,18 @@
+{
+  "id": "6",
+  "subject": "Review code changes with CodeRabbit",
+  "description": "**Type:** Task\n**Description:** Run CodeRabbit review on changes in both repos.\n**Skills to Invoke:** `/coderabbit:review`",
+  "activeForm": "Reviewing code changes with CodeRabbit",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "replicated-jumping-ladybug",
+    "type": "task",
+    "skills": [
+      "/coderabbit:review"
+    ]
+  }
+}

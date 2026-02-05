@@ -1,0 +1,22 @@
+{
+  "id": "12",
+  "subject": "Verify all task verification commands pass",
+  "description": "**Type:** Task\n**Description:** Re-run every verification command from all tasks to confirm everything passes.",
+  "activeForm": "Verifying all task verification commands pass",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [
+    "9",
+    "10",
+    "11"
+  ],
+  "metadata": {
+    "plan": "replicated-jumping-ladybug",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "1",
+  "subject": "Write the full research paper draft",
+  "description": "**Type:** Task\n\n**Description:** Write the complete Gartner-style research paper \"Your AI Coding Agents Are Only as Good as Your Harness\" following the plan structure. The paper should be 15-20 pages in markdown, targeting VPs of Engineering, CTOs, and Directors of Platform Engineering.\n\n**Acceptance Criteria:**\n- [ ] Paper covers all sections from the plan (Abstract, Sections 1-6, Glossary)\n- [ ] Authoritative Gartner analyst tone throughout\n- [ ] All key sources cited with specific quotes/findings\n- [ ] Includes all suggested additions (Invisible Tax, Security Angle, Comparison Table, First 90 Days, etc.)\n- [ ] Written to `/Users/cody/workspace/ai-coding-harness-paper.md`\n- [ ] 15-20 pages equivalent in markdown\n\n**Verification:**\n- type: manual-check\n- command: `wc -l /Users/cody/workspace/ai-coding-harness-paper.md`\n- expected: 800+ lines (15-20 page equivalent)",
+  "activeForm": "Writing the research paper draft",
+  "status": "completed",
+  "blocks": [
+    "2",
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "wc -l /Users/cody/workspace/ai-coding-harness-paper.md",
+      "expected": "800+ lines"
+    },
+    "learnings": [
+      "The Anthropic 'Building effective agents' post does NOT use the word 'harness' - the term was introduced in 'Effective harnesses for long-running agents' (Nov 2025)",
+      "Pixee.ai '87% lack AI security frameworks' stat is unverifiable - the correct stat is '79% lack formal security policies' from Enterprise Management Associates",
+      "ThoughtWorks placed spec-driven development in Assess ring (Vol 33, Nov 2025), not 'most important practice' - need to soften that attribution"
+    ]
+  }
+}

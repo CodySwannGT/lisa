@@ -1,0 +1,23 @@
+{
+  "id": "2",
+  "subject": "Review paper with CodeRabbit",
+  "description": "**Type:** Task\n\n**Description:** Review the paper for quality using CodeRabbit code review.\n\n**Acceptance Criteria:**\n- [ ] CodeRabbit review completed\n- [ ] Feedback documented\n\n**Verification:**\n- type: manual-check\n- command: CodeRabbit review output\n- expected: Review completed with feedback",
+  "activeForm": "Reviewing paper with CodeRabbit",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "glistening-drifting-allen",
+    "type": "task",
+    "learnings": [
+      "Pixee.ai 1.7x defect stat is single vendor-sourced - potential bias",
+      "GitHub Spec Kit has 50K+ stars not 28K",
+      "Economics section chain-of-estimates needs ranges not single numbers",
+      "IBM $670K figure needs proper citation"
+    ]
+  }
+}

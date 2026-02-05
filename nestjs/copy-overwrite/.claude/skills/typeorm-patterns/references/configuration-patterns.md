@@ -378,7 +378,7 @@ import { createLocalConfig } from "./src/database/database.config";
  * TypeORM CLI DataSource for migrations.
  *
  * @remarks
- * This configuration is used by typeorm-ts-node-commonjs for:
+ * This configuration is used by tsx with typeorm CLI for:
  * - migration:generate
  * - migration:run
  * - migration:revert

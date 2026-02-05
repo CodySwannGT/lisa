@@ -1,0 +1,28 @@
+{
+  "id": "10",
+  "subject": "Update tests referencing ts-node",
+  "description": "**Type:** Task\n**Description:** Search for any test files in both repos that reference ts-node and update them.\n**Verification:** `grep -r 'ts-node' --include='*.spec.ts' --include='*.test.ts' --include='jest.*' .` → no matches",
+  "activeForm": "Updating tests referencing ts-node",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "plan": "replicated-jumping-ladybug",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -r 'ts-node' --include='*.spec.ts' --include='*.test.ts' --include='jest.*' .",
+      "expected": "No matches"
+    },
+    "learnings": [
+      "No test files reference ts-node in either Lisa or backend-v2"
+    ]
+  }
+}

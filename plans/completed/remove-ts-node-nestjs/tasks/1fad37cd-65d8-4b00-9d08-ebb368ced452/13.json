@@ -1,0 +1,19 @@
+{
+  "id": "13",
+  "subject": "Archive the plan and finalize PRs",
+  "description": "**Type:** Task\n\n**Description:**\n1. Create folder `remove-ts-node-nestjs` in `./plans/completed`\n2. Rename `replicated-jumping-ladybug.md` to `remove-ts-node-from-nestjs-templates.md`\n3. Move it into `./plans/completed/remove-ts-node-nestjs/`\n4. Read session IDs from the plan file\n5. For each session ID, move `~/.claude/tasks/<session-id>` to `./plans/completed/remove-ts-node-nestjs/tasks`\n6. Update any \"in_progress\" task to \"completed\"\n7. Commit and push changes\n8. Change PRs to ready for review\n9. Set PRs to auto merge",
+  "activeForm": "Archiving the plan and finalizing PRs",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "12"
+  ],
+  "metadata": {
+    "plan": "replicated-jumping-ladybug",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/git:commit"
+    ]
+  }
+}

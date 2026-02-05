@@ -1,0 +1,29 @@
+{
+  "id": "11",
+  "subject": "Update documentation referencing ts-node",
+  "description": "**Type:** Task\n**Description:** Search for ts-node references in README, skill docs, and other markdown files in both repos. Update to reflect tsx.\n**Verification:** `grep -r 'ts-node' --include='*.md' nestjs/` → no stale references",
+  "activeForm": "Updating documentation referencing ts-node",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "plan": "replicated-jumping-ladybug",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "documentation",
+      "command": "grep -r 'ts-node' --include='*.md' nestjs/",
+      "expected": "No stale references"
+    },
+    "learnings": [
+      "Backend-v2 had ts-node references in .claude/skills/typeorm-patterns and docs/typescript-setup.md that needed updating. Archived project docs were left as-is (historical)."
+    ]
+  }
+}
