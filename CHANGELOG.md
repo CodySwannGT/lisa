@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.21.5](https://github.com/CodySwannGT/lisa/compare/vv1.21.4...v1.21.5) (2026-02-05)
+
+
+### Bug Fixes
+
+* **cdk:** disable sourceMap in tsconfig.cdk.json to prevent TS5053 conflict ([099820a](https://github.com/CodySwannGT/lisa/commit/099820a8dd906083d183f105dab749a2b00f121c))
+
 ### [1.21.4](https://github.com/CodySwannGT/lisa/compare/vv1.21.3...v1.21.4) (2026-02-05)
 
 
