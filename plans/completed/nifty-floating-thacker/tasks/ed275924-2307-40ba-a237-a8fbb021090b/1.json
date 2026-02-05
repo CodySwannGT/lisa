@@ -1,0 +1,23 @@
+{
+  "id": "1",
+  "subject": "Add sourceMap: false to CDK tsconfig.cdk.json template",
+  "description": "**Type:** Bug\n\n**Description:** `tsconfig.base.json` sets `sourceMap: true` and `tsconfig.cdk.json` extends it adding `inlineSourceMap: true` without disabling `sourceMap`. TypeScript errors with `TS5053: Option 'sourceMap' cannot be specified with option 'inlineSourceMap'`.\n\n**Acceptance Criteria:**\n- [ ] `cdk/copy-overwrite/tsconfig.cdk.json` has `\"sourceMap\": false` in `compilerOptions`\n- [ ] `\"sourceMap\": false` appears before `\"inlineSourceMap\": true` for clarity\n\n**Relevant Research:**\n- `cdk/copy-overwrite/tsconfig.cdk.json` — the file to modify (line 7 has `inlineSourceMap`)\n- `typescript/copy-overwrite/tsconfig.base.json:12` — sets `sourceMap: true` (inherited by CDK)\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Implementation Details:**\n- File to modify: `cdk/copy-overwrite/tsconfig.cdk.json`\n- Add `\"sourceMap\": false` before `\"inlineSourceMap\": true` in `compilerOptions`\n\n**Testing Requirements:** N/A (JSON config file, no unit tests)\n\n**Verification:**\n- **Type:** `manual-check`\n- **Command:** `node -e \"const base = require('./typescript/copy-overwrite/tsconfig.base.json'); const cdk = require('./cdk/copy-overwrite/tsconfig.cdk.json'); console.log('conflict:', base.compilerOptions.sourceMap && cdk.compilerOptions.inlineSourceMap && cdk.compilerOptions.sourceMap !== false);\"`\n- **Expected:** `conflict: false`",
+  "activeForm": "Adding sourceMap: false to CDK tsconfig.cdk.json template",
+  "status": "completed",
+  "blocks": [
+    "2"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "nifty-floating-thacker",
+    "type": "bug",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "node -e \"const base = require('./typescript/copy-overwrite/tsconfig.base.json'); const cdk = require('./cdk/copy-overwrite/tsconfig.cdk.json'); console.log('conflict:', base.compilerOptions.sourceMap && cdk.compilerOptions.inlineSourceMap && cdk.compilerOptions.sourceMap !== false);\"",
+      "expected": "conflict: false"
+    }
+  }
+}
