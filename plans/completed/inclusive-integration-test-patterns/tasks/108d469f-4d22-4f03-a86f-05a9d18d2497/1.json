@@ -1,0 +1,26 @@
+{
+  "id": "1",
+  "subject": "Update regex patterns in 3 files and commit",
+  "description": "**Type:** Task\n\n**Description:** Update test:unit and test:integration regex patterns in package.json, package.lisa.json, and typescript/package-lisa/package.lisa.json to match broader integration test naming conventions (.spec, -test, -spec).\n\n**Acceptance Criteria:**\n- [ ] All 3 files updated with new pattern `\\\\.integration[.\\\\-](test|spec)\\\\.(ts|tsx)$`\n- [ ] JSON remains valid in all 3 files\n- [ ] Changes committed\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- type: manual-check\n- command: `node -e \"const fs=require('fs'); ['package.json','package.lisa.json','typescript/package-lisa/package.lisa.json'].forEach(f => { const j=JSON.parse(fs.readFileSync(f,'utf8')); const s=j.scripts||j.force?.scripts; console.log(f,s['test:unit'].includes('[.\\\\\\\\-](test|spec)'),s['test:integration'].includes('[.\\\\\\\\-](test|spec)')); })\"`\n- expected: All files show `true true`",
+  "activeForm": "Updating regex patterns in 3 files",
+  "status": "completed",
+  "blocks": [
+    "2",
+    "3",
+    "4",
+    "5"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "node -e \"['package.json','package.lisa.json','typescript/package-lisa/package.lisa.json'].forEach(f => { const j=JSON.parse(require('fs').readFileSync(f,'utf8')); const s=j.scripts||j.force?.scripts; console.log(f,s['test:unit'].includes('[.\\\\\\\\-](test|spec)'),s['test:integration'].includes('[.\\\\\\\\-](test|spec)')); })\"",
+      "expected": "All files show true true"
+    }
+  }
+}

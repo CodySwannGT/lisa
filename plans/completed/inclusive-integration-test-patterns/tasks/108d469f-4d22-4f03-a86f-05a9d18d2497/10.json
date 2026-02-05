@@ -1,0 +1,25 @@
+{
+  "id": "10",
+  "subject": "Update tests if needed",
+  "description": "**Type:** Task\n\n**Description:** Add/update/remove tests as needed for the regex pattern changes.\n\n**Verification:**\n- type: test\n- command: `bun run test`\n- expected: All tests pass",
+  "activeForm": "Updating tests",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "All tests pass"
+    },
+    "learnings": [
+      "No test changes needed - regex patterns are config values in JSON, not testable code logic"
+    ]
+  }
+}

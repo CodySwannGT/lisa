@@ -1,0 +1,23 @@
+{
+  "id": "6",
+  "subject": "Run CodeRabbit review",
+  "description": "**Type:** Task\n\n**Description:** Run CodeRabbit code review on the changes.\n\n**Skills to Invoke:** `coderabbit:code-review`\n\n**Verification:**\n- type: manual-check\n- command: Review completed\n- expected: Review output received",
+  "activeForm": "Running CodeRabbit review",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "5"
+  ],
+  "metadata": {
+    "plan": "imperative-toasting-flame",
+    "type": "task",
+    "skills": [
+      "coderabbit:code-review"
+    ],
+    "learnings": [
+      "CodeRabbit CLI review can be very slow (2+ minutes per review attempt), may need multiple retries"
+    ]
+  }
+}
