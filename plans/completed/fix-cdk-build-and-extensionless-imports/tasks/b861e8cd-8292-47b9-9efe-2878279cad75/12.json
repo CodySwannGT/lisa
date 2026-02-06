@@ -1,0 +1,20 @@
+{
+  "id": "12",
+  "subject": "Archive plan",
+  "description": "**Type:** Task\n\n**Description:**\n- Create folder `fix-cdk-build-and-extensionless-imports` in `./plans/completed`\n- Rename this plan to a name befitting the actual plan contents\n- Move it into `./plans/completed/fix-cdk-build-and-extensionless-imports/`\n- Read the session IDs from `./plans/completed/fix-cdk-build-and-extensionless-imports/`\n- For each session ID, move the `~/.claude/tasks/<session-id>` directory to `./plans/completed/fix-cdk-build-and-extensionless-imports/tasks`\n- Update any `in_progress` tasks to `completed`\n- Commit and push changes to the PR\n\n**Verification:**\n- type: manual-check\n- command: `ls ./plans/completed/fix-cdk-build-and-extensionless-imports/`\n- expected: Plan file and tasks directory exist",
+  "activeForm": "Archiving plan",
+  "status": "pending",
+  "blocks": [],
+  "blockedBy": [
+    "11"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "ls ./plans/completed/fix-cdk-build-and-extensionless-imports/",
+      "expected": "Plan file and tasks directory exist"
+    }
+  }
+}

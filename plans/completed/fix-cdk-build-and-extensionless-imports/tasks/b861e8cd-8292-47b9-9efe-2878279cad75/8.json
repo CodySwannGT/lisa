@@ -1,0 +1,22 @@
+{
+  "id": "8",
+  "subject": "Simplify implemented code",
+  "description": "**Type:** Task\n\n**Description:** Run code simplifier agent on changes to ensure clarity and maintainability.\n\n**Verification:**\n- type: manual-check\n- command: Run code-simplifier agent\n- expected: Agent completes",
+  "activeForm": "Simplifying implemented code",
+  "status": "pending",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "code-simplifier agent",
+      "expected": "Agent completes"
+    }
+  }
+}

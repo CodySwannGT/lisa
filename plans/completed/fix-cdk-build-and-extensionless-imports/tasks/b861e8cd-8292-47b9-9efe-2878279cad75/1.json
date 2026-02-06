@@ -1,0 +1,23 @@
+{
+  "id": "1",
+  "subject": "Update tsconfig.eslint.json across all stacks",
+  "description": "**Type:** Task\n\n**Description:** Add `\"module\": \"preserve\"` and `\"moduleResolution\": \"bundler\"` to all 5 tsconfig.eslint.json files (typescript, cdk, nestjs, expo stacks + Lisa root). This enables extensionless imports during ESLint type-checking. For CDK, change existing `\"NodeNext\"` values; for others, add the settings explicitly to override inherited NodeNext.\n\n**Acceptance Criteria:**\n- [ ] `typescript/copy-overwrite/tsconfig.eslint.json` has module: preserve and moduleResolution: bundler\n- [ ] `cdk/copy-overwrite/tsconfig.eslint.json` has module: preserve and moduleResolution: bundler (changed from NodeNext)\n- [ ] `nestjs/copy-overwrite/tsconfig.eslint.json` has module: preserve and moduleResolution: bundler\n- [ ] `expo/copy-overwrite/tsconfig.eslint.json` has module: preserve and moduleResolution: bundler\n- [ ] `tsconfig.eslint.json` (root) has module: preserve and moduleResolution: bundler\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- type: manual-check\n- command: `bun run typecheck`\n- expected: passes with 0 errors",
+  "activeForm": "Updating tsconfig.eslint.json files",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "bun run typecheck",
+      "expected": "passes with 0 errors"
+    }
+  }
+}

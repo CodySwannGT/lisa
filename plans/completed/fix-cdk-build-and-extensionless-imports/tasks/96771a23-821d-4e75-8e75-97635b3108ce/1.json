@@ -1,0 +1,20 @@
+{
+  "id": "1",
+  "subject": "Run CodeRabbit code review",
+  "description": "**Type:** Task\n\n**Description:** Run CodeRabbit AI code review on the changes in this PR.\n\n**Skills to Invoke:** `/coderabbit:review`\n\n**Verification:** Review completes and feedback is captured",
+  "activeForm": "Running CodeRabbit code review",
+  "status": "completed",
+  "blocks": [
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "fix-cdk-build-and-extensionless-imports",
+    "type": "task",
+    "previousTaskId": "5",
+    "previousSession": "b861e8cd-8292-47b9-9efe-2878279cad75",
+    "learnings": [
+      "CodeRabbit review completed with no issues flagged"
+    ]
+  }
+}
