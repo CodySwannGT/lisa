@@ -1,0 +1,22 @@
+{
+  "id": "4",
+  "subject": "Simplify implemented code",
+  "description": "**Type:** Task (after review implementation)\n\n**Description:** Run code simplifier agent on changes.\n\n**Verification:** Agent completes",
+  "activeForm": "Simplifying implemented code",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "fix-cdk-build-and-extensionless-imports",
+    "type": "task",
+    "previousTaskId": "8",
+    "previousSession": "b861e8cd-8292-47b9-9efe-2878279cad75",
+    "learnings": [
+      "No simplification needed - all changes are minimal JSON config edits and single-line import path changes."
+    ]
+  }
+}

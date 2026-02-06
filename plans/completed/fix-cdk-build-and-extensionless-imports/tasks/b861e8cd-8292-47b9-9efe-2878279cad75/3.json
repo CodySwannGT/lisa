@@ -1,0 +1,23 @@
+{
+  "id": "3",
+  "subject": "CDK tsconfig.cdk.json add include + package.lisa.json prepare",
+  "description": "**Type:** Task\n\n**Description:** Add `\"include\": [\"lib/**/*\", \"bin/**/*\", \"test/**/*\"]` to `cdk/copy-overwrite/tsconfig.cdk.json`. Add `\"prepare\": \"husky install || true\"` to `cdk/package-lisa/package.lisa.json` force.scripts.\n\n**Acceptance Criteria:**\n- [ ] `cdk/copy-overwrite/tsconfig.cdk.json` has include array with lib, bin, test globs\n- [ ] `cdk/package-lisa/package.lisa.json` force.scripts has prepare: \"husky install || true\"\n\n**Skills to Invoke:** `/coding-philosophy`\n\n**Verification:**\n- type: manual-check\n- command: `jq '.force.scripts.prepare' cdk/package-lisa/package.lisa.json && jq '.include' cdk/copy-overwrite/tsconfig.cdk.json`\n- expected: `\"husky install || true\"` and `[\"lib/**/*\", \"bin/**/*\", \"test/**/*\"]`",
+  "activeForm": "Adding CDK include scope and prepare script",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "jq '.force.scripts.prepare' cdk/package-lisa/package.lisa.json && jq '.include' cdk/copy-overwrite/tsconfig.cdk.json",
+      "expected": "\"husky install || true\" and [\"lib/**/*\", \"bin/**/*\", \"test/**/*\"]"
+    }
+  }
+}

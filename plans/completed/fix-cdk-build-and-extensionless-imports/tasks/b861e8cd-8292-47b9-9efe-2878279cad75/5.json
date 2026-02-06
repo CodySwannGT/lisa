@@ -1,0 +1,25 @@
+{
+  "id": "5",
+  "subject": "Run CodeRabbit code review",
+  "description": "**Type:** Task\n\n**Description:** Review changes with CodeRabbit code review agent.\n\n**Verification:**\n- type: manual-check\n- command: Run coderabbit:review skill\n- expected: Review completes",
+  "activeForm": "Running CodeRabbit review",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "starry-munching-willow",
+    "type": "task",
+    "skills": [
+      "/coderabbit:review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "coderabbit:review",
+      "expected": "Review completes"
+    }
+  }
+}

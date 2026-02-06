@@ -1,0 +1,22 @@
+{
+  "id": "6",
+  "subject": "Update documentation (JSDoc preambles)",
+  "description": "**Type:** Task (after review implementation)\n\n**Description:** Update JSDoc preamble comments in jest.*.ts files that reference `\"jest.base.ts\"` in inheritance chain descriptions (change to `\"jest.base\"`). Check README for CDK prepare script references.\n\n**Skills to Invoke:** `/jsdoc-best-practices`, `/coding-philosophy`\n\n**Verification:** Preambles match actual import paths",
+  "activeForm": "Updating documentation",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "fix-cdk-build-and-extensionless-imports",
+    "type": "task",
+    "previousTaskId": "10",
+    "previousSession": "b861e8cd-8292-47b9-9efe-2878279cad75",
+    "learnings": [
+      "JSDoc preambles reference file names (jest.base.ts) not import paths. Since we kept .ts extensions in Jest imports, the preambles are accurate. No updates needed."
+    ]
+  }
+}
