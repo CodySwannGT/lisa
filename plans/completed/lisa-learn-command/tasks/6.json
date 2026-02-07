@@ -1,0 +1,23 @@
+{
+  "id": "6",
+  "subject": "Review implementation with local code review",
+  "description": "**Type:** Task\n\nRun `/plan:local-code-review` on the changes. Blocked by tasks 1-4.",
+  "activeForm": "Running local code review",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3",
+    "4"
+  ],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task",
+    "skills": [
+      "/plan:local-code-review"
+    ]
+  }
+}

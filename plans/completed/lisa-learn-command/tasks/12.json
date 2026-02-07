@@ -1,0 +1,15 @@
+{
+  "id": "12",
+  "subject": "Archive the plan",
+  "description": "**Type:** Task\n\nSteps:\n1. Create folder `lisa-learn-command` in `./plans/completed/`\n2. Rename this plan to a name befitting the actual contents\n3. Move it into `./plans/completed/lisa-learn-command/`\n4. Read the session ids from `./plans/completed/lisa-learn-command/`\n5. For each session id, move `~/.claude/tasks/<session-id>` to `./plans/completed/lisa-learn-command/tasks`\n6. Update any \"in_progress\" task in `./plans/completed/lisa-learn-command/tasks` to \"completed\"\n7. Commit changes\n8. Push changes to the PR\n\nBlocked by task 11.",
+  "activeForm": "Archiving the plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "11"
+  ],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task"
+  }
+}

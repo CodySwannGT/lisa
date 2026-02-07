@@ -1,0 +1,25 @@
+{
+  "id": "3",
+  "subject": "Add Lisa Commands section to HUMAN.md",
+  "description": "**Type:** Task\n\n**Description:** Add a Lisa Commands section to HUMAN.md after the SonarQube Commands section. Include all 4 Lisa commands in the table and add a detail section for `/lisa:learn`. Also add to the Command Call Graph.\n\n**Acceptance Criteria:**\n- [ ] Lisa Commands table added after SonarQube Commands (~line 103)\n- [ ] Table includes all 4 Lisa commands: learn, review-implementation, review-project, integration-test\n- [ ] Detail section for `/lisa:learn` added after SonarQube details (~line 287)\n- [ ] Command Call Graph updated to include `/lisa:learn`\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:**\n- Type: manual-check\n- Command: `grep -c 'lisa:learn' HUMAN.md`\n- Expected: At least 3 occurrences",
+  "activeForm": "Updating HUMAN.md with Lisa commands",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -c 'lisa:learn' HUMAN.md",
+      "expected": "At least 3 occurrences"
+    }
+  }
+}

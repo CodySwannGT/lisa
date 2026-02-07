@@ -101,6 +101,15 @@ Commands are organized by category.
 | `/sonarqube:check` | Get reason last PR failed SonarQube checks | none |
 | `/sonarqube:fix` | Check SonarQube failures, fix them, and commit | none |
 
+### Lisa Commands
+
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/lisa:learn` | Analyze what Lisa just changed and identify upstream candidates | `<project-path>` (required) |
+| `/lisa:review-implementation` | Compare project files against Lisa source templates | `[lisa-dir]` (optional) |
+| `/lisa:review-project` | Compare Lisa templates against a target project | `<project-path>` (required) |
+| `/lisa:integration-test` | Apply Lisa, verify project builds, fix upstream issues | `<project-path>` (required) |
+
 ---
 
 ## Command Details
@@ -287,6 +296,47 @@ Checks SonarQube failures, fixes them, and commits the changes.
 
 ---
 
+### `/lisa:learn`
+
+**Arguments:** `<project-path>` (required)
+
+Analyzes the git diff in a downstream project after Lisa was applied. Identifies:
+
+1. **Upstream candidates** — Improvements the project had that Lisa overwrote
+2. **Potential breakage** — Changes that might break the project
+3. **Safe overrides** — Correct template updates
+4. **Neutral changes** — Cosmetic differences
+
+Optionally runs verification checks. Offers to upstream improvements back to Lisa.
+
+**Prerequisite:** Run `bun run dev <project-path>` first.
+
+---
+
+### `/lisa:review-implementation`
+
+**Arguments:** `[lisa-dir]` (optional)
+
+Compares the current project's Lisa-managed files against Lisa's source templates to identify drift. Reports which files have changed from Lisa's templates and offers to upstream changes.
+
+---
+
+### `/lisa:review-project`
+
+**Arguments:** `<project-path>` (required)
+
+Compares Lisa's source templates against a target project's implementation. Identifies files that have drifted and categorizes changes as improvements, customizations, bug fixes, or divergences.
+
+---
+
+### `/lisa:integration-test`
+
+**Arguments:** `<project-path>` (required)
+
+Applies Lisa templates to a downstream project and verifies it works end-to-end. If anything breaks, fixes the upstream templates in Lisa and retries until all checks pass.
+
+---
+
 
 ## Command Call Graph
 
@@ -306,4 +356,16 @@ Checks SonarQube failures, fixes them, and commits the changes.
 /git:commit-and-submit-pr
 ├── /git:commit
 └── /git:submit-pr
+
+/lisa:learn
+└── (standalone — analyzes diff, optionally upstreams)
+
+/lisa:integration-test
+└── (standalone — applies Lisa, verifies, fixes upstream)
+
+/lisa:review-implementation
+└── (standalone — compares project files against Lisa templates)
+
+/lisa:review-project
+└── (standalone — compares templates against project)
 ```
