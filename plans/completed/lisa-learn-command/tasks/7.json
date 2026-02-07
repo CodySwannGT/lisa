@@ -1,0 +1,23 @@
+{
+  "id": "7",
+  "subject": "Implement valid review suggestions from code reviews",
+  "description": "**Type:** Task\n\nReview findings from CodeRabbit and local code review. Implement valid suggestions. Blocked by tasks 5-6.",
+  "activeForm": "Implementing review suggestions",
+  "status": "completed",
+  "blocks": [
+    "8",
+    "9",
+    "10"
+  ],
+  "blockedBy": [
+    "5",
+    "6"
+  ],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy"
+    ]
+  }
+}
