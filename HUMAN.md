@@ -363,6 +363,9 @@ Applies Lisa templates to a downstream project and verifies it works end-to-end.
 /lisa:integration-test
 └── (standalone — applies Lisa, verifies, fixes upstream)
 
+/lisa:review-implementation
+└── (standalone — compares project files against Lisa templates)
+
 /lisa:review-project
 └── (standalone — compares templates against project)
 ```

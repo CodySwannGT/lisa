@@ -182,7 +182,7 @@ When you use Claude's native plan mode:
 | **Pull Request** | `pull-request-review` |
 | **Jira** | `jira-create`, `jira-verify` |
 | **SonarQube** | `sonarqube-check`, `sonarqube-fix` |
-| **Lisa** | `lisa-learn`, `lisa-review-implementation`, `lisa-review-project` |
+| **Lisa** | `lisa-learn`, `lisa-integration-test`, `lisa-review-implementation`, `lisa-review-project` |
 
 **Directory structure:**
 ```
