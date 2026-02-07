@@ -1,0 +1,25 @@
+{
+  "id": "2",
+  "subject": "Create skill file `.claude/skills/lisa-learn/SKILL.md`",
+  "description": "**Type:** Task\n\n**Description:** Create the detailed skill implementation at `.claude/skills/lisa-learn/SKILL.md` following the 9-step workflow described in the plan. Pattern after `.claude/skills/lisa-review-project/SKILL.md` for structure and `.claude/skills/lisa-integration-test/SKILL.md` for validation/verification patterns.\n\n**Acceptance Criteria:**\n- [ ] `.claude/skills/lisa-learn/SKILL.md` created with correct YAML frontmatter\n- [ ] All 9 steps implemented: validate → manifest → diff → correlate → analyze → breakage detection → report → upstream → handle breakage\n- [ ] Categories defined: Upstream Candidate, Potential Breakage, Safe Override, Neutral Change\n- [ ] Pre-Lisa content retrieval via `git show HEAD:<path>` documented\n- [ ] Important Notes section included\n- [ ] NOT placed in `all/copy-overwrite/` (Lisa-only)\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:**\n- Type: manual-check\n- Command: `wc -l .claude/skills/lisa-learn/SKILL.md && head -5 .claude/skills/lisa-learn/SKILL.md`\n- Expected: File exists with 150+ lines, starts with `---` YAML frontmatter containing `name: lisa-learn`",
+  "activeForm": "Creating lisa-learn skill file",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "wc -l .claude/skills/lisa-learn/SKILL.md && head -5 .claude/skills/lisa-learn/SKILL.md",
+      "expected": "File exists with 150+ lines, starts with --- YAML frontmatter containing name: lisa-learn"
+    }
+  }
+}

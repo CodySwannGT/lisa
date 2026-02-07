@@ -1,0 +1,25 @@
+{
+  "id": "1",
+  "subject": "Create command file `.claude/commands/lisa/learn.md`",
+  "description": "**Type:** Task\n\n**Description:** Create `.claude/commands/lisa/learn.md` following the exact pattern from `.claude/commands/lisa/integration-test.md`. The command is a thin wrapper that delegates to `/lisa-learn` skill.\n\n**Acceptance Criteria:**\n- [ ] `.claude/commands/lisa/learn.md` created with correct frontmatter and body\n- [ ] File follows same format as `integration-test.md` and `review-project.md`\n- [ ] NOT placed in `all/copy-overwrite/` (Lisa-only)\n\n**Skills to Invoke:** `/coding-philosophy`, `/jsdoc-best-practices`\n\n**Verification:**\n- Type: manual-check\n- Command: `cat .claude/commands/lisa/learn.md`\n- Expected: YAML frontmatter with description, allowed-tools: [Skill], argument-hint; body delegates to /lisa-learn skill with $ARGUMENTS",
+  "activeForm": "Creating command file",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "cat .claude/commands/lisa/learn.md",
+      "expected": "YAML frontmatter with description, allowed-tools: [Skill], argument-hint; body delegates to /lisa-learn skill with $ARGUMENTS"
+    }
+  }
+}

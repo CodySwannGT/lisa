@@ -1,0 +1,19 @@
+{
+  "id": "11",
+  "subject": "Verify all task verification commands",
+  "description": "**Type:** Task\n\nRun each task's verification command and confirm expected output. Blocked by tasks 8-10.",
+  "activeForm": "Verifying task verification metadata",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "8",
+    "9",
+    "10"
+  ],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task"
+  }
+}
