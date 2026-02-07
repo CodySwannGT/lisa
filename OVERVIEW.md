@@ -182,7 +182,7 @@ When you use Claude's native plan mode:
 | **Pull Request** | `pull-request-review` |
 | **Jira** | `jira-create`, `jira-verify` |
 | **SonarQube** | `sonarqube-check`, `sonarqube-fix` |
-| **Lisa** | `lisa-review-implementation`, `lisa-review-project` |
+| **Lisa** | `lisa-learn`, `lisa-review-implementation`, `lisa-review-project` |
 
 **Directory structure:**
 ```
@@ -255,8 +255,10 @@ When you use Claude's native plan mode:
 | **Safety Net** | `/safety-net:set-custom-rules` | Set custom Safety Net rules |
 | | `/safety-net:set-statusline` | Set Safety Net status line |
 | | `/safety-net:verify-custom-rules` | Verify custom Safety Net rules |
-| **Lisa** | `/lisa:review-implementation` | Compare against Lisa templates |
+| **Lisa** | `/lisa:learn` | Analyze post-apply diff and identify upstream candidates |
+| | `/lisa:review-implementation` | Compare against Lisa templates |
 | | `/lisa:review-project` | Compare templates against target project |
+| | `/lisa:integration-test` | Apply Lisa, verify project builds, fix upstream issues |
 
 ---
 
