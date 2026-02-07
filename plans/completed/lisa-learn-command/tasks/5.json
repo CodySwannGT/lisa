@@ -1,0 +1,23 @@
+{
+  "id": "5",
+  "subject": "Review implementation with CodeRabbit",
+  "description": "**Type:** Task\n\nRun `/coderabbit:review` on the changes. Blocked by tasks 1-4.",
+  "activeForm": "Running CodeRabbit code review",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3",
+    "4"
+  ],
+  "metadata": {
+    "plan": "cozy-gliding-dawn",
+    "type": "task",
+    "skills": [
+      "/coderabbit:review"
+    ]
+  }
+}
