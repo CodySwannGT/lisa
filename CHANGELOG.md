@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.22.0](https://github.com/CodySwannGT/lisa/compare/vv1.21.7...v1.22.0) (2026-02-07)
+
+
+### Features
+
+* add /lisa:learn command for post-apply diff analysis ([a8aa568](https://github.com/CodySwannGT/lisa/commit/a8aa568bfb858e2f78d59528f29160409a160605))
+
+
+### Bug Fixes
+
+* add missing entries to OVERVIEW.md skills table and HUMAN.md call graph ([73b5a2c](https://github.com/CodySwannGT/lisa/commit/73b5a2cadd1161f133575e794c18d77f925c1d0b))
+
 ### [1.21.7](https://github.com/CodySwannGT/lisa/compare/vv1.21.6...v1.21.7) (2026-02-06)
 
 ### [1.21.6](https://github.com/CodySwannGT/lisa/compare/vv1.21.5...v1.21.6) (2026-02-05)
