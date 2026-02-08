@@ -1,9 +1,16 @@
 /**
- * Jest Setup File
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
+ * Jest Setup File - Base Configuration
  *
  * Configures the testing environment after Jest loads modules.
  * Sets up React Native Testing Library matchers, global mocks,
  * and manual cleanup for React 19 compatibility.
+ *
+ * Project-specific mocks belong in `jest.setup.local.ts` (create-only).
  *
  * @remarks
  * - Listed in `setupFilesAfterEnv` (runs after test framework loads)
@@ -16,20 +23,13 @@
  * @module jest.setup
  */
 
+// Project-local mocks and setup (create-only — Lisa never overwrites this)
+import "./jest.setup.local";
+
 // Import from pure to avoid auto-cleanup (we set RNTL_SKIP_AUTO_CLEANUP in pre-setup)
 // Then extend Jest matchers with React Native Testing Library matchers
 import { cleanup } from "@testing-library/react-native/pure";
 import "@testing-library/react-native/build/matchers/extend-expect";
-
-// Mock environment variables module for type-safe env access in tests
-// Tests can override specific values via jest.spyOn or jest.doMock
-// Replace the mock below with your project's actual env module and values
-jest.mock("@/lib/env", () => ({
-  env: {
-    EXPO_PUBLIC_ENV: "dev",
-    // Add your project-specific environment variables here
-  },
-}));
 
 // Extend global type for the unhandledRejection handler set in jest.setup.pre.js
 declare global {
@@ -89,20 +89,6 @@ jest.mock("expo-router", () => ({
     Screen: () => null,
   },
 }));
-
-// Mock @react-native-firebase/analytics
-jest.mock("@react-native-firebase/analytics", () => {
-  const logEvent = jest.fn();
-  const getAnalytics = jest.fn(() => ({}));
-  return { logEvent, getAnalytics };
-});
-
-// Mock firebase/analytics
-jest.mock("firebase/analytics", () => {
-  const logEvent = jest.fn();
-  const getAnalytics = jest.fn(() => ({}));
-  return { logEvent, getAnalytics };
-});
 
 // Clear mocks after each test
 afterEach(() => {

@@ -1,9 +1,17 @@
 /**
- * Jest Pre-Setup File
+ * This file is managed by Lisa.
+ * Do not edit directly — changes will be overwritten on the next `lisa` run.
+ */
+
+/**
+ * Jest Pre-Setup File - Base Configuration
  *
  * Runs before Jest loads any other modules to set up global flags needed
  * by React Native. This file must be JavaScript (not TypeScript) and must
  * not import any modules that depend on the global flags being set.
+ *
+ * Project-specific pre-framework globals belong in `jest.setup.pre.local.js`
+ * (create-only).
  *
  * @remarks
  * - Listed in `setupFiles` (runs before test framework loads)
@@ -104,3 +112,6 @@ global.window = {
     removeListener: jest.fn(),
   })),
 };
+
+// Project-local pre-framework globals (create-only — Lisa never overwrites this)
+require("./jest.setup.pre.local");
