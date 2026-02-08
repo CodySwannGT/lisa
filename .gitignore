@@ -91,6 +91,11 @@ test-results/*
 maestro-screenshots/
 *.maestro.log
 
+# OWASP ZAP reports
+zap-report.html
+zap-report.json
+zap-report.md
+
 # Compiled TypeScript
 lambdas/**/*.js
 lambdas/**/*.js.map
@@ -192,5 +197,6 @@ expo-env.d.ts
 .track-plan-debug.log
 
 # END: AI GUARDRAILS
+
 
 .lisa.config.local.json
