@@ -1,0 +1,22 @@
+{
+  "id": "3",
+  "subject": "Create jest.setup.local.ts as create-only (expo)",
+  "description": "Create expo/create-only/jest.setup.local.ts with JSDoc template for project-specific mocks.\n\n**Verification:** `ls expo/create-only/jest.setup.local.ts`",
+  "activeForm": "Creating jest.setup.local.ts template",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls expo/create-only/jest.setup.local.ts",
+      "expected": "file exists"
+    }
+  }
+}

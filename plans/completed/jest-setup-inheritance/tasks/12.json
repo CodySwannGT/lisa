@@ -1,0 +1,18 @@
+{
+  "id": "12",
+  "subject": "Run Lisa's own tests",
+  "description": "Run bun run test to verify Lisa's own test suite passes.\n\n**Verification:** `bun run test`",
+  "activeForm": "Running Lisa tests",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "all tests passing"
+    }
+  }
+}

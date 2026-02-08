@@ -1,0 +1,18 @@
+{
+  "id": "8",
+  "subject": "Verify tsconfig.expo.json includes components/ui exclusion",
+  "description": "Verify expo/copy-overwrite/tsconfig.expo.json has \"components/ui\" in exclude array.\n\n**Verification:** `grep 'components/ui' expo/copy-overwrite/tsconfig.expo.json`",
+  "activeForm": "Verifying tsconfig.expo.json",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "grep 'components/ui' expo/copy-overwrite/tsconfig.expo.json",
+      "expected": "components/ui present in exclude"
+    }
+  }
+}

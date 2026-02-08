@@ -1,0 +1,22 @@
+{
+  "id": "2",
+  "subject": "Move jest.setup.ts from create-only to copy-overwrite (expo)",
+  "description": "Delete expo/create-only/jest.setup.ts and create expo/copy-overwrite/jest.setup.ts with base-only mocks. Add import \"./jest.setup.local\" side-effect import. Remove project-specific mocks (@/lib/env, firebase). Keep: RTLRN pure import, extend-expect, __unhandledRejectionHandler type, React 19 cleanup, ResizeObserver, expo-router mock, clearAllMocks, afterAll handler removal.\n\n**Verification:** `ls expo/copy-overwrite/jest.setup.ts && ! ls expo/create-only/jest.setup.ts`",
+  "activeForm": "Moving jest.setup.ts to copy-overwrite",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls expo/copy-overwrite/jest.setup.ts && ! ls expo/create-only/jest.setup.ts 2>/dev/null",
+      "expected": "file exists in copy-overwrite, not in create-only"
+    }
+  }
+}
