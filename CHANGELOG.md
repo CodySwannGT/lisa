@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.23.0](https://github.com/CodySwannGT/lisa/compare/vv1.22.0...v1.23.0) (2026-02-08)
+
+
+### Features
+
+* add CLAUDE.md rule to ignore knip configuration hints ([eff332c](https://github.com/CodySwannGT/lisa/commit/eff332ce71ee815fc8dba7f37bee103749b4f77f))
+* move jest setup files from create-only to copy-overwrite ([5015e89](https://github.com/CodySwannGT/lisa/commit/5015e89d8579b70ccb325483f8287c945fd0fd7e))
+
+
+### Documentation
+
+* update jest.setup.ts references to jest.setup.local.ts ([44ad0bb](https://github.com/CodySwannGT/lisa/commit/44ad0bb113f4d6f04402c89da4bf666701d9eb79))
+
+
+### Code Refactoring
+
+* consolidate afterEach blocks and remove duplicate coverage exclusion ([a196e58](https://github.com/CodySwannGT/lisa/commit/a196e58ade796afabb826ab5012d747ef5e65136))
+
 ## [1.22.0](https://github.com/CodySwannGT/lisa/compare/vv1.21.7...v1.22.0) (2026-02-07)
 
 
