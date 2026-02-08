@@ -18,7 +18,8 @@
     },
     "bin": {
       "infrastructure": "bin/infrastructure.js"
-    }
+    },
+    "private": true
   },
   "defaults": {
     "engines": {
