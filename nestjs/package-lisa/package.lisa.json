@@ -4,6 +4,9 @@
       "migration:generate": "tsx ./node_modules/typeorm/cli.js migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
       "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d typeorm.config.ts",
       "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d typeorm.config.ts"
+    },
+    "dependencies": {
+      "graphql": "15.10.1"
     }
   },
   "force": {
@@ -50,7 +53,6 @@
       "class-transformer": "^0.5.1",
       "class-validator": "^0.14.3",
       "dataloader": "^2.2.3",
-      "graphql": "15.10.1",
       "graphql-query-complexity": "^1.1.0",
       "graphql-subscriptions": "^3.0.0",
       "graphql-ws": "^6.0.6",
