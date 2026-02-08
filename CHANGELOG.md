@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.26.0](https://github.com/CodySwannGT/lisa/compare/vv1.25.2...v1.26.0) (2026-02-08)
+
+
+### Features
+
+* add rule to enforce lockfile regeneration after dependency changes ([ff9d881](https://github.com/CodySwannGT/lisa/commit/ff9d88103045642525519a98369d7fbae4a4a62b))
+
 ### [1.25.2](https://github.com/CodySwannGT/lisa/compare/vv1.25.1...v1.25.2) (2026-02-08)
 
 
