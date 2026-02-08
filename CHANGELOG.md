@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.24.0](https://github.com/CodySwannGT/lisa/compare/vv1.23.1...v1.24.0) (2026-02-08)
+
+
+### Features
+
+* add private flag to CDK package.lisa.json force section ([687fb13](https://github.com/CodySwannGT/lisa/commit/687fb139bb1e23a6b93b56130dd67d7c8822b5ad))
+
+
+### Bug Fixes
+
+* add gitleaks ignore for quality workflow curl auth variable ([a9634e1](https://github.com/CodySwannGT/lisa/commit/a9634e1c9efaccfc2713a3222a63d8f28bcabbcb))
+
 ### [1.23.1](https://github.com/CodySwannGT/lisa/compare/vv1.23.0...v1.23.1) (2026-02-08)
 
 
