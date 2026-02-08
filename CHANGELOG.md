@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.25.2](https://github.com/CodySwannGT/lisa/compare/vv1.25.1...v1.25.2) (2026-02-08)
+
+
+### Bug Fixes
+
+* move graphql to defaults so projects can override version ([dfa65e8](https://github.com/CodySwannGT/lisa/commit/dfa65e8037ca8c7762c145b6af71d6065b228fcb))
+
 ### [1.25.1](https://github.com/CodySwannGT/lisa/compare/vv1.25.0...v1.25.1) (2026-02-08)
 
 
