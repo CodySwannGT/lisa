@@ -56,4 +56,3 @@ Reduce cognitive complexity threshold from [current] to [new].
 Command: `bun run lint 2>&1 | grep "cognitive-complexity" | wc -l`
 Expected: 0
 ```
-
