@@ -241,7 +241,7 @@ export const env = parseEnv();
 ### Complete Mock Setup
 
 ```typescript
-// jest.setup.ts
+// jest.setup.local.ts
 const mockEnv = {
   EXPO_PUBLIC_API_URL: "https://test.example.com",
   EXPO_PUBLIC_APP_ENV: "development" as const,

@@ -1,0 +1,13 @@
+{
+  "id": "21",
+  "subject": "Archive plan",
+  "description": "Create folder jest-setup-inheritance in ./plans/completed. Move plan there. Move task directories. Commit and push.\n\n**Verification:** Plan archived in ./plans/completed/jest-setup-inheritance.",
+  "activeForm": "Archiving plan",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task"
+  }
+}

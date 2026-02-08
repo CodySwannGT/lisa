@@ -25,8 +25,12 @@ describe("jest.expo", () => {
       expect(config.resolver).toBe("react-native/jest/resolver.js");
     });
 
-    it("leaves setupFiles empty for projects to control ordering", () => {
-      expect(config.setupFiles).toEqual([]);
+    it("registers base pre-setup file in setupFiles", () => {
+      expect(config.setupFiles).toEqual(["<rootDir>/jest.setup.pre.js"]);
+    });
+
+    it("registers base setup file in setupFilesAfterEnv", () => {
+      expect(config.setupFilesAfterEnv).toEqual(["<rootDir>/jest.setup.ts"]);
     });
 
     it("configures babel-jest transform for JS/TS files", () => {

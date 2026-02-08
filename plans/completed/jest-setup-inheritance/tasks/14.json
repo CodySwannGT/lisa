@@ -1,0 +1,19 @@
+{
+  "id": "14",
+  "subject": "CodeRabbit review",
+  "description": "Run coderabbit:review on the changes.\n\n**Verification:** Review completed with findings documented.",
+  "activeForm": "Running CodeRabbit review",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "learnings": [
+      "CodeRabbit found: orphaned setupFiles in downstream jest.config.local.ts (safe due to Set dedup)",
+      "CodeRabbit found: tsconfig.expo.json components/ui change is unrelated and should be separate commit",
+      "CodeRabbit found: hard require for jest.setup.pre.local with no fallback",
+      "CodeRabbit confirmed: documentation quality is good, test coverage adequate"
+    ]
+  }
+}

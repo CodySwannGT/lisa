@@ -1,0 +1,18 @@
+{
+  "id": "1",
+  "subject": "Create branch and draft PR",
+  "description": "Create feat/jest-setup-inheritance from main. Open a draft PR targeting main.\n\n**Verification:** `git branch --show-current` → `feat/jest-setup-inheritance`",
+  "activeForm": "Creating branch and draft PR",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "verification": {
+      "type": "manual-check",
+      "command": "git branch --show-current",
+      "expected": "feat/jest-setup-inheritance"
+    }
+  }
+}

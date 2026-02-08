@@ -1,0 +1,21 @@
+{
+  "id": "18",
+  "subject": "Update tests for template changes",
+  "description": "Update/add/remove tests as needed based on template changes.\n\n**Verification:** `bun run test`",
+  "activeForm": "Updating tests",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "all tests passing"
+    },
+    "learnings": [
+      "jest-expo.test.ts updated to reflect new setupFiles/setupFilesAfterEnv behavior"
+    ]
+  }
+}

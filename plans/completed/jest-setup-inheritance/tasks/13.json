@@ -1,0 +1,18 @@
+{
+  "id": "13",
+  "subject": "Run linting and typecheck",
+  "description": "Run bun run lint && bun run typecheck.\n\n**Verification:** `bun run lint && bun run typecheck`",
+  "activeForm": "Running lint and typecheck",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "bun run lint && bun run typecheck",
+      "expected": "no errors"
+    }
+  }
+}

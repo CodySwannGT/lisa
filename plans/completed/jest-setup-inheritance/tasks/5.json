@@ -1,0 +1,22 @@
+{
+  "id": "5",
+  "subject": "Create jest.setup.pre.local.js as create-only (expo)",
+  "description": "Create expo/create-only/jest.setup.pre.local.js with JSDoc template for project-specific pre-framework globals.\n\n**Verification:** `ls expo/create-only/jest.setup.pre.local.js`",
+  "activeForm": "Creating jest.setup.pre.local.js template",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls expo/create-only/jest.setup.pre.local.js",
+      "expected": "file exists"
+    }
+  }
+}
