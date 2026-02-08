@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.25.0](https://github.com/CodySwannGT/lisa/compare/vv1.24.0...v1.25.0) (2026-02-08)
+
+
+### Features
+
+* add Jira create and verify commands and skills ([2d501fe](https://github.com/CodySwannGT/lisa/commit/2d501fe727798d9937e6117e55e8057b1802649d))
+* add Lisa-managed files reference rule ([6abd811](https://github.com/CodySwannGT/lisa/commit/6abd81120dd8fc48628b3bb4f040e08b7e58d247))
+* add OWASP ZAP baseline scanning to quality workflow ([018635d](https://github.com/CodySwannGT/lisa/commit/018635d7b0d0cf9c1ce56d1d62f66bcbcea32375))
+
+
+### Bug Fixes
+
+* add fast-xml-parser and gitleaks audit ignores to pre-push hook ([785665e](https://github.com/CodySwannGT/lisa/commit/785665e509977c089d3eef5ffc283d6cc1b846af))
+
 ## [1.24.0](https://github.com/CodySwannGT/lisa/compare/vv1.23.1...v1.24.0) (2026-02-08)
 
 
