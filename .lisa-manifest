@@ -1,6 +1,6 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-01-29T16:17:20.601Z
-# Lisa version: 1.12.1
+# Generated: 2026-02-08T20:34:32.293Z
+# Lisa version: 1.23.1
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.DS_Store
@@ -23,23 +23,14 @@ copy-overwrite:.claude/commands/git/submit-pr.md
 copy-overwrite:.claude/commands/jira/create.md
 copy-overwrite:.claude/commands/jira/verify.md
 copy-overwrite:.claude/commands/lisa/review-implementation.md
-copy-overwrite:.claude/commands/project/add-test-coverage.md
-copy-overwrite:.claude/commands/project/archive.md
-copy-overwrite:.claude/commands/project/bootstrap.md
-copy-overwrite:.claude/commands/project/debrief.md
-copy-overwrite:.claude/commands/project/document.md
-copy-overwrite:.claude/commands/project/execute.md
-copy-overwrite:.claude/commands/project/fix-linter-error.md
-copy-overwrite:.claude/commands/project/implement.md
-copy-overwrite:.claude/commands/project/local-code-review.md
-copy-overwrite:.claude/commands/project/lower-code-complexity.md
-copy-overwrite:.claude/commands/project/plan.md
-copy-overwrite:.claude/commands/project/reduce-max-lines-per-function.md
-copy-overwrite:.claude/commands/project/reduce-max-lines.md
-copy-overwrite:.claude/commands/project/research.md
-copy-overwrite:.claude/commands/project/review.md
-copy-overwrite:.claude/commands/project/setup.md
-copy-overwrite:.claude/commands/project/verify.md
+copy-overwrite:.claude/commands/plan/add-test-coverage.md
+copy-overwrite:.claude/commands/plan/create.md
+copy-overwrite:.claude/commands/plan/fix-linter-error.md
+copy-overwrite:.claude/commands/plan/implement.md
+copy-overwrite:.claude/commands/plan/local-code-review.md
+copy-overwrite:.claude/commands/plan/lower-code-complexity.md
+copy-overwrite:.claude/commands/plan/reduce-max-lines-per-function.md
+copy-overwrite:.claude/commands/plan/reduce-max-lines.md
 copy-overwrite:.claude/commands/pull-request/review.md
 copy-overwrite:.claude/commands/sonarqube/check.md
 copy-overwrite:.claude/commands/sonarqube/fix.md
@@ -48,23 +39,47 @@ copy-overwrite:.claude/commands/tasks/sync.md
 copy-overwrite:.claude/hooks/README.md
 copy-overwrite:.claude/hooks/check-tired-boss.sh
 copy-overwrite:.claude/hooks/debug-hook.sh
+copy-overwrite:.claude/hooks/enforce-plan-rules.sh
 copy-overwrite:.claude/hooks/notify-ntfy.sh
 copy-overwrite:.claude/hooks/sync-tasks.sh
+copy-overwrite:.claude/hooks/track-plan-sessions.sh
 copy-overwrite:.claude/rules/coding-philosophy.md
+copy-overwrite:.claude/rules/lisa.md
+copy-overwrite:.claude/rules/plan.md
 copy-overwrite:.claude/rules/verfication.md
 copy-overwrite:.claude/settings.json
 copy-overwrite:.claude/settings.local.json.example
+copy-overwrite:.claude/skills/git-commit/SKILL.md
+copy-overwrite:.claude/skills/git-commit-and-submit-pr/SKILL.md
+copy-overwrite:.claude/skills/git-prune/SKILL.md
+copy-overwrite:.claude/skills/git-submit-pr/SKILL.md
+copy-overwrite:.claude/skills/jira-create/SKILL.md
+copy-overwrite:.claude/skills/jira-verify/SKILL.md
+copy-overwrite:.claude/skills/lisa-review-implementation/SKILL.md
+copy-overwrite:.claude/skills/plan-add-test-coverage/SKILL.md
+copy-overwrite:.claude/skills/plan-fix-linter-error/SKILL.md
+copy-overwrite:.claude/skills/plan-local-code-review/SKILL.md
+copy-overwrite:.claude/skills/plan-lower-code-complexity/SKILL.md
+copy-overwrite:.claude/skills/plan-reduce-max-lines/SKILL.md
+copy-overwrite:.claude/skills/plan-reduce-max-lines-per-function/SKILL.md
+copy-overwrite:.claude/skills/pull-request-review/SKILL.md
 copy-overwrite:.claude/skills/skill-creator/LICENSE.txt
 copy-overwrite:.claude/skills/skill-creator/SKILL.md
 copy-overwrite:.claude/skills/skill-creator/scripts/__pycache__/quick_validate.cpython-312.pyc
 copy-overwrite:.claude/skills/skill-creator/scripts/init_skill.py
 copy-overwrite:.claude/skills/skill-creator/scripts/package_skill.py
 copy-overwrite:.claude/skills/skill-creator/scripts/quick_validate.py
+copy-overwrite:.claude/skills/sonarqube-check/SKILL.md
+copy-overwrite:.claude/skills/sonarqube-fix/SKILL.md
+copy-overwrite:.claude/skills/tasks-load/SKILL.md
+copy-overwrite:.claude/skills/tasks-sync/SKILL.md
 copy-overwrite:.safety-net.json
 copy-overwrite:CLAUDE.md
 copy-overwrite:HUMAN.md
+copy-overwrite:README.md
 copy-overwrite:specs/.keep
 copy-contents:.gitignore
+copy-overwrite:.claude/commands/security/zap-scan.md
 copy-overwrite:.claude/hooks/format-on-edit.sh
 copy-overwrite:.claude/hooks/install_pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
@@ -101,15 +116,21 @@ copy-overwrite:eslint.config.ts
 copy-overwrite:eslint.ignore.config.json
 copy-overwrite:eslint.slow.config.ts
 copy-overwrite:eslint.typescript.ts
+copy-overwrite:jest.base.ts
+copy-overwrite:jest.config.ts
+copy-overwrite:jest.typescript.ts
 copy-overwrite:knip.json
 copy-overwrite:sgconfig.yml
+copy-overwrite:tsconfig.base.json
 copy-overwrite:tsconfig.eslint.json
+copy-overwrite:tsconfig.json
+copy-overwrite:tsconfig.typescript.json
 copy-contents:.husky/_/.gitignore
 copy-contents:.husky/_/husky.sh
 copy-contents:.husky/commit-msg
 copy-contents:.husky/pre-commit
 copy-contents:.husky/pre-push
-merge:.claude/settings.json
 package-lisa:package.json
 copy-overwrite:.github/workflows/publish-to-npm.yml
+copy-overwrite:README.md
 package-lisa:package.json

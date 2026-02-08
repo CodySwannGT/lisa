@@ -18,6 +18,7 @@
 #   - Snyk dependency vulnerability scanning
 #   - GitGuardian secret detection
 #   - FOSSA license compliance checking
+#   - OWASP ZAP DAST baseline scanning
 # - E2E testing:
 #   - Playwright web E2E tests (auto-detects playwright.config.ts)
 #   - Maestro Cloud mobile E2E tests (requires MAESTRO_API_KEY, project ID, and app binary)
@@ -54,9 +55,19 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
+        type: string
+      zap_target_url:
+        description: 'Target URL for OWASP ZAP baseline scan (leave empty to skip ZAP)'
+        required: false
+        default: ''
+        type: string
+      zap_rules_file:
+        description: 'Path to ZAP rules configuration file'
+        required: false
+        default: '.zap/baseline.conf'
         type: string
       working_directory:
         description: 'Directory to run commands in (if not root)'
@@ -998,7 +1009,12 @@ jobs:
             # Excluding GHSA-8qq5-rm4j-mr97: node-tar path sanitization vulnerability
             # Nested dependency in @expo/cli - bun resolves to patched version but audit still flags it
             # Risk: Low - only affects tar extraction with malicious filenames, not our use case
-            if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97; then
+
+            # Excluding GHSA-37qj-frw5-hhjh: fast-xml-parser RangeError DoS with numeric entities
+            # Transitive dependency via @react-native-community/cli (Android/iOS build tooling)
+            # Parent packages pin ^4.4.1; fix requires major version 5.x (incompatible)
+            # Risk: None - CLI build tool, not a production runtime dependency
+            if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97 --ignore GHSA-37qj-frw5-hhjh; then
               echo "::warning::Found high or critical vulnerabilities"
               exit 1
             fi
@@ -1242,12 +1258,74 @@ jobs:
           echo "::warning::FOSSA license compliance check skipped - FOSSA_API_KEY not configured"
           echo "To enable license compliance checking, add FOSSA_API_KEY to your repository secrets"
 
+  zap_baseline:
+    name: 🕷️ OWASP ZAP Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !contains(inputs.skip_jobs, 'zap_baseline') && inputs.zap_target_url != '' }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔍 Check for ZAP rules file
+        id: check_rules
+        run: |
+          if [ -f "${{ inputs.zap_rules_file }}" ]; then
+            echo "has_rules=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_rules=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🕷️ Run ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ inputs.zap_target_url }}
+          rules_file_name: ${{ steps.check_rules.outputs.has_rules == 'true' && inputs.zap_rules_file || '' }}
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: 'zap-report'
+
+      - name: 📤 Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report-${{ github.run_id }}
+          path: |
+            zap-report.html
+            zap-report.json
+            zap-report.md
+          retention-days: 14
+
   # Enterprise security tools summary
   security_tools_summary:
     name: 🔒 Security Tools Summary
     runs-on: ubuntu-latest
-    if: always() && (needs.sonarcloud.result != 'skipped' || needs.snyk.result != 'skipped' || needs.secret_scanning.result != 'skipped' || needs.license_compliance.result != 'skipped')
-    needs: [sonarcloud, snyk, secret_scanning, license_compliance]
+    if: always() && (needs.sonarcloud.result != 'skipped' || needs.snyk.result != 'skipped' || needs.secret_scanning.result != 'skipped' || needs.license_compliance.result != 'skipped' || needs.zap_baseline.result != 'skipped')
+    needs: [sonarcloud, snyk, secret_scanning, license_compliance, zap_baseline]
     steps:
       - name: 📝 Generate security tools summary
         run: |
@@ -1292,6 +1370,15 @@ jobs:
             echo "- 📜 **FOSSA License Compliance**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
+          # OWASP ZAP Baseline status
+          if [ "${{ needs.zap_baseline.result }}" == "skipped" ]; then
+            echo "- 🕷️ **OWASP ZAP Baseline**: ⏭️ Skipped (no target URL)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.zap_baseline.result }}" == "success" ]; then
+            echo "- 🕷️ **OWASP ZAP Baseline**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🕷️ **OWASP ZAP Baseline**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📊 Security Posture" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -1328,7 +1415,14 @@ jobs:
             fi
           fi
 
-          echo "- **Active Security Tools**: $ACTIVE_TOOLS / 4" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.zap_baseline.result }}" != "skipped" ]; then
+            ACTIVE_TOOLS=$((ACTIVE_TOOLS + 1))
+            if [ "${{ needs.zap_baseline.result }}" == "success" ]; then
+              PASSED_TOOLS=$((PASSED_TOOLS + 1))
+            fi
+          fi
+
+          echo "- **Active Security Tools**: $ACTIVE_TOOLS / 5" >> $GITHUB_STEP_SUMMARY
           echo "- **Passed Checks**: $PASSED_TOOLS / $ACTIVE_TOOLS" >> $GITHUB_STEP_SUMMARY
 
           if [ $ACTIVE_TOOLS -gt 0 ]; then
@@ -1382,6 +1476,7 @@ jobs:
         snyk,
         secret_scanning,
         license_compliance,
+        zap_baseline,
       ]
     steps:
       - name: 📋 Validate compliance framework
@@ -1594,6 +1689,7 @@ jobs:
         snyk,
         secret_scanning,
         license_compliance,
+        zap_baseline,
         compliance_validation,
       ]
     steps:
@@ -1648,7 +1744,8 @@ jobs:
                   sonarcloud: '${{ needs.sonarcloud.result }}',
                   snyk: '${{ needs.snyk.result }}',
                   secret_scan: '${{ needs.secret_scanning.result }}',
-                  license_check: '${{ needs.license_compliance.result }}'
+                  license_check: '${{ needs.license_compliance.result }}',
+                  zap_baseline: '${{ needs.zap_baseline.result }}'
                 },
                 compliance: '${{ needs.compliance_validation.result }}'
               },
@@ -1806,6 +1903,7 @@ jobs:
         snyk,
         secret_scanning,
         license_compliance,
+        zap_baseline,
       ]
     steps:
       - name: 📊 Generate performance report
@@ -1856,6 +1954,7 @@ jobs:
           echo "| Snyk | ${{ needs.snyk.result }} | Security |" >> $GITHUB_STEP_SUMMARY
           echo "| Secret Scan | ${{ needs.secret_scanning.result }} | Security |" >> $GITHUB_STEP_SUMMARY
           echo "| License Check | ${{ needs.license_compliance.result }} | Security |" >> $GITHUB_STEP_SUMMARY
+          echo "| ZAP Baseline | ${{ needs.zap_baseline.result }} | Security |" >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 💡 Performance Tips" >> $GITHUB_STEP_SUMMARY
@@ -1885,6 +1984,7 @@ jobs:
           [ "${{ needs.snyk.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
           [ "${{ needs.secret_scanning.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
           [ "${{ needs.license_compliance.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
+          [ "${{ needs.zap_baseline.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🚀 Optimization Metrics" >> $GITHUB_STEP_SUMMARY

@@ -1,35 +1,10 @@
-# Lisa
-
-A Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects.
+# NPM
 
 Developers write specs and answer questions. Agents implement, test, verify, question, and document.
 
 ## About This Project
 
-> Ask Claude: "What is the purpose of Lisa and how does it work?"
-
-## Installation
-
-```bash
-# Install via npm
-npm install -g @codyswann/lisa
-
-# Or use npx (no install required)
-npx @codyswann/lisa /path/to/project
-```
-
-## How It Works
-
-Lisa applies multiple layers of quality control to Claude Code projects:
-
-| Layer | Purpose |
-|-------|---------|
-| **CLAUDE.md** | Direct behavioral rules for Claude |
-| **Skills** | Teach coding philosophy and patterns |
-| **Hooks** | Auto-format and lint on every edit |
-| **Slash Commands** | Guided workflows (`/plan:add-test-coverage`, `/git:commit`) |
-| **ESLint Plugins** | Enforce code structure and ordering |
-| **Git Hooks** | Pre-commit quality gates via Husky |
+> Ask Claude: "What is the purpose of this project and how does it work?"
 
 ## Step 1: Install Claude Code
 
@@ -40,22 +15,15 @@ brew install claude-code
 
 ## Step 2: Set Up This Project
 
-> Ask Claude: "I just cloned this repo. Walk me through the full setup including installing dependencies and building the project."
+> Ask Claude: "I just cloned this repo. Walk me through the full setup including installing dependencies, environment variables, and any other configuration."
 
-## Step 3: Apply Lisa to a Project
+## Step 3: Build and Test
 
-```bash
-lisa /path/to/your-project
-
-# Or from within your project
-npx @codyswann/lisa .
-```
-
-> Ask Claude: "How do I apply Lisa to a project? Walk me through using the CLI on an existing codebase."
+> Ask Claude: "How do I build this package and run the tests?"
 
 ## Step 4: Work on a Feature
 
-> Ask Claude: "I have a feature to implement: [describe feature]. Research the codebase and create a plan."
+> Ask Claude: "I have Jira ticket [TICKET-ID]. Research the codebase, create a plan, and implement it."
 
 Or use utility commands:
 
@@ -88,13 +56,13 @@ Or use utility commands:
 
 > Ask Claude: "Increase test coverage for the files I changed."
 
-### Run Tests
+### Publish to npm
 
-> Ask Claude: "Run the test suite and fix any failures."
+> Ask Claude: "Walk me through publishing a new version of this package to npm."
 
-### Contributing
+### Deploy
 
-> Ask Claude: "I want to add a new stack type to Lisa. Walk me through the process."
+> Ask Claude: "Walk me through deploying this project."
 
 ## Project Standards
 
@@ -107,7 +75,3 @@ Or use utility commands:
 ## Troubleshooting
 
 > Ask Claude: "I'm having an issue with [describe problem]. Help me debug it."
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
