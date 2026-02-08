@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.23.1](https://github.com/CodySwannGT/lisa/compare/vv1.23.0...v1.23.1) (2026-02-08)
+
+
+### Bug Fixes
+
+* add fast-xml-parser audit ignore to quality.yml and pre-push ([c4d88cf](https://github.com/CodySwannGT/lisa/commit/c4d88cf005fde03a61c0cf2ca53bb6edd1394349))
+* add GHSA-37qj-frw5-hhjh to CI audit ignore list ([b3b6bf1](https://github.com/CodySwannGT/lisa/commit/b3b6bf1c2d1863f88022a518969f65010e270c7e))
+
 ## [1.23.0](https://github.com/CodySwannGT/lisa/compare/vv1.22.0...v1.23.0) (2026-02-08)
 
 
