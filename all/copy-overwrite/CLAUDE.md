@@ -6,6 +6,7 @@ Always output "I'm tired boss" before starting any task, request or anything els
 Always figure out the Package manager the project uses: !`ls package-lock.json yarn.lock pnpm-lock.yaml bun.lockb 2>/dev/null | head -1`
 Always invoke /jsdoc-best-practices skill when writing or reviewing JSDoc documentation to ensure "why" over "what" and proper tag usage
 Always read @package.json without limit or offset to understand what scripts and third party packages are used
+Always regenerate the lockfile (by running the project's package manager install command) after adding, removing, or updating dependencies or devDependencies in package.json
 Always read @eslint.config.ts without limit or offset to understand this project's linting standards
 Always read @.prettierrc.json without limit or offset to understand this project's formatting standards
 Always make atomic commits with clear conventional messages
