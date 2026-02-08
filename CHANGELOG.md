@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.25.1](https://github.com/CodySwannGT/lisa/compare/vv1.25.0...v1.25.1) (2026-02-08)
+
+
+### Bug Fixes
+
+* pin graphql to 15.10.1 for AppSync compatibility ([5750ff7](https://github.com/CodySwannGT/lisa/commit/5750ff73ff5af1a566f210a9cf7316b581a89c75))
+
 ## [1.25.0](https://github.com/CodySwannGT/lisa/compare/vv1.24.0...v1.25.0) (2026-02-08)
 
 
