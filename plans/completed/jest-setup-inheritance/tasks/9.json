@@ -1,0 +1,22 @@
+{
+  "id": "9",
+  "subject": "Apply Lisa to ThumbWar and migrate project-specific mocks",
+  "description": "Run bun run dev on ThumbWar, then migrate project-specific mocks to jest.setup.local.ts and jest.setup.pre.local.js. Remove setupFiles from jest.config.local.ts.\n\n**Verification:** `cd /Users/cody/workspace/thumbwar/frontend && bun run test`",
+  "activeForm": "Migrating ThumbWar jest setup",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "cd /Users/cody/workspace/thumbwar/frontend && bun run test",
+      "expected": "18 suites, 232 tests passing"
+    },
+    "learnings": [
+      "ThumbWar had pre-existing lint error (functional/immutable-data) in jest.setup.ts reanimated mock - fixed with spread pattern",
+      "ThumbWar needed components/ui added to tsconfig.expo.json exclude manually since prior Lisa run didn't include it"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "4",
+  "subject": "Move jest.setup.pre.js from create-only to copy-overwrite (expo)",
+  "description": "Delete expo/create-only/jest.setup.pre.js and create expo/copy-overwrite/jest.setup.pre.js with base-only pre-setup. Add require(\"./jest.setup.pre.local\") at end. Keep: structuredClone polyfill, __unhandledRejectionHandler, RNTL_SKIP_AUTO_CLEANUP, __DEV__/IS_REACT_ACT_ENVIRONMENT/IS_REACT_NATIVE_TEST_ENVIRONMENT, __fbBatchedBridgeConfig, TurboModule proxy, timer polyfills, window mock.\n\n**Verification:** `ls expo/copy-overwrite/jest.setup.pre.js && ! ls expo/create-only/jest.setup.pre.js 2>/dev/null`",
+  "activeForm": "Moving jest.setup.pre.js to copy-overwrite",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "skills": [
+      "/coding-philosophy",
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls expo/copy-overwrite/jest.setup.pre.js && ! ls expo/create-only/jest.setup.pre.js 2>/dev/null",
+      "expected": "file exists in copy-overwrite, not in create-only"
+    }
+  }
+}

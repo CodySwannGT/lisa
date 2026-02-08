@@ -1,0 +1,17 @@
+{
+  "id": "16",
+  "subject": "Implement valid review suggestions",
+  "description": "Address findings from CodeRabbit and local code review.\n\n**Verification:** All valid suggestions implemented.",
+  "activeForm": "Implementing review suggestions",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "learnings": [
+      "Merged two afterEach blocks into one in jest.setup.ts",
+      "Removed duplicate !**/*.d.ts from jest.expo.ts collectCoverageFrom"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "10",
+  "subject": "Apply Lisa to propswap/frontend and migrate mocks",
+  "description": "Run bun run dev on propswap/frontend, migrate project-specific mocks to local files. Delete old jest.setup.js.\n\n**Verification:** `cd /Users/cody/workspace/propswap/frontend && bun run test`",
+  "activeForm": "Migrating propswap/frontend jest setup",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "verification": {
+      "type": "test",
+      "command": "cd /Users/cody/workspace/propswap/frontend && bun run test",
+      "expected": "all tests passing"
+    }
+  }
+}
