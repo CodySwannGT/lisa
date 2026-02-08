@@ -1,0 +1,13 @@
+{
+  "id": "19",
+  "subject": "Update documentation",
+  "description": "Update JSDoc preambles on all modified files. Update any references to the old create-only jest.setup.ts pattern.\n\n**Verification:** All modified files have updated JSDoc.",
+  "activeForm": "Updating documentation",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task"
+  }
+}

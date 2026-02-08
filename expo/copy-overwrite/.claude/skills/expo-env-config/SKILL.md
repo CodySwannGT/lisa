@@ -108,7 +108,7 @@ The Zod pattern validates `process.env` directly - it doesn't care how variables
 
 ## Testing Pattern
 
-### Jest Setup (`jest.setup.ts`)
+### Jest Setup (`jest.setup.local.ts`)
 
 ```typescript
 // Mock the env module for all tests
@@ -304,6 +304,6 @@ When adding or modifying environment variables:
 - [ ] Variable is added to the Zod schema in `src/lib/env.ts`
 - [ ] Appropriate Zod type/transform is used (url, enum, boolean transform, etc.)
 - [ ] Default value provided for optional variables
-- [ ] Jest mock updated in `jest.setup.ts`
+- [ ] Jest mock updated in `jest.setup.local.ts`
 - [ ] Variable documented in `.env.example` or `.env.development`
 - [ ] Sensitive values use EAS Secrets, not `.env` files

@@ -1,0 +1,16 @@
+{
+  "id": "20",
+  "subject": "Final verification of all tasks",
+  "description": "Re-run all verification commands from completed tasks.\n\n**Verification:** All verification commands pass.",
+  "activeForm": "Running final verification",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "learnings": [
+      "All verification passed: Lisa (15 suites/218 tests), ThumbWar (18/232), propswap (178/2212), frontend-v2 (275/5653)"
+    ]
+  }
+}

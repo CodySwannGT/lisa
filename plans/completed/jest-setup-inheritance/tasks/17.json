@@ -1,0 +1,18 @@
+{
+  "id": "17",
+  "subject": "Simplify code with code-simplifier agent",
+  "description": "Run code-simplifier agent on implemented changes.\n\n**Verification:** Code simplified without breaking tests.",
+  "activeForm": "Simplifying code",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "jest-setup-inheritance",
+    "type": "task",
+    "learnings": [
+      "Code simplifier found: two afterEach blocks in jest.setup.ts could be merged",
+      "Code simplifier found: duplicate !**/*.d.ts exclusion in jest.expo.ts (already in defaultCoverageExclusions)",
+      "Code simplifier confirmed: timer polyfill guards are defensive but acceptable"
+    ]
+  }
+}
