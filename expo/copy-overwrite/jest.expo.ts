@@ -112,7 +112,6 @@ export const getExpoJestConfig = ({
     "stores/**/*.{ts,tsx}",
     "types/**/*.{ts,tsx}",
     "utils/**/*.{ts,tsx}",
-    "!**/*.d.ts",
     ...defaultCoverageExclusions,
   ],
   coverageThreshold: thresholds,
