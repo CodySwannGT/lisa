@@ -29,3 +29,6 @@ firebase-web-staging.json:gcp-api-key:2
 google-services-prod.json:gcp-api-key:18
 google-services-staging.json:gcp-api-key:18
 firebase-web-prod.json:gcp-api-key:2
+
+# Quality workflow curl uses $SONAR_TOKEN variable reference, not a real secret
+.github/workflows/quality.yml:curl-auth-user:1093
