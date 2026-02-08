@@ -38,8 +38,8 @@ declare global {
     | undefined;
 }
 
-// Manual cleanup after each test (replacing RTLRN's auto cleanup)
-// This handles React 19's cleanup which can throw null
+// Manual cleanup and mock reset after each test
+// Replaces RTLRN's auto cleanup to handle React 19's null-throw during teardown
 afterEach(async () => {
   try {
     await cleanup();
@@ -49,6 +49,7 @@ afterEach(async () => {
       throw error;
     }
   }
+  jest.clearAllMocks();
 });
 
 // Mock ResizeObserver for tests that use it
@@ -89,11 +90,6 @@ jest.mock("expo-router", () => ({
     Screen: () => null,
   },
 }));
-
-// Clear mocks after each test
-afterEach(() => {
-  jest.clearAllMocks();
-});
 
 // Remove the unhandledRejection handler after all tests to allow Jest to exit cleanly
 // The handler is registered in jest.setup.pre.js and stored on global
