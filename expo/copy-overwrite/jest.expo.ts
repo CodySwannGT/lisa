@@ -15,12 +15,11 @@
  * Instead, this config manually replicates the preset's resolution,
  * transform, and haste settings without any preset setupFiles.
  *
- * `setupFiles` is intentionally empty because `jest-expo/src/preset/setup.js`
- * requires `__DEV__` to be defined before it runs, and `mergeConfigs`
- * concatenates arrays with base entries first — making it impossible for
- * project-local setupFiles to prepend a `__DEV__` definition. Projects
- * should add their own setupFiles in `jest.config.local.ts` with the
- * correct ordering (define globals first, then load jest-expo setup).
+ * `setupFiles` and `setupFilesAfterEnv` are configured here to wire up
+ * the base jest setup files (`jest.setup.pre.js` and `jest.setup.ts`).
+ * These base files import project-local overrides (`jest.setup.pre.local.js`
+ * and `jest.setup.local.ts`) which are create-only templates that projects
+ * can customize without Lisa overwriting them.
  *
  * Coverage collection is scoped to standard Expo source directories
  * rather than a catch-all glob, preventing config files, scripts, and
@@ -67,9 +66,7 @@ interface ExpoJestOptions {
  * @returns Jest config object with jsdom environment, babel-jest transform, and React Native resolver
  * @remarks Avoids `jest-expo` preset to prevent jsdom + `react-native/jest/setup.js`
  * incompatibility. Manually configures haste, resolver, and transform to match the
- * preset's behavior without the problematic window redefinition. `setupFiles` is
- * empty — projects must provide their own in `jest.config.local.ts` with correct
- * ordering (define `__DEV__` before loading `jest-expo/src/preset/setup.js`).
+ * preset's behavior without the problematic window redefinition.
  */
 export const getExpoJestConfig = ({
   thresholds = defaultThresholds,
@@ -80,7 +77,8 @@ export const getExpoJestConfig = ({
     platforms: ["android", "ios", "native"],
   },
   resolver: "react-native/jest/resolver.js",
-  setupFiles: [],
+  setupFiles: ["<rootDir>/jest.setup.pre.js"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   transform: {
     "\\.[jt]sx?$": [
       "babel-jest",
