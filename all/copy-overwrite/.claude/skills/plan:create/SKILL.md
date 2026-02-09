@@ -79,19 +79,7 @@ Apply these additional requirements based on the detected type:
 
 ## Step 4: Include Required Tasks
 
-Every plan must include the required tasks defined in `plan.md`:
-
-- Product/UX review using `product-reviewer` agent
-- CodeRabbit code review
-- Local code review via `/plan:local-code-review`
-- Technical review using `tech-reviewer` agent
-- Implement valid review suggestions
-- Simplify code using code simplifier agent
-- Update/add/remove tests as needed
-- Update/add/remove documentation
-- Verify all verification metadata
-- Collect learnings using `learner` agent
-- Archive the plan (always last)
+Include all required tasks defined in the `plan.md` rule (Required Tasks section), including the archive task which must always be last.
 
 ## Step 5: Ticket Integration
 
