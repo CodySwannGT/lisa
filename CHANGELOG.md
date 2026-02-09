@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.28.0](https://github.com/CodySwannGT/lisa/compare/vv1.27.0...v1.28.0) (2026-02-09)
+
+
+### Features
+
+* consolidate commands into skills and rename to colon naming ([4e3fa4b](https://github.com/CodySwannGT/lisa/commit/4e3fa4bb7cf1b645883e51a4bd92d217761e0193))
+* create command pass-throughs for all skills ([3b6c656](https://github.com/CodySwannGT/lisa/commit/3b6c656fe36312d01e94d0835c1f6c5d15413934))
+* rewrite plan-create skill for Agent Teams with multi-phase research and review ([fc44757](https://github.com/CodySwannGT/lisa/commit/fc447579ed20ee472101cbb24af4fa67f21de5ba))
+
+
+### Bug Fixes
+
+* update deletions.json to restore commands and clean up colon-named skills ([a885816](https://github.com/CodySwannGT/lisa/commit/a885816645fe03cbcf4accce99244b9e72f49505))
+
+
+### Code Refactoring
+
+* address review findings and distribute jira:sync to downstream ([463a1fa](https://github.com/CodySwannGT/lisa/commit/463a1fae93f5a715c191ff04362e9cfa9a44ca99))
+* rename skills from colon to hyphen naming and remove argument-hints ([d865b5e](https://github.com/CodySwannGT/lisa/commit/d865b5eb783a23b7da8b7ffd771269a986a8c41c))
+
+
+### Documentation
+
+* add skill architecture learnings to PROJECT_RULES.md ([91c3cd6](https://github.com/CodySwannGT/lisa/commit/91c3cd66492ece9f8963855b1fe690d2b2e563ae))
+* update rules, agents, and docs for skills vs commands architecture ([cde8922](https://github.com/CodySwannGT/lisa/commit/cde89228ab1cbacdbde42f700bf4e91b092ecc5a))
+* update verification docs to reference Playwright/Chrome Browser ([5253f1b](https://github.com/CodySwannGT/lisa/commit/5253f1bd1e150c0cd006db26ea9c574b2a28dd0e))
+* update verification rules with CI/CD independence and Maestro support ([196a375](https://github.com/CodySwannGT/lisa/commit/196a37518062d1a2daa8d878e9e10720416b52fd))
+
 ## [1.27.0](https://github.com/CodySwannGT/lisa/compare/vv1.26.0...v1.27.0) (2026-02-09)
 
 
