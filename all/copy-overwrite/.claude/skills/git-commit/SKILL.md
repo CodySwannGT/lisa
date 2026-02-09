@@ -2,7 +2,6 @@
 name: git-commit
 description: This skill should be used when creating conventional commits for current changes. It groups related changes into logical commits, ensures all files are committed, and verifies the working directory is clean afterward.
 allowed-tools: ["Bash"]
-argument-hint: "[commit-message-hint]"
 ---
 
 # Git Commit Workflow

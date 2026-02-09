@@ -1,7 +1,6 @@
 ---
 name: lisa-integration-test
 description: This skill should be used when integration testing Lisa against a downstream project. It applies Lisa templates, verifies the project still builds, and if anything breaks, fixes the templates upstream in Lisa and retries until the project passes all checks.
-argument-hint: "<project-path>"
 ---
 
 # Lisa Integration Test

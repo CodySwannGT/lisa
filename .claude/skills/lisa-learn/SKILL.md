@@ -1,14 +1,13 @@
 ---
 name: lisa-learn
 description: This skill should be used when analyzing a downstream project's git diff after Lisa was applied to identify improvements that should be upstreamed back to Lisa templates. It validates the environment, captures the diff, correlates changes with the manifest, categorizes each change, and offers to upstream improvements.
-argument-hint: "<project-path>"
 ---
 
 # Lisa Learn
 
 Analyze the git diff in a downstream project after Lisa was applied. Identify improvements the project had that Lisa overwrote, potential breakage, safe overrides, and neutral changes. Offer to upstream improvements back to Lisa templates.
 
-This completes a feedback loop: `/lisa:integration-test` applies and verifies, `/lisa:learn` analyzes the transition for upstream opportunities, and `/lisa:review-project` compares static drift.
+This completes a feedback loop: `/lisa-integration-test` applies and verifies, `/lisa-learn` analyzes the transition for upstream opportunities, and `/lisa-review-project` compares static drift.
 
 ## Prerequisites
 
@@ -25,7 +24,7 @@ This skill must be run FROM the Lisa repository directory. The target project mu
 
      Current directory does not contain src/core/lisa.ts.
 
-     Usage: /lisa:learn /path/to/target-project
+     Usage: /lisa-learn /path/to/target-project
      ```
 
 2. Extract project path from `$ARGUMENTS`. If not provided, ask the user:
@@ -52,7 +51,7 @@ This skill must be run FROM the Lisa repository directory. The target project mu
      ```
      No uncommitted changes found in the project.
 
-     Run `bun run dev <project-path>` first, then re-run /lisa:learn to analyze what changed.
+     Run `bun run dev <project-path>` first, then re-run /lisa-learn to analyze what changed.
      ```
 
 ### Step 2: Read Manifest and Detect Types
