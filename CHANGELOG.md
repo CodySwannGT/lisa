@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.27.0](https://github.com/CodySwannGT/lisa/compare/vv1.26.0...v1.27.0) (2026-02-09)
+
+
+### Features
+
+* add REFERENCE.0003.md with Agent Teams and updated reference ([51954bd](https://github.com/CodySwannGT/lisa/commit/51954bdb323187f8bb85c2bc676aa68672c4f535))
+* add specialized agent team agents (implementer, tech-reviewer, product-reviewer, learner) ([25acace](https://github.com/CodySwannGT/lisa/commit/25acacedaaf50086405ebed27e831fbb1d495a7f))
+* update agent prompt templates with specialized agents and new requirements ([e2e1ff1](https://github.com/CodySwannGT/lisa/commit/e2e1ff11e76cb0a596147df741b9d630e00abe0e))
+* update plan rules with 6 workflow improvements ([0c02d09](https://github.com/CodySwannGT/lisa/commit/0c02d09488224a0a321f9e16fcc95ce421f14299))
+
+
+### Documentation
+
+* update REFERENCE.0003.md with Agent Teams documentation ([3958198](https://github.com/CodySwannGT/lisa/commit/3958198556b82cd10afbc1ac7cdd608036dfce6b))
+
 ## [1.26.0](https://github.com/CodySwannGT/lisa/compare/vv1.25.2...v1.26.0) (2026-02-08)
 
 
