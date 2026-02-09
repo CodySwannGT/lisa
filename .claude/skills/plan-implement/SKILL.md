@@ -22,4 +22,4 @@ If no argument provided, search for plan files in the `plans/` directory and pre
 
 ## Agent Team Composition
 
-Use the specialized agents listed in $ARGUMENTS and the @.claude/rules/plan.md rule (Implementation Team Guidance section). The **team lead** handles git operations (commits, pushes, PR management) -- teammates focus on their specialized work.
+Create an agent team of the specialized agents listed in $ARGUMENTS and the @.claude/rules/plan.md rule (Implementation Team Guidance section) to implement this plan. The **team lead** handles git operations (commits, pushes, PR management) -- teammates focus on their specialized work.
