@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.29.0](https://github.com/CodySwannGT/lisa/compare/vv1.28.0...v1.29.0) (2026-02-09)
+
+
+### Features
+
+* update plan-implement skill to accept arguments ([6e0002d](https://github.com/CodySwannGT/lisa/commit/6e0002d0fe8320dda15f70e0a29d82d8d20077f4))
+
 ## [1.28.0](https://github.com/CodySwannGT/lisa/compare/vv1.27.0...v1.28.0) (2026-02-09)
 
 
