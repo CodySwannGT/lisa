@@ -23,19 +23,7 @@ If no argument provided, search for plan files in the `plans/` directory and pre
 
 ## Agent Team Composition
 
-Use these specialized agents as recommended in `plan.md`:
-
-| Agent | Use For |
-|-------|---------|
-| `implementer` | Code implementation |
-| `tech-reviewer` | Technical review |
-| `product-reviewer` | Product/UX review |
-| `test-coverage-agent` | Writing tests |
-| `code-simplifier` | Code simplification |
-| `coderabbit` | CodeRabbit review |
-| `learner` | Post-implementation learning |
-
-The **team lead** handles git operations (commits, pushes, PR management).
+Use the specialized agents listed in the `plan.md` rule (Implementation Team Guidance section). The **team lead** handles git operations (commits, pushes, PR management) -- teammates focus on their specialized work.
 
 ## Execution
 
