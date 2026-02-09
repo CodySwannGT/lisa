@@ -1,46 +1,88 @@
 # Plan Mode Rules
 
-These rules are enforced whenever Claude is in plan mode. They are loaded at session start via `.claude/rules/` and reinforced on every prompt via the `enforce-plan-rules.sh` `UserPromptSubmit` hook.
+These rules are enforced whenever Claude is in plan mode. Loaded at session start via `.claude/rules/` and reinforced on every prompt via the `enforce-plan-rules.sh` `UserPromptSubmit` hook.
 
 ## Required Behaviors
 
 When making a plan:
 
-- Always determine which skills should be used during execution of the plan and include them in the plan
-- Always make sure you understand the correct versions of third party libraries
-- Always look for code that can be reused for implementation
-- The plan MUST include written instructions to create a task list using TaskCreate for each task (following the Task Creation Specification below). The list should contain items related to the plan and specify that subagents should handle as many in parallel as possible. The following should always be included in the task list:
-  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with CodeRabbit
-  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with /plan-local-code-review
-  - (unless the plan includes only trivial changes) a task to be run after all code review to implement valid review suggestions
-  - (unless the plan includes only trivial changes) a task to be run after code review implementation to simplify the implemented code with code simplifier agent
-  - (unless the plan includes only trivial changes) a task to be run after code review implementation to update/add/remove tests, containing the tests that need to get updated, added or removed
-  - (unless the plan includes only trivial changes) a task to be run after code review implementation to update/add/remove documentation (jsdocs, markdown files, etc), containing the documentation that need to get updated, added or removed
-  - (unless the plan includes only trivial changes) a task to be run after code review implementation to verify all of the verification metadata in existing tasks
-  - a task to be run after all other tasks have been completed to archive the plan. This task should explcitly say to:
-    - create a folder named <plan-name> in ./plans/completed
-    - rename this plan to a name befitting the actual plan contents
-    - move it into ./plans/completed/<plan-name>
-    - read the session ids from ./plans/completed/<plan-name>
-    - For each session id, move the ~/.claude/tasks/<session-id> directory to ./plans/completed/<plan-name>/tasks
-    - Update any "in_progress" task in ./plans/completed/<plan-name>/tasks to "completed"
-    - commit changes.
-    - push changes to the PR
-- If you're on a protected branch (dev, staging, main), create a new branch named based on the nature of the project and include in the plan pull requests should go to the protected branch you bracnehd from. 
-- If you're on a non-protected branch with an open pull request, submit pushes to the open pull request
-- If you're on a non-protected branch with no existing PR, clarify which protected branch to open the pull request to. 
-- If referencing a ticket (jira, linear, etc), always include the ticket url in your plan
-- If referencing a ticket (jira, linear, etc), always update the ticket with the branch you're working off of
-- If referencing a ticket (jira, linear, etc), always add a comment to the ticket with the finalized plan
-- Open a draft pull request
-- Include the branch name and pull request in the plan
+- Determine which skills are needed and include them in the plan
+- Verify correct versions of third-party libraries
+- Look for reusable code
+- If a decision is left unresolved by the human, use the recommended option
+- The plan MUST include TaskCreate instructions for each task (following the Task Creation Specification below). Specify that subagents should handle as many tasks in parallel as possible.
 
-IMPORTANT:
-- The `## Sessions` section in plan files is auto-maintained by the `track-plan-sessions.sh` hook — do not manually edit it
+### Required Tasks
+
+The following tasks are always required unless the plan includes only trivial changes:
+
+- Product/UX review using `product-reviewer` agent (validate feature works from a non-technical perspective)
+- CodeRabbit code review
+- Local code review via `/plan-local-code-review`
+- Technical review using `tech-reviewer` agent (beginner-friendly; correctness, security, coding-philosophy)
+- Implement valid review suggestions (run after all reviews complete)
+- Simplify code using code simplifier agent (run after review implementation)
+- Update/add/remove tests as needed (run after review implementation)
+- Update/add/remove documentation -- JSDoc, markdown files, etc. (run after review implementation)
+- Verify all verification metadata in existing tasks (run after review implementation)
+- Collect learnings using `learner` agent (run after all reviews and simplification)
+
+The following task is always required regardless of plan size:
+
+- Archive the plan (run after all other tasks). This task must explicitly say to:
+  - Create a folder named `<plan-name>` in `./plans/completed`
+  - Rename the plan to reflect its actual contents
+  - Move it into `./plans/completed/<plan-name>`
+  - Read session IDs from `./plans/completed/<plan-name>`
+  - Move each `~/.claude/tasks/<session-id>` directory to `./plans/completed/<plan-name>/tasks`
+  - Update any "in_progress" task to "completed"
+  - Commit and push changes to the PR
+
+### Branch and PR Rules
+
+- On a protected branch (dev, staging, main): create a new branch and target the PR to the protected branch you branched from
+- On a non-protected branch with an open PR: push to the existing PR
+- On a non-protected branch with no PR: clarify which protected branch to target
+- Open a draft pull request
+- Include the branch name and PR link in the plan
+
+### Ticket Integration
+
+When referencing a ticket (JIRA, Linear, etc.):
+
+- Include the ticket URL in the plan
+- Update the ticket with the working branch
+- Add a comment on the ticket with the finalized plan
+
+NOTE: Do NOT include a separate task for linting, type-checking, or formatting. These are handled automatically by PostToolUse hooks (lint-on-edit.sh, format-on-edit.sh) and lint-staged pre-commit hooks (ESLint, Prettier, ast-grep).
+
+IMPORTANT: The `## Sessions` section in plan files is auto-maintained by `track-plan-sessions.sh` -- do not manually edit it.
+
+## Git Workflow
+
+Every plan follows this workflow to keep PRs clean:
+
+1. **First task:** Verify/create branch and open a draft PR (`gh pr create --draft`). No implementation before the draft PR exists.
+2. **During implementation:** Commits only, no pushes. Pre-commit hooks validate lint, format, and typecheck.
+3. **After archive task:** One final `git push`, then mark PR ready (`gh pr ready`), then enable auto-merge (`gh pr merge --auto --merge`).
+
+## Implementation Team Guidance
+
+When plans spawn an Agent Team for implementation, recommend these specialized agents:
+
+| Agent | Use For | Why |
+|-------|---------|-----|
+| `implementer` | Code implementation | Pre-loaded with project conventions, coding-philosophy, empirical verification |
+| `tech-reviewer` | Technical review | Beginner-friendly findings; covers correctness, security, performance, coding-philosophy |
+| `product-reviewer` | Product/UX review | Validates from non-technical perspective; runs feature empirically |
+| `learner` | Post-implementation learning | Processes task learnings through `skill-evaluator` to create skills, add rules, or discard |
+| `test-coverage-agent` | Writing tests | Specialized for comprehensive, meaningful test coverage |
+| `code-simplifier` (plugin) | Code simplification | Simplifies and refines for clarity and maintainability |
+| `coderabbit` (plugin) | CodeRabbit review | Automated AI code review |
+
+The **team lead** handles git operations (commits, pushes, PR management) -- teammates focus on their specialized work.
 
 ## Task Creation Specification
-
-When plans include TaskCreate instructions, each task must use this format:
 
 ### Parameters
 
@@ -57,17 +99,17 @@ Every task description must be a markdown document with these sections:
 
 **Acceptance Criteria:** Checkbox list of completion criteria
 
-**Relevant Research:** Code references, patterns, architecture constraints extracted from research
+**Relevant Research:** Code references, patterns, architecture constraints
 
 **Skills to Invoke:** `/coding-philosophy` is always required, plus other applicable skills
 
 **Implementation Details:** Files to modify, functions to implement, edge cases
 
-**Testing Requirements:** Unit tests (with `describe/it` structure), Integration tests, E2E tests (or "N/A")
+**Testing Requirements:** Unit tests (with `describe/it` structure), integration tests, E2E tests (or "N/A")
 
 **Verification:** Every task MUST have empirical verification (see `verfication.md` for types). Include: verification type, proof command, and expected output.
 
-**Learnings:** On task completion, use `TaskUpdate` to save discoveries: `metadata: { learnings: ["Learning 1", ...] }`
+**Learnings:** On completion, use `TaskUpdate` to save discoveries: `metadata: { learnings: ["Learning 1", ...] }`
 
 ### Metadata
 
@@ -87,5 +129,3 @@ Every task description must be a markdown document with these sections:
 ### Task Sizing
 
 Each task must be small enough to have a **single, specific verification**. Ask: "Can I prove this is done with ONE command?" Split tasks that require multiple verifications.
-
-
