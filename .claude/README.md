@@ -162,18 +162,36 @@ See each skill's `SKILL.md` for detailed documentation.
 
 ### Adding Custom Skills
 
+Skills contain implementation logic and use hyphen-separated naming:
+
 ```bash
-mkdir -p .claude/skills/my-namespace:my-skill
-cat > .claude/skills/my-namespace:my-skill/SKILL.md << 'EOF'
+mkdir -p .claude/skills/my-namespace-my-skill
+cat > .claude/skills/my-namespace-my-skill/SKILL.md << 'EOF'
 ---
-name: my-namespace:my-skill
+name: my-namespace-my-skill
 description: "What this skill does"
-argument-hint: "<arguments>"
 ---
 
 # My Skill
 
 Instructions for the skill...
+EOF
+```
+
+### Adding Custom Commands
+
+Commands are user-facing pass-throughs to skills. Directory nesting creates colon-separated names in the UI (e.g., `my-namespace/my-skill.md` becomes `/my-namespace:my-skill`):
+
+```bash
+mkdir -p .claude/commands/my-namespace
+cat > .claude/commands/my-namespace/my-skill.md << 'EOF'
+---
+description: "What this command does"
+allowed-tools: ["Skill"]
+argument-hint: "<arguments>"
+---
+
+Use the /my-namespace-my-skill skill to do the thing. $ARGUMENTS
 EOF
 ```
 

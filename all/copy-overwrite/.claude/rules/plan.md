@@ -18,7 +18,7 @@ The following tasks are always required unless the plan includes only trivial ch
 
 - Product/UX review using `product-reviewer` agent (validate feature works from a non-technical perspective)
 - CodeRabbit code review
-- Local code review via `/plan:local-code-review`
+- Local code review via `/plan-local-code-review`
 - Technical review using `tech-reviewer` agent (beginner-friendly; correctness, security, performance)
 - Implement valid review suggestions (run after all reviews complete)
 - Simplify code using code simplifier agent (run after review implementation)
