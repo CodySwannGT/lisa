@@ -17,6 +17,15 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `eslint.thresholds.json`
 - `jest.thresholds.json`
 
+## Directories with both Lisa-managed and project content
+
+These directories contain files deployed by Lisa **and** files you create. Do not edit or delete Lisa-managed files — they will be overwritten. You **can** freely add your own. Check `.lisa-manifest` to see which specific files Lisa manages.
+
+- `.claude/skills/` — Add your own skill directories alongside Lisa's
+- `.claude/commands/` — Add your own command namespaces alongside Lisa's
+- `.claude/hooks/` — Add your own hook scripts alongside Lisa's
+- `.claude/agents/` — Add your own agent files alongside Lisa's
+
 ## Files and directories with NO local override (do not edit at all)
 
 - `.claude/rules/coding-philosophy.md`, `.claude/rules/plan.md`, `.claude/rules/verfication.md`
@@ -28,7 +37,7 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `tsconfig.base.json`, `tsconfig.typescript.json`, `tsconfig.expo.json`, `tsconfig.nestjs.json`, `tsconfig.cdk.json`
 - `tsconfig.eslint.json`, `tsconfig.build.json`, `tsconfig.spec.json`
 - `eslint-plugin-code-organization/*`, `eslint-plugin-component-structure/*`, `eslint-plugin-ui-standards/*`
-- `.claude/settings.json`, `.claude/hooks/*`, `.claude/skills/*` (hyphen-named, e.g. `plan-create`), `.claude/commands/*`, `.claude/agents/*`
+- `.claude/settings.json`
 - `.claude/README.md`, `.claude/REFERENCE.md`
 - `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`
 - `.github/workflows/build.yml`, `.github/workflows/lighthouse.yml` (Expo)
