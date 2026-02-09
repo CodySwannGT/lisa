@@ -24,6 +24,7 @@
     "@aws-sdk/client-cloudwatch",
     "@aws-sdk/client-dynamodb",
     "@aws-sdk/client-lambda",
+    "@aws-sdk/credential-provider-sso",
     "@aws-sdk/lib-dynamodb",
     "@aws-sdk/rds-signer",
     "@graphql-tools/utils",
