@@ -138,7 +138,7 @@ Include all required tasks defined in the @.claude/rules/plan.md rule (Required 
 
 ## Step 6: Implementation Team Instructions
 
-The plan must include instructions to spawn a **second Agent Team** for implementation. Recommend these specialized agents:
+The plan must include explict instructions to "Create an agent team" for implementation. Recommend these specialized agents:
 
 | Agent | Use For |
 |-------|---------|
