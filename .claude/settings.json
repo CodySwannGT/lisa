@@ -113,11 +113,6 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sync-tasks.sh",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/ticket-sync-reminder.sh",
-            "timeout": 5
           }
         ]
       },
