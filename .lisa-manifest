@@ -1,6 +1,6 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-02-08T20:34:32.293Z
-# Lisa version: 1.23.1
+# Generated: 2026-02-09T11:20:33.150Z
+# Lisa version: 1.28.0
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.DS_Store
@@ -21,6 +21,7 @@ copy-overwrite:.claude/commands/git/commit.md
 copy-overwrite:.claude/commands/git/prune.md
 copy-overwrite:.claude/commands/git/submit-pr.md
 copy-overwrite:.claude/commands/jira/create.md
+copy-overwrite:.claude/commands/jira/sync.md
 copy-overwrite:.claude/commands/jira/verify.md
 copy-overwrite:.claude/commands/lisa/review-implementation.md
 copy-overwrite:.claude/commands/plan/add-test-coverage.md
@@ -32,6 +33,7 @@ copy-overwrite:.claude/commands/plan/lower-code-complexity.md
 copy-overwrite:.claude/commands/plan/reduce-max-lines-per-function.md
 copy-overwrite:.claude/commands/plan/reduce-max-lines.md
 copy-overwrite:.claude/commands/pull-request/review.md
+copy-overwrite:.claude/commands/security/zap-scan.md
 copy-overwrite:.claude/commands/sonarqube/check.md
 copy-overwrite:.claude/commands/sonarqube/fix.md
 copy-overwrite:.claude/commands/tasks/load.md
@@ -42,6 +44,7 @@ copy-overwrite:.claude/hooks/debug-hook.sh
 copy-overwrite:.claude/hooks/enforce-plan-rules.sh
 copy-overwrite:.claude/hooks/notify-ntfy.sh
 copy-overwrite:.claude/hooks/sync-tasks.sh
+copy-overwrite:.claude/hooks/ticket-sync-reminder.sh
 copy-overwrite:.claude/hooks/track-plan-sessions.sh
 copy-overwrite:.claude/rules/coding-philosophy.md
 copy-overwrite:.claude/rules/lisa.md
@@ -54,15 +57,19 @@ copy-overwrite:.claude/skills/git-commit-and-submit-pr/SKILL.md
 copy-overwrite:.claude/skills/git-prune/SKILL.md
 copy-overwrite:.claude/skills/git-submit-pr/SKILL.md
 copy-overwrite:.claude/skills/jira-create/SKILL.md
+copy-overwrite:.claude/skills/jira-sync/SKILL.md
 copy-overwrite:.claude/skills/jira-verify/SKILL.md
 copy-overwrite:.claude/skills/lisa-review-implementation/SKILL.md
 copy-overwrite:.claude/skills/plan-add-test-coverage/SKILL.md
+copy-overwrite:.claude/skills/plan-create/SKILL.md
 copy-overwrite:.claude/skills/plan-fix-linter-error/SKILL.md
+copy-overwrite:.claude/skills/plan-implement/SKILL.md
 copy-overwrite:.claude/skills/plan-local-code-review/SKILL.md
 copy-overwrite:.claude/skills/plan-lower-code-complexity/SKILL.md
 copy-overwrite:.claude/skills/plan-reduce-max-lines/SKILL.md
 copy-overwrite:.claude/skills/plan-reduce-max-lines-per-function/SKILL.md
 copy-overwrite:.claude/skills/pull-request-review/SKILL.md
+copy-overwrite:.claude/skills/security-zap-scan/SKILL.md
 copy-overwrite:.claude/skills/skill-creator/LICENSE.txt
 copy-overwrite:.claude/skills/skill-creator/SKILL.md
 copy-overwrite:.claude/skills/skill-creator/scripts/__pycache__/quick_validate.cpython-312.pyc
