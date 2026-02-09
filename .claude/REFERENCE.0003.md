@@ -224,6 +224,8 @@ When a team exists, task tools operate on the team's shared task list at `~/.cla
 | `TaskUpdate` | Update status, set `owner` to assign to teammates by name |
 | `TaskList` | View all tasks across the team |
 | `TaskGet` | Read full task details including description and dependencies |
+| `TaskOutput` | Retrieve output from a running or completed background task |
+| `TaskStop` | Stop a running background task by its ID |
 
 #### Task Assignment Workflow
 
@@ -273,12 +275,12 @@ Controlled by the `teammateMode` setting:
 | Mode | Description |
 |------|-------------|
 | `in-process` | Teammates run in the same terminal process |
-| `split-pane` | Teammates run in separate tmux panes (requires tmux) |
-| `auto` | Automatically selects best mode based on environment |
+| `tmux` | Teammates run in separate tmux panes (requires tmux) |
+| `auto` | Automatically selects best mode based on environment (default) |
 
 ### Delegate Mode
 
-When spawning a teammate with `"mode": "delegate"`, the teammate operates with delegated permissions from the team lead. The teammate can make tool calls without individual permission prompts.
+Delegate mode restricts the team lead to coordination-only tools (task management, messaging) by pressing **Shift+Tab** in the team lead's terminal. This forces the lead to focus on orchestration rather than direct implementation, delegating all coding work to teammates.
 
 ### Plan Mode for Teammates
 
@@ -400,7 +402,8 @@ Agent teams use approximately **7x more tokens** than standard sessions when tea
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `type` | `string` | Required | `"command"`, `"prompt"`, or `"agent"` |
-| `timeout` | `number` | `60` | Timeout in seconds |
+| `timeout` | `number` | Varies | Timeout in seconds (command: 600, prompt: 30, agent: 60) |
+| `statusMessage` | `string` | None | Custom spinner message displayed while hook runs |
 
 #### Command-Specific Fields
 
@@ -414,12 +417,16 @@ Agent teams use approximately **7x more tokens** than standard sessions when tea
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `prompt` | `string` | Required | Evaluation prompt (supports `$ARGUMENTS` substitution) |
+| `model` | `string` | Haiku | Model for prompt evaluation |
+
+`$ARGUMENTS` is substituted with the JSON-serialized hook input at runtime, providing the prompt with the full event context.
 
 #### Agent-Specific Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `prompt` | `string` | Required | Instructions for the subagent |
+| `model` | `string` | Default | Model for the subagent |
 
 ### Async Hooks
 
@@ -434,6 +441,30 @@ Command hooks can run asynchronously with `"async": true`:
 ```
 
 Async hooks run in the background and do not block the main execution. Exit codes from async hooks are not processed for blocking behavior.
+
+### Prompt Hook Configuration Example
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Evaluate whether this command is safe to run: $ARGUMENTS",
+            "model": "haiku",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Supported events for prompt hooks:** `Stop`, `SubagentStop`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`
 
 ### Prompt Hook Response Schema
 
@@ -496,7 +527,8 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
 {
   "tool_name": "...",
   "tool_input": {},
-  "tool_error": "Error message",
+  "error": "Error message",
+  "is_interrupt": false,
   "tool_use_id": "toolu_01ABC123..."
 }
 ```
@@ -558,6 +590,7 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
 {
   "stop_hook_active": false,
   "agent_id": "def456",
+  "agent_type": "Explore | Bash | Plan | CustomAgentName",
   "agent_transcript_path": "/path/to/subagent/transcript.jsonl"
 }
 ```
@@ -596,7 +629,6 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
 ```json
 {
   "teammate_name": "researcher",
-  "teammate_agent_id": "agent-abc123",
   "team_name": "my-team"
 }
 ```
@@ -607,8 +639,9 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
 {
   "task_id": "1",
   "task_subject": "Implement authentication",
-  "team_name": "my-team",
-  "completed_by": "researcher"
+  "task_description": "Optional task description",
+  "teammate_name": "researcher",
+  "team_name": "my-team"
 }
 ```
 
@@ -721,7 +754,7 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
 
 ```json
 {
-  "$schema": "https://claude.ai/code/settings-schema.json",
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
 
   "permissions": {
     "allow": ["Bash(npm run:*)", "Read"],
@@ -756,11 +789,11 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
   "outputStyle": "string",
   "language": "string",
   "spinnerTipsEnabled": true,
-  "spinnerVerbs": ["thinking", "working", "processing"],
+  "spinnerVerbs": { "mode": "append", "verbs": ["Pondering", "Crafting"] },
   "terminalProgressBarEnabled": true,
   "showTurnDuration": true,
   "prefersReducedMotion": false,
-  "teammateMode": "in-process | split-pane | auto",
+  "teammateMode": "in-process | tmux | auto",
 
   "attribution": {
     "commit": "🤖 Generated with Claude Code\n\nCo-Authored-By: ...",
@@ -787,8 +820,6 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
 
   "respectGitignore": true,
   "fileSuggestion": { "type": "command", "command": "..." },
-  "additionalDirectories": [],
-
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
@@ -830,13 +861,13 @@ When `ok` is `false`, the hook blocks the action and provides the reason as feed
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `spinnerTipsEnabled` | `boolean` | `true` | Show rotating tips during spinner/loading |
-| `spinnerVerbs` | `string[]` | Default set | Custom verbs for the loading spinner |
+| `spinnerVerbs` | `object` | Default set | Custom verbs: `{ "mode": "append", "verbs": ["Pondering"] }` |
 | `terminalProgressBarEnabled` | `boolean` | `true` | Display terminal progress bars |
 | `showTurnDuration` | `boolean` | `true` | Show "Turn took X seconds" messages |
 | `statusLine` | `object` | None | Custom status line script |
 | `fileSuggestion` | `object` | Default | Custom `@` file autocomplete script |
 | `prefersReducedMotion` | `boolean` | `false` | Reduce animations and motion in UI |
-| `teammateMode` | `string` | `"auto"` | Agent Teams display: `"in-process"`, `"split-pane"`, `"auto"` |
+| `teammateMode` | `string` | `"auto"` | Agent Teams display: `"in-process"`, `"tmux"`, `"auto"` |
 
 ### Thinking & Model Settings
 
@@ -1026,7 +1057,7 @@ First match wins:
 |----------|-------------|--------------|
 | `CLAUDE_PROJECT_DIR` | Absolute path to project root | All hooks |
 | `CLAUDE_CODE_REMOTE` | `"true"` if web environment | All hooks |
-| `CLAUDE_ENV_FILE` | File path to persist env vars | SessionStart, Setup only |
+| `CLAUDE_ENV_FILE` | File path to persist env vars | SessionStart only |
 | `CLAUDE_PLUGIN_ROOT` | Plugin directory path | Plugin hooks only |
 | `SESSION_ID` | Unique session identifier | All hooks |
 
@@ -1113,7 +1144,8 @@ Agent instructions go here in markdown...
 | Scope | Location | Shared | Precedence |
 |-------|----------|--------|-----------|
 | **Managed** | System-level `managed-settings.json` | Yes (IT deployed) | Highest (cannot override) |
-| **Local** | `.claude/settings.local.json` | No (gitignored) | Normal |
+| **CLI args** | Command-line flags and options | No | High |
+| **Local** | `.claude/settings.local.json` | No (gitignored) | Normal (overrides Project) |
 | **Project** | `.claude/settings.json` | Yes (in git) | Normal |
 | **User** | `~/.claude/settings.json` | No | Lowest |
 
@@ -1121,9 +1153,9 @@ Agent instructions go here in markdown...
 
 | OS | Path |
 |----|------|
-| macOS | `<SYSTEM_CONFIG>/ClaudeCode/managed-settings.json` |
-| Linux/WSL | `<SYSTEM_CONFIG>/claude-code/managed-settings.json` |
-| Windows | `<SYSTEM_CONFIG>\ClaudeCode\managed-settings.json` |
+| macOS | `/Library/Application Support/ClaudeCode/managed-settings.json` |
+| Linux/WSL | `/etc/claude-code/managed-settings.json` |
+| Windows | `%PROGRAMDATA%\ClaudeCode\managed-settings.json` |
 
 ---
 
@@ -1155,6 +1187,9 @@ Agent instructions go here in markdown...
 
 **Skill & Planning Tools:**
 `Skill`, `EnterPlanMode`, `ExitPlanMode`, `AskUserQuestion`
+
+**Advanced Tools:**
+`Computer`, `ToolSearch`, `TeammateTool`
 
 **MCP Tools Pattern:**
 `mcp__<server>__<tool>` (e.g., `mcp__memory__create_entities`)
