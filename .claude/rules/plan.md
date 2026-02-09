@@ -19,7 +19,7 @@ The following tasks are always required unless the plan includes only trivial ch
 - Product/UX review using `product-reviewer` agent (validate feature works from a non-technical perspective)
 - CodeRabbit code review
 - Local code review via `/plan-local-code-review`
-- Technical review using `tech-reviewer` agent (beginner-friendly; correctness, security, coding-philosophy)
+- Technical review using `tech-reviewer` agent (beginner-friendly; correctness, security, performance)
 - Implement valid review suggestions (run after all reviews complete)
 - Simplify code using code simplifier agent (run after review implementation)
 - Update/add/remove tests as needed (run after review implementation)
@@ -72,8 +72,8 @@ When plans spawn an Agent Team for implementation, recommend these specialized a
 
 | Agent | Use For | Why |
 |-------|---------|-----|
-| `implementer` | Code implementation | Pre-loaded with project conventions, coding-philosophy, empirical verification |
-| `tech-reviewer` | Technical review | Beginner-friendly findings; covers correctness, security, performance, coding-philosophy |
+| `implementer` | Code implementation | Pre-loaded with project conventions, empirical verification |
+| `tech-reviewer` | Technical review | Beginner-friendly findings; covers correctness, security, performance |
 | `product-reviewer` | Product/UX review | Validates from non-technical perspective; runs feature empirically |
 | `learner` | Post-implementation learning | Processes task learnings through `skill-evaluator` to create skills, add rules, or discard |
 | `test-coverage-agent` | Writing tests | Specialized for comprehensive, meaningful test coverage |
@@ -97,11 +97,33 @@ Every task description must be a markdown document with these sections:
 
 **Description:** Clear description based on type (Bug: symptoms/root cause; Story: Gherkin Given/When/Then; Task: clear goal; Epic: goal with sub-tasks)
 
+### Type-Specific Requirements
+
+When the plan type is determined, apply the corresponding requirements:
+
+#### Bug
+- **Replication step** (mandatory): Reproduce the bug empirically before any fix
+- **Root cause analysis**: Identify why the bug occurs
+- **Regression test**: Write a test that fails without the fix and passes with it
+- **Verification**: Run the replication step again to confirm the fix
+
+#### Story/Feature
+- **UX review**: Product-reviewer agent validates from user perspective
+- **Feature flag consideration**: Should this be behind a flag?
+- **Documentation**: User-facing docs if applicable
+
+#### Task
+- **Standard implementation** with empirical verification
+
+#### Epic
+- **Decompose into sub-tasks** (Stories/Tasks/Bugs)
+- **Each sub-task gets its own type-specific requirements**
+
 **Acceptance Criteria:** Checkbox list of completion criteria
 
 **Relevant Research:** Code references, patterns, architecture constraints
 
-**Skills to Invoke:** `/coding-philosophy` is always required, plus other applicable skills
+**Skills to Invoke:** List applicable skills (coding-philosophy is auto-loaded as a rule)
 
 **Implementation Details:** Files to modify, functions to implement, edge cases
 
@@ -117,7 +139,7 @@ Every task description must be a markdown document with these sections:
 {
   "plan": "<plan-name>",
   "type": "bug|task|epic|story",
-  "skills": ["/coding-philosophy", ...],
+  "skills": ["..."],
   "verification": {
     "type": "test|ui-recording|test-coverage|api-test|manual-check|documentation",
     "command": "the proof command",

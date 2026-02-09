@@ -2,7 +2,6 @@
 name: tasks-sync
 description: This skill should be used when syncing current session tasks to a project directory. It exports all tasks from the current Claude Code session to JSON files in the project's tasks directory, enabling persistence across sessions.
 allowed-tools: ["Read", "Write", "Bash", "TaskList", "TaskGet"]
-argument-hint: "<project-name>"
 ---
 
 # Sync Tasks to Project

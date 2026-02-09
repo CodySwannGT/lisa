@@ -2,7 +2,6 @@
 name: pull-request-review
 description: This skill should be used when checking for code review comments on a pull request and implementing them if required. It fetches PR metadata and comments, generates a brief from unresolved feedback, and bootstraps a project to address the review comments.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
-argument-hint: "<github-pr-link>"
 ---
 
 # Review PR Comments

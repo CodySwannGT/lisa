@@ -1,7 +1,6 @@
 ---
 name: lisa-review-project
-description: This skill should be used when comparing Lisa's source templates against a target project's implementation to identify drift. It validates the Lisa directory, detects project types, reads the manifest, compares files, categorizes changes, and offers to adopt improvements back into Lisa. This is the inverse of lisa-review-implementation.
-argument-hint: "<project-path>"
+description: This skill should be used when comparing Lisa's source templates against a target project's implementation to identify drift. It validates the Lisa directory, detects project types, reads the manifest, compares files, categorizes changes, and offers to adopt improvements back into Lisa. This is the inverse of lisa:review-implementation.
 ---
 
 # Lisa Project Review
@@ -9,8 +8,8 @@ argument-hint: "<project-path>"
 This skill compares Lisa's source templates against a target project that has Lisa applied, identifying what the project has changed from Lisa and offering to adopt those improvements back into Lisa.
 
 This is the inverse of `/lisa-review-implementation`:
-- **lisa-review-implementation**: Run FROM project → "What did I change from Lisa?"
-- **lisa-review-project**: Run FROM Lisa → "What has this project changed?"
+- **lisa:review-implementation**: Run FROM project → "What did I change from Lisa?"
+- **lisa:review-project**: Run FROM Lisa → "What has this project changed?"
 
 ## Prerequisites
 

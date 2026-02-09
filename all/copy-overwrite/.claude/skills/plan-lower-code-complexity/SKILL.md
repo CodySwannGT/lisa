@@ -23,36 +23,22 @@ Reduces the cognitive complexity threshold by 2 and fixes all violations.
 
 If no violations at new threshold, report success and exit.
 
-## Step 2: Create Plan
+## Step 2: Compile Brief and Delegate
 
-In plan mode, create a plan that includes the following details:
+Compile the gathered information into a structured brief:
 
-```markdown
+```
 Reduce cognitive complexity threshold from [current] to [new].
 
-## Functions Exceeding Threshold (ordered by complexity)
+Functions exceeding threshold (ordered by complexity):
+1. [file:function] (complexity: X, target: [new]) - Line Y
+2. ...
 
-1. src/services/user.ts:processUser (complexity: 18, target: [new])
-   - Line 45, function spans lines 45-120
-2. src/utils/helpers.ts:validateInput (complexity: 15, target: [new])
-   - Line 23, function spans lines 23-67
-...
+Configuration change: [eslint config path], cognitive-complexity from [current] to [new]
 
-## Configuration Change
-- File: [eslint config path]
-- Change: cognitive-complexity threshold from [current] to [new]
+Refactoring strategies: extract functions, early returns, extract conditions, use lookup tables
 
-## Refactoring Strategies
-- **Extract functions**: Break complex logic into smaller, named functions
-- **Early returns**: Reduce nesting with guard clauses
-- **Extract conditions**: Move complex boolean logic into named variables
-- **Use lookup tables**: Replace complex switch/if-else chains with object maps
-
-## Acceptance Criteria
-- All functions at or below complexity [new]
-- `bun run lint` passes with no cognitive-complexity violations
-
-## Verification
-Command: `bun run lint 2>&1 | grep "cognitive-complexity" | wc -l`
-Expected: 0
+Verification: `bun run lint 2>&1 | grep "cognitive-complexity" | wc -l` → Expected: 0
 ```
+
+Invoke `/plan-create` with this brief to create the implementation plan.

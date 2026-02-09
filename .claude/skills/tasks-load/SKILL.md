@@ -2,7 +2,6 @@
 name: tasks-load
 description: This skill should be used when loading tasks from a project directory into the current Claude Code session. It reads task JSON files from session subdirectories, recreates them in the current session, and sets the active project marker.
 allowed-tools: ["Read", "Bash", "TaskCreate", "TaskUpdate", "TaskList"]
-argument-hint: "<project-name>"
 ---
 
 # Load Project Tasks

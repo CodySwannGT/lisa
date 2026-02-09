@@ -10,9 +10,9 @@ This directory contains Claude Code configuration files that customize AI-assist
 ├── settings.local.json        # Local overrides (gitignored)
 ├── settings.local.json.example # Template for local settings
 ├── agents/                    # Custom agent definitions
-├── commands/                  # Slash command definitions
 ├── hooks/                     # Automation hooks
-└── skills/                    # Skill definitions
+├── rules/                     # Always-on governance rules
+└── skills/                    # Skill definitions (colon-namespaced)
 ```
 
 ## Settings
@@ -109,31 +109,52 @@ Custom agent definitions in `agents/` provide specialized AI personas for differ
 | `slash-command-architect.md` | Command design |
 | `web-search-researcher.md` | Web research tasks |
 
-## Commands
-
-Slash commands in `commands/` provide quick actions:
-
-- `git/` - Git-related commands
-- `jira/` - Jira integration commands
-- `plan/` - Plan utility commands (test coverage, linting, code review, complexity)
-- `pull-request/` - PR workflow commands
-- `rules/` - Rule management commands
-- `sonarqube/` - Code quality commands
-
 ## Skills
 
-Skills in `skills/` provide domain-specific knowledge:
+Skills use colon-namespaced directories (e.g., `plan:create/`) and are invoked via `/skill-name` in Claude Code.
+
+### Plan Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `jsdoc-best-practices/` | JSDoc documentation standards |
-| `skill-creator/` | Creating new skills |
-| `plan-add-test-coverage/` | Increase test coverage via plan mode |
-| `plan-fix-linter-error/` | Fix ESLint violations via plan mode |
-| `plan-local-code-review/` | Review local branch changes |
-| `plan-lower-code-complexity/` | Reduce cognitive complexity via plan mode |
-| `plan-reduce-max-lines/` | Reduce max file lines via plan mode |
-| `plan-reduce-max-lines-per-function/` | Reduce max function lines via plan mode |
+| `plan:create` | Create implementation plans from ticket URLs, file paths, or text descriptions |
+| `plan:implement` | Execute an existing plan with an Agent Team |
+| `plan:add-test-coverage` | Increase test coverage to a target threshold |
+| `plan:fix-linter-error` | Fix all violations of specific ESLint rules |
+| `plan:local-code-review` | Review local branch changes against main |
+| `plan:lower-code-complexity` | Reduce cognitive complexity threshold |
+| `plan:reduce-max-lines` | Reduce max file lines threshold |
+| `plan:reduce-max-lines-per-function` | Reduce max function lines threshold |
+
+### Git Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `git:commit` | Create conventional commits for current changes |
+| `git:commit-and-submit-pr` | Commit changes and create/update a pull request |
+| `git:submit-pr` | Push changes and create or update a pull request |
+| `git:prune` | Prune local branches deleted on remote |
+
+### Integration Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `jira:create` | Create JIRA epics, stories, and tasks |
+| `jira:verify` | Verify JIRA ticket meets organizational standards |
+| `jira:sync` | Sync plan progress to linked JIRA tickets |
+| `sonarqube:check` | Check SonarQube/SonarCloud quality gate failures |
+| `sonarqube:fix` | Fix SonarQube quality gate failures |
+| `pull-request:review` | Check and implement PR review comments |
+| `security:zap-scan` | Run OWASP ZAP baseline security scan |
+
+### Utility Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `tasks:load` | Load tasks from project directory into session |
+| `tasks:sync` | Export session tasks to project directory |
+| `skill-creator` | Guide for creating new skills |
+| `jsdoc-best-practices` | JSDoc documentation standards |
 
 See each skill's `SKILL.md` for detailed documentation.
 
@@ -141,31 +162,36 @@ See each skill's `SKILL.md` for detailed documentation.
 
 ### Adding Custom Skills
 
+Skills contain implementation logic and use hyphen-separated naming:
+
 ```bash
-mkdir -p .claude/skills/my-skill
-cat > .claude/skills/my-skill/SKILL.md << 'EOF'
+mkdir -p .claude/skills/my-namespace-my-skill
+cat > .claude/skills/my-namespace-my-skill/SKILL.md << 'EOF'
+---
+name: my-namespace-my-skill
+description: "What this skill does"
+---
+
 # My Skill
 
-## When to Use
-- Situation 1
-- Situation 2
-
-## Instructions
-Step-by-step guidance...
+Instructions for the skill...
 EOF
 ```
 
 ### Adding Custom Commands
 
+Commands are user-facing pass-throughs to skills. Directory nesting creates colon-separated names in the UI (e.g., `my-namespace/my-skill.md` becomes `/my-namespace:my-skill`):
+
 ```bash
-mkdir -p .claude/commands/my-category
-cat > .claude/commands/my-category/my-command.md << 'EOF'
+mkdir -p .claude/commands/my-namespace
+cat > .claude/commands/my-namespace/my-skill.md << 'EOF'
 ---
-name: my-command
-description: What this command does
+description: "What this command does"
+allowed-tools: ["Skill"]
+argument-hint: "<arguments>"
 ---
 
-Instructions for the command...
+Use the /my-namespace-my-skill skill to do the thing. $ARGUMENTS
 EOF
 ```
 
@@ -201,8 +227,8 @@ EOF
 2. Check marketplace access if using marketplace plugins
 3. Review Claude Code logs for plugin errors
 
-### Commands Not Found
+### Skills Not Found
 
-1. Ensure command file has correct frontmatter format
-2. Restart Claude Code to reload commands
-3. Check for syntax errors in command definition
+1. Ensure skill directory contains a `SKILL.md` file with correct frontmatter
+2. Restart Claude Code to reload skills
+3. Check for syntax errors in skill definition

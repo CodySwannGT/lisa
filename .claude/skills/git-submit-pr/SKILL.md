@@ -2,7 +2,6 @@
 name: git-submit-pr
 description: This skill should be used when pushing changes and creating or updating a pull request. It verifies the branch state, pushes to remote, creates or updates a PR with a comprehensive description, and enables auto-merge.
 allowed-tools: ["Bash", "mcp__github__create_pull_request", "mcp__github__get_pull_request", "mcp__github__update_pull_request"]
-argument-hint: "[pr-title-or-description-hint]"
 ---
 
 # Submit Pull Request Workflow

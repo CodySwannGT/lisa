@@ -2,7 +2,6 @@
 name: plan-add-test-coverage
 description: This skill should be used when increasing test coverage to a specified threshold percentage. It runs the coverage report, identifies files with the lowest coverage, generates a brief with coverage gaps, and creates a plan with tasks to add the missing tests.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
-argument-hint: "<threshold-percentage>"
 
 ---
 
@@ -24,31 +23,22 @@ If no argument provided, prompt the user for a target.
    - Current coverage % (lines, branches, functions)
    - Which lines/branches are uncovered
 
-## Step 2: Create Plan
+## Step 2: Compile Brief and Delegate
 
-In plan mode, create a plan that includes the following details:
+Compile the gathered information into a structured brief:
 
-```markdown
+```
 Increase test coverage from [current]% to $ARGUMENTS%.
 
-## Files Needing Coverage (ordered by coverage gap)
+Files needing coverage (ordered by coverage gap):
+1. [file] - [current]% coverage (target: $ARGUMENTS%)
+   - Uncovered: [lines]
+   - Missing branch coverage: [lines]
+2. ...
 
-1. src/services/user.ts - 23% coverage (target: $ARGUMENTS%)
-   - Uncovered: lines 45-67, 89-102
-   - Missing branch coverage: lines 34, 56
-2. src/utils/helpers.ts - 34% coverage (target: $ARGUMENTS%)
-   - Uncovered: lines 12-45
-...
+Configuration: [config file path], update thresholds to $ARGUMENTS%
 
-## Configuration
-- Config file: [path to coverage config]
-- Update thresholds to $ARGUMENTS% for: lines, branches, functions, statements
-
-## Acceptance Criteria
-- All files meet $ARGUMENTS% coverage threshold
-- `bun run test:cov` passes with no threshold violations
-
-## Verification
-Command: `bun run test:cov`
-Expected: All thresholds pass at $ARGUMENTS%
+Verification: `bun run test:cov` → Expected: All thresholds pass at $ARGUMENTS%
 ```
+
+Invoke `/plan-create` with this brief to create the implementation plan.

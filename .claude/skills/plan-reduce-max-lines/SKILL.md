@@ -2,7 +2,6 @@
 name: plan-reduce-max-lines
 description: This skill should be used when reducing the maximum file lines threshold and fixing all violations. It updates the eslint threshold configuration, identifies files exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized files.
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
-argument-hint: "<max-lines-value>"
 
 ---
 
@@ -25,35 +24,22 @@ If no argument provided, prompt the user for a target.
 
 If no violations at $ARGUMENTS, report success and exit.
 
-## Step 2: Create Plan
+## Step 2: Compile Brief and Delegate
 
-In plan mode, create a plan that includes the following details:
+Compile the gathered information into a structured brief:
 
-```markdown
+```
 Reduce max file lines threshold to $ARGUMENTS.
 
-## Files Exceeding Threshold (ordered by line count)
+Files exceeding threshold (ordered by line count):
+1. [file] - [current] lines (target: $ARGUMENTS)
+2. ...
 
-1. src/services/user.ts (450 lines, target: $ARGUMENTS)
-2. src/utils/helpers.ts (380 lines, target: $ARGUMENTS)
-3. src/components/Dashboard.tsx (320 lines, target: $ARGUMENTS)
-...
+Configuration change: eslint.thresholds.json, maxLines to $ARGUMENTS
 
-## Configuration Change
-- File: eslint.thresholds.json
-- Change: maxLines to $ARGUMENTS
+Refactoring strategies: extract modules, remove duplication, delete dead code, simplify logic
 
-## Refactoring Strategies
-- **Extract modules**: Break file into smaller focused modules
-- **Remove duplication**: Consolidate repeated logic
-- **Delete dead code**: Remove unused functions/code paths
-- **Simplify logic**: Use early returns, reduce nesting
-
-## Acceptance Criteria
-- All files at or below $ARGUMENTS lines
-- `bun run lint` passes with no max-lines violations
-
-## Verification
-Command: `bun run lint 2>&1 | grep "max-lines" | wc -l`
-Expected: 0
+Verification: `bun run lint 2>&1 | grep "max-lines" | wc -l` → Expected: 0
 ```
+
+Invoke `/plan-create` with this brief to create the implementation plan.

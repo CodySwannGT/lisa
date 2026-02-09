@@ -1,6 +1,6 @@
 ---
 description: "Implement a plan"
-argument-hint: "[plan-file]"
+argument-hint: "<plan-file>"
 ---
 
-Implement the requirements in $ARGUMENTS
+Use the /plan-implement skill to implement the plan. $ARGUMENTS
