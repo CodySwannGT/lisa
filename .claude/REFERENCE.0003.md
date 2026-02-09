@@ -1,6 +1,6 @@
-# Claude Code Agent Teams, Hooks & Settings Reference (2026-02-08)
+# Claude Code Agent Teams, Skills, Commands, Hooks & Settings Reference (2026-02-08)
 
-Complete expert reference for Claude Code Agent Teams, hooks, and `.claude/settings.json` configuration. Standalone document superseding REFERENCE.md and REFERENCE.0002.md.
+Complete expert reference for Claude Code Agent Teams, skills, commands, hooks, and `.claude/settings.json` configuration. Standalone document superseding REFERENCE.md and REFERENCE.0002.md.
 
 ---
 
@@ -17,6 +17,77 @@ Complete expert reference for Claude Code Agent Teams, hooks, and `.claude/setti
 | **SessionEnd matcher** | New value `bypass_permissions_disabled` |
 | **Subagent config** | `memory` field, `skills` preloading, `hooks` in frontmatter, `mcpServers` field |
 | **Settings validation** | `$schema` support for `settings.json` |
+
+---
+
+## Skills vs Commands
+
+Skills and commands are complementary features in Claude Code with distinct roles.
+
+### Skills (`.claude/skills/<name>/SKILL.md`)
+
+Skills contain implementation logic — the actual instructions Claude follows to perform a task.
+
+| Property | Details |
+|----------|---------|
+| **Location** | `.claude/skills/<name>/SKILL.md` |
+| **Naming** | Hyphen-separated (e.g., `plan-create`, `git-commit`) |
+| **Invocation** | Via `Skill` tool: `Skill(skill: "plan-create", args: "...")` |
+| **`$ARGUMENTS`** | NOT substituted — appears as literal text |
+| **`argument-hint`** | NOT supported — ignored in frontmatter |
+| **Frontmatter** | `name`, `description`, `allowed-tools` |
+| **Visibility** | Listed in system prompt, invocable by Claude autonomously |
+
+### Commands (`.claude/commands/<namespace>/<name>.md`)
+
+Commands are the user-facing interface — they provide argument hints in the UI and substitute `$ARGUMENTS` before delegating to a skill.
+
+| Property | Details |
+|----------|---------|
+| **Location** | `.claude/commands/<namespace>/<name>.md` |
+| **Naming** | Directory nesting creates colon-separated UI names (e.g., `plan/create.md` → `/plan:create`) |
+| **Invocation** | User types `/plan:create <args>` in the prompt |
+| **`$ARGUMENTS`** | Substituted with user input before Claude sees the prompt |
+| **`argument-hint`** | Supported — shown as placeholder text in the UI |
+| **Frontmatter** | `description`, `allowed-tools`, `argument-hint` |
+| **Visibility** | Shown in slash command menu with descriptions and argument hints |
+
+### How They Work Together
+
+```text
+User types: /plan:create https://jira.example.com/TICKET-123
+
+1. Claude Code finds .claude/commands/plan/create.md
+2. $ARGUMENTS is replaced: "Use the /plan-create skill to create a plan for https://jira.example.com/TICKET-123"
+3. Claude invokes Skill(skill: "plan-create", args: "https://jira.example.com/TICKET-123")
+4. Skill SKILL.md is loaded and Claude follows the instructions
+```
+
+### Naming Conventions
+
+| Context | Format | Example |
+|---------|--------|---------|
+| Skill directory | Hyphen-separated | `.claude/skills/plan-create/SKILL.md` |
+| Command directory | Nested directories | `.claude/commands/plan/create.md` |
+| User-facing name | Colon-separated (from command nesting) | `/plan:create` |
+| Skill-to-skill reference | Hyphen name | `Run /git-commit` |
+| User docs and rules | Either format | `/plan:create` or `/plan-create` |
+
+### Command Pass-Through Pattern
+
+Every skill should have a corresponding command:
+
+```markdown
+---
+description: "What this command does"
+allowed-tools: ["Skill"]
+argument-hint: "<required-arg> [optional-arg]"
+---
+
+Use the /my-skill-name skill to do the thing. $ARGUMENTS
+```
+
+For skills without arguments, omit `argument-hint` and `$ARGUMENTS`.
 
 ---
 

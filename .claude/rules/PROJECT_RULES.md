@@ -44,13 +44,16 @@ When creating Claude Code hooks for enforcement (linting, code quality, static a
 
 ## Skills and Commands
 
-Skills are a strict superset of commands in Claude Code. The `.claude/commands/` directory is unnecessary and should not be used. All functionality should be implemented as skills in `.claude/skills/`.
+Skills and commands serve different roles in Claude Code:
 
-Use colon-separated naming for skills to create namespace hierarchy (e.g., `plan:create`, `git:commit`). This organizes related skills together in the skill menu.
+- **Skills** (`.claude/skills/<name>/SKILL.md`): Contain implementation logic. Use hyphen-separated naming (e.g., `plan-create`, `git-commit`). Skills do NOT support `argument-hint` or `$ARGUMENTS` substitution.
+- **Commands** (`.claude/commands/<namespace>/<name>.md`): User-facing interface with `argument-hint` and `$ARGUMENTS` support. Directory nesting creates colon-separated names in the UI (e.g., `plan/create.md` becomes `/plan:create`). Commands pass through to skills.
 
-Skills can invoke other skills via the Skill tool, enabling skill chaining and composition. Wrapper skills should gather context and then delegate to more specific skills.
+Every skill should have a corresponding command that acts as a pass-through. The command provides the user-facing description, argument hints, and delegates to the skill via "Use the /<skill-name> skill... $ARGUMENTS".
 
-Lisa-specific skills (like `lisa:integration-test`, `lisa:learn`, `lisa:review-project`) should only exist in the root `.claude/skills/` directory, NOT in `all/copy-overwrite/.claude/skills/`, since they are only relevant to the Lisa repository itself, not downstream projects.
+Skills can invoke other skills via the Skill tool, enabling skill chaining and composition. Internal skill-to-skill references use hyphen names (e.g., `/git-commit`).
+
+Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-project`) should only exist in the root `.claude/skills/` and `.claude/commands/` directories, NOT in `all/copy-overwrite/`, since they are only relevant to the Lisa repository itself, not downstream projects.
 
 ## Task Metadata
 
