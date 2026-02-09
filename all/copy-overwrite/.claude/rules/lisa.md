@@ -10,14 +10,16 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 | `jest.config.ts` | `jest.config.local.ts` |
 | `tsconfig.json` | `tsconfig.local.json` |
 | `eslint.ignore.config.json` | `eslint.config.local.ts` |
-| `eslint.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
-| `jest.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
-| `.claude/rules/coding-philosophy.md` | `.claude/rules/PROJECT_RULES.md` |
-| `.claude/rules/plan.md` | `.claude/rules/PROJECT_RULES.md` |
-| `.claude/rules/verfication.md` | `.claude/rules/PROJECT_RULES.md` |
+
+## Create-only files (edit freely, Lisa won't overwrite)
+
+- `.claude/rules/PROJECT_RULES.md`
+- `eslint.thresholds.json`
+- `jest.thresholds.json`
 
 ## Files and directories with NO local override (do not edit at all)
 
+- `.claude/rules/coding-philosophy.md`, `.claude/rules/plan.md`, `.claude/rules/verfication.md`
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
 - `.yamllint`, `.gitleaksignore`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
