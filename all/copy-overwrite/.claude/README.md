@@ -128,12 +128,12 @@ Skills in `skills/` provide domain-specific knowledge:
 |-------|---------|
 | `jsdoc-best-practices/` | JSDoc documentation standards |
 | `skill-creator/` | Creating new skills |
-| `plan-add-test-coverage/` | Increase test coverage via plan mode |
-| `plan-fix-linter-error/` | Fix ESLint violations via plan mode |
-| `plan-local-code-review/` | Review local branch changes |
-| `plan-lower-code-complexity/` | Reduce cognitive complexity via plan mode |
-| `plan-reduce-max-lines/` | Reduce max file lines via plan mode |
-| `plan-reduce-max-lines-per-function/` | Reduce max function lines via plan mode |
+| `plan:add-test-coverage/` | Increase test coverage via plan mode |
+| `plan:fix-linter-error/` | Fix ESLint violations via plan mode |
+| `plan:local-code-review/` | Review local branch changes |
+| `plan:lower-code-complexity/` | Reduce cognitive complexity via plan mode |
+| `plan:reduce-max-lines/` | Reduce max file lines via plan mode |
+| `plan:reduce-max-lines-per-function/` | Reduce max function lines via plan mode |
 
 See each skill's `SKILL.md` for detailed documentation.
 
