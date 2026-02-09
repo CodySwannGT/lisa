@@ -13,7 +13,7 @@ Never assume something works because the code "looks correct." Run a command, ob
 | `test` | Unit/integration tests | `npm test -- path/to/file.spec.ts` |
 | `api-test` | API endpoints | `curl -s localhost:3000/api/endpoint` |
 | `test-coverage` | Coverage thresholds | `npm run test:cov -- --collectCoverageFrom=...` |
-| `ui-recording` | UI changes | Playwright/Cypress test |
+| `ui-recording` | UI changes | Playwright/Chrome Browser recorded session |
 | `documentation` | Doc changes | `grep "expected" path/to/doc.md` |
 | `manual-check` | Config/setup | `cat config.json \| jq '.setting'` |
 
