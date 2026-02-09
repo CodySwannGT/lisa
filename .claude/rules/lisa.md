@@ -26,7 +26,7 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `tsconfig.base.json`, `tsconfig.typescript.json`, `tsconfig.expo.json`, `tsconfig.nestjs.json`, `tsconfig.cdk.json`
 - `tsconfig.eslint.json`, `tsconfig.build.json`, `tsconfig.spec.json`
 - `eslint-plugin-code-organization/*`, `eslint-plugin-component-structure/*`, `eslint-plugin-ui-standards/*`
-- `.claude/settings.json`, `.claude/hooks/*`, `.claude/skills/*`, `.claude/commands/*`, `.claude/agents/*`
+- `.claude/settings.json`, `.claude/hooks/*`, `.claude/skills/*` (colon-named, e.g. `plan:create.md`), `.claude/agents/*`
 - `.claude/README.md`, `.claude/REFERENCE.md`
 - `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`
 - `.github/workflows/build.yml`, `.github/workflows/lighthouse.yml` (Expo)

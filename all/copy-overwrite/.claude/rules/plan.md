@@ -11,7 +11,7 @@ When making a plan:
 - Always look for code that can be reused for implementation
 - The plan MUST include written instructions to create a task list using TaskCreate for each task (following the Task Creation Specification below). The list should contain items related to the plan and specify that subagents should handle as many in parallel as possible. The following should always be included in the task list:
   - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with CodeRabbit
-  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with /plan-local-code-review
+  - (unless the plan includes only trivial changes) a task to be run after implementation to review the code with /plan:local-code-review
   - (unless the plan includes only trivial changes) a task to be run after all code review to implement valid review suggestions
   - (unless the plan includes only trivial changes) a task to be run after code review implementation to simplify the implemented code with code simplifier agent
   - (unless the plan includes only trivial changes) a task to be run after code review implementation to update/add/remove tests, containing the tests that need to get updated, added or removed
@@ -55,11 +55,33 @@ Every task description must be a markdown document with these sections:
 
 **Description:** Clear description based on type (Bug: symptoms/root cause; Story: Gherkin Given/When/Then; Task: clear goal; Epic: goal with sub-tasks)
 
+### Type-Specific Requirements
+
+When the plan type is determined, apply the corresponding requirements:
+
+#### Bug
+- **Replication step** (mandatory): Reproduce the bug empirically before any fix
+- **Root cause analysis**: Identify why the bug occurs
+- **Regression test**: Write a test that fails without the fix and passes with it
+- **Verification**: Run the replication step again to confirm the fix
+
+#### Story/Feature
+- **UX review**: Product-reviewer agent validates from user perspective
+- **Feature flag consideration**: Should this be behind a flag?
+- **Documentation**: User-facing docs if applicable
+
+#### Task
+- **Standard implementation** with empirical verification
+
+#### Epic
+- **Decompose into sub-tasks** (Stories/Tasks/Bugs)
+- **Each sub-task gets its own type-specific requirements**
+
 **Acceptance Criteria:** Checkbox list of completion criteria
 
 **Relevant Research:** Code references, patterns, architecture constraints extracted from research
 
-**Skills to Invoke:** `/coding-philosophy` is always required, plus other applicable skills
+**Skills to Invoke:** List applicable skills (coding-philosophy is auto-loaded as a rule)
 
 **Implementation Details:** Files to modify, functions to implement, edge cases
 
@@ -75,7 +97,7 @@ Every task description must be a markdown document with these sections:
 {
   "plan": "<plan-name>",
   "type": "bug|task|epic|story",
-  "skills": ["/coding-philosophy", ...],
+  "skills": ["..."],
   "verification": {
     "type": "test|ui-recording|test-coverage|api-test|manual-check|documentation",
     "command": "the proof command",
