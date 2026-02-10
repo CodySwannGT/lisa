@@ -67,14 +67,14 @@ Example:
 
 ```typescript
 // Wrong - validation helper call before const
-function fibonacci(n: number): number {
+function fibonacci(n: number): bigint {
   validateNonNegativeInteger(n, "n"); // Expression statement
   const result = compute(n); // Const after expression
   return result;
 }
 
 // Correct - inline validation as guard clause
-function fibonacci(n: number): number {
+function fibonacci(n: number): bigint {
   if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
     throw new RangeError(`Expected a non-negative integer for n, got ${String(n)}`);
   }
@@ -98,7 +98,7 @@ it("fibonacciSequence(5) returns correct sequence", () => {
 
 // Correct - uses hardcoded known values
 it("fibonacciSequence(5) returns correct sequence", () => {
-  expect(fibonacciSequence(5)).toEqual([0, 1, 1, 2, 3]);
+  expect(fibonacciSequence(5)).toEqual([0n, 1n, 1n, 2n, 3n]);
 });
 ```
 ## Agent Team Workflows
