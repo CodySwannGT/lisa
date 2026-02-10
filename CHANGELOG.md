@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.31.0](https://github.com/CodySwannGT/lisa/compare/vv1.30.0...v1.31.0) (2026-02-10)
+
+
+### Features
+
+* add domain planner agents and move review agents to template ([62a4995](https://github.com/CodySwannGT/lisa/commit/62a49958a93c48574ee644a7b33e42779a92d687))
+* rewrite plan-create and plan-implement with phased workflows ([7bc3947](https://github.com/CodySwannGT/lisa/commit/7bc394762cb266995e578ab482da22b0ccd2c510))
+
+
+### Bug Fixes
+
+* use subagent types for coderabbit and code-simplifier in plan-implement ([02f1d93](https://github.com/CodySwannGT/lisa/commit/02f1d9352fc5d8f9e27b4e8c90926902cec264ef))
+
+
+### Code Refactoring
+
+* split plan.md into document format and governance rules ([36c9938](https://github.com/CodySwannGT/lisa/commit/36c9938aeb589e9a62d0cbe1bee7d50193cc6f82))
+
 ## [1.30.0](https://github.com/CodySwannGT/lisa/compare/vv1.29.1...v1.30.0) (2026-02-10)
 
 
