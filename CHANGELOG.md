@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.33.0](https://github.com/CodySwannGT/lisa/compare/vv1.32.0...v1.33.0) (2026-02-10)
+
+
+### Features
+
+* rewrite fibonacci module with bigint generator ([e427fcb](https://github.com/CodySwannGT/lisa/commit/e427fcbe5b9ceb8353f1b1bf37cf8c627baa8614))
+
+
+### Documentation
+
+* add learnings from fibonacci rewrite to PROJECT_RULES.md ([10e48bf](https://github.com/CodySwannGT/lisa/commit/10e48bf63c71e938e3d89dea1fd75b3a736eea79))
+* update PROJECT_RULES.md fibonacci examples to bigint ([2b2bdfb](https://github.com/CodySwannGT/lisa/commit/2b2bdfbe00212d814c6846717f8ee3aa6c9e8c8d))
+* update test file preamble to reflect final state ([3a4ca0f](https://github.com/CodySwannGT/lisa/commit/3a4ca0f85ad285e2c1bad2be84f65229a0eda006))
+
 ## [1.32.0](https://github.com/CodySwannGT/lisa/compare/vv1.31.1...v1.32.0) (2026-02-10)
 
 
