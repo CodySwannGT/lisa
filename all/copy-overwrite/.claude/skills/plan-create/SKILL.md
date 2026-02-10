@@ -40,23 +40,26 @@ Evaluate the scope of work:
 
 ## Step 4: Phase 1 - Research (parallel)
 
-Create an Agent Team and spawn three research teammates simultaneously:
+Create an Agent Team and spawn three research teammates simultaneously. **All agents spawned in Steps 4–7 must include the `team_name` parameter from the TeamCreate call.**
 
 #### Researcher
 - **Name**: `researcher`
 - **Agent type**: `general-purpose`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: Research the input (ticket, file, or description). If a ticket URL, fetch full details via JIRA MCP or GitHub CLI. If a bug, attempt to reproduce it empirically (Playwright, browser, direct API call, etc.). Extract requirements, acceptance criteria, and context.
 
 #### Codebase Explorer
 - **Name**: `explorer`
 - **Agent type**: `Explore`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: Explore the codebase for relevant code, existing patterns, and reusable scripts. Read lint and format rules to understand project standards. Identify files that would need modification, existing utilities that can be reused, and architecture constraints. Check for existing scripts in `package.json` that could be used for replication or verification.
 
 #### Spec Gap Analyst
 - **Name**: `spec-analyst`
 - **Agent type**: `spec-analyst`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: Analyze the input for specification gaps. Read `package.json` and existing code for project context. Identify every ambiguity or unstated assumption that could lead to wrong architectural decisions. Report as a numbered list of clarifying questions, sorted by impact.
 
 Wait for all three to report back via SendMessage.
@@ -89,24 +92,28 @@ Spawn four domain planners simultaneously, passing each the Research Brief:
 - **Name**: `arch-planner`
 - **Agent type**: `architecture-planner`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [Research Brief] + Design the technical implementation approach. Identify files to create/modify, map dependencies, recommend patterns, flag risks.
 
 #### Test Strategist
 - **Name**: `test-strategist`
 - **Agent type**: `test-strategist`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [Research Brief] + Design the test matrix. Identify edge cases, set coverage targets, define verification commands, plan TDD sequence.
 
 #### Security Planner
 - **Name**: `security-planner`
 - **Agent type**: `security-planner`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [Research Brief] + Perform lightweight threat modeling (STRIDE). Identify auth/validation gaps, secrets exposure risks, and security measures needed.
 
 #### Product Planner
 - **Name**: `product-planner`
 - **Agent type**: `product-planner`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [Research Brief] + Define user flows in Gherkin. Write acceptance criteria from user perspective. Identify UX concerns and error states.
 
 Wait for all four to report back via SendMessage.
@@ -119,12 +126,14 @@ Spawn two reviewers simultaneously, passing them all sub-plans:
 - **Name**: `devils-advocate`
 - **Agent type**: `general-purpose`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [All sub-plans] + Review critically. Identify anti-patterns, N+1 queries, missing edge cases, security concerns, and performance issues. Do not assume anti-patterns are acceptable just because they exist in the codebase — undocumented anti-patterns should be flagged, not used as reference. Challenge assumptions and propose alternatives for weak points.
 
 #### Consistency Checker
 - **Name**: `consistency-checker`
 - **Agent type**: `consistency-checker`
 - **Mode**: `bypassPermissions`
+- **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [All sub-plans] + Verify cross-plan consistency. Check that file lists align, test strategy covers architecture changes, security measures are reflected in acceptance criteria, and no sub-plans contradict each other.
 
 Wait for both to report back via SendMessage.
