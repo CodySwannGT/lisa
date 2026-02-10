@@ -39,6 +39,7 @@ The following task is always required regardless of plan size:
   - **Fallback:** if the `## Sessions` table is empty, search for matching task directories: `grep -rl '"plan": "<plan-name>"' ~/.claude/tasks/*/` and move their parent directories
   - Update any "in_progress" task to "completed"
   - Commit and push changes to the PR
+  - Mark PR ready (`gh pr ready`) and enable auto-merge (`gh pr merge --auto --merge`)
 
 ### Branch and PR Rules
 
@@ -66,7 +67,7 @@ Every plan follows this workflow to keep PRs clean:
 
 1. **First task:** Verify/create branch and open a draft PR (`gh pr create --draft`). No implementation before the draft PR exists.
 2. **During implementation:** Commits only, no pushes. Pre-commit hooks validate lint, format, and typecheck.
-3. **After archive task:** One final `git push`, then mark PR ready (`gh pr ready`), then enable auto-merge (`gh pr merge --auto --merge`).
+3. **After archive task:** One final `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" git push`, then mark PR ready (`gh pr ready`), then enable auto-merge (`gh pr merge --auto --merge`).
 
 ## Implementation Team Guidance
 

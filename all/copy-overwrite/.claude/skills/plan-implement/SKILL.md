@@ -20,7 +20,7 @@ If no argument provided, search for plan files in the `plans/` directory and pre
 7. **Execute tasks** following the plan's specified order and dependency graph
 8. **Verify each task** using its verification metadata before marking complete
 9. **Archive the plan** following the Archive Instructions below
-10. **Final push and PR** — git push, `gh pr ready`, `gh pr merge --auto --merge`
+10. **Final push and PR** — `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" git push`, `gh pr ready`, `gh pr merge --auto --merge`
 
 ## Agent Team Composition
 
@@ -98,7 +98,7 @@ After all tasks (except archive) are complete, archive the plan. This step MUST 
 7. **Final git operations:**
    ```bash
    git add . && git commit -m "chore: archive <plan-name> plan"
-   git push
+   GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" git push
    gh pr ready
    gh pr merge --auto --merge
    ```
