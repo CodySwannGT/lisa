@@ -1,0 +1,18 @@
+{
+  "id": "3",
+  "subject": "Implement fibonacci(n) — TDD GREEN",
+  "description": "**Type:** Task\n\nImplement the `fibonacci(n)` function to make all fibonacci tests pass. Use tuple reduce: `Array.from({ length: n - 1 }).reduce<readonly [number, number]>(([prev, curr]) => [curr, prev + curr] as const, [0, 1])`.\n\nInclude:\n- `validateNonNegativeInteger` private helper\n- `MAX_SAFE_N = 78` constant\n- Input validation throws RangeError with received value: `\"Expected a non-negative integer for n, got ${String(n)}\"`\n- n > 78 throws: `\"fibonacci(n) exceeds Number.MAX_SAFE_INTEGER for n > 78\"`\n- JSDoc with @param, @returns, @throws\n- File preamble JSDoc\n\n**Verification:** `bun run test -- tests/unit/utils/fibonacci.test.ts --verbose` → All fibonacci tests PASS",
+  "activeForm": "Implementing fibonacci(n) (TDD GREEN)",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "2"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}
