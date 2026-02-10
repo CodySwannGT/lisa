@@ -58,3 +58,140 @@ Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-p
 ## Task Metadata
 
 When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is auto-loaded as a rule via `.claude/rules/coding-philosophy.md` and does not need to be explicitly invoked.
+
+## ESLint Statement Order
+
+When writing utility functions, avoid calling shared validation helpers (expression statements/side effects) before const definitions, as this violates the enforce-statement-order rule. Instead, inline validation as `if` guard clauses, which are exempt from the ordering rule.
+
+Example:
+
+```typescript
+// Wrong - validation helper call before const
+function fibonacci(n: number): number {
+  validateNonNegativeInteger(n, "n"); // Expression statement
+  const result = compute(n); // Const after expression
+  return result;
+}
+
+// Correct - inline validation as guard clause
+function fibonacci(n: number): number {
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+    throw new RangeError(`Expected a non-negative integer for n, got ${String(n)}`);
+  }
+  const result = compute(n);
+  return result;
+}
+```
+
+## Test Isolation
+
+Tests should not call other functions under test to compute expected values, as this creates coupling. Use hardcoded known values instead.
+
+Example:
+
+```typescript
+// Wrong - creates coupling between tests
+it("fibonacciSequence(5) returns correct sequence", () => {
+  const expected = [fibonacci(0), fibonacci(1), fibonacci(2), fibonacci(3), fibonacci(4)];
+  expect(fibonacciSequence(5)).toEqual(expected);
+});
+
+// Correct - uses hardcoded known values
+it("fibonacciSequence(5) returns correct sequence", () => {
+  expect(fibonacciSequence(5)).toEqual([0, 1, 1, 2, 3]);
+});
+```
+## Agent Team Workflows
+
+When working with agent teams, follow these patterns to handle platform behaviors:
+
+### Context Compaction Resilience
+
+Context compaction can cause team leads to lose in-memory state (task assignments, owner fields). To mitigate this:
+
+1. **Dual owner storage** - On every TaskUpdate that sets `owner`, also store it in `metadata.owner`:
+   ```
+   TaskUpdate({ taskId: "1", owner: "implementer-1", metadata: { owner: "implementer-1" } })
+   ```
+2. **Re-read after compaction** - Immediately call TaskList to reload all task state after compaction occurs
+3. **Restore missing owners** - If any task has `metadata.owner` but no `owner` field, restore it via TaskUpdate
+4. **Never rely on memory** - Always call TaskList before assigning new work
+
+### Plugin Agent Naming
+
+Plugin agents use colon-separated naming format: `namespace:agent-name`
+
+Examples:
+- `coderabbit:code-reviewer` (not `coderabbit`)
+- `code-simplifier:code-simplifier` (not `code-simplifier`)
+
+This is a platform convention for spawning plugin agents via the Agent Team API.
+
+## File Operations
+
+### Plan Archival
+
+When archiving plan files, always use `mv` via Bash, never Write or Edit tools. Write and Edit overwrite file contents, which loses the `## Sessions` table that tracks session IDs. Only `mv` preserves the complete file contents during relocation.
+
+### Barrel Export Pre-commit Constraint
+
+Cannot make "deletion-only" commits when barrel exports (index.ts files) reference the deleted files. Pre-commit hooks run lint/typecheck which will fail on broken imports.
+
+Solution: Combine deletion of old file + creation of new file in the same atomic commit.
+
+Example: Deleting `src/utils/fibonacci.ts` alone fails because `src/utils/index.ts` exports `export * from './fibonacci.js'`. Instead, delete the old implementation and add the new implementation in a single commit.
+
+## ESLint Disable Comments
+
+### Description Requirement
+
+All `eslint-disable` directives must include a description to satisfy the `eslint-comments/require-description` rule.
+
+Format: `/* eslint-disable rule-name -- description of why this exception is needed */`
+
+Example from generator pattern:
+
+```typescript
+/* eslint-disable functional/no-let -- generator requires mutable state for iterative Fibonacci computation */
+let a = 0n;
+let b = 1n;
+/* eslint-enable functional/no-let -- re-enable after generator state declarations */
+```
+
+## TypeScript Type System
+
+### readonly is Compile-Time Only
+
+TypeScript's `readonly` modifier (e.g., `readonly bigint[]`) is a compile-time constraint only and has no runtime representation.
+
+Do NOT test runtime immutability with `Object.isFrozen()` for readonly types — TypeScript types are erased at runtime.
+
+Runtime immutability tests (`Object.freeze()`, `Object.isFrozen()`) are separate from TypeScript readonly type checks.
+
+## DRY Principle
+
+### Prefer Delegation to Single Source of Truth
+
+When multiple functions compute the same sequence or data structure, prefer delegating to a shared generator or canonical implementation rather than reimplementing the algorithm.
+
+Example from fibonacci implementation:
+
+```typescript
+// Before: Reimplements Fibonacci logic with tuple-reduce (O(1) space but duplicates logic)
+export function fibonacci(n: number): bigint {
+  const [, result] = Array.from({ length: n - 1 }).reduce<readonly [bigint, bigint]>(
+    ([prev, curr]) => [curr, prev + curr] as const,
+    [0n, 1n]
+  );
+  return result;
+}
+
+// After: Delegates to fibonacciGenerator (DRY - single source of truth)
+export function fibonacci(n: number): bigint {
+  const gen = fibonacciGenerator();
+  Array.from({ length: n }, () => gen.next());
+  return gen.next().value;
+}
+```
+
+Even when the reimplementation has theoretical performance benefits (O(1) space), prefer simplicity and DRY unless performance is empirically proven to be a bottleneck.
