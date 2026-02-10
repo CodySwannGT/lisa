@@ -1,0 +1,30 @@
+{
+  "id": "3",
+  "subject": "Write new fibonacci tests (TDD RED phase)",
+  "description": "**Type:** Task\n\n**Description:** Delete the old test file and write new tests from scratch following TDD. Write all 33 tests covering the 3 exports before any implementation exists. Tests should fail (RED) because the source file will also be deleted in this step.\n\n**Important:** The old `src/utils/fibonacci.ts` must also be deleted in this step so that the tests are genuinely RED (module not found). However, since the barrel export constraint requires atomic delete+create, we delete both old files but do NOT commit yet — the commit happens in Task 4 after implementation.\n\n**Acceptance Criteria:**\n- [ ] Old `src/utils/fibonacci.ts` deleted\n- [ ] Old `tests/unit/utils/fibonacci.test.ts` deleted\n- [ ] New `tests/unit/utils/fibonacci.test.ts` written with 33 tests\n- [ ] Tests cover: fibonacciGenerator (7 tests), fibonacci (13 tests), fibonacciSequence (13 tests)\n- [ ] All tests use hardcoded known values (not computed)\n- [ ] Tests import from `@jest/globals` and use `.js` extension for source imports\n- [ ] JSDoc file preamble on test file\n\n**Test Matrix:**\n\n`fibonacciGenerator`:\n- First value is 0n\n- Second value is 1n\n- First 8 values match [0n, 1n, 1n, 2n, 3n, 5n, 8n, 13n]\n- Each yielded value has typeof \"bigint\"\n- done is false on every next() call (laziness)\n- Two independent instances don't share state\n- After 100 calls, done is still false (never terminates)\n\n`fibonacci`:\n- fib(0) = 0n, fib(1) = 1n, fib(2) = 1n\n- fib(5) = 5n, fib(10) = 55n, fib(20) = 6765n\n- fib(78) = 8944394323791464n (beyond Number.MAX_SAFE_INTEGER)\n- fib(100) = 354224848179261915075n\n- fib(200) = 280571172992510140037611932413038677189525n\n- Returns bigint type\n- Throws RangeError for: -1, 3.5, NaN, Infinity, -Infinity\n\n`fibonacciSequence`:\n- length 0 returns []\n- length 1 returns [0n]\n- length 2 returns [0n, 1n]\n- length 8 returns [0n, 1n, 1n, 2n, 3n, 5n, 8n, 13n]\n- Returns Array.isArray true\n- All elements are bigint type\n- Throws RangeError for: -1, 2.7, NaN, Infinity, -Infinity\n\n**Skills to Invoke:** `/jsdoc-best-practices`\n\n**Verification:**\n- Type: `test`\n- Command: `NODE_ENV=test npx jest tests/unit/utils/fibonacci.test.ts 2>&1 | tail -5`\n- Expected: All 33 tests FAIL (RED phase — source module does not exist)\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[\"/jsdoc-best-practices\"],\"verification\":{\"type\":\"test\",\"command\":\"NODE_ENV=test npx jest tests/unit/utils/fibonacci.test.ts 2>&1 | tail -5\",\"expected\":\"Tests: 33 failed, 33 total (module not found)\"}}\n```",
+  "activeForm": "Writing fibonacci tests (TDD RED phase)",
+  "owner": "implementer-2",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "NODE_ENV=test npx jest tests/unit/utils/fibonacci.test.ts 2>&1 | tail -5",
+      "expected": "Tests: 33 failed, 33 total (module not found)"
+    },
+    "owner": "implementer-2",
+    "learnings": [
+      "When a source module is deleted for TDD RED phase, Jest fails at import time (suite-level failure) rather than counting individual test failures — this is expected behavior and represents a genuine RED state"
+    ]
+  }
+}

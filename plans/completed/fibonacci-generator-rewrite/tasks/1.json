@@ -1,0 +1,23 @@
+{
+  "id": "1",
+  "subject": "Create branch and open draft PR",
+  "description": "**Type:** Task\n\n**Description:** Create the feature branch from main and open a draft PR.\n\n**Acceptance Criteria:**\n- [x] Branch `feat/fibonacci-generator-rewrite` created from `main`\n- [x] Draft PR opened targeting `main`\n- [x] PR description includes plan summary\n\n**Verification:**\n- Type: `manual-check`\n- Command: `gh pr view --json state,isDraft,baseRefName`\n- Expected: `\"state\": \"OPEN\", \"isDraft\": true, \"baseRefName\": \"main\"`\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"manual-check\",\"command\":\"gh pr view --json state,isDraft,baseRefName\",\"expected\":\"state OPEN, isDraft true, baseRefName main\"}}\n```",
+  "activeForm": "Creating branch and draft PR",
+  "status": "completed",
+  "blocks": [
+    "2",
+    "3"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "gh pr view --json state,isDraft,baseRefName",
+      "expected": "state OPEN, isDraft true, baseRefName main"
+    },
+    "owner": "team-lead"
+  }
+}
