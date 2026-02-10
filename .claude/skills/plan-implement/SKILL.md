@@ -9,6 +9,8 @@ Implement the requirements in $ARGUMENTS.
 
 If no argument provided, search for plan files in the `plans/` directory and present them to the user for selection.
 
+Critical: you must create an agent team to implement the plan. Do not try to skip this!
+
 ## Step 1: Parse Plan
 
 1. **Read the plan file** specified in `$ARGUMENTS`
