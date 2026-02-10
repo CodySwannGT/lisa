@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.30.0](https://github.com/CodySwannGT/lisa/compare/vv1.29.1...v1.30.0) (2026-02-10)
+
+
+### Features
+
+* add fibonacci generator utility functions ([6150038](https://github.com/CodySwannGT/lisa/commit/61500387e85a7df11e92c257722ad0bb97f21779))
+
+
+### Bug Fixes
+
+* add GIT_SSH_COMMAND to git push and align archive instructions ([9ac076e](https://github.com/CodySwannGT/lisa/commit/9ac076ee89a5608cd29fcc26bdf0b5595ece10c8))
+* resolve plan skill E2E test bugs ([73b687e](https://github.com/CodySwannGT/lisa/commit/73b687e5dfa9f061463bb268cf7854ff8256ca4d))
+
+
+### Documentation
+
+* add ESLint statement order and test isolation rules ([df44b8a](https://github.com/CodySwannGT/lisa/commit/df44b8a5131030b23d315d88bbd62ad575c328bd))
+* add fibonacci generator implementation plan ([77c2c72](https://github.com/CodySwannGT/lisa/commit/77c2c727badd8800788a760299422e414c2869d6))
+
+
+### Code Refactoring
+
+* simplify plan skills and update E2E test docs ([82e5e20](https://github.com/CodySwannGT/lisa/commit/82e5e205096440337b2e0cc5be3486f66f700d0b))
+
 ### [1.29.1](https://github.com/CodySwannGT/lisa/compare/vv1.29.0...v1.29.1) (2026-02-09)
 
 ## [1.29.0](https://github.com/CodySwannGT/lisa/compare/vv1.28.0...v1.29.0) (2026-02-09)
