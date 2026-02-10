@@ -1,0 +1,18 @@
+{
+  "id": "10",
+  "subject": "Technical review",
+  "description": "**Type:** Task\n\nRun technical review using `tech-reviewer` agent. Check correctness, security, performance. Explain findings in beginner-friendly plain English, ranked by severity.\n\n**Verification:** Review findings documented",
+  "activeForm": "Running technical review",
+  "owner": "reviewer-tech",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}

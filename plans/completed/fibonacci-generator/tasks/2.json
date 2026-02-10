@@ -1,0 +1,18 @@
+{
+  "id": "2",
+  "subject": "Write failing tests for fibonacci(n) — TDD RED",
+  "description": "**Type:** Task\n\nWrite unit tests for the `fibonacci(n)` function following TDD RED phase. Create the test file and a minimal stub implementation so imports compile. Run tests to confirm they FAIL.\n\nTests to write:\n- Base cases: `fibonacci(0) === 0`, `fibonacci(1) === 1`\n- Computed: `fibonacci(2) === 1`, `fibonacci(10) === 55`, `fibonacci(20) === 6765`\n- Boundary: `fibonacci(78)` returns correct value\n- Validation: negative (-1), non-integer (3.5), NaN, Infinity, -Infinity throw RangeError\n- Safe integer cap: `fibonacci(79)` throws RangeError\n\n**Conventions:**\n- `import { describe, it, expect } from \"@jest/globals\";`\n- `import { fibonacci, fibonacciSequence } from \"../../../src/utils/fibonacci.js\";`\n- Outer describe: `\"fibonacci utilities\"`\n- Create stub `src/utils/fibonacci.ts` with: `export function fibonacci(n: number): number { throw new Error(\"not implemented\"); }` and `export function fibonacciSequence(length: number): readonly number[] { throw new Error(\"not implemented\"); }`\n\n**Verification:** `bun run test -- tests/unit/utils/fibonacci.test.ts` → Tests FAIL (RED confirmed)",
+  "activeForm": "Writing failing fibonacci tests (TDD RED)",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "3"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}

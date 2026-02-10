@@ -1,0 +1,18 @@
+{
+  "id": "15",
+  "subject": "Verify all verification metadata",
+  "description": "**Type:** Task\n\nRe-run all verification commands from all tasks. Confirm expected outputs match reality.\n\n**Verification:** `bun run test -- tests/unit/utils/fibonacci.test.ts && bun run lint -- src/utils/fibonacci.ts tests/unit/utils/fibonacci.test.ts && bun run typecheck` → All pass",
+  "activeForm": "Verifying all task metadata",
+  "status": "completed",
+  "blocks": [
+    "16"
+  ],
+  "blockedBy": [
+    "13",
+    "14"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}
