@@ -1,0 +1,18 @@
+{
+  "id": "14",
+  "subject": "Update documentation",
+  "description": "**Type:** Task\n\nEnsure JSDoc on both exported functions includes @param, @returns, @throws tags. File preamble on `src/utils/fibonacci.ts`. Invoke /jsdoc-best-practices to validate.\n\n**Verification:** `bun run lint -- src/utils/fibonacci.ts` → No lint errors",
+  "activeForm": "Updating documentation",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "15"
+  ],
+  "blockedBy": [
+    "12"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}
