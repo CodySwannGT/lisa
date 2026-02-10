@@ -58,3 +58,35 @@ Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-p
 ## Task Metadata
 
 When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is auto-loaded as a rule via `.claude/rules/coding-philosophy.md` and does not need to be explicitly invoked.
+
+## Agent Team Workflows
+
+When working with agent teams, follow these patterns to handle platform behaviors:
+
+### Context Compaction Resilience
+
+Context compaction can cause team leads to lose in-memory state (task assignments, owner fields). To mitigate this:
+
+1. **Dual owner storage** - On every TaskUpdate that sets `owner`, also store it in `metadata.owner`:
+   ```
+   TaskUpdate({ taskId: "1", owner: "implementer-1", metadata: { owner: "implementer-1" } })
+   ```
+2. **Re-read after compaction** - Immediately call TaskList to reload all task state after compaction occurs
+3. **Restore missing owners** - If any task has `metadata.owner` but no `owner` field, restore it via TaskUpdate
+4. **Never rely on memory** - Always call TaskList before assigning new work
+
+### Plugin Agent Naming
+
+Plugin agents use colon-separated naming format: `namespace:agent-name`
+
+Examples:
+- `coderabbit:code-reviewer` (not `coderabbit`)
+- `code-simplifier:code-simplifier` (not `code-simplifier`)
+
+This is a platform convention for spawning plugin agents via the Agent Team API.
+
+## File Operations
+
+### Plan Archival
+
+When archiving plan files, always use `mv` via Bash, never Write or Edit tools. Write and Edit overwrite file contents, which loses the `## Sessions` table that tracks session IDs. Only `mv` preserves the complete file contents during relocation.
