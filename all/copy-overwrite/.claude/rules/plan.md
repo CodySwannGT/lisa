@@ -10,18 +10,23 @@ When making a plan:
 - Verify correct versions of third-party libraries
 - Look for reusable code
 - If a decision is left unresolved by the human, use the recommended option
-- The plan MUST include TaskCreate instructions for each task (following the Task Creation Specification below). Specify that subagents should handle as many tasks in parallel as possible.
+- The plan MUST include TaskCreate instructions for each task (following the Task Creation Specification below)
+- Specify that subagents should handle as many tasks in parallel as possible
+
+Do NOT include separate tasks for linting, type-checking, or formatting. These are handled automatically by PostToolUse hooks and lint-staged pre-commit hooks.
+
+IMPORTANT: The `## Sessions` section in plan files is auto-maintained by `track-plan-sessions.sh` -- do not manually edit it.
 
 ### Required Tasks
 
 The following tasks are always required unless the plan includes only trivial changes:
 
-- Product/UX review using `product-reviewer` agent (validate feature works from a non-technical perspective)
+- Product/UX review using `product-reviewer` agent
 - CodeRabbit code review
 - Local code review via `/plan-local-code-review`
-- Technical review using `tech-reviewer` agent (beginner-friendly; correctness, security, performance)
+- Technical review using `tech-reviewer` agent
 - Implement valid review suggestions (run after all reviews complete)
-- Simplify code using code simplifier agent (run after review implementation)
+- Simplify code using `code-simplifier` agent (run after review implementation)
 - Update/add/remove tests as needed (run after review implementation)
 - Update/add/remove documentation -- JSDoc, markdown files, etc. (run after review implementation)
 - Verify all verification metadata in existing tasks (run after review implementation)
@@ -29,14 +34,27 @@ The following tasks are always required unless the plan includes only trivial ch
 
 The following task is always required regardless of plan size:
 
-- Archive the plan (run after all other tasks). This task must explicitly say to:
-  - Create a folder named `<plan-name>` in `./plans/completed`
-  - Rename the plan to reflect its actual contents
-  - Move it into `./plans/completed/<plan-name>`
-  - Read session IDs from `./plans/completed/<plan-name>`
-  - Move each `~/.claude/tasks/<session-id>` directory to `./plans/completed/<plan-name>/tasks`
-  - Update any "in_progress" task to "completed"
-  - Commit and push changes to the PR
+- **Archive the plan** (run after all other tasks). See the Archive Procedure section below for the full steps this task must include.
+
+### Archive Procedure
+
+The archive task must follow these steps exactly. All file operations MUST use `mv` via Bash -- never use Write, Edit, or copy tools, as they overwrite the `## Sessions` table maintained by `track-plan-sessions.sh`.
+
+1. Create destination folder: `mkdir -p ./plans/completed/<plan-name>`
+2. Rename the plan file to reflect its actual contents
+3. Move the plan file: `mv plans/<plan-file>.md ./plans/completed/<plan-name>/<renamed>.md`
+4. Verify source is gone: `! ls plans/<plan-file>.md 2>/dev/null && echo "Source removed"`
+5. Parse session IDs from the `## Sessions` table in the moved plan file
+6. Move each task directory: `mv ~/.claude/tasks/<session-id> ./plans/completed/<plan-name>/tasks/`
+   - **Fallback** (if Sessions table is empty): `grep -rl '"plan": "<plan-name>"' ~/.claude/tasks/*/` and move parent directories of matches
+7. Update any `in_progress` tasks to `completed` via TaskUpdate
+8. Final git operations:
+   ```bash
+   git add . && git commit -m "chore: archive <plan-name> plan"
+   GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" git push
+   gh pr ready
+   gh pr merge --auto --merge
+   ```
 
 ### Branch and PR Rules
 
@@ -54,31 +72,27 @@ When referencing a ticket (JIRA, Linear, etc.):
 - Update the ticket with the working branch
 - Add a comment on the ticket with the finalized plan
 
-NOTE: Do NOT include a separate task for linting, type-checking, or formatting. These are handled automatically by PostToolUse hooks (lint-on-edit.sh, format-on-edit.sh) and lint-staged pre-commit hooks (ESLint, Prettier, ast-grep).
-
-IMPORTANT: The `## Sessions` section in plan files is auto-maintained by `track-plan-sessions.sh` -- do not manually edit it.
-
 ## Git Workflow
 
 Every plan follows this workflow to keep PRs clean:
 
 1. **First task:** Verify/create branch and open a draft PR (`gh pr create --draft`). No implementation before the draft PR exists.
 2. **During implementation:** Commits only, no pushes. Pre-commit hooks validate lint, format, and typecheck.
-3. **After archive task:** One final `git push`, then mark PR ready (`gh pr ready`), then enable auto-merge (`gh pr merge --auto --merge`).
+3. **After archive task:** One final push, then mark PR ready, then enable auto-merge (see Archive Procedure step 8).
 
 ## Implementation Team Guidance
 
 When plans spawn an Agent Team for implementation, recommend these specialized agents:
 
-| Agent | Use For | Why |
-|-------|---------|-----|
-| `implementer` | Code implementation | Pre-loaded with project conventions, empirical verification |
-| `tech-reviewer` | Technical review | Beginner-friendly findings; covers correctness, security, performance |
-| `product-reviewer` | Product/UX review | Validates from non-technical perspective; runs feature empirically |
-| `learner` | Post-implementation learning | Processes task learnings through `skill-evaluator` to create skills, add rules, or discard |
-| `test-coverage-agent` | Writing tests | Specialized for comprehensive, meaningful test coverage |
-| `code-simplifier` (plugin) | Code simplification | Simplifies and refines for clarity and maintainability |
-| `coderabbit` (plugin) | CodeRabbit review | Automated AI code review |
+| Agent | Use For |
+|-------|---------|
+| `implementer` | Code implementation (pre-loaded with project conventions) |
+| `tech-reviewer` | Technical review (correctness, security, performance) |
+| `product-reviewer` | Product/UX review (validates from non-technical perspective) |
+| `learner` | Post-implementation learning (processes learnings into skills/rules) |
+| `test-coverage-agent` | Writing comprehensive, meaningful tests |
+| `code-simplifier` (plugin) | Code simplification and refinement |
+| `coderabbit` (plugin) | Automated AI code review |
 
 The **team lead** handles git operations (commits, pushes, PR management) -- teammates focus on their specialized work.
 
@@ -95,11 +109,13 @@ Every task description must be a markdown document with these sections:
 
 **Type:** Bug | Task | Epic | Story
 
-**Description:** Clear description based on type (Bug: symptoms/root cause; Story: Gherkin Given/When/Then; Task: clear goal; Epic: goal with sub-tasks)
+**Description:** Clear description based on type:
+- Bug: symptoms and root cause
+- Story: Gherkin Given/When/Then
+- Task: clear goal
+- Epic: goal with sub-tasks
 
 ### Type-Specific Requirements
-
-When the plan type is determined, apply the corresponding requirements:
 
 #### Bug
 - **Replication step** (mandatory): Reproduce the bug empirically before any fix
@@ -119,6 +135,8 @@ When the plan type is determined, apply the corresponding requirements:
 - **Decompose into sub-tasks** (Stories/Tasks/Bugs)
 - **Each sub-task gets its own type-specific requirements**
 
+### Additional Description Sections
+
 **Acceptance Criteria:** Checkbox list of completion criteria
 
 **Relevant Research:** Code references, patterns, architecture constraints
@@ -134,6 +152,8 @@ When the plan type is determined, apply the corresponding requirements:
 **Learnings:** On completion, use `TaskUpdate` to save discoveries: `metadata: { learnings: ["Learning 1", ...] }`
 
 ### Metadata
+
+Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none) or `verification`.
 
 ```json
 {
