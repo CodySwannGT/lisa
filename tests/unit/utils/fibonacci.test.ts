@@ -15,6 +15,10 @@ describe("fibonacci utilities", () => {
       expect(fibonacci(2)).toBe(1);
     });
 
+    it("returns 5 for fibonacci(5)", () => {
+      expect(fibonacci(5)).toBe(5);
+    });
+
     it("returns 55 for fibonacci(10)", () => {
       expect(fibonacci(10)).toBe(55);
     });
@@ -27,8 +31,10 @@ describe("fibonacci utilities", () => {
       expect(fibonacci(78)).toBe(8944394323791464);
     });
 
-    it("throws RangeError for negative input", () => {
-      expect(() => fibonacci(-1)).toThrow(RangeError);
+    it("throws RangeError with message for negative input", () => {
+      expect(() => fibonacci(-1)).toThrow(
+        "Expected a non-negative integer for n, got -1"
+      );
     });
 
     it("throws RangeError for non-integer input", () => {
@@ -91,8 +97,14 @@ describe("fibonacci utilities", () => {
       expect(() => fibonacciSequence(Infinity)).toThrow(RangeError);
     });
 
+    it("throws RangeError for -Infinity", () => {
+      expect(() => fibonacciSequence(-Infinity)).toThrow(RangeError);
+    });
+
     it("throws RangeError for fibonacciSequence(80) exceeding safe cap", () => {
-      expect(() => fibonacciSequence(80)).toThrow(RangeError);
+      expect(() => fibonacciSequence(80)).toThrow(
+        "fibonacciSequence(length) exceeds Number.MAX_SAFE_INTEGER for length > 79"
+      );
     });
   });
 });
