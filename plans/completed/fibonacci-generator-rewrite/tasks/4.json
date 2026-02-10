@@ -1,0 +1,32 @@
+{
+  "id": "4",
+  "subject": "Implement fibonacci module (TDD GREEN phase)",
+  "description": "**Type:** Task\n\n**Description:** Write the new `src/utils/fibonacci.ts` from scratch with all 3 exports. All 33 tests should pass after implementation. Commit the atomic change (deleted old files + new test file + new source file) in a single commit.\n\n**Acceptance Criteria:**\n- [ ] `src/utils/fibonacci.ts` created with 3 exports\n- [ ] `fibonacciGenerator()` is a `function*` yielding infinite bigint sequence\n- [ ] `fibonacci(n)` delegates to `fibonacciGenerator()` (DRY)\n- [ ] `fibonacciSequence(length)` delegates to `fibonacciGenerator()` (DRY)\n- [ ] Input validation: inline `if` guard clauses throwing `RangeError` with parameter name and value\n- [ ] Scoped `eslint-disable functional/no-let` for generator mutable state\n- [ ] JSDoc file preamble and function docs with `@param`, `@returns`, `@throws`, `@remarks`, `@example`\n- [ ] All 33 tests pass (GREEN)\n- [ ] Barrel export (`src/utils/index.ts`) still works (same path, same export names)\n\n**Implementation Details:**\n- File: `src/utils/fibonacci.ts`\n- Generator: `function*` with `let a = 0n; let b = 1n;` and `while(true) { yield a; [a, b] = [b, a + b]; }`\n- fibonacci(n): `if (!Number.isInteger(n) || n < 0) throw new RangeError(...)` → create gen → `Array.from({ length: n }, () => gen.next())` → `return gen.next().value`\n- fibonacciSequence(length): same validation → `Array.from({ length }, () => gen.next().value)`\n\n**Skills to Invoke:** `/jsdoc-best-practices`\n\n**Verification:**\n- Type: `test`\n- Command: `NODE_ENV=test npx jest tests/unit/utils/fibonacci.test.ts`\n- Expected: `Tests: 33 passed, 33 total`\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[\"/jsdoc-best-practices\"],\"verification\":{\"type\":\"test\",\"command\":\"NODE_ENV=test npx jest tests/unit/utils/fibonacci.test.ts\",\"expected\":\"Tests: 33 passed, 33 total\"}}\n```",
+  "activeForm": "Implementing fibonacci module (TDD GREEN phase)",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [
+      "/jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "NODE_ENV=test npx jest tests/unit/utils/fibonacci.test.ts",
+      "expected": "Tests: 33 passed, 33 total"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "enforce-statement-order ESLint rule flags helper function calls (expression statements) before const definitions — must use inline if-guard clauses instead",
+      "Generator function* with eslint-disable functional/no-let requires both disable and enable comments with descriptions per eslint-comments/require-description rule"
+    ]
+  }
+}

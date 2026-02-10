@@ -1,0 +1,29 @@
+{
+  "id": "16",
+  "subject": "Collect learnings",
+  "description": "**Type:** Task\n\n**Description:** Run the `learner` agent to collect learnings from this implementation cycle and process them into skills/rules.\n\n**Acceptance Criteria:**\n- [ ] Learnings collected from all tasks\n- [ ] Each learning evaluated for skill/rule creation\n- [ ] Relevant learnings persisted\n\n**Verification:**\n- Type: `manual-check`\n- Command: `echo \"Learnings collected\"`\n- Expected: Learnings processed\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"manual-check\",\"command\":\"echo 'Learnings collected'\",\"expected\":\"Learnings processed\"}}\n```",
+  "activeForm": "Collecting learnings",
+  "owner": "learner",
+  "status": "completed",
+  "blocks": [
+    "17"
+  ],
+  "blockedBy": [
+    "15"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Learnings collected'",
+      "expected": "Learnings processed"
+    },
+    "owner": "learner",
+    "learnings_processed": 5,
+    "rules_added": 2,
+    "skills_created": 0,
+    "omitted": 3
+  }
+}

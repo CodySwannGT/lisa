@@ -1,0 +1,31 @@
+{
+  "id": "11",
+  "subject": "Implement valid review suggestions",
+  "description": "**Type:** Task\n\n**Description:** Review findings from Tasks 7-10 (product review, CodeRabbit, local review, tech review) and implement any valid suggestions. This runs after all reviews complete.\n\n**Acceptance Criteria:**\n- [ ] All valid review suggestions implemented\n- [ ] Invalid suggestions documented with justification\n- [ ] Tests still pass after changes\n- [ ] Committed if changes were made\n\n**Verification:**\n- Type: `test`\n- Command: `bun run test`\n- Expected: All tests pass\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"test\",\"command\":\"bun run test\",\"expected\":\"All tests pass\"}}\n```",
+  "activeForm": "Implementing valid review suggestions",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "7",
+    "8",
+    "9",
+    "10"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "All tests pass"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "Error message content verification in .toThrow() catches message regressions that type-only assertions miss. Always pair .toThrow(ErrorType) with .toThrow('expected message') for input validation tests."
+    ]
+  }
+}
