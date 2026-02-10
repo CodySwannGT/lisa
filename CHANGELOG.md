@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.31.1](https://github.com/CodySwannGT/lisa/compare/vv1.31.0...v1.31.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* add axios >=1.13.5 resolution to resolve GHSA-43fc-jf86-j433 ([36ec3a1](https://github.com/CodySwannGT/lisa/commit/36ec3a1bacefbfac365e7dbf0671b7ea7de358b7))
+* add axios GHSA-43fc-jf86-j433 to pre-push audit ignore list ([361e0c7](https://github.com/CodySwannGT/lisa/commit/361e0c77a91495f73ab8ea06cfa2a926ea65c8ea))
+* add axios to expo knip ignore and GHSA-43fc-jf86-j433 to audit ignores ([2be4d49](https://github.com/CodySwannGT/lisa/commit/2be4d49371779df2fe23ffbbb3028d4e15a40012))
+
+
+### Documentation
+
+* clarify that projects can add their own skills, commands, hooks, and agents ([7dfda50](https://github.com/CodySwannGT/lisa/commit/7dfda50c0af36abbf67796740fb27da8a306255a))
+* restructure lisa.md to separate create-only files from override table ([ba05891](https://github.com/CodySwannGT/lisa/commit/ba05891be353b68ebd08529bc848288c1d70ad0e))
+
 ## [1.31.0](https://github.com/CodySwannGT/lisa/compare/vv1.30.0...v1.31.0) (2026-02-10)
 
 
