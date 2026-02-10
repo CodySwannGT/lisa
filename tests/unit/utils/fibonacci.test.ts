@@ -72,7 +72,7 @@ describe("fibonacci utilities", () => {
     it("returns 79 elements with correct last element for length 79", () => {
       const result = fibonacciSequence(79);
       expect(result).toHaveLength(79);
-      expect(result[78]).toBe(fibonacci(78));
+      expect(result[78]).toBe(8944394323791464);
     });
 
     it("throws RangeError for negative input", () => {
