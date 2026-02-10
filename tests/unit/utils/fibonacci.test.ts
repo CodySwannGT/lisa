@@ -1,6 +1,6 @@
 /**
  * @file fibonacci.test.ts
- * @description TDD RED phase tests for the BigInt Fibonacci generator rewrite.
+ * @description Tests for the BigInt Fibonacci generator module.
  * Validates three exports — fibonacciGenerator, fibonacci, fibonacciSequence —
  * against hardcoded known values, type guarantees, generator laziness, instance
  * independence, and input-validation error handling.
