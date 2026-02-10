@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.33.1](https://github.com/CodySwannGT/lisa/compare/vv1.33.0...v1.33.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* add team_name parameter to plan-create agent definitions ([47ddabe](https://github.com/CodySwannGT/lisa/commit/47ddabea5d9d4290cd18ed03e3291e309b7fe232))
+
 ## [1.33.0](https://github.com/CodySwannGT/lisa/compare/vv1.32.0...v1.33.0) (2026-02-10)
 
 
