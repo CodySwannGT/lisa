@@ -13,7 +13,16 @@ If no argument provided, search for plan files in the `plans/` directory and pre
 
 1. **Read the plan file** specified in `$ARGUMENTS`
 2. **Extract all tasks** with their dependencies, descriptions, verification requirements, and metadata
-3. **Build a dependency graph** to determine which tasks can run in parallel
+3. **Parse task metadata** -- extract the JSON metadata code fence from each task (see @.claude/rules/plan.md Metadata section for the required schema)
+4. **Build a dependency graph** to determine which tasks can run in parallel
+
+## Task Metadata Rules
+
+Each task in the plan file contains a JSON metadata code fence (schema defined in @.claude/rules/plan.md Metadata section).
+
+- Every TaskCreate call MUST include the full `metadata` object from the plan's JSON code fence
+- If a task is missing `skills` or `verification`, flag it as an error and ask the user before proceeding
+- Run `verification.command` before marking any task complete
 
 ## Step 2: Setup
 
@@ -48,6 +57,18 @@ Use the specialized agents per `@.claude/rules/plan-governance.md` (Implementati
 
 The **team lead** handles git operations (commits, pushes, PR management) -- teammates focus on their specialized work.
 
+## Compaction Resilience
+
+Context compaction can cause the team lead to lose in-memory state (task assignments, owner fields). Follow these rules:
+
+1. **Dual owner storage** -- on every TaskUpdate that sets `owner`, also store it in `metadata.owner`:
+   ```
+   TaskUpdate({ taskId: "1", owner: "implementer-1", metadata: { owner: "implementer-1" } })
+   ```
+2. **Re-read after compaction** -- immediately call TaskList to reload all task state
+3. **Restore missing owners** -- if any task has `metadata.owner` but no `owner` field, restore it via TaskUpdate
+4. **Never rely on memory** -- always call TaskList before assigning new work
+
 ## Step 4: Phase 2 - Implementation
 
 1. Implementers work on assigned tasks following TDD (red-green-refactor cycle)
@@ -77,14 +98,14 @@ Wait for all reviews to complete.
 ## Step 7: Phase 5 - Learning & Archive
 
 1. **Collect learnings** -- spawn `learner` agent (agent type: `learner`, mode: `bypassPermissions`) to process task learnings
-2. **Archive the plan** -- after learner completes, team lead archives:
-   - Create folder `<plan-name>` in `./plans/completed`
-   - Rename the plan to reflect its actual contents
-   - Move into `./plans/completed/<plan-name>`
-   - Read session IDs from `./plans/completed/<plan-name>`
-   - Move each `~/.claude/tasks/<session-id>` directory to `./plans/completed/<plan-name>/tasks`
-   - Update any "in_progress" tasks to "completed"
-3. **Finalize PR** -- `git push`, `gh pr ready`, `gh pr merge --auto --merge`
+2. **Archive the plan** -- follow the Archive Procedure in @.claude/rules/plan-governance.md
+3. **Finalize PR**:
+   ```bash
+   git add . && git commit -m "chore: archive <plan-name> plan"
+   GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" git push
+   gh pr ready
+   gh pr merge --auto --merge
+   ```
 
 ## Step 8: Shutdown Team
 
