@@ -14,6 +14,7 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 | `jest.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
 | `.claude/rules/coding-philosophy.md` | `.claude/rules/PROJECT_RULES.md` |
 | `.claude/rules/plan.md` | `.claude/rules/PROJECT_RULES.md` |
+| `.claude/rules/plan-governance.md` | `.claude/rules/PROJECT_RULES.md` |
 | `.claude/rules/verfication.md` | `.claude/rules/PROJECT_RULES.md` |
 
 ## Files and directories with NO local override (do not edit at all)
