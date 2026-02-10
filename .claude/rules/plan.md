@@ -30,11 +30,13 @@ The following tasks are always required unless the plan includes only trivial ch
 The following task is always required regardless of plan size:
 
 - Archive the plan (run after all other tasks). This task must explicitly say to:
-  - Create a folder named `<plan-name>` in `./plans/completed`
-  - Rename the plan to reflect its actual contents
-  - Move it into `./plans/completed/<plan-name>`
-  - Read session IDs from `./plans/completed/<plan-name>`
-  - Move each `~/.claude/tasks/<session-id>` directory to `./plans/completed/<plan-name>/tasks`
+  - Create a folder: `mkdir -p ./plans/completed/<plan-name>`
+  - Rename the plan file to reflect its actual contents
+  - **Move** (not copy) the plan file using `mv` via the Bash tool: `mv plans/<plan-file>.md ./plans/completed/<plan-name>/<renamed>.md` — NEVER use Write, Edit, or copy tools for this step, as they overwrite the `## Sessions` table maintained by `track-plan-sessions.sh`
+  - Verify the source file is gone: `! ls plans/<plan-file>.md 2>/dev/null`
+  - Read and parse session IDs from the `## Sessions` table in the moved plan file
+  - Move each `~/.claude/tasks/<session-id>` directory to `./plans/completed/<plan-name>/tasks/` using `mv` via Bash
+  - **Fallback:** if the `## Sessions` table is empty, search for matching task directories: `grep -rl '"plan": "<plan-name>"' ~/.claude/tasks/*/` and move their parent directories
   - Update any "in_progress" task to "completed"
   - Commit and push changes to the PR
 
