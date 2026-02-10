@@ -7,7 +7,7 @@ description: "Creates an implementation plan from a ticket URL, file path, or te
 
 Create an implementation plan for: $ARGUMENTS
 
-All plans must follow the rules in @.claude/rules/plan.md (required tasks, branch/PR rules, task creation specification, metadata schema, and archive procedure).
+All plans must follow the rules in @.claude/rules/plan-governance.md (required tasks, branch/PR rules, git workflow) and @.claude/rules/plan.md (task creation specification, metadata schema).
 
 ## Step 1: Parse Input
 
@@ -30,77 +30,176 @@ If no argument provided, prompt the user for input.
 
 If ambiguous, default to **Task**.
 
-## Step 3: Spawn Research Team
+## Step 3: Assess Complexity
 
-Create an Agent Team to research the work in parallel. The team lead operates in **delegate mode** (coordination only, no direct implementation). All teammates are spawned in **plan mode** so the team lead can review their findings before synthesis.
+Evaluate the scope of work:
 
-### Phase 1: Research (parallel)
+- **Trivial** (single file, config change, documentation update) → Skip to Step 8 (direct synthesis). No agent team needed.
+- **Standard** (2-10 files, single feature or fix) → Proceed through all phases.
+- **Epic** (10+ files, multiple features, cross-cutting changes) → Proceed through all phases with extra attention to dependency mapping.
 
-Spawn these four teammates simultaneously:
+## Step 4: Phase 1 - Research (parallel)
 
-#### Ticket/Task Researcher
-- **Name**: `researcher` | **Agent type**: `general-purpose` | **Mode**: `plan`
-- **Prompt**: Research the input (ticket, file, or description). If a ticket URL, fetch full details via JIRA MCP or GitHub CLI. If a bug, attempt to reproduce it empirically. Extract requirements, acceptance criteria, and context.
+Create an Agent Team and spawn three research teammates simultaneously:
+
+#### Researcher
+- **Name**: `researcher`
+- **Agent type**: `general-purpose`
+- **Mode**: `bypassPermissions`
+- **Prompt**: Research the input (ticket, file, or description). If a ticket URL, fetch full details via JIRA MCP or GitHub CLI. If a bug, attempt to reproduce it empirically (Playwright, browser, direct API call, etc.). Extract requirements, acceptance criteria, and context.
 
 #### Codebase Explorer
-- **Name**: `explorer` | **Agent type**: `Explore` | **Mode**: `plan`
-- **Prompt**: Explore the codebase for relevant code, existing patterns, and reusable scripts. Read lint and format rules. Identify files needing modification, reusable utilities, and architecture constraints. Check `package.json` scripts for replication or verification.
-
-#### Devil's Advocate
-- **Name**: `devils-advocate` | **Agent type**: `general-purpose` | **Mode**: `plan`
-- **Prompt**: Review the input critically. Identify anti-patterns, N+1 queries, missing edge cases, security concerns, and performance issues. Undocumented anti-patterns in the codebase should be flagged, not used as reference.
+- **Name**: `explorer`
+- **Agent type**: `Explore`
+- **Prompt**: Explore the codebase for relevant code, existing patterns, and reusable scripts. Read lint and format rules to understand project standards. Identify files that would need modification, existing utilities that can be reused, and architecture constraints. Check for existing scripts in `package.json` that could be used for replication or verification.
 
 #### Spec Gap Analyst
-- **Name**: `spec-analyst` | **Agent type**: `spec-analyst` | **Mode**: `plan`
+- **Name**: `spec-analyst`
+- **Agent type**: `spec-analyst`
+- **Mode**: `bypassPermissions`
 - **Prompt**: Analyze the input for specification gaps. Read `package.json` and existing code for project context. Identify every ambiguity or unstated assumption that could lead to wrong architectural decisions. Report as a numbered list of clarifying questions, sorted by impact.
+
+Wait for all three to report back via SendMessage.
+
+## Step 5: Phase 1.5 - Research Brief & Gap Resolution (team lead)
+
+Synthesize Phase 1 findings into a structured **Research Brief**:
+
+- **Ticket/spec details**: requirements, acceptance criteria, constraints
+- **Reproduction results**: (for bugs) steps attempted, outcome observed
+- **Relevant files**: paths, line ranges, what they do
+- **Existing patterns**: conventions found in the codebase
+- **Architecture constraints**: dependencies, limitations, integration points
+- **Reusable utilities**: existing code that applies to this work
 
 ### Gap Resolution
 
-After Phase 1 completes and before synthesizing the draft plan:
+After synthesizing the Research Brief:
 
 1. Collect gaps from the spec-analyst's findings
 2. Present gaps to the user via AskUserQuestion -- group related questions and include why each matters
 3. If no gaps identified, state "No specification gaps identified" and proceed to Phase 2
-4. Incorporate answers into the draft plan context before Phase 2 review
+4. Incorporate answers into the Research Brief before Phase 2
 
-### Phase 2: Review (parallel, after Phase 1 synthesis)
+## Step 6: Phase 2 - Domain Sub-Plans (parallel)
 
-After synthesizing Phase 1 findings (including gap resolution answers) into a draft plan, spawn these two reviewers simultaneously:
+Spawn four domain planners simultaneously, passing each the Research Brief:
 
-#### Tech Reviewer
-- **Name**: `tech-reviewer` | **Agent type**: `tech-reviewer` | **Mode**: `plan`
-- **Prompt**: Review the draft plan for correctness, security, and coding-philosophy compliance. Validate the approach, identify technical risks, and flag issues ranked by severity.
+#### Architecture Planner
+- **Name**: `arch-planner`
+- **Agent type**: `architecture-planner`
+- **Mode**: `bypassPermissions`
+- **Prompt**: [Research Brief] + Design the technical implementation approach. Identify files to create/modify, map dependencies, recommend patterns, flag risks.
 
-#### Product Reviewer
-- **Name**: `product-reviewer` | **Agent type**: `product-reviewer` | **Mode**: `plan`
-- **Prompt**: Review the draft plan from a non-technical/UX perspective. Does the plan solve the right problem? Will the solution work for end users? Are there user-facing concerns the technical team missed?
+#### Test Strategist
+- **Name**: `test-strategist`
+- **Agent type**: `test-strategist`
+- **Mode**: `bypassPermissions`
+- **Prompt**: [Research Brief] + Design the test matrix. Identify edge cases, set coverage targets, define verification commands, plan TDD sequence.
 
-### Bug-Specific Rules
+#### Security Planner
+- **Name**: `security-planner`
+- **Agent type**: `security-planner`
+- **Mode**: `bypassPermissions`
+- **Prompt**: [Research Brief] + Perform lightweight threat modeling (STRIDE). Identify auth/validation gaps, secrets exposure risks, and security measures needed.
 
-If the plan type is **Bug**:
+#### Product Planner
+- **Name**: `product-planner`
+- **Agent type**: `product-planner`
+- **Mode**: `bypassPermissions`
+- **Prompt**: [Research Brief] + Define user flows in Gherkin. Write acceptance criteria from user perspective. Identify UX concerns and error states.
 
-- The bug **must** be empirically replicated (Playwright, browser, direct API call, etc.) -- not guessed at
-- If the research team cannot reproduce the bug, **STOP**. Update the ticket with findings and what additional information is needed, then end the session
-- Do not attempt to fix a bug you cannot prove exists
-- Never include solutions with obvious anti-patterns (e.g., N+1 queries). If unavoidable, **STOP** and update the ticket
+Wait for all four to report back via SendMessage.
 
-## Step 4: Synthesize and Write Plan
+## Step 7: Phase 3 - Review (parallel)
 
-After all teammates have reported and the team lead has approved their findings, synthesize into a unified plan file with these sections:
+Spawn two reviewers simultaneously, passing them all sub-plans:
 
-1. **Title and context** -- What is being done and why
-2. **Input source** -- Ticket URL, file path, or description
-3. **Plan type** -- Bug, Task, Story/Feature, or Epic
-4. **Branch and PR** -- Following Branch and PR Rules from @.claude/rules/plan.md
-5. **Analysis** -- Synthesized research findings from all teammates
-6. **Implementation approach** -- How the work will be done
-7. **Tasks** -- Following the Task Creation Specification from @.claude/rules/plan.md, including the JSON metadata block for each task
-8. **Required tasks** -- All tasks from the Required Tasks section in @.claude/rules/plan.md (archive task must be last)
-9. **Implementation team** -- Instructions to spawn a second Agent Team using the agents from the Implementation Team Guidance table in @.claude/rules/plan.md
+#### Devil's Advocate
+- **Name**: `devils-advocate`
+- **Agent type**: `general-purpose`
+- **Mode**: `bypassPermissions`
+- **Prompt**: [All sub-plans] + Review critically. Identify anti-patterns, N+1 queries, missing edge cases, security concerns, and performance issues. Do not assume anti-patterns are acceptable just because they exist in the codebase — undocumented anti-patterns should be flagged, not used as reference. Challenge assumptions and propose alternatives for weak points.
+
+#### Consistency Checker
+- **Name**: `consistency-checker`
+- **Agent type**: `consistency-checker`
+- **Mode**: `bypassPermissions`
+- **Prompt**: [All sub-plans] + Verify cross-plan consistency. Check that file lists align, test strategy covers architecture changes, security measures are reflected in acceptance criteria, and no sub-plans contradict each other.
+
+Wait for both to report back via SendMessage.
+
+## Step 8: Phase 4 - Synthesis (team lead)
+
+Read governance and format rules, then merge everything into a unified plan:
+
+1. Read `@.claude/rules/plan-governance.md` for governance rules
+2. Read `@.claude/rules/plan.md` for task document format
+3. Merge sub-plans + review feedback into a unified plan
+4. Apply governance: Required Tasks, Branch/PR rules, Git Workflow
+5. Create TaskCreate specs per plan.md format
+6. Write plan to `plans/<name>.md`
+7. Create branch, open draft PR
+8. Update ticket if applicable
 
 Apply the Type-Specific Requirements from @.claude/rules/plan.md based on the detected plan type. For Bugs, also include a replication task before any fix and a proof command for every fix task. For Epics, include dependency mapping between sub-tasks.
 
-## Step 5: Ticket Integration
+The plan file must include:
+
+1. **Title and context** — What is being done and why
+2. **Input source** — Ticket URL, file path, or description
+3. **Plan type** — Bug, Task, Story/Feature, or Epic
+4. **Branch and PR** — Following branch/PR rules from plan-governance.md
+5. **Analysis** — Synthesized research findings from all teammates
+6. **Implementation approach** — How the work will be done
+7. **Tasks** — Following the Task Creation Specification from plan.md
+8. **Implementation Team** — Instructions to spawn an Agent Team (see Step 10)
+
+### Type-Specific Requirements
+
+Apply these additional requirements based on the detected type:
+
+#### Bug
+- **Replication step** (mandatory): Include a task to reproduce the bug empirically before any fix
+- **Root cause analysis**: Identify why the bug occurs, not just what triggers it
+- **Regression test**: Write a test that fails without the fix and passes with it
+- **Verification**: Run the replication step again after the fix to confirm resolution
+- **Proof command**: Every fix task must include a proof command and expected output
+
+#### Story/Feature
+- **UX review**: Include a product-reviewer agent task to validate from user perspective
+- **Feature flag consideration**: Note whether this should be behind a feature flag
+- **Documentation**: Include user-facing documentation if applicable
+
+#### Task
+- **Standard implementation** with empirical verification
+
+#### Epic
+- **Decompose into sub-tasks**: Break into Stories, Tasks, and/or Bugs
+- **Each sub-task gets its own type-specific requirements**
+- **Dependency mapping**: Identify which sub-tasks depend on others
+
+## Step 9: Include Required Tasks
+
+Include all required tasks defined in `@.claude/rules/plan-governance.md` (Required Tasks section), including the archive task which must always be last.
+
+## Step 10: Implementation Team Instructions
+
+The plan must include instructions to spawn an Agent Team for implementation. Recommend these specialized agents:
+
+| Agent | Use For |
+|-------|---------|
+| `implementer` | Code implementation (pre-loaded with project conventions, TDD enforcement) |
+| `tech-reviewer` | Technical review (correctness, security, performance) |
+| `product-reviewer` | Product/UX review (validates from non-technical perspective) |
+| `learner` | Post-implementation learning (processes learnings into skills/rules) |
+| `test-coverage-agent` | Writing comprehensive tests |
+| `code-simplifier` | Code simplification and refinement |
+| `coderabbit` | Automated AI code review |
+
+The **team lead** handles git operations (commits, pushes, PR management) — teammates focus on their specialized work.
+
+## Step 11: Ticket Integration
 
 If the input was a ticket ID or URL:
 
@@ -110,8 +209,21 @@ If the input was a ticket ID or URL:
 4. Use `/jira-sync` at key milestones
 5. If blocked, update the ticket before stopping
 
-## Step 6: Present to User
+## Step 12: Present to User
 
 Present the synthesized plan to the user for review. The user may approve, request modifications, or reject.
 
 All decisions in the plan must include a recommendation. If a decision is left unresolved, use the recommended option.
+
+## Step 13: Shutdown Team
+
+Send `shutdown_request` to all teammates and clean up the team.
+
+### Bug-Specific Rules
+
+If the plan type is **Bug**:
+
+- The bug **must** be empirically replicated (Playwright, browser, direct API call, etc.) — not guessed at
+- If the research team cannot reproduce the bug, **STOP**. Update the ticket with findings and what additional information is needed, then end the session
+- Do not attempt to fix a bug you cannot prove exists
+- Never include solutions with obvious anti-patterns (e.g., N+1 queries). If unavoidable due to API limitations, **STOP** and update the ticket with what is needed
