@@ -195,3 +195,23 @@ export function fibonacci(n: number): bigint {
 ```
 
 Even when the reimplementation has theoretical performance benefits (O(1) space), prefer simplicity and DRY unless performance is empirically proven to be a bottleneck.
+
+## Test Assertion Preservation During Rewrites
+
+When rewriting or replacing a module from scratch, always review the old test file before deletion. Preserve assertion patterns that validate non-obvious behavior, especially:
+
+- Error message content verification (`expect(error.message).toContain(...)`)
+- Edge case and boundary condition assertions
+- Type-level assertions (e.g., `typeof` checks on return values)
+
+Do not assume new tests cover everything the old tests did. Compare old and new test coverage before marking the rewrite complete.
+
+## TDD RED Phase with Deleted Source
+
+When performing TDD RED by deleting the source module, Jest reports **0 tests found** (not N failed) because module-not-found prevents test file parsing entirely — `describe`/`it` blocks never register.
+
+This is expected behavior. Verify RED by confirming either:
+- `Tests: 0 total` (test file couldn't parse)
+- A module resolution error in Jest output
+
+Do **not** expect N individual test failures when the imported module doesn't exist.
