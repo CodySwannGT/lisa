@@ -1,0 +1,23 @@
+{
+  "id": "17",
+  "subject": "Archive the plan",
+  "description": "**Type:** Task\n\n**Description:** Archive this plan following the Archive Procedure from plan-governance.md. This task runs last after all other tasks are complete.\n\n**Acceptance Criteria:**\n- [ ] `mkdir -p ./plans/completed/fibonacci-generator-rewrite`\n- [ ] Plan file moved: `mv plans/fibonacci-generator-rewrite.md ./plans/completed/fibonacci-generator-rewrite/fibonacci-generator-rewrite.md`\n- [ ] Source file verified gone: `! ls plans/fibonacci-generator-rewrite.md 2>/dev/null`\n- [ ] Session task directories moved to `./plans/completed/fibonacci-generator-rewrite/tasks/`\n- [ ] Any `in_progress` tasks updated to `completed`\n- [ ] Final commit: `git add . && git commit -m \"chore: archive fibonacci-generator-rewrite plan\"`\n- [ ] Push: `GIT_SSH_COMMAND=\"ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5\" git push`\n- [ ] PR marked ready: `gh pr ready`\n- [ ] Auto-merge enabled: `gh pr merge --auto --merge`\n\n**Verification:**\n- Type: `manual-check`\n- Command: `ls plans/completed/fibonacci-generator-rewrite/fibonacci-generator-rewrite.md && ! ls plans/fibonacci-generator-rewrite.md 2>/dev/null && echo \"Archived\"`\n- Expected: `Archived`\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"manual-check\",\"command\":\"ls plans/completed/fibonacci-generator-rewrite/fibonacci-generator-rewrite.md && ! ls plans/fibonacci-generator-rewrite.md 2>/dev/null && echo 'Archived'\",\"expected\":\"Archived\"}}\n```",
+  "activeForm": "Archiving the plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "16"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls plans/completed/fibonacci-generator-rewrite/fibonacci-generator-rewrite.md && ! ls plans/fibonacci-generator-rewrite.md 2>/dev/null && echo 'Archived'",
+      "expected": "Archived"
+    },
+    "owner": "team-lead"
+  },
+  "owner": "team-lead"
+}

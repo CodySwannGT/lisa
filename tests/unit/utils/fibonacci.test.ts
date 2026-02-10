@@ -1,11 +1,12 @@
 /**
  * @file fibonacci.test.ts
- * @description Tests for BigInt Fibonacci generator and convenience functions.
- * Validates correctness against hardcoded known values, generator laziness,
- * type safety, and input validation error handling.
+ * @description Tests for the BigInt Fibonacci generator module.
+ * Validates three exports — fibonacciGenerator, fibonacci, fibonacciSequence —
+ * against hardcoded known values, type guarantees, generator laziness, instance
+ * independence, and input-validation error handling.
  * @module fibonacci
  */
-import { describe, it, expect } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 
 import {
   fibonacci,
@@ -32,18 +33,18 @@ describe("fibonacci utilities", () => {
       expect(values).toEqual([0n, 1n, 1n, 2n, 3n, 5n, 8n, 13n]);
     });
 
-    it("is lazy — does not compute ahead of .next() calls", () => {
+    it("yields bigint values", () => {
       const gen = fibonacciGenerator();
-      const first = gen.next();
-      expect(first.done).toBe(false);
-      expect(first.value).toBe(0n);
-
-      const second = gen.next();
-      expect(second.done).toBe(false);
-      expect(second.value).toBe(1n);
+      expect(typeof gen.next().value).toBe("bigint");
     });
 
-    it("produces independent sequences from separate generator instances", () => {
+    it("reports done as false on every next() call", () => {
+      const gen = fibonacciGenerator();
+      const results = Array.from({ length: 5 }, () => gen.next());
+      expect(results.every(r => r.done === false)).toBe(true);
+    });
+
+    it("produces independent sequences from separate instances", () => {
       const gen1 = fibonacciGenerator();
       const gen2 = fibonacciGenerator();
 
@@ -55,12 +56,7 @@ describe("fibonacci utilities", () => {
       expect(gen2.next().value).toBe(0n);
     });
 
-    it("yields bigint values", () => {
-      const gen = fibonacciGenerator();
-      expect(typeof gen.next().value).toBe("bigint");
-    });
-
-    it("never signals done", () => {
+    it("never terminates after 100 calls", () => {
       const gen = fibonacciGenerator();
       Array.from({ length: 100 }, () => gen.next());
       expect(gen.next().done).toBe(false);
@@ -117,18 +113,24 @@ describe("fibonacci utilities", () => {
 
     it("throws RangeError for non-integer input", () => {
       expect(() => fibonacci(3.5)).toThrow(RangeError);
+      expect(() => fibonacci(3.5)).toThrow(
+        "Expected a non-negative integer for n, got 3.5"
+      );
     });
 
-    it("throws RangeError for NaN", () => {
+    it("throws RangeError for non-finite input", () => {
       expect(() => fibonacci(NaN)).toThrow(RangeError);
-    });
-
-    it("throws RangeError for Infinity", () => {
+      expect(() => fibonacci(NaN)).toThrow(
+        "Expected a non-negative integer for n, got NaN"
+      );
       expect(() => fibonacci(Infinity)).toThrow(RangeError);
-    });
-
-    it("throws RangeError for -Infinity", () => {
+      expect(() => fibonacci(Infinity)).toThrow(
+        "Expected a non-negative integer for n, got Infinity"
+      );
       expect(() => fibonacci(-Infinity)).toThrow(RangeError);
+      expect(() => fibonacci(-Infinity)).toThrow(
+        "Expected a non-negative integer for n, got -Infinity"
+      );
     });
   });
 
@@ -156,9 +158,18 @@ describe("fibonacci utilities", () => {
 
     it("returns bigint values in the array", () => {
       const result = fibonacciSequence(3);
-      result.forEach(value => {
-        expect(typeof value).toBe("bigint");
-      });
+      expect(result.every(value => typeof value === "bigint")).toBe(true);
+    });
+
+    it("returns an array whose length matches the requested count", () => {
+      expect(fibonacciSequence(10)).toHaveLength(10);
+    });
+
+    it("returns a new array reference on each call", () => {
+      const a = fibonacciSequence(3);
+      const b = fibonacciSequence(3);
+      expect(a).not.toBe(b);
+      expect(a).toEqual(b);
     });
 
     it("throws RangeError for negative input", () => {
@@ -170,18 +181,30 @@ describe("fibonacci utilities", () => {
 
     it("throws RangeError for non-integer input", () => {
       expect(() => fibonacciSequence(2.7)).toThrow(RangeError);
+      expect(() => fibonacciSequence(2.7)).toThrow(
+        "Expected a non-negative integer for length, got 2.7"
+      );
     });
 
     it("throws RangeError for NaN", () => {
       expect(() => fibonacciSequence(NaN)).toThrow(RangeError);
+      expect(() => fibonacciSequence(NaN)).toThrow(
+        "Expected a non-negative integer for length, got NaN"
+      );
     });
 
     it("throws RangeError for Infinity", () => {
       expect(() => fibonacciSequence(Infinity)).toThrow(RangeError);
+      expect(() => fibonacciSequence(Infinity)).toThrow(
+        "Expected a non-negative integer for length, got Infinity"
+      );
     });
 
     it("throws RangeError for -Infinity", () => {
       expect(() => fibonacciSequence(-Infinity)).toThrow(RangeError);
+      expect(() => fibonacciSequence(-Infinity)).toThrow(
+        "Expected a non-negative integer for length, got -Infinity"
+      );
     });
   });
 });

@@ -1,0 +1,29 @@
+{
+  "id": "15",
+  "subject": "Verify all task verification metadata",
+  "description": "**Type:** Task\n\n**Description:** Re-run all verification commands from Tasks 1-14 to ensure everything still passes.\n\n**Acceptance Criteria:**\n- [ ] All verification commands from prior tasks re-run and passing\n- [ ] No regressions introduced by review/simplification changes\n\n**Verification:**\n- Type: `test`\n- Command: `bun run test && bun run lint && bun run typecheck`\n- Expected: All pass with zero errors\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"test\",\"command\":\"bun run test && bun run lint && bun run typecheck\",\"expected\":\"All pass with zero errors\"}}\n```",
+  "activeForm": "Verifying all task verification metadata",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "16"
+  ],
+  "blockedBy": [
+    "13",
+    "14"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test && bun run lint && bun run typecheck",
+      "expected": "All pass with zero errors"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "All 251 tests across 16 suites pass, lint and typecheck clean, no regressions from review/simplification changes."
+    ]
+  }
+}
