@@ -106,16 +106,31 @@ describe("fibonacci utilities", () => {
 
     it("throws RangeError for negative input", () => {
       expect(() => fibonacci(-1)).toThrow(RangeError);
+      expect(() => fibonacci(-1)).toThrow(
+        "Expected a non-negative integer for n, got -1"
+      );
     });
 
     it("throws RangeError for non-integer input", () => {
       expect(() => fibonacci(3.5)).toThrow(RangeError);
+      expect(() => fibonacci(3.5)).toThrow(
+        "Expected a non-negative integer for n, got 3.5"
+      );
     });
 
     it("throws RangeError for non-finite input", () => {
       expect(() => fibonacci(NaN)).toThrow(RangeError);
+      expect(() => fibonacci(NaN)).toThrow(
+        "Expected a non-negative integer for n, got NaN"
+      );
       expect(() => fibonacci(Infinity)).toThrow(RangeError);
+      expect(() => fibonacci(Infinity)).toThrow(
+        "Expected a non-negative integer for n, got Infinity"
+      );
       expect(() => fibonacci(-Infinity)).toThrow(RangeError);
+      expect(() => fibonacci(-Infinity)).toThrow(
+        "Expected a non-negative integer for n, got -Infinity"
+      );
     });
   });
 
@@ -159,22 +174,37 @@ describe("fibonacci utilities", () => {
 
     it("throws RangeError for negative input", () => {
       expect(() => fibonacciSequence(-1)).toThrow(RangeError);
+      expect(() => fibonacciSequence(-1)).toThrow(
+        "Expected a non-negative integer for length, got -1"
+      );
     });
 
     it("throws RangeError for non-integer input", () => {
       expect(() => fibonacciSequence(2.7)).toThrow(RangeError);
+      expect(() => fibonacciSequence(2.7)).toThrow(
+        "Expected a non-negative integer for length, got 2.7"
+      );
     });
 
     it("throws RangeError for NaN", () => {
       expect(() => fibonacciSequence(NaN)).toThrow(RangeError);
+      expect(() => fibonacciSequence(NaN)).toThrow(
+        "Expected a non-negative integer for length, got NaN"
+      );
     });
 
     it("throws RangeError for Infinity", () => {
       expect(() => fibonacciSequence(Infinity)).toThrow(RangeError);
+      expect(() => fibonacciSequence(Infinity)).toThrow(
+        "Expected a non-negative integer for length, got Infinity"
+      );
     });
 
     it("throws RangeError for -Infinity", () => {
       expect(() => fibonacciSequence(-Infinity)).toThrow(RangeError);
+      expect(() => fibonacciSequence(-Infinity)).toThrow(
+        "Expected a non-negative integer for length, got -Infinity"
+      );
     });
   });
 });
