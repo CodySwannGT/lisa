@@ -43,7 +43,7 @@ Create an Agent Team to research the work in parallel. The team lead operates in
 
 ### Phase 1: Research (parallel)
 
-Spawn these three teammates simultaneously:
+Spawn these four teammates simultaneously:
 
 #### Ticket/Task Researcher
 - **Name**: `researcher`
@@ -63,9 +63,24 @@ Spawn these three teammates simultaneously:
 - **Mode**: `plan`
 - **Prompt**: Review the input from a critical perspective. Identify anti-patterns, N+1 queries, missing edge cases, security concerns, and performance issues. Do not assume anti-patterns are acceptable just because they exist in the codebase — undocumented anti-patterns should be flagged, not used as reference.
 
+#### Spec Gap Analyst
+- **Name**: `spec-analyst`
+- **Agent type**: `spec-analyst`
+- **Mode**: `plan`
+- **Prompt**: Analyze the input for specification gaps. Read `package.json` and existing code to understand project context. Identify every ambiguity or unstated assumption that could lead to wrong architectural decisions. Report as a numbered list of clarifying questions, sorted by impact on architecture.
+
+### Gap Resolution
+
+After Phase 1 completes and before synthesizing the draft plan:
+
+1. **Collect gaps** from the spec-analyst's findings
+2. **Present gaps to the user** via AskUserQuestion — group related questions and include why each matters
+3. **If no gaps identified**: state "No specification gaps identified" and proceed to Phase 2
+4. **Incorporate answers** into the draft plan context before Phase 2 review
+
 ### Phase 2: Review (parallel, after Phase 1 findings are synthesized)
 
-After collecting and synthesizing Phase 1 findings into a draft plan, spawn these two reviewers simultaneously:
+After collecting and synthesizing Phase 1 findings (including gap resolution answers) into a draft plan, spawn these two reviewers simultaneously:
 
 #### Tech Reviewer
 - **Name**: `tech-reviewer`
@@ -107,6 +122,25 @@ The plan file must include, at minimum:
 6. **Implementation approach** — How the work will be done
 7. **Tasks** — Following the Task Creation Specification from @.claude/rules/plan.md
 8. **Implementation Team** — Instructions to spawn a second Agent Team (see Step 6)
+
+### Task Metadata Requirement
+
+Every task in the plan MUST include a JSON metadata code fence with ALL required fields. The `plan-implement` skill parses these blocks for TaskCreate calls. Missing fields will be flagged as errors during implementation.
+
+```json
+{
+  "plan": "<plan-name>",
+  "type": "bug|task|epic|story",
+  "skills": ["skill-1", "skill-2"],
+  "verification": {
+    "type": "test|ui-recording|test-coverage|api-test|manual-check|documentation",
+    "command": "the proof command",
+    "expected": "what success looks like"
+  }
+}
+```
+
+Do NOT omit `skills` (use `[]` if none) or `verification` from any task's metadata block.
 
 ### Type-Specific Requirements
 
