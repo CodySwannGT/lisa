@@ -7,35 +7,28 @@ description: "Creates an implementation plan from a ticket URL, file path, or te
 
 Create an implementation plan for: $ARGUMENTS
 
+All plans must follow the rules in @.claude/rules/plan-governance.md (required tasks, branch/PR rules, git workflow) and @.claude/rules/plan.md (task creation specification, metadata schema).
+
 ## Step 1: Parse Input
 
 Determine the input type from `$ARGUMENTS`:
 
-1. **Ticket URL/ID** — For when the argument references a JIRA, Github or Linear issue/ticket number or url
-   - Fetch ticket details with the appropriate CLI or MCP Server
-   - Extract: title, description, acceptance criteria, priority, epic/parent
-   - Note the ticket URL for continuous integration updates
-
-2. **File path** — If the the arguments reference a file:
-   - Read the file contents
-   - Use the file as context for the plan
-
-3. **Free text** — Otherwise, treat the entire argument as a text description of the work
+1. **Ticket URL/ID** -- Fetch ticket details with the appropriate CLI or MCP Server. Extract: title, description, acceptance criteria, priority, epic/parent. Note the ticket URL for later integration updates.
+2. **File path** -- Read the file contents and use as context for the plan.
+3. **Free text** -- Treat the entire argument as a text description of the work.
 
 If no argument provided, prompt the user for input.
 
 ## Step 2: Detect Plan Type
 
-Analyze the input to determine the plan type:
-
 | Type | Indicators |
 |------|------------|
-| **Bug** | Describes symptoms, errors, incorrect behavior, "broken", "fails", "crash", "regression" |
-| **Story/Feature** | Describes new capability, user-facing change, "add", "implement", "create", "as a user" |
-| **Task** | Describes internal work, refactoring, configuration, maintenance, "update", "migrate", "refactor" |
-| **Epic** | Describes large scope with multiple features/stories, "overhaul", "redesign", multiple distinct deliverables |
+| **Bug** | Symptoms, errors, incorrect behavior, "broken", "fails", "crash", "regression" |
+| **Story/Feature** | New capability, user-facing change, "add", "implement", "create", "as a user" |
+| **Task** | Internal work, refactoring, configuration, maintenance, "update", "migrate", "refactor" |
+| **Epic** | Large scope with multiple features/stories, "overhaul", "redesign", multiple deliverables |
 
-If the type is ambiguous, default to **Task**.
+If ambiguous, default to **Task**.
 
 ## Step 3: Assess Complexity
 
@@ -47,7 +40,7 @@ Evaluate the scope of work:
 
 ## Step 4: Phase 1 - Research (parallel)
 
-Create an Agent Team and spawn two research teammates simultaneously:
+Create an Agent Team and spawn three research teammates simultaneously:
 
 #### Researcher
 - **Name**: `researcher`
@@ -60,9 +53,15 @@ Create an Agent Team and spawn two research teammates simultaneously:
 - **Agent type**: `Explore`
 - **Prompt**: Explore the codebase for relevant code, existing patterns, and reusable scripts. Read lint and format rules to understand project standards. Identify files that would need modification, existing utilities that can be reused, and architecture constraints. Check for existing scripts in `package.json` that could be used for replication or verification.
 
-Wait for both to report back via SendMessage.
+#### Spec Gap Analyst
+- **Name**: `spec-analyst`
+- **Agent type**: `spec-analyst`
+- **Mode**: `bypassPermissions`
+- **Prompt**: Analyze the input for specification gaps. Read `package.json` and existing code for project context. Identify every ambiguity or unstated assumption that could lead to wrong architectural decisions. Report as a numbered list of clarifying questions, sorted by impact.
 
-## Step 5: Phase 1.5 - Research Brief (team lead)
+Wait for all three to report back via SendMessage.
+
+## Step 5: Phase 1.5 - Research Brief & Gap Resolution (team lead)
 
 Synthesize Phase 1 findings into a structured **Research Brief**:
 
@@ -72,6 +71,15 @@ Synthesize Phase 1 findings into a structured **Research Brief**:
 - **Existing patterns**: conventions found in the codebase
 - **Architecture constraints**: dependencies, limitations, integration points
 - **Reusable utilities**: existing code that applies to this work
+
+### Gap Resolution
+
+After synthesizing the Research Brief:
+
+1. Collect gaps from the spec-analyst's findings
+2. Present gaps to the user via AskUserQuestion -- group related questions and include why each matters
+3. If no gaps identified, state "No specification gaps identified" and proceed to Phase 2
+4. Incorporate answers into the Research Brief before Phase 2
 
 ## Step 6: Phase 2 - Domain Sub-Plans (parallel)
 
@@ -134,7 +142,7 @@ Read governance and format rules, then merge everything into a unified plan:
 7. Create branch, open draft PR
 8. Update ticket if applicable
 
-### Plan Structure
+Apply the Type-Specific Requirements from @.claude/rules/plan.md based on the detected plan type. For Bugs, also include a replication task before any fix and a proof command for every fix task. For Epics, include dependency mapping between sub-tasks.
 
 The plan file must include:
 
@@ -199,15 +207,11 @@ If the input was a ticket ID or URL:
 2. Associate the branch and PR with the ticket
 3. Post the approved plan as a comment on the ticket
 4. Use `/jira-sync` at key milestones
-5. If blocked (cannot reproduce, unavoidable anti-pattern, missing information, etc.), update the ticket before stopping
+5. If blocked, update the ticket before stopping
 
 ## Step 12: Present to User
 
-Present the synthesized plan to the user for review. The user should be able to:
-
-- Approve the plan as-is
-- Request modifications
-- Reject the plan
+Present the synthesized plan to the user for review. The user may approve, request modifications, or reject.
 
 All decisions in the plan must include a recommendation. If a decision is left unresolved, use the recommended option.
 

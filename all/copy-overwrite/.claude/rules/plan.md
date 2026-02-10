@@ -1,7 +1,5 @@
 # Plan Document Format
 
-These rules define the structure for plan tasks and documents. Loaded at session start via `.claude/rules/` and reinforced on every prompt via the `enforce-plan-rules.sh` `UserPromptSubmit` hook.
-
 For governance rules (required tasks, branch/PR rules, git workflow), see `plan-governance.md`.
 
 ## Task Creation Specification
@@ -17,11 +15,13 @@ Every task description must be a markdown document with these sections:
 
 **Type:** Bug | Task | Epic | Story
 
-**Description:** Clear description based on type (Bug: symptoms/root cause; Story: Gherkin Given/When/Then; Task: clear goal; Epic: goal with sub-tasks)
+**Description:** Clear description based on type:
+- Bug: symptoms and root cause
+- Story: Gherkin Given/When/Then
+- Task: clear goal
+- Epic: goal with sub-tasks
 
 ### Type-Specific Requirements
-
-When the plan type is determined, apply the corresponding requirements:
 
 #### Bug
 - **Replication step** (mandatory): Reproduce the bug empirically before any fix
@@ -41,6 +41,8 @@ When the plan type is determined, apply the corresponding requirements:
 - **Decompose into sub-tasks** (Stories/Tasks/Bugs)
 - **Each sub-task gets its own type-specific requirements**
 
+### Additional Description Sections
+
 **Acceptance Criteria:** Checkbox list of completion criteria
 
 **Relevant Research:** Code references, patterns, architecture constraints
@@ -56,6 +58,8 @@ When the plan type is determined, apply the corresponding requirements:
 **Learnings:** On completion, use `TaskUpdate` to save discoveries: `metadata: { learnings: ["Learning 1", ...] }`
 
 ### Metadata
+
+Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none) or `verification`.
 
 ```json
 {

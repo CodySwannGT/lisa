@@ -1,0 +1,11 @@
+{
+  "id": "20",
+  "subject": "reviewer-coderabbit",
+  "description": "Run a CodeRabbit-style code review on the fibonacci generator changes.\n\nFiles to review:\n- `src/util",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "_internal": true
+  }
+}
