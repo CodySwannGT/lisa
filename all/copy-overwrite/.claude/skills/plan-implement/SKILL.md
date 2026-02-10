@@ -63,14 +63,14 @@ Spawn review agents simultaneously:
 - **tech-reviewer** -- agent type: `tech-reviewer`, mode: `bypassPermissions`
 - **product-reviewer** -- agent type: `product-reviewer`, mode: `bypassPermissions`
 - Invoke `/plan-local-code-review` skill (team lead runs directly)
-- Invoke `coderabbit:review` skill if plugin available
+- **coderabbit** -- agent type: `coderabbit:code-reviewer`, mode: `bypassPermissions`
 
 Wait for all reviews to complete.
 
 ## Step 6: Phase 4 - Post-Review (sequential)
 
 1. **Fix review findings** -- re-spawn an implementer to address valid review suggestions
-2. **Simplify code** -- invoke `code-simplifier` plugin for simplification pass
+2. **Simplify code** -- spawn `code-simplifier` agent (agent type: `code-simplifier:code-simplifier`, mode: `bypassPermissions`)
 3. **Update tests** -- spawn `test-coverage-agent` to update tests for post-review changes
 4. **Verify all tasks** -- team lead runs ALL proof commands from all tasks to confirm everything still works
 
