@@ -1014,7 +1014,12 @@ jobs:
             # Transitive dependency via @react-native-community/cli (Android/iOS build tooling)
             # Parent packages pin ^4.4.1; fix requires major version 5.x (incompatible)
             # Risk: None - CLI build tool, not a production runtime dependency
-            if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97 --ignore GHSA-37qj-frw5-hhjh; then
+
+            # Excluding GHSA-43fc-jf86-j433: axios DoS via __proto__ key in mergeConfig
+            # Transitive dependency via aws-amplify > @aws-amplify/api-rest > axios
+            # bun overrides/resolutions cannot reach nested node_modules copies
+            # Risk: Low - only affects server-side mergeConfig with attacker-controlled input
+            if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97 --ignore GHSA-37qj-frw5-hhjh --ignore GHSA-43fc-jf86-j433; then
               echo "::warning::Found high or critical vulnerabilities"
               exit 1
             fi
