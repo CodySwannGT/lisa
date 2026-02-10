@@ -1,0 +1,19 @@
+{
+  "id": "12",
+  "subject": "Simplify code",
+  "description": "**Type:** Task\n\nRun code simplification using `code-simplifier` agent on `src/utils/fibonacci.ts` and `tests/unit/utils/fibonacci.test.ts`. Focus on clarity, consistency, and maintainability while preserving all functionality.\n\n**Verification:** `bun run test -- tests/unit/utils/fibonacci.test.ts` → All tests pass",
+  "activeForm": "Simplifying code",
+  "owner": "simplifier",
+  "status": "completed",
+  "blocks": [
+    "13",
+    "14"
+  ],
+  "blockedBy": [
+    "11"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}

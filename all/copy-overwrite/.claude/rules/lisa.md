@@ -25,6 +25,12 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `.claude/commands/` — Add your own command namespaces alongside Lisa's
 - `.claude/hooks/` — Add your own hook scripts alongside Lisa's
 - `.claude/agents/` — Add your own agent files alongside Lisa's
+| `eslint.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
+| `jest.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
+| `.claude/rules/coding-philosophy.md` | `.claude/rules/PROJECT_RULES.md` |
+| `.claude/rules/plan.md` | `.claude/rules/PROJECT_RULES.md` |
+| `.claude/rules/plan-governance.md` | `.claude/rules/PROJECT_RULES.md` |
+| `.claude/rules/verfication.md` | `.claude/rules/PROJECT_RULES.md` |
 
 ## Files and directories with NO local override (do not edit at all)
 
