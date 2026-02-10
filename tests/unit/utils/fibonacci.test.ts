@@ -149,9 +149,9 @@ describe("fibonacci utilities", () => {
       expect(fibonacciSequence(8)).toEqual([0n, 1n, 1n, 2n, 3n, 5n, 8n, 13n]);
     });
 
-    it("returns a readonly array", () => {
+    it("returns an array", () => {
       const result = fibonacciSequence(5);
-      expect(Object.isFrozen(result) || Array.isArray(result)).toBe(true);
+      expect(Array.isArray(result)).toBe(true);
     });
 
     it("returns bigint values in the array", () => {

@@ -13,7 +13,17 @@
  * Infinite lazy generator yielding Fibonacci numbers as BigInt.
  *
  * @returns Generator that yields successive Fibonacci numbers (0n, 1n, 1n, 2n, 3n, ...)
- * @remarks Each call creates an independent generator instance — safe for concurrent iteration
+ * @remarks The generator never terminates — do not spread or collect without a length limit.
+ * Each call creates an independent generator instance — safe for concurrent iteration.
+ * @example
+ * ```typescript
+ * const gen = fibonacciGenerator();
+ * gen.next().value; // 0n
+ * gen.next().value; // 1n
+ *
+ * // Collect first 5 values:
+ * const first5 = Array.from({ length: 5 }, () => gen.next().value);
+ * ```
  */
 export function* fibonacciGenerator(): Generator<bigint, never, unknown> {
   /* eslint-disable functional/no-let -- generator requires mutable state for iterative Fibonacci computation */
@@ -30,9 +40,15 @@ export function* fibonacciGenerator(): Generator<bigint, never, unknown> {
  * Compute the nth Fibonacci number (0-indexed) using BigInt.
  *
  * @param n - Zero-based index in the Fibonacci sequence (must be a non-negative integer)
- * @returns The nth Fibonacci number as a BigInt
+ * @returns The nth Fibonacci number as a BigInt — compare with `===` against bigint literals (e.g. `55n`), not numbers
  * @throws {RangeError} If n is negative, non-integer, NaN, or Infinity
- * @remarks Uses an iterative tuple-reduce for O(n) time and O(1) space — no recursion or array allocation
+ * @remarks Delegates to fibonacciGenerator — O(n) time, consistent with the lazy generator approach
+ * @example
+ * ```typescript
+ * fibonacci(10); // 55n (bigint, not number)
+ * fibonacci(10) === 55n; // true
+ * fibonacci(10) === 55; // false — bigint !== number
+ * ```
  */
 export function fibonacci(n: number): bigint {
   if (!Number.isInteger(n) || n < 0) {
@@ -41,15 +57,11 @@ export function fibonacci(n: number): bigint {
     );
   }
 
-  if (n <= 1) {
-    return BigInt(n);
-  }
+  const gen = fibonacciGenerator();
 
-  const [, result] = Array.from({ length: n - 1 }).reduce<
-    readonly [bigint, bigint]
-  >(([prev, curr]) => [curr, prev + curr] as const, [0n, 1n]);
+  Array.from({ length: n }, () => gen.next());
 
-  return result;
+  return gen.next().value;
 }
 
 /**
@@ -59,6 +71,10 @@ export function fibonacci(n: number): bigint {
  * @returns A readonly array of the first `length` Fibonacci numbers as BigInt
  * @throws {RangeError} If length is negative, non-integer, NaN, or Infinity
  * @remarks Wraps fibonacciGenerator so the sequence is computed once, not per-element
+ * @example
+ * ```typescript
+ * fibonacciSequence(5); // [0n, 1n, 1n, 2n, 3n]
+ * ```
  */
 export function fibonacciSequence(length: number): readonly bigint[] {
   if (!Number.isInteger(length) || length < 0) {
