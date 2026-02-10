@@ -1,0 +1,11 @@
+{
+  "id": "21",
+  "subject": "reviewer-tech",
+  "description": "Run a technical review of the fibonacci generator implementation. Explain findings in beginner-frien",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "_internal": true
+  }
+}

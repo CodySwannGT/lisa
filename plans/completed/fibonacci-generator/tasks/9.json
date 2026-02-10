@@ -1,0 +1,18 @@
+{
+  "id": "9",
+  "subject": "Local code review",
+  "description": "**Type:** Task\n\nRun local code review via `/plan-local-code-review` skill comparing feat/fibonacci-generator to main.\n\n**Verification:** Review findings documented",
+  "activeForm": "Running local code review",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "6"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}

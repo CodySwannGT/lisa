@@ -1,0 +1,18 @@
+{
+  "id": "5",
+  "subject": "Implement fibonacciSequence — TDD GREEN",
+  "description": "**Type:** Task\n\nImplement `fibonacciSequence(length)` to make all tests pass.\n\nUse `Array.from().reduce()` with spread:\n```typescript\nreturn Array.from({ length }).reduce<readonly number[]>(\n  (acc, _, i) => [...acc, i < 2 ? i : (acc[i - 1] ?? 0) + (acc[i - 2] ?? 0)],\n  []\n);\n```\n\nInclude:\n- `MAX_SAFE_LENGTH = 79` constant\n- Input validation with `validateNonNegativeInteger`\n- length > 79 throws: `\"fibonacciSequence(length) exceeds Number.MAX_SAFE_INTEGER for length > 79\"`\n- Returns `readonly number[]`\n- JSDoc with @param, @returns, @throws\n\n**Verification:** `bun run test -- tests/unit/utils/fibonacci.test.ts` → All tests PASS",
+  "activeForm": "Implementing fibonacciSequence (TDD GREEN)",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "6"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator",
+    "type": "task"
+  }
+}
