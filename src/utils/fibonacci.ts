@@ -1,78 +1,73 @@
 /**
- * Fibonacci sequence utilities providing safe, validated computation
- * within JavaScript's integer precision limits.
- *
- * Caps at fibonacci(78) / sequence length 79 because fibonacci(79)
- * exceeds Number.MAX_SAFE_INTEGER, which would silently corrupt results.
- *
+ * @file fibonacci.ts
+ * @description BigInt Fibonacci utilities using a lazy generator pattern.
+ * Uses BigInt instead of Number to eliminate the precision ceiling at
+ * fibonacci(78) — BigInt supports arbitrarily large integers, so callers
+ * can compute fibonacci(1000) or beyond without silent corruption.
+ * The generator pattern enables lazy evaluation, letting consumers pull
+ * only the values they need without allocating the full sequence upfront.
  * @module fibonacci
  */
 
-/** Largest n for which fibonacci(n) fits in a safe JS integer. */
-const MAX_SAFE_N = 78;
-
-/** Largest sequence length where all elements remain safe JS integers. */
-const MAX_SAFE_LENGTH = 79;
+/**
+ * Infinite lazy generator yielding Fibonacci numbers as BigInt.
+ *
+ * @returns Generator that yields successive Fibonacci numbers (0n, 1n, 1n, 2n, 3n, ...)
+ * @remarks Each call creates an independent generator instance — safe for concurrent iteration
+ */
+export function* fibonacciGenerator(): Generator<bigint, never, unknown> {
+  /* eslint-disable functional/no-let -- generator requires mutable state for iterative Fibonacci computation */
+  let a = 0n;
+  let b = 1n;
+  /* eslint-enable functional/no-let -- re-enable after generator state declarations */
+  while (true) {
+    yield a;
+    [a, b] = [b, a + b];
+  }
+}
 
 /**
- * Compute the nth Fibonacci number (0-indexed).
+ * Compute the nth Fibonacci number (0-indexed) using BigInt.
  *
- * Uses an iterative tuple-reduce approach to avoid stack overflow
- * and keep computation O(n) time, O(1) space.
- *
- * @param n - The zero-based index in the Fibonacci sequence
- * @returns The nth Fibonacci number
- * @throws {RangeError} If n is negative, non-integer, NaN, Infinity, or greater than 78
+ * @param n - Zero-based index in the Fibonacci sequence (must be a non-negative integer)
+ * @returns The nth Fibonacci number as a BigInt
+ * @throws {RangeError} If n is negative, non-integer, NaN, or Infinity
+ * @remarks Uses an iterative tuple-reduce for O(n) time and O(1) space — no recursion or array allocation
  */
-export function fibonacci(n: number): number {
+export function fibonacci(n: number): bigint {
   if (!Number.isInteger(n) || n < 0) {
     throw new RangeError(
       `Expected a non-negative integer for n, got ${String(n)}`
     );
   }
 
-  if (n > MAX_SAFE_N) {
-    throw new RangeError(
-      "fibonacci(n) exceeds Number.MAX_SAFE_INTEGER for n > 78"
-    );
-  }
-
   if (n <= 1) {
-    return n;
+    return BigInt(n);
   }
 
   const [, result] = Array.from({ length: n - 1 }).reduce<
-    readonly [number, number]
-  >(([prev, curr]) => [curr, prev + curr] as const, [0, 1]);
+    readonly [bigint, bigint]
+  >(([prev, curr]) => [curr, prev + curr] as const, [0n, 1n]);
 
   return result;
 }
 
 /**
- * Generate the first `length` Fibonacci numbers as a readonly array.
+ * Generate the first `length` Fibonacci numbers as a readonly BigInt array.
  *
- * Builds the sequence incrementally with reduce so each element derives
- * from its two predecessors without recomputing from scratch.
- *
- * @param length - How many Fibonacci numbers to generate
- * @returns A readonly array of Fibonacci numbers
- * @throws {RangeError} If length is negative, non-integer, NaN, Infinity, or greater than 79
+ * @param length - How many Fibonacci numbers to generate (must be a non-negative integer)
+ * @returns A readonly array of the first `length` Fibonacci numbers as BigInt
+ * @throws {RangeError} If length is negative, non-integer, NaN, or Infinity
+ * @remarks Wraps fibonacciGenerator so the sequence is computed once, not per-element
  */
-export function fibonacciSequence(length: number): readonly number[] {
+export function fibonacciSequence(length: number): readonly bigint[] {
   if (!Number.isInteger(length) || length < 0) {
     throw new RangeError(
       `Expected a non-negative integer for length, got ${String(length)}`
     );
   }
 
-  if (length > MAX_SAFE_LENGTH) {
-    throw new RangeError(
-      "fibonacciSequence(length) exceeds Number.MAX_SAFE_INTEGER for length > 79"
-    );
-  }
+  const gen = fibonacciGenerator();
 
-  return Array.from({ length }).reduce<readonly number[]>(
-    (acc, _, i) => [...acc, i < 2 ? i : (acc[i - 1] ?? 0) + (acc[i - 2] ?? 0)],
-    []
-  );
+  return Array.from({ length }, () => gen.next().value);
 }
