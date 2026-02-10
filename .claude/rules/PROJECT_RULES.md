@@ -58,3 +58,46 @@ Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-p
 ## Task Metadata
 
 When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is auto-loaded as a rule via `.claude/rules/coding-philosophy.md` and does not need to be explicitly invoked.
+
+## ESLint Statement Order
+
+When writing utility functions, avoid calling shared validation helpers (expression statements/side effects) before const definitions, as this violates the enforce-statement-order rule. Instead, inline validation as `if` guard clauses, which are exempt from the ordering rule.
+
+Example:
+
+```typescript
+// Wrong - validation helper call before const
+function fibonacci(n: number): number {
+  validateNonNegativeInteger(n, "n"); // Expression statement
+  const result = compute(n); // Const after expression
+  return result;
+}
+
+// Correct - inline validation as guard clause
+function fibonacci(n: number): number {
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+    throw new RangeError(`Expected a non-negative integer for n, got ${String(n)}`);
+  }
+  const result = compute(n);
+  return result;
+}
+```
+
+## Test Isolation
+
+Tests should not call other functions under test to compute expected values, as this creates coupling. Use hardcoded known values instead.
+
+Example:
+
+```typescript
+// Wrong - creates coupling between tests
+it("fibonacciSequence(5) returns correct sequence", () => {
+  const expected = [fibonacci(0), fibonacci(1), fibonacci(2), fibonacci(3), fibonacci(4)];
+  expect(fibonacciSequence(5)).toEqual(expected);
+});
+
+// Correct - uses hardcoded known values
+it("fibonacciSequence(5) returns correct sequence", () => {
+  expect(fibonacciSequence(5)).toEqual([0, 1, 1, 2, 3]);
+});
+```
