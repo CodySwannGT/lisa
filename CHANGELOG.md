@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.32.0](https://github.com/CodySwannGT/lisa/compare/vv1.31.1...v1.32.0) (2026-02-10)
+
+
+### Features
+
+* replace Number-based fibonacci with BigInt generator ([46057df](https://github.com/CodySwannGT/lisa/commit/46057df02215c292e66e542994745fffb3d19c59))
+
+
+### Code Refactoring
+
+* apply review feedback and simplify fibonacci ([06a9bbb](https://github.com/CodySwannGT/lisa/commit/06a9bbbf8a287aefe08984e722b8b598abd772c3))
+
 ### [1.31.1](https://github.com/CodySwannGT/lisa/compare/vv1.31.0...v1.31.1) (2026-02-10)
 
 
