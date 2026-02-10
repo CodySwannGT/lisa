@@ -132,3 +132,66 @@ This is a platform convention for spawning plugin agents via the Agent Team API.
 ### Plan Archival
 
 When archiving plan files, always use `mv` via Bash, never Write or Edit tools. Write and Edit overwrite file contents, which loses the `## Sessions` table that tracks session IDs. Only `mv` preserves the complete file contents during relocation.
+
+### Barrel Export Pre-commit Constraint
+
+Cannot make "deletion-only" commits when barrel exports (index.ts files) reference the deleted files. Pre-commit hooks run lint/typecheck which will fail on broken imports.
+
+Solution: Combine deletion of old file + creation of new file in the same atomic commit.
+
+Example: Deleting `src/utils/fibonacci.ts` alone fails because `src/utils/index.ts` exports `export * from './fibonacci.js'`. Instead, delete the old implementation and add the new implementation in a single commit.
+
+## ESLint Disable Comments
+
+### Description Requirement
+
+All `eslint-disable` directives must include a description to satisfy the `eslint-comments/require-description` rule.
+
+Format: `/* eslint-disable rule-name -- description of why this exception is needed */`
+
+Example from generator pattern:
+
+```typescript
+/* eslint-disable functional/no-let -- generator requires mutable state for iterative Fibonacci computation */
+let a = 0n;
+let b = 1n;
+/* eslint-enable functional/no-let -- re-enable after generator state declarations */
+```
+
+## TypeScript Type System
+
+### readonly is Compile-Time Only
+
+TypeScript's `readonly` modifier (e.g., `readonly bigint[]`) is a compile-time constraint only and has no runtime representation.
+
+Do NOT test runtime immutability with `Object.isFrozen()` for readonly types — TypeScript types are erased at runtime.
+
+Runtime immutability tests (`Object.freeze()`, `Object.isFrozen()`) are separate from TypeScript readonly type checks.
+
+## DRY Principle
+
+### Prefer Delegation to Single Source of Truth
+
+When multiple functions compute the same sequence or data structure, prefer delegating to a shared generator or canonical implementation rather than reimplementing the algorithm.
+
+Example from fibonacci implementation:
+
+```typescript
+// Before: Reimplements Fibonacci logic with tuple-reduce (O(1) space but duplicates logic)
+export function fibonacci(n: number): bigint {
+  const [, result] = Array.from({ length: n - 1 }).reduce<readonly [bigint, bigint]>(
+    ([prev, curr]) => [curr, prev + curr] as const,
+    [0n, 1n]
+  );
+  return result;
+}
+
+// After: Delegates to fibonacciGenerator (DRY - single source of truth)
+export function fibonacci(n: number): bigint {
+  const gen = fibonacciGenerator();
+  Array.from({ length: n }, () => gen.next());
+  return gen.next().value;
+}
+```
+
+Even when the reimplementation has theoretical performance benefits (O(1) space), prefer simplicity and DRY unless performance is empirically proven to be a bottleneck.
