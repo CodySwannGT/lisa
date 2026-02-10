@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.31.0](https://github.com/CodySwannGT/lisa/compare/vv1.30.0...v1.31.0) (2026-02-10)
+
+
+### Features
+
+* add domain planner agents and move review agents to template ([62a4995](https://github.com/CodySwannGT/lisa/commit/62a49958a93c48574ee644a7b33e42779a92d687))
+* rewrite plan-create and plan-implement with phased workflows ([7bc3947](https://github.com/CodySwannGT/lisa/commit/7bc394762cb266995e578ab482da22b0ccd2c510))
+
+
+### Bug Fixes
+
+* use subagent types for coderabbit and code-simplifier in plan-implement ([02f1d93](https://github.com/CodySwannGT/lisa/commit/02f1d9352fc5d8f9e27b4e8c90926902cec264ef))
+
+
+### Code Refactoring
+
+* split plan.md into document format and governance rules ([36c9938](https://github.com/CodySwannGT/lisa/commit/36c9938aeb589e9a62d0cbe1bee7d50193cc6f82))
+
+## [1.30.0](https://github.com/CodySwannGT/lisa/compare/vv1.29.1...v1.30.0) (2026-02-10)
+
+
+### Features
+
+* add fibonacci generator utility functions ([6150038](https://github.com/CodySwannGT/lisa/commit/61500387e85a7df11e92c257722ad0bb97f21779))
+
+
+### Bug Fixes
+
+* add GIT_SSH_COMMAND to git push and align archive instructions ([9ac076e](https://github.com/CodySwannGT/lisa/commit/9ac076ee89a5608cd29fcc26bdf0b5595ece10c8))
+* resolve plan skill E2E test bugs ([73b687e](https://github.com/CodySwannGT/lisa/commit/73b687e5dfa9f061463bb268cf7854ff8256ca4d))
+
+
+### Documentation
+
+* add ESLint statement order and test isolation rules ([df44b8a](https://github.com/CodySwannGT/lisa/commit/df44b8a5131030b23d315d88bbd62ad575c328bd))
+* add fibonacci generator implementation plan ([77c2c72](https://github.com/CodySwannGT/lisa/commit/77c2c727badd8800788a760299422e414c2869d6))
+
+
+### Code Refactoring
+
+* simplify plan skills and update E2E test docs ([82e5e20](https://github.com/CodySwannGT/lisa/commit/82e5e205096440337b2e0cc5be3486f66f700d0b))
+
+### [1.29.1](https://github.com/CodySwannGT/lisa/compare/vv1.29.0...v1.29.1) (2026-02-09)
+
+## [1.29.0](https://github.com/CodySwannGT/lisa/compare/vv1.28.0...v1.29.0) (2026-02-09)
+
+
+### Features
+
+* update plan-implement skill to accept arguments ([6e0002d](https://github.com/CodySwannGT/lisa/commit/6e0002d0fe8320dda15f70e0a29d82d8d20077f4))
+
 ## [1.28.0](https://github.com/CodySwannGT/lisa/compare/vv1.27.0...v1.28.0) (2026-02-09)
 
 
