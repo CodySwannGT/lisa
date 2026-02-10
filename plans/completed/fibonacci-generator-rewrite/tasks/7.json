@@ -1,0 +1,30 @@
+{
+  "id": "7",
+  "subject": "Product/UX review",
+  "description": "**Type:** Task\n\n**Description:** Run product review using `product-reviewer` agent to validate the fibonacci module from a developer-consumer perspective.\n\n**Acceptance Criteria:**\n- [ ] API ergonomics validated (import paths, function names, return types)\n- [ ] Error messages reviewed for clarity and debuggability\n- [ ] JSDoc reviewed for completeness and helpfulness\n\n**Verification:**\n- Type: `manual-check`\n- Command: `echo \"Product review completed\"`\n- Expected: Review findings documented, no blocking issues\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"manual-check\",\"command\":\"echo 'Product review completed'\",\"expected\":\"Review findings documented\"}}\n```",
+  "activeForm": "Running product/UX review",
+  "owner": "product-reviewer",
+  "status": "completed",
+  "blocks": [
+    "11"
+  ],
+  "blockedBy": [
+    "5",
+    "6"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Product review completed'",
+      "expected": "Review findings documented"
+    },
+    "owner": "product-reviewer",
+    "learnings": [
+      "All error messages include parameter name and actual value - good pattern for debuggability",
+      "Barrel export works seamlessly - consumers can import from utils/ without knowing internal file structure"
+    ]
+  }
+}

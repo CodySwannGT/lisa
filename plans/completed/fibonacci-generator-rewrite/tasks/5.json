@@ -1,0 +1,28 @@
+{
+  "id": "5",
+  "subject": "Verify full test suite and coverage",
+  "description": "**Type:** Task\n\n**Description:** Run the full test suite to ensure no regressions, and verify 100% coverage on the new fibonacci module.\n\n**Acceptance Criteria:**\n- [ ] Full test suite passes (`bun run test`)\n- [ ] 100% coverage on `src/utils/fibonacci.ts` (statements, branches, functions, lines)\n- [ ] Lint passes (`bun run lint`)\n- [ ] Typecheck passes (`bun run typecheck`)\n\n**Verification:**\n- Type: `test-coverage`\n- Command: `NODE_ENV=test npx jest --coverage --collectCoverageFrom='src/utils/fibonacci.ts' tests/unit/utils/fibonacci.test.ts 2>&1 | grep fibonacci.ts`\n- Expected: `fibonacci.ts | 100 | 100 | 100 | 100`\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"test-coverage\",\"command\":\"NODE_ENV=test npx jest --coverage --collectCoverageFrom='src/utils/fibonacci.ts' tests/unit/utils/fibonacci.test.ts 2>&1 | grep fibonacci.ts\",\"expected\":\"fibonacci.ts | 100 | 100 | 100 | 100\"}}\n```",
+  "activeForm": "Verifying full test suite and coverage",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "7",
+    "8",
+    "9",
+    "10"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test-coverage",
+      "command": "NODE_ENV=test npx jest --coverage --collectCoverageFrom='src/utils/fibonacci.ts' tests/unit/utils/fibonacci.test.ts 2>&1 | grep fibonacci.ts",
+      "expected": "fibonacci.ts | 100 | 100 | 100 | 100"
+    },
+    "owner": "implementer-1"
+  }
+}

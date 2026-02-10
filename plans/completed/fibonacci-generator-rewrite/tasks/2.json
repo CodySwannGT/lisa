@@ -1,0 +1,23 @@
+{
+  "id": "2",
+  "subject": "Delete archived fibonacci plans",
+  "description": "**Type:** Task\n\n**Description:** Remove the two archived fibonacci plan directories from `plans/completed/`. These contain the original Number-based plan (with 21 task JSON files) and the BigInt replacement plan.\n\n**Acceptance Criteria:**\n- [ ] `plans/completed/fibonacci-generator/` deleted (24 tracked files)\n- [ ] `plans/completed/fibonacci-bigint-generator/` deleted (1 tracked file)\n- [ ] Changes committed with `git rm -r`\n\n**Implementation Details:**\n```bash\ngit rm -r plans/completed/fibonacci-generator/ plans/completed/fibonacci-bigint-generator/\n```\nThen commit.\n\n**Verification:**\n- Type: `manual-check`\n- Command: `! ls plans/completed/fibonacci-generator 2>/dev/null && ! ls plans/completed/fibonacci-bigint-generator 2>/dev/null && echo \"Plans removed\"`\n- Expected: `Plans removed`\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"manual-check\",\"command\":\"! ls plans/completed/fibonacci-generator 2>/dev/null && ! ls plans/completed/fibonacci-bigint-generator 2>/dev/null && echo 'Plans removed'\",\"expected\":\"Plans removed\"}}\n```",
+  "activeForm": "Deleting archived fibonacci plans",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "! ls plans/completed/fibonacci-generator 2>/dev/null && ! ls plans/completed/fibonacci-bigint-generator 2>/dev/null && echo 'Plans removed'",
+      "expected": "Plans removed"
+    },
+    "owner": "implementer-1"
+  }
+}

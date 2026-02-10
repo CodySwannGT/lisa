@@ -1,0 +1,28 @@
+{
+  "id": "6",
+  "subject": "Update PROJECT_RULES.md fibonacci examples",
+  "description": "**Type:** Task\n\n**Description:** Update the 2 PROJECT_RULES.md sections that use `number` types in fibonacci examples to use `bigint`.\n\n**Acceptance Criteria:**\n- [ ] ESLint Statement Order section (lines ~70, ~77): `: number` changed to `: bigint`\n- [ ] Test Isolation section (lines ~94-101): `[0, 1, 1, 2, 3]` changed to `[0n, 1n, 1n, 2n, 3n]`\n- [ ] Changes committed\n\n**Implementation Details:**\n- Line ~70: `function fibonacci(n: number): number` → `function fibonacci(n: number): bigint`\n- Line ~77: `function fibonacci(n: number): number` → `function fibonacci(n: number): bigint`\n- Line ~101: `[0, 1, 1, 2, 3]` → `[0n, 1n, 1n, 2n, 3n]`\n\n**Verification:**\n- Type: `documentation`\n- Command: `grep -n 'function fibonacci' .claude/rules/PROJECT_RULES.md`\n- Expected: All lines show `: bigint` return type\n\n```json\n{\"plan\":\"fibonacci-generator-rewrite\",\"type\":\"task\",\"skills\":[],\"verification\":{\"type\":\"documentation\",\"command\":\"grep -n 'function fibonacci' .claude/rules/PROJECT_RULES.md\",\"expected\":\"All lines show bigint return type\"}}\n```",
+  "activeForm": "Updating PROJECT_RULES.md fibonacci examples",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "7",
+    "8",
+    "9",
+    "10"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "fibonacci-generator-rewrite",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "documentation",
+      "command": "grep -n 'function fibonacci' .claude/rules/PROJECT_RULES.md",
+      "expected": "All lines show bigint return type"
+    },
+    "owner": "team-lead"
+  }
+}
