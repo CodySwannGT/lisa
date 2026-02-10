@@ -185,7 +185,7 @@ Include all required tasks defined in `@.claude/rules/plan-governance.md` (Requi
 
 ## Step 10: Implementation Team Instructions
 
-The plan must include instructions to spawn an Agent Team for implementation. Recommend these specialized agents:
+The plan must include explict instructions to "Create an agent team" for implementation. Recommend these specialized agents:
 
 | Agent | Use For |
 |-------|---------|
