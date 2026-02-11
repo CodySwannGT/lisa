@@ -37,7 +37,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `.claude/rules/coding-philosophy.md`, `.claude/rules/plan.md`, `.claude/rules/verfication.md`
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
-- `.yamllint`, `.gitleaksignore`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
+- `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
 - `eslint.base.ts`, `eslint.typescript.ts`, `eslint.expo.ts`, `eslint.nestjs.ts`, `eslint.cdk.ts`, `eslint.slow.config.ts`
 - `jest.base.ts`, `jest.typescript.ts`, `jest.expo.ts`, `jest.nestjs.ts`, `jest.cdk.ts`
 - `tsconfig.base.json`, `tsconfig.typescript.json`, `tsconfig.expo.json`, `tsconfig.nestjs.json`, `tsconfig.cdk.json`
