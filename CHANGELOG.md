@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.35.0](https://github.com/CodySwannGT/lisa/compare/vv1.34.0...v1.35.0) (2026-02-11)
+
+
+### Features
+
+* **all:** add .coderabbit.yml as copy-overwrite template ([5b74e5e](https://github.com/CodySwannGT/lisa/commit/5b74e5e06bfdbf15dfc0004a739784cf549f8c09))
+
 ## [1.34.0](https://github.com/CodySwannGT/lisa/compare/vv1.33.1...v1.34.0) (2026-02-11)
 
 
