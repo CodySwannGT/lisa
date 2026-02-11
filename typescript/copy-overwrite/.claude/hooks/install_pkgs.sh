@@ -27,6 +27,12 @@ GITLEAKS_VERSION="8.18.4"
 curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz -C /usr/local/bin gitleaks
 echo "Gitleaks installed: $(gitleaks version)"
 
+# Install jira-cli for JIRA integration
+echo "Installing jira-cli for JIRA integration..."
+JIRA_CLI_VERSION="1.7.0"
+curl -sSfL "https://github.com/ankitpokhrel/jira-cli/releases/download/v${JIRA_CLI_VERSION}/jira_${JIRA_CLI_VERSION}_linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin jira
+echo "jira-cli installed: $(jira version)"
+
 # Install Chromium for Lighthouse CI (pre-push hook)
 # Playwright's bundled Chromium works with @lhci/cli
 echo "Installing Chromium for Lighthouse CI..."
