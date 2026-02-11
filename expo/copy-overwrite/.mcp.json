@@ -20,14 +20,6 @@
         "SONARQUBE_TOKEN": "${SONAR_TOKEN}",
         "SONARQUBE_ORG": "${SONAR_ORG}"
       }
-    },
-    "atlassian": {
-      "type": "sse",
-      "url": "https://mcp.atlassian.com/v1/sse"
-    },
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
     }
   }
 }
