@@ -23,7 +23,11 @@
  *
  * Coverage collection is scoped to standard Expo source directories
  * rather than a catch-all glob, preventing config files, scripts, and
- * plugins from distorting coverage numbers.
+ * plugins from distorting coverage numbers. The `app/` directory is
+ * excluded because Expo Router file-based routing makes those files thin
+ * wrappers (8-15 lines) that just re-export feature components.
+ * `*View.{ts,tsx}` files are excluded because the Container/View pattern
+ * puts all logic in Container files — Views are purely presentational.
  *
  * Inheritance chain:
  *   jest.expo.ts (this file)
@@ -100,7 +104,6 @@ export const getExpoJestConfig = ({
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   collectCoverageFrom: [
-    "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
     "config/**/*.{ts,tsx}",
     "constants/**/*.{ts,tsx}",
@@ -112,6 +115,7 @@ export const getExpoJestConfig = ({
     "stores/**/*.{ts,tsx}",
     "types/**/*.{ts,tsx}",
     "utils/**/*.{ts,tsx}",
+    "!**/*View.{ts,tsx}",
     ...defaultCoverageExclusions,
   ],
   coverageThreshold: thresholds,
