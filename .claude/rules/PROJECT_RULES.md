@@ -38,6 +38,8 @@ When adding a new configuration:
 
 When updating a project file, always check to see if it has a corresponding template file. IF it does, update it to match. This DOES NOT apply to "create-only" rules.
 
+When upstreaming a governance pattern discovered in a downstream project (e.g., frontend-v2, backend-v2), trace it back to the Lisa template source files and update both the template and its tests. This ensures the pattern propagates to all projects using that stack template.
+
 Never parse JSON in shell scripts using grep/sed/cut/awk - always use jq for robust JSON handling.
 
 When creating Claude Code hooks for enforcement (linting, code quality, static analysis), always use blocking behavior (exit 1 on failures) so Claude receives feedback and can fix the errors. Notification-only hooks (like ntfy.sh) should exit 0 since they don't require Claude to take action.
