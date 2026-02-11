@@ -28,9 +28,16 @@ curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_V
 echo "Gitleaks installed: $(gitleaks version)"
 
 # Install jira-cli for JIRA integration
+# The tarball nests the binary at jira_VERSION_linux_x86_64/bin/jira,
+# so we extract to a temp dir and copy the binary out.
 echo "Installing jira-cli for JIRA integration..."
 JIRA_CLI_VERSION="1.7.0"
-curl -sSfL "https://github.com/ankitpokhrel/jira-cli/releases/download/v${JIRA_CLI_VERSION}/jira_${JIRA_CLI_VERSION}_linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin jira
+JIRA_TMPDIR=$(mktemp -d)
+curl -sSfL "https://github.com/ankitpokhrel/jira-cli/releases/download/v${JIRA_CLI_VERSION}/jira_${JIRA_CLI_VERSION}_linux_x86_64.tar.gz" \
+  | tar -xz -C "${JIRA_TMPDIR}"
+cp "${JIRA_TMPDIR}/jira_${JIRA_CLI_VERSION}_linux_x86_64/bin/jira" /usr/local/bin/jira
+chmod +x /usr/local/bin/jira
+rm -rf "${JIRA_TMPDIR}"
 echo "jira-cli installed: $(jira version)"
 
 # Install Chromium for Lighthouse CI (pre-push hook)
