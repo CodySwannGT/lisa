@@ -73,7 +73,9 @@ describe("jest.expo", () => {
       const patterns = config.collectCoverageFrom as string[];
       const inclusionPatterns = patterns.filter(p => !p.startsWith("!"));
 
-      expect(inclusionPatterns.every(p => !p.startsWith("app/"))).toBe(true);
+      expect(inclusionPatterns).not.toEqual(
+        expect.arrayContaining([expect.stringMatching(/^app\//)])
+      );
     });
 
     it("excludes View files from coverage", () => {
