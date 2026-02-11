@@ -64,9 +64,24 @@ describe("jest.expo", () => {
 
       directoryPatterns.forEach(pattern => {
         expect(pattern).toMatch(
-          /^(app|components|config|constants|features|hooks|lib|providers|shared|stores|types|utils)\//
+          /^(components|config|constants|features|hooks|lib|providers|shared|stores|types|utils)\//
         );
       });
+    });
+
+    it("does not include app directory in coverage inclusions", () => {
+      const patterns = config.collectCoverageFrom as string[];
+      const inclusionPatterns = patterns.filter(p => !p.startsWith("!"));
+
+      expect(inclusionPatterns).not.toEqual(
+        expect.arrayContaining([expect.stringMatching(/^app\//)])
+      );
+    });
+
+    it("excludes View files from coverage", () => {
+      const patterns = config.collectCoverageFrom as string[];
+
+      expect(patterns).toContain("!**/*View.{ts,tsx}");
     });
 
     it("does not include catch-all coverage glob", () => {
