@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.34.0](https://github.com/CodySwannGT/lisa/compare/vv1.33.1...v1.34.0) (2026-02-11)
+
+
+### Features
+
+* **expo:** exclude app routes and View files from test coverage ([64f9ba6](https://github.com/CodySwannGT/lisa/commit/64f9ba6f66c02a93b061d4a349733bad99dc0eb2))
+
+
+### Code Refactoring
+
+* improve test assertion diagnostics and add upstreaming rule ([c91223e](https://github.com/CodySwannGT/lisa/commit/c91223e29fbb232a4e247adda53ecd38edcadc7b))
+
 ### [1.33.1](https://github.com/CodySwannGT/lisa/compare/vv1.33.0...v1.33.1) (2026-02-10)
 
 
