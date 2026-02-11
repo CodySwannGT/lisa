@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.36.0](https://github.com/CodySwannGT/lisa/compare/vv1.35.0...v1.36.0) (2026-02-11)
+
+
+### Features
+
+* **all:** add setup-jira-cli SessionStart hook for env-based config ([aea5536](https://github.com/CodySwannGT/lisa/commit/aea5536d078fffb2122e5ec4a8692aafae6815a8))
+* **typescript:** add jira-cli to remote environment install hook ([03b6ccc](https://github.com/CodySwannGT/lisa/commit/03b6cccb5056cc1775e0fc9c9053dbc2b9ba6778))
+
+
+### Bug Fixes
+
+* **typescript:** fix jira-cli tarball extraction in install_pkgs.sh ([12a4832](https://github.com/CodySwannGT/lisa/commit/12a4832ad8774bc55cbc5176aae98dde03b0919c))
+
 ## [1.35.0](https://github.com/CodySwannGT/lisa/compare/vv1.34.0...v1.35.0) (2026-02-11)
 
 
