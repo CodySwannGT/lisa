@@ -175,6 +175,19 @@ export async function createMockLisaDir(dir: string): Promise<void> {
     path.join(railsCreateOnly, ".rubocop.local.yml"),
     "# Project-specific overrides\n"
   );
+  await fs.writeFile(
+    path.join(railsCreateOnly, ".mise.toml"),
+    '[tools]\nruby = "3.4.8"\n'
+  );
+  await fs.ensureDir(path.join(railsCreateOnly, ".github", "workflows"));
+  await fs.writeFile(
+    path.join(railsCreateOnly, ".github", "workflows", "ci.yml"),
+    "name: CI\n\non:\n  pull_request:\n  workflow_dispatch:\n\njobs:\n  quality:\n    name: Quality Checks\n    uses: ./.github/workflows/quality.yml\n    secrets: inherit\n"
+  );
+  await fs.writeFile(
+    path.join(railsCreateOnly, ".github", "workflows", "quality.yml"),
+    "name: Quality\n\non:\n  workflow_call:\n  pull_request:\n    branches: [main]\n  push:\n    branches: [main]\n\njobs:\n  lint:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n"
+  );
 
   // Create rails/deletions.json
   await fs.writeJson(path.join(dir, "rails", "deletions.json"), {

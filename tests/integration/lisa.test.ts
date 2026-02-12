@@ -385,6 +385,48 @@ describe("Lisa Integration Tests", () => {
       );
     });
 
+    it("deploys .mise.toml via create-only", async () => {
+      await createRailsProject(destDir);
+
+      await createLisa().apply();
+
+      expect(await fs.pathExists(path.join(destDir, ".mise.toml"))).toBe(true);
+      const content = await fs.readFile(
+        path.join(destDir, ".mise.toml"),
+        "utf-8"
+      );
+      expect(content).toContain("[tools]");
+      expect(content).toContain("ruby");
+    });
+
+    it("deploys ci.yml wrapper via create-only", async () => {
+      await createRailsProject(destDir);
+
+      await createLisa().apply();
+
+      const ciPath = path.join(destDir, ".github", "workflows", "ci.yml");
+      expect(await fs.pathExists(ciPath)).toBe(true);
+      const content = await fs.readFile(ciPath, "utf-8");
+      expect(content).toContain("uses: ./.github/workflows/quality.yml");
+      expect(content).toContain("secrets: inherit");
+    });
+
+    it("deploys quality.yml with workflow_call trigger via create-only", async () => {
+      await createRailsProject(destDir);
+
+      await createLisa().apply();
+
+      const qualityPath = path.join(
+        destDir,
+        ".github",
+        "workflows",
+        "quality.yml"
+      );
+      expect(await fs.pathExists(qualityPath)).toBe(true);
+      const content = await fs.readFile(qualityPath, "utf-8");
+      expect(content).toContain("workflow_call:");
+    });
+
     it("preserves create-only files on re-run", async () => {
       await createRailsProject(destDir);
 
