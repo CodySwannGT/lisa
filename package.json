@@ -13,6 +13,7 @@
     "expo",
     "nestjs",
     "cdk",
+    "rails",
     "eslint-plugin-code-organization"
   ],
   "trustedDependencies": [
