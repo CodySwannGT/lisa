@@ -188,27 +188,24 @@ export async function createMockLisaDir(dir: string): Promise<void> {
  * @returns Promise resolving to total file count
  */
 export async function countFiles(dir: string): Promise<number> {
-  const count = { value: 0 };
-
   /**
-   * Recursively walk directory tree and count files
+   * Recursively walk directory tree and sum file counts
    * @param currentDir - Current directory being walked
+   * @returns Promise resolving to file count in this subtree
    */
-  async function walk(currentDir: string): Promise<void> {
+  async function walk(currentDir: string): Promise<number> {
     const entries = await fs.readdir(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        await walk(fullPath);
-      } else if (entry.isFile()) {
-        count.value++;
-      }
-    }
+    const counts = await Promise.all(
+      entries.map(async entry => {
+        const fullPath = path.join(currentDir, entry.name);
+        if (entry.isDirectory()) {
+          return walk(fullPath);
+        }
+        return entry.isFile() ? 1 : 0;
+      })
+    );
+    return counts.reduce((sum, c) => sum + c, 0);
   }
 
-  if (await fs.pathExists(dir)) {
-    await walk(dir);
-  }
-
-  return count.value;
+  return (await fs.pathExists(dir)) ? walk(dir) : 0;
 }

@@ -10,7 +10,7 @@ pre-commit:
 commit-msg:
   commands:
     conventional-commit:
-      run: 'echo "$1" | grep -qE "^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?: .+" || (echo "Commit message must follow conventional format" && exit 1)'
+      run: 'head -1 {1} | grep -qE "^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?: .+" || (echo "Commit message must follow conventional format" && exit 1)'
 
 pre-push:
   commands:

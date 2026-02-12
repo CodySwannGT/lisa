@@ -89,13 +89,21 @@ describe("Lisa Integration Tests", () => {
     };
   }
 
+  /**
+   * Create a Lisa instance with optional config overrides
+   * @param overrides - Configuration overrides
+   * @returns Lisa instance ready for apply/validate/uninstall
+   */
+  function createLisa(overrides: Partial<LisaConfig> = {}): Lisa {
+    const config = createConfig(overrides);
+    return new Lisa(config, createDeps(config));
+  }
+
   describe("apply", () => {
     it("applies configurations to TypeScript project", async () => {
       await createTypeScriptProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toContain("typescript");
@@ -108,9 +116,7 @@ describe("Lisa Integration Tests", () => {
     it("applies configurations to Expo project", async () => {
       await createExpoProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toContain("expo");
@@ -120,9 +126,7 @@ describe("Lisa Integration Tests", () => {
     it("applies configurations to NestJS project", async () => {
       await createNestJSProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toContain("nestjs");
@@ -132,9 +136,7 @@ describe("Lisa Integration Tests", () => {
     it("applies configurations to CDK project", async () => {
       await createCDKProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toContain("cdk");
@@ -144,9 +146,7 @@ describe("Lisa Integration Tests", () => {
     it("creates manifest file after installation", async () => {
       await createTypeScriptProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      await lisa.apply();
+      await createLisa().apply();
 
       expect(await fs.pathExists(path.join(destDir, LISA_MANIFEST))).toBe(true);
     });
@@ -155,9 +155,7 @@ describe("Lisa Integration Tests", () => {
       await fs.ensureDir(destDir);
       await fs.writeJson(path.join(destDir, PACKAGE_JSON), {});
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toHaveLength(0);
@@ -172,9 +170,7 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       const beforeCount = await countFiles(destDir);
 
-      const config = createConfig({ dryRun: true });
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa({ dryRun: true }).apply();
 
       expect(result.success).toBe(true);
       const afterCount = await countFiles(destDir);
@@ -184,9 +180,7 @@ describe("Lisa Integration Tests", () => {
     it("returns counters for what would be done", async () => {
       await createTypeScriptProject(destDir);
 
-      const config = createConfig({ dryRun: true });
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa({ dryRun: true }).apply();
 
       expect(result.counters.copied).toBeGreaterThan(0);
     });
@@ -196,9 +190,10 @@ describe("Lisa Integration Tests", () => {
     it("validates project compatibility", async () => {
       await createTypeScriptProject(destDir);
 
-      const config = createConfig({ validateOnly: true, dryRun: true });
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.validate();
+      const result = await createLisa({
+        validateOnly: true,
+        dryRun: true,
+      }).validate();
 
       expect(result.success).toBe(true);
       expect(result.mode).toBe("validate");
@@ -208,9 +203,7 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       const beforeCount = await countFiles(destDir);
 
-      const config = createConfig({ validateOnly: true, dryRun: true });
-      const lisa = new Lisa(config, createDeps(config));
-      await lisa.validate();
+      await createLisa({ validateOnly: true, dryRun: true }).validate();
 
       const afterCount = await countFiles(destDir);
       expect(afterCount).toBe(beforeCount);
@@ -222,20 +215,13 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
 
       // First install
-      const installConfig = createConfig();
-      const installLisa = new Lisa(installConfig, createDeps(installConfig));
-      await installLisa.apply();
+      await createLisa().apply();
 
       // Verify files exist
       expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
 
       // Then uninstall
-      const uninstallConfig = createConfig();
-      const uninstallLisa = new Lisa(
-        uninstallConfig,
-        createDeps(uninstallConfig)
-      );
-      const result = await uninstallLisa.uninstall();
+      const result = await createLisa().uninstall();
 
       expect(result.success).toBe(true);
       expect(result.mode).toBe("uninstall");
@@ -252,9 +238,7 @@ describe("Lisa Integration Tests", () => {
     it("fails when no manifest exists", async () => {
       await createTypeScriptProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.uninstall();
+      const result = await createLisa().uninstall();
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
@@ -264,19 +248,12 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
 
       // First install
-      const installConfig = createConfig();
-      const installLisa = new Lisa(installConfig, createDeps(installConfig));
-      await installLisa.apply();
+      await createLisa().apply();
 
       const beforeCount = await countFiles(destDir);
 
       // Dry run uninstall
-      const uninstallConfig = createConfig({ dryRun: true });
-      const uninstallLisa = new Lisa(
-        uninstallConfig,
-        createDeps(uninstallConfig)
-      );
-      await uninstallLisa.uninstall();
+      await createLisa({ dryRun: true }).uninstall();
 
       const afterCount = await countFiles(destDir);
       expect(afterCount).toBe(beforeCount);
@@ -287,17 +264,13 @@ describe("Lisa Integration Tests", () => {
     it("running twice produces same result", async () => {
       await createTypeScriptProject(destDir);
 
-      const config = createConfig();
-
       // First run
-      const lisa1 = new Lisa(config, createDeps(config));
-      const result1 = await lisa1.apply();
+      const result1 = await createLisa().apply();
 
       expect(result1.success).toBe(true);
 
       // Second run
-      const lisa2 = new Lisa(config, createDeps(config));
-      const result2 = await lisa2.apply();
+      const result2 = await createLisa().apply();
 
       expect(result2.success).toBe(true);
       // Second run should skip files since first run already applied them
@@ -307,11 +280,8 @@ describe("Lisa Integration Tests", () => {
     it("prompts when running with latest version already installed", async () => {
       await createTypeScriptProject(destDir);
 
-      const config = createConfig();
-
       // First run
-      const lisa1 = new Lisa(config, createDeps(config));
-      const result1 = await lisa1.apply();
+      const result1 = await createLisa().apply();
 
       expect(result1.success).toBe(true);
 
@@ -321,8 +291,7 @@ describe("Lisa Integration Tests", () => {
       expect(manifestContent).toMatch(/# Lisa version:/);
 
       // Second run should succeed with auto-accept
-      const lisa2 = new Lisa(config, createDeps(config));
-      const result2 = await lisa2.apply();
+      const result2 = await createLisa().apply();
 
       expect(result2.success).toBe(true);
     });
@@ -330,9 +299,9 @@ describe("Lisa Integration Tests", () => {
 
   describe("error handling", () => {
     it("fails with non-existent destination", async () => {
-      const config = createConfig({ destDir: "/nonexistent/path" });
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa({
+        destDir: "/nonexistent/path",
+      }).apply();
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
@@ -343,9 +312,7 @@ describe("Lisa Integration Tests", () => {
     it("applies configurations to Rails project", async () => {
       await createRailsProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toContain("rails");
@@ -354,9 +321,7 @@ describe("Lisa Integration Tests", () => {
     it("does not apply typescript pack to Rails project", async () => {
       await createRailsProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      await lisa.apply();
+      await createLisa().apply();
 
       // TypeScript-specific files should NOT be present
       expect(
@@ -367,9 +332,7 @@ describe("Lisa Integration Tests", () => {
     it("overrides CLAUDE.md with Rails-specific version", async () => {
       await createRailsProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      await lisa.apply();
+      await createLisa().apply();
 
       const claudeContent = await fs.readFile(
         path.join(destDir, "CLAUDE.md"),
@@ -381,9 +344,7 @@ describe("Lisa Integration Tests", () => {
     it("appends eval_gemfile to Gemfile with markers", async () => {
       await createRailsProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      await lisa.apply();
+      await createLisa().apply();
 
       const gemfileContent = await fs.readFile(
         path.join(destDir, "Gemfile"),
@@ -397,9 +358,7 @@ describe("Lisa Integration Tests", () => {
     it("deploys Gemfile.lisa via copy-overwrite", async () => {
       await createRailsProject(destDir);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      await lisa.apply();
+      await createLisa().apply();
 
       expect(await fs.pathExists(path.join(destDir, "Gemfile.lisa"))).toBe(
         true
@@ -419,9 +378,7 @@ describe("Lisa Integration Tests", () => {
         "old overcommit config\n"
       );
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      await lisa.apply();
+      await createLisa().apply();
 
       expect(await fs.pathExists(path.join(destDir, ".overcommit.yml"))).toBe(
         false
@@ -431,19 +388,15 @@ describe("Lisa Integration Tests", () => {
     it("preserves create-only files on re-run", async () => {
       await createRailsProject(destDir);
 
-      const config = createConfig();
-
       // First run — creates .rubocop.local.yml
-      const lisa1 = new Lisa(config, createDeps(config));
-      await lisa1.apply();
+      await createLisa().apply();
 
       // Modify the create-only file
       const localRubocopPath = path.join(destDir, ".rubocop.local.yml");
       await fs.writeFile(localRubocopPath, "# Custom project overrides\n");
 
       // Second run — should NOT overwrite
-      const lisa2 = new Lisa(config, createDeps(config));
-      await lisa2.apply();
+      await createLisa().apply();
 
       const content = await fs.readFile(localRubocopPath, "utf-8");
       expect(content).toBe("# Custom project overrides\n");
@@ -457,9 +410,7 @@ describe("Lisa Integration Tests", () => {
       });
       await fs.writeJson(path.join(destDir, "tsconfig.json"), {});
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toContain("rails");
@@ -474,9 +425,7 @@ describe("Lisa Integration Tests", () => {
       // Create .lisaignore to skip test.txt
       await fs.writeFile(path.join(destDir, LISAIGNORE), TEST_TXT);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       // test.txt should NOT be copied because it's ignored
@@ -494,9 +443,7 @@ describe("Lisa Integration Tests", () => {
       // Since tsconfig.base.json comes from typescript/, ignoring it should work
       await fs.writeFile(path.join(destDir, LISAIGNORE), TSCONFIG_BASE);
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       // tsconfig.base.json should NOT be copied
@@ -511,9 +458,7 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       await fs.writeFile(path.join(destDir, LISAIGNORE), TEST_TXT);
 
-      const config = createConfig({ dryRun: true });
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa({ dryRun: true }).apply();
 
       expect(result.success).toBe(true);
       expect(result.counters.ignored).toBeGreaterThan(0);
@@ -523,9 +468,7 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       // No .lisaignore file
 
-      const config = createConfig();
-      const lisa = new Lisa(config, createDeps(config));
-      const result = await lisa.apply();
+      const result = await createLisa().apply();
 
       expect(result.success).toBe(true);
       expect(result.counters.ignored).toBe(0);

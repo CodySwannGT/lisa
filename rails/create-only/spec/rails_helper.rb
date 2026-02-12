@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
-ENV["RAILS_ENV"] ||= "test"
+ENV['RAILS_ENV'] ||= 'test'
 
-require_relative "../config/environment"
+require_relative '../config/environment'
 
-abort("The Rails environment is running in production mode!") if Rails.env.production?
+raise 'The Rails environment is running in production mode!' if Rails.env.production?
 
-require "rspec/rails"
+require 'rspec/rails'
 
 begin
   ActiveRecord::Migration.maintain_test_schema!
 rescue ActiveRecord::PendingMigrationError => e
-  abort e.to_s.strip
+  raise e.to_s.strip
 end
 
 RSpec.configure do |config|
-  config.fixture_paths = [Rails.root.join("spec/fixtures")]
+  config.fixture_paths = [Rails.root.join('spec/fixtures')]
   config.use_transactional_fixtures = true
   config.infer_spec_type_from_file_location!
   config.filter_rails_from_backtrace!
