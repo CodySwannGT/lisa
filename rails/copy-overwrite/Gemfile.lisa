@@ -1,0 +1,52 @@
+# frozen_string_literal: true
+
+# This file is managed by Lisa. Do not edit directly.
+# These gems are governance-critical and will be overwritten on every `lisa` run.
+
+# Runtime governance (all environments)
+gem "strong_migrations", "~> 2.5"
+gem "rack-attack", "~> 6.8"
+
+group :development, :test do
+  # Linting & Style
+  gem "rubocop", "~> 1.75", require: false
+  gem "rubocop-rails", "~> 2.30", require: false
+  gem "rubocop-performance", "~> 1.24", require: false
+  gem "rubocop-rspec", "~> 3.5", require: false
+  gem "rubocop-capybara", "~> 2.22", require: false
+  gem "rubocop-factory_bot", "~> 2.26", require: false
+  gem "rubocop-yard", "~> 0.9", require: false
+
+  # Testing
+  gem "rspec-rails", "~> 7.1"
+  gem "factory_bot_rails", "~> 6.4"
+  gem "faker", "~> 3.5"
+  gem "shoulda-matchers", "~> 6.4"
+  gem "simplecov", "~> 0.22", require: false
+  gem "webmock", "~> 3.24"
+  gem "vcr", "~> 6.3"
+
+  # Code Quality
+  gem "reek", "~> 6.3", require: false
+  gem "flog", "~> 4.8", require: false
+  gem "flay", "~> 2.13", require: false
+
+  # Security
+  gem "brakeman", "~> 7.0", require: false
+  gem "bundler-audit", "~> 0.9", require: false
+
+  # Documentation
+  gem "yard", "~> 0.9", require: false
+
+  # Database Quality
+  gem "database_consistency", "~> 1.7", require: false
+end
+
+group :development do
+  # Performance
+  gem "bullet", "~> 8.0"
+  gem "rack-mini-profiler", "~> 3.3"
+
+  # Git Hooks
+  gem "lefthook", require: false
+end
