@@ -1,0 +1,25 @@
+{
+  "id": "6",
+  "subject": "Add rails/ to package.json files array",
+  "description": "**Type:** Task\\n\\n**Description:** Add `\\\"rails\\\"` to the `files` array in `package.json` so the pack is included in published npm builds. Add after `\\\"cdk\\\"`.\\n\\nNote: Only update `package.json`. The root `package.lisa.json` does NOT have a `files` field.\\n\\n**Acceptance Criteria:**\\n- [ ] `package.json` `files` array includes `\\\"rails\\\"`\\n- [ ] `package.lisa.json` is NOT modified\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"node -e \\\\\\\"const p=require('./package.json'); console.log(p.files.includes('rails'))\\\\\\\"\\\",\\\"expected\\\":\\\"true\\\"}}\\n```",
+  "activeForm": "Adding rails/ to package.json files array",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "node -e \"const p=require('./package.json'); console.log(p.files.includes('rails'))\"",
+      "expected": "true"
+    },
+    "owner": "implementer-1"
+  }
+}

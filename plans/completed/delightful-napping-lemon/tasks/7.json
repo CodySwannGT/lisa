@@ -1,0 +1,35 @@
+{
+  "id": "7",
+  "subject": "Write integration tests for Rails stack application",
+  "description": "**Type:** Task\\n\\n**Description:** Extend integration tests in `tests/integration/lisa.test.ts` and `tests/helpers/test-utils.ts`:\\n\\n1. Add `createRailsProject()` helper to `test-utils.ts`:\\n   - Creates `config/routes.rb`, `config/application.rb`, `bin/rails`, `Gemfile`\\n2. Extend `createMockLisaDir()` to include `rails/` pack directories with minimal test files\\n3. Add integration tests:\\n   - `it(\\\"applies configurations to Rails project\\\")` — detects Rails, applies all/ + rails/, success\\n   - `it(\\\"does not apply typescript pack to Rails project\\\")` — no `.prettierrc.json`, `eslint.*`, `tsconfig.*`\\n   - `it(\\\"overrides CLAUDE.md with Rails-specific version\\\")` — CLAUDE.md contains Rails content, not JS\\n   - `it(\\\"appends eval_gemfile to Gemfile with markers\\\")` — Gemfile contains `eval_gemfile` between markers\\n   - `it(\\\"deploys Gemfile.lisa via copy-overwrite\\\")` — Gemfile.lisa exists with governance gems\\n   - `it(\\\"deletes .overcommit.yml via deletions.json\\\")` — pre-existing `.overcommit.yml` is removed\\n   - `it(\\\"preserves create-only files on re-run\\\")` — `.rubocop.local.yml` not overwritten if it exists\\n   - `it(\\\"handles Rails + TypeScript project correctly\\\")` — both detected, both packs applied\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"test\\\",\\\"command\\\":\\\"bun run test -- tests/integration/lisa.test.ts\\\",\\\"expected\\\":\\\"All tests pass including new Rails integration tests\\\"}}\\n```",
+  "activeForm": "Writing integration tests for Rails stack",
+  "owner": "implementer-2",
+  "status": "completed",
+  "blocks": [
+    "8"
+  ],
+  "blockedBy": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test -- tests/integration/lisa.test.ts",
+      "expected": "All tests pass including new Rails integration tests"
+    },
+    "owner": "implementer-2",
+    "learnings": [
+      "createRailsProject helper needs bin/rails, config/application.rb, and Gemfile",
+      "createMockLisaDir needs rails/ pack with copy-overwrite, copy-contents, create-only, and deletions.json",
+      "Rails is a root type so no typescript files should be deployed"
+    ]
+  }
+}

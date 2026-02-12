@@ -1,0 +1,29 @@
+{
+  "id": "12",
+  "subject": "Qualis downstream — verify and commit",
+  "description": "**Type:** Task\\n\\n**Description:** In `~/workspace/qualis/app`:\\n1. Run `bundle exec rubocop` — may have violations from existing code (expected, not blocking)\\n2. Run `bundle exec brakeman --no-pager` — verify it runs (may have findings)\\n3. Run `bundle exec lefthook run pre-commit` — verify hooks execute\\n4. Create a branch, commit all changes, push\\n5. Note: Qualis uses Minitest, so `bundle exec rspec` will fail (no spec/ tests yet). This is expected per design decision #5.\\n\\n**Acceptance Criteria:**\\n- [ ] RuboCop runs without errors (violations OK)\\n- [ ] Brakeman runs without errors\\n- [ ] Lefthook hooks execute\\n- [ ] Changes committed and pushed on a feature branch\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"cd ~/workspace/qualis/app && bundle exec brakeman --no-pager 2>&1 | tail -3\\\",\\\"expected\\\":\\\"Brakeman runs and produces output\\\"}}\\n```",
+  "activeForm": "Verifying and committing Qualis changes",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "13",
+    "14",
+    "15",
+    "16"
+  ],
+  "blockedBy": [
+    "10",
+    "11"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "cd ~/workspace/qualis/app && bundle exec brakeman --no-pager 2>&1 | tail -3",
+      "expected": "Brakeman runs and produces output"
+    },
+    "owner": "implementer-1"
+  }
+}

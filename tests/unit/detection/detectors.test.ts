@@ -5,6 +5,7 @@ import { TypeScriptDetector } from "../../../src/detection/detectors/typescript.
 import { ExpoDetector } from "../../../src/detection/detectors/expo.js";
 import { NestJSDetector } from "../../../src/detection/detectors/nestjs.js";
 import { CDKDetector } from "../../../src/detection/detectors/cdk.js";
+import { RailsDetector } from "../../../src/detection/detectors/rails.js";
 import { DetectorRegistry } from "../../../src/detection/index.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
@@ -18,6 +19,9 @@ const TYPESCRIPT_TYPE = "typescript";
 const EXPO_DEP = "expo";
 const NESTJS_TYPE = "nestjs";
 const CDK_TYPE = "cdk";
+const RAILS_TYPE = "rails";
+const BIN_RAILS = "bin/rails";
+const CONFIG_APPLICATION_RB = "config/application.rb";
 const HAS_CORRECT_TYPE = "has correct type";
 
 describe("TypeScriptDetector", () => {
@@ -206,6 +210,53 @@ describe("CDKDetector", () => {
   });
 });
 
+describe("RailsDetector", () => {
+  let detector: RailsDetector;
+  let tempDir: string;
+
+  beforeEach(async () => {
+    detector = new RailsDetector();
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  it(HAS_CORRECT_TYPE, () => {
+    expect(detector.type).toBe(RAILS_TYPE);
+  });
+
+  it("detects by bin/rails presence", async () => {
+    await fs.ensureDir(path.join(tempDir, "bin"));
+    await fs.writeFile(path.join(tempDir, BIN_RAILS), "#!/usr/bin/env ruby");
+
+    expect(await detector.detect(tempDir)).toBe(true);
+  });
+
+  it("detects by config/application.rb presence", async () => {
+    await fs.ensureDir(path.join(tempDir, "config"));
+    await fs.writeFile(
+      path.join(tempDir, CONFIG_APPLICATION_RB),
+      "require_relative 'boot'"
+    );
+
+    expect(await detector.detect(tempDir)).toBe(true);
+  });
+
+  it("returns false when not a Rails project", async () => {
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {});
+
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+
+  it("returns false for TypeScript-only project", async () => {
+    await fs.writeJson(path.join(tempDir, TSCONFIG_JSON), {});
+
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+});
+
 describe("DetectorRegistry", () => {
   let registry: DetectorRegistry;
   let tempDir: string;
@@ -262,5 +313,20 @@ describe("DetectorRegistry", () => {
     const expanded = registry.expandAndOrderTypes([]);
 
     expect(expanded).toEqual([]);
+  });
+
+  it("expands rails without parent", () => {
+    const expanded = registry.expandAndOrderTypes([RAILS_TYPE]);
+
+    expect(expanded).toEqual([RAILS_TYPE]);
+  });
+
+  it("detects Rails project", async () => {
+    await fs.ensureDir(path.join(tempDir, "bin"));
+    await fs.writeFile(path.join(tempDir, BIN_RAILS), "#!/usr/bin/env ruby");
+
+    const types = await registry.detectAll(tempDir);
+
+    expect(types).toContain(RAILS_TYPE);
   });
 });

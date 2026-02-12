@@ -1,0 +1,30 @@
+{
+  "id": "5",
+  "subject": "Create rails/ pack directory with all template files",
+  "description": "**Type:** Task\\n\\n**Description:** Create the full `rails/` directory tree with all template files (~25 files).\\n\\nSee plan file `plans/delightful-napping-lemon.md` Tasks 6 section for complete file list and contents.\\n\\nKey files:\\n- `rails/copy-overwrite/CLAUDE.md` — Rails-specific governance (adapt from `all/copy-overwrite/CLAUDE.md`)\\n- `rails/copy-overwrite/.rubocop.yml` — Governance RuboCop config\\n- `rails/copy-overwrite/lefthook.yml` — Git hooks\\n- `rails/copy-overwrite/Gemfile.lisa` — Governance gems with `~>` constraints. IMPORTANT: `strong_migrations` and `rack-attack` outside dev/test group.\\n- `rails/copy-overwrite/.claude/rules/lisa.md` — Rails-specific managed file list\\n- `rails/copy-overwrite/.claude/rules/rails-conventions.md` — Rails coding standards\\n- 5 skill overrides in `rails/copy-overwrite/.claude/skills/plan-*/SKILL.md`\\n- `rails/copy-contents/Gemfile` — Appends `eval_gemfile \\\"Gemfile.lisa\\\"` with markers\\n- `rails/create-only/` files: `.rubocop.local.yml`, `.simplecov`, `.reek.yml`, `.rspec`, `sonar-project.properties`, `spec/spec_helper.rb`, `spec/rails_helper.rb`, `.github/workflows/quality.yml`\\n- `rails/deletions.json` — `{\\\"paths\\\":[\\\".overcommit.yml\\\"]}`\\n\\nReference `all/copy-overwrite/.claude/skills/plan-*/SKILL.md` for JS originals to adapt.\\nReference plan sections \\\"Key Template Contents\\\" for exact content of `.rubocop.yml`, `lefthook.yml`, `Gemfile.lisa`, `Gemfile`.\\n\\n**Acceptance Criteria:**\\n- [ ] All files created with correct content\\n- [ ] `Gemfile.lisa` has `strong_migrations` and `rack-attack` outside dev/test group\\n- [ ] All gems have `~>` version constraints\\n- [ ] `lefthook.yml` has RuboCop + bundler-audit in pre-commit, rspec + brakeman in pre-push\\n- [ ] `quality.yml` has explicit `permissions:` block\\n- [ ] 5 skill overrides correctly adapt JS commands to Ruby equivalents\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"find rails/ -type f | sort | wc -l && grep 'strong_migrations' rails/copy-overwrite/Gemfile.lisa | head -1\\\",\\\"expected\\\":\\\"~25 files, strong_migrations outside group block\\\"}}\\n```",
+  "activeForm": "Creating rails/ pack directory with template files",
+  "owner": "implementer-2",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "find rails/ -type f | sort | wc -l && grep 'strong_migrations' rails/copy-overwrite/Gemfile.lisa | head -1",
+      "expected": "~25 files, strong_migrations outside group block"
+    },
+    "owner": "implementer-2",
+    "learnings": [
+      "Rails pack has 21 files total across copy-overwrite/, copy-contents/, create-only/, and root",
+      "strong_migrations and rack-attack are runtime gems that must be outside dev/test group in Gemfile.lisa",
+      "Skill overrides map ESLint commands to RuboCop equivalents: format json, --only cop flags, flog for complexity"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "15",
+  "subject": "Local code review",
+  "description": "**Type:** Task\\n\\n**Description:** Run `/plan-local-code-review` skill to review local branch changes compared to main.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[\\\"plan-local-code-review\\\"],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"echo 'Local code review complete'\\\",\\\"expected\\\":\\\"Review findings documented\\\"}}\\n```",
+  "activeForm": "Running local code review",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "17"
+  ],
+  "blockedBy": [
+    "12"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [
+      "plan-local-code-review"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Local code review complete'",
+      "expected": "Review findings documented"
+    },
+    "owner": "team-lead"
+  }
+}

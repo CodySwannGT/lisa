@@ -1,0 +1,31 @@
+{
+  "id": "13",
+  "subject": "Product/UX review",
+  "description": "**Type:** Task\\n\\n**Description:** Run product-reviewer agent against all changes. Focus on: Rails developer UX when running Lisa, post-install instructions clarity, Overcommit migration path, CLAUDE.md content for Rails developers.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"echo 'Product review complete'\\\",\\\"expected\\\":\\\"Review findings documented\\\"}}\\n```",
+  "activeForm": "Running product/UX review",
+  "owner": "product-reviewer",
+  "status": "completed",
+  "blocks": [
+    "17"
+  ],
+  "blockedBy": [
+    "12"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Product review complete'",
+      "expected": "Review findings documented"
+    },
+    "owner": "product-reviewer",
+    "learnings": [
+      "Product review of Rails stack found 7 pass criteria and 7 gaps/concerns, most acknowledged as known MVP gaps",
+      "all/ pack rules (coding-philosophy.md, plan-governance.md, verfication.md) contain JS-specific content not overridden by rails/ pack",
+      "specs/.keep from all/ creates confusing directory alongside Rails spec/ convention",
+      ".DS_Store and __pycache__ files deployed via all/copy-overwrite is a pre-existing issue affecting all stacks"
+    ]
+  }
+}

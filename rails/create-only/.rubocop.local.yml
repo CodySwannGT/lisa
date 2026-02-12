@@ -1,0 +1,9 @@
+# Project-specific RuboCop overrides.
+# This file is NOT managed by Lisa — edit freely.
+# Add or override any RuboCop cops below.
+
+# Example:
+# Metrics/MethodLength:
+#   Max: 25
+#   Exclude:
+#     - 'app/controllers/api/v1/**/*'

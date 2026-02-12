@@ -6,6 +6,7 @@ import { ExpoDetector } from "./detectors/expo.js";
 import { NestJSDetector } from "./detectors/nestjs.js";
 import { CDKDetector } from "./detectors/cdk.js";
 import { NpmPackageDetector } from "./detectors/npm-package.js";
+import { RailsDetector } from "./detectors/rails.js";
 
 export type { IProjectTypeDetector } from "./detector.interface.js";
 
@@ -26,6 +27,7 @@ export class DetectorRegistry {
       new ExpoDetector(),
       new NestJSDetector(),
       new CDKDetector(),
+      new RailsDetector(),
     ];
   }
 
