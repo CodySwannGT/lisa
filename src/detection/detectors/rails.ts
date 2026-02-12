@@ -1,3 +1,12 @@
+/**
+ * Rails project type detector
+ *
+ * Identifies Ruby on Rails projects by checking for definitive Rails signals:
+ * `bin/rails` (primary) or `config/application.rb` (secondary). These markers
+ * avoid false positives from other Ruby frameworks like Hanami.
+ *
+ * @module detection/detectors/rails
+ */
 import * as path from "node:path";
 import type { IProjectTypeDetector } from "../detector.interface.js";
 import { pathExists } from "../../utils/index.js";
