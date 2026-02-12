@@ -1,0 +1,31 @@
+{
+  "id": "9",
+  "subject": "Qualis downstream — clean up Gemfile and install",
+  "description": "**Type:** Task\\n\\n**Description:** In `~/workspace/qualis/app`:\\n1. Run `bun run dev -- ~/workspace/qualis/app --yes` from Lisa repo to apply templates\\n2. Remove duplicate gems from Qualis Gemfile (brakeman, rubocop-rails, rubocop-performance already in Gemfile.lisa)\\n3. Remove `rubocop-rails-omakase` gem (replaced by Lisa's .rubocop.yml)\\n4. Remove `overcommit` gem\\n5. Run `cd ~/workspace/qualis/app && bundle install`\\n\\n**Acceptance Criteria:**\\n- [ ] Lisa templates applied to Qualis\\n- [ ] Duplicate gems removed from Gemfile\\n- [ ] overcommit gem removed\\n- [ ] `bundle install` succeeds\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"cd ~/workspace/qualis/app && bundle check\\\",\\\"expected\\\":\\\"The Gemfile's dependencies are satisfied\\\"}}\\n```",
+  "activeForm": "Cleaning up Qualis Gemfile and installing",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "10",
+    "11"
+  ],
+  "blockedBy": [
+    "8"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "cd ~/workspace/qualis/app && bundle check",
+      "expected": "The Gemfile's dependencies are satisfied"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "When Lisa can't run due to dirty git state and hook conflicts, manually apply templates by copying files in pack order: copy-overwrite, copy-contents (append), create-only (skip existing), deletions",
+      "bcrypt_pbkdf 1.1.2 requires ruby < 3.4.dev - use bundle update to resolve when removing overcommit which depended on it",
+      "Brakeman was downgraded from 8.0.2 to 7.1.2 to satisfy Gemfile.lisa constraint of ~> 7.0"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "20",
+  "subject": "Update documentation",
+  "description": "**Type:** Task\\n\\n**Description:** Update JSDoc preambles for modified files. Ensure all new TypeScript files have proper JSDoc module documentation. Review markdown files for accuracy.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[\\\"jsdoc-best-practices\\\"],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"grep -l '@module' src/detection/detectors/rails.ts\\\",\\\"expected\\\":\\\"rails.ts has @module JSDoc tag\\\"}}\\n```",
+  "activeForm": "Updating documentation",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "22"
+  ],
+  "blockedBy": [
+    "18"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [
+      "jsdoc-best-practices"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -l '@module' src/detection/detectors/rails.ts",
+      "expected": "rails.ts has @module JSDoc tag"
+    },
+    "owner": "team-lead"
+  }
+}

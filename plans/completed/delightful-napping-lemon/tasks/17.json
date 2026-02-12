@@ -1,0 +1,28 @@
+{
+  "id": "17",
+  "subject": "Implement valid review suggestions",
+  "description": "**Type:** Task\\n\\n**Description:** After all reviews (Tasks 13-16) complete, implement valid suggestions. Skip suggestions that conflict with design decisions or are out of scope for MVP.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"test\\\",\\\"command\\\":\\\"bun run test\\\",\\\"expected\\\":\\\"All tests pass after implementing review suggestions\\\"}}\\n```",
+  "activeForm": "Implementing review suggestions",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "18"
+  ],
+  "blockedBy": [
+    "13",
+    "14",
+    "15",
+    "16"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "All tests pass after implementing review suggestions"
+    },
+    "owner": "team-lead"
+  }
+}

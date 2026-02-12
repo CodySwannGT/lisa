@@ -1,0 +1,23 @@
+{
+  "id": "23",
+  "subject": "Archive plan",
+  "description": "**Type:** Task\\n\\n**Description:** Archive the plan following the Archive Procedure in `plan-governance.md`:\\n1. `mkdir -p ./plans/completed/delightful-napping-lemon`\\n2. `mv plans/delightful-napping-lemon.md ./plans/completed/delightful-napping-lemon/rails-stack.md`\\n3. Verify: `! ls plans/delightful-napping-lemon.md 2>/dev/null && echo \\\"Source removed\\\"`\\n4. Parse session IDs from `## Sessions` table in the moved plan\\n5. Move task directories: `mv ~/.claude/tasks/<session-id> ./plans/completed/delightful-napping-lemon/tasks/`\\n6. Update any `in_progress` tasks to `completed`\\n7. Final git operations:\\n```bash\\ngit add . && git commit -m \\\"chore: archive delightful-napping-lemon plan\\\"\\nGIT_SSH_COMMAND=\\\"ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5\\\" git push\\ngh pr ready\\ngh pr merge --auto --merge\\n```\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"ls plans/completed/delightful-napping-lemon/rails-stack.md && gh pr view --json state\\\",\\\"expected\\\":\\\"Plan file archived, PR marked ready\\\"}}\\n```",
+  "activeForm": "Archiving plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "22"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls plans/completed/delightful-napping-lemon/rails-stack.md && gh pr view --json state",
+      "expected": "Plan file archived, PR marked ready"
+    },
+    "owner": "team-lead"
+  },
+  "owner": "team-lead"
+}

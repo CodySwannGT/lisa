@@ -1,0 +1,25 @@
+{
+  "id": "19",
+  "subject": "Update tests as needed",
+  "description": "**Type:** Task\\n\\n**Description:** After review implementation and simplification, verify all tests still pass. Add any missing tests identified during reviews.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"test\\\",\\\"command\\\":\\\"bun run test\\\",\\\"expected\\\":\\\"All tests pass, no regressions\\\"}}\\n```",
+  "activeForm": "Updating tests",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "22"
+  ],
+  "blockedBy": [
+    "18"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "All tests pass, no regressions"
+    },
+    "owner": "team-lead"
+  }
+}

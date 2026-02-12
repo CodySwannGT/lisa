@@ -1,0 +1,29 @@
+{
+  "id": "2",
+  "subject": "Create Rails detector",
+  "description": "**Type:** Task\\n\\n**Description:** Create `src/detection/detectors/rails.ts` following the NestJS detector pattern. Detection logic:\\n1. Check for `bin/rails` file existence via `pathExists()` (primary — definitive Rails signal)\\n2. OR check for `config/application.rb` file existence via `pathExists()` (secondary — unique to Rails)\\n\\nImport `path` from `node:path`, `IProjectTypeDetector` from `../detector.interface.js`, and `pathExists` from `../../utils/index.js`.\\n\\n**Acceptance Criteria:**\\n- [ ] `RailsDetector` implements `IProjectTypeDetector`\\n- [ ] `type` is `\\\"rails\\\"` as const\\n- [ ] `detect()` returns `true` for `bin/rails` presence\\n- [ ] `detect()` returns `true` for `config/application.rb` presence\\n- [ ] `detect()` returns `false` for empty directory\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"bun run build 2>&1 | tail -5\\\",\\\"expected\\\":\\\"No TypeScript compilation errors\\\"}}\\n```",
+  "activeForm": "Creating Rails detector",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "3",
+    "7"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "bun run build 2>&1 | tail -5",
+      "expected": "No TypeScript compilation errors"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "Rails detector is simpler than other detectors - only needs pathExists checks, no package.json parsing"
+    ]
+  }
+}

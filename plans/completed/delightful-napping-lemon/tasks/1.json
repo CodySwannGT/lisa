@@ -1,0 +1,30 @@
+{
+  "id": "1",
+  "subject": "Add Rails to ProjectType config",
+  "description": "**Type:** Task\\n\\n**Description:** Modify `src/core/config.ts`:\\n- Add `| \\\"rails\\\"` to `ProjectType` union (after `\\\"npm-package\\\"`)\\n- Add `rails: undefined` to `PROJECT_TYPE_HIERARCHY` (root type, no parent)\\n- Add `\\\"rails\\\"` to `PROJECT_TYPE_ORDER` array (after `\\\"cdk\\\"`)\\n\\n**Acceptance Criteria:**\\n- [ ] `\\\"rails\\\"` is a valid `ProjectType`\\n- [ ] `PROJECT_TYPE_HIERARCHY.rails === undefined`\\n- [ ] `PROJECT_TYPE_ORDER` includes `\\\"rails\\\"` after `\\\"cdk\\\"`\\n\\n**Implementation Details:**\\n- File: `src/core/config.ts`\\n- Lines 15-20 (ProjectType), 25-33 (hierarchy), 38-44 (order)\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"grep -n 'rails' src/core/config.ts\\\",\\\"expected\\\":\\\"rails appears in ProjectType union, hierarchy, and order\\\"}}\\n```",
+  "activeForm": "Adding Rails to ProjectType config",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "2",
+    "3",
+    "5",
+    "6",
+    "7"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -n 'rails' src/core/config.ts",
+      "expected": "rails appears in ProjectType union, hierarchy, and order"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "Rails is a root type with no parent in PROJECT_TYPE_HIERARCHY (unlike expo/nestjs/cdk which inherit from typescript)"
+    ]
+  }
+}

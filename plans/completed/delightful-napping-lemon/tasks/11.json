@@ -1,0 +1,28 @@
+{
+  "id": "11",
+  "subject": "Qualis downstream — preserve project-specific CLAUDE.md content",
+  "description": "**Type:** Task\\n\\n**Description:** In `~/workspace/qualis/app`:\\n1. Lisa has already overwritten CLAUDE.md with Rails governance version\\n2. The original CLAUDE.md content (Docker setup, architecture docs, AWS access, deployment) was committed in git before Lisa ran\\n3. Retrieve the original content: `cd ~/workspace/qualis/app && git show HEAD~1:CLAUDE.md` (or from git history)\\n4. Move relevant sections to `.claude/rules/PROJECT_RULES.md` (create-only, Lisa won't overwrite)\\n5. Organize content under clear headings: Local Development, Architecture, Deployment, Environment Variables\\n\\n**Acceptance Criteria:**\\n- [ ] CLAUDE.md contains Rails governance rules (from Lisa)\\n- [ ] `.claude/rules/PROJECT_RULES.md` contains Qualis-specific operational docs\\n- [ ] No content lost from original CLAUDE.md\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"cd ~/workspace/qualis/app && grep 'bundle exec rubocop' CLAUDE.md && grep -c 'Docker\\\\\\\\|ECS\\\\\\\\|deployment' .claude/rules/PROJECT_RULES.md\\\",\\\"expected\\\":\\\"CLAUDE.md has rubocop reference; PROJECT_RULES.md has Docker/deployment content\\\"}}\\n```",
+  "activeForm": "Preserving Qualis CLAUDE.md content",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "cd ~/workspace/qualis/app && grep 'bundle exec rubocop' CLAUDE.md && grep -c 'Docker\\\\|ECS\\\\|deployment' .claude/rules/PROJECT_RULES.md",
+      "expected": "CLAUDE.md has rubocop reference; PROJECT_RULES.md has Docker/deployment content"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "PROJECT_RULES.md was already pre-populated with Qualis-specific content (likely from plan preparation), with overcommit references already updated to lefthook"
+    ]
+  }
+}

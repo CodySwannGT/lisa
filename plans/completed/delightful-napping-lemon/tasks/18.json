@@ -1,0 +1,27 @@
+{
+  "id": "18",
+  "subject": "Simplify code",
+  "description": "**Type:** Task\\n\\n**Description:** Run code-simplifier agent on all modified/new files in the `feat/rails-stack` branch.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"test\\\",\\\"command\\\":\\\"bun run test\\\",\\\"expected\\\":\\\"All tests pass after simplification\\\"}}\\n```",
+  "activeForm": "Simplifying code",
+  "owner": "code-simplifier",
+  "status": "completed",
+  "blocks": [
+    "19",
+    "20",
+    "21"
+  ],
+  "blockedBy": [
+    "17"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test",
+      "expected": "All tests pass after simplification"
+    },
+    "owner": "code-simplifier"
+  }
+}

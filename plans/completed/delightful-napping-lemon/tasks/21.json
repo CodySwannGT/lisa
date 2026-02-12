@@ -1,0 +1,25 @@
+{
+  "id": "21",
+  "subject": "Verify all verification metadata",
+  "description": "**Type:** Task\\n\\n**Description:** Review all tasks in this plan and verify their verification metadata is accurate. Run each proof command and confirm expected output matches.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"test\\\",\\\"command\\\":\\\"bun run test && bun run build\\\",\\\"expected\\\":\\\"All tests pass and build succeeds\\\"}}\\n```",
+  "activeForm": "Verifying all verification metadata",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "22"
+  ],
+  "blockedBy": [
+    "18"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test && bun run build",
+      "expected": "All tests pass and build succeeds"
+    },
+    "owner": "team-lead"
+  }
+}
