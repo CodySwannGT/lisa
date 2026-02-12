@@ -19,6 +19,9 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `spec/spec_helper.rb`
 - `spec/rails_helper.rb`
 - `.github/workflows/quality.yml`
+- `.github/workflows/ci.yml`
+- `.github/workflows/release.yml`
+- `VERSION`
 
 ## Directories with both Lisa-managed and project content
 
@@ -34,7 +37,8 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `.claude/rules/coding-philosophy.md`, `.claude/rules/plan.md`, `.claude/rules/verfication.md`
 - `.claude/rules/rails-conventions.md`
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
-- `.rubocop.yml`, `lefthook.yml`, `Gemfile.lisa`
+- `.rubocop.yml`, `.versionrc`, `lefthook.yml`, `Gemfile.lisa`
+- `config/initializers/version.rb`
 - `.coderabbit.yml`, `commitlint.config.cjs`
 - `.claude/settings.json`
 - `.claude/README.md`, `.claude/REFERENCE.md`
