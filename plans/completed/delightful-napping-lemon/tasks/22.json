@@ -1,0 +1,34 @@
+{
+  "id": "22",
+  "subject": "Collect learnings",
+  "description": "**Type:** Task\\n\\n**Description:** Run learner agent to process implementation learnings into skills/rules. Focus on: Rails stack patterns, cross-language template governance, detector patterns, Gemfile governance via eval_gemfile.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"echo 'Learnings collected'\\\",\\\"expected\\\":\\\"Learnings processed into skills or rules\\\"}}\\n```",
+  "activeForm": "Collecting learnings from Rails stack implementation",
+  "owner": "learner",
+  "status": "completed",
+  "blocks": [
+    "23"
+  ],
+  "blockedBy": [
+    "19",
+    "20",
+    "21"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Learnings collected'",
+      "expected": "Learnings processed into skills or rules"
+    },
+    "owner": "team-lead",
+    "learnings": [
+      "Rails stack is a root-level project type (parent: undefined), gets all/ + rails/ packs only",
+      "Cross-language template governance follows same strategy patterns (copy-overwrite, copy-contents, create-only, deletions.json)",
+      "Gemfile governance via eval_gemfile pattern with BEGIN/END AI GUARDRAILS markers",
+      "Lefthook migration from Overcommit uses deletions.json to remove old config",
+      "File-existence-based detection (bin/rails, config/application.rb) is simpler than dependency-checking detection"
+    ]
+  }
+}

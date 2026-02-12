@@ -1,0 +1,27 @@
+{
+  "id": "3",
+  "subject": "Register Rails detector",
+  "description": "**Type:** Task\\n\\n**Description:** Modify `src/detection/index.ts`:\\n- Add import: `import { RailsDetector } from \\\"./detectors/rails.js\\\";`\\n- Add `new RailsDetector()` to the default detectors array in `DetectorRegistry` constructor (after `CDKDetector`)\\n\\n**Acceptance Criteria:**\\n- [ ] `RailsDetector` is imported\\n- [ ] `RailsDetector` is in the default detectors array\\n- [ ] Build succeeds\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"bun run build 2>&1 | tail -5\\\",\\\"expected\\\":\\\"No TypeScript compilation errors\\\"}}\\n```",
+  "activeForm": "Registering Rails detector",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "4",
+    "7"
+  ],
+  "blockedBy": [
+    "1",
+    "2"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "bun run build 2>&1 | tail -5",
+      "expected": "No TypeScript compilation errors"
+    },
+    "owner": "implementer-1"
+  }
+}
