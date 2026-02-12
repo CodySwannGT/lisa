@@ -1,0 +1,25 @@
+{
+  "id": "14",
+  "subject": "CodeRabbit code review",
+  "description": "**Type:** Task\\n\\n**Description:** Run CodeRabbit code review on all changes in the `feat/rails-stack` branch.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"echo 'CodeRabbit review complete'\\\",\\\"expected\\\":\\\"Review findings documented\\\"}}\\n```",
+  "activeForm": "Running CodeRabbit code review",
+  "owner": "coderabbit",
+  "status": "completed",
+  "blocks": [
+    "17"
+  ],
+  "blockedBy": [
+    "12"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'CodeRabbit review complete'",
+      "expected": "Review findings documented"
+    },
+    "owner": "coderabbit"
+  }
+}

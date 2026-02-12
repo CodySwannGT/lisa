@@ -1,0 +1,25 @@
+{
+  "id": "8",
+  "subject": "Build and dry-run against Qualis",
+  "description": "**Type:** Task\\n\\n**Description:** Build Lisa locally and run against Qualis to verify output:\\n1. `bun run build` in Lisa repo\\n2. `bun run dev -- ~/workspace/qualis/app --dry-run` to preview changes\\n3. Verify: Rails detected, CLAUDE.md is Rails-specific, .rubocop.yml deployed, lefthook.yml deployed, Gemfile.lisa deployed, Gemfile gets eval_gemfile, .overcommit.yml marked for deletion, NO TS artifacts\\n\\n**Acceptance Criteria:**\\n- [ ] Lisa builds without errors\\n- [ ] Dry-run detects \\\"rails\\\" type for Qualis\\n- [ ] No TypeScript artifacts in dry-run output\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"bun run build && bun run dev -- ~/workspace/qualis/app --dry-run 2>&1 | grep -i 'rails'\\\",\\\"expected\\\":\\\"Build succeeds, dry-run shows Rails detected\\\"}}\\n```",
+  "activeForm": "Building Lisa and dry-running against Qualis",
+  "owner": "team-lead",
+  "status": "completed",
+  "blocks": [
+    "9"
+  ],
+  "blockedBy": [
+    "7"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "bun run build && bun run dev -- ~/workspace/qualis/app --dry-run 2>&1 | grep -i 'rails'",
+      "expected": "Build succeeds, dry-run shows Rails detected"
+    },
+    "owner": "team-lead"
+  }
+}

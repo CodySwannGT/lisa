@@ -1,0 +1,25 @@
+{
+  "id": "4",
+  "subject": "Write Rails detector tests",
+  "description": "**Type:** Task\\n\\n**Description:** Append to `tests/unit/detection/detectors.test.ts`:\\n1. Add imports: `RailsDetector` from detector path\\n2. Add constants: `RAILS_TYPE = \\\"rails\\\"`, `BIN_RAILS = \\\"bin/rails\\\"`, `CONFIG_APPLICATION_RB = \\\"config/application.rb\\\"`\\n3. Add `RailsDetector` describe block with tests:\\n   - `it(HAS_CORRECT_TYPE)` — `detector.type === \\\"rails\\\"`\\n   - `it(\\\"detects by bin/rails presence\\\")` — create `bin/rails` file, assert `true`\\n   - `it(\\\"detects by config/application.rb presence\\\")` — create `config/application.rb`, assert `true`\\n   - `it(\\\"returns false when not a Rails project\\\")` — empty dir with only `package.json`, assert `false`\\n   - `it(\\\"returns false for TypeScript-only project\\\")` — dir with `tsconfig.json` only, assert `false`\\n4. Add DetectorRegistry tests:\\n   - `it(\\\"expands rails without parent\\\")` — `expandAndOrderTypes([\\\"rails\\\"])` returns `[\\\"rails\\\"]`\\n   - `it(\\\"detects Rails project\\\")` — create `bin/rails` in temp dir, `detectAll()` includes `\\\"rails\\\"`\\n\\nFollow existing test patterns exactly (beforeEach/afterEach, createTempDir/cleanupTempDir).\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"test\\\",\\\"command\\\":\\\"bun run test -- tests/unit/detection/detectors.test.ts\\\",\\\"expected\\\":\\\"All tests pass including new RailsDetector tests\\\"}}\\n```",
+  "activeForm": "Writing Rails detector tests",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "7"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "test",
+      "command": "bun run test -- tests/unit/detection/detectors.test.ts",
+      "expected": "All tests pass including new RailsDetector tests"
+    },
+    "owner": "implementer-1"
+  }
+}

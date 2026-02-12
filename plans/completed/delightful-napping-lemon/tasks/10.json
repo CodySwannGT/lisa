@@ -1,0 +1,29 @@
+{
+  "id": "10",
+  "subject": "Qualis downstream — migrate Overcommit to Lefthook",
+  "description": "**Type:** Task\\n\\n**Description:** In `~/workspace/qualis/app`:\\n1. Uninstall overcommit: `cd ~/workspace/qualis/app && overcommit --uninstall` (if overcommit binary available, otherwise manually remove `.git/hooks/overcommit-hook`)\\n2. Install lefthook: `cd ~/workspace/qualis/app && bundle exec lefthook install`\\n3. Verify pre-commit hooks work: `cd ~/workspace/qualis/app && bundle exec lefthook run pre-commit`\\n\\nNote: `.overcommit.yml` should already be deleted by Lisa's `deletions.json`. Verify it's gone.\\n\\n**Acceptance Criteria:**\\n- [ ] Overcommit hooks uninstalled\\n- [ ] Lefthook hooks installed\\n- [ ] `.overcommit.yml` does not exist\\n- [ ] `lefthook run pre-commit` executes (may have RuboCop violations — that's expected)\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"cd ~/workspace/qualis/app && ls .overcommit.yml 2>&1; bundle exec lefthook run pre-commit 2>&1 | tail -3\\\",\\\"expected\\\":\\\".overcommit.yml not found; lefthook pre-commit runs\\\"}}\\n```",
+  "activeForm": "Migrating Qualis from Overcommit to Lefthook",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "12"
+  ],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "cd ~/workspace/qualis/app && ls .overcommit.yml 2>&1; bundle exec lefthook run pre-commit 2>&1 | tail -3",
+      "expected": ".overcommit.yml not found; lefthook pre-commit runs"
+    },
+    "owner": "implementer-1",
+    "learnings": [
+      "Qualis uses Ruby 3.4.8 via rbenv but the shell defaults to rvm Ruby 3.2.2 - must set PATH to include rbenv versions for bundle exec commands",
+      "Overcommit hooks are Ruby scripts installed in .git/hooks/ - safe to delete manually when overcommit binary can't run due to Ruby version mismatch"
+    ]
+  }
+}

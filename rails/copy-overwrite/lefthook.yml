@@ -1,0 +1,20 @@
+pre-commit:
+  parallel: true
+  commands:
+    rubocop:
+      glob: '*.rb'
+      run: bundle exec rubocop --force-exclusion {staged_files}
+    bundler-audit:
+      run: bundle exec bundler-audit check --update
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: 'head -1 {1} | grep -qE "^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?: .+" || (echo "Commit message must follow conventional format" && exit 1)'
+
+pre-push:
+  commands:
+    rspec:
+      run: bundle exec rspec
+    brakeman:
+      run: bundle exec brakeman --no-pager --quiet

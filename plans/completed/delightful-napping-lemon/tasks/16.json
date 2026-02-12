@@ -1,0 +1,25 @@
+{
+  "id": "16",
+  "subject": "Technical review",
+  "description": "**Type:** Task\\n\\n**Description:** Run tech-reviewer agent for correctness, security, and performance review of all implementation changes.\\n\\n**Verification:**\\n```json\\n{\\\"plan\\\":\\\"delightful-napping-lemon\\\",\\\"type\\\":\\\"task\\\",\\\"skills\\\":[],\\\"verification\\\":{\\\"type\\\":\\\"manual-check\\\",\\\"command\\\":\\\"echo 'Tech review complete'\\\",\\\"expected\\\":\\\"Review findings documented\\\"}}\\n```",
+  "activeForm": "Running technical review",
+  "owner": "tech-reviewer",
+  "status": "completed",
+  "blocks": [
+    "17"
+  ],
+  "blockedBy": [
+    "12"
+  ],
+  "metadata": {
+    "plan": "delightful-napping-lemon",
+    "type": "task",
+    "skills": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Tech review complete'",
+      "expected": "Review findings documented"
+    },
+    "owner": "tech-reviewer"
+  }
+}

@@ -17,7 +17,8 @@ export type ProjectType =
   | "expo"
   | "nestjs"
   | "cdk"
-  | "npm-package";
+  | "npm-package"
+  | "rails";
 
 /**
  * Project type hierarchy - child types include their parent types
@@ -30,6 +31,7 @@ export const PROJECT_TYPE_HIERARCHY: Readonly<
   cdk: "typescript",
   "npm-package": "typescript",
   typescript: undefined,
+  rails: undefined,
 } as const;
 
 /**
@@ -41,6 +43,7 @@ export const PROJECT_TYPE_ORDER: readonly ProjectType[] = [
   "expo",
   "nestjs",
   "cdk",
+  "rails",
 ] as const;
 
 /**
