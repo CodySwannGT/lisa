@@ -24,6 +24,9 @@ directories:
   'app/helpers':
     UtilityFunction:
       enabled: false
+  'app/jobs':
+    UtilityFunction:
+      enabled: false
   'db/migrate':
     IrresponsibleModule:
       enabled: false

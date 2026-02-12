@@ -2,8 +2,21 @@
 # This file is NOT managed by Lisa — edit freely.
 # Add or override any RuboCop cops below.
 
-# Example:
-# Metrics/MethodLength:
-#   Max: 25
+# Align with Reek's UncommunicativeVariableName (which rejects single-char names)
+Naming/RescuedExceptionsVariableName:
+  PreferredName: error
+
+# Add staging to known environments if your app uses a staging Rails env
+# Rails/UnknownEnv:
+#   Environments:
+#     - development
+#     - test
+#     - staging
+#     - production
+
+# Auto-generated schema files can exceed block length limits
+# Metrics/BlockLength:
 #   Exclude:
-#     - 'app/controllers/api/v1/**/*'
+#     - 'db/queue_schema.rb'
+#     - 'db/cable_schema.rb'
+#     - 'db/cache_schema.rb'
