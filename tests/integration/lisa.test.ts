@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- comprehensive integration tests for all Lisa stack types require extensive test cases */
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import * as fs from "fs-extra";
 import * as path from "node:path";
@@ -23,6 +24,7 @@ import {
   createExpoProject,
   createMockLisaDir,
   createNestJSProject,
+  createRailsProject,
   createTempDir,
   createTypeScriptProject,
 } from "../helpers/test-utils.js";
@@ -337,6 +339,134 @@ describe("Lisa Integration Tests", () => {
     });
   });
 
+  describe("Rails stack", () => {
+    it("applies configurations to Rails project", async () => {
+      await createRailsProject(destDir);
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      const result = await lisa.apply();
+
+      expect(result.success).toBe(true);
+      expect(result.detectedTypes).toContain("rails");
+    });
+
+    it("does not apply typescript pack to Rails project", async () => {
+      await createRailsProject(destDir);
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      await lisa.apply();
+
+      // TypeScript-specific files should NOT be present
+      expect(
+        await fs.pathExists(path.join(destDir, "tsconfig.base.json"))
+      ).toBe(false);
+    });
+
+    it("overrides CLAUDE.md with Rails-specific version", async () => {
+      await createRailsProject(destDir);
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      await lisa.apply();
+
+      const claudeContent = await fs.readFile(
+        path.join(destDir, "CLAUDE.md"),
+        "utf-8"
+      );
+      expect(claudeContent).toContain("Rails governance rules");
+    });
+
+    it("appends eval_gemfile to Gemfile with markers", async () => {
+      await createRailsProject(destDir);
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      await lisa.apply();
+
+      const gemfileContent = await fs.readFile(
+        path.join(destDir, "Gemfile"),
+        "utf-8"
+      );
+      expect(gemfileContent).toContain("eval_gemfile");
+      expect(gemfileContent).toContain("# BEGIN: AI GUARDRAILS");
+      expect(gemfileContent).toContain("# END: AI GUARDRAILS");
+    });
+
+    it("deploys Gemfile.lisa via copy-overwrite", async () => {
+      await createRailsProject(destDir);
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      await lisa.apply();
+
+      expect(await fs.pathExists(path.join(destDir, "Gemfile.lisa"))).toBe(
+        true
+      );
+      const gemfileLisaContent = await fs.readFile(
+        path.join(destDir, "Gemfile.lisa"),
+        "utf-8"
+      );
+      expect(gemfileLisaContent).toContain("strong_migrations");
+    });
+
+    it("deletes .overcommit.yml via deletions.json", async () => {
+      await createRailsProject(destDir);
+      // Pre-create .overcommit.yml to simulate existing project
+      await fs.writeFile(
+        path.join(destDir, ".overcommit.yml"),
+        "old overcommit config\n"
+      );
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      await lisa.apply();
+
+      expect(await fs.pathExists(path.join(destDir, ".overcommit.yml"))).toBe(
+        false
+      );
+    });
+
+    it("preserves create-only files on re-run", async () => {
+      await createRailsProject(destDir);
+
+      const config = createConfig();
+
+      // First run — creates .rubocop.local.yml
+      const lisa1 = new Lisa(config, createDeps(config));
+      await lisa1.apply();
+
+      // Modify the create-only file
+      const localRubocopPath = path.join(destDir, ".rubocop.local.yml");
+      await fs.writeFile(localRubocopPath, "# Custom project overrides\n");
+
+      // Second run — should NOT overwrite
+      const lisa2 = new Lisa(config, createDeps(config));
+      await lisa2.apply();
+
+      const content = await fs.readFile(localRubocopPath, "utf-8");
+      expect(content).toBe("# Custom project overrides\n");
+    });
+
+    it("handles Rails + TypeScript project correctly", async () => {
+      await createRailsProject(destDir);
+      // Also add TypeScript indicators
+      await fs.writeJson(path.join(destDir, "package.json"), {
+        dependencies: { typescript: "^5.0.0" },
+      });
+      await fs.writeJson(path.join(destDir, "tsconfig.json"), {});
+
+      const config = createConfig();
+      const lisa = new Lisa(config, createDeps(config));
+      const result = await lisa.apply();
+
+      expect(result.success).toBe(true);
+      expect(result.detectedTypes).toContain("rails");
+      expect(result.detectedTypes).toContain("typescript");
+    });
+  });
+
   describe(".lisaignore", () => {
     it("skips files matching patterns in .lisaignore", async () => {
       await createTypeScriptProject(destDir);
@@ -404,3 +534,4 @@ describe("Lisa Integration Tests", () => {
     });
   });
 });
+/* eslint-enable max-lines -- re-enable after integration test suite */
