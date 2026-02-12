@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for skip conditions
+        id: skip
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          # Skip if last commit is a version bump
+          if echo "$COMMIT_MSG" | grep -q "^chore(release):"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Skip promotion merges (environment branch → main)
+          ENV_BRANCHES="dev|staging"
+
+          # Pattern: "Merge branch 'staging' into main"
+          if echo "$COMMIT_MSG" | grep -qiE "^Merge branch ['\"]?($ENV_BRANCHES)['\"]? into"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Pattern: "Merge pull request #123 from org/staging"
+          if echo "$COMMIT_MSG" | grep -qiE "^Merge pull request.*from .*/($ENV_BRANCHES)$"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        if: steps.skip.outputs.skip != 'true'
+        with:
+          node-version: '22'
+
+      - name: Configure Git
+        if: steps.skip.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version and create tag
+        if: steps.skip.outputs.skip != 'true'
+        run: npx standard-version@9
+
+      - name: Push changes
+        if: steps.skip.outputs.skip != 'true'
+        run: git push --follow-tags origin main
+
+      - name: Create GitHub Release
+        if: steps.skip.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(cat VERSION)
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --generate-notes
