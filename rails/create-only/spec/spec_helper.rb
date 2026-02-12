@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "simplecov"
+require 'simplecov'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
@@ -13,7 +13,7 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.filter_run_when_matching :focus
-  config.example_status_persistence_file_path = "spec/examples.txt"
+  config.example_status_persistence_file_path = 'spec/examples.txt'
   config.disable_monkey_patching!
   config.order = :random
 
