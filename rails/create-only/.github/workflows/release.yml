@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   workflow_dispatch:
 
 permissions:
@@ -13,10 +13,14 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Check for skip conditions
         id: skip
@@ -29,19 +33,31 @@ jobs:
             exit 0
           fi
 
-          # Skip promotion merges (environment branch → main)
-          ENV_BRANCHES="dev|staging"
+          # Skip promotion merges (environment branch → main) only on main
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            ENV_BRANCHES="dev|staging"
 
-          # Pattern: "Merge branch 'staging' into main"
-          if echo "$COMMIT_MSG" | grep -qiE "^Merge branch ['\"]?($ENV_BRANCHES)['\"]? into"; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
+            # Message-based detection: merge commits
+            # Pattern: "Merge branch 'staging' into main"
+            if echo "$COMMIT_MSG" | grep -qiE "^Merge branch ['\"]?($ENV_BRANCHES)['\"]? into"; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
 
-          # Pattern: "Merge pull request #123 from org/staging"
-          if echo "$COMMIT_MSG" | grep -qiE "^Merge pull request.*from .*/($ENV_BRANCHES)$"; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
+            # Pattern: "Merge pull request #123 from org/staging"
+            if echo "$COMMIT_MSG" | grep -qiE "^Merge pull request.*from .*/($ENV_BRANCHES)$"; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            # Git-based detection: squash/fast-forward promotions
+            for ENV_BRANCH in dev staging; do
+              git fetch origin "$ENV_BRANCH" 2>/dev/null || continue
+              if git merge-base --is-ancestor HEAD "origin/$ENV_BRANCH" 2>/dev/null; then
+                echo "skip=true" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            done
           fi
 
           echo "skip=false" >> $GITHUB_OUTPUT
@@ -63,10 +79,12 @@ jobs:
 
       - name: Push changes
         if: steps.skip.outputs.skip != 'true'
-        run: git push --follow-tags origin main
+        run: |
+          git remote set-url origin git@github.com:${{ github.repository }}.git
+          git push --follow-tags origin ${{ github.ref_name }}
 
       - name: Create GitHub Release
-        if: steps.skip.outputs.skip != 'true'
+        if: steps.skip.outputs.skip != 'true' && github.ref_name == 'main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
