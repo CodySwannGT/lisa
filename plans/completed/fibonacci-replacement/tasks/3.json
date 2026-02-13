@@ -1,0 +1,41 @@
+{
+  "id": "3",
+  "subject": "Write tests for new fibonacci implementation (TDD RED)",
+  "description": "Following TDD, write comprehensive failing tests FIRST for the new fibonacci implementation at `tests/unit/utils/fibonacci.test.ts`.\n\nThe new implementation should provide:\n1. `fibonacciGenerator()` - infinite generator yielding fibonacci numbers as BigInt\n2. `fibonacci(n)` - returns nth fibonacci number (0-indexed) as BigInt\n3. `fibonacciSequence(length)` - returns readonly array of first N fibonacci numbers\n\nTest cases to include:\n- Generator produces correct sequence (0n, 1n, 1n, 2n, 3n, 5n, 8n, ...)\n- Generator yields BigInt values\n- Generator creates independent iterators\n- fibonacci(0) = 0n, fibonacci(1) = 1n, fibonacci(10) = 55n, fibonacci(20) = 6765n\n- fibonacci handles large indices (100, 200) with BigInt precision\n- fibonacci throws RangeError for negative, fractional, NaN, Infinity inputs\n- fibonacciSequence returns correct arrays with hardcoded expected values\n- fibonacciSequence(0) returns empty array\n- fibonacciSequence(1) returns [0n]\n- fibonacciSequence returns fresh array reference each call\n- fibonacciSequence validates inputs same as fibonacci\n\nRun tests to verify they FAIL (RED phase): `bun run test -- tests/unit/utils/fibonacci.test.ts`\nCommit: `test: add failing tests for new fibonacci implementation (TDD RED)`",
+  "activeForm": "Writing fibonacci tests (TDD RED)",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "4"
+  ],
+  "blockedBy": [
+    "2"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "Comprehensive test file created at tests/unit/utils/fibonacci.test.ts",
+      "Tests cover generator, fibonacci, and fibonacciSequence",
+      "Tests use hardcoded expected values (no coupling)",
+      "All tests FAIL (RED phase confirmed)",
+      "Changes committed"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [
+      "bun run test -- tests/unit/utils/fibonacci.test.ts should FAIL"
+    ],
+    "skills": [
+      "git-commit"
+    ],
+    "learnings": [
+      "TDD RED confirmed: module-not-found prevents test file parsing, resulting in 0 tests total as expected per PROJECT_RULES.md"
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun run test -- tests/unit/utils/fibonacci.test.ts 2>&1 | tail -5",
+      "expected": "Tests fail because source module does not exist (TDD RED)"
+    },
+    "owner": "implementer-1"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "14",
+  "subject": "Archive the plan",
+  "description": "Archive the fibonacci-replacement plan following the Archive Procedure:\n\n1. Create destination folder: `mkdir -p ./plans/completed/fibonacci-replacement`\n2. Move any plan artifacts to `./plans/completed/fibonacci-replacement/`\n3. Parse session IDs from the Sessions table\n4. Move task directories: `mv ~/.claude/tasks/<session-id> ./plans/completed/fibonacci-replacement/tasks/`\n5. Update any in_progress tasks to completed\n6. Final git operations:\n   ```bash\n   git add . && git commit -m \"chore: archive fibonacci-replacement plan\"\n   GIT_SSH_COMMAND=\"ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5\" git push\n   gh pr ready\n   gh pr merge --auto --merge\n   ```",
+  "activeForm": "Archiving fibonacci-replacement plan",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": [
+    "13"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "Plan archived to plans/completed/fibonacci-replacement/",
+      "Task directories moved",
+      "All tasks marked completed",
+      "Changes pushed",
+      "PR marked ready and auto-merge enabled"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [
+      "git-commit"
+    ],
+    "learnings": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "ls plans/completed/fibonacci-replacement/ && gh pr view --json state,mergeStateStatus",
+      "expected": "Plan directory exists, PR is ready for merge"
+    },
+    "owner": "team-lead"
+  },
+  "owner": "team-lead"
+}

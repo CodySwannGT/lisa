@@ -1,0 +1,34 @@
+{
+  "id": "7",
+  "subject": "Local code review",
+  "description": "Run local code review via `/plan-local-code-review` skill to review the fibonacci implementation changes compared to main branch.",
+  "activeForm": "Running local code review",
+  "owner": "local-reviewer",
+  "status": "completed",
+  "blocks": [
+    "9"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "Local code review completed",
+      "Findings documented"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [
+      "plan-local-code-review"
+    ],
+    "learnings": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Local code review completed'",
+      "expected": "Review findings documented"
+    },
+    "owner": "local-reviewer"
+  }
+}

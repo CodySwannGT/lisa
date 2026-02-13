@@ -1,0 +1,33 @@
+{
+  "id": "5",
+  "subject": "Product/UX review of fibonacci implementation",
+  "description": "Review the new fibonacci implementation from a product/UX perspective using the `product-specialist` agent.\n\nFocus areas:\n- API design: Are the function signatures intuitive?\n- Error messages: Are validation errors clear and helpful?\n- Documentation: Do JSDoc comments explain the \"why\"?\n- Naming: Are function names descriptive and consistent?\n\nReview files:\n- `src/utils/fibonacci.ts`\n- `tests/unit/utils/fibonacci.test.ts`",
+  "activeForm": "Running product/UX review",
+  "owner": "product-specialist",
+  "status": "completed",
+  "blocks": [
+    "9"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "Product review completed",
+      "Any UX concerns documented",
+      "Suggestions provided if applicable"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [],
+    "learnings": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Product review completed'",
+      "expected": "Review findings documented"
+    },
+    "owner": "product-specialist"
+  }
+}

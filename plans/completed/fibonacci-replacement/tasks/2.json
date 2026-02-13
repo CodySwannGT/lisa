@@ -1,0 +1,41 @@
+{
+  "id": "2",
+  "subject": "Delete existing fibonacci implementation and tests",
+  "description": "Remove the existing fibonacci implementation completely:\n1. Delete `src/utils/fibonacci.ts`\n2. Remove the barrel export from `src/utils/index.ts` (the line `export * from \"./fibonacci.js\";`)\n3. Delete `tests/unit/utils/fibonacci.test.ts`\n4. Verify the deletion doesn't break any other imports (check findings from task 1)\n5. Run `bun run typecheck` to ensure no broken references remain\n6. Commit: `refactor: remove existing fibonacci implementation`\n\nIMPORTANT: This is the TDD RED phase - after deletion, the old tests should not exist. We delete implementation AND tests together since we're replacing both.",
+  "activeForm": "Deleting existing fibonacci code",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "3"
+  ],
+  "blockedBy": [
+    "1"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "src/utils/fibonacci.ts deleted",
+      "fibonacci export removed from src/utils/index.ts",
+      "tests/unit/utils/fibonacci.test.ts deleted",
+      "typecheck passes with no fibonacci references",
+      "Changes committed"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [
+      "bun run typecheck passes"
+    ],
+    "skills": [
+      "git-commit"
+    ],
+    "learnings": [
+      "Pre-commit hooks committed additional staged files beyond the intended fibonacci changes - always check git status before staging to avoid unintended inclusions"
+    ],
+    "verification": {
+      "type": "manual-check",
+      "command": "! ls src/utils/fibonacci.ts 2>/dev/null && ! ls tests/unit/utils/fibonacci.test.ts 2>/dev/null && echo 'Files deleted'",
+      "expected": "Files deleted"
+    },
+    "owner": "implementer-1"
+  }
+}
