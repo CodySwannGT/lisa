@@ -4,7 +4,7 @@ This directory contains hook scripts that enhance Claude Code's behavior during 
 
 ## Available Hooks
 
-### install_pkgs.sh
+### install-pkgs.sh
 
 **Type**: SessionStart hook
 **Trigger**: At the start of each Claude Code session (remote/web only)
@@ -41,7 +41,7 @@ This directory contains hook scripts that enhance Claude Code's behavior during 
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/install_pkgs.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/install-pkgs.sh",
             "timeout": 480
           }
         ]

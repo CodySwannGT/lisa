@@ -319,7 +319,7 @@ When Claude writes code, hooks automatically enforce quality:
 | `format-on-edit.sh` | After Write/Edit | Run Prettier on changed files |
 | `lint-on-edit.sh` | After Write/Edit | Run ESLint on changed files (exists but not currently in PostToolUse config) |
 | `sg-scan-on-edit.sh` | After Write/Edit | Run ast-grep pattern scan |
-| `install_pkgs.sh` | Session start | Ensure dependencies installed |
+| `install-pkgs.sh` | Session start | Ensure dependencies installed |
 | `notify-ntfy.sh` | Notification events | Send push notifications |
 | `sync-tasks.sh` | Task synchronization | Sync tasks between sessions and project directories |
 | `check-tired-boss.sh` | User prompt submit | Enforce "I'm tired boss" greeting |
@@ -331,7 +331,7 @@ When Claude writes code, hooks automatically enforce quality:
 {
   "hooks": {
     "SessionStart": [
-      { "matcher": "startup", "hooks": [{ "type": "command", "command": ".claude/hooks/install_pkgs.sh" }] },
+      { "matcher": "startup", "hooks": [{ "type": "command", "command": ".claude/hooks/install-pkgs.sh" }] },
       { "matcher": "", "hooks": [{ "type": "command", "command": ".claude/hooks/debug-hook.sh" }] }
     ],
     "PostToolUse": [

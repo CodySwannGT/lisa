@@ -95,7 +95,7 @@ copy-overwrite:README.md
 copy-overwrite:specs/.keep
 copy-contents:.gitignore
 copy-overwrite:.claude/hooks/format-on-edit.sh
-copy-overwrite:.claude/hooks/install_pkgs.sh
+copy-overwrite:.claude/hooks/install-pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
 copy-overwrite:.claude/hooks/sg-scan-on-edit.sh
 copy-overwrite:.claude/settings.json

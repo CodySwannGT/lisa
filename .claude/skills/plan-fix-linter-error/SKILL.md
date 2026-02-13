@@ -42,4 +42,4 @@ Fix strategies: extract functions, early returns, apply formatting, add types
 Verification: `bun run lint 2>&1 | grep -E "($ARGUMENTS)" | wc -l` → Expected: 0
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.

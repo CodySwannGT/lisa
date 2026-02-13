@@ -43,4 +43,4 @@ Refactoring strategies: extract functions, early returns, extract conditions, us
 Verification: `bun run lint 2>&1 | grep "max-lines-per-function" | wc -l` → Expected: 0
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.

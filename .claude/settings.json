@@ -168,7 +168,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/install_pkgs.sh"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/install-pkgs.sh"
           }
         ]
       },
