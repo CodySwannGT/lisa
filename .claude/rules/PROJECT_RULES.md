@@ -151,14 +151,15 @@ All `eslint-disable` directives must include a description to satisfy the `eslin
 
 Format: `/* eslint-disable rule-name -- description of why this exception is needed */`
 
-Example from generator pattern:
+Example from generator pattern — prefer a single tuple over separate variables to group related state:
 
 ```typescript
-/* eslint-disable functional/no-let -- generator requires mutable state for iterative Fibonacci computation */
-let a = 0n;
-let b = 1n;
-/* eslint-enable functional/no-let -- re-enable after generator state declarations */
+/* eslint-disable functional/no-let -- generator requires mutable pair to track consecutive Fibonacci values */
+let pair: readonly [bigint, bigint] = [0n, 1n];
+/* eslint-enable functional/no-let -- re-enable after generator state declaration */
 ```
+
+Using a tuple (`readonly [bigint, bigint]`) instead of separate `let a, b` declarations keeps coupled state in a single structure and minimizes the number of mutable bindings.
 
 ## TypeScript Type System
 
