@@ -1,5 +1,5 @@
 ---
-description: "Deploys an agent team to review and implement a plan"
+description: "Deploys an agent team to research, implement, review and deploy a plan"
 argument-hint: "<ticket-url | @file-path | description>"
 ---
 
@@ -15,13 +15,18 @@ Is this a simple request? Just execute it as usual and ignore the rest...
 Otherwise: 
 
 
-Read the "description" field for EVERY agent file in .claude/agents. For each agent, explain in one sentence why it IS or IS NOT relevant to this task. Then select all agents that are relevant. You MUST justify excluding an agent — inclusion is the default.
+Review all available agent types listed in the Task tool's `subagent_type` options. This includes built-in agents (like `Explore`, `general-purpose`), custom agents (from `.claude/agents/`), and plugin agents (from `.claude/settings.json` `enabledPlugins`). For each agent, explain in one sentence why it IS or IS NOT relevant to this task. Then select all agents that are relevant. You MUST justify excluding an agent — inclusion is the default.
 
+When deciding the agents to use, consider:
+* Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
+* Each task must be reviewed by the team to make sure their verification passes.
+* Each task must have their learnings reviewed by the learner subagent.
+
+NOTE: Every team must include the Explore agent
 
 Create an agent team composed of the selected agents. Spawn every agent with `mode: "plan"` so they must submit their plan for team lead approval before making any file changes.
 
 Use the TeamCreate tool to create the team before doing anything else.
-
 
 Using the general-purpose agent in Team Lead session, Determine the name of this plan
 
@@ -56,7 +61,7 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
   "plan": "<plan-name>",
   "type": "spike|bug|task|epic|story",
   "acceptance_criteria": ["..."],
-  "relevant_research": "",
+  "relevant_documentation": "",
   "testing_requirements": ["..."],
   "skills": ["..."],
   "learnings": ["..."],
@@ -68,17 +73,17 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
 }
 ```
 
-Each task must be reviewed by the team to make sure their verification pass and that their learnings are captured by the learner subagent.
+Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
+
+Each task must be reviewed by the team to make sure their verification passes.
+Each task must have their learnings reviewed by the learner subagent.
 
 Before shutting down the team:
 
 1. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
-1. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-2. Open a pull request with auto-merge on
-3. Monitor the PR. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. Continue all checks pass
-4. Monitor the deploy action that triggers automatically from the successful merge
-5. If it fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 4
-6. Execute empirical verification. If empirical verification succeeds, you're finished, otherwise, create a task for the agent team to find out why it failed, fix it and return to step 1 (repeat this until you get all the way through)
-
-
-Use the /plan-create skill to create an implementation plan for $ARGUMENTS
+2. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
+3. Open a pull request with auto-merge on
+4. Monitor the PR. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. Continue all checks pass
+5. Monitor the deploy action that triggers automatically from the successful merge
+6. If it fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 4
+7. Execute empirical verification. If empirical verification succeeds, you're finished, otherwise, create a task for the agent team to find out why it failed, fix it and return to step 1 (repeat this until you get all the way through)
