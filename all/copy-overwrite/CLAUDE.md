@@ -46,6 +46,7 @@ Never delete anything outside of this project's directory
 Never add "BREAKING CHANGE" to a commit message unless there is actually a breaking change
 Never stash changes you can't commit. Either fix whatever is prevening the commit or fail out and let the human know why.
 Never lower thresholds for tests to pass a pre-push hook. You must increase test coverage to make it pass
+Never handle tasks yourself when working in a team of agents. Always delegate to a specialied agent.
 
 ONLY use eslint-disable as a last resort and confirm with human before doing so
 ONLY use eslint-disable for test file max-lines when comprehensive test coverage requires extensive test cases (must include matching eslint-enable)

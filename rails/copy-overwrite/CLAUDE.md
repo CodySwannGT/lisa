@@ -47,6 +47,7 @@ Never add "BREAKING CHANGE" to a commit message unless there is actually a break
 Never stash changes you can't commit. Either fix whatever is preventing the commit or fail out and let the human know why.
 Never lower thresholds for tests to pass a pre-push hook. You must increase test coverage to make it pass
 Never modify db/schema.rb directly. Use migrations to change the database schema.
+Never handle tasks yourself when working in a team of agents. Always delegate to a specialied agent.
 
 ONLY use rubocop:disable as a last resort and confirm with human before doing so
 ONLY use rubocop:disable for specific cops, never disable all cops at once
