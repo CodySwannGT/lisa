@@ -2,7 +2,6 @@
 name: spec-analyst
 description: Analyzes requirements for ambiguities, missing details, and unstated assumptions. Outputs clarifying questions ranked by architectural impact.
 tools: Read, Grep, Glob
-model: sonnet
 ---
 
 # Specification Gap Analyst

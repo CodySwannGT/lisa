@@ -2,7 +2,6 @@
 name: tech-reviewer
 description: Technical code review agent. Explains findings in beginner-friendly plain English, ranked by severity.
 tools: Read, Grep, Glob, Bash
-model: sonnet
 ---
 
 # Tech Reviewer Agent
