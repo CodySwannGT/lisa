@@ -43,4 +43,4 @@ Refactoring strategies: extract concerns, extract service objects, remove duplic
 Verification: `bundle exec rubocop --only Metrics/ClassLength,Metrics/ModuleLength --format simple 2>&1 | grep "offense" | wc -l` -> Expected: 0
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.

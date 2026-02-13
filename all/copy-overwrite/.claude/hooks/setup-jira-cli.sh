@@ -16,9 +16,9 @@
 
 set -euo pipefail
 
-# Fix jira-cli installation if install_pkgs.sh failed to extract correctly.
+# Fix jira-cli installation if install-pkgs.sh failed to extract correctly.
 # The tarball nests the binary at jira_VERSION_linux_x86_64/bin/jira,
-# but install_pkgs.sh expects a top-level "jira" file.
+# but install-pkgs.sh expects a top-level "jira" file.
 if ! command -v jira &>/dev/null; then
   JIRA_CLI_VERSION="1.7.0"
   TMPDIR=$(mktemp -d)

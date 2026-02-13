@@ -42,4 +42,4 @@ Refactoring strategies: extract modules, remove duplication, delete dead code, s
 Verification: `bun run lint 2>&1 | grep "max-lines" | wc -l` → Expected: 0
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.

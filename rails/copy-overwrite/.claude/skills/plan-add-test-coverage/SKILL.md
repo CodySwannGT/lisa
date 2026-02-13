@@ -42,4 +42,4 @@ Configuration: .simplecov, update minimum_coverage to $ARGUMENTS%
 Verification: `bundle exec rspec` -> Expected: SimpleCov reports >= $ARGUMENTS% coverage
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.

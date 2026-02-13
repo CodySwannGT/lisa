@@ -41,4 +41,4 @@ Configuration: [config file path], update thresholds to $ARGUMENTS%
 Verification: `bun run test:cov` → Expected: All thresholds pass at $ARGUMENTS%
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.
