@@ -4,7 +4,7 @@ argument-hint: "<ticket-url | @file-path | description>"
 ---
 
 
-$0 is either a url to a ticket containing the request, a pointer to a file containg the request or the request in text format.
+$ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request or the request in text format.
 
 If it's a ticket, use either the Jira CLI (if it's a jira ticket), the Linear CLI (if it's a linear ticket) or the Github CLI (if it's a github ticket) to read and fully understand the request, including any comments or meta data associated with the ticket.
 
@@ -37,7 +37,7 @@ Using the general-purpose agent in Team Lead session, Determine what type of req
 4. Feature/Story
 5. Epic
 
-IF it's a bug, Using the general-purpose agent in Team Lead session, determine how you will replicate the bug empiracally:
+IF it's a bug, Using the general-purpose agent in Team Lead session, determine how you will replicate the bug empirically:
 1. Examples:
    1. Write a simple API client and call the offending API
    2. Start the server on localhost and Use the Playwright CLI or Chrome DevTools
@@ -47,7 +47,7 @@ Using the general-purpose agent in Team Lead session, determine how you will kno
    1. Direct deploy the changes to dev and then Write a simple API client and call the offending API
    2. Start the server on localhost and then Use the Playwright CLI or Chrome DevTools
 
-Using the general-purpose agent in Team Lead session, create tasks neeeded to complete the request.
+Using the general-purpose agent in Team Lead session, create tasks needed to complete the request.
 
 Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none), `learnings` (use `[]` if none) or `verification`.
 
@@ -74,7 +74,7 @@ Before shutting down the team:
 
 1. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 1. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-2. Open a pull request with auto merge on
+2. Open a pull request with auto-merge on
 3. Monitor the PR. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. Continue all checks pass
 4. Monitor the deploy action that triggers automatically from the successful merge
 5. If it fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 4
