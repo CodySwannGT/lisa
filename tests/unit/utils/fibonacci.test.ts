@@ -118,15 +118,21 @@ describe("fibonacci utilities", () => {
       );
     });
 
-    it("throws RangeError for non-finite input", () => {
+    it("throws RangeError for NaN", () => {
       expect(() => fibonacci(NaN)).toThrow(RangeError);
       expect(() => fibonacci(NaN)).toThrow(
         "Expected a non-negative integer for n, got NaN"
       );
+    });
+
+    it("throws RangeError for Infinity", () => {
       expect(() => fibonacci(Infinity)).toThrow(RangeError);
       expect(() => fibonacci(Infinity)).toThrow(
         "Expected a non-negative integer for n, got Infinity"
       );
+    });
+
+    it("throws RangeError for -Infinity", () => {
       expect(() => fibonacci(-Infinity)).toThrow(RangeError);
       expect(() => fibonacci(-Infinity)).toThrow(
         "Expected a non-negative integer for n, got -Infinity"
