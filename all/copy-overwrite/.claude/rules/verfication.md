@@ -73,7 +73,7 @@ curl -s "http://localhost:3000/api/users/$USER_ID" | jq '.email'
 npx playwright test --headed -g "logout button" 2>&1 | tail -20
 ```
 
-Or for ad-hoc verification without a test file, use the Playwright MCP browser tools or `browser_run_code`:
+Or for ad-hoc verification without a test file, use the Playwright CLI browser tools or `browser_run_code`:
 ```javascript
 async (page) => {
   await page.goto('http://localhost:3000/dashboard');
