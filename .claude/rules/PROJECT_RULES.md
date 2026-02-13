@@ -119,6 +119,19 @@ Context compaction can cause team leads to lose in-memory state (task assignment
 3. **Restore missing owners** - If any task has `metadata.owner` but no `owner` field, restore it via TaskUpdate
 4. **Never rely on memory** - Always call TaskList before assigning new work
 
+### Review Task Parallelization
+
+Parallelize all independent review agents after implementation is complete:
+
+- `product-specialist`, `coderabbit:code-reviewer`, `plan-local-code-review`, `quality-specialist` all run concurrently
+- Gate a single "implement valid suggestions" task behind all review completions using `blockedBy`
+- This minimizes review cycle time by running 4 reviews concurrently instead of sequentially
+
+```text
+[implementation] → [product] [coderabbit] [local] [quality] → [implement suggestions]
+                    ↑ all run in parallel ↑                    ↑ blocked by all 4 ↑
+```
+
 ### Plugin Agent Naming
 
 Plugin agents use colon-separated naming format: `namespace:agent-name`
@@ -218,3 +231,18 @@ This is expected behavior. Verify RED by confirming either:
 - A module resolution error in Jest output
 
 Do **not** expect N individual test failures when the imported module doesn't exist.
+
+## TDD 3-Commit Deletion Workflow
+
+When replacing a module from scratch via TDD, use exactly 3 atomic commits:
+
+1. **`refactor: remove existing <module>`** — delete source file, remove barrel export from `index.ts`, delete test file
+2. **`test: add failing tests for new <module> (TDD RED)`** — write comprehensive tests importing the (non-existent) source directly
+3. **`feat: implement new <module> (TDD GREEN)`** — create implementation and re-add barrel export to `index.ts`
+
+This sequence is necessary because:
+- Barrel exports must be removed in commit 1 (see [Barrel Export Pre-commit Constraint](#barrel-export-pre-commit-constraint))
+- Barrel exports must be re-added in commit 3, not commit 2, since the source file doesn't exist yet during RED phase
+- Pre-commit hooks (lint/typecheck) run on every commit and will fail if barrel exports reference missing files
+
+Deviating from this sequence (e.g., deleting source without removing barrel export, or adding barrel export before implementation exists) causes pre-commit hook failures.
