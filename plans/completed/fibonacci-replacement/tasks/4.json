@@ -1,0 +1,45 @@
+{
+  "id": "4",
+  "subject": "Implement new fibonacci generator (TDD GREEN)",
+  "description": "Create the new fibonacci implementation at `src/utils/fibonacci.ts` to make all tests pass.\n\nRequirements:\n1. `fibonacciGenerator()`: Infinite generator yielding fibonacci numbers as BigInt. Use tuple-based state.\n2. `fibonacci(n)`: Returns nth fibonacci number (0-indexed). Must delegate to generator (DRY). Validate input (non-negative integer, finite).\n3. `fibonacciSequence(length)`: Returns readonly array. Must delegate to generator (DRY). Validate input same as fibonacci.\n4. Re-add barrel export to `src/utils/index.ts`: `export * from \"./fibonacci.js\";`\n\nFollow coding philosophy:\n- Immutability first (readonly types, const only)\n- Function structure ordering (variables, side effects, return)\n- Clean JSDoc preambles with \"why\" not \"what\"\n- Inline validation as guard clauses (no helper functions)\n\nRun tests to verify they PASS: `bun run test -- tests/unit/utils/fibonacci.test.ts`\nCommit: `feat: implement new fibonacci generator (TDD GREEN)`",
+  "activeForm": "Implementing new fibonacci generator",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "5",
+    "6",
+    "7",
+    "8"
+  ],
+  "blockedBy": [
+    "3"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "src/utils/fibonacci.ts created with all three functions",
+      "Barrel export restored in src/utils/index.ts",
+      "All tests pass",
+      "Code follows coding philosophy (immutability, function ordering, JSDoc)",
+      "Changes committed"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [
+      "bun run test -- tests/unit/utils/fibonacci.test.ts passes"
+    ],
+    "skills": [
+      "git-commit",
+      "jsdoc-best-practices"
+    ],
+    "learnings": [
+      "The fibonacci implementation is straightforward with the tuple-based generator pattern. All 29 tests pass on first run with no modifications needed to either tests or implementation."
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun run test -- tests/unit/utils/fibonacci.test.ts",
+      "expected": "All tests pass (TDD GREEN)"
+    },
+    "owner": "implementer-1"
+  }
+}

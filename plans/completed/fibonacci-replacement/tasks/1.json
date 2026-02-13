@@ -1,0 +1,32 @@
+{
+  "id": "1",
+  "subject": "Explore codebase for fibonacci references and dependencies",
+  "description": "Research all fibonacci-related code across the codebase:\n1. Read `src/utils/fibonacci.ts` to understand the current implementation\n2. Read `tests/unit/utils/fibonacci.test.ts` to understand existing test coverage\n3. Read `src/utils/index.ts` to understand barrel exports\n4. Check for any other files that import or reference fibonacci utilities\n5. Check git history for context on why the current implementation exists\n6. Check `plans/completed/fibonacci-generator-rewrite/` for historical context\n7. Update this task's metadata.relevant_documentation with all findings\n\nThis is a research-only task - do not make any code changes.",
+  "activeForm": "Exploring fibonacci codebase references",
+  "owner": "explorer",
+  "status": "completed",
+  "blocks": [
+    "2"
+  ],
+  "blockedBy": [],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "All fibonacci references identified",
+      "All importers of fibonacci utilities identified",
+      "Barrel export structure documented",
+      "Historical context captured"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [],
+    "learnings": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "grep -r 'fibonacci\\|fibonacciGenerator\\|fibonacciSequence' src/ tests/ --include='*.ts' -l",
+      "expected": "List of all files referencing fibonacci"
+    },
+    "owner": "explorer"
+  }
+}

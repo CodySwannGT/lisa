@@ -1,0 +1,39 @@
+{
+  "id": "10",
+  "subject": "Simplify code using code-simplifier",
+  "description": "Run the `code-simplifier:code-simplifier` plugin agent on the fibonacci implementation to simplify and refine code for clarity, consistency, and maintainability.\n\nFocus on recently modified files:\n- `src/utils/fibonacci.ts`\n- `tests/unit/utils/fibonacci.test.ts`\n\nAfter simplification, run tests: `bun run test -- tests/unit/utils/fibonacci.test.ts`\nCommit if changes made: `refactor: simplify fibonacci implementation`",
+  "activeForm": "Simplifying fibonacci code",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "Code simplifier run on fibonacci files",
+      "Tests still pass",
+      "Changes committed if any"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [
+      "bun run test -- tests/unit/utils/fibonacci.test.ts passes"
+    ],
+    "skills": [
+      "git-commit"
+    ],
+    "learnings": [
+      "Code was already minimal — no simplification needed. Each function is under 10 lines of logic."
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun run test -- tests/unit/utils/fibonacci.test.ts",
+      "expected": "All tests pass after simplification"
+    },
+    "owner": "implementer-1"
+  }
+}

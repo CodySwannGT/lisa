@@ -1,0 +1,38 @@
+{
+  "id": "11",
+  "subject": "Update documentation (JSDoc, markdown)",
+  "description": "Ensure all documentation is up to date after the fibonacci replacement:\n\n1. Verify JSDoc preambles on `src/utils/fibonacci.ts` follow jsdoc-best-practices skill (\"why\" not \"what\")\n2. Check if OVERVIEW.md or any other markdown files reference fibonacci and need updating\n3. Check if any documentation in `plans/` references the old implementation\n\nDo NOT modify CLAUDE.md, CHANGELOG.md, or any Lisa-managed files.\nCommit if changes made: `docs: update fibonacci documentation`",
+  "activeForm": "Updating fibonacci documentation",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "JSDoc preambles reviewed and updated",
+      "Markdown references checked",
+      "Documentation follows jsdoc-best-practices"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [
+      "jsdoc-best-practices",
+      "git-commit"
+    ],
+    "learnings": [
+      "JSDoc was already complete from implementation. No markdown files needed updating — fibonacci references in PROJECT_RULES.md and archived plans are contextually correct."
+    ],
+    "verification": {
+      "type": "documentation",
+      "command": "grep -A5 '@module\\|@fileoverview\\|@description' src/utils/fibonacci.ts",
+      "expected": "JSDoc preamble present with why-focused documentation"
+    },
+    "owner": "implementer-1"
+  }
+}
