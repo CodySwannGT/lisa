@@ -99,14 +99,19 @@ Custom agent definitions in `agents/` provide specialized AI personas for differ
 
 | Agent | Purpose |
 |-------|---------|
-| `agent-architect.md` | System architecture design |
-| `codebase-analyzer.md` | Codebase analysis and documentation |
-| `codebase-locator.md` | Finding code locations |
-| `codebase-pattern-finder.md` | Pattern recognition |
+| `agent-architect.md` | Agent file design and optimization |
+| `architecture-specialist.md` | Implementation design, dependency mapping, pattern evaluation |
 | `git-history-analyzer.md` | Git history analysis |
 | `hooks-expert.md` | Claude Code hooks expertise |
+| `implementer.md` | Code implementation with TDD enforcement |
+| `learner.md` | Post-implementation learning and skill creation |
+| `performance-specialist.md` | N+1 queries, algorithmic complexity, memory leaks |
+| `product-specialist.md` | User flows, acceptance criteria, UX validation |
+| `quality-specialist.md` | Code correctness, coding philosophy, test coverage review |
+| `security-specialist.md` | Threat modeling (STRIDE), OWASP Top 10, auth/secrets review |
 | `skill-evaluator.md` | Skill quality assessment |
 | `slash-command-architect.md` | Command design |
+| `test-specialist.md` | Test strategy, test writing, coverage analysis |
 | `web-search-researcher.md` | Web research tasks |
 
 ## Skills
@@ -154,6 +159,7 @@ Skills use colon-namespaced directories (e.g., `plan:create/`) and are invoked v
 | `tasks:load` | Load tasks from project directory into session |
 | `tasks:sync` | Export session tasks to project directory |
 | `skill-creator` | Guide for creating new skills |
+| `agent-design-best-practices` | Best practices for designing agent files |
 | `jsdoc-best-practices` | JSDoc documentation standards |
 
 See each skill's `SKILL.md` for detailed documentation.
