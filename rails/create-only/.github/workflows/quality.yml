@@ -34,6 +34,27 @@ jobs:
       - run: bundle exec brakeman --no-pager --quiet
       - run: bundle exec bundler-audit check --update
 
+  # Default: PostgreSQL. For MySQL, replace the service block and env vars:
+  #   services:
+  #     mysql:
+  #       image: mysql:8.0
+  #       env:
+  #         MYSQL_ROOT_PASSWORD: password
+  #         MYSQL_DATABASE: test
+  #       ports:
+  #         - 3306:3306
+  #       options: >-
+  #         --health-cmd "mysqladmin ping -h localhost"
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #   env:
+  #     RAILS_ENV: test
+  #     PRIMARY_DB_HOST: 127.0.0.1
+  #     DATABASE_NAME: test
+  #     DATABASE_PASSWORD: password
+  #     DATABASE_USER: root
+  #     DATABASE_PORT: 3306
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -59,7 +80,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-      - run: bin/rails db:schema:load
+      - run: bin/rails db:prepare
       - run: bundle exec rspec
 
   code-quality:
