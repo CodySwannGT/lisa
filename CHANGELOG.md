@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.38.0](https://github.com/CodySwannGT/lisa/compare/vv1.37.0...v1.38.0) (2026-02-13)
+
+
+### Features
+
+* **rails:** add action-controller and action-view best practices skills ([847d052](https://github.com/CodySwannGT/lisa/commit/847d052971c6d1baef022f10318b27186b09b60a))
+* **rails:** add active-record-model-best-practices skill ([be9bb08](https://github.com/CodySwannGT/lisa/commit/be9bb0848bd0d4e09dd5844a1cf320d57be141b9))
+* **rails:** add semantic versioning with VERSION file and release workflow ([d2f015d](https://github.com/CodySwannGT/lisa/commit/d2f015d108fa0baa602f2112dd7dbca8b080b152))
+
+
+### Bug Fixes
+
+* **rails:** improve CI template defaults from downstream learnings ([f71019b](https://github.com/CodySwannGT/lisa/commit/f71019b08cd23e09a0f50d31251f124c9aace127))
+* **rails:** use deploy key and support staging in release workflow ([9d097a4](https://github.com/CodySwannGT/lisa/commit/9d097a4b5c783f475c7fafa8337e1c972404cf01))
+
+
+### Documentation
+
+* add agent team delegation rule to CLAUDE.md templates ([2f49ad2](https://github.com/CodySwannGT/lisa/commit/2f49ad260f957d5694e9b3408fb2642358b7ce0c))
+
 ## [1.37.0](https://github.com/CodySwannGT/lisa/compare/vv1.36.0...v1.37.0) (2026-02-12)
 
 
