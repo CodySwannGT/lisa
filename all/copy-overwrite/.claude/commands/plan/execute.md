@@ -1,6 +1,7 @@
 ---
-description: "Creates an implementation plan from a ticket URL, file path, or text description"
+description: "Deploys an agent team to research, implement, review and deploy a plan"
 argument-hint: "<ticket-url | @file-path | description>"
 ---
+
 
 Use the /plan-execute skill on $ARGUMENTS
