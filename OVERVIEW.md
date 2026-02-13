@@ -214,15 +214,19 @@ When you use Claude's native plan mode:
 
 | Subagent | Purpose |
 |----------|---------|
-| `agent-architect` | Design and optimize sub-agents |
-| `codebase-analyzer` | Explain HOW code works |
-| `codebase-locator` | Find WHERE code lives |
-| `codebase-pattern-finder` | Find existing patterns to model |
+| `agent-architect` | Design and optimize agent files |
+| `architecture-specialist` | Implementation design, dependency mapping, pattern evaluation |
 | `git-history-analyzer` | Understand WHY code evolved |
 | `hooks-expert` | Create, modify, and troubleshoot hooks |
+| `implementer` | Code implementation with TDD enforcement |
+| `learner` | Post-implementation learning and skill creation |
+| `performance-specialist` | N+1 queries, algorithmic complexity, memory leaks |
+| `product-specialist` | User flows, acceptance criteria, UX validation |
+| `quality-specialist` | Code correctness, coding philosophy, test coverage review |
+| `security-specialist` | Threat modeling (STRIDE), OWASP Top 10, auth/secrets review |
 | `skill-evaluator` | Evaluate whether learnings warrant new skills |
 | `slash-command-architect` | Design and optimize slash commands |
-| `test-coverage-agent` | Add comprehensive test coverage |
+| `test-specialist` | Test strategy, test writing, coverage analysis |
 | `web-search-researcher` | Find external documentation |
 
 ### 4. Slash Commands (Explicit Actions)

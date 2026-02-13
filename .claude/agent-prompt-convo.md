@@ -61,8 +61,8 @@ The prompt template (see `agent-prompt.md` for bug-fix version, `agent-prompt-te
 After testing the workflow with a Fibonacci demo task, six deficiencies were identified and fixed:
 
 1. **Learn phase** -- `learner` agent collects task learnings and processes them through `skill-evaluator`
-2. **Specialized agents** -- `implementer`, `tech-reviewer`, `product-reviewer`, and `learner` replace all-`general-purpose` recommendations
-3. **Product review** -- `product-reviewer` validates features from a non-technical perspective by running them
+2. **Specialized agents** -- `implementer`, `quality-specialist`, `product-specialist`, and `learner` replace all-`general-purpose` recommendations
+3. **Product review** -- `product-specialist` validates features from a non-technical perspective by running them
 4. **Git workflow streamlined** -- draft PR first, commits only during implementation, one push at the end
 5. **Lint task removed** -- PostToolUse hooks and lint-staged pre-commit hooks handle linting, formatting, and type-checking
 6. **Default to recommended option** -- unresolved decisions use the recommendation instead of stalling
@@ -70,8 +70,8 @@ After testing the workflow with a Fibonacci demo task, six deficiencies were ide
 ### New Agent Files
 
 - `.claude/agents/implementer.md` -- Code implementation specialist
-- `.claude/agents/tech-reviewer.md` -- Beginner-friendly technical reviewer
-- `.claude/agents/product-reviewer.md` -- Product/UX reviewer with empirical validation
+- `.claude/agents/quality-specialist.md` -- Code quality, correctness, and coding philosophy reviewer
+- `.claude/agents/product-specialist.md` -- Product/UX specialist with empirical validation
 - `.claude/agents/learner.md` -- Post-implementation learning agent
 
 ### Updated Files
