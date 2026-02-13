@@ -55,14 +55,7 @@ Create an Agent Team and spawn three research teammates simultaneously. **All ag
 - **Team**: use the `team_name` from TeamCreate
 - **Prompt**: Explore the codebase for relevant code, existing patterns, and reusable scripts. Read lint and format rules to understand project standards. Identify files that would need modification, existing utilities that can be reused, and architecture constraints. Check for existing scripts in `package.json` that could be used for replication or verification.
 
-#### Spec Gap Analyst
-- **Name**: `spec-analyst`
-- **Agent type**: `spec-analyst`
-- **Mode**: `bypassPermissions`
-- **Team**: use the `team_name` from TeamCreate
-- **Prompt**: Analyze the input for specification gaps. Read `package.json` and existing code for project context. Identify every ambiguity or unstated assumption that could lead to wrong architectural decisions. Report as a numbered list of clarifying questions, sorted by impact.
-
-Wait for all three to report back via SendMessage.
+Wait for both to report back via SendMessage.
 
 ## Step 5: Phase 1.5 - Research Brief & Gap Resolution (team lead)
 
@@ -79,7 +72,7 @@ Synthesize Phase 1 findings into a structured **Research Brief**:
 
 After synthesizing the Research Brief:
 
-1. Collect gaps from the spec-analyst's findings
+1. Identify specification gaps from the researcher's findings and your own analysis of the requirements
 2. Present gaps to the user via AskUserQuestion -- group related questions and include why each matters
 3. If no gaps identified, state "No specification gaps identified" and proceed to Phase 2
 4. Incorporate answers into the Research Brief before Phase 2
@@ -88,30 +81,30 @@ After synthesizing the Research Brief:
 
 Spawn four domain planners simultaneously, passing each the Research Brief:
 
-#### Architecture Planner
-- **Name**: `arch-planner`
-- **Agent type**: `architecture-planner`
+#### Architecture Specialist
+- **Name**: `arch-specialist`
+- **Agent type**: `architecture-specialist`
 - **Mode**: `bypassPermissions`
 - **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [Research Brief] + Design the technical implementation approach. Identify files to create/modify, map dependencies, recommend patterns, flag risks.
 
-#### Test Strategist
-- **Name**: `test-strategist`
-- **Agent type**: `test-strategist`
+#### Test Specialist
+- **Name**: `test-specialist`
+- **Agent type**: `test-specialist`
 - **Mode**: `bypassPermissions`
 - **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [Research Brief] + Design the test matrix. Identify edge cases, set coverage targets, define verification commands, plan TDD sequence.
 
-#### Security Planner
-- **Name**: `security-planner`
-- **Agent type**: `security-planner`
+#### Security Specialist
+- **Name**: `security-specialist`
+- **Agent type**: `security-specialist`
 - **Mode**: `bypassPermissions`
 - **Team**: use the `team_name` from TeamCreate
-- **Prompt**: [Research Brief] + Perform lightweight threat modeling (STRIDE). Identify auth/validation gaps, secrets exposure risks, and security measures needed.
+- **Prompt**: [Research Brief] + Perform threat modeling (STRIDE). Identify auth/validation gaps, secrets exposure risks, OWASP Top 10 vulnerabilities, and security measures needed.
 
-#### Product Planner
-- **Name**: `product-planner`
-- **Agent type**: `product-planner`
+#### Product Specialist
+- **Name**: `product-specialist`
+- **Agent type**: `product-specialist`
 - **Mode**: `bypassPermissions`
 - **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [Research Brief] + Define user flows in Gherkin. Write acceptance criteria from user perspective. Identify UX concerns and error states.
@@ -128,13 +121,6 @@ Spawn two reviewers simultaneously, passing them all sub-plans:
 - **Mode**: `bypassPermissions`
 - **Team**: use the `team_name` from TeamCreate
 - **Prompt**: [All sub-plans] + Review critically. Identify anti-patterns, N+1 queries, missing edge cases, security concerns, and performance issues. Do not assume anti-patterns are acceptable just because they exist in the codebase — undocumented anti-patterns should be flagged, not used as reference. Challenge assumptions and propose alternatives for weak points.
-
-#### Consistency Checker
-- **Name**: `consistency-checker`
-- **Agent type**: `consistency-checker`
-- **Mode**: `bypassPermissions`
-- **Team**: use the `team_name` from TeamCreate
-- **Prompt**: [All sub-plans] + Verify cross-plan consistency. Check that file lists align, test strategy covers architecture changes, security measures are reflected in acceptance criteria, and no sub-plans contradict each other.
 
 Wait for both to report back via SendMessage.
 
@@ -176,7 +162,7 @@ Apply these additional requirements based on the detected type:
 - **Proof command**: Every fix task must include a proof command and expected output
 
 #### Story/Feature
-- **UX review**: Include a product-reviewer agent task to validate from user perspective
+- **UX review**: Include a product-specialist agent task to validate from user perspective
 - **Feature flag consideration**: Note whether this should be behind a feature flag
 - **Documentation**: Include user-facing documentation if applicable
 
@@ -199,10 +185,10 @@ The plan must include explict instructions to "Create an agent team" for impleme
 | Agent | Use For |
 |-------|---------|
 | `implementer` | Code implementation (pre-loaded with project conventions, TDD enforcement) |
-| `tech-reviewer` | Technical review (correctness, security, performance) |
-| `product-reviewer` | Product/UX review (validates from non-technical perspective) |
+| `quality-specialist` | Technical review (correctness, security, performance) |
+| `product-specialist` | Product/UX review (validates from non-technical perspective) |
 | `learner` | Post-implementation learning (processes learnings into skills/rules) |
-| `test-coverage-agent` | Writing comprehensive tests |
+| `test-specialist` | Writing comprehensive tests |
 | `code-simplifier` | Code simplification and refinement |
 | `coderabbit` | Automated AI code review |
 

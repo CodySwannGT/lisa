@@ -50,9 +50,9 @@ Use the specialized agents per `@.claude/rules/plan-governance.md` (Implementati
 | Agent | Use For | Phase |
 |-------|---------|-------|
 | `implementer` | Code implementation with TDD (red-green-refactor) | Phase 2 |
-| `tech-reviewer` | Technical review (correctness, security, performance) | Phase 3 |
-| `product-reviewer` | Product/UX review (validates from non-technical perspective) | Phase 3 |
-| `test-coverage-agent` | Writing comprehensive tests | Phase 4 |
+| `quality-specialist` | Technical review (correctness, security, performance) | Phase 3 |
+| `product-specialist` | Product/UX review (validates from non-technical perspective) | Phase 3 |
+| `test-specialist` | Writing comprehensive tests | Phase 4 |
 | `code-simplifier` | Code simplification and refinement | Phase 4 |
 | `coderabbit` | Automated AI code review | Phase 3 |
 | `learner` | Post-implementation learning | Phase 5 |
@@ -83,8 +83,8 @@ Context compaction can cause the team lead to lose in-memory state (task assignm
 
 Spawn review agents simultaneously:
 
-- **tech-reviewer** -- agent type: `tech-reviewer`, mode: `bypassPermissions`
-- **product-reviewer** -- agent type: `product-reviewer`, mode: `bypassPermissions`
+- **quality-specialist** -- agent type: `quality-specialist`, mode: `bypassPermissions`
+- **product-specialist** -- agent type: `product-specialist`, mode: `bypassPermissions`
 - Invoke `/plan-local-code-review` skill (team lead runs directly)
 - **coderabbit** -- agent type: `coderabbit:code-reviewer`, mode: `bypassPermissions`
 
@@ -94,7 +94,7 @@ Wait for all reviews to complete.
 
 1. **Fix review findings** -- re-spawn an implementer to address valid review suggestions
 2. **Simplify code** -- spawn `code-simplifier` agent (agent type: `code-simplifier:code-simplifier`, mode: `bypassPermissions`)
-3. **Update tests** -- spawn `test-coverage-agent` to update tests for post-review changes
+3. **Update tests** -- spawn `test-specialist` to update tests for post-review changes
 4. **Verify all tasks** -- team lead runs ALL proof commands from all tasks to confirm everything still works
 
 ## Step 7: Phase 5 - Learning & Archive
