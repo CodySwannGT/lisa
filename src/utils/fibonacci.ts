@@ -9,7 +9,7 @@
 
 /**
  * Infinite generator that lazily yields the Fibonacci sequence as BigInts
- * @yields {bigint} The next Fibonacci number in the sequence (0n, 1n, 1n, 2n, 3n, …)
+ * @yields The next Fibonacci number in the sequence (0n, 1n, 1n, 2n, 3n, …)
  * @remarks Each call creates an independent iterator with its own state, so
  * multiple consumers can advance through the sequence without interference.
  * @example
