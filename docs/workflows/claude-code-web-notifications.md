@@ -149,7 +149,7 @@ Implemented the user authentication feature with OAuth...
 Lisa also includes a `SessionStart` hook that runs when you start a Claude Code Web session:
 
 ```bash
-.claude/hooks/install_pkgs.sh
+.claude/hooks/install-pkgs.sh
 ```
 
 This script:

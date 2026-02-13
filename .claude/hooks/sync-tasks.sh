@@ -12,6 +12,9 @@
 # Input (via stdin): JSON with tool_name, tool_input, tool_response
 #
 
+# Temporarily disable this hook
+exit 0
+
 set -euo pipefail
 
 # Read JSON input from stdin
