@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.37.0](https://github.com/CodySwannGT/lisa/compare/vv1.36.0...v1.37.0) (2026-02-12)
+
+
+### Features
+
+* **rails:** add complete rails/ governance pack ([4f32e7f](https://github.com/CodySwannGT/lisa/commit/4f32e7f1bf989dcef02f10b13e934454e4bbc975))
+* **rails:** add mise and CI wrapper governance templates ([bb7d9ec](https://github.com/CodySwannGT/lisa/commit/bb7d9ecc028964354b5dad3ec547902c691c86d0))
+* **rails:** add Rails project type and detector ([e742db6](https://github.com/CodySwannGT/lisa/commit/e742db61def786b9bfee2cf05b9ef106617a18ef))
+
+
+### Documentation
+
+* **rails:** add [@module](https://github.com/module) JSDoc preamble to Rails detector ([9efe3d8](https://github.com/CodySwannGT/lisa/commit/9efe3d8605f61c4670ec7492cef37be1592f4191))
+
+
+### Code Refactoring
+
+* **rails:** simplify templates and tests ([d26da6d](https://github.com/CodySwannGT/lisa/commit/d26da6d0a567f0391a51b72fc1e592bb63b318d4))
+
 ## [1.36.0](https://github.com/CodySwannGT/lisa/compare/vv1.35.0...v1.36.0) (2026-02-11)
 
 
