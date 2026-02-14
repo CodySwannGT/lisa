@@ -89,7 +89,7 @@
     "@isaacs/brace-expansion": "^5.0.1"
   },
   "name": "@codyswann/lisa",
-  "version": "1.39.3",
+  "version": "1.40.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "bin": {
