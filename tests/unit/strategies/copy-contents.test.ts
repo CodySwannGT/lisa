@@ -243,6 +243,33 @@ describe("CopyContentsStrategy", () => {
     expect(result.action).toBe("skipped");
   });
 
+  it("does not double trailing newline when replacing block", async () => {
+    const srcFile = path.join(srcDir, GITIGNORE);
+    const destFile = path.join(destDir, GITIGNORE);
+    // Source template ends with trailing newline (POSIX convention)
+    const sourceContent = `${BEGIN_MARKER}\ndist\ncoverage\n${END_MARKER}\n`;
+    const destContent = `# Custom\n${BEGIN_MARKER}\nold\n${END_MARKER}\n`;
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GITIGNORE,
+      createContext()
+    );
+
+    expect(result.action).toBe("merged");
+
+    const content = await fs.readFile(destFile, "utf-8");
+    // Should end with single newline, not double
+    expect(content).toBe(
+      `# Custom\n${BEGIN_MARKER}\ndist\ncoverage\n${END_MARKER}\n`
+    );
+    expect(content).not.toContain("\n\n");
+  });
+
   it("handles only begin marker without end marker", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
