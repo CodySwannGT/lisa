@@ -89,6 +89,39 @@ Use the /my-skill-name skill to do the thing. $ARGUMENTS
 
 For skills without arguments, omit `argument-hint` and `$ARGUMENTS`.
 
+### Why Skills Matter for Subagents
+
+Subagents (spawned via the `Task` tool) have **isolated context windows** — they do not inherit the parent agent's conversation history, in-flight reasoning, or any context accumulated during the session. Each subagent starts with a clean slate.
+
+However, subagents **do** automatically load:
+
+- `CLAUDE.md` and all `.claude/rules/` files
+- MCP servers configured in `.claude/settings.json`
+- Skills listed in the agent's frontmatter `skills:` array
+
+This creates an important design principle: **encode reusable standards as skills, not as conversational instructions.** A skill listed in an agent's frontmatter is loaded identically whether the work is performed directly by the parent session or delegated to a subagent. Conversational instructions ("remember to follow JSDoc best practices") are lost when work is delegated because subagents cannot see the parent's conversation.
+
+```yaml
+---
+name: implementer
+skills:
+  - jsdoc-best-practices
+  - coding-philosophy
+---
+```
+
+In this example, the `implementer` agent enforces the same JSDoc and coding standards as the parent session — not because it inherited them from the conversation, but because the skills are explicitly preloaded via frontmatter.
+
+**Rule of thumb:** If a standard should apply uniformly regardless of who does the work, make it a skill (or a rule in `.claude/rules/`). If it's a one-off instruction for a specific task, put it in the spawn prompt.
+
+| Mechanism | Inherited by subagents? | Use for |
+|-----------|------------------------|---------|
+| Conversation context | No | Task-specific instructions in spawn prompts |
+| `.claude/rules/` files | Yes (auto-loaded) | Project-wide rules and constraints |
+| Skills in frontmatter `skills:` | Yes (preloaded) | Reusable procedures and standards |
+| CLAUDE.md | Yes (auto-loaded) | Top-level project instructions |
+| Spawn prompt | Yes (initial context) | Task-specific goals and context |
+
 ---
 
 ## Agent Teams
@@ -385,12 +418,11 @@ Agent teams use approximately **7x more tokens** than standard sessions when tea
 | Consideration | Guidance |
 |---------------|----------|
 | Base overhead | ~7x standard usage per teammate (each has its own context window) |
-| Model selection | Use Sonnet for teammates — balances capability and cost for coordination tasks |
+| Model selection | Use Sonnet for teammates with trivial tasks — balances capability and cost for coordination tasks |
 | Spawn prompts | Keep focused — teammates load CLAUDE.md, MCP servers, and skills automatically; everything in spawn prompt adds to initial context |
 | Broadcast cost | Scales linearly with team size (avoid unnecessary broadcasts) |
 | Right-sizing | Spawn only the teammates you need for genuine parallel work |
 | Cleanup | Active teammates continue consuming tokens even if idle — shut them down when done |
-| Average cost | ~$6/developer/day standard; ~$100-200/developer/month with Sonnet 4.5 |
 
 ### Limitations
 
@@ -1159,7 +1191,7 @@ Subagents (custom agents) are defined as markdown files in `.claude/agents/` wit
 ---
 name: "my-agent"
 description: "Agent description"
-model: "sonnet"
+model: "inherit"
 tools:
   - Read
   - Write
@@ -1310,11 +1342,38 @@ Default is 60 seconds per hook. Configure per-hook with `"timeout"` field (in se
 
 ### 6. Agent Teams Best Practices
 
-- Use Sonnet for teammates to reduce token cost (~7x overhead per teammate)
+#### Trust the Team Lead's Built-In Behavior
+
+The team lead already has detailed system prompts that teach it how to use `TeamCreate`, `SendMessage`, `TaskUpdate`, task dependencies, shutdown protocols, and all other coordination tools. **Do not re-teach these mechanics in your spawn prompts, agent files, or CLAUDE.md.** Over-specifying coordination instructions is counterproductive for two reasons:
+
+1. **It wastes context.** Every redundant instruction ("use SendMessage to communicate") consumes tokens in the team lead's context window — space better used for actual task reasoning.
+2. **It conflicts with built-in behavior.** The system prompts are tested and maintained by Anthropic. Custom instructions that paraphrase or subtly contradict them create ambiguity that degrades coordination quality.
+
+**Start with zero coordination instructions.** Let the team lead manage teammates, assign tasks, and handle communication using its built-in behavior. Only add explicit instructions when you observe a specific failure — and then add the minimum correction needed.
+
+| Approach | When to use |
+|----------|-------------|
+| No coordination instructions (default) | First attempt at any team workflow |
+| Minimal correction in spawn prompt | Team lead repeatedly makes the same mistake (e.g., not shutting down teammates) |
+| Explicit protocol in agent file | A specific agent type consistently misuses a tool across multiple sessions |
+
+**Examples of instructions you should NOT add** (because the system prompt already covers them):
+
+- "Use `SendMessage` for all inter-teammate communication" — already in the system prompt
+- "Use `TaskUpdate` to mark tasks completed" — already in the system prompt
+- "Shut down teammates before calling `TeamDelete`" — already enforced (TeamDelete fails with active members)
+- "Refer to teammates by name, not agent ID" — already in the system prompt
+
+**Examples of instructions worth adding** (because they reflect project-specific decisions the system prompt cannot know):
+
+- "Spawn the `implementer` agent with `mode: plan` for tasks touching the auth module"
+- "Use Sonnet for all teammates to manage token cost"
+- "Assign test-specialist and implementer to separate file trees to avoid edit conflicts"
+
+#### General Guidelines
+
+- For trivial tasks, use Sonnet for teammates to reduce token cost
 - Always refer to teammates by **name**, not agent ID
-- Use `SendMessage` for all inter-teammate communication — plain text is not visible
-- Use `TaskUpdate` for task status rather than sending structured JSON messages
-- Shut down teammates gracefully via `shutdown_request` before calling `TeamDelete`
 - Spawn only the teammates needed for genuine parallel work
 - Default to `message` over `broadcast` — broadcasts scale linearly with team size
 
