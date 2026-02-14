@@ -1,3 +1,3 @@
 # BEGIN: AI GUARDRAILS
-eval_gemfile "Gemfile.lisa"
+eval_gemfile 'Gemfile.lisa'
 # END: AI GUARDRAILS
