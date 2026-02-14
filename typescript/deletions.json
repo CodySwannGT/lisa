@@ -1,5 +1,6 @@
 {
   "paths": [
-    "jest.config.js"
+    "jest.config.js",
+    ".claude/hooks/install_pkgs.sh"
   ]
 }
