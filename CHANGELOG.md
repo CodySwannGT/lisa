@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.39.2](https://github.com/CodySwannGT/lisa/compare/vv1.39.1...v1.39.2) (2026-02-14)
+
+
+### Bug Fixes
+
+* prevent trailing newline doubling in copy-contents guardrails block replacement ([b7c6df8](https://github.com/CodySwannGT/lisa/commit/b7c6df8f18acf0435c7373e8b7b0a7016e706b5a))
+* **rails:** migrate rubocop require to plugins and use single quotes in Gemfile ([f2451e1](https://github.com/CodySwannGT/lisa/commit/f2451e14748269f7f89ae763a080b3a734130854))
+
 ### [1.39.1](https://github.com/CodySwannGT/lisa/compare/vv1.39.0...v1.39.1) (2026-02-14)
 
 ## [1.39.0](https://github.com/CodySwannGT/lisa/compare/vv1.38.0...v1.39.0) (2026-02-14)
