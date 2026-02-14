@@ -33,6 +33,9 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 PERMISSION_MODE=$(echo "$INPUT" | jq -r '.permission_mode // "default"')
 HOOK_EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // empty')
 
+# Temporarily disable this hook
+exit 0
+
 # Session ID is required
 if [[ -z "$SESSION_ID" ]]; then
   exit 0

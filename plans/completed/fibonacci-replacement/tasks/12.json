@@ -1,0 +1,35 @@
+{
+  "id": "12",
+  "subject": "Verify all task verification metadata",
+  "description": "Go through every task in this plan and run their verification commands to ensure they all pass.\n\nFor each task:\n1. Read the task metadata\n2. Run the verification command\n3. Compare output to expected result\n4. Report any failures\n\nThis is the final quality gate before learnings collection.",
+  "activeForm": "Verifying all task verifications",
+  "owner": "implementer-1",
+  "status": "completed",
+  "blocks": [
+    "13"
+  ],
+  "blockedBy": [
+    "9"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "All task verification commands run",
+      "All verifications pass",
+      "Any failures documented and fixed"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [],
+    "learnings": [
+      "All verifications passed: 29/29 tests, typecheck clean, lint clean."
+    ],
+    "verification": {
+      "type": "test",
+      "command": "bun run test -- tests/unit/utils/fibonacci.test.ts && bun run typecheck && bun run lint",
+      "expected": "All tests pass, typecheck passes, lint passes"
+    },
+    "owner": "implementer-1"
+  }
+}

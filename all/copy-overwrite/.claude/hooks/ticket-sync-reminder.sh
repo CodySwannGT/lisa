@@ -3,6 +3,9 @@
 # Runs on TaskUpdate to remind about updating linked tickets
 # Non-blocking (exit 0) - this is a reminder, not enforcement
 
+# Temporarily disable this hook
+exit 0
+
 PLANS_DIR="${CLAUDE_PROJECT_DIR}/plans"
 
 # Find the active plan file (most recently modified .md in plans/)

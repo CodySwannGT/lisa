@@ -43,4 +43,4 @@ Refactoring strategies: extract methods, early returns, extract conditions, use 
 Verification: `bundle exec rubocop --only Metrics/MethodLength --format simple 2>&1 | grep "offense" | wc -l` -> Expected: 0
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.

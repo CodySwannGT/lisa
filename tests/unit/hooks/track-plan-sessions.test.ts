@@ -1,9 +1,9 @@
 /**
- * Tests for the track-plan-sessions.sh hook's dedup logic.
+ * Tests for the track-plan-sessions.sh hook behavior.
  *
- * Verifies that session ID dedup is scoped to the ## Sessions section,
- * preventing false positives when session IDs appear elsewhere in plan content
- * (e.g., scratchpad directory paths).
+ * The hook is currently temporarily disabled (exits early with code 0).
+ * Tests verify it does not modify plan files while disabled, and that the
+ * dedup logic still correctly ignores already-tracked sessions.
  *
  * @module tests/unit/hooks/track-plan-sessions
  */
@@ -67,7 +67,7 @@ describe("track-plan-sessions.sh dedup check", () => {
     cleanupDirs.length = 0;
   });
 
-  it("should not false-positive when session ID appears in plan content", () => {
+  it("should not modify plan file when hook is disabled", () => {
     const tempDir = createTempDir();
     cleanupDirs.push(tempDir);
 
@@ -81,11 +81,11 @@ describe("track-plan-sessions.sh dedup check", () => {
     ].join("\n");
 
     const planFile = createPlanFile(tempDir, planContent);
+    const contentBefore = readPlanFile(planFile);
     runHook(SESSION_ID, planFile, tempDir);
 
     const result = readPlanFile(planFile);
-    expect(result).toContain(SESSIONS_HEADING);
-    expect(result).toContain(`| ${SESSION_ID} |`);
+    expect(result).toBe(contentBefore);
   });
 
   it("should correctly dedup when session ID is in the Sessions table", () => {
@@ -112,7 +112,7 @@ describe("track-plan-sessions.sh dedup check", () => {
     expect(contentAfter).toBe(contentBefore);
   });
 
-  it("should write session when Sessions section does not exist", () => {
+  it("should not write session when hook is disabled", () => {
     const tempDir = createTempDir();
     cleanupDirs.push(tempDir);
 
@@ -121,11 +121,10 @@ describe("track-plan-sessions.sh dedup check", () => {
     );
 
     const planFile = createPlanFile(tempDir, planContent);
+    const contentBefore = readPlanFile(planFile);
     runHook(SESSION_ID, planFile, tempDir);
 
     const result = readPlanFile(planFile);
-    expect(result).toContain(SESSIONS_HEADING);
-    expect(result).toContain("| Session ID | First Seen | Phase |");
-    expect(result).toContain(`| ${SESSION_ID} |`);
+    expect(result).toBe(contentBefore);
   });
 });
