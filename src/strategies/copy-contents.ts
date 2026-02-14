@@ -51,10 +51,14 @@ export class CopyContentsStrategy implements ICopyStrategy {
     const block = this.findGuardrailsBlock(destContent);
 
     if (block) {
-      // Replace existing block
+      // Replace existing block, trimming source trailing newline
+      // to prevent doubling with destination's post-marker newline
+      const trimmedSource = sourceContent.endsWith("\n")
+        ? sourceContent.slice(0, -1)
+        : sourceContent;
       return (
         destContent.slice(0, block.start) +
-        sourceContent +
+        trimmedSource +
         destContent.slice(block.end)
       );
     }
