@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.39.0](https://github.com/CodySwannGT/lisa/compare/vv1.38.0...v1.39.0) (2026-02-14)
+
+
+### Features
+
+* add plan execute command and .entire config ([5f2c310](https://github.com/CodySwannGT/lisa/commit/5f2c3107493dc2cf87322a3c3740713534eb2ef7))
+* implement new fibonacci generator (TDD GREEN) ([bee8455](https://github.com/CodySwannGT/lisa/commit/bee8455cb46a6d7b6303005f8f62eabd1b5c7d41))
+* replace fibonacci sequence generator with fresh TDD implementation ([d6e02a1](https://github.com/CodySwannGT/lisa/commit/d6e02a1736d84ac53f70580bdf5ee58d107d5cd9))
+* replace fibonacci sequence generator with fresh TDD implementation ([98f605b](https://github.com/CodySwannGT/lisa/commit/98f605b475680cec817664b8d7c1ae3e147d8a17))
+
+
+### Bug Fixes
+
+* address CodeRabbit review comments in execute.md ([c1ac007](https://github.com/CodySwannGT/lisa/commit/c1ac00715ecfd9d2a5a243b2cd52fc5677a02919))
+* guard entire hooks commands for silent failure when not installed ([9a8a420](https://github.com/CodySwannGT/lisa/commit/9a8a4204abb61c8040c7f0880ef7b9cf9ba9bb9d))
+* remove stale axios vulnerability exclusion and fix Playwright terminology ([a2bb3e8](https://github.com/CodySwannGT/lisa/commit/a2bb3e8930bd853c6da6e773767b7c546b862d03))
+
+
+### Code Refactoring
+
+* remove existing fibonacci implementation ([e98fcaa](https://github.com/CodySwannGT/lisa/commit/e98fcaa37845fcbe91d8298d7a91d96a272cf204))
+
+
+### Documentation
+
+* update documentation and infrastructure for agent teams ([8b65b42](https://github.com/CodySwannGT/lisa/commit/8b65b4289966e011370c5d7d3e939834a44197ce))
+* update eslint-disable example to use tuple pattern ([4403210](https://github.com/CodySwannGT/lisa/commit/440321005b6b5d573b52bed401ee28903a86f6ee))
+
 ## [1.38.0](https://github.com/CodySwannGT/lisa/compare/vv1.37.0...v1.38.0) (2026-02-13)
 
 
