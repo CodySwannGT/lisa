@@ -1,0 +1,34 @@
+{
+  "id": "13",
+  "subject": "Collect learnings with learner agent",
+  "description": "Run the `learner` agent to collect learnings from this fibonacci replacement task.\n\nAreas to capture:\n- TDD workflow patterns (RED-GREEN-REFACTOR with file deletion)\n- Agent team coordination patterns\n- Any issues encountered during implementation\n- Code patterns that worked well",
+  "activeForm": "Collecting learnings",
+  "owner": "learner",
+  "status": "completed",
+  "blocks": [
+    "14"
+  ],
+  "blockedBy": [
+    "10",
+    "11",
+    "12"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "Learner agent run",
+      "Learnings captured and processed"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [],
+    "learnings": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Learnings collected'",
+      "expected": "Learnings processed by learner agent"
+    },
+    "owner": "learner"
+  }
+}

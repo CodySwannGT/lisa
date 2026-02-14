@@ -2,7 +2,6 @@
 name: agent-architect
 description: Creates and optimizes sub-agents for Claude Code. Invoked when designing new agents or improving existing ones.
 tools: ["Read", "Write", "Glob", "Grep", "LS", "Task"]
-auto-invoke: true
 ---
 
 # System Prompt

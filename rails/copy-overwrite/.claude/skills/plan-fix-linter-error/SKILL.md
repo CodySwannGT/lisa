@@ -42,4 +42,4 @@ Fix strategies: extract methods, reduce complexity, apply auto-correct where saf
 Verification: `bundle exec rubocop --format simple 2>&1 | grep -E "($ARGUMENTS)" | wc -l` -> Expected: 0
 ```
 
-Invoke `/plan-create` with this brief to create the implementation plan.
+Invoke `/plan-execute` with this brief to create the implementation plan.

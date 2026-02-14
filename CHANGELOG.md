@@ -52,7 +52,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Bug Fixes
 
-* **typescript:** fix jira-cli tarball extraction in install_pkgs.sh ([12a4832](https://github.com/CodySwannGT/lisa/commit/12a4832ad8774bc55cbc5176aae98dde03b0919c))
+* **typescript:** fix jira-cli tarball extraction in install-pkgs.sh ([12a4832](https://github.com/CodySwannGT/lisa/commit/12a4832ad8774bc55cbc5176aae98dde03b0919c))
 
 ## [1.35.0](https://github.com/CodySwannGT/lisa/compare/vv1.34.0...v1.35.0) (2026-02-11)
 
@@ -976,7 +976,7 @@ All notable changes to this project will be documented in this file. See [standa
 * **eslint:** remove no-inline-styles references from configs ([57b7a6f](https://github.com/CodySwannGT/lisa/commit/57b7a6fdcc535f100ac84c61c340fb87fed36ec2))
 * **eslint:** remove no-inline-styles rule and improve no-return-in-view message ([58c1d24](https://github.com/CodySwannGT/lisa/commit/58c1d2402630dcaa2ec9dc35c36034fe247d11d7))
 * **expo:** migrate Expo template ESLint configs to .ts ([3b0b288](https://github.com/CodySwannGT/lisa/commit/3b0b2883ed9df5619cc22633adc964243105c459))
-* **hooks:** remove env.local creation from install_pkgs hook ([0f7d082](https://github.com/CodySwannGT/lisa/commit/0f7d08232541396a0ddbbaea7536103669960624))
+* **hooks:** remove env.local creation from install-pkgs hook ([0f7d082](https://github.com/CodySwannGT/lisa/commit/0f7d08232541396a0ddbbaea7536103669960624))
 * implement block-based merge for copy-contents strategy ([17a31a1](https://github.com/CodySwannGT/lisa/commit/17a31a1e8dc37c6be2415f5932236aa93f7fbed6))
 * migrate PROJECT_RULES.md to .claude/rules/ ([3af43a3](https://github.com/CodySwannGT/lisa/commit/3af43a3e5f0deeadf18cf662ea0f9d065e067e48))
 * **nestjs:** add NestJS template ESLint TypeScript configs ([62d3a68](https://github.com/CodySwannGT/lisa/commit/62d3a683fc3f583035ff994bb7d8c2e29e4d955b))

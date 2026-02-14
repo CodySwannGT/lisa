@@ -1,0 +1,33 @@
+{
+  "id": "8",
+  "subject": "Quality specialist technical review",
+  "description": "Run quality specialist review on the fibonacci implementation using the `quality-specialist` agent.\n\nReview for:\n- Correctness of fibonacci algorithm\n- Coding philosophy compliance (immutability, function structure)\n- Test coverage completeness\n- Documentation quality (JSDoc preambles)\n\nFiles to review:\n- `src/utils/fibonacci.ts`\n- `tests/unit/utils/fibonacci.test.ts`",
+  "activeForm": "Running quality review",
+  "owner": "quality-specialist",
+  "status": "completed",
+  "blocks": [
+    "9"
+  ],
+  "blockedBy": [
+    "4"
+  ],
+  "metadata": {
+    "plan": "fibonacci-replacement",
+    "type": "task",
+    "acceptance_criteria": [
+      "Quality review completed",
+      "Correctness verified",
+      "Coding philosophy compliance checked"
+    ],
+    "relevant_documentation": "",
+    "testing_requirements": [],
+    "skills": [],
+    "learnings": [],
+    "verification": {
+      "type": "manual-check",
+      "command": "echo 'Quality review completed'",
+      "expected": "Review findings documented"
+    },
+    "owner": "quality-specialist"
+  }
+}

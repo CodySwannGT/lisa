@@ -83,7 +83,7 @@ export default [
 **Existing Hooks:**
 - `format-on-edit.sh` - Runs Prettier on edited files (PostToolUse)
 - `lint-on-edit.sh` - Runs ESLint with --fix on edited files (PostToolUse)
-- `install_pkgs.sh` - Ensures dependencies installed (SessionStart)
+- `install-pkgs.sh` - Ensures dependencies installed (SessionStart)
 - `notify-ntfy.sh` - Notification integration (Notification, Stop)
 
 **Settings Configuration:** `typescript/merge/.claude/settings.json`
