@@ -169,7 +169,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   );
   await fs.writeFile(
     path.join(railsCopyContents, "Gemfile"),
-    '# BEGIN: AI GUARDRAILS\neval_gemfile "Gemfile.lisa"\n# END: AI GUARDRAILS\n'
+    "# BEGIN: AI GUARDRAILS\neval_gemfile 'Gemfile.lisa'\n# END: AI GUARDRAILS\n"
   );
   await fs.writeFile(
     path.join(railsCreateOnly, ".rubocop.local.yml"),
