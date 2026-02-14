@@ -41,6 +41,24 @@
     ".claude/skills/sonarqube:check",
     ".claude/skills/sonarqube:fix",
     ".claude/skills/tasks:load",
-    ".claude/skills/tasks:sync"
+    ".claude/skills/tasks:sync",
+    ".claude/REFERENCE.md",
+    ".claude/commands/plan/implement.md",
+    ".claude/rules/plan-governance.md",
+    ".claude/rules/plan.md",
+    ".claude/skills/plan-create",
+    ".claude/skills/plan-implement",
+    ".claude/agents/architecture-planner.md",
+    ".claude/agents/codebase-analyzer.md",
+    ".claude/agents/codebase-locator.md",
+    ".claude/agents/codebase-pattern-finder.md",
+    ".claude/agents/consistency-checker.md",
+    ".claude/agents/product-planner.md",
+    ".claude/agents/product-reviewer.md",
+    ".claude/agents/security-planner.md",
+    ".claude/agents/spec-analyst.md",
+    ".claude/agents/tech-reviewer.md",
+    ".claude/agents/test-coverage-agent.md",
+    ".claude/agents/test-strategist.md"
   ]
 }
