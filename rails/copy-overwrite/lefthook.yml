@@ -18,3 +18,9 @@ pre-push:
       run: bundle exec rspec
     brakeman:
       run: bundle exec brakeman --no-pager --quiet
+    reek:
+      run: bundle exec reek app/ lib/
+    flog:
+      run: bundle exec flog --all --group app/ lib/
+    flay:
+      run: bundle exec flay app/ lib/
