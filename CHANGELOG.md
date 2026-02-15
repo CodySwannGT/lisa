@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.40.0](https://github.com/CodySwannGT/lisa/compare/vv1.39.3...v1.40.0) (2026-02-14)
+
+
+### Features
+
+* add commit-submit-pr-and-verify skills and commands ([8a4d88d](https://github.com/CodySwannGT/lisa/commit/8a4d88d3a5e4f413ef0084d7de41f8d4260a924c))
+
+
+### Documentation
+
+* update REFERENCE.0003.md with subagent skills and team best practices ([afcfe89](https://github.com/CodySwannGT/lisa/commit/afcfe892af1836c91d6ae7bb2ca56b4dce98e356))
+
+### [1.39.3](https://github.com/CodySwannGT/lisa/compare/vv1.39.2...v1.39.3) (2026-02-14)
+
+
+### Bug Fixes
+
+* entire ([ff7ec3c](https://github.com/CodySwannGT/lisa/commit/ff7ec3cd739f5962701bb3fb8a5971db3d4f00c9))
+
 ### [1.39.2](https://github.com/CodySwannGT/lisa/compare/vv1.39.1...v1.39.2) (2026-02-14)
 
 
