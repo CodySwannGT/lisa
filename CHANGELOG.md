@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.41.0](https://github.com/CodySwannGT/lisa/compare/vv1.40.0...v1.41.0) (2026-02-15)
+
+
+### Features
+
+* **expo:** add ops-specialist agent and ops skills ([19fb20f](https://github.com/CodySwannGT/lisa/commit/19fb20f09cf52a55af1ccf59f33f5ebfd7381e2c))
+
 ## [1.40.0](https://github.com/CodySwannGT/lisa/compare/vv1.39.3...v1.40.0) (2026-02-14)
 
 
