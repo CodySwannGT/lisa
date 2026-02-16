@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.43.0](https://github.com/CodySwannGT/lisa/compare/vv1.42.1...v1.43.0) (2026-02-16)
+
+
+### Features
+
+* add Expo verification rule, simulator/EAS scripts, Sentry plugin, and quick commands ([dc77a28](https://github.com/CodySwannGT/lisa/commit/dc77a28b1977aebafab827b640ce5601b95596f4))
+
 ### [1.42.1](https://github.com/CodySwannGT/lisa/compare/vv1.42.0...v1.42.1) (2026-02-16)
 
 
