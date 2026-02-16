@@ -32,7 +32,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 
 ## Files and directories with NO local override (do not edit at all)
 
-- `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`
+- `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`, `.claude/rules/expo-verification.md` (Expo)
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
 - `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`

@@ -475,39 +475,55 @@ Preferred artifact locations:
 
 ## Quick Commands
 
-Document the canonical commands agents should use here.
-
-Replace placeholders with real commands.
+These commands are consistent across all Lisa-managed projects. Stack-specific commands (Expo, NestJS, CDK) are documented in their respective `.claude/rules/` files.
 
 ### Local
 
-- Install: `REPLACE_ME`
-- Run app: `REPLACE_ME`
-- Run unit tests: `REPLACE_ME`
-- Run integration tests: `REPLACE_ME`
-- Lint and format: `REPLACE_ME`
+- Install: `bun install`
+- Run app: `bun run start:local` (Expo: dev server; NestJS: serverless offline)
+- Run unit tests: `bun run test:unit`
+- Run integration tests: `bun run test:integration`
+- Run all tests: `bun run test`
+- Run tests with coverage: `bun run test:cov`
+- Lint: `bun run lint`
+- Format check: `bun run format:check`
+- Format fix: `bun run format`
+- Type check: `bun run typecheck`
 
-### UI Verification
+### UI Verification (Expo)
 
-- Playwright tests: `REPLACE_ME`
-- Record a flow: `REPLACE_ME`
+- Playwright tests (web): `bun run playwright:test`
+- Playwright interactive: `bun run playwright:test:ui`
+- Maestro tests (native): `bun run maestro:test`
+- Maestro smoke tests: `bun run maestro:test:smoke`
+- Maestro studio: `bun run maestro:studio`
+- Ad-hoc browser verification: Use Playwright MCP tools (`browser_snapshot`, `browser_console_messages`, `browser_network_requests`)
 
-### API Verification
+### API Verification (NestJS)
 
-- Example curl: `REPLACE_ME`
-- GraphQL query runner: `REPLACE_ME`
+- Start local server: `bun run start:local`
+- GraphQL endpoint (local): `http://localhost:3000/graphql`
+- Health check: `curl -s http://localhost:3000/graphql -H 'Content-Type: application/json' -d '{"query":"{ healthCheck }"}'`
 
 ### Deployment
 
-- Deploy to preview: `REPLACE_ME`
-- Deploy to staging: `REPLACE_ME`
-- Rollback: `REPLACE_ME`
+- Expo OTA update (fast, JS-only): `bun run eas:publish:<env>`
+- Expo full build (native changes): `bun run eas:deploy:<env>`
+- NestJS deploy: `bun run deploy:<env>`
+- NestJS deploy single function: `FUNCTION_NAME=<name> bun run deploy:function:<env>`
+- Environments: `dev`, `staging`, `production`
 
 ### Observability
 
-- Tail logs: `REPLACE_ME`
-- Query metrics: `REPLACE_ME`
-- Trace lookup: `REPLACE_ME`
+- Sentry issues: Use `search_issues` MCP tool (Sentry plugin)
+- Sentry issue details: Use `get_issue_details` MCP tool
+- Sentry root cause analysis: Use `analyze_issue_with_seer` MCP tool
+- Sentry event search: Use `search_events` MCP tool
+- Sentry trace lookup: Use `get_trace_details` MCP tool
+- Browser console logs: Use `browser_console_messages` MCP tool (Playwright plugin)
+- Browser network requests: Use `browser_network_requests` MCP tool (Playwright plugin)
+- Backend logs (local): Check terminal output from `bun run start:local`
+- Backend logs (remote): Check companion backend repo's CLAUDE.md for CloudWatch/log commands
 
 ---
 
