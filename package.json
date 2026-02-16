@@ -86,7 +86,8 @@
     "@jest/globals": "^30.0.0"
   },
   "resolutions": {
-    "@isaacs/brace-expansion": "^5.0.1"
+    "@isaacs/brace-expansion": "^5.0.1",
+    "axios": ">=1.13.5"
   },
   "name": "@codyswann/lisa",
   "version": "1.41.0",

@@ -12,7 +12,7 @@ If it's a file, read the entire file without offset or limit to understand the r
 
 Is this a simple request? Just execute it as usual and ignore the rest...
 
-Otherwise: 
+Otherwise:
 
 
 Review all available agent types listed in the Task tool's `subagent_type` options. This includes built-in agents (like `Explore`, `general-purpose`), custom agents (from `.claude/agents/`), and plugin agents (from `.claude/settings.json` `enabledPlugins`). For each agent, explain in one sentence why it IS or IS NOT relevant to this task. Then select all agents that are relevant. You MUST justify excluding an agent — inclusion is the default.
