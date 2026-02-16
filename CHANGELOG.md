@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.42.1](https://github.com/CodySwannGT/lisa/compare/vv1.42.0...v1.42.1) (2026-02-16)
+
+
+### Bug Fixes
+
+* use esbuild-register for Jest config loading instead of ts-node ([105f768](https://github.com/CodySwannGT/lisa/commit/105f768848bd6695547919eb08c933ec5a8603c1))
+
 ## [1.42.0](https://github.com/CodySwannGT/lisa/compare/vv1.41.0...v1.42.0) (2026-02-16)
 
 
