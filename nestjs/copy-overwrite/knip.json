@@ -54,6 +54,9 @@
     "lodash",
     "reflect-metadata",
     "rxjs",
+    "ioredis",
+    "pg",
+    "typeorm",
     "typeorm-naming-strategies"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
