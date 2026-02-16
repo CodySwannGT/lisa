@@ -281,10 +281,8 @@ export const getSharedRules = (thresholds: typeof defaultThresholds) => ({
   "jsdoc/require-param-description": "error",
   "jsdoc/require-returns-description": "error",
   "jsdoc/require-property-description": "error",
-  "jsdoc/check-tag-names": [
-    "error",
-    { definedTags: ["remarks", "precondition", "entity", "security"] },
-  ],
+  // prettier-ignore
+  "jsdoc/check-tag-names": ["error", { definedTags: ["remarks", "precondition", "entity", "security", "jest-config-loader", "jest-config-loader-options"] }],
   "jsdoc/no-types": "off",
   "jsdoc/require-param-type": "off",
   "jsdoc/require-returns-type": "off",
