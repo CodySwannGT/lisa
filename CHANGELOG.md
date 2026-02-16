@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.42.0](https://github.com/CodySwannGT/lisa/compare/vv1.41.0...v1.42.0) (2026-02-16)
+
+
+### Features
+
+* add verify skills and expand verification contract ([078acf2](https://github.com/CodySwannGT/lisa/commit/078acf26ad6089403f7cf340850d1e72f1f40ab1))
+* **rails:** add reek, flog, flay to pre-push hooks ([6d8126d](https://github.com/CodySwannGT/lisa/commit/6d8126d2f8fa5af3adacbbcc203f054acbe9363e))
+
+
+### Bug Fixes
+
+* deduplicate entire hooks in claude settings ([96b2e92](https://github.com/CodySwannGT/lisa/commit/96b2e92f1453c512621029ff70fed9281bda2636))
+
 ## [1.41.0](https://github.com/CodySwannGT/lisa/compare/vv1.40.0...v1.41.0) (2026-02-15)
 
 
