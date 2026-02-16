@@ -28,13 +28,11 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 | `eslint.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
 | `jest.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
 | `.claude/rules/coding-philosophy.md` | `.claude/rules/PROJECT_RULES.md` |
-| `.claude/rules/plan.md` | `.claude/rules/PROJECT_RULES.md` |
-| `.claude/rules/plan-governance.md` | `.claude/rules/PROJECT_RULES.md` |
 | `.claude/rules/verfication.md` | `.claude/rules/PROJECT_RULES.md` |
 
 ## Files and directories with NO local override (do not edit at all)
 
-- `.claude/rules/coding-philosophy.md`, `.claude/rules/plan.md`, `.claude/rules/verfication.md`
+- `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
 - `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
@@ -44,7 +42,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `tsconfig.eslint.json`, `tsconfig.build.json`, `tsconfig.spec.json`
 - `eslint-plugin-code-organization/*`, `eslint-plugin-component-structure/*`, `eslint-plugin-ui-standards/*`
 - `.claude/settings.json`
-- `.claude/README.md`, `.claude/REFERENCE.md`
+- `.claude/README.md`
 - `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`
 - `.github/workflows/build.yml`, `.github/workflows/lighthouse.yml` (Expo)
 - `.github/workflows/load-test.yml`, `.github/workflows/zap-baseline.yml` (NestJS)
