@@ -89,11 +89,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire \u003e/dev/null 2\u003e\u00261 \u0026\u0026 entire hooks claude-code post-task || true"
-          },
-          {
-            "type": "command",
-            "command": "entire hooks claude-code post-task"
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true"
           }
         ]
       },
@@ -102,11 +98,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire \u003e/dev/null 2\u003e\u00261 \u0026\u0026 entire hooks claude-code post-todo || true"
-          },
-          {
-            "type": "command",
-            "command": "entire hooks claude-code post-todo"
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true"
           }
         ]
       }
@@ -150,11 +142,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire \u003e/dev/null 2\u003e\u00261 \u0026\u0026 entire hooks claude-code pre-task || true"
-          },
-          {
-            "type": "command",
-            "command": "entire hooks claude-code pre-task"
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true"
           }
         ]
       }
@@ -169,11 +157,7 @@
           },
           {
             "type": "command",
-            "command": "command -v entire \u003e/dev/null 2\u003e\u00261 \u0026\u0026 entire hooks claude-code session-end || true"
-          },
-          {
-            "type": "command",
-            "command": "entire hooks claude-code session-end"
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true"
           }
         ]
       }
@@ -197,11 +181,7 @@
           },
           {
             "type": "command",
-            "command": "command -v entire \u003e/dev/null 2\u003e\u00261 \u0026\u0026 entire hooks claude-code session-start || true"
-          },
-          {
-            "type": "command",
-            "command": "entire hooks claude-code session-start"
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true"
           }
         ]
       },
@@ -237,11 +217,7 @@
           },
           {
             "type": "command",
-            "command": "command -v entire \u003e/dev/null 2\u003e\u00261 \u0026\u0026 entire hooks claude-code stop || true"
-          },
-          {
-            "type": "command",
-            "command": "entire hooks claude-code stop"
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true"
           }
         ]
       },
@@ -289,11 +265,7 @@
           },
           {
             "type": "command",
-            "command": "command -v entire \u003e/dev/null 2\u003e\u00261 \u0026\u0026 entire hooks claude-code user-prompt-submit || true"
-          },
-          {
-            "type": "command",
-            "command": "entire hooks claude-code user-prompt-submit"
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
           }
         ]
       },
