@@ -52,8 +52,11 @@
     "graphql-subscriptions",
     "graphql-ws",
     "lodash",
+    "ioredis",
+    "pg",
     "reflect-metadata",
     "rxjs",
+    "typeorm",
     "typeorm-naming-strategies"
   ],
   "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
