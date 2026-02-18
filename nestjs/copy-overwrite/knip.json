@@ -52,10 +52,10 @@
     "graphql-subscriptions",
     "graphql-ws",
     "lodash",
-    "reflect-metadata",
-    "rxjs",
     "ioredis",
     "pg",
+    "reflect-metadata",
+    "rxjs",
     "typeorm",
     "typeorm-naming-strategies"
   ],
