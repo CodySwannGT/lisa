@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.43.1](https://github.com/CodySwannGT/lisa/compare/vv1.43.0...v1.43.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* **deps:** upgrade tar and fast-xml-parser in Expo template ([bf61b09](https://github.com/CodySwannGT/lisa/commit/bf61b0979ec00fbe3ab98ca39352fa1187392342))
+
 ## [1.43.0](https://github.com/CodySwannGT/lisa/compare/vv1.42.1...v1.43.0) (2026-02-16)
 
 
