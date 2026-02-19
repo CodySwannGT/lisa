@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.43.3](https://github.com/CodySwannGT/lisa/compare/vv1.43.2...v1.43.3) (2026-02-19)
+
+
+### Bug Fixes
+
+* add npm audit exception handling for minimatch and ajv false positives ([#195](https://github.com/CodySwannGT/lisa/issues/195)) ([d7165b0](https://github.com/CodySwannGT/lisa/commit/d7165b06b57eb43c7991fa25bb9fbee14c43de1d))
+* apply extra config assertions to Lighthouse preset overrides ([#194](https://github.com/CodySwannGT/lisa/issues/194)) ([40d7489](https://github.com/CodySwannGT/lisa/commit/40d748946b13eb23fa6eb28e463017289371fe45))
+
 ### [1.43.2](https://github.com/CodySwannGT/lisa/compare/vv1.43.1...v1.43.2) (2026-02-19)
 
 
