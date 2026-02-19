@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.43.2](https://github.com/CodySwannGT/lisa/compare/vv1.43.1...v1.43.2) (2026-02-19)
+
+
+### Bug Fixes
+
+* **deps:** add minimatch >=10.2.1 resolution for ReDoS vulnerability ([#192](https://github.com/CodySwannGT/lisa/issues/192)) ([a1c1511](https://github.com/CodySwannGT/lisa/commit/a1c15116dc6ceb06d66b7dc6339a2f3445ef812f))
+* **deps:** revert minimatch resolution, add GHSA-3ppc-4f35-3m26 audit ignore ([#193](https://github.com/CodySwannGT/lisa/issues/193)) ([57771a9](https://github.com/CodySwannGT/lisa/commit/57771a97ac1e9849cb69f6090705f365c793567f)), closes [#192](https://github.com/CodySwannGT/lisa/issues/192)
+
 ### [1.43.1](https://github.com/CodySwannGT/lisa/compare/vv1.43.0...v1.43.1) (2026-02-18)
 
 
