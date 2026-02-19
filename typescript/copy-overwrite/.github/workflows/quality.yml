@@ -1015,7 +1015,13 @@ jobs:
             # Parent packages pin ^4.4.1; fix requires major version 5.x (incompatible)
             # Risk: None - CLI build tool, not a production runtime dependency
 
-            if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97 --ignore GHSA-37qj-frw5-hhjh; then
+            # Excluding GHSA-3ppc-4f35-3m26: minimatch ReDoS via repeated wildcards
+            # Transitive dependency in devDependencies (eslint, jest, nodemon, ts-morph, etc.)
+            # Fix requires minimatch v10 which changes export shape (object vs function),
+            # breaking test-exclude (used by Jest coverage). No production code path is affected.
+            # Risk: None - only devDependency tooling, never processes untrusted user input
+
+            if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97 --ignore GHSA-37qj-frw5-hhjh --ignore GHSA-3ppc-4f35-3m26; then
               echo "::warning::Found high or critical vulnerabilities"
               exit 1
             fi
