@@ -967,12 +967,25 @@ jobs:
       - name: 🔒 Run security audit
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            # Run audit and only fail on high or critical vulnerabilities
-            npm audit --production --audit-level=high || exit_code=$?
-            if [ "${exit_code:-0}" -ne 0 ]; then
-              echo "::warning::Found high or critical vulnerabilities"
-              exit $exit_code
+            # Run npm audit in JSON mode and filter out known false positives before failing.
+            # npm audit lacks a native --ignore flag, so we parse JSON and exclude by GHSA ID.
+
+            # Excluding GHSA-3ppc-4f35-3m26: minimatch ReDoS via repeated wildcards
+            # Nested dep in aws-cdk-lib; fix requires minimatch v10 (incompatible with ^3.1.2)
+            # Risk: None - dev-time CDK tooling, no production runtime exposure
+
+            # Excluding GHSA-2g4f-4pwh-qvx6: ajv ReDoS with $data option
+            # Nested dep in aws-cdk-lib and eslint; no fix available via npm
+            # Risk: Low - $data option not used in this application
+
+            AUDIT_JSON=$(npm audit --production --json 2>/dev/null || true)
+            UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq '[.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .value.via[] | select(type == "object") | .url | ltrimstr("https://github.com/advisories/")] | unique | map(select(. == "GHSA-3ppc-4f35-3m26" or . == "GHSA-2g4f-4pwh-qvx6" | not)) | length')
+            if [ "$UNFIXED_HIGH" -gt 0 ]; then
+              echo "::warning::Found high or critical vulnerabilities (after excluding known false positives)"
+              npm audit --production --audit-level=high || true
+              exit 1
             fi
+            echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
           elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
             # Yarn audit outputs newline-delimited JSON, so we need to parse each line
 
