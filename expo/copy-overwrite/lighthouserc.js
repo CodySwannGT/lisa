@@ -110,6 +110,74 @@ function loadConfig() {
 const config = loadConfig();
 const { collect, assertions: a } = config;
 
+/**
+ * Config keys that have explicit assertion mappings in the assertions object
+ * below. Any config key NOT in this set will be auto-converted to a
+ * kebab-case Lighthouse assertion name and applied as a dynamic override.
+ */
+const handledKeys = new Set([
+  "buttonName",
+  "validSourceMaps",
+  "errorsInConsole",
+  "performance",
+  "firstContentfulPaint",
+  "largestContentfulPaint",
+  "interactive",
+  "cumulativeLayoutShift",
+  "totalByteWeight",
+  "scriptSize",
+  "fontDisplay",
+  "imageAspectRatio",
+  "metaDescription",
+  "unusedJavascript",
+  "bootupTime",
+  "mainthreadWorkBreakdown",
+  "maxPotentialFid",
+  "legacyJavascript",
+  "legacyJavascriptInsight",
+  "speedIndex",
+  "unusedCssRules",
+  "usesRelPreconnect",
+  "fontDisplayInsight",
+  "networkDependencyTreeInsight",
+  "duplicatedJavascriptInsight",
+]);
+
+/**
+ * Converts camelCase config keys to kebab-case Lighthouse assertion names.
+ *
+ * @param {string} str - camelCase string
+ * @returns {string} kebab-case string
+ */
+function toKebabCase(str) {
+  return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+/**
+ * Builds assertion overrides for config keys not handled by the explicit
+ * assertions below. Allows projects to tune or disable any Lighthouse
+ * preset assertion via lighthouserc-config.json without modifying this file.
+ *
+ * A minScore of 0 turns the assertion "off" entirely.
+ *
+ * @param {object} assertions - Merged assertion config
+ * @param {Set<string>} handled - Keys already handled by explicit assertions
+ * @returns {object} Extra assertion overrides keyed by kebab-case name
+ */
+function buildExtraAssertions(assertions, handled) {
+  const extra = {};
+  for (const [key, value] of Object.entries(assertions)) {
+    if (handled.has(key)) continue;
+    const assertionName = toKebabCase(key);
+    if (value.minScore === 0) {
+      extra[assertionName] = "off";
+    } else {
+      extra[assertionName] = ["warn", value];
+    }
+  }
+  return extra;
+}
+
 module.exports = {
   ci: {
     collect: {
@@ -214,6 +282,11 @@ module.exports = {
           "warn",
           { minScore: a.duplicatedJavascriptInsight.minScore },
         ],
+
+        // Dynamic overrides for any extra config keys not handled above.
+        // Projects can tune or disable any preset assertion by adding it
+        // to lighthouserc-config.json (e.g., "doctype": { "minScore": 0 }).
+        ...buildExtraAssertions(a, handledKeys),
       },
     },
 
