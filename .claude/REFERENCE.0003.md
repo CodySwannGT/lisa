@@ -1,6 +1,6 @@
-# Claude Code Agent Teams, Skills, Commands, Hooks & Settings Reference (2026-02-08)
+# Claude Code Agent Teams, Git Worktrees, Skills, Commands, Hooks & Settings Reference (2026-02-20)
 
-Complete expert reference for Claude Code Agent Teams, skills, commands, hooks, and `.claude/settings.json` configuration. Standalone document superseding REFERENCE.md and REFERENCE.0002.md.
+Complete expert reference for Claude Code Agent Teams, Git Worktrees, skills, commands, hooks, and `.claude/settings.json` configuration. Standalone document superseding REFERENCE.md and REFERENCE.0002.md.
 
 ---
 
@@ -17,6 +17,10 @@ Complete expert reference for Claude Code Agent Teams, skills, commands, hooks, 
 | **SessionEnd matcher** | New value `bypass_permissions_disabled` |
 | **Subagent config** | `memory` field, `skills` preloading, `hooks` in frontmatter, `mcpServers` field |
 | **Settings validation** | `$schema` support for `settings.json` |
+| **Git Worktrees (v2.1.49)** | `--worktree` (`-w`) CLI flag for isolated parallel sessions; `isolation: worktree` for subagents |
+| **Worktree hooks (v2.1.50)** | `WorktreeCreate` and `WorktreeRemove` hook events for custom VCS setup/teardown |
+| **Hook events** | 17 total (added `WorktreeCreate`, `WorktreeRemove`) |
+| **New tool** | `EnterWorktree` — create worktree mid-session |
 
 ---
 
@@ -437,7 +441,194 @@ Agent teams use approximately **7x more tokens** than standard sessions when tea
 
 ---
 
-## Hook Event Types (15 total)
+## Git Worktrees (v2.1.49+)
+
+### Overview
+
+Git Worktrees allow running multiple parallel Claude Code sessions in the same repository without code edits clobbering each other. Each session gets its own isolated copy of the repo via a git worktree. Introduced in **v2.1.49** (February 20, 2026), enhanced with hook events in **v2.1.50** (same day).
+
+**Announcement:** Boris Cherny (creator of Claude Code) announced on [Threads](https://www.threads.com/@boris_cherny/post/DVAAnexgRUj/introducing-built-in-git-worktree-support-for-claude-code-now-agents-can-run-in):
+
+> "Introducing: built-in git worktree support for Claude Code. Now, agents can run in parallel without interfering with one another. Each agent gets its own worktree and can work independently. The Claude Code Desktop app has had built-in support for worktrees for a while, and now we're bringing it to CLI too."
+
+### CLI Usage
+
+```bash
+# Named worktree — creates .claude/worktrees/feature-auth/ with branch worktree-feature-auth
+claude --worktree feature-auth
+claude -w feature-auth
+
+# Auto-named worktree — generates a random name like "bright-running-fox"
+claude --worktree
+claude -w
+
+# Combine with tmux for background sessions
+claude --worktree feature-auth --tmux
+```
+
+### How It Works
+
+| Aspect | Details |
+|--------|---------|
+| **Location** | `<repo>/.claude/worktrees/<name>/` |
+| **Branch name** | `worktree-<name>` |
+| **Branch base** | Default remote branch (e.g., `origin/main`) |
+| **Memory** | Separate memory directory per worktree |
+| **Sessions** | Stored per project directory; `/resume` shows sessions from the same git repo including worktrees |
+
+### Cleanup Behavior
+
+| Scenario | Behavior |
+|----------|----------|
+| No changes made | Worktree and branch are **automatically removed** |
+| Changes or commits exist | Claude **prompts** to keep or remove. Keeping preserves directory and branch. Removing deletes the worktree directory and branch, discarding all uncommitted changes and commits |
+
+### Mid-Session Worktree Creation
+
+Users can ask Claude to create a worktree during a session by saying "work in a worktree" or "start a worktree". Claude uses the `EnterWorktree` tool internally.
+
+#### EnterWorktree Tool
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `name` | `string` | No | Name for the worktree. A random name is generated if not provided |
+
+**Requirements:**
+- Must be in a git repository, OR have `WorktreeCreate`/`WorktreeRemove` hooks configured
+- Must not already be in a worktree
+
+### Subagent Worktree Isolation
+
+Subagents can run in isolated worktrees via two mechanisms:
+
+#### 1. Task Tool Parameter
+
+When spawning subagents via the `Task` tool, pass `isolation: "worktree"`:
+
+```json
+{
+  "prompt": "Refactor the auth module",
+  "subagent_type": "general-purpose",
+  "isolation": "worktree"
+}
+```
+
+The worktree is automatically cleaned up if the subagent makes no changes. If changes are made, the worktree path and branch are returned in the result.
+
+#### 2. Agent Definition Frontmatter
+
+Custom agents in `.claude/agents/` can declare worktree isolation in their frontmatter:
+
+```markdown
+---
+name: refactorer
+description: Refactors code in an isolated worktree
+isolation: worktree
+---
+
+Agent instructions here...
+```
+
+| Frontmatter Field | Required | Description |
+|-------------------|----------|-------------|
+| `isolation` | No | Set to `worktree` to run the subagent in a temporary git worktree |
+
+### Worktree Hook Events (v2.1.50)
+
+Two hook events enable custom VCS setup and teardown when worktrees are created or removed.
+
+#### WorktreeCreate
+
+Fires when a worktree is created (CLI `--worktree` flag, `EnterWorktree` tool, or subagent `isolation: worktree`).
+
+**Use cases:** Install dependencies, copy environment files, seed databases, custom VCS setup for non-git systems.
+
+#### WorktreeRemove
+
+Fires when a worktree is being removed (session exit cleanup or explicit removal).
+
+**Use cases:** Clean up resources, remove temporary files, custom VCS teardown.
+
+**Hook configuration example:**
+
+```json
+{
+  "hooks": {
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $WORKTREE_PATH && bun install",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Cleaning up worktree at $WORKTREE_PATH'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### .gitignore Configuration
+
+Add `.claude/worktrees/` to `.gitignore` to prevent worktree contents from appearing as untracked files:
+
+```gitignore
+.claude/worktrees/
+```
+
+### Known Limitations
+
+| Limitation | Status | Reference |
+|------------|--------|-----------|
+| `.worktreeinclude` not supported in CLI | Open | [#15327](https://github.com/anthropics/claude-code/issues/15327) — Desktop app only |
+| Windows drive letter casing mismatch | Fixed in v2.1.47 | [#26123](https://github.com/anthropics/claude-code/issues/26123) |
+| Custom agents/skills not discovered in worktrees | Fixed in v2.1.47 | [#25816](https://github.com/anthropics/claude-code/issues/25816) |
+| Background tasks failing in worktrees | Fixed in v2.1.47 | [#26065](https://github.com/anthropics/claude-code/issues/26065) |
+| No option to disable auto-worktree in Desktop | Open | [#21236](https://github.com/anthropics/claude-code/issues/21236) |
+
+### Related GitHub Issues
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| [#1052](https://github.com/anthropics/claude-code/issues/1052) | Field notes: git worktree pattern (early community workflow) | Closed |
+| [#24850](https://github.com/anthropics/claude-code/issues/24850) | Offer to implement approved plans in a new worktree | Open |
+| [#15327](https://github.com/anthropics/claude-code/issues/15327) | CLI support for `.worktreeinclude` file (parity with Desktop) | Open |
+| [#20875](https://github.com/anthropics/claude-code/issues/20875) | Share sessions across git worktrees | Open |
+| [#22615](https://github.com/anthropics/claude-code/issues/22615) | Enhanced worktree management with selective checkout | Open |
+
+### Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| v2.1.47 | Feb 18-19, 2026 | Bug fixes: Windows drive letter casing, agent/skill discovery in worktrees, background task remote URL resolution |
+| v2.1.49 | Feb 20, 2026 | Feature introduction: `--worktree` (`-w`) CLI flag, `isolation: "worktree"` for Task tool subagents |
+| v2.1.50 | Feb 20, 2026 | Enhancements: `isolation: worktree` in agent definition frontmatter, `WorktreeCreate` and `WorktreeRemove` hook events |
+
+### Sources
+
+- [Common workflows — Claude Code Docs](https://code.claude.com/docs/en/common-workflows) — Primary official documentation
+- [Create custom subagents — Claude Code Docs](https://code.claude.com/docs/en/sub-agents) — `isolation: worktree` frontmatter
+- [Automate workflows with hooks — Claude Code Docs](https://code.claude.com/docs/en/hooks-guide) — `WorktreeCreate`/`WorktreeRemove` hooks
+- [Claude Code CHANGELOG.md](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) — Release notes
+- [Boris Cherny Threads announcement](https://www.threads.com/@boris_cherny/post/DVAAnexgRUj/introducing-built-in-git-worktree-support-for-claude-code-now-agents-can-run-in)
+- [Boris Cherny Threads usage tip](https://www.threads.com/@boris_cherny/post/DVAAoZ3gYut/use-claude-worktree-for-isolation-to-run-claude-code-in-its-own-git-worktree)
+- [incident.io blog: Shipping faster with Claude Code and Git Worktrees](https://incident.io/blog/shipping-faster-with-claude-code-and-git-worktrees)
+- [The Complete Guide to Git Worktrees with Claude Code](https://notes.muthu.co/2026/02/the-complete-guide-to-git-worktrees-with-claude-code/)
+
+---
+
+## Hook Event Types (17 total)
 
 | Event | Trigger | Matcher Support | Purpose |
 |-------|---------|-----------------|---------|
@@ -456,6 +647,8 @@ Agent teams use approximately **7x more tokens** than standard sessions when tea
 | `PreCompact` | Before context compaction | `manual`, `auto` | Pre-compaction cleanup or logging |
 | `TeammateIdle` | Teammate goes idle | N/A | Monitor teammate state, assign new work |
 | `TaskCompleted` | A task is marked completed | N/A | React to task completion, trigger follow-up |
+| `WorktreeCreate` | Worktree is created (CLI flag, EnterWorktree tool, or subagent isolation) | N/A | Install dependencies, copy env files, custom VCS setup |
+| `WorktreeRemove` | Worktree is being removed (session exit or explicit removal) | N/A | Clean up resources, custom VCS teardown |
 
 ---
 
@@ -1212,6 +1405,7 @@ hooks:
           command: "eslint --fix $FILE"
 mcpServers:
   - server-name
+isolation: worktree
 ---
 
 Agent instructions go here in markdown...
@@ -1228,6 +1422,7 @@ Agent instructions go here in markdown...
 | `skills` | `string[]` | Skills to preload when agent starts |
 | `hooks` | `object` | Hook configuration specific to this agent |
 | `mcpServers` | `string[]` | MCP servers available to this agent |
+| `isolation` | `string` | Set to `"worktree"` to run in a temporary git worktree (v2.1.49+) |
 
 ### Permission Modes for Subagents
 
