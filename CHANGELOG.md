@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.43.4](https://github.com/CodySwannGT/lisa/compare/vv1.43.3...v1.43.4) (2026-02-22)
+
+
+### Documentation
+
+* add Claude Code git worktree documentation ([#196](https://github.com/CodySwannGT/lisa/issues/196)) ([bffee3c](https://github.com/CodySwannGT/lisa/commit/bffee3c3c163ed3caf7c8336ce341e6266bb69e8))
+
 ### [1.43.3](https://github.com/CodySwannGT/lisa/compare/vv1.43.2...v1.43.3) (2026-02-19)
 
 
