@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.43.7](https://github.com/CodySwannGT/lisa/compare/vv1.43.6...v1.43.7) (2026-02-23)
+
+
+### Bug Fixes
+
+* handle bun package manager in issue-creation workflows and add security audit ignores ([#199](https://github.com/CodySwannGT/lisa/issues/199)) ([4d80ff6](https://github.com/CodySwannGT/lisa/commit/4d80ff618881d196f4f4f5a477d1848d189060ec))
+
 ### [1.43.6](https://github.com/CodySwannGT/lisa/compare/vv1.43.5...v1.43.6) (2026-02-23)
 
 
