@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.43.6](https://github.com/CodySwannGT/lisa/compare/vv1.43.5...v1.43.6) (2026-02-23)
+
+
+### Bug Fixes
+
+* handle bun package manager in issue-creation CI workflows ([#198](https://github.com/CodySwannGT/lisa/issues/198)) ([b58ab53](https://github.com/CodySwannGT/lisa/commit/b58ab532f750182f6f12fd41a0c4d6418f08c087))
+* **security:** add npm audit GHSA exclusions for minimatch and ajv ([#197](https://github.com/CodySwannGT/lisa/issues/197)) ([f5e707c](https://github.com/CodySwannGT/lisa/commit/f5e707cad504771feb941faf01d6ea7b8714bd2a))
+
 ### [1.43.5](https://github.com/CodySwannGT/lisa/compare/vv1.43.4...v1.43.5) (2026-02-23)
 
 
