@@ -139,4 +139,5 @@ jobs:
     with:
       workflow_name: 'CI Quality Checks'
       failed_job: ${{ needs.cdk-checks.result == 'failure' && 'cdk-checks' || 'quality' }}
+      package_manager: 'bun'
     secrets: inherit
