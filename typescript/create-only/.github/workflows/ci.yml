@@ -24,4 +24,5 @@ jobs:
     with:
       workflow_name: 'CI Quality Checks'
       failed_job: ${{ needs.quality.result == 'failure' && 'quality' || 'playwright' }}
+      package_manager: 'bun'
     secrets: inherit
