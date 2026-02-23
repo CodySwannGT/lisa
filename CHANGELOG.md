@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.43.5](https://github.com/CodySwannGT/lisa/compare/vv1.43.4...v1.43.5) (2026-02-23)
+
+
+### Bug Fixes
+
+* bump tar, add fast-xml-parser resolution, and add missing knip ignoreDependencies ([ca8dee1](https://github.com/CodySwannGT/lisa/commit/ca8dee18495392ec55dcfdb8c93ec593f7526270))
+
 ### [1.43.4](https://github.com/CodySwannGT/lisa/compare/vv1.43.3...v1.43.4) (2026-02-22)
 
 
