@@ -160,6 +160,7 @@ tasks.json
 # AI Assistant and MCP
 **/.claude/settings.local.json
 **/.claude/debug/
+**/.claude/worktrees/
 .roo
 .roo/
 .roomodes
