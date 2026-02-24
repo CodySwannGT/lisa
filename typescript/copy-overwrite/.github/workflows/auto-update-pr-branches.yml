@@ -1,0 +1,30 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Auto-update PR branches
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - dev
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autoupdate:
+    name: Update open PRs targeting ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-update pull request branches
+        uses: docker://chinthakagodawita/autoupdate-action:v1.7.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_FILTER: 'all'
+          PR_READY_STATE: 'all'
+          MERGE_CONFLICT_ACTION: 'ignore'
+          RETRY_COUNT: '5'
+          RETRY_SLEEP: '300'
