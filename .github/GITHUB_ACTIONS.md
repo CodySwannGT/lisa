@@ -162,11 +162,14 @@ Automatically fixes CI failures by having Claude analyze error logs and push fix
 
 **Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
 
-Analyzes the test suite for weak, brittle, or poorly-written tests and creates a PR with improvements:
-- Identifies missing edge cases, weak assertions, and implementation-coupled tests
-- Improves 3-5 test files per run
-- Verifies all tests pass before creating PR
-- Prevents duplicate PRs (skips if one is already open)
+Analyzes tests and creates a PR with improvements. Supports two modes:
+
+- **Nightly mode** (default for cron and manual dispatch): Scopes analysis to files changed in the last 24 hours on the default branch. Maps changed source files to their corresponding test files and improves only those tests. Skips the run entirely if no source files changed in the last 24 hours.
+- **General mode** (manual dispatch only): Full repository analysis. Scans all test files for weak, brittle, or poorly-written tests and improves 3-5 files with the most impactful changes.
+
+Both modes look for: missing edge cases, weak assertions, missing error path coverage, and implementation-coupled tests. Verifies all tests pass before creating a PR. Prevents duplicate PRs (skips if one is already open).
+
+To trigger general mode manually: **Actions** > **Claude Nightly Test Improvement** > **Run workflow** > set **Analysis mode** to `general`.
 
 ### Claude Nightly Test Coverage (`claude-nightly-test-coverage.yml`)
 
@@ -174,11 +177,28 @@ Analyzes the test suite for weak, brittle, or poorly-written tests and creates a
 
 **Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
 
-Identifies low-coverage source files and creates a PR with new tests:
-- Runs coverage report to find gaps
-- Writes comprehensive tests for 3-5 lowest-coverage files
-- Verifies coverage improvement before creating PR
-- Prevents duplicate PRs (skips if one is already open)
+Incrementally increases test coverage thresholds toward a 90% target:
+
+1. Reads `jest.thresholds.json` to get current coverage thresholds
+2. For each metric (`statements`, `branches`, `functions`, `lines`) below 90%, proposes a 5% increase (capped at 90%)
+3. Writes new tests to meet the proposed thresholds
+4. Updates `jest.thresholds.json` with the new values
+5. Verifies the updated thresholds pass with `bun run test:cov`
+6. Creates a PR summarizing which metrics were bumped (e.g., "branches 65% -> 70%, functions 60% -> 65%")
+
+Skips the run if all metrics are already at or above 90%. Prevents duplicate PRs (skips if one is already open).
+
+`jest.thresholds.json` format:
+```json
+{
+  "global": {
+    "statements": 75,
+    "branches": 65,
+    "functions": 60,
+    "lines": 75
+  }
+}
+```
 
 ### Load Testing (`load-test.yml`)
 
