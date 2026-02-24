@@ -215,6 +215,24 @@ Skips the run if all metrics are already at or above 90%. Prevents duplicate PRs
 }
 ```
 
+### Claude Nightly Code Complexity (`claude-nightly-code-complexity.yml`)
+
+**Triggers**: Cron at 5 AM UTC weekdays, manual dispatch
+
+**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
+
+Incrementally lowers ESLint code complexity thresholds toward target minimums:
+
+1. Reads `eslint.thresholds.json` to get current complexity thresholds
+2. For `cognitiveComplexity` above 15, proposes a decrease of 2 (floored at 15)
+3. For `maxLinesPerFunction` above 30, proposes a decrease of 5 (floored at 30)
+4. Refactors functions to meet the stricter thresholds
+5. Updates `eslint.thresholds.json` with the new values
+6. Verifies lint and tests pass
+7. Creates a PR summarizing which metrics were reduced
+
+Does not modify the `maxLines` threshold. Skips if all metrics are at/below targets. Prevents duplicate PRs.
+
 ### Load Testing (`load-test.yml`)
 
 **Type**: Reusable workflow
@@ -542,6 +560,7 @@ with:
 │   ├── claude-code-review-response.yml         # Respond to CodeRabbit reviews
 │   ├── claude-nightly-test-improvement.yml     # Nightly test quality
 │   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
+│   ├── claude-nightly-code-complexity.yml      # Nightly code complexity
 │   └── .env.example                            # Secrets template
 ├── k6/
 │   ├── scripts/                            # Test scripts
