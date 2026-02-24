@@ -1,0 +1,64 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Test Improvement
+
+on:
+  schedule:
+    - cron: '0 3 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  improve-tests:
+    if: vars.ENABLE_CLAUDE_NIGHTLY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = pulls.data.find(pr =>
+              pr.head.ref.startsWith('claude/nightly-') &&
+              pr.title.toLowerCase().includes('test improvement')
+            );
+            core.setOutput('has_existing_pr', existing ? 'true' : 'false');
+            if (existing) {
+              console.log(`Found existing PR: #${existing.number} - ${existing.title}`);
+            }
+
+      - name: Run Claude Code to improve tests
+        if: steps.check-pr.outputs.has_existing_pr != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          branch_prefix: claude/nightly-
+          prompt: |
+            Analyze the test suite and improve test quality.
+
+            Instructions:
+            1. Read CLAUDE.md and package.json for project conventions
+            2. Scan the test files to find weak, brittle, or poorly-written tests
+            3. Look for: missing edge cases, weak assertions (toBeTruthy instead of specific values), missing error path coverage, tests that test implementation rather than behavior
+            4. Improve 3-5 test files with the most impactful changes
+            5. Run the full test suite to verify all tests pass
+            6. Commit changes with conventional commit messages
+            7. Create a PR with `gh pr create` summarizing what was improved and why
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*)"
+            --max-turns 30
+            --system-prompt "You are improving test quality. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
