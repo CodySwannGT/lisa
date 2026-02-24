@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.44.2](https://github.com/CodySwannGT/lisa/compare/vv1.44.1...v1.44.2) (2026-02-24)
+
+
+### Bug Fixes
+
+* resolve review threads after addressing CodeRabbit comments ([#204](https://github.com/CodySwannGT/lisa/issues/204)) ([d27ec09](https://github.com/CodySwannGT/lisa/commit/d27ec09b381da86e3d96f2e74c21a4b8e35dc18a))
+
 ### [1.44.1](https://github.com/CodySwannGT/lisa/compare/vv1.44.0...v1.44.1) (2026-02-24)
 
 
