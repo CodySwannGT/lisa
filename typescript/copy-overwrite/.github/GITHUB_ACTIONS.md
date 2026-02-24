@@ -143,6 +143,77 @@ AI-powered code assistance that can:
 - Suggest improvements
 - Run tests and builds
 - Answer questions about the codebase
+- Edit files and create commits (write permissions enabled)
+
+### Claude CI Auto-Fix (`claude-ci-auto-fix.yml`)
+
+**Triggers**: CI Quality Checks workflow failure (non-environment branches)
+
+Automatically fixes CI failures by having Claude analyze error logs and push fixes. Replaces the previous `create-issue-on-failure` workflow.
+
+- Fetches failed job names and error logs from the CI run
+- Runs Claude with full context to diagnose and fix the root cause
+- Commits and pushes the fix to the failing branch
+- Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops)
+
+### Claude Code Review Response (`claude-code-review-response.yml`)
+
+**Triggers**: CodeRabbit review submitted on a PR
+
+**Opt-in**: Set repository variable `ENABLE_CLAUDE_CODE_REVIEW_RESPONSE` to `true`
+
+Automatically triages CodeRabbit review comments and either fixes valid findings or replies to dismiss invalid ones.
+
+- Triggers when CodeRabbit submits a review (not per inline comment — once per review summary)
+- Skips PRs authored by bots to prevent bot-to-bot loops
+- For each review comment, Claude determines if the finding is valid or a misunderstanding
+- Valid findings: fixes the code and commits with conventional messages
+- Invalid findings: replies to the comment explaining why the suggestion does not apply
+- Pushes fixes directly to the existing PR branch (no new PR created)
+
+### Claude Nightly Test Improvement (`claude-nightly-test-improvement.yml`)
+
+**Triggers**: Cron at 3 AM UTC weekdays, manual dispatch
+
+**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
+
+Analyzes tests and creates a PR with improvements. Supports two modes:
+
+- **Nightly mode** (default for cron and manual dispatch): Scopes analysis to files changed in the last 24 hours on the default branch. Maps changed source files to their corresponding test files and improves only those tests. Skips the run entirely if no source files changed in the last 24 hours.
+- **General mode** (manual dispatch only): Full repository analysis. Scans all test files for weak, brittle, or poorly-written tests and improves 3-5 files with the most impactful changes.
+
+Both modes look for: missing edge cases, weak assertions, missing error path coverage, and implementation-coupled tests. Verifies all tests pass before creating a PR. Prevents duplicate PRs (skips if one is already open).
+
+To trigger general mode manually: **Actions** > **Claude Nightly Test Improvement** > **Run workflow** > set **Analysis mode** to `general`.
+
+### Claude Nightly Test Coverage (`claude-nightly-test-coverage.yml`)
+
+**Triggers**: Cron at 4 AM UTC weekdays, manual dispatch
+
+**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
+
+Incrementally increases test coverage thresholds toward a 90% target:
+
+1. Reads `jest.thresholds.json` to get current coverage thresholds
+2. For each metric (`statements`, `branches`, `functions`, `lines`) below 90%, proposes a 5% increase (capped at 90%)
+3. Writes new tests to meet the proposed thresholds
+4. Updates `jest.thresholds.json` with the new values
+5. Verifies the updated thresholds pass with `bun run test:cov`
+6. Creates a PR summarizing which metrics were bumped (e.g., "branches 65% -> 70%, functions 60% -> 65%")
+
+Skips the run if all metrics are already at or above 90%. Prevents duplicate PRs (skips if one is already open).
+
+`jest.thresholds.json` format:
+```json
+{
+  "global": {
+    "statements": 75,
+    "branches": 65,
+    "functions": 60,
+    "lines": 75
+  }
+}
+```
 
 ### Load Testing (`load-test.yml`)
 
@@ -370,6 +441,8 @@ Variables are non-sensitive configuration values. Set them in **Settings** > **S
 
 | Variable | Description | Example |
 |----------|-------------|---------|
+| `ENABLE_CLAUDE_NIGHTLY` | Enable nightly Claude workflows | `true` |
+| `ENABLE_CLAUDE_CODE_REVIEW_RESPONSE` | Enable Claude response to CodeRabbit reviews | `true` |
 | `SENTRY_ORG` | Sentry organization slug | `my-company` |
 | `SENTRY_PROJECT` | Sentry project slug | `frontend-app` |
 
@@ -464,11 +537,12 @@ with:
 │   ├── release.yml                         # Reusable release workflow
 │   ├── lighthouse.yml                      # Web performance
 │   ├── load-test.yml                       # k6 load testing
-│   ├── claude.yml                          # AI assistance
-│   ├── create-sentry-issue-on-failure.yml  # Error tracking
-│   ├── create-github-issue-on-failure.yml  # Issue creation
-│   ├── create-jira-issue-on-failure.yml    # Jira integration
-│   └── .env.example                        # Secrets template
+│   ├── claude.yml                              # AI assistance
+│   ├── claude-ci-auto-fix.yml                  # Auto-fix CI failures
+│   ├── claude-code-review-response.yml         # Respond to CodeRabbit reviews
+│   ├── claude-nightly-test-improvement.yml     # Nightly test quality
+│   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
+│   └── .env.example                            # Secrets template
 ├── k6/
 │   ├── scripts/                            # Test scripts
 │   ├── scenarios/                          # Test configurations
