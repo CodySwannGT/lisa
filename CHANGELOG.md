@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.44.1](https://github.com/CodySwannGT/lisa/compare/vv1.44.0...v1.44.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* add coderabbitai to allowed_bots in code review response workflow ([#202](https://github.com/CodySwannGT/lisa/issues/202)) ([cdeaf4e](https://github.com/CodySwannGT/lisa/commit/cdeaf4eefc6777db4fc4144b5d75b9e4efcfc986))
+
 ## [1.44.0](https://github.com/CodySwannGT/lisa/compare/vv1.43.7...v1.44.0) (2026-02-24)
 
 
