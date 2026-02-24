@@ -211,14 +211,3 @@ jobs:
 
       - name: 📢 Notify on success
         run: echo "Successfully deployed version ${{ steps.get_version.outputs.version }} to ${{ needs.determine_environment.outputs.environment }}"
-  create_issue_on_failure:
-    name: 📌 Create Issue on Failure
-    needs: [release, deploy]
-    if: ${{ always() && (needs.release.result == 'failure' || needs.deploy.result == 'failure') && !contains(github.event.head_commit.message, '[skip ci]') }}
-    uses: ./.github/workflows/create-issue-on-failure.yml
-    with:
-      package_manager: 'bun'
-      node_version: '22.21.1'
-      workflow_name: 'Release and Deploy'
-      failed_job: ${{ needs.release.result == 'failure' && 'release' || 'deploy' }}
-    secrets: inherit
