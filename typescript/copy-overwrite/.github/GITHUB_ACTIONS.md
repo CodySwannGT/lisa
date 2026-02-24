@@ -156,6 +156,21 @@ Automatically fixes CI failures by having Claude analyze error logs and push fix
 - Commits and pushes the fix to the failing branch
 - Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops)
 
+### Claude Code Review Response (`claude-code-review-response.yml`)
+
+**Triggers**: CodeRabbit review submitted on a PR
+
+**Opt-in**: Set repository variable `ENABLE_CLAUDE_CODE_REVIEW_RESPONSE` to `true`
+
+Automatically triages CodeRabbit review comments and either fixes valid findings or replies to dismiss invalid ones.
+
+- Triggers when CodeRabbit submits a review (not per inline comment — once per review summary)
+- Skips PRs authored by bots to prevent bot-to-bot loops
+- For each review comment, Claude determines if the finding is valid or a misunderstanding
+- Valid findings: fixes the code and commits with conventional messages
+- Invalid findings: replies to the comment explaining why the suggestion does not apply
+- Pushes fixes directly to the existing PR branch (no new PR created)
+
 ### Claude Nightly Test Improvement (`claude-nightly-test-improvement.yml`)
 
 **Triggers**: Cron at 3 AM UTC weekdays, manual dispatch
@@ -427,6 +442,7 @@ Variables are non-sensitive configuration values. Set them in **Settings** > **S
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `ENABLE_CLAUDE_NIGHTLY` | Enable nightly Claude workflows | `true` |
+| `ENABLE_CLAUDE_CODE_REVIEW_RESPONSE` | Enable Claude response to CodeRabbit reviews | `true` |
 | `SENTRY_ORG` | Sentry organization slug | `my-company` |
 | `SENTRY_PROJECT` | Sentry project slug | `frontend-app` |
 
@@ -523,6 +539,7 @@ with:
 │   ├── load-test.yml                       # k6 load testing
 │   ├── claude.yml                              # AI assistance
 │   ├── claude-ci-auto-fix.yml                  # Auto-fix CI failures
+│   ├── claude-code-review-response.yml         # Respond to CodeRabbit reviews
 │   ├── claude-nightly-test-improvement.yml     # Nightly test quality
 │   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
 │   └── .env.example                            # Secrets template
