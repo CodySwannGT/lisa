@@ -143,6 +143,42 @@ AI-powered code assistance that can:
 - Suggest improvements
 - Run tests and builds
 - Answer questions about the codebase
+- Edit files and create commits (write permissions enabled)
+
+### Claude CI Auto-Fix (`claude-ci-auto-fix.yml`)
+
+**Triggers**: CI Quality Checks workflow failure (non-environment branches)
+
+Automatically fixes CI failures by having Claude analyze error logs and push fixes. Replaces the previous `create-issue-on-failure` workflow.
+
+- Fetches failed job names and error logs from the CI run
+- Runs Claude with full context to diagnose and fix the root cause
+- Commits and pushes the fix to the failing branch
+- Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops)
+
+### Claude Nightly Test Improvement (`claude-nightly-test-improvement.yml`)
+
+**Triggers**: Cron at 3 AM UTC weekdays, manual dispatch
+
+**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
+
+Analyzes the test suite for weak, brittle, or poorly-written tests and creates a PR with improvements:
+- Identifies missing edge cases, weak assertions, and implementation-coupled tests
+- Improves 3-5 test files per run
+- Verifies all tests pass before creating PR
+- Prevents duplicate PRs (skips if one is already open)
+
+### Claude Nightly Test Coverage (`claude-nightly-test-coverage.yml`)
+
+**Triggers**: Cron at 4 AM UTC weekdays, manual dispatch
+
+**Opt-in**: Set repository variable `ENABLE_CLAUDE_NIGHTLY` to `true`
+
+Identifies low-coverage source files and creates a PR with new tests:
+- Runs coverage report to find gaps
+- Writes comprehensive tests for 3-5 lowest-coverage files
+- Verifies coverage improvement before creating PR
+- Prevents duplicate PRs (skips if one is already open)
 
 ### Load Testing (`load-test.yml`)
 
@@ -370,6 +406,7 @@ Variables are non-sensitive configuration values. Set them in **Settings** > **S
 
 | Variable | Description | Example |
 |----------|-------------|---------|
+| `ENABLE_CLAUDE_NIGHTLY` | Enable nightly Claude workflows | `true` |
 | `SENTRY_ORG` | Sentry organization slug | `my-company` |
 | `SENTRY_PROJECT` | Sentry project slug | `frontend-app` |
 
@@ -464,11 +501,11 @@ with:
 │   ├── release.yml                         # Reusable release workflow
 │   ├── lighthouse.yml                      # Web performance
 │   ├── load-test.yml                       # k6 load testing
-│   ├── claude.yml                          # AI assistance
-│   ├── create-sentry-issue-on-failure.yml  # Error tracking
-│   ├── create-github-issue-on-failure.yml  # Issue creation
-│   ├── create-jira-issue-on-failure.yml    # Jira integration
-│   └── .env.example                        # Secrets template
+│   ├── claude.yml                              # AI assistance
+│   ├── claude-ci-auto-fix.yml                  # Auto-fix CI failures
+│   ├── claude-nightly-test-improvement.yml     # Nightly test quality
+│   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
+│   └── .env.example                            # Secrets template
 ├── k6/
 │   ├── scripts/                            # Test scripts
 │   ├── scenarios/                          # Test configurations
