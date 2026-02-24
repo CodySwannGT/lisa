@@ -1,0 +1,129 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Code Complexity
+
+on:
+  schedule:
+    - cron: '0 5 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  reduce-complexity:
+    if: vars.ENABLE_CLAUDE_NIGHTLY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = pulls.data.find(pr =>
+              pr.head.ref.startsWith('claude/nightly-code-complexity-')
+            );
+            core.setOutput('has_existing_pr', existing ? 'true' : 'false');
+            if (existing) {
+              console.log(`Found existing PR: #${existing.number} - ${existing.title}`);
+            }
+
+      - name: Read complexity thresholds
+        if: steps.check-pr.outputs.has_existing_pr != 'true'
+        id: thresholds
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'eslint.thresholds.json';
+
+            if (!fs.existsSync(path)) {
+              core.setOutput('all_at_target', 'true');
+              console.log('eslint.thresholds.json not found, skipping.');
+              return;
+            }
+
+            const thresholds = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const metrics = [
+              { key: 'cognitiveComplexity', target: 15, decrement: 2 },
+              { key: 'maxLinesPerFunction', target: 30, decrement: 5 },
+            ];
+
+            const current = {};
+            const proposed = {};
+            const reductions = [];
+
+            for (const { key, target, decrement } of metrics) {
+              const value = thresholds[key];
+              if (value === undefined) {
+                continue;
+              }
+              current[key] = value;
+              if (value > target) {
+                const newValue = Math.max(value - decrement, target);
+                proposed[key] = newValue;
+                reductions.push(`${key} ${value} -> ${newValue}`);
+              } else {
+                proposed[key] = value;
+              }
+            }
+
+            if (reductions.length === 0) {
+              core.setOutput('all_at_target', 'true');
+              console.log('All complexity metrics are already at or below targets. Skipping.');
+              return;
+            }
+
+            core.setOutput('all_at_target', 'false');
+            core.setOutput('current', JSON.stringify(current));
+            core.setOutput('proposed', JSON.stringify(proposed));
+            core.setOutput('reductions', reductions.join(', '));
+            console.log(`Current thresholds: ${JSON.stringify(current)}`);
+            console.log(`Proposed thresholds: ${JSON.stringify(proposed)}`);
+            console.log(`Metrics to reduce: ${reductions.join(', ')}`);
+
+      - name: Run Claude Code to reduce complexity
+        if: |
+          steps.check-pr.outputs.has_existing_pr != 'true' &&
+          steps.thresholds.outputs.all_at_target != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          branch_prefix: claude/nightly-code-complexity-
+          prompt: |
+            Reduce code complexity thresholds for this project.
+
+            Current complexity thresholds in eslint.thresholds.json:
+            ${{ steps.thresholds.outputs.current }}
+
+            Proposed new thresholds (each metric decreased toward target minimums):
+            ${{ steps.thresholds.outputs.proposed }}
+
+            Metrics being reduced: ${{ steps.thresholds.outputs.reductions }}
+
+            Instructions:
+            1. Read CLAUDE.md and package.json for project conventions
+            2. Update eslint.thresholds.json with the proposed new threshold values (do NOT change the maxLines threshold)
+            3. Run `bun run lint` to find functions that violate the new stricter thresholds
+            4. For cognitive complexity violations: use early returns, extract helper functions, replace conditionals with lookup tables
+            5. For max-lines-per-function violations: split large functions, extract helper functions, separate concerns
+            6. Run `bun run lint` to verify all violations are resolved
+            7. Run `bun run test` to verify no tests are broken by the refactoring
+            8. Commit all changes (refactored code + updated eslint.thresholds.json) with conventional commit messages
+            9. Create a PR with `gh pr create` with a title like "refactor: reduce code complexity: ${{ steps.thresholds.outputs.reductions }}" summarizing the changes
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*)"
+            --max-turns 30
+            --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Refactor functions to reduce cognitive complexity and lines per function. Use early returns, extract helpers, and lookup tables. Do NOT modify the maxLines threshold. You must update eslint.thresholds.json with the new values after refactoring passes lint."

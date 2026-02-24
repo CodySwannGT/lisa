@@ -32,7 +32,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 
 ## Files and directories with NO local override (do not edit at all)
 
-- `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`
+- `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`, `.claude/rules/expo-verification.md` (Expo)
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
 - `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
@@ -43,7 +43,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `eslint-plugin-code-organization/*`, `eslint-plugin-component-structure/*`, `eslint-plugin-ui-standards/*`
 - `.claude/settings.json`
 - `.claude/README.md`
-- `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`
+- `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`
 - `.github/workflows/build.yml`, `.github/workflows/lighthouse.yml` (Expo)
 - `.github/workflows/load-test.yml`, `.github/workflows/zap-baseline.yml` (NestJS)
 - `.github/dependabot.yml`, `.github/GITHUB_ACTIONS.md`, `.github/k6/*`
