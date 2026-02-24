@@ -1,5 +1,6 @@
 ---
 description: Create a new Claude Code Action workflow
+allowed-tools: ["Skill"]
 argument-hint: <workflow-type>
 ---
 
