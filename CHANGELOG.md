@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.45.0](https://github.com/CodySwannGT/lisa/compare/vv1.44.3...v1.45.0) (2026-02-24)
+
+
+### Features
+
+* add claude-nightly-code-complexity workflow ([#206](https://github.com/CodySwannGT/lisa/issues/206)) ([1d61247](https://github.com/CodySwannGT/lisa/commit/1d61247ef799cb53c70578e51f3b1f01001a386a))
+
 ### [1.44.3](https://github.com/CodySwannGT/lisa/compare/vv1.44.2...v1.44.3) (2026-02-24)
 
 ### [1.44.2](https://github.com/CodySwannGT/lisa/compare/vv1.44.1...v1.44.2) (2026-02-24)
