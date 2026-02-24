@@ -86,11 +86,3 @@ jobs:
       version: ${{ needs.release.outputs.version }}
       node_version: '22.21.1'
       package_manager: 'bun'
-  create_issue_on_failure:
-    name: 📌 Create Issue on Failure
-    needs: [release, publish_npm]
-    if: ${{ failure() && !contains(github.event.head_commit.message, '[skip ci]') }}
-    uses: ./.github/workflows/create-issue-on-failure.yml
-    with:
-      workflow_name: 'Release and Deploy'
-    secrets: inherit
