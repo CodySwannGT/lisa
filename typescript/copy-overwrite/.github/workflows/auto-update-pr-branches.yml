@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Auto-update pull request branches
-        uses: docker://chinthakagodawita/autoupdate-action:v1.7.0
+        uses: chinthakagodawita/autoupdate@v1.7.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_FILTER: 'all'

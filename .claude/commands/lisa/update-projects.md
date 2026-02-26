@@ -8,7 +8,8 @@ description: "Updates local Lisa project in batches"
 3. If you can't because of existing changes or whatever, don't do anything. Ask the human what should be done about it before moving on
 4. Once you have resolution, within each of the clean projects, check out a branch to upgrade lisa
 5. From lisa, run bun run dev <directory-path> -y
-6. Commit, push and PR the branch to the project's target branch specified in @.lisa.config.local.json
-7. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code
+6. Check git diff to see if the project changed any lisa files. If so, examine them to see if any of the changes need to be upstreamed and do so if necessary.
+7. Commit, push and PR the branch to the project's target branch specified in @.lisa.config.local.json
+8. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code
 
-For steps 4-7, use up to 4 parallel subagents to accomplish those steps
+For steps 4-8, use up to 4 parallel subagents to accomplish those steps
