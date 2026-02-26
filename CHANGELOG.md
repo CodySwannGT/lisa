@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.46.2](https://github.com/CodySwannGT/lisa/compare/vv1.46.1...v1.46.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* remove invalid workflows permission from autoupdate workflow ([#209](https://github.com/CodySwannGT/lisa/issues/209)) ([f0bbe9e](https://github.com/CodySwannGT/lisa/commit/f0bbe9ead24ca0387cd4df4e4ee0c2f00d7c2902))
+
 ### [1.46.1](https://github.com/CodySwannGT/lisa/compare/vv1.46.0...v1.46.1) (2026-02-26)
 
 
