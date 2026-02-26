@@ -21,6 +21,7 @@ jobs:
     steps:
       - name: Auto-update pull request branches
         uses: chinthakagodawita/autoupdate@v1.7.0
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_FILTER: 'all'
