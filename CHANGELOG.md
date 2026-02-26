@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.46.0](https://github.com/CodySwannGT/lisa/compare/vv1.45.0...v1.46.0) (2026-02-26)
+
+
+### Features
+
+* add node_modules/.bin to Claude workflow allowedTools ([39f7e6f](https://github.com/CodySwannGT/lisa/commit/39f7e6f47f7e010145e6d74877cae8e5704e3602))
+
+
+### Bug Fixes
+
+* use GitHub Action ref instead of Docker Hub for autoupdate action ([080be5c](https://github.com/CodySwannGT/lisa/commit/080be5c038b6a06fd6ee6f035d1ec1f6a049d380))
+
+
+### Documentation
+
+* improve lisa update-projects command with upstream check step ([98cbc36](https://github.com/CodySwannGT/lisa/commit/98cbc3651d640da03364cca35dcb37e5b8e6ce32))
+
 ## [1.45.0](https://github.com/CodySwannGT/lisa/compare/vv1.44.3...v1.45.0) (2026-02-24)
 
 
