@@ -98,7 +98,7 @@ jobs:
             6. Commit changes with conventional commit messages
             7. Create a PR with `gh pr create` summarizing what was improved and why
           claude_args: |
-            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(GIT_SSH_COMMAND:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*)"
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(GIT_SSH_COMMAND:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*),Bash(node_modules/.bin/*:*)"
             --max-turns 30
             --system-prompt "You are improving test quality for recently changed files. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
 
@@ -122,6 +122,6 @@ jobs:
             6. Commit changes with conventional commit messages
             7. Create a PR with `gh pr create` summarizing what was improved and why
           claude_args: |
-            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(GIT_SSH_COMMAND:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*)"
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(GIT_SSH_COMMAND:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*),Bash(node_modules/.bin/*:*)"
             --max-turns 30
             --system-prompt "You are improving test quality. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
