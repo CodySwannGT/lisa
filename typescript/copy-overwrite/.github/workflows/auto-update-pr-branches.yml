@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Auto-update pull request branches
+        id: autoupdate
         uses: chinthakagodawita/autoupdate@v1.7.0
         continue-on-error: true
         env:
@@ -29,3 +30,8 @@ jobs:
           MERGE_CONFLICT_ACTION: 'ignore'
           RETRY_COUNT: '5'
           RETRY_SLEEP: '300'
+
+      - name: Report autoupdate failure in summary
+        if: steps.autoupdate.outcome == 'failure'
+        run: |
+          echo "⚠️ Auto-update encountered errors; some PRs may have been skipped." >> "$GITHUB_STEP_SUMMARY"
