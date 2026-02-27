@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.47.0](https://github.com/CodySwannGT/lisa/compare/vv1.46.4...v1.47.0) (2026-02-27)
+
+
+### Features
+
+* upgrade Claude CI workflows with broader permissions, deploy auto-fix, and issue fallback ([#212](https://github.com/CodySwannGT/lisa/issues/212)) ([7305586](https://github.com/CodySwannGT/lisa/commit/7305586d71b8d6d4f392d2928e9596581081c9b2)), closes [#200](https://github.com/CodySwannGT/lisa/issues/200)
+
 ### [1.46.4](https://github.com/CodySwannGT/lisa/compare/vv1.46.3...v1.46.4) (2026-02-27)
 
 
