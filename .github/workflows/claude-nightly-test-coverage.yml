@@ -121,6 +121,6 @@ jobs:
             8. Commit all changes (new tests + updated jest.thresholds.json) with conventional commit messages
             9. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
           claude_args: |
-            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(GIT_SSH_COMMAND:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*),Bash(node_modules/.bin/*:*)"
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(git:*),Bash(GIT_SSH_COMMAND:*),Bash(npm:*),Bash(npx:*),Bash(bun:*),Bash(yarn:*),Bash(pnpm:*),Bash(gh:*),Bash(node_modules/.bin/*:*),Bash(./node_modules/.bin/*:*)"
             --max-turns 30
             --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass."
