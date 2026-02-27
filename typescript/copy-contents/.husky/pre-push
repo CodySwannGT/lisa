@@ -29,27 +29,86 @@ echo "📦 Using package manager: $PACKAGE_MANAGER"
 # Run security audit
 echo "🔒 Running security audit..."
 
-if [ "$PACKAGE_MANAGER" = "yarn" ]; then
-  # Check if jq is installed (required for yarn audit filtering)
-  if ! command -v jq >/dev/null 2>&1; then
-    echo ""
-    echo "⚠️  WARNING: jq is not installed - required for yarn audit filtering"
-    echo ""
-    echo "To install jq:"
-    echo "  macOS:    brew install jq"
-    echo "  Windows:  choco install jq  # or scoop install jq"
-    echo "  Linux:    apt-get install jq"
-    echo ""
-    echo "Continuing without security audit..."
-    echo ""
-  else
-    # Excluding GHSA-5j98-mcp5-4vw2 (CVE-2025-64756): glob CLI command injection
-    # This vulnerability only affects the glob CLI (--cmd flag), not library usage
-    # We only use glob as a library through Babel and other tools - never invoke CLI
-    # Risk: None - vulnerable code path is not executed in our application
-    # Run yarn audit and filter for high/critical vulnerabilities (excluding glob CLI vuln)
-    # Filter by both GHSA ID and CVE ID for robustness
-    yarn audit --groups dependencies --json | jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | select((.data.advisory.github_advisory_id == "GHSA-5j98-mcp5-4vw2" or (.data.advisory.cves | any(. == "CVE-2025-64756"))) | not) | .data.advisory' > high_vulns.json
+# jq is required for all audit paths (JSON config reading, npm/yarn filtering)
+if ! command -v jq >/dev/null 2>&1; then
+  echo ""
+  echo "⚠️  WARNING: jq is not installed - required for security audit"
+  echo ""
+  echo "To install jq:"
+  echo "  macOS:    brew install jq"
+  echo "  Windows:  choco install jq  # or scoop install jq"
+  echo "  Linux:    apt-get install jq"
+  echo ""
+  echo "Continuing without security audit..."
+  echo ""
+else
+  # Load GHSA exclusion IDs from JSON config files (managed + project-local)
+  load_audit_exclusions() {
+    _EXCLUSIONS=""
+    for _config_file in audit.ignore.config.json audit.ignore.local.json; do
+      if [ -f "$_config_file" ]; then
+        _FILE_IDS=$(jq -r '.exclusions[].id' "$_config_file" 2>/dev/null)
+        if [ -n "$_FILE_IDS" ]; then
+          _EXCLUSIONS="$_EXCLUSIONS $_FILE_IDS"
+        fi
+      fi
+    done
+    echo "$_EXCLUSIONS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' '
+  }
+
+  # Load CVE exclusion IDs from JSON config files (for yarn's CVE-based filtering)
+  load_audit_cves() {
+    _CVES=""
+    for _config_file in audit.ignore.config.json audit.ignore.local.json; do
+      if [ -f "$_config_file" ]; then
+        _FILE_CVES=$(jq -r '.exclusions[] | select(.cve != null) | .cve' "$_config_file" 2>/dev/null)
+        if [ -n "$_FILE_CVES" ]; then
+          _CVES="$_CVES $_FILE_CVES"
+        fi
+      fi
+    done
+    echo "$_CVES" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' '
+  }
+
+  AUDIT_EXCLUSIONS=$(load_audit_exclusions)
+  AUDIT_CVES=$(load_audit_cves)
+
+  if [ "$PACKAGE_MANAGER" = "yarn" ]; then
+    # Build jq filter for GHSA IDs
+    GHSA_FILTER=""
+    for _id in $AUDIT_EXCLUSIONS; do
+      if [ -n "$GHSA_FILTER" ]; then
+        GHSA_FILTER="$GHSA_FILTER or .data.advisory.github_advisory_id == \"$_id\""
+      else
+        GHSA_FILTER=".data.advisory.github_advisory_id == \"$_id\""
+      fi
+    done
+
+    # Build jq filter for CVE IDs
+    CVE_FILTER=""
+    for _cve in $AUDIT_CVES; do
+      if [ -n "$CVE_FILTER" ]; then
+        CVE_FILTER="$CVE_FILTER or . == \"$_cve\""
+      else
+        CVE_FILTER=". == \"$_cve\""
+      fi
+    done
+
+    # Combine GHSA and CVE filters
+    COMBINED_FILTER=""
+    if [ -n "$GHSA_FILTER" ] && [ -n "$CVE_FILTER" ]; then
+      COMBINED_FILTER="($GHSA_FILTER or (.data.advisory.cves | any($CVE_FILTER)))"
+    elif [ -n "$GHSA_FILTER" ]; then
+      COMBINED_FILTER="($GHSA_FILTER)"
+    elif [ -n "$CVE_FILTER" ]; then
+      COMBINED_FILTER="((.data.advisory.cves | any($CVE_FILTER)))"
+    fi
+
+    if [ -n "$COMBINED_FILTER" ]; then
+      yarn audit --groups dependencies --json | jq -r "select(.type == \"auditAdvisory\") | select(.data.advisory.severity == \"high\" or .data.advisory.severity == \"critical\") | select(($COMBINED_FILTER) | not) | .data.advisory" > high_vulns.json
+    else
+      yarn audit --groups dependencies --json | jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | .data.advisory' > high_vulns.json
+    fi
 
     if [ -s high_vulns.json ]; then
       echo "❌ High or critical vulnerabilities found in production dependencies!"
@@ -60,91 +119,43 @@ if [ "$PACKAGE_MANAGER" = "yarn" ]; then
 
     echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
     rm -f high_vulns.json
+
+  elif [ "$PACKAGE_MANAGER" = "npm" ]; then
+    # Build jq exclusion filter for npm audit GHSA IDs
+    NPM_EXCLUDE_FILTER=""
+    for _id in $AUDIT_EXCLUSIONS; do
+      if [ -n "$NPM_EXCLUDE_FILTER" ]; then
+        NPM_EXCLUDE_FILTER="$NPM_EXCLUDE_FILTER or . == \"$_id\""
+      else
+        NPM_EXCLUDE_FILTER=". == \"$_id\""
+      fi
+    done
+
+    AUDIT_JSON=$(npm audit --production --json 2>/dev/null || true)
+    if [ -n "$NPM_EXCLUDE_FILTER" ]; then
+      UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq "[.vulnerabilities | to_entries[] | select(.value.severity == \"high\" or .value.severity == \"critical\") | .value.via[] | select(type == \"object\") | .url | ltrimstr(\"https://github.com/advisories/\")] | unique | map(select($NPM_EXCLUDE_FILTER | not)) | length")
+    else
+      UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq '[.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .value.via[] | select(type == "object") | .url | ltrimstr("https://github.com/advisories/")] | unique | length')
+    fi
+    if [ "$UNFIXED_HIGH" -gt 0 ]; then
+      echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
+      exit 1
+    fi
+    echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
+
+  elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+    # Build --ignore flags dynamically from exclusion list
+    BUN_IGNORE_FLAGS=""
+    for _id in $AUDIT_EXCLUSIONS; do
+      BUN_IGNORE_FLAGS="$BUN_IGNORE_FLAGS --ignore $_id"
+    done
+
+    if ! bun audit --audit-level=high $BUN_IGNORE_FLAGS; then
+      echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
+      exit 1
+    fi
+    echo "✅ No high or critical vulnerabilities found in production dependencies"
   fi
-
-elif [ "$PACKAGE_MANAGER" = "npm" ]; then
-  # Run npm audit in JSON mode and filter out known false positives before failing.
-  # npm audit lacks a native --ignore flag, so we parse JSON and exclude by GHSA ID.
-
-  # Excluding GHSA-3ppc-4f35-3m26: minimatch ReDoS via repeated wildcards
-  # Nested dep in aws-cdk-lib; fix requires minimatch v10 (incompatible with ^3.1.2)
-  # Risk: None - dev-time CDK tooling, no production runtime exposure
-
-  # Excluding GHSA-2g4f-4pwh-qvx6: ajv ReDoS with $data option
-  # Nested dep in aws-cdk-lib and eslint; no fix available via npm
-  # Risk: Low - $data option not used in this application
-
-  AUDIT_JSON=$(npm audit --production --json 2>/dev/null || true)
-  UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq '[.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .value.via[] | select(type == "object") | .url | ltrimstr("https://github.com/advisories/")] | unique | map(select(. == "GHSA-3ppc-4f35-3m26" or . == "GHSA-2g4f-4pwh-qvx6" | not)) | length')
-  if [ "$UNFIXED_HIGH" -gt 0 ]; then
-    echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
-    exit 1
-  fi
-  echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
-
-elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-  # Excluding GHSA-5j98-mcp5-4vw2 (CVE-2025-64756): glob CLI command injection
-  # This vulnerability only affects the glob CLI (--cmd flag), not library usage
-  # We only use glob as a library through Babel and other tools - never invoke CLI
-
-  # Excluding GHSA-8qq5-rm4j-mr97: node-tar path sanitization vulnerability
-  # Nested dependency in @expo/cli - bun resolves to patched version but audit still flags it
-  # Risk: Low - only affects tar extraction with malicious filenames, not our use case
-
-  # Excluding GHSA-37qj-frw5-hhjh: fast-xml-parser RangeError DoS with numeric entities
-  # Transitive dependency via @react-native-community/cli (Android/iOS build tooling)
-  # Parent packages pin ^4.4.1; fix requires major version 5.x (incompatible)
-  # Risk: None - CLI build tool, not a production runtime dependency
-
-  # Excluding GHSA-3ppc-4f35-3m26: minimatch ReDoS via repeated wildcards
-  # Transitive dependency in devDependencies (eslint, jest, nodemon, ts-morph, etc.)
-  # Fix requires minimatch v10 which changes export shape (object vs function),
-  # breaking test-exclude (used by Jest coverage). No production code path is affected.
-  # Risk: None - only devDependency tooling, never processes untrusted user input
-
-  # Excluding GHSA-jmr7-xgp7-cmfj: fast-xml-parser DoS through entity expansion in DOCTYPE
-  # Transitive dependency via AWS SDK (@aws-sdk/xml-builder) and snowflake-sdk
-  # Resolution to >=5.3.6 set in package.json but bun audit still flags intermediate ranges
-  # Risk: Low - XML parsing of untrusted DOCTYPE content not in our code paths
-
-  # Excluding GHSA-m7jm-9gc2-mpf2: fast-xml-parser entity encoding bypass via regex injection
-  # Same transitive path as GHSA-jmr7-xgp7-cmfj (AWS SDK, snowflake-sdk)
-  # Resolution to >=5.3.6 set in package.json but bun audit still flags intermediate ranges
-  # Risk: Low - no untrusted XML with DOCTYPE entity names processed
-
-  # Excluding GHSA-r6q2-hw4h-h46w: node-tar race condition via Unicode Ligature Collisions on macOS APFS
-  # Transitive via @nestjs/apollo > @apollo/gateway > make-fetch-happen > cacache > tar
-  # Resolution to ^7.5.8 set in package.json but bun audit still flags intermediate ranges
-  # Risk: None - tar extraction not used in production runtime
-
-  # Excluding GHSA-34x7-hfp2-rc4v: node-tar arbitrary file creation via hardlink path traversal
-  # Same transitive path as GHSA-r6q2-hw4h-h46w
-  # Risk: None - tar extraction not used in production runtime
-
-  # Excluding GHSA-83g3-92jg-28cx: node-tar arbitrary file read/write via hardlink target escape
-  # Same transitive path as GHSA-r6q2-hw4h-h46w
-  # Risk: None - tar extraction not used in production runtime
-
-  # Excluding GHSA-3h5v-q93c-6h6q: ws DoS when handling request with many HTTP headers
-  # Transitive via @nestjs/graphql, graphql-ws, openai, serverless-offline, serverless-esbuild
-  # Resolution to ^8.17.1 set in package.json but bun audit still flags intermediate ranges
-  # Risk: Low - WebSocket servers behind API Gateway which limits headers
-
-  # Excluding GHSA-7r86-cg39-jmmj: minimatch ReDoS via multiple non-adjacent GLOBSTAR segments
-  # Same transitive dependency chain as GHSA-3ppc-4f35-3m26 (eslint, jest, ts-morph, etc.)
-  # Fix requires minimatch >=3.1.3 but bun cannot override transitive dependency version ranges
-  # Risk: None - only devDependency tooling, never processes untrusted user input
-
-  # Excluding GHSA-23c5-xmqv-rm74: minimatch ReDoS via nested *() extglobs
-  # Same transitive dependency chain as GHSA-3ppc-4f35-3m26 (eslint, jest, ts-morph, etc.)
-  # Fix requires minimatch >=3.1.3 but bun cannot override transitive dependency version ranges
-  # Risk: None - only devDependency tooling, never processes untrusted user input
-
-  if ! bun audit --audit-level=high --ignore GHSA-5j98-mcp5-4vw2 --ignore GHSA-8qq5-rm4j-mr97 --ignore GHSA-37qj-frw5-hhjh --ignore GHSA-3ppc-4f35-3m26 --ignore GHSA-jmr7-xgp7-cmfj --ignore GHSA-m7jm-9gc2-mpf2 --ignore GHSA-r6q2-hw4h-h46w --ignore GHSA-34x7-hfp2-rc4v --ignore GHSA-83g3-92jg-28cx --ignore GHSA-3h5v-q93c-6h6q --ignore GHSA-7r86-cg39-jmmj --ignore GHSA-23c5-xmqv-rm74; then
-    echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
-    exit 1
-  fi
-  echo "✅ No high or critical vulnerabilities found in production dependencies"
 fi
 
 # Run slow lint rules - only if script exists
