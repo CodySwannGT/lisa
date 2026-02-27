@@ -70,6 +70,9 @@
     "scripts/**",
 
     "lib/**/*.js",
-    "cdk.out/**"
+    "cdk.out/**",
+
+    "audit.ignore.config.json",
+    "audit.ignore.local.json"
   ]
 }

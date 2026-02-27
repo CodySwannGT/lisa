@@ -16,6 +16,7 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `.claude/rules/PROJECT_RULES.md`
 - `eslint.thresholds.json`
 - `jest.thresholds.json`
+- `audit.ignore.local.json`
 
 ## Directories with both Lisa-managed and project content
 
@@ -35,7 +36,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`, `.claude/rules/expo-verification.md` (Expo)
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
-- `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
+- `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`, `audit.ignore.config.json`
 - `eslint.base.ts`, `eslint.typescript.ts`, `eslint.expo.ts`, `eslint.nestjs.ts`, `eslint.cdk.ts`, `eslint.slow.config.ts`
 - `jest.base.ts`, `jest.typescript.ts`, `jest.expo.ts`, `jest.nestjs.ts`, `jest.cdk.ts`
 - `tsconfig.base.json`, `tsconfig.typescript.json`, `tsconfig.expo.json`, `tsconfig.nestjs.json`, `tsconfig.cdk.json`
@@ -43,7 +44,8 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `eslint-plugin-code-organization/*`, `eslint-plugin-component-structure/*`, `eslint-plugin-ui-standards/*`
 - `.claude/settings.json`
 - `.claude/README.md`
-- `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml`
+- `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-deploy-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml`
+- `.github/workflows/create-issue-on-failure.yml`, `.github/workflows/create-github-issue-on-failure.yml`, `.github/workflows/create-jira-issue-on-failure.yml`, `.github/workflows/create-sentry-issue-on-failure.yml`
 - `.github/workflows/build.yml`, `.github/workflows/lighthouse.yml` (Expo)
 - `.github/workflows/load-test.yml`, `.github/workflows/zap-baseline.yml` (NestJS)
 - `.github/dependabot.yml`, `.github/GITHUB_ACTIONS.md`, `.github/k6/*`
