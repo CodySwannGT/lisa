@@ -9,14 +9,17 @@ on:
       - main
       - staging
       - dev
+  pull_request:
+    types: [opened, reopened, ready_for_review]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  autoupdate:
+  autoupdate-on-push:
     name: Update open PRs targeting ${{ github.ref_name }}
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Auto-update pull request branches
@@ -29,3 +32,14 @@ jobs:
           MERGE_CONFLICT_ACTION: 'ignore'
           RETRY_COUNT: '5'
           RETRY_SLEEP: '300'
+
+  autoupdate-on-pr:
+    name: Update PR branch against ${{ github.event.pull_request.base.ref }}
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update PR branch
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api -X PUT "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/update-branch" -f update_method=merge
