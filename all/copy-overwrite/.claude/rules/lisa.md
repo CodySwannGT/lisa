@@ -43,7 +43,8 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `eslint-plugin-code-organization/*`, `eslint-plugin-component-structure/*`, `eslint-plugin-ui-standards/*`
 - `.claude/settings.json`
 - `.claude/README.md`
-- `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml`
+- `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-deploy-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml`
+- `.github/workflows/create-issue-on-failure.yml`, `.github/workflows/create-github-issue-on-failure.yml`, `.github/workflows/create-jira-issue-on-failure.yml`, `.github/workflows/create-sentry-issue-on-failure.yml`
 - `.github/workflows/build.yml`, `.github/workflows/lighthouse.yml` (Expo)
 - `.github/workflows/load-test.yml`, `.github/workflows/zap-baseline.yml` (NestJS)
 - `.github/dependabot.yml`, `.github/GITHUB_ACTIONS.md`, `.github/k6/*`
