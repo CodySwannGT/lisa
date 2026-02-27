@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.46.4](https://github.com/CodySwannGT/lisa/compare/vv1.46.3...v1.46.4) (2026-02-27)
+
+
+### Bug Fixes
+
+* add ./node_modules/.bin/ to allowed tools and minimatch GHSAs to audit ignores ([#211](https://github.com/CodySwannGT/lisa/issues/211)) ([cce554b](https://github.com/CodySwannGT/lisa/commit/cce554bb6e5b8c659406a15439a5b8af0b41ad7f))
+
 ### [1.46.3](https://github.com/CodySwannGT/lisa/compare/vv1.46.2...v1.46.3) (2026-02-26)
 
 
