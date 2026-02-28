@@ -101,6 +101,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
           branch_prefix: claude/nightly-code-complexity-
           prompt: |
             Reduce code complexity thresholds for this project.
@@ -126,4 +127,4 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 30
-            --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Refactor functions to reduce cognitive complexity and lines per function. Use early returns, extract helpers, and lookup tables. Do NOT modify the maxLines threshold. You must update eslint.thresholds.json with the new values after refactoring passes lint."
+            --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Refactor functions to reduce cognitive complexity and lines per function. Use early returns, extract helpers, and lookup tables. Do NOT modify the maxLines threshold. You must update eslint.thresholds.json with the new values after refactoring passes lint. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly."

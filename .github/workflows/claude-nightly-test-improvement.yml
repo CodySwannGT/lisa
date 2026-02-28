@@ -82,6 +82,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
           branch_prefix: claude/nightly-test-improvement-
           prompt: |
             Analyze and improve tests related to recently changed source files.
@@ -109,6 +110,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
           branch_prefix: claude/nightly-test-improvement-
           prompt: |
             Analyze the test suite and improve test quality.
