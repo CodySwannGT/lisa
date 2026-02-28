@@ -93,6 +93,7 @@ jobs:
         continue-on-error: true
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
           prompt: |
             CI failed on branch `${{ github.event.workflow_run.head_branch }}`.
 

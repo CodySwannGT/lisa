@@ -150,6 +150,61 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 
 ---
 
+## Self-Correction Loop
+
+Verification is not a one-shot activity. Agents operate within a four-layer self-correction architecture that catches errors at increasing scope. Each layer is enforced automatically — agents do not need to invoke them manually.
+
+### Layer 1 — Inline Correction (PostToolUse)
+
+**Trigger:** Every `Write` or `Edit` tool call.
+
+**Pipeline:** prettier → ast-grep → eslint (with `--fix --quiet --cache`).
+
+Each hook runs on the single file just written. Errors are reported immediately so the agent can fix them before writing more files. This prevents error accumulation across multiple files.
+
+- **prettier** formats the file (non-blocking — always exits 0).
+- **ast-grep** scans for structural anti-patterns (blocking — exits 1 on violations).
+- **eslint** auto-fixes what it can, then blocks on unfixable errors (exits 2 on remaining errors).
+
+**Agent responsibility:** When a PostToolUse hook blocks, fix the reported errors in the same file before proceeding to other files. Do not accumulate errors.
+
+### Layer 2 — Commit-Time Enforcement (husky pre-commit)
+
+**Trigger:** Every `git commit`.
+
+**Checks:** lint-staged (eslint + prettier on staged files), gitleaks (secret detection), commitlint (conventional commit format), branch protection (no direct commits to environment branches).
+
+This layer catches errors that span multiple files or involve staged-but-not-yet-linted changes. It runs automatically via husky and cannot be bypassed (`--no-verify` is prohibited).
+
+### Layer 3 — Push-Time Enforcement (husky pre-push)
+
+**Trigger:** Every `git push`.
+
+**Checks:** Full test suite with coverage thresholds, typecheck, security audit, knip (unused exports), integration tests.
+
+This layer validates the complete changeset against the project's quality gates. It is the last automated checkpoint before code reaches the remote.
+
+### Layer 4 — Completion Enforcement (Stop hook)
+
+**Trigger:** Agent attempts to stop or finish a task.
+
+**Check:** If `Write` or `Edit` tools were used during the session, the agent must have declared a verification level (`FULLY VERIFIED`, `PARTIALLY VERIFIED`, or `UNVERIFIED`) in its final message.
+
+If no verification level is declared, the Stop hook blocks once with instructions. On retry, it allows the stop to prevent infinite loops.
+
+**Agent responsibility:** Before finishing any task that involved code changes, run verification and declare the result with evidence.
+
+### Regeneration Over Patching
+
+When the root cause of errors is architectural (wrong abstraction, incorrect data flow, fundamentally broken approach), delete and regenerate rather than incrementally patching. Incremental patches on a broken foundation accumulate tech debt faster than the self-correction loop can catch it.
+
+Signs that regeneration is needed:
+- The same file has been edited 3+ times in the same loop without converging
+- Fixing one error introduces another in the same file
+- The fix requires disabling a lint rule or adding a type assertion
+
+---
+
 ## End-User Verification Patterns
 
 Agents must choose the pattern that fits the task.
