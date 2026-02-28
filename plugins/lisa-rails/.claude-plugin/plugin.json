@@ -1,0 +1,6 @@
+{
+  "name": "lisa-rails",
+  "version": "1.0.0",
+  "description": "Claude Code governance plugin for Ruby on Rails projects — includes all universal skills, agents, hooks, and rules from Lisa plus Rails-specific tooling (ActionController, ActionView, ActiveRecord)",
+  "author": "Cody Swann"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "lisa-nestjs",
+  "version": "1.0.0",
+  "description": "Claude Code governance plugin for NestJS/GraphQL projects — includes all universal skills, agents, hooks, and rules from Lisa plus NestJS-specific tooling (GraphQL, TypeORM, security scanning)",
+  "author": "Cody Swann"
+}

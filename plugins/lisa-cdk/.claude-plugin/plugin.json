@@ -1,0 +1,6 @@
+{
+  "name": "lisa-cdk",
+  "version": "1.0.0",
+  "description": "Claude Code governance plugin for AWS CDK projects — includes all universal skills, agents, hooks, and rules from Lisa plus TypeScript tooling",
+  "author": "Cody Swann"
+}
