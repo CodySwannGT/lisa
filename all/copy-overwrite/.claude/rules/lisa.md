@@ -51,3 +51,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `lighthouserc.js`, `.mcp.json`, `.easignore.extra` (Expo)
 - `scripts/zap-baseline.sh`, `.zap/*`
 - `ast-grep/*`
+- `.claude/skills/jira-fix/*`, `.claude/skills/jira-implement/*`
+- `.claude/skills/jira-journey/*`, `.claude/skills/jira-add-journey/*`, `.claude/skills/jira-evidence/*`
+- `.claude/commands/jira/fix.md`, `.claude/commands/jira/implement.md`
+- `.claude/commands/jira/journey.md`, `.claude/commands/jira/add-journey.md`, `.claude/commands/jira/evidence.md`
