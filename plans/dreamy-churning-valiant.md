@@ -1,233 +1,492 @@
-# Lisa → Distributable Claude Plugins
+# Lisa Plugins — Phase 2 & 3: Wire CLI + Cleanup
 
 ## Context
 
-Lisa currently works as a **CLI that deploys files into downstream projects** — copying `.claude/` directories (skills, agents, hooks, rules, commands) plus config files (ESLint, tsconfig, GitHub workflows, package.json governance) on every `lisa` run.
+Phase 1 is complete: 5 plugins (`plugins/lisa-typescript`, `plugins/lisa-expo`, `plugins/lisa-nestjs`, `plugins/lisa-cdk`, `plugins/lisa-rails`) have been built and a self-hosted marketplace is registered at `.claude-plugin/marketplace.json` (marketplace name: `lisa`). Skills are accessible as `/lisa:skill-name`.
 
-Claude Code's new plugin system offers a better distribution mechanism for the `.claude/` portions: instead of Lisa *pushing* files into projects, projects can *pull* functionality by installing plugins. This eliminates the file-copy maintenance burden, enables independent versioning per capability domain, and allows teams to compose only what they need.
+Phase 2 wires the CLI so downstream projects automatically get the right plugin when they run `lisa:update`, and cleans up the old `.claude/` template content that the plugins now replace. Phase 3 updates documentation to reflect the new architecture.
 
-**The key architectural shift:**
-- **Lisa CLI (remains)** → deploys project-level config files only: ESLint, tsconfig, package.json governance, GitHub workflows, prettier, commitlint
-- **Lisa Plugins (new)** → replaces `.claude/` deployment: skills, agents, hooks, rules
+**Architectural shift being finalized:**
+- Before: Lisa CLI pushes agents, skills, hooks, commands as files into `.claude/`
+- After: Lisa CLI deploys only config files + registers the plugin marketplace in `settings.json`; Claude Code installs plugins automatically
 
 ---
 
-## Plugin Structure (per the spec)
+## Phase 2: Wire CLI + Clean Templates
 
-Each plugin directory needs:
+### Step 1 — Move plugin hooks into plugin.json (all 5 plugins)
+
+Per the Claude Code plugin spec, hook configuration belongs in `plugin.json` under a top-level `hooks` key. The `hooks/hooks.json` files are our own convention and are not automatically loaded.
+
+For each plugin, copy the `hooks` object from `hooks/hooks.json` into `.claude-plugin/plugin.json`, then delete `hooks/hooks.json`.
+
+**Files to modify (5x plugin.json):**
+
+- `plugins/lisa-typescript/.claude-plugin/plugin.json` — add `hooks` key from `plugins/lisa-typescript/hooks/hooks.json`
+- `plugins/lisa-expo/.claude-plugin/plugin.json` — add `hooks` key from `plugins/lisa-expo/hooks/hooks.json`
+- `plugins/lisa-nestjs/.claude-plugin/plugin.json` — add `hooks` key from `plugins/lisa-nestjs/hooks/hooks.json`
+- `plugins/lisa-cdk/.claude-plugin/plugin.json` — add `hooks` key from `plugins/lisa-cdk/hooks/hooks.json`
+- `plugins/lisa-rails/.claude-plugin/plugin.json` — add `hooks` key from `plugins/lisa-rails/hooks/hooks.json`
+
+**Files to delete (5x hooks.json):**
+- `plugins/lisa-typescript/hooks/hooks.json`
+- `plugins/lisa-expo/hooks/hooks.json`
+- `plugins/lisa-nestjs/hooks/hooks.json`
+- `plugins/lisa-cdk/hooks/hooks.json`
+- `plugins/lisa-rails/hooks/hooks.json`
+
+**Resulting plugin.json structure for typescript (same pattern for all stacks):**
+
+```json
+{
+  "name": "typescript",
+  "version": "1.0.0",
+  "description": "Claude Code governance plugin for TypeScript projects — includes all universal skills, agents, hooks, and rules from Lisa plus TypeScript-specific tooling",
+  "author": "Cody Swann",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "find ${CLAUDE_PLUGIN_ROOT}/rules -name '*.md' -exec cat {} \\;"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-plan-rules.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/format-on-edit.sh" },
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh" },
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/lint-on-edit.sh" }
+        ]
+      },
+      {
+        "matcher": "TaskCreate|TaskUpdate",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sync-tasks.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verify-completion.sh" }] },
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-tired-boss.sh" }] },
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh" }] }
+    ],
+    "SessionStart": [
+      { "matcher": "startup", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh" }] },
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh" }] }
+    ]
+  }
+}
 ```
-lisa-<stack>/
-├── .claude-plugin/
-│   └── plugin.json        # name, version, description, author
-├── commands/              # User-facing slash commands (pass-through to skills)
-├── skills/                # SKILL.md implementations
-├── agents/                # Agent definitions
-├── rules/                 # Plain markdown files (not Claude-recognized, read via hook)
-│   ├── coding-philosophy.md
-│   └── verfication.md
-└── hooks/
-    └── hooks.json         # Hook event handlers (includes UserPromptSubmit to inject rules)
+
+---
+
+### Step 2 — Update settings.json templates
+
+All `$CLAUDE_PROJECT_DIR/.claude/hooks/*.sh` references are removed from `settings.json` (plugins handle them). Keep only: inline commands, `entire` CLI integrations, attribution, env, permissions, plansDirectory. Add `extraKnownMarketplaces` and the stack-specific `enabledPlugins` entry.
+
+**2a. `all/copy-overwrite/.claude/settings.json`** — update in place:
+
+Changes:
+- Add `"extraKnownMarketplaces": {"CodySwannGT/lisa": true}` after `enabledPlugins`
+- Strip all hooks that reference `$CLAUDE_PROJECT_DIR/.claude/hooks/` (format-on-edit, sg-scan-on-edit, lint-on-edit, sync-tasks, verify-completion, check-tired-boss, notify-ntfy, install-pkgs, setup-jira-cli, enforce-plan-rules, debug-hook)
+- Strip `Notification`, `PermissionRequest`, `PostToolUseFailure`, `PreCompact`, `Setup`, `SubagentStart`, `SubagentStop` hook events entirely (only had debug-hook refs)
+- Keep: inline `echo 'REMINDER...'` in UserPromptSubmit, all `entire` CLI hooks
+- Resulting hooks: UserPromptSubmit (echo + entire), PostToolUse (entire Task/TodoWrite), PreToolUse (entire Task), SessionEnd (entire), SessionStart (entire), Stop (entire)
+
+**2b. `typescript/copy-overwrite/.claude/settings.json`** — same changes as 2a, plus:
+- Add `"typescript@lisa": true` to `enabledPlugins`
+
+**2c–2f. Create 4 new settings.json files** (copy cleaned `all/` version, add stack plugin):
+
+- `expo/copy-overwrite/.claude/settings.json` — include sentry plugin, add `"expo@lisa": true`
+- `nestjs/copy-overwrite/.claude/settings.json` — include sentry plugin, add `"nestjs@lisa": true`
+- `cdk/copy-overwrite/.claude/settings.json` — include sentry plugin, add `"cdk@lisa": true`
+- `rails/copy-overwrite/.claude/settings.json` — include sentry plugin, add `"rails@lisa": true`
+
+**Target settings.json shape (all/ base, no stack plugin yet):**
+
+```json
+{
+  "attribution": {
+    "commit": "🤖 Generated with Claude Code\n\nCo-Authored-By: Claude",
+    "pr": "🤖 Generated with Claude Code"
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "safety-net@cc-marketplace": true,
+    "code-simplifier@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "coderabbit@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "CodySwannGT/lisa": true
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "1800000",
+    "BASH_MAX_TIMEOUT_MS": "7200000",
+    "CLAUDE_DEBUG": "0",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true" }]
+      },
+      {
+        "matcher": "TodoWrite",
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true" }]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true" }]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true" }]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true" }]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true" }]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'REMINDER: Start your response with \"I'\\''m tired boss\" as required by CLAUDE.md.'"
+          },
+          {
+            "type": "command",
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": ["Read(./.entire/metadata/**)"]
+  },
+  "plansDirectory": "./plans"
+}
 ```
 
-Skills are namespaced: `/lisa-typescript:git-commit` instead of `/git:commit`.
+---
 
-**Rules injection pattern** — since plugins have no `rules/` concept, a `UserPromptSubmit` hook reads the files from `${CLAUDE_PLUGIN_ROOT}/rules/` and outputs their contents, which Claude receives as context before processing every prompt. This replicates the auto-load behavior of `.claude/rules/*.md`.
+### Step 3 — Update deletions.json files
+
+These entries tell the Lisa CLI to clean up old files from downstream projects on next `lisa:update`.
+
+**3a. `all/deletions.json`** — append to existing `paths` array:
+
+```
+Agents (16):
+  .claude/agents/agent-architect.md
+  .claude/agents/architecture-specialist.md
+  .claude/agents/debug-specialist.md
+  .claude/agents/git-history-analyzer.md
+  .claude/agents/hooks-expert.md
+  .claude/agents/implementer.md
+  .claude/agents/learner.md
+  .claude/agents/performance-specialist.md
+  .claude/agents/product-specialist.md
+  .claude/agents/quality-specialist.md
+  .claude/agents/security-specialist.md
+  .claude/agents/skill-evaluator.md
+  .claude/agents/slash-command-architect.md
+  .claude/agents/test-specialist.md
+  .claude/agents/verification-specialist.md
+  .claude/agents/web-search-researcher.md
+
+Command directories (9):
+  .claude/commands/git
+  .claude/commands/jira
+  .claude/commands/lisa
+  .claude/commands/plan
+  .claude/commands/plans
+  .claude/commands/pull-request
+  .claude/commands/security
+  .claude/commands/sonarqube
+  .claude/commands/tasks
+
+Skill directories (30):
+  .claude/skills/agent-design-best-practices
+  .claude/skills/git-commit
+  .claude/skills/git-commit-and-submit-pr
+  .claude/skills/git-commit-submit-pr-and-verify
+  .claude/skills/git-commit-submit-pr-deploy-and-verify
+  .claude/skills/git-prune
+  .claude/skills/git-submit-pr
+  .claude/skills/jira-add-journey
+  .claude/skills/jira-create
+  .claude/skills/jira-evidence
+  .claude/skills/jira-fix
+  .claude/skills/jira-implement
+  .claude/skills/jira-journey
+  .claude/skills/jira-sync
+  .claude/skills/jira-verify
+  .claude/skills/lisa-review-implementation
+  .claude/skills/plan-add-test-coverage
+  .claude/skills/plan-execute
+  .claude/skills/plan-fix-linter-error
+  .claude/skills/plan-local-code-review
+  .claude/skills/plan-lower-code-complexity
+  .claude/skills/plan-reduce-max-lines
+  .claude/skills/plan-reduce-max-lines-per-function
+  .claude/skills/pull-request-review
+  .claude/skills/security-zap-scan
+  .claude/skills/skill-creator
+  .claude/skills/sonarqube-check
+  .claude/skills/sonarqube-fix
+  .claude/skills/tasks-load
+  .claude/skills/tasks-sync
+
+Hook scripts (9):
+  .claude/hooks/check-tired-boss.sh
+  .claude/hooks/debug-hook.sh
+  .claude/hooks/enforce-plan-rules.sh
+  .claude/hooks/notify-ntfy.sh
+  .claude/hooks/setup-jira-cli.sh
+  .claude/hooks/sync-tasks.sh
+  .claude/hooks/ticket-sync-reminder.sh
+  .claude/hooks/track-plan-sessions.sh
+  .claude/hooks/verify-completion.sh
+
+Rules (2):
+  .claude/rules/coding-philosophy.md
+  .claude/rules/verfication.md
+```
+
+**3b. `typescript/deletions.json`** — append to existing 2-entry `paths` array:
+
+```
+  .claude/hooks/format-on-edit.sh
+  .claude/hooks/install-pkgs.sh
+  .claude/hooks/lint-on-edit.sh
+  .claude/hooks/sg-scan-on-edit.sh
+  .claude/skills/jira-add-journey
+  .claude/skills/jira-create
+  .claude/skills/jira-evidence
+  .claude/skills/jira-journey
+  .claude/skills/jira-verify
+  .claude/skills/jsdoc-best-practices
+```
+
+**3c. Create `expo/deletions.json`:**
+
+```json
+{
+  "paths": [
+    ".claude/agents/ops-specialist.md",
+    ".claude/rules/expo-verification.md",
+    ".claude/skills/apollo-client",
+    ".claude/skills/atomic-design-gluestack",
+    ".claude/skills/container-view-pattern",
+    ".claude/skills/cross-platform-compatibility",
+    ".claude/skills/directory-structure",
+    ".claude/skills/expo-env-config",
+    ".claude/skills/expo-router-best-practices",
+    ".claude/skills/gluestack-nativewind",
+    ".claude/skills/jira-add-journey",
+    ".claude/skills/jira-create",
+    ".claude/skills/jira-evidence",
+    ".claude/skills/jira-journey",
+    ".claude/skills/jira-verify",
+    ".claude/skills/local-state",
+    ".claude/skills/ops-browser-uat",
+    ".claude/skills/ops-check-logs",
+    ".claude/skills/ops-db-ops",
+    ".claude/skills/ops-deploy",
+    ".claude/skills/ops-monitor-errors",
+    ".claude/skills/ops-performance",
+    ".claude/skills/ops-run-local",
+    ".claude/skills/ops-verify-health",
+    ".claude/skills/owasp-zap",
+    ".claude/skills/playwright-selectors",
+    ".claude/skills/testing-library"
+  ]
+}
+```
+
+Note: Verify full expo skills list during implementation (`ls expo/copy-overwrite/.claude/skills/`) — the ls was truncated at 25 lines.
+
+**3d. Create `nestjs/deletions.json`:**
+
+```json
+{
+  "paths": [
+    ".claude/skills/nestjs-graphql",
+    ".claude/skills/nestjs-rules",
+    ".claude/skills/security-zap-scan",
+    ".claude/skills/typeorm-patterns"
+  ]
+}
+```
+
+**3e. `rails/deletions.json`** — append to existing 1-entry `paths` array:
+
+```
+  .claude/skills/action-controller-best-practices
+  .claude/skills/action-view-best-practices
+  .claude/skills/active-record-model-best-practices
+  .claude/skills/plan-add-test-coverage
+  .claude/skills/plan-fix-linter-error
+  .claude/skills/plan-lower-code-complexity
+  .claude/skills/plan-reduce-max-lines
+  .claude/skills/plan-reduce-max-lines-per-function
+```
+
+Also check if `rails/copy-overwrite/.claude/rules/` has files and add deletion entries for them.
+
+**Note on CDK:** CDK has no `.claude/` content in its template directory — skip.
 
 ---
 
-## Recommended Plugin Breakdown
+### Step 4 — Delete template content
 
-### Bundled Stack Approach: One plugin per stack, each self-contained
+Remove the following from template directories (they now live in plugins):
 
-Each stack plugin includes everything from `all/` (git, plan, JIRA, quality, agents, hooks) **plus** its stack-specific content. Teams install exactly one plugin. No dependency management, no install order.
+**From `all/copy-overwrite/.claude/`:**
+- Delete `agents/` directory entirely (16 .md files)
+- Delete `commands/` directory entirely (9 subdirs, all .md files)
+- Delete `skills/` directory entirely (30 skill dirs)
+- Delete `hooks/*.sh` — all 9 shell scripts (keep `hooks/README.md`)
+- Delete `rules/coding-philosophy.md`
+- Delete `rules/verfication.md`
 
----
+**From `typescript/copy-overwrite/.claude/`:**
+- Delete `hooks/` directory entirely (4 scripts: format-on-edit.sh, install-pkgs.sh, lint-on-edit.sh, sg-scan-on-edit.sh)
+- Delete `skills/` directory entirely (6 dirs: jira-add-journey, jira-create, jira-evidence, jira-journey, jira-verify, jsdoc-best-practices)
 
-### Plugin 1: `lisa-typescript`
+**From `expo/copy-overwrite/.claude/`:**
+- Delete `agents/` directory entirely (ops-specialist.md + any others)
+- Delete `skills/` directory entirely (25+ dirs)
+- Delete `rules/expo-verification.md`
 
-**What:** Everything a TypeScript project needs — all universal skills/agents/hooks from `all/` + TypeScript-specific content.
+**From `nestjs/copy-overwrite/.claude/`:**
+- Delete `skills/` directory entirely (4 dirs)
 
-**Source directories:**
-- `all/copy-overwrite/.claude/` → full merge into plugin
-- `typescript/copy-overwrite/.claude/` → merged on top (stack-specific overrides)
-
-**Agents:** All 16 specialist agents (implementer, quality-specialist, security-specialist, test-specialist, product-specialist, debug-specialist, performance-specialist, architecture-specialist, git-history-analyzer, web-search-researcher, skill-evaluator, learner, agent-architect, hooks-expert, slash-command-architect, verification-specialist)
-
-**Skills (namespaced `/lisa-typescript:*`):**
-- git: commit, submit-pr, commit-and-submit-pr, prune, + full PR verify workflows
-- jira: create, fix, implement, verify, journey, add-journey, evidence, sync
-- plan: execute, local-code-review, add-test-coverage, fix-linter-error, reduce-max-lines, reduce-max-lines-per-function, lower-code-complexity
-- quality: sonarqube-check, sonarqube-fix, zap-scan, mutation-testing
-- misc: pull-request-review, tasks-load, tasks-sync, skill-creator, jsdoc-best-practices, claude-code-action
-
-**Hooks:**
-- `PostToolUse[Write|Edit]`: lint-on-edit, format-on-edit, sg-scan-on-edit
-- `Stop`: verify-completion
-- `UserPromptSubmit`: check-tired-boss (if applicable)
-- `SessionStart`: setup-jira-cli
-- `PostToolUse`: ticket-sync-reminder, track-plan-sessions, enforce-plan-rules, notify-ntfy, sync-tasks
+**From `rails/copy-overwrite/.claude/`:**
+- Delete `skills/` directory entirely (8 dirs)
+- Check if `rules/` has files and delete them too
 
 ---
 
-### Plugin 2: `lisa-expo`
+## Phase 3: Documentation Cleanup
 
-**What:** Everything a React Native/Expo project needs — all universal content + Expo-specific skills, Playwright/Maestro agents, Expo verification rules.
+### Step 5 — Update lisa.md template
 
-**Source directories:**
-- `all/copy-overwrite/.claude/` → full merge
-- `expo/copy-overwrite/.claude/` → merged on top
+**File:** `all/copy-overwrite/.claude/rules/lisa.md`
 
-**Additional agents:** Playwright agent, React Native agent (from `expo/copy-overwrite/.claude/agents/`)
+Changes:
+1. Remove the "Directories with both Lisa-managed and project content" section — `.claude/skills/`, `.claude/agents/`, `.claude/hooks/`, `.claude/commands/` are no longer managed by Lisa CLI
+2. Remove the skill/agent/hook/command-specific entries from "Files and directories with NO local override" section
+3. Add a new "Plugin-managed content" section explaining that agents, skills, hooks, and commands are now distributed via the stack plugin (e.g., `typescript@lisa`) and update automatically from the Lisa GitHub repo
 
-**Additional skills (on top of typescript bundle):**
-- Expo-specific: Apollo Client patterns, Gluestack UI, Expo Router, Env Config, ops tools, Playwright verification helpers
+### Step 6 — Update .lisa-manifest
 
-**Additional hooks:** Expo-specific hooks from `expo/copy-overwrite/.claude/hooks/`
+**File:** `.lisa-manifest` (in Lisa repo root)
 
-**Note on rules:** `expo/copy-overwrite/.claude/rules/expo-verification.md` is embedded into the Playwright agent's system prompt since plugins have no `rules/` mechanism.
+Remove all entries for paths being deleted from templates:
+- All 16 agent paths
+- All command paths (git/, jira/, etc.)
+- All 30+ skill directory paths (from all/)
+- All 10+ typescript-specific skill paths
+- All 25+ expo-specific paths
+- All nestjs/rails skill paths
+- All hook script paths from all/ and typescript/
+- `coding-philosophy.md`, `verfication.md`, `expo-verification.md` entries
 
----
-
-### Plugin 3: `lisa-nestjs`
-
-**What:** Everything a NestJS/GraphQL backend needs.
-
-**Source directories:**
-- `all/copy-overwrite/.claude/` → full merge
-- `nestjs/copy-overwrite/.claude/` → merged on top
-
-**Additional content:** NestJS/GraphQL patterns, TypeORM skills, NestJS-specific agents
+Do this by reading `.lisa-manifest` and removing lines that match the deleted paths. The manifest is a plain text file listing relative paths.
 
 ---
 
-### Plugin 4: `lisa-cdk`
+## Verification
 
-**What:** Everything an AWS CDK project needs.
+After implementation, verify:
 
-**Source directories:**
-- `all/copy-overwrite/.claude/` → full merge
-- `cdk/copy-overwrite/.claude/` → merged on top
+```bash
+# 1. No hooks.json files remain in plugins
+ls plugins/*/hooks/hooks.json 2>&1  # should show "no such file" for all
 
----
+# 2. All plugin.json files have hooks key
+cat plugins/lisa-typescript/.claude-plugin/plugin.json | python3 -c "import json,sys; d=json.load(sys.stdin); print('hooks' in d)"  # should print True
 
-### Plugin 5: `lisa-rails`
+# 3. settings.json has extraKnownMarketplaces
+cat all/copy-overwrite/.claude/settings.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('extraKnownMarketplaces'))"  # should print marketplace
 
-**What:** Everything a Ruby on Rails project needs.
+# 4. Template dirs no longer have agents/skills/hooks/commands
+ls all/copy-overwrite/.claude/  # should only show: rules/ settings.json README.md (no agents, commands, skills, hooks)
 
-**Source directories:**
-- `all/copy-overwrite/.claude/` → full merge
-- `rails/copy-overwrite/.claude/` → merged on top
+# 5. TypeScript enabledPlugins includes typescript@lisa
+cat typescript/copy-overwrite/.claude/settings.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['enabledPlugins'])"  # should include typescript@lisa
 
-**Additional content:** ActionController, ActionView, ActiveRecord skills; Rails-specific plan commands
+# 6. Run quality checks
+bun run typecheck
+bun run lint
+bun run test
+```
 
----
+## Critical Files
 
-## What Lisa CLI Continues to Manage
-
-The CLI (`src/`) becomes a thin wrapper responsible for:
-
-1. **Config file deployment** (everything outside `.claude/`):
-   - ESLint config files (`eslint.config.ts`, `eslint.base.ts`, stack-specific configs)
-   - Jest configs, tsconfig files
-   - `package.json` governance (force/defaults/merge via `package.lisa.json`)
-   - GitHub Actions workflows
-   - `.prettierrc.json`, `.lintstagedrc.json`, `commitlint.config.cjs`
-   - `.gitleaksignore`, `.coderabbit.yml`, `.yamllint`, etc.
-   - `ast-grep/*` rules
-   - Manifest tracking (`.lisa-manifest`)
-   - `coding-philosophy.md` and `verfication.md` as `copy-overwrite` (rules can't be pluginized)
-
-2. **Auto-installing the right plugin** after config deployment:
-   ```bash
-   claude plugin install lisa-typescript --scope project   # for TypeScript stack
-   claude plugin install lisa-expo --scope project          # for Expo stack
-   # etc.
-   ```
-
-The `all/`, `typescript/`, `expo/` etc. stack directories **still exist** in Lisa for deploying config files — but their `.claude/` subdirectories are removed (plugins handle that now), except for `rules/*.md` files.
-
----
-
-## Migration Strategy
-
-### Phase 1: Build plugins alongside existing deployment (no breaking changes)
-1. Create plugin directories in a new `plugins/` top-level directory in Lisa repo:
-   ```
-   plugins/
-   ├── lisa-typescript/
-   │   ├── .claude-plugin/plugin.json
-   │   ├── agents/
-   │   ├── skills/
-   │   ├── hooks/
-   │   └── commands/
-   ├── lisa-expo/
-   ├── lisa-nestjs/
-   ├── lisa-cdk/
-   └── lisa-rails/
-   ```
-2. Publish each plugin to a marketplace (GitHub-based or Anthropic official)
-3. Test against downstream projects using `claude --plugin-dir`
-
-### Phase 2: Wire CLI to auto-install plugins
-1. Add `claude plugin install <detected-stack> --scope project` call to `src/core/lisa.ts` post-deployment
-2. Update `deletions.json` for each stack to remove the old `.claude/` managed files (except `rules/`)
-3. Remove `.claude/` subtrees from `all/`, `typescript/`, `expo/`, etc. stack template directories
-
-### Phase 3: Plugin-only distribution
-1. `lisa` CLI handles only config files + plugin install trigger
-2. Plugin versions independently managed (bump `plugin.json` version to push updates to all users)
-3. Downstream projects benefit from plugin updates without needing to re-run `lisa`
-
----
-
-## Key Naming Changes
-
-All skills are namespaced under their stack plugin name. The namespace is the same regardless of stack (typescript, expo, etc. all use the same skill names, just different namespace prefix):
-
-| Current (standalone)          | Plugin equivalent (TypeScript) |
-|-------------------------------|-------------------------------|
-| `/jira:create`                | `/lisa-typescript:jira-create` |
-| `/git:commit`                 | `/lisa-typescript:git-commit` |
-| `/plan:execute`               | `/lisa-typescript:plan-execute` |
-| `/sonarqube:check`            | `/lisa-typescript:sonarqube-check` |
-| `/mutation-testing:run`       | `/lisa-typescript:mutation-testing` |
-
-> **Note:** Skill names within the plugin use hyphen-separated names (e.g., `jira-create`), not colon-separated (e.g., `jira:create`), since the colon is reserved for the namespace separator.
-
----
-
-## Benefits of the Plugin Approach
-
-1. **No file drift** — downstream projects don't get stale copies; plugin updates are immediate
-2. **Independent versioning** — can update `lisa-jira` to `2.0` without touching `lisa-git`
-3. **Composable** — teams install only the plugins they need (`lisa-core` + `lisa-git` for a simple TypeScript project)
-4. **Marketplace distribution** — submit to Anthropic's official marketplace; installable with `/plugin install`
-5. **Elimination of the manifest** — `.lisa-manifest` was needed to track deployed `.claude/` files; plugins remove this complexity
-6. **Faster adoption** — new projects run one command to install a plugin instead of running the `lisa` CLI
-
-## Resolved Questions
-
-1. **Rules/documentation** — Solved via `UserPromptSubmit` hook. Store rule files at `${CLAUDE_PLUGIN_ROOT}/rules/` (just a plain directory, not a Claude-recognized location) and use a hook to inject them into every prompt:
-   ```json
-   {
-     "hooks": {
-       "UserPromptSubmit": [
-         {
-           "hooks": [
-             {
-               "type": "command",
-               "command": "find ${CLAUDE_PLUGIN_ROOT}/rules -name '*.md' -exec cat {} \\;"
-             }
-           ]
-         }
-       ]
-     }
-   }
-   ```
-   This is functionally identical to `.claude/rules/` auto-loading. The hook fires before every prompt, Claude sees all rule files as injected context. Adding a new `.md` file to `rules/` in the plugin automatically gets picked up — no hook changes needed. Lisa CLI no longer needs to deploy `coding-philosophy.md` or `verfication.md` as `copy-overwrite` files.
-
-2. **Plugin dependencies** — Resolved by the bundled approach: no inter-plugin dependencies since each stack plugin is self-contained.
-
-3. **Lisa CLI role** — Thin wrapper: deploy config files + auto-install the detected stack plugin.
-
-4. **Hooks with credentials** — `setup-jira-cli.sh` and similar hooks that need env vars will document required secrets in plugin README and in the SKILL.md for the relevant skill.
+| File | Change |
+|---|---|
+| `plugins/lisa-*/` `.claude-plugin/plugin.json` | Add `hooks` key (5 files) |
+| `plugins/lisa-*/hooks/hooks.json` | Delete (5 files) |
+| `all/copy-overwrite/.claude/settings.json` | Add marketplace, strip hook refs |
+| `typescript/copy-overwrite/.claude/settings.json` | Same + add typescript@lisa |
+| `expo/copy-overwrite/.claude/settings.json` | Create new with expo@lisa |
+| `nestjs/copy-overwrite/.claude/settings.json` | Create new with nestjs@lisa |
+| `cdk/copy-overwrite/.claude/settings.json` | Create new with cdk@lisa |
+| `rails/copy-overwrite/.claude/settings.json` | Create new with rails@lisa |
+| `all/deletions.json` | Add ~66 new paths |
+| `typescript/deletions.json` | Add 10 new paths |
+| `expo/deletions.json` | Create new (27+ paths) |
+| `nestjs/deletions.json` | Create new (4 paths) |
+| `rails/deletions.json` | Add 8 paths |
+| `all/copy-overwrite/.claude/agents/` | Delete directory |
+| `all/copy-overwrite/.claude/commands/` | Delete directory |
+| `all/copy-overwrite/.claude/skills/` | Delete directory |
+| `all/copy-overwrite/.claude/hooks/*.sh` | Delete 9 scripts |
+| `all/copy-overwrite/.claude/rules/coding-philosophy.md` | Delete |
+| `all/copy-overwrite/.claude/rules/verfication.md` | Delete |
+| `typescript/copy-overwrite/.claude/hooks/` | Delete directory |
+| `typescript/copy-overwrite/.claude/skills/` | Delete directory |
+| `expo/copy-overwrite/.claude/agents/` | Delete directory |
+| `expo/copy-overwrite/.claude/skills/` | Delete directory |
+| `expo/copy-overwrite/.claude/rules/expo-verification.md` | Delete |
+| `nestjs/copy-overwrite/.claude/skills/` | Delete directory |
+| `rails/copy-overwrite/.claude/skills/` | Delete directory |
+| `all/copy-overwrite/.claude/rules/lisa.md` | Update content |
+| `.lisa-manifest` | Remove deleted path entries |
