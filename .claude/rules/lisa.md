@@ -16,7 +16,6 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `.claude/rules/PROJECT_RULES.md`
 - `eslint.thresholds.json`
 - `jest.thresholds.json`
-- `audit.ignore.local.json`
 
 ## Directories with both Lisa-managed and project content
 
@@ -36,7 +35,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`, `.claude/rules/expo-verification.md` (Expo)
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
-- `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`, `audit.ignore.config.json`
+- `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
 - `eslint.base.ts`, `eslint.typescript.ts`, `eslint.expo.ts`, `eslint.nestjs.ts`, `eslint.cdk.ts`, `eslint.slow.config.ts`
 - `jest.base.ts`, `jest.typescript.ts`, `jest.expo.ts`, `jest.nestjs.ts`, `jest.cdk.ts`
 - `tsconfig.base.json`, `tsconfig.typescript.json`, `tsconfig.expo.json`, `tsconfig.nestjs.json`, `tsconfig.cdk.json`
@@ -52,3 +51,7 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `lighthouserc.js`, `.mcp.json`, `.easignore.extra` (Expo)
 - `scripts/zap-baseline.sh`, `.zap/*`
 - `ast-grep/*`
+- `.claude/skills/jira-fix/*`, `.claude/skills/jira-implement/*`
+- `.claude/skills/jira-journey/*`, `.claude/skills/jira-add-journey/*`, `.claude/skills/jira-evidence/*`
+- `.claude/commands/jira/fix.md`, `.claude/commands/jira/implement.md`
+- `.claude/commands/jira/journey.md`, `.claude/commands/jira/add-journey.md`, `.claude/commands/jira/evidence.md`

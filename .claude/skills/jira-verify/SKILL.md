@@ -24,6 +24,25 @@ Verify description adequately addresses:
 **Developers**: Technical context, integration points, testing, edge cases
 **Stakeholders**: Business value, user impact, success metrics, summary
 
+### 3. Validation Journey
+
+**Rule**: Tickets that change runtime behavior MUST include a Validation Journey section.
+
+Check by running:
+
+```bash
+python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID> 2>&1
+```
+
+- If the parser returns steps: PASS
+- If the parser fails with "No 'Validation Journey' section found": FAIL — recommend using `/jira-add-journey <TICKET_ID>` to add one
+
+This check is skipped for:
+- Documentation-only tickets
+- Config-only tickets (env vars, CI/CD, feature flags)
+- Type-definition-only tickets (no runtime effect)
+- Epic-level tickets (journeys belong on child stories/tasks)
+
 ## Execute Verification
 
-Retrieve ticket details, run both checks, and provide specific improvement recommendations for any failures.
+Retrieve ticket details, run all checks, and provide specific improvement recommendations for any failures.

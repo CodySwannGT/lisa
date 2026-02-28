@@ -1,6 +1,6 @@
 # Lisa manifest - DO NOT EDIT
-# Generated: 2026-02-16T12:06:51.853Z
-# Lisa version: 1.41.0
+# Generated: 2026-02-28T15:24:47.864Z
+# Lisa version: 1.47.1
 # Lisa directory: /Users/cody/workspace/lisa
 
 copy-overwrite:.DS_Store
@@ -27,7 +27,12 @@ copy-overwrite:.claude/commands/git/commit-submit-pr-deploy-and-verify.md
 copy-overwrite:.claude/commands/git/commit.md
 copy-overwrite:.claude/commands/git/prune.md
 copy-overwrite:.claude/commands/git/submit-pr.md
+copy-overwrite:.claude/commands/jira/add-journey.md
 copy-overwrite:.claude/commands/jira/create.md
+copy-overwrite:.claude/commands/jira/evidence.md
+copy-overwrite:.claude/commands/jira/fix.md
+copy-overwrite:.claude/commands/jira/implement.md
+copy-overwrite:.claude/commands/jira/journey.md
 copy-overwrite:.claude/commands/jira/sync.md
 copy-overwrite:.claude/commands/jira/verify.md
 copy-overwrite:.claude/commands/lisa/review-implementation.md
@@ -54,6 +59,7 @@ copy-overwrite:.claude/hooks/setup-jira-cli.sh
 copy-overwrite:.claude/hooks/sync-tasks.sh
 copy-overwrite:.claude/hooks/ticket-sync-reminder.sh
 copy-overwrite:.claude/hooks/track-plan-sessions.sh
+copy-overwrite:.claude/hooks/verify-completion.sh
 copy-overwrite:.claude/rules/coding-philosophy.md
 copy-overwrite:.claude/rules/lisa.md
 copy-overwrite:.claude/rules/verfication.md
@@ -66,7 +72,13 @@ copy-overwrite:.claude/skills/git-commit-submit-pr-and-verify/SKILL.md
 copy-overwrite:.claude/skills/git-commit-submit-pr-deploy-and-verify/SKILL.md
 copy-overwrite:.claude/skills/git-prune/SKILL.md
 copy-overwrite:.claude/skills/git-submit-pr/SKILL.md
+copy-overwrite:.claude/skills/jira-add-journey/SKILL.md
 copy-overwrite:.claude/skills/jira-create/SKILL.md
+copy-overwrite:.claude/skills/jira-evidence/SKILL.md
+copy-overwrite:.claude/skills/jira-evidence/scripts/post-evidence.sh
+copy-overwrite:.claude/skills/jira-fix/SKILL.md
+copy-overwrite:.claude/skills/jira-implement/SKILL.md
+copy-overwrite:.claude/skills/jira-journey/SKILL.md
 copy-overwrite:.claude/skills/jira-sync/SKILL.md
 copy-overwrite:.claude/skills/jira-verify/SKILL.md
 copy-overwrite:.claude/skills/lisa-review-implementation/SKILL.md
@@ -101,9 +113,23 @@ copy-overwrite:.claude/hooks/install-pkgs.sh
 copy-overwrite:.claude/hooks/lint-on-edit.sh
 copy-overwrite:.claude/hooks/sg-scan-on-edit.sh
 copy-overwrite:.claude/settings.json
+copy-overwrite:.claude/skills/jira-add-journey/SKILL.md
+copy-overwrite:.claude/skills/jira-create/SKILL.md
+copy-overwrite:.claude/skills/jira-evidence/SKILL.md
+copy-overwrite:.claude/skills/jira-journey/SKILL.md
+copy-overwrite:.claude/skills/jira-journey/scripts/generate-templates.py
+copy-overwrite:.claude/skills/jira-journey/scripts/parse-plan.py
+copy-overwrite:.claude/skills/jira-verify/SKILL.md
 copy-overwrite:.claude/skills/jsdoc-best-practices/SKILL.md
 copy-overwrite:.github/GITHUB_ACTIONS.md
 copy-overwrite:.github/dependabot.yml
+copy-overwrite:.github/workflows/auto-update-pr-branches.yml
+copy-overwrite:.github/workflows/claude-ci-auto-fix.yml
+copy-overwrite:.github/workflows/claude-code-review-response.yml
+copy-overwrite:.github/workflows/claude-deploy-auto-fix.yml
+copy-overwrite:.github/workflows/claude-nightly-code-complexity.yml
+copy-overwrite:.github/workflows/claude-nightly-test-coverage.yml
+copy-overwrite:.github/workflows/claude-nightly-test-improvement.yml
 copy-overwrite:.github/workflows/claude.yml
 copy-overwrite:.github/workflows/create-github-issue-on-failure.yml
 copy-overwrite:.github/workflows/create-issue-on-failure.yml
@@ -121,6 +147,7 @@ copy-overwrite:.yamllint
 copy-overwrite:ast-grep/rule-tests/.gitkeep
 copy-overwrite:ast-grep/rules/.gitkeep
 copy-overwrite:ast-grep/utils/.gitkeep
+copy-overwrite:audit.ignore.config.json
 copy-overwrite:commitlint.config.cjs
 copy-overwrite:eslint-plugin-code-organization/README.md
 copy-overwrite:eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js
