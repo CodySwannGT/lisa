@@ -4,4 +4,4 @@ argument-hint: "<ticket-url | @file-path | description>"
 ---
 
 
-Use the /lisa-expo:plan-execute skill on $ARGUMENTS
+Use the /lisa:plan-execute skill on $ARGUMENTS

@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<TICKET_ID> [PR_NUMBER]"
 ---
 
-Use the /lisa-nestjs:jira-journey skill to execute the Validation Journey and capture evidence. $ARGUMENTS
+Use the /lisa:jira-journey skill to execute the Validation Journey and capture evidence. $ARGUMENTS

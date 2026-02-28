@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<github-pr-link>"
 ---
 
-Use the /lisa-rails:pull-request-review skill to check for code review comments and implement them. $ARGUMENTS
+Use the /lisa:pull-request-review skill to check for code review comments and implement them. $ARGUMENTS

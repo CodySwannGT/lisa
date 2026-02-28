@@ -3,4 +3,4 @@ description: "Reduce the cognitive complexity threshold by 2 and fix all violati
 allowed-tools: ["Skill"]
 ---
 
-Use the /lisa-expo:plan-lower-code-complexity skill to lower code complexity.
+Use the /lisa:plan-lower-code-complexity skill to lower code complexity.

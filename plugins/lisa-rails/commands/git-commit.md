@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "[commit-message-hint]"
 ---
 
-Use the /lisa-rails:git-commit skill to create conventional commits for current changes. $ARGUMENTS
+Use the /lisa:git-commit skill to create conventional commits for current changes. $ARGUMENTS

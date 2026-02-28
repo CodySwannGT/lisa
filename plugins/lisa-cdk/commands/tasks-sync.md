@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<project-name>"
 ---
 
-Use the /lisa-cdk:tasks-sync skill to sync current session tasks to a project directory. $ARGUMENTS
+Use the /lisa:tasks-sync skill to sync current session tasks to a project directory. $ARGUMENTS

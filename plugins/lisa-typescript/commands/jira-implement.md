@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<TICKET-ID-OR-URL>"
 ---
 
-Use the /lisa-typescript:jira-implement skill to implement the requirements in the JIRA ticket. $ARGUMENTS
+Use the /lisa:jira-implement skill to implement the requirements in the JIRA ticket. $ARGUMENTS

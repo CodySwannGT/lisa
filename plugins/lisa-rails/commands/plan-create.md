@@ -3,4 +3,4 @@ description: "Creates an implementation plan from a ticket URL, file path, or te
 argument-hint: "<ticket-url | @file-path | description>"
 ---
 
-Use the /lisa-rails:plan-execute skill on $ARGUMENTS
+Use the /lisa:plan-execute skill on $ARGUMENTS

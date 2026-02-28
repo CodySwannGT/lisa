@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<max-lines-per-function-value>"
 ---
 
-Use the /lisa-expo:plan-reduce-max-lines-per-function skill to reduce max function lines. $ARGUMENTS
+Use the /lisa:plan-reduce-max-lines-per-function skill to reduce max function lines. $ARGUMENTS

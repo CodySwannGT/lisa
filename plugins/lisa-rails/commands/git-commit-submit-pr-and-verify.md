@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "[commit-message-hint]"
 ---
 
-Use the /lisa-rails:git-commit-submit-pr-and-verify skill on $ARGUMENTS
+Use the /lisa:git-commit-submit-pr-and-verify skill on $ARGUMENTS

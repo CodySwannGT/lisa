@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<ticket-id>"
 ---
 
-Use the /lisa-cdk:jira-sync skill to sync plan progress to the linked JIRA ticket. $ARGUMENTS
+Use the /lisa:jira-sync skill to sync plan progress to the linked JIRA ticket. $ARGUMENTS

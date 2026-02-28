@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<project-name>"
 ---
 
-Use the /lisa-nestjs:tasks-load skill to load tasks from a project directory. $ARGUMENTS
+Use the /lisa:tasks-load skill to load tasks from a project directory. $ARGUMENTS

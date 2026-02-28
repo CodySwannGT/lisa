@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "[lisa-dir]"
 ---
 
-Use the /lisa-expo:lisa-review-implementation skill to compare project files against Lisa templates. $ARGUMENTS
+Use the /lisa:lisa-review-implementation skill to compare project files against Lisa templates. $ARGUMENTS

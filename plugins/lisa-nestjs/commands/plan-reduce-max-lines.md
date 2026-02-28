@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<max-lines-value>"
 ---
 
-Use the /lisa-nestjs:plan-reduce-max-lines skill to reduce max lines. $ARGUMENTS
+Use the /lisa:plan-reduce-max-lines skill to reduce max lines. $ARGUMENTS

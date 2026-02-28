@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<TICKET-ID>"
 ---
 
-Use the /lisa-rails:jira-verify skill to verify the JIRA ticket meets organizational standards. $ARGUMENTS
+Use the /lisa:jira-verify skill to verify the JIRA ticket meets organizational standards. $ARGUMENTS

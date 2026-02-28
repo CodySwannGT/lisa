@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "[commit-message-hint]"
 ---
 
-Use the /lisa-cdk:git-commit-and-submit-pr skill to commit and submit a PR. $ARGUMENTS
+Use the /lisa:git-commit-and-submit-pr skill to commit and submit a PR. $ARGUMENTS

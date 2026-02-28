@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "[commit-message-hint]"
 ---
 
-Use the /lisa-expo:git-commit-submit-pr-deploy-and-verify skill on $ARGUMENTS
+Use the /lisa:git-commit-submit-pr-deploy-and-verify skill on $ARGUMENTS

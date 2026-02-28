@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "[pr-title-or-description-hint]"
 ---
 
-Use the /lisa-expo:git-submit-pr skill to push changes and create or update a pull request. $ARGUMENTS
+Use the /lisa:git-submit-pr skill to push changes and create or update a pull request. $ARGUMENTS

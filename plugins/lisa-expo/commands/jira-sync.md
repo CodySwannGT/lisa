@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<ticket-id>"
 ---
 
-Use the /lisa-expo:jira-sync skill to sync plan progress to the linked JIRA ticket. $ARGUMENTS
+Use the /lisa:jira-sync skill to sync plan progress to the linked JIRA ticket. $ARGUMENTS

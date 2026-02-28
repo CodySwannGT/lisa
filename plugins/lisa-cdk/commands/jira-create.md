@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<file-or-directory-path> [project-key]"
 ---
 
-Use the /lisa-cdk:jira-create skill to create JIRA issues from the provided input. $ARGUMENTS
+Use the /lisa:jira-create skill to create JIRA issues from the provided input. $ARGUMENTS

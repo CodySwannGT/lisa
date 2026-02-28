@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<threshold-percentage>"
 ---
 
-Use the /lisa-expo:plan-add-test-coverage skill to increase test coverage. $ARGUMENTS
+Use the /lisa:plan-add-test-coverage skill to increase test coverage. $ARGUMENTS

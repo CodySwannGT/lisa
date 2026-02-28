@@ -3,4 +3,4 @@ description: "Uses SonarQube / SonarCloud to get the reason that last pull reque
 allowed-tools: ["Skill"]
 ---
 
-Use the /lisa-nestjs:sonarqube-check skill to check why the last PR failed SonarQube quality gates.
+Use the /lisa:sonarqube-check skill to check why the last PR failed SonarQube quality gates.
