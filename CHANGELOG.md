@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.47.1](https://github.com/CodySwannGT/lisa/compare/vv1.47.0...v1.47.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* **workflows:** enable full output and fix review response turn exhaustion ([#213](https://github.com/CodySwannGT/lisa/issues/213)) ([1f021e7](https://github.com/CodySwannGT/lisa/commit/1f021e73f4bf158ca4d71743859afd179b07e2ad))
+
 ## [1.47.0](https://github.com/CodySwannGT/lisa/compare/vv1.46.4...v1.47.0) (2026-02-27)
 
 
