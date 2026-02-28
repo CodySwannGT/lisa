@@ -17,22 +17,23 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `eslint.thresholds.json`
 - `jest.thresholds.json`
 
-## Directories with both Lisa-managed and project content
+## Plugin-managed content
 
-These directories contain files deployed by Lisa **and** files you create. Do not edit or delete Lisa-managed files — they will be overwritten. You **can** freely add your own. Check `.lisa-manifest` to see which specific files Lisa manages.
+Agents, skills, hooks, and commands are now distributed via the stack-specific Claude Code plugin (e.g., `typescript@lisa`, `expo@lisa`, `nestjs@lisa`). These resources live in the Lisa GitHub repository and update automatically when Claude Code syncs the plugin.
 
-- `.claude/skills/` — Add your own skill directories alongside Lisa's
-- `.claude/commands/` — Add your own command namespaces alongside Lisa's
-- `.claude/hooks/` — Add your own hook scripts alongside Lisa's
-- `.claude/agents/` — Add your own agent files alongside Lisa's
+You do not need to manage these files locally. To customize behavior:
+- Add your own agents to `.claude/agents/` alongside plugin-provided ones
+- Add your own skills to `.claude/skills/` alongside plugin-provided ones
+- Add your own hook scripts to `.claude/hooks/` alongside plugin-provided ones
+- Add your own command namespaces to `.claude/commands/` alongside plugin-provided ones
+
+| Managed File (do not edit) | Local Override (edit this instead) |
+|---|---|
 | `eslint.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
 | `jest.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
-| `.claude/rules/coding-philosophy.md` | `.claude/rules/PROJECT_RULES.md` |
-| `.claude/rules/verfication.md` | `.claude/rules/PROJECT_RULES.md` |
 
 ## Files and directories with NO local override (do not edit at all)
 
-- `.claude/rules/coding-philosophy.md`, `.claude/rules/verfication.md`, `.claude/rules/expo-verification.md` (Expo)
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`
 - `.prettierrc.json`, `.prettierignore`, `.lintstagedrc.json`, `.versionrc`, `.nvmrc`
 - `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
@@ -51,7 +52,3 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `lighthouserc.js`, `.mcp.json`, `.easignore.extra` (Expo)
 - `scripts/zap-baseline.sh`, `.zap/*`
 - `ast-grep/*`
-- `.claude/skills/jira-fix/*`, `.claude/skills/jira-implement/*`
-- `.claude/skills/jira-journey/*`, `.claude/skills/jira-add-journey/*`, `.claude/skills/jira-evidence/*`
-- `.claude/commands/jira/fix.md`, `.claude/commands/jira/implement.md`
-- `.claude/commands/jira/journey.md`, `.claude/commands/jira/add-journey.md`, `.claude/commands/jira/evidence.md`
