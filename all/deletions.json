@@ -124,6 +124,7 @@
     ".claude/hooks/ticket-sync-reminder.sh",
     ".claude/hooks/track-plan-sessions.sh",
     ".claude/hooks/verify-completion.sh",
+    ".claude/hooks/README.md",
     ".claude/rules/coding-philosophy.md",
     ".claude/rules/verfication.md",
     ".coderabbit.yml",
