@@ -32,6 +32,19 @@ You do not need to manage these files locally. To customize behavior:
 | `eslint.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
 | `jest.thresholds.json` | Edit directly (create-only, Lisa won't overwrite) |
 
+## CI/Deploy workflow pattern
+
+New projects' `ci.yml` and `deploy.yml` reference the quality and release workflows directly from the Lisa repo:
+
+- `ci.yml` calls `CodySwannGT/lisa/.github/workflows/quality.yml@main`
+- `deploy.yml` calls `CodySwannGT/lisa/.github/workflows/release.yml@main`
+
+This means workflow improvements in the Lisa repo are picked up automatically without running `lisa:update`.
+
+**Existing projects** that were set up before this change will still have local references (`uses: ./.github/workflows/quality.yml`). When you run `lisa:update`, the CLI will print a migration notice with the exact one-time change to make in your `ci.yml` and `deploy.yml`. After making that change, your project will also receive automatic workflow updates.
+
+The local copies of `quality.yml` and `release.yml` remain deployed to your project for reference but are no longer called directly by `ci.yml` or `deploy.yml` after migration.
+
 ## Files and directories with NO local override (do not edit at all)
 
 - `CLAUDE.md`, `HUMAN.md`, `.safety-net.json`

@@ -55,7 +55,7 @@ jobs:
   # Step 1: Create a release
   release:
     name: 📦 Release
-    uses: ./.github/workflows/release.yml
+    uses: CodySwannGT/lisa/.github/workflows/release.yml@main
     needs: [determine_environment]
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
