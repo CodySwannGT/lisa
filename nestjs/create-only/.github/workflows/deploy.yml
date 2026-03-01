@@ -233,7 +233,7 @@ jobs:
       !cancelled() && 
       needs.deploy.result == 'success' && 
       (needs.determine_environment.outputs.environment == 'staging' || needs.determine_environment.outputs.environment == 'stage')
-    uses: ./.github/workflows/load-test.yml
+    uses: CodySwannGT/lisa/.github/workflows/load-test.yml@main
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       test_scenario: 'smoke' # Start with smoke test after deployment

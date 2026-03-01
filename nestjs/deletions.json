@@ -3,6 +3,12 @@
     ".claude/skills/nestjs-graphql",
     ".claude/skills/nestjs-rules",
     ".claude/skills/security-zap-scan",
-    ".claude/skills/typeorm-patterns"
+    ".claude/skills/typeorm-patterns",
+    ".github/workflows/zap-baseline.yml",
+    ".github/workflows/load-test.yml"
+  ],
+  "keep": [
+    ".github/workflows/zap-baseline-nestjs.yml",
+    ".github/workflows/load-test.yml"
   ]
 }
