@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.51.4](https://github.com/CodySwannGT/lisa/compare/vv1.51.3...v1.51.4) (2026-03-01)
+
+
+### Bug Fixes
+
+* downgrade minimatch from ^10 to ^9 for CJS compatibility ([34dfaf4](https://github.com/CodySwannGT/lisa/commit/34dfaf410b6d0de7149a2af78e93c8e20df304d0))
+
 ### [1.51.3](https://github.com/CodySwannGT/lisa/compare/vv1.51.2...v1.51.3) (2026-03-01)
 
 
