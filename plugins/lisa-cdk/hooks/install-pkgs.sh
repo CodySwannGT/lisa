@@ -2,9 +2,9 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 
-# Only run package installation in remote (Claude Code web) environment
-# node_modules are gitignored, so they need to be installed remotely
-if [ "$CLAUDE_CODE_REMOTE" != "true" ]; then
+# Only run package installation when node_modules are missing.
+# This covers remote environments, new worktrees, fresh clones, and CI.
+if [ -d "node_modules" ]; then
   exit 0
 fi
 
