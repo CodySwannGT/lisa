@@ -17,6 +17,7 @@
 import react from "eslint-plugin-react";
 import reactCompiler from "eslint-plugin-react-compiler";
 import { createRequire } from "module";
+import { fileURLToPath } from "url";
 
 // Import TypeScript config and utilities
 import {
@@ -42,10 +43,23 @@ export {
   getSharedRules,
 };
 
-// Custom plugins (CommonJS - use createRequire for plugins without ESM type declarations)
+// Custom plugins — loaded via relative path so they are resolved from the Lisa
+// package itself (eslint-plugin-* dirs are included in the published files array)
+// rather than requiring separate npm packages that bun must resolve from the registry.
 const require = createRequire(import.meta.url);
-const componentStructure = require("@codyswann/eslint-plugin-component-structure");
-const uiStandards = require("@codyswann/eslint-plugin-ui-standards");
+const componentStructure = require(
+  fileURLToPath(
+    new URL(
+      "../../../eslint-plugin-component-structure/index.js",
+      import.meta.url
+    )
+  )
+);
+const uiStandards = require(
+  fileURLToPath(
+    new URL("../../../eslint-plugin-ui-standards/index.js", import.meta.url)
+  )
+);
 const expoConfig = require("eslint-config-expo/flat");
 const reactPerf = require("eslint-plugin-react-perf");
 const jsxA11y = require("eslint-plugin-jsx-a11y");
