@@ -1,0 +1,18 @@
+{
+  "extends": ["expo/tsconfig.base", "./base.json"],
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-native",
+    "baseUrl": "./",
+    "noEmit": true,
+    "declaration": false,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/graphql/*": ["./generated/*"],
+      "@/*": ["./*"]
+    },
+    "moduleSuffixes": [".ios", ".android", ".native", ".web", ""]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", "dist", "web-build", "components/ui"]
+}

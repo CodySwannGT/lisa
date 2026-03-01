@@ -15,7 +15,15 @@
     "**/node_modules/**"
   ],
   "ignoreDependencies": [
-    "langsmith", 
+    "@commitlint/cli",
+    "@eslint/eslintrc",
+    "@jest/test-sequencer",
+    "esbuild-register",
+    "eslint-plugin-react-hooks",
+    "jscodeshift",
+    "lint-staged",
+    "ts-morph",
+    "langsmith",
     "graphql",
     "@as-integrations/express5",
     "@aws-sdk/client-apigatewaymanagementapi",
