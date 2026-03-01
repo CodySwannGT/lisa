@@ -18,6 +18,8 @@
     "jest.base.ts",
     "jest.typescript.ts",
     "tsconfig.base.json",
-    "tsconfig.typescript.json"
+    "tsconfig.typescript.json",
+    ".github/workflows/quality.yml",
+    ".github/workflows/release.yml"
   ]
 }
