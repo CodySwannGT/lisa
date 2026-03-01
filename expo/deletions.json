@@ -26,6 +26,8 @@
     ".claude/skills/ops-verify-health",
     ".claude/skills/owasp-zap",
     ".claude/skills/playwright-selectors",
-    ".claude/skills/testing-library"
+    ".claude/skills/testing-library",
+    "eslint-plugin-component-structure",
+    "eslint-plugin-ui-standards"
   ]
 }

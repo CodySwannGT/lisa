@@ -1,99 +1,186 @@
-# GitHub Actions Reusable Workflows — Distributable via Lisa Repo
+# Publish ESLint Plugins as Scoped npm Packages
 
 ## Context
 
-Currently, Lisa's CLI copies `quality.yml` (2,049 lines) and `release.yml` (1,593 lines) verbatim into every downstream project via `copy-overwrite`. When the workflow logic changes, projects must run `lisa:update` to get the update.
+Lisa currently copies three custom ESLint plugins verbatim into every downstream project via `copy-overwrite`. This pollutes project root directories with `eslint-plugin-*/` folders, uses fragile `file:./` devDependency references, and silently overwrites files the project appears to own. The goal is to publish these plugins as proper `@codyswann/` scoped npm packages so downstream projects install them like any other devDependency — no local directories, no file references.
 
-Both workflows already have **only** `workflow_call` triggers. Every stack has a `create-only` `ci.yml` and most have `deploy.yml` that call these local files.
+**Three plugins:**
+- `eslint-plugin-code-organization` — TypeScript/all stacks (1 rule: `enforce-statement-order`)
+- `eslint-plugin-component-structure` — Expo only (4 rules)
+- `eslint-plugin-ui-standards` — Expo only (2 rules)
 
-**Goal**: `ci.yml` and `deploy.yml` in downstream projects should call the canonical versions in the Lisa repo directly via `@main`, so workflow updates are automatic.
+**Published names:**
+- `@codyswann/eslint-plugin-code-organization`
+- `@codyswann/eslint-plugin-component-structure`
+- `@codyswann/eslint-plugin-ui-standards`
 
-**Key insight**: The `quality.yml` and `release.yml` in the Lisa repo are already the full workflows (they're deployed there by `lisa:update` via `copy-overwrite`). They can be called directly from downstream as reusable workflows — no new files or wrappers needed. The `release.yml` internally calls `./quality.yml` which resolves to the Lisa repo's own `quality.yml` — no circular reference.
-
-**For existing projects**: A one-time manual change to ci.yml/deploy.yml is needed. Lisa prints a migration notice during `lisa:update` telling the user exactly what to change.
+**Key insight on publish pipeline:** Lisa already has a `publish-to-npm.yml` reusable workflow using OIDC trusted publishing (`npm publish --access public --provenance`). The plugin packages are pure CommonJS JS with no build step — they can be published from the same workflow with additional `cd <plugin-dir> && npm publish` steps.
 
 ---
 
 ## Implementation Steps
 
-### Step 1 — Update create-only ci.yml templates
+### Step 1 — Move expo plugins to Lisa root
 
-New projects get the direct `@main` reference. Change `uses: ./.github/workflows/quality.yml` → `uses: CodySwannGT/lisa/.github/workflows/quality.yml@main` in:
-
-- `typescript/create-only/.github/workflows/ci.yml` — line 13
-- `expo/create-only/.github/workflows/ci.yml` — line 14
-- `nestjs/create-only/.github/workflows/ci.yml` — line 14
-- `cdk/create-only/.github/workflows/ci.yml` — line 129
-- `rails/create-only/.github/workflows/ci.yml` — line 10
-
-### Step 2 — Update create-only deploy.yml templates
-
-Change `uses: ./.github/workflows/release.yml` → `uses: CodySwannGT/lisa/.github/workflows/release.yml@main` in:
-
-- `expo/create-only/.github/workflows/deploy.yml` — line 61
-- `nestjs/create-only/.github/workflows/deploy.yml` — line 58
-- `cdk/create-only/.github/workflows/deploy.yml` — line 46
-
-### Step 3 — Add migration notice to Lisa CLI
-
-In `src/core/lisa.ts`, after the main update completes, check if the project's ci.yml and/or deploy.yml contain old local `uses:` references. If found, print a clear migration notice.
-
-**Patterns to detect**:
-- `uses: ./.github/workflows/quality.yml` in `.github/workflows/ci.yml`
-- `uses: ./.github/workflows/release.yml` in `.github/workflows/deploy.yml`
-
-**Notice** (printed at end of update, only for patterns actually found):
+`eslint-plugin-component-structure` and `eslint-plugin-ui-standards` currently only exist in `expo/copy-overwrite/`. Move them to the Lisa root alongside `eslint-plugin-code-organization` so all three plugins live at root level — the canonical source of truth.
 
 ```
-⚠️  Action required: Update your CI/Deploy workflows to call the Lisa repo directly.
-
-  .github/workflows/ci.yml — change:
-    uses: ./.github/workflows/quality.yml
-    → uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
-
-  .github/workflows/deploy.yml — change:
-    uses: ./.github/workflows/release.yml
-    → uses: CodySwannGT/lisa/.github/workflows/release.yml@main
-
-  After this one-time change, quality/release workflow updates will be automatic.
+eslint-plugin-code-organization/     ← already here (source)
+eslint-plugin-component-structure/   ← move from expo/copy-overwrite/
+eslint-plugin-ui-standards/          ← move from expo/copy-overwrite/
 ```
 
-Implementation: add a `printMigrationNotices(projectDir: string): Promise<void>` method in `lisa.ts`, called at the end of the update flow. Read each file if it exists, check for the old pattern with a simple string search, print the notice only for patterns found.
+### Step 2 — Update each plugin's package.json
 
-### Step 4 — No copy-overwrite template changes, no manifest changes
+For all three root-level plugins, remove `"private": true`, add scoped name, add `publishConfig`:
 
-`quality.yml` and `release.yml` remain as full copy-overwrite workflows. They continue to be deployed to downstream projects unchanged. Projects that have migrated their ci.yml/deploy.yml to `@main` simply won't call the local files — they sit unused but harmless.
+```json
+{
+  "name": "@codyswann/eslint-plugin-code-organization",
+  "version": "1.0.0",
+  "description": "ESLint plugin for code organization standards",
+  "main": "index.js",
+  "publishConfig": { "access": "public" },
+  "peerDependencies": { "eslint": ">=9.0.0" }
+}
+```
 
-### Step 5 — Update lisa.md template
+Apply same pattern to `component-structure` and `ui-standards` with their respective names.
 
-Update `all/copy-overwrite/.claude/rules/lisa.md` to document:
-- New projects' ci.yml/deploy.yml reference `CodySwannGT/lisa/.github/workflows/quality.yml@main` and `release.yml@main` directly
-- Existing projects: one-time manual change to ci.yml/deploy.yml (prompted by migration notice during `lisa:update`)
-- The local `quality.yml` and `release.yml` remain deployed for informational purposes
+### Step 3 — Update ESLint config imports (two files)
+
+**`typescript/copy-overwrite/eslint.typescript.ts`** — change relative require to package name:
+```typescript
+// Before
+const codeOrganization = require("./eslint-plugin-code-organization/index.js");
+// After
+const codeOrganization = require("@codyswann/eslint-plugin-code-organization");
+```
+
+**`expo/copy-overwrite/eslint.expo.ts`** — same for both expo plugins:
+```typescript
+// Before
+const componentStructure = require("./eslint-plugin-component-structure/index.js");
+const uiStandards = require("./eslint-plugin-ui-standards/index.js");
+// After
+const componentStructure = require("@codyswann/eslint-plugin-component-structure");
+const uiStandards = require("@codyswann/eslint-plugin-ui-standards");
+```
+
+Also update **`eslint.typescript.ts`** at Lisa root (Lisa's own ESLint config, not the template) with the same change.
+
+### Step 4 — Update package.lisa.json templates
+
+**`typescript/package-lisa/package.lisa.json`** — update `force.devDependencies`:
+```json
+"@codyswann/eslint-plugin-code-organization": "^1.0.0"
+```
+(Remove the old `"eslint-plugin-code-organization": "file:./eslint-plugin-code-organization"` entry)
+
+**`expo/package-lisa/package.lisa.json`** — same for both expo plugins:
+```json
+"@codyswann/eslint-plugin-component-structure": "^1.0.0",
+"@codyswann/eslint-plugin-ui-standards": "^1.0.0"
+```
+
+### Step 5 — Update Lisa root package.json
+
+- `devDependencies`: change `"eslint-plugin-code-organization": "file:./eslint-plugin-code-organization"` → `"@codyswann/eslint-plugin-code-organization": "^1.0.0"`
+- `files` array: remove `"eslint-plugin-code-organization"` (no longer ships inside the Lisa package — it's a separate published package)
+- Run `bun install` to regenerate the lockfile
+
+### Step 6 — Delete copy-overwrite plugin directories
+
+Remove the plugin directories from copy-overwrite (they are no longer deployed as files):
+- `typescript/copy-overwrite/eslint-plugin-code-organization/` — delete entire directory
+- `expo/copy-overwrite/eslint-plugin-component-structure/` — delete entire directory
+- `expo/copy-overwrite/eslint-plugin-ui-standards/` — delete entire directory
+
+### Step 7 — Update deletions.json for downstream cleanup
+
+When downstream projects run `lisa:update`, the old local plugin directories must be deleted. Both files already exist — add new entries:
+
+**`typescript/deletions.json`** — add `"eslint-plugin-code-organization"` to the `paths` array.
+
+**`expo/deletions.json`** — add `"eslint-plugin-component-structure"` and `"eslint-plugin-ui-standards"` to the `paths` array.
+
+NestJS and CDK inherit from the typescript stack (confirmed in `src/detection/index.ts`: "Child types automatically include their parent"), so `typescript/deletions.json` covers them — no separate entries needed.
+
+### Step 8 — Update .lisa-manifest
+
+Remove the five `eslint-plugin-code-organization` entries from `.lisa-manifest`:
+```
+copy-overwrite:eslint-plugin-code-organization/README.md
+copy-overwrite:eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js
+copy-overwrite:eslint-plugin-code-organization/index.js
+copy-overwrite:eslint-plugin-code-organization/package.json
+copy-overwrite:eslint-plugin-code-organization/rules/enforce-statement-order.js
+```
+
+### Step 9 — Update publish-to-npm.yml template to publish plugin packages
+
+The template source is `npm-package/copy-overwrite/.github/workflows/publish-to-npm.yml` (confirmed via `.lisa-manifest`). This template is deployed to all npm-package projects — so plugin publish steps must use existence checks so they are no-ops in other projects.
+
+Add three steps after the main `Publish to npm with OIDC` step, each gated with `if: hashFiles('eslint-plugin-*/package.json') != ''`:
+
+```yaml
+- name: Publish @codyswann/eslint-plugin-code-organization
+  if: ${{ hashFiles('eslint-plugin-code-organization/package.json') != '' }}
+  run: |
+    cd eslint-plugin-code-organization
+    npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+    npm publish --access public --provenance
+
+- name: Publish @codyswann/eslint-plugin-component-structure
+  if: ${{ hashFiles('eslint-plugin-component-structure/package.json') != '' }}
+  run: |
+    cd eslint-plugin-component-structure
+    npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+    npm publish --access public --provenance
+
+- name: Publish @codyswann/eslint-plugin-ui-standards
+  if: ${{ hashFiles('eslint-plugin-ui-standards/package.json') != '' }}
+  run: |
+    cd eslint-plugin-ui-standards
+    npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+    npm publish --access public --provenance
+```
+
+Plugin versions mirror the Lisa release version (same `npm version` step the main publish uses). This ensures plugins are always published at a version that matches the Lisa release that introduced the corresponding eslint config changes. The `package.lisa.json` uses `"^1.0.0"` — the `^` range picks up all compatible future versions automatically on `bun install`.
+
+Auth is inherited from the OIDC setup earlier in the job (the `~/.npmrc` is already configured by the time these steps run).
+
+### Step 10 — Update lisa.md template
+
+**`all/copy-overwrite/.claude/rules/lisa.md`** — remove `eslint-plugin-code-organization/*` from the "no local override" list and add a note that plugins are published npm packages (`@codyswann/eslint-plugin-*`), not local directories.
 
 ---
 
 ## Verification
 
 ```bash
-# 1. Verify create-only templates reference @main
-grep "CodySwannGT/lisa" typescript/create-only/.github/workflows/ci.yml
-grep "CodySwannGT/lisa" expo/create-only/.github/workflows/ci.yml
-grep "CodySwannGT/lisa" nestjs/create-only/.github/workflows/ci.yml
-grep "CodySwannGT/lisa" cdk/create-only/.github/workflows/ci.yml
-grep "CodySwannGT/lisa" rails/create-only/.github/workflows/ci.yml
-grep "CodySwannGT/lisa" expo/create-only/.github/workflows/deploy.yml
-grep "CodySwannGT/lisa" nestjs/create-only/.github/workflows/deploy.yml
-grep "CodySwannGT/lisa" cdk/create-only/.github/workflows/deploy.yml
+# 1. Verify plugins no longer exist in copy-overwrite
+ls typescript/copy-overwrite/ | grep eslint-plugin  # should show nothing
+ls expo/copy-overwrite/ | grep eslint-plugin         # should show nothing
 
-# 2. Verify copy-overwrite templates unchanged
-wc -l typescript/copy-overwrite/.github/workflows/quality.yml  # ~2049 (unchanged)
-wc -l typescript/copy-overwrite/.github/workflows/release.yml  # ~1593 (unchanged)
+# 2. Verify plugins exist at root with updated package.json
+cat eslint-plugin-code-organization/package.json | grep name    # @codyswann/...
+cat eslint-plugin-component-structure/package.json | grep name  # @codyswann/...
+cat eslint-plugin-ui-standards/package.json | grep name         # @codyswann/...
 
-# 3. Verify quality/release still in manifest
-grep "quality\|release" .lisa-manifest
+# 3. Verify eslint configs use package names
+grep "eslint-plugin" typescript/copy-overwrite/eslint.typescript.ts  # @codyswann/...
+grep "eslint-plugin" expo/copy-overwrite/eslint.expo.ts              # @codyswann/...
 
-# 4. Run quality checks
+# 4. Verify package.lisa.json references npm packages
+grep "eslint-plugin" typescript/package-lisa/package.lisa.json  # @codyswann/...
+grep "eslint-plugin" expo/package-lisa/package.lisa.json        # @codyswann/...
+
+# 5. Verify deletions.json entries exist
+cat typescript/deletions.json
+cat expo/deletions.json
+
+# 6. Run quality checks
 bun run typecheck && bun run lint && bun run test
 ```
 
@@ -103,16 +190,20 @@ bun run typecheck && bun run lint && bun run test
 
 | File | Change |
 |---|---|
-| `typescript/create-only/.github/workflows/ci.yml` | quality.yml → `CodySwannGT/lisa/.../quality.yml@main` |
-| `expo/create-only/.github/workflows/ci.yml` | quality.yml → `CodySwannGT/lisa/.../quality.yml@main` |
-| `nestjs/create-only/.github/workflows/ci.yml` | quality.yml → `CodySwannGT/lisa/.../quality.yml@main` |
-| `cdk/create-only/.github/workflows/ci.yml` | quality.yml → `CodySwannGT/lisa/.../quality.yml@main` |
-| `rails/create-only/.github/workflows/ci.yml` | quality.yml → `CodySwannGT/lisa/.../quality.yml@main` |
-| `expo/create-only/.github/workflows/deploy.yml` | release.yml → `CodySwannGT/lisa/.../release.yml@main` |
-| `nestjs/create-only/.github/workflows/deploy.yml` | release.yml → `CodySwannGT/lisa/.../release.yml@main` |
-| `cdk/create-only/.github/workflows/deploy.yml` | release.yml → `CodySwannGT/lisa/.../release.yml@main` |
-| `src/core/lisa.ts` | Add `printMigrationNotices()` post-update check |
-| `all/copy-overwrite/.claude/rules/lisa.md` | Document new reusable workflow pattern |
-| `typescript/copy-overwrite/.github/workflows/quality.yml` | No change |
-| `typescript/copy-overwrite/.github/workflows/release.yml` | No change |
-| `.lisa-manifest` | No changes |
+| `eslint-plugin-code-organization/package.json` | Remove private, add `@codyswann/` name, add publishConfig |
+| `eslint-plugin-component-structure/package.json` | Move from expo/copy-overwrite/ + same updates |
+| `eslint-plugin-ui-standards/package.json` | Move from expo/copy-overwrite/ + same updates |
+| `typescript/copy-overwrite/eslint.typescript.ts` | `require` path → `@codyswann/eslint-plugin-code-organization` |
+| `eslint.typescript.ts` (root) | Same require path update |
+| `expo/copy-overwrite/eslint.expo.ts` | Two `require` paths → `@codyswann/` scoped names |
+| `typescript/package-lisa/package.lisa.json` | `file:./` ref → `@codyswann/eslint-plugin-code-organization: ^1.0.0` |
+| `expo/package-lisa/package.lisa.json` | Two `file:./` refs → scoped npm refs |
+| `package.json` (root) | devDeps + files array |
+| `typescript/copy-overwrite/eslint-plugin-code-organization/` | Delete entire directory |
+| `expo/copy-overwrite/eslint-plugin-component-structure/` | Delete entire directory |
+| `expo/copy-overwrite/eslint-plugin-ui-standards/` | Delete entire directory |
+| `typescript/deletions.json` | Create/update with plugin dir deletion |
+| `expo/deletions.json` | Create/update with plugin dir deletions |
+| `.lisa-manifest` | Remove 5 eslint-plugin-code-organization entries |
+| `npm-package/copy-overwrite/.github/workflows/publish-to-npm.yml` | Add 3 conditional plugin publish steps |
+| `all/copy-overwrite/.claude/rules/lisa.md` | Update documentation |

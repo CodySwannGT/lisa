@@ -11,6 +11,7 @@
     ".claude/skills/jira-evidence",
     ".claude/skills/jira-journey",
     ".claude/skills/jira-verify",
-    ".claude/skills/jsdoc-best-practices"
+    ".claude/skills/jsdoc-best-practices",
+    "eslint-plugin-code-organization"
   ]
 }

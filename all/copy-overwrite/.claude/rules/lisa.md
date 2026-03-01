@@ -54,7 +54,6 @@ The local copies of `quality.yml` and `release.yml` remain deployed to your proj
 - `jest.base.ts`, `jest.typescript.ts`, `jest.expo.ts`, `jest.nestjs.ts`, `jest.cdk.ts`
 - `tsconfig.base.json`, `tsconfig.typescript.json`, `tsconfig.expo.json`, `tsconfig.nestjs.json`, `tsconfig.cdk.json`
 - `tsconfig.eslint.json`, `tsconfig.build.json`, `tsconfig.spec.json`
-- `eslint-plugin-code-organization/*`, `eslint-plugin-component-structure/*`, `eslint-plugin-ui-standards/*`
 - `.claude/settings.json`
 - `.claude/README.md`
 - `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-deploy-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml`

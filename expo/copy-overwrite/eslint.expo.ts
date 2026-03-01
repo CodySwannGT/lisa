@@ -52,8 +52,8 @@ export {
 
 // Custom plugins (CommonJS - use createRequire)
 const require = createRequire(import.meta.url);
-const componentStructure = require("./eslint-plugin-component-structure/index.js");
-const uiStandards = require("./eslint-plugin-ui-standards/index.js");
+const componentStructure = require("@codyswann/eslint-plugin-component-structure");
+const uiStandards = require("@codyswann/eslint-plugin-ui-standards");
 const expoConfig = require("eslint-config-expo/flat");
 
 /**

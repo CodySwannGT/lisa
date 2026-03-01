@@ -1,9 +1,9 @@
 {
-  "name": "eslint-plugin-component-structure",
+  "name": "@codyswann/eslint-plugin-component-structure",
   "version": "1.0.0",
   "description": "ESLint plugin for component structure standards",
   "main": "index.js",
-  "private": true,
+  "publishConfig": { "access": "public" },
   "peerDependencies": {
     "eslint": ">=9.0.0"
   }
