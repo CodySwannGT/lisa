@@ -736,6 +736,11 @@ export class Lisa {
       return;
     }
 
+    // Skip git check when requested (e.g. during postinstall where lockfile is always dirty)
+    if (this.config.skipGitCheck) {
+      return;
+    }
+
     // Check for uncommitted changes
     if (!(await gitService.isDirty(destDir))) {
       return;
