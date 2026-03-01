@@ -28,6 +28,11 @@
     "@ast-grep/cli",
     "@sentry/cli"
   ],
+  "bundledDependencies": [
+    "@codyswann/eslint-plugin-code-organization",
+    "@codyswann/eslint-plugin-component-structure",
+    "@codyswann/eslint-plugin-ui-standards"
+  ],
   "scripts": {
     "test": "NODE_ENV=test jest --passWithNoTests",
     "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
