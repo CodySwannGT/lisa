@@ -1,0 +1,128 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Test Coverage (Reusable)
+
+on:
+  workflow_call:
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+
+jobs:
+  improve-coverage:
+    if: vars.ENABLE_CLAUDE_NIGHTLY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = pulls.data.find(pr =>
+              pr.head.ref.startsWith('claude/nightly-test-coverage-')
+            );
+            core.setOutput('has_existing_pr', existing ? 'true' : 'false');
+            if (existing) {
+              console.log(`Found existing PR: #${existing.number} - ${existing.title}`);
+            }
+
+      - name: Read coverage thresholds
+        if: steps.check-pr.outputs.has_existing_pr != 'true'
+        id: thresholds
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'jest.thresholds.json';
+
+            if (!fs.existsSync(path)) {
+              core.setOutput('all_at_target', 'true');
+              console.log('jest.thresholds.json not found, skipping.');
+              return;
+            }
+
+            const thresholds = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const global = thresholds.global || {};
+            const metrics = ['statements', 'branches', 'functions', 'lines'];
+            const target = 90;
+            const increment = 5;
+
+            const current = {};
+            const proposed = {};
+            const bumps = [];
+
+            for (const metric of metrics) {
+              const value = global[metric] ?? 0;
+              current[metric] = value;
+              if (value < target) {
+                const newValue = Math.min(value + increment, target);
+                proposed[metric] = newValue;
+                bumps.push(`${metric} ${value}% -> ${newValue}%`);
+              } else {
+                proposed[metric] = value;
+              }
+            }
+
+            if (bumps.length === 0) {
+              core.setOutput('all_at_target', 'true');
+              console.log('All coverage metrics are already at or above 90%. Skipping.');
+              return;
+            }
+
+            core.setOutput('all_at_target', 'false');
+            core.setOutput('current', JSON.stringify(current));
+            core.setOutput('proposed', JSON.stringify(proposed));
+            core.setOutput('bumps', bumps.join(', '));
+            console.log(`Current thresholds: ${JSON.stringify(current)}`);
+            console.log(`Proposed thresholds: ${JSON.stringify(proposed)}`);
+            console.log(`Metrics to bump: ${bumps.join(', ')}`);
+
+      - name: Run Claude Code to improve coverage
+        if: |
+          steps.check-pr.outputs.has_existing_pr != 'true' &&
+          steps.thresholds.outputs.all_at_target != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          branch_prefix: claude/nightly-test-coverage-
+          prompt: |
+            Increase test coverage thresholds for this project.
+
+            Current coverage thresholds in jest.thresholds.json:
+            ${{ steps.thresholds.outputs.current }}
+
+            Proposed new thresholds (each metric increased by 5%, capped at 90%):
+            ${{ steps.thresholds.outputs.proposed }}
+
+            Metrics being bumped: ${{ steps.thresholds.outputs.bumps }}
+
+            Instructions:
+            1. Read CLAUDE.md and package.json for project conventions
+            2. Run the test coverage report to understand current coverage gaps
+            3. Write new tests to increase coverage enough to meet the proposed thresholds
+            4. Focus on the metrics being bumped — write tests that cover untested branches, statements, functions, and lines
+            5. Run `bun run test:cov` to verify the new thresholds pass
+            6. Update jest.thresholds.json with the proposed new threshold values
+            7. Run `bun run test:cov` again to confirm the updated thresholds pass
+            8. Commit all changes (new tests + updated jest.thresholds.json) with conventional commit messages
+            9. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
+            --max-turns 30
+            --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass."

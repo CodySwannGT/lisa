@@ -218,7 +218,13 @@ export class Lisa {
         return;
       }
 
+      const keepSet = new Set(deletions.keep ?? []);
+
       for (const relativePath of deletions.paths) {
+        if (keepSet.has(relativePath)) {
+          logger.info(`Kept (protected): ${relativePath}`);
+          continue;
+        }
         await this.processSingleDeletion(relativePath);
       }
     } catch (error) {
