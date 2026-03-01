@@ -125,6 +125,8 @@
     ".claude/hooks/track-plan-sessions.sh",
     ".claude/hooks/verify-completion.sh",
     ".claude/rules/coding-philosophy.md",
-    ".claude/rules/verfication.md"
+    ".claude/rules/verfication.md",
+    ".coderabbit.yml",
+    "scripts/setup-deploy-key.sh"
   ]
 }
