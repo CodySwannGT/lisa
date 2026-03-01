@@ -1,0 +1,127 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Test Improvement (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'Analysis mode (nightly or general)'
+        required: false
+        type: string
+        default: 'nightly'
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+
+jobs:
+  improve-tests:
+    if: vars.ENABLE_CLAUDE_NIGHTLY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine mode
+        id: mode
+        run: echo "value=${{ inputs.mode || 'nightly' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Detect changed files (nightly mode)
+        id: changes
+        if: steps.mode.outputs.value == 'nightly'
+        run: |
+          CHANGED_FILES=$(git log --since="24 hours ago" --name-only --pretty=format:"" -- '*.ts' '*.tsx' '*.js' '*.jsx' | sort -u | grep -v '^\s*$' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No source files changed in the last 24 hours."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            echo "files<<$EOF" >> "$GITHUB_OUTPUT"
+            echo "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+            echo "$EOF" >> "$GITHUB_OUTPUT"
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+          fi
+
+      - name: Check for existing PR
+        if: steps.changes.outputs.skip != 'true'
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = pulls.data.find(pr =>
+              pr.head.ref.startsWith('claude/nightly-test-improvement-')
+            );
+            core.setOutput('has_existing_pr', existing ? 'true' : 'false');
+            if (existing) {
+              console.log(`Found existing PR: #${existing.number} - ${existing.title}`);
+            }
+
+      - name: Run Claude Code to improve tests (nightly)
+        if: |
+          steps.mode.outputs.value == 'nightly' &&
+          steps.changes.outputs.skip != 'true' &&
+          steps.check-pr.outputs.has_existing_pr != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          branch_prefix: claude/nightly-test-improvement-
+          prompt: |
+            Analyze and improve tests related to recently changed source files.
+
+            The following source files were changed in the last 24 hours:
+            ${{ steps.changes.outputs.files }}
+
+            Instructions:
+            1. Read CLAUDE.md and package.json for project conventions
+            2. For each changed source file above, find its corresponding test file(s)
+            3. Analyze those test files for: missing edge cases, weak assertions (toBeTruthy instead of specific values), missing error path coverage, tests that test implementation rather than behavior
+            4. Improve the test files with the most impactful changes
+            5. Run the full test suite to verify all tests pass
+            6. Commit changes with conventional commit messages
+            7. Create a PR with `gh pr create` summarizing what was improved and why
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
+            --max-turns 30
+            --system-prompt "You are improving test quality for recently changed files. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
+
+      - name: Run Claude Code to improve tests (general)
+        if: |
+          steps.mode.outputs.value == 'general' &&
+          steps.check-pr.outputs.has_existing_pr != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          branch_prefix: claude/nightly-test-improvement-
+          prompt: |
+            Analyze the test suite and improve test quality.
+
+            Instructions:
+            1. Read CLAUDE.md and package.json for project conventions
+            2. Scan the test files to find weak, brittle, or poorly-written tests
+            3. Look for: missing edge cases, weak assertions (toBeTruthy instead of specific values), missing error path coverage, tests that test implementation rather than behavior
+            4. Improve 3-5 test files with the most impactful changes
+            5. Run the full test suite to verify all tests pass
+            6. Commit changes with conventional commit messages
+            7. Create a PR with `gh pr create` summarizing what was improved and why
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
+            --max-turns 30
+            --system-prompt "You are improving test quality. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
