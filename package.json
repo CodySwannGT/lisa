@@ -20,7 +20,9 @@
     "cdk",
     "rails",
     "tsconfig",
-    "scripts"
+    "scripts",
+    "plugins",
+    ".claude-plugin"
   ],
   "trustedDependencies": [
     "@ast-grep/cli",
@@ -40,7 +42,8 @@
     "knip": "knip",
     "knip:fix": "knip --fix",
     "sg:scan": "ast-grep scan",
-    "build": "tsc",
+    "build": "tsc && bun run build:plugins",
+    "build:plugins": "bash scripts/build-plugins.sh",
     "prepare": "$npm_execpath run build || husky install || true",
     "lisa:update": "npx @codyswann/lisa@latest .",
     "start": "node dist/index.js",
@@ -53,7 +56,8 @@
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
     "lisa:update:local": "bash scripts/lisa-update-local.sh",
     "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
-    "prepublishOnly": "$npm_execpath run build"
+    "prepublishOnly": "$npm_execpath run build",
+    "postinstall": "bash ./scripts/install-claude-plugins.sh || true"
   },
   "resolutions": {
     "@isaacs/brace-expansion": "^5.0.1",
