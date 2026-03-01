@@ -143,5 +143,26 @@ jobs:
         # npm publish is required for OIDC provenance - bun publish doesn't support --provenance yet
         # Configure trusted publisher at: https://www.npmjs.com/package/<package-name>/access
 
+      - name: Publish @codyswann/eslint-plugin-code-organization
+        if: ${{ hashFiles('eslint-plugin-code-organization/package.json') != '' }}
+        run: |
+          cd eslint-plugin-code-organization
+          npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+          npm publish --access public --provenance
+
+      - name: Publish @codyswann/eslint-plugin-component-structure
+        if: ${{ hashFiles('eslint-plugin-component-structure/package.json') != '' }}
+        run: |
+          cd eslint-plugin-component-structure
+          npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+          npm publish --access public --provenance
+
+      - name: Publish @codyswann/eslint-plugin-ui-standards
+        if: ${{ hashFiles('eslint-plugin-ui-standards/package.json') != '' }}
+        run: |
+          cd eslint-plugin-ui-standards
+          npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+          npm publish --access public --provenance
+
       - name: Notify on success
         run: echo "Successfully published version ${{ inputs.version }} to npm with provenance"

@@ -1,0 +1,33 @@
+{
+  "paths": [
+    ".claude/agents/ops-specialist.md",
+    ".claude/rules/expo-verification.md",
+    ".claude/skills/apollo-client",
+    ".claude/skills/atomic-design-gluestack",
+    ".claude/skills/container-view-pattern",
+    ".claude/skills/cross-platform-compatibility",
+    ".claude/skills/directory-structure",
+    ".claude/skills/expo-env-config",
+    ".claude/skills/expo-router-best-practices",
+    ".claude/skills/gluestack-nativewind",
+    ".claude/skills/jira-add-journey",
+    ".claude/skills/jira-create",
+    ".claude/skills/jira-evidence",
+    ".claude/skills/jira-journey",
+    ".claude/skills/jira-verify",
+    ".claude/skills/local-state",
+    ".claude/skills/ops-browser-uat",
+    ".claude/skills/ops-check-logs",
+    ".claude/skills/ops-db-ops",
+    ".claude/skills/ops-deploy",
+    ".claude/skills/ops-monitor-errors",
+    ".claude/skills/ops-performance",
+    ".claude/skills/ops-run-local",
+    ".claude/skills/ops-verify-health",
+    ".claude/skills/owasp-zap",
+    ".claude/skills/playwright-selectors",
+    ".claude/skills/testing-library",
+    "eslint-plugin-component-structure",
+    "eslint-plugin-ui-standards"
+  ]
+}

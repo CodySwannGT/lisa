@@ -1,6 +1,17 @@
 {
   "paths": [
     "jest.config.js",
-    ".claude/hooks/install_pkgs.sh"
+    ".claude/hooks/install_pkgs.sh",
+    ".claude/hooks/format-on-edit.sh",
+    ".claude/hooks/install-pkgs.sh",
+    ".claude/hooks/lint-on-edit.sh",
+    ".claude/hooks/sg-scan-on-edit.sh",
+    ".claude/skills/jira-add-journey",
+    ".claude/skills/jira-create",
+    ".claude/skills/jira-evidence",
+    ".claude/skills/jira-journey",
+    ".claude/skills/jira-verify",
+    ".claude/skills/jsdoc-best-practices",
+    "eslint-plugin-code-organization"
   ]
 }
