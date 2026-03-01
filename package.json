@@ -22,16 +22,14 @@
     "tsconfig",
     "scripts",
     "plugins",
-    ".claude-plugin"
+    ".claude-plugin",
+    "eslint-plugin-code-organization",
+    "eslint-plugin-component-structure",
+    "eslint-plugin-ui-standards"
   ],
   "trustedDependencies": [
     "@ast-grep/cli",
     "@sentry/cli"
-  ],
-  "bundledDependencies": [
-    "@codyswann/eslint-plugin-code-organization",
-    "@codyswann/eslint-plugin-component-structure",
-    "@codyswann/eslint-plugin-ui-standards"
   ],
   "scripts": {
     "test": "NODE_ENV=test jest --passWithNoTests",
@@ -123,9 +121,6 @@
   "homepage": "https://github.com/CodySwannGT/lisa#readme",
   "dependencies": {
     "@ast-grep/cli": "^0.40.4",
-    "@codyswann/eslint-plugin-code-organization": "^1.0.0",
-    "@codyswann/eslint-plugin-component-structure": "^1.0.0",
-    "@codyswann/eslint-plugin-ui-standards": "^1.0.0",
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
