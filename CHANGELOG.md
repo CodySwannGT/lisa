@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.48.0](https://github.com/CodySwannGT/lisa/compare/vv1.47.1...v1.48.0) (2026-03-01)
+
+
+### Features
+
+* publish ESLint plugins as scoped @codyswann/ npm packages ([#214](https://github.com/CodySwannGT/lisa/issues/214)) ([86ec257](https://github.com/CodySwannGT/lisa/commit/86ec257746cab7f060f2518c3be6fc9a8dea50b0))
+
 ### [1.47.1](https://github.com/CodySwannGT/lisa/compare/vv1.47.0...v1.47.1) (2026-02-28)
 
 
