@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.50.3](https://github.com/CodySwannGT/lisa/compare/vv1.50.2...v1.50.3) (2026-03-01)
+
+
+### Bug Fixes
+
+* inline ESLint workspace plugins as local files in the Lisa package ([187564d](https://github.com/CodySwannGT/lisa/commit/187564d238ab6f0e7a9d8e28d420d2b870854f08))
+
 ### [1.50.2](https://github.com/CodySwannGT/lisa/compare/vv1.50.1...v1.50.2) (2026-03-01)
 
 
