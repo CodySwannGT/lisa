@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.51.3](https://github.com/CodySwannGT/lisa/compare/vv1.51.2...v1.51.3) (2026-03-01)
+
+
+### Bug Fixes
+
+* restore react-native import/ignore and set sonarjs/deprecation off in slow config ([25d41a7](https://github.com/CodySwannGT/lisa/commit/25d41a71488c7893c9f9907adc01905c63fb801c))
+
 ### [1.51.2](https://github.com/CodySwannGT/lisa/compare/vv1.51.1...v1.51.2) (2026-03-01)
 
 
