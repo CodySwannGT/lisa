@@ -27,7 +27,15 @@
     ".claude/skills/owasp-zap",
     ".claude/skills/playwright-selectors",
     ".claude/skills/testing-library",
+    ".github/workflows/build.yml",
+    ".github/workflows/lighthouse.yml",
+    ".github/workflows/zap-baseline.yml",
     "eslint-plugin-component-structure",
     "eslint-plugin-ui-standards"
+  ],
+  "keep": [
+    ".github/workflows/build.yml",
+    ".github/workflows/lighthouse.yml",
+    ".github/workflows/zap-baseline-expo.yml"
   ]
 }
