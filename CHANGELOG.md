@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.51.4](https://github.com/CodySwannGT/lisa/compare/vv1.51.3...v1.51.4) (2026-03-01)
+
+
+### Bug Fixes
+
+* downgrade minimatch from ^10 to ^9 for CJS compatibility ([34dfaf4](https://github.com/CodySwannGT/lisa/commit/34dfaf410b6d0de7149a2af78e93c8e20df304d0))
+
+### [1.51.3](https://github.com/CodySwannGT/lisa/compare/vv1.51.2...v1.51.3) (2026-03-01)
+
+
+### Bug Fixes
+
+* restore react-native import/ignore and set sonarjs/deprecation off in slow config ([25d41a7](https://github.com/CodySwannGT/lisa/commit/25d41a71488c7893c9f9907adc01905c63fb801c))
+
+### [1.51.2](https://github.com/CodySwannGT/lisa/compare/vv1.51.1...v1.51.2) (2026-03-01)
+
+
+### Bug Fixes
+
+* add codyswann eslint workspace plugins to knip ignoreDependencies ([a9ba350](https://github.com/CodySwannGT/lisa/commit/a9ba35013b0dbccc847e8791a85fcd192731a5a6))
+* add moduleNameMapper for @codyswann/lisa self-referencing imports in tests ([e1a5e76](https://github.com/CodySwannGT/lisa/commit/e1a5e76a364020a7bf4bd0973ac8422b95f2a6eb))
+* update expo template imports to use @codyswann/lisa package paths ([e8beae9](https://github.com/CodySwannGT/lisa/commit/e8beae9d3797820ad78f6b2da48100d7b8298787))
+
 ### [1.51.1](https://github.com/CodySwannGT/lisa/compare/vv1.51.0...v1.51.1) (2026-03-01)
 
 
