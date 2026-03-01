@@ -1,0 +1,7 @@
+{
+  "extends": "./typescript.json",
+  "compilerOptions": {
+    "types": ["jest", "node"]
+  },
+  "include": ["**/*.spec.ts", "**/*.test.ts", "**/*.d.ts"]
+}
