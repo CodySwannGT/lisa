@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.50.1](https://github.com/CodySwannGT/lisa/compare/vv1.50.0...v1.50.1) (2026-03-01)
+
+
+### Bug Fixes
+
+* publish workspace ESLint plugins to npm in release workflow ([2eaae68](https://github.com/CodySwannGT/lisa/commit/2eaae68e841dd36417b30055e38ffd3b691a0151))
+
+## [1.50.0](https://github.com/CodySwannGT/lisa/compare/vv1.49.0...v1.50.0) (2026-03-01)
+
+
+### Features
+
+* run lisa update and strip hooks in postinstall; bump devDep to ^1.49.0 ([010811f](https://github.com/CodySwannGT/lisa/commit/010811f5e8ff8b8cabc2f078dca08ad72372f74f))
+
+
+### Bug Fixes
+
+* **postinstall:** warn on lisa template failure instead of silent || true ([8ba78b4](https://github.com/CodySwannGT/lisa/commit/8ba78b488288ea70b6120904fcf42c9b31e74d8f))
+
+
+### Documentation
+
+* replace absolute paths with portable placeholders in plan doc ([4e991ac](https://github.com/CodySwannGT/lisa/commit/4e991ac83a44e67067858926e16ef3f8dc340a40))
+
 ## [1.49.0](https://github.com/CodySwannGT/lisa/compare/vv1.48.0...v1.49.0) (2026-03-01)
 
 
