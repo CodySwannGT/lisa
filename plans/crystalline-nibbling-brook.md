@@ -94,7 +94,7 @@ With Phase 1 published as 1.49.1, the migration is a single `bun install`.
 
 ### 2a. Add `@codyswann/lisa` to devDependencies in frontend-v2
 
-**File**: `/Users/cody/workspace/geminisportsai/frontend-v2/package.json`
+**File**: `package.json` (in frontend-v2 project root)
 
 Add to `devDependencies`:
 ```json
@@ -104,7 +104,7 @@ Add to `devDependencies`:
 ### 2b. Run `bun install`
 
 ```bash
-cd /Users/cody/workspace/geminisportsai/frontend-v2
+cd <frontend-v2-project-root>
 bun install
 ```
 
@@ -122,7 +122,7 @@ The `postinstall` script now does everything in order:
 ### 2c. Commit
 
 ```bash
-cd /Users/cody/workspace/geminisportsai/frontend-v2
+cd <frontend-v2-project-root>
 git add -A
 git commit -m "chore: add @codyswann/lisa devDep, migrate to v1.49.1 via postinstall"
 ```
@@ -147,7 +147,7 @@ git commit -m "chore: add @codyswann/lisa devDep, migrate to v1.49.1 via postins
 After `bun install` in frontend-v2:
 
 ```bash
-cd /Users/cody/workspace/geminisportsai/frontend-v2
+cd <frontend-v2-project-root>
 
 # Deleted files are gone
 test ! -f CLAUDE.md && echo "✓ CLAUDE.md deleted"
