@@ -31,7 +31,7 @@
  *
  * Inheritance chain:
  *   jest.expo.ts (this file)
- *   └── jest.base.ts
+ *   └── @codyswann/lisa/jest/base
  *
  * @see https://jestjs.io/docs/configuration
  * @see https://github.com/expo/expo/issues/40184
@@ -44,7 +44,7 @@ import {
   defaultThresholds,
   mergeConfigs,
   mergeThresholds,
-} from "./jest.base.ts";
+} from "@codyswann/lisa/jest/base";
 
 // Re-export base utilities for entry-point configs
 export {
