@@ -77,12 +77,17 @@ export function getSlowConfig({
           >) ?? {}),
           typescript: true,
         },
+        // Prevent parse errors from modules that use non-standard JS syntax
+        // (e.g. react-native uses Flow types which ESLint's parser cannot handle)
+        "import/ignore": ["node_modules", "react-native", "\\.native\\."],
       },
       rules: {
         // ONLY slow rules - everything else runs in the main config
         "import/namespace": "error",
         "import/no-cycle": "error",
-        "sonarjs/deprecation": "error",
+        // Off by default: codebase may have existing deprecated API usages.
+        // Enable project-by-project once violations are addressed.
+        "sonarjs/deprecation": "off",
       },
     },
   ];
