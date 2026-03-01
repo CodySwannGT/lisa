@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.52.0](https://github.com/CodySwannGT/lisa/compare/vv1.51.5...v1.52.0) (2026-03-01)
+
+
+### Features
+
+* reference quality.yml and release.yml from Lisa repo directly ([9c82a9f](https://github.com/CodySwannGT/lisa/commit/9c82a9f261eea1c9ae00320ba05bffa67fb7506c))
+
 ### [1.51.5](https://github.com/CodySwannGT/lisa/compare/vv1.51.4...v1.51.5) (2026-03-01)
 
 
