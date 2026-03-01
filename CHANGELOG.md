@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.51.0](https://github.com/CodySwannGT/lisa/compare/vv1.50.3...v1.51.0) (2026-03-01)
+
+
+### Features
+
+* add --skip-git-check flag to bypass dirty git check during postinstall ([a9c3069](https://github.com/CodySwannGT/lisa/commit/a9c3069ed7f9b8e8c8f8978ff8dce82ca20cf01d))
+
 ### [1.50.3](https://github.com/CodySwannGT/lisa/compare/vv1.50.2...v1.50.3) (2026-03-01)
 
 

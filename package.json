@@ -71,7 +71,7 @@
     "axios": ">=1.13.5"
   },
   "name": "@codyswann/lisa",
-  "version": "1.50.3",
+  "version": "1.51.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
