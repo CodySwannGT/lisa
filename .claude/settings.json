@@ -226,15 +226,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-tired-boss.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify-ntfy.sh"
           },
           {
@@ -281,10 +272,6 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "echo 'REMINDER: Start your response with \"I'\\''m tired boss\" as required by CLAUDE.md.'"
-          },
           {
             "type": "command",
             "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
