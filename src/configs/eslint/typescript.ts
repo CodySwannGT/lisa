@@ -8,6 +8,7 @@
  * @module configs/eslint/typescript
  */
 import { createRequire } from "module";
+import { fileURLToPath } from "url";
 
 // Import shared base configuration
 import {
@@ -37,9 +38,18 @@ export {
   getTsTestFilesOverride,
 };
 
-// Custom plugins (CommonJS - use createRequire)
+// Custom plugins — loaded via relative path so they are resolved from the Lisa
+// package itself (eslint-plugin-* dirs are included in the published files array)
+// rather than requiring separate npm packages that bun must resolve from the registry.
 const require = createRequire(import.meta.url);
-const codeOrganization = require("@codyswann/eslint-plugin-code-organization");
+const codeOrganization = require(
+  fileURLToPath(
+    new URL(
+      "../../../eslint-plugin-code-organization/index.js",
+      import.meta.url
+    )
+  )
+);
 
 // Re-export plugin for stack-specific configs
 export { codeOrganization };
