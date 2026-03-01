@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.51.2](https://github.com/CodySwannGT/lisa/compare/vv1.51.1...v1.51.2) (2026-03-01)
+
+
+### Bug Fixes
+
+* add codyswann eslint workspace plugins to knip ignoreDependencies ([a9ba350](https://github.com/CodySwannGT/lisa/commit/a9ba35013b0dbccc847e8791a85fcd192731a5a6))
+* add moduleNameMapper for @codyswann/lisa self-referencing imports in tests ([e1a5e76](https://github.com/CodySwannGT/lisa/commit/e1a5e76a364020a7bf4bd0973ac8422b95f2a6eb))
+* update expo template imports to use @codyswann/lisa package paths ([e8beae9](https://github.com/CodySwannGT/lisa/commit/e8beae9d3797820ad78f6b2da48100d7b8298787))
+
 ### [1.51.1](https://github.com/CodySwannGT/lisa/compare/vv1.51.0...v1.51.1) (2026-03-01)
 
 
