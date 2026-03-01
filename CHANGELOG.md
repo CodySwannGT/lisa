@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.51.1](https://github.com/CodySwannGT/lisa/compare/vv1.51.0...v1.51.1) (2026-03-01)
+
+
+### Bug Fixes
+
+* remove file:./eslint-plugin-code-organization from downstream template ([d26d9bd](https://github.com/CodySwannGT/lisa/commit/d26d9bd09273543dfd5372be6153b280c92100d0))
+
 ## [1.51.0](https://github.com/CodySwannGT/lisa/compare/vv1.50.3...v1.51.0) (2026-03-01)
 
 
