@@ -120,7 +120,7 @@ jobs:
     name: Trigger EAS Build
     needs: [determine_environment, check_eas_setup, check_app_config_changes]
     if: needs.check_eas_setup.outputs.has_eas_setup == 'true' && needs.check_app_config_changes.outputs.app_config_changed == 'true'
-    uses: ./.github/workflows/build.yml
+    uses: CodySwannGT/lisa/.github/workflows/build.yml@main
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
     secrets:

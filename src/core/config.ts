@@ -121,6 +121,8 @@ export interface OperationCounters {
 export interface DeletionsConfig {
   /** Paths to delete (files or directories) */
   readonly paths: readonly string[];
+  /** Paths to keep (exempt from deletion even if present in paths) */
+  readonly keep?: readonly string[];
 }
 
 /**

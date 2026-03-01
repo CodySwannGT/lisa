@@ -1,7 +1,7 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 
-name: 💡 Lighthouse CI
+name: "\uD83D\uDCA1 Lighthouse CI"
 
 on:
   workflow_call:
@@ -24,27 +24,27 @@ on:
 
 jobs:
   lighthouse:
-    name: 💡 Performance Budget Check
+    name: "\uD83D\uDCA1 Performance Budget Check"
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: 📥 Checkout repository
+      - name: "\uD83D\uDCE5 Checkout repository"
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js
+      - name: "\uD83D\uDD27 Setup Node.js"
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
-      - name: 🍞 Setup Bun
+      - name: "\uD83C\uDF5E Setup Bun"
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.8'
 
-      - name: 📦 Install dependencies
+      - name: "\uD83D\uDCE6 Install dependencies"
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm ci
@@ -54,7 +54,7 @@ jobs:
             bun install --frozen-lockfile
           fi
 
-      - name: 📋 Copy amplify file (if exists)
+      - name: "\uD83D\uDCCB Copy amplify file (if exists)"
         run: |
           ENV="${{ inputs.target_branch }}"
           if [ "$ENV" == "staging" ]; then
@@ -71,15 +71,15 @@ jobs:
             echo "Skipping: $SOURCE_FILE does not exist"
           fi
 
-      - name: 🏗️ Build web export
+      - name: "\uD83C\uDFD7\uFE0F Build web export"
         run: ${{ inputs.package_manager }} run export:web
         env:
           TARGET_BRANCH: ${{ inputs.target_branch }}
 
-      - name: 💡 Run Lighthouse CI
+      - name: "\uD83D\uDCA1 Run Lighthouse CI"
         run: ${{ inputs.package_manager }} run lighthouse:check
 
-      - name: 📊 Upload Lighthouse reports
+      - name: "\uD83D\uDCCA Upload Lighthouse reports"
         uses: actions/upload-artifact@v4
         if: always()
         with:

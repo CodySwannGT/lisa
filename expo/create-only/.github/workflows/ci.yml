@@ -20,7 +20,7 @@ jobs:
   lighthouse:
     name: 💡 Lighthouse CI
     needs: [quality]
-    uses: ./.github/workflows/lighthouse.yml
+    uses: CodySwannGT/lisa/.github/workflows/lighthouse.yml@main
     with:
       node_version: '22.21.1'
       package_manager: 'bun'
@@ -28,7 +28,7 @@ jobs:
   zap:
     name: 🕷️ ZAP Baseline Scan
     needs: [quality]
-    uses: ./.github/workflows/zap-baseline.yml
+    uses: CodySwannGT/lisa/.github/workflows/zap-baseline-expo.yml@main
     with:
       node_version: '22.21.1'
       package_manager: 'bun'

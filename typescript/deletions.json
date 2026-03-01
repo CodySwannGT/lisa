@@ -20,6 +20,18 @@
     "tsconfig.base.json",
     "tsconfig.typescript.json",
     ".github/workflows/quality.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/create-issue-on-failure.yml",
+    ".github/workflows/create-github-issue-on-failure.yml",
+    ".github/workflows/create-jira-issue-on-failure.yml",
+    ".github/workflows/create-sentry-issue-on-failure.yml"
+  ],
+  "keep": [
+    ".github/workflows/create-issue-on-failure.yml",
+    ".github/workflows/create-github-issue-on-failure.yml",
+    ".github/workflows/create-jira-issue-on-failure.yml",
+    ".github/workflows/create-sentry-issue-on-failure.yml",
+    ".github/workflows/quality.yml",
     ".github/workflows/release.yml"
   ]
 }
