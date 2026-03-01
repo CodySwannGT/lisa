@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.49.0](https://github.com/CodySwannGT/lisa/compare/vv1.48.0...v1.49.0) (2026-03-01)
+
+
+### Features
+
+* add plugin auto-install, deep-merge settings.json, and deduplicate plugin source ([#215](https://github.com/CodySwannGT/lisa/issues/215)) ([83b8ecc](https://github.com/CodySwannGT/lisa/commit/83b8ecc240da36d4ecad316ad474d9945b5f5711))
+
 ## [1.48.0](https://github.com/CodySwannGT/lisa/compare/vv1.47.1...v1.48.0) (2026-03-01)
 
 
