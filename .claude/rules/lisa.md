@@ -42,10 +42,8 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `tsconfig.eslint.json`, `tsconfig.build.json`, `tsconfig.spec.json`
 - `.claude/settings.json`
 - `.claude/README.md`
-- `.github/workflows/quality.yml`, `.github/workflows/release.yml`, `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-deploy-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml`
-- `.github/workflows/create-issue-on-failure.yml`, `.github/workflows/create-github-issue-on-failure.yml`, `.github/workflows/create-jira-issue-on-failure.yml`, `.github/workflows/create-sentry-issue-on-failure.yml`
-- `.github/workflows/build.yml`, `.github/workflows/lighthouse.yml` (Expo)
-- `.github/workflows/load-test.yml`, `.github/workflows/zap-baseline.yml` (NestJS)
+- `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-deploy-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml` (wrappers — call `@main` definitions)
+- `.github/workflows/reusable-claude.yml`, `.github/workflows/reusable-claude-ci-auto-fix.yml`, `.github/workflows/reusable-claude-deploy-auto-fix.yml`, `.github/workflows/reusable-claude-code-review-response.yml`, `.github/workflows/reusable-claude-nightly-test-improvement.yml`, `.github/workflows/reusable-claude-nightly-test-coverage.yml`, `.github/workflows/reusable-claude-nightly-code-complexity.yml`, `.github/workflows/reusable-auto-update-pr-branches.yml` (definitions — `workflow_call` only)
 - `.github/dependabot.yml`, `.github/GITHUB_ACTIONS.md`, `.github/k6/*`
 - `lighthouserc.js`, `.mcp.json`, `.easignore.extra` (Expo)
 - `scripts/zap-baseline.sh`, `.zap/*`
