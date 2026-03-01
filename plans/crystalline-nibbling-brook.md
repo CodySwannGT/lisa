@@ -30,7 +30,9 @@ Add two blocks between the `cd "$PROJECT_ROOT"` line and the marketplace registr
 
 ```bash
 # Apply Lisa templates non-interactively
-node "$LISA_DIR/dist/index.js" --yes "$PROJECT_ROOT" || true
+if ! node "$LISA_DIR/dist/index.js" --yes "$PROJECT_ROOT"; then
+  echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
+fi
 
 # Strip the hooks key from .claude/settings.json if .claude/hooks/ is now empty/absent
 # (hooks moved to plugin.json; all .claude/hooks/*.sh scripts are deleted by lisa update)
@@ -94,7 +96,7 @@ With Phase 1 published as 1.49.1, the migration is a single `bun install`.
 
 ### 2a. Add `@codyswann/lisa` to devDependencies in frontend-v2
 
-**File**: `/Users/cody/workspace/geminisportsai/frontend-v2/package.json`
+**File**: `package.json` (in frontend-v2 project root)
 
 Add to `devDependencies`:
 ```json
@@ -104,7 +106,7 @@ Add to `devDependencies`:
 ### 2b. Run `bun install`
 
 ```bash
-cd /Users/cody/workspace/geminisportsai/frontend-v2
+cd <frontend-v2-project-root>
 bun install
 ```
 
@@ -122,7 +124,7 @@ The `postinstall` script now does everything in order:
 ### 2c. Commit
 
 ```bash
-cd /Users/cody/workspace/geminisportsai/frontend-v2
+cd <frontend-v2-project-root>
 git add -A
 git commit -m "chore: add @codyswann/lisa devDep, migrate to v1.49.1 via postinstall"
 ```
@@ -147,7 +149,7 @@ git commit -m "chore: add @codyswann/lisa devDep, migrate to v1.49.1 via postins
 After `bun install` in frontend-v2:
 
 ```bash
-cd /Users/cody/workspace/geminisportsai/frontend-v2
+cd <frontend-v2-project-root>
 
 # Deleted files are gone
 test ! -f CLAUDE.md && echo "✓ CLAUDE.md deleted"
@@ -156,9 +158,9 @@ test ! -f .claude/rules/lisa.md && echo "✓ lisa.md deleted"
 test ! -d .claude/hooks && echo "✓ .claude/hooks/ deleted"
 
 # settings.json correct
-node -e "const s=require('./.claude/settings.json'); console.assert(!s.hooks,'hooks not stripped'); console.assert(s.enabledPlugins['expo@lisa'],'expo@lisa missing'); console.assert(s.extraKnownMarketplaces,'marketplace missing'); console.log('✓ settings.json correct')"
+node -e "const s=require('./.claude/settings.json'); if(s.hooks) throw new Error('hooks not stripped'); if(!s.enabledPlugins?.['expo@lisa']) throw new Error('expo@lisa missing'); if(!s.extraKnownMarketplaces) throw new Error('marketplace missing'); console.log('✓ settings.json correct')"
 
 # @codyswann/lisa installed
-node -e "const p=require('./package.json'); console.assert(p.devDependencies['@codyswann/lisa'],'missing devDep'); console.log('✓ devDep present:', p.devDependencies['@codyswann/lisa'])"
+node -e "const p=require('./package.json'); if(!p.devDependencies?.['@codyswann/lisa']) throw new Error('missing devDep'); console.log('✓ devDep present:', p.devDependencies['@codyswann/lisa'])"
 test -d node_modules/@codyswann/lisa && echo "✓ node_modules/@codyswann/lisa exists"
 ```
