@@ -47,6 +47,10 @@ export function createProgram(): Command {
       "Validate project compatibility without applying changes"
     )
     .option("-u, --uninstall", "Remove Lisa-managed files from the project")
+    .option(
+      "--skip-git-check",
+      "Skip dirty git working directory check (for postinstall use)"
+    )
     .action(async (destination: string | undefined, options: CLIOptions) => {
       await runLisa(destination, options);
     });
@@ -62,6 +66,7 @@ interface CLIOptions {
   yes?: boolean;
   validate?: boolean;
   uninstall?: boolean;
+  skipGitCheck?: boolean;
 }
 
 /**
@@ -83,6 +88,9 @@ function printUsageAndExit(): never {
     "  -v, --validate    Validate project compatibility without applying changes"
   );
   console.log("  -u, --uninstall   Remove Lisa-managed files from the project");
+  console.log(
+    "  --skip-git-check  Skip dirty git working directory check (for postinstall use)"
+  );
   console.log("  -h, --help        Show this help message");
   console.log("");
   console.log("Examples:");
@@ -143,6 +151,7 @@ async function runLisa(
     dryRun,
     yesMode,
     validateOnly: options.validate ?? false,
+    skipGitCheck: options.skipGitCheck ?? false,
   };
 
   const logger = new ConsoleLogger();

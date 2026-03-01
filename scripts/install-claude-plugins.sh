@@ -3,8 +3,6 @@
 # Runs as Lisa's postinstall lifecycle script.
 set -euo pipefail
 
-if ! command -v claude &>/dev/null; then exit 0; fi
-
 PROJECT_ROOT="${npm_config_local_prefix:-${INIT_CWD:-}}"
 if [ -z "$PROJECT_ROOT" ]; then exit 0; fi
 
@@ -13,8 +11,10 @@ if [ ! -d "$LISA_DIR" ]; then exit 0; fi
 
 cd "$PROJECT_ROOT"
 
-# Apply Lisa templates non-interactively
-if ! node "$LISA_DIR/dist/index.js" --yes "$PROJECT_ROOT"; then
+# Apply Lisa templates non-interactively.
+# --skip-git-check bypasses the dirty working directory check since
+# package.json and the lockfile are always uncommitted during postinstall.
+if ! node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
   echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
 fi
 
@@ -37,6 +37,9 @@ if "hooks" in d:
 PYEOF
   fi
 fi
+
+# Register the Lisa marketplace and install plugins only when claude CLI is available
+if ! command -v claude &>/dev/null; then exit 0; fi
 
 # Register the Lisa marketplace pointing to this npm package
 claude marketplace add "$LISA_DIR" </dev/null 2>&1 || true

@@ -76,6 +76,9 @@ export interface LisaConfig {
 
   /** If true, only validate compatibility without applying */
   readonly validateOnly: boolean;
+
+  /** If true, skip the dirty git working directory check (for postinstall use) */
+  readonly skipGitCheck: boolean;
 }
 
 /**
