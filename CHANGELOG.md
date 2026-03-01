@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.50.1](https://github.com/CodySwannGT/lisa/compare/vv1.50.0...v1.50.1) (2026-03-01)
+
+
+### Bug Fixes
+
+* publish workspace ESLint plugins to npm in release workflow ([2eaae68](https://github.com/CodySwannGT/lisa/commit/2eaae68e841dd36417b30055e38ffd3b691a0151))
+
 ## [1.50.0](https://github.com/CodySwannGT/lisa/compare/vv1.49.0...v1.50.0) (2026-03-01)
 
 
