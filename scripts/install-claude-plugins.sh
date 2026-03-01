@@ -14,7 +14,9 @@ if [ ! -d "$LISA_DIR" ]; then exit 0; fi
 cd "$PROJECT_ROOT"
 
 # Apply Lisa templates non-interactively
-node "$LISA_DIR/dist/index.js" --yes "$PROJECT_ROOT" || true
+if ! node "$LISA_DIR/dist/index.js" --yes "$PROJECT_ROOT"; then
+  echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
+fi
 
 # Strip the hooks key from .claude/settings.json if .claude/hooks/ is now empty/absent
 # (hooks moved to plugin.json; all .claude/hooks/*.sh scripts are deleted by lisa update)
