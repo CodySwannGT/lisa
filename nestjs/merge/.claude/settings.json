@@ -1,0 +1,29 @@
+{
+  "attribution": {
+    "commit": "🤖 Generated with Claude Code\n\nCo-Authored-By: Claude",
+    "pr": "🤖 Generated with Claude Code"
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "safety-net@cc-marketplace": true,
+    "code-simplifier@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "coderabbit@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true,
+    "nestjs@lisa": true
+  },
+  "extraKnownMarketplaces": {
+    "CodySwannGT/lisa": true
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "1800000",
+    "BASH_MAX_TIMEOUT_MS": "7200000",
+    "CLAUDE_DEBUG": "0",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "deny": ["Read(./.entire/metadata/**)"]
+  },
+  "plansDirectory": "./plans"
+}

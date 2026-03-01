@@ -4,15 +4,10 @@
  */
 
 /**
- * ESLint 9 Flat Config - Main Entry Point
+ * ESLint 9 Flat Config
  *
- * This file imports the stack-specific configuration and project-local customizations.
- * Do not modify this file directly - use eslint.config.local.ts for project-specific rules.
- *
- * Inheritance chain:
- *   eslint.config.ts (this file)
- *   └── eslint.typescript.ts (or eslint.expo.ts, eslint.nestjs.ts, etc.)
- *       └── eslint.base.ts (shared utilities)
+ * Thin wrapper around @codyswann/lisa eslint config factory.
+ * Customize via eslint.config.local.ts and eslint.thresholds.json.
  *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config
@@ -24,29 +19,20 @@ import {
   defaultIgnores,
   defaultThresholds,
   getTypescriptConfig,
-} from "./eslint.typescript";
+} from "@codyswann/lisa/eslint/typescript";
 
-// Project-specific configuration loaded from JSON files
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
 import thresholdsConfig from "./eslint.thresholds.json" with { type: "json" };
-
-// Project-local customizations (create-only - safe to modify)
 import localConfig from "./eslint.config.local";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const ignorePatterns = ignoreConfig.ignores || defaultIgnores;
-const thresholds = { ...defaultThresholds, ...thresholdsConfig };
-
 export default [
-  // Stack-specific configuration (TypeScript)
   ...getTypescriptConfig({
     tsconfigRootDir: __dirname,
-    ignorePatterns,
-    thresholds,
+    ignorePatterns: ignoreConfig.ignores || defaultIgnores,
+    thresholds: { ...defaultThresholds, ...thresholdsConfig },
   }),
-
-  // Project-local customizations
   ...localConfig,
 ];

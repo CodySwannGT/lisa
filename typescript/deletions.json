@@ -12,6 +12,12 @@
     ".claude/skills/jira-journey",
     ".claude/skills/jira-verify",
     ".claude/skills/jsdoc-best-practices",
-    "eslint-plugin-code-organization"
+    "eslint-plugin-code-organization",
+    "eslint.base.ts",
+    "eslint.typescript.ts",
+    "jest.base.ts",
+    "jest.typescript.ts",
+    "tsconfig.base.json",
+    "tsconfig.typescript.json"
   ]
 }

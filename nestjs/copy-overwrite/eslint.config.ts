@@ -6,14 +6,8 @@
 /**
  * ESLint 9 Flat Config - Main Entry Point (NestJS)
  *
- * This file imports the NestJS-specific configuration and project-local customizations.
- * Do not modify this file directly - use eslint.config.local.ts for project-specific rules.
- *
- * Inheritance chain:
- *   eslint.config.ts (this file)
- *   └── eslint.nestjs.ts
- *       └── eslint.typescript.ts
- *           └── eslint.base.ts
+ * Thin wrapper around @codyswann/lisa eslint config factory.
+ * Customize via eslint.config.local.ts and eslint.thresholds.json.
  *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config
@@ -25,29 +19,20 @@ import {
   defaultIgnores,
   defaultThresholds,
   getNestjsConfig,
-} from "./eslint.nestjs";
+} from "@codyswann/lisa/eslint/nestjs";
 
-// Project-specific configuration loaded from JSON files
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
 import thresholdsConfig from "./eslint.thresholds.json" with { type: "json" };
-
-// Project-local customizations (create-only - safe to modify)
 import localConfig from "./eslint.config.local";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const ignorePatterns = ignoreConfig.ignores || defaultIgnores;
-const thresholds = { ...defaultThresholds, ...thresholdsConfig };
-
 export default [
-  // Stack-specific configuration (NestJS)
   ...getNestjsConfig({
     tsconfigRootDir: __dirname,
-    ignorePatterns,
-    thresholds,
+    ignorePatterns: ignoreConfig.ignores || defaultIgnores,
+    thresholds: { ...defaultThresholds, ...thresholdsConfig },
   }),
-
-  // Project-local customizations
   ...localConfig,
 ];

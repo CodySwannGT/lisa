@@ -8,23 +8,25 @@
 /**
  * Jest Configuration - Main Entry Point (Expo)
  *
- * Imports the Expo-specific configuration and project-local customizations.
- * Do not modify this file directly - use jest.config.local.ts for project-specific settings.
- *
- * Inheritance chain:
- *   jest.config.ts (this file)
- *   └── jest.expo.ts
- *       └── jest.base.ts
+ * Thin wrapper around @codyswann/lisa jest config factory.
+ * Customize via jest.config.local.ts and jest.thresholds.json.
  *
  * @see https://jestjs.io/docs/configuration
  * @module jest.config
  */
-import { mergeConfigs, mergeThresholds } from "./jest.base.ts";
-import { defaultThresholds, getExpoJestConfig } from "./jest.expo.ts";
+import {
+  defaultThresholds,
+  getExpoJestConfig,
+  mergeConfigs,
+  mergeThresholds,
+} from "@codyswann/lisa/jest/expo";
 
 import localConfig from "./jest.config.local.ts";
 import thresholdsOverrides from "./jest.thresholds.json" with { type: "json" };
 
-const thresholds = mergeThresholds(defaultThresholds, thresholdsOverrides);
-
-export default mergeConfigs(getExpoJestConfig({ thresholds }), localConfig);
+export default mergeConfigs(
+  getExpoJestConfig({
+    thresholds: mergeThresholds(defaultThresholds, thresholdsOverrides),
+  }),
+  localConfig
+);
