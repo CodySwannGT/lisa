@@ -1,6 +1,12 @@
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import { minimatch } from "minimatch";
+// minimatch v3 is a CJS module that exports the function as the default export.
+// Using a default import works in both ts-jest (esModuleInterop wraps CJS exports)
+// and native Node.js ESM (CJS-ESM interop exposes module.exports as default).
+// v3 is used intentionally so bun hoists it top-level in downstream projects,
+// preventing test-exclude (which also requires ^3.x) from resolving to an
+// incompatible v9+ object via require().
+import minimatch from "minimatch";
 import { pathExists } from "./file-operations.js";
 
 /**
