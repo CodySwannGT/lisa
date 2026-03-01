@@ -1,3 +1,13 @@
 {
-  "paths": [".overcommit.yml"]
+  "paths": [
+    ".overcommit.yml",
+    ".claude/skills/action-controller-best-practices",
+    ".claude/skills/action-view-best-practices",
+    ".claude/skills/active-record-model-best-practices",
+    ".claude/skills/plan-add-test-coverage",
+    ".claude/skills/plan-fix-linter-error",
+    ".claude/skills/plan-lower-code-complexity",
+    ".claude/skills/plan-reduce-max-lines",
+    ".claude/skills/plan-reduce-max-lines-per-function"
+  ]
 }

@@ -1,9 +1,9 @@
 {
-  "name": "eslint-plugin-code-organization",
+  "name": "@codyswann/eslint-plugin-code-organization",
   "version": "1.0.0",
   "description": "ESLint plugin to enforce code organization standards",
   "main": "index.js",
-  "private": true,
+  "publishConfig": { "access": "public" },
   "peerDependencies": {
     "eslint": ">=9.0.0"
   }

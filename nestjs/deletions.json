@@ -1,0 +1,8 @@
+{
+  "paths": [
+    ".claude/skills/nestjs-graphql",
+    ".claude/skills/nestjs-rules",
+    ".claude/skills/security-zap-scan",
+    ".claude/skills/typeorm-patterns"
+  ]
+}

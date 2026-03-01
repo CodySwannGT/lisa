@@ -47,7 +47,7 @@ export {
 
 // Custom plugins (CommonJS - use createRequire)
 const require = createRequire(import.meta.url);
-const codeOrganization = require("./eslint-plugin-code-organization/index.js");
+const codeOrganization = require("@codyswann/eslint-plugin-code-organization");
 
 // Re-export plugin for stack-specific configs
 export { codeOrganization };

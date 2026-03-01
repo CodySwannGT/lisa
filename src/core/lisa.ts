@@ -338,6 +338,7 @@ export class Lisa {
       await this.processDeletions();
       await this.finalize();
       this.printSummary();
+      await this.printMigrationNotices(this.config.destDir);
       return this.getSuccessResult();
     } catch (error) {
       return this.handleApplyError(error);
@@ -944,6 +945,68 @@ export class Lisa {
     this.printSummaryStats();
     this.printProjectTypes();
     this.printValidationResult();
+  }
+
+  /**
+   * Read a file's contents, returning null if the file does not exist or cannot be read.
+   * Used for optional file checks that should not interrupt the main flow on failure.
+   * @param filePath - Absolute path to the file to read
+   * @returns File contents as a string, or null if unavailable
+   */
+  private async tryReadFile(filePath: string): Promise<string | null> {
+    try {
+      return await readFile(filePath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Print migration notices when the project's ci.yml or deploy.yml still reference
+   * local quality/release workflows instead of the canonical Lisa repo versions.
+   * Printed after the update summary so users see it as a post-update action item.
+   * @param projectDir - The destination project directory to inspect
+   */
+  private async printMigrationNotices(projectDir: string): Promise<void> {
+    const ciPath = path.join(projectDir, ".github", "workflows", "ci.yml");
+    const deployPath = path.join(
+      projectDir,
+      ".github",
+      "workflows",
+      "deploy.yml"
+    );
+
+    const [ciContent, deployContent] = await Promise.all([
+      this.tryReadFile(ciPath),
+      this.tryReadFile(deployPath),
+    ]);
+
+    const notices = [
+      ciContent?.includes("uses: ./.github/workflows/quality.yml")
+        ? "  .github/workflows/ci.yml — change:\n    uses: ./.github/workflows/quality.yml\n    → uses: CodySwannGT/lisa/.github/workflows/quality.yml@main"
+        : null,
+      deployContent?.includes("uses: ./.github/workflows/release.yml")
+        ? "  .github/workflows/deploy.yml — change:\n    uses: ./.github/workflows/release.yml\n    → uses: CodySwannGT/lisa/.github/workflows/release.yml@main"
+        : null,
+    ].filter((n): n is string => n !== null);
+
+    if (notices.length === 0) {
+      return;
+    }
+
+    console.log("");
+    console.log(
+      pc.yellow(
+        "⚠️  Action required: Update your CI/Deploy workflows to call the Lisa repo directly."
+      )
+    );
+    console.log("");
+    console.log(notices.join("\n\n"));
+    console.log("");
+    console.log(
+      "  After this one-time change, quality/release workflow updates will be automatic."
+    );
+    console.log("");
   }
 
   /**

@@ -9,7 +9,12 @@
     "code-simplifier@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
-    "coderabbit@claude-plugins-official": true
+    "coderabbit@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true,
+    "typescript@lisa": true
+  },
+  "extraKnownMarketplaces": {
+    "CodySwannGT/lisa": true
   },
   "env": {
     "BASH_DEFAULT_TIMEOUT_MS": "1800000",
@@ -18,263 +23,38 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "hooks": {
-    "Notification": [
-      {
-        "matcher": "permission_prompt|idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify-ntfy.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/format-on-edit.sh"
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sg-scan-on-edit.sh"
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/lint-on-edit.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "TaskCreate|TaskUpdate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sync-tasks.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh"
-          }
-        ]
-      },
-      {
         "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true" }]
       },
       {
         "matcher": "TodoWrite",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true"
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh",
-            "timeout": 5
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true" }]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh"
-          }
-        ]
-      },
-      {
         "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true" }]
       }
     ],
     "SessionEnd": [
       {
         "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh"
-          },
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true" }]
       }
     ],
     "SessionStart": [
       {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/install-pkgs.sh"
-          }
-        ]
-      },
-      {
         "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/setup-jira-cli.sh"
-          },
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh"
-          }
-        ]
-      }
-    ],
-    "Setup": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh",
-            "timeout": 5
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true" }]
       }
     ],
     "Stop": [
       {
         "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/verify-completion.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-tired-boss.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify-ntfy.sh"
-          },
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh"
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh",
-            "timeout": 5
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true" }]
       }
     ],
     "UserPromptSubmit": [
@@ -290,31 +70,11 @@
             "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
           }
         ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-plan-rules.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/debug-hook.sh"
-          }
-        ]
       }
     ]
   },
   "permissions": {
-    "deny": [
-      "Read(./.entire/metadata/**)"
-    ]
+    "deny": ["Read(./.entire/metadata/**)"]
   },
   "plansDirectory": "./plans"
 }
