@@ -26,7 +26,8 @@ import reactPerf from "eslint-plugin-react-perf";
 import tailwind from "eslint-plugin-tailwindcss";
 import { createRequire } from "module";
 
-// Import TypeScript config and utilities
+// Import TypeScript config and utilities from the Lisa package
+// (eslint.typescript.ts is no longer deployed to downstream projects)
 import {
   codeOrganization,
   defaultIgnores,
@@ -39,7 +40,7 @@ import {
   getTestFilesOverride,
   getTsFilesOverride,
   getTsTestFilesOverride,
-} from "./eslint.typescript";
+} from "@codyswann/lisa/eslint/typescript";
 
 // Re-export for downstream configs
 export {
