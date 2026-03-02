@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.52.3](https://github.com/CodySwannGT/lisa/compare/vv1.52.2...v1.52.3) (2026-03-02)
+
+
+### Code Refactoring
+
+* migrate GitHub workflows to [@main](https://github.com/main) references ([#229](https://github.com/CodySwannGT/lisa/issues/229)) ([90efef5](https://github.com/CodySwannGT/lisa/commit/90efef5abea85d75160284d222d04c6afe1808f4))
+
 ### [1.52.2](https://github.com/CodySwannGT/lisa/compare/vv1.52.1...v1.52.2) (2026-03-01)
 
 ### [1.52.1](https://github.com/CodySwannGT/lisa/compare/vv1.52.0...v1.52.1) (2026-03-01)
