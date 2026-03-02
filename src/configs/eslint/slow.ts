@@ -28,7 +28,9 @@ const importTypescriptConfig = importPlugin.flatConfigs.typescript;
  */
 export function getSlowConfig({
   ignorePatterns = [],
-}: { ignorePatterns?: readonly string[] } = {}) {
+}: {
+  ignorePatterns?: readonly string[];
+} = {}): import("eslint").Linter.Config[] {
   return [
     // Use same ignores as main config, plus ignore all non-TS files
     // This prevents errors from inline eslint directives in JS files
@@ -93,4 +95,5 @@ export function getSlowConfig({
   ];
 }
 
-export default getSlowConfig();
+const defaultConfig: import("eslint").Linter.Config[] = getSlowConfig();
+export default defaultConfig;
