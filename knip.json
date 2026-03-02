@@ -15,9 +15,6 @@
     "**/node_modules/**"
   ],
   "ignoreDependencies": [
-    "@codyswann/eslint-plugin-code-organization",
-    "@codyswann/eslint-plugin-component-structure",
-    "@codyswann/eslint-plugin-ui-standards",
     "@commitlint/cli",
     "@eslint/eslintrc",
     "@jest/test-sequencer",
