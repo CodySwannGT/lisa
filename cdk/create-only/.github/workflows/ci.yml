@@ -130,4 +130,9 @@ jobs:
     with:
       node_version: '22.21.1'
       package_manager: 'bun'
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+      MAESTRO_API_KEY: ${{ secrets.MAESTRO_API_KEY }}
