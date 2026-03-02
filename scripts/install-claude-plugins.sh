@@ -70,9 +70,19 @@ for plugin in \
   "typescript-lsp@claude-plugins-official" \
   "code-simplifier@claude-plugins-official" \
   "code-review@claude-plugins-official" \
-  "playwright@claude-plugins-official" \
   "coderabbit@claude-plugins-official" \
   "sentry@claude-plugins-official" \
+  "skill-creator@claude-plugins-official" \
+  "atlassian@claude-plugins-official" \
   "safety-net@cc-marketplace"; do
   claude plugin install "$plugin" --scope project </dev/null 2>&1 || true
 done
+
+# Install stack-specific third-party plugins
+if [ "$LISA_PLUGIN" = "expo@lisa" ]; then
+  for plugin in \
+    "playwright@claude-plugins-official" \
+    "posthog@claude-plugins-official"; do
+    claude plugin install "$plugin" --scope project </dev/null 2>&1 || true
+  done
+fi
