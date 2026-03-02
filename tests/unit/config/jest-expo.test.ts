@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { getExpoJestConfig } from "../../../expo/copy-overwrite/jest.expo.js";
-import { defaultThresholds } from "../../../jest.base.js";
+import { defaultThresholds } from "../../../src/configs/jest/base.js";
 
 describe("jest.expo", () => {
   describe("getExpoJestConfig", () => {
