@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.53.0](https://github.com/CodySwannGT/lisa/compare/vv1.52.5...v1.53.0) (2026-03-02)
+
+
+### Features
+
+* dogfood Lisa on itself via npm package self-install ([d30951d](https://github.com/CodySwannGT/lisa/commit/d30951d9e4b5c1846fb8ae6582611e28270cb64b))
+
+
+### Bug Fixes
+
+* **ci:** add permissions block to auto-update-pr-branches caller workflow ([14d10ea](https://github.com/CodySwannGT/lisa/commit/14d10ea263df7803370e091dce365002b529d78a))
+* **ci:** ensure dist/ exists before tests and lint in CI ([a72b6d2](https://github.com/CodySwannGT/lisa/commit/a72b6d25e231e26a105b4c6de28bbea71032365c))
+* **ci:** replace Unicode surrogate pair text with actual emoji in workflows ([e3541df](https://github.com/CodySwannGT/lisa/commit/e3541dff98ac1a48ba18bbe396189b09cf496ff1))
+* **ci:** skip running Lisa on itself during postinstall ([2433dee](https://github.com/CodySwannGT/lisa/commit/2433dee8a2d213f5cae9b1d63ea5dd368da21db2))
+* **ci:** update lockfile to @codyswann/lisa@1.52.6 ([5d154b2](https://github.com/CodySwannGT/lisa/commit/5d154b2e84de3a110ee479d54c9f7651149f26c3))
+* resolve knip and moduleNameMapper issues from dogfood ([7f07a8f](https://github.com/CodySwannGT/lisa/commit/7f07a8f2a66dd55a32228144b390913cae02dc60))
+
 ### [1.52.5](https://github.com/CodySwannGT/lisa/compare/vv1.52.4...v1.52.5) (2026-03-02)
 
 
