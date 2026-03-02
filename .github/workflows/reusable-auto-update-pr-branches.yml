@@ -48,7 +48,7 @@ jobs:
         uses: chinthakagodawita/autoupdate@v1.7.0
         continue-on-error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.GITHUB_TOKEN }}
           PR_FILTER: 'all'
           PR_READY_STATE: 'all'
           MERGE_CONFLICT_ACTION: 'ignore'
@@ -63,5 +63,5 @@ jobs:
       - name: Update PR branch
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.GITHUB_TOKEN }}
         run: gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/${{ inputs.pr_number }}/update-branch" -f update_method=merge
