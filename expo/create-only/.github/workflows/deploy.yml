@@ -71,7 +71,14 @@ jobs:
       package_manager: 'bun'
       override_blackout: true
       emergency_release: false
-    secrets: inherit
+    secrets:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+      RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+      SIGNING_KEY_PASSPHRASE: ${{ secrets.SIGNING_KEY_PASSPHRASE }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
   # Step 2: Deploy to AWS (Custom deployment logic)
   check_eas_setup:
