@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.52.4](https://github.com/CodySwannGT/lisa/compare/vv1.52.3...v1.52.4) (2026-03-02)
+
+
+### Code Refactoring
+
+* migrate GitHub workflows from copy-overwrite to create-only ([107667b](https://github.com/CodySwannGT/lisa/commit/107667bcc1e7522d1c472cf356de055c8455fe20))
+
+
+### Documentation
+
+* fix plan text to scope workflow deletion correctly ([535a99d](https://github.com/CodySwannGT/lisa/commit/535a99d287eb577e1f7b0271171521503f4b992e))
+* fix verification step to check workflows dir, not parent ([b8a8916](https://github.com/CodySwannGT/lisa/commit/b8a891633eec4099a9c0c6ec1021819469a6ffdd))
+
 ### [1.52.3](https://github.com/CodySwannGT/lisa/compare/vv1.52.2...v1.52.3) (2026-03-02)
 
 
