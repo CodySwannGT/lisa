@@ -29,6 +29,10 @@ on:
         description: 'Full repository name (owner/repo)'
         required: true
         type: string
+    secrets:
+      TRIGGER_TOKEN:
+        description: 'Optional token to use instead of GITHUB_TOKEN so pushes trigger downstream workflows'
+        required: false
 
 permissions:
   contents: write
@@ -44,7 +48,7 @@ jobs:
         uses: chinthakagodawita/autoupdate@v1.7.0
         continue-on-error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.GITHUB_TOKEN }}
           PR_FILTER: 'all'
           PR_READY_STATE: 'all'
           MERGE_CONFLICT_ACTION: 'ignore'
@@ -59,5 +63,5 @@ jobs:
       - name: Update PR branch
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.GITHUB_TOKEN }}
         run: gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/${{ inputs.pr_number }}/update-branch" -f update_method=merge
