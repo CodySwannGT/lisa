@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "tsc && bun run build:plugins",
+    "pretest": "[ -d dist/configs ] || bun run build",
     "test": "NODE_ENV=test jest --passWithNoTests",
     "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
     "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
@@ -27,7 +28,7 @@
     "lisa:update:local": "bash scripts/lisa-update-local.sh",
     "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
     "prepublishOnly": "$npm_execpath run build",
-    "postinstall": "bash ./scripts/install-claude-plugins.sh || true"
+    "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true"
   },
   "engines": {
     "npm": "please-use-bun",
