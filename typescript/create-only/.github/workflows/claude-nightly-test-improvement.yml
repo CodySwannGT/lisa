@@ -17,6 +17,12 @@ on:
           - nightly
           - general
 
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   improve-tests:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-test-improvement.yml@main
