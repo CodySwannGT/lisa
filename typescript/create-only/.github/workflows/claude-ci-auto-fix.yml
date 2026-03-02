@@ -8,6 +8,13 @@ on:
     workflows: ['CI Quality Checks']
     types: [completed]
 
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   auto-fix:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-ci-auto-fix.yml@main

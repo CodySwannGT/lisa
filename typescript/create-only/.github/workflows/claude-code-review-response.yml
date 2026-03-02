@@ -7,6 +7,14 @@ on:
   pull_request_review:
     types: [submitted]
 
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   respond-to-review:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-code-review-response.yml@main
