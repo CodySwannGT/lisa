@@ -9,6 +9,11 @@ if [ -z "$PROJECT_ROOT" ]; then exit 0; fi
 LISA_DIR="$PROJECT_ROOT/node_modules/@codyswann/lisa"
 if [ ! -d "$LISA_DIR" ]; then exit 0; fi
 
+# Skip running Lisa on itself — the Lisa repo IS the template source.
+# Self-running causes chicken-and-egg issues (npm package deletes source files).
+PACKAGE_NAME=$(node -e "console.log(require('$PROJECT_ROOT/package.json').name || '')" 2>/dev/null || true)
+if [ "$PACKAGE_NAME" = "@codyswann/lisa" ]; then exit 0; fi
+
 cd "$PROJECT_ROOT"
 
 # Apply Lisa templates non-interactively.
