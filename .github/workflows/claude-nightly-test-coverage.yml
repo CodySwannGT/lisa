@@ -8,6 +8,12 @@ on:
     - cron: '0 4 * * 1-5'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   improve-coverage:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-test-coverage.yml@main
