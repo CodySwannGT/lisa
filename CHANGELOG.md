@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.53.8](https://github.com/CodySwannGT/lisa/compare/vv1.53.7...v1.53.8) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** use Claude Code action for auto-update and add missing permissions ([15e6bb3](https://github.com/CodySwannGT/lisa/commit/15e6bb34d6ec95c6208877bce2e84a5ab0554b20))
+
 ### [1.53.7](https://github.com/CodySwannGT/lisa/compare/vv1.53.6...v1.53.7) (2026-03-02)
 
 
