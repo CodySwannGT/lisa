@@ -5,7 +5,7 @@ import {
   defaultCoverageExclusions,
   mergeThresholds,
   mergeConfigs,
-} from "../../../jest.base.js";
+} from "../../../src/configs/jest/base.js";
 
 const TESTS_GLOB = "<rootDir>/tests/**/*.test.ts";
 const SRC_GLOB = "<rootDir>/src/**/*.test.ts";

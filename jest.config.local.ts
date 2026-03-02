@@ -21,12 +21,13 @@ const config: Config = {
     // downstream projects resolve via the installed npm package. In the Lisa
     // repo's own test context the package resolves to itself — redirect these
     // self-referencing imports to the local source files instead.
-    "@codyswann/lisa/jest/base": "<rootDir>/jest.base.ts",
-    "@codyswann/lisa/eslint/typescript": "<rootDir>/eslint.typescript.ts",
+    "@codyswann/lisa/jest/base": "<rootDir>/src/configs/jest/base.ts",
+    "@codyswann/lisa/eslint/typescript":
+      "<rootDir>/src/configs/eslint/typescript.ts",
     // Stack template files (expo/, nestjs/, cdk/) import ./jest.base.ts as
     // a sibling — which only exists at the project root after Lisa copies
     // the template. Redirect so tests can import these templates in-place.
-    "^\\./(jest\\.base\\.ts)$": "<rootDir>/$1",
+    "^\\./(jest\\.base\\.ts)$": "<rootDir>/src/configs/jest/base.ts",
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
   transform: {

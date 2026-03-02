@@ -1,4 +1,35 @@
 {
+  "scripts": {
+    "build": "tsc && bun run build:plugins",
+    "pretest": "[ -d dist/configs ] || bun run build",
+    "test": "NODE_ENV=test jest --passWithNoTests",
+    "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
+    "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
+    "test:cov": "NODE_ENV=test jest --coverage",
+    "lint": "eslint . --quiet",
+    "lint:fix": "eslint . --fix",
+    "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check .",
+    "format": "prettier --check . --write",
+    "knip": "knip",
+    "knip:fix": "knip --fix",
+    "sg:scan": "ast-grep scan",
+    "build:plugins": "bash scripts/build-plugins.sh",
+    "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test:watch": "jest --watch",
+    "update-node-version": "tsx scripts/update-node-version.ts",
+    "cleanup:amplify-branches": "bash scripts/cleanup-amplify-branches.sh",
+    "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
+    "github:status": "bash scripts/github-status-check.sh",
+    "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
+    "lisa:update:local": "bash scripts/lisa-update-local.sh",
+    "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
+    "prepublishOnly": "$npm_execpath run build",
+    "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true"
+  },
   "engines": {
     "npm": "please-use-bun",
     "yarn": "please-use-bun",
@@ -29,39 +60,9 @@
   ],
   "trustedDependencies": [
     "@ast-grep/cli",
-    "@sentry/cli"
+    "@sentry/cli",
+    "@codyswann/lisa"
   ],
-  "scripts": {
-    "test": "NODE_ENV=test jest --passWithNoTests",
-    "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-    "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-    "test:cov": "NODE_ENV=test jest --coverage",
-    "lint": "eslint . --quiet",
-    "lint:fix": "eslint . --fix",
-    "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
-    "typecheck": "tsc --noEmit",
-    "format:check": "prettier --check .",
-    "format": "prettier --check . --write",
-    "knip": "knip",
-    "knip:fix": "knip --fix",
-    "sg:scan": "ast-grep scan",
-    "build": "tsc && bun run build:plugins",
-    "build:plugins": "bash scripts/build-plugins.sh",
-    "prepare": "$npm_execpath run build || husky install || true",
-    "lisa:update": "npx @codyswann/lisa@latest .",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
-    "test:watch": "jest --watch",
-    "update-node-version": "tsx scripts/update-node-version.ts",
-    "cleanup:amplify-branches": "bash scripts/cleanup-amplify-branches.sh",
-    "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
-    "github:status": "bash scripts/github-status-check.sh",
-    "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
-    "lisa:update:local": "bash scripts/lisa-update-local.sh",
-    "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
-    "prepublishOnly": "$npm_execpath run build",
-    "postinstall": "bash ./scripts/install-claude-plugins.sh || true"
-  },
   "resolutions": {
     "@isaacs/brace-expansion": "^5.0.1",
     "axios": ">=1.13.5"
@@ -71,7 +72,7 @@
     "axios": ">=1.13.5"
   },
   "name": "@codyswann/lisa",
-  "version": "1.52.5",
+  "version": "1.53.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
@@ -168,6 +169,9 @@
     "tsx": "^4.0.0",
     "typescript": "~5.7.0",
     "typescript-eslint": "^8.0.0"
+  },
+  "devDependencies": {
+    "@codyswann/lisa": "^1.52.6"
   },
   "type": "module"
 }
