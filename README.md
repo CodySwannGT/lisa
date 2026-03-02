@@ -36,7 +36,7 @@ Or with utility commands:
 
 ## Lisa Commands
 
-> Ask Claude: "What Lisa commands are available and how do I use them? Read HUMAN.md and give me a summary."
+> Ask Claude: "What Lisa commands are available, and how do I use them? Read HUMAN.md and give me a summary."
 
 ## Common Tasks
 
