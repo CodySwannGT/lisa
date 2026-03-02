@@ -43,7 +43,7 @@ Delete from `typescript/copy-overwrite/.github/workflows/`:
 - `reusable-claude-nightly-test-coverage.yml`
 - `reusable-claude-nightly-test-improvement.yml`
 
-Then `rm -rf typescript/copy-overwrite/.github/` (now empty).
+Then `rm -rf typescript/copy-overwrite/.github/workflows/` (only the workflows directory; non-workflow files like `GITHUB_ACTIONS.md` and `dependabot.yml` are preserved).
 
 ### 3. Add reusable paths to `typescript/deletions.json`
 
