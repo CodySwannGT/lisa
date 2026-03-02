@@ -25,7 +25,7 @@ brew install claude-code
 
 > Ask Claude: "I have Jira ticket [TICKET-ID]. Research the codebase, create a plan, and implement it."
 
-Or use utility commands:
+Or with utility commands:
 
 - `/plan:add-test-coverage` - Increase test coverage to a threshold
 - `/plan:fix-linter-error` - Fix ESLint rule violations
