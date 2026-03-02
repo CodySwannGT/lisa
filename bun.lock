@@ -55,7 +55,7 @@
         "typescript-eslint": "^8.0.0",
       },
       "devDependencies": {
-        "@codyswann/lisa": "1.52.5",
+        "@codyswann/lisa": "^1.49.0",
       },
     },
     "eslint-plugin-code-organization": {
