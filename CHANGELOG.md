@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.53.4](https://github.com/CodySwannGT/lisa/compare/vv1.53.3...v1.53.4) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** use TRIGGER_TOKEN in auto-update workflow to trigger downstream CI ([f68ee34](https://github.com/CodySwannGT/lisa/commit/f68ee34182e707437046c1a6c67784b60f603044))
+
 ### [1.53.3](https://github.com/CodySwannGT/lisa/compare/vv1.53.2...v1.53.3) (2026-03-02)
 
 ### [1.53.2](https://github.com/CodySwannGT/lisa/compare/vv1.53.1...v1.53.2) (2026-03-02)
