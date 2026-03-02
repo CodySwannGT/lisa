@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.53.2](https://github.com/CodySwannGT/lisa/compare/vv1.53.1...v1.53.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** add permissions to caller workflows for reusable workflow compatibility ([b520a4f](https://github.com/CodySwannGT/lisa/commit/b520a4f5994429fe44f8f0c5540fdb908cf83900))
+
 ### [1.53.1](https://github.com/CodySwannGT/lisa/compare/vv1.53.0...v1.53.1) (2026-03-02)
 
 
