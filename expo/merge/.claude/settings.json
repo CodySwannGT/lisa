@@ -11,6 +11,7 @@
     "playwright@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
+    "posthog@claude-plugins-official": true,
     "expo@lisa": true
   },
   "extraKnownMarketplaces": {
