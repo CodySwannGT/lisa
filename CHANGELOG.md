@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.52.5](https://github.com/CodySwannGT/lisa/compare/vv1.52.4...v1.52.5) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** replace secrets: inherit with explicit secrets for cross-repo workflows ([aa2e538](https://github.com/CodySwannGT/lisa/commit/aa2e538a412f12aea675ebfe290d2fde2ea702cc))
+
 ### [1.52.4](https://github.com/CodySwannGT/lisa/compare/vv1.52.3...v1.52.4) (2026-03-02)
 
 
