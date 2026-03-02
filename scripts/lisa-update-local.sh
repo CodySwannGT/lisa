@@ -3,8 +3,9 @@
 # Lisa Local Project Update
 #
 # Iterates over projects defined in .lisa.config.local.json, checks out their
-# target branches, pulls latest changes, and applies Lisa templates using
-# `bun run dev <path> -y`.
+# target branches, pulls latest changes, and updates @codyswann/lisa via the
+# project's package manager. The postinstall script automatically applies
+# Lisa templates.
 #
 # This enables batch-updating all locally managed projects in a single command
 # rather than manually visiting each project directory.
@@ -132,10 +133,24 @@ while IFS=$'\t' read -r project_path target_branch; do
     continue
   fi
 
-  # Apply Lisa templates
-  log_info "Applying Lisa templates..."
-  if ! (cd "$LISA_ROOT" && bun run dev "$expanded_path" -y); then
-    log_error "Lisa CLI failed for $expanded_path"
+  # Detect package manager and update @codyswann/lisa
+  log_info "Updating @codyswann/lisa (triggers postinstall template application)..."
+  pm=""
+  if [[ -f "$expanded_path/bun.lockb" ]]; then
+    pm="bun"
+  elif [[ -f "$expanded_path/pnpm-lock.yaml" ]]; then
+    pm="pnpm"
+  elif [[ -f "$expanded_path/yarn.lock" ]]; then
+    pm="yarn"
+  elif [[ -f "$expanded_path/package-lock.json" ]]; then
+    pm="npm"
+  else
+    pm="bun"
+  fi
+
+  log_info "Using package manager: $pm"
+  if ! (cd "$expanded_path" && $pm update @codyswann/lisa); then
+    log_error "Failed to update @codyswann/lisa in $expanded_path"
     ((fail_count++)) || true
     continue
   fi
