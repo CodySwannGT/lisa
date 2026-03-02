@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.54.0](https://github.com/CodySwannGT/lisa/compare/vv1.53.9...v1.54.0) (2026-03-02)
+
+
+### Features
+
+* **plugins:** update plugin configuration per project type ([782e368](https://github.com/CodySwannGT/lisa/commit/782e3689c73cae7fee61eb79b1b9bd5a6ee46d9d))
+
 ### [1.53.9](https://github.com/CodySwannGT/lisa/compare/vv1.53.8...v1.53.9) (2026-03-02)
 
 
