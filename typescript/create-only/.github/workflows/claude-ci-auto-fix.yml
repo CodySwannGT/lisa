@@ -1,16 +1,16 @@
-# This file is managed by Lisa.
-# Do not edit directly — changes will be overwritten on the next `lisa` run.
+# This file was created by Lisa on first setup.
+# You can customize this file — Lisa will not overwrite it.
 
-name: Claude Deploy Auto-Fix
+name: Claude CI Auto-Fix
 
 on:
   workflow_run:
-    workflows: ['Release and Deploy', '🚀 Release and Deploy']
+    workflows: ['CI Quality Checks']
     types: [completed]
 
 jobs:
   auto-fix:
-    uses: CodySwannGT/lisa/.github/workflows/reusable-claude-deploy-auto-fix.yml@main
+    uses: CodySwannGT/lisa/.github/workflows/reusable-claude-ci-auto-fix.yml@main
     with:
       workflow_run_conclusion: ${{ github.event.workflow_run.conclusion }}
       head_repo_full_name: ${{ github.event.workflow_run.head_repository.full_name }}
