@@ -17,4 +17,5 @@ jobs:
       repo_full_name: ${{ github.repository }}
       head_branch: ${{ github.event.workflow_run.head_branch }}
       run_id: ${{ github.event.workflow_run.id }}
-    secrets: inherit
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

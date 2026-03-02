@@ -21,4 +21,3 @@ jobs:
       pr_base_ref: ${{ github.event.pull_request.base.ref || '' }}
       pr_number: ${{ github.event.pull_request.number || 0 }}
       repo_full_name: ${{ github.repository }}
-    secrets: inherit
