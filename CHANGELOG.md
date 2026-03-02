@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.53.9](https://github.com/CodySwannGT/lisa/compare/vv1.53.8...v1.53.9) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** add missing permissions to claude.yml caller workflow ([f608946](https://github.com/CodySwannGT/lisa/commit/f6089466f3fa462f39c0ccfcb2ed0e40934d8130))
+
 ### [1.53.8](https://github.com/CodySwannGT/lisa/compare/vv1.53.7...v1.53.8) (2026-03-02)
 
 
