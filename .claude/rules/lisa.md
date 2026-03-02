@@ -16,6 +16,7 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `.claude/rules/PROJECT_RULES.md`
 - `eslint.thresholds.json`
 - `jest.thresholds.json`
+- `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-deploy-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml` (wrappers — call `@main` reusable definitions)
 
 ## Directories with both Lisa-managed and project content
 
@@ -42,8 +43,6 @@ These directories contain files deployed by Lisa **and** files you create. Do no
 - `tsconfig.eslint.json`, `tsconfig.build.json`, `tsconfig.spec.json`
 - `.claude/settings.json`
 - `.claude/README.md`
-- `.github/workflows/claude.yml`, `.github/workflows/claude-ci-auto-fix.yml`, `.github/workflows/claude-deploy-auto-fix.yml`, `.github/workflows/claude-code-review-response.yml`, `.github/workflows/claude-nightly-test-improvement.yml`, `.github/workflows/claude-nightly-test-coverage.yml`, `.github/workflows/claude-nightly-code-complexity.yml`, `.github/workflows/auto-update-pr-branches.yml` (wrappers — call `@main` definitions)
-- `.github/workflows/reusable-claude.yml`, `.github/workflows/reusable-claude-ci-auto-fix.yml`, `.github/workflows/reusable-claude-deploy-auto-fix.yml`, `.github/workflows/reusable-claude-code-review-response.yml`, `.github/workflows/reusable-claude-nightly-test-improvement.yml`, `.github/workflows/reusable-claude-nightly-test-coverage.yml`, `.github/workflows/reusable-claude-nightly-code-complexity.yml`, `.github/workflows/reusable-auto-update-pr-branches.yml` (definitions — `workflow_call` only)
 - `.github/dependabot.yml`, `.github/GITHUB_ACTIONS.md`, `.github/k6/*`
 - `lighthouserc.js`, `.mcp.json`, `.easignore.extra` (Expo)
 - `scripts/zap-baseline.sh`, `.zap/*`
