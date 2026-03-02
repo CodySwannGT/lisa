@@ -30,6 +30,9 @@ on:
         required: true
         type: string
     secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        description: 'Claude Code OAuth token for authenticating pushes that trigger downstream workflows'
+        required: false
       TRIGGER_TOKEN:
         description: 'Optional token to use instead of GITHUB_TOKEN so pushes trigger downstream workflows'
         required: false
@@ -37,6 +40,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   autoupdate-on-push:
@@ -44,24 +48,49 @@ jobs:
     if: inputs.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Update all open PR branches
+        uses: anthropics/claude-code-action@v1
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          prs=$(gh pr list --repo "${{ inputs.repo_full_name }}" --base "${{ inputs.ref_name }}" --state open --json number --jq '.[].number')
-          for pr in $prs; do
-            echo "Updating PR #$pr..."
-            gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/$pr/update-branch" -f update_method=merge || echo "PR #$pr update failed or already up to date"
-          done
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Update all open pull request branches targeting "${{ inputs.ref_name }}" in "${{ inputs.repo_full_name }}".
+
+            Run this command:
+            ```
+            prs=$(gh pr list --repo "${{ inputs.repo_full_name }}" --base "${{ inputs.ref_name }}" --state open --json number --jq '.[].number')
+            for pr in $prs; do
+              echo "Updating PR #$pr..."
+              gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/$pr/update-branch" -f update_method=merge || echo "PR #$pr update failed or already up to date"
+            done
+            ```
+          claude_args: |
+            --allowedTools "Bash(*)"
+            --max-turns 3
 
   autoupdate-on-pr:
     name: Update PR branch against ${{ inputs.pr_base_ref }}
     if: inputs.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Update PR branch
+        uses: anthropics/claude-code-action@v1
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.TRIGGER_TOKEN || secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.GITHUB_TOKEN }}
-        run: gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/${{ inputs.pr_number }}/update-branch" -f update_method=merge
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Update pull request #${{ inputs.pr_number }} branch in "${{ inputs.repo_full_name }}".
+
+            Run this command:
+            ```
+            gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/${{ inputs.pr_number }}/update-branch" -f update_method=merge
+            ```
+          claude_args: |
+            --allowedTools "Bash(*)"
+            --max-turns 3

@@ -8,6 +8,13 @@ on:
     workflows: ['Release and Deploy', '🚀 Release and Deploy']
     types: [completed]
 
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   auto-fix:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-deploy-auto-fix.yml@main
