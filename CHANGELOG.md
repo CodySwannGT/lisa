@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.53.1](https://github.com/CodySwannGT/lisa/compare/vv1.53.0...v1.53.1) (2026-03-02)
+
+
+### Code Refactoring
+
+* move k6, ZAP, and lighthouse from copy-overwrite to create-only ([267304f](https://github.com/CodySwannGT/lisa/commit/267304f636fd66c5144fc22b9e8b2ee4c08976a7))
+* move MCPs to plugins, remove copy-overwrite READMEs ([77938c5](https://github.com/CodySwannGT/lisa/commit/77938c5b3d76558fed941b9ac3c2bf5e41c0b197))
+* **rails:** move settings.json to merge, rules to plugin ([c83095f](https://github.com/CodySwannGT/lisa/commit/c83095ff1bc158671d70b8d739cbdfd472a0133d))
+
 ## [1.53.0](https://github.com/CodySwannGT/lisa/compare/vv1.52.5...v1.53.0) (2026-03-02)
 
 
