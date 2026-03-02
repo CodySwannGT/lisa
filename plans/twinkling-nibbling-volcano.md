@@ -89,7 +89,7 @@ This is a reusable workflow definition with Lisa-specific steps (eslint plugin p
 1. Run `bun run lint` — ensure no lint errors
 2. Run `bun run typecheck` — ensure no type errors
 3. Run `bun run test` — ensure existing tests pass
-4. Verify `typescript/copy-overwrite/.github/` directory no longer exists
+4. Verify `typescript/copy-overwrite/.github/workflows/` directory no longer exists
 5. Verify all 8 wrappers exist in `typescript/create-only/.github/workflows/`
 6. Verify `typescript/deletions.json` has the 8 new reusable paths
 7. Run `lisa . --dry-run` on a test project (if available) to confirm correct behavior
