@@ -3,8 +3,9 @@
 # Lisa Local Project Update
 #
 # Iterates over projects defined in .lisa.config.local.json, checks out their
-# target branches, pulls latest changes, and applies Lisa templates using
-# `bun run dev <path> -y`.
+# target branches, pulls latest changes, and updates @codyswann/lisa via the
+# project's package manager. The postinstall script automatically applies
+# Lisa templates.
 #
 # This enables batch-updating all locally managed projects in a single command
 # rather than manually visiting each project directory.
@@ -18,8 +19,8 @@
 #
 # Prerequisites:
 #   - jq installed
-#   - bun installed
 #   - .lisa.config.local.json exists in the project root
+#   - each project's package manager (bun, pnpm, yarn, or npm) installed
 #
 
 set -euo pipefail
@@ -67,11 +68,6 @@ fi
 # Validate prerequisites
 if ! command -v jq &> /dev/null; then
   log_error "jq is required but not installed. Install with: brew install jq"
-  exit 1
-fi
-
-if ! command -v bun &> /dev/null; then
-  log_error "bun is required but not installed. Install from: https://bun.sh"
   exit 1
 fi
 
@@ -132,10 +128,47 @@ while IFS=$'\t' read -r project_path target_branch; do
     continue
   fi
 
-  # Apply Lisa templates
-  log_info "Applying Lisa templates..."
-  if ! (cd "$LISA_ROOT" && bun run dev "$expanded_path" -y); then
-    log_error "Lisa CLI failed for $expanded_path"
+  # Detect package manager and update @codyswann/lisa
+  log_info "Updating @codyswann/lisa (triggers postinstall template application)..."
+  pm=""
+  yarn_subcmd=""
+  if [[ -f "$expanded_path/bun.lockb" ]]; then
+    pm="bun"
+  elif [[ -f "$expanded_path/pnpm-lock.yaml" ]]; then
+    pm="pnpm"
+  elif [[ -f "$expanded_path/yarn.lock" ]]; then
+    pm="yarn"
+    # Berry (v2+) identified by .yarnrc.yml uses 'up'; Classic (v1) uses 'upgrade'
+    if [[ -f "$expanded_path/.yarnrc.yml" ]]; then
+      yarn_subcmd="up"
+    else
+      yarn_subcmd="upgrade"
+    fi
+  elif [[ -f "$expanded_path/package-lock.json" ]]; then
+    pm="npm"
+  else
+    log_error "Unable to detect package manager for $expanded_path (no supported lockfile found)"
+    ((fail_count++)) || true
+    continue
+  fi
+
+  log_info "Using package manager: $pm"
+
+  if ! command -v "$pm" &> /dev/null; then
+    log_error "Package manager '$pm' is not installed for $expanded_path"
+    ((fail_count++)) || true
+    continue
+  fi
+
+  update_ok=true
+  if [[ -n "$yarn_subcmd" ]]; then
+    (cd "$expanded_path" && yarn "$yarn_subcmd" @codyswann/lisa) || update_ok=false
+  else
+    (cd "$expanded_path" && "$pm" update @codyswann/lisa) || update_ok=false
+  fi
+
+  if [[ "$update_ok" != true ]]; then
+    log_error "Failed to update @codyswann/lisa in $expanded_path"
     ((fail_count++)) || true
     continue
   fi
