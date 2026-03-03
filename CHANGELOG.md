@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.7](https://github.com/CodySwannGT/lisa/compare/vv1.54.6...v1.54.7) (2026-03-03)
+
+
+### Bug Fixes
+
+* address CodeRabbit review comments on PR [#251](https://github.com/CodySwannGT/lisa/issues/251) ([8a0ce3a](https://github.com/CodySwannGT/lisa/commit/8a0ce3afcd65eae6592650bc65892dac36ce9dbd))
+* **ci:** add git identity setup to claude reusable workflows ([6affd13](https://github.com/CodySwannGT/lisa/commit/6affd136806c834ec89b0ce77d35c2fdcc70a030))
+* move tsconfig include/exclude from published configs to project root templates ([37a77b2](https://github.com/CodySwannGT/lisa/commit/37a77b217a713ef8f66c9fa7c9f3d3bce9cf4f91))
+
 ### [1.54.6](https://github.com/CodySwannGT/lisa/compare/vv1.54.5...v1.54.6) (2026-03-03)
 
 
