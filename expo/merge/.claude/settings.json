@@ -15,7 +15,12 @@
     "expo@lisa": true
   },
   "extraKnownMarketplaces": {
-    "CodySwannGT/lisa": true
+    "CodySwannGT/lisa": {
+      "source": {
+        "source": "github",
+        "repo": "CodySwannGT/lisa"
+      }
+    }
   },
   "env": {
     "BASH_DEFAULT_TIMEOUT_MS": "1800000",
