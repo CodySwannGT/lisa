@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.4](https://github.com/CodySwannGT/lisa/compare/vv1.54.3...v1.54.4) (2026-03-03)
+
+
+### Bug Fixes
+
+* use correct object format for extraKnownMarketplaces ([3e2dd2f](https://github.com/CodySwannGT/lisa/commit/3e2dd2f2ca7d81dc5bf9296eab970c78b9640fe7))
+
 ### [1.54.3](https://github.com/CodySwannGT/lisa/compare/vv1.54.2...v1.54.3) (2026-03-03)
 
 
