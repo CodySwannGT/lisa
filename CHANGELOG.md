@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.6](https://github.com/CodySwannGT/lisa/compare/vv1.54.5...v1.54.6) (2026-03-03)
+
+
+### Bug Fixes
+
+* **ci:** convert dispatch workflow to thin wrapper calling reusable workflow ([31e00d0](https://github.com/CodySwannGT/lisa/commit/31e00d0b80e163f4c0e821d1f722618074269620))
+
 ### [1.54.5](https://github.com/CodySwannGT/lisa/compare/vv1.54.4...v1.54.5) (2026-03-03)
 
 
