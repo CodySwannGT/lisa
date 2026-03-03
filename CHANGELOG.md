@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.2](https://github.com/CodySwannGT/lisa/compare/vv1.54.1...v1.54.2) (2026-03-03)
+
+
+### Bug Fixes
+
+* **ci:** replace GITHUB_TOKEN with claude-code-action for CI re-trigger ([d8dfeaa](https://github.com/CodySwannGT/lisa/commit/d8dfeaa643069889b2555e072095a4ebc8f605ea))
+
 ### [1.54.1](https://github.com/CodySwannGT/lisa/compare/vv1.54.0...v1.54.1) (2026-03-03)
 
 
