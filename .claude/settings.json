@@ -26,6 +26,11 @@
   },
   "plansDirectory": "./plans",
   "extraKnownMarketplaces": {
-    "CodySwannGT/lisa": true
+    "CodySwannGT/lisa": {
+      "source": {
+        "source": "github",
+        "repo": "CodySwannGT/lisa"
+      }
+    }
   }
 }
