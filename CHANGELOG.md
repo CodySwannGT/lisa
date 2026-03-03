@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.1](https://github.com/CodySwannGT/lisa/compare/vv1.54.0...v1.54.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* **scripts:** fail explicitly when no supported lockfile is detected ([b08ba20](https://github.com/CodySwannGT/lisa/commit/b08ba20a34d96a9f5a9edd34fde30661b8902033))
+* **scripts:** remove global bun requirement and use version-aware yarn commands ([d119bc7](https://github.com/CodySwannGT/lisa/commit/d119bc71eb82ef106289bac4472ae6ffc249e37e))
+* update lisa:update-projects to use package manager update ([628b99a](https://github.com/CodySwannGT/lisa/commit/628b99a2f764933e1c079ce0e6f07c58567787e0))
+
+
+### Code Refactoring
+
+* **commands:** extract lisa-update-projects skill and slim command to delegator ([7288095](https://github.com/CodySwannGT/lisa/commit/7288095ba67a7e22d7d611103d75ee6c5ef3291f))
+
 ## [1.54.0](https://github.com/CodySwannGT/lisa/compare/vv1.53.9...v1.54.0) (2026-03-02)
 
 
