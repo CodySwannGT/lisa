@@ -88,52 +88,27 @@ jobs:
 
       - name: Re-trigger CI if Claude pushed commits
         if: always()
-        uses: actions/github-script@v7
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
         with:
-          script: |
-            const before = '${{ steps.before.outputs.sha }}';
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: ${{ inputs.pr_number }},
-            });
-            const after = pr.head.sha;
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Check if Claude pushed new commits to PR #${{ inputs.pr_number }} and re-trigger CI if so.
 
-            if (before === after) {
-              console.log('No new commits pushed by Claude — skipping CI re-trigger.');
-              return;
-            }
+            Run these commands:
+            ```bash
+            BEFORE="${{ steps.before.outputs.sha }}"
+            AFTER=$(gh pr view ${{ inputs.pr_number }} --repo "${{ inputs.repo_owner }}/${{ inputs.repo_name }}" --json headRefOid --jq '.headRefOid')
+            BRANCH=$(gh pr view ${{ inputs.pr_number }} --repo "${{ inputs.repo_owner }}/${{ inputs.repo_name }}" --json headRefName --jq '.headRefName')
 
-            console.log(`Claude pushed new commits (${before.slice(0, 7)}..${after.slice(0, 7)}). Re-triggering CI via workflow dispatch.`);
+            if [ "$BEFORE" = "$AFTER" ]; then
+              echo "No new commits pushed by Claude — skipping CI re-trigger."
+              exit 0
+            fi
 
-            try {
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'ci.yml',
-                ref: pr.head.ref,
-              });
-              console.log(`CI dispatched on branch ${pr.head.ref}.`);
-            } catch (err) {
-              console.log(`Workflow dispatch failed: ${err.message}. Attempting check suite re-request.`);
-
-              const { data: checkSuites } = await github.rest.checks.listSuitesForRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: after,
-              });
-
-              for (const suite of checkSuites.check_suites) {
-                if (suite.status === 'completed') continue;
-                try {
-                  await github.rest.checks.rerequestSuite({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    check_suite_id: suite.id,
-                  });
-                  console.log(`Re-requested check suite ${suite.id} (app: ${suite.app?.name ?? 'unknown'}).`);
-                } catch (e) {
-                  console.log(`Could not re-request suite ${suite.id}: ${e.message}`);
-                }
-              }
-            }
+            echo "Claude pushed new commits (${BEFORE:0:7}..${AFTER:0:7}). Re-triggering CI."
+            gh workflow run ci.yml --repo "${{ inputs.repo_owner }}/${{ inputs.repo_name }}" --ref "$BRANCH"
+            ```
+          claude_args: |
+            --allowedTools "Bash(*)"
+            --max-turns 3
