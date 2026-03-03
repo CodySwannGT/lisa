@@ -26,6 +26,11 @@ on:
         description: 'ID of the workflow run'
         required: true
         type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        type: string
+        default: 'npm'
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -162,4 +167,5 @@ jobs:
     with:
       workflow_name: 'Release and Deploy'
       failed_job: 'Claude deploy auto-fix failed — manual intervention needed'
+      package_manager: ${{ inputs.package_manager }}
     secrets: inherit
