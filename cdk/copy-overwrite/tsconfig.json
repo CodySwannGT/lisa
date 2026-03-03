@@ -1,3 +1,5 @@
 {
-  "extends": ["@codyswann/lisa/tsconfig/cdk", "./tsconfig.local.json"]
+  "extends": ["@codyswann/lisa/tsconfig/cdk", "./tsconfig.local.json"],
+  "include": ["lib/**/*", "bin/**/*", "test/**/*"],
+  "exclude": ["node_modules", "cdk.out"]
 }
