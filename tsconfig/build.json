@@ -3,6 +3,5 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "dist"
-  },
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  }
 }
