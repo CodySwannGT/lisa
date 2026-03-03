@@ -1,3 +1,5 @@
 {
-  "extends": ["@codyswann/lisa/tsconfig/expo", "./tsconfig.local.json"]
+  "extends": ["@codyswann/lisa/tsconfig/expo", "./tsconfig.local.json"],
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", "dist", "web-build", "components/ui"]
 }

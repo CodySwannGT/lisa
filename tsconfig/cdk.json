@@ -11,6 +11,5 @@
     "strictPropertyInitialization": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false
-  },
-  "include": ["lib/**/*", "bin/**/*", "test/**/*"]
+  }
 }

@@ -1,3 +1,5 @@
 {
-  "extends": ["@codyswann/lisa/tsconfig/nestjs", "./tsconfig.local.json"]
+  "extends": ["@codyswann/lisa/tsconfig/nestjs", "./tsconfig.local.json"],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", ".build", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }
