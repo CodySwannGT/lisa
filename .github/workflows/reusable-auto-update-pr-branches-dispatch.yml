@@ -1,13 +1,33 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 
-name: Auto-update PR branches (Dispatch Handler)
+name: Auto-update PR branches - Dispatch Handler (Reusable)
 
 on:
-  repository_dispatch:
-    types:
-      - auto-update-pr-branches
-      - auto-update-pr-branch
+  workflow_call:
+    inputs:
+      action:
+        description: 'The dispatch action type (auto-update-pr-branches or auto-update-pr-branch)'
+        required: true
+        type: string
+      ref_name:
+        description: 'The branch name that was pushed to'
+        required: false
+        type: string
+        default: ''
+      repo_full_name:
+        description: 'Full repository name (owner/repo)'
+        required: true
+        type: string
+      pr_number:
+        description: 'The pull request number (for single PR updates)'
+        required: false
+        type: number
+        default: 0
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        description: 'Claude Code OAuth token for authenticating the action'
+        required: false
 
 permissions:
   contents: write
@@ -16,8 +36,8 @@ permissions:
 
 jobs:
   update-all-prs:
-    name: Update open PRs targeting ${{ github.event.client_payload.ref_name }}
-    if: github.event.action == 'auto-update-pr-branches'
+    name: Update open PRs targeting ${{ inputs.ref_name }}
+    if: inputs.action == 'auto-update-pr-branches'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,14 +49,14 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Update all open pull request branches targeting "${{ github.event.client_payload.ref_name }}" in "${{ github.event.client_payload.repo_full_name }}".
+            Update all open pull request branches targeting "${{ inputs.ref_name }}" in "${{ inputs.repo_full_name }}".
 
             Run this command:
             ```bash
-            prs=$(gh pr list --repo "${{ github.event.client_payload.repo_full_name }}" --base "${{ github.event.client_payload.ref_name }}" --state open --json number --jq '.[].number')
+            prs=$(gh pr list --repo "${{ inputs.repo_full_name }}" --base "${{ inputs.ref_name }}" --state open --json number --jq '.[].number')
             for pr in $prs; do
               echo "Updating PR #$pr..."
-              gh api -X PUT "repos/${{ github.event.client_payload.repo_full_name }}/pulls/$pr/update-branch" -f update_method=merge || echo "PR #$pr update failed or already up to date"
+              gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/$pr/update-branch" -f update_method=merge || echo "PR #$pr update failed or already up to date"
             done
             ```
           claude_args: |
@@ -44,8 +64,8 @@ jobs:
             --max-turns 3
 
   update-single-pr:
-    name: Update PR #${{ github.event.client_payload.pr_number }}
-    if: github.event.action == 'auto-update-pr-branch'
+    name: Update PR #${{ inputs.pr_number }}
+    if: inputs.action == 'auto-update-pr-branch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -57,11 +77,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Update pull request #${{ github.event.client_payload.pr_number }} branch in "${{ github.event.client_payload.repo_full_name }}".
+            Update pull request #${{ inputs.pr_number }} branch in "${{ inputs.repo_full_name }}".
 
             Run this command:
             ```bash
-            gh api -X PUT "repos/${{ github.event.client_payload.repo_full_name }}/pulls/${{ github.event.client_payload.pr_number }}/update-branch" -f update_method=merge
+            gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/${{ inputs.pr_number }}/update-branch" -f update_method=merge
             ```
           claude_args: |
             --allowedTools "Bash(*)"
