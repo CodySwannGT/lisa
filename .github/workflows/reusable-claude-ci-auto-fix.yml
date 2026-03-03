@@ -26,6 +26,11 @@ on:
         description: 'ID of the workflow run'
         required: true
         type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        type: string
+        default: 'npm'
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -164,4 +169,5 @@ jobs:
     with:
       workflow_name: 'CI Quality Checks'
       failed_job: 'Claude auto-fix failed — manual intervention needed'
+      package_manager: ${{ inputs.package_manager }}
     secrets: inherit
