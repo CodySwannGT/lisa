@@ -15,7 +15,7 @@ Updates local Lisa projects in batches by running the package manager update com
 4. Once you have resolution, within each clean project, check out a new branch (e.g. `chore/lisa-update-YYYY-MM-DD`).
 5. Run the project's package manager update command for `@codyswann/lisa` (e.g. `bun update @codyswann/lisa` or `npm update @codyswann/lisa`). This triggers Lisa's postinstall script which applies templates automatically.
 6. After updating, check if `@codyswann/lisa` appears in the project's `dependencies` (not `devDependencies`). If so, move it: remove from `dependencies` and ensure it's in `devDependencies`. Use `jq` to check and the package manager to reinstall correctly.
-7. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `auto-update-pr-branches.yml`, and `ci.yml`:
+7. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `auto-update-pr-branches.yml`, `auto-update-pr-branches.yaml`, `ci.yml`, and `ci.yaml`:
    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
    - Replace each legacy workflow file with the corresponding create-only template from `typescript/create-only/.github/workflows/` in the Lisa repo. These are thin callers that delegate to the reusable workflows at `@main`.
    - The create-only templates are the source of truth for the correct caller format.

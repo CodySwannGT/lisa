@@ -17,7 +17,7 @@
       "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true"
     },
     "devDependencies": {
-      "@codyswann/lisa": "^1.49.0"
+      "@codyswann/lisa": "^1.54.6"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
