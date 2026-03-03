@@ -24,4 +24,5 @@ jobs:
       repo_full_name: ${{ github.repository }}
       head_branch: ${{ github.event.workflow_run.head_branch }}
       run_id: ${{ github.event.workflow_run.id }}
+      package_manager: 'bun'
     secrets: inherit
