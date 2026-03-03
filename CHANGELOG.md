@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.3](https://github.com/CodySwannGT/lisa/compare/vv1.54.2...v1.54.3) (2026-03-03)
+
+
+### Bug Fixes
+
+* **ci:** pass package_manager through auto-fix workflows to avoid npm cache error ([ce1e996](https://github.com/CodySwannGT/lisa/commit/ce1e99625bad85973c949428e7f5e4941ef3d7fb))
+
 ### [1.54.2](https://github.com/CodySwannGT/lisa/compare/vv1.54.1...v1.54.2) (2026-03-03)
 
 
