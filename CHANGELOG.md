@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.5](https://github.com/CodySwannGT/lisa/compare/vv1.54.4...v1.54.5) (2026-03-03)
+
+
+### Bug Fixes
+
+* **ci:** skip workflow file modifications in review response ([cf77f27](https://github.com/CodySwannGT/lisa/commit/cf77f273c8fe10c11d851369f2eac83efbfdfd48))
+* **ci:** use repository_dispatch to route push events to claude-code-action ([5ae58ad](https://github.com/CodySwannGT/lisa/commit/5ae58ad14681e2004a9ec4826d5c49994535c655))
+
 ### [1.54.4](https://github.com/CodySwannGT/lisa/compare/vv1.54.3...v1.54.4) (2026-03-03)
 
 
