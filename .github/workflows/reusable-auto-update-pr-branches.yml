@@ -48,49 +48,37 @@ jobs:
     if: inputs.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Update all open PR branches
-        uses: anthropics/claude-code-action@v1
-        continue-on-error: true
+      - name: Dispatch auto-update via repository_dispatch
+        uses: actions/github-script@v7
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            Update all open pull request branches targeting "${{ inputs.ref_name }}" in "${{ inputs.repo_full_name }}".
-
-            Run this command:
-            ```
-            prs=$(gh pr list --repo "${{ inputs.repo_full_name }}" --base "${{ inputs.ref_name }}" --state open --json number --jq '.[].number')
-            for pr in $prs; do
-              echo "Updating PR #$pr..."
-              gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/$pr/update-branch" -f update_method=merge || echo "PR #$pr update failed or already up to date"
-            done
-            ```
-          claude_args: |
-            --allowedTools "Bash(*)"
-            --max-turns 3
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'auto-update-pr-branches',
+              client_payload: {
+                ref_name: '${{ inputs.ref_name }}',
+                repo_full_name: '${{ inputs.repo_full_name }}',
+              },
+            });
+            console.log('Dispatched auto-update-pr-branches event.');
 
   autoupdate-on-pr:
     name: Update PR branch against ${{ inputs.pr_base_ref }}
     if: inputs.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Update PR branch
-        uses: anthropics/claude-code-action@v1
-        continue-on-error: true
+      - name: Dispatch auto-update via repository_dispatch
+        uses: actions/github-script@v7
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            Update pull request #${{ inputs.pr_number }} branch in "${{ inputs.repo_full_name }}".
-
-            Run this command:
-            ```
-            gh api -X PUT "repos/${{ inputs.repo_full_name }}/pulls/${{ inputs.pr_number }}/update-branch" -f update_method=merge
-            ```
-          claude_args: |
-            --allowedTools "Bash(*)"
-            --max-turns 3
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'auto-update-pr-branch',
+              client_payload: {
+                pr_number: ${{ inputs.pr_number }},
+                repo_full_name: '${{ inputs.repo_full_name }}',
+              },
+            });
+            console.log('Dispatched auto-update-pr-branch event.');

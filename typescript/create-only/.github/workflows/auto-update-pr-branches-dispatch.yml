@@ -1,0 +1,68 @@
+# This file was created by Lisa on first setup.
+# You can customize this file — Lisa will not overwrite it.
+
+name: Auto-update PR branches (Dispatch Handler)
+
+on:
+  repository_dispatch:
+    types:
+      - auto-update-pr-branches
+      - auto-update-pr-branch
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  update-all-prs:
+    name: Update open PRs targeting ${{ github.event.client_payload.ref_name }}
+    if: github.event.action == 'auto-update-pr-branches'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Update all open PR branches
+        uses: anthropics/claude-code-action@v1
+        continue-on-error: true
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Update all open pull request branches targeting "${{ github.event.client_payload.ref_name }}" in "${{ github.event.client_payload.repo_full_name }}".
+
+            Run this command:
+            ```bash
+            prs=$(gh pr list --repo "${{ github.event.client_payload.repo_full_name }}" --base "${{ github.event.client_payload.ref_name }}" --state open --json number --jq '.[].number')
+            for pr in $prs; do
+              echo "Updating PR #$pr..."
+              gh api -X PUT "repos/${{ github.event.client_payload.repo_full_name }}/pulls/$pr/update-branch" -f update_method=merge || echo "PR #$pr update failed or already up to date"
+            done
+            ```
+          claude_args: |
+            --allowedTools "Bash(*)"
+            --max-turns 3
+
+  update-single-pr:
+    name: Update PR #${{ github.event.client_payload.pr_number }}
+    if: github.event.action == 'auto-update-pr-branch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Update PR branch
+        uses: anthropics/claude-code-action@v1
+        continue-on-error: true
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Update pull request #${{ github.event.client_payload.pr_number }} branch in "${{ github.event.client_payload.repo_full_name }}".
+
+            Run this command:
+            ```bash
+            gh api -X PUT "repos/${{ github.event.client_payload.repo_full_name }}/pulls/${{ github.event.client_payload.pr_number }}/update-branch" -f update_method=merge
+            ```
+          claude_args: |
+            --allowedTools "Bash(*)"
+            --max-turns 3
