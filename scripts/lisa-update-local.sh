@@ -147,7 +147,9 @@ while IFS=$'\t' read -r project_path target_branch; do
   elif [[ -f "$expanded_path/package-lock.json" ]]; then
     pm="npm"
   else
-    pm="bun"
+    log_error "Unable to detect package manager for $expanded_path (no supported lockfile found)"
+    ((fail_count++)) || true
+    continue
   fi
 
   log_info "Using package manager: $pm"
