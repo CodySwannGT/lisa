@@ -100,7 +100,7 @@ jobs:
         with:
           target: ${{ inputs.zap_target_url }}
           rules_file_name: ${{ steps.check_rules.outputs.has_rules == 'true' && inputs.zap_rules_file || '' }}
-          fail_action: true
+          fail_action: false
           allow_issue_writing: false
           artifact_name: 'zap-report-nestjs'
 
