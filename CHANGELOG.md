@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.8](https://github.com/CodySwannGT/lisa/compare/vv1.54.7...v1.54.8) (2026-03-04)
+
+
+### Bug Fixes
+
+* **ci:** stop ZAP baseline scan from failing on warnings ([3a4932b](https://github.com/CodySwannGT/lisa/commit/3a4932b6f7b364b9c8626b84aff5fb722973353f))
+
 ### [1.54.7](https://github.com/CodySwannGT/lisa/compare/vv1.54.6...v1.54.7) (2026-03-03)
 
 
