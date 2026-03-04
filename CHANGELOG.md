@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.11](https://github.com/CodySwannGT/lisa/compare/vv1.54.10...v1.54.11) (2026-03-04)
+
+
+### Bug Fixes
+
+* add @codyswann/lisa to trustedDependencies template ([9fb10c9](https://github.com/CodySwannGT/lisa/commit/9fb10c9f50a2dd12165d9b6faf2cc9aebe4ed13c))
+
 ### [1.54.10](https://github.com/CodySwannGT/lisa/compare/vv1.54.9...v1.54.10) (2026-03-04)
 
 
