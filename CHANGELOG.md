@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.10](https://github.com/CodySwannGT/lisa/compare/vv1.54.9...v1.54.10) (2026-03-04)
+
+
+### Bug Fixes
+
+* **ci:** enforce TDD in Claude code review response workflow ([#254](https://github.com/CodySwannGT/lisa/issues/254)) ([faea047](https://github.com/CodySwannGT/lisa/commit/faea047c9587d0f3d56d1cd6b0aff3f1a3bf96b5))
+
 ### [1.54.9](https://github.com/CodySwannGT/lisa/compare/vv1.54.8...v1.54.9) (2026-03-04)
 
 
