@@ -1,0 +1,26 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Auto-update PR branches (Dispatch Handler)
+
+on:
+  repository_dispatch:
+    types:
+      - auto-update-pr-branches
+      - auto-update-pr-branch
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  dispatch:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-auto-update-pr-branches-dispatch.yml@main
+    with:
+      action: ${{ github.event.action }}
+      ref_name: ${{ github.event.client_payload.ref_name || '' }}
+      repo_full_name: ${{ github.event.client_payload.repo_full_name }}
+      pr_number: ${{ github.event.client_payload.pr_number || 0 }}
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
