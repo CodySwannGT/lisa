@@ -30,6 +30,16 @@ on:
         description: 'Repository name'
         required: true
         type: string
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '22.21.1'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'bun'
+        type: string
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -54,6 +64,27 @@ jobs:
         with:
           ref: ${{ inputs.pr_head_ref }}
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
 
       - name: Setup git identity
         run: |
