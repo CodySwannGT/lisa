@@ -43,6 +43,7 @@
   "merge": {
     "trustedDependencies": [
       "@ast-grep/cli",
+      "@codyswann/lisa",
       "@sentry/cli"
     ]
   }
