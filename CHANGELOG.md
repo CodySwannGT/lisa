@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.2](https://github.com/CodySwannGT/lisa/compare/vv1.56.1...v1.56.2) (2026-03-05)
+
+
+### Code Refactoring
+
+* split monolithic plugins into layered, composable plugins ([30ac906](https://github.com/CodySwannGT/lisa/commit/30ac9067b78216a1bf6518aa3230c51c10ded73a))
+
 ### [1.56.1](https://github.com/CodySwannGT/lisa/compare/vv1.56.0...v1.56.1) (2026-03-05)
 
 
