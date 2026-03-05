@@ -4,13 +4,13 @@
     "pr": "🤖 Generated with Claude Code"
   },
   "enabledPlugins": {
+    "lisa-typescript@lisa": true,
     "typescript-lsp@claude-plugins-official": true,
     "safety-net@cc-marketplace": true,
     "code-simplifier@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
-    "sentry@claude-plugins-official": true,
-    "lisa-typescript@lisa": true
+    "sentry@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "CodySwannGT/lisa": {
