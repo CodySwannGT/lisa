@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.55.0](https://github.com/CodySwannGT/lisa/compare/vv1.54.15...v1.55.0) (2026-03-05)
+
+
+### Features
+
+* nest plugin commands and unify namespace to /lisa-* ([2970c59](https://github.com/CodySwannGT/lisa/commit/2970c59735e135eec9c4059027c49c1669723bf2))
+
 ### [1.54.15](https://github.com/CodySwannGT/lisa/compare/vv1.54.14...v1.54.15) (2026-03-05)
 
 
