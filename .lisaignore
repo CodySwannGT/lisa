@@ -5,3 +5,6 @@
 #   - Exact file names: eslint.config.mjs
 #   - Directory patterns: .claude/hooks/
 #   - Glob patterns: *.example.json, **/*.custom.ts
+
+# Lisa repo has a custom postbump hook for plugin version sync
+.versionrc
