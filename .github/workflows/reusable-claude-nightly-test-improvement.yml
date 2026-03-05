@@ -19,7 +19,7 @@ on:
       package_manager:
         description: 'Package manager to use (npm, yarn, or bun)'
         required: false
-        default: 'bun'
+        default: 'npm'
         type: string
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
