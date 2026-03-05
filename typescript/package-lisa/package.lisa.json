@@ -30,7 +30,8 @@
   },
   "defaults": {
     "scripts": {
-      "build": "tsc"
+      "build": "tsc",
+      "postinstall": "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true"
     },
     "engines": {
       "npm": "please-use-bun",
