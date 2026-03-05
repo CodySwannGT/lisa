@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.3](https://github.com/CodySwannGT/lisa/compare/vv1.56.2...v1.56.3) (2026-03-05)
+
+
+### Bug Fixes
+
+* disable import/no-cycle for NestJS module files in slow lint config ([5b55d64](https://github.com/CodySwannGT/lisa/commit/5b55d640f8b995ef11ee099328f1c485778fdc8d))
+
 ### [1.56.2](https://github.com/CodySwannGT/lisa/compare/vv1.56.1...v1.56.2) (2026-03-05)
 
 
