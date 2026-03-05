@@ -43,11 +43,12 @@ PYEOF
   fi
 fi
 
-# Register the Lisa marketplace and install plugins only when claude CLI is available
+# Install plugins only when claude CLI is available
 if ! command -v claude &>/dev/null; then exit 0; fi
 
-# Register the Lisa marketplace pointing to this npm package
-claude plugin marketplace add "$LISA_DIR" --scope project </dev/null 2>&1 || true
+# The Lisa marketplace is registered via extraKnownMarketplaces in .claude/settings.json
+# pointing to the GitHub repo (CodySwannGT/lisa). Built plugins are committed to the repo
+# so relative paths in marketplace.json resolve correctly.
 
 # Detect which stack plugin to install from .claude/settings.json
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
