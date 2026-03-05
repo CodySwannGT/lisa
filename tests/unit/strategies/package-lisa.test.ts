@@ -239,6 +239,74 @@ describe("PackageLisaStrategy", () => {
       expect(content.engines).toEqual({ node: "22.x" });
     });
 
+    it("applies default postinstall when project has no postinstall", async () => {
+      await createPackageLisaTemplate("typescript", {
+        defaults: {
+          scripts: {
+            build: "tsc",
+            postinstall:
+              "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true",
+          },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.postinstall).toBe(
+        "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true"
+      );
+    });
+
+    it("does not override existing postinstall with default", async () => {
+      await createPackageLisaTemplate("typescript", {
+        defaults: {
+          scripts: {
+            build: "tsc",
+            postinstall:
+              "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true",
+          },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "my-project",
+        scripts: { postinstall: "patch-package" },
+      });
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.postinstall).toBe("patch-package");
+    });
+
     it("preserves project values when defaults conflict", async () => {
       await createPackageLisaTemplate("all", {
         defaults: {

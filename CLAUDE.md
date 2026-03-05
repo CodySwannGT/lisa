@@ -18,6 +18,7 @@ Always ignore build folders (dist, build, etc) unless specified otherwise
 Always delete and remove old code completely - no deprecation needed
 Always add `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" ` when running `git push`
 Always ignore knip configuration hints (warnings) — only fix actual unused exports/dependencies reported as errors
+Always include plan files as part of a PR unless otherwise specified
 
 Never use "pre-existing" as an excuse not to fix something. It doesn't matter if it was pre-existing or not, they must be fixed.
 Never modify this file (CLAUDE.md) directly. To add a memory or learning, add it to .claude/rules/PROJECT_RULES.md or create a skill with /skill-creator.
