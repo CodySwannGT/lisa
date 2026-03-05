@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.5](https://github.com/CodySwannGT/lisa/compare/vv1.56.4...v1.56.5) (2026-03-05)
+
+
+### Bug Fixes
+
+* remove paths from copy-overwrite tsconfig to prevent overriding project aliases ([a68e7a7](https://github.com/CodySwannGT/lisa/commit/a68e7a7ef5957b5c2e81097570e28689707ff003))
+
 ### [1.56.4](https://github.com/CodySwannGT/lisa/compare/vv1.56.3...v1.56.4) (2026-03-05)
 
 
