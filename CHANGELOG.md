@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.56.0](https://github.com/CodySwannGT/lisa/compare/vv1.55.2...v1.56.0) (2026-03-05)
+
+
+### Features
+
+* move reduce-complexity skill to Expo plugin ([a29ed7c](https://github.com/CodySwannGT/lisa/commit/a29ed7c225c3d712e4e23eb5c8cad65a47b84f8c))
+
+
+### Bug Fixes
+
+* add debug-hook.sh cleanup to update-projects skill ([5109848](https://github.com/CodySwannGT/lisa/commit/51098482cfd0bca4e8a9f9e3591ef4a6bbce462f))
+* broaden stale hook cleanup to all $CLAUDE_PROJECT_DIR references ([9bf597c](https://github.com/CodySwannGT/lisa/commit/9bf597c2d9688a7aa2e108a6e45c9c49e7c74e8e))
+* move baseUrl and paths from published tsconfigs to copy-overwrite templates ([22896b5](https://github.com/CodySwannGT/lisa/commit/22896b54b694b828ef09499c143febe3dc6d9deb))
+* remove .claude/commands/lisa from keep list in deletions.json ([80ac77f](https://github.com/CodySwannGT/lisa/commit/80ac77f9259d1d7f8dd5d72f251a48706cd8a0b2))
+* revert workspace stripping and add stale plugin cleanup to update skill ([be7c3f6](https://github.com/CodySwannGT/lisa/commit/be7c3f6e866a266c5f89e6f6fb398a6f5876b422))
+
+
+### Documentation
+
+* fix markdown issues in reduce-complexity references ([3a85802](https://github.com/CodySwannGT/lisa/commit/3a85802fd0c2136b49d3a4f2465e9a0fa41aa7db))
+
 ### [1.55.2](https://github.com/CodySwannGT/lisa/compare/vv1.55.1...v1.55.2) (2026-03-05)
 
 
