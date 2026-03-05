@@ -7,10 +7,6 @@
     "experimentalDecorators": true,
     "declaration": true,
     "sourceMap": true,
-    "outDir": ".build",
-    "baseUrl": "./",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "outDir": ".build"
   }
 }
