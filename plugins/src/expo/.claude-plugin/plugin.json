@@ -1,7 +1,7 @@
 {
   "name": "lisa-expo",
   "version": "1.0.0",
-  "description": "Claude Code governance plugin for Expo/React Native projects — includes all universal skills, agents, hooks, and rules from Lisa plus Expo-specific tooling",
+  "description": "Expo/React Native-specific skills, agents, rules, and MCP servers",
   "author": { "name": "Cody Swann" },
   "hooks": {
     "UserPromptSubmit": [
@@ -13,74 +13,7 @@
             "command": "find ${CLAUDE_PLUGIN_ROOT}/rules -name '*.md' -exec cat {} \\;"
           }
         ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-plan-rules.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
-          }
-        ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/format-on-edit.sh" },
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh" },
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/lint-on-edit.sh" }
-        ]
-      },
-      {
-        "matcher": "TaskCreate|TaskUpdate",
-        "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sync-tasks.sh" }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          { "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true" }
-        ]
-      },
-      {
-        "matcher": "TodoWrite",
-        "hooks": [
-          { "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true" }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          { "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true" }
-        ]
-      }
-    ],
-    "Stop": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verify-completion.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true" }] }
-    ],
-    "SessionStart": [
-      { "matcher": "startup", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true" }] }
-    ],
-    "SessionEnd": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true" }] }
     ]
   }
 }

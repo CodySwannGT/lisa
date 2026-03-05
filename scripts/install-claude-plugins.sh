@@ -50,25 +50,42 @@ if ! command -v claude &>/dev/null; then exit 0; fi
 # pointing to the GitHub repo (CodySwannGT/lisa). Built plugins are committed to the repo
 # so relative paths in marketplace.json resolve correctly.
 
+# Always install the base plugin (universal governance for all projects)
+claude plugin install "lisa@lisa" --scope project </dev/null 2>&1 || true
+
 # Detect which stack plugin to install from .claude/settings.json
-SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
-LISA_PLUGIN=""
+LISA_STACK=""
 if [ -f "$SETTINGS_FILE" ]; then
-  for stack in typescript expo nestjs cdk rails; do
-    # Check new format (lisa-*@lisa) first, fall back to legacy format (*@lisa)
+  for stack in expo nestjs cdk rails; do
     if grep -q "\"lisa-${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
-      LISA_PLUGIN="lisa-${stack}@lisa"
-      break
-    elif grep -q "\"${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
-      LISA_PLUGIN="lisa-${stack}@lisa"
+      LISA_STACK="$stack"
       break
     fi
   done
 fi
 
-if [ -n "$LISA_PLUGIN" ]; then
-  claude plugin install "$LISA_PLUGIN" --scope project </dev/null 2>&1 || true
+# Install typescript layer for all TS-based stacks (everything except rails)
+case "$LISA_STACK" in
+  rails) ;; # Rails doesn't get typescript plugin
+  *)
+    claude plugin install "lisa-typescript@lisa" --scope project </dev/null 2>&1 || true
+    ;;
+esac
+
+# Install stack-specific plugin if not plain typescript
+if [ -n "$LISA_STACK" ]; then
+  claude plugin install "lisa-${LISA_STACK}@lisa" --scope project </dev/null 2>&1 || true
 fi
+
+# Uninstall old monolithic plugins during migration
+for old_plugin in "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-rails@lisa"; do
+  # Skip if it's the same as what we just installed
+  case "$LISA_STACK" in
+    "") [ "$old_plugin" = "lisa-typescript@lisa" ] && continue ;;
+    *) [ "$old_plugin" = "lisa-${LISA_STACK}@lisa" ] && continue
+       [ "$old_plugin" = "lisa-typescript@lisa" ] && [ "$LISA_STACK" != "rails" ] && continue ;;
+  esac
+done
 
 # Install third-party plugins required by all Lisa stacks
 for plugin in \
@@ -84,7 +101,7 @@ for plugin in \
 done
 
 # Install stack-specific third-party plugins
-if [ "$LISA_PLUGIN" = "lisa-expo@lisa" ]; then
+if [ "$LISA_STACK" = "expo" ]; then
   for plugin in \
     "playwright@claude-plugins-official" \
     "posthog@claude-plugins-official"; do
