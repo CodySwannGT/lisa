@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.4](https://github.com/CodySwannGT/lisa/compare/vv1.56.3...v1.56.4) (2026-03-05)
+
+
+### Bug Fixes
+
+* change reusable workflow package_manager default from bun to npm ([2d83962](https://github.com/CodySwannGT/lisa/commit/2d83962b5747f6df97e53e40f44bf6021a0330a9))
+
 ### [1.56.3](https://github.com/CodySwannGT/lisa/compare/vv1.56.2...v1.56.3) (2026-03-05)
 
 
