@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.55.2](https://github.com/CodySwannGT/lisa/compare/vv1.55.1...v1.55.2) (2026-03-05)
+
+
+### Bug Fixes
+
+* strip workspaces field from published npm package ([ac757f4](https://github.com/CodySwannGT/lisa/commit/ac757f466d2e0ca3f103f04aca870444f81bdf43))
+
 ### [1.55.1](https://github.com/CodySwannGT/lisa/compare/vv1.55.0...v1.55.1) (2026-03-05)
 
 
