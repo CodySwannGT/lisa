@@ -1,5 +1,8 @@
 # BEGIN: AI GUARDRAILS
 
+# Publishing artifacts
+package.json.bak
+
 # Dependencies
 node_modules/
 node_modules
