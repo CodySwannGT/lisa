@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.7](https://github.com/CodySwannGT/lisa/compare/vv1.56.6...v1.56.7) (2026-03-05)
+
+
+### Bug Fixes
+
+* **ci:** add NODE_OPTIONS heap limit to test workflow steps ([430d046](https://github.com/CodySwannGT/lisa/commit/430d04660520d608384d796b48d4d8dddd59e020))
+
 ### [1.56.6](https://github.com/CodySwannGT/lisa/compare/vv1.56.5...v1.56.6) (2026-03-05)
 
 
