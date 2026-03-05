@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.13](https://github.com/CodySwannGT/lisa/compare/vv1.54.12...v1.54.13) (2026-03-05)
+
+
+### Bug Fixes
+
+* register Lisa marketplace at project scope instead of user scope ([ebb74c7](https://github.com/CodySwannGT/lisa/commit/ebb74c78c7eaca05dc3d2abdc332bb44e21eb773))
+
 ### [1.54.12](https://github.com/CodySwannGT/lisa/compare/vv1.54.11...v1.54.12) (2026-03-05)
 
 
