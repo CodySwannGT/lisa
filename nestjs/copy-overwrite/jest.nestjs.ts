@@ -70,6 +70,9 @@ const nestjsCoverageExclusions: readonly string[] = [
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
  * @returns Jest config object with ts-jest transform, node environment, and NestJS-specific exclusions
  * @remarks NestJS projects use CommonJS modules and spec.ts test file convention.
+ * Uses tsconfig.spec.json for ts-jest diagnostics because the main tsconfig.json
+ * excludes spec files from compilation — without this, path aliases used only in
+ * test files (e.g. @test-utils) fail to resolve during type checking.
  * Coverage excludes entities, DTOs, modules, and other boilerplate files
  * that are better validated through integration tests.
  */
@@ -80,7 +83,7 @@ export const getNestjsJestConfig = ({
   rootDir: "src",
   testRegex: ".*\\.spec\\.ts$",
   transform: {
-    "^.+\\.ts$": "ts-jest",
+    "^.+\\.ts$": ["ts-jest", { tsconfig: "tsconfig.spec.json" }],
   },
   moduleFileExtensions: ["js", "json", "ts"],
   collectCoverageFrom: ["**/*.ts", ...nestjsCoverageExclusions],
