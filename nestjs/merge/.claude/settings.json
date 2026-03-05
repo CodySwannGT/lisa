@@ -10,6 +10,7 @@
     "code-review@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
+    "lisa-typescript@lisa": false,
     "lisa-nestjs@lisa": true
   },
   "extraKnownMarketplaces": {
