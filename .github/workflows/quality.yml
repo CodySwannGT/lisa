@@ -381,6 +381,8 @@ jobs:
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
             bun run test
           fi
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
   test_unit:
@@ -440,6 +442,8 @@ jobs:
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
             bun run test:cov
           fi
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip unit tests (no test:unit script)
@@ -503,6 +507,8 @@ jobs:
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
             bun run test:integration
           fi
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip integration tests (no test:integration script)
@@ -566,6 +572,8 @@ jobs:
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
             bun run test:e2e
           fi
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip E2E tests (no test:e2e script)
