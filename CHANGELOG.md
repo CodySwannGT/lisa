@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.14](https://github.com/CodySwannGT/lisa/compare/vv1.54.13...v1.54.14) (2026-03-05)
+
+
+### Bug Fixes
+
+* correct plugin manifest author field and marketplace command ([9f9fea7](https://github.com/CodySwannGT/lisa/commit/9f9fea7d106403bbc3515857aa7b4f19f3156662))
+
 ### [1.54.13](https://github.com/CodySwannGT/lisa/compare/vv1.54.12...v1.54.13) (2026-03-05)
 
 
