@@ -52,8 +52,7 @@ describe("BackupService", () => {
 
       const testFile = path.join(destDir, "nonexistent.txt");
 
-      // Should not throw
-      await expect(service.backup(testFile)).resolves.not.toThrow();
+      await expect(service.backup(testFile)).resolves.toBeUndefined();
     });
 
     it("throws when not initialized", async () => {
@@ -210,10 +209,9 @@ describe("BackupService", () => {
 
       const nonexistentFile = path.join(destDir, "nonexistent.txt");
 
-      // Should not throw
       await expect(
         service.persistentBackup(nonexistentFile)
-      ).resolves.not.toThrow();
+      ).resolves.toBeUndefined();
     });
 
     it("creates .lisabak directory if it doesn't exist", async () => {
@@ -290,8 +288,7 @@ describe("BackupService", () => {
 
       await service.cleanup();
 
-      // Service should be reset (init can be called again)
-      await expect(service.init(destDir)).resolves.not.toThrow();
+      await expect(service.init(destDir)).resolves.toBeUndefined();
     });
 
     it("handles multiple cleanup calls gracefully", async () => {
