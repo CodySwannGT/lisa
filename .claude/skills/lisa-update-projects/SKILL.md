@@ -21,8 +21,17 @@ Updates local Lisa projects in batches by running the package manager update com
    - Replace each legacy workflow file with the corresponding create-only template from `typescript/create-only/.github/workflows/` in the Lisa repo. These are thin callers that delegate to the reusable workflows at `@main`.
    - The create-only templates are the source of truth for the correct caller format.
    - Key mappings: `ci.yml` → calls `quality.yml@main`, `claude.yml` → calls `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → calls `reusable-claude-ci-auto-fix.yml@main`, `auto-update-pr-branches.yml` → calls `reusable-auto-update-pr-branches.yml@main`, and similarly for all other `claude-*.yml` workflows.
-9. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
-10. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
-11. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
+9. Remove stale `file:` references to bundled ESLint plugins from the project's `package.json`. Previous Lisa versions copied plugin directories and added `file:./` dependencies; current Lisa deletes the directories but the `package.json` references remain. Use `jq` to remove these keys from both `dependencies` and `devDependencies` if they exist:
+   - `eslint-plugin-code-organization`
+   - `eslint-plugin-component-structure`
+   - `eslint-plugin-ui-standards`
+10. Remove stale `$CLAUDE_PROJECT_DIR/.claude/hooks/` references from the project's `.claude/settings.json`. Previous Lisa versions installed hook scripts into the project's `.claude/hooks/` directory and registered them in `.claude/settings.json`. Current Lisa deletes these scripts via `all/deletions.json` and provides them through the plugin system (`${CLAUDE_PLUGIN_ROOT}/hooks/` in `plugin.json`) instead. The settings.json references to the deleted scripts cause "No such file or directory" errors. Use `jq` to:
+   - Remove any hook entry objects where the `command` contains `$CLAUDE_PROJECT_DIR/.claude/hooks/`
+   - Remove entire hook matcher blocks that become empty after removing those entries
+   - Remove entire hook category arrays that have no remaining matcher blocks
+   - Preserve all non-file-path hook entries (inline commands like `echo ...`, `command -v entire ...`, etc.)
+11. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
+12. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
+13. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
 
-For steps 4-11, use up to 4 parallel subagents to accomplish those steps.
+For steps 4-12, use up to 4 parallel subagents to accomplish those steps.

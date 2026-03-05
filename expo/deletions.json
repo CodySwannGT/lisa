@@ -26,6 +26,7 @@
     ".claude/skills/ops-verify-health",
     ".claude/skills/owasp-zap",
     ".claude/skills/playwright-selectors",
+    ".claude/skills/reduce-complexity",
     ".claude/skills/testing-library",
     ".github/workflows/build.yml",
     ".github/workflows/lighthouse.yml",
