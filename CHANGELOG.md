@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.54.15](https://github.com/CodySwannGT/lisa/compare/vv1.54.14...v1.54.15) (2026-03-05)
+
+
+### Bug Fixes
+
+* commit built plugins for GitHub marketplace distribution ([c5ace7f](https://github.com/CodySwannGT/lisa/commit/c5ace7f9366ee3f6074a7b4c2cbbe177c7e6a023))
+* rebuild plugins during release so version is committed to GitHub ([69b0ead](https://github.com/CodySwannGT/lisa/commit/69b0eada0a8f736a9fc2269de5350a367afa161d))
+* sync plugin versions with Lisa package version ([89b70ad](https://github.com/CodySwannGT/lisa/commit/89b70ad8b39bde7e81f9583fa353e4db46fcf0c9))
+
 ### [1.54.14](https://github.com/CodySwannGT/lisa/compare/vv1.54.13...v1.54.14) (2026-03-05)
 
 
