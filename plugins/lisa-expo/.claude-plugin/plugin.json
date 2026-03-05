@@ -1,6 +1,6 @@
 {
-  "name": "expo",
-  "version": "1.54.13",
+  "name": "lisa-expo",
+  "version": "1.54.15",
   "description": "Claude Code governance plugin for Expo/React Native projects — includes all universal skills, agents, hooks, and rules from Lisa plus Expo-specific tooling",
   "author": {
     "name": "Cody Swann"

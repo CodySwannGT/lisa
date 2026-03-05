@@ -55,8 +55,8 @@ SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 LISA_PLUGIN=""
 if [ -f "$SETTINGS_FILE" ]; then
   for stack in typescript expo nestjs cdk rails; do
-    if grep -q "\"${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
-      LISA_PLUGIN="${stack}@lisa"
+    if grep -q "\"lisa-${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
+      LISA_PLUGIN="lisa-${stack}@lisa"
       break
     fi
   done
@@ -80,7 +80,7 @@ for plugin in \
 done
 
 # Install stack-specific third-party plugins
-if [ "$LISA_PLUGIN" = "expo@lisa" ]; then
+if [ "$LISA_PLUGIN" = "lisa-expo@lisa" ]; then
   for plugin in \
     "playwright@claude-plugins-official" \
     "posthog@claude-plugins-official"; do
