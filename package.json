@@ -27,6 +27,8 @@
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
     "lisa:update:local": "bash scripts/lisa-update-local.sh",
     "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
+    "prepack": "bash scripts/strip-workspaces-for-pack.sh",
+    "postpack": "[ -f package.json.bak ] && mv package.json.bak package.json || true",
     "prepublishOnly": "$npm_execpath run build",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true"
   },
