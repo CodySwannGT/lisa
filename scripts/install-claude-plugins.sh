@@ -55,7 +55,11 @@ SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 LISA_PLUGIN=""
 if [ -f "$SETTINGS_FILE" ]; then
   for stack in typescript expo nestjs cdk rails; do
+    # Check new format (lisa-*@lisa) first, fall back to legacy format (*@lisa)
     if grep -q "\"lisa-${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
+      LISA_PLUGIN="lisa-${stack}@lisa"
+      break
+    elif grep -q "\"${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
       LISA_PLUGIN="lisa-${stack}@lisa"
       break
     fi
