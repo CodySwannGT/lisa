@@ -10,7 +10,7 @@
     "code-review@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
-    "cdk@lisa": true
+    "lisa-cdk@lisa": true
   },
   "extraKnownMarketplaces": {
     "CodySwannGT/lisa": {

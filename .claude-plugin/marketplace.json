@@ -9,31 +9,31 @@
   },
   "plugins": [
     {
-      "name": "typescript",
+      "name": "lisa-typescript",
       "source": "./plugins/lisa-typescript",
       "description": "Claude Code governance plugin for TypeScript projects — universal skills, agents, hooks, and rules plus TypeScript-specific tooling",
       "category": "productivity"
     },
     {
-      "name": "expo",
+      "name": "lisa-expo",
       "source": "./plugins/lisa-expo",
       "description": "Claude Code governance plugin for Expo/React Native projects — universal skills plus Expo-specific tooling (Apollo Client, Gluestack, Expo Router, Playwright, Maestro)",
       "category": "productivity"
     },
     {
-      "name": "nestjs",
+      "name": "lisa-nestjs",
       "source": "./plugins/lisa-nestjs",
       "description": "Claude Code governance plugin for NestJS/GraphQL projects — universal skills plus NestJS-specific tooling (GraphQL, TypeORM, security scanning)",
       "category": "productivity"
     },
     {
-      "name": "cdk",
+      "name": "lisa-cdk",
       "source": "./plugins/lisa-cdk",
       "description": "Claude Code governance plugin for AWS CDK projects — universal skills, agents, hooks, and rules plus TypeScript tooling",
       "category": "productivity"
     },
     {
-      "name": "rails",
+      "name": "lisa-rails",
       "source": "./plugins/lisa-rails",
       "description": "Claude Code governance plugin for Ruby on Rails projects — universal skills plus Rails-specific tooling (ActionController, ActionView, ActiveRecord)",
       "category": "productivity"

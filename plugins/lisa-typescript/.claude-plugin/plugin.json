@@ -1,6 +1,6 @@
 {
-  "name": "typescript",
-  "version": "1.54.13",
+  "name": "lisa-typescript",
+  "version": "1.54.15",
   "description": "Claude Code governance plugin for TypeScript projects — includes all universal skills, agents, hooks, and rules from Lisa plus TypeScript-specific tooling",
   "author": {
     "name": "Cody Swann"

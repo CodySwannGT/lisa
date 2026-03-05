@@ -11,7 +11,7 @@
     "playwright@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
-    "typescript@lisa": true
+    "lisa-typescript@lisa": true
   },
   "env": {
     "BASH_DEFAULT_TIMEOUT_MS": "1800000",

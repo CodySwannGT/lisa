@@ -12,7 +12,7 @@
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
     "posthog@claude-plugins-official": true,
-    "expo@lisa": true
+    "lisa-expo@lisa": true
   },
   "extraKnownMarketplaces": {
     "CodySwannGT/lisa": {
