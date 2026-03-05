@@ -4,10 +4,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGINS_DIR="$SCRIPT_DIR/../plugins"
+ROOT_DIR="$SCRIPT_DIR/.."
+PLUGINS_DIR="$ROOT_DIR/plugins"
 SRC_DIR="$PLUGINS_DIR/src"
 BASE_DIR="$SRC_DIR/base"
 STACKS=(typescript expo nestjs cdk rails)
+
+# Read version from package.json so plugins stay in sync with Lisa releases
+VERSION=$(node -e "console.log(require('$ROOT_DIR/package.json').version)")
 
 for stack in "${STACKS[@]}"; do
   OUT="$PLUGINS_DIR/lisa-$stack"
@@ -18,5 +22,15 @@ for stack in "${STACKS[@]}"; do
   if [ -d "$STACK_SRC" ]; then
     cp -r "$STACK_SRC/." "$OUT/"
   fi
-  echo "Built plugins/lisa-$stack"
+  # Inject Lisa version into the built plugin manifest
+  MANIFEST="$OUT/.claude-plugin/plugin.json"
+  if [ -f "$MANIFEST" ]; then
+    node -e "
+      const fs = require('fs');
+      const m = JSON.parse(fs.readFileSync('$MANIFEST', 'utf8'));
+      m.version = '$VERSION';
+      fs.writeFileSync('$MANIFEST', JSON.stringify(m, null, 2) + '\n');
+    "
+  fi
+  echo "Built plugins/lisa-$stack (v$VERSION)"
 done
