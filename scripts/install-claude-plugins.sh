@@ -47,7 +47,7 @@ fi
 if ! command -v claude &>/dev/null; then exit 0; fi
 
 # Register the Lisa marketplace pointing to this npm package
-claude marketplace add "$LISA_DIR" </dev/null 2>&1 || true
+claude marketplace add "$LISA_DIR" --scope project </dev/null 2>&1 || true
 
 # Detect which stack plugin to install from .claude/settings.json
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
