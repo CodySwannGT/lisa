@@ -261,7 +261,7 @@ ${COPY_OVERWRITE}:${TEST_TXT}
     });
 
     it("does not throw if manifest does not exist", async () => {
-      await expect(service.remove(tempDir)).resolves.not.toThrow();
+      await expect(service.remove(tempDir)).resolves.toBeUndefined();
     });
   });
 });
