@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.1](https://github.com/CodySwannGT/lisa/compare/vv1.56.0...v1.56.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* auto-bootstrap trustedDependencies via default postinstall script ([603f52a](https://github.com/CodySwannGT/lisa/commit/603f52affa41a01be23c5ebea88a54336bd89392))
+
 ## [1.56.0](https://github.com/CodySwannGT/lisa/compare/vv1.55.2...v1.56.0) (2026-03-05)
 
 
