@@ -496,12 +496,12 @@ const DashboardView = ({ user, stats, notifications, activities }: Props) => (
 Understanding how SonarJS calculates cognitive complexity:
 
 | Construct                    | Base Cost | Nesting Penalty |
-| ---------------------------- | --------- | --------------- | --- | ------------ |
+| ---------------------------- | --------- | --------------- |
 | `if` / `else if` / `else`    | +1        | +1 per level    |
 | `? :` (ternary)              | +1        | +1 per level    |
-| `&&` / `                     |           | ` (logical)     | +1  | +1 per level |
+| `&&` / `\|\|` (logical)      | +1        | +1 per level    |
 | `for` / `while` / `do-while` | +1        | +1 per level    |
-| `.map()` / `.filter()` etc   | +1        | +1 per level    |
+| `.map()` / `.filter()` etc.  | +1        | +1 per level    |
 | `catch`                      | +1        | +1 per level    |
 | `switch`                     | +1 total  | -               |
 | `case` (in switch)           | +1 each   | -               |

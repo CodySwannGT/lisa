@@ -267,7 +267,7 @@ Extract as full component when 3+ of these apply:
 1. **Identify the repeated/complex pattern**
 2. **Define the component's props interface**
 3. **Create directory structure:**
-   ```
+   ```text
    ComponentName/
    ├── ComponentNameContainer.tsx
    ├── ComponentNameView.tsx
