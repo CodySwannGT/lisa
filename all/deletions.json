@@ -134,7 +134,6 @@
   ],
   "keep": [
     "scripts/setup-deploy-key.sh",
-    ".claude/commands/lisa",
     ".coderabbit.yml",
     "HUMAN.md"
   ]
