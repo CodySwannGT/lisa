@@ -54,7 +54,7 @@ jobs:
       generate_sbom: true
       override_blackout: true
       node_version: '22.21.1'
-      package_manager: 'bun'
+      package_manager: 'npm'
     secrets:
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
       RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
