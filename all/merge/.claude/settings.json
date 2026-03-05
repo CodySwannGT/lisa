@@ -4,6 +4,7 @@
     "pr": "🤖 Generated with Claude Code"
   },
   "enabledPlugins": {
+    "lisa@lisa": true,
     "typescript-lsp@claude-plugins-official": true,
     "safety-net@cc-marketplace": true,
     "code-simplifier@claude-plugins-official": true,
@@ -18,6 +19,12 @@
       "source": {
         "source": "github",
         "repo": "CodySwannGT/lisa"
+      }
+    },
+    "kenryu42/cc-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "kenryu42/cc-marketplace"
       }
     }
   },
