@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.6](https://github.com/CodySwannGT/lisa/compare/vv1.56.5...v1.56.6) (2026-03-05)
+
+
+### Bug Fixes
+
+* point ts-jest to tsconfig.spec.json for correct test diagnostics ([2062e37](https://github.com/CodySwannGT/lisa/commit/2062e37e7260d599139e59f6216de3e7791c1736))
+
 ### [1.56.5](https://github.com/CodySwannGT/lisa/compare/vv1.56.4...v1.56.5) (2026-03-05)
 
 
