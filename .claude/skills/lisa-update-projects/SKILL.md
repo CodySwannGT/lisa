@@ -25,8 +25,12 @@ Updates local Lisa projects in batches by running the package manager update com
    - `eslint-plugin-code-organization`
    - `eslint-plugin-component-structure`
    - `eslint-plugin-ui-standards`
-10. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
-11. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
-12. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
+10. Remove stale `debug-hook.sh` references from the project's `.claude/settings.json`. Previous Lisa versions installed `debug-hook.sh` as a hook script; current Lisa deletes the script via `all/deletions.json` but the settings.json references remain. Use `jq` to:
+   - Remove any hook entry objects where the `command` contains `debug-hook.sh`
+   - Remove entire hook category arrays that become empty after removing debug-hook entries
+   - Preserve all other hook entries in the same category
+11. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
+12. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
+13. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
 
-For steps 4-11, use up to 4 parallel subagents to accomplish those steps.
+For steps 4-12, use up to 4 parallel subagents to accomplish those steps.
