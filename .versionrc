@@ -38,5 +38,8 @@
       "filename": "package.json",
       "type": "json"
     }
-  ]
+  ],
+  "scripts": {
+    "postbump": "bash scripts/build-plugins.sh && git add plugins/lisa-*"
+  }
 }
