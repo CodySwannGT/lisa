@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.55.1](https://github.com/CodySwannGT/lisa/compare/vv1.55.0...v1.55.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* support legacy plugin keys in install script for transition period ([f42087b](https://github.com/CodySwannGT/lisa/commit/f42087b03c3b75157b7dfb9b595a4255114972f0))
+
 ## [1.55.0](https://github.com/CodySwannGT/lisa/compare/vv1.54.15...v1.55.0) (2026-03-05)
 
 
