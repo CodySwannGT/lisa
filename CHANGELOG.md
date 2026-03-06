@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.8](https://github.com/CodySwannGT/lisa/compare/vv1.56.7...v1.56.8) (2026-03-06)
+
+
+### Bug Fixes
+
+* remove verify-completion.sh Stop hook ([#272](https://github.com/CodySwannGT/lisa/issues/272)) ([9f25d4d](https://github.com/CodySwannGT/lisa/commit/9f25d4dfca1cb436ec086e0e04f7b0f58f1cd66b))
+
 ### [1.56.7](https://github.com/CodySwannGT/lisa/compare/vv1.56.6...v1.56.7) (2026-03-05)
 
 
