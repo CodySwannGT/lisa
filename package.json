@@ -171,7 +171,7 @@
     "typescript-eslint": "^8.0.0"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^1.54.13"
+    "@codyswann/lisa": "^1.56.7"
   },
   "type": "module"
 }
