@@ -152,7 +152,7 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 
 ## Self-Correction Loop
 
-Verification is not a one-shot activity. Agents operate within a four-layer self-correction architecture that catches errors at increasing scope. Each layer is enforced automatically — agents do not need to invoke them manually.
+Verification is not a one-shot activity. Agents operate within a three-layer self-correction architecture that catches errors at increasing scope. Each layer is enforced automatically — agents do not need to invoke them manually.
 
 ### Layer 1 — Inline Correction (PostToolUse)
 
@@ -183,16 +183,6 @@ This layer catches errors that span multiple files or involve staged-but-not-yet
 **Checks:** Full test suite with coverage thresholds, typecheck, security audit, knip (unused exports), integration tests.
 
 This layer validates the complete changeset against the project's quality gates. It is the last automated checkpoint before code reaches the remote.
-
-### Layer 4 — Completion Enforcement (Stop hook)
-
-**Trigger:** Agent attempts to stop or finish a task.
-
-**Check:** If `Write` or `Edit` tools were used during the session, the agent must have declared a verification level (`FULLY VERIFIED`, `PARTIALLY VERIFIED`, or `UNVERIFIED`) in its final message.
-
-If no verification level is declared, the Stop hook blocks once with instructions. On retry, it allows the stop to prevent infinite loops.
-
-**Agent responsibility:** Before finishing any task that involved code changes, run verification and declare the result with evidence.
 
 ### Regeneration Over Patching
 
