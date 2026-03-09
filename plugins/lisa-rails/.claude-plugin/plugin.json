@@ -1,6 +1,6 @@
 {
   "name": "lisa-rails",
-  "version": "1.56.7",
+  "version": "1.56.8",
   "description": "Ruby on Rails-specific skills, rules, and conventions",
   "author": {
     "name": "Cody Swann"
