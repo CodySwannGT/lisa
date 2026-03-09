@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.57.0](https://github.com/CodySwannGT/lisa/compare/vv1.56.9...v1.57.0) (2026-03-09)
+
+
+### Features
+
+* **ci:** add auto_merge input to PR-creating Claude workflows ([#274](https://github.com/CodySwannGT/lisa/issues/274)) ([54a1636](https://github.com/CodySwannGT/lisa/commit/54a1636b108ac784cfbe78896f3f8d3f572b9c3f))
+
 ### [1.56.9](https://github.com/CodySwannGT/lisa/compare/vv1.56.8...v1.56.9) (2026-03-09)
 
 
