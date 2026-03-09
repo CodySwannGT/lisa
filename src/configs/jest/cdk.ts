@@ -2,7 +2,7 @@
  * Jest Configuration - CDK Stack
  *
  * Provides AWS CDK-specific Jest configuration targeting
- * the test/ directory with spec and integration-spec patterns.
+ * the test/ directory with test/spec and integration-test/integration-spec patterns.
  *
  * Inheritance chain:
  *   cdk.ts (this file)
@@ -51,7 +51,7 @@ export const getCdkJestConfig = ({
 }: CdkJestOptions = {}): Config => ({
   testEnvironment: "node",
   roots: ["<rootDir>/test"],
-  testRegex: "(.*\\.(spec|integration-spec)\\.ts)$",
+  testRegex: "(.*\\.(test|spec|integration-test|integration-spec)\\.ts)$",
   transform: {
     "^.+\\.ts$": "ts-jest",
   },
