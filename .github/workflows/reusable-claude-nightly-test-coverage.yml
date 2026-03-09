@@ -156,5 +156,5 @@ jobs:
             9. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
-            --max-turns 30
+            --max-turns 40
             --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass."

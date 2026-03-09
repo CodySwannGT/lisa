@@ -159,5 +159,5 @@ jobs:
             9. Create a PR with `gh pr create` with a title like "refactor: reduce code complexity: ${{ steps.thresholds.outputs.reductions }}" summarizing the changes
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
-            --max-turns 30
+            --max-turns 40
             --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Refactor functions to reduce cognitive complexity and lines per function. Use early returns, extract helpers, and lookup tables. Do NOT modify the maxLines threshold. You must update eslint.thresholds.json with the new values after refactoring passes lint. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly."
