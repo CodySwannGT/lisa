@@ -36,6 +36,11 @@ on:
         required: false
         default: '22.21.1'
         type: string
+      auto_merge:
+        description: 'Enable auto-merge on created PRs (requires repo auto-merge setting enabled)'
+        required: false
+        default: true
+        type: boolean
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -185,6 +190,19 @@ jobs:
           else
             echo "fixed=false" >> "$GITHUB_OUTPUT"
             echo "Claude did not create a fix PR."
+          fi
+
+      - name: Enable auto-merge
+        if: inputs.auto_merge && steps.loop-guard.outputs.skip != 'true' && steps.check-fix.outputs.fixed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh pr list --head "claude/deploy-fix-" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          if [ -n "$PR_URL" ]; then
+            gh pr merge "$PR_URL" --auto --squash
+            echo "Auto-merge enabled for $PR_URL"
+          else
+            echo "No PR found to auto-merge."
           fi
 
   create-issue:

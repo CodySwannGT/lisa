@@ -16,6 +16,11 @@ on:
         required: false
         default: 'npm'
         type: string
+      auto_merge:
+        description: 'Enable auto-merge on created PRs (requires repo auto-merge setting enabled)'
+        required: false
+        default: true
+        type: boolean
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -161,3 +166,16 @@ jobs:
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
             --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Refactor functions to reduce cognitive complexity and lines per function. Use early returns, extract helpers, and lookup tables. Do NOT modify the maxLines threshold. You must update eslint.thresholds.json with the new values after refactoring passes lint. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly."
+
+      - name: Enable auto-merge
+        if: inputs.auto_merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh pr list --head "claude/nightly-code-complexity-" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          if [ -n "$PR_URL" ]; then
+            gh pr merge "$PR_URL" --auto --squash
+            echo "Auto-merge enabled for $PR_URL"
+          else
+            echo "No PR found to auto-merge."
+          fi
