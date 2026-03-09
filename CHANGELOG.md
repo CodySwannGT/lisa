@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.56.9](https://github.com/CodySwannGT/lisa/compare/vv1.56.8...v1.56.9) (2026-03-09)
+
+
+### Bug Fixes
+
+* **jest:** add .test.ts pattern to CDK testRegex ([#273](https://github.com/CodySwannGT/lisa/issues/273)) ([2243461](https://github.com/CodySwannGT/lisa/commit/22434613f5d182aca6ce046b8851713f1db7f0c8))
+
 ### [1.56.8](https://github.com/CodySwannGT/lisa/compare/vv1.56.7...v1.56.8) (2026-03-06)
 
 
