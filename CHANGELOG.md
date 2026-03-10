@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.57.2](https://github.com/CodySwannGT/lisa/compare/vv1.57.1...v1.57.2) (2026-03-10)
+
+
+### Bug Fixes
+
+* **ci:** add persist-credentials: false to all Claude workflow checkouts ([#276](https://github.com/CodySwannGT/lisa/issues/276)) ([3f7d6e8](https://github.com/CodySwannGT/lisa/commit/3f7d6e868eb87cd6f6845990d92b64d174e621b3))
+
 ### [1.57.1](https://github.com/CodySwannGT/lisa/compare/vv1.57.0...v1.57.1) (2026-03-10)
 
 
