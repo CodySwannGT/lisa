@@ -130,6 +130,7 @@ jobs:
             console.log(`Metrics to bump: ${bumps.join(', ')}`);
 
       - name: Run Claude Code to improve coverage
+        id: claude
         if: |
           steps.check-pr.outputs.has_existing_pr != 'true' &&
           steps.thresholds.outputs.all_at_target != 'true'
@@ -165,11 +166,11 @@ jobs:
             --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass."
 
       - name: Enable auto-merge
-        if: inputs.auto_merge
+        if: inputs.auto_merge && steps.claude.outputs.branch_name
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_URL=$(gh pr list --head "claude/nightly-test-coverage-" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          PR_URL=$(gh pr list --head "${{ steps.claude.outputs.branch_name }}" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
           if [ -n "$PR_URL" ]; then
             gh pr merge "$PR_URL" --auto --squash
             echo "Auto-merge enabled for $PR_URL"
