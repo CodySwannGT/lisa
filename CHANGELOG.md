@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.57.1](https://github.com/CodySwannGT/lisa/compare/vv1.57.0...v1.57.1) (2026-03-10)
+
+
+### Bug Fixes
+
+* **ci:** use action branch_name output for auto-merge PR lookup ([#275](https://github.com/CodySwannGT/lisa/issues/275)) ([0c34b2d](https://github.com/CodySwannGT/lisa/commit/0c34b2da4e62e4aa6b9b8c0cdbb771f4ae2f1721))
+
 ## [1.57.0](https://github.com/CodySwannGT/lisa/compare/vv1.56.9...v1.57.0) (2026-03-09)
 
 
