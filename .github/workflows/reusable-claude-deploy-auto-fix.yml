@@ -66,6 +66,7 @@ jobs:
         with:
           ref: ${{ inputs.head_branch }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
