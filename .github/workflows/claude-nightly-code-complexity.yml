@@ -17,4 +17,6 @@ permissions:
 jobs:
   reduce-complexity:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-code-complexity.yml@main
+    with:
+      package_manager: 'bun'
     secrets: inherit

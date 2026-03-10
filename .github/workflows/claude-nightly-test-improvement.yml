@@ -28,4 +28,5 @@ jobs:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-test-improvement.yml@main
     with:
       mode: ${{ github.event.inputs.mode || 'nightly' }}
+      package_manager: 'bun'
     secrets: inherit
