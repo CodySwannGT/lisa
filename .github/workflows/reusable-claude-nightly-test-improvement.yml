@@ -166,15 +166,22 @@ jobs:
             --system-prompt "You are improving test quality. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
 
       - name: Enable auto-merge
-        if: inputs.auto_merge && (steps.claude-nightly.outputs.branch_name || steps.claude-general.outputs.branch_name)
+        if: inputs.auto_merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH="${{ steps.claude-nightly.outputs.branch_name || steps.claude-general.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping auto-merge."
+            exit 0
+          fi
           PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
           if [ -n "$PR_URL" ]; then
             gh pr merge "$PR_URL" --auto --squash
             echo "Auto-merge enabled for $PR_URL"
           else
-            echo "No PR found to auto-merge."
+            echo "No open PR found for branch $BRANCH."
           fi

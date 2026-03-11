@@ -168,14 +168,22 @@ jobs:
             --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass."
 
       - name: Enable auto-merge
-        if: inputs.auto_merge && steps.claude.outputs.branch_name
+        if: inputs.auto_merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_URL=$(gh pr list --head "${{ steps.claude.outputs.branch_name }}" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          BRANCH="${{ steps.claude.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping auto-merge."
+            exit 0
+          fi
+          PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
           if [ -n "$PR_URL" ]; then
             gh pr merge "$PR_URL" --auto --squash
             echo "Auto-merge enabled for $PR_URL"
           else
-            echo "No PR found to auto-merge."
+            echo "No open PR found for branch $BRANCH."
           fi

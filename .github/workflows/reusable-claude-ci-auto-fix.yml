@@ -178,11 +178,12 @@ jobs:
       - name: Check if Claude pushed a fix
         id: check-fix
         if: steps.loop-guard.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CURRENT_SHA=$(git rev-parse HEAD)
-          git fetch origin "${{ inputs.head_branch }}" --quiet
-          REMOTE_SHA=$(git rev-parse "origin/${{ inputs.head_branch }}")
-          if [ "$CURRENT_SHA" != "$REMOTE_SHA" ]; then
+          REMOTE_SHA=$(gh api "repos/${{ github.repository }}/git/ref/heads/${{ inputs.head_branch }}" --jq '.object.sha' 2>/dev/null || echo "")
+          if [ -n "$REMOTE_SHA" ] && [ "$CURRENT_SHA" != "$REMOTE_SHA" ]; then
             echo "fixed=true" >> "$GITHUB_OUTPUT"
             echo "Claude pushed a fix."
           else
