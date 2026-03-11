@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.57.3](https://github.com/CodySwannGT/lisa/compare/vv1.57.2...v1.57.3) (2026-03-11)
+
+
+### Bug Fixes
+
+* **ci:** fix auto-merge skipping when branch_name output is empty ([#277](https://github.com/CodySwannGT/lisa/issues/277)) ([f4ddea8](https://github.com/CodySwannGT/lisa/commit/f4ddea8f4b842b5320ce866d53fd5cace77b395a))
+
 ### [1.57.2](https://github.com/CodySwannGT/lisa/compare/vv1.57.1...v1.57.2) (2026-03-10)
 
 
