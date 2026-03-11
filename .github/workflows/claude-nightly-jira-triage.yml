@@ -1,0 +1,32 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Jira Triage
+
+on:
+  schedule:
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      ticket_key:
+        description: 'Specific Jira ticket key to triage (leave empty for batch mode)'
+        required: false
+        type: string
+      ticket_count:
+        description: 'Number of untriaged tickets to process in batch mode'
+        required: false
+        default: '5'
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  triage:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-jira-triage.yml@main
+    with:
+      ticket_key: ${{ github.event.inputs.ticket_key || '' }}
+      ticket_count: ${{ fromJSON(github.event.inputs.ticket_count || '5') }}
+    secrets: inherit
