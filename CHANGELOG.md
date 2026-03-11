@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.58.0](https://github.com/CodySwannGT/lisa/compare/vv1.57.3...v1.58.0) (2026-03-11)
+
+
+### Features
+
+* **ci:** add multi-repo Jira triage workflow with relevance gating ([#278](https://github.com/CodySwannGT/lisa/issues/278)) ([5d2e015](https://github.com/CodySwannGT/lisa/commit/5d2e015c5d0ba9774c0969c02e0abe195e1cf127))
+
 ### [1.57.3](https://github.com/CodySwannGT/lisa/compare/vv1.57.2...v1.57.3) (2026-03-11)
 
 
