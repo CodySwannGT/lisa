@@ -180,14 +180,24 @@ jobs:
 
       - name: Check if Claude created a fix PR
         id: check-fix
-        if: steps.loop-guard.outputs.skip != 'true' && steps.claude-fix.outputs.branch_name
+        if: steps.loop-guard.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_COUNT=$(gh pr list --base "${{ inputs.head_branch }}" --head "${{ steps.claude-fix.outputs.branch_name }}" --state open --json number --jq length 2>/dev/null || echo "0")
+          BRANCH="${{ steps.claude-fix.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "${{ inputs.head_branch }}" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "fixed=false" >> "$GITHUB_OUTPUT"
+            echo "No fix branch detected."
+            exit 0
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          PR_COUNT=$(gh pr list --base "${{ inputs.head_branch }}" --head "$BRANCH" --state open --json number --jq length 2>/dev/null || echo "0")
           if [ "$PR_COUNT" -gt 0 ]; then
             echo "fixed=true" >> "$GITHUB_OUTPUT"
-            echo "Claude created a fix PR."
+            echo "Claude created a fix PR on branch $BRANCH."
           else
             echo "fixed=false" >> "$GITHUB_OUTPUT"
             echo "Claude did not create a fix PR."
@@ -198,12 +208,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_URL=$(gh pr list --head "${{ steps.claude-fix.outputs.branch_name }}" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          BRANCH="${{ steps.check-fix.outputs.branch }}"
+          PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
           if [ -n "$PR_URL" ]; then
             gh pr merge "$PR_URL" --auto --squash
             echo "Auto-merge enabled for $PR_URL"
           else
-            echo "No PR found to auto-merge."
+            echo "No open PR found for branch $BRANCH."
           fi
 
   create-issue:
