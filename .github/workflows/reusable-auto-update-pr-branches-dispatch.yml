@@ -50,6 +50,7 @@ jobs:
         continue-on-error: true
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: 'github-actions'
           prompt: |
             Update all open pull request branches targeting "${{ inputs.ref_name }}" in "${{ inputs.repo_full_name }}".
 
@@ -80,6 +81,7 @@ jobs:
         continue-on-error: true
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: 'github-actions'
           prompt: |
             Update pull request #${{ inputs.pr_number }} branch in "${{ inputs.repo_full_name }}".
 
