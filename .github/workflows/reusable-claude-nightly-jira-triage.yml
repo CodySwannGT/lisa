@@ -211,7 +211,7 @@ jobs:
             - For each ticket: key, summary, relevance (relevant/skipped), number of ambiguities found, number of edge cases found, whether verification methodology was added
           claude_args: |
             --allowedTools "Read,Glob,Grep,Bash(*)"
-            --max-turns 40
+            --max-turns ${{ inputs.ticket_count * 20 }}
             --system-prompt "You are a precise Jira ticket triage agent. Multiple repositories may triage the same Jira ticket. Read existing comments before posting to avoid duplication. Prefix all comments with [$REPO_NAME]. Only post findings relevant to the code in THIS repository. Focus on being specific and actionable. Every ambiguity must have a concrete clarifying question. Every edge case must reference code. Every verification method must be executable by an automated agent. Use jq for all JSON construction to ensure proper escaping. Do not modify any code in the repository -- you are read-only. Always use the Glob and Grep tools for codebase searching -- do not use find or grep via Bash. Do not load or use tools beyond Read, Glob, Grep, and Bash."
         env:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
