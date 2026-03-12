@@ -237,7 +237,7 @@ Does not modify the `maxLines` threshold. Skips if all metrics are at/below targ
 
 **Triggers**: Cron every 2 hours (all days), manual dispatch
 
-**Auto-enables**: When Jira credentials are configured (`JIRA_BASE_URL`, `JIRA_USER_EMAIL`, `JIRA_PROJECT_KEY` repository variables and `JIRA_API_TOKEN` secret). No feature flag needed.
+**Auto-enables**: When Claude and Jira credentials are configured (`CLAUDE_CODE_OAUTH_TOKEN`, `JIRA_API_TOKEN` secrets and `JIRA_BASE_URL`, `JIRA_USER_EMAIL`, `JIRA_PROJECT_KEY` repository variables). No feature flag needed.
 
 Automatically triages untriaged Jira tickets by examining them and posting actionable comments. Supports multi-repo setups where multiple repositories share a single Jira project:
 

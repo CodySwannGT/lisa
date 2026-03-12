@@ -237,7 +237,7 @@ Does not modify the `maxLines` threshold. Skips if all metrics are at/below targ
 
 **Triggers**: Cron every 2 hours (all days), manual dispatch
 
-**Auto-enables**: When Jira credentials are configured (`JIRA_BASE_URL`, `JIRA_USER_EMAIL`, `JIRA_PROJECT_KEY` repository variables and `JIRA_API_TOKEN` secret). No feature flag needed.
+**Auto-enables**: When Claude and Jira credentials are configured (`CLAUDE_CODE_OAUTH_TOKEN`, `JIRA_API_TOKEN` secrets and `JIRA_BASE_URL`, `JIRA_USER_EMAIL`, `JIRA_PROJECT_KEY` repository variables). No feature flag needed.
 
 Automatically triages untriaged Jira tickets by examining them and posting actionable comments. Supports multi-repo setups where multiple repositories share a single Jira project:
 
@@ -257,10 +257,11 @@ This workflow is read-only — it does not modify code or create PRs. It only re
 
 **How to activate**:
 
-1. Add the secret in **Settings** > **Secrets and variables** > **Actions** > **Secrets**:
+1. Add the secrets in **Settings** > **Secrets and variables** > **Actions** > **Secrets**:
 
    | Secret | Description | How to get |
    |--------|-------------|------------|
+   | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for Claude Code | See `CLAUDE_CODE_OAUTH_TOKEN` in the Core Secrets section below |
    | `JIRA_API_TOKEN` | API token from Atlassian | [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) |
 
 2. Add repository variables in **Settings** > **Secrets and variables** > **Actions** > **Variables**:
@@ -271,7 +272,7 @@ This workflow is read-only — it does not modify code or create PRs. It only re
    | `JIRA_USER_EMAIL` | Email associated with the API token | `user@company.com` |
    | `JIRA_PROJECT_KEY` | Jira project key for ticket queries | `PROJ` |
 
-3. The workflow auto-enables once all three variables and the secret are set. No feature flag needed.
+3. The workflow auto-enables once all three variables and both secrets are set. No feature flag needed.
 
 ### Auto-update PR Branches (`auto-update-pr-branches.yml`)
 
