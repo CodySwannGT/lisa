@@ -235,7 +235,7 @@ Does not modify the `maxLines` threshold. Skips if all metrics are at/below targ
 
 ### Claude Nightly Jira Triage (`claude-nightly-jira-triage.yml`)
 
-**Triggers**: Cron at 6 AM UTC weekdays, manual dispatch
+**Triggers**: Cron every 2 hours (all days), manual dispatch
 
 **Auto-enables**: When Jira credentials are configured (`JIRA_BASE_URL`, `JIRA_USER_EMAIL`, `JIRA_PROJECT_KEY` repository variables and `JIRA_API_TOKEN` secret). No feature flag needed.
 
