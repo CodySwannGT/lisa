@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.58.3](https://github.com/CodySwannGT/lisa/compare/vv1.58.2...v1.58.3) (2026-03-12)
+
+
+### Bug Fixes
+
+* **ci:** scale Jira triage max-turns dynamically by ticket count ([#281](https://github.com/CodySwannGT/lisa/issues/281)) ([866e0b8](https://github.com/CodySwannGT/lisa/commit/866e0b83fcd898905d6160f363328509e0993d08))
+
 ### [1.58.2](https://github.com/CodySwannGT/lisa/compare/vv1.58.1...v1.58.2) (2026-03-12)
 
 
