@@ -30,8 +30,9 @@ Updates local Lisa projects in batches by running the package manager update com
    - Remove entire hook matcher blocks that become empty after removing those entries
    - Remove entire hook category arrays that have no remaining matcher blocks
    - Preserve all non-file-path hook entries (inline commands like `echo ...`, `command -v entire ...`, etc.)
-11. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
-12. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
-13. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
+11. Update create-only workflow schedules that have drifted from the current templates. For each create-only workflow in `.github/workflows/` (e.g., `claude-nightly-jira-triage.yml`), compare the `cron` schedule against the corresponding template in `typescript/create-only/.github/workflows/` (or `rails/create-only/` for Rails projects) in the Lisa repo. If the project's schedule differs from the template, update it to match. For example, if the template uses `0 */2 * * *` but the project still has `0 6 * * 1-5`, update the project file.
+12. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
+13. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
+14. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
 
-For steps 4-12, use up to 4 parallel subagents to accomplish those steps.
+For steps 4-13, use up to 4 parallel subagents to accomplish those steps.
