@@ -192,7 +192,7 @@ Recommended limits:
 
 - Interactive (PR/issue): No limit (user-driven)
 - CI auto-fix: 25 turns
-- Nightly workflows: 30 turns
+- Nightly workflows: 40 turns
 
 ### Security
 
