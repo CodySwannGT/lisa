@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.58.1](https://github.com/CodySwannGT/lisa/compare/vv1.58.0...v1.58.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* **ci:** migrate Jira triage workflow from v2 to v3 API ([#279](https://github.com/CodySwannGT/lisa/issues/279)) ([ab836dc](https://github.com/CodySwannGT/lisa/commit/ab836dc085fc534c24532cfb092fadb044035979))
+
 ## [1.58.0](https://github.com/CodySwannGT/lisa/compare/vv1.57.3...v1.58.0) (2026-03-11)
 
 
