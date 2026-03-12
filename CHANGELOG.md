@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.58.2](https://github.com/CodySwannGT/lisa/compare/vv1.58.1...v1.58.2) (2026-03-12)
+
+
+### Bug Fixes
+
+* **ci:** restore Jira triage workflow max-turns to 40 ([#280](https://github.com/CodySwannGT/lisa/issues/280)) ([17a3155](https://github.com/CodySwannGT/lisa/commit/17a31559b18b7bd1f9649ba0703000655ff80088)), closes [#279](https://github.com/CodySwannGT/lisa/issues/279)
+
 ### [1.58.1](https://github.com/CodySwannGT/lisa/compare/vv1.58.0...v1.58.1) (2026-03-12)
 
 
