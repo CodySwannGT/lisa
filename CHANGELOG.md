@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.58.4](https://github.com/CodySwannGT/lisa/compare/vv1.58.3...v1.58.4) (2026-03-12)
+
+
+### Bug Fixes
+
+* **ci:** use shell arithmetic for dynamic max-turns calculation ([#282](https://github.com/CodySwannGT/lisa/issues/282)) ([7d59724](https://github.com/CodySwannGT/lisa/commit/7d597247196c3da48dc0755c3beecbac8ec9134d))
+
 ### [1.58.3](https://github.com/CodySwannGT/lisa/compare/vv1.58.2...v1.58.3) (2026-03-12)
 
 
