@@ -497,8 +497,6 @@ gpg --export-secret-keys YOUR_KEY_ID | base64 > signing-key.txt
 | Secret | Description |
 |--------|-------------|
 | `JIRA_API_TOKEN` | API token from Atlassian |
-| `JIRA_BASE_URL` | Your Jira instance URL (e.g., `https://company.atlassian.net`) |
-| `JIRA_USER_EMAIL` | Email associated with the API token |
 | `JIRA_AUTOMATION_WEBHOOK` | Webhook URL for Jira automation |
 
 **How to get JIRA_API_TOKEN**:
