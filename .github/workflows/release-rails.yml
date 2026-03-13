@@ -1,9 +1,13 @@
-name: Release
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Release (Rails)
 
 on:
-  push:
-    branches: [main, staging]
-  workflow_dispatch:
+  workflow_call:
+    secrets:
+      DEPLOY_KEY:
+        required: true
 
 permissions:
   contents: write
