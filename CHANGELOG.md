@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.59.0](https://github.com/CodySwannGT/lisa/compare/vv1.58.4...v1.59.0) (2026-03-13)
+
+
+### Features
+
+* **ci:** run Jira triage every 2 hours and document activation setup ([#283](https://github.com/CodySwannGT/lisa/issues/283)) ([c356322](https://github.com/CodySwannGT/lisa/commit/c3563227f8f87ad60b499510a06b6da54de9199b))
+
+
+### Bug Fixes
+
+* **ci:** trigger CodeRabbit review on bot-created PRs ([#284](https://github.com/CodySwannGT/lisa/issues/284)) ([9143e7b](https://github.com/CodySwannGT/lisa/commit/9143e7b5cdfa052b9a856b7fbfb41e9f4c9f722f))
+
 ### [1.58.4](https://github.com/CodySwannGT/lisa/compare/vv1.58.3...v1.58.4) (2026-03-12)
 
 
