@@ -165,6 +165,20 @@ jobs:
             --max-turns 40
             --system-prompt "You are improving test quality. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
 
+      - name: Trigger CodeRabbit review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude-nightly.outputs.branch_name || steps.claude-general.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            exit 0
+          fi
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "@coderabbitai review"
+            echo "Triggered CodeRabbit review on PR #$PR_NUMBER"
+          fi
+
       - name: Enable auto-merge
         if: inputs.auto_merge
         env:
