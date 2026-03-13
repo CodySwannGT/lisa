@@ -1,3 +1,6 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
 name: CI
 
 on:
@@ -7,5 +10,6 @@ on:
 jobs:
   quality:
     name: Quality Checks
-    uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
-    secrets: inherit
+    uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main
+    secrets:
+      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}

@@ -1,0 +1,280 @@
+# This file is created by Lisa (create-only — edit freely, Lisa won't overwrite).
+# Release + Deploy workflow for Rails on AWS ECS Fargate.
+#
+# Step 1: Call the reusable release workflow for version bumping and tagging.
+# Step 2: Build Docker images, push to ECR, run migrations, update ECS services.
+#
+# Customize the env vars and steps below to match your infrastructure.
+
+name: Release and Deploy
+
+on:
+  push:
+    branches:
+      - staging
+      # - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-deploy
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    uses: CodySwannGT/lisa/.github/workflows/release-rails.yml@main
+    secrets:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+
+  deploy_rails:
+    name: Deploy
+    needs: [release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      id-token: write # needed to interact with GitHub's OIDC Token endpoint.
+      contents: read
+    env:
+      AWS_REGION: us-east-1
+      WORKER_ECR_REPO: worker2
+      RAILS_ECR_REPO: web
+      CLUSTER_NAME: webCluster
+      RAILS_SERVICE_NAME: web-rails-service
+      WORKER_SERVICE_NAME: worker-service
+      RAILS_TASK_FAMILY: web-rails-task
+      WORKER_TASK_FAMILY: worker-task
+      RAILS_CONTAINER_NAME: AppFargateTaskContainer
+      GITHUB_REF_NAME: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: noliran/branch-based-secrets@v1
+        with:
+          secrets: AWS_ACCOUNT_ID
+
+      - name: Set APP_STAGE environment variable
+        run: echo "APP_STAGE=$([[ $GITHUB_REF_NAME == 'main' ]] && echo 'production' || echo $GITHUB_REF_NAME)" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets[env.AWS_ACCOUNT_ID_NAME] }}:role/DeployServiceRole
+          role-session-name: fedeploysession
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Export AWS credentials to environment
+        run: |
+          eval "$(aws configure export-credentials --format env)"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+
+      - name: Retrieve S3 bucket name
+        run: |
+          S3_BUCKET_NAME=$(aws cloudformation list-exports \
+            --query "Exports[?starts_with(Name, 'ClientUploadBucket')].Value | [0]" \
+            --output json | jq -r '.')
+          if [ "$S3_BUCKET_NAME" = "null" ] || [ -z "$S3_BUCKET_NAME" ]; then
+            echo "::error::Could not find CloudFormation export starting with 'ClientUploadBucket'"
+            exit 1
+          fi
+          echo "S3_BUCKET_NAME=${S3_BUCKET_NAME}" >> $GITHUB_ENV
+
+      - name: Amazon ECR Login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Prepare AWS credentials file for BuildKit
+        run: |
+          cat > aws_credentials <<CREDS
+          AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN=${{ env.AWS_SESSION_TOKEN }}
+          AWS_REGION=${{ env.AWS_REGION }}
+          CREDS
+
+      - name: Build and push Rails image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          DOCKER_BUILDKIT=1 docker build \
+            --build-arg RAILS_ENV=${{ env.APP_STAGE }} \
+            --build-arg S3_BUCKET_NAME=${{ env.S3_BUCKET_NAME }} \
+            --secret id=aws_credentials,src=aws_credentials \
+            -t $ECR_REGISTRY/${{ env.RAILS_ECR_REPO }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.RAILS_ECR_REPO }}:latest .
+          docker push $ECR_REGISTRY/${{ env.RAILS_ECR_REPO }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/${{ env.RAILS_ECR_REPO }}:latest
+
+      - name: Build and push Worker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f worker.Dockerfile \
+            --build-arg RAILS_ENV=${{ env.APP_STAGE }} \
+            -t $ECR_REGISTRY/${{ env.WORKER_ECR_REPO }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.WORKER_ECR_REPO }}:latest .
+          docker push $ECR_REGISTRY/${{ env.WORKER_ECR_REPO }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/${{ env.WORKER_ECR_REPO }}:latest
+
+      - name: Retrieve VPC network configuration
+        run: |
+          PRIVATE_SUBNETS=$(aws cloudformation list-exports \
+            --query "Exports[?Name=='vpcPrivateSubnets'].Value | [0]" \
+            --output json | jq -r '.')
+          ECS_SECURITY_GROUP=$(aws cloudformation list-exports \
+            --query "Exports[?Name=='ecsSecurityGroupId'].Value | [0]" \
+            --output json | jq -r '.')
+          if [ "$PRIVATE_SUBNETS" = "null" ] || [ -z "$PRIVATE_SUBNETS" ]; then
+            echo "::error::Could not find CloudFormation export 'vpcPrivateSubnets'"
+            exit 1
+          fi
+          if [ "$ECS_SECURITY_GROUP" = "null" ] || [ -z "$ECS_SECURITY_GROUP" ]; then
+            echo "::error::Could not find CloudFormation export 'ecsSecurityGroupId'"
+            exit 1
+          fi
+          echo "PRIVATE_SUBNETS=${PRIVATE_SUBNETS}" >> $GITHUB_ENV
+          echo "ECS_SECURITY_GROUP=${ECS_SECURITY_GROUP}" >> $GITHUB_ENV
+
+      - name: Register new ECS task definitions
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          for FAMILY_ECR in \
+            "${{ env.RAILS_TASK_FAMILY }}:${{ env.RAILS_ECR_REPO }}" \
+            "${{ env.WORKER_TASK_FAMILY }}:${{ env.WORKER_ECR_REPO }}"
+          do
+            IFS=: read -r FAMILY ECR_REPO <<< "$FAMILY_ECR"
+
+            TASK_DEF=$(aws ecs describe-task-definition --task-definition "$FAMILY" --query 'taskDefinition')
+            NEW_IMAGE="$ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG"
+            echo "$TASK_DEF" | jq --arg IMG "$NEW_IMAGE" \
+              '.containerDefinitions |= map(if .essential == true then .image = $IMG else . end) |
+               del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+              > /tmp/task-def.json
+            NEW_ARN=$(aws ecs register-task-definition --cli-input-json file:///tmp/task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+            echo "Registered $FAMILY -> $NEW_ARN"
+
+            if [ "$FAMILY" = "${{ env.RAILS_TASK_FAMILY }}" ]; then
+              echo "RAILS_TASK_DEF_ARN=${NEW_ARN}" >> $GITHUB_ENV
+            else
+              echo "WORKER_TASK_DEF_ARN=${NEW_ARN}" >> $GITHUB_ENV
+            fi
+          done
+
+      - name: Run database migrations
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --task-definition "${{ env.RAILS_TASK_DEF_ARN }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ env.PRIVATE_SUBNETS }}],securityGroups=[${{ env.ECS_SECURITY_GROUP }}],assignPublicIp=DISABLED}" \
+            --overrides "{
+              \"containerOverrides\": [{
+                \"name\": \"${{ env.RAILS_CONTAINER_NAME }}\",
+                \"command\": [\"bin/rails\", \"db:migrate\"]
+              }]
+            }" \
+            --started-by "github-actions-deploy" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          if [ "$TASK_ARN" = "None" ] || [ -z "$TASK_ARN" ]; then
+            echo "::error::Failed to start migration task (no task placed)"
+            exit 1
+          fi
+
+          echo "Migration task started: $TASK_ARN"
+
+          echo "Waiting for migration task to complete..."
+          aws ecs wait tasks-stopped \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --tasks "$TASK_ARN"
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --tasks "$TASK_ARN" \
+            --query "tasks[0].containers[?name == \`${{ env.RAILS_CONTAINER_NAME }}\`] | [0].exitCode" \
+            --output text)
+
+          echo "Migration task exit code: $EXIT_CODE"
+          if [ "$EXIT_CODE" = "None" ] || [ -z "$EXIT_CODE" ]; then
+            echo "::error::Migration container did not produce an exit code (may have failed to start)"
+            REASON=$(aws ecs describe-tasks \
+              --cluster ${{ env.CLUSTER_NAME }} \
+              --tasks "$TASK_ARN" \
+              --query 'tasks[0].stoppedReason' \
+              --output text)
+            echo "::error::Stopped reason: $REASON"
+            exit 1
+          fi
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Database migration failed with exit code $EXIT_CODE"
+            REASON=$(aws ecs describe-tasks \
+              --cluster ${{ env.CLUSTER_NAME }} \
+              --tasks "$TASK_ARN" \
+              --query 'tasks[0].stoppedReason' \
+              --output text)
+            echo "::error::Stopped reason: $REASON"
+            exit 1
+          fi
+
+      - name: Update ECS services
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --service "${{ env.RAILS_SERVICE_NAME }}" \
+            --task-definition "${{ env.RAILS_TASK_DEF_ARN }}" \
+            --force-new-deployment
+
+          aws ecs update-service \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --service "${{ env.WORKER_SERVICE_NAME }}" \
+            --task-definition "${{ env.WORKER_TASK_DEF_ARN }}" \
+            --force-new-deployment
+
+      - name: Wait for services to stabilize
+        run: |
+          MAX_ATTEMPTS=60
+          DELAY=15
+          SERVICES="${{ env.RAILS_SERVICE_NAME }} ${{ env.WORKER_SERVICE_NAME }}"
+
+          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+            RESULT=$(aws ecs describe-services \
+              --cluster ${{ env.CLUSTER_NAME }} \
+              --services $SERVICES \
+              --query 'services[].{name:serviceName,running:runningCount,desired:desiredCount,rollout:deployments[0].rolloutState}' \
+              --output json)
+
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS:"
+            echo "$RESULT" | jq -c '.[]'
+
+            ALL_COMPLETE=$(echo "$RESULT" | jq 'all(.[]; .rollout == "COMPLETED" and .running == .desired)')
+            if [ "$ALL_COMPLETE" = "true" ]; then
+              echo "All services stable."
+              exit 0
+            fi
+
+            ANY_FAILED=$(echo "$RESULT" | jq 'any(.[]; .rollout == "FAILED")')
+            if [ "$ANY_FAILED" = "true" ]; then
+              echo "::error::Service deployment failed"
+              echo "$RESULT" | jq '.[] | select(.rollout == "FAILED")'
+              exit 1
+            fi
+
+            sleep $DELAY
+          done
+
+          echo "::error::Services did not stabilize within $((MAX_ATTEMPTS * DELAY / 60)) minutes"
+          exit 1
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f aws_credentials
+          docker system prune -f

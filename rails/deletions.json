@@ -1,6 +1,8 @@
 {
   "paths": [
     ".overcommit.yml",
+    ".github/workflows/quality.yml",
+    ".github/workflows/release.yml",
     ".claude/skills/action-controller-best-practices",
     ".claude/skills/action-view-best-practices",
     ".claude/skills/active-record-model-best-practices",
