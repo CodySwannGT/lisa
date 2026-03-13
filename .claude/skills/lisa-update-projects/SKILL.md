@@ -16,11 +16,16 @@ Updates local Lisa projects in batches by running the package manager update com
 5. Check if `@codyswann/lisa` is in the project's `trustedDependencies` array in `package.json`. If missing, add it using `jq`. Bun only runs postinstall scripts for trusted packages, so without this entry Lisa's postinstall (template application and file deletions) is silently skipped.
 6. Run the project's package manager update command for `@codyswann/lisa` (e.g. `bun update @codyswann/lisa` or `npm update @codyswann/lisa`). This triggers Lisa's postinstall script which applies templates automatically.
 7. After updating, check if `@codyswann/lisa` appears in the project's `dependencies` (not `devDependencies`). If so, move it: remove from `dependencies` and ensure it's in `devDependencies`. Use `jq` to check and the package manager to reinstall correctly.
-8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `auto-update-pr-branches.yml`, `auto-update-pr-branches.yaml`, `ci.yml`, and `ci.yaml`:
+8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `auto-update-pr-branches.yml`, `auto-update-pr-branches.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
-   - Replace each legacy workflow file with the corresponding create-only template from `typescript/create-only/.github/workflows/` in the Lisa repo. These are thin callers that delegate to the reusable workflows at `@main`.
+   - Detect project capabilities independently (Rails: has `bin/rails` or `config/application.rb`; TypeScript: has `tsconfig.json` or `package.json` with TypeScript signals). A repo may be both.
+   - Apply per-file mapping rules — not a single repo-wide template selection — so dual-stack repos get the correct template for each workflow file:
+     - `ci.yml`/`ci.yaml` in a Rails project → `rails/create-only/.github/workflows/ci.yml` (calls `quality-rails.yml@main`)
+     - `deploy.yml`/`deploy.yaml` in a Rails project → `rails/create-only/.github/workflows/deploy.yml` (calls `release-rails.yml@main`)
+     - `ci.yml`/`ci.yaml` in a TypeScript-only project → `typescript/create-only/.github/workflows/ci.yml` (calls `quality.yml@main`)
+     - `claude*.yml`/`claude*.yaml` → `typescript/create-only/.github/workflows/` (e.g., `claude.yml` → `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → `reusable-claude-ci-auto-fix.yml@main`)
+     - `auto-update-pr-branches.yml`/`auto-update-pr-branches.yaml` → `typescript/create-only/.github/workflows/` (calls `reusable-auto-update-pr-branches.yml@main`)
    - The create-only templates are the source of truth for the correct caller format.
-   - Key mappings: `ci.yml` → calls `quality.yml@main`, `claude.yml` → calls `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → calls `reusable-claude-ci-auto-fix.yml@main`, `auto-update-pr-branches.yml` → calls `reusable-auto-update-pr-branches.yml@main`, and similarly for all other `claude-*.yml` workflows.
 9. Remove stale `file:` references to bundled ESLint plugins from the project's `package.json`. Previous Lisa versions copied plugin directories and added `file:./` dependencies; current Lisa deletes the directories but the `package.json` references remain. Use `jq` to remove these keys from both `dependencies` and `devDependencies` if they exist:
    - `eslint-plugin-code-organization`
    - `eslint-plugin-component-structure`
