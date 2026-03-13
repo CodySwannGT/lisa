@@ -20,7 +20,7 @@ Updates local Lisa projects in batches by running the package manager update com
    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
    - Detect project capabilities independently (Rails: has `bin/rails` or `config/application.rb`; TypeScript: has `package.json` with TypeScript signals).
    - Apply template mappings **per workflow file** rather than choosing a single repo-wide template set. This correctly handles dual-stack repos (Rails + TypeScript):
-     - If the file is `ci.yml` or `ci.yaml` or `deploy.yml` or `deploy.yaml` and Rails is detected, use `rails/create-only/.github/workflows/` mappings: `ci.yml` → calls `quality-rails.yml@main`, `deploy.yml` → calls `release-rails.yml@main`.
+     - If the file is `ci.yml` or `ci.yaml` or `deploy.yml` or `deploy.yaml` and Rails is detected, use `rails/create-only/.github/workflows/` mappings: `ci.yml` → calls `quality-rails.yml@main`, `deploy.yml` → calls `release-rails.yml@main`; otherwise fall back to `typescript/create-only/.github/workflows/` mappings.
      - If the file matches `claude*.yml`, `claude*.yaml`, or `auto-update-pr-branches.yml`/`auto-update-pr-branches.yaml`, always use `typescript/create-only/.github/workflows/` mappings regardless of Rails detection.
    - The create-only templates are the source of truth for the correct caller format.
    - Key mappings (TypeScript): `ci.yml` → calls `quality.yml@main`, `claude.yml` → calls `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → calls `reusable-claude-ci-auto-fix.yml@main`, `auto-update-pr-branches.yml` → calls `reusable-auto-update-pr-branches.yml@main`, and similarly for all other `claude-*.yml` workflows.
