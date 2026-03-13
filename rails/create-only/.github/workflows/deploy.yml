@@ -17,7 +17,7 @@ on:
 
 concurrency:
   group: ${{ github.ref }}-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   release:
@@ -49,6 +49,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
 
       - uses: noliran/branch-based-secrets@v1
         with:
