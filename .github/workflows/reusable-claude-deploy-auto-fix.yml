@@ -203,6 +203,18 @@ jobs:
             echo "Claude did not create a fix PR."
           fi
 
+      - name: Trigger CodeRabbit review
+        if: steps.loop-guard.outputs.skip != 'true' && steps.check-fix.outputs.fixed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.check-fix.outputs.branch }}"
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "@coderabbitai review"
+            echo "Triggered CodeRabbit review on PR #$PR_NUMBER"
+          fi
+
       - name: Enable auto-merge
         if: inputs.auto_merge && steps.loop-guard.outputs.skip != 'true' && steps.check-fix.outputs.fixed == 'true'
         env:

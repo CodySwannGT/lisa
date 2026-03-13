@@ -170,6 +170,20 @@ jobs:
             --max-turns 40
             --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Refactor functions to reduce cognitive complexity and lines per function. Use early returns, extract helpers, and lookup tables. Do NOT modify the maxLines threshold. You must update eslint.thresholds.json with the new values after refactoring passes lint. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly."
 
+      - name: Trigger CodeRabbit review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            exit 0
+          fi
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "@coderabbitai review"
+            echo "Triggered CodeRabbit review on PR #$PR_NUMBER"
+          fi
+
       - name: Enable auto-merge
         if: inputs.auto_merge
         env:
