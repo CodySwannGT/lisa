@@ -992,12 +992,24 @@ export class Lisa {
       this.tryReadFile(deployPath),
     ]);
 
+    const isRailsProject = this.detectedTypes.includes("rails");
+
     const notices = [
-      ciContent?.includes("uses: ./.github/workflows/quality.yml")
+      ciContent?.includes("uses: ./.github/workflows/quality.yml") &&
+      !isRailsProject
         ? "  .github/workflows/ci.yml — change:\n    uses: ./.github/workflows/quality.yml\n    → uses: CodySwannGT/lisa/.github/workflows/quality.yml@main"
         : null,
-      deployContent?.includes("uses: ./.github/workflows/release.yml")
+      ciContent?.includes("uses: ./.github/workflows/quality.yml") &&
+      isRailsProject
+        ? "  .github/workflows/ci.yml — change:\n    uses: ./.github/workflows/quality.yml\n    → uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main"
+        : null,
+      deployContent?.includes("uses: ./.github/workflows/release.yml") &&
+      !isRailsProject
         ? "  .github/workflows/deploy.yml — change:\n    uses: ./.github/workflows/release.yml\n    → uses: CodySwannGT/lisa/.github/workflows/release.yml@main"
+        : null,
+      deployContent?.includes("uses: ./.github/workflows/release.yml") &&
+      isRailsProject
+        ? "  .github/workflows/deploy.yml — change:\n    uses: ./.github/workflows/release.yml\n    → uses: CodySwannGT/lisa/.github/workflows/release-rails.yml@main"
         : null,
     ].filter((n): n is string => n !== null);
 

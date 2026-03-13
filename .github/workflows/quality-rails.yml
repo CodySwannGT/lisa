@@ -1,0 +1,223 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+# -----------------------------------------------------------------------------
+# Rails Quality Checks Workflow (Reusable)
+# -----------------------------------------------------------------------------
+# Runs quality checks for Rails projects including:
+# - Linting (RuboCop)
+# - Security scanning (Brakeman, Bundler Audit)
+# - Tests (RSpec with PostgreSQL or MySQL)
+# - Code quality (Reek, Flog, Flay)
+# - Secret detection (GitGuardian)
+#
+# Example usage in another workflow:
+# ```yaml
+# quality:
+#   uses: ./.github/workflows/quality-rails.yml
+#   with:
+#     database_type: 'postgres'
+#     database_name: 'test'
+#     skip_jobs: 'code_quality,secret_scanning'
+#   secrets:
+#     GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+# ```
+
+name: 🔍 Rails Quality Checks
+
+on:
+  workflow_call:
+    inputs:
+      database_type:
+        description: 'Database type to use for tests (postgres or mysql)'
+        required: false
+        type: string
+        default: 'postgres'
+      database_name:
+        description: 'Database name for the test database'
+        required: false
+        type: string
+        default: 'test'
+      skip_jobs:
+        description: 'Comma-separated list of jobs to skip (lint, security, test, code_quality, secret_scanning)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      GITGUARDIAN_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    if: ${{ !contains(inputs.skip_jobs, 'lint') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: 🔍 Run RuboCop
+        run: bundle exec rubocop --format github
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    if: ${{ !contains(inputs.skip_jobs, 'security') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: 🔒 Run Brakeman
+        run: bundle exec brakeman --no-pager --quiet
+
+      - name: 🔒 Run Bundler Audit
+        run: bundle exec bundler-audit check --update
+
+  test-postgres:
+    name: Test (PostgreSQL)
+    runs-on: ubuntu-latest
+    if: ${{ !contains(inputs.skip_jobs, 'test') && inputs.database_type == 'postgres' }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.database_name }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        run: bin/rails db:prepare
+
+      - name: 🧪 Run tests
+        run: bundle exec rspec
+
+  test-mysql:
+    name: Test (MySQL)
+    runs-on: ubuntu-latest
+    if: ${{ !contains(inputs.skip_jobs, 'test') && inputs.database_type == 'mysql' }}
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: ${{ inputs.database_name }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      PRIMARY_DB_HOST: 127.0.0.1
+      DATABASE_NAME: ${{ inputs.database_name }}
+      DATABASE_PASSWORD: password
+      DATABASE_USER: root
+      DATABASE_PORT: 3306
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        run: bin/rails db:prepare
+
+      - name: 🧪 Run tests
+        run: bundle exec rspec
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    if: ${{ !contains(inputs.skip_jobs, 'code_quality') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: 🔍 Run Reek
+        run: bundle exec reek app/ lib/
+
+      - name: 🔍 Run Flog
+        run: bundle exec flog --all --group app/ lib/
+
+      - name: 🔍 Run Flay
+        run: bundle exec flay app/ lib/
+
+  secret_scanning:
+    name: 🔐 GitGuardian Secret Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !contains(inputs.skip_jobs, 'secret_scanning') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Check for GitGuardian API key
+        id: check_gitguardian
+        run: |
+          if [[ -z "${GITGUARDIAN_API_KEY// }" ]]; then
+            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "⚠️ GITGUARDIAN_API_KEY is not configured"
+          else
+            echo "has_token=true" >> $GITHUB_OUTPUT
+            echo "✅ GITGUARDIAN_API_KEY is available"
+          fi
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+
+      - name: 🔐 GitGuardian scan
+        if: steps.check_gitguardian.outputs.has_token == 'true'
+        uses: GitGuardian/ggshield-action@master
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+        with:
+          args: --show-secrets --all-policies
+
+      - name: 🔐 GitGuardian Scan Skipped
+        if: steps.check_gitguardian.outputs.has_token != 'true'
+        run: |
+          echo "::warning::GitGuardian secret detection skipped - GITGUARDIAN_API_KEY not configured"
+          echo "To enable secret detection, add GITGUARDIAN_API_KEY to your repository secrets"
