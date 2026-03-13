@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.60.0](https://github.com/CodySwannGT/lisa/compare/vv1.59.0...v1.60.0) (2026-03-13)
+
+
+### Features
+
+* **ci:** add Rails-specific reusable CI/CD workflows ([#285](https://github.com/CodySwannGT/lisa/issues/285)) ([65b3f51](https://github.com/CodySwannGT/lisa/commit/65b3f51b3ee476c841af483960590324ed2b0fa1))
+
 ## [1.59.0](https://github.com/CodySwannGT/lisa/compare/vv1.58.4...v1.59.0) (2026-03-13)
 
 
