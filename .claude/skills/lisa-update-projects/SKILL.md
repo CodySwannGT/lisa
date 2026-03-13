@@ -16,9 +16,9 @@ Updates local Lisa projects in batches by running the package manager update com
 5. Check if `@codyswann/lisa` is in the project's `trustedDependencies` array in `package.json`. If missing, add it using `jq`. Bun only runs postinstall scripts for trusted packages, so without this entry Lisa's postinstall (template application and file deletions) is silently skipped.
 6. Run the project's package manager update command for `@codyswann/lisa` (e.g. `bun update @codyswann/lisa` or `npm update @codyswann/lisa`). This triggers Lisa's postinstall script which applies templates automatically.
 7. After updating, check if `@codyswann/lisa` appears in the project's `dependencies` (not `devDependencies`). If so, move it: remove from `dependencies` and ensure it's in `devDependencies`. Use `jq` to check and the package manager to reinstall correctly.
-8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `auto-update-pr-branches.yml`, `auto-update-pr-branches.yaml`, `ci.yml`, and `ci.yaml`:
+8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `auto-update-pr-branches.yml`, `auto-update-pr-branches.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
-   - Detect whether the project is Rails (has `Gemfile` or `bin/rails`) or TypeScript to select the correct create-only templates.
+   - Detect whether the project is Rails (has `bin/rails` or `config/application.rb`) or TypeScript to select the correct create-only templates.
    - For **TypeScript projects**: Replace each legacy workflow file with the corresponding create-only template from `typescript/create-only/.github/workflows/` in the Lisa repo.
    - For **Rails projects**: Replace each legacy workflow file with the corresponding create-only template from `rails/create-only/.github/workflows/` in the Lisa repo. Key mappings: `ci.yml` → calls `quality-rails.yml@main`, `deploy.yml` → calls `release-rails.yml@main`.
    - The create-only templates are the source of truth for the correct caller format.
