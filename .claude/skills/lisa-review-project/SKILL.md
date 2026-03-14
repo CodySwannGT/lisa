@@ -64,7 +64,8 @@ Instead of reading a manifest, scan Lisa's template directories directly to buil
 For each type in the hierarchy (e.g., `[all, typescript, expo]`):
 1. List files in `{type}/copy-overwrite/` — record each as `(relativePath, "copy-overwrite", sourceTemplate)`
 2. List files in `{type}/copy-contents/` — record each as `(relativePath, "copy-contents", sourceTemplate)`
-3. If the same `relativePath` appears in multiple types, the most specific type wins (last in hierarchy)
+3. If `{type}/package-lisa/package.lisa.json` exists, include `package.json` in the managed set and build its expected contents by merging every detected type's package-lisa template in hierarchy order.
+4. If the same `relativePath` appears in multiple copy-* types, the most specific type wins (last in hierarchy).
 
 This gives you the complete list of Lisa-managed files and their source templates.
 
@@ -136,7 +137,7 @@ Create a markdown report:
 
 [Repeat for each drifted file]
 
-## Files Not Found in Lisa
+## Files Present in Lisa Templates but Missing from Project
 
 These files exist in Lisa templates but not in the project:
 

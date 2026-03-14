@@ -29,7 +29,7 @@ This must be run FROM the Lisa repository directory.
 Before applying Lisa, record the project's current state:
 
 1. Run `git -C <project-path> log --oneline -1` to note the current HEAD
-3. Note the project's branch and whether there's an open PR: `git -C <project-path> branch --show-current`
+2. Note the project's branch and whether there's an open PR: `git -C <project-path> branch --show-current`
 
 ### Step 3: Apply Lisa
 

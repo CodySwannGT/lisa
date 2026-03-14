@@ -86,7 +86,7 @@
     {
       "id": "GHSA-25h7-pfq9-p65f",
       "package": "flatted",
-      "reason": "Unbounded recursion DoS in parse() — transitive via eslint, no untrusted JSON parsing"
+      "reason": "Unbounded recursion DoS in parse() — transitive via eslint's flat-cache, no untrusted JSON parsing in cache operations"
     }
   ]
 }

@@ -135,14 +135,14 @@ describe("Lisa Integration Tests", () => {
       expect(result.detectedTypes).toContain("typescript");
     });
 
-    it("does not create manifest file after installation", async () => {
+    it("removes an existing manifest file during apply", async () => {
       await createTypeScriptProject(destDir);
+      const manifestPath = path.join(destDir, ".lisa-manifest");
+      await fs.writeFile(manifestPath, "{}\n");
 
       await createLisa().apply();
 
-      expect(await fs.pathExists(path.join(destDir, ".lisa-manifest"))).toBe(
-        false
-      );
+      expect(await fs.pathExists(manifestPath)).toBe(false);
     });
 
     it("applies all/ configs to project with no detected types", async () => {

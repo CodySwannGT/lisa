@@ -36,7 +36,7 @@ This skill must be run FROM the Lisa repository directory. The target project mu
 
 3. Validate the project path:
    - Check the path exists and is a directory
-   - Check `package.json` exists in the project root (basic sanity check)
+   - Check at least one project marker exists (e.g., `package.json` for Node-based projects, `Gemfile` or `config/application.rb` for Rails projects)
 
 4. Check the project has uncommitted changes: `git -C <project-path> status --porcelain`
    - If clean (no output), stop with:
