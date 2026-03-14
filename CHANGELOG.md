@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.60.2](https://github.com/CodySwannGT/lisa/compare/vv1.60.1...v1.60.2) (2026-03-14)
+
+
+### Bug Fixes
+
+* move typescript-lsp plugin to typescript merge ([#287](https://github.com/CodySwannGT/lisa/issues/287)) ([d441b86](https://github.com/CodySwannGT/lisa/commit/d441b86746928c28e16533c09cca9ef83a1ba5fa))
+
 ### [1.60.1](https://github.com/CodySwannGT/lisa/compare/vv1.60.0...v1.60.1) (2026-03-14)
 
 
