@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.60.1](https://github.com/CodySwannGT/lisa/compare/vv1.60.0...v1.60.1) (2026-03-14)
+
+
+### Code Refactoring
+
+* remove manifest file system from Lisa ([#286](https://github.com/CodySwannGT/lisa/issues/286)) ([b15191b](https://github.com/CodySwannGT/lisa/commit/b15191b83b97c468e64352b6a65f590e35ccbd96))
+
 ## [1.60.0](https://github.com/CodySwannGT/lisa/compare/vv1.59.0...v1.60.0) (2026-03-13)
 
 
