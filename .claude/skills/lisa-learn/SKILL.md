@@ -36,7 +36,7 @@ This skill must be run FROM the Lisa repository directory. The target project mu
 
 3. Validate the project path:
    - Check the path exists and is a directory
-   - Check at least one project marker exists (e.g., `package.json` for Node-based projects, `Gemfile` or `config/application.rb` for Rails projects)
+   - Check at least one project marker exists (e.g., `package.json` for Node-based projects, `bin/rails` or `config/application.rb` for Rails projects)
 
 4. Check the project has uncommitted changes: `git -C <project-path> status --porcelain`
    - If clean (no output), stop with:
@@ -53,7 +53,7 @@ This skill must be run FROM the Lisa repository directory. The target project mu
    - **nestjs**: `nest-cli.json` exists OR `@nestjs` in package.json dependencies
    - **expo**: `app.json` exists OR `eas.json` exists OR `expo` in package.json dependencies
    - **typescript**: `tsconfig.json` exists OR `typescript` in package.json dependencies
-   - **rails**: `Gemfile` exists OR `config/application.rb` exists
+   - **rails**: `bin/rails` exists OR `config/application.rb` exists
    - **npm-package**: `package.json` without `"private": true` AND has `main`, `bin`, `exports`, or `files`
 
 2. Build the type hierarchy. Example: if `expo` detected, types = `[all, typescript, expo]`
