@@ -53,6 +53,7 @@ This skill must be run FROM the Lisa repository directory. The target project mu
    - **nestjs**: `nest-cli.json` exists OR `@nestjs` in package.json dependencies
    - **expo**: `app.json` exists OR `eas.json` exists OR `expo` in package.json dependencies
    - **typescript**: `tsconfig.json` exists OR `typescript` in package.json dependencies
+   - **rails**: `Gemfile` exists OR `config/application.rb` exists
    - **npm-package**: `package.json` without `"private": true` AND has `main`, `bin`, `exports`, or `files`
 
 2. Build the type hierarchy. Example: if `expo` detected, types = `[all, typescript, expo]`

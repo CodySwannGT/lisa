@@ -20,7 +20,9 @@ This must be run FROM the Lisa repository directory.
 
 1. Confirm running from Lisa by checking for `src/core/lisa.ts`
 2. Extract project path from `$ARGUMENTS`. If not provided, ask the user.
-3. Validate the project path exists and has `package.json`
+3. Validate the project path exists and has at least one project marker:
+   - `package.json` (Node/Bun/TypeScript projects)
+   - `Gemfile` or `config/application.rb` (Rails projects)
 4. Check the project's working directory is clean: `git -C <project-path> status --porcelain`
    - If dirty, tell the user and stop: "The project has uncommitted changes. Please commit or stash them first."
 

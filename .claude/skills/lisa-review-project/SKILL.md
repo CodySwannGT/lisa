@@ -41,7 +41,9 @@ Path: [user provides path]
 
 Validate the project path:
 1. Check the path exists and is a directory
-2. Check `package.json` exists in the project root (basic sanity check)
+2. Check at least one project marker exists:
+   - `package.json` (Node-based projects)
+   - `Gemfile` or `config/application.rb` (Rails projects)
 
 ### Step 3: Detect Project Types
 
@@ -52,6 +54,7 @@ Parse the project's `package.json` and filesystem to detect its type(s):
 - **nestjs**: `nest-cli.json` exists OR `@nestjs` in package.json dependencies
 - **expo**: `app.json` exists OR `eas.json` exists OR `expo` in package.json dependencies
 - **typescript**: `tsconfig.json` exists OR `typescript` in package.json dependencies
+- **rails**: `Gemfile` exists OR `config/application.rb` exists
 
 Build the type hierarchy. Example: if `expo` detected, types = `[all, typescript, expo]`
 
