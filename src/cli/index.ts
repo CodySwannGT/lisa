@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import type { LisaConfig } from "../core/config.js";
 import { GitService } from "../core/git-service.js";
 import { Lisa, type LisaDependencies } from "../core/lisa.js";
-import { DryRunManifestService, ManifestService } from "../core/manifest.js";
 import { DetectorRegistry } from "../detection/index.js";
 import { ConsoleLogger } from "../logging/index.js";
 import { StrategyRegistry } from "../strategies/index.js";
@@ -46,7 +45,6 @@ export function createProgram(): Command {
       "-v, --validate",
       "Validate project compatibility without applying changes"
     )
-    .option("-u, --uninstall", "Remove Lisa-managed files from the project")
     .option(
       "--skip-git-check",
       "Skip dirty git working directory check (for postinstall use)"
@@ -65,7 +63,6 @@ interface CLIOptions {
   dryRun?: boolean;
   yes?: boolean;
   validate?: boolean;
-  uninstall?: boolean;
   skipGitCheck?: boolean;
 }
 
@@ -87,7 +84,6 @@ function printUsageAndExit(): never {
   console.log(
     "  -v, --validate    Validate project compatibility without applying changes"
   );
-  console.log("  -u, --uninstall   Remove Lisa-managed files from the project");
   console.log(
     "  --skip-git-check  Skip dirty git working directory check (for postinstall use)"
   );
@@ -98,7 +94,6 @@ function printUsageAndExit(): never {
   console.log("  lisa --dry-run .");
   console.log("  lisa --yes /path/to/project    # CI/CD pipeline usage");
   console.log("  lisa --validate .              # Check compatibility only");
-  console.log("  lisa --uninstall .             # Remove Lisa configurations");
   process.exit(1);
 }
 
@@ -117,9 +112,6 @@ function createDependencies(
   return {
     logger,
     prompter: createPrompter(yesMode),
-    manifestService: dryRun
-      ? new DryRunManifestService()
-      : new ManifestService(),
     backupService: dryRun
       ? new DryRunBackupService()
       : new BackupService(logger),
@@ -159,11 +151,9 @@ async function runLisa(
   const lisa = new Lisa(config, deps);
 
   try {
-    const result = options.uninstall
-      ? await lisa.uninstall()
-      : options.validate
-        ? await lisa.validate()
-        : await lisa.apply();
+    const result = options.validate
+      ? await lisa.validate()
+      : await lisa.apply();
 
     if (!result.success) {
       result.errors.forEach(error => logger.error(error));

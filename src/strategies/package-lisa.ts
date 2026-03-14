@@ -133,7 +133,6 @@ export class PackageLisaStrategy implements ICopyStrategy {
     if (!context.config.dryRun) {
       await ensureParentDir(destPath);
       await writeJson(destPath, merged);
-      context.recordFile(relativePath, this.name);
     }
     return { relativePath, strategy: this.name, action: "copied" };
   }
@@ -160,16 +159,12 @@ export class PackageLisaStrategy implements ICopyStrategy {
     const normalizedMerged = JSON.stringify(merged, null, 2);
 
     if (normalizedDest === normalizedMerged) {
-      if (!context.config.dryRun) {
-        context.recordFile(relativePath, this.name);
-      }
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
     if (!context.config.dryRun) {
       await context.backupFile(destPath);
       await writeJson(destPath, merged);
-      context.recordFile(relativePath, this.name);
     }
 
     return { relativePath, strategy: this.name, action: "merged" };

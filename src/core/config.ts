@@ -84,7 +84,7 @@ export interface LisaConfig {
 /**
  * Operation mode for Lisa execution
  */
-export type OperationMode = "apply" | "validate" | "uninstall";
+export type OperationMode = "apply" | "validate";
 
 /**
  * Result of a single file operation

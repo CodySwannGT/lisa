@@ -1,6 +1,5 @@
 /* eslint-disable max-lines -- Test file requires extensive test cases for comprehensive coverage */
 /* eslint-disable sonarjs/no-duplicate-string -- Test fixtures necessarily repeat values */
-/* eslint-disable sonarjs/no-unused-collection -- Mock collections for test isolation */
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import * as fs from "fs-extra";
 import * as path from "node:path";
@@ -50,19 +49,9 @@ describe("PackageLisaStrategy", () => {
       ...overrides,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Mock collection for test isolation
-    const recordedFiles: Array<[string, string]> = [];
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Mock collection for test isolation
-    const backedUpFiles: string[] = [];
-
     return {
       config,
-      recordFile: (relativePath: string, strategy: string) => {
-        recordedFiles.push([relativePath, strategy]);
-      },
-      backupFile: async (absolutePath: string) => {
-        backedUpFiles.push(absolutePath);
-      },
+      backupFile: async () => {},
       promptOverwrite: async () => true,
     };
   }
@@ -849,36 +838,6 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies["@nestjs/core"]).toBe("^10.0.0");
     });
   });
-
-  describe("manifest recording", () => {
-    it("records file in manifest when applied", async () => {
-      await createPackageLisaTemplate("all", {
-        force: { scripts: { test: "jest" } },
-      });
-
-      const sourcePath = path.join(
-        lisaDir,
-        "all",
-        "package-lisa",
-        "package.lisa.json"
-      );
-      const destPath = path.join(projectDir, "package.json");
-      await fs.writeJson(destPath, {});
-
-      const recordedFiles: Array<[string, string]> = [];
-      const context: StrategyContext = {
-        ...createContext(),
-        recordFile: (relativePath: string, strategy: string) => {
-          recordedFiles.push([relativePath, strategy]);
-        },
-      };
-
-      await strategy.apply(sourcePath, destPath, "package.json", context);
-
-      expect(recordedFiles).toContainEqual(["package.json", "package-lisa"]);
-    });
-  });
 });
 /* eslint-enable max-lines -- Re-enable after comprehensive test file */
 /* eslint-enable sonarjs/no-duplicate-string -- Re-enable after test file */
-/* eslint-enable sonarjs/no-unused-collection -- Re-enable after test file */

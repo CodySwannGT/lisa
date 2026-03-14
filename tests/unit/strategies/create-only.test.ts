@@ -42,7 +42,6 @@ describe("CreateOnlyStrategy", () => {
 
     return {
       config,
-      recordFile: () => {},
       backupFile: async () => {},
       promptOverwrite: async () => true,
     };
@@ -101,43 +100,6 @@ describe("CreateOnlyStrategy", () => {
     expect(result.action).toBe("skipped");
     // Original content should be preserved
     expect(await fs.readFile(destFile, "utf-8")).toBe("# Custom Content\n");
-  });
-
-  it("records file in manifest when creating", async () => {
-    const srcFile = path.join(srcDir, "README.md");
-    const destFile = path.join(destDir, "README.md");
-    await fs.writeFile(srcFile, "# Test\n");
-
-    let recorded: { path: string; strategy: string } | null = null;
-    const context = {
-      ...createContext(),
-      recordFile: (relativePath: string, strat: string) => {
-        recorded = { path: relativePath, strategy: strat };
-      },
-    };
-
-    await strategy.apply(srcFile, destFile, "README.md", context);
-
-    expect(recorded).toEqual({ path: "README.md", strategy: "create-only" });
-  });
-
-  it("does not record file in manifest when skipping", async () => {
-    const srcFile = path.join(srcDir, "README.md");
-    const destFile = path.join(destDir, "README.md");
-    await fs.writeFile(srcFile, "# Default\n");
-    await fs.writeFile(destFile, "# Custom\n");
-
-    let recorded = false;
-    const context = {
-      ...createContext(),
-      recordFile: () => {
-        recorded = true;
-      },
-    };
-
-    await strategy.apply(srcFile, destFile, "README.md", context);
-
-    expect(recorded).toBe(false);
   });
 
   it("creates parent directories when needed", async () => {

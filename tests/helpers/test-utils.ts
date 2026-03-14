@@ -137,6 +137,11 @@ export async function createMockLisaDir(dir: string): Promise<void> {
     scripts: { test: "echo test" },
   });
 
+  // Create all/deletions.json to mirror the real Lisa deletion of legacy manifest
+  await fs.writeJson(path.join(dir, "all", "deletions.json"), {
+    paths: [".lisa-manifest"],
+  });
+
   // Create typescript/ directory
   const tsCopyOverwrite = path.join(dir, "typescript", COPY_OVERWRITE);
   await fs.ensureDir(tsCopyOverwrite);
