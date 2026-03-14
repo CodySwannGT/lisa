@@ -82,6 +82,11 @@
       "id": "GHSA-36jr-mh4h-2g58",
       "package": "d3-color",
       "reason": "ReDoS — transitive via react-native-svg-charts, color parsing not user-controlled"
+    },
+    {
+      "id": "GHSA-25h7-pfq9-p65f",
+      "package": "flatted",
+      "reason": "Unbounded recursion DoS in parse() — transitive via eslint's flat-cache, no untrusted JSON parsing in cache operations"
     }
   ]
 }

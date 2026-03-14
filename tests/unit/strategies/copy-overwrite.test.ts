@@ -46,7 +46,6 @@ describe("CopyOverwriteStrategy", () => {
 
     return {
       config,
-      recordFile: () => {},
       backupFile: async () => {},
       promptOverwrite: async () => true,
     };
@@ -146,24 +145,6 @@ describe("CopyOverwriteStrategy", () => {
 
     expect(result.action).toBe("skipped");
     expect(await fs.readFile(destFile, "utf-8")).toBe(OLD_CONTENT);
-  });
-
-  it("records file in manifest when copying", async () => {
-    const srcFile = path.join(srcDir, TEST_FILE);
-    const destFile = path.join(destDir, TEST_FILE);
-    await fs.writeFile(srcFile, "content");
-
-    let recorded: { path: string; strategy: string } | null = null;
-    const context = {
-      ...createContext(),
-      recordFile: (relativePath: string, strat: string) => {
-        recorded = { path: relativePath, strategy: strat };
-      },
-    };
-
-    await strategy.apply(srcFile, destFile, TEST_FILE, context);
-
-    expect(recorded).toEqual({ path: TEST_FILE, strategy: "copy-overwrite" });
   });
 
   it("creates parent directories when needed", async () => {

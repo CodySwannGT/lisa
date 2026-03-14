@@ -5,10 +5,6 @@ import * as path from "node:path";
 import type { LisaConfig } from "../../src/core/config.js";
 import { NoOpGitService } from "../../src/core/git-service.js";
 import { Lisa, type LisaDependencies } from "../../src/core/lisa.js";
-import {
-  DryRunManifestService,
-  ManifestService,
-} from "../../src/core/manifest.js";
 import { AutoAcceptPrompter } from "../../src/cli/prompts.js";
 import { DetectorRegistry } from "../../src/detection/index.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
@@ -33,7 +29,6 @@ const PACKAGE_JSON = "package.json";
 const TEST_TXT = "test.txt";
 const TSCONFIG_BASE = "tsconfig.base.json";
 const LISAIGNORE = ".lisaignore";
-const LISA_MANIFEST = ".lisa-manifest";
 
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
@@ -77,9 +72,6 @@ describe("Lisa Integration Tests", () => {
     return {
       logger,
       prompter: new AutoAcceptPrompter(),
-      manifestService: config.dryRun
-        ? new DryRunManifestService()
-        : new ManifestService(),
       backupService: config.dryRun
         ? new DryRunBackupService()
         : new BackupService(logger),
@@ -92,7 +84,7 @@ describe("Lisa Integration Tests", () => {
   /**
    * Create a Lisa instance with optional config overrides
    * @param overrides - Configuration overrides
-   * @returns Lisa instance ready for apply/validate/uninstall
+   * @returns Lisa instance ready for apply/validate
    */
   function createLisa(overrides: Partial<LisaConfig> = {}): Lisa {
     const config = createConfig(overrides);
@@ -143,12 +135,14 @@ describe("Lisa Integration Tests", () => {
       expect(result.detectedTypes).toContain("typescript");
     });
 
-    it("creates manifest file after installation", async () => {
+    it("removes an existing manifest file during apply", async () => {
       await createTypeScriptProject(destDir);
+      const manifestPath = path.join(destDir, ".lisa-manifest");
+      await fs.writeFile(manifestPath, "{}\n");
 
       await createLisa().apply();
 
-      expect(await fs.pathExists(path.join(destDir, LISA_MANIFEST))).toBe(true);
+      expect(await fs.pathExists(manifestPath)).toBe(false);
     });
 
     it("applies all/ configs to project with no detected types", async () => {
@@ -210,56 +204,6 @@ describe("Lisa Integration Tests", () => {
     });
   });
 
-  describe("uninstall", () => {
-    it("removes copy-overwrite and create-only files", async () => {
-      await createTypeScriptProject(destDir);
-
-      // First install
-      await createLisa().apply();
-
-      // Verify files exist
-      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
-
-      // Then uninstall
-      const result = await createLisa().uninstall();
-
-      expect(result.success).toBe(true);
-      expect(result.mode).toBe("uninstall");
-
-      // Files should be removed
-      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(false);
-
-      // Manifest should be removed
-      expect(await fs.pathExists(path.join(destDir, LISA_MANIFEST))).toBe(
-        false
-      );
-    });
-
-    it("fails when no manifest exists", async () => {
-      await createTypeScriptProject(destDir);
-
-      const result = await createLisa().uninstall();
-
-      expect(result.success).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-    });
-
-    it("dry run does not remove files", async () => {
-      await createTypeScriptProject(destDir);
-
-      // First install
-      await createLisa().apply();
-
-      const beforeCount = await countFiles(destDir);
-
-      // Dry run uninstall
-      await createLisa({ dryRun: true }).uninstall();
-
-      const afterCount = await countFiles(destDir);
-      expect(afterCount).toBe(beforeCount);
-    });
-  });
-
   describe("idempotency", () => {
     it("running twice produces same result", async () => {
       await createTypeScriptProject(destDir);
@@ -275,25 +219,6 @@ describe("Lisa Integration Tests", () => {
       expect(result2.success).toBe(true);
       // Second run should skip files since first run already applied them
       expect(result2.counters.skipped).toBeGreaterThan(0);
-    });
-
-    it("prompts when running with latest version already installed", async () => {
-      await createTypeScriptProject(destDir);
-
-      // First run
-      const result1 = await createLisa().apply();
-
-      expect(result1.success).toBe(true);
-
-      // Check manifest contains version
-      const manifestPath = path.join(destDir, LISA_MANIFEST);
-      const manifestContent = await fs.readFile(manifestPath, "utf-8");
-      expect(manifestContent).toMatch(/# Lisa version:/);
-
-      // Second run should succeed with auto-accept
-      const result2 = await createLisa().apply();
-
-      expect(result2.success).toBe(true);
     });
   });
 

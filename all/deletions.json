@@ -130,7 +130,8 @@
     ".coderabbit.yml",
     "scripts/setup-deploy-key.sh",
     "HUMAN.md",
-    ".claude/rules/lisa.md"
+    ".claude/rules/lisa.md",
+    ".lisa-manifest"
   ],
   "keep": [
     "scripts/setup-deploy-key.sh",

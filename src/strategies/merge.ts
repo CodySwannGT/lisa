@@ -19,7 +19,7 @@ export class MergeStrategy implements ICopyStrategy {
    * Apply merge strategy: Deep merge JSON files with project values taking precedence
    * @param sourcePath - Source JSON file path
    * @param destPath - Destination JSON file path
-   * @param relativePath - Relative path for recording
+   * @param relativePath - Relative path for logging
    * @param context - Strategy context with config and callbacks
    * @returns Result of the merge operation
    */
@@ -29,20 +29,17 @@ export class MergeStrategy implements ICopyStrategy {
     relativePath: string,
     context: StrategyContext
   ): Promise<FileOperationResult> {
-    const { config, recordFile, backupFile } = context;
+    const { config, backupFile } = context;
     const destExists = await fse.pathExists(destPath);
 
     if (!destExists) {
-      // Destination doesn't exist - copy the file
       if (!config.dryRun) {
         await ensureParentDir(destPath);
         await copyFile(sourcePath, destPath);
-        recordFile(relativePath, this.name);
       }
       return { relativePath, strategy: this.name, action: "copied" };
     }
 
-    // Both files exist - merge them
     const sourceJson = await readJson<object>(sourcePath).catch(() => {
       throw new JsonMergeError(
         relativePath,
@@ -65,16 +62,12 @@ export class MergeStrategy implements ICopyStrategy {
     const normalizedMerged = JSON.stringify(merged, null, 2);
 
     if (normalizedDest === normalizedMerged) {
-      if (!config.dryRun) {
-        recordFile(relativePath, this.name);
-      }
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
     if (!config.dryRun) {
       await backupFile(destPath);
       await writeJson(destPath, merged);
-      recordFile(relativePath, this.name);
     }
 
     return { relativePath, strategy: this.name, action: "merged" };

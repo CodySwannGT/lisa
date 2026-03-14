@@ -43,7 +43,6 @@ describe("TaggedMergeStrategy", () => {
 
     return {
       config,
-      recordFile: () => {},
       backupFile: async () => {},
       promptOverwrite: async () => true,
     };
@@ -97,24 +96,6 @@ describe("TaggedMergeStrategy", () => {
 
       await strategy.apply(srcFile, destFile, "package.json", context);
       expect(backupCalled).toBe(true);
-    });
-
-    it("calls recordFile for processed files", async () => {
-      const srcFile = path.join(srcDir, "package.json");
-      const destFile = path.join(destDir, "package.json");
-      await fs.writeJson(srcFile, { name: "lisa" });
-      await fs.writeJson(destFile, { name: "project" });
-
-      let recordCalled = false;
-      const context = {
-        ...createContext(),
-        recordFile: () => {
-          recordCalled = true;
-        },
-      };
-
-      await strategy.apply(srcFile, destFile, "package.json", context);
-      expect(recordCalled).toBe(true);
     });
 
     it("skips when no changes detected", async () => {
@@ -720,28 +701,6 @@ describe("TaggedMergeStrategy", () => {
 
   // File operation tests
   describe("file operations", () => {
-    it("records files in manifest correctly", async () => {
-      const srcFile = path.join(srcDir, "package.json");
-      const destFile = path.join(destDir, "package.json");
-      await fs.writeJson(srcFile, { test: "value" });
-      await fs.writeJson(destFile, { existing: "value" });
-
-      let recordedPath = "";
-      let recordedStrategy = "";
-      const context = {
-        ...createContext(),
-        recordFile: (path: string, strategy: string) => {
-          recordedPath = path;
-          recordedStrategy = strategy;
-        },
-      };
-
-      await strategy.apply(srcFile, destFile, "package.json", context);
-
-      expect(recordedPath).toBe("package.json");
-      expect(recordedStrategy).toBe("tagged-merge");
-    });
-
     it("returns correct action types", async () => {
       const srcFile = path.join(srcDir, "test1.json");
       const srcFile2 = path.join(srcDir, "test2.json");

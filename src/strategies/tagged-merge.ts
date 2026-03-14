@@ -44,8 +44,8 @@ export class TaggedMergeStrategy implements ICopyStrategy {
    * Apply tagged merge strategy to a JSON file
    * @param sourcePath - Absolute path to Lisa template JSON file with tags
    * @param destPath - Absolute path to project JSON file to merge into
-   * @param relativePath - Project-relative path for manifest recording and logging
-   * @param context - Strategy context with config, manifest recording, and backup functions
+   * @param relativePath - Project-relative path for logging
+   * @param context - Strategy context with config and backup functions
    * @returns Operation result indicating copied, skipped, or merged action
    * @throws JsonMergeError if source or destination JSON cannot be parsed
    * @remarks
@@ -58,14 +58,13 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     relativePath: string,
     context: StrategyContext
   ): Promise<FileOperationResult> {
-    const { config, recordFile, backupFile } = context;
+    const { config, backupFile } = context;
     const destExists = await fse.pathExists(destPath);
 
     if (!destExists) {
       if (!config.dryRun) {
         await ensureParentDir(destPath);
         await copyFile(sourcePath, destPath);
-        recordFile(relativePath, this.name);
       }
       return { relativePath, strategy: this.name, action: "copied" };
     }
@@ -93,16 +92,12 @@ export class TaggedMergeStrategy implements ICopyStrategy {
     const normalizedMerged = JSON.stringify(merged, null, 2);
 
     if (normalizedDest === normalizedMerged) {
-      if (!config.dryRun) {
-        recordFile(relativePath, this.name);
-      }
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
     if (!config.dryRun) {
       await backupFile(destPath);
       await writeJson(destPath, merged);
-      recordFile(relativePath, this.name);
     }
 
     return { relativePath, strategy: this.name, action: "merged" };
