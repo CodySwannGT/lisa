@@ -46,7 +46,6 @@ describe("CopyContentsStrategy", () => {
 
     return {
       config,
-      recordFile: () => {},
       backupFile: async () => {},
       promptOverwrite: async () => true,
     };

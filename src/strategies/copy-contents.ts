@@ -82,11 +82,10 @@ export class CopyContentsStrategy implements ICopyStrategy {
     relativePath: string,
     context: StrategyContext
   ): Promise<FileOperationResult> {
-    const { config, recordFile } = context;
+    const { config } = context;
     if (!config.dryRun) {
       await ensureParentDir(destPath);
       await copyFile(sourcePath, destPath);
-      recordFile(relativePath, this.name);
     }
     return { relativePath, strategy: this.name, action: "copied" };
   }
@@ -105,11 +104,10 @@ export class CopyContentsStrategy implements ICopyStrategy {
     mergedContent: string,
     context: StrategyContext
   ): Promise<FileOperationResult> {
-    const { config, recordFile, backupFile } = context;
+    const { config, backupFile } = context;
     if (!config.dryRun) {
       await backupFile(destPath);
       await writeFile(destPath, mergedContent, "utf-8");
-      recordFile(relativePath, this.name);
     }
     return {
       relativePath,
@@ -122,7 +120,7 @@ export class CopyContentsStrategy implements ICopyStrategy {
    * Apply copy-contents strategy: Create, replace block, or append to file
    * @param sourcePath - Source file path
    * @param destPath - Destination file path
-   * @param relativePath - Relative path for recording
+   * @param relativePath - Relative path for logging
    * @param context - Strategy context with config and callbacks
    * @returns Result of the copy-contents operation
    */
@@ -132,7 +130,6 @@ export class CopyContentsStrategy implements ICopyStrategy {
     relativePath: string,
     context: StrategyContext
   ): Promise<FileOperationResult> {
-    const { config, recordFile } = context;
     const destExists = await fse.pathExists(destPath);
 
     if (!destExists) {
@@ -140,9 +137,6 @@ export class CopyContentsStrategy implements ICopyStrategy {
     }
 
     if (await filesIdentical(sourcePath, destPath)) {
-      if (!config.dryRun) {
-        recordFile(relativePath, this.name);
-      }
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
@@ -151,9 +145,6 @@ export class CopyContentsStrategy implements ICopyStrategy {
     const mergedContent = this.mergeContent(sourceContent, destContent);
 
     if (mergedContent === destContent) {
-      if (!config.dryRun) {
-        recordFile(relativePath, this.name);
-      }
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 

@@ -1,6 +1,6 @@
 ---
 name: lisa-review-project
-description: This skill should be used when comparing Lisa's source templates against a target project's implementation to identify drift. It validates the Lisa directory, detects project types, reads the manifest, compares files, categorizes changes, and offers to adopt improvements back into Lisa. This is the inverse of lisa:review-implementation.
+description: This skill should be used when comparing Lisa's source templates against a target project's implementation to identify drift. It validates the Lisa directory, detects project types, scans template directories, compares files, categorizes changes, and offers to adopt improvements back into Lisa. This is the inverse of lisa:review-implementation.
 ---
 
 # Lisa Project Review
@@ -13,7 +13,7 @@ This is the inverse of `/lisa-review-implementation`:
 
 ## Prerequisites
 
-This skill must be run FROM the Lisa repository directory. The target project must have Lisa already applied (must have a `.lisa-manifest` file).
+This skill must be run FROM the Lisa repository directory. The target project must have Lisa already applied.
 
 ## Instructions
 
@@ -41,15 +41,7 @@ Path: [user provides path]
 
 Validate the project path:
 1. Check the path exists and is a directory
-2. Check `.lisa-manifest` exists in the project root
-3. If missing, error with:
-```
-Project does not have Lisa applied.
-
-Expected to find: {project-path}/.lisa-manifest
-
-Did you apply Lisa to this project? Run: lisa {project-path}
-```
+2. Check `package.json` exists in the project root (basic sanity check)
 
 ### Step 3: Detect Project Types
 
@@ -65,28 +57,16 @@ Build the type hierarchy. Example: if `expo` detected, types = `[all, typescript
 
 If no types detected, use `[all]`.
 
-### Step 4: Read Manifest and Map Source Files
+### Step 4: Scan Lisa Template Directories
 
-Read the project's `.lisa-manifest` file line by line:
+Instead of reading a manifest, scan Lisa's template directories directly to build the list of managed files.
 
-For each line:
-1. Skip lines starting with `#` (comments) and empty lines
-2. Parse format: `strategy|relative/path/to/file`
-3. Extract `strategy` and `relativePath`
-4. For each strategy type, find the corresponding source in Lisa
+For each type in the hierarchy (e.g., `[all, typescript, expo]`):
+1. List files in `{type}/copy-overwrite/` — record each as `(relativePath, "copy-overwrite", sourceTemplate)`
+2. List files in `{type}/copy-contents/` — record each as `(relativePath, "copy-contents", sourceTemplate)`
+3. If the same `relativePath` appears in multiple types, the most specific type wins (last in hierarchy)
 
-**Lookup Order for Source Files:**
-
-For each detected type in reverse hierarchy order (most specific first):
-1. Check `{type}/copy-overwrite/{relativePath}` - if found, record it
-2. Check `{type}/copy-contents/{relativePath}` - if found, record it
-3. Continue to next type
-
-Example for an Expo project with manifest entry `copy-overwrite|.github/workflows/ci.yml`:
-1. Check `expo/copy-overwrite/.github/workflows/ci.yml` - found, use it
-2. (don't check further)
-
-If no source found, record as "source-not-found".
+This gives you the complete list of Lisa-managed files and their source templates.
 
 **Skip these strategies** (they're intentionally customized):
 - `create-only` - meant to be customized by project
@@ -158,15 +138,15 @@ Create a markdown report:
 
 ## Files Not Found in Lisa
 
-These files are in the manifest but their source templates couldn't be located in Lisa:
+These files exist in Lisa templates but not in the project:
 
 - {file1}
 - {file2}
 
 This might mean:
-- The file was manually added after Lisa was applied
-- A Lisa template was removed in an update
-- The file is project-specific
+- Lisa hasn't been applied to this project yet
+- The file was deleted by the project
+- The file is gitignored
 
 ## Intentionally Customized
 
@@ -215,6 +195,6 @@ If user wants to adopt improvements:
 
 - **Never auto-adopt without confirmation** - always ask the user first
 - **Preserve the most specific type directory** - if a file exists in both `typescript/` and `all/`, adopt to where it currently exists in Lisa
-- **Handle missing files gracefully** - if project file is missing but in manifest, note it (possible deletion or git-ignored)
+- **Handle missing files gracefully** - if project file is missing but exists in Lisa templates, note it (possible deletion or git-ignored)
 - **Compare carefully** - some differences may be platform-specific (line endings, env vars) and should NOT be adopted
 - The diff shows "Lisa <- Project" (what project changed FROM Lisa)

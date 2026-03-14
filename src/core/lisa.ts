@@ -1,6 +1,6 @@
-/* eslint-disable max-lines -- Main orchestrator class with apply/uninstall/validate operations */
+/* eslint-disable max-lines -- Main orchestrator class with apply/validate operations */
 import * as fse from "fs-extra";
-import { readdir, readFile, rmdir, stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
@@ -29,7 +29,6 @@ import type {
 } from "./config.js";
 import { COPY_STRATEGIES, createInitialCounters } from "./config.js";
 import type { IGitService } from "./git-service.js";
-import type { IManifestService, ManifestEntry } from "./manifest.js";
 
 /**
  * Dependencies for Lisa operations
@@ -37,7 +36,6 @@ import type { IManifestService, ManifestEntry } from "./manifest.js";
 export interface LisaDependencies {
   readonly logger: ILogger;
   readonly prompter: IPrompter;
-  readonly manifestService: IManifestService;
   readonly backupService: IBackupService;
   readonly detectorRegistry: DetectorRegistry;
   readonly strategyRegistry: StrategyRegistry;
@@ -59,7 +57,7 @@ export class Lisa {
 
   /**
    * Initialize Lisa orchestrator
-   * @param config - Configuration for the apply/uninstall operation
+   * @param config - Configuration for the apply operation
    * @param deps - Injected service dependencies
    */
   constructor(
@@ -71,70 +69,10 @@ export class Lisa {
    * Initialize services
    */
   private async initServices(): Promise<void> {
-    const { backupService, manifestService } = this.deps;
+    const { backupService } = this.deps;
 
     if (!this.config.dryRun) {
       await backupService.init(this.config.destDir);
-      await manifestService.init(this.config.destDir, this.config.lisaDir);
-    }
-  }
-
-  /**
-   * Check if project is already on the latest Lisa version
-   */
-  private async checkForLatestVersion(): Promise<void> {
-    const { prompter, manifestService, logger } = this.deps;
-
-    // Skip in dry run and validate modes
-    if (this.config.dryRun || this.config.validateOnly) {
-      return;
-    }
-
-    try {
-      const manifestVersion = await manifestService.readVersion(
-        this.config.destDir
-      );
-
-      // Only check if manifest exists (project has been initialized before)
-      if (!manifestVersion) {
-        return;
-      }
-
-      // Get current Lisa version
-      const currentVersion = await this.getCurrentLisaVersion();
-
-      if (manifestVersion === currentVersion) {
-        logger.info(`Project is on Lisa version ${manifestVersion}`);
-        const proceed = await prompter.confirmLatestVersion(manifestVersion);
-        if (!proceed) {
-          throw new UserAbortedError(
-            "Update cancelled: project is already on the latest version"
-          );
-        }
-      }
-    } catch (error) {
-      // If error is UserAbortedError, re-throw it
-      if (error instanceof UserAbortedError) {
-        throw error;
-      }
-      // For other errors, log and continue
-      const message = error instanceof Error ? error.message : String(error);
-      logger.warn(`Could not check version: ${message}`);
-    }
-  }
-
-  /**
-   * Get the current Lisa version
-   * @returns The version string from package.json, or "unknown" if it cannot be read
-   */
-  private async getCurrentLisaVersion(): Promise<string> {
-    try {
-      const packageJsonPath = path.join(this.config.lisaDir, "package.json");
-      const content = await readFile(packageJsonPath, "utf-8");
-      const packageJson = JSON.parse(content);
-      return packageJson.version || "unknown";
-    } catch {
-      return "unknown";
     }
   }
 
@@ -279,10 +217,9 @@ export class Lisa {
    * @returns Promise that resolves when finalization is complete
    */
   private async finalize(): Promise<void> {
-    const { manifestService, backupService } = this.deps;
+    const { backupService } = this.deps;
 
     if (!this.config.dryRun) {
-      await manifestService.finalize();
       await backupService.cleanup();
     }
   }
@@ -338,7 +275,6 @@ export class Lisa {
       await this.validateGitState();
       this.printHeader();
       await this.initServices();
-      await this.checkForLatestVersion();
       await this.detectTypes();
       await this.processConfigurations();
       await this.processDeletions();
@@ -358,151 +294,6 @@ export class Lisa {
   async validate(): Promise<LisaResult> {
     // Validate mode is essentially a dry run
     return this.apply();
-  }
-
-  /**
-   * Uninstall Lisa-managed files from the project
-   * @returns Result of the uninstall operation with removal statistics
-   */
-  async uninstall(): Promise<LisaResult> {
-    const { logger, manifestService } = this.deps;
-
-    // Validate destination
-    await this.validateDestination();
-
-    // Print header
-    console.log("");
-    console.log(pc.blue(this.separator));
-    console.log(pc.blue("    Lisa Uninstaller"));
-    console.log(pc.blue(this.separator));
-    console.log("");
-
-    const errors: string[] = [];
-
-    try {
-      // Read manifest
-      const entries = await manifestService.read(this.config.destDir);
-      logger.info(
-        `Reading manifest: ${path.join(this.config.destDir, ".lisa-manifest")}`
-      );
-      console.log("");
-
-      // Process entries
-      const stats = await this.processUninstallEntries(entries);
-
-      // Remove empty directories and manifest
-      if (!this.config.dryRun) {
-        await this.removeEmptyDirectories();
-        await manifestService.remove(this.config.destDir);
-        logger.success("Removed manifest file");
-      }
-
-      // Print summary
-      console.log("");
-      console.log(pc.green(this.separator));
-      console.log(
-        pc.green(
-          this.config.dryRun
-            ? "    Lisa Uninstall Dry Run Complete"
-            : "    Lisa Uninstall Complete!"
-        )
-      );
-      console.log(pc.green(this.separator));
-      console.log("");
-      console.log(
-        `  ${pc.green("Removed:")}     ${String(stats.removed).padStart(3)} files`
-      );
-      console.log(
-        `  ${pc.yellow("Skipped:")}     ${String(stats.skipped).padStart(3)} files (manual review needed)`
-      );
-      console.log("");
-
-      return {
-        success: true,
-        counters: {
-          ...this.counters,
-          copied: stats.removed,
-          skipped: stats.skipped,
-        },
-        detectedTypes: [],
-        mode: "uninstall",
-        errors,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.error(message);
-      errors.push(message);
-
-      return {
-        success: false,
-        counters: this.counters,
-        detectedTypes: [],
-        mode: "uninstall",
-        errors,
-      };
-    }
-  }
-
-  /**
-   * Process single uninstall entry and return updated counts
-   * @param entry - Manifest entry to process for removal
-   * @param stats - Current removal statistics
-   * @param stats.removed - Number of files removed so far
-   * @param stats.skipped - Number of files skipped so far
-   * @returns Updated removal statistics after processing this entry
-   */
-  private async processEntry(
-    entry: ManifestEntry,
-    stats: { removed: number; skipped: number }
-  ): Promise<{ removed: number; skipped: number }> {
-    const { logger } = this.deps;
-    const destFile = path.join(this.config.destDir, entry.relativePath);
-
-    switch (entry.strategy) {
-      case "copy-overwrite":
-      case "create-only": {
-        if (await fse.pathExists(destFile)) {
-          if (this.config.dryRun) {
-            logger.dry(`Would remove: ${entry.relativePath}`);
-          } else {
-            await fse.remove(destFile);
-            logger.success(`Removed: ${entry.relativePath}`);
-          }
-          return { ...stats, removed: stats.removed + 1 };
-        }
-        return { ...stats, skipped: stats.skipped + 1 };
-      }
-      case "copy-contents": {
-        logger.warn(
-          `Cannot auto-remove (copy-contents): ${entry.relativePath}`
-        );
-        logger.info("  Manually review and remove added lines if needed.");
-        return { ...stats, skipped: stats.skipped + 1 };
-      }
-      case "merge":
-      case "tagged-merge": {
-        logger.warn(`Cannot auto-remove (merged JSON): ${entry.relativePath}`);
-        logger.info("  Manually remove Lisa-added keys if needed.");
-        return { ...stats, skipped: stats.skipped + 1 };
-      }
-      default:
-        return { ...stats, skipped: stats.skipped + 1 };
-    }
-  }
-
-  /**
-   * Process manifest entries during uninstall
-   * @param entries Manifest entries to process
-   * @returns Stats with removed and skipped counts
-   */
-  private async processUninstallEntries(
-    entries: readonly ManifestEntry[]
-  ): Promise<{ removed: number; skipped: number }> {
-    const initial = { removed: 0, skipped: 0 };
-    return await entries.reduce(async (statsPromise, entry) => {
-      const stats = await statsPromise;
-      return this.processEntry(entry, stats);
-    }, Promise.resolve(initial));
   }
 
   /**
@@ -561,9 +352,6 @@ export class Lisa {
 
     const context: StrategyContext = {
       config: this.config,
-      recordFile: (relativePath, strat) => {
-        this.deps.manifestService.record(relativePath, strat);
-      },
       backupFile: async absolutePath => {
         await this.deps.backupService.backup(absolutePath);
         await this.deps.backupService.persistentBackup(absolutePath);
@@ -1031,40 +819,5 @@ export class Lisa {
     );
     console.log("");
   }
-
-  /**
-   * Remove empty directories after uninstall
-   */
-  private async removeEmptyDirectories(): Promise<void> {
-    const destDir = this.config.destDir;
-
-    const removeEmpty = async (dir: string): Promise<void> => {
-      if (dir === destDir) return;
-      if (dir.includes(".git") || dir.includes("node_modules")) return;
-
-      try {
-        const entries = await readdir(dir);
-        if (entries.length === 0) {
-          await rmdir(dir);
-          // Recursively check parent
-          await removeEmpty(path.dirname(dir));
-        }
-      } catch {
-        // Directory might not exist or not be empty
-      }
-    };
-
-    // Get all directories and check if empty
-    const entries = await readdir(destDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (
-        entry.isDirectory() &&
-        !entry.name.startsWith(".git") &&
-        entry.name !== "node_modules"
-      ) {
-        await removeEmpty(path.join(destDir, entry.name));
-      }
-    }
-  }
 }
-/* eslint-enable max-lines -- Main orchestrator class with apply/uninstall/validate operations */
+/* eslint-enable max-lines -- Main orchestrator class with apply/validate operations */

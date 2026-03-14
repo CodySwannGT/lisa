@@ -12,7 +12,6 @@ This must be run FROM the Lisa repository directory.
 ## Prerequisites
 
 - Running from the Lisa repo (has `src/core/lisa.ts`)
-- The target project has Lisa applied (has `.lisa-manifest`)
 - The target project's working directory is clean (no uncommitted changes)
 
 ## Instructions
@@ -21,7 +20,7 @@ This must be run FROM the Lisa repository directory.
 
 1. Confirm running from Lisa by checking for `src/core/lisa.ts`
 2. Extract project path from `$ARGUMENTS`. If not provided, ask the user.
-3. Validate the project path exists and has `.lisa-manifest`
+3. Validate the project path exists and has `package.json`
 4. Check the project's working directory is clean: `git -C <project-path> status --porcelain`
    - If dirty, tell the user and stop: "The project has uncommitted changes. Please commit or stash them first."
 
@@ -29,8 +28,7 @@ This must be run FROM the Lisa repository directory.
 
 Before applying Lisa, record the project's current state:
 
-1. Read `<project-path>/.lisa-manifest` to note the current Lisa version
-2. Run `git -C <project-path> log --oneline -1` to note the current HEAD
+1. Run `git -C <project-path> log --oneline -1` to note the current HEAD
 3. Note the project's branch and whether there's an open PR: `git -C <project-path> branch --show-current`
 
 ### Step 3: Apply Lisa

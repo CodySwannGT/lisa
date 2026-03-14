@@ -1,6 +1,6 @@
 ---
 name: lisa-learn
-description: This skill should be used when analyzing a downstream project's git diff after Lisa was applied to identify improvements that should be upstreamed back to Lisa templates. It validates the environment, captures the diff, correlates changes with the manifest, categorizes each change, and offers to upstream improvements.
+description: This skill should be used when analyzing a downstream project's git diff after Lisa was applied to identify improvements that should be upstreamed back to Lisa templates. It validates the environment, captures the diff, correlates changes with Lisa template directories, categorizes each change, and offers to upstream improvements.
 ---
 
 # Lisa Learn
@@ -36,15 +36,7 @@ This skill must be run FROM the Lisa repository directory. The target project mu
 
 3. Validate the project path:
    - Check the path exists and is a directory
-   - Check `.lisa-manifest` exists in the project root
-   - If missing, error with:
-     ```
-     Project does not have Lisa applied.
-
-     Expected to find: {project-path}/.lisa-manifest
-
-     Did you apply Lisa to this project? Run: bun run dev {project-path}
-     ```
+   - Check `package.json` exists in the project root (basic sanity check)
 
 4. Check the project has uncommitted changes: `git -C <project-path> status --porcelain`
    - If clean (no output), stop with:
@@ -54,23 +46,22 @@ This skill must be run FROM the Lisa repository directory. The target project mu
      Run `bun run dev <project-path>` first, then re-run /lisa-learn to analyze what changed.
      ```
 
-### Step 2: Read Manifest and Detect Types
+### Step 2: Detect Types and Build File Map
 
-1. Read `<project-path>/.lisa-manifest` line by line.
-   - Skip lines starting with `#` (comments) and empty lines
-   - Parse format: `strategy|relative/path/to/file`
-   - Extract `strategy` and `relativePath` for each entry
-   - Store as a lookup: `{ [relativePath]: strategy }`
-
-2. Detect project types by checking the project filesystem:
+1. Detect project types by checking the project filesystem:
    - **cdk**: `cdk.json` exists OR `aws-cdk` in package.json dependencies
    - **nestjs**: `nest-cli.json` exists OR `@nestjs` in package.json dependencies
    - **expo**: `app.json` exists OR `eas.json` exists OR `expo` in package.json dependencies
    - **typescript**: `tsconfig.json` exists OR `typescript` in package.json dependencies
    - **npm-package**: `package.json` without `"private": true` AND has `main`, `bin`, `exports`, or `files`
 
-3. Build the type hierarchy. Example: if `expo` detected, types = `[all, typescript, expo]`
+2. Build the type hierarchy. Example: if `expo` detected, types = `[all, typescript, expo]`
    - If no types detected, use `[all]`
+
+3. Build the file map by scanning Lisa's template directories:
+   - For each type in the hierarchy, list files in `{type}/copy-overwrite/`, `{type}/copy-contents/`, `{type}/create-only/`
+   - Store as a lookup: `{ [relativePath]: { strategy, sourceTemplate } }`
+   - If the same relativePath appears in multiple types, the most specific type wins
 
 ### Step 3: Capture Git Diff
 
@@ -82,19 +73,13 @@ Run these commands against the project:
 
 Store the full diff output and the list of changed files for analysis.
 
-### Step 4: Correlate Diff with Manifest
+### Step 4: Correlate Diff with File Map
 
 For each file that appears in the git diff or status output:
 
-1. Look up the file's strategy in the manifest (from Step 2)
-2. Find the Lisa source template by checking type directories in reverse hierarchy order (most specific first):
-   - `{type}/copy-overwrite/{relativePath}`
-   - `{type}/copy-contents/{relativePath}`
-   - `{type}/create-only/{relativePath}`
-   - Fall back through parent types until found
-   - Example for an Expo project: check `expo/` → `typescript/` → `all/`
-3. Record the mapping: `{ file, strategy, sourceTemplate, diff }`
-4. Flag files NOT in the manifest as "collateral changes" — these are files that Lisa didn't directly manage but were affected (e.g., lockfiles, generated files)
+1. Look up the file's strategy and source template in the file map (from Step 2)
+2. Record the mapping: `{ file, strategy, sourceTemplate, diff }`
+3. Flag files NOT in the file map as "collateral changes" — these are files that Lisa didn't directly manage but were affected (e.g., lockfiles, generated files)
 
 ### Step 5: Analyze Each Changed File
 
@@ -133,7 +118,7 @@ Categorize each changed file based on its strategy and the nature of the diff:
   - These should NOT be modified by Lisa after initial creation
   - If they appear in the diff, flag as unexpected → **Potential Breakage**
 
-- **Collateral changes** (not in manifest):
+- **Collateral changes** (not in file map):
   - Lockfile changes → **Neutral Change**
   - Other changes → investigate and categorize
 
@@ -254,7 +239,7 @@ These are correct template updates where Lisa's version is an improvement over t
 
 ## Collateral Changes
 
-Files not in the manifest that were affected:
+Files not managed by Lisa that were affected:
 
 - {file1} — {brief description}
 ```
@@ -309,7 +294,7 @@ For option 2 (fix in project): Identify the appropriate local override file (e.g
 - **Never auto-upstream without confirmation** — always ask the user before modifying Lisa templates
 - **Pre-Lisa content comes from git** — use `git -C <project-path> show HEAD:<path>` to get the committed version before Lisa's uncommitted changes
 - **Preserve the most specific type directory** — if a template exists in `expo/copy-overwrite/`, upstream there, not to `all/copy-overwrite/`
-- **Handle missing files gracefully** — if a file appears in the diff but not in the manifest, it's a collateral change
+- **Handle missing files gracefully** — if a file appears in the diff but not in the file map, it's a collateral change
 - **Compare carefully** — some differences may be platform-specific (line endings, env vars) and should NOT be upstreamed
 - **Retry loop is bounded** — if fixing breakage requires more than 3 iterations, stop and report the situation to the user
 - **This skill is Lisa-only** — it is NOT distributed to downstream projects via `all/copy-overwrite/`
