@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.60.5](https://github.com/CodySwannGT/lisa/compare/vv1.60.4...v1.60.5) (2026-03-16)
+
+
+### Bug Fixes
+
+* add git branch fallback to CodeRabbit trigger step in nightly workflows ([#290](https://github.com/CodySwannGT/lisa/issues/290)) ([a734419](https://github.com/CodySwannGT/lisa/commit/a734419e60863ec3411a72ccf3bb866fd9a3b4a6))
+
 ### [1.60.4](https://github.com/CodySwannGT/lisa/compare/vv1.60.3...v1.60.4) (2026-03-16)
 
 
