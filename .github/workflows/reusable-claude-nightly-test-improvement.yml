@@ -194,8 +194,7 @@ jobs:
           fi
           PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
           if [ -n "$PR_URL" ]; then
-            gh pr merge "$PR_URL" --auto --squash
-            echo "Auto-merge enabled for $PR_URL"
+            gh pr merge "$PR_URL" --auto --squash && echo "Auto-merge enabled for $PR_URL" || echo "Auto-merge not available for this repo — skipping."
           else
             echo "No open PR found for branch $BRANCH."
           fi
