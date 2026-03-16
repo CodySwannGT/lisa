@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.60.4](https://github.com/CodySwannGT/lisa/compare/vv1.60.3...v1.60.4) (2026-03-16)
+
+
+### Bug Fixes
+
+* make auto-merge step non-fatal in reusable nightly workflows ([#289](https://github.com/CodySwannGT/lisa/issues/289)) ([efb34cc](https://github.com/CodySwannGT/lisa/commit/efb34cc40ac23ded0e54467d4ff3868c8b7746c7))
+
 ### [1.60.3](https://github.com/CodySwannGT/lisa/compare/vv1.60.2...v1.60.3) (2026-03-16)
 
 
