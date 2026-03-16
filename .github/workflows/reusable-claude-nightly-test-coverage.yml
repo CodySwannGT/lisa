@@ -154,18 +154,19 @@ jobs:
 
             Instructions:
             1. Read CLAUDE.md and package.json for project conventions
-            2. Run the test coverage report to understand current coverage gaps
-            3. Write new tests to increase coverage enough to meet the proposed thresholds
-            4. Focus on the metrics being bumped — write tests that cover untested branches, statements, functions, and lines
-            5. Run `bun run test:cov` to verify the new thresholds pass
-            6. Update jest.thresholds.json with the proposed new threshold values
-            7. Run `bun run test:cov` again to confirm the updated thresholds pass
-            8. Commit all changes (new tests + updated jest.thresholds.json) with conventional commit messages
-            9. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
+            2. FIRST, run `bun run test:cov` to get the coverage report — this tells you exactly which files have low coverage and where the gaps are. Do NOT read source files before this step.
+            3. Parse the coverage output to identify the specific files and lines with the lowest coverage. Prioritize files with the most uncovered lines/branches.
+            4. ONLY THEN read the specific source files that need tests — read only the uncovered sections, not entire files. Use the coverage report line numbers to target your reads.
+            5. Write new tests to increase coverage enough to meet the proposed thresholds. Focus on the metrics being bumped — write tests that cover untested branches, statements, functions, and lines.
+            6. Run `bun run test:cov` to verify the new thresholds pass
+            7. Update jest.thresholds.json with the proposed new threshold values
+            8. Run `bun run test:cov` again to confirm the updated thresholds pass
+            9. Commit all changes (new tests + updated jest.thresholds.json) with conventional commit messages
+            10. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
-            --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass."
+            --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass. CRITICAL: Always run test:cov FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
 
       - name: Trigger CodeRabbit review
         env:
