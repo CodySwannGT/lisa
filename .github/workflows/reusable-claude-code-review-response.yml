@@ -120,6 +120,12 @@ jobs:
                gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "THREAD_ID"}) { thread { isResolved } } }'
             7. If you made code changes, run ALL quality checks (lint, typecheck, test, format) to verify everything passes, then push all fixes to this branch. If any check fails, fix the failure before pushing — never push broken code.
             8. If you only replied to comments without changing code, you are done — no need to run quality checks or push
+            9. SECURITY AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities (GHSA advisories):
+                a. Note the GHSA ID(s), affected package(s), and advisory URL from the error output
+                b. Check the advisory URL to determine if a patched version of the vulnerable package exists
+                c. If a patched version exists, add a resolution/override in package.json to force the patched version (add to both "resolutions" and "overrides" sections), then run the package manager install command to regenerate the lockfile, commit the changes, and retry the push
+                d. If no patched version exists and the vulnerability is safe for this project (e.g., transitive dependency with no untrusted input, devDeps only, or build tool only), add an exclusion entry to audit.ignore.local.json with the format: {"id": "GHSA-xxx", "package": "pkg-name", "reason": "why this is safe for this project"}, then commit and retry the push
+                e. Never use --no-verify to bypass the security audit
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 50
