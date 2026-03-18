@@ -184,6 +184,14 @@ This layer catches errors that span multiple files or involve staged-but-not-yet
 
 This layer validates the complete changeset against the project's quality gates. It is the last automated checkpoint before code reaches the remote.
 
+**Handling Security Audit Failures:** If `git push` fails because the pre-push hook reports security vulnerabilities (GHSA advisories), follow these steps in order:
+
+1. Note the GHSA ID(s), affected package(s), and advisory URL from the error output.
+2. Check the advisory URL to determine if a patched version of the vulnerable package exists.
+3. If a patched version exists, add a resolution/override in `package.json` to force the patched version (add to both `"resolutions"` and `"overrides"` sections), then run the package manager install command to regenerate the lockfile, commit the changes, and retry the push.
+4. If no patched version exists and the vulnerability is safe for this project (e.g., transitive dependency with no untrusted input, devDeps only, or build tool only), add an exclusion entry to `audit.ignore.local.json` with the format: `{"id": "GHSA-xxx", "package": "pkg-name", "reason": "why this is safe for this project"}`, then commit and retry the push.
+5. Never use `--no-verify` to bypass the security audit.
+
 ### Regeneration Over Patching
 
 When the root cause of errors is architectural (wrong abstraction, incorrect data flow, fundamentally broken approach), delete and regenerate rather than incrementally patching. Incremental patches on a broken foundation accumulate tech debt faster than the self-correction loop can catch it.
