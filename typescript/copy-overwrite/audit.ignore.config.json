@@ -47,6 +47,11 @@
       "reason": "Entity encoding bypass via regex injection — same path as GHSA-jmr7-xgp7-cmfj"
     },
     {
+      "id": "GHSA-8gc5-j5rx-235r",
+      "package": "fast-xml-parser",
+      "reason": "Numeric entity expansion bypass (incomplete fix for CVE-2026-26278) — transitive via AWS SDK, no untrusted XML parsing"
+    },
+    {
       "id": "GHSA-r6q2-hw4h-h46w",
       "package": "node-tar",
       "reason": "Race condition via Unicode Ligature Collisions on macOS APFS — transitive via NestJS/Apollo, tar not used in production"
