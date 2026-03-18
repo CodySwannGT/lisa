@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.60.7](https://github.com/CodySwannGT/lisa/compare/vv1.60.6...v1.60.7) (2026-03-18)
+
+
+### Bug Fixes
+
+* add security audit failure handling to Claude workflows and rules ([#292](https://github.com/CodySwannGT/lisa/issues/292)) ([6b28d7b](https://github.com/CodySwannGT/lisa/commit/6b28d7bf8d5d4cfb45498265c47cd16ea09ffe83))
+
 ### [1.60.6](https://github.com/CodySwannGT/lisa/compare/vv1.60.5...v1.60.6) (2026-03-16)
 
 ### [1.60.5](https://github.com/CodySwannGT/lisa/compare/vv1.60.4...v1.60.5) (2026-03-16)
