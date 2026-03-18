@@ -216,10 +216,10 @@ jobs:
         id: check_gitguardian
         run: |
           if [[ -z "${GITGUARDIAN_API_KEY// }" ]]; then
-            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
             echo "⚠️ GITGUARDIAN_API_KEY is not configured"
           else
-            echo "has_token=true" >> $GITHUB_OUTPUT
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
             echo "✅ GITGUARDIAN_API_KEY is available"
           fi
         env:
@@ -255,9 +255,9 @@ jobs:
         id: check_config
         run: |
           if [ -f "sgconfig.yml" ]; then
-            echo "has_config=true" >> $GITHUB_OUTPUT
+            echo "has_config=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_config=false" >> $GITHUB_OUTPUT
+            echo "has_config=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: 🔍 Check for ast-grep rules
@@ -266,15 +266,15 @@ jobs:
         run: |
           RULES_DIR="ast-grep/rules"
           if [ -d "$RULES_DIR" ]; then
-            RULE_COUNT=$(find "$RULES_DIR" -name "*.yml" -o -name "*.yaml" 2>/dev/null | grep -v ".gitkeep" | wc -l | tr -d ' ')
+            RULE_COUNT=$(find "$RULES_DIR" -name "*.yml" -o -name "*.yaml" 2>/dev/null | grep -cv ".gitkeep")
             if [ "$RULE_COUNT" -gt 0 ]; then
-              echo "has_rules=true" >> $GITHUB_OUTPUT
-              echo "rule_count=$RULE_COUNT" >> $GITHUB_OUTPUT
+              echo "has_rules=true" >> "$GITHUB_OUTPUT"
+              echo "rule_count=$RULE_COUNT" >> "$GITHUB_OUTPUT"
             else
-              echo "has_rules=false" >> $GITHUB_OUTPUT
+              echo "has_rules=false" >> "$GITHUB_OUTPUT"
             fi
           else
-            echo "has_rules=false" >> $GITHUB_OUTPUT
+            echo "has_rules=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: 🔎 Run ast-grep scan
@@ -306,10 +306,10 @@ jobs:
         id: check_fossa
         run: |
           if [[ -z "${FOSSA_API_KEY// }" ]]; then
-            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
             echo "⚠️ FOSSA_API_KEY is not configured"
           else
-            echo "has_token=true" >> $GITHUB_OUTPUT
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
             echo "✅ FOSSA_API_KEY is available"
           fi
         env:
@@ -317,7 +317,7 @@ jobs:
 
       - name: 📜 Run FOSSA license scan
         if: steps.check_fossa.outputs.has_token == 'true'
-        uses: fossas/fossa-action@main
+        uses: fossas/fossa-action@v1.8.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
 
@@ -340,9 +340,9 @@ jobs:
         id: check_rules
         run: |
           if [ -f "${{ inputs.zap_rules_file }}" ]; then
-            echo "has_rules=true" >> $GITHUB_OUTPUT
+            echo "has_rules=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_rules=false" >> $GITHUB_OUTPUT
+            echo "has_rules=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: 🕷️ Run ZAP baseline scan

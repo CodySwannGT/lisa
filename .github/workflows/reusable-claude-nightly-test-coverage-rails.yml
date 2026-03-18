@@ -21,11 +21,6 @@ on:
         required: false
         default: true
         type: boolean
-      database_type:
-        description: 'Database type for Rails tests (postgres or mysql)'
-        required: false
-        default: 'postgres'
-        type: string
       database_name:
         description: 'Database name for Rails tests'
         required: false
@@ -46,7 +41,7 @@ jobs:
       id-token: write
     services:
       postgres:
-        image: ${{ inputs.database_type == 'postgres' && 'postgres:16' || '' }}
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -60,7 +55,7 @@ jobs:
           --health-retries 5
     env:
       RAILS_ENV: test
-      DATABASE_URL: ${{ inputs.database_type == 'postgres' && format('postgres://postgres:postgres@localhost:5432/{0}', inputs.database_name) || '' }}
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

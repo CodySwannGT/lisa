@@ -68,8 +68,8 @@ docker compose logs otel-collector 2>/dev/null | tail -20 || echo "No otel-colle
 ```bash
 aws xray get-trace-summaries \
   --region {aws-region} \
-  --start-time $(date -v-30M -u +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+  --start-time $(ruby -r time -e 'puts (Time.now.utc - 30 * 60).iso8601') \
+  --end-time $(ruby -r time -e 'puts Time.now.utc.iso8601') \
   --query 'TraceSummaries | length(@)' \
   --output text
 ```
@@ -79,8 +79,8 @@ aws xray get-trace-summaries \
 ```bash
 aws xray get-trace-summaries \
   --region {aws-region} \
-  --start-time $(date -v-30M -u +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+  --start-time $(ruby -r time -e 'puts (Time.now.utc - 30 * 60).iso8601') \
+  --end-time $(ruby -r time -e 'puts Time.now.utc.iso8601') \
   --filter-expression "service(\"{service-name}\")" \
   --query 'TraceSummaries[:10].{TraceId:Id,Duration:Duration,StatusCode:Http.HttpStatus,URL:Http.HttpURL,ResponseTime:ResponseTime}' \
   --output table
@@ -91,8 +91,8 @@ aws xray get-trace-summaries \
 ```bash
 aws xray get-trace-summaries \
   --region {aws-region} \
-  --start-time $(date -v-1H -u +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+  --start-time $(ruby -r time -e 'puts (Time.now.utc - 3600).iso8601') \
+  --end-time $(ruby -r time -e 'puts Time.now.utc.iso8601') \
   --filter-expression "service(\"{service-name}\") AND fault = true" \
   --query 'TraceSummaries[:10].{TraceId:Id,Duration:Duration,StatusCode:Http.HttpStatus,URL:Http.HttpURL}' \
   --output table
@@ -113,8 +113,8 @@ aws xray batch-get-traces \
 ```bash
 aws xray get-service-graph \
   --region {aws-region} \
-  --start-time $(date -v-1H -u +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+  --start-time $(ruby -r time -e 'puts (Time.now.utc - 3600).iso8601') \
+  --end-time $(ruby -r time -e 'puts Time.now.utc.iso8601') \
   --query 'Services[].{Name:Name,Type:Type,Edges:Edges[].{Ref:ReferenceId,Latency:ResponseTimeHistogram[0].Average}}' \
   --output table
 ```
@@ -138,8 +138,8 @@ aws cloudwatch get-metric-statistics \
   --region {aws-region} \
   --namespace "{app_name}" \
   --metric-name "{metric-name}" \
-  --start-time $(date -v-1H -u +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+  --start-time $(ruby -r time -e 'puts (Time.now.utc - 3600).iso8601') \
+  --end-time $(ruby -r time -e 'puts Time.now.utc.iso8601') \
   --period 300 \
   --statistics Average Sum \
   --output table

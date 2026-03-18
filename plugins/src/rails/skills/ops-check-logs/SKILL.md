@@ -106,7 +106,7 @@ aws logs describe-log-groups \
 aws logs filter-log-events \
   --region {aws-region} \
   --log-group-name "{log-group}" \
-  --start-time $(date -v-30M +%s000) \
+  --start-time $(( ($(date +%s) - 1800) * 1000 )) \
   --filter-pattern "ERROR" \
   --query 'events[].message' \
   --output text
@@ -118,7 +118,7 @@ aws logs filter-log-events \
 aws logs filter-log-events \
   --region {aws-region} \
   --log-group-name "{log-group}" \
-  --start-time $(date -v-30M +%s000) \
+  --start-time $(( ($(date +%s) - 1800) * 1000 )) \
   --filter-pattern '"status=500"' \
   --query 'events[].message' \
   --output text
@@ -130,7 +130,7 @@ aws logs filter-log-events \
 aws logs filter-log-events \
   --region {aws-region} \
   --log-group-name "{log-group}" \
-  --start-time $(date -v-1H +%s000) \
+  --start-time $(( ($(date +%s) - 3600) * 1000 )) \
   --filter-pattern '"duration" "1000"' \
   --query 'events[].message' \
   --output text
@@ -151,8 +151,8 @@ aws logs tail "{log-group}" \
 aws logs filter-log-events \
   --region {aws-region} \
   --log-group-name "{log-group}" \
-  --start-time $(date -j -f "%Y-%m-%dT%H:%M:%S" "{start-time}" +%s000) \
-  --end-time $(date -j -f "%Y-%m-%dT%H:%M:%S" "{end-time}" +%s000) \
+  --start-time $(date -d "{start-time}" +%s000) \
+  --end-time $(date -d "{end-time}" +%s000) \
   --query 'events[].message' \
   --output text
 ```

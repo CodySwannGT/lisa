@@ -20,7 +20,7 @@ Deploy the Rails application to remote environments.
 
 1. Read `config/deploy.yml` to discover the Kamal configuration: service name, registry, image, servers, accessories
 2. Read `config/deploy.staging.yml` and `config/deploy.production.yml` for environment-specific overrides
-3. Read `.env.staging` and `.env.production` (or their SSM equivalents) for environment variables
+3. Verify the specific environment-variable keys needed for the deploy are present in `.env.staging` / `.env.production` (or in SSM) without printing secret values
 4. Read `Dockerfile` to understand the Docker build stages
 
 ## CI/CD Path (Preferred)

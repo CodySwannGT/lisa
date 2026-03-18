@@ -4,7 +4,7 @@
 # =============================================================================
 # RuboCop Lint-and-Format-on-Edit Hook (PostToolUse - Write|Edit)
 # =============================================================================
-# Runs RuboCop -A (autocorrect) on each edited Ruby file, then checks for
+# Runs RuboCop -a (safe autocorrect) on each edited Ruby file, then checks for
 # remaining unfixable errors. RuboCop serves as both formatter and linter
 # for Ruby, so this single hook replaces the Prettier + ESLint pipeline.
 #
@@ -52,10 +52,10 @@ if [ ! -f "Gemfile" ]; then
 fi
 
 # Run RuboCop autocorrect — fail only on errors (not warnings/conventions)
-echo "Running RuboCop -A on: $FILE_PATH"
+echo "Running RuboCop on: $FILE_PATH"
 
-# First pass: attempt auto-correct with safe cops
-OUTPUT=$(bundle exec rubocop -A --fail-level E "$FILE_PATH" 2>&1)
+# First pass: attempt safe auto-correct
+OUTPUT=$(bundle exec rubocop -a --fail-level E "$FILE_PATH" 2>&1)
 FIX_EXIT=$?
 
 if [ $FIX_EXIT -eq 0 ]; then
