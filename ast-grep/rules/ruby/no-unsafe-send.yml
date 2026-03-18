@@ -1,11 +1,11 @@
 id: no-unsafe-send
 language: ruby
 severity: error
-message: "Avoid using send/public_send with dynamic input — this can execute arbitrary methods. Use a whitelist or case statement instead."
+message: 'Avoid using send/public_send with dynamic input — this can execute arbitrary methods. Use a whitelist or case statement instead.'
 rule:
   any:
     - pattern: send($ARG)
     - pattern: public_send($ARG)
     - pattern: $OBJ.send($ARG)
     - pattern: $OBJ.public_send($ARG)
-note: "If intentional, extract the method name into a constant whitelist and validate before calling."
+note: 'If intentional, extract the method name into a constant whitelist and validate before calling.'

@@ -1,7 +1,7 @@
 id: no-raw-sql-in-where
 language: ruby
 severity: error
-message: "Avoid string interpolation in where clauses — use parameterized queries to prevent SQL injection."
+message: 'Avoid string interpolation in where clauses — use parameterized queries to prevent SQL injection.'
 rule:
   pattern: where("$$$")
 note: "Use `where('column = ?', value)` or `where(column: value)` instead."

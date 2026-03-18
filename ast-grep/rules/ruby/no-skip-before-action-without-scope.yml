@@ -1,12 +1,12 @@
 id: no-skip-before-action-without-scope
 language: ruby
 severity: warning
-message: "skip_before_action without :only or :except skips the filter for all actions — scope it to specific actions."
+message: 'skip_before_action without :only or :except skips the filter for all actions — scope it to specific actions.'
 rule:
   pattern: skip_before_action $NAME
   not:
     has:
       any:
-        - pattern: "only: $$$"
-        - pattern: "except: $$$"
-note: "Use `skip_before_action :name, only: [:action1, :action2]` to limit scope."
+        - pattern: 'only: $$$'
+        - pattern: 'except: $$$'
+note: 'Use `skip_before_action :name, only: [:action1, :action2]` to limit scope.'
