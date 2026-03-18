@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.61.0](https://github.com/CodySwannGT/lisa/compare/vv1.60.7...v1.61.0) (2026-03-18)
+
+
+### Features
+
+* add configurable coverage_increment input to nightly test coverage workflow ([#293](https://github.com/CodySwannGT/lisa/issues/293)) ([ac02e50](https://github.com/CodySwannGT/lisa/commit/ac02e508f039f9d4848a4f3f57f5d7ff2a0fbe28))
+
 ### [1.60.7](https://github.com/CodySwannGT/lisa/compare/vv1.60.6...v1.60.7) (2026-03-18)
 
 
