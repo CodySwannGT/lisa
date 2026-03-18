@@ -9,6 +9,9 @@
 # - Tests (RSpec with PostgreSQL or MySQL)
 # - Code quality (Reek, Flog, Flay)
 # - Secret detection (GitGuardian)
+# - AST pattern scanning (ast-grep)
+# - License compliance (FOSSA)
+# - DAST scanning (OWASP ZAP)
 #
 # Example usage in another workflow:
 # ```yaml
@@ -18,8 +21,10 @@
 #     database_type: 'postgres'
 #     database_name: 'test'
 #     skip_jobs: 'code_quality,secret_scanning'
+#     zap_target_url: 'http://localhost:3000'
 #   secrets:
 #     GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+#     FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
 # ```
 
 name: 🔍 Rails Quality Checks
@@ -38,12 +43,24 @@ on:
         type: string
         default: 'test'
       skip_jobs:
-        description: 'Comma-separated list of jobs to skip (lint, security, test, code_quality, secret_scanning)'
+        description: 'Comma-separated list of jobs to skip (lint, security, test, code_quality, secret_scanning, sg_scan, license_compliance, zap_baseline)'
         required: false
         type: string
         default: ''
+      zap_target_url:
+        description: 'Target URL for OWASP ZAP baseline scan (leave empty to skip ZAP)'
+        required: false
+        type: string
+        default: ''
+      zap_rules_file:
+        description: 'Path to ZAP rules configuration file'
+        required: false
+        type: string
+        default: '.zap/baseline.conf'
     secrets:
       GITGUARDIAN_API_KEY:
+        required: false
+      FOSSA_API_KEY:
         required: false
 
 permissions:
@@ -199,10 +216,10 @@ jobs:
         id: check_gitguardian
         run: |
           if [[ -z "${GITGUARDIAN_API_KEY// }" ]]; then
-            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
             echo "⚠️ GITGUARDIAN_API_KEY is not configured"
           else
-            echo "has_token=true" >> $GITHUB_OUTPUT
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
             echo "✅ GITGUARDIAN_API_KEY is available"
           fi
         env:
@@ -221,3 +238,129 @@ jobs:
         run: |
           echo "::warning::GitGuardian secret detection skipped - GITGUARDIAN_API_KEY not configured"
           echo "To enable secret detection, add GITGUARDIAN_API_KEY to your repository secrets"
+
+  sg_scan:
+    name: 🔎 AST Grep Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ !contains(inputs.skip_jobs, 'sg_scan') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Install ast-grep
+        run: npm install -g @ast-grep/cli@0.40.4
+
+      - name: 🔍 Check for sgconfig.yml
+        id: check_config
+        run: |
+          if [ -f "sgconfig.yml" ]; then
+            echo "has_config=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_config=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🔍 Check for ast-grep rules
+        id: check_rules
+        if: steps.check_config.outputs.has_config == 'true'
+        run: |
+          RULES_DIR="ast-grep/rules"
+          if [ -d "$RULES_DIR" ]; then
+            RULE_COUNT=$(find "$RULES_DIR" -name "*.yml" -o -name "*.yaml" 2>/dev/null | grep -cv ".gitkeep")
+            if [ "$RULE_COUNT" -gt 0 ]; then
+              echo "has_rules=true" >> "$GITHUB_OUTPUT"
+              echo "rule_count=$RULE_COUNT" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_rules=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "has_rules=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🔎 Run ast-grep scan
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules == 'true'
+        run: sg scan
+
+      - name: ⏭️ AST Grep Skipped (no config)
+        if: steps.check_config.outputs.has_config != 'true'
+        run: |
+          echo "::warning::ast-grep scan skipped - no sgconfig.yml found"
+          echo "To enable ast-grep scanning, add sgconfig.yml to your project root"
+
+      - name: ⏭️ AST Grep Skipped (no rules)
+        if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules != 'true'
+        run: |
+          echo "::warning::ast-grep scan skipped - no rules defined in ast-grep/rules/"
+          echo "To enable ast-grep scanning, add rule YAML files to ast-grep/rules/"
+
+  license_compliance:
+    name: 📜 FOSSA License Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !contains(inputs.skip_jobs, 'license_compliance') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check for FOSSA API key
+        id: check_fossa
+        run: |
+          if [[ -z "${FOSSA_API_KEY// }" ]]; then
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ FOSSA_API_KEY is not configured"
+          else
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+            echo "✅ FOSSA_API_KEY is available"
+          fi
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+
+      - name: 📜 Run FOSSA license scan
+        if: steps.check_fossa.outputs.has_token == 'true'
+        uses: fossas/fossa-action@v1.8.0
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+
+      - name: 📜 FOSSA Scan Skipped
+        if: steps.check_fossa.outputs.has_token != 'true'
+        run: |
+          echo "::warning::FOSSA license compliance check skipped - FOSSA_API_KEY not configured"
+          echo "To enable license compliance checking, add FOSSA_API_KEY to your repository secrets"
+
+  zap_baseline:
+    name: 🕷️ OWASP ZAP Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ !contains(inputs.skip_jobs, 'zap_baseline') && inputs.zap_target_url != '' }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check for ZAP rules file
+        id: check_rules
+        run: |
+          if [ -f "${{ inputs.zap_rules_file }}" ]; then
+            echo "has_rules=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_rules=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🕷️ Run ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ inputs.zap_target_url }}
+          rules_file_name: ${{ steps.check_rules.outputs.has_rules == 'true' && inputs.zap_rules_file || '' }}
+          fail_action: false
+          allow_issue_writing: false
+          artifact_name: 'zap-report'
+
+      - name: 📤 Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report-${{ github.run_id }}
+          path: |
+            zap-report.html
+            zap-report.json
+            zap-report.md
+          retention-days: 14

@@ -1,9 +1,18 @@
 # frozen_string_literal: true
 
+require 'json'
+
+thresholds_path = File.join(File.dirname(__FILE__), 'simplecov.thresholds.json')
+thresholds = if File.exist?(thresholds_path)
+               JSON.parse(File.read(thresholds_path))
+             else
+               { 'line' => 80, 'branch' => 70 }
+             end
+
 SimpleCov.start 'rails' do
   enable_coverage :branch
 
-  minimum_coverage line: 80, branch: 70
+  minimum_coverage line: thresholds['line'], branch: thresholds['branch']
 
   add_group 'Models', 'app/models'
   add_group 'Controllers', 'app/controllers'

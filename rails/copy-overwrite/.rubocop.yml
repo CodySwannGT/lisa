@@ -1,4 +1,6 @@
-inherit_from: .rubocop.local.yml
+inherit_from:
+  - rubocop.thresholds.yml
+  - .rubocop.local.yml
 
 plugins:
   - rubocop-rails
@@ -20,15 +22,3 @@ AllCops:
     - 'vendor/**/*'
     - 'node_modules/**/*'
     - 'tmp/**/*'
-
-Metrics/MethodLength:
-  Max: 20
-
-Metrics/ClassLength:
-  Max: 200
-
-Metrics/AbcSize:
-  Max: 25
-
-Metrics/CyclomaticComplexity:
-  Max: 10

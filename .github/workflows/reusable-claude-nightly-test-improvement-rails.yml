@@ -1,0 +1,196 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Test Improvement - Rails (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'Analysis mode (nightly or general)'
+        required: false
+        type: string
+        default: 'nightly'
+      ruby_version:
+        description: 'Ruby version to use'
+        required: false
+        default: '3.4.8'
+        type: string
+      auto_merge:
+        description: 'Enable auto-merge on created PRs (requires repo auto-merge setting enabled)'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+
+jobs:
+  improve-tests:
+    if: vars.ENABLE_CLAUDE_NIGHTLY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby_version }}
+          bundler-cache: true
+
+      - name: Determine mode
+        id: mode
+        run: echo "value=${{ inputs.mode || 'nightly' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Detect changed files (nightly mode)
+        id: changes
+        if: steps.mode.outputs.value == 'nightly'
+        run: |
+          CHANGED_FILES=$(git log --since="24 hours ago" --name-only --pretty=format:"" -- '*.rb' | sort -u | grep -v '^\s*$' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No Ruby files changed in the last 24 hours."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            echo "files<<$EOF" >> "$GITHUB_OUTPUT"
+            echo "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+            echo "$EOF" >> "$GITHUB_OUTPUT"
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+          fi
+
+      - name: Check for existing PR
+        if: steps.changes.outputs.skip != 'true'
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = pulls.data.find(pr =>
+              pr.head.ref.startsWith('claude/nightly-test-improvement-')
+            );
+            core.setOutput('has_existing_pr', existing ? 'true' : 'false');
+            if (existing) {
+              console.log(`Found existing PR: #${existing.number} - ${existing.title}`);
+            }
+
+      - name: Run Claude Code to improve tests (nightly)
+        id: claude-nightly
+        if: |
+          steps.mode.outputs.value == 'nightly' &&
+          steps.changes.outputs.skip != 'true' &&
+          steps.check-pr.outputs.has_existing_pr != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          branch_prefix: claude/nightly-test-improvement-
+          prompt: |
+            Analyze and improve RSpec tests related to recently changed Ruby source files.
+
+            The following Ruby files were changed in the last 24 hours:
+            ${{ steps.changes.outputs.files }}
+
+            Instructions:
+            1. Read CLAUDE.md and Gemfile for project conventions
+            2. For each changed source file above, find its corresponding spec file(s) (typically in spec/ mirroring the app/ structure)
+            3. Analyze those spec files for: missing edge cases, weak assertions (be_truthy instead of specific matchers), missing error path coverage, tests that test implementation rather than behavior, missing context blocks for different scenarios
+            4. Improve the spec files with the most impactful changes
+            5. Run `bundle exec rspec` to verify all tests pass
+            6. Commit changes with conventional commit messages
+            7. Create a PR with `gh pr create` summarizing what was improved and why
+            8. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+                a. Note the advisory ID, affected gem, and advisory URL from the error output
+                b. Check if a patched version of the vulnerable gem exists
+                c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
+                d. If no patched version exists and the vulnerability is safe for this project, document the exception and retry the push
+                e. Never use --no-verify to bypass the security audit
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
+            --max-turns 40
+            --system-prompt "You are improving RSpec test quality for recently changed files in a Rails project. Read CLAUDE.md for project rules. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing. Use specific matchers (eq, include, match_array) over generic ones (be_truthy, be_falsy)."
+
+      - name: Run Claude Code to improve tests (general)
+        id: claude-general
+        if: |
+          steps.mode.outputs.value == 'general' &&
+          steps.check-pr.outputs.has_existing_pr != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          branch_prefix: claude/nightly-test-improvement-
+          prompt: |
+            Analyze the RSpec test suite and improve test quality.
+
+            Instructions:
+            1. Read CLAUDE.md and Gemfile for project conventions
+            2. Scan the spec files to find weak, brittle, or poorly-written tests
+            3. Look for: missing edge cases, weak assertions (be_truthy instead of specific matchers), missing error path coverage, tests that test implementation rather than behavior, missing context blocks for different scenarios, excessive mocking that hides bugs
+            4. Improve 3-5 spec files with the most impactful changes
+            5. Run `bundle exec rspec` to verify all tests pass
+            6. Commit changes with conventional commit messages
+            7. Create a PR with `gh pr create` summarizing what was improved and why
+            8. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+                a. Note the advisory ID, affected gem, and advisory URL from the error output
+                b. Check if a patched version of the vulnerable gem exists
+                c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
+                d. If no patched version exists and the vulnerability is safe for this project, document the exception and retry the push
+                e. Never use --no-verify to bypass the security audit
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
+            --max-turns 40
+            --system-prompt "You are improving RSpec test quality in a Rails project. Read CLAUDE.md for project rules. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing. Use specific matchers (eq, include, match_array) over generic ones (be_truthy, be_falsy)."
+
+      - name: Trigger CodeRabbit review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude-nightly.outputs.branch_name || steps.claude-general.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping CodeRabbit trigger."
+            exit 0
+          fi
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "@coderabbitai review"
+            echo "Triggered CodeRabbit review on PR #$PR_NUMBER"
+          fi
+
+      - name: Enable auto-merge
+        if: inputs.auto_merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude-nightly.outputs.branch_name || steps.claude-general.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping auto-merge."
+            exit 0
+          fi
+          PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          if [ -n "$PR_URL" ]; then
+            gh pr merge "$PR_URL" --auto --squash && echo "Auto-merge enabled for $PR_URL" || echo "Auto-merge not available for this repo — skipping."
+          else
+            echo "No open PR found for branch $BRANCH."
+          fi

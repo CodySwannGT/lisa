@@ -1,0 +1,17 @@
+# RuboCop complexity thresholds — nightly workflows adjust these programmatically.
+# This file is create-only: Lisa won't overwrite it after initial setup.
+
+Metrics/MethodLength:
+  Max: 20
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/AbcSize:
+  Max: 25
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/PerceivedComplexity:
+  Max: 10

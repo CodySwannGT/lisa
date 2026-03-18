@@ -1,0 +1,32 @@
+# This file was created by Lisa on first setup.
+# You can customize this file — Lisa will not overwrite it.
+
+name: Claude Nightly Test Improvement
+
+on:
+  schedule:
+    - cron: '0 3 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Analysis mode'
+        required: true
+        default: 'nightly'
+        type: choice
+        options:
+          - nightly
+          - general
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  improve-tests:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-test-improvement-rails.yml@main
+    with:
+      mode: ${{ github.event.inputs.mode || 'nightly' }}
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

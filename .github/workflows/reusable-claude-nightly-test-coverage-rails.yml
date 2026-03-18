@@ -1,0 +1,223 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Test Coverage - Rails (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      ruby_version:
+        description: 'Ruby version to use'
+        required: false
+        default: '3.4.8'
+        type: string
+      coverage_increment:
+        description: 'Percentage points to increase coverage thresholds per run (lower for large gaps)'
+        required: false
+        default: 5
+        type: number
+      auto_merge:
+        description: 'Enable auto-merge on created PRs (requires repo auto-merge setting enabled)'
+        required: false
+        default: true
+        type: boolean
+      database_name:
+        description: 'Database name for Rails tests'
+        required: false
+        default: 'test'
+        type: string
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+
+jobs:
+  improve-coverage:
+    if: vars.ENABLE_CLAUDE_NIGHTLY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.database_name }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby_version }}
+          bundler-cache: true
+
+      - name: Setup database
+        run: |
+          bundle exec rails db:create db:schema:load || bundle exec rails db:migrate
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = pulls.data.find(pr =>
+              pr.head.ref.startsWith('claude/nightly-test-coverage-')
+            );
+            core.setOutput('has_existing_pr', existing ? 'true' : 'false');
+            if (existing) {
+              console.log(`Found existing PR: #${existing.number} - ${existing.title}`);
+            }
+
+      - name: Read coverage thresholds
+        if: steps.check-pr.outputs.has_existing_pr != 'true'
+        id: thresholds
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'simplecov.thresholds.json';
+
+            if (!fs.existsSync(path)) {
+              core.setOutput('all_at_target', 'true');
+              console.log('simplecov.thresholds.json not found, skipping.');
+              return;
+            }
+
+            const thresholds = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const metrics = ['line', 'branch'];
+            const target = 90;
+            const increment = ${{ inputs.coverage_increment }};
+
+            const current = {};
+            const proposed = {};
+            const bumps = [];
+
+            for (const metric of metrics) {
+              const value = thresholds[metric] ?? 0;
+              current[metric] = value;
+              if (value < target) {
+                const newValue = Math.min(value + increment, target);
+                proposed[metric] = newValue;
+                bumps.push(`${metric} ${value}% -> ${newValue}%`);
+              } else {
+                proposed[metric] = value;
+              }
+            }
+
+            if (bumps.length === 0) {
+              core.setOutput('all_at_target', 'true');
+              console.log('All coverage metrics are already at or above 90%. Skipping.');
+              return;
+            }
+
+            core.setOutput('all_at_target', 'false');
+            core.setOutput('current', JSON.stringify(current));
+            core.setOutput('proposed', JSON.stringify(proposed));
+            core.setOutput('bumps', bumps.join(', '));
+            console.log(`Current thresholds: ${JSON.stringify(current)}`);
+            console.log(`Proposed thresholds: ${JSON.stringify(proposed)}`);
+            console.log(`Metrics to bump: ${bumps.join(', ')}`);
+
+      - name: Run Claude Code to improve coverage
+        id: claude
+        if: |
+          steps.check-pr.outputs.has_existing_pr != 'true' &&
+          steps.thresholds.outputs.all_at_target != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          branch_prefix: claude/nightly-test-coverage-
+          prompt: |
+            Increase test coverage thresholds for this Rails project.
+
+            Current coverage thresholds in simplecov.thresholds.json:
+            ${{ steps.thresholds.outputs.current }}
+
+            Proposed new thresholds (each metric increased by ${{ inputs.coverage_increment }}%, capped at 90%):
+            ${{ steps.thresholds.outputs.proposed }}
+
+            Metrics being bumped: ${{ steps.thresholds.outputs.bumps }}
+
+            Instructions:
+            1. Read CLAUDE.md and Gemfile for project conventions
+            2. FIRST, run `bundle exec rspec` to get the coverage report — SimpleCov will generate coverage output telling you exactly which files have low coverage and where the gaps are. Do NOT read source files before this step.
+            3. Parse the coverage output to identify the specific files and lines with the lowest coverage. Check `coverage/index.html` or the console output. Prioritize files with the most uncovered lines/branches.
+            4. ONLY THEN read the specific source files that need tests — read only the uncovered sections, not entire files. Use the coverage report line numbers to target your reads.
+            5. Write new RSpec tests to increase coverage enough to meet the proposed thresholds. Focus on the metrics being bumped — write tests that cover untested branches, statements, and lines. Follow RSpec conventions (describe/context/it blocks, let/before, FactoryBot factories).
+            6. Run `bundle exec rspec` to verify the new thresholds pass
+            7. Update simplecov.thresholds.json with the proposed new threshold values
+            8. Run `bundle exec rspec` again to confirm the updated thresholds pass
+            9. Commit all changes (new specs + updated simplecov.thresholds.json) with conventional commit messages
+            10. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
+            11. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+                a. Note the advisory ID, affected gem, and advisory URL from the error output
+                b. Check if a patched version of the vulnerable gem exists
+                c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
+                d. If no patched version exists and the vulnerability is safe for this project, document the exception and retry the push
+                e. Never use --no-verify to bypass the security audit
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
+            --max-turns 40
+            --system-prompt "You are improving test coverage to meet higher thresholds in a Rails project. Read CLAUDE.md for project rules. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update simplecov.thresholds.json with the new values after tests pass. CRITICAL: Always run bundle exec rspec FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
+
+      - name: Trigger CodeRabbit review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping CodeRabbit trigger."
+            exit 0
+          fi
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "@coderabbitai review"
+            echo "Triggered CodeRabbit review on PR #$PR_NUMBER"
+          fi
+
+      - name: Enable auto-merge
+        if: inputs.auto_merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping auto-merge."
+            exit 0
+          fi
+          PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          if [ -n "$PR_URL" ]; then
+            gh pr merge "$PR_URL" --auto --squash && echo "Auto-merge enabled for $PR_URL" || echo "Auto-merge not available for this repo — skipping."
+          else
+            echo "No open PR found for branch $BRANCH."
+          fi
