@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.62.0](https://github.com/CodySwannGT/lisa/compare/vv1.61.0...v1.62.0) (2026-03-18)
+
+
+### Features
+
+* implement Rails parity with TypeScript ecosystem ([#294](https://github.com/CodySwannGT/lisa/issues/294)) ([dd0243b](https://github.com/CodySwannGT/lisa/commit/dd0243b6ec76fe7e8af0d0a6a142c419c414f865))
+
 ## [1.61.0](https://github.com/CodySwannGT/lisa/compare/vv1.60.7...v1.61.0) (2026-03-18)
 
 
