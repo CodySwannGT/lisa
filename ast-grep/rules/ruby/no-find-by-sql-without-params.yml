@@ -1,0 +1,7 @@
+id: no-find-by-sql-without-params
+language: ruby
+severity: error
+message: "find_by_sql with string interpolation is a SQL injection risk. Use parameterized queries."
+rule:
+  pattern: find_by_sql("$$$")
+note: 'Use `find_by_sql(["SELECT * FROM table WHERE id = ?", id])` with array syntax.'

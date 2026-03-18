@@ -1,0 +1,29 @@
+# This file was created by Lisa on first setup.
+# You can customize this file — Lisa will not overwrite it.
+
+name: Claude Nightly Test Coverage
+
+on:
+  schedule:
+    - cron: '0 4 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      coverage_increment:
+        description: 'Percentage points to increase coverage per run'
+        required: false
+        default: 5
+        type: number
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  improve-coverage:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-test-coverage-rails.yml@main
+    with:
+      coverage_increment: ${{ github.event.inputs.coverage_increment || 5 }}
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

@@ -13,3 +13,4 @@ jobs:
     uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main
     secrets:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}

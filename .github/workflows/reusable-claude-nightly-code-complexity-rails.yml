@@ -1,0 +1,231 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+name: Claude Nightly Code Complexity - Rails (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      ruby_version:
+        description: 'Ruby version to use'
+        required: false
+        default: '3.4.8'
+        type: string
+      auto_merge:
+        description: 'Enable auto-merge on created PRs (requires repo auto-merge setting enabled)'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+
+jobs:
+  reduce-complexity:
+    if: vars.ENABLE_CLAUDE_NIGHTLY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby_version }}
+          bundler-cache: true
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = pulls.data.find(pr =>
+              pr.head.ref.startsWith('claude/nightly-code-complexity-')
+            );
+            core.setOutput('has_existing_pr', existing ? 'true' : 'false');
+            if (existing) {
+              console.log(`Found existing PR: #${existing.number} - ${existing.title}`);
+            }
+
+      - name: Read complexity thresholds
+        if: steps.check-pr.outputs.has_existing_pr != 'true'
+        id: thresholds
+        run: |
+          THRESHOLDS_FILE="rubocop.thresholds.yml"
+
+          if [ ! -f "$THRESHOLDS_FILE" ]; then
+            echo "all_at_target=true" >> "$GITHUB_OUTPUT"
+            echo "rubocop.thresholds.yml not found, skipping."
+            exit 0
+          fi
+
+          # Parse current values from YAML using grep/sed
+          METHOD_LENGTH=$(grep -A1 'Metrics/MethodLength' "$THRESHOLDS_FILE" | grep 'Max:' | sed 's/.*Max: *//')
+          CLASS_LENGTH=$(grep -A1 'Metrics/ClassLength' "$THRESHOLDS_FILE" | grep 'Max:' | sed 's/.*Max: *//')
+          ABC_SIZE=$(grep -A1 'Metrics/AbcSize' "$THRESHOLDS_FILE" | grep 'Max:' | sed 's/.*Max: *//')
+          CYCLOMATIC=$(grep -A1 'Metrics/CyclomaticComplexity' "$THRESHOLDS_FILE" | grep 'Max:' | sed 's/.*Max: *//')
+          PERCEIVED=$(grep -A1 'Metrics/PerceivedComplexity' "$THRESHOLDS_FILE" | grep 'Max:' | sed 's/.*Max: *//')
+
+          # Define targets and decrements
+          # MethodLength: target 10, decrement 2
+          # AbcSize: target 15, decrement 2
+          # CyclomaticComplexity: target 7, decrement 1
+          # PerceivedComplexity: target 7, decrement 1
+
+          REDUCTIONS=""
+          ALL_AT_TARGET="true"
+
+          calculate_proposed() {
+            local name="$1" current="$2" target="$3" decrement="$4"
+            if [ -z "$current" ]; then
+              echo ""
+              return
+            fi
+            if [ "$current" -gt "$target" ]; then
+              local proposed=$((current - decrement))
+              if [ "$proposed" -lt "$target" ]; then
+                proposed=$target
+              fi
+              echo "$proposed"
+            else
+              echo "$current"
+            fi
+          }
+
+          PROPOSED_METHOD_LENGTH=$(calculate_proposed "MethodLength" "$METHOD_LENGTH" 10 2)
+          PROPOSED_ABC_SIZE=$(calculate_proposed "AbcSize" "$ABC_SIZE" 15 2)
+          PROPOSED_CYCLOMATIC=$(calculate_proposed "CyclomaticComplexity" "$CYCLOMATIC" 7 1)
+          PROPOSED_PERCEIVED=$(calculate_proposed "PerceivedComplexity" "$PERCEIVED" 7 1)
+
+          # Build current and proposed JSON objects
+          CURRENT="{}"
+          PROPOSED="{}"
+
+          add_metric() {
+            local key="$1" current="$2" proposed="$3" target="$4"
+            if [ -n "$current" ]; then
+              CURRENT=$(echo "$CURRENT" | jq --arg k "$key" --argjson v "$current" '. + {($k): $v}')
+              PROPOSED=$(echo "$PROPOSED" | jq --arg k "$key" --argjson v "$proposed" '. + {($k): $v}')
+              if [ "$current" -ne "$proposed" ]; then
+                ALL_AT_TARGET="false"
+                if [ -n "$REDUCTIONS" ]; then
+                  REDUCTIONS="$REDUCTIONS, "
+                fi
+                REDUCTIONS="${REDUCTIONS}${key} ${current} -> ${proposed}"
+              fi
+            fi
+          }
+
+          add_metric "MethodLength" "$METHOD_LENGTH" "$PROPOSED_METHOD_LENGTH" 10
+          add_metric "AbcSize" "$ABC_SIZE" "$PROPOSED_ABC_SIZE" 15
+          add_metric "CyclomaticComplexity" "$CYCLOMATIC" "$PROPOSED_CYCLOMATIC" 7
+          add_metric "PerceivedComplexity" "$PERCEIVED" "$PROPOSED_PERCEIVED" 7
+
+          echo "all_at_target=$ALL_AT_TARGET" >> "$GITHUB_OUTPUT"
+
+          if [ "$ALL_AT_TARGET" = "true" ]; then
+            echo "All complexity metrics are already at or below targets. Skipping."
+            exit 0
+          fi
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "proposed=$PROPOSED" >> "$GITHUB_OUTPUT"
+          echo "reductions=$REDUCTIONS" >> "$GITHUB_OUTPUT"
+          echo "Current thresholds: $CURRENT"
+          echo "Proposed thresholds: $PROPOSED"
+          echo "Metrics to reduce: $REDUCTIONS"
+
+      - name: Run Claude Code to reduce complexity
+        id: claude
+        if: |
+          steps.check-pr.outputs.has_existing_pr != 'true' &&
+          steps.thresholds.outputs.all_at_target != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          branch_prefix: claude/nightly-code-complexity-
+          prompt: |
+            Reduce code complexity thresholds for this Rails project.
+
+            Current complexity thresholds in rubocop.thresholds.yml:
+            ${{ steps.thresholds.outputs.current }}
+
+            Proposed new thresholds (each metric decreased toward target minimums):
+            ${{ steps.thresholds.outputs.proposed }}
+
+            Metrics being reduced: ${{ steps.thresholds.outputs.reductions }}
+
+            Instructions:
+            1. Read CLAUDE.md and Gemfile for project conventions
+            2. Update rubocop.thresholds.yml with the proposed new threshold values (do NOT change ClassLength — it is not included in nightly reductions)
+            3. Run `bundle exec rubocop` to find methods/classes that violate the new stricter thresholds
+            4. For MethodLength violations: extract private methods, use service objects, split concerns
+            5. For AbcSize violations: simplify conditionals, extract methods, reduce assignments
+            6. For CyclomaticComplexity violations: use early returns, replace conditionals with polymorphism or lookup tables
+            7. For PerceivedComplexity violations: simplify nested conditionals, extract guard clauses
+            8. Run `bundle exec rubocop` to verify all violations are resolved
+            9. Run `bundle exec rspec` to verify no tests are broken by the refactoring
+            10. Commit all changes (refactored code + updated rubocop.thresholds.yml) with conventional commit messages
+            11. Create a PR with `gh pr create` with a title like "refactor: reduce code complexity: ${{ steps.thresholds.outputs.reductions }}" summarizing the changes
+            12. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+                a. Note the advisory ID, affected gem, and advisory URL from the error output
+                b. Check if a patched version of the vulnerable gem exists
+                c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
+                d. If no patched version exists and the vulnerability is safe for this project, document the exception and retry the push
+                e. Never use --no-verify to bypass the security audit
+          claude_args: |
+            --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
+            --max-turns 40
+            --system-prompt "You are reducing code complexity to meet stricter RuboCop thresholds in a Rails project. Read CLAUDE.md for project rules. Refactor methods to reduce complexity metrics. Use early returns, extract service objects, use polymorphism, and simplify conditionals. Follow Rails conventions: skinny controllers, fat models (but not too fat — use service objects), concerns for shared behavior. You must update rubocop.thresholds.yml with the new values after refactoring passes rubocop. IMPORTANT: Always use bundle exec to run project commands."
+
+      - name: Trigger CodeRabbit review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping CodeRabbit trigger."
+            exit 0
+          fi
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "@coderabbitai review"
+            echo "Triggered CodeRabbit review on PR #$PR_NUMBER"
+          fi
+
+      - name: Enable auto-merge
+        if: inputs.auto_merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.claude.outputs.branch_name }}"
+          if [ -z "$BRANCH" ]; then
+            BRANCH=$(git branch --show-current)
+          fi
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "No feature branch detected — skipping auto-merge."
+            exit 0
+          fi
+          PR_URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || echo "")
+          if [ -n "$PR_URL" ]; then
+            gh pr merge "$PR_URL" --auto --squash && echo "Auto-merge enabled for $PR_URL" || echo "Auto-merge not available for this repo — skipping."
+          else
+            echo "No open PR found for branch $BRANCH."
+          fi
