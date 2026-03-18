@@ -16,6 +16,11 @@ on:
         required: false
         default: 'npm'
         type: string
+      coverage_increment:
+        description: 'Percentage points to increase coverage thresholds per run (lower for large gaps)'
+        required: false
+        default: 5
+        type: number
       auto_merge:
         description: 'Enable auto-merge on created PRs (requires repo auto-merge setting enabled)'
         required: false
@@ -99,7 +104,7 @@ jobs:
             const global = thresholds.global || {};
             const metrics = ['statements', 'branches', 'functions', 'lines'];
             const target = 90;
-            const increment = 5;
+            const increment = ${{ inputs.coverage_increment }};
 
             const current = {};
             const proposed = {};
@@ -147,7 +152,7 @@ jobs:
             Current coverage thresholds in jest.thresholds.json:
             ${{ steps.thresholds.outputs.current }}
 
-            Proposed new thresholds (each metric increased by 5%, capped at 90%):
+            Proposed new thresholds (each metric increased by ${{ inputs.coverage_increment }}%, capped at 90%):
             ${{ steps.thresholds.outputs.proposed }}
 
             Metrics being bumped: ${{ steps.thresholds.outputs.bumps }}
