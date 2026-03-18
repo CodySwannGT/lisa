@@ -18,6 +18,7 @@
     "@commitlint/cli",
     "@eslint/eslintrc",
     "@jest/test-sequencer",
+    "@vitest/coverage-v8",
     "esbuild-register",
     "eslint-plugin-react-hooks",
     "jscodeshift",
