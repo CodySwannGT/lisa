@@ -30,7 +30,12 @@
       "deploy:dev": "sls deploy --stage dev",
       "deploy:staging": "sls deploy --stage staging",
       "deploy:production": "sls deploy --stage production",
-      "security:zap": "bash scripts/zap-baseline.sh"
+      "security:zap": "bash scripts/zap-baseline.sh",
+      "test": "vitest run",
+      "test:unit": "vitest run --exclude='**/integration/**'",
+      "test:integration": "vitest run tests/integration",
+      "test:cov": "vitest run --coverage",
+      "test:watch": "vitest"
     },
     "dependencies": {
       "@apollo/server": "^5.2.0",
@@ -75,7 +80,9 @@
       "@types/express": "^5.0.6",
       "serverless": "^4.30.0",
       "serverless-esbuild": "^1.57.0",
-      "serverless-offline": "^14.4.0"
+      "serverless-offline": "^14.4.0",
+      "vitest": "^4.1.0",
+      "@vitest/coverage-v8": "^4.1.0"
     }
   }
 }
