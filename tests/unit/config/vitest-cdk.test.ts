@@ -1,3 +1,12 @@
+/**
+ * Unit tests for the CDK Vitest configuration factory.
+ *
+ * Validates that getCdkVitestConfig produces the correct environment,
+ * globals, root, include patterns, timeout, coverage settings, and
+ * threshold merging behavior.
+ *
+ * @see src/configs/vitest/cdk.ts
+ */
 import { getCdkVitestConfig } from "../../../src/configs/vitest/cdk.js";
 
 const LIB_TS_GLOB = "lib/**/*.ts";
@@ -83,6 +92,8 @@ describe("vitest.cdk", () => {
 
       expect(thresholds.statements).toBe(90);
       expect(thresholds.branches).toBe(85);
+      expect(thresholds.functions).toBe(70);
+      expect(thresholds.lines).toBe(70);
     });
   });
 });

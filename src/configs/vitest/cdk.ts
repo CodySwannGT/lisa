@@ -58,7 +58,7 @@ interface CdkVitestOptions {
  * @returns Vitest UserConfig object with node environment and CDK-specific paths
  */
 export const getCdkVitestConfig = ({
-  thresholds = defaultThresholds,
+  thresholds,
 }: CdkVitestOptions = {}): UserConfig => ({
   test: {
     globals: true,
@@ -75,7 +75,11 @@ export const getCdkVitestConfig = ({
       provider: "v8",
       include: ["lib/**/*.ts", "util/**/*.ts"],
       exclude: [...defaultCoverageExclusions],
-      thresholds: mapThresholds(thresholds),
+      thresholds: mapThresholds(
+        thresholds
+          ? mergeThresholds(defaultThresholds, thresholds)
+          : defaultThresholds
+      ),
     },
   },
 });

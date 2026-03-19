@@ -4,7 +4,7 @@
  * Re-exports config factories and utilities from each stack module,
  * allowing downstream projects to import from a single entry point.
  *
- * Note: Expo and CDK stacks remain on Jest — only TypeScript and NestJS
+ * Note: Expo remains on Jest. TypeScript, NestJS, and CDK
  * are available as Vitest configs.
  *
  * @module configs/vitest
