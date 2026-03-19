@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.65.0](https://github.com/CodySwannGT/lisa/compare/vv1.64.0...v1.65.0) (2026-03-19)
+
+
+### Features
+
+* add Vitest templates, governance, CI/CD, and plugin updates ([#297](https://github.com/CodySwannGT/lisa/issues/297)) ([c276c0d](https://github.com/CodySwannGT/lisa/commit/c276c0d479eb26d73270d9f853e0d6fe7631484b))
+
 ## [1.64.0](https://github.com/CodySwannGT/lisa/compare/vv1.63.0...v1.64.0) (2026-03-19)
 
 
