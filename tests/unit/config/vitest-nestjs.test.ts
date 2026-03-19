@@ -1,4 +1,3 @@
-import { describe, it, expect } from "@jest/globals";
 import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
 
 const SPEC_GLOB = "**/*.spec.ts";
