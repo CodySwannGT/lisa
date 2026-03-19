@@ -32,7 +32,10 @@
     ".github/workflows/lighthouse.yml",
     ".github/workflows/zap-baseline.yml",
     "eslint-plugin-component-structure",
-    "eslint-plugin-ui-standards"
+    "eslint-plugin-ui-standards",
+    "vitest.config.ts",
+    "vitest.config.local.ts",
+    "vitest.thresholds.json"
   ],
   "keep": [
     ".github/workflows/build.yml",
