@@ -1,5 +1,4 @@
 /* eslint-disable max-lines -- comprehensive integration tests for all Lisa stack types require extensive test cases */
-import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import type { LisaConfig } from "../../src/core/config.js";

@@ -6,8 +6,6 @@
  * and input-validation error messages.
  * @module fibonacci
  */
-import { describe, expect, it } from "@jest/globals";
-
 import {
   fibonacci,
   fibonacciGenerator,
