@@ -65,11 +65,13 @@
   ],
   "resolutions": {
     "@isaacs/brace-expansion": "^5.0.1",
-    "axios": ">=1.13.5"
+    "axios": ">=1.13.5",
+    "flatted": "^3.4.2"
   },
   "overrides": {
     "@isaacs/brace-expansion": "^5.0.1",
-    "axios": ">=1.13.5"
+    "axios": ">=1.13.5",
+    "flatted": "^3.4.2"
   },
   "name": "@codyswann/lisa",
   "version": "1.66.0",
