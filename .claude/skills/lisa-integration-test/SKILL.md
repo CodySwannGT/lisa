@@ -82,7 +82,7 @@ If any verification step fails:
 
 #### Step 6b: Fix in Project Local Files
 
-1. Make the fix in the project's local override files (e.g., `tsconfig.local.json`, `eslint.config.local.ts`, `jest.config.local.ts`)
+1. Make the fix in the project's local override files (e.g., `tsconfig.local.json`, `eslint.config.local.ts`, `vitest.config.local.ts`, `jest.config.local.ts`)
 2. Go to **Step 5** (re-verify the project)
 
 ### Step 7: Commit and Push

@@ -5,7 +5,11 @@
     ".claude/skills/security-zap-scan",
     ".claude/skills/typeorm-patterns",
     ".github/workflows/zap-baseline.yml",
-    ".github/workflows/load-test.yml"
+    ".github/workflows/load-test.yml",
+    "jest.config.ts",
+    "jest.config.local.ts",
+    "jest.nestjs.ts",
+    "jest.thresholds.json"
   ],
   "keep": [
     ".github/workflows/zap-baseline-nestjs.yml",

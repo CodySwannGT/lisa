@@ -4,7 +4,11 @@
       "watch": "tsc -w",
       "cdk": "cdk",
       "build": "tsc --noEmit",
-      "prepare": "husky install || true"
+      "prepare": "husky install || true",
+      "test": "NODE_ENV=test jest --passWithNoTests",
+      "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
+      "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
+      "test:cov": "NODE_ENV=test jest --coverage"
     },
     "dependencies": {
       "@aws-cdk/aws-amplify-alpha": "^2.235.0-alpha.0",
@@ -15,7 +19,11 @@
     },
     "devDependencies": {
       "@codyswann/lisa": "^1.54.6",
-      "aws-cdk": "^2.1104.0"
+      "aws-cdk": "^2.1104.0",
+      "jest": "^30.0.0",
+      "ts-jest": "^29.4.6",
+      "@types/jest": "^30.0.0",
+      "@jest/test-sequencer": "^30.2.0"
     },
     "bin": {
       "infrastructure": "bin/infrastructure.js"
