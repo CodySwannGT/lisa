@@ -24,6 +24,7 @@
     "eslint-plugin-react-hooks",
     "jscodeshift",
     "lint-staged",
+    "ts-jest",
     "ts-morph",
     "langsmith",
     "graphql",

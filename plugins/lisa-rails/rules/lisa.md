@@ -15,12 +15,15 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 - `.simplecov`
 - `.reek.yml`
 - `.rspec`
+- `simplecov.thresholds.json`
+- `rubocop.thresholds.yml`
 - `sonar-project.properties`
 - `spec/spec_helper.rb`
 - `spec/rails_helper.rb`
-- `.github/workflows/quality.yml`
 - `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
+- `.github/workflows/claude-nightly-test-coverage.yml`
+- `.github/workflows/claude-nightly-code-complexity.yml`
+- `.github/workflows/claude-nightly-test-improvement.yml`
 - `VERSION`
 
 ## Deep-merged by Lisa (Lisa wins conflicts, but project can add its own keys)
