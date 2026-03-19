@@ -3,6 +3,10 @@
     "scripts": {
       "prepublishOnly": "$npm_execpath run build",
       "prepare": "$npm_execpath run build || husky install || true"
+    },
+    "devDependencies": {
+      "vitest": "^4.1.0",
+      "@vitest/coverage-v8": "^4.1.0"
     }
   },
   "defaults": {

@@ -47,7 +47,8 @@
       "test": "NODE_ENV=test jest --passWithNoTests",
       "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
       "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-      "test:cov": "NODE_ENV=test jest --coverage"
+      "test:cov": "NODE_ENV=test jest --coverage",
+      "test:watch": "NODE_ENV=test jest --watch"
     },
     "dependencies": {
       "@apollo/client": "^3.10.8",
