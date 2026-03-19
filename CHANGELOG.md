@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.66.1](https://github.com/CodySwannGT/lisa/compare/vv1.66.0...v1.66.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* add --passWithNoTests to test:integration vitest scripts ([#302](https://github.com/CodySwannGT/lisa/issues/302)) ([caa4f44](https://github.com/CodySwannGT/lisa/commit/caa4f4428a6ce1d17b1f800d129ff741be4d3ff3))
+
 ## [1.66.0](https://github.com/CodySwannGT/lisa/compare/vv1.65.3...v1.66.0) (2026-03-19)
 
 
