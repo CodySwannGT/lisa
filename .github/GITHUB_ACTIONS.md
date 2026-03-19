@@ -194,16 +194,16 @@ To trigger general mode manually: **Actions** > **Claude Nightly Test Improvemen
 
 Incrementally increases test coverage thresholds toward a 90% target:
 
-1. Reads `jest.thresholds.json` to get current coverage thresholds
+1. Reads the coverage thresholds file — `vitest.thresholds.json` (TypeScript/NestJS) or `jest.thresholds.json` (Expo/CDK) — to get current coverage thresholds
 2. For each metric (`statements`, `branches`, `functions`, `lines`) below 90%, proposes a 5% increase (capped at 90%)
 3. Writes new tests to meet the proposed thresholds
-4. Updates `jest.thresholds.json` with the new values
+4. Updates the thresholds file with the new values
 5. Verifies the updated thresholds pass with `bun run test:cov`
 6. Creates a PR summarizing which metrics were bumped (e.g., "branches 65% -> 70%, functions 60% -> 65%")
 
 Skips the run if all metrics are already at or above 90%. Prevents duplicate PRs (skips if one is already open).
 
-`jest.thresholds.json` format:
+Thresholds file format (`vitest.thresholds.json` or `jest.thresholds.json`):
 ```json
 {
   "global": {

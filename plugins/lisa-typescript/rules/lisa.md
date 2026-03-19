@@ -7,14 +7,14 @@ The following files are managed by Lisa and will be overwritten on every `lisa` 
 | Managed File (do not edit) | Local Override (edit this instead) |
 |---|---|
 | `eslint.config.ts` | `eslint.config.local.ts` |
-| `jest.config.ts` | `jest.config.local.ts` |
+| `vitest.config.ts` | `vitest.config.local.ts` |
 | `tsconfig.json` | `tsconfig.local.json` |
 
 ## Create-only files (edit freely, Lisa won't overwrite)
 
 - `.claude/rules/PROJECT_RULES.md`
 - `eslint.thresholds.json`
-- `jest.thresholds.json`
+- `vitest.thresholds.json`
 
 ## Deep-merged by Lisa (Lisa wins conflicts, but project can add its own keys)
 
@@ -30,7 +30,7 @@ These resources are distributed via the stack Claude Code plugin (e.g., `typescr
 - `.yamllint`, `.gitleaksignore`, `.coderabbit.yml`, `commitlint.config.cjs`, `sgconfig.yml`, `knip.json`
 - `.safety-net.json`, `audit.ignore.config.json`
 - `eslint.base.ts`, `eslint.typescript.ts` (+ `expo`/`nestjs`/`cdk` variants), `eslint.slow.config.ts`
-- `jest.base.ts`, `jest.typescript.ts` (+ variants)
+- `vitest.config.ts`
 - `tsconfig.base.json`, `tsconfig.typescript.json` (+ variants), `tsconfig.eslint.json`, `tsconfig.build.json`, `tsconfig.spec.json`
 - `.github/workflows/quality.yml`, `release.yml`, `claude.yml`, and all other Claude/CI workflows
 - `.github/dependabot.yml`, `.github/GITHUB_ACTIONS.md`

@@ -288,7 +288,7 @@ Options:
 
 For option 1 (fix upstream): Analyze the breakage, determine the fix, apply it to the Lisa template, and report.
 
-For option 2 (fix in project): Identify the appropriate local override file (e.g., `tsconfig.local.json`, `eslint.config.local.ts`, `jest.config.local.ts`) and apply the fix there.
+For option 2 (fix in project): Identify the appropriate local override file (e.g., `tsconfig.local.json`, `eslint.config.local.ts`, `vitest.config.local.ts`, `jest.config.local.ts`) and apply the fix there.
 
 ## Important Notes
 

@@ -4,10 +4,11 @@
       "lint": "eslint . --quiet",
       "format:check": "prettier --check .",
       "format": "prettier --check . --write",
-      "test": "NODE_ENV=test jest --passWithNoTests",
-      "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-      "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-      "test:cov": "NODE_ENV=test jest --coverage",
+      "test": "vitest run",
+      "test:unit": "vitest run --exclude='**/integration/**'",
+      "test:integration": "vitest run tests/integration",
+      "test:cov": "vitest run --coverage",
+      "test:watch": "vitest",
       "lint:fix": "eslint . --fix",
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "typecheck": "tsc --noEmit",
@@ -17,7 +18,9 @@
       "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true"
     },
     "devDependencies": {
-      "@codyswann/lisa": "^1.54.6"
+      "@codyswann/lisa": "^1.54.6",
+      "vitest": "^4.1.0",
+      "@vitest/coverage-v8": "^4.1.0"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",

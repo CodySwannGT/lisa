@@ -92,14 +92,18 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const path = 'jest.thresholds.json';
+            const vitestPath = 'vitest.thresholds.json';
+            const jestPath = 'jest.thresholds.json';
+            const path = fs.existsSync(vitestPath) ? vitestPath : jestPath;
 
             if (!fs.existsSync(path)) {
               core.setOutput('all_at_target', 'true');
-              console.log('jest.thresholds.json not found, skipping.');
+              console.log('No thresholds file found (checked vitest.thresholds.json and jest.thresholds.json), skipping.');
               return;
             }
 
+            core.setOutput('thresholds_file', path);
+            console.log(`Detected thresholds file: ${path}`);
             const thresholds = JSON.parse(fs.readFileSync(path, 'utf8'));
             const global = thresholds.global || {};
             const metrics = ['statements', 'branches', 'functions', 'lines'];
@@ -149,7 +153,7 @@ jobs:
           prompt: |
             Increase test coverage thresholds for this project.
 
-            Current coverage thresholds in jest.thresholds.json:
+            Current coverage thresholds in ${{ steps.thresholds.outputs.thresholds_file }}:
             ${{ steps.thresholds.outputs.current }}
 
             Proposed new thresholds (each metric increased by ${{ inputs.coverage_increment }}%, capped at 90%):
@@ -164,9 +168,9 @@ jobs:
             4. ONLY THEN read the specific source files that need tests — read only the uncovered sections, not entire files. Use the coverage report line numbers to target your reads.
             5. Write new tests to increase coverage enough to meet the proposed thresholds. Focus on the metrics being bumped — write tests that cover untested branches, statements, functions, and lines.
             6. Run `bun run test:cov` to verify the new thresholds pass
-            7. Update jest.thresholds.json with the proposed new threshold values
+            7. Update ${{ steps.thresholds.outputs.thresholds_file }} with the proposed new threshold values
             8. Run `bun run test:cov` again to confirm the updated thresholds pass
-            9. Commit all changes (new tests + updated jest.thresholds.json) with conventional commit messages
+            9. Commit all changes (new tests + updated ${{ steps.thresholds.outputs.thresholds_file }}) with conventional commit messages
             10. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
             11. SECURITY AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities (GHSA advisories):
                 a. Note the GHSA ID(s), affected package(s), and advisory URL from the error output
@@ -177,7 +181,7 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
-            --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update jest.thresholds.json with the new values after tests pass. CRITICAL: Always run test:cov FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
+            --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update the thresholds file (vitest.thresholds.json or jest.thresholds.json, whichever exists) with the new values after tests pass. CRITICAL: Always run test:cov FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
 
       - name: Trigger CodeRabbit review
         env:

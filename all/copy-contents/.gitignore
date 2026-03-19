@@ -100,6 +100,7 @@ zap-report.md
 lambdas/**/*.js
 lambdas/**/*.js.map
 !jest.config.js
+!vitest.config.js
 !commitlint.config.js
 !scripts/*.js
 *.tsbuildinfo

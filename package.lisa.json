@@ -4,10 +4,6 @@
       "lint": "eslint . --quiet",
       "format:check": "prettier --check .",
       "format": "prettier --check . --write",
-      "test": "NODE_ENV=test jest --passWithNoTests",
-      "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-      "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
-      "test:cov": "NODE_ENV=test jest --coverage",
       "lint:fix": "eslint . --fix",
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "typecheck": "tsc --noEmit",
@@ -46,11 +42,7 @@
       "@types/node": "^22.0.0",
       "tsx": "^4.0.0",
       "knip": "^5.0.0",
-      "@ast-grep/cli": "^0.40.4",
-      "@jest/test-sequencer": "^30.2.0",
-      "@types/jest": "^30.0.0",
-      "jest": "^30.0.0",
-      "ts-jest": "^29.4.6"
+      "@ast-grep/cli": "^0.40.4"
     }
   },
   "defaults": {
