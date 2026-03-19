@@ -1,0 +1,7 @@
+{
+  "paths": [
+    "vitest.config.ts",
+    "vitest.config.local.ts",
+    "vitest.thresholds.json"
+  ]
+}

@@ -32,10 +32,7 @@
     ".github/workflows/reusable-claude-deploy-auto-fix.yml",
     ".github/workflows/reusable-claude-nightly-code-complexity.yml",
     ".github/workflows/reusable-claude-nightly-test-coverage.yml",
-    ".github/workflows/reusable-claude-nightly-test-improvement.yml",
-    "jest.config.ts",
-    "jest.config.local.ts",
-    "jest.thresholds.json"
+    ".github/workflows/reusable-claude-nightly-test-improvement.yml"
   ],
   "keep": [
     "eslint-plugin-code-organization",
