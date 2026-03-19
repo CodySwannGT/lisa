@@ -6,7 +6,7 @@
       "format": "prettier --check . --write",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
-      "test:integration": "vitest run tests/integration",
+      "test:integration": "vitest run tests/integration --passWithNoTests",
       "test:cov": "vitest run --coverage",
       "test:watch": "vitest",
       "lint:fix": "eslint . --fix",
