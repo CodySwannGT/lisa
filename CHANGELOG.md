@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.65.2](https://github.com/CodySwannGT/lisa/compare/vv1.65.1...v1.65.2) (2026-03-19)
+
+
+### Bug Fixes
+
+* prevent TypeScript vitest migration from deleting Jest configs in CDK/Expo stacks ([#299](https://github.com/CodySwannGT/lisa/issues/299)) ([24dc76e](https://github.com/CodySwannGT/lisa/commit/24dc76effdd58ebf8fe489a4a2b29ab1d06c687e))
+
 ### [1.65.1](https://github.com/CodySwannGT/lisa/compare/vv1.65.0...v1.65.1) (2026-03-19)
 
 ## [1.65.0](https://github.com/CodySwannGT/lisa/compare/vv1.64.0...v1.65.0) (2026-03-19)
