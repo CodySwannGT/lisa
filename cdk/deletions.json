@@ -1,7 +1,9 @@
 {
   "paths": [
-    "vitest.config.ts",
-    "vitest.config.local.ts",
-    "vitest.thresholds.json"
+    "jest.config.ts",
+    "jest.config.local.ts",
+    "jest.cdk.ts",
+    "jest.base.ts",
+    "jest.thresholds.json"
   ]
 }

@@ -94,6 +94,7 @@
     "./vitest/base": "./dist/configs/vitest/base.js",
     "./vitest/typescript": "./dist/configs/vitest/typescript.js",
     "./vitest/nestjs": "./dist/configs/vitest/nestjs.js",
+    "./vitest/cdk": "./dist/configs/vitest/cdk.js",
     "./tsconfig/base": "./tsconfig/base.json",
     "./tsconfig/typescript": "./tsconfig/typescript.json",
     "./tsconfig/nestjs": "./tsconfig/nestjs.json",
