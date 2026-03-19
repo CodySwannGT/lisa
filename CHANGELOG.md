@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.66.0](https://github.com/CodySwannGT/lisa/compare/vv1.65.3...v1.66.0) (2026-03-19)
+
+
+### Features
+
+* add Vitest support for CDK stack ([#301](https://github.com/CodySwannGT/lisa/issues/301)) ([c035853](https://github.com/CodySwannGT/lisa/commit/c0358531e957dc870069b9befd487c2a07483709))
+
 ### [1.65.3](https://github.com/CodySwannGT/lisa/compare/vv1.65.2...v1.65.3) (2026-03-19)
 
 
