@@ -1,6 +1,5 @@
 /* eslint-disable max-lines -- Test file requires extensive test cases for comprehensive coverage */
 /* eslint-disable sonarjs/no-duplicate-string -- Test fixtures necessarily repeat values */
-import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";

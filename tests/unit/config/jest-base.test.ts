@@ -1,5 +1,3 @@
-import { describe, it, expect } from "@jest/globals";
-import type { Config } from "jest";
 import {
   defaultThresholds,
   defaultCoverageExclusions,
@@ -48,14 +46,14 @@ describe("jest.base", () => {
     it("returns defaults when overrides have no global", () => {
       const result = mergeThresholds(
         defaultThresholds,
-        {} as Config["coverageThreshold"]
+        {} as Parameters<typeof mergeThresholds>[0]
       );
 
       expect(result?.global).toEqual(defaultThresholds?.global);
     });
 
     it("overrides specific threshold values", () => {
-      const overrides: Config["coverageThreshold"] = {
+      const overrides: Parameters<typeof mergeThresholds>[0] = {
         global: {
           statements: 90,
           branches: 80,
@@ -73,7 +71,7 @@ describe("jest.base", () => {
     });
 
     it("preserves defaults for non-overridden values", () => {
-      const overrides: Config["coverageThreshold"] = {
+      const overrides: Parameters<typeof mergeThresholds>[0] = {
         global: {
           functions: 85,
         },
@@ -88,12 +86,12 @@ describe("jest.base", () => {
     });
 
     it("handles empty defaults", () => {
-      const overrides: Config["coverageThreshold"] = {
+      const overrides: Parameters<typeof mergeThresholds>[0] = {
         global: { statements: 50 },
       };
 
       const result = mergeThresholds(
-        {} as Config["coverageThreshold"],
+        {} as Parameters<typeof mergeThresholds>[0],
         overrides
       );
 
@@ -101,7 +99,7 @@ describe("jest.base", () => {
     });
 
     it("preserves per-path keys from overrides", () => {
-      const overrides: Config["coverageThreshold"] = {
+      const overrides: Parameters<typeof mergeThresholds>[0] = {
         global: { statements: 80 },
         "./src/api/": { branches: 90 },
       };
@@ -113,11 +111,11 @@ describe("jest.base", () => {
     });
 
     it("preserves per-path keys from defaults when not in overrides", () => {
-      const defaults: Config["coverageThreshold"] = {
+      const defaults: Parameters<typeof mergeThresholds>[0] = {
         global: { statements: 70 },
         "./src/core/": { lines: 95 },
       };
-      const overrides: Config["coverageThreshold"] = {
+      const overrides: Parameters<typeof mergeThresholds>[0] = {
         global: { statements: 80 },
       };
 
@@ -129,11 +127,11 @@ describe("jest.base", () => {
     });
 
     it("override per-path keys take precedence over default per-path keys", () => {
-      const defaults: Config["coverageThreshold"] = {
+      const defaults: Parameters<typeof mergeThresholds>[0] = {
         global: { statements: 70 },
         "./src/api/": { branches: 50 },
       };
-      const overrides: Config["coverageThreshold"] = {
+      const overrides: Parameters<typeof mergeThresholds>[0] = {
         global: { statements: 80 },
         "./src/api/": { branches: 90 },
       };
@@ -147,8 +145,13 @@ describe("jest.base", () => {
 
   describe("mergeConfigs", () => {
     it("merges scalar values with later configs taking precedence", () => {
-      const base: Config = { testEnvironment: "node", testTimeout: 5000 };
-      const override: Config = { testTimeout: 10000 };
+      const base: Parameters<typeof mergeConfigs>[0] = {
+        testEnvironment: "node",
+        testTimeout: 5000,
+      };
+      const override: Parameters<typeof mergeConfigs>[0] = {
+        testTimeout: 10000,
+      };
 
       const result = mergeConfigs(base, override);
 
@@ -157,10 +160,10 @@ describe("jest.base", () => {
     });
 
     it("concatenates and deduplicates arrays", () => {
-      const base: Config = {
+      const base: Parameters<typeof mergeConfigs>[0] = {
         testMatch: [TESTS_GLOB],
       };
-      const override: Config = {
+      const override: Parameters<typeof mergeConfigs>[0] = {
         testMatch: [SRC_GLOB, TESTS_GLOB],
       };
 
@@ -170,10 +173,10 @@ describe("jest.base", () => {
     });
 
     it("shallow-merges objects", () => {
-      const base: Config = {
+      const base: Parameters<typeof mergeConfigs>[0] = {
         transform: { "^.+\\.tsx?$": "ts-jest" },
       };
-      const override: Config = {
+      const override: Parameters<typeof mergeConfigs>[0] = {
         transform: { "^.+\\.jsx?$": "babel-jest" },
       };
 
@@ -186,7 +189,9 @@ describe("jest.base", () => {
     });
 
     it("handles empty configs", () => {
-      const base: Config = { testEnvironment: "node" };
+      const base: Parameters<typeof mergeConfigs>[0] = {
+        testEnvironment: "node",
+      };
 
       const result = mergeConfigs(base, {});
 
@@ -194,9 +199,14 @@ describe("jest.base", () => {
     });
 
     it("merges three or more configs in order", () => {
-      const base: Config = { testTimeout: 5000 };
-      const mid: Config = { testTimeout: 10000, testEnvironment: "node" };
-      const top: Config = { testEnvironment: "jsdom" };
+      const base: Parameters<typeof mergeConfigs>[0] = { testTimeout: 5000 };
+      const mid: Parameters<typeof mergeConfigs>[0] = {
+        testTimeout: 10000,
+        testEnvironment: "node",
+      };
+      const top: Parameters<typeof mergeConfigs>[0] = {
+        testEnvironment: "jsdom",
+      };
 
       const result = mergeConfigs(base, mid, top);
 

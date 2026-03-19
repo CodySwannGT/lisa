@@ -1,4 +1,3 @@
-import { describe, it, expect } from "@jest/globals";
 import { generateBackupDirname } from "../../../src/utils/file-operations.js";
 
 describe("file-operations utilities", () => {

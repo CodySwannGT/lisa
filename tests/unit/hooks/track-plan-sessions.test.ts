@@ -7,7 +7,6 @@
  *
  * @module tests/unit/hooks/track-plan-sessions
  */
-import { describe, it, expect, afterEach } from "@jest/globals";
 import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";

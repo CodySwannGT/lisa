@@ -1,6 +1,5 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { BackupService } from "../../../src/transaction/backup.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";

@@ -1,4 +1,3 @@
-import { describe, it, expect } from "@jest/globals";
 import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
 
 const TESTS_GLOB = "tests/**/*.test.ts";
