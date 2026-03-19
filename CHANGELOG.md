@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.64.0](https://github.com/CodySwannGT/lisa/compare/vv1.63.0...v1.64.0) (2026-03-19)
+
+
+### Features
+
+* migrate Lisa's own tests from Jest to Vitest ([#296](https://github.com/CodySwannGT/lisa/issues/296)) ([d8c76b8](https://github.com/CodySwannGT/lisa/commit/d8c76b8319c71aec761232f8806d6bd51f5cbcb4))
+
 ## [1.63.0](https://github.com/CodySwannGT/lisa/compare/vv1.62.0...v1.63.0) (2026-03-19)
 
 
