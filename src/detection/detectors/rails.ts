@@ -32,6 +32,6 @@ export class RailsDetector implements IProjectTypeDetector {
 
     // Check for config/application.rb (secondary indicator)
     const configAppPath = path.join(destDir, "config", "application.rb");
-    return pathExists(configAppPath);
+    return await pathExists(configAppPath);
   }
 }
