@@ -1,3 +1,14 @@
 {
-  "exclusions": []
+  "exclusions": [
+    {
+      "id": "GHSA-xxjr-mmjv-4gpg",
+      "package": "lodash",
+      "reason": "Prototype pollution in _.unset/_.omit — transitive via conventional-changelog, devDeps only, no untrusted input"
+    },
+    {
+      "id": "GHSA-25h7-pfq9-p65f",
+      "package": "flatted",
+      "reason": "Unbounded recursion DoS in parse() — transitive via eslint flat-cache, devDeps only, no untrusted JSON parsing"
+    }
+  ]
 }

@@ -194,16 +194,16 @@ To trigger general mode manually: **Actions** > **Claude Nightly Test Improvemen
 
 Incrementally increases test coverage thresholds toward a 90% target:
 
-1. Reads the coverage thresholds file — `vitest.thresholds.json` (TypeScript/NestJS) or `jest.thresholds.json` (Expo/CDK) — to get current coverage thresholds
+1. Reads `jest.thresholds.json` to get current coverage thresholds
 2. For each metric (`statements`, `branches`, `functions`, `lines`) below 90%, proposes a 5% increase (capped at 90%)
 3. Writes new tests to meet the proposed thresholds
-4. Updates the thresholds file with the new values
+4. Updates `jest.thresholds.json` with the new values
 5. Verifies the updated thresholds pass with `bun run test:cov`
 6. Creates a PR summarizing which metrics were bumped (e.g., "branches 65% -> 70%, functions 60% -> 65%")
 
 Skips the run if all metrics are already at or above 90%. Prevents duplicate PRs (skips if one is already open).
 
-Thresholds file format (`vitest.thresholds.json` or `jest.thresholds.json`):
+`jest.thresholds.json` format:
 ```json
 {
   "global": {
@@ -254,6 +254,25 @@ Automatically triages untriaged Jira tickets by examining them and posting actio
 - `ticket_count`: Number of tickets to process in batch mode (default: 5)
 
 This workflow is read-only — it does not modify code or create PRs. It only reads the codebase and posts Jira comments.
+
+**How to activate**:
+
+1. Add the secrets in **Settings** > **Secrets and variables** > **Actions** > **Secrets**:
+
+   | Secret | Description | How to get |
+   |--------|-------------|------------|
+   | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for Claude Code | See `CLAUDE_CODE_OAUTH_TOKEN` in the Core Secrets section below |
+   | `JIRA_API_TOKEN` | API token from Atlassian | [Create API token](https://id.atlassian.com/manage-profile/security/api-tokens) |
+
+2. Add repository variables in **Settings** > **Secrets and variables** > **Actions** > **Variables**:
+
+   | Variable | Description | Example |
+   |----------|-------------|---------|
+   | `JIRA_BASE_URL` | Jira instance base URL | `https://company.atlassian.net` |
+   | `JIRA_USER_EMAIL` | Email associated with the API token | `user@company.com` |
+   | `JIRA_PROJECT_KEY` | Jira project key for ticket queries | `PROJ` |
+
+3. The workflow auto-enables once all three variables and both secrets are set. No feature flag needed.
 
 ### Auto-update PR Branches (`auto-update-pr-branches.yml`)
 
@@ -597,7 +616,6 @@ with:
 │   ├── claude-nightly-test-improvement.yml     # Nightly test quality
 │   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
 │   ├── claude-nightly-code-complexity.yml      # Nightly code complexity
-│   ├── claude-nightly-jira-triage.yml         # Nightly Jira ticket triage
 │   ├── auto-update-pr-branches.yml            # Auto-update PRs from base
 │   └── .env.example                            # Secrets template
 ├── k6/
