@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.63.0](https://github.com/CodySwannGT/lisa/compare/vv1.62.0...v1.63.0) (2026-03-19)
+
+
+### Features
+
+* add Vitest config factories for TypeScript and NestJS stacks ([#295](https://github.com/CodySwannGT/lisa/issues/295)) ([3e1f4f0](https://github.com/CodySwannGT/lisa/commit/3e1f4f0b2037f98fe14f6e05b6b8f09f1a936b57))
+
 ## [1.62.0](https://github.com/CodySwannGT/lisa/compare/vv1.61.0...v1.62.0) (2026-03-18)
 
 
