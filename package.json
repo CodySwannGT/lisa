@@ -177,9 +177,7 @@
     "vitest": "^4.1.0"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^1.54.6",
-    "vitest": "^4.1.0",
-    "@vitest/coverage-v8": "^4.1.0"
+    "@codyswann/lisa": "^1.65.0"
   },
   "type": "module"
 }
