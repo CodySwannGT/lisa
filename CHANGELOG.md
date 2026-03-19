@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.65.3](https://github.com/CodySwannGT/lisa/compare/vv1.65.2...v1.65.3) (2026-03-19)
+
+
+### Bug Fixes
+
+* prevent vitest devDependencies and test:watch script from bleeding into CDK/Expo stacks ([#300](https://github.com/CodySwannGT/lisa/issues/300)) ([b50748f](https://github.com/CodySwannGT/lisa/commit/b50748f8bafcf0a48a0ed7138e3052158b9659e1))
+
 ### [1.65.2](https://github.com/CodySwannGT/lisa/compare/vv1.65.1...v1.65.2) (2026-03-19)
 
 
