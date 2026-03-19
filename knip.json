@@ -17,6 +17,7 @@
   "ignoreDependencies": [
     "@commitlint/cli",
     "@eslint/eslintrc",
+    "@jest/globals",
     "@jest/test-sequencer",
     "@vitest/coverage-v8",
     "esbuild-register",
