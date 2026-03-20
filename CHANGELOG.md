@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.66.3](https://github.com/CodySwannGT/lisa/compare/vv1.66.2...v1.66.3) (2026-03-20)
+
+
+### Bug Fixes
+
+* skip AI co-authorship check for release commits ([#304](https://github.com/CodySwannGT/lisa/issues/304)) ([ae89833](https://github.com/CodySwannGT/lisa/commit/ae89833b00d7092e071336b421341c3c163a2a06))
+
 ### [1.66.2](https://github.com/CodySwannGT/lisa/compare/vv1.66.1...v1.66.2) (2026-03-20)
 
 
