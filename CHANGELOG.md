@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.70.0](https://github.com/CodySwannGT/lisa/compare/vv1.69.0...v1.70.0) (2026-03-20)
+
+
+### Features
+
+* add impeccable design plugin to expo and rails templates ([#311](https://github.com/CodySwannGT/lisa/issues/311)) ([a681bd6](https://github.com/CodySwannGT/lisa/commit/a681bd627de81cb0d6e24061cfe44b5924c1b9b3))
+
 ## [1.69.0](https://github.com/CodySwannGT/lisa/compare/vv1.68.0...v1.69.0) (2026-03-20)
 
 
