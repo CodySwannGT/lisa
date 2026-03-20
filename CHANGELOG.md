@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.67.0](https://github.com/CodySwannGT/lisa/compare/vv1.66.3...v1.67.0) (2026-03-20)
+
+
+### Features
+
+* move plugin rules to copy-overwrite for native .claude/rules loading ([#305](https://github.com/CodySwannGT/lisa/issues/305)) ([3680a60](https://github.com/CodySwannGT/lisa/commit/3680a60798eeb5d8cbf7c7a76fe300cd108a7b3e))
+
 ### [1.66.3](https://github.com/CodySwannGT/lisa/compare/vv1.66.2...v1.66.3) (2026-03-20)
 
 
