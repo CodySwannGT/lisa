@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.70.1](https://github.com/CodySwannGT/lisa/compare/vv1.70.0...v1.70.1) (2026-03-20)
+
+
+### Bug Fixes
+
+* update Claude Code install command to use native installer ([#312](https://github.com/CodySwannGT/lisa/issues/312)) ([726bd93](https://github.com/CodySwannGT/lisa/commit/726bd934b35a09dd1bc9497bc9bc40c218d4b956))
+
 ## [1.70.0](https://github.com/CodySwannGT/lisa/compare/vv1.69.0...v1.70.0) (2026-03-20)
 
 
