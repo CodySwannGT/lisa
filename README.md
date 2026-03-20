@@ -40,7 +40,7 @@ The analytical logic lives in skills. The enforcement lives in hooks and rules. 
 
 Lisa distributes its standards to downstream projects as templates. When a project installs Lisa, it receives:
 
-- Linting, formatting, and type checking configurations
+- Linting, formatting, and type-checking configurations
 - Test and coverage infrastructure
 - CI/CD workflows
 - Git hooks

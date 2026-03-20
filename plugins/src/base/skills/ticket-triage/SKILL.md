@@ -1,6 +1,6 @@
 ---
 name: ticket-triage
-description: "Analytical triage gate for JIRA tickets. Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed."
+description: "Analytical triage gate for JIRA tickets. Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (NOT_RELEVANT/BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed."
 allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 ---
 
