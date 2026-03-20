@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.67.1](https://github.com/CodySwannGT/lisa/compare/vv1.67.0...v1.67.1) (2026-03-20)
+
+
+### Bug Fixes
+
+* test:integration pattern for nestjs and typescript template defaults ([#306](https://github.com/CodySwannGT/lisa/issues/306)) ([bcd7546](https://github.com/CodySwannGT/lisa/commit/bcd7546d5484523c70fae163ae1f3a725ec1200e))
+
 ## [1.67.0](https://github.com/CodySwannGT/lisa/compare/vv1.66.3...v1.67.0) (2026-03-20)
 
 
