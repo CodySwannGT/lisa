@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.67.2](https://github.com/CodySwannGT/lisa/compare/vv1.67.1...v1.67.2) (2026-03-20)
+
+
+### Bug Fixes
+
+* exclude test files from typescript tsconfig template ([#307](https://github.com/CodySwannGT/lisa/issues/307)) ([d577082](https://github.com/CodySwannGT/lisa/commit/d5770821ccb029c75920337031dad81eb0a54584))
+
 ### [1.67.1](https://github.com/CodySwannGT/lisa/compare/vv1.67.0...v1.67.1) (2026-03-20)
 
 
