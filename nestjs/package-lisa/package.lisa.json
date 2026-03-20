@@ -33,7 +33,7 @@
       "security:zap": "bash scripts/zap-baseline.sh",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
-      "test:integration": "vitest run tests/integration --passWithNoTests",
+      "test:integration": "vitest run '.integration.' --passWithNoTests",
       "test:cov": "vitest run --coverage",
       "test:watch": "vitest"
     },
