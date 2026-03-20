@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.69.0](https://github.com/CodySwannGT/lisa/compare/vv1.68.0...v1.69.0) (2026-03-20)
+
+
+### Features
+
+* consolidate nightly workflows with shared skills and triage gate ([#310](https://github.com/CodySwannGT/lisa/issues/310)) ([38b9941](https://github.com/CodySwannGT/lisa/commit/38b994134a8ceb9039a09566f822c02277e3d6db))
+
 ## [1.68.0](https://github.com/CodySwannGT/lisa/compare/vv1.67.3...v1.68.0) (2026-03-20)
 
 
