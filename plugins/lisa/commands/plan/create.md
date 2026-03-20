@@ -3,4 +3,4 @@ description: "Creates an implementation plan from a ticket URL, file path, or te
 argument-hint: "<ticket-url | @file-path | description>"
 ---
 
-Use the /lisa:plan-execute skill on $ARGUMENTS
+Read `.claude/rules/intent-routing.md` and execute the **Plan** flow on $ARGUMENTS
