@@ -2,6 +2,8 @@
 name: quality-specialist
 description: Code quality specialist agent. Reviews correctness, coding philosophy compliance (immutability, function structure), test coverage, and documentation. Explains findings in beginner-friendly plain English, ranked by severity.
 tools: Read, Grep, Glob, Bash
+skills:
+  - quality-review
 ---
 
 # Quality Specialist Agent

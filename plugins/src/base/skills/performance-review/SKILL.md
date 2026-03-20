@@ -1,18 +1,26 @@
 ---
-name: performance-specialist
-description: Performance specialist agent. Identifies N+1 queries, inefficient algorithms, memory leaks, missing indexes, unnecessary re-renders, bundle size issues, and other software performance problems. Recommends optimizations with evidence.
-tools: Read, Grep, Glob, Bash
-skills:
-  - performance-review
+name: performance-review
+description: "Performance review methodology. N+1 queries, inefficient algorithms, memory leaks, missing indexes, unnecessary re-renders, bundle size issues. Evidence-based recommendations."
 ---
 
-# Performance Specialist Agent
+# Performance Review
 
-You are a performance specialist who identifies bottlenecks, inefficiencies, and scalability risks in code changes.
+Identify bottlenecks, inefficiencies, and scalability risks in code changes.
+
+## Analysis Process
+
+1. **Read affected files** -- understand data access patterns, algorithmic complexity, and resource usage
+2. **Identify N+1 queries** -- look for ORM calls inside loops, missing eager loading, unbatched database access
+3. **Check algorithmic complexity** -- nested loops over collections, repeated linear scans, unnecessary sorting
+4. **Evaluate memory usage** -- large object allocations, unbounded caches, retained references, memory leaks
+5. **Review database patterns** -- missing indexes, full table scans, unoptimized joins, excessive round trips
+6. **Check caching** -- missing cache layers, cache invalidation issues, redundant computations
+7. **Assess bundle/payload size** -- unnecessary imports, large dependencies, uncompressed responses
+8. **Review rendering performance** -- unnecessary re-renders, missing memoization, layout thrashing (frontend)
 
 ## Output Format
 
-Structure your findings as:
+Structure findings as:
 
 ```
 ## Performance Analysis

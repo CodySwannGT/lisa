@@ -99,20 +99,20 @@ Custom agent definitions in `agents/` provide specialized AI personas for differ
 
 | Agent | Purpose |
 |-------|---------|
-| `agent-architect.md` | Agent file design and optimization |
 | `architecture-specialist.md` | Implementation design, dependency mapping, pattern evaluation |
+| `bug-fixer.md` | Fix bugs via TDD (reproduction becomes failing test) |
+| `builder.md` | Build features via TDD (acceptance criteria become tests) |
+| `debug-specialist.md` | Root cause analysis, log investigation, proof of bug causation |
 | `git-history-analyzer.md` | Git history analysis |
-| `hooks-expert.md` | Claude Code hooks expertise |
-| `implementer.md` | Code implementation with TDD enforcement |
+| `jira-agent.md` | JIRA lifecycle: read ticket, determine intent, delegate to flow |
 | `learner.md` | Post-implementation learning and skill creation |
 | `performance-specialist.md` | N+1 queries, algorithmic complexity, memory leaks |
 | `product-specialist.md` | User flows, acceptance criteria, UX validation |
 | `quality-specialist.md` | Code correctness, coding philosophy, test coverage review |
 | `security-specialist.md` | Threat modeling (STRIDE), OWASP Top 10, auth/secrets review |
 | `skill-evaluator.md` | Skill quality assessment |
-| `slash-command-architect.md` | Command design |
 | `test-specialist.md` | Test strategy, test writing, coverage analysis |
-| `web-search-researcher.md` | Web research tasks |
+| `verification-specialist.md` | Empirical proof via verification lifecycle |
 
 ## Skills
 
