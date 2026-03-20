@@ -110,6 +110,7 @@ Every verification method must be specific enough that an automated agent could 
 
 Evaluate the findings and produce exactly one verdict:
 
+- **`NOT_RELEVANT`** -- No relevant code was found in this repository (Phase 1). The caller should add the triage label and skip implementation in this repo.
 - **`BLOCKED`** -- Ambiguities were found in Phase 3. Work MUST NOT proceed until the ambiguities are resolved by a human. The caller should post findings, add the triage label, and STOP.
 - **`PASSED_WITH_FINDINGS`** -- No ambiguities, but edge cases or verification findings were identified. Work can proceed. The caller should post findings and add the triage label.
 - **`PASSED`** -- No ambiguities, edge cases, or verification gaps found. Work can proceed. The caller should add the triage label.
@@ -117,7 +118,7 @@ Evaluate the findings and produce exactly one verdict:
 Output format:
 
 ```text
-## Verdict: [BLOCKED | PASSED_WITH_FINDINGS | PASSED]
+## Verdict: [NOT_RELEVANT | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
 
 **Ambiguities found:** [count]
 **Edge cases identified:** [count]
@@ -140,7 +141,7 @@ Structure all output with clear section headers so the caller can parse and post
 ### Verification Methodology
 [Phase 5 table, or "No acceptance criteria to verify."]
 
-## Verdict: [BLOCKED | PASSED_WITH_FINDINGS | PASSED]
+## Verdict: [NOT_RELEVANT | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
 ```
 
 The caller is responsible for:
