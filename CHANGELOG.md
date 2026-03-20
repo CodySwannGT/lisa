@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.66.2](https://github.com/CodySwannGT/lisa/compare/vv1.66.1...v1.66.2) (2026-03-20)
+
+
+### Bug Fixes
+
+* upstream template fixes from api-creator onboarding ([#303](https://github.com/CodySwannGT/lisa/issues/303)) ([68eaa0e](https://github.com/CodySwannGT/lisa/commit/68eaa0e243068cb90b808fb22b6429a0fabbcf4d))
+
 ### [1.66.1](https://github.com/CodySwannGT/lisa/compare/vv1.66.0...v1.66.1) (2026-03-19)
 
 
