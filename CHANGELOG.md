@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.67.3](https://github.com/CodySwannGT/lisa/compare/vv1.67.2...v1.67.3) (2026-03-20)
+
+
+### Bug Fixes
+
+* use glob pattern for coverage directory in eslint ignore ([#308](https://github.com/CodySwannGT/lisa/issues/308)) ([6df913a](https://github.com/CodySwannGT/lisa/commit/6df913ae411d59a60a8d539ddc2bffd88c1588a8))
+
 ### [1.67.2](https://github.com/CodySwannGT/lisa/compare/vv1.67.1...v1.67.2) (2026-03-20)
 
 
