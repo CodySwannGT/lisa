@@ -51,7 +51,7 @@ Templates follow governance rules: some files are overwritten on every update (e
 ## Quick Start
 
 ```bash
-brew install claude-code
+curl -fsSL https://claude.ai/install.sh | bash
 ```
 
 > Ask Claude: "I just cloned this repo. Walk me through setup."
