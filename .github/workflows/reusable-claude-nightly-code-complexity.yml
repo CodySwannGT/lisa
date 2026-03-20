@@ -145,36 +145,15 @@ jobs:
           show_full_output: true
           branch_prefix: claude/nightly-code-complexity-
           prompt: |
-            Reduce code complexity thresholds for this project.
+            Use the /lisa:nightly-lower-code-complexity skill to reduce code complexity.
 
-            Current complexity thresholds in eslint.thresholds.json:
-            ${{ steps.thresholds.outputs.current }}
-
-            Proposed new thresholds (each metric decreased toward target minimums):
-            ${{ steps.thresholds.outputs.proposed }}
-
+            Current complexity thresholds in eslint.thresholds.json: ${{ steps.thresholds.outputs.current }}
+            Proposed new thresholds (each metric decreased toward target minimums): ${{ steps.thresholds.outputs.proposed }}
             Metrics being reduced: ${{ steps.thresholds.outputs.reductions }}
-
-            Instructions:
-            1. Read CLAUDE.md and package.json for project conventions
-            2. Update eslint.thresholds.json with the proposed new threshold values (do NOT change the maxLines threshold)
-            3. Run `bun run lint` to find functions that violate the new stricter thresholds
-            4. For cognitive complexity violations: use early returns, extract helper functions, replace conditionals with lookup tables
-            5. For max-lines-per-function violations: split large functions, extract helper functions, separate concerns
-            6. Run `bun run lint` to verify all violations are resolved
-            7. Run `bun run test` to verify no tests are broken by the refactoring
-            8. Commit all changes (refactored code + updated eslint.thresholds.json) with conventional commit messages
-            9. Create a PR with `gh pr create` with a title like "refactor: reduce code complexity: ${{ steps.thresholds.outputs.reductions }}" summarizing the changes
-            10. SECURITY AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities (GHSA advisories):
-                a. Note the GHSA ID(s), affected package(s), and advisory URL from the error output
-                b. Check the advisory URL to determine if a patched version of the vulnerable package exists
-                c. If a patched version exists, add a resolution/override in package.json to force the patched version (add to both "resolutions" and "overrides" sections), then run the package manager install command to regenerate the lockfile, commit the changes, and retry the push
-                d. If no patched version exists and the vulnerability is safe for this project (e.g., transitive dependency with no untrusted input, devDeps only, or build tool only), add an exclusion entry to audit.ignore.local.json with the format: {"id": "GHSA-xxx", "package": "pkg-name", "reason": "why this is safe for this project"}, then commit and retry the push
-                e. Never use --no-verify to bypass the security audit
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
-            --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Refactor functions to reduce cognitive complexity and lines per function. Use early returns, extract helpers, and lookup tables. Do NOT modify the maxLines threshold. You must update eslint.thresholds.json with the new values after refactoring passes lint. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly."
+            --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Do NOT modify the maxLines threshold. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly."
 
       - name: Trigger CodeRabbit review
         env:
