@@ -13,7 +13,7 @@ Project Discovery:
 - Read the project manifest (e.g. package.json, pyproject.toml, Cargo.toml, go.mod) to understand available scripts and dependencies.
 - Read the project's linting and formatting configuration to understand its standards.
 - Regenerate the lockfile after adding, removing, or updating dependencies.
-- Ignore build output directories (dist, build, out, target, etc) unless specified otherwise.
+- Ignore build output directories (dist, build, out, target, etc.) unless specified otherwise.
 - Ignore configuration linter hints/warnings — only fix actual unused exports/dependencies reported as errors.
 
 Code Quality:
@@ -71,7 +71,7 @@ ASK FIRST:
 
 Bug Triage:
 
-1. Verify you have all information needed to reproduce the bug (authentication requirements, environment information, etc). Do not make assumptions. If anything is missing, stop and ask before proceeding.
+1. Verify you have all information needed to reproduce the bug (authentication requirements, environment information, etc.). Do not make assumptions. If anything is missing, stop and ask before proceeding.
 2. Reproduce the bug. If you cannot reproduce it, stop and report what you tried and what you observed.
 3. Once reproduced, verify you are 100% positive on how to fix it. If not, determine what you need to do to be 100% positive (e.g. add logging, trace the code path, inspect state) and do that first.
 4. Verify you have access to the tools, environments, and permissions needed to deploy and verify this fix (e.g. CI/CD pipelines, deployment targets, logging/monitoring systems, API access, database access). If any are missing or inaccessible, stop and raise them before starting implementation.
@@ -86,7 +86,7 @@ Bug Implementation:
 
 Task Triage:
 
-1. Verify you have all information needed to implement this task (acceptance criteria, design specs, environment information, dependencies, etc). Do not make assumptions. If anything is missing, stop and ask before proceeding.
+1. Verify you have all information needed to implement this task (acceptance criteria, design specs, environment information, dependencies, etc.). Do not make assumptions. If anything is missing, stop and ask before proceeding.
 2. Verify you have a clear understanding of the expected behavior or outcome when the task is complete. If not, stop and clarify before starting.
 3. Identify all dependencies (other tasks, services, APIs, data) that must be in place before you can complete this task. If any are unresolved, stop and raise them before starting implementation.
 4. Verify you have access to the tools, environments, and permissions needed to deploy and verify this task (e.g. CI/CD pipelines, deployment targets, logging/monitoring systems, API access, database access). If any are missing or inaccessible, stop and raise them before starting implementation.
@@ -101,7 +101,7 @@ Task Implementation:
 
 Epic Triage:
 
-1. Verify you have all information needed to understand the full scope of this epic (goals, acceptance criteria, impacted systems, design specs, dependencies, etc). Do not make assumptions. If anything is missing, stop and ask before proceeding.
+1. Verify you have all information needed to understand the full scope of this epic (goals, acceptance criteria, impacted systems, design specs, dependencies, etc.). Do not make assumptions. If anything is missing, stop and ask before proceeding.
 2. Verify the epic is broken down into concrete, well-scoped bugs, tasks, and/or stories that are each fully triaged. If ambiguities exist, stop and resolve them before breaking it down.
 3. Identify all cross-cutting concerns (auth, performance, security, data migrations, third-party integrations) that need to be addressed across the epic.
 4. Identify all dependencies between tasks within the epic, or on external epics, teams, or services. Determine the correct order of execution.
