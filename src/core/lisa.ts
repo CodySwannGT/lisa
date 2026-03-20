@@ -212,6 +212,7 @@ export class Lisa {
     }
   }
 
+  /* v8 ignore start -- calls external CLI, covered by integration tests */
   /**
    * Register plugins from merged settings.json with Claude Code at project scope
    */
@@ -280,6 +281,7 @@ export class Lisa {
       }
     }
   }
+  /* v8 ignore stop */
 
   /**
    * Finalize operation
