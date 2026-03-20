@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.68.0](https://github.com/CodySwannGT/lisa/compare/vv1.67.3...v1.68.0) (2026-03-20)
+
+
+### Features
+
+* agent flow architecture redesign with intent routing ([#309](https://github.com/CodySwannGT/lisa/issues/309)) ([15b3759](https://github.com/CodySwannGT/lisa/commit/15b3759886d59b29e9c3956e9c010286d18b3d85))
+
 ### [1.67.3](https://github.com/CodySwannGT/lisa/compare/vv1.67.2...v1.67.3) (2026-03-20)
 
 
