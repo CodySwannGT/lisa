@@ -1,22 +1,11 @@
 {
   "name": "lisa-typescript",
-  "version": "1.65.3",
+  "version": "1.66.3",
   "description": "TypeScript-specific hooks — Prettier formatting, ESLint linting, and ast-grep scanning on edit",
   "author": {
     "name": "Cody Swann"
   },
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "find ${CLAUDE_PLUGIN_ROOT}/rules -name '*.md' -exec cat {} \\;"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",

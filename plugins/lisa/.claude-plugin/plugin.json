@@ -1,21 +1,12 @@
 {
   "name": "lisa",
-  "version": "1.65.3",
+  "version": "1.66.3",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
   },
   "hooks": {
     "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "find ${CLAUDE_PLUGIN_ROOT}/rules -name '*.md' -exec cat {} \\;"
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
