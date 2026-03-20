@@ -31,7 +31,7 @@ If no argument provided, scan the full test suite.
 
 Compile the gathered information into a structured brief:
 
-```
+```text
 Improve test quality across the test suite.
 
 Test files needing improvement (ordered by impact):

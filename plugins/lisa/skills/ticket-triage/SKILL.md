@@ -50,7 +50,7 @@ Skip ambiguities already raised by another repo's triage comments.
 
 For each NEW ambiguity found, produce:
 
-```
+```text
 ### Ambiguity: [short title]
 **Description:** [what is ambiguous]
 **Suggested clarification:** [specific question to resolve it]
@@ -76,7 +76,7 @@ Reference only files in THIS repo. Acknowledge edge cases from other repos if re
 
 For each edge case, produce:
 
-```
+```text
 ### Edge Case: [title]
 **Description:** [what could go wrong]
 **Code reference:** [file path and relevant lines or patterns]
@@ -99,7 +99,7 @@ Do not duplicate verification methods already posted by other repos.
 
 Produce a table:
 
-```
+```text
 | Acceptance Criterion | Verification Method | Type |
 |---------------------|--------------------| -----|
 ```
@@ -116,7 +116,7 @@ Evaluate the findings and produce exactly one verdict:
 
 Output format:
 
-```
+```text
 ## Verdict: [BLOCKED | PASSED_WITH_FINDINGS | PASSED]
 
 **Ambiguities found:** [count]
@@ -128,7 +128,7 @@ Output format:
 
 Structure all output with clear section headers so the caller can parse and post findings:
 
-```
+```text
 ## Triage: [TICKET-KEY] ([repo-name])
 
 ### Ambiguities
