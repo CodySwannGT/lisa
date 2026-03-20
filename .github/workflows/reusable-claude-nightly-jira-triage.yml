@@ -49,7 +49,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
           prompt: |
-            You are a Jira ticket triage agent. Your job is to examine Jira tickets and leave actionable comments covering ambiguity, edge cases, and verification methodology.
+            You are a Jira ticket triage agent. Your job is to find untriaged tickets, fetch their details, run the ticket-triage skill for analytical analysis, and post findings back to Jira.
 
             IMPORTANT: Use the Jira REST API **v3** via curl with Basic auth for all Jira interactions:
               curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" -H "Content-Type: application/json" "$JIRA_BASE_URL/rest/api/3/..."
@@ -128,76 +128,19 @@ jobs:
 
             Extract: summary, description, acceptance criteria (from description or custom fields), labels, status, linked issues, and all existing comments.
 
-            ## Step 1.5: Relevance check
+            ## Step 2: Run analytical triage
 
-            Search the LOCAL codebase using the Grep and Glob tools (NOT bash grep/find) for code related to the ticket's subject matter (keywords from summary, description, component names, API endpoints, etc.).
+            Use the /lisa:ticket-triage skill to analyze the ticket. Pass the ticket key and provide the fetched ticket details (summary, description, acceptance criteria, comments) in context so the skill can perform its analysis.
 
-            If NO relevant code is found in this repo:
-            - Add the repo-scoped label "claude-triaged-$REPO_NAME" (so this ticket is not re-examined by this repo)
-            - Output "Ticket {key} is not relevant to $REPO_NAME -- skipping"
-            - Move to the next ticket
+            The skill will search the codebase, detect ambiguities, identify edge cases, plan verification methodology, and produce a structured verdict (BLOCKED, PASSED_WITH_FINDINGS, PASSED, or NOT_RELEVANT).
 
-            If relevant code IS found, proceed to the triage phases below.
+            ## Step 3: Post findings to Jira
 
-            ## Step 1.75: Cross-repo awareness
+            Take the skill's output and post it back to the ticket:
 
-            Parse existing comments for triage headers from OTHER repos (look for patterns like "*[some-repo-name] Ambiguity detected*", "*[some-repo-name] Edge cases*", etc.).
-            Note which phases other repos have already covered and what findings they posted.
-            In subsequent phases:
-            - Do NOT duplicate findings already posted by another repo's triage comments
-            - DO add supplementary findings specific to THIS repo's codebase
+            For each section with findings (Ambiguities, Edge Cases, Verification Methodology), POST a comment using the ADF format shown above. Prefix all comments with "[$REPO_NAME]".
 
-            ## Step 2: Phase 1 - Ambiguity Detection
-
-            Examine the ticket summary, description, and acceptance criteria. Look for:
-            - Vague language ("should work properly", "handle edge cases", "improve performance")
-            - Untestable criteria (no measurable outcome defined)
-            - Undefined terms or acronyms not explained in context
-            - Missing scope boundaries (what's included vs excluded)
-            - Implicit assumptions not stated explicitly
-
-            Skip ambiguities already raised by another repo's triage comments.
-
-            For each NEW ambiguity found, POST a comment using the ADF format shown above.
-            Comment text: "*[$REPO_NAME] Ambiguity detected (automated triage):* [description]\n\n*Suggested clarification:* [specific question]"
-
-            Be specific -- every ambiguity must have a concrete clarifying question.
-
-            ## Step 3: Phase 2 - Edge Case Analysis
-
-            Search the codebase using the Grep and Glob tools for files related to the ticket's subject matter.
-            Check git log for recent changes in those areas:
-              git log --oneline -20 -- <relevant-paths>
-
-            Identify:
-            - Boundary conditions (empty inputs, max values, concurrent access)
-            - Error handling gaps in related code
-            - Integration risks with other components
-            - Data migration or backward compatibility concerns
-
-            Reference only files in THIS repo. Acknowledge edge cases from other repos if relevant, but do not duplicate them.
-
-            POST a single consolidated comment using the ADF format listing all NEW edge cases.
-            Comment text: "*[$REPO_NAME] Edge cases identified (automated triage):*\n\n# Edge Case 1: [title]\n[description with code reference]\n\n# Edge Case 2: [title]\n..."
-
-            Every edge case must reference specific code files or patterns found in the codebase. If no relevant code is found, note that this appears to be a new feature with no existing code to analyze.
-
-            ## Step 4: Phase 3 - Verification Methodology
-
-            For each acceptance criterion, specify a concrete verification method scoped to what THIS repo can test:
-            - UI behavior: Playwright test description with specific assertions
-            - API behavior: curl command with expected response status and body
-            - Data changes: Database query or service call to verify state
-            - Performance: Benchmark description with target metrics
-
-            Verification methods should reflect what THIS repo can test (e.g., frontend repo suggests Playwright tests, backend repo suggests API curl commands). Do not duplicate verification methods already posted by other repos.
-
-            POST a single comment using the ADF format with a structured verification plan.
-            Comment text: "*[$REPO_NAME] Verification methodology (automated triage):*\n\n||Acceptance Criterion||Verification Method||Type||\n|[criterion]|[method]|[UI/API/Data/Performance]|\n..."
-
-            Every verification method must be specific enough that an automated agent could execute it.
-
-            ## Step 5: Label the ticket
+            ## Step 4: Label the ticket
 
             After all comments are posted, add the repo-scoped label "claude-triaged-$REPO_NAME":
 
@@ -208,15 +151,15 @@ jobs:
               PUT $JIRA_BASE_URL/rest/api/3/issue/{key}
               Body: {"fields": {"labels": [... existing labels ..., "claude-triaged-$REPO_NAME"]}}
 
-            ## Step 6: Output summary
+            ## Step 5: Output summary
 
             After processing all tickets, output a summary:
             - Total tickets processed
-            - For each ticket: key, summary, relevance (relevant/skipped), number of ambiguities found, number of edge cases found, whether verification methodology was added
+            - For each ticket: key, summary, verdict, number of ambiguities found, number of edge cases found, whether verification methodology was added
           claude_args: |
-            --allowedTools "Read,Glob,Grep,Bash(*)"
+            --allowedTools "Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns ${{ steps.config.outputs.max_turns }}
-            --system-prompt "You are a precise Jira ticket triage agent. Multiple repositories may triage the same Jira ticket. Read existing comments before posting to avoid duplication. Prefix all comments with [$REPO_NAME]. Only post findings relevant to the code in THIS repository. Focus on being specific and actionable. Every ambiguity must have a concrete clarifying question. Every edge case must reference code. Every verification method must be executable by an automated agent. Use jq for all JSON construction to ensure proper escaping. Do not modify any code in the repository -- you are read-only. Always use the Glob and Grep tools for codebase searching -- do not use find or grep via Bash. Do not load or use tools beyond Read, Glob, Grep, and Bash."
+            --system-prompt "You are a precise Jira ticket triage agent. Multiple repositories may triage the same Jira ticket. Read existing comments before posting to avoid duplication. Prefix all comments with [$REPO_NAME]. Only post findings relevant to the code in THIS repository. Focus on being specific and actionable. Every ambiguity must have a concrete clarifying question. Every edge case must reference code. Every verification method must be executable by an automated agent. Use jq for all JSON construction to ensure proper escaping. Do not modify any code in the repository -- you are read-only. Always use the Glob and Grep tools for codebase searching -- do not use find or grep via Bash."
         env:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL }}

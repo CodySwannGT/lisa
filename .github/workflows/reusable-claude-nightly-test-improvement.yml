@@ -121,29 +121,14 @@ jobs:
           show_full_output: true
           branch_prefix: claude/nightly-test-improvement-
           prompt: |
-            Analyze and improve tests related to recently changed source files.
+            Use the /lisa:nightly-improve-tests skill in nightly mode.
 
             The following source files were changed in the last 24 hours:
             ${{ steps.changes.outputs.files }}
-
-            Instructions:
-            1. Read CLAUDE.md and package.json for project conventions
-            2. For each changed source file above, find its corresponding test file(s)
-            3. Analyze those test files for: missing edge cases, weak assertions (toBeTruthy instead of specific values), missing error path coverage, tests that test implementation rather than behavior
-            4. Improve the test files with the most impactful changes
-            5. Run the full test suite to verify all tests pass
-            6. Commit changes with conventional commit messages
-            7. Create a PR with `gh pr create` summarizing what was improved and why
-            8. SECURITY AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities (GHSA advisories):
-                a. Note the GHSA ID(s), affected package(s), and advisory URL from the error output
-                b. Check the advisory URL to determine if a patched version of the vulnerable package exists
-                c. If a patched version exists, add a resolution/override in package.json to force the patched version (add to both "resolutions" and "overrides" sections), then run the package manager install command to regenerate the lockfile, commit the changes, and retry the push
-                d. If no patched version exists and the vulnerability is safe for this project (e.g., transitive dependency with no untrusted input, devDeps only, or build tool only), add an exclusion entry to audit.ignore.local.json with the format: {"id": "GHSA-xxx", "package": "pkg-name", "reason": "why this is safe for this project"}, then commit and retry the push
-                e. Never use --no-verify to bypass the security audit
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
-            --system-prompt "You are improving test quality for recently changed files. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
+            --system-prompt "You are improving test quality for recently changed files. Read CLAUDE.md for project rules. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
 
       - name: Run Claude Code to improve tests (general)
         id: claude-general
@@ -156,26 +141,11 @@ jobs:
           show_full_output: true
           branch_prefix: claude/nightly-test-improvement-
           prompt: |
-            Analyze the test suite and improve test quality.
-
-            Instructions:
-            1. Read CLAUDE.md and package.json for project conventions
-            2. Scan the test files to find weak, brittle, or poorly-written tests
-            3. Look for: missing edge cases, weak assertions (toBeTruthy instead of specific values), missing error path coverage, tests that test implementation rather than behavior
-            4. Improve 3-5 test files with the most impactful changes
-            5. Run the full test suite to verify all tests pass
-            6. Commit changes with conventional commit messages
-            7. Create a PR with `gh pr create` summarizing what was improved and why
-            8. SECURITY AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities (GHSA advisories):
-                a. Note the GHSA ID(s), affected package(s), and advisory URL from the error output
-                b. Check the advisory URL to determine if a patched version of the vulnerable package exists
-                c. If a patched version exists, add a resolution/override in package.json to force the patched version (add to both "resolutions" and "overrides" sections), then run the package manager install command to regenerate the lockfile, commit the changes, and retry the push
-                d. If no patched version exists and the vulnerability is safe for this project (e.g., transitive dependency with no untrusted input, devDeps only, or build tool only), add an exclusion entry to audit.ignore.local.json with the format: {"id": "GHSA-xxx", "package": "pkg-name", "reason": "why this is safe for this project"}, then commit and retry the push
-                e. Never use --no-verify to bypass the security audit
+            Use the /lisa:nightly-improve-tests skill in general mode.
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
-            --system-prompt "You are improving test quality. Read CLAUDE.md for project rules. Follow TDD practices. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
+            --system-prompt "You are improving test quality. Read CLAUDE.md for project rules. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing."
 
       - name: Trigger CodeRabbit review
         env:
