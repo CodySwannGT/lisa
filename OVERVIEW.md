@@ -177,11 +177,13 @@ When you use Claude's native plan mode:
 |----------|--------|
 | **Plan** | `plan-add-test-coverage`, `plan-fix-linter-error`, `plan-local-code-review`, `plan-lower-code-complexity`, `plan-reduce-max-lines`, `plan-reduce-max-lines-per-function` |
 | **Project** (deprecated) | `project-bootstrap`, `project-setup`, `project-research`, `project-plan`, `project-execute`, `project-implement`, `project-review`, `project-document`, `project-verify`, `project-debrief`, `project-archive`, `project-local-code-review`, `project-lower-code-complexity`, `project-fix-linter-error`, `project-add-test-coverage`, `project-reduce-max-lines`, `project-reduce-max-lines-per-function` |
-| **Git** | `git-commit`, `git-submit-pr`, `git-commit-and-submit-pr`, `git-prune` |
-| **Tasks** | `tasks-load`, `tasks-sync` |
+| **Git** | `git-commit`, `git-submit-pr`, `git-prune` |
 | **Pull Request** | `pull-request-review` |
-| **Jira** | `jira-create`, `jira-verify` |
-| **SonarQube** | `sonarqube-check`, `sonarqube-fix` |
+| **Jira** | `jira-create`, `jira-verify`, `jira-sync`, `jira-evidence`, `jira-add-journey`, `jira-journey` |
+| **Triage** | `bug-triage`, `task-triage`, `epic-triage` |
+| **Implementation** | `tdd-implementation`, `verification-lifecycle` |
+| **Agent-specific** | `reproduce-bug`, `root-cause-analysis`, `codebase-research`, `task-decomposition` |
+| **Review** | `quality-review`, `security-review`, `performance-review`, `test-strategy`, `acceptance-criteria` |
 | **Lisa** | `lisa-learn`, `lisa-integration-test`, `lisa-review-implementation`, `lisa-review-project` |
 
 **Directory structure:**
@@ -214,20 +216,20 @@ When you use Claude's native plan mode:
 
 | Subagent | Purpose |
 |----------|---------|
-| `agent-architect` | Design and optimize agent files |
 | `architecture-specialist` | Implementation design, dependency mapping, pattern evaluation |
+| `bug-fixer` | Fix bugs via TDD (reproduction becomes failing test) |
+| `builder` | Build features via TDD (acceptance criteria become tests) |
+| `debug-specialist` | Root cause analysis, log investigation, proof of bug causation |
 | `git-history-analyzer` | Understand WHY code evolved |
-| `hooks-expert` | Create, modify, and troubleshoot hooks |
-| `implementer` | Code implementation with TDD enforcement |
+| `jira-agent` | JIRA lifecycle: read ticket, determine intent, delegate to flow |
 | `learner` | Post-implementation learning and skill creation |
 | `performance-specialist` | N+1 queries, algorithmic complexity, memory leaks |
 | `product-specialist` | User flows, acceptance criteria, UX validation |
 | `quality-specialist` | Code correctness, coding philosophy, test coverage review |
 | `security-specialist` | Threat modeling (STRIDE), OWASP Top 10, auth/secrets review |
 | `skill-evaluator` | Evaluate whether learnings warrant new skills |
-| `slash-command-architect` | Design and optimize slash commands |
 | `test-specialist` | Test strategy, test writing, coverage analysis |
-| `web-search-researcher` | Find external documentation |
+| `verification-specialist` | Empirical proof via verification lifecycle |
 
 ### 4. Slash Commands (Explicit Actions)
 
@@ -244,18 +246,21 @@ When you use Claude's native plan mode:
 | | `/plan:reduce-max-lines` | Reduce max file lines threshold |
 | | `/plan:reduce-max-lines-per-function` | Reduce max function lines threshold |
 | **Project** (deprecated) | All `/project:*` commands | Deprecated — use plan mode or `/plan:*` commands instead |
-| **Tasks** | `/tasks:load` | Load tasks from a project directory |
-| | `/tasks:sync` | Sync session tasks to a project directory |
+| **Flows** | `/fix` | Fix a bug (full Fix flow) |
+| | `/build` | Build a feature (full Build flow) |
+| | `/investigate` | Investigate an issue (Investigate flow) |
+| | `/plan` | Plan work breakdown (Plan flow) |
+| | `/ship` | Ship changes (commit, PR, review, deploy, monitor) |
+| | `/review` | Review code changes (parallel quality/security/performance) |
+| | `/improve` | Improve existing code (Improve flow) |
+| | `/monitor` | Monitor application health |
 | **Git** | `/git:commit` | Create conventional commits |
 | | `/git:submit-pr` | Create/update pull request |
-| | `/git:commit-and-submit-pr` | Commit and create PR in one step |
 | | `/git:prune` | Clean up merged branches |
 | **Pull Request** | `/pull-request:review` | Check and implement PR comments |
 | **Code Review** | `/code-review:code-review` | Code review a pull request |
 | **Jira** | `/jira:create` | Create Jira tickets from code |
 | | `/jira:verify` | Verify ticket meets standards |
-| **SonarQube** | `/sonarqube:check` | Get PR failure reasons |
-| | `/sonarqube:fix` | Check and fix SonarQube issues |
 | **Safety Net** | `/safety-net:set-custom-rules` | Set custom Safety Net rules |
 | | `/safety-net:set-statusline` | Set Safety Net status line |
 | | `/safety-net:verify-custom-rules` | Verify custom Safety Net rules |

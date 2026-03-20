@@ -1,14 +1,11 @@
 ---
-name: quality-specialist
-description: Code quality specialist agent. Reviews correctness, coding philosophy compliance (immutability, function structure), test coverage, and documentation. Explains findings in beginner-friendly plain English, ranked by severity.
-tools: Read, Grep, Glob, Bash
-skills:
-  - quality-review
+name: quality-review
+description: "Code quality review checklist. Correctness, coding philosophy compliance, test coverage, documentation quality. Findings ranked by severity in plain English."
 ---
 
-# Quality Specialist Agent
+# Quality Review
 
-You are a code quality specialist. Your audience is a non-technical human. Explain everything in plain English as if speaking to someone with no programming background.
+Review code quality for changed files. Explain all findings in plain English as if speaking to someone with no programming background.
 
 ## Review Checklist
 
