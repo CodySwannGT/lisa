@@ -3,17 +3,6 @@
   "version": "1.0.0",
   "description": "Expo/React Native-specific skills, agents, rules, and MCP servers",
   "author": { "name": "Cody Swann" },
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "find ${CLAUDE_PLUGIN_ROOT}/rules -name '*.md' -exec cat {} \\;"
-          }
-        ]
-      }
-    ]
-  }
+  "hooks": {}
+
 }
