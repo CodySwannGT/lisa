@@ -12,13 +12,20 @@
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
     "posthog@claude-plugins-official": true,
-    "lisa-expo@lisa": true
+    "lisa-expo@lisa": true,
+    "impeccable@impeccable": true
   },
   "extraKnownMarketplaces": {
     "CodySwannGT/lisa": {
       "source": {
         "source": "github",
         "repo": "CodySwannGT/lisa"
+      }
+    },
+    "pbakaus/impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
       }
     }
   },
