@@ -94,6 +94,16 @@ Sequence:
 5. **Ship sub-flow**
 6. `learner` — capture discoveries
 
+#### Improve: Test Quality
+When: "Improve tests", "strengthen test suite", "fix weak tests", test quality improvement.
+
+Sequence:
+1. `test-specialist` — scan tests, identify weak/brittle tests, rank by improvement impact
+2. `builder` — implement test improvements
+3. **Verify sub-flow**
+4. **Ship sub-flow**
+5. `learner` — capture discoveries
+
 ### Monitor
 When: "Check the logs", "Any errors?", health checks, production monitoring.
 
@@ -106,9 +116,10 @@ Sequence:
 When the request references a JIRA ticket (ticket ID like PROJ-123 or a JIRA URL):
 
 1. Hand off to `jira-agent`
-2. `jira-agent` reads the ticket, validates quality, determines intent
-3. `jira-agent` delegates to the appropriate flow above
-4. `jira-agent` syncs progress at milestones and posts evidence at completion
+2. `jira-agent` reads the ticket, validates structural quality, and runs analytical triage
+3. If triage finds unresolved ambiguities, `jira-agent` posts findings and STOPS — no work begins
+4. `jira-agent` determines intent and delegates to the appropriate flow above
+5. `jira-agent` syncs progress at milestones and posts evidence at completion
 
 ## Sub-flow Usage
 

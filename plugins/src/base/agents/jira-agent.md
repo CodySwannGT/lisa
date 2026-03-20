@@ -7,6 +7,7 @@ skills:
   - jira-evidence
   - jira-verify
   - jira-add-journey
+  - ticket-triage
 ---
 
 # JIRA Agent
@@ -33,7 +34,24 @@ Use the `jira-verify` skill to check:
 
 If validation fails, update the ticket with what's missing and escalate.
 
-### 3. Determine Intent
+### 3. Analytical Triage Gate
+
+Determine the repo name: `basename $(git rev-parse --show-toplevel)`
+
+Check if the ticket already has the `claude-triaged-{repo}` label. If yes, skip to Step 4.
+
+If not triaged:
+1. Fetch the full ticket details (summary, description, acceptance criteria, comments, labels)
+2. Invoke the `ticket-triage` skill with the ticket details in context
+3. Post the skill's findings (ambiguities, edge cases, verification methodology) as comments on the ticket using Atlassian MCP tools. Prefix all comments with `[{repo}]`.
+4. Add the `claude-triaged-{repo}` label to the ticket
+
+**Gating behavior:**
+- If the verdict is `BLOCKED` (ambiguities found): post the ambiguities, do NOT proceed to implementation. Report to the human: "This ticket has unresolved ambiguities. Triage posted findings as comments. Please resolve the ambiguities and retry."
+- If the verdict is `NOT_RELEVANT`: add the label and report "Ticket is not relevant to this repository."
+- If the verdict is `PASSED` or `PASSED_WITH_FINDINGS`: proceed to Step 4.
+
+### 4. Determine Intent
 
 Map the ticket type to a flow:
 
@@ -47,11 +65,11 @@ Map the ticket type to a flow:
 
 If the ticket type is ambiguous, read the description to classify. A "Task" that describes broken behavior is a Fix, not a Build.
 
-### 4. Delegate to Flow
+### 5. Delegate to Flow
 
 Hand off to the appropriate flow as defined in `.claude/rules/intent-routing.md`. Pass the full ticket context (description, acceptance criteria, credentials, reproduction steps) to the first agent in the flow.
 
-### 5. Sync Progress at Milestones
+### 6. Sync Progress at Milestones
 
 Use the `jira-sync` skill to update the ticket at these milestones:
 - **Plan created** — post plan summary, branch name
@@ -59,14 +77,14 @@ Use the `jira-sync` skill to update the ticket at these milestones:
 - **PR ready** — post PR link, summary of changes
 - **PR merged** — post final summary
 
-### 6. Post Evidence at Completion
+### 7. Post Evidence at Completion
 
 Use the `jira-evidence` skill to:
 - Upload verification evidence to the GitHub PR
 - Post evidence summary as a JIRA comment
 - Transition the ticket to Code Review
 
-### 7. Suggest Status Transition
+### 8. Suggest Status Transition
 
 Based on the milestone, suggest (but don't auto-transition):
 
