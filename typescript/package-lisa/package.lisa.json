@@ -6,7 +6,6 @@
       "format": "prettier --check . --write",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
-      "test:integration": "vitest run tests/integration --passWithNoTests",
       "test:cov": "vitest run --coverage",
       "test:watch": "vitest",
       "lint:fix": "eslint . --fix",
@@ -32,7 +31,8 @@
   "defaults": {
     "scripts": {
       "build": "tsc",
-      "postinstall": "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true"
+      "postinstall": "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true",
+      "test:integration": "vitest run tests/integration --passWithNoTests"
     },
     "engines": {
       "npm": "please-use-bun",
