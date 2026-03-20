@@ -27,7 +27,7 @@ Design test strategies, write tests, and review test quality.
 
 Structure findings as:
 
-```
+```text
 ## Test Analysis
 
 ### Test Matrix

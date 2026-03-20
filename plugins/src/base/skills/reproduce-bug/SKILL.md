@@ -61,7 +61,7 @@ Create the smallest possible reproduction that triggers the bug:
 
 ## Output Format
 
-```
+```text
 ## Reproduction
 
 ### Command/Steps

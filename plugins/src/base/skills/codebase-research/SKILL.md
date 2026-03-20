@@ -55,7 +55,7 @@ Follow these steps in order. Do not skip steps or propose changes to code you ha
 
 ## Output Format
 
-```
+```text
 ## Architecture Analysis
 
 ### Files to Create

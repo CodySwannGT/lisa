@@ -97,7 +97,7 @@ Build an evidence chain that is irrefutable:
 
 ### Evidence Chain Format
 
-```
+```text
 Symptom: [exact error message or behavior]
     |
     v
@@ -125,7 +125,7 @@ grep -rn "\[DEBUG:" src/ --include="*.ts" --include="*.tsx" --include="*.js"
 
 ## Output Format
 
-```
+```text
 ## Root Cause Analysis
 
 ### Evidence Trail

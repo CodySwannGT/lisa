@@ -47,6 +47,14 @@ Sequence:
 2. `architecture-specialist` — understand scope, map dependencies, identify cross-cutting concerns
 3. Break down into ordered tasks, each with: acceptance criteria, verification type, dependencies
 
+### Verify
+When: Pre-ship quality gate. Used as a sub-flow by Fix and Build.
+
+Sequence:
+1. Run full test suite — all tests must pass before proceeding
+2. Run quality checks — lint, typecheck, and format
+3. `verification-specialist` — verify acceptance criteria are met empirically
+
 ### Ship
 When: Code is ready to deploy. Used as a sub-flow by Fix, Build, and Improve.
 
