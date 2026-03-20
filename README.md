@@ -66,5 +66,7 @@ Or use slash commands directly:
 - `/build` — route through the feature build flow
 - `/improve` — route through the improvement flow
 - `/investigate` — route through the investigation flow
+- `/jira:triage <TICKET-ID>` — analytical triage gate: detect ambiguities, edge cases, and verification methodology
+- `/plan:improve-tests <target>` — improve test quality by analyzing and strengthening weak or brittle tests
 
 > Ask Claude: "What commands are available?"
