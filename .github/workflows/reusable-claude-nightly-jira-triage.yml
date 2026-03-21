@@ -16,6 +16,11 @@ on:
         required: false
         default: ''
         type: string
+      ticket_status:
+        description: 'Jira status to filter for (e.g. "To Do", "Open", "Backlog")'
+        required: false
+        default: 'To Do'
+        type: string
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -64,11 +69,11 @@ jobs:
                 -H "Content-Type: application/json" \
                 "$JIRA_BASE_URL/rest/api/3/search/jql" \
                 --get \
-                --data-urlencode 'jql=project="$JIRA_PROJECT_KEY" AND labels NOT IN ("claude-triaged-$REPO_NAME") AND status not in (Done) ORDER BY created DESC' \
-                --data-urlencode 'maxResults=5' \
+                --data-urlencode 'jql=project="$JIRA_PROJECT_KEY" AND labels NOT IN ("claude-triaged-$REPO_NAME") AND status = "${{ inputs.ticket_status }}" ORDER BY created DESC' \
+                --data-urlencode 'maxResults=${{ inputs.ticket_count }}' \
                 --data-urlencode 'fields=key,summary,description,labels,status,comment'
 
-            IMPORTANT: In JQL for the v3 API, use "status not in (Done)" instead of "status != Done" -- the != operator causes escape sequence errors.
+            IMPORTANT: In JQL for the v3 API, use "status = \"Status Name\"" for exact match. Avoid the != operator as it causes escape sequence errors.
 
             ### Get issue details
               GET $JIRA_BASE_URL/rest/api/3/issue/{key}
