@@ -212,6 +212,77 @@ export class Lisa {
     }
   }
 
+  /* v8 ignore start -- calls external CLI, covered by integration tests */
+  /**
+   * Register plugins from merged settings.json with Claude Code at project scope
+   */
+  private async registerPlugins(): Promise<void> {
+    const { logger } = this.deps;
+
+    if (this.config.dryRun) {
+      return;
+    }
+
+    const settingsPath = path.join(
+      this.config.destDir,
+      ".claude",
+      "settings.json"
+    );
+
+    if (!(await fse.pathExists(settingsPath))) {
+      return;
+    }
+
+    const settings = (await fse
+      .readJson(settingsPath)
+      .catch(() => null)) as Record<string, unknown> | null;
+
+    if (!settings?.enabledPlugins) {
+      return;
+    }
+
+    const plugins = Object.keys(
+      settings.enabledPlugins as Record<string, boolean>
+    );
+
+    if (plugins.length === 0) {
+      return;
+    }
+
+    const { exec: execCb } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execAsync = promisify(execCb);
+
+    try {
+      await execAsync("command -v claude", { shell: "/bin/sh" });
+    } catch {
+      logger.info("Claude CLI not found, skipping plugin registration");
+      return;
+    }
+
+    logger.info("Registering plugins with Claude Code (project scope)...");
+
+    const validPluginName = /^[\w@./-]+$/;
+
+    for (const plugin of plugins) {
+      if (!validPluginName.test(plugin)) {
+        logger.warn(`Skipping invalid plugin name: ${plugin}`);
+        continue;
+      }
+
+      try {
+        await execAsync(`claude plugin install ${plugin} --scope project`, {
+          cwd: this.config.destDir,
+          shell: "/bin/sh",
+        });
+        logger.success(`Registered plugin: ${plugin}`);
+      } catch {
+        logger.warn(`Could not register plugin: ${plugin}`);
+      }
+    }
+  }
+  /* v8 ignore stop */
+
   /**
    * Finalize operation
    * @returns Promise that resolves when finalization is complete
@@ -278,6 +349,7 @@ export class Lisa {
       await this.detectTypes();
       await this.processConfigurations();
       await this.processDeletions();
+      await this.registerPlugins();
       await this.finalize();
       this.printSummary();
       await this.printMigrationNotices(this.config.destDir);

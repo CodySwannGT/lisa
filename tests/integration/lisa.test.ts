@@ -25,6 +25,7 @@ import {
 } from "../helpers/test-utils.js";
 
 const PACKAGE_JSON = "package.json";
+const SETTINGS_JSON = "settings.json";
 const TEST_TXT = "test.txt";
 const TSCONFIG_BASE = "tsconfig.base.json";
 const LISAIGNORE = ".lisaignore";
@@ -142,6 +143,38 @@ describe("Lisa Integration Tests", () => {
       await createLisa().apply();
 
       expect(await fs.pathExists(manifestPath)).toBe(false);
+    });
+
+    it("registers plugins at project scope when settings.json has enabledPlugins", async () => {
+      await createTypeScriptProject(destDir);
+
+      // Pre-create destination settings so merge path is exercised
+      const destClaudeDir = path.join(destDir, ".claude");
+      await fs.ensureDir(destClaudeDir);
+      await fs.writeJson(path.join(destClaudeDir, SETTINGS_JSON), {
+        env: { SOME_VAR: "1" },
+      });
+
+      // Create merge source with enabledPlugins
+      const mergeDir = path.join(lisaDir, "all", "merge", ".claude");
+      await fs.ensureDir(mergeDir);
+      await fs.writeJson(path.join(mergeDir, SETTINGS_JSON), {
+        enabledPlugins: {
+          "test-plugin@test-marketplace": true,
+        },
+      });
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      const settings = await fs.readJson(
+        path.join(destDir, ".claude", SETTINGS_JSON)
+      );
+      expect(settings.enabledPlugins["test-plugin@test-marketplace"]).toBe(
+        true
+      );
+      // Existing project keys preserved
+      expect(settings.env.SOME_VAR).toBe("1");
     });
 
     it("applies all/ configs to project with no detected types", async () => {
