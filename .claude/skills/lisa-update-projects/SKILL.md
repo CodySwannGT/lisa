@@ -41,3 +41,19 @@ Updates local Lisa projects in batches by running the package manager update com
 14. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
 
 For steps 4-13, use up to 4 parallel subagents to accomplish those steps.
+
+## Fixing Upstream Bugs
+
+If the Lisa postinstall crashes, rolls back changes, or applies incorrect templates during a project update, **do not just work around it in the downstream project**. Instead:
+
+1. Diagnose the root cause in the Lisa source code at the current working directory.
+2. Fix the bug in Lisa (create a branch, commit, push, and open a PR).
+3. Wait for the fix to merge and release before continuing project updates, OR apply the workaround in downstream projects only as a temporary measure while the upstream fix is in flight.
+
+Common symptoms that indicate an upstream Lisa bug:
+- Postinstall crashes with errors (e.g., missing function, module resolution failures)
+- Templates from a parent stack (typescript) overwriting child stack templates (expo, nestjs, cdk) — this means the postinstall crashed after applying parent templates but before child templates could override them, triggering a rollback
+- Rollback messages in the postinstall output (`[WARN] Rolling back changes...`) followed by an error
+- Files that should be stack-specific (eslint.config.ts, tsconfig.json, knip.json) containing generic TypeScript config instead of the expected child stack config
+
+The goal is to fix bugs at the source so they don't recur on every future update across all projects.
