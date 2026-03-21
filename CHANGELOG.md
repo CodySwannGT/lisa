@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.71.1](https://github.com/CodySwannGT/lisa/compare/vv1.71.0...v1.71.1) (2026-03-21)
+
+
+### Bug Fixes
+
+* replace fse.readJson with readFile+JSON.parse in registerPlugins ([#316](https://github.com/CodySwannGT/lisa/issues/316)) ([d1bbd8e](https://github.com/CodySwannGT/lisa/commit/d1bbd8eee23cb829f9eef9c7dfc2c446884b92d4))
+
 ## [1.71.0](https://github.com/CodySwannGT/lisa/compare/vv1.70.1...v1.71.0) (2026-03-21)
 
 

@@ -74,7 +74,7 @@
     "flatted": "^3.4.2"
   },
   "name": "@codyswann/lisa",
-  "version": "1.71.0",
+  "version": "1.71.1",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
