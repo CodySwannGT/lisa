@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.71.4](https://github.com/CodySwannGT/lisa/compare/vv1.71.3...v1.71.4) (2026-03-21)
+
+
+### Bug Fixes
+
+* nightly jira triage uses ticket_count for maxResults and filters by status ([#319](https://github.com/CodySwannGT/lisa/issues/319)) ([eae6a51](https://github.com/CodySwannGT/lisa/commit/eae6a51e728ef7fb19e23219579f8ee148c0679a))
+
 ### [1.71.3](https://github.com/CodySwannGT/lisa/compare/vv1.71.2...v1.71.3) (2026-03-21)
 
 
