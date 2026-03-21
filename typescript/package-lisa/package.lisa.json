@@ -16,9 +16,6 @@
       "sg:scan": "ast-grep scan",
       "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true"
     },
-    "devDependencies": {
-      "@codyswann/lisa": "^1.54.6"
-    },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
       "axios": ">=1.13.5"
@@ -31,7 +28,6 @@
   "defaults": {
     "scripts": {
       "build": "tsc",
-      "postinstall": "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true",
       "test:integration": "vitest run tests/integration --passWithNoTests"
     },
     "engines": {
