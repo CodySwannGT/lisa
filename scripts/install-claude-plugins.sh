@@ -16,12 +16,13 @@ if [ "$PACKAGE_NAME" = "@codyswann/lisa" ]; then exit 0; fi
 
 cd "$PROJECT_ROOT"
 
-# Apply Lisa templates non-interactively.
-# --skip-git-check bypasses the dirty working directory check since
-# package.json and the lockfile are always uncommitted during postinstall.
-if ! node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
-  echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
-fi
+# NOTE: Template application is intentionally NOT run during postinstall.
+# Running the full apply here caused child-stack template conflicts in CI:
+# the TypeScript templates would overwrite Expo/CDK-specific configs (tsconfig.json,
+# eslint.config.ts), and if the process failed mid-way, the child stack's templates
+# never restored the correct versions. Template application should only happen via
+# explicit `lisa:update` (npx @codyswann/lisa@latest .) or the project's own
+# postinstall script (defaults.scripts.postinstall in package.lisa.json).
 
 # Strip the hooks key from .claude/settings.json if .claude/hooks/ is now empty/absent
 # (hooks moved to plugin.json; all .claude/hooks/*.sh scripts are deleted by lisa update)

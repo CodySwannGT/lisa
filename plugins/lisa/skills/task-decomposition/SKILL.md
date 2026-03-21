@@ -58,7 +58,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 
 ## Output Format
 
-```text
+```markdown
 ## Task Breakdown
 
 ### Task 1: [imperative description]
