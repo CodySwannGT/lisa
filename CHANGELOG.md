@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.71.2](https://github.com/CodySwannGT/lisa/compare/vv1.71.1...v1.71.2) (2026-03-21)
+
+
+### Documentation
+
+* add upstream bug fixing guidance to lisa-update-projects skill ([#317](https://github.com/CodySwannGT/lisa/issues/317)) ([acc46f8](https://github.com/CodySwannGT/lisa/commit/acc46f818ab4d5e8103e0464b5d8c8c38119666e))
+
 ### [1.71.1](https://github.com/CodySwannGT/lisa/compare/vv1.71.0...v1.71.1) (2026-03-21)
 
 
