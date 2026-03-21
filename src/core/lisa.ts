@@ -233,9 +233,9 @@ export class Lisa {
       return;
     }
 
-    const settings = (await fse
-      .readJson(settingsPath)
-      .catch(() => null)) as Record<string, unknown> | null;
+    const settings = await readFile(settingsPath, "utf-8")
+      .then(content => JSON.parse(content) as Record<string, unknown>)
+      .catch(() => null);
 
     if (!settings?.enabledPlugins) {
       return;
