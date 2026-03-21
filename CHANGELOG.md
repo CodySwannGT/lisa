@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.71.0](https://github.com/CodySwannGT/lisa/compare/vv1.70.1...v1.71.0) (2026-03-21)
+
+
+### Features
+
+* auto-register plugins at project scope after settings merge ([#313](https://github.com/CodySwannGT/lisa/issues/313)) ([0d7e999](https://github.com/CodySwannGT/lisa/commit/0d7e999d5b216d38dcfc2c26e8f0805ac55c864e))
+
 ### [1.70.1](https://github.com/CodySwannGT/lisa/compare/vv1.70.0...v1.70.1) (2026-03-20)
 
 
