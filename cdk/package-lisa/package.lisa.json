@@ -19,7 +19,6 @@
       "source-map-support": "^0.5.21"
     },
     "devDependencies": {
-      "@codyswann/lisa": "^1.54.6",
       "aws-cdk": "^2.1104.0",
       "vitest": "^4.1.0",
       "@vitest/coverage-v8": "^4.1.0"

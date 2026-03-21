@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.71.3](https://github.com/CodySwannGT/lisa/compare/vv1.71.2...v1.71.3) (2026-03-21)
+
+
+### Bug Fixes
+
+* remove template apply from postinstall to prevent child-stack config overwrites ([#318](https://github.com/CodySwannGT/lisa/issues/318)) ([0c7f1c2](https://github.com/CodySwannGT/lisa/commit/0c7f1c2b8269488269e888a1ca0968fcdf67ee54))
+
 ### [1.71.2](https://github.com/CodySwannGT/lisa/compare/vv1.71.1...v1.71.2) (2026-03-21)
 
 
