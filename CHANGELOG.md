@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.71.5](https://github.com/CodySwannGT/lisa/compare/vv1.71.4...v1.71.5) (2026-03-24)
+
+
+### Bug Fixes
+
+* refresh Lisa marketplace cache and skip Linux-only installs on macOS ([#320](https://github.com/CodySwannGT/lisa/issues/320)) ([bd6c8e3](https://github.com/CodySwannGT/lisa/commit/bd6c8e353727593d6accad51a4f34f95b433f2e5))
+
 ### [1.71.4](https://github.com/CodySwannGT/lisa/compare/vv1.71.3...v1.71.4) (2026-03-21)
 
 
