@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.72.0](https://github.com/CodySwannGT/lisa/compare/vv1.71.5...v1.72.0) (2026-03-24)
+
+
+### Features
+
+* add playwright_setup_command input to quality workflow ([#321](https://github.com/CodySwannGT/lisa/issues/321)) ([a6d5c78](https://github.com/CodySwannGT/lisa/commit/a6d5c78711f025c24e31d352018f0163b517abb9))
+
 ### [1.71.5](https://github.com/CodySwannGT/lisa/compare/vv1.71.4...v1.71.5) (2026-03-24)
 
 
