@@ -260,9 +260,22 @@ export class Lisa {
       return;
     }
 
-    logger.info("Registering plugins with Claude Code (project scope)...");
+    await this.installPluginsAndUpdateMarketplace(execAsync, plugins);
+  }
 
+  /**
+   * Install each plugin and refresh the Lisa marketplace cache
+   * @param execAsync - Promisified exec function for running shell commands
+   * @param plugins - Plugin identifiers from enabledPlugins (e.g. "lisa@lisa")
+   */
+  private async installPluginsAndUpdateMarketplace(
+    execAsync: (cmd: string, opts: Record<string, unknown>) => Promise<unknown>,
+    plugins: readonly string[]
+  ): Promise<void> {
+    const { logger } = this.deps;
     const validPluginName = /^[\w@./-]+$/;
+
+    logger.info("Registering plugins with Claude Code (project scope)...");
 
     for (const plugin of plugins) {
       if (!validPluginName.test(plugin)) {
@@ -279,6 +292,16 @@ export class Lisa {
       } catch {
         logger.warn(`Could not register plugin: ${plugin}`);
       }
+    }
+
+    try {
+      await execAsync("claude plugin marketplace update lisa", {
+        cwd: this.config.destDir,
+        shell: "/bin/sh",
+      });
+      logger.success("Updated marketplace: lisa");
+    } catch {
+      logger.warn("Could not update marketplace: lisa");
     }
   }
   /* v8 ignore stop */

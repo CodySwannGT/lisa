@@ -21,6 +21,11 @@ else
   npm install
 fi
 
+# The tools below use Linux-specific binaries and paths — skip on other platforms.
+if [ "$(uname -s)" != "Linux" ]; then
+  exit 0
+fi
+
 # Install Gitleaks for secret detection (pre-commit hook)
 echo "Installing Gitleaks for secret detection..."
 GITLEAKS_VERSION="8.18.4"
