@@ -119,6 +119,11 @@ on:
         required: false
         default: ''
         type: string
+      playwright_setup_command:
+        description: 'Command to run before Playwright build (e.g., environment setup like copying .env files)'
+        required: false
+        default: ''
+        type: string
     secrets:
       SONAR_TOKEN:
         description: 'SonarCloud token for SAST analysis'
@@ -703,6 +708,11 @@ jobs:
             echo "has_config=false" >> $GITHUB_OUTPUT
             echo "⚠️ No Playwright config found"
           fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔧 Playwright setup
+        if: steps.check_playwright.outputs.has_config == 'true' && inputs.playwright_setup_command != ''
+        run: ${{ inputs.playwright_setup_command }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🌐 Build web export
