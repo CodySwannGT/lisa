@@ -22,7 +22,7 @@ Identify bottlenecks, inefficiencies, and scalability risks in code changes.
 
 Structure findings as:
 
-```
+```markdown
 ## Performance Analysis
 
 ### Critical Issues
