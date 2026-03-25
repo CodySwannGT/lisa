@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.73.2](https://github.com/CodySwannGT/lisa/compare/vv1.73.1...v1.73.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* reduce maxLinesPerFunction decrement from 5 to 2 ([#326](https://github.com/CodySwannGT/lisa/issues/326)) ([a15ba8e](https://github.com/CodySwannGT/lisa/commit/a15ba8ebefc2bcf2caf04fa6088b7e526836486e))
+
 ### [1.73.1](https://github.com/CodySwannGT/lisa/compare/vv1.73.0...v1.73.1) (2026-03-25)
 
 
