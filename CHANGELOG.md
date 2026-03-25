@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.74.0](https://github.com/CodySwannGT/lisa/compare/vv1.73.2...v1.74.0) (2026-03-25)
+
+
+### Features
+
+* **expo:** expand playwright-selectors skill with battle-tested patterns ([#327](https://github.com/CodySwannGT/lisa/issues/327)) ([b0d8168](https://github.com/CodySwannGT/lisa/commit/b0d8168bb15b0a9276394f80710ec72d5f4c5c3f))
+
 ### [1.73.2](https://github.com/CodySwannGT/lisa/compare/vv1.73.1...v1.73.2) (2026-03-25)
 
 
