@@ -72,7 +72,13 @@ jobs:
         run: |
           if [ -f .claude/settings.json ]; then
             MARKETPLACES=$(jq -r '(.extraKnownMarketplaces // {}) | to_entries[] | .value.source | if .source == "github" then "https://github.com/\(.repo).git" else empty end' .claude/settings.json 2>/dev/null || echo "")
-            PLUGINS=$(jq -r '(.enabledPlugins // {}) | to_entries[] | select(.value == true) | .key' .claude/settings.json 2>/dev/null || echo "")
+            MARKETPLACE_NAMES=$(jq -r '(.extraKnownMarketplaces // {}) | to_entries[] | .value.source.repo // .key | split("/") | last' .claude/settings.json 2>/dev/null || echo "")
+            PLUGINS=$(jq -r '(.enabledPlugins // {}) | to_entries[] | select(.value == true) | .key' .claude/settings.json 2>/dev/null | while IFS= read -r plugin; do
+              mk="${plugin##*@}"
+              if echo "$MARKETPLACE_NAMES" | grep -qx "$mk"; then
+                echo "$plugin"
+              fi
+            done)
           else
             MARKETPLACES=""
             PLUGINS=""
