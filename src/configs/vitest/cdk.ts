@@ -73,7 +73,7 @@ export const getCdkVitestConfig = ({
     testTimeout: 10000,
     coverage: {
       provider: "v8",
-      include: ["lib/**/*.ts", "util/**/*.ts"],
+      include: ["../lib/**/*.ts", "../util/**/*.ts"],
       exclude: [...defaultCoverageExclusions],
       thresholds: mapThresholds(
         thresholds

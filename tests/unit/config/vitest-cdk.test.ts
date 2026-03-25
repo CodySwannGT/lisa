@@ -9,8 +9,8 @@
  */
 import { getCdkVitestConfig } from "../../../src/configs/vitest/cdk.js";
 
-const LIB_TS_GLOB = "lib/**/*.ts";
-const UTIL_TS_GLOB = "util/**/*.ts";
+const LIB_TS_GLOB = "../lib/**/*.ts";
+const UTIL_TS_GLOB = "../util/**/*.ts";
 
 describe("vitest.cdk", () => {
   describe("getCdkVitestConfig", () => {
