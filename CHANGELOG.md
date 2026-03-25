@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.72.2](https://github.com/CodySwannGT/lisa/compare/vv1.72.1...v1.72.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* remove root: "test" from CDK vitest config to fix 0% coverage ([#323](https://github.com/CodySwannGT/lisa/issues/323)) ([c609c0f](https://github.com/CodySwannGT/lisa/commit/c609c0fe176907460c7c514105488ea9dae28f3e))
+
 ### [1.72.1](https://github.com/CodySwannGT/lisa/compare/vv1.72.0...v1.72.1) (2026-03-25)
 
 
