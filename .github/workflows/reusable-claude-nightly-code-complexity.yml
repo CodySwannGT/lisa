@@ -122,7 +122,7 @@ jobs:
             const thresholds = JSON.parse(fs.readFileSync(path, 'utf8'));
             const metrics = [
               { key: 'cognitiveComplexity', target: 15, decrement: 2 },
-              { key: 'maxLinesPerFunction', target: 30, decrement: 5 },
+              { key: 'maxLinesPerFunction', target: 30, decrement: 2 },
             ];
 
             const current = {};
