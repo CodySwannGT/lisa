@@ -63,17 +63,16 @@ export const getCdkVitestConfig = ({
   test: {
     globals: true,
     environment: "node",
-    root: "test",
     include: [
-      "**/*.test.ts",
-      "**/*.spec.ts",
-      "**/*.integration-test.ts",
-      "**/*.integration-spec.ts",
+      "test/**/*.test.ts",
+      "test/**/*.spec.ts",
+      "test/**/*.integration-test.ts",
+      "test/**/*.integration-spec.ts",
     ],
     testTimeout: 10000,
     coverage: {
       provider: "v8",
-      include: ["../lib/**/*.ts", "../util/**/*.ts"],
+      include: ["lib/**/*.ts", "util/**/*.ts"],
       exclude: [...defaultCoverageExclusions],
       thresholds: mapThresholds(
         thresholds

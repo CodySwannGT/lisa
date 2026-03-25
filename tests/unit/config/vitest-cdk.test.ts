@@ -2,15 +2,15 @@
  * Unit tests for the CDK Vitest configuration factory.
  *
  * Validates that getCdkVitestConfig produces the correct environment,
- * globals, root, include patterns, timeout, coverage settings, and
+ * globals, include patterns, timeout, coverage settings, and
  * threshold merging behavior.
  *
  * @see src/configs/vitest/cdk.ts
  */
 import { getCdkVitestConfig } from "../../../src/configs/vitest/cdk.js";
 
-const LIB_TS_GLOB = "../lib/**/*.ts";
-const UTIL_TS_GLOB = "../util/**/*.ts";
+const LIB_TS_GLOB = "lib/**/*.ts";
+const UTIL_TS_GLOB = "util/**/*.ts";
 
 describe("vitest.cdk", () => {
   describe("getCdkVitestConfig", () => {
@@ -26,20 +26,20 @@ describe("vitest.cdk", () => {
       expect(config.test?.globals).toBe(true);
     });
 
-    it("sets root to test directory", () => {
+    it("does not set root (defaults to project root for coverage)", () => {
       const config = getCdkVitestConfig();
 
-      expect(config.test?.root).toBe("test");
+      expect(config.test?.root).toBeUndefined();
     });
 
-    it("includes test, spec, and integration patterns", () => {
+    it("includes test patterns prefixed with test/ directory", () => {
       const config = getCdkVitestConfig();
       const include = config.test?.include as string[];
 
-      expect(include).toContain("**/*.test.ts");
-      expect(include).toContain("**/*.spec.ts");
-      expect(include).toContain("**/*.integration-test.ts");
-      expect(include).toContain("**/*.integration-spec.ts");
+      expect(include).toContain("test/**/*.test.ts");
+      expect(include).toContain("test/**/*.spec.ts");
+      expect(include).toContain("test/**/*.integration-test.ts");
+      expect(include).toContain("test/**/*.integration-spec.ts");
     });
 
     it("sets 10 second timeout", () => {
