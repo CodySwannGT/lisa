@@ -21,7 +21,7 @@ Evaluate changes from a non-technical user's perspective. Define acceptance crit
 
 Structure findings as:
 
-```
+```markdown
 ## Product Analysis
 
 ### User Goal
