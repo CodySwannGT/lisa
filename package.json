@@ -180,7 +180,7 @@
     "vitest": "^4.1.0"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^1.65.0"
+    "@codyswann/lisa": "^1.74.0"
   },
   "type": "module"
 }
