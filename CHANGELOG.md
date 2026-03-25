@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.73.1](https://github.com/CodySwannGT/lisa/compare/vv1.73.0...v1.73.1) (2026-03-25)
+
+
+### Bug Fixes
+
+* filter CI plugins to only those from extraKnownMarketplaces ([#325](https://github.com/CodySwannGT/lisa/issues/325)) ([45e0abd](https://github.com/CodySwannGT/lisa/commit/45e0abd33b6240a4aebc5edafc97d14e5465b6f9))
+
 ## [1.73.0](https://github.com/CodySwannGT/lisa/compare/vv1.72.2...v1.73.0) (2026-03-25)
 
 
