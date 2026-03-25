@@ -20,7 +20,7 @@ Identify vulnerabilities, evaluate threats, and recommend mitigations for code c
 
 Structure findings as:
 
-```markdown
+```
 ## Security Analysis
 
 ### Threat Model (STRIDE)

@@ -17,9 +17,8 @@
 set -euo pipefail
 
 # Fix jira-cli installation if install-pkgs.sh failed to extract correctly.
-# The tarball nests the binary at jira_VERSION_linux_x86_64/bin/jira,
-# but install-pkgs.sh expects a top-level "jira" file.
-if ! command -v jira &>/dev/null; then
+# Only attempt on Linux — the binary download is Linux-only.
+if [[ "$(uname -s)" == "Linux" ]] && ! command -v jira &>/dev/null; then
   JIRA_CLI_VERSION="1.7.0"
   TMPDIR=$(mktemp -d)
   curl -sSfL "https://github.com/ankitpokhrel/jira-cli/releases/download/v${JIRA_CLI_VERSION}/jira_${JIRA_CLI_VERSION}_linux_x86_64.tar.gz" \
