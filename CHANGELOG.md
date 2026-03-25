@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.73.0](https://github.com/CodySwannGT/lisa/compare/vv1.72.2...v1.73.0) (2026-03-25)
+
+
+### Features
+
+* auto-read plugins from .claude/settings.json in CI workflows ([#324](https://github.com/CodySwannGT/lisa/issues/324)) ([17838ef](https://github.com/CodySwannGT/lisa/commit/17838efa87513294822bbd2cc11d791e6caf628c))
+
 ### [1.72.2](https://github.com/CodySwannGT/lisa/compare/vv1.72.1...v1.72.2) (2026-03-25)
 
 
