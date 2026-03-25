@@ -44,11 +44,31 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - name: Read plugins from project settings
+        id: plugins
+        run: |
+          if [ -f .claude/settings.json ]; then
+            MARKETPLACES=$(jq -r '(.extraKnownMarketplaces // {}) | to_entries[] | .value.source | if .source == "github" then "https://github.com/\(.repo).git" else empty end' .claude/settings.json 2>/dev/null || echo "")
+            PLUGINS=$(jq -r '(.enabledPlugins // {}) | to_entries[] | select(.value == true) | .key' .claude/settings.json 2>/dev/null || echo "")
+          else
+            MARKETPLACES=""
+            PLUGINS=""
+          fi
+          {
+            echo "marketplaces<<PLUGINS_EOF"
+            echo "$MARKETPLACES"
+            echo "PLUGINS_EOF"
+            echo "plugins<<PLUGINS_EOF"
+            echo "$PLUGINS"
+            echo "PLUGINS_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Update all open PR branches
         uses: anthropics/claude-code-action@v1
         continue-on-error: true
         with:
+          plugin_marketplaces: ${{ steps.plugins.outputs.marketplaces }}
+          plugins: ${{ steps.plugins.outputs.plugins }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: 'github-actions'
           prompt: |
@@ -80,6 +100,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         continue-on-error: true
         with:
+          plugin_marketplaces: ${{ steps.plugins.outputs.marketplaces }}
+          plugins: ${{ steps.plugins.outputs.plugins }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: 'github-actions'
           prompt: |
