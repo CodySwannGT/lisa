@@ -53,7 +53,7 @@ await expect(page.getByTestId("settings:dark-mode-toggle")).toBeVisible();
 await page.getByRole("button", { name: "Close dialog" }).click();
 
 // 3. Good — placeholder
-await page.getByPlaceholder("Search players...").fill("query");
+await page.getByPlaceholder("Search players...").fill("Messi");
 
 // 4. Fallback — text (fragile)
 await expect(page.getByText("Settings").first()).toBeVisible();
@@ -64,6 +64,7 @@ await expect(page.getByText("Settings").first()).toBeVisible();
 When adding testIDs to components that are deployed separately from tests, use `.or()` to fall back gracefully:
 
 ```typescript
+// Works before AND after testID is deployed
 const heading = page
   .getByTestId("feature:heading")
   .or(page.getByText("Feature Title").first());
@@ -128,6 +129,27 @@ React Native Web converts `testID` → `data-testid` through its `createDOMProps
 | `Button` (GlueStack) | Unreliable — verify first | May or may not forward depending on version |
 | Third-party (e.g., BouncyCheckbox) | Usually not possible | Use text/role selectors instead |
 
+### How to tell which path a component uses
+
+Trace the component's render chain:
+
+```
+GlueStack Pressable → createPressable({ Root: withStyleContext(RNPressable) })
+  → withStyleContext passes {...props} to RNPressable
+  → RN Web Pressable renders <View {...rest}>
+  → View goes through createElement → createDOMProps
+  → createDOMProps converts testID → data-testid ✅
+```
+
+vs:
+
+```
+GlueStack Text → tva-styled component
+  → Renders <span> or <p> directly
+  → Never hits createDOMProps
+  → testID prop is silently ignored ❌
+```
+
 ### Adding a testID to a new component
 
 1. Check the component type against the table above
@@ -186,6 +208,7 @@ Prefer semantic selectors and aria-labels over testID when possible. This benefi
 ### aria-label for Testing and Accessibility
 
 ```typescript
+// Correct — benefits both testing and accessibility
 <Pressable
   accessibilityLabel="Close dialog"
   onPress={handleClose}
@@ -200,10 +223,12 @@ await page.getByRole("button", { name: "Close dialog" }).click();
 ### accessibilityRole for Semantic Elements
 
 ```typescript
+// Correct — semantic role for assistive technology
 <Box accessibilityRole="banner" testID="header:container">
   <Text accessibilityRole="heading">Welcome</Text>
 </Box>
 
+// E2E test can use role
 await expect(page.getByRole("banner")).toBeVisible();
 await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
 ```
@@ -227,6 +252,7 @@ The CI pipeline should:
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
+  // In CI, serve the static web build locally
   ...(process.env.CI
     ? {
         webServer: {
@@ -413,11 +439,16 @@ test.describe("Profile Screen", () => {
     await page.goto("/profile");
     await page.waitForLoadState("domcontentloaded");
 
+    // Verify structural container
     await expect(page.getByTestId("profile:container")).toBeVisible();
+
+    // Prefer accessible queries when available
     await expect(page.getByRole("heading")).toHaveText("John Doe");
     await expect(
       page.getByRole("button", { name: "Edit profile" })
     ).toBeVisible();
+
+    // Use testID for elements without semantic roles
     await expect(page.getByTestId("profile:avatar")).toBeVisible();
   });
 });
