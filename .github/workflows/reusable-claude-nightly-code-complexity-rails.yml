@@ -141,8 +141,8 @@ jobs:
           add_metric() {
             local key="$1" current="$2" proposed="$3" target="$4"
             if [ -n "$current" ]; then
-              CURRENT=$(echo "$CURRENT" | jq --arg k "$key" --argjson v "$current" '. + {($k): $v}')
-              PROPOSED=$(echo "$PROPOSED" | jq --arg k "$key" --argjson v "$proposed" '. + {($k): $v}')
+              CURRENT=$(echo "$CURRENT" | jq -c --arg k "$key" --argjson v "$current" '. + {($k): $v}')
+              PROPOSED=$(echo "$PROPOSED" | jq -c --arg k "$key" --argjson v "$proposed" '. + {($k): $v}')
               if [ "$current" -ne "$proposed" ]; then
                 ALL_AT_TARGET="false"
                 if [ -n "$REDUCTIONS" ]; then
