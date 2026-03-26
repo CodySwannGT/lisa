@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.74.2](https://github.com/CodySwannGT/lisa/compare/vv1.74.1...v1.74.2) (2026-03-26)
+
+
+### Bug Fixes
+
+* **rails:** use compact jq output in nightly complexity workflow ([#329](https://github.com/CodySwannGT/lisa/issues/329)) ([208edd3](https://github.com/CodySwannGT/lisa/commit/208edd390ad245cabcf8077b39f5d16b02786ea6))
+
 ### [1.74.1](https://github.com/CodySwannGT/lisa/compare/vv1.74.0...v1.74.1) (2026-03-25)
 
 ## [1.74.0](https://github.com/CodySwannGT/lisa/compare/vv1.73.2...v1.74.0) (2026-03-25)
