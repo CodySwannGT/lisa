@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.75.1](https://github.com/CodySwannGT/lisa/compare/vv1.75.0...v1.75.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* add coverage_increment input to TypeScript nightly test-coverage template ([#332](https://github.com/CodySwannGT/lisa/issues/332)) ([d85b912](https://github.com/CodySwannGT/lisa/commit/d85b9126ace72ff027b3db38cb9a496e57a2c45f))
+
 ## [1.75.0](https://github.com/CodySwannGT/lisa/compare/vv1.74.2...v1.75.0) (2026-03-26)
 
 
