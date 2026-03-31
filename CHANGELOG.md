@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.76.0](https://github.com/CodySwannGT/lisa/compare/vv1.75.1...v1.76.0) (2026-03-31)
+
+
+### Features
+
+* add MySQL support to nightly test coverage workflow ([#334](https://github.com/CodySwannGT/lisa/issues/334)) ([edc6742](https://github.com/CodySwannGT/lisa/commit/edc67425c23553cd6bab2a4c34c031a5cc85671e))
+
 ### [1.75.1](https://github.com/CodySwannGT/lisa/compare/vv1.75.0...v1.75.1) (2026-03-27)
 
 
