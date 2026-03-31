@@ -39,6 +39,31 @@
       "id": "GHSA-c2c7-rcm5-vvqj",
       "package": "picomatch",
       "reason": "ReDoS via extglob quantifiers — transitive devDep via micromatch/fast-glob, no untrusted glob patterns"
+    },
+    {
+      "id": "GHSA-3mfm-83xf-c92r",
+      "package": "handlebars",
+      "reason": "JS injection via AST type confusion (@partial-block) — transitive devDep via ts-jest/standard-version, no untrusted templates"
+    },
+    {
+      "id": "GHSA-2w6w-674q-4c4q",
+      "package": "handlebars",
+      "reason": "JS injection via AST type confusion — transitive devDep via ts-jest/standard-version, no untrusted templates"
+    },
+    {
+      "id": "GHSA-xjpj-3mr7-gcpf",
+      "package": "handlebars",
+      "reason": "JS injection in CLI precompiler via unescaped names — transitive devDep via ts-jest/standard-version, CLI not used"
+    },
+    {
+      "id": "GHSA-xhpv-hc6g-r9c6",
+      "package": "handlebars",
+      "reason": "JS injection via AST type confusion (dynamic partial) — transitive devDep via ts-jest/standard-version, no untrusted templates"
+    },
+    {
+      "id": "GHSA-9cx6-37pm-9jff",
+      "package": "handlebars",
+      "reason": "DoS via malformed decorator syntax — transitive devDep via ts-jest/standard-version, no untrusted templates"
     }
   ]
 }
