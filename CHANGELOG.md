@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.76.1](https://github.com/CodySwannGT/lisa/compare/vv1.76.0...v1.76.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* increase nightly test coverage max-turns from 40 to 75 ([#335](https://github.com/CodySwannGT/lisa/issues/335)) ([3754113](https://github.com/CodySwannGT/lisa/commit/375411399671ae3b10dfecab5b1a123635a5cc8e))
+
+## [1.76.0](https://github.com/CodySwannGT/lisa/compare/vv1.75.1...v1.76.0) (2026-03-31)
+
+
+### Features
+
+* add MySQL support to nightly test coverage workflow ([#334](https://github.com/CodySwannGT/lisa/issues/334)) ([edc6742](https://github.com/CodySwannGT/lisa/commit/edc67425c23553cd6bab2a4c34c031a5cc85671e))
+
+### [1.75.1](https://github.com/CodySwannGT/lisa/compare/vv1.75.0...v1.75.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* add coverage_increment input to TypeScript nightly test-coverage template ([#332](https://github.com/CodySwannGT/lisa/issues/332)) ([d85b912](https://github.com/CodySwannGT/lisa/commit/d85b9126ace72ff027b3db38cb9a496e57a2c45f))
+
+## [1.75.0](https://github.com/CodySwannGT/lisa/compare/vv1.74.2...v1.75.0) (2026-03-26)
+
+
+### Features
+
+* improve security audit handling for Node.js and Rails ([#331](https://github.com/CodySwannGT/lisa/issues/331)) ([bbd110d](https://github.com/CodySwannGT/lisa/commit/bbd110da45ec260875a96c2608b71d38af48c0a5))
+
+
+### Bug Fixes
+
+* improve nightly complexity workflow reliability ([#330](https://github.com/CodySwannGT/lisa/issues/330)) ([924fe95](https://github.com/CodySwannGT/lisa/commit/924fe95a15fa28cf5c870f105cbe377d1a317d12))
+
+### [1.74.2](https://github.com/CodySwannGT/lisa/compare/vv1.74.1...v1.74.2) (2026-03-26)
+
+
+### Bug Fixes
+
+* **rails:** use compact jq output in nightly complexity workflow ([#329](https://github.com/CodySwannGT/lisa/issues/329)) ([208edd3](https://github.com/CodySwannGT/lisa/commit/208edd390ad245cabcf8077b39f5d16b02786ea6))
+
 ### [1.74.1](https://github.com/CodySwannGT/lisa/compare/vv1.74.0...v1.74.1) (2026-03-25)
 
 ## [1.74.0](https://github.com/CodySwannGT/lisa/compare/vv1.73.2...v1.74.0) (2026-03-25)
