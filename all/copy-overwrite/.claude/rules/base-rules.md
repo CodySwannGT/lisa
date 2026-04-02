@@ -20,6 +20,7 @@ Code Quality:
 - Make atomic commits with clear conventional commit messages.
 - Create clear documentation preambles for new code. Update preambles when modifying existing code.
 - Document the "why", not the "what". Code explains what it does; documentation explains why it exists.
+- Always add new imports and their first usage in the same edit. The lint-on-edit hook runs `eslint --fix` after every Edit, which auto-removes unused imports. If you add an import in one edit and plan to use it in a second edit, the hook will strip the import before the second edit runs.
 - Add language specifiers to fenced code blocks in Markdown.
 - Use project-relative paths rather than absolute paths in documentation and Markdown.
 - Delete old code completely when replacing it. No deprecation unless specifically requested.
