@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.76.2](https://github.com/CodySwannGT/lisa/compare/vv1.76.1...v1.76.2) (2026-04-02)
+
+
+### Bug Fixes
+
+* prevent nightly complexity reduction from exhausting turn limit ([#336](https://github.com/CodySwannGT/lisa/issues/336)) ([247092f](https://github.com/CodySwannGT/lisa/commit/247092f798e3e808d9d7e9bf8db8bb498040b376))
+
 ### [1.76.1](https://github.com/CodySwannGT/lisa/compare/vv1.76.0...v1.76.1) (2026-03-31)
 
 
