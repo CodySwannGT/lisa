@@ -70,7 +70,7 @@ jobs:
 
       - name: Calculate max turns
         id: config
-        run: echo "max_turns=$(( ${{ inputs.ticket_count }} * 20 ))" >> "$GITHUB_OUTPUT"
+        run: echo "max_turns=$(( ${{ inputs.ticket_count }} * 40 ))" >> "$GITHUB_OUTPUT"
 
       - name: Run Claude Code to triage Jira tickets
         uses: anthropics/claude-code-action@v1
