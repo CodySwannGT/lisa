@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.76.4](https://github.com/CodySwannGT/lisa/compare/vv1.76.3...v1.76.4) (2026-04-02)
+
+
+### Bug Fixes
+
+* guide nightly complexity to use concerns/services when ClassLength is at risk ([#338](https://github.com/CodySwannGT/lisa/issues/338)) ([51cf721](https://github.com/CodySwannGT/lisa/commit/51cf7213b74f2dd40275944ec5ff114c1b767da0))
+
 ### [1.76.3](https://github.com/CodySwannGT/lisa/compare/vv1.76.2...v1.76.3) (2026-04-02)
 
 
