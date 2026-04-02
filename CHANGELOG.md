@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.76.3](https://github.com/CodySwannGT/lisa/compare/vv1.76.2...v1.76.3) (2026-04-02)
+
+
+### Bug Fixes
+
+* increase triage max-turns per ticket from 20 to 40 ([#337](https://github.com/CodySwannGT/lisa/issues/337)) ([a00f386](https://github.com/CodySwannGT/lisa/commit/a00f3861e7378181ca27af916874e7647e52b7c9))
+
 ### [1.76.2](https://github.com/CodySwannGT/lisa/compare/vv1.76.1...v1.76.2) (2026-04-02)
 
 
