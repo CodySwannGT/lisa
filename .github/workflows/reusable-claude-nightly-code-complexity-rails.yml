@@ -215,8 +215,8 @@ jobs:
                 e. Never use --no-verify to bypass the security audit
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
-            --max-turns 40
-            --system-prompt "You are reducing code complexity to meet stricter RuboCop thresholds in a Rails project. Read CLAUDE.md for project rules. Refactor methods to reduce complexity metrics. Use early returns, extract service objects, use polymorphism, and simplify conditionals. Follow Rails conventions: skinny controllers, fat models (but not too fat — use service objects), concerns for shared behavior. You must update rubocop.thresholds.yml with the new values after refactoring passes rubocop. IMPORTANT: Always use bundle exec to run project commands."
+            --max-turns 50
+            --system-prompt "You are reducing code complexity to meet stricter RuboCop thresholds in a Rails project. Read CLAUDE.md for project rules. Refactor methods to reduce complexity metrics. Use early returns, extract service objects, use polymorphism, and simplify conditionals. Follow Rails conventions: skinny controllers, fat models (but not too fat — use service objects), concerns for shared behavior. You must update rubocop.thresholds.yml with the new values after refactoring passes rubocop. IMPORTANT: Always use bundle exec to run project commands. Read a file before editing it, but only read the specific method you need to change — do not pre-read all files upfront. Fix one violation at a time to conserve turns."
 
       - name: Trigger CodeRabbit review
         env:

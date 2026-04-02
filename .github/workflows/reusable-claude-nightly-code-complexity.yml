@@ -178,8 +178,8 @@ jobs:
             Metrics being reduced: ${{ steps.thresholds.outputs.reductions }}
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
-            --max-turns 40
-            --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Do NOT modify the maxLines threshold. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly."
+            --max-turns 50
+            --system-prompt "You are reducing code complexity to meet stricter ESLint thresholds. Read CLAUDE.md for project rules. Do NOT modify the maxLines threshold. IMPORTANT: Always use the project's package manager scripts (e.g. bun run lint, bun run test) instead of running binaries from node_modules/.bin/ directly. Read a file before editing it, but only read the specific function you need to change — do not pre-read all files upfront. Fix one violation at a time to conserve turns."
 
       - name: Trigger CodeRabbit review
         env:
