@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.76.5](https://github.com/CodySwannGT/lisa/compare/vv1.76.4...v1.76.5) (2026-04-03)
+
+
+### Bug Fixes
+
+* reduce nightly coverage increment to 2% and increase max-turns to 50 ([#339](https://github.com/CodySwannGT/lisa/issues/339)) ([f5b8f69](https://github.com/CodySwannGT/lisa/commit/f5b8f69f65122c5bd2ac4fb37d13675367157a30))
+
 ### [1.76.4](https://github.com/CodySwannGT/lisa/compare/vv1.76.3...v1.76.4) (2026-04-02)
 
 
