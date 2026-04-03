@@ -55,10 +55,12 @@ fi
 # Run ESLint with --fix --quiet --cache on the specific file
 # --quiet: suppress warnings, only show errors
 # --cache: use ESLint cache for performance
+# --rule: disable no-unused-vars auto-fix to prevent removing imports that Claude
+#         plans to use in a subsequent edit (pre-commit hook still catches them)
 echo "Running ESLint --fix on: $FILE_PATH"
 
 # First pass: attempt auto-fix
-OUTPUT=$($PKG_MANAGER eslint --fix --quiet --cache "$FILE_PATH" 2>&1)
+OUTPUT=$($PKG_MANAGER eslint --fix --quiet --cache --rule '@typescript-eslint/no-unused-vars: off' "$FILE_PATH" 2>&1)
 FIX_EXIT=$?
 
 if [ $FIX_EXIT -eq 0 ]; then
