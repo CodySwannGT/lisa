@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.76.6](https://github.com/CodySwannGT/lisa/compare/vv1.76.5...v1.76.6) (2026-04-03)
+
+
+### Bug Fixes
+
+* prevent lint-on-edit from removing imports Claude plans to use ([#340](https://github.com/CodySwannGT/lisa/issues/340)) ([82ca177](https://github.com/CodySwannGT/lisa/commit/82ca17746535e136593a5272dd4eaf7b95c461eb))
+
 ### [1.76.5](https://github.com/CodySwannGT/lisa/compare/vv1.76.4...v1.76.5) (2026-04-03)
 
 
