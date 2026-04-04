@@ -198,6 +198,12 @@ export class Lisa {
       return;
     }
 
+    if (this.ignorePatterns.shouldIgnore(relativePath)) {
+      logger.info(`Kept ${this.lisaignoreSuffix}: ${relativePath}`);
+      this.counters.ignored++;
+      return;
+    }
+
     if (!(await fse.pathExists(targetPath))) {
       return;
     }

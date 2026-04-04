@@ -8,3 +8,22 @@
 
 # Lisa repo has a custom postbump hook for plugin version sync
 .versionrc
+
+# Lisa source files that downstream projects delete but this repo owns
+.github/workflows/quality.yml
+.github/workflows/release.yml
+.github/workflows/load-test.yml
+.github/workflows/create-issue-on-failure.yml
+.github/workflows/create-github-issue-on-failure.yml
+.github/workflows/create-jira-issue-on-failure.yml
+.github/workflows/create-sentry-issue-on-failure.yml
+.github/workflows/reusable-auto-update-pr-branches.yml
+.github/workflows/reusable-claude.yml
+.github/workflows/reusable-claude-ci-auto-fix.yml
+.github/workflows/reusable-claude-code-review-response.yml
+.github/workflows/reusable-claude-deploy-auto-fix.yml
+.github/workflows/reusable-claude-nightly-code-complexity.yml
+.github/workflows/reusable-claude-nightly-test-coverage.yml
+.github/workflows/reusable-claude-nightly-test-improvement.yml
+eslint-plugin-code-organization
+knip.json

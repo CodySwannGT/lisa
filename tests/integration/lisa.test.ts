@@ -29,6 +29,7 @@ const SETTINGS_JSON = "settings.json";
 const TEST_TXT = "test.txt";
 const TSCONFIG_BASE = "tsconfig.base.json";
 const LISAIGNORE = ".lisaignore";
+const LEGACY_WORKFLOW = "legacy-workflow.yml";
 
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
@@ -461,6 +462,27 @@ describe("Lisa Integration Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.counters.ignored).toBeGreaterThan(0);
+    });
+
+    it("prevents deletions for files matching .lisaignore", async () => {
+      await createTypeScriptProject(destDir);
+
+      // Pre-create a file that typescript/deletions.json would delete
+      await fs.writeFile(
+        path.join(destDir, LEGACY_WORKFLOW),
+        "legacy content\n"
+      );
+
+      // Create .lisaignore to protect it
+      await fs.writeFile(path.join(destDir, LISAIGNORE), LEGACY_WORKFLOW);
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      // File should still exist because .lisaignore protects it from deletion
+      expect(await fs.pathExists(path.join(destDir, LEGACY_WORKFLOW))).toBe(
+        true
+      );
     });
 
     it("does nothing when .lisaignore is empty or missing", async () => {
