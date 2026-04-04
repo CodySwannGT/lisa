@@ -174,26 +174,26 @@ while IFS=$'\t' read -r project_path target_branch; do
     continue
   fi
 
-  # Fix local workflow references to point to Lisa's reusable workflows
-  # Create-only workflows (deploy.yml, ci.yml, etc.) may reference deleted local
-  # copies like ./.github/workflows/quality.yml instead of
-  # CodySwannGT/lisa/.github/workflows/quality.yml@main
-  log_info "Checking for local workflow references that need updating..."
+  # Check for local workflow references that will break after deletions.
+  # These can't be auto-fixed because external workflows don't support
+  # secrets: inherit — each workflow needs manual conversion to pass
+  # secrets explicitly.
   workflow_dir="$expanded_path/.github/workflows"
   if [[ -d "$workflow_dir" ]]; then
-    local_ref_found=false
+    broken_refs=()
     for wf in "$workflow_dir"/*.yml; do
       [[ -f "$wf" ]] || continue
       if grep -q 'uses: \./\.github/workflows/' "$wf" 2>/dev/null; then
-        local_ref_found=true
-        log_warning "Found local workflow references in $(basename "$wf"), rewriting to Lisa..."
-        sed -i'' -e 's|uses: \./\.github/workflows/|uses: CodySwannGT/lisa/.github/workflows/|g' "$wf"
-        # Add @main ref tag if not already present
-        sed -i'' -e 's|uses: CodySwannGT/lisa/.github/workflows/\([^@]*\.yml\)$|uses: CodySwannGT/lisa/.github/workflows/\1@main|g' "$wf"
+        broken_refs+=("$(basename "$wf")")
       fi
     done
-    if [[ "$local_ref_found" == false ]]; then
-      log_success "All workflow references already point to Lisa"
+    if [[ ${#broken_refs[@]} -gt 0 ]]; then
+      log_warning "These workflows reference local files that were deleted:"
+      for ref in "${broken_refs[@]}"; do
+        echo -e "  ${YELLOW}→${NC} $ref"
+      done
+      log_warning "Update them to use CodySwannGT/lisa/.github/workflows/...@main"
+      log_warning "Note: secrets: inherit must be replaced with explicit secret passing for external workflows"
     fi
   fi
 
