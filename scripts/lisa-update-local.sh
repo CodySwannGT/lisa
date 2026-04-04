@@ -107,7 +107,8 @@ while IFS=$'\t' read -r project_path target_branch; do
   if [[ "$DRY_RUN" == true ]]; then
     log_dry_run "Would checkout '$target_branch' in $expanded_path"
     log_dry_run "Would pull latest from origin/$target_branch"
-    log_dry_run "Would run: bun run dev $expanded_path -y"
+    log_dry_run "Would update @codyswann/lisa via detected package manager"
+    log_dry_run "Would rewrite any local workflow references (./.github/workflows/) to Lisa reusable workflows"
     ((success_count++)) || true
     continue
   fi
@@ -171,6 +172,29 @@ while IFS=$'\t' read -r project_path target_branch; do
     log_error "Failed to update @codyswann/lisa in $expanded_path"
     ((fail_count++)) || true
     continue
+  fi
+
+  # Fix local workflow references to point to Lisa's reusable workflows
+  # Create-only workflows (deploy.yml, ci.yml, etc.) may reference deleted local
+  # copies like ./.github/workflows/quality.yml instead of
+  # CodySwannGT/lisa/.github/workflows/quality.yml@main
+  log_info "Checking for local workflow references that need updating..."
+  workflow_dir="$expanded_path/.github/workflows"
+  if [[ -d "$workflow_dir" ]]; then
+    local_ref_found=false
+    for wf in "$workflow_dir"/*.yml; do
+      [[ -f "$wf" ]] || continue
+      if grep -q 'uses: \./\.github/workflows/' "$wf" 2>/dev/null; then
+        local_ref_found=true
+        log_warning "Found local workflow references in $(basename "$wf"), rewriting to Lisa..."
+        sed -i'' -e 's|uses: \./\.github/workflows/|uses: CodySwannGT/lisa/.github/workflows/|g' "$wf"
+        # Add @main ref tag if not already present
+        sed -i'' -e 's|uses: CodySwannGT/lisa/.github/workflows/\([^@]*\.yml\)$|uses: CodySwannGT/lisa/.github/workflows/\1@main|g' "$wf"
+      fi
+    done
+    if [[ "$local_ref_found" == false ]]; then
+      log_success "All workflow references already point to Lisa"
+    fi
   fi
 
   log_success "Updated $project_path"
