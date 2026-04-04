@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.78.2](https://github.com/CodySwannGT/lisa/compare/vv1.78.1...v1.78.2) (2026-04-04)
+
+
+### Bug Fixes
+
+* make .lisaignore prevent deletions and dogfood Lisa update ([#348](https://github.com/CodySwannGT/lisa/issues/348)) ([34bce6e](https://github.com/CodySwannGT/lisa/commit/34bce6e60783c9593554aba4d4881990dda46d27))
+
 ### [1.78.1](https://github.com/CodySwannGT/lisa/compare/vv1.78.0...v1.78.1) (2026-04-04)
 
 
