@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.78.1](https://github.com/CodySwannGT/lisa/compare/vv1.78.0...v1.78.1) (2026-04-04)
+
+
+### Bug Fixes
+
+* remove keep exemptions for reusable workflow files ([#347](https://github.com/CodySwannGT/lisa/issues/347)) ([d573d59](https://github.com/CodySwannGT/lisa/commit/d573d5976c0ea154e1fa374e7f0e2acdbe008ea0))
+
 ## [1.78.0](https://github.com/CodySwannGT/lisa/compare/vv1.77.0...v1.78.0) (2026-04-04)
 
 
