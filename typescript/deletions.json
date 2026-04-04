@@ -35,7 +35,5 @@
     ".github/workflows/reusable-claude-nightly-test-improvement.yml",
     ".github/workflows/load-test.yml"
   ],
-  "keep": [
-    "eslint-plugin-code-organization"
-  ]
+  "keep": []
 }
