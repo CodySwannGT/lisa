@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.77.0](https://github.com/CodySwannGT/lisa/compare/vv1.76.6...v1.77.0) (2026-04-04)
+
+
+### Features
+
+* distribute rules via plugin hooks instead of copy-overwrite ([#341](https://github.com/CodySwannGT/lisa/issues/341)) ([30f202a](https://github.com/CodySwannGT/lisa/commit/30f202a126a260ff5d778ab443017dbe4bdcb0c0))
+
 ### [1.76.6](https://github.com/CodySwannGT/lisa/compare/vv1.76.5...v1.76.6) (2026-04-03)
 
 
