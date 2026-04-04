@@ -107,7 +107,8 @@ while IFS=$'\t' read -r project_path target_branch; do
   if [[ "$DRY_RUN" == true ]]; then
     log_dry_run "Would checkout '$target_branch' in $expanded_path"
     log_dry_run "Would pull latest from origin/$target_branch"
-    log_dry_run "Would run: bun run dev $expanded_path -y"
+    log_dry_run "Would update @codyswann/lisa via detected package manager"
+    log_dry_run "Would rewrite any local workflow references (./.github/workflows/) to Lisa reusable workflows"
     ((success_count++)) || true
     continue
   fi
@@ -171,6 +172,29 @@ while IFS=$'\t' read -r project_path target_branch; do
     log_error "Failed to update @codyswann/lisa in $expanded_path"
     ((fail_count++)) || true
     continue
+  fi
+
+  # Check for local workflow references that will break after deletions.
+  # These can't be auto-fixed because external workflows don't support
+  # secrets: inherit — each workflow needs manual conversion to pass
+  # secrets explicitly.
+  workflow_dir="$expanded_path/.github/workflows"
+  if [[ -d "$workflow_dir" ]]; then
+    broken_refs=()
+    for wf in "$workflow_dir"/*.yml; do
+      [[ -f "$wf" ]] || continue
+      if grep -q 'uses: \./\.github/workflows/' "$wf" 2>/dev/null; then
+        broken_refs+=("$(basename "$wf")")
+      fi
+    done
+    if [[ ${#broken_refs[@]} -gt 0 ]]; then
+      log_warning "These workflows reference local files that were deleted:"
+      for ref in "${broken_refs[@]}"; do
+        echo -e "  ${YELLOW}→${NC} $ref"
+      done
+      log_warning "Update them to use CodySwannGT/lisa/.github/workflows/...@main"
+      log_warning "Note: secrets: inherit must be replaced with explicit secret passing for external workflows"
+    fi
   fi
 
   log_success "Updated $project_path"
