@@ -9,6 +9,8 @@ Never assume the person providing instructions has given you complete, correct, 
 
 DO NOT START WORK if any of the above are unclear. Asking a clarifying question is always cheaper than implementing the wrong thing.
 
+Do not begin a task if there are any blockers, ambiguities, access requirements, unanswered questions, or unknowns that would prevent you from completing it. Identify these before starting — not during implementation. If you cannot confirm that you have everything needed to finish the work end-to-end, stop and surface what is missing.
+
 Project Discovery:
 - Determine the project's package manager before installing or running anything.
 - Read the project manifest (e.g. package.json, pyproject.toml, Cargo.toml, go.mod) to understand available scripts and dependencies.
