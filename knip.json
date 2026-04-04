@@ -15,7 +15,18 @@
     "**/node_modules/**"
   ],
   "ignoreDependencies": [
-    "langsmith", 
+    "@commitlint/cli",
+    "@eslint/eslintrc",
+    "@jest/globals",
+    "@jest/test-sequencer",
+    "@vitest/coverage-v8",
+    "esbuild-register",
+    "eslint-plugin-react-hooks",
+    "jscodeshift",
+    "lint-staged",
+    "ts-jest",
+    "ts-morph",
+    "langsmith",
     "graphql",
     "@as-integrations/express5",
     "@aws-sdk/client-apigatewaymanagementapi",
@@ -37,7 +48,7 @@
     "graphql-ws",
     "lodash"
   ],
-  "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
+  "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval", "serve"],
   "ignoreExportsUsedInFile": true,
   "rules": {
     "devDependencies": "off"

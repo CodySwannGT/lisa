@@ -26,3 +26,4 @@
 .github/workflows/reusable-claude-nightly-test-coverage.yml
 .github/workflows/reusable-claude-nightly-test-improvement.yml
 eslint-plugin-code-organization
+knip.json
