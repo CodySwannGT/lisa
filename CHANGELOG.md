@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.78.0](https://github.com/CodySwannGT/lisa/compare/vv1.77.0...v1.78.0) (2026-04-04)
+
+
+### Features
+
+* require agents to confirm no blockers before starting work ([#346](https://github.com/CodySwannGT/lisa/issues/346)) ([5575a17](https://github.com/CodySwannGT/lisa/commit/5575a179c61bd2576f8540ca3195bb9ca622a1ab))
+
 ## [1.77.0](https://github.com/CodySwannGT/lisa/compare/vv1.76.6...v1.77.0) (2026-04-04)
 
 
