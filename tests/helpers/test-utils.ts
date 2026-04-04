@@ -10,6 +10,7 @@ const CDK_JSON = "cdk.json";
 const BIN_RAILS = "bin/rails";
 const CONFIG_APPLICATION_RB = "config/application.rb";
 const GEMFILE = "Gemfile";
+const DELETIONS_JSON = "deletions.json";
 const COPY_OVERWRITE = "copy-overwrite";
 const COPY_CONTENTS = "copy-contents";
 const CREATE_ONLY = "create-only";
@@ -138,7 +139,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   });
 
   // Create all/deletions.json to mirror the real Lisa deletion of legacy manifest
-  await fs.writeJson(path.join(dir, "all", "deletions.json"), {
+  await fs.writeJson(path.join(dir, "all", DELETIONS_JSON), {
     paths: [".lisa-manifest"],
   });
 
@@ -146,6 +147,11 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   const tsCopyOverwrite = path.join(dir, "typescript", COPY_OVERWRITE);
   await fs.ensureDir(tsCopyOverwrite);
   await fs.writeFile(path.join(tsCopyOverwrite, "tsconfig.base.json"), "{}");
+
+  // Create typescript/deletions.json for testing .lisaignore with deletions
+  await fs.writeJson(path.join(dir, "typescript", DELETIONS_JSON), {
+    paths: ["legacy-workflow.yml"],
+  });
 
   // Create rails/ directory with Rails-specific files
   const railsCopyOverwrite = path.join(dir, "rails", COPY_OVERWRITE);
@@ -195,7 +201,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   );
 
   // Create rails/deletions.json
-  await fs.writeJson(path.join(dir, "rails", "deletions.json"), {
+  await fs.writeJson(path.join(dir, "rails", DELETIONS_JSON), {
     paths: [".overcommit.yml"],
   });
 }

@@ -220,7 +220,7 @@ jobs:
           role-session-name: fedeploysession
           aws-region: us-east-1
       - name: Install dependencies
-        run: bun run install
+        run: bun install
       - name: serverless deploy
         run: |
           bun run serverless deploy --stage ${{ github.ref_name != 'main' && github.ref_name || 'production' }}

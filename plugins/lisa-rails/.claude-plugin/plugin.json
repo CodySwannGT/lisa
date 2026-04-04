@@ -1,6 +1,6 @@
 {
   "name": "lisa-rails",
-  "version": "1.76.6",
+  "version": "1.78.1",
   "description": "Ruby on Rails-specific hooks — RuboCop linting/formatting and ast-grep scanning on edit",
   "author": {
     "name": "Cody Swann"

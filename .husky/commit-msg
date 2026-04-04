@@ -75,6 +75,12 @@ if echo "$COMMIT_MSG" | grep -qE "^Merge (branch|pull request|remote-tracking)";
   exit 0
 fi
 
+# Skip AI co-authorship check for automated release commits (e.g., from standard-version in CI)
+if echo "$COMMIT_MSG" | grep -qE "^chore\(release\)!?:"; then
+  echo "🚀 Release commit detected, skipping AI co-authorship check"
+  exit 0
+fi
+
 echo "🤖 Checking for AI co-authorship..."
 
 if ! echo "$COMMIT_MSG" | grep -q "Co-Authored-By:.*Claude"; then
