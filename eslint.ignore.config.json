@@ -33,6 +33,7 @@
     ".claude-active-project/**",
     ".claude-active-plan/**",
     "coverage/**",
+    "**/coverage/**",
     "**/*spec.ts",
     "resolver-test.setup.ts",
     "**/*.factory.ts",

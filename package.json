@@ -1,11 +1,11 @@
 {
   "scripts": {
     "build": "tsc && bun run build:plugins",
+    "test:integration": "vitest run tests/integration",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true",
     "pretest": "[ -d dist/configs ] || bun run build",
     "test": "vitest run",
     "test:unit": "vitest run --exclude='**/integration/**'",
-    "test:integration": "vitest run tests/integration",
     "test:cov": "vitest run --coverage",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
