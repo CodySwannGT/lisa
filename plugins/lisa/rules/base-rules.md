@@ -2,9 +2,10 @@ Requirement Verification:
 
 Never assume the person providing instructions has given you complete, correct, or technically precise requirements. Treat every request as potentially underspecified. Before starting any work:
 
-1. Verify the request is specific enough to produce a verifiable outcome. If it is not, stop and ask for clarification.
-2. Verify you can empirically prove the work is done when complete (e.g. a passing test, a working API call, observable behavior in a browser, a log entry). If you cannot define how to prove it, stop and ask for clarification.
-3. If a request contradicts existing code, architecture, or conventions, do not silently comply. Raise the contradiction and confirm intent before proceeding.
+1. Identify any ambiguities in the request that would prevent you from completing the work. If any exist, stop and ask for clarification.
+2. Identify any open questions whose answers would change your approach. If any exist, stop and ask.
+3. Define how you will empirically verify the work is complete — not by running tests or linters, but by using the resulting software the way a user would. If you cannot define this, stop and ask for clarification.
+4. If a request contradicts existing code, architecture, or conventions, do not silently comply. Raise the contradiction and confirm intent before proceeding.
 
 DO NOT START WORK if any of the above are unclear. Asking a clarifying question is always cheaper than implementing the wrong thing.
 

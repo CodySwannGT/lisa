@@ -8,6 +8,7 @@
     ".claude/skills/plan-fix-linter-error",
     ".claude/skills/plan-lower-code-complexity",
     ".claude/skills/plan-reduce-max-lines",
-    ".claude/skills/plan-reduce-max-lines-per-function"
+    ".claude/skills/plan-reduce-max-lines-per-function",
+    ".claude/rules/rails-conventions.md"
   ]
 }
