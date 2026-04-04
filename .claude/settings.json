@@ -1,19 +1,8 @@
 {
-  "env": {
-    "BASH_DEFAULT_TIMEOUT_MS": "1800000",
-    "BASH_MAX_TIMEOUT_MS": "7200000",
-    "CLAUDE_DEBUG": "0",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "ENABLE_LSP_TOOL": "1"
-  },
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "attribution": {
     "commit": "🤖 Generated with Claude Code\n\nCo-Authored-By: Claude",
     "pr": "🤖 Generated with Claude Code"
-  },
-  "permissions": {
-    "deny": [
-      "Read(./.entire/metadata/**)"
-    ]
   },
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
@@ -28,6 +17,21 @@
     "skill-creator@claude-plugins-official": true,
     "atlassian@claude-plugins-official": true
   },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "1800000",
+    "BASH_MAX_TIMEOUT_MS": "7200000",
+    "CLAUDE_DEBUG": "0",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "ENABLE_LSP_TOOL": "1"
+  },
+  "permissions": {
+    "allow": [],
+    "ask": [],
+    "deny": [
+      "Read(./.entire/metadata/**)"
+    ]
+  },
+  "plansDirectory": "./plans",
   "extraKnownMarketplaces": {
     "CodySwannGT/lisa": {
       "source": {
@@ -41,6 +45,5 @@
         "repo": "kenryu42/cc-marketplace"
       }
     }
-  },
-  "plansDirectory": "./plans"
+  }
 }
