@@ -16,6 +16,16 @@ No agent may claim success without evidence from runtime verification.
 
 Never assume something works because the code "looks correct." Run a command, observe the output, compare to expected result.
 
+**Verification is not linting, typechecking, or testing.** Those are quality checks. Verification is using the resulting software the way a user would — interacting with the UI, calling the API, running the CLI command, observing the behavior. Tests pass in isolation; verification proves the system works as a whole. Passing tests, linting, and typechecking does not constitute verification.
+
+Verification is mandatory. Never skip it, defer it, or claim it was unnecessary. Every task must be verified before claiming completion.
+
+Before starting implementation, state your verification plan — how you will use the resulting software to prove it works. Do not begin implementation until the plan is confirmed.
+
+After verifying a change empirically, encode that verification as automated tests. The manual proof that something works should become a repeatable regression test that catches future regressions. Every verification should answer: "How do I turn this into a test?"
+
+Every pull request must include step-by-step instructions for reviewers to independently replicate the verification. These are not test commands — they are the exact steps a human would follow to use the software and confirm the change works. If a reviewer cannot reproduce your verification from the PR description alone, the PR is incomplete.
+
 ---
 
 ## Roles
