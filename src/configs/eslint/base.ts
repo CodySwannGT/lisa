@@ -44,6 +44,7 @@ export const defaultIgnores = [
   "generated/**",
   "components/ui/**",
   ".lisabak/**",
+  ".claude/worktrees/**",
   ".claude-active-project/**",
   ".claude-active-plan/**",
   "coverage/**",
