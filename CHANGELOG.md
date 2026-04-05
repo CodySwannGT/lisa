@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.78.4](https://github.com/CodySwannGT/lisa/compare/vv1.78.3...v1.78.4) (2026-04-05)
+
+
+### Bug Fixes
+
+* add .claude/worktrees/** to ESLint ignore patterns ([#350](https://github.com/CodySwannGT/lisa/issues/350)) ([f941c80](https://github.com/CodySwannGT/lisa/commit/f941c80a0d4183b9cd0da89ed83aa40782cb28e2))
+
 ### [1.78.3](https://github.com/CodySwannGT/lisa/compare/vv1.78.2...v1.78.3) (2026-04-04)
 
 ### [1.78.2](https://github.com/CodySwannGT/lisa/compare/vv1.78.1...v1.78.2) (2026-04-04)
