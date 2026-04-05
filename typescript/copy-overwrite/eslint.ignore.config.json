@@ -30,6 +30,7 @@
     ".maestro",
 
     ".lisabak/**",
+    ".claude/worktrees/**",
     ".claude-active-project/**",
     ".claude-active-plan/**",
     "coverage/**",
