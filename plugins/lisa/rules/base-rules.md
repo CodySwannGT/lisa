@@ -14,6 +14,7 @@ Do not begin a task if there are any blockers, ambiguities, access requirements,
 Project Discovery:
 - Determine the project's package manager before installing or running anything.
 - Read the project manifest (e.g. package.json, pyproject.toml, Cargo.toml, go.mod) to understand available scripts and dependencies.
+- Before defining a verification approach, check the `scripts` section of the project manifest for existing commands to start servers, run tests, seed databases, etc. Use existing scripts rather than inventing ad-hoc commands.
 - Read the project's linting and formatting configuration to understand its standards.
 - Regenerate the lockfile after adding, removing, or updating dependencies.
 - Ignore build output directories (dist, build, out, target, etc.) unless specified otherwise.
@@ -51,6 +52,16 @@ Testing Discipline:
 JIRA Discipline:
 - If working on a JIRA issue, make sure the branch you're working on references and is added to the JIRA issue.
 - If working on a JIRA issue, update the issue as you work through it. For example, if working on a Bug Triage, update the issue with your questions/feedback/suggestions.
+- When reading a JIRA issue, always read ALL comments on the ticket — not just the description. Comments contain critical context: stakeholder decisions, scope changes, blockers, triage findings from other repos, and implementation notes. Use the Atlassian MCP (preferred — handles pagination automatically) or the Jira REST comments endpoint with pagination (`GET /rest/api/3/issue/{issueIdOrKey}/comment?startAt=0&maxResults=50`, incrementing `startAt` by `maxResults` until `startAt >= total`) to fetch all comments. Note: `jira issue view <TICKET_ID> --comments 100` is a non-exhaustive CLI shortcut capped at 100 comments and should not be used when completeness is required.
+- When requesting clarification on a JIRA issue, post the question as a comment using ADF (Atlassian Document Format) and @mention the Reporter so they receive a notification.
+- When checking for associated pull requests on a JIRA issue, check the **Development panel** — not just comments or description text. The Development panel shows PRs, commits, branches, and builds linked via the GitHub-Jira integration. Query it via the dev-status API:
+  ```bash
+  ISSUE_ID=$(curl -s -u "${JIRA_LOGIN}:${JIRA_API_TOKEN}" \
+    "${JIRA_SERVER}/rest/api/2/issue/${TICKET_ID}?fields=id" | jq -r '.id')
+  curl -s -u "${JIRA_LOGIN}:${JIRA_API_TOKEN}" \
+    "${JIRA_SERVER}/rest/dev-status/1.0/issue/detail?issueId=${ISSUE_ID}&applicationType=GitHub&dataType=pullrequest" \
+    | jq '.detail[].pullRequests[] | {title, status, url, source: .source.branch}'
+  ```
 
 Agent Behavior:
 - Never handle tasks yourself when working in a team of agents. Always delegate to a specialized agent.
