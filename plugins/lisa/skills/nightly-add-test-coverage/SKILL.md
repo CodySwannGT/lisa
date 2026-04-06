@@ -27,7 +27,7 @@ For each source file with low coverage (starting with the lowest):
 
 4. Read only the uncovered sections of the source file using the coverage report line numbers -- do not explore the codebase broadly
 5. Write a test file targeting the uncovered branches/lines for that source file
-6. Run the test file in isolation (e.g., `npx vitest run test/my-new-test.spec.ts`) to verify it passes before moving on
+6. Run the test file in isolation (e.g., `npx vitest run tests/my-new-test.test.ts`) to verify it passes before moving on
 7. If the test fails, fix it immediately. Do not move to the next file until the current test passes.
 8. Repeat steps 4-7 for the next source file. Stop once you estimate the proposed thresholds will be met.
 
