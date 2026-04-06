@@ -196,18 +196,17 @@ jobs:
             Metrics being reduced: ${{ steps.thresholds.outputs.reductions }}
 
             Instructions:
-            1. Read CLAUDE.md and Gemfile for project conventions
-            2. Update rubocop.thresholds.yml with the proposed new threshold values (do NOT change ClassLength — it is not included in nightly reductions)
-            3. Run `bundle exec rubocop` to find methods/classes that violate the new stricter thresholds
-            4. For MethodLength violations: extract private methods, use service objects, split concerns
-            5. For AbcSize violations: simplify conditionals, extract methods, reduce assignments
-            6. For CyclomaticComplexity violations: use early returns, replace conditionals with polymorphism or lookup tables
-            7. For PerceivedComplexity violations: simplify nested conditionals, extract guard clauses
-            8. Run `bundle exec rubocop` to verify all violations are resolved
-            9. Run `bundle exec rspec` to verify no tests are broken by the refactoring
-            10. Commit all changes (refactored code + updated rubocop.thresholds.yml) with conventional commit messages
-            11. Create a PR with `gh pr create` with a title like "refactor: reduce code complexity: ${{ steps.thresholds.outputs.reductions }}" summarizing the changes
-            12. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+            1. Update rubocop.thresholds.yml with the proposed new threshold values (do NOT change ClassLength — it is not included in nightly reductions)
+            2. Run `bundle exec rubocop` to find methods/classes that violate the new stricter thresholds
+            3. For MethodLength violations: extract private methods, use service objects, split concerns
+            4. For AbcSize violations: simplify conditionals, extract methods, reduce assignments
+            5. For CyclomaticComplexity violations: use early returns, replace conditionals with polymorphism or lookup tables
+            6. For PerceivedComplexity violations: simplify nested conditionals, extract guard clauses
+            7. Run `bundle exec rubocop` to verify all violations are resolved
+            8. Run `bundle exec rspec` to verify no tests are broken by the refactoring
+            9. Commit all changes (refactored code + updated rubocop.thresholds.yml) with conventional commit messages
+            10. Create a PR with `gh pr create` with a title like "refactor: reduce code complexity: ${{ steps.thresholds.outputs.reductions }}" summarizing the changes
+            11. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
                 a. Note the advisory ID, affected gem, and advisory URL from the error output
                 b. Check if a patched version of the vulnerable gem exists
                 c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
@@ -216,7 +215,7 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 50
-            --system-prompt "You are reducing code complexity to meet stricter RuboCop thresholds in a Rails project. Read CLAUDE.md for project rules. Refactor methods to reduce complexity metrics. Use early returns, extract service objects, use polymorphism, and simplify conditionals. Follow Rails conventions: skinny controllers, fat models (but not too fat — use service objects), concerns for shared behavior. You must update rubocop.thresholds.yml with the new values after refactoring passes rubocop. IMPORTANT: Always use bundle exec to run project commands. Read a file before editing it, but only read the specific method you need to change — do not pre-read all files upfront. Fix one violation at a time to conserve turns. When extracting methods to reduce complexity would cause a class to exceed Metrics/ClassLength, move the extracted methods into a Rails concern (module in app/models/concerns/ or app/controllers/concerns/) or a service object (in app/services/) instead of adding private methods to the same class. This keeps the original class under ClassLength while still reducing method complexity."
+            --system-prompt "You are reducing code complexity to meet stricter RuboCop thresholds in a Rails project. Refactor methods to reduce complexity metrics. Use early returns, extract service objects, use polymorphism, and simplify conditionals. Follow Rails conventions: skinny controllers, fat models (but not too fat — use service objects), concerns for shared behavior. You must update rubocop.thresholds.yml with the new values after refactoring passes rubocop. IMPORTANT: Always use bundle exec to run project commands. Read a file before editing it, but only read the specific method you need to change — do not pre-read all files upfront. Fix one violation at a time to conserve turns. When extracting methods to reduce complexity would cause a class to exceed Metrics/ClassLength, move the extracted methods into a Rails concern (module in app/models/concerns/ or app/controllers/concerns/) or a service object (in app/services/) instead of adding private methods to the same class. This keeps the original class under ClassLength while still reducing method complexity."
 
       - name: Trigger CodeRabbit review
         env:
