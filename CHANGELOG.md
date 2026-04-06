@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.78.8](https://github.com/CodySwannGT/lisa/compare/vv1.78.7...v1.78.8) (2026-04-06)
+
+
+### Bug Fixes
+
+* optimize nightly complexity skill turn budget ([#354](https://github.com/CodySwannGT/lisa/issues/354)) ([53e9850](https://github.com/CodySwannGT/lisa/commit/53e98500113df46a17669e5b4300ae428e69b9d4))
+
 ### [1.78.7](https://github.com/CodySwannGT/lisa/compare/vv1.78.6...v1.78.7) (2026-04-06)
 
 
