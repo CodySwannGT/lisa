@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.79.0](https://github.com/CodySwannGT/lisa/compare/vv1.78.9...v1.79.0) (2026-04-06)
+
+
+### Features
+
+* add notion-to-jira skill for PRD breakdown ([#356](https://github.com/CodySwannGT/lisa/issues/356)) ([f649983](https://github.com/CodySwannGT/lisa/commit/f6499837724d07b72e51fcb2ee8268dc9d9b0e3b))
+
 ### [1.78.9](https://github.com/CodySwannGT/lisa/compare/vv1.78.8...v1.78.9) (2026-04-06)
 
 
