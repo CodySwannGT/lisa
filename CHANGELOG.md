@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.79.1](https://github.com/CodySwannGT/lisa/compare/vv1.79.0...v1.79.1) (2026-04-06)
+
+
+### Bug Fixes
+
+* add JIRA discipline rules for comments, dev panel, ADF mentions, and script discovery ([#357](https://github.com/CodySwannGT/lisa/issues/357)) ([2c28afa](https://github.com/CodySwannGT/lisa/commit/2c28afa25a2cf1df58ba67d4c6d0e89ebe39b731))
+
 ## [1.79.0](https://github.com/CodySwannGT/lisa/compare/vv1.78.9...v1.79.0) (2026-04-06)
 
 
