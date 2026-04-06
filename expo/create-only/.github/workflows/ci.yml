@@ -1,11 +1,12 @@
-# This file is managed by Lisa.
-# Do not edit directly — changes will be overwritten on the next `lisa` run.
-
 name: 🔍 CI Quality Checks
 
 on:
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
