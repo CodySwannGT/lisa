@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.78.6](https://github.com/CodySwannGT/lisa/compare/vv1.78.5...v1.78.6) (2026-04-06)
+
+
+### Bug Fixes
+
+* **ci:** exclude deleted files from nightly test improvement ([#352](https://github.com/CodySwannGT/lisa/issues/352)) ([b37cf11](https://github.com/CodySwannGT/lisa/commit/b37cf117fb651fe8cf648529be5956c37982a82b))
+
+### [1.78.5](https://github.com/CodySwannGT/lisa/compare/vv1.78.4...v1.78.5) (2026-04-06)
+
+
+### Bug Fixes
+
+* add missing Setup Bun step to deploy job in deploy.yml ([#351](https://github.com/CodySwannGT/lisa/issues/351)) ([5b6d98e](https://github.com/CodySwannGT/lisa/commit/5b6d98e7791cb9c9d86491896bcecedc332b6a7d))
+
 ### [1.78.4](https://github.com/CodySwannGT/lisa/compare/vv1.78.3...v1.78.4) (2026-04-05)
 
 
