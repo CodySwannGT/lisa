@@ -99,7 +99,7 @@ jobs:
         id: changes
         if: steps.mode.outputs.value == 'nightly'
         run: |
-          CHANGED_FILES=$(git log --since="24 hours ago" --name-only --pretty=format:"" -- '*.ts' '*.tsx' '*.js' '*.jsx' | sort -u | grep -v '^\s*$' || true)
+          CHANGED_FILES=$(git log --since="24 hours ago" --diff-filter=d --name-only --pretty=format:"" -- '*.ts' '*.tsx' '*.js' '*.jsx' | sort -u | grep -v '^\s*$' || true)
           if [ -z "$CHANGED_FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No source files changed in the last 24 hours."
