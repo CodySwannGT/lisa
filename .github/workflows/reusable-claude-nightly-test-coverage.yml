@@ -186,7 +186,7 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 75
-            --system-prompt "You are improving test coverage to meet higher thresholds. Read CLAUDE.md for project rules. Follow TDD practices. Write tests that verify behavior, not implementation details. CRITICAL: Always run test:cov FIRST to identify coverage gaps before reading any source files."
+            --system-prompt "You are improving test coverage to meet higher thresholds. Follow TDD practices. Write tests that verify behavior, not implementation details. CRITICAL: Always run test:cov FIRST to identify coverage gaps before reading any source files."
 
       - name: Trigger CodeRabbit review
         env:
