@@ -133,14 +133,13 @@ jobs:
             ${{ steps.changes.outputs.files }}
 
             Instructions:
-            1. Read CLAUDE.md and Gemfile for project conventions
-            2. For each changed source file above, find its corresponding spec file(s) (typically in spec/ mirroring the app/ structure)
-            3. Analyze those spec files for: missing edge cases, weak assertions (be_truthy instead of specific matchers), missing error path coverage, tests that test implementation rather than behavior, missing context blocks for different scenarios
-            4. Improve the spec files with the most impactful changes
-            5. Run `bundle exec rspec` to verify all tests pass
-            6. Commit changes with conventional commit messages
-            7. Create a PR with `gh pr create` summarizing what was improved and why
-            8. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+            1. For each changed source file above, find its corresponding spec file(s) (typically in spec/ mirroring the app/ structure)
+            2. Analyze those spec files for: missing edge cases, weak assertions (be_truthy instead of specific matchers), missing error path coverage, tests that test implementation rather than behavior, missing context blocks for different scenarios
+            3. Improve the spec files with the most impactful changes
+            4. Run `bundle exec rspec` to verify all tests pass
+            5. Commit changes with conventional commit messages
+            6. Create a PR with `gh pr create` summarizing what was improved and why
+            7. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
                 a. Note the advisory ID, affected gem, and advisory URL from the error output
                 b. Check if a patched version of the vulnerable gem exists
                 c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
@@ -149,7 +148,7 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
-            --system-prompt "You are improving RSpec test quality for recently changed files in a Rails project. Read CLAUDE.md for project rules. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing. Use specific matchers (eq, include, match_array) over generic ones (be_truthy, be_falsy)."
+            --system-prompt "You are improving RSpec test quality for recently changed files in a Rails project. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing. Use specific matchers (eq, include, match_array) over generic ones (be_truthy, be_falsy)."
 
       - name: Run Claude Code to improve tests (general)
         id: claude-general
@@ -167,14 +166,13 @@ jobs:
             Analyze the RSpec test suite and improve test quality.
 
             Instructions:
-            1. Read CLAUDE.md and Gemfile for project conventions
-            2. Scan the spec files to find weak, brittle, or poorly-written tests
-            3. Look for: missing edge cases, weak assertions (be_truthy instead of specific matchers), missing error path coverage, tests that test implementation rather than behavior, missing context blocks for different scenarios, excessive mocking that hides bugs
-            4. Improve 3-5 spec files with the most impactful changes
-            5. Run `bundle exec rspec` to verify all tests pass
-            6. Commit changes with conventional commit messages
-            7. Create a PR with `gh pr create` summarizing what was improved and why
-            8. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+            1. Scan the spec files to find weak, brittle, or poorly-written tests
+            2. Look for: missing edge cases, weak assertions (be_truthy instead of specific matchers), missing error path coverage, tests that test implementation rather than behavior, missing context blocks for different scenarios, excessive mocking that hides bugs
+            3. Improve 3-5 spec files with the most impactful changes
+            4. Run `bundle exec rspec` to verify all tests pass
+            5. Commit changes with conventional commit messages
+            6. Create a PR with `gh pr create` summarizing what was improved and why
+            7. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
                 a. Note the advisory ID, affected gem, and advisory URL from the error output
                 b. Check if a patched version of the vulnerable gem exists
                 c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
@@ -183,7 +181,7 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 40
-            --system-prompt "You are improving RSpec test quality in a Rails project. Read CLAUDE.md for project rules. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing. Use specific matchers (eq, include, match_array) over generic ones (be_truthy, be_falsy)."
+            --system-prompt "You are improving RSpec test quality in a Rails project. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Focus on making tests more robust, not just adding more tests. Prefer behavior testing over implementation testing. Use specific matchers (eq, include, match_array) over generic ones (be_truthy, be_falsy)."
 
       - name: Trigger CodeRabbit review
         env:

@@ -195,17 +195,16 @@ jobs:
             Metrics being bumped: ${{ steps.thresholds.outputs.bumps }}
 
             Instructions:
-            1. Read CLAUDE.md and Gemfile for project conventions
-            2. FIRST, run `bundle exec rspec` to get the coverage report — SimpleCov will generate coverage output telling you exactly which files have low coverage and where the gaps are. Do NOT read source files before this step.
-            3. Parse the coverage output to identify the specific files and lines with the lowest coverage. Check `coverage/index.html` or the console output. Prioritize files with the most uncovered lines/branches.
-            4. ONLY THEN read the specific source files that need tests — read only the uncovered sections, not entire files. Use the coverage report line numbers to target your reads.
-            5. Write new RSpec tests to increase coverage enough to meet the proposed thresholds. Focus on the metrics being bumped — write tests that cover untested branches, statements, and lines. Follow RSpec conventions (describe/context/it blocks, let/before, FactoryBot factories).
-            6. Run `bundle exec rspec` to verify the new thresholds pass
-            7. Update simplecov.thresholds.json with the proposed new threshold values
-            8. Run `bundle exec rspec` again to confirm the updated thresholds pass
-            9. Commit all changes (new specs + updated simplecov.thresholds.json) with conventional commit messages
-            10. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
-            11. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+            1. FIRST, run `bundle exec rspec` to get the coverage report — SimpleCov will generate coverage output telling you exactly which files have low coverage and where the gaps are. Do NOT read source files before this step.
+            2. Parse the coverage output to identify the specific files and lines with the lowest coverage. Check `coverage/index.html` or the console output. Prioritize files with the most uncovered lines/branches.
+            3. ONLY THEN read the specific source files that need tests — read only the uncovered sections, not entire files. Use the coverage report line numbers to target your reads.
+            4. Write new RSpec tests to increase coverage enough to meet the proposed thresholds. Focus on the metrics being bumped — write tests that cover untested branches, statements, and lines. Follow RSpec conventions (describe/context/it blocks, let/before, FactoryBot factories).
+            5. Run `bundle exec rspec` to verify the new thresholds pass
+            6. Update simplecov.thresholds.json with the proposed new threshold values
+            7. Run `bundle exec rspec` again to confirm the updated thresholds pass
+            8. Commit all changes (new specs + updated simplecov.thresholds.json) with conventional commit messages
+            9. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
+            10. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
                 a. Note the advisory ID, affected gem, and advisory URL from the error output
                 b. Check if a patched version of the vulnerable gem exists
                 c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
@@ -214,7 +213,7 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 50
-            --system-prompt "You are improving test coverage to meet higher thresholds in a Rails project. Read CLAUDE.md for project rules. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update simplecov.thresholds.json with the new values after tests pass. CRITICAL: Always run bundle exec rspec FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
+            --system-prompt "You are improving test coverage to meet higher thresholds in a Rails project. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update simplecov.thresholds.json with the new values after tests pass. CRITICAL: Always run bundle exec rspec FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
 
       - name: Trigger CodeRabbit review
         env:
@@ -416,17 +415,16 @@ jobs:
             Metrics being bumped: ${{ steps.thresholds.outputs.bumps }}
 
             Instructions:
-            1. Read CLAUDE.md and Gemfile for project conventions
-            2. FIRST, run `bundle exec rspec` to get the coverage report — SimpleCov will generate coverage output telling you exactly which files have low coverage and where the gaps are. Do NOT read source files before this step.
-            3. Parse the coverage output to identify the specific files and lines with the lowest coverage. Check `coverage/index.html` or the console output. Prioritize files with the most uncovered lines/branches.
-            4. ONLY THEN read the specific source files that need tests — read only the uncovered sections, not entire files. Use the coverage report line numbers to target your reads.
-            5. Write new RSpec tests to increase coverage enough to meet the proposed thresholds. Focus on the metrics being bumped — write tests that cover untested branches, statements, and lines. Follow RSpec conventions (describe/context/it blocks, let/before, FactoryBot factories).
-            6. Run `bundle exec rspec` to verify the new thresholds pass
-            7. Update simplecov.thresholds.json with the proposed new threshold values
-            8. Run `bundle exec rspec` again to confirm the updated thresholds pass
-            9. Commit all changes (new specs + updated simplecov.thresholds.json) with conventional commit messages
-            10. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
-            11. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
+            1. FIRST, run `bundle exec rspec` to get the coverage report — SimpleCov will generate coverage output telling you exactly which files have low coverage and where the gaps are. Do NOT read source files before this step.
+            2. Parse the coverage output to identify the specific files and lines with the lowest coverage. Check `coverage/index.html` or the console output. Prioritize files with the most uncovered lines/branches.
+            3. ONLY THEN read the specific source files that need tests — read only the uncovered sections, not entire files. Use the coverage report line numbers to target your reads.
+            4. Write new RSpec tests to increase coverage enough to meet the proposed thresholds. Focus on the metrics being bumped — write tests that cover untested branches, statements, and lines. Follow RSpec conventions (describe/context/it blocks, let/before, FactoryBot factories).
+            5. Run `bundle exec rspec` to verify the new thresholds pass
+            6. Update simplecov.thresholds.json with the proposed new threshold values
+            7. Run `bundle exec rspec` again to confirm the updated thresholds pass
+            8. Commit all changes (new specs + updated simplecov.thresholds.json) with conventional commit messages
+            9. Create a PR with `gh pr create` with a title like "Increase test coverage: ${{ steps.thresholds.outputs.bumps }}" summarizing coverage improvements
+            10. BUNDLER-AUDIT FAILURES: If git push fails because the pre-push hook reports security vulnerabilities from bundler-audit:
                 a. Note the advisory ID, affected gem, and advisory URL from the error output
                 b. Check if a patched version of the vulnerable gem exists
                 c. If a patched version exists, update the gem in the Gemfile and run `bundle update <gem>`, commit the changes, and retry the push
@@ -435,7 +433,7 @@ jobs:
           claude_args: |
             --allowedTools "Edit,MultiEdit,Write,Read,Glob,Grep,Bash(*),Skill(*)"
             --max-turns 50
-            --system-prompt "You are improving test coverage to meet higher thresholds in a Rails project. Read CLAUDE.md for project rules. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update simplecov.thresholds.json with the new values after tests pass. CRITICAL: Always run bundle exec rspec FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
+            --system-prompt "You are improving test coverage to meet higher thresholds in a Rails project. Follow RSpec best practices: use describe/context/it blocks, let/before for setup, FactoryBot for test data, shared examples for common behavior. Write tests that verify behavior, not implementation details. Include edge cases and error paths. You must update simplecov.thresholds.json with the new values after tests pass. CRITICAL: Always run bundle exec rspec FIRST to identify coverage gaps before reading any source files. Use the coverage report to target exactly which files and lines need tests. Never explore the codebase broadly — only read the specific uncovered code identified by the coverage report."
 
       - name: Trigger CodeRabbit review
         env:
