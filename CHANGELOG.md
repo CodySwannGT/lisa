@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.78.7](https://github.com/CodySwannGT/lisa/compare/vv1.78.6...v1.78.7) (2026-04-06)
+
+
+### Bug Fixes
+
+* add tsc check before commit in nightly complexity skill ([#353](https://github.com/CodySwannGT/lisa/issues/353)) ([47e2e02](https://github.com/CodySwannGT/lisa/commit/47e2e0212beb0db5195c3f36784fe21dfec31a85))
+
 ### [1.78.6](https://github.com/CodySwannGT/lisa/compare/vv1.78.5...v1.78.6) (2026-04-06)
 
 
