@@ -12,16 +12,25 @@ The caller provides pre-computed context:
 - **Proposed thresholds** (each metric decreased toward target minimums)
 - **Metrics being reduced** (which metrics are above target)
 
+## Turn budget
+
+You have a limited turn budget. Optimize for fewer tool calls:
+- **Batch** `wc -l` for ALL violating files in a single command after lint
+- **Fix all violations in a file** before moving to the next file (read the file once, make all edits)
+- **Use parallel tool calls** when reading multiple independent files
+- **Run formatter once** at the end, not after each file
+- Do NOT spend turns exploring ESLint config — the thresholds are provided in the prompt
+
 ## Instructions
 
 1. Read CLAUDE.md and package.json for project conventions
 2. Update eslint.thresholds.json with the proposed new threshold values (do NOT change the maxLines threshold)
 3. Run the project's lint script with the provided package manager (e.g., `npm run lint`, `yarn lint`, or `bun run lint`) to find functions that violate the new stricter thresholds
-4. **Before editing**, check each violating file's total line count (`wc -l`). If a file is within 20 lines of its `max-lines` ESLint limit (typically 300), extract helpers into a **separate companion file** (e.g., `fooHelpers.ts`) instead of adding them to the same file. Extracting functions into the same file adds net lines and can create new max-lines violations.
-5. Fix violations one file at a time. Read only the specific function that violates — do not pre-read all files upfront. Fix it, then move to the next.
+4. **Immediately after lint**, run `wc -l` on ALL violating files in a single command (e.g., `wc -l file1.ts file2.ts file3.ts`). If a file is within 20 lines of its `max-lines` ESLint limit (typically 300), extract helpers into a **separate companion file** (e.g., `fooHelpers.ts`) instead of adding them to the same file. Extracting functions into the same file adds net lines and can create new max-lines violations.
+5. Fix violations file by file. When a file has multiple violations, read the file once and fix all violations in that file before moving on. Read only the region around the violating functions — do not read the entire file if it is large.
 6. For cognitive complexity violations: use early returns, extract helper functions, replace conditionals with lookup tables
 7. For max-lines-per-function violations: split large functions, extract helper functions, separate concerns
-8. After each file edit, run the project's formatter (e.g., `bun run format` or `npx prettier --write <file>`) to ensure line counts reflect the final formatted state before moving on
+8. After all files are fixed, run the project's formatter on all changed files (e.g., `bun run format`) to ensure line counts reflect the final formatted state
 9. Re-run the lint script with the provided package manager to verify all violations are resolved (both the target metric AND max-lines)
 10. Run the TypeScript compiler to catch type errors early: `npx tsc --noEmit 2>&1 | head -30`. If there are type errors, fix them now — do NOT wait until the commit step. Pre-commit hooks run type checking, and discovering errors at commit time wastes turns.
 11. Run the project's test script with the provided package manager (e.g., `npm run test`, `yarn test`, or `bun run test`) to verify no tests are broken by the refactoring
