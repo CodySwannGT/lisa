@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.78.9](https://github.com/CodySwannGT/lisa/compare/vv1.78.8...v1.78.9) (2026-04-06)
+
+
+### Bug Fixes
+
+* remove redundant CLAUDE.md instructions and make coverage skill incremental ([#355](https://github.com/CodySwannGT/lisa/issues/355)) ([c846678](https://github.com/CodySwannGT/lisa/commit/c84667868e890a2bb708a58efad9fc4a480b9882))
+
 ### [1.78.8](https://github.com/CodySwannGT/lisa/compare/vv1.78.7...v1.78.8) (2026-04-06)
 
 
