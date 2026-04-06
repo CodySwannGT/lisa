@@ -29,15 +29,15 @@ ask the user for the values before proceeding.
 | Variable | Purpose | Example |
 |----------|---------|---------|
 | `JIRA_PROJECT` | JIRA project key for ticket creation | `SE` |
-| `JIRA_SERVER` | Atlassian instance URL (used as cloudId) | `mycompany.atlassian.net` |
+| `JIRA_SERVER` | Atlassian instance URL (site host) | `mycompany.atlassian.net` |
 | `E2E_TEST_PHONE` | Test user phone number for verification plans | `0000000099` |
 | `E2E_TEST_OTP` | Test user OTP code | `555555` |
 | `E2E_TEST_ORG` | Test organization name | `Arsenal` |
 | `E2E_BASE_URL` | Frontend base URL for Playwright tests | `https://dev.example.io/` |
 | `E2E_GRAPHQL_URL` | GraphQL API URL for curl verification | `https://gql.dev.example.io/graphql` |
 
-If env vars are not available, check `e2e/constants.ts` in the frontend repo for test credentials,
-and `.claude/settings.json` or JIRA MCP config for the project key and cloud ID.
+If env vars are not available, ask the user to provide them explicitly before proceeding.
+Do not retrieve credentials from repository files or local agent settings.
 
 ## Workflow
 
@@ -141,7 +141,7 @@ Common blocker categories:
 
 When delegating to agents, provide this context:
 
-```
+```text
 Create JIRA sub-tasks in the [PROJECT] project at [CLOUD_ID].
 Use issueTypeName "Sub-task" and set parent to the story key.
 Use contentFormat "markdown".
