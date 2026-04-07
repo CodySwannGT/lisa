@@ -1,9 +1,11 @@
 ---
-description: "Plan work. Defines acceptance criteria, researches codebase, maps dependencies, and breaks down into ordered tasks."
+description: "Plan work. Defines acceptance criteria, researches codebase, maps dependencies, and breaks down into ordered work items."
 argument-hint: "<description-or-ticket-id-or-url>"
 ---
 
 Read `.claude/rules/intent-routing.md` and execute the **Plan** flow.
+
+If no PRD or specification exists, suggest running the **Research** flow first to produce one.
 
 If the argument is a JIRA ticket ID or URL, hand off to the `jira-agent` which will read the ticket and extract context.
 

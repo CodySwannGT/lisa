@@ -90,4 +90,15 @@ Every change requires one or more verification types. Classify the change first,
 
 ---
 
+## Local vs Remote Verification
+
+Verification happens at two stages in the workflow:
+
+- **Local verification** (part of the Implement flow): Run the full test suite, typecheck, lint, and empirically verify the change in a local or preview environment. This proves the change works before shipping. After local verification succeeds, encode it as an e2e test.
+- **Remote verification** (part of the Verify flow): After the PR is merged and deployed, repeat the same empirical verification against the target environment. This proves the change works in production, not just locally. If remote verification fails, fix and re-deploy.
+
+Both levels use the same verification types table above. The difference is the environment, not the rigor.
+
+---
+
 For the full verification lifecycle (classify, check tooling, plan, execute, loop), surfaces, escalation protocol, and proof artifact requirements, see the `verification-lifecycle` skill loaded by the `verification-specialist` agent.

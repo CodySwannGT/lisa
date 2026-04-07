@@ -10,16 +10,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-plan-rules.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
             "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
+          },
+          {
+            "type": "prompt",
+            "prompt": "Classify this user request into exactly one flow. Output ONLY valid JSON.\n\nFlows:\n- Research: User needs requirements defined, wants a PRD, exploring a problem space, open-ended feature idea\n- Plan: User has requirements and wants them broken into tickets/work items\n- Implement/Build: User has a specific feature/story/task to code\n- Implement/Fix: User has a bug to fix, something is broken\n- Implement/Improve: User wants to refactor, optimize, or improve existing code\n- Implement/Investigate: User wants to understand why something works a certain way (spike)\n- Verify: User has code ready to ship (PR, deploy, merge)\n- None: Simple question, config change, one-off task, or not enough context to classify\n\nOutput format: {\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"Flow classification: [FLOW]. Reason: [one sentence].\"}}\n\nUser request: $ARGUMENTS"
           }
         ]
       }
@@ -63,7 +58,8 @@
       { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true" }] }
     ],
     "SubagentStart": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh" }] }
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh" }] },
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-flow-context.sh" }] }
     ],
     "SessionEnd": [
       { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true" }] }

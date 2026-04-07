@@ -1,6 +1,6 @@
 ---
 name: jira-agent
-description: JIRA lifecycle agent. Reads tickets, determines intent (Bug → Fix, Story/Task → Build, Epic → Plan), delegates to the appropriate flow, syncs progress at milestones, and posts evidence at completion.
+description: JIRA lifecycle agent. Reads tickets, determines intent (Bug → Implement/Fix, Story/Task → Implement/Build, Epic → Plan, Spike → Implement/Investigate), delegates to the appropriate flow, syncs progress at milestones, and posts evidence at completion.
 tools: Read, Grep, Glob, Bash
 skills:
   - jira-sync
@@ -55,15 +55,16 @@ If not triaged:
 
 Map the ticket type to a flow:
 
-| Ticket Type | Flow | Entry Agent |
-|-------------|------|-------------|
-| Bug | Fix | `git-history-analyzer` → `debug-specialist` → `bug-fixer` |
-| Story | Build | `product-specialist` → `architecture-specialist` → `builder` |
-| Task | Build | `product-specialist` → `architecture-specialist` → `builder` |
-| Epic | Plan | `product-specialist` → `architecture-specialist` → break down |
-| Spike | Investigate | `git-history-analyzer` → `debug-specialist` |
+| Ticket Type | Flow | Work Type |
+|-------------|------|-----------|
+| Epic | Plan | -- |
+| Story | Implement | Build |
+| Task | Implement | Build |
+| Bug | Implement | Fix |
+| Spike | Implement | Investigate Only |
+| Improvement | Implement | Improve |
 
-If the ticket type is ambiguous, read the description to classify. A "Task" that describes broken behavior is a Fix, not a Build.
+If the ticket type is ambiguous, read the description to classify. A "Task" that describes broken behavior is a Fix, not a Build. A "Bug" that requests new functionality is a Build.
 
 ### 5. Delegate to Flow
 

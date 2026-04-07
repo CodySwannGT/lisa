@@ -35,17 +35,28 @@ Using the general-purpose agent in Team Lead session, Determine what branch to u
 2. Are we on a feature branch without an open pull request? Use the branch, but ask the human what branch to target for the PR
 3. Are we on an environment branch (dev, staging, main, prod, production)? Check out a feature branch named for this plan and set the target branch of the PR to the environment branch
 
-Using the general-purpose agent in Team Lead session, Determine what type of request this is for:
-1. Informational/Spike
-2. Task
-3. Bug
-4. Feature/Story
-5. Epic
+Using the general-purpose agent in Team Lead session, Determine which flow applies:
+1. Research -- needs a PRD (no specification exists)
+2. Plan -- needs decomposition (specification exists but no work items)
+3. Implement -- has a well-defined work item
+4. Verify -- has code ready to ship
 
-IF it's a bug, Using the general-purpose agent in Team Lead session, determine how you will replicate the bug empirically:
-1. Examples:
+If Implement, determine the work type:
+1. Build (feature, story, task)
+2. Fix (bug -- mandatory Reproduce sub-flow before investigation)
+3. Improve (refactoring, optimization, coverage improvement)
+4. Investigate Only (spike -- no code changes, just findings)
+
+Run the readiness gate check for the selected flow as defined in `.claude/rules/intent-routing.md`. If the gate fails, stop and report what is missing.
+
+IF it is a Fix (bug), execute the Reproduce sub-flow FIRST:
+1. Write a failing test that demonstrates the bug (preferred)
+2. If a failing test is not possible, write a minimal reproduction script
+3. Verify the reproduction is reliable (consistent failure)
+4. The reproduction MUST succeed before any investigation or fix attempt begins
+5. Examples of reproduction methods:
    1. Write a simple API client and call the offending API
-   2. Start the server on localhost and Use the Playwright CLI or Chrome DevTools
+   2. Start the server on localhost and use the Playwright CLI or Chrome DevTools
 
 Using the general-purpose agent in Team Lead session, determine how you will know that the task is fully complete
 1. Examples
@@ -78,12 +89,18 @@ Before any task is implemented, the agent team must explore the codebase for rel
 Each task must be reviewed by the team to make sure their verification passes.
 Each task must have their learnings reviewed by the learner subagent.
 
-Before shutting down the team:
+Before shutting down the team, execute the Verify flow:
 
-1. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
-2. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-3. Open a pull request with auto-merge on
-4. Monitor the PR. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. Continue all checks pass
-5. Monitor the deploy action that triggers automatically from the successful merge
-6. If it fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 4
-7. Execute empirical verification. If empirical verification succeeds, you're finished, otherwise, create a task for the agent team to find out why it failed, fix it and return to step 1 (repeat this until you get all the way through)
+1. Run local validation: lint, typecheck, tests — all must pass
+2. `verification-specialist`: verify locally (empirical proof that the change works)
+3. Write e2e test encoding the verification
+4. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
+5. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
+6. Open a pull request with auto-merge on
+7. PR Watch Loop: Monitor the PR. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. Continue until all checks pass.
+8. Merge the PR
+9. Monitor the deploy action that triggers automatically from the successful merge
+10. If deploy fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 7
+11. Remote verification: `verification-specialist` verifies in target environment (same checks as local verification, but on remote)
+12. `ops-specialist`: post-deploy health check, monitor for errors in first minutes
+13. If remote verification fails, create a task for the agent team to find out why it failed, fix it and return to step 4 (repeat until you get all the way through)
