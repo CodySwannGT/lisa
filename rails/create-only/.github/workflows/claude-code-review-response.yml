@@ -1,0 +1,30 @@
+# This file was created by Lisa on first setup.
+# You can customize this file — Lisa will not overwrite it.
+
+name: Claude Code Review Response
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  respond-to-review:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-claude-code-review-response.yml@main
+    with:
+      review_user_login: ${{ github.event.review.user.login }}
+      pr_user_login: ${{ github.event.pull_request.user.login }}
+      pr_head_ref: ${{ github.event.pull_request.head.ref }}
+      pr_number: ${{ github.event.pull_request.number }}
+      repo_owner: ${{ github.repository_owner }}
+      repo_name: ${{ github.event.repository.name }}
+      package_manager: 'none'
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
