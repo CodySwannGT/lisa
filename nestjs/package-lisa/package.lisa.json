@@ -80,6 +80,7 @@
       "serverless": "^4.30.0",
       "serverless-esbuild": "^1.57.0",
       "serverless-offline": "^14.4.0",
+      "vite": "^8.0.5",
       "vitest": "^4.1.0",
       "@vitest/coverage-v8": "^4.1.0"
     }

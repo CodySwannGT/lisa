@@ -5,6 +5,7 @@
       "prepare": "$npm_execpath run build || husky install || true"
     },
     "devDependencies": {
+      "vite": "^8.0.5",
       "vitest": "^4.1.0",
       "@vitest/coverage-v8": "^4.1.0"
     }
