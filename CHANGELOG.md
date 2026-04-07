@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.79.2](https://github.com/CodySwannGT/lisa/compare/vv1.79.1...v1.79.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* add build failure investigation rule and JIRA ticket relationship rule ([#361](https://github.com/CodySwannGT/lisa/issues/361)) ([99d4f01](https://github.com/CodySwannGT/lisa/commit/99d4f01535408bb9755eb9099790f3717c1144fa))
+
 ### [1.79.1](https://github.com/CodySwannGT/lisa/compare/vv1.79.0...v1.79.1) (2026-04-06)
 
 
