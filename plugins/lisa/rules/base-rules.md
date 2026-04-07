@@ -29,6 +29,7 @@ Code Quality:
 - Use project-relative paths rather than absolute paths in documentation and Markdown.
 - Delete old code completely when replacing it. No deprecation unless specifically requested.
 - Fix bugs and issues properly. Never cover them up or work around them.
+- When a tool or build step fails, never assume the failure is pre-existing and work around it. Investigate the root cause first — check git history, find when it broke and why — before deciding how to proceed.
 - Test empirically to confirm something worked. Never assume.
 - Never assume test expectations before verifying actual implementation behavior. Run tests to learn the behavior, then adjust expectations to match.
 - Always provide a solution. Never dismiss something as "not related to our changes" or "not relevant to this task".
@@ -52,7 +53,7 @@ Testing Discipline:
 JIRA Discipline:
 - If working on a JIRA issue, make sure the branch you're working on references and is added to the JIRA issue.
 - If working on a JIRA issue, update the issue as you work through it. For example, if working on a Bug Triage, update the issue with your questions/feedback/suggestions.
-- When reading a JIRA issue, always read ALL comments on the ticket — not just the description. Comments contain critical context: stakeholder decisions, scope changes, blockers, triage findings from other repos, and implementation notes. Use the Atlassian MCP (preferred — handles pagination automatically) or the Jira REST comments endpoint with pagination (`GET /rest/api/3/issue/{issueIdOrKey}/comment?startAt=0&maxResults=50`, incrementing `startAt` by `maxResults` until `startAt >= total`) to fetch all comments. Note: `jira issue view <TICKET_ID> --comments 100` is a non-exhaustive CLI shortcut capped at 100 comments and should not be used when completeness is required.
+- When reading a JIRA issue, always read ALL comments on the ticket — not just the description. Comments contain critical context: stakeholder decisions, scope changes, blockers, triage findings from other repos, and implementation notes. Use the Atlassian MCP or `jira issue view <TICKET_ID> --comments 100` to fetch them.
 - When requesting clarification on a JIRA issue, post the question as a comment using ADF (Atlassian Document Format) and @mention the Reporter so they receive a notification.
 - When creating JIRA tickets, establish issue link relationships (e.g. "is blocked by", "blocks", "relates to", "is duplicated by") between tickets that have dependencies or logical connections. Do not leave related tickets unlinked.
 - When checking for associated pull requests on a JIRA issue, check the **Development panel** — not just comments or description text. The Development panel shows PRs, commits, branches, and builds linked via the GitHub-Jira integration. Query it via the dev-status API:

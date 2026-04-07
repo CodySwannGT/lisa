@@ -29,6 +29,7 @@ Code Quality:
 - Use project-relative paths rather than absolute paths in documentation and Markdown.
 - Delete old code completely when replacing it. No deprecation unless specifically requested.
 - Fix bugs and issues properly. Never cover them up or work around them.
+- When a tool or build step fails, never assume the failure is pre-existing and work around it. Investigate the root cause first — check git history, find when it broke and why — before deciding how to proceed.
 - Test empirically to confirm something worked. Never assume.
 - Never assume test expectations before verifying actual implementation behavior. Run tests to learn the behavior, then adjust expectations to match.
 - Always provide a solution. Never dismiss something as "not related to our changes" or "not relevant to this task".
