@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.80.0](https://github.com/CodySwannGT/lisa/compare/vv1.79.2...v1.80.0) (2026-04-07)
+
+
+### Features
+
+* add code review response workflow to Rails template ([#358](https://github.com/CodySwannGT/lisa/issues/358)) ([4734f0c](https://github.com/CodySwannGT/lisa/commit/4734f0c675ea3440bcba8be469eedee7b997e462))
+
 ### [1.79.2](https://github.com/CodySwannGT/lisa/compare/vv1.79.1...v1.79.2) (2026-04-07)
 
 
