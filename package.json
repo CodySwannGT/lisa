@@ -179,11 +179,11 @@
     "tsx": "^4.0.0",
     "typescript": "~5.7.0",
     "typescript-eslint": "^8.0.0",
-    "vite": "^8.0.5",
     "vitest": "^4.1.0"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^1.78.2"
+    "@codyswann/lisa": "^1.78.2",
+    "vite": "^8.0.5"
   },
   "type": "module"
 }

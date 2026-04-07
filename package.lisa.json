@@ -42,7 +42,8 @@
       "@types/node": "^22.0.0",
       "tsx": "^4.0.0",
       "knip": "^5.0.0",
-      "@ast-grep/cli": "^0.40.4"
+      "@ast-grep/cli": "^0.40.4",
+      "vite": "^8.0.5"
     }
   },
   "defaults": {
