@@ -149,9 +149,13 @@ jobs:
               const value = thresholds[metric] ?? 0;
               current[metric] = value;
               if (value < target) {
-                const newValue = Math.min(value + increment, target);
+                // Adaptive increment: metrics far from target get smaller per-run bumps
+                // Formula: 3 * increment² / gap — full increment when gap ≤ 3×increment, scales down for larger gaps
+                const gap = target - value;
+                const adaptiveIncrement = Math.max(1, Math.min(increment, Math.round(3 * increment * increment / gap)));
+                const newValue = Math.min(value + adaptiveIncrement, target);
                 proposed[metric] = newValue;
-                bumps.push(`${metric} ${value}% -> ${newValue}%`);
+                bumps.push(`${metric} ${value}% -> ${newValue}% (+${adaptiveIncrement})`);
               } else {
                 proposed[metric] = value;
               }
@@ -189,7 +193,7 @@ jobs:
             Current coverage thresholds in simplecov.thresholds.json:
             ${{ steps.thresholds.outputs.current }}
 
-            Proposed new thresholds (each metric increased by ${{ inputs.coverage_increment }}%, capped at 90%):
+            Proposed new thresholds (per-metric increment scaled by distance to target, capped at 90%):
             ${{ steps.thresholds.outputs.proposed }}
 
             Metrics being bumped: ${{ steps.thresholds.outputs.bumps }}
@@ -369,9 +373,13 @@ jobs:
               const value = thresholds[metric] ?? 0;
               current[metric] = value;
               if (value < target) {
-                const newValue = Math.min(value + increment, target);
+                // Adaptive increment: metrics far from target get smaller per-run bumps
+                // Formula: 3 * increment² / gap — full increment when gap ≤ 3×increment, scales down for larger gaps
+                const gap = target - value;
+                const adaptiveIncrement = Math.max(1, Math.min(increment, Math.round(3 * increment * increment / gap)));
+                const newValue = Math.min(value + adaptiveIncrement, target);
                 proposed[metric] = newValue;
-                bumps.push(`${metric} ${value}% -> ${newValue}%`);
+                bumps.push(`${metric} ${value}% -> ${newValue}% (+${adaptiveIncrement})`);
               } else {
                 proposed[metric] = value;
               }
@@ -409,7 +417,7 @@ jobs:
             Current coverage thresholds in simplecov.thresholds.json:
             ${{ steps.thresholds.outputs.current }}
 
-            Proposed new thresholds (each metric increased by ${{ inputs.coverage_increment }}%, capped at 90%):
+            Proposed new thresholds (per-metric increment scaled by distance to target, capped at 90%):
             ${{ steps.thresholds.outputs.proposed }}
 
             Metrics being bumped: ${{ steps.thresholds.outputs.bumps }}
