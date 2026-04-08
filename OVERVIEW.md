@@ -246,14 +246,16 @@ When you use Claude's native plan mode:
 | | `/plan:reduce-max-lines` | Reduce max file lines threshold |
 | | `/plan:reduce-max-lines-per-function` | Reduce max function lines threshold |
 | **Project** (deprecated) | All `/project:*` commands | Deprecated — use plan mode or `/plan:*` commands instead |
-| **Flows** | `/fix` | Fix a bug (full Fix flow) |
-| | `/build` | Build a feature (full Build flow) |
-| | `/investigate` | Investigate an issue (Investigate flow) |
-| | `/plan` | Plan work breakdown (Plan flow) |
-| | `/ship` | Ship changes (commit, PR, review, deploy, monitor) |
-| | `/review` | Review code changes (parallel quality/security/performance) |
-| | `/improve` | Improve existing code (Improve flow) |
-| | `/monitor` | Monitor application health |
+| **Flows** | `/research` | Research a problem space, produce a PRD (Research flow) |
+| | `/plan` | Break down a PRD into work items (Plan flow) |
+| | `/fix` | Fix a bug (Implement/Fix) |
+| | `/build` | Build a feature (Implement/Build) |
+| | `/improve` | Improve existing code (Implement/Improve) |
+| | `/investigate` | Investigate an issue (Implement/Investigate Only) |
+| | `/verify` | Ship, deploy, and verify in production (Verify flow) |
+| | `/ship` | Alias for `/verify` |
+| | `/review` | Review code changes (sub-flow, also standalone) |
+| | `/monitor` | Monitor application health (sub-flow, also standalone) |
 | **Git** | `/git:commit` | Create conventional commits |
 | | `/git:submit-pr` | Create/update pull request |
 | | `/git:prune` | Clean up merged branches |

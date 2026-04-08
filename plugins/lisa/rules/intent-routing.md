@@ -1,114 +1,211 @@
 # Intent Routing
 
-Classify the user's request and execute the matching flow. Each flow is a sequence of agents. Sub-flows can be invoked by any flow.
+MANDATORY: Before starting any work in a session, classify the user's initial request using the Flow Classification Protocol below. Do not respond, do not start work, do not ask questions until you have determined which flow applies. Once a flow is established, all subsequent messages operate within that flow — do not re-classify. This is not optional — skipping classification leads to unstructured responses that bypass readiness gates.
 
-## Flows
+Each flow has a readiness gate that MUST pass before work begins. If the gate fails, stop and ask for what is missing.
 
-### Fix
-When: Bug reports, broken behavior, error messages, JIRA bug tickets.
+## Flow Classification Protocol
+
+A `UserPromptSubmit` prompt hook uses a fast model to pre-classify the user's request and injects the result as `additionalContext`. Use this classification as a strong hint but verify it against the flow definitions below.
+
+1. If the user invoked a slash command (`/fix`, `/build`, `/plan`, etc.), the flow is already determined -- skip classification.
+2. If a flow hint was injected by the hook, verify it matches the request. If it does, proceed with that flow.
+3. If the classification is "None" or you disagree with the hint:
+   - **Interactive session** (user is present): present a multiple choice using AskUserQuestion with options: Research, Plan, Implement, Verify, No flow.
+   - **Headless/non-interactive session** (running with `-p` flag, in a CI pipeline, or as a scheduled agent): do NOT ask the user. Classify to the best of your ability from available context (ticket content, prompt text, current branch state). If you truly cannot classify, default to "No flow" and proceed with the request as-is.
+4. Once a flow is selected, check its readiness gate before proceeding.
+5. If you are a subagent: your parent agent has already determined the flow -- do NOT ask the user to choose a flow. Execute your assigned work within the established flow context.
+
+## Readiness Gate Protocol
+
+Every flow begins with a gate check. The gate defines what information must be present before the flow can begin.
+
+If the gate fails:
+- **Interactive session** (user is present):
+  1. Identify exactly what is missing
+  2. Before asking the user, attempt to answer the questions yourself from available context (source code, docs, git history, project structure, config files). Only ask the user about information you genuinely cannot determine.
+  3. When you do ask the user, provide recommended answers to choose from based on what you found in the codebase. Do not ask open-ended questions when you can offer specific options.
+  4. Tell the user what is needed and why
+  5. Do NOT proceed until the missing information is provided or resolved
+  6. If the missing information can be obtained by running a preceding flow (e.g., Research before Plan), suggest that instead
+- **Headless/non-interactive session** (running with `-p` flag, in a CI pipeline, or as a scheduled agent): do NOT block on missing information. Infer what you can from available context (ticket content, prompt text, codebase state, git history). Proceed with best effort using what is available. If critical information is truly unobtainable, fail with a clear error message explaining what was missing.
+
+## Main Flows
+
+### Research
+
+When: "I need a PRD", "What should we build?", product discovery, requirements gathering, feature exploration, understanding a problem space, open-ended feature ideas.
+
+Gate:
+- A problem statement, feature idea, or business objective must be provided
+- If none is provided, ask: "What problem are you trying to solve or what capability are you trying to add?"
 
 Sequence:
-1. `git-history-analyzer` — understand why affected code exists, find related past fixes/reverts
-2. `debug-specialist` — reproduce the bug, prove root cause with evidence
-3. `architecture-specialist` — assess fix risk, identify files to change, check for ripple effects
-4. `test-specialist` — design regression test strategy
-5. `bug-fixer` — implement fix via TDD (reproduction becomes failing test)
-6. **Verify sub-flow**
-7. **Ship sub-flow**
-8. `learner` — capture discoveries for future sessions
+1. **Investigate sub-flow** -- gather context from codebase, git history, existing behavior, and external sources
+2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items
+3. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
+4. Synthesize findings into a PRD document containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
+5. `learner` -- capture discoveries for future sessions
 
-### Build
-When: New features, stories, tasks, JIRA story/task tickets.
-
-Sequence:
-1. `product-specialist` — define acceptance criteria, user flows, error states
-2. `architecture-specialist` — research codebase, design approach, map dependencies
-3. `test-specialist` — design test strategy (coverage, edge cases, TDD sequence)
-4. `builder` — implement via TDD (acceptance criteria become tests)
-5. **Verify sub-flow**
-6. **Review sub-flow**
-7. **Ship sub-flow**
-8. `learner` — capture discoveries
-
-### Investigate
-When: "Why is this happening?", triage requests, JIRA spike tickets.
-
-Sequence:
-1. `git-history-analyzer` — understand code evolution, find related changes
-2. `debug-specialist` — reproduce, trace execution, prove root cause
-3. `ops-specialist` — check logs, errors, health (if runtime issue)
-4. Report findings with evidence, recommend next action (Fix, Build, or escalate)
+Output: A PRD document. If there is not enough context to produce a complete PRD, stop and report what is missing rather than producing an incomplete one.
 
 ### Plan
-When: "Break this down", epic planning, large scope work, JIRA epic tickets.
+
+When: "Break this down", "Create tickets", epic planning, large scope work, JIRA epic tickets, "Turn this PRD into work items".
+
+Gate:
+- A PRD, specification document, or equivalent detailed description must be provided
+- The specification must contain: clear scope, acceptance criteria, and enough detail to decompose into work items
+- If no specification exists, stop and suggest running the **Research** flow first
+- If the specification has unresolved ambiguities, stop and list them
 
 Sequence:
-1. `product-specialist` — define acceptance criteria for the whole scope
-2. `architecture-specialist` — understand scope, map dependencies, identify cross-cutting concerns
-3. Break down into ordered tasks, each with: acceptance criteria, verification type, dependencies
+1. **Investigate sub-flow** -- explore codebase for architecture, patterns, dependencies relevant to the spec
+2. `product-specialist` -- validate and refine acceptance criteria for the whole scope
+3. `architecture-specialist` -- map dependencies, identify cross-cutting concerns, determine execution order
+4. Decompose into ordered work items (epics, stories, tasks, spikes, bugs), each with:
+   - Type (epic, story, task, spike, bug)
+   - Acceptance criteria
+   - Verification method
+   - Dependencies
+   - Skills required
+5. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria and dependencies
+6. `learner` -- capture discoveries for future sessions
+
+Output: Work items in a tracker with acceptance criteria, ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.
+
+### Implement
+
+When: Working on a specific ticket (story, task, bug, spike), implementing a well-defined piece of work.
+
+Gate:
+- A well-defined work item with acceptance criteria must be provided (ticket URL, file spec, or detailed description)
+- The work item must have clear scope, expected behavior, and verification method
+- If acceptance criteria are missing or ambiguous, stop and ask before proceeding
+- If the work item is too large (epic-level), stop and suggest running the **Plan** flow first
+
+Determine the work type and execute the matching variant:
+
+#### Build (features, stories, tasks)
+
+1. **Investigate sub-flow** -- explore codebase for related code, patterns, dependencies
+2. `product-specialist` -- define acceptance criteria, user flows, error states
+3. `architecture-specialist` -- design approach, map files to modify, identify reusable code
+4. `test-specialist` -- design test strategy (coverage, edge cases, TDD sequence)
+5. `builder` -- implement via TDD (acceptance criteria become tests)
+6. Run validation: lint, typecheck, tests
+7. `verification-specialist` -- verify locally (run the software, observe behavior)
+8. Write e2e test encoding the verification
+9. **Review sub-flow**
+10. `learner` -- capture discoveries
+
+#### Fix (bugs)
+
+1. **Reproduce sub-flow** -- write failing test or script that demonstrates the bug (MANDATORY before any fix is attempted)
+2. **Investigate sub-flow** -- git history, root cause analysis
+3. `debug-specialist` -- prove root cause with evidence
+4. `architecture-specialist` -- assess fix risk, identify files to change, check for ripple effects
+5. `test-specialist` -- design regression test strategy
+6. `bug-fixer` -- implement fix via TDD (reproduction becomes failing test)
+7. Run validation: lint, typecheck, tests
+8. `verification-specialist` -- verify locally (prove the bug is fixed)
+9. Write e2e test encoding the verification
+10. **Review sub-flow**
+11. `learner` -- capture discoveries
+
+#### Improve (refactoring, optimization, coverage improvement)
+
+1. **Investigate sub-flow** -- understand current state, measure baseline
+2. `architecture-specialist` -- identify target, plan approach
+3. `test-specialist` -- ensure existing test coverage before refactoring (safety net)
+4. `builder` -- implement improvements via TDD
+5. Run validation: lint, typecheck, tests
+6. `verification-specialist` -- measure again, prove improvement over baseline
+7. Write e2e test encoding the verification (if applicable)
+8. **Review sub-flow**
+9. `learner` -- capture discoveries
+
+#### Investigate Only (spikes)
+
+1. **Investigate sub-flow** -- full investigation
+2. Report findings with evidence
+3. Recommend next action (Research, Plan, Implement, or escalate)
+4. `learner` -- capture discoveries
+
+Output: Code passing all validation + local empirical verification + e2e test (except for spikes, which produce findings only).
 
 ### Verify
-When: Pre-ship quality gate. Used as a sub-flow by Fix and Build.
+
+When: Code is ready to ship. All local validation passes. Moving from "works on my machine" to "works in production".
+
+Gate:
+- Code must pass local validation (lint, typecheck, tests)
+- Local empirical verification must be complete
+- If local validation fails, go back to **Implement**
+- If no code changes exist, there is nothing to verify
 
 Sequence:
-1. Run full test suite — all tests must pass before proceeding
-2. Run quality checks — lint, typecheck, and format
-3. `verification-specialist` — verify acceptance criteria are met empirically
-
-### Ship
-When: Code is ready to deploy. Used as a sub-flow by Fix, Build, and Improve.
-
-Sequence:
-1. Commit — atomic conventional commits via `git-commit` skill
-2. PR — create/update pull request via `git-submit-pr` skill
-3. **Review sub-flow** (if not already done)
-4. PR Watch Loop (repeat until mergeable):
-   - If status checks fail → fix and push
-   - If merge conflicts → resolve and push
+1. Commit -- atomic conventional commits via `git-commit` skill
+2. PR -- create/update pull request via `git-submit-pr` skill
+3. PR Watch Loop (repeat until mergeable):
+   - If status checks fail -- fix and push
+   - If merge conflicts -- resolve and push
    - If bot review feedback (CodeRabbit, etc.):
-     - Valid feedback → implement fix, push, resolve comment
-     - Invalid feedback → reply explaining why, resolve comment
+     - Valid feedback -- implement fix, push, resolve comment
+     - Invalid feedback -- reply explaining why, resolve comment
    - Repeat until all checks pass and all comments are resolved
-5. Merge the PR
-6. `ops-specialist` — deploy to target environment
-7. `verification-specialist` — post-deploy health check and smoke test
-8. `ops-specialist` — monitor for errors in first minutes
+4. Merge the PR
+5. Monitor deploy (watch the deployment action triggered by merge):
+   - If deploy fails -- fix, open new PR, return to step 3
+6. Remote verification:
+   - `verification-specialist` -- verify in target environment (same checks as local verification, but on remote)
+   - `ops-specialist` -- post-deploy health check, smoke test, monitor for errors in first minutes
+   - If remote verification fails -- fix, open new PR, return to step 3
+
+Output: Merged PR, successful deploy, remote verification passing.
+
+## Sub-flows
+
+Sub-flows are reusable sequences invoked by main flows. When a flow says "Investigate sub-flow", execute the full Investigate sequence.
+
+### Investigate
+
+Purpose: Gather context and evidence about code, behavior, or systems.
+
+Sequence:
+1. `git-history-analyzer` -- understand why affected code exists, find related past changes
+2. `debug-specialist` -- reproduce if applicable, trace execution, prove findings with evidence
+3. `ops-specialist` -- check logs, errors, health (if runtime issue)
+4. Report findings with evidence
+
+### Reproduce
+
+Purpose: Create a reliable reproduction that demonstrates a bug before fixing it.
+
+Sequence:
+1. Execute the exact scenario that triggers the bug
+2. Capture complete error output and evidence
+3. Write a failing test that captures the bug (preferred) or a minimal reproduction script
+4. Verify the reproduction is reliable (runs multiple times, consistently fails)
+
+A bug MUST be reproduced before any fix is attempted. If reproduction fails, report what was tried and stop.
 
 ### Review
-When: Code review requests, PR review, quality assessment. Used as a sub-flow by Build.
+
+Purpose: Multi-dimensional code review before shipping.
 
 Sequence:
 1. Run in parallel: `quality-specialist`, `security-specialist`, `performance-specialist`
-2. `product-specialist` — verify acceptance criteria are met empirically
-3. `test-specialist` — verify test coverage and quality
+2. `product-specialist` -- verify acceptance criteria are met empirically
+3. `test-specialist` -- verify test coverage and quality
 4. Consolidate findings, ranked by severity
 
-### Improve
-When: Refactoring, optimization, coverage improvement, complexity reduction.
-
-Sequence:
-1. `architecture-specialist` — identify target, measure baseline, plan approach
-2. `test-specialist` — ensure existing test coverage before refactoring (safety net)
-3. `builder` — implement improvements via TDD
-4. `verification-specialist` — measure again, prove improvement
-5. **Ship sub-flow**
-6. `learner` — capture discoveries
-
-#### Improve: Test Quality
-When: "Improve tests", "strengthen test suite", "fix weak tests", test quality improvement.
-
-Sequence:
-1. `test-specialist` — scan tests, identify weak/brittle tests, rank by improvement impact
-2. `builder` — implement test improvements
-3. **Verify sub-flow**
-4. **Ship sub-flow**
-5. `learner` — capture discoveries
-
 ### Monitor
-When: "Check the logs", "Any errors?", health checks, production monitoring.
+
+Purpose: Check application health and operational status. Can be invoked standalone or as part of Verify.
 
 Sequence:
-1. `ops-specialist` — health checks, log inspection, error monitoring, performance analysis
+1. `ops-specialist` -- health checks, log inspection, error monitoring, performance analysis
 2. Report findings, escalate if action needed
 
 ## JIRA Entry Point
@@ -116,11 +213,36 @@ Sequence:
 When the request references a JIRA ticket (ticket ID like PROJ-123 or a JIRA URL):
 
 1. Hand off to `jira-agent`
-2. `jira-agent` reads the ticket, validates structural quality, and runs analytical triage
-3. If triage finds unresolved ambiguities, `jira-agent` posts findings and STOPS — no work begins
-4. `jira-agent` determines intent and delegates to the appropriate flow above
-5. `jira-agent` syncs progress at milestones and posts evidence at completion
+2. `jira-agent` reads the ticket fully (description, comments, attachments, linked issues)
+3. `jira-agent` validates ticket quality via `jira-verify` skill
+4. `jira-agent` runs analytical triage via `ticket-triage` skill
+5. If triage finds unresolved ambiguities (`BLOCKED` verdict), `jira-agent` posts findings and STOPS -- no work begins
+6. `jira-agent` determines intent and delegates to the appropriate flow:
+
+| Ticket Type | Flow | Work Type |
+|-------------|------|-----------|
+| Epic | Plan | -- |
+| Story | Implement | Build |
+| Task | Implement | Build |
+| Bug | Implement | Fix |
+| Spike | Implement | Investigate Only |
+| Improvement | Implement | Improve |
+
+If the ticket type is ambiguous, read the description to classify. A "Task" that describes broken behavior is a Fix. A "Bug" that requests new functionality is a Build.
+
+7. `jira-agent` syncs progress at milestones via `jira-sync` skill
+8. `jira-agent` posts evidence at completion via `jira-evidence` skill
+
+## Flow Chaining
+
+Flows can chain naturally:
+- Research produces a PRD -- hand it to Plan
+- Plan produces work items -- hand each to Implement
+- Implement produces verified code -- hand to Verify
+- If any flow discovers it lacks what it needs, it stops and suggests the preceding flow
+
+The full lifecycle for a large initiative: Research -> Plan -> Implement (per item) -> Verify (per item).
 
 ## Sub-flow Usage
 
-Flows reference sub-flows by name. When a flow says "Ship sub-flow", execute the full Ship sequence. When it says "Review sub-flow", execute the full Review sequence. Sub-flows can be nested (e.g., Ship includes Review).
+Flows reference sub-flows by name. When a flow says "Investigate sub-flow", execute the full Investigate sub-flow sequence. When it says "Review sub-flow", execute the full Review sequence. Sub-flows can be invoked by any main flow.

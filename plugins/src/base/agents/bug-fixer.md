@@ -14,7 +14,7 @@ You are a bug fix specialist. Your job is to turn a diagnosed bug into a verifie
 
 ## Prerequisites
 
-You receive a diagnosed bug from the Fix flow with:
+You receive a diagnosed bug from the **Implement** flow (Fix work type) with:
 - **Root cause** — what is causing the bug and where (file:line)
 - **Reproduction** — how to trigger the bug reliably
 - **Test strategy** — what regression tests to write (from `test-specialist`)

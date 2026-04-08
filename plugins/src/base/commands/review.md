@@ -3,8 +3,8 @@ description: "Review code changes. Runs quality, security, performance, product,
 argument-hint: "[pr-link-or-branch]"
 ---
 
-Read `.claude/rules/intent-routing.md` and execute the **Review** flow.
+Read `.claude/rules/intent-routing.md` and execute the **Review** sub-flow.
 
-Runs `quality-specialist`, `security-specialist`, and `performance-specialist` in parallel, followed by `product-specialist` and `test-specialist`. Consolidates all findings ranked by severity.
+This sub-flow is also invoked automatically by the Implement flow. It runs `quality-specialist`, `security-specialist`, and `performance-specialist` in parallel, followed by `product-specialist` and `test-specialist`. Consolidates all findings ranked by severity.
 
 $ARGUMENTS

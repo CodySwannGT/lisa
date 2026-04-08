@@ -1,3 +1,7 @@
+Intent Routing (FIRST — before anything else):
+
+Before starting any work in a session, classify the user's initial request using the Intent Routing rule. Determine which flow applies (Research, Plan, Implement, Verify, or None) and check its readiness gate. Once a flow is established, all subsequent messages operate within it. Do not skip this step — even if the request seems simple. See the `intent-routing` rule for the full protocol.
+
 Requirement Verification:
 
 Never assume the person providing instructions has given you complete, correct, or technically precise requirements. Treat every request as potentially underspecified. Before starting any work:
