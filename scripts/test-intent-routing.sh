@@ -146,11 +146,11 @@ else
   fail "plugin.json is not valid JSON"
 fi
 
-# Check haiku prompt hook is registered
-if jq -e '.hooks.UserPromptSubmit[].hooks[] | select(.type == "prompt")' "$PLUGIN_JSON" >/dev/null 2>&1; then
-  pass "Haiku prompt hook registered in UserPromptSubmit"
+# Check user-prompt-submit command hook is registered in UserPromptSubmit
+if jq -e '.hooks.UserPromptSubmit[].hooks[] | select(.type == "command" and (.command | test("user-prompt-submit")))' "$PLUGIN_JSON" >/dev/null 2>&1; then
+  pass "user-prompt-submit command hook registered in UserPromptSubmit"
 else
-  fail "Haiku prompt hook not found in UserPromptSubmit"
+  fail "user-prompt-submit command hook not found in UserPromptSubmit"
 fi
 
 # Check inject-flow-context is registered in SubagentStart
