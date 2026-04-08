@@ -21,12 +21,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "TaskCreate|TaskUpdate",
-        "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sync-tasks.sh" }
-        ]
-      },
-      {
         "matcher": "Task",
         "hooks": [
           { "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true" }

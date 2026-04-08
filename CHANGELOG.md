@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.81.2](https://github.com/CodySwannGT/lisa/compare/vv1.81.1...v1.81.2) (2026-04-08)
+
+
+### Bug Fixes
+
+* remove dangling sync-tasks.sh hook reference ([#365](https://github.com/CodySwannGT/lisa/issues/365)) ([06d3586](https://github.com/CodySwannGT/lisa/commit/06d3586b9d7883281bc7add5cea88ec55d3548bd)), closes [#340](https://github.com/CodySwannGT/lisa/issues/340) [#341](https://github.com/CodySwannGT/lisa/issues/341) [#340](https://github.com/CodySwannGT/lisa/issues/340) [#363](https://github.com/CodySwannGT/lisa/issues/363)
+
 ### [1.81.1](https://github.com/CodySwannGT/lisa/compare/vv1.81.0...v1.81.1) (2026-04-08)
 
 ## [1.81.0](https://github.com/CodySwannGT/lisa/compare/vv1.80.0...v1.81.0) (2026-04-08)
