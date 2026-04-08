@@ -23,15 +23,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "TaskCreate|TaskUpdate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sync-tasks.sh"
-          }
-        ]
-      },
-      {
         "matcher": "Task",
         "hooks": [
           {
