@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.81.3](https://github.com/CodySwannGT/lisa/compare/vv1.81.2...v1.81.3) (2026-04-08)
+
+
+### Bug Fixes
+
+* remove per-prompt flow classification hook ([#366](https://github.com/CodySwannGT/lisa/issues/366)) ([2553321](https://github.com/CodySwannGT/lisa/commit/2553321c94dba16412601c987da2ca6cb64448b6)), closes [#363](https://github.com/CodySwannGT/lisa/issues/363)
+
 ### [1.81.2](https://github.com/CodySwannGT/lisa/compare/vv1.81.1...v1.81.2) (2026-04-08)
 
 
