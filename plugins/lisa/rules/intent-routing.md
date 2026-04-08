@@ -1,19 +1,19 @@
 # Intent Routing
 
-MANDATORY: Before starting any work in a session, classify the user's initial request using the Flow Classification Protocol below. Do not respond, do not start work, do not ask questions until you have determined which flow applies. Once a flow is established, all subsequent messages operate within that flow — do not re-classify. This is not optional — skipping classification leads to unstructured responses that bypass readiness gates.
+MANDATORY: On the **first user message of a session**, classify the request using the Flow Classification Protocol below and state the chosen flow before doing any other work. Do not respond to the substance of the request, do not start work, do not ask questions until you have stated which flow applies. Once a flow is established, treat it as fixed for the remainder of the session — **do not re-classify on subsequent messages**, even if a follow-up looks vague or conversational ("wait, what did you just do?", "now run the tests", "thanks"). Subsequent messages operate within the established flow unless the user explicitly changes scope. Skipping classification leads to unstructured responses that bypass readiness gates.
 
 Each flow has a readiness gate that MUST pass before work begins. If the gate fails, stop and ask for what is missing.
 
 ## Flow Classification Protocol
 
-A `UserPromptSubmit` prompt hook uses a fast model to pre-classify the user's request and injects the result as `additionalContext`. Use this classification as a strong hint but verify it against the flow definitions below.
+This protocol runs **once per session**, on the first user message. After that, every later message inherits the established flow — do not re-run classification.
 
 1. If the user invoked a slash command (`/fix`, `/build`, `/plan`, etc.), the flow is already determined -- skip classification.
-2. If a flow hint was injected by the hook, verify it matches the request. If it does, proceed with that flow.
-3. If the classification is "None" or you disagree with the hint:
+2. Read the user's request and match it against the flow definitions below.
+3. If you cannot confidently classify the request:
    - **Interactive session** (user is present): present a multiple choice using AskUserQuestion with options: Research, Plan, Implement, Verify, No flow.
    - **Headless/non-interactive session** (running with `-p` flag, in a CI pipeline, or as a scheduled agent): do NOT ask the user. Classify to the best of your ability from available context (ticket content, prompt text, current branch state). If you truly cannot classify, default to "No flow" and proceed with the request as-is.
-4. Once a flow is selected, check its readiness gate before proceeding.
+4. Once a flow is selected, state it explicitly (e.g., *"Flow: Implement/Fix"*) and check its readiness gate before proceeding.
 5. If you are a subagent: your parent agent has already determined the flow -- do NOT ask the user to choose a flow. Execute your assigned work within the established flow context.
 
 ## Readiness Gate Protocol
