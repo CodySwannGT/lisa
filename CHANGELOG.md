@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.81.0](https://github.com/CodySwannGT/lisa/compare/vv1.80.0...v1.81.0) (2026-04-08)
+
+
+### Features
+
+* strengthen intent routing rules to prevent classification bypass ([#363](https://github.com/CodySwannGT/lisa/issues/363)) ([4034577](https://github.com/CodySwannGT/lisa/commit/4034577f37d918f1db5c32ebcbe3fd4b300860cb))
+
 ## [1.80.0](https://github.com/CodySwannGT/lisa/compare/vv1.79.2...v1.80.0) (2026-04-07)
 
 
