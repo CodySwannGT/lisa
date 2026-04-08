@@ -71,6 +71,10 @@ jobs:
           ruby-version: ${{ inputs.ruby_version }}
           bundler-cache: true
 
+      - name: Install lefthook git hooks
+        if: hashFiles('Gemfile') != '' && hashFiles('lefthook.yml') != ''
+        run: bundle exec lefthook install
+
       - name: Determine mode
         id: mode
         run: echo "value=${{ inputs.mode || 'nightly' }}" >> "$GITHUB_OUTPUT"

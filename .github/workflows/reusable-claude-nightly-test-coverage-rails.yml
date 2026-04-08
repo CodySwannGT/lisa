@@ -98,6 +98,10 @@ jobs:
           ruby-version: ${{ inputs.ruby_version }}
           bundler-cache: true
 
+      - name: Install lefthook git hooks
+        if: hashFiles('Gemfile') != '' && hashFiles('lefthook.yml') != ''
+        run: bundle exec lefthook install
+
       - name: Setup database
         run: |
           bundle exec rails db:create db:schema:load || bundle exec rails db:migrate
@@ -321,6 +325,10 @@ jobs:
         with:
           ruby-version: ${{ inputs.ruby_version }}
           bundler-cache: true
+
+      - name: Install lefthook git hooks
+        if: hashFiles('Gemfile') != '' && hashFiles('lefthook.yml') != ''
+        run: bundle exec lefthook install
 
       - name: Setup database
         run: |
