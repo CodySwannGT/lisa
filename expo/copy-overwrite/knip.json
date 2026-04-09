@@ -95,7 +95,6 @@
     "react-hook-form",
     "react-native-element-dropdown",
     "react-native-keyboard-controller",
-    "react-native-store-version",
     "tailwind-variants",
     "tar",
     "text-encoding-polyfill",
