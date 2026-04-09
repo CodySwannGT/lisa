@@ -87,6 +87,11 @@
       "id": "GHSA-36jr-mh4h-2g58",
       "package": "d3-color",
       "reason": "ReDoS — transitive via react-native-svg-charts, color parsing not user-controlled"
+    },
+    {
+      "id": "GHSA-chqc-8p9q-pq6q",
+      "package": "basic-ftp",
+      "reason": "FTP command injection via CRLF — devDep only via @lhci/cli > proxy-agent > pac-proxy-agent > get-uri, no FTP usage in production code"
     }
   ]
 }
