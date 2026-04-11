@@ -13,7 +13,12 @@ This protocol runs **once per session**, on the first user message. After that, 
 3. If you cannot confidently classify the request:
    - **Interactive session** (user is present): present a multiple choice using AskUserQuestion with options: Research, Plan, Implement, Verify, No flow.
    - **Headless/non-interactive session** (running with `-p` flag, in a CI pipeline, or as a scheduled agent): do NOT ask the user. Classify to the best of your ability from available context (ticket content, prompt text, current branch state). If you truly cannot classify, default to "No flow" and proceed with the request as-is.
-4. Once a flow is selected, state it explicitly (e.g., *"Flow: Implement/Fix"*) and check its readiness gate before proceeding.
+4. Once a flow is selected, **echo it back explicitly** before doing anything else. State the flow, the work type (if applicable), and a one-sentence justification for why this flow was chosen. Example:
+
+   > **Flow: Implement/Fix**
+   > This is a bug report with a specific error and reproduction steps, so it routes to the Fix work type within the Implement flow.
+
+   This echo is mandatory. Do not skip it, abbreviate it, or bury it in other output. The user must see the flow classification before any work begins.
 5. If you are a subagent: your parent agent has already determined the flow -- do NOT ask the user to choose a flow. Execute your assigned work within the established flow context.
 
 ## Readiness Gate Protocol
@@ -45,9 +50,10 @@ Sequence:
 2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items
 3. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
 4. Synthesize findings into a PRD document containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
-5. `learner` -- capture discoveries for future sessions
+5. **Plan Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Plan phase will need. For each recommended skill or agent, state why it is needed. If no skills or agents beyond the defaults are identified, explicitly justify why the standard set is sufficient. Include this as a "Recommended Tooling for Plan Phase" section in the PRD.
+6. `learner` -- capture discoveries for future sessions
 
-Output: A PRD document. If there is not enough context to produce a complete PRD, stop and report what is missing rather than producing an incomplete one.
+Output: A PRD document that includes a "Recommended Tooling for Plan Phase" section listing the skills and agents the Plan phase should use. If there is not enough context to produce a complete PRD, stop and report what is missing rather than producing an incomplete one.
 
 ### Plan
 
@@ -63,16 +69,17 @@ Sequence:
 1. **Investigate sub-flow** -- explore codebase for architecture, patterns, dependencies relevant to the spec
 2. `product-specialist` -- validate and refine acceptance criteria for the whole scope
 3. `architecture-specialist` -- map dependencies, identify cross-cutting concerns, determine execution order
-4. Decompose into ordered work items (epics, stories, tasks, spikes, bugs), each with:
+4. **Implement/Verify Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Implement and Verify phases will need for each work item. For each recommended skill or agent, state why it is needed and which work items it applies to. If no skills or agents beyond the defaults are identified for a work item, explicitly justify why the standard set is sufficient.
+5. Decompose into ordered work items (epics, stories, tasks, spikes, bugs), each with:
    - Type (epic, story, task, spike, bug)
    - Acceptance criteria
    - Verification method
    - Dependencies
-   - Skills required
-5. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria and dependencies
-6. `learner` -- capture discoveries for future sessions
+   - Skills and agents required (from step 4)
+6. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria, dependencies, and recommended skills/agents
+7. `learner` -- capture discoveries for future sessions
 
-Output: Work items in a tracker with acceptance criteria, ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.
+Output: Work items in a tracker with acceptance criteria and recommended skills/agents, ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.
 
 ### Implement
 
@@ -93,7 +100,7 @@ Determine the work type and execute the matching variant:
 3. `architecture-specialist` -- design approach, map files to modify, identify reusable code
 4. `test-specialist` -- design test strategy (coverage, edge cases, TDD sequence)
 5. `builder` -- implement via TDD (acceptance criteria become tests)
-6. Run validation: lint, typecheck, tests
+6. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 7. `verification-specialist` -- verify locally (run the software, observe behavior)
 8. Write e2e test encoding the verification
 9. **Review sub-flow**
@@ -107,7 +114,7 @@ Determine the work type and execute the matching variant:
 4. `architecture-specialist` -- assess fix risk, identify files to change, check for ripple effects
 5. `test-specialist` -- design regression test strategy
 6. `bug-fixer` -- implement fix via TDD (reproduction becomes failing test)
-7. Run validation: lint, typecheck, tests
+7. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 8. `verification-specialist` -- verify locally (prove the bug is fixed)
 9. Write e2e test encoding the verification
 10. **Review sub-flow**
@@ -119,7 +126,7 @@ Determine the work type and execute the matching variant:
 2. `architecture-specialist` -- identify target, plan approach
 3. `test-specialist` -- ensure existing test coverage before refactoring (safety net)
 4. `builder` -- implement improvements via TDD
-5. Run validation: lint, typecheck, tests
+5. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 6. `verification-specialist` -- measure again, prove improvement over baseline
 7. Write e2e test encoding the verification (if applicable)
 8. **Review sub-flow**
@@ -132,16 +139,16 @@ Determine the work type and execute the matching variant:
 3. Recommend next action (Research, Plan, Implement, or escalate)
 4. `learner` -- capture discoveries
 
-Output: Code passing all validation + local empirical verification + e2e test (except for spikes, which produce findings only).
+Output: Code passing all quality gates + local empirical verification + e2e test (except for spikes, which produce findings only).
 
 ### Verify
 
-When: Code is ready to ship. All local validation passes. Moving from "works on my machine" to "works in production".
+When: Code is ready to ship. All quality gates pass and local empirical verification is complete. Moving from "works on my machine" to "works in production".
 
 Gate:
-- Code must pass local validation (lint, typecheck, tests)
+- Code must pass quality gates (lint, typecheck, tests)
 - Local empirical verification must be complete
-- If local validation fails, go back to **Implement**
+- If quality gates fail, go back to **Implement**
 - If no code changes exist, there is nothing to verify
 
 Sequence:
