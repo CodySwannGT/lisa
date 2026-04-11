@@ -1,7 +1,6 @@
 ---
 name: architecture-specialist
 description: Architecture specialist agent. Designs implementation approaches, traces data flow, identifies files to modify, maps dependencies, finds reusable code, evaluates design patterns, and flags breaking changes.
-tools: Read, Grep, Glob, Bash
 skills:
   - codebase-research
   - task-decomposition

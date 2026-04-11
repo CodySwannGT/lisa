@@ -1,7 +1,6 @@
 ---
 name: bug-fixer
 description: Bug fix agent. Reproduces bugs as failing tests, implements fixes via TDD, and verifies the fix resolves the issue without introducing regressions.
-tools: Read, Write, Edit, Bash, Grep, Glob
 skills:
   - bug-triage
   - tdd-implementation

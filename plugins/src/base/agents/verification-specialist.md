@@ -1,7 +1,6 @@
 ---
 name: verification-specialist
 description: Verification specialist agent. Discovers project tooling and executes verification for all required types. Plans and executes empirical proof that work is done by running the actual system and observing results.
-tools: Read, Write, Edit, Bash, Grep, Glob
 skills:
   - verification-lifecycle
   - jira-journey

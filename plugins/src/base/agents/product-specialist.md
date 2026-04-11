@@ -1,7 +1,6 @@
 ---
 name: product-specialist
 description: Product/UX specialist agent. Defines user flows in Gherkin, writes acceptance criteria from user perspective, identifies UX concerns and error states, and empirically verifies behavior matches requirements.
-tools: Read, Grep, Glob, Bash
 skills:
   - acceptance-criteria
 ---

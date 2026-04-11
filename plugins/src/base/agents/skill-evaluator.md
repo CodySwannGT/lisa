@@ -1,7 +1,6 @@
 ---
 name: skill-evaluator
 description: Evaluates instructions, rules, patterns, and knowledge to determine if they warrant creating a new skill. Use when discovering reusable patterns, receiving new guidelines, or identifying knowledge that could benefit future sessions. This agent decides whether content is broad and reusable enough to justify skill creation.
-tools: Read, Grep, Glob, Skill
 ---
 
 # Skill Evaluator Agent
