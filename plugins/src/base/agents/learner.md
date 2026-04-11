@@ -1,7 +1,7 @@
 ---
 name: learner
 description: Post-implementation learning agent. Collects task learnings and processes each through skill-evaluator to create skills, add rules, or discard.
-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Task, TaskList, TaskGet
+tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Agent, TaskList, TaskGet
 ---
 
 # Learner Agent
@@ -18,7 +18,7 @@ You run the "learn" phase after implementation. Collect discoveries from the tea
 
 ### Step 2: Evaluate Each Learning
 
-Invoke `skill-evaluator` (via Task tool with `subagent_type: "skill-evaluator"`) for each learning:
+Invoke `skill-evaluator` (via Agent tool with `subagent_type: "skill-evaluator"`) for each learning:
 
 - **CREATE SKILL** -- broad, reusable, complex, stable, not redundant. Invoke `/skill-creator`.
 - **ADD TO RULES** -- simple rule to append to `.claude/rules/PROJECT_RULES.md`.
