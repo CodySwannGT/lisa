@@ -21,9 +21,9 @@ Each task you work on must have the following in its metadata:
   "skills": ["..."],
   "learnings": ["..."],
   "verification": {
-    "type": "test|ui-recording|test-coverage|api-test|manual-check|documentation",
-    "command": "the proof command",
-    "expected": "what success looks like"
+    "type": "ui-recording|api-test|cli-test|database-check|manual-check|documentation",
+    "command": "the proof command — must run the actual system (NOT test/typecheck/lint, those are quality gates)",
+    "expected": "what success looks like — observable system behavior"
   }
 }
 ```

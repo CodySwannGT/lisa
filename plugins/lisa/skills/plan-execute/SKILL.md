@@ -77,9 +77,9 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
   "skills": ["..."],
   "learnings": ["..."],
   "verification": {
-    "type": "test|ui-recording|test-coverage|api-test|manual-check|documentation",
-    "command": "the proof command",
-    "expected": "what success looks like"
+    "type": "ui-recording|api-test|cli-test|database-check|manual-check|documentation",
+    "command": "the proof command — must run the actual system (NOT test/typecheck/lint, those are quality gates)",
+    "expected": "what success looks like — observable system behavior"
   }
 }
 ```
@@ -91,8 +91,8 @@ Each task must have their learnings reviewed by the learner subagent.
 
 Before shutting down the team, execute the Verify flow:
 
-1. Run local validation: lint, typecheck, tests — all must pass
-2. `verification-specialist`: verify locally (empirical proof that the change works)
+1. Run quality gates: lint, typecheck, tests — all must pass. These are prerequisites, NOT verification.
+2. `verification-specialist`: verify locally by running the actual system and observing results (empirical proof that the change works). This is the real verification step.
 3. Write e2e test encoding the verification
 4. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 5. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
