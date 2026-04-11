@@ -1,7 +1,6 @@
 ---
 name: performance-specialist
 description: Performance specialist agent. Identifies N+1 queries, inefficient algorithms, memory leaks, missing indexes, unnecessary re-renders, bundle size issues, and other software performance problems. Recommends optimizations with evidence.
-tools: Read, Grep, Glob, Bash
 skills:
   - performance-review
 ---

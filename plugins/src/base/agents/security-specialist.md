@@ -1,7 +1,6 @@
 ---
 name: security-specialist
 description: Security specialist agent. Performs threat modeling (STRIDE), reviews code for OWASP Top 10 vulnerabilities, checks auth/validation/secrets handling, and recommends mitigations.
-tools: Read, Grep, Glob, Bash
 skills:
   - security-review
   - security-zap-scan

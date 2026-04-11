@@ -1,7 +1,6 @@
 ---
 name: test-specialist
 description: Test specialist agent. Designs test strategy (matrix, edge cases, coverage targets, TDD sequence), writes comprehensive unit and integration tests, and reviews test quality. Tests behavior, not implementation details.
-tools: Read, Write, Edit, Bash, Grep, Glob
 skills:
   - test-strategy
 ---
