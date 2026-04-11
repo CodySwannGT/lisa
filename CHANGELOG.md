@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.81.7](https://github.com/CodySwannGT/lisa/compare/vv1.81.6...v1.81.7) (2026-04-11)
+
+
+### Bug Fixes
+
+* remove tools restrictions from all agents — inherit all tools ([#371](https://github.com/CodySwannGT/lisa/issues/371)) ([dc9293c](https://github.com/CodySwannGT/lisa/commit/dc9293c60dc1689db85b99a2d750c757f7074f14))
+
 ### [1.81.6](https://github.com/CodySwannGT/lisa/compare/vv1.81.5...v1.81.6) (2026-04-11)
 
 
