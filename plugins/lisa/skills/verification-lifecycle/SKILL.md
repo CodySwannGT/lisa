@@ -1,42 +1,48 @@
 ---
 name: verification-lifecycle
-description: "Verification lifecycle: classify types, discover tools, fail fast, plan, execute, loop. Includes verification surfaces, proof artifacts, self-correction loop, escalation protocol, and definition of done."
+description: "Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, loop. Quality gates (tests/typecheck/lint) are prerequisites, NOT verification. Verification means running the actual system and observing results."
 ---
 
 # Verification Lifecycle
 
-This skill defines the complete verification lifecycle that agents must follow for every change: classify, check tooling, fail fast, plan, execute, and loop.
+This skill defines the complete verification lifecycle that agents must follow for every change: confirm quality gates, classify, check tooling, fail fast, plan, execute, and loop.
 
 ## Verification Lifecycle
 
 Agents must follow this mandatory sequence for every change:
 
-### 1. Classify
+### 1. Confirm Quality Gates
 
-Determine which verification types apply based on the change. Start with the three always-required types (Test, Type Safety, Lint/Format), then check each conditional type against the change scope.
+Confirm that quality gates (tests, typecheck, lint, format) pass. These are prerequisites, NOT verification. Do not count them as verification — they are enforced automatically by hooks and CI. If quality gates fail, fix them before proceeding.
 
-### 2. Check Tooling
+### 2. Classify
+
+Determine which **empirical verification types** apply based on the change. Check each type in the Verification Types table in `.claude/rules/verification.md` against the change scope. Every applicable type requires running the actual system and observing results — not just running tests.
+
+### 3. Check Tooling
 
 For each required verification type, discover what tools are available in the project. Use the Tool Discovery Process below.
 
-Report what is available for each required type. If a required type has no available tool, proceed to step 3.
+Report what is available for each required type. If a required type has no available tool, proceed to step 4.
 
-### 3. Fail Fast
+### 4. Fail Fast
 
 If a required verification type has no available tool and no reasonable alternative, escalate immediately using the Escalation Protocol. Do not begin implementation without a verification plan for every required type.
 
-### 4. Plan
+### 5. Plan
 
 For each verification type, state:
-- The specific tool or command that will be used
+- The specific tool or command that will be used (NOT test/typecheck/lint — those are quality gates, not verification)
 - The expected outcome that constitutes a pass
 - Any prerequisites (running server, seeded database, auth token)
 
-### 5. Execute
+A verification plan that only lists `bun run test`, `bun run typecheck`, or `bun run lint` is NOT a verification plan. Those are quality gates handled in step 1.
+
+### 6. Execute
 
 After implementation, run the verification plan. Execute each verification type in order.
 
-### 6. Loop
+### 7. Loop
 
 If any verification fails, fix the issue and re-verify. Do not declare done until all required types pass. If a verification is stuck after 3 attempts, escalate.
 
@@ -166,15 +172,16 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 
 1. Restate goal in one sentence.
 2. Identify the end user of the change.
-3. Classify verification types that apply to the change.
-4. Discover available tools for each verification type.
-5. Confirm required surfaces are available, escalate if not.
-6. Plan verification: state tool, command, and expected outcome for each type.
-7. Implement the change.
-8. Execute verification plan.
-9. Collect proof artifacts.
-10. Summarize what changed, what was verified, and remaining risk.
-11. Label the result with a verification level.
+3. Confirm quality gates pass (tests, typecheck, lint, format) — these are prerequisites, NOT verification.
+4. Classify empirical verification types that apply to the change (UI, API, Database, etc.).
+5. Discover available tools for each verification type.
+6. Confirm required surfaces are available, escalate if not.
+7. Plan verification: state tool, command, and expected outcome for each type. Do NOT list test/typecheck/lint here — those are quality gates from step 3.
+8. Implement the change.
+9. Execute verification plan — run the actual system and observe results.
+10. Collect proof artifacts.
+11. Summarize what changed, what was verified, and remaining risk.
+12. Label the result with a verification level.
 
 ---
 
