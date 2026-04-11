@@ -1,7 +1,7 @@
 ---
 name: jira-agent
 description: JIRA lifecycle agent. Reads tickets, determines intent (Bug → Implement/Fix, Story/Task → Implement/Build, Epic → Plan, Spike → Implement/Investigate), delegates to the appropriate flow, syncs progress at milestones, and posts evidence at completion.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Agent
 skills:
   - jira-sync
   - jira-evidence
