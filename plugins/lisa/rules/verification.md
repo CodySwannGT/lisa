@@ -16,11 +16,13 @@ No agent may claim success without evidence from runtime verification.
 
 Never assume something works because the code "looks correct." Run a command, observe the output, compare to expected result.
 
-**Verification is not linting, typechecking, or testing.** Those are quality checks. Verification is using the resulting software the way a user would — interacting with the UI, calling the API, running the CLI command, observing the behavior. Tests pass in isolation; verification proves the system works as a whole. Passing tests, linting, and typechecking does not constitute verification.
+**Verification is not linting, typechecking, or testing.** Those are **quality checks** — prerequisites that must pass before verification begins, but they are NOT verification themselves. Running `bun run test`, `bun run typecheck`, `bun run lint`, or `bun run format` is a quality check. Verification is using the resulting software the way a user would — interacting with the UI, calling the API, running the CLI command, observing the behavior. Tests pass in isolation; verification proves the system works as a whole.
+
+**If all you did was run tests, typecheck, and lint — you have NOT verified.** You have only confirmed quality checks pass. Verification requires running the actual system and observing the results: making HTTP requests, clicking through the UI, executing CLI commands, querying the database, or otherwise interacting with the running software as an end user would.
 
 Verification is mandatory. Never skip it, defer it, or claim it was unnecessary. Every task must be verified before claiming completion.
 
-Before starting implementation, state your verification plan — how you will use the resulting software to prove it works. Do not begin implementation until the plan is confirmed.
+Before starting implementation, state your verification plan — how you will use the resulting software to prove it works. A verification plan that only lists test/typecheck/lint commands is not a verification plan. Do not begin implementation until the plan is confirmed.
 
 After verifying a change empirically, encode that verification as automated tests. The manual proof that something works should become a repeatable regression test that catches future regressions. Every verification should answer: "How do I turn this into a test?"
 
@@ -56,19 +58,23 @@ Agents must label every task outcome with exactly one of these:
 
 ---
 
-## Verification Types
+## Quality Gates (Prerequisites)
 
-Every change requires one or more verification types. Classify the change first, then verify each applicable type.
+These are NOT verification. They are prerequisites that must pass before verification begins. Running these does not constitute verification — it only confirms code quality.
 
-### Always Required
-
-| Type | What to prove | Acceptable proof |
+| Gate | What to prove | Acceptable proof |
 |------|---------------|------------------|
 | **Test** | Unit and integration tests pass for all changed code paths | Test runner output showing all relevant tests green with no skips |
 | **Type Safety** | No type errors introduced by the change | Type checker exits clean on the full project |
 | **Lint/Format** | Code meets project style and quality rules | Linter and formatter exit clean on changed files |
 
-### Conditional
+Quality gates are enforced automatically by the self-correction loop (hooks, pre-commit, pre-push). Passing all quality gates is necessary but NOT sufficient — you must still verify empirically.
+
+---
+
+## Verification Types
+
+Every change requires one or more verification types. Classify the change first, then verify each applicable type by **running the actual system and observing results**.
 
 | Type | When it applies | What to prove | Acceptable proof |
 |------|----------------|---------------|------------------|
@@ -94,7 +100,8 @@ Every change requires one or more verification types. Classify the change first,
 
 Verification happens at two stages in the workflow:
 
-- **Local verification** (part of the Implement flow): Run the full test suite, typecheck, lint, and empirically verify the change in a local or preview environment. This proves the change works before shipping. After local verification succeeds, encode it as an e2e test.
+- **Quality gates** (enforced automatically): Tests, typecheck, lint, and format run via hooks at write-time, commit-time, and push-time. These are prerequisites, not verification.
+- **Local verification** (part of the Implement flow): After quality gates pass, empirically verify the change by running the actual system in a local or preview environment — make HTTP requests, interact with the UI, execute CLI commands, query the database. This proves the change works before shipping. After local verification succeeds, encode it as an e2e test.
 - **Remote verification** (part of the Verify flow): After the PR is merged and deployed, repeat the same empirical verification against the target environment. This proves the change works in production, not just locally. If remote verification fails, fix and re-deploy.
 
 Both levels use the same verification types table above. The difference is the environment, not the rigor.

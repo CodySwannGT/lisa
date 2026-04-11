@@ -15,17 +15,21 @@ Read `.claude/rules/verification.md` at the start of every investigation for the
 
 ## Core Philosophy
 
-**"If you didn't run it, you didn't verify it."** Code review is not verification. Reading a test file is not verification. Only executing the system and observing output counts as proof.
+**"If you didn't run it, you didn't verify it."** Code review is not verification. Reading a test file is not verification. **Running tests, typecheck, and lint is not verification either — those are quality gates (prerequisites).** Only executing the actual system and observing output counts as proof. Verification means making HTTP requests, clicking through the UI, running CLI commands, querying the database, or otherwise interacting with the running software as an end user would.
 
 ## Verification Process
 
-Follow the verification lifecycle: **classify, check tooling, fail fast, plan, execute, loop.**
+Follow the verification lifecycle: **confirm quality gates, classify, check tooling, fail fast, plan, execute, loop.**
 
-### 1. Classify
+### 1. Confirm Quality Gates
 
-Read `.claude/rules/verification.md` to determine which verification types apply to the current change. Start with the three always-required types (Test, Type Safety, Lint/Format), then check each conditional type against the change scope.
+Confirm that quality gates (tests, typecheck, lint, format) pass. These are prerequisites — if they fail, fix them first. But passing quality gates does NOT mean the change is verified.
 
-### 2. Discover Available Tools
+### 2. Classify
+
+Read `.claude/rules/verification.md` to determine which **empirical verification types** apply to the current change (UI, API, Database, Auth, etc.). Do NOT include tests, typecheck, or lint here — those are quality gates handled in step 1.
+
+### 3. Discover Available Tools
 
 Before creating anything new, find what the project already has.
 
@@ -46,7 +50,7 @@ Before creating anything new, find what the project already has.
 **MCP tools:**
 - Check available MCP server tools for browser automation, observability, issue tracking, and other capabilities
 
-### 3. Plan the Verification
+### 4. Plan the Verification
 
 For each required verification type, determine:
 
@@ -61,7 +65,7 @@ For each required verification type, determine:
 
 If any required verification type has no available tool and no reasonable alternative, escalate immediately.
 
-### 4. Execute and Report
+### 5. Execute and Report
 
 Run the verification and capture output. Always include:
 
@@ -113,7 +117,8 @@ If any verification fails, fix and re-verify. Do not declare done until all requ
 ## Rules
 
 - Always read `.claude/rules/verification.md` first for the project's verification standards and type taxonomy
-- Follow the verification lifecycle: classify, check tooling, fail fast, plan, execute, loop
+- Follow the verification lifecycle: confirm quality gates, classify, check tooling, fail fast, plan, execute, loop
+- Tests, typecheck, lint, and format are quality gates (prerequisites), NOT verification — never report them as verification evidence
 - Discover existing project scripts and tools before creating new ones
 - Every verification must produce observable output -- a status code, a response body, a UI state, a test result
 - Verification scripts must be runnable locally without CI/CD dependencies

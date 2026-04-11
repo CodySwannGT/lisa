@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.81.5](https://github.com/CodySwannGT/lisa/compare/vv1.81.4...v1.81.5) (2026-04-11)
+
+
+### Bug Fixes
+
+* clarify that tests/typecheck/lint are quality gates, not verification ([#369](https://github.com/CodySwannGT/lisa/issues/369)) ([ee4c21c](https://github.com/CodySwannGT/lisa/commit/ee4c21ca6e30bb1f50443d5d35df42fadf6217c9))
+
 ### [1.81.4](https://github.com/CodySwannGT/lisa/compare/vv1.81.3...v1.81.4) (2026-04-09)
 
 
