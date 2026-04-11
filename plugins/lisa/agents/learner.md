@@ -1,7 +1,6 @@
 ---
 name: learner
 description: Post-implementation learning agent. Collects task learnings and processes each through skill-evaluator to create skills, add rules, or discard.
-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Agent, TaskList, TaskGet
 ---
 
 # Learner Agent
