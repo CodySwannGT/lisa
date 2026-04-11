@@ -2,7 +2,5 @@
   "extends": ["@codyswann/lisa/tsconfig/nestjs", "./tsconfig.local.json"],
   "compilerOptions": {
     "baseUrl": "./"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", ".build", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  }
 }

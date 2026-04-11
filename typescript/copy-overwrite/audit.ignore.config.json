@@ -92,6 +92,51 @@
       "id": "GHSA-chqc-8p9q-pq6q",
       "package": "basic-ftp",
       "reason": "FTP command injection via CRLF — devDep only via @lhci/cli > proxy-agent > pac-proxy-agent > get-uri, no FTP usage in production code"
+    },
+    {
+      "id": "GHSA-3mfm-83xf-c92r",
+      "package": "handlebars",
+      "reason": "JS injection via AST type confusion — devDeps only (ts-jest, standard-version), no fix available (4.7.8 is latest)"
+    },
+    {
+      "id": "GHSA-2w6w-674q-4c4q",
+      "package": "handlebars",
+      "reason": "JS injection via AST type confusion — devDeps only (ts-jest, standard-version), no fix available (4.7.8 is latest)"
+    },
+    {
+      "id": "GHSA-xjpj-3mr7-gcpf",
+      "package": "handlebars",
+      "reason": "JS injection in CLI precompiler — devDeps only (ts-jest, standard-version), CLI not used"
+    },
+    {
+      "id": "GHSA-xhpv-hc6g-r9c6",
+      "package": "handlebars",
+      "reason": "JS injection via AST type confusion with dynamic partial — devDeps only (ts-jest, standard-version), no fix available"
+    },
+    {
+      "id": "GHSA-9cx6-37pm-9jff",
+      "package": "handlebars",
+      "reason": "DoS via malformed decorator syntax — devDeps only (ts-jest, standard-version), no fix available (4.7.8 is latest)"
+    },
+    {
+      "id": "GHSA-r5fr-rjxr-66jc",
+      "package": "lodash",
+      "reason": "Code injection via _.template — devDeps only (serverless-export-env, commitlint, standard-version), no user input to _.template"
+    },
+    {
+      "id": "GHSA-jg4p-7fhp-p32p",
+      "package": "@hapi/content",
+      "reason": "ReDoS in HTTP header parsing — devDeps only (serverless-offline), local dev tool not deployed"
+    },
+    {
+      "id": "GHSA-3p68-rc4w-qgx5",
+      "package": "axios",
+      "reason": "NO_PROXY hostname normalization bypass — devDeps only (serverless), no user-controlled proxy config"
+    },
+    {
+      "id": "GHSA-fvcv-3m26-pcqx",
+      "package": "axios",
+      "reason": "Cloud metadata exfiltration via header injection — devDeps only (serverless), no user-controlled headers"
     }
   ]
 }
