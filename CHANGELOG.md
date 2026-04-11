@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.81.6](https://github.com/CodySwannGT/lisa/compare/vv1.81.5...v1.81.6) (2026-04-11)
+
+
+### Bug Fixes
+
+* correct tool access for jira-agent, git-history-analyzer, and learner ([#370](https://github.com/CodySwannGT/lisa/issues/370)) ([70bfdb3](https://github.com/CodySwannGT/lisa/commit/70bfdb33b55dc3669d6074ed941c7b938194a2a3))
+
 ### [1.81.5](https://github.com/CodySwannGT/lisa/compare/vv1.81.4...v1.81.5) (2026-04-11)
 
 
