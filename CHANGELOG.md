@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.82.0](https://github.com/CodySwannGT/lisa/compare/vv1.81.7...v1.82.0) (2026-04-11)
+
+
+### Features
+
+* add workflow echo and skill/agent planning to intent routing ([#372](https://github.com/CodySwannGT/lisa/issues/372)) ([520faa2](https://github.com/CodySwannGT/lisa/commit/520faa2af16f887902fe715b3692edaf0a178205))
+
 ### [1.81.7](https://github.com/CodySwannGT/lisa/compare/vv1.81.6...v1.81.7) (2026-04-11)
 
 
