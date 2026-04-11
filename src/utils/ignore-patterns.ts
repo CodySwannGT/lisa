@@ -1,13 +1,43 @@
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-// minimatch v3 is a CJS module that exports the function as the default export.
-// Using a default import works in both ts-jest (esModuleInterop wraps CJS exports)
-// and native Node.js ESM (CJS-ESM interop exposes module.exports as default).
-// v3 is used intentionally so bun hoists it top-level in downstream projects,
-// preventing test-exclude (which also requires ^3.x) from resolving to an
-// incompatible v9+ object via require().
-import minimatch from "minimatch";
+// minimatch is imported as a namespace to support both v3 (CJS) and v9+ (ESM)
+// interoperably. In downstream projects, bun may hoist whichever version a
+// transitive dependency requires (e.g. @ts-morph/common pulls v10), so Lisa
+// cannot assume a specific export shape:
+//   - v3: CJS `module.exports = fn` — ESM interop exposes as `.default`
+//   - v9+: Native ESM with a named `minimatch` export and no default
+// The `minimatchFn` local below picks whichever callable the resolved version
+// provides so Lisa works regardless of which minimatch is hoisted top-level.
+import * as minimatchModule from "minimatch";
 import { pathExists } from "./file-operations.js";
+
+/**
+ * Resolve the minimatch predicate across v3 (CJS default export) and v9+
+ * (native ESM named export). Throws if neither is available so callers see
+ * a clear error instead of "undefined is not a function" at match time.
+ */
+const minimatchFn: (
+  p: string,
+  pattern: string,
+  options?: { readonly dot?: boolean }
+) => boolean = (() => {
+  const mod = minimatchModule as unknown as {
+    readonly default?: unknown;
+    readonly minimatch?: unknown;
+  };
+  const candidate =
+    typeof mod.default === "function" ? mod.default : mod.minimatch;
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "minimatch module did not expose a callable export; expected v3 default or v9+ named export"
+    );
+  }
+  return candidate as (
+    p: string,
+    pattern: string,
+    options?: { readonly dot?: boolean }
+  ) => boolean;
+})();
 
 /**
  * Name of the ignore file that projects can use to skip Lisa files
@@ -70,7 +100,7 @@ function matchesAnyPattern(
     }
 
     // Handle glob patterns
-    if (minimatch(normalizedPath, pattern, { dot: true })) {
+    if (minimatchFn(normalizedPath, pattern, { dot: true })) {
       return true;
     }
 
@@ -79,13 +109,13 @@ function matchesAnyPattern(
       // Pattern without slashes matches any path segment
       const segments = normalizedPath.split("/");
       return segments.some(segment =>
-        minimatch(segment, pattern, { dot: true })
+        minimatchFn(segment, pattern, { dot: true })
       );
     }
 
     // Handle patterns starting with **/ (match anywhere)
     if (pattern.startsWith("**/")) {
-      return minimatch(normalizedPath, pattern, { dot: true });
+      return minimatchFn(normalizedPath, pattern, { dot: true });
     }
 
     return false;

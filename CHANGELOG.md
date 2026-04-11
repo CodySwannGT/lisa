@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.81.4](https://github.com/CodySwannGT/lisa/compare/vv1.81.3...v1.81.4) (2026-04-09)
+
+
+### Bug Fixes
+
+* add basic-ftp GHSA exception to typescript audit.ignore template ([#368](https://github.com/CodySwannGT/lisa/issues/368)) ([0735886](https://github.com/CodySwannGT/lisa/commit/073588693c7a3f5137edc9f08b701fa879104e00))
+* minimatch v9+ compat and drop forced react-native-store-version ([#367](https://github.com/CodySwannGT/lisa/issues/367)) ([9b4dc25](https://github.com/CodySwannGT/lisa/commit/9b4dc254c3cccf458c0ed6a609f109550cac8924))
+
 ### [1.81.3](https://github.com/CodySwannGT/lisa/compare/vv1.81.2...v1.81.3) (2026-04-08)
 
 
