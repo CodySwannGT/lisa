@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.82.1](https://github.com/CodySwannGT/lisa/compare/vv1.82.0...v1.82.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* move tsconfig include/exclude to create-only and add audit exclusions ([#373](https://github.com/CodySwannGT/lisa/issues/373)) ([e47bb64](https://github.com/CodySwannGT/lisa/commit/e47bb6421baa031e739e6c2e1be6ef2b2cb57156))
+
 ## [1.82.0](https://github.com/CodySwannGT/lisa/compare/vv1.81.7...v1.82.0) (2026-04-11)
 
 
