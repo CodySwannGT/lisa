@@ -4,5 +4,7 @@
       "@/graphql/*": ["./generated/*"],
       "@/*": ["./*"]
     }
-  }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", "dist", "web-build", "components/ui"]
 }
