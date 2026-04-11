@@ -1,7 +1,6 @@
 ---
 name: debug-specialist
 description: Debug specialist agent. Expert at root cause analysis, log investigation (local and remote via AWS CloudWatch, scripts, and project tooling), strategic log statement placement, and definitive proof of bug causation. Finds what is causing the problem without a doubt.
-tools: Read, Grep, Glob, Bash
 skills:
   - reproduce-bug
   - root-cause-analysis

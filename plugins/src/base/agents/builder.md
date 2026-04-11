@@ -1,7 +1,6 @@
 ---
 name: builder
 description: Feature build agent. Translates acceptance criteria into tests, implements features via TDD, and verifies all criteria are met.
-tools: Read, Write, Edit, Bash, Grep, Glob
 skills:
   - task-triage
   - tdd-implementation
