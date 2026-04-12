@@ -46,6 +46,7 @@ Sections to extract:
 | Linked blocker resolutions | Each `is blocked by` that required work in this ticket | `blocker` |
 
 If an acceptance criterion is not in Gherkin, still extract it as a requirement — but flag it as `LOW_SPECIFICITY` so the verdict downgrades.
+Downgrade rule: if any `LOW_SPECIFICITY` requirement exists, the maximum possible verdict is `PARTIAL` unless the spec is tightened and re-evaluated.
 
 Skip narrative prose (Context / Business Value) — it isn't directly verifiable. Reference it only when explaining a miss.
 
@@ -53,18 +54,19 @@ Skip narrative prose (Context / Business Value) — it isn't directly verifiable
 
 Gather evidence of what was actually shipped:
 
-1. **Diff scope** — the commits on the current branch vs. main:
+1. **Diff scope** — the commits on the current branch vs. the default branch:
    ```bash
-   git log main..HEAD --oneline
-   git diff main...HEAD --stat
+   BASE_BRANCH="$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')"
+   git log "${BASE_BRANCH}"..HEAD --oneline
+   git diff "${BASE_BRANCH}"...HEAD --stat
    ```
 2. **File-level changes** — per-file diff for each changed file:
    ```bash
-   git diff main...HEAD -- <file>
+   git diff "${BASE_BRANCH}"...HEAD -- <file>
    ```
 3. **Test coverage** — which tests were added/changed for the requirements:
    ```bash
-   git diff main...HEAD -- '**/*.test.*' '**/*.spec.*'
+   git diff "${BASE_BRANCH}"...HEAD -- '**/*.test.*' '**/*.spec.*'
    ```
 4. **Empirical evidence** — output of `verification-specialist` if available (proof artifacts, API captures, UI screenshots, DB queries). If that report isn't in context, ask the caller for it before proceeding — do not substitute reading code for running the system.
 5. **PR description** — `gh pr view --json title,body,files` if a PR exists.
@@ -120,7 +122,7 @@ Structure the report so it can be pasted into a PR comment or JIRA ticket:
 ## Spec Conformance Report
 
 **Spec source:** <plan file / JIRA key / Linear / GitHub issue / PRD>
-**Shipped scope:** <N commits, M files, K tests on branch <branch> vs main>
+**Shipped scope:** <N commits, M files, K tests on branch <branch> vs <default-branch>>
 
 ### Coverage Matrix
 
