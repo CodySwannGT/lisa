@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.5](https://github.com/CodySwannGT/lisa/compare/vv1.85.4...v1.85.5) (2026-04-12)
+
+
+### Bug Fixes
+
+* trampoline lockfile regen, CDK jest cleanup, cdk tsconfig repair ([#385](https://github.com/CodySwannGT/lisa/issues/385)) ([19e2417](https://github.com/CodySwannGT/lisa/commit/19e2417073dc4134779ad0eede5992d54d45b458))
+
 ### [1.85.4](https://github.com/CodySwannGT/lisa/compare/vv1.85.3...v1.85.4) (2026-04-12)
 
 
