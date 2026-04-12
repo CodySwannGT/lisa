@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.2](https://github.com/CodySwannGT/lisa/compare/vv1.85.1...v1.85.2) (2026-04-12)
+
+
+### Bug Fixes
+
+* **templates:** pin handlebars resolution to >=4.7.9 ([#381](https://github.com/CodySwannGT/lisa/issues/381)) ([5d2b675](https://github.com/CodySwannGT/lisa/commit/5d2b675a904dd6bac2e69dd5844fb628f1b48c1b))
+
 ### [1.85.1](https://github.com/CodySwannGT/lisa/compare/vv1.83.2...v1.85.1) (2026-04-12)
 
 
