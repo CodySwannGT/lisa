@@ -8,7 +8,6 @@
  *
  * Thin wrapper around @codyswann/lisa slow eslint config factory.
  * Run periodically via `lint:slow` rather than on every lint pass.
- *
  * @see https://github.com/import-js/eslint-plugin-import
  * @module eslint.slow.config
  */

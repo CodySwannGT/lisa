@@ -8,7 +8,6 @@
  *
  * Thin wrapper around @codyswann/lisa eslint config factory.
  * Customize via eslint.config.local.ts and eslint.thresholds.json.
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config
  */

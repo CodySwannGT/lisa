@@ -13,7 +13,6 @@
  * Uses a two-element pair to track consecutive values, yielding the leading
  * element on each iteration and advancing the pair forward. Each call returns
  * an independent iterator, so multiple consumers never interfere.
- *
  * @yields The next Fibonacci number (0n, 1n, 1n, 2n, 3n, 5n, …)
  * @example
  * ```typescript
@@ -38,7 +37,6 @@ export function* fibonacciGenerator(): Generator<bigint, never, unknown> {
  *
  * Collects n + 1 values from the generator and returns the final element,
  * delegating the recurrence to fibonacciGenerator for DRY.
- *
  * @param n - Zero-based position in the Fibonacci sequence (non-negative integer)
  * @returns The nth Fibonacci number as a BigInt
  * @throws {RangeError} When n is negative, fractional, NaN, or infinite
@@ -69,7 +67,6 @@ export const fibonacci = (n: number): bigint => {
  * Spreads an empty array of the requested size and maps each slot to the
  * next generator value, delegating the recurrence to fibonacciGenerator for DRY.
  * Returns a fresh array on every call so callers can safely consume the result.
- *
  * @param length - How many Fibonacci numbers to collect (non-negative integer)
  * @returns A new readonly array of the first `length` Fibonacci numbers
  * @throws {RangeError} When length is negative, fractional, NaN, or infinite

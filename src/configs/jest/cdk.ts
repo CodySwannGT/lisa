@@ -7,7 +7,6 @@
  * Inheritance chain:
  *   cdk.ts (this file)
  *   └── base.ts
- *
  * @see https://jestjs.io/docs/configuration
  * @module configs/jest/cdk
  */
@@ -38,7 +37,6 @@ interface CdkJestOptions {
 
 /**
  * Creates a Jest configuration for AWS CDK projects.
- *
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
  * @returns Jest config object with ts-jest transform, node environment, and CDK-specific paths

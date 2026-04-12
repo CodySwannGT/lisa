@@ -3,7 +3,6 @@
  *
  * Publishable factory function for TypeScript-specific ESLint rules and settings.
  * Stack-specific configs (expo, nestjs, cdk) import and extend this module.
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module configs/eslint/typescript
  */
@@ -56,7 +55,6 @@ export { codeOrganization };
 
 /**
  * Creates the TypeScript ESLint configuration.
- *
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
  * @param {string[]} [options.ignorePatterns] - Patterns to ignore
