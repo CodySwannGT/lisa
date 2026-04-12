@@ -6,7 +6,7 @@ allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 
 # Ticket Triage: $ARGUMENTS
 
-Perform analytical triage on the JIRA ticket. The caller has fetched the ticket details (summary, description, acceptance criteria, labels, status, comments) and provided them in context.
+Perform analytical triage on the JIRA ticket. The caller MUST have run `jira-read-ticket` first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), epic parent, epic siblings, subtasks, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or epic context, stop and instruct the caller to run `/jira-read-ticket` first.
 
 Repository name for scoped labels and comment headers: determine via `basename $(git rev-parse --show-toplevel)`.
 
@@ -22,6 +22,17 @@ If NO relevant code is found in this repo:
 - Instruct caller to add the label `claude-triaged-{repo}` and skip this ticket
 
 If relevant code IS found, proceed to Phase 2.
+
+## Phase 1.5 -- Relationship & Epic Awareness
+
+From the context bundle, evaluate relationships before analyzing this ticket in isolation:
+
+- **Open blockers (`is blocked by`)**: if any blocker is not `Done` or its linked PR is not merged, raise an ambiguity: "Blocker {KEY} is not shipped — work cannot meaningfully start." This is an automatic `BLOCKED` verdict unless the human confirms the blocker state is acceptable.
+- **Epic siblings in progress**: if a sibling under the same epic is `In Progress` / `In Review` with a different assignee and overlapping scope, raise it as an edge case in Phase 4 ("Duplicate-work risk with {KEY}").
+- **`duplicates` / `is duplicated by` links**: if this ticket is a duplicate of an open ticket, verdict is `BLOCKED` with the recommendation to close as duplicate rather than implement.
+- **`relates to` links with shipped PRs**: flag the PRs in the verification methodology (Phase 5) as prior art worth reviewing before writing new code.
+
+Do not re-fetch tickets — the bundle already has the context.
 
 ## Phase 2 -- Cross-Repo Awareness
 

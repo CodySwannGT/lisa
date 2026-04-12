@@ -1,7 +1,7 @@
 ---
 name: jira-create
 description: This skill should be used when creating JIRA epics, stories, and tasks from code files or descriptions. It analyzes the provided input, determines the appropriate issue hierarchy, and creates issues with comprehensive quality requirements including test-first development and documentation.
-allowed-tools: ["Read", "Glob", "LS", "mcp__atlassian__createJiraIssue", "mcp__atlassian__getVisibleJiraProjects", "mcp__atlassian__getJiraProjectIssueTypesMetadata", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Read", "Glob", "LS", "Skill", "mcp__atlassian__createJiraIssue", "mcp__atlassian__getVisibleJiraProjects", "mcp__atlassian__getJiraProjectIssueTypesMetadata", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
 # Create JIRA Issues from $ARGUMENTS
@@ -93,3 +93,9 @@ Default project: from jira-cli config (override via arguments)
 Exclude unless requested: migration plans, performance tests
 
 Execute the analysis and create the complete JIRA structure with proper parent-child relationships.
+
+## Delegation to jira-write-ticket
+
+For every individual ticket that will be created, delegate to the `jira-write-ticket` skill rather than calling `mcp__atlassian__createJiraIssue` directly. `jira-write-ticket` enforces description quality (Gherkin acceptance criteria, stakeholder/developer/assistant sections), relationship discovery (`blocks`, `is blocked by`, `relates to`, remote PR/Confluence/dashboard links), epic parent validation, and post-create verification.
+
+This skill's role is to analyze the input and decide the hierarchy (which epics, which stories, which tasks, in what parent-child structure). `jira-write-ticket` handles the actual write with full quality gates.
