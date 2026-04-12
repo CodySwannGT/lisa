@@ -862,7 +862,9 @@ export class Lisa {
 
     const { migrationsApplied } = this.counters;
     if (migrationsApplied > 0) {
-      this.printStatLine("Migrations: ", migrationsApplied, pc.cyan, "applied");
+      console.log(
+        `  ${pc.cyan("Migrations: ")} ${String(migrationsApplied).padStart(3)} applied`
+      );
     }
   }
 

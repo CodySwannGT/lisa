@@ -7,7 +7,11 @@ import { Lisa, type LisaDependencies } from "../../src/core/lisa.js";
 import { AutoAcceptPrompter } from "../../src/cli/prompts.js";
 import { DetectorRegistry } from "../../src/detection/index.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
-import { MigrationRegistry } from "../../src/migrations/index.js";
+import {
+  MigrationRegistry,
+  type Migration,
+  type MigrationResult,
+} from "../../src/migrations/index.js";
 import { StrategyRegistry } from "../../src/strategies/index.js";
 import {
   BackupService,
@@ -191,6 +195,47 @@ describe("Lisa Integration Tests", () => {
 
       // all/ configs should still be applied
       expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
+    });
+
+    it("formats migration stats without 'files' unit word", async () => {
+      await createTypeScriptProject(destDir);
+
+      const alwaysAppliedMigration: Migration = {
+        name: "test-migration",
+        description: "Test migration that always applies",
+        async applies(): Promise<boolean> {
+          return true;
+        },
+        async apply(): Promise<MigrationResult> {
+          return { name: "test-migration", action: "applied" };
+        },
+      };
+      const migrationRegistry = new MigrationRegistry([alwaysAppliedMigration]);
+
+      const config = createConfig();
+      const deps = { ...createDeps(config), migrationRegistry };
+      const lisa = new Lisa(config, deps);
+
+      const consoleLogs: string[] = [];
+      const consoleSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation((...args: unknown[]) => {
+          consoleLogs.push(args.map(String).join(" "));
+        });
+
+      try {
+        await lisa.apply();
+      } finally {
+        consoleSpy.mockRestore();
+      }
+
+      const migrationLines = consoleLogs.filter(line =>
+        line.includes("Migrations:")
+      );
+      expect(migrationLines).toHaveLength(1);
+      const migrationLine = migrationLines[0]!;
+      expect(migrationLine).toContain("applied");
+      expect(migrationLine).not.toContain("files applied");
     });
   });
 
