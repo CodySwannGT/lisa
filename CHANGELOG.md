@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.4](https://github.com/CodySwannGT/lisa/compare/vv1.85.3...v1.85.4) (2026-04-12)
+
+
+### Bug Fixes
+
+* preserve inline hook entries in settings.json during postinstall ([#384](https://github.com/CodySwannGT/lisa/issues/384)) ([38222c3](https://github.com/CodySwannGT/lisa/commit/38222c38d4668e7e194b7e4f187a35bfb62a5add))
+
 ### [1.85.3](https://github.com/CodySwannGT/lisa/compare/vv1.85.2...v1.85.3) (2026-04-12)
 
 
