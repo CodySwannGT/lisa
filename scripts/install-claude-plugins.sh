@@ -24,24 +24,76 @@ cd "$PROJECT_ROOT"
 # explicit `lisa:update` (npx @codyswann/lisa@latest .) or the project's own
 # postinstall script (defaults.scripts.postinstall in package.lisa.json).
 
-# Strip the hooks key from .claude/settings.json if .claude/hooks/ is now empty/absent
-# (hooks moved to plugin.json; all .claude/hooks/*.sh scripts are deleted by lisa update)
+# Strip only hook entries that reference deleted .claude/hooks/*.sh scripts
+# (hooks moved to plugin.json; file-path hooks would produce "No such file or directory" errors).
+# Preserve inline command hooks (e.g. `command -v entire ...`, `echo ...`) and stack-template hooks
+# from rails/merge/.claude/settings.json.
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
-HOOKS_DIR="$PROJECT_ROOT/.claude/hooks"
 if [ -f "$SETTINGS_FILE" ] && command -v python3 >/dev/null 2>&1; then
-  if [ ! -d "$HOOKS_DIR" ] || [ -z "$(ls -A "$HOOKS_DIR" 2>/dev/null)" ]; then
-    python3 - "$SETTINGS_FILE" <<'PYEOF'
+  python3 - "$SETTINGS_FILE" <<'PYEOF'
 import json, sys
 path = sys.argv[1]
 with open(path) as f:
     d = json.load(f)
-if "hooks" in d:
-    del d["hooks"]
+
+hooks = d.get("hooks")
+if not isinstance(hooks, dict):
+    sys.exit(0)
+
+def is_stale(entry):
+    # Stale = hook entry whose command references the deleted .claude/hooks/ dir.
+    if not isinstance(entry, dict):
+        return False
+    cmd = entry.get("command", "")
+    return isinstance(cmd, str) and "$CLAUDE_PROJECT_DIR/.claude/hooks/" in cmd
+
+changed = False
+new_hooks = {}
+for category, matchers in hooks.items():
+    if not isinstance(matchers, list):
+        new_hooks[category] = matchers
+        continue
+    new_matchers = []
+    for matcher in matchers:
+        if not isinstance(matcher, dict):
+            new_matchers.append(matcher)
+            continue
+        if "hooks" not in matcher:
+            new_matchers.append(matcher)
+            continue
+
+        entries = matcher.get("hooks")
+        if isinstance(entries, list):
+            kept = [e for e in entries if not is_stale(e)]
+            if len(kept) != len(entries):
+                changed = True
+            if kept:
+                new_matcher = dict(matcher)
+                new_matcher["hooks"] = kept
+                new_matchers.append(new_matcher)
+            elif entries:
+                # drop matcher only when pruning emptied a previously non-empty hooks list
+                changed = True
+            else:
+                # preserve pre-existing empty matcher blocks unchanged
+                new_matchers.append(matcher)
+        else:
+            new_matchers.append(matcher)
+    if new_matchers:
+        new_hooks[category] = new_matchers
+    else:
+        # drop empty category
+        changed = True
+
+if changed:
+    if new_hooks:
+        d["hooks"] = new_hooks
+    else:
+        del d["hooks"]
     with open(path, "w") as f:
         json.dump(d, f, indent=2)
         f.write("\n")
 PYEOF
-  fi
 fi
 
 # Install plugins only when claude CLI is available
