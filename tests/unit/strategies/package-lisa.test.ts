@@ -196,6 +196,50 @@ describe("PackageLisaStrategy", () => {
       const content = await fs.readJson(destPath);
       expect(content.devDependencies).toEqual({ eslint: "^9.0.0" });
     });
+
+    // Regression: force.resolutions and force.overrides must replace project-side
+    // values for package-level dep pinning (e.g. axios). This is the write that
+    // was silently lost when `bun add -d @codyswann/lisa@latest` clobbered
+    // postinstall changes; see utils/postinstall-trampoline.ts for the
+    // package-manager race context.
+    it("replaces project resolutions.<pkg> and overrides.<pkg> via force", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          resolutions: { axios: ">=1.15.0" },
+          overrides: { axios: ">=1.15.0" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "my-project",
+        resolutions: { axios: ">=1.13.5", "other-pkg": "^1.0.0" },
+        overrides: { axios: ">=1.13.5", "other-pkg": "^1.0.0" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      // Force replaces the template-governed entries
+      expect(content.resolutions.axios).toBe(">=1.15.0");
+      expect(content.overrides.axios).toBe(">=1.15.0");
+      // Sibling entries inside the same nested object are preserved
+      expect(content.resolutions["other-pkg"]).toBe("^1.0.0");
+      expect(content.overrides["other-pkg"]).toBe("^1.0.0");
+    });
   });
 
   describe("defaults behavior", () => {
