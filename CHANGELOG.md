@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.83.0](https://github.com/CodySwannGT/lisa/compare/vv1.82.2...v1.83.0) (2026-04-12)
+
+
+### Features
+
+* **jira,verification:** ticket graph readers and spec-conformance gate ([#375](https://github.com/CodySwannGT/lisa/issues/375)) ([c15f9d9](https://github.com/CodySwannGT/lisa/commit/c15f9d90a9d4bb152f6c072afebb6867e94f8582))
+
 ### [1.82.2](https://github.com/CodySwannGT/lisa/compare/vv1.82.1...v1.82.2) (2026-04-11)
 
 ### [1.82.1](https://github.com/CodySwannGT/lisa/compare/vv1.82.0...v1.82.1) (2026-04-11)

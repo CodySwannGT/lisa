@@ -42,9 +42,23 @@ A verification plan that only lists `bun run test`, `bun run typecheck`, or `bun
 
 After implementation, run the verification plan. Execute each verification type in order.
 
-### 7. Loop
+### 7. Spec Conformance
 
-If any verification fails, fix the issue and re-verify. Do not declare done until all required types pass. If a verification is stuck after 3 attempts, escalate.
+After empirical verification produces evidence, run spec conformance as a separate, mandatory step. Invoke the `spec-conformance` skill (or delegate to the `spec-conformance-specialist` agent) with the spec source — plan file, JIRA/Linear/GitHub key, or PRD.
+
+Spec conformance answers a question empirical verification does NOT: does the shipped work match what was asked, section-by-section? It consumes the empirical evidence from step 6 and builds a coverage matrix over every requirement (acceptance criteria, Out of Scope, technical commitments, Validation Journey assertions, deliverables).
+
+Required outputs:
+- Coverage matrix with one row per requirement
+- Scope creep findings (Out-of-Scope violations, surfaced separately from misses)
+- Untraceable change findings (diff not traceable to any requirement)
+- Verdict: `CONFORMS`, `PARTIAL`, or `DIVERGES`
+
+`PARTIAL` or `DIVERGES` blocks completion. Fix the gaps (implement the miss, remove the creep, capture the missing evidence) and re-run both empirical verification AND spec conformance. Never skip this step — it catches failures that empirical verification by itself does not, such as a feature that works but wasn't asked for, or a spec item that was quietly dropped.
+
+### 8. Loop
+
+If any verification or spec-conformance check fails, fix the issue and re-verify. Do not declare done until all required types pass AND the spec-conformance verdict is `CONFORMS`. If a verification or conformance check is stuck after 3 attempts, escalate.
 
 ---
 
@@ -180,8 +194,9 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 8. Implement the change.
 9. Execute verification plan — run the actual system and observe results.
 10. Collect proof artifacts.
-11. Summarize what changed, what was verified, and remaining risk.
-12. Label the result with a verification level.
+11. Run spec conformance — build coverage matrix against the spec source (plan/ticket/issue), flag scope creep and untraceable changes, produce verdict.
+12. Summarize what changed, what was verified, conformance verdict, and remaining risk.
+13. Label the result with a verification level.
 
 ---
 
@@ -290,9 +305,10 @@ A task is done only when:
 
 - End user is identified
 - All applicable verification types are classified and executed
-- Verification lifecycle is completed (classify, check tooling, plan, execute, loop)
+- Verification lifecycle is completed (classify, check tooling, plan, execute, spec conformance, loop)
 - Required verification surfaces and tooling surfaces are used or explicitly unavailable
 - Proof artifacts are captured
+- Spec conformance verdict is `CONFORMS` (not `PARTIAL`, not `DIVERGES`)
 - Verification level is declared
 - Risks and gaps are documented
 
