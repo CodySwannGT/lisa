@@ -8,7 +8,6 @@
  *
  * With `esModuleInterop: true`, TypeScript allows `import minimatch from 'minimatch'`
  * for modules that use `export =`.
- *
  * @module types/minimatch
  */
 

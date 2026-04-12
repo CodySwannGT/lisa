@@ -6,7 +6,6 @@
  *
  * Note: Expo remains on Jest. TypeScript, NestJS, and CDK
  * are available as Vitest configs.
- *
  * @module configs/vitest
  */
 export * from "./base.js";

@@ -13,10 +13,15 @@
  * behaviour (exits immediately, inherits correct env).
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
+import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
+  detectPackageManagers,
   getLisaDistDir,
+  getLockfileRegenPlan,
+  hashFile,
   isRunningAsLifecycleScript,
   isRunningAsTrampoline,
   shouldSchedulePostinstallReconciliation,
@@ -28,6 +33,16 @@ import {
 const FAKE_PROJECT_DIR = "./fake/project";
 const FAKE_LISA_DIST = "./fake/lisa/dist";
 const FAKE_PACKAGE_JSON_PATH = "./fake/project/package.json";
+
+// Lockfile base names used across detection, plan, and hash tests. Named constants
+// silence sonarjs/no-duplicate-string and make the intent obvious at call sites.
+const BUN_LOCK = "bun.lock";
+const NPM_LOCK = "package-lock.json";
+const PNPM_LOCK = "pnpm-lock.yaml";
+const YARN_LOCK = "yarn.lock";
+const IGNORE_SCRIPTS = "--ignore-scripts";
+const INSTALL_CMD = "install";
+const PACKAGE_JSON = "package.json";
 
 describe("postinstall-trampoline", () => {
   const originalEnv = { ...process.env };
@@ -109,6 +124,155 @@ describe("postinstall-trampoline", () => {
     });
   });
 
+  describe("detectPackageManagers", () => {
+    /**
+     * Create a disposable directory containing empty "lockfile" sentinel files.
+     *
+     * detectPackageManagers uses lockfile presence as the sole signal, so empty
+     * files are enough to drive the detection logic. The scratch directory is
+     * intentionally ephemeral — we never run a real package manager against it.
+     * @param lockfiles - Lockfile base names to create
+     * @returns Absolute path to the scratch directory
+     */
+    function withLockfiles(lockfiles: readonly string[]): string {
+      const dir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "lisa-detect-pm-test-")
+      );
+      for (const file of lockfiles) {
+        fs.writeFileSync(path.join(dir, file), "");
+      }
+      return dir;
+    }
+
+    it("returns empty list when no lockfile is present", () => {
+      const dir = withLockfiles([]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual([]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects bun from bun.lock", () => {
+      const dir = withLockfiles([BUN_LOCK]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["bun"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects npm from package-lock.json", () => {
+      const dir = withLockfiles([NPM_LOCK]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["npm"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects pnpm from pnpm-lock.yaml", () => {
+      const dir = withLockfiles([PNPM_LOCK]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["pnpm"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects yarn from yarn.lock", () => {
+      const dir = withLockfiles([YARN_LOCK]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["yarn"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects both lockfiles when bun.lock and package-lock.json coexist (dual-lockfile CDK pattern)", () => {
+      const dir = withLockfiles([BUN_LOCK, NPM_LOCK]);
+      try {
+        const detected = detectPackageManagers(dir);
+        expect(detected).toContain("bun");
+        expect(detected).toContain("npm");
+        expect(detected.length).toBe(2);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("getLockfileRegenPlan", () => {
+    it("maps bun to `bun install --ignore-scripts`", () => {
+      const plan = getLockfileRegenPlan("bun");
+      expect(plan.pm).toBe("bun");
+      expect(plan.lockfile).toBe(BUN_LOCK);
+      expect(plan.command).toBe("bun");
+      expect(plan.args).toContain(INSTALL_CMD);
+      expect(plan.args).toContain(IGNORE_SCRIPTS);
+    });
+
+    it("maps npm to `npm install --package-lock-only --ignore-scripts`", () => {
+      const plan = getLockfileRegenPlan("npm");
+      expect(plan.pm).toBe("npm");
+      expect(plan.lockfile).toBe(NPM_LOCK);
+      expect(plan.command).toBe("npm");
+      expect(plan.args).toContain("--package-lock-only");
+      expect(plan.args).toContain(IGNORE_SCRIPTS);
+    });
+
+    it("maps pnpm to `pnpm install --lockfile-only --ignore-scripts`", () => {
+      const plan = getLockfileRegenPlan("pnpm");
+      expect(plan.pm).toBe("pnpm");
+      expect(plan.lockfile).toBe(PNPM_LOCK);
+      expect(plan.command).toBe("pnpm");
+      expect(plan.args).toContain("--lockfile-only");
+      expect(plan.args).toContain(IGNORE_SCRIPTS);
+    });
+
+    it("maps yarn to `yarn install --mode update-lockfile`", () => {
+      const plan = getLockfileRegenPlan("yarn");
+      expect(plan.pm).toBe("yarn");
+      expect(plan.lockfile).toBe(YARN_LOCK);
+      expect(plan.command).toBe("yarn");
+      expect(plan.args).toContain(INSTALL_CMD);
+      expect(plan.args).toContain("--mode");
+      expect(plan.args).toContain("update-lockfile");
+    });
+  });
+
+  describe("hashFile", () => {
+    it("returns a hex sha256 digest for a file that exists", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-hash-test-"));
+      try {
+        const filePath = path.join(dir, PACKAGE_JSON);
+        fs.writeFileSync(filePath, JSON.stringify({ name: "x" }));
+        const hash = hashFile(filePath);
+        expect(hash).toMatch(/^[0-9a-f]{64}$/);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("produces different hashes for different contents (used to detect package.json mutation)", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-hash-test-"));
+      try {
+        const filePath = path.join(dir, PACKAGE_JSON);
+        fs.writeFileSync(filePath, JSON.stringify({ name: "x" }));
+        const before = hashFile(filePath);
+        fs.writeFileSync(filePath, JSON.stringify({ name: "x", version: "1" }));
+        const after = hashFile(filePath);
+        expect(before).not.toBe(after);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("returns null when the file does not exist", () => {
+      expect(hashFile("/definitely/not/a/real/file.json")).toBeNull();
+    });
+  });
+
   describe("scheduleReconciliationChild", () => {
     it("spawns a detached node -e process that can be unref'd", async () => {
       // Use a dynamic mock for child_process.spawn so we can observe the call.
@@ -135,6 +299,15 @@ describe("postinstall-trampoline", () => {
       expect(args[1]).toContain("4242");
       expect(args[1]).toContain(path.join(FAKE_LISA_DIST, "index.js"));
       expect(args[1]).toContain(FAKE_PROJECT_DIR);
+      // The trampoline source must carry the lockfile regen plans so the child
+      // can detect the project's package manager after Lisa re-applies and sync
+      // the lockfile to match the new package.json (prevents "lockfile had
+      // changes, but lockfile is frozen" failures in CI jobs).
+      expect(args[1]).toContain(BUN_LOCK);
+      expect(args[1]).toContain(NPM_LOCK);
+      expect(args[1]).toContain(PNPM_LOCK);
+      expect(args[1]).toContain(YARN_LOCK);
+      expect(args[1]).toContain(IGNORE_SCRIPTS);
       expect(opts.detached).toBe(true);
       expect(opts.stdio).toBe("ignore");
       // Trampoline flag set so the re-run does not itself attempt to reschedule

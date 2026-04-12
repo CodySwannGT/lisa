@@ -17,7 +17,6 @@
  *
  * export default config;
  * ```
- *
  * @see https://jestjs.io/docs/configuration
  * @module jest.config.local
  */

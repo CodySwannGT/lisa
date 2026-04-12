@@ -7,7 +7,6 @@
  * Inheritance chain:
  *   nestjs.ts (this file)
  *   +-- base.ts
- *
  * @see https://vitest.dev/config/
  * @module configs/vitest/nestjs
  */
@@ -75,7 +74,6 @@ const nestjsCoverageExclusions: readonly string[] = [
  * Unlike the Jest equivalent, no `ts-jest` with `tsconfig.spec.json` is needed —
  * Vitest transforms TypeScript natively via esbuild. Path aliases should be
  * configured via `vite-tsconfig-paths` plugin in the project's vitest.config.local.ts.
- *
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds in portable format
  * @returns Vitest UserConfig object with node environment and NestJS-specific exclusions

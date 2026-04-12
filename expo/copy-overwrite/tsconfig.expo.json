@@ -1,5 +1,5 @@
 {
-  "extends": ["expo/tsconfig.base", "./tsconfig.base.json"],
+  "extends": ["expo/tsconfig.base", "@codyswann/lisa/tsconfig/base"],
   "compilerOptions": {
     "strict": true,
     "jsx": "react-native",

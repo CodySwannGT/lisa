@@ -5,7 +5,6 @@
  * Publishable factory functions for ESLint base configuration shared across
  * all Lisa-supported stacks (TypeScript, Expo, NestJS, CDK). Projects import
  * these factories to build their stack-specific ESLint config arrays.
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module configs/eslint/base
  */

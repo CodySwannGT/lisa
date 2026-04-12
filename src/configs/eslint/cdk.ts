@@ -10,7 +10,6 @@
  *   cdk.ts (this file)
  *   -> typescript.ts
  *       -> base.ts
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module configs/eslint/cdk
  */
@@ -49,7 +48,6 @@ const cdkIgnores = [
 
 /**
  * Creates the CDK ESLint configuration.
- *
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
  * @param {string[]} [options.ignorePatterns] - Patterns to ignore

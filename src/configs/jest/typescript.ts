@@ -4,7 +4,6 @@
  * Provides TypeScript/Node-specific Jest configuration.
  * Imports shared utilities from the base module.
  * Stack-specific configs (expo, nestjs, cdk) should import and extend this.
- *
  * @see https://jestjs.io/docs/configuration
  * @module configs/jest/typescript
  */
@@ -35,7 +34,6 @@ interface TypescriptJestOptions {
 
 /**
  * Creates a Jest configuration for TypeScript/Node projects using ts-jest.
- *
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
  * @returns Jest config object with ts-jest transform, ESM support, and coverage settings

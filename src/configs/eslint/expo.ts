@@ -10,7 +10,6 @@
  *   expo.ts (this file)
  *   -> typescript.ts
  *       -> base.ts
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module configs/eslint/expo
  */

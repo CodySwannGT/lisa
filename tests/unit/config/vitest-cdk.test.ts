@@ -4,7 +4,6 @@
  * Validates that getCdkVitestConfig produces the correct environment,
  * globals, include patterns, timeout, coverage settings, and
  * threshold merging behavior.
- *
  * @see src/configs/vitest/cdk.ts
  */
 import { getCdkVitestConfig } from "../../../src/configs/vitest/cdk.js";

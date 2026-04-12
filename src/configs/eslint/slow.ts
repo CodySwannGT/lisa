@@ -8,7 +8,6 @@
  * Rules included:
  * - import/namespace - Type checks all namespace imports (slow)
  * - import/no-cycle - Detects circular dependencies (very slow)
- *
  * @see https://github.com/import-js/eslint-plugin-import
  * @module configs/eslint/slow
  */
@@ -21,7 +20,6 @@ const importTypescriptConfig = importPlugin.flatConfigs.typescript;
 
 /**
  * Creates the slow ESLint configuration for rules disabled in the main config.
- *
  * @param options - Configuration options for the slow rules config
  * @param options.ignorePatterns - Patterns to ignore in addition to built-in ignores
  * @returns ESLint flat config array containing only slow rules

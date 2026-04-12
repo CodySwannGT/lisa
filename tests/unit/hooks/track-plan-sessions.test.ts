@@ -4,7 +4,6 @@
  * The hook is currently temporarily disabled (exits early with code 0).
  * Tests verify it does not modify plan files while disabled, and that the
  * dedup logic still correctly ignores already-tracked sessions.
- *
  * @module tests/unit/hooks/track-plan-sessions
  */
 import { spawnSync } from "child_process";

@@ -7,7 +7,6 @@
  *
  * Published as part of the @codyswann/lisa npm package so downstream
  * projects can import these utilities directly from the package.
- *
  * @see https://vitest.dev/config/
  * @module configs/vitest/base
  */
@@ -94,7 +93,6 @@ export const defaultTestExclusions: readonly string[] = [
  * Maps portable threshold format (with `global` wrapper) to Vitest's
  * flat threshold format. Projects store thresholds in the portable
  * format so the same JSON file works for both Jest and Vitest stacks.
- *
  * @param thresholds - Portable thresholds with `global` wrapper
  * @returns Flat Vitest thresholds object
  */
@@ -122,7 +120,6 @@ export const mapThresholds = (
  *
  * Uses the portable format (with `global` wrapper) for compatibility
  * with both Jest and Vitest threshold JSON files.
- *
  * @param defaults - Base thresholds from the stack config
  * @param overrides - Project-specific overrides from vitest.thresholds.json
  * @returns Merged thresholds with overrides taking precedence
@@ -144,7 +141,6 @@ export const mergeThresholds = (
  * Arrays are concatenated and deduplicated. Nested objects (like
  * `coverage`) are shallow-merged. Scalar values from later configs
  * take precedence.
- *
  * @param configs - Vitest UserConfig objects to merge in order of precedence
  * @returns Single merged UserConfig
  */

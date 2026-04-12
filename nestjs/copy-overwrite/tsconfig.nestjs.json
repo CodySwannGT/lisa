@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "@codyswann/lisa/tsconfig/base",
   "compilerOptions": {
     "module": "commonjs",
     "target": "ES2021",

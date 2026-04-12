@@ -27,7 +27,6 @@
  * Inheritance chain:
  *   expo.ts (this file)
  *   └── base.ts
- *
  * @see https://jestjs.io/docs/configuration
  * @see https://github.com/expo/expo/issues/40184
  * @module configs/jest/expo
@@ -59,7 +58,6 @@ interface ExpoJestOptions {
 
 /**
  * Creates a Jest configuration for Expo/React Native projects.
- *
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
  * @returns Jest config object with jsdom environment, babel-jest transform, and React Native resolver
