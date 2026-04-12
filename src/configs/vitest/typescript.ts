@@ -3,7 +3,6 @@
  *
  * Provides TypeScript/Node-specific Vitest configuration.
  * Imports shared utilities from the base module.
- *
  * @see https://vitest.dev/config/
  * @module configs/vitest/typescript
  */
@@ -49,7 +48,6 @@ interface TypescriptVitestOptions {
  * Unlike the Jest equivalent, no `ts-jest` or `moduleNameMapper` is needed —
  * Vitest transforms TypeScript natively via esbuild and resolves `.ts` files
  * without extension mapping.
- *
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds in portable format
  * @returns Vitest UserConfig object

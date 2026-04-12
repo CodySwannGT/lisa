@@ -8,7 +8,6 @@
  *
  * Thin wrapper around @codyswann/lisa vitest config factory.
  * Customize via vitest.config.local.ts and vitest.thresholds.json.
- *
  * @see https://vitest.dev/config/
  * @module vitest.config
  */
