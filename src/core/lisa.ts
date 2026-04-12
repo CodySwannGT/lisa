@@ -225,6 +225,24 @@ export class Lisa {
   }
 
   /**
+   * Invoke pre-strategy migration hooks so migrations can snapshot project state
+   * before strategies overwrite or delete managed files.
+   */
+  private async runMigrationsBeforeStrategies(): Promise<void> {
+    const { logger, migrationRegistry } = this.deps;
+
+    const ctx: MigrationContext = {
+      projectDir: this.config.destDir,
+      lisaDir: this.config.lisaDir,
+      detectedTypes: this.detectedTypes,
+      dryRun: this.config.dryRun,
+      logger,
+    };
+
+    await migrationRegistry.runBeforeStrategies(ctx);
+  }
+
+  /**
    * Run all applicable migrations against the destination project
    */
   private async processMigrations(): Promise<void> {
@@ -415,6 +433,7 @@ export class Lisa {
       this.printHeader();
       await this.initServices();
       await this.detectTypes();
+      await this.runMigrationsBeforeStrategies();
       await this.processConfigurations();
       await this.processDeletions();
       await this.processMigrations();

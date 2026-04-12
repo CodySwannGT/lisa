@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.83.2](https://github.com/CodySwannGT/lisa/compare/vv1.84.0...v1.83.2) (2026-04-12)
+
+
+### Bug Fixes
+
+* **templates:** stage env var in expo scripts, axios floor bump, basic-ftp CVE ([#378](https://github.com/CodySwannGT/lisa/issues/378)) ([26c94c1](https://github.com/CodySwannGT/lisa/commit/26c94c13a8dcad8967bf79d8dfb335f8061f4ad7))
+
+## [1.84.0](https://github.com/CodySwannGT/lisa/compare/vv1.83.1...v1.84.0) (2026-04-12)
+
+
+### Features
+
+* **migrations:** apply Lisa postinstall to all Node projects, preserve tsconfig scope ([#377](https://github.com/CodySwannGT/lisa/issues/377)) ([7528d03](https://github.com/CodySwannGT/lisa/commit/7528d0386fb39316f53282bdb2b66488e6ffe297)), closes [#103](https://github.com/CodySwannGT/lisa/issues/103)
+
 ### [1.83.1](https://github.com/CodySwannGT/lisa/compare/vv1.83.0...v1.83.1) (2026-04-12)
 
 
