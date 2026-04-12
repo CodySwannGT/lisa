@@ -32,21 +32,18 @@ const POLL_INTERVAL_MS = 100;
 const SETTLE_DELAY_MS = 250;
 
 /**
- * Lisa's CLI is not a Lambda handler or Nest service, and it has to introspect
- * its own package-manager lifecycle context to decide whether to trampoline. Routing
- * these reads through ConfigService/getStandaloneConfig would not add any
- * type-safety here (boolean presence checks on externally set variables), so we
- * disable the blanket ban for this one process-introspection module.
- */
-/* eslint-disable no-restricted-syntax -- Process-introspection module: env presence is the source of truth for lifecycle context. */
-
-/**
  * Read an env var by name without widening the project-wide process.env ban.
- * Centralising the reads here makes the one eslint-disable site explicit.
+ * Lisa's CLI isn't a Lambda handler or Nest service; it has to introspect its
+ * own package-manager lifecycle context (which, by construction, is supplied
+ * via externally set env vars) to decide whether to trampoline. Routing these
+ * presence checks through ConfigService/getStandaloneConfig would not add
+ * type-safety. The eslint-disable is scoped to the single read expression so
+ * no other process.env usage in this file is implicitly allowed.
  * @param name - Name of the env variable to read
  * @returns Value or undefined
  */
 function readEnv(name: string): string | undefined {
+  // eslint-disable-next-line no-restricted-syntax -- lifecycle detection requires reading externally-set env vars; scoped to this single read
   return process.env[name];
 }
 
@@ -159,14 +156,15 @@ export function scheduleReconciliationChild(
 
 /**
  * Snapshot the current process environment for the detached child. Centralised so
- * the one process.env access site is explicit and reviewable.
+ * the one process.env access site is explicit and reviewable. The inline disable
+ * is narrow (single expression) so no other process.env reads in this file are
+ * accidentally allowed.
  * @returns Shallow copy of the current environment
  */
 function inheritedEnv(): NodeJS.ProcessEnv {
+  // eslint-disable-next-line no-restricted-syntax -- detached child requires the full parent environment to find node binaries/PATH; scoped to this single read
   return { ...process.env };
 }
-
-/* eslint-enable no-restricted-syntax -- re-enable after the process-introspection block */
 
 /**
  * Shape of the parameters embedded into the trampoline's inline JS source.
@@ -209,17 +207,26 @@ function buildTrampolineSource(params: TrampolineSourceParams): string {
       try { process.kill(pid, 0); return true; } catch { return false; }
     }
 
+    // Returns true when the parent has exited, false when the deadline elapsed
+    // while the parent was still alive. Timing out MUST NOT re-run Lisa —
+    // that would reintroduce the package.json race the trampoline is designed
+    // to avoid (parent PM still writing).
     async function waitForParent() {
       const deadline = Date.now() + ${maxWaitMs};
       while (Date.now() < deadline) {
-        if (!isAlive(${parentPid})) return;
+        if (!isAlive(${parentPid})) return true;
         await new Promise((r) => setTimeout(r, ${pollIntervalMs}));
       }
+      return false;
     }
 
     (async () => {
       try {
-        await waitForParent();
+        const parentExited = await waitForParent();
+        if (!parentExited) {
+          // Parent still running after max wait — bail rather than race the PM.
+          process.exit(0);
+        }
         await new Promise((r) => setTimeout(r, ${settleDelayMs}));
         const child = spawn(
           ${nodeBin},
