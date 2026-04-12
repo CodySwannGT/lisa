@@ -23,6 +23,11 @@ import {
   loadIgnorePatterns,
   type IgnorePatterns,
 } from "../utils/ignore-patterns.js";
+import {
+  getLisaDistDir,
+  scheduleReconciliationChild,
+  shouldSchedulePostinstallReconciliation,
+} from "../utils/postinstall-trampoline.js";
 import type {
   CopyStrategy,
   DeletionsConfig,
@@ -441,9 +446,40 @@ export class Lisa {
       await this.finalize();
       this.printSummary();
       await this.printMigrationNotices(this.config.destDir);
+      this.schedulePostinstallReconciliation();
       return this.getSuccessResult();
     } catch (error) {
       return this.handleApplyError(error);
+    }
+  }
+
+  /**
+   * Schedule a detached reconciliation re-run when Lisa is invoked as a
+   * package-manager lifecycle script. This works around the fact that
+   * `bun add` (and similar package-manager mutations) cache package.json in
+   * memory at the start of the command and rewrite it at the end, clobbering
+   * any changes made by postinstall scripts.
+   *
+   * The trampoline spawns a fully detached child that waits for the package
+   * manager to exit, then re-applies Lisa's merges. See
+   * utils/postinstall-trampoline.ts for details.
+   */
+  private schedulePostinstallReconciliation(): void {
+    if (!shouldSchedulePostinstallReconciliation(this.config.dryRun)) {
+      return;
+    }
+    try {
+      const lisaDistDir = getLisaDistDir(import.meta.url);
+      scheduleReconciliationChild(
+        this.config.destDir,
+        lisaDistDir,
+        process.ppid
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.deps.logger.warn(
+        `Could not schedule postinstall reconciliation: ${message}`
+      );
     }
   }
 
