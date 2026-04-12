@@ -69,49 +69,49 @@
     {
       "id": "GHSA-3h5v-q93c-6h6q",
       "package": "ws",
-      "reason": "DoS via many HTTP headers on a `ws` WebSocket server; all deployed WebSocket endpoints sit behind gateways that cap request header count before traffic reaches the Node process"
+      "reason": "DoS requires attacker-controlled HTTP header volume against a `ws` WebSocket server. Keep this exclusion only if your project's ingress controls (e.g., gateway, load balancer, reverse proxy) enforce header count limits before traffic reaches the Node process."
     },
     {
       "id": "GHSA-w532-jxjh-hjhj",
       "cve": "CVE-2025-29907",
       "package": "jsPDF",
-      "reason": "ReDoS in `addImage` triggered by attacker-controlled image input; `addImage` is only called with project-controlled image paths/buffers, never user input"
+      "reason": "ReDoS requires attacker-controlled input to `addImage`. Keep this exclusion only if `addImage` is never called with untrusted image paths or buffers sourced from user input."
     },
     {
       "id": "GHSA-8mvj-3j78-4qmw",
       "cve": "CVE-2025-57810",
       "package": "jsPDF",
-      "reason": "DoS in `addImage` triggered by attacker-controlled image input; `addImage` is only called with project-controlled image paths/buffers, never user input"
+      "reason": "DoS requires attacker-controlled input to `addImage`. Keep this exclusion only if `addImage` is never called with untrusted image paths or buffers sourced from user input."
     },
     {
       "id": "GHSA-36jr-mh4h-2g58",
       "package": "d3-color",
-      "reason": "ReDoS in color parser; requires attacker-controlled color strings and no runtime code path passes untrusted input to d3-color"
+      "reason": "ReDoS requires attacker-controlled color strings passed to d3-color's parser. Keep this exclusion only if no runtime code path passes untrusted input (e.g., user-supplied color values) to d3-color functions."
     },
     {
       "id": "GHSA-chqc-8p9q-pq6q",
       "package": "basic-ftp",
-      "reason": "FTP command injection via CRLF; no production code path uses FTP, and no untrusted input reaches FTP command construction"
+      "reason": "FTP command injection via CRLF requires attacker-controlled FTP command construction. Keep this exclusion only if no production code path uses FTP or passes untrusted input to FTP command parameters."
     },
     {
       "id": "GHSA-r5fr-rjxr-66jc",
       "package": "lodash",
-      "reason": "Code injection via `_.template` key-name interpolation; requires attacker-controlled input to `_.template`, which no runtime code path invokes"
+      "reason": "Code injection via `_.template` requires attacker-controlled input to `_.template` interpolation. Keep this exclusion only if no runtime code path invokes `_.template` with untrusted data."
     },
     {
       "id": "GHSA-jg4p-7fhp-p32p",
       "package": "@hapi/content",
-      "reason": "ReDoS in HTTP header parsing; only impacts tooling that parses untrusted HTTP headers, and no deployable code paths parse untrusted headers"
+      "reason": "ReDoS requires attacker-controlled HTTP Content-Type or Content-Disposition headers parsed by @hapi/content. Keep this exclusion only if no deployable code paths parse untrusted HTTP headers using this package."
     },
     {
       "id": "GHSA-3p68-rc4w-qgx5",
       "package": "axios",
-      "reason": "SSRF via NO_PROXY hostname normalization bypass; requires attacker-controlled proxy config and no code path exposes proxy config to untrusted input"
+      "reason": "SSRF via NO_PROXY hostname normalization bypass requires attacker influence over proxy configuration. Keep this exclusion only if proxy settings (NO_PROXY, HTTP_PROXY, etc.) are never derived from untrusted input."
     },
     {
       "id": "GHSA-fvcv-3m26-pcqx",
       "package": "axios",
-      "reason": "Cloud metadata exfiltration via header injection; requires attacker-controlled request headers and no code path sets axios headers from untrusted input"
+      "reason": "Cloud metadata exfiltration requires attacker-controlled outbound request header values. Keep this exclusion only if axios request headers are never sourced from untrusted input."
     }
   ]
 }
