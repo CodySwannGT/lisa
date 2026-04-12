@@ -94,6 +94,11 @@
       "reason": "FTP command injection via CRLF requires attacker-controlled FTP command construction. Keep this exclusion only if no production code path uses FTP or passes untrusted input to FTP command parameters."
     },
     {
+      "id": "GHSA-6v7q-wjvx-w8wg",
+      "package": "basic-ftp",
+      "reason": "FTP command injection via CRLF in credentials/MKD commands requires attacker-controlled FTP parameters. Transitive via @lhci/cli > proxy-agent > pac-proxy-agent > get-uri > basic-ftp. Keep this exclusion only if no production code path uses FTP or passes untrusted input to FTP command parameters."
+    },
+    {
       "id": "GHSA-r5fr-rjxr-66jc",
       "package": "lodash",
       "reason": "Code injection via `_.template` requires attacker-controlled input to `_.template` interpolation. Keep this exclusion only if no runtime code path invokes `_.template` with untrusted data."
