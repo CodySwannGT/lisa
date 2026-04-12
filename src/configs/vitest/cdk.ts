@@ -18,6 +18,7 @@ type UserConfig = ViteUserConfig;
 
 import {
   defaultCoverageExclusions,
+  defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
@@ -29,6 +30,7 @@ import type { PortableThresholds } from "./base.js";
 // Re-export base utilities for entry-point configs
 export {
   defaultCoverageExclusions,
+  defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
@@ -69,6 +71,7 @@ export const getCdkVitestConfig = ({
       "test/**/*.integration-test.ts",
       "test/**/*.integration-spec.ts",
     ],
+    exclude: [...defaultTestExclusions],
     testTimeout: 10000,
     coverage: {
       provider: "v8",
