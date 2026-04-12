@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.83.1](https://github.com/CodySwannGT/lisa/compare/vv1.83.0...v1.83.1) (2026-04-12)
+
+
+### Bug Fixes
+
+* migrations framework + vitest worktree excludes ([#376](https://github.com/CodySwannGT/lisa/issues/376)) ([b14eb3b](https://github.com/CodySwannGT/lisa/commit/b14eb3b86373e9ee93b73df8359d584c33ffc9af)), closes [#373](https://github.com/CodySwannGT/lisa/issues/373)
+
 ## [1.83.0](https://github.com/CodySwannGT/lisa/compare/vv1.82.2...v1.83.0) (2026-04-12)
 
 
