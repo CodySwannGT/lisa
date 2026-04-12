@@ -18,6 +18,7 @@ type UserConfig = ViteUserConfig;
 
 import {
   defaultCoverageExclusions,
+  defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
@@ -29,6 +30,7 @@ import type { PortableThresholds } from "./base.js";
 // Re-export base utilities for entry-point configs
 export {
   defaultCoverageExclusions,
+  defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
@@ -86,6 +88,7 @@ export const getNestjsVitestConfig = ({
     environment: "node",
     root: "src",
     include: ["**/*.spec.ts"],
+    exclude: [...defaultTestExclusions],
     testTimeout: 10000,
     coverage: {
       provider: "v8",
