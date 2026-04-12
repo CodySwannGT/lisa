@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import type { ProjectType } from "../core/config.js";
 import { readJsonOrNull, writeJson } from "../utils/json-utils.js";
 import type {
   Migration,
@@ -10,6 +11,12 @@ const PACKAGE_JSON = "package.json";
 const LISA_INVOCATION =
   "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true";
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
+
+/**
+ * Project types that do not use Node.js postinstall hooks (e.g. Rails).
+ * Projects detected as only these types are skipped by this migration.
+ */
+const NON_NODE_TYPES: readonly ProjectType[] = ["rails"];
 
 /**
  * Minimal shape of a project's package.json for postinstall manipulation
@@ -44,25 +51,43 @@ function composePostinstall(existing: string | undefined): string {
 }
 
 /**
- * Migration: ensure Expo projects chain Lisa into their postinstall script.
- *
- * Some Expo projects (e.g. gsai frontend-v2, propswap/frontend) have a custom postinstall
- * (`patch-package && ...`) that never invokes Lisa. Without the Lisa invocation, template
- * application never runs on `bun install` after a Lisa bump. This migration prepends the
- * standard Lisa invocation so template updates apply automatically on install.
+ * Determine whether the detected types indicate a Node.js project that should
+ * run Lisa via postinstall. Rails-only projects are excluded; any Node stack
+ * (typescript, expo, nestjs, cdk, npm-package) qualifies.
+ * @param detectedTypes - Detected project types for the destination
+ * @returns True when at least one detected type uses Node postinstall hooks
  */
-export class EnsureExpoPostinstallMigration implements Migration {
-  readonly name = "ensure-expo-postinstall";
+function hasNodePostinstallType(
+  detectedTypes: readonly ProjectType[]
+): boolean {
+  if (detectedTypes.length === 0) {
+    return false;
+  }
+  return detectedTypes.some(type => !NON_NODE_TYPES.includes(type));
+}
+
+/**
+ * Migration: ensure Node-based projects chain Lisa into their postinstall script.
+ *
+ * Any TypeScript/Node project (expo, nestjs, cdk, npm-package, plain typescript) with a
+ * custom postinstall (`patch-package && ...`) that never invokes Lisa will not apply
+ * template updates automatically on `bun install` / `npm install`. Evidence: frontend-v2
+ * (expo) and propswap/frontend (typescript-only) both needed this chained invocation.
+ * This migration prepends the standard Lisa invocation so template updates apply
+ * automatically on install. Rails-only projects are skipped (no Node postinstall).
+ */
+export class EnsureLisaPostinstallMigration implements Migration {
+  readonly name = "ensure-lisa-postinstall";
   readonly description =
-    "Ensure Expo projects run Lisa in their postinstall script";
+    "Ensure Node-based projects run Lisa in their postinstall script";
 
   /**
    * Check whether this migration should run on the project
    * @param ctx - Migration context
-   * @returns True when an Expo project is missing the Lisa invocation in postinstall
+   * @returns True when a Node project is missing the Lisa invocation in postinstall
    */
   async applies(ctx: MigrationContext): Promise<boolean> {
-    if (!ctx.detectedTypes.includes("expo")) {
+    if (!hasNodePostinstallType(ctx.detectedTypes)) {
       return false;
     }
     const pkg = await readPackageJson(ctx.projectDir);
