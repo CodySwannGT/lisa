@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.3](https://github.com/CodySwannGT/lisa/compare/vv1.85.2...v1.85.3) (2026-04-12)
+
+
+### Bug Fixes
+
+* **postinstall:** preserve package.json merges across bun add via detached trampoline ([#383](https://github.com/CodySwannGT/lisa/issues/383)) ([d0d4048](https://github.com/CodySwannGT/lisa/commit/d0d4048db54d97f61493d966d257d9fa90f43da3))
+
 ### [1.85.2](https://github.com/CodySwannGT/lisa/compare/vv1.85.1...v1.85.2) (2026-04-12)
 
 
