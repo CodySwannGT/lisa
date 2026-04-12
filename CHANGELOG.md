@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.1](https://github.com/CodySwannGT/lisa/compare/vv1.83.2...v1.85.1) (2026-04-12)
+
+
+### Bug Fixes
+
+* bump version past 1.84.0 to unblock npm publish ([#380](https://github.com/CodySwannGT/lisa/issues/380)) ([ea8fd71](https://github.com/CodySwannGT/lisa/commit/ea8fd7107679186faad1c71b879257a7d881a528)), closes [#378](https://github.com/CodySwannGT/lisa/issues/378) [#377](https://github.com/CodySwannGT/lisa/issues/377) [#378](https://github.com/CodySwannGT/lisa/issues/378)
+
 ### [1.83.2](https://github.com/CodySwannGT/lisa/compare/vv1.84.0...v1.83.2) (2026-04-12)
 
 
