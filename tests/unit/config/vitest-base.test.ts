@@ -1,6 +1,7 @@
 import {
   defaultThresholds,
   defaultCoverageExclusions,
+  defaultTestExclusions,
   mergeThresholds,
   mergeVitestConfigs,
   mapThresholds,
@@ -51,6 +52,20 @@ describe("vitest.base", () => {
       );
 
       expect(hasNegation).toBe(false);
+    });
+
+    it("excludes scratch worktrees from coverage", () => {
+      expect(defaultCoverageExclusions).toContain("**/.claude/worktrees/**");
+    });
+  });
+
+  describe("defaultTestExclusions", () => {
+    it("excludes node_modules, dist, and scratch worktrees", () => {
+      expect(defaultTestExclusions).toEqual([
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/.claude/worktrees/**",
+      ]);
     });
   });
 

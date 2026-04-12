@@ -7,6 +7,7 @@ import { Lisa, type LisaDependencies } from "../../src/core/lisa.js";
 import { AutoAcceptPrompter } from "../../src/cli/prompts.js";
 import { DetectorRegistry } from "../../src/detection/index.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
+import { MigrationRegistry } from "../../src/migrations/index.js";
 import { StrategyRegistry } from "../../src/strategies/index.js";
 import {
   BackupService,
@@ -79,6 +80,7 @@ describe("Lisa Integration Tests", () => {
       detectorRegistry: new DetectorRegistry(),
       strategyRegistry: new StrategyRegistry(),
       gitService: new NoOpGitService(),
+      migrationRegistry: new MigrationRegistry(),
     };
   }
 

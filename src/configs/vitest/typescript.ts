@@ -14,6 +14,7 @@ type UserConfig = ViteUserConfig;
 
 import {
   defaultCoverageExclusions,
+  defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
@@ -25,6 +26,7 @@ import type { PortableThresholds } from "./base.js";
 // Re-export base utilities for stack-specific configs to use
 export {
   defaultCoverageExclusions,
+  defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
@@ -59,7 +61,7 @@ export const getTypescriptVitestConfig = ({
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
-    exclude: ["**/node_modules/**", "**/dist/**"],
+    exclude: [...defaultTestExclusions],
     testTimeout: 10000,
     coverage: {
       provider: "v8",

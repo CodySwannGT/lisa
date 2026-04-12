@@ -68,6 +68,7 @@ export const defaultCoverageExclusions: readonly string[] = [
   "**/index.ts",
   "**/node_modules/**",
   "**/dist/**",
+  "**/.claude/worktrees/**",
   "**/*.test.ts",
   "**/*.spec.ts",
   "**/*.mock.ts",
@@ -76,6 +77,17 @@ export const defaultCoverageExclusions: readonly string[] = [
   "**/__tests__/**",
   "**/__mocks__/**",
   "**/components/ui/**",
+];
+
+/**
+ * Default patterns to exclude from test discovery across all stacks.
+ * Lisa manages `.claude/worktrees/` as scratch worktrees for subagents;
+ * test files inside them should never be collected by the repo-level vitest run.
+ */
+export const defaultTestExclusions: readonly string[] = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/.claude/worktrees/**",
 ];
 
 /**
