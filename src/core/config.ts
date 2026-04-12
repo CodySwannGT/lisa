@@ -113,6 +113,8 @@ export interface OperationCounters {
   merged: number;
   deleted: number;
   ignored: number;
+  migrationsApplied: number;
+  migrationsSkipped: number;
 }
 
 /**
@@ -149,5 +151,7 @@ export function createInitialCounters(): OperationCounters {
     merged: 0,
     deleted: 0,
     ignored: 0,
+    migrationsApplied: 0,
+    migrationsSkipped: 0,
   };
 }

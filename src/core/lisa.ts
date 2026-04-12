@@ -11,6 +11,11 @@ import {
   UserAbortedError,
 } from "../errors/index.js";
 import type { ILogger } from "../logging/index.js";
+import {
+  MigrationRegistry,
+  type MigrationContext,
+  type MigrationResult,
+} from "../migrations/index.js";
 import { StrategyRegistry, type StrategyContext } from "../strategies/index.js";
 import type { IBackupService } from "../transaction/index.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
@@ -40,6 +45,7 @@ export interface LisaDependencies {
   readonly detectorRegistry: DetectorRegistry;
   readonly strategyRegistry: StrategyRegistry;
   readonly gitService: IGitService;
+  readonly migrationRegistry: MigrationRegistry;
 }
 
 /**
@@ -218,6 +224,39 @@ export class Lisa {
     }
   }
 
+  /**
+   * Run all applicable migrations against the destination project
+   */
+  private async processMigrations(): Promise<void> {
+    const { logger, migrationRegistry } = this.deps;
+
+    const ctx: MigrationContext = {
+      projectDir: this.config.destDir,
+      lisaDir: this.config.lisaDir,
+      detectedTypes: this.detectedTypes,
+      dryRun: this.config.dryRun,
+      logger,
+    };
+
+    logger.info("Running migrations...");
+    const results = await migrationRegistry.runAll(ctx);
+    this.updateMigrationCounters(results);
+  }
+
+  /**
+   * Update migration counters from aggregated migration results
+   * @param results - Migration results to aggregate into counters
+   */
+  private updateMigrationCounters(results: readonly MigrationResult[]): void {
+    for (const result of results) {
+      if (result.action === "applied") {
+        this.counters.migrationsApplied++;
+      } else {
+        this.counters.migrationsSkipped++;
+      }
+    }
+  }
+
   /* v8 ignore start -- calls external CLI, covered by integration tests */
   /**
    * Register plugins from merged settings.json with Claude Code at project scope
@@ -378,6 +417,7 @@ export class Lisa {
       await this.detectTypes();
       await this.processConfigurations();
       await this.processDeletions();
+      await this.processMigrations();
       await this.registerPlugins();
       await this.finalize();
       this.printSummary();
@@ -723,82 +763,106 @@ export class Lisa {
   }
 
   /**
+   * Print summary statistics for validate mode
+   */
+  private printValidateStats(): void {
+    const { copied, skipped, overwritten, appended, merged, deleted, ignored } =
+      this.counters;
+    this.printStatLine("Compatible files:   ", copied, pc.green);
+    this.printStatLine("Already present:    ", skipped, pc.blue);
+    this.printStatLine("Would conflict:     ", overwritten, pc.yellow);
+    this.printStatLine("Would append:       ", appended, pc.blue);
+    this.printStatLine("Would merge:        ", merged, pc.green);
+    this.printStatLine("Would delete:       ", deleted, pc.red);
+    if (ignored > 0) {
+      this.printStatLine(
+        "Ignored:            ",
+        ignored,
+        pc.magenta,
+        this.lisaignoreSuffix
+      );
+    }
+  }
+
+  /**
+   * Print summary statistics for dry-run mode
+   */
+  private printDryRunStats(): void {
+    const { copied, skipped, overwritten, appended, merged, deleted, ignored } =
+      this.counters;
+    this.printStatLine("Would copy:     ", copied, pc.green);
+    this.printStatLine(
+      "Would skip:     ",
+      skipped,
+      pc.blue,
+      "(identical or create-only)"
+    );
+    this.printStatLine("Would prompt:   ", overwritten, pc.yellow, "(differ)");
+    this.printStatLine(
+      "Would append:   ",
+      appended,
+      pc.blue,
+      "(copy-contents)"
+    );
+    this.printStatLine("Would merge:    ", merged, pc.green, "(JSON)");
+    this.printStatLine("Would delete:   ", deleted, pc.red);
+    if (ignored > 0) {
+      this.printStatLine(
+        "Would ignore:   ",
+        ignored,
+        pc.magenta,
+        this.lisaignoreSuffix
+      );
+    }
+  }
+
+  /**
+   * Print summary statistics for apply mode
+   */
+  private printApplyStats(): void {
+    const { copied, skipped, overwritten, appended, merged, deleted, ignored } =
+      this.counters;
+    this.printStatLine("Copied:     ", copied, pc.green);
+    this.printStatLine(
+      "Skipped:    ",
+      skipped,
+      pc.blue,
+      "(identical or create-only)"
+    );
+    this.printStatLine(
+      "Overwritten:",
+      overwritten,
+      pc.yellow,
+      "(user approved)"
+    );
+    this.printStatLine("Appended:   ", appended, pc.blue, "(copy-contents)");
+    this.printStatLine("Merged:     ", merged, pc.green, "(JSON merged)");
+    this.printStatLine("Deleted:    ", deleted, pc.red);
+    if (ignored > 0) {
+      this.printStatLine(
+        "Ignored:    ",
+        ignored,
+        pc.magenta,
+        this.lisaignoreSuffix
+      );
+    }
+  }
+
+  /**
    * Print summary statistics
    */
   private printSummaryStats(): void {
-    const { copied, skipped, overwritten, appended, merged, deleted, ignored } =
-      this.counters;
-
     if (this.config.validateOnly) {
-      this.printStatLine("Compatible files:   ", copied, pc.green);
-      this.printStatLine("Already present:    ", skipped, pc.blue);
-      this.printStatLine("Would conflict:     ", overwritten, pc.yellow);
-      this.printStatLine("Would append:       ", appended, pc.blue);
-      this.printStatLine("Would merge:        ", merged, pc.green);
-      this.printStatLine("Would delete:       ", deleted, pc.red);
-      if (ignored > 0) {
-        this.printStatLine(
-          "Ignored:            ",
-          ignored,
-          pc.magenta,
-          this.lisaignoreSuffix
-        );
-      }
+      this.printValidateStats();
     } else if (this.config.dryRun) {
-      this.printStatLine("Would copy:     ", copied, pc.green);
-      this.printStatLine(
-        "Would skip:     ",
-        skipped,
-        pc.blue,
-        "(identical or create-only)"
-      );
-      this.printStatLine(
-        "Would prompt:   ",
-        overwritten,
-        pc.yellow,
-        "(differ)"
-      );
-      this.printStatLine(
-        "Would append:   ",
-        appended,
-        pc.blue,
-        "(copy-contents)"
-      );
-      this.printStatLine("Would merge:    ", merged, pc.green, "(JSON)");
-      this.printStatLine("Would delete:   ", deleted, pc.red);
-      if (ignored > 0) {
-        this.printStatLine(
-          "Would ignore:   ",
-          ignored,
-          pc.magenta,
-          this.lisaignoreSuffix
-        );
-      }
+      this.printDryRunStats();
     } else {
-      this.printStatLine("Copied:     ", copied, pc.green);
-      this.printStatLine(
-        "Skipped:    ",
-        skipped,
-        pc.blue,
-        "(identical or create-only)"
-      );
-      this.printStatLine(
-        "Overwritten:",
-        overwritten,
-        pc.yellow,
-        "(user approved)"
-      );
-      this.printStatLine("Appended:   ", appended, pc.blue, "(copy-contents)");
-      this.printStatLine("Merged:     ", merged, pc.green, "(JSON merged)");
-      this.printStatLine("Deleted:    ", deleted, pc.red);
-      if (ignored > 0) {
-        this.printStatLine(
-          "Ignored:    ",
-          ignored,
-          pc.magenta,
-          this.lisaignoreSuffix
-        );
-      }
+      this.printApplyStats();
+    }
+
+    const { migrationsApplied } = this.counters;
+    if (migrationsApplied > 0) {
+      this.printStatLine("Migrations: ", migrationsApplied, pc.cyan, "applied");
     }
   }
 

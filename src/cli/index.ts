@@ -6,6 +6,7 @@ import { GitService } from "../core/git-service.js";
 import { Lisa, type LisaDependencies } from "../core/lisa.js";
 import { DetectorRegistry } from "../detection/index.js";
 import { ConsoleLogger } from "../logging/index.js";
+import { MigrationRegistry } from "../migrations/index.js";
 import { StrategyRegistry } from "../strategies/index.js";
 import { BackupService, DryRunBackupService } from "../transaction/index.js";
 import { toAbsolutePath } from "../utils/path-utils.js";
@@ -118,6 +119,7 @@ function createDependencies(
     detectorRegistry: new DetectorRegistry(),
     strategyRegistry: new StrategyRegistry(),
     gitService: new GitService(),
+    migrationRegistry: new MigrationRegistry(),
   };
 }
 
