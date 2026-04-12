@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.84.0](https://github.com/CodySwannGT/lisa/compare/vv1.83.1...v1.84.0) (2026-04-12)
+
+
+### Features
+
+* **migrations:** apply Lisa postinstall to all Node projects, preserve tsconfig scope ([#377](https://github.com/CodySwannGT/lisa/issues/377)) ([7528d03](https://github.com/CodySwannGT/lisa/commit/7528d0386fb39316f53282bdb2b66488e6ffe297)), closes [#103](https://github.com/CodySwannGT/lisa/issues/103)
+
 ### [1.83.1](https://github.com/CodySwannGT/lisa/compare/vv1.83.0...v1.83.1) (2026-04-12)
 
 
