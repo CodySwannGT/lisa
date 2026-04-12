@@ -9,11 +9,12 @@ import type {
 } from "./migration.interface.js";
 
 const TSCONFIG_LOCAL = "tsconfig.local.json";
+const TSCONFIG_ROOT = "tsconfig.json";
 
 /**
- * Minimal shape of a tsconfig.local.json file for include/exclude manipulation
+ * Minimal shape of a tsconfig file for include/exclude manipulation
  */
-interface TsconfigLocal {
+interface TsconfigLike {
   readonly include?: readonly string[];
   readonly exclude?: readonly string[];
   readonly [key: string]: unknown;
@@ -74,7 +75,7 @@ async function loadTemplateDefaults(
   type: ProjectType
 ): Promise<IncludeExcludeDefaults> {
   const templatePath = path.join(lisaDir, type, "create-only", TSCONFIG_LOCAL);
-  const template = await readJsonOrNull<TsconfigLocal>(templatePath);
+  const template = await readJsonOrNull<TsconfigLike>(templatePath);
   if (!template) {
     return FALLBACK_DEFAULTS;
   }
@@ -91,11 +92,37 @@ async function loadTemplateDefaults(
  * tsconfig.local.json (create-only), existing projects kept their include-less local
  * tsconfig and typecheck began compiling tests, worktrees, etc. This migration injects
  * the canonical defaults for any key that is missing without touching existing values.
+ *
+ * Additionally, this migration preserves a project's narrower include/exclude from
+ * the pre-strategy tsconfig.json when the stack template's include/exclude would
+ * widen tsc scope. Evidence: thumbwar-backend's tsconfig.json pinned `include: ["src/**\/*"]`
+ * but after Lisa overwrote tsconfig.json the stack template's include was used,
+ * pulling `vitest.*.ts` into typecheck scope.
  */
 export class EnsureTsconfigLocalIncludesMigration implements Migration {
   readonly name = "ensure-tsconfig-local-includes";
   readonly description =
     "Backfill include/exclude in tsconfig.local.json for projects upgraded past PR #373";
+
+  private snapshotInclude: readonly string[] | undefined;
+  private snapshotExclude: readonly string[] | undefined;
+
+  /**
+   * Snapshot the project's pre-strategy tsconfig.json include/exclude so we can
+   * preserve narrower scopes when the copy-overwrite strategy replaces tsconfig.json.
+   * @param ctx - Migration context
+   */
+  async beforeStrategies(ctx: MigrationContext): Promise<void> {
+    const rootPath = path.join(ctx.projectDir, TSCONFIG_ROOT);
+    const existing = await readJsonOrNull<TsconfigLike>(rootPath);
+    if (!existing) {
+      this.snapshotInclude = undefined;
+      this.snapshotExclude = undefined;
+      return;
+    }
+    this.snapshotInclude = existing.include;
+    this.snapshotExclude = existing.exclude;
+  }
 
   /**
    * Check whether this migration should run on the project
@@ -104,7 +131,7 @@ export class EnsureTsconfigLocalIncludesMigration implements Migration {
    */
   async applies(ctx: MigrationContext): Promise<boolean> {
     const tsconfigLocalPath = path.join(ctx.projectDir, TSCONFIG_LOCAL);
-    const existing = await readJsonOrNull<TsconfigLocal>(tsconfigLocalPath);
+    const existing = await readJsonOrNull<TsconfigLike>(tsconfigLocalPath);
     if (!existing) {
       return false;
     }
@@ -118,7 +145,7 @@ export class EnsureTsconfigLocalIncludesMigration implements Migration {
    */
   async apply(ctx: MigrationContext): Promise<MigrationResult> {
     const tsconfigLocalPath = path.join(ctx.projectDir, TSCONFIG_LOCAL);
-    const existing = await readJsonOrNull<TsconfigLocal>(tsconfigLocalPath);
+    const existing = await readJsonOrNull<TsconfigLike>(tsconfigLocalPath);
     if (!existing) {
       return { name: this.name, action: "noop" };
     }
@@ -128,10 +155,13 @@ export class EnsureTsconfigLocalIncludesMigration implements Migration {
       ? await loadTemplateDefaults(ctx.lisaDir, templateType)
       : FALLBACK_DEFAULTS;
 
-    const patched: TsconfigLocal = {
+    const chosenInclude = this.chooseInclude(defaults.include);
+    const chosenExclude = this.chooseExclude(defaults.exclude);
+
+    const patched: TsconfigLike = {
       ...existing,
-      ...(existing.include === undefined ? { include: defaults.include } : {}),
-      ...(existing.exclude === undefined ? { exclude: defaults.exclude } : {}),
+      ...(existing.include === undefined ? { include: chosenInclude } : {}),
+      ...(existing.exclude === undefined ? { exclude: chosenExclude } : {}),
     };
 
     const missing: readonly string[] = [
@@ -163,5 +193,33 @@ export class EnsureTsconfigLocalIncludesMigration implements Migration {
       changedFiles: [TSCONFIG_LOCAL],
       message,
     };
+  }
+
+  /**
+   * Prefer the project's pre-strategy tsconfig.json include when it is narrower
+   * than the stack template's include. "Narrower" means the snapshot is a strict
+   * subset of the template or differs in content at all — we preserve project intent.
+   * Falls back to the stack template include when no snapshot exists.
+   * @param templateInclude - Stack template include to fall back to
+   * @returns The preserved or template include
+   */
+  private chooseInclude(templateInclude: readonly string[]): readonly string[] {
+    if (this.snapshotInclude === undefined) {
+      return templateInclude;
+    }
+    return this.snapshotInclude;
+  }
+
+  /**
+   * Prefer the project's pre-strategy tsconfig.json exclude when one existed.
+   * Falls back to the stack template exclude when no snapshot exists.
+   * @param templateExclude - Stack template exclude to fall back to
+   * @returns The preserved or template exclude
+   */
+  private chooseExclude(templateExclude: readonly string[]): readonly string[] {
+    if (this.snapshotExclude === undefined) {
+      return templateExclude;
+    }
+    return this.snapshotExclude;
   }
 }

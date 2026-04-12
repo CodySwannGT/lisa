@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import type { ProjectType } from "../../../src/core/config.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
-import { EnsureExpoPostinstallMigration } from "../../../src/migrations/ensure-expo-postinstall.js";
+import { EnsureLisaPostinstallMigration } from "../../../src/migrations/ensure-lisa-postinstall.js";
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -11,13 +11,13 @@ const LISA_INVOCATION =
 const PACKAGE_JSON = "package.json";
 const PATCH_PACKAGE = "patch-package";
 
-describe("EnsureExpoPostinstallMigration", () => {
-  let migration: EnsureExpoPostinstallMigration;
+describe("EnsureLisaPostinstallMigration", () => {
+  let migration: EnsureLisaPostinstallMigration;
   let tempDir: string;
   let projectDir: string;
 
   beforeEach(async () => {
-    migration = new EnsureExpoPostinstallMigration();
+    migration = new EnsureLisaPostinstallMigration();
     tempDir = await createTempDir();
     projectDir = path.join(tempDir, "project");
     await fs.ensureDir(projectDir);
@@ -56,17 +56,48 @@ describe("EnsureExpoPostinstallMigration", () => {
 
   describe("basic properties", () => {
     it("has correct name and description", () => {
-      expect(migration.name).toBe("ensure-expo-postinstall");
-      expect(migration.description).toContain("Expo");
+      expect(migration.name).toBe("ensure-lisa-postinstall");
+      expect(migration.description).toContain("postinstall");
     });
   });
 
   describe("applies()", () => {
-    it("returns false when detectedTypes lacks expo", async () => {
+    it("returns false when detectedTypes is empty", async () => {
       await writePackageJson({ scripts: {} });
-      expect(await migration.applies(createContext(["typescript"]))).toBe(
-        false
-      );
+      expect(await migration.applies(createContext([]))).toBe(false);
+    });
+
+    it("returns false when project is Rails-only (no Node postinstall)", async () => {
+      await writePackageJson({ scripts: {} });
+      expect(await migration.applies(createContext(["rails"]))).toBe(false);
+    });
+
+    it("returns true for typescript-only project missing Lisa in postinstall", async () => {
+      await writePackageJson({
+        scripts: { postinstall: "patch-package && bun run generate:css" },
+      });
+      expect(await migration.applies(createContext(["typescript"]))).toBe(true);
+    });
+
+    it("returns true for nestjs project", async () => {
+      await writePackageJson({ scripts: {} });
+      expect(
+        await migration.applies(createContext(["typescript", "nestjs"]))
+      ).toBe(true);
+    });
+
+    it("returns true for cdk project", async () => {
+      await writePackageJson({ scripts: {} });
+      expect(
+        await migration.applies(createContext(["typescript", "cdk"]))
+      ).toBe(true);
+    });
+
+    it("returns true for npm-package project", async () => {
+      await writePackageJson({ scripts: {} });
+      expect(
+        await migration.applies(createContext(["typescript", "npm-package"]))
+      ).toBe(true);
     });
 
     it("returns false when package.json does not exist", async () => {
@@ -130,6 +161,20 @@ describe("EnsureExpoPostinstallMigration", () => {
       const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
       expect(pkg.scripts.postinstall).toBe(
         `${LISA_INVOCATION} && patch-package && generate:css`
+      );
+    });
+
+    it("prepends Lisa invocation for typescript-only project with custom postinstall", async () => {
+      await writePackageJson({
+        scripts: { postinstall: "patch-package && bun run generate:css" },
+      });
+
+      const result = await migration.apply(createContext(["typescript"]));
+
+      expect(result.action).toBe("applied");
+      const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
+      expect(pkg.scripts.postinstall).toBe(
+        `${LISA_INVOCATION} && patch-package && bun run generate:css`
       );
     });
 

@@ -44,6 +44,15 @@ export interface Migration {
   readonly description: string;
 
   /**
+   * Optional pre-strategy hook. Runs before the copy/deletion strategies so
+   * the migration can snapshot files that will subsequently be overwritten.
+   * Implementations must be idempotent and side-effect free beyond updating
+   * their own in-memory state.
+   * @param ctx Migration context
+   */
+  beforeStrategies?(ctx: MigrationContext): Promise<void>;
+
+  /**
    * Whether this migration should run on this project.
    * @param ctx Migration context
    */

@@ -63,7 +63,7 @@ describe("MigrationRegistry", () => {
     const names = registry.getAll().map(m => m.name);
 
     expect(names).toContain("ensure-tsconfig-local-includes");
-    expect(names).toContain("ensure-expo-postinstall");
+    expect(names).toContain("ensure-lisa-postinstall");
   });
 
   it("runs only applicable migrations", async () => {
@@ -94,6 +94,51 @@ describe("MigrationRegistry", () => {
     await registry.runAll(makeContext(true));
 
     expect(captured).toEqual(["alpha:applies", "alpha:apply:dryRun=true"]);
+  });
+
+  it("invokes beforeStrategies on every migration that implements it", async () => {
+    const captured: string[] = [];
+    const alpha: Migration = {
+      name: "alpha",
+      description: "alpha",
+      async beforeStrategies(): Promise<void> {
+        captured.push("alpha:before");
+      },
+      async applies(): Promise<boolean> {
+        return false;
+      },
+      async apply(): Promise<MigrationResult> {
+        return { name: "alpha", action: "noop" };
+      },
+    };
+    const beta: Migration = {
+      name: "beta",
+      description: "beta",
+      async applies(): Promise<boolean> {
+        return false;
+      },
+      async apply(): Promise<MigrationResult> {
+        return { name: "beta", action: "noop" };
+      },
+    };
+    const gamma: Migration = {
+      name: "gamma",
+      description: "gamma",
+      async beforeStrategies(): Promise<void> {
+        captured.push("gamma:before");
+      },
+      async applies(): Promise<boolean> {
+        return false;
+      },
+      async apply(): Promise<MigrationResult> {
+        return { name: "gamma", action: "noop" };
+      },
+    };
+    const registry = new MigrationRegistry([alpha, beta, gamma]);
+
+    await registry.runBeforeStrategies(makeContext());
+
+    expect(captured).toEqual(["alpha:before", "gamma:before"]);
   });
 
   it("returns aggregated results preserving migration order", async () => {

@@ -1,4 +1,4 @@
-import { EnsureExpoPostinstallMigration } from "./ensure-expo-postinstall.js";
+import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import type {
   Migration,
@@ -12,7 +12,7 @@ export type {
   MigrationContext,
   MigrationResult,
 } from "./migration.interface.js";
-export { EnsureExpoPostinstallMigration } from "./ensure-expo-postinstall.js";
+export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 
 /**
@@ -28,7 +28,7 @@ export class MigrationRegistry {
   constructor(migrations?: readonly Migration[]) {
     this.migrations = migrations ?? [
       new EnsureTsconfigLocalIncludesMigration(),
-      new EnsureExpoPostinstallMigration(),
+      new EnsureLisaPostinstallMigration(),
     ];
   }
 
@@ -38,6 +38,19 @@ export class MigrationRegistry {
    */
   getAll(): readonly Migration[] {
     return this.migrations;
+  }
+
+  /**
+   * Invoke the optional `beforeStrategies` hook on every registered migration.
+   * Used to snapshot project state that strategies will subsequently overwrite.
+   * @param ctx - Migration context
+   */
+  async runBeforeStrategies(ctx: MigrationContext): Promise<void> {
+    for (const migration of this.migrations) {
+      if (migration.beforeStrategies) {
+        await migration.beforeStrategies(ctx);
+      }
+    }
   }
 
   /**

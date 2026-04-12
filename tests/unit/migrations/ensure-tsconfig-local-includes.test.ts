@@ -7,6 +7,7 @@ import type { MigrationContext } from "../../../src/migrations/migration.interfa
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const TSCONFIG_LOCAL = "tsconfig.local.json";
+const TSCONFIG_ROOT = "tsconfig.json";
 const SRC_GLOB = "src/**/*";
 const NODE_MODULES = "node_modules";
 const TEST_GLOB = "**/*.test.ts";
@@ -231,6 +232,119 @@ describe("EnsureTsconfigLocalIncludesMigration", () => {
         createContext(["typescript"])
       );
       expect(secondApplies).toBe(false);
+    });
+  });
+
+  describe("beforeStrategies() snapshot preservation", () => {
+    it("preserves the project's pre-strategy tsconfig.json include when present", async () => {
+      // Project pins narrow include in tsconfig.json (pre-PR #373 style)
+      await fs.writeJson(path.join(projectDir, TSCONFIG_ROOT), {
+        compilerOptions: {},
+        include: [SRC_GLOB],
+      });
+      // Stack template would widen include to cover tests and worktrees
+      await seedTemplate("typescript", {
+        include: ["**/*.ts", "**/*.tsx"],
+        exclude: [NODE_MODULES],
+      });
+
+      const ctx = createContext(["typescript"]);
+      await migration.beforeStrategies(ctx);
+
+      // Simulate copy-overwrite having replaced tsconfig.json with the Lisa canonical shell
+      await fs.writeJson(path.join(projectDir, TSCONFIG_ROOT), {
+        extends: [
+          "@codyswann/lisa/tsconfig/typescript",
+          "./tsconfig.local.json",
+        ],
+      });
+      await fs.writeJson(path.join(projectDir, TSCONFIG_LOCAL), {
+        compilerOptions: {},
+      });
+
+      const result = await migration.apply(ctx);
+
+      expect(result.action).toBe("applied");
+      const patched = await fs.readJson(path.join(projectDir, TSCONFIG_LOCAL));
+      expect(patched.include).toEqual([SRC_GLOB]);
+      // Project had no exclude in tsconfig.json, so stack template exclude is preserved (snapshotExclude === undefined → template)
+      expect(patched.exclude).toEqual([NODE_MODULES]);
+    });
+
+    it("preserves a broader project include when present", async () => {
+      await fs.writeJson(path.join(projectDir, TSCONFIG_ROOT), {
+        include: ["**/*.ts", "**/*.tsx"],
+        exclude: [NODE_MODULES, "custom-dir"],
+      });
+      await seedTemplate("typescript", {
+        include: [SRC_GLOB],
+        exclude: [NODE_MODULES],
+      });
+
+      const ctx = createContext(["typescript"]);
+      await migration.beforeStrategies(ctx);
+
+      await fs.writeJson(path.join(projectDir, TSCONFIG_LOCAL), {
+        compilerOptions: {},
+      });
+
+      const result = await migration.apply(ctx);
+
+      expect(result.action).toBe("applied");
+      const patched = await fs.readJson(path.join(projectDir, TSCONFIG_LOCAL));
+      expect(patched.include).toEqual(["**/*.ts", "**/*.tsx"]);
+      expect(patched.exclude).toEqual([NODE_MODULES, "custom-dir"]);
+    });
+
+    it("falls back to stack template when tsconfig.json has no include/exclude", async () => {
+      // Project has no tsconfig.json at all
+      await seedTemplate("typescript", {
+        include: [SRC_GLOB],
+        exclude: [NODE_MODULES, ".build", "dist", TEST_GLOB, SPEC_GLOB],
+      });
+
+      const ctx = createContext(["typescript"]);
+      await migration.beforeStrategies(ctx);
+
+      await fs.writeJson(path.join(projectDir, TSCONFIG_LOCAL), {
+        compilerOptions: {},
+      });
+
+      const result = await migration.apply(ctx);
+
+      expect(result.action).toBe("applied");
+      const patched = await fs.readJson(path.join(projectDir, TSCONFIG_LOCAL));
+      expect(patched.include).toEqual([SRC_GLOB]);
+      expect(patched.exclude).toEqual([
+        NODE_MODULES,
+        ".build",
+        "dist",
+        TEST_GLOB,
+        SPEC_GLOB,
+      ]);
+    });
+
+    it("does not override existing tsconfig.local.json include with snapshot", async () => {
+      // Project has both tsconfig.json and tsconfig.local.json with includes
+      await fs.writeJson(path.join(projectDir, TSCONFIG_ROOT), {
+        include: [SRC_GLOB],
+      });
+      await seedTemplate("typescript", {
+        include: ["**/*.ts"],
+        exclude: [NODE_MODULES],
+      });
+
+      const ctx = createContext(["typescript"]);
+      await migration.beforeStrategies(ctx);
+
+      // tsconfig.local.json already has a specific include; migration should not touch it
+      await fs.writeJson(path.join(projectDir, TSCONFIG_LOCAL), {
+        include: ["already-set/**/*"],
+        exclude: ["already-set-exclude"],
+      });
+
+      const shouldApply = await migration.applies(ctx);
+      expect(shouldApply).toBe(false);
     });
   });
 });
