@@ -83,7 +83,7 @@ If the ticket is not a Bug and not an Epic, it MUST have an epic parent:
 
 1. If explicitly provided, use it.
 2. Otherwise search active epics:
-   ```
+   ```jql
    project = <PROJECT> AND issuetype = Epic AND statusCategory != Done
    ```
    via `mcp__atlassian__searchJiraIssuesUsingJql`. Match on keywords from the summary and description.
@@ -93,7 +93,7 @@ If the ticket is not a Bug and not an Epic, it MUST have an epic parent:
 
 Run targeted JQL searches to surface candidate links. Present candidates to the human (or record them on the ticket as a comment) before skipping. Suggested searches:
 
-```
+```jql
 # Open tickets touching the same component
 project = <PROJECT> AND component = "<component>" AND statusCategory != Done
 

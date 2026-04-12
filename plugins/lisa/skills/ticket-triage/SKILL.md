@@ -33,6 +33,7 @@ From the context bundle, evaluate relationships before analyzing this ticket in 
 - **`relates to` links with shipped PRs**: flag the PRs in the verification methodology (Phase 5) as prior art worth reviewing before writing new code.
 
 Do not re-fetch tickets — the bundle already has the context.
+If Phase 1.5 finds an automatic blocker condition (`is blocked by` not shipped, or duplicate-of-open), emit `BLOCKED` immediately and skip to Phase 6 output formatting.
 
 ## Phase 2 -- Cross-Repo Awareness
 
@@ -122,7 +123,7 @@ Every verification method must be specific enough that an automated agent could 
 Evaluate the findings and produce exactly one verdict:
 
 - **`NOT_RELEVANT`** -- No relevant code was found in this repository (Phase 1). The caller should add the triage label and skip implementation in this repo.
-- **`BLOCKED`** -- Ambiguities were found in Phase 3. Work MUST NOT proceed until the ambiguities are resolved by a human. The caller should post findings, add the triage label, and STOP.
+- **`BLOCKED`** -- Blocking conditions were found in Phase 1.5 (open blockers, duplicate-of-open) and/or ambiguities were found in Phase 3. Work MUST NOT proceed until resolved by a human. The caller should post findings, add the triage label, and STOP.
 - **`PASSED_WITH_FINDINGS`** -- No ambiguities, but edge cases or verification findings were identified. Work can proceed. The caller should post findings and add the triage label.
 - **`PASSED`** -- No ambiguities, edge cases, or verification gaps found. Work can proceed. The caller should add the triage label.
 

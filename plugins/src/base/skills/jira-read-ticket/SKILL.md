@@ -78,7 +78,7 @@ If the primary ticket has an epic parent (or IS an epic):
 
 1. Fetch the epic itself via `mcp__atlassian__getJiraIssue` — full description, acceptance criteria, all comments, Validation Journey.
 2. Find epic siblings via JQL:
-   ```
+   ```jql
    "Epic Link" = <EPIC-KEY> AND key != <TICKET-KEY>
    ```
    Use `mcp__atlassian__searchJiraIssuesUsingJql`. For each sibling capture: key, summary, type, status, assignee, priority.
