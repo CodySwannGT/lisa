@@ -58,7 +58,11 @@ for category, matchers in hooks.items():
         if not isinstance(matcher, dict):
             new_matchers.append(matcher)
             continue
-        entries = matcher.get("hooks", [])
+        if "hooks" not in matcher:
+            new_matchers.append(matcher)
+            continue
+
+        entries = matcher.get("hooks")
         if isinstance(entries, list):
             kept = [e for e in entries if not is_stale(e)]
             if len(kept) != len(entries):
@@ -67,9 +71,12 @@ for category, matchers in hooks.items():
                 new_matcher = dict(matcher)
                 new_matcher["hooks"] = kept
                 new_matchers.append(new_matcher)
-            # else: drop empty matcher block
-            else:
+            elif entries:
+                # drop matcher only when pruning emptied a previously non-empty hooks list
                 changed = True
+            else:
+                # preserve pre-existing empty matcher blocks unchanged
+                new_matchers.append(matcher)
         else:
             new_matchers.append(matcher)
     if new_matchers:
