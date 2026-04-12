@@ -56,7 +56,8 @@ Gather evidence of what was actually shipped:
 
 1. **Diff scope** — the commits on the current branch vs. the default branch:
    ```bash
-   BASE_BRANCH="$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')"
+   BASE_BRANCH="$(git symbolic-ref -q --short refs/remotes/origin/HEAD | sed 's@^origin/@@')"
+   BASE_BRANCH="${BASE_BRANCH:-main}"
    git log "${BASE_BRANCH}"..HEAD --oneline
    git diff "${BASE_BRANCH}"...HEAD --stat
    ```
