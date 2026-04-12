@@ -4,139 +4,114 @@
       "id": "GHSA-5j98-mcp5-4vw2",
       "cve": "CVE-2025-64756",
       "package": "glob",
-      "reason": "CLI command injection — only affects glob CLI --cmd flag, not library usage"
+      "reason": "Command injection exploitable only via the `glob` CLI `-c`/`--cmd` flag; library API callers are unaffected and no deployable code paths invoke the CLI"
     },
     {
       "id": "GHSA-8qq5-rm4j-mr97",
       "package": "node-tar",
-      "reason": "Path sanitization vulnerability — nested in @expo/cli, tar extraction not in our code path"
+      "reason": "Arbitrary file overwrite/symlink poisoning during tar extraction; requires extracting attacker-controlled archives, which no production code path does"
     },
     {
       "id": "GHSA-37qj-frw5-hhjh",
       "package": "fast-xml-parser",
-      "reason": "RangeError DoS with numeric entities — transitive via React Native CLI, build tool only"
+      "reason": "RangeError DoS triggered only when parsing attacker-controlled XML with numeric entities; no production code parses untrusted XML"
     },
     {
       "id": "GHSA-3ppc-4f35-3m26",
       "package": "minimatch",
-      "reason": "ReDoS via repeated wildcards — devDeps only, fix requires breaking minimatch v10"
+      "reason": "ReDoS via repeated wildcards in attacker-supplied glob patterns; no runtime code path passes untrusted input to minimatch"
     },
     {
       "id": "GHSA-7r86-cg39-jmmj",
       "package": "minimatch",
-      "reason": "ReDoS via multiple non-adjacent GLOBSTAR segments — devDeps only, fix requires minimatch >=3.1.3"
+      "reason": "ReDoS via multiple non-adjacent GLOBSTAR segments in attacker-supplied glob patterns; no runtime code path passes untrusted input to minimatch"
     },
     {
       "id": "GHSA-23c5-xmqv-rm74",
       "package": "minimatch",
-      "reason": "ReDoS via nested *() extglobs — devDeps only, fix requires minimatch >=3.1.3"
+      "reason": "ReDoS via nested extglob patterns; requires attacker-supplied glob input which no runtime code path accepts"
     },
     {
       "id": "GHSA-2g4f-4pwh-qvx6",
       "package": "ajv",
-      "reason": "ReDoS with $data option — $data option not used, nested in aws-cdk-lib/eslint"
+      "reason": "ReDoS requires the `$data` keyword option enabled in a schema; no projects enable `$data` or accept untrusted schemas at runtime"
     },
     {
       "id": "GHSA-jmr7-xgp7-cmfj",
       "package": "fast-xml-parser",
-      "reason": "DoS through entity expansion in DOCTYPE — transitive via AWS SDK, no untrusted XML parsing"
+      "reason": "DoS via DOCTYPE entity expansion; requires parsing attacker-controlled XML with DOCTYPE, which no production code path does"
     },
     {
       "id": "GHSA-m7jm-9gc2-mpf2",
       "package": "fast-xml-parser",
-      "reason": "Entity encoding bypass via regex injection — same path as GHSA-jmr7-xgp7-cmfj"
+      "reason": "Entity encoding bypass via regex injection in DOCTYPE entity names; requires parsing attacker-controlled XML, which no production code path does"
     },
     {
       "id": "GHSA-8gc5-j5rx-235r",
       "package": "fast-xml-parser",
-      "reason": "Numeric entity expansion bypass (incomplete fix for CVE-2026-26278) — transitive via AWS SDK, no untrusted XML parsing"
+      "reason": "Numeric entity expansion bypass; requires parsing attacker-controlled XML with expansion limits in play, which no production code path does"
     },
     {
       "id": "GHSA-r6q2-hw4h-h46w",
       "package": "node-tar",
-      "reason": "Race condition via Unicode Ligature Collisions on macOS APFS — transitive via NestJS/Apollo, tar not used in production"
+      "reason": "Race condition during tar extraction on macOS APFS; requires extracting attacker-controlled archives, which no production code path does"
     },
     {
       "id": "GHSA-34x7-hfp2-rc4v",
       "package": "node-tar",
-      "reason": "Arbitrary file creation via hardlink path traversal — same path as GHSA-r6q2-hw4h-h46w"
+      "reason": "Arbitrary file creation via hardlink path traversal during extraction; requires extracting attacker-controlled archives, which no production code path does"
     },
     {
       "id": "GHSA-83g3-92jg-28cx",
       "package": "node-tar",
-      "reason": "Arbitrary file read/write via hardlink target escape — same path as GHSA-r6q2-hw4h-h46w"
+      "reason": "Arbitrary file read/write via hardlink target escape during extraction; requires extracting attacker-controlled archives, which no production code path does"
     },
     {
       "id": "GHSA-3h5v-q93c-6h6q",
       "package": "ws",
-      "reason": "DoS via many HTTP headers — WebSocket servers behind API Gateway which limits headers"
+      "reason": "DoS via many HTTP headers on a `ws` WebSocket server; all deployed WebSocket endpoints sit behind gateways that cap request header count before traffic reaches the Node process"
     },
     {
       "id": "GHSA-w532-jxjh-hjhj",
       "cve": "CVE-2025-29907",
       "package": "jsPDF",
-      "reason": "ReDoS in addImage — controlled usage only, no user-controlled input to addImage"
+      "reason": "ReDoS in `addImage` triggered by attacker-controlled image input; `addImage` is only called with project-controlled image paths/buffers, never user input"
     },
     {
       "id": "GHSA-8mvj-3j78-4qmw",
       "cve": "CVE-2025-57810",
       "package": "jsPDF",
-      "reason": "DoS in addImage — controlled usage only, no user-controlled input to addImage"
+      "reason": "DoS in `addImage` triggered by attacker-controlled image input; `addImage` is only called with project-controlled image paths/buffers, never user input"
     },
     {
       "id": "GHSA-36jr-mh4h-2g58",
       "package": "d3-color",
-      "reason": "ReDoS — transitive via react-native-svg-charts, color parsing not user-controlled"
+      "reason": "ReDoS in color parser; requires attacker-controlled color strings and no runtime code path passes untrusted input to d3-color"
     },
     {
       "id": "GHSA-chqc-8p9q-pq6q",
       "package": "basic-ftp",
-      "reason": "FTP command injection via CRLF — devDep only via @lhci/cli > proxy-agent > pac-proxy-agent > get-uri, no FTP usage in production code"
-    },
-    {
-      "id": "GHSA-3mfm-83xf-c92r",
-      "package": "handlebars",
-      "reason": "JS injection via AST type confusion — devDeps only (ts-jest, standard-version), no fix available (4.7.8 is latest)"
-    },
-    {
-      "id": "GHSA-2w6w-674q-4c4q",
-      "package": "handlebars",
-      "reason": "JS injection via AST type confusion — devDeps only (ts-jest, standard-version), no fix available (4.7.8 is latest)"
-    },
-    {
-      "id": "GHSA-xjpj-3mr7-gcpf",
-      "package": "handlebars",
-      "reason": "JS injection in CLI precompiler — devDeps only (ts-jest, standard-version), CLI not used"
-    },
-    {
-      "id": "GHSA-xhpv-hc6g-r9c6",
-      "package": "handlebars",
-      "reason": "JS injection via AST type confusion with dynamic partial — devDeps only (ts-jest, standard-version), no fix available"
-    },
-    {
-      "id": "GHSA-9cx6-37pm-9jff",
-      "package": "handlebars",
-      "reason": "DoS via malformed decorator syntax — devDeps only (ts-jest, standard-version), no fix available (4.7.8 is latest)"
+      "reason": "FTP command injection via CRLF; no production code path uses FTP, and no untrusted input reaches FTP command construction"
     },
     {
       "id": "GHSA-r5fr-rjxr-66jc",
       "package": "lodash",
-      "reason": "Code injection via _.template — devDeps only (serverless-export-env, commitlint, standard-version), no user input to _.template"
+      "reason": "Code injection via `_.template` key-name interpolation; requires attacker-controlled input to `_.template`, which no runtime code path invokes"
     },
     {
       "id": "GHSA-jg4p-7fhp-p32p",
       "package": "@hapi/content",
-      "reason": "ReDoS in HTTP header parsing — devDeps only (serverless-offline), local dev tool not deployed"
+      "reason": "ReDoS in HTTP header parsing; only impacts tooling that parses untrusted HTTP headers, and no deployable code paths parse untrusted headers"
     },
     {
       "id": "GHSA-3p68-rc4w-qgx5",
       "package": "axios",
-      "reason": "NO_PROXY hostname normalization bypass — devDeps only (serverless), no user-controlled proxy config"
+      "reason": "SSRF via NO_PROXY hostname normalization bypass; requires attacker-controlled proxy config and no code path exposes proxy config to untrusted input"
     },
     {
       "id": "GHSA-fvcv-3m26-pcqx",
       "package": "axios",
-      "reason": "Cloud metadata exfiltration via header injection — devDeps only (serverless), no user-controlled headers"
+      "reason": "Cloud metadata exfiltration via header injection; requires attacker-controlled request headers and no code path sets axios headers from untrusted input"
     }
   ]
 }
