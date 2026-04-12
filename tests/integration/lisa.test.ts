@@ -179,6 +179,12 @@ describe("Lisa Integration Tests", () => {
       expect(await fs.pathExists(path.join(destDir, JEST_CONFIG_LOCAL))).toBe(
         false
       );
+      // Verify the pending-deletion gate fired: the file must have been
+      // *skipped* (never written to disk) rather than *deleted* (written then
+      // removed).  If the gate were absent, deleted would be 1 and skipped
+      // would be 0 for this file.
+      expect(result.counters.skipped).toBeGreaterThan(0);
+      expect(result.counters.deleted).toBe(0);
     });
 
     it("registers plugins at project scope when settings.json has enabledPlugins", async () => {
