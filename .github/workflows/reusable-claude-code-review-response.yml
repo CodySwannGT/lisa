@@ -49,7 +49,8 @@ jobs:
     if: |
       vars.ENABLE_CLAUDE_CODE_REVIEW_RESPONSE == 'true' &&
       inputs.review_user_login == 'coderabbitai[bot]' &&
-      !endsWith(inputs.pr_user_login, '[bot]')
+      inputs.pr_user_login != 'coderabbitai[bot]' &&
+      inputs.pr_user_login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
