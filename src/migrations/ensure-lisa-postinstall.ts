@@ -46,6 +46,16 @@ const LEGACY_LISA_INVOCATION_RE =
   /node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
 
 /**
+ * Guarded Lisa invocation pattern (CI guard directly gates the Lisa command).
+ * Used to detect when the migration has already been applied. Avoids false
+ * positives where the CI guard precedes an unrelated command (e.g.
+ * `[ -n "$CI" ] || patch-package && node ...lisa...`), which would leave Lisa
+ * effectively unguarded inside a `&&` chain.
+ */
+const GUARDED_LISA_INVOCATION_RE =
+  /\[ -n "\$CI" \] \|\| node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
+
+/**
  * Compose the new postinstall, prepending the Lisa invocation to any existing command.
  * If the existing script already contains a legacy Lisa invocation (no CI guard),
  * replace it in place with the guarded invocation rather than duplicating it.
@@ -118,14 +128,10 @@ export class EnsureLisaPostinstallMigration implements Migration {
       return (
         !!postinstall &&
         postinstall.includes(LISA_MARKER) &&
-        !postinstall.includes(CI_GUARD_PREFIX)
+        !GUARDED_LISA_INVOCATION_RE.test(postinstall)
       );
     }
-    if (
-      postinstall &&
-      postinstall.includes(LISA_MARKER) &&
-      postinstall.includes(CI_GUARD_PREFIX)
-    ) {
+    if (postinstall && GUARDED_LISA_INVOCATION_RE.test(postinstall)) {
       return false;
     }
     return true;

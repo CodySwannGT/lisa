@@ -149,6 +149,24 @@ describe("EnsureLisaPostinstallMigration", () => {
       expect(await migration.applies(createContext())).toBe(true);
     });
 
+    it("returns true when CI guard applies to a different command before unguarded Lisa (Node project)", async () => {
+      await writePackageJson({
+        scripts: {
+          postinstall: `[ -n "$CI" ] || patch-package && ${LEGACY_LISA_INVOCATION}`,
+        },
+      });
+      expect(await migration.applies(createContext())).toBe(true);
+    });
+
+    it("returns true when CI guard applies to a different command before unguarded Lisa (Rails project)", async () => {
+      await writePackageJson({
+        scripts: {
+          postinstall: `[ -n "$CI" ] || patch-package && ${LEGACY_LISA_INVOCATION}`,
+        },
+      });
+      expect(await migration.applies(createContext(["rails"]))).toBe(true);
+    });
+
     it("returns true for Rails project with package.json containing unguarded Lisa postinstall", async () => {
       await writePackageJson({
         scripts: { postinstall: LEGACY_LISA_INVOCATION },
