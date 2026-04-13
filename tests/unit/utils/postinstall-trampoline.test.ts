@@ -278,7 +278,17 @@ describe("postinstall-trampoline", () => {
   });
 
   describe("isRunningInCI", () => {
+    /**
+     * Clear VITEST / JEST_WORKER_ID so the CI detection branches can run
+     * under a test runner. The afterEach hook restores them from originalEnv.
+     */
+    function clearTestRunnerEnv(): void {
+      delete process.env.VITEST;
+      delete process.env.JEST_WORKER_ID;
+    }
+
     it("returns true when CI=true", () => {
+      clearTestRunnerEnv();
       process.env.CI = "true";
       delete process.env.GITHUB_ACTIONS;
       delete process.env.CONTINUOUS_INTEGRATION;
@@ -286,6 +296,7 @@ describe("postinstall-trampoline", () => {
     });
 
     it("returns true when CI=1", () => {
+      clearTestRunnerEnv();
       process.env.CI = "1";
       delete process.env.GITHUB_ACTIONS;
       delete process.env.CONTINUOUS_INTEGRATION;
@@ -293,6 +304,7 @@ describe("postinstall-trampoline", () => {
     });
 
     it("returns true when GITHUB_ACTIONS=true", () => {
+      clearTestRunnerEnv();
       delete process.env.CI;
       process.env.GITHUB_ACTIONS = "true";
       delete process.env.CONTINUOUS_INTEGRATION;
@@ -300,6 +312,7 @@ describe("postinstall-trampoline", () => {
     });
 
     it("returns true when CONTINUOUS_INTEGRATION=true", () => {
+      clearTestRunnerEnv();
       delete process.env.CI;
       delete process.env.GITHUB_ACTIONS;
       process.env.CONTINUOUS_INTEGRATION = "true";
@@ -307,12 +320,14 @@ describe("postinstall-trampoline", () => {
     });
 
     it("returns true when both CI and GITHUB_ACTIONS are set", () => {
+      clearTestRunnerEnv();
       process.env.CI = "true";
       process.env.GITHUB_ACTIONS = "true";
       expect(isRunningInCI()).toBe(true);
     });
 
     it("returns false when no CI env vars are set", () => {
+      clearTestRunnerEnv();
       delete process.env.CI;
       delete process.env.GITHUB_ACTIONS;
       delete process.env.CONTINUOUS_INTEGRATION;
@@ -320,9 +335,23 @@ describe("postinstall-trampoline", () => {
     });
 
     it("returns false when CI has an unrelated value", () => {
+      clearTestRunnerEnv();
       process.env.CI = "false";
       delete process.env.GITHUB_ACTIONS;
       delete process.env.CONTINUOUS_INTEGRATION;
+      expect(isRunningInCI()).toBe(false);
+    });
+
+    it("returns false under Vitest even when CI=true (avoids blocking test runs)", () => {
+      process.env.VITEST = "true";
+      process.env.CI = "true";
+      expect(isRunningInCI()).toBe(false);
+    });
+
+    it("returns false under Jest even when CI=true (avoids blocking test runs)", () => {
+      delete process.env.VITEST;
+      process.env.JEST_WORKER_ID = "1";
+      process.env.CI = "true";
       expect(isRunningInCI()).toBe(false);
     });
   });
@@ -421,6 +450,8 @@ describe("postinstall-trampoline", () => {
     });
 
     it("spawns a non-detached process that the parent awaits in CI", async () => {
+      delete process.env.VITEST;
+      delete process.env.JEST_WORKER_ID;
       process.env.CI = "true";
       delete process.env.GITHUB_ACTIONS;
       delete process.env.CONTINUOUS_INTEGRATION;
