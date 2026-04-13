@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.6](https://github.com/CodySwannGT/lisa/compare/vv1.85.5...v1.85.6) (2026-04-13)
+
+
+### Bug Fixes
+
+* **tsconfig,trampoline:** drop noUnusedLocals for ESLint, sync CI trampoline ([#386](https://github.com/CodySwannGT/lisa/issues/386)) ([0133a8a](https://github.com/CodySwannGT/lisa/commit/0133a8a76cce87ad43919075da24ee32390203ac))
+
 ### [1.85.5](https://github.com/CodySwannGT/lisa/compare/vv1.85.4...v1.85.5) (2026-04-12)
 
 
