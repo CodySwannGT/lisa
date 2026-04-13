@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.9](https://github.com/CodySwannGT/lisa/compare/vv1.85.8...v1.85.9) (2026-04-13)
+
+
+### Documentation
+
+* **intent-routing:** add orchestration section; collapse /plan:execute into /build ([#390](https://github.com/CodySwannGT/lisa/issues/390)) ([0309f86](https://github.com/CodySwannGT/lisa/commit/0309f866ae7a6192410636d46d4e37c546b9f6ab))
+
 ### [1.85.8](https://github.com/CodySwannGT/lisa/compare/vv1.85.7...v1.85.8) (2026-04-13)
 
 
