@@ -1,4 +1,4 @@
-/* eslint-disable max-lines-per-function -- config file needs a lot of lines */
+/* eslint-disable max-lines-per-function, max-lines -- config file needs a lot of lines */
 /**
  * ESLint 9 Flat Config - Shared Base
  *
@@ -225,6 +225,8 @@ export const getSharedRules = (thresholds: typeof defaultThresholds) => ({
       argsIgnorePattern: "^_",
       varsIgnorePattern: "^_|^unstable_settings$|^React$",
       caughtErrorsIgnorePattern: "^_",
+      destructuredArrayIgnorePattern: "^_",
+      ignoreRestSiblings: true,
     },
   ],
   // New rules in typescript-eslint v8 - disabled temporarily
@@ -424,4 +426,4 @@ export {
   sonarjs,
   tseslint,
 };
-/* eslint-enable max-lines-per-function -- config file needs a lot of lines */
+/* eslint-enable max-lines-per-function, max-lines -- config file needs a lot of lines */
