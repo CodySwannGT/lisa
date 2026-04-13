@@ -129,6 +129,26 @@ export function isRunningAsTrampoline(): boolean {
 }
 
 /**
+ * Detect whether Lisa is running inside a CI environment.
+ *
+ * Returns false when running inside a Vitest or Jest test runner, even if
+ * `CI=true` is set, because test runners are not package-manager processes
+ * and the trampoline's parent-liveness check would never terminate.
+ * @returns true when common CI env vars indicate we're in a CI runner AND we
+ *   are not currently inside a test runner process
+ */
+export function isRunningInCI(): boolean {
+  if (readEnv("VITEST") !== undefined) return false;
+  if (readEnv("JEST_WORKER_ID") !== undefined) return false;
+  return (
+    readEnv("CI") === "true" ||
+    readEnv("CI") === "1" ||
+    readEnv("GITHUB_ACTIONS") === "true" ||
+    readEnv("CONTINUOUS_INTEGRATION") === "true"
+  );
+}
+
+/**
  * Decide whether Lisa should spawn a post-install reconciliation trampoline.
  *
  * Background: `bun add` (and similar mutations in other package managers) reads
@@ -217,19 +237,32 @@ export function hashFile(filePath: string): string | null {
 }
 
 /**
- * Spawn a fully detached child process that waits for the parent package manager
- * to exit, then re-runs Lisa to reconcile package.json. The child is detached
- * (independent process group, stdio ignored, unref'd) so the parent package
- * manager does not wait for it.
+ * Spawn a reconciliation child process that waits for the parent package manager
+ * to exit, then re-runs Lisa to reconcile package.json.
+ *
+ * The child is always spawned fully detached (independent process group, stdio
+ * ignored, unref'd) so the parent package manager can exit normally. The
+ * trampoline child then detects the parent exiting and re-runs Lisa after the
+ * package manager has finished writing package.json.
+ *
+ * A blocking (non-detached) CI variant was previously attempted so that the
+ * parent would wait for reconciliation before the next CI step ran. However,
+ * this created a circular deadlock: the package manager blocks waiting for Lisa
+ * (postinstall), Lisa blocks waiting for the trampoline child, and the
+ * trampoline child polls `parentPid` (the package manager) waiting for it to
+ * exit — a wait that can never complete. After the 120 s `MAX_WAIT_MS` timeout
+ * the child exits without running reconciliation at all. Always using the
+ * detached pattern avoids this deadlock and ensures reconciliation actually runs.
  * @param projectDir - Absolute path to the project directory Lisa will reconcile
  * @param lisaDistDir - Absolute path to Lisa's dist directory (where index.js lives)
  * @param parentPid - PID of the package-manager process to wait on (usually process.ppid)
+ * @returns Promise that resolves immediately after spawning the detached child
  */
-export function scheduleReconciliationChild(
+export async function scheduleReconciliationChild(
   projectDir: string,
   lisaDistDir: string,
   parentPid: number
-): void {
+): Promise<void> {
   const nodeBin = process.execPath;
   const lisaEntry = path.join(lisaDistDir, "index.js");
 
@@ -257,6 +290,9 @@ export function scheduleReconciliationChild(
       [TRAMPOLINE_ENV_VAR]: "1",
     },
   });
+
+  // Fully detach so the parent package manager can exit. The child's
+  // waitForParent() will detect the exit and trigger reconciliation.
   child.unref();
 }
 
