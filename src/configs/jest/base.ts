@@ -26,6 +26,28 @@ export const defaultThresholds: Config["coverageThreshold"] = {
 };
 
 /**
+ * Returns the extra `testPathIgnorePatterns` entries a stack config
+ * should add to skip tests that live inside `.claude/worktrees/`.
+ *
+ * When jest runs from the primary checkout, tests inside worktrees
+ * should be skipped — each worktree has its own jest run. When jest
+ * runs from INSIDE a worktree (rootDir *is* the worktree), the same
+ * pattern would match every test path and jest would find zero tests.
+ * This helper returns `["/.claude/worktrees/"]` only when the current
+ * working directory is outside a worktree, so each stack can spread
+ * it into its own `testPathIgnorePatterns` without hand-rolling the
+ * conditional.
+ * @returns Single-entry array with the worktree ignore pattern, or an empty array when already inside a worktree.
+ */
+export function worktreeTestPathIgnorePatterns(): readonly string[] {
+  const isInsideWorktree = /[/\\]\.claude[/\\]worktrees(?:[/\\]|$)/.test(
+    process.cwd()
+  );
+
+  return isInsideWorktree ? [] : ["/.claude/worktrees/"];
+}
+
+/**
  * Default patterns to exclude from coverage collection.
  * Common across all stacks — stack-specific configs extend this list.
  */

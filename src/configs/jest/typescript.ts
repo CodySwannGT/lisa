@@ -14,6 +14,7 @@ import {
   defaultThresholds,
   mergeConfigs,
   mergeThresholds,
+  worktreeTestPathIgnorePatterns,
 } from "./base.js";
 
 // Re-export base utilities for stack-specific configs to use
@@ -22,6 +23,7 @@ export {
   defaultThresholds,
   mergeConfigs,
   mergeThresholds,
+  worktreeTestPathIgnorePatterns,
 };
 
 /**
@@ -46,7 +48,11 @@ export const getTypescriptJestConfig = ({
   preset: "ts-jest/presets/default-esm",
   testEnvironment: "node",
   testMatch: ["<rootDir>/tests/**/*.test.ts", "<rootDir>/src/**/*.test.ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/dist/",
+    ...worktreeTestPathIgnorePatterns(),
+  ],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
