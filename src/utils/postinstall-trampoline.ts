@@ -135,9 +135,18 @@ export function isRunningAsTrampoline(): boolean {
  * trampoline reconciliation. Outside CI (interactive `bun add`) we keep the
  * detached behaviour — the package manager would otherwise wait on Lisa and
  * never return control to the user.
- * @returns true when common CI env vars indicate we're in a CI runner
+ *
+ * Vitest/Jest runs inside CI pipelines also set CI=true, but Lisa itself runs
+ * as a library inside those tests (never as a postinstall lifecycle script),
+ * so `VITEST` / `JEST_WORKER_ID` short-circuit sync mode to avoid blocking the
+ * test runner on a child that is waiting for a parent PID that does not exist
+ * in its form (the test runner is the parent, and it never exits).
+ * @returns true when common CI env vars indicate we're in a CI runner AND we
+ *   are not currently inside a test runner process
  */
 export function isRunningInCI(): boolean {
+  if (readEnv("VITEST") !== undefined) return false;
+  if (readEnv("JEST_WORKER_ID") !== undefined) return false;
   return (
     readEnv("CI") === "true" ||
     readEnv("CI") === "1" ||
