@@ -8,8 +8,8 @@ import type {
 } from "./migration.interface.js";
 
 const PACKAGE_JSON = "package.json";
-const LISA_INVOCATION =
-  "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true";
+const CI_GUARD_PREFIX = '[ -n "$CI" ] || ';
+const LISA_INVOCATION = `${CI_GUARD_PREFIX}node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true`;
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
 
 /**
@@ -38,7 +38,17 @@ async function readPackageJson(
 }
 
 /**
- * Compose the new postinstall, prepending the Lisa invocation to any existing command
+ * Legacy Lisa invocation pattern (without CI guard). Existing projects may
+ * have this form chained with other commands; we detect and replace it so
+ * the CI guard is introduced without duplicating the invocation.
+ */
+const LEGACY_LISA_INVOCATION_RE =
+  /node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
+
+/**
+ * Compose the new postinstall, prepending the Lisa invocation to any existing command.
+ * If the existing script already contains a legacy Lisa invocation (no CI guard),
+ * replace it in place with the guarded invocation rather than duplicating it.
  * @param existing - Existing postinstall script (may be undefined)
  * @returns The composed postinstall script
  */
@@ -46,6 +56,9 @@ function composePostinstall(existing: string | undefined): string {
   const trimmed = existing?.trim();
   if (!trimmed) {
     return LISA_INVOCATION;
+  }
+  if (trimmed.includes(LISA_MARKER)) {
+    return trimmed.replace(LEGACY_LISA_INVOCATION_RE, LISA_INVOCATION);
   }
   return `${LISA_INVOCATION} && ${trimmed}`;
 }
@@ -95,7 +108,11 @@ export class EnsureLisaPostinstallMigration implements Migration {
       return false;
     }
     const postinstall = pkg.scripts?.postinstall;
-    if (postinstall && postinstall.includes(LISA_MARKER)) {
+    if (
+      postinstall &&
+      postinstall.includes(LISA_MARKER) &&
+      postinstall.includes(CI_GUARD_PREFIX)
+    ) {
       return false;
     }
     return true;
