@@ -129,6 +129,24 @@ export function isRunningAsTrampoline(): boolean {
 }
 
 /**
+ * Detect whether Lisa is running inside a CI environment. In CI we want the
+ * trampoline to run synchronously (parent blocks until child exits) so that the
+ * next workflow step (e.g. `bun run lint`) does not race with the still-running
+ * trampoline reconciliation. Outside CI (interactive `bun add`) we keep the
+ * detached behaviour — the package manager would otherwise wait on Lisa and
+ * never return control to the user.
+ * @returns true when common CI env vars indicate we're in a CI runner
+ */
+export function isRunningInCI(): boolean {
+  return (
+    readEnv("CI") === "true" ||
+    readEnv("CI") === "1" ||
+    readEnv("GITHUB_ACTIONS") === "true" ||
+    readEnv("CONTINUOUS_INTEGRATION") === "true"
+  );
+}
+
+/**
  * Decide whether Lisa should spawn a post-install reconciliation trampoline.
  *
  * Background: `bun add` (and similar mutations in other package managers) reads
@@ -217,21 +235,30 @@ export function hashFile(filePath: string): string | null {
 }
 
 /**
- * Spawn a fully detached child process that waits for the parent package manager
- * to exit, then re-runs Lisa to reconcile package.json. The child is detached
- * (independent process group, stdio ignored, unref'd) so the parent package
- * manager does not wait for it.
+ * Spawn a reconciliation child process that waits for the parent package manager
+ * to exit, then re-runs Lisa to reconcile package.json.
+ *
+ * In CI (detected via `isRunningInCI()`) the child is spawned synchronously:
+ * `detached: false`, stdio inherited, and the parent awaits the child's exit.
+ * This prevents the next CI step (e.g. `bun run lint`) from starting while the
+ * trampoline is still overwriting templates.
+ *
+ * Outside CI the child is fully detached (independent process group, stdio
+ * ignored, unref'd) so the interactive `bun add` command returns immediately —
+ * otherwise the package manager would block until Lisa finished reconciling.
  * @param projectDir - Absolute path to the project directory Lisa will reconcile
  * @param lisaDistDir - Absolute path to Lisa's dist directory (where index.js lives)
  * @param parentPid - PID of the package-manager process to wait on (usually process.ppid)
+ * @returns Promise resolving when the child exits (CI mode) or immediately (detached mode)
  */
-export function scheduleReconciliationChild(
+export async function scheduleReconciliationChild(
   projectDir: string,
   lisaDistDir: string,
   parentPid: number
-): void {
+): Promise<void> {
   const nodeBin = process.execPath;
   const lisaEntry = path.join(lisaDistDir, "index.js");
+  const ci = isRunningInCI();
 
   const trampolineSource = buildTrampolineSource({
     parentPid,
@@ -247,8 +274,8 @@ export function scheduleReconciliationChild(
 
   const child = spawn(nodeBin, ["-e", trampolineSource], {
     cwd: projectDir,
-    detached: true,
-    stdio: "ignore",
+    detached: !ci,
+    stdio: ci ? "inherit" : "ignore",
     env: {
       ...inheritedEnv(),
       // Prevent the child from seeing package-manager lifecycle env vars that would
@@ -257,6 +284,19 @@ export function scheduleReconciliationChild(
       [TRAMPOLINE_ENV_VAR]: "1",
     },
   });
+
+  if (ci) {
+    // CI mode: block until the child finishes so the next workflow step sees a
+    // fully-reconciled project tree. We resolve on either exit or error — any
+    // failure is already reported via inherited stdio.
+    await new Promise<void>(resolve => {
+      child.on("exit", () => resolve());
+      child.on("error", () => resolve());
+    });
+    return;
+  }
+
+  // Interactive mode: fully detach so the parent package manager can exit.
   child.unref();
 }
 

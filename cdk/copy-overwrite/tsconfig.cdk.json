@@ -8,9 +8,7 @@
     "inlineSourceMap": true,
     "inlineSources": true,
     "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "strictPropertyInitialization": false
   },
   "include": ["lib/**/*", "bin/**/*", "test/**/*"]
 }
