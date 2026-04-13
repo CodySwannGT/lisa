@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.8](https://github.com/CodySwannGT/lisa/compare/vv1.85.7...v1.85.8) (2026-04-13)
+
+
+### Bug Fixes
+
+* **migrations:** apply CI guard to Rails projects with Node package.json ([#388](https://github.com/CodySwannGT/lisa/issues/388)) ([b6344d5](https://github.com/CodySwannGT/lisa/commit/b6344d54ce3bc2b9970f09f92d3a61359ff8917f))
+
+### [1.85.7](https://github.com/CodySwannGT/lisa/compare/vv1.85.6...v1.85.7) (2026-04-13)
+
+
+### Bug Fixes
+
+* **postinstall:** skip Lisa in CI, rely on PR diff for drift detection ([#387](https://github.com/CodySwannGT/lisa/issues/387)) ([1b92142](https://github.com/CodySwannGT/lisa/commit/1b921429f5b2b81a5c8a3c2c00eea3b7f6b49d20))
+
 ### [1.85.6](https://github.com/CodySwannGT/lisa/compare/vv1.85.5...v1.85.6) (2026-04-13)
 
 

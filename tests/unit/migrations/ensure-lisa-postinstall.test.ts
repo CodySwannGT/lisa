@@ -6,8 +6,9 @@ import { EnsureLisaPostinstallMigration } from "../../../src/migrations/ensure-l
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
-const LISA_INVOCATION =
+const LEGACY_LISA_INVOCATION =
   "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true";
+const LISA_INVOCATION = `[ -n "$CI" ] || ${LEGACY_LISA_INVOCATION}`;
 const PACKAGE_JSON = "package.json";
 const PATCH_PACKAGE = "patch-package";
 
@@ -131,6 +132,72 @@ describe("EnsureLisaPostinstallMigration", () => {
       });
       expect(await migration.applies(createContext())).toBe(false);
     });
+
+    it("returns true when postinstall contains legacy (unguarded) Lisa invocation", async () => {
+      await writePackageJson({
+        scripts: { postinstall: LEGACY_LISA_INVOCATION },
+      });
+      expect(await migration.applies(createContext())).toBe(true);
+    });
+
+    it("returns true when postinstall chains legacy Lisa invocation with other commands", async () => {
+      await writePackageJson({
+        scripts: {
+          postinstall: `${LEGACY_LISA_INVOCATION} && patch-package`,
+        },
+      });
+      expect(await migration.applies(createContext())).toBe(true);
+    });
+
+    it("returns true when CI guard applies to a different command before unguarded Lisa (Node project)", async () => {
+      await writePackageJson({
+        scripts: {
+          postinstall: `[ -n "$CI" ] || patch-package && ${LEGACY_LISA_INVOCATION}`,
+        },
+      });
+      expect(await migration.applies(createContext())).toBe(true);
+    });
+
+    it("returns true when CI guard applies to a different command before unguarded Lisa (Rails project)", async () => {
+      await writePackageJson({
+        scripts: {
+          postinstall: `[ -n "$CI" ] || patch-package && ${LEGACY_LISA_INVOCATION}`,
+        },
+      });
+      expect(await migration.applies(createContext(["rails"]))).toBe(true);
+    });
+
+    it("returns true for Rails project with package.json containing unguarded Lisa postinstall", async () => {
+      await writePackageJson({
+        scripts: { postinstall: LEGACY_LISA_INVOCATION },
+      });
+      expect(await migration.applies(createContext(["rails"]))).toBe(true);
+    });
+
+    it("returns false for Rails project with package.json whose Lisa postinstall already has CI guard", async () => {
+      await writePackageJson({
+        scripts: { postinstall: LISA_INVOCATION },
+      });
+      expect(await migration.applies(createContext(["rails"]))).toBe(false);
+    });
+
+    it("returns false for Rails project without package.json", async () => {
+      expect(await migration.applies(createContext(["rails"]))).toBe(false);
+    });
+
+    it("returns false for Rails project with package.json but no Lisa postinstall marker", async () => {
+      await writePackageJson({
+        scripts: { postinstall: "bundle exec rails assets:precompile" },
+      });
+      expect(await migration.applies(createContext(["rails"]))).toBe(false);
+    });
+
+    it("returns true for non-Rails Node project with unguarded Lisa postinstall (existing behavior unchanged)", async () => {
+      await writePackageJson({
+        scripts: { postinstall: LEGACY_LISA_INVOCATION },
+      });
+      expect(await migration.applies(createContext(["typescript"]))).toBe(true);
+    });
   });
 
   describe("apply()", () => {
@@ -198,6 +265,59 @@ describe("EnsureLisaPostinstallMigration", () => {
 
       await migration.apply(createContext());
       const shouldRunAgain = await migration.applies(createContext());
+      expect(shouldRunAgain).toBe(false);
+    });
+
+    it("replaces legacy (unguarded) Lisa invocation with CI-guarded form", async () => {
+      await writePackageJson({
+        scripts: { postinstall: LEGACY_LISA_INVOCATION },
+      });
+
+      const result = await migration.apply(createContext());
+
+      expect(result.action).toBe("applied");
+      const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
+      expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
+    });
+
+    it("replaces legacy Lisa invocation preserving chained commands", async () => {
+      await writePackageJson({
+        scripts: {
+          postinstall: `${LEGACY_LISA_INVOCATION} && patch-package`,
+        },
+      });
+
+      const result = await migration.apply(createContext());
+
+      expect(result.action).toBe("applied");
+      const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
+      expect(pkg.scripts.postinstall).toBe(
+        `${LISA_INVOCATION} && patch-package`
+      );
+    });
+
+    it("migrating legacy form is idempotent on re-run", async () => {
+      await writePackageJson({
+        scripts: { postinstall: LEGACY_LISA_INVOCATION },
+      });
+
+      await migration.apply(createContext());
+      const shouldRunAgain = await migration.applies(createContext());
+      expect(shouldRunAgain).toBe(false);
+    });
+
+    it("adds CI guard to Rails project with unguarded Lisa postinstall", async () => {
+      await writePackageJson({
+        scripts: { postinstall: LEGACY_LISA_INVOCATION },
+      });
+
+      const result = await migration.apply(createContext(["rails"]));
+
+      expect(result.action).toBe("applied");
+      const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
+      expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
+
+      const shouldRunAgain = await migration.applies(createContext(["rails"]));
       expect(shouldRunAgain).toBe(false);
     });
   });
