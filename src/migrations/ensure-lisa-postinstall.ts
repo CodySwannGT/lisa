@@ -96,18 +96,31 @@ export class EnsureLisaPostinstallMigration implements Migration {
 
   /**
    * Check whether this migration should run on the project
+   *
+   * Primary path: Node project types (typescript, expo, nestjs, cdk, npm-package)
+   * with a package.json whose postinstall lacks the CI-guarded Lisa invocation.
+   *
+   * Fallback path: non-Node projects (e.g. Rails-only) that nevertheless ship a
+   * package.json containing a legacy Lisa postinstall (unguarded). These were
+   * written by an older Lisa version before the CI guard existed and still need
+   * an upgrade. Projects without a package.json are untouched.
    * @param ctx - Migration context
-   * @returns True when a Node project is missing the Lisa invocation in postinstall
+   * @returns True when a Node project is missing the Lisa invocation in postinstall,
+   *   or when a non-Node project has an unguarded legacy Lisa postinstall
    */
   async applies(ctx: MigrationContext): Promise<boolean> {
-    if (!hasNodePostinstallType(ctx.detectedTypes)) {
-      return false;
-    }
     const pkg = await readPackageJson(ctx.projectDir);
     if (!pkg) {
       return false;
     }
     const postinstall = pkg.scripts?.postinstall;
+    if (!hasNodePostinstallType(ctx.detectedTypes)) {
+      return (
+        !!postinstall &&
+        postinstall.includes(LISA_MARKER) &&
+        !postinstall.includes(CI_GUARD_PREFIX)
+      );
+    }
     if (
       postinstall &&
       postinstall.includes(LISA_MARKER) &&
