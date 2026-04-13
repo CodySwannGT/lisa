@@ -3,6 +3,7 @@ import {
   defaultCoverageExclusions,
   mergeThresholds,
   mergeConfigs,
+  worktreeTestPathIgnorePatterns,
 } from "../../../src/configs/jest/base.js";
 
 const TESTS_GLOB = "<rootDir>/tests/**/*.test.ts";
@@ -218,6 +219,32 @@ describe("jest.base", () => {
       const result = mergeConfigs();
 
       expect(result).toEqual({});
+    });
+  });
+
+  describe("worktreeTestPathIgnorePatterns", () => {
+    const originalCwd = process.cwd;
+
+    afterEach(() => {
+      process.cwd = originalCwd;
+    });
+
+    it("returns the worktree ignore pattern when cwd is outside a worktree", () => {
+      process.cwd = () => "/some/project";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual(["/.claude/worktrees/"]);
+    });
+
+    it("returns an empty array when cwd is inside a .claude/worktrees path", () => {
+      process.cwd = () => "/some/project/.claude/worktrees/feature-branch";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual([]);
+    });
+
+    it("detects worktree in any path segment", () => {
+      process.cwd = () => "/Users/dev/project/.claude/worktrees/SE-123/subdir";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual([]);
     });
   });
 });
