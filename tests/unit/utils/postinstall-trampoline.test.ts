@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Test file requires extensive test cases covering CI + interactive trampoline modes */
 /**
  * Unit tests for the postinstall reconciliation trampoline.
  *
@@ -24,6 +25,7 @@ import {
   hashFile,
   isRunningAsLifecycleScript,
   isRunningAsTrampoline,
+  isRunningInCI,
   shouldSchedulePostinstallReconciliation,
 } from "../../../src/utils/postinstall-trampoline.js";
 
@@ -43,6 +45,8 @@ const YARN_LOCK = "yarn.lock";
 const IGNORE_SCRIPTS = "--ignore-scripts";
 const INSTALL_CMD = "install";
 const PACKAGE_JSON = "package.json";
+const CHILD_PROCESS_MODULE = "node:child_process";
+const TRAMPOLINE_MODULE = "../../../src/utils/postinstall-trampoline.js";
 
 describe("postinstall-trampoline", () => {
   const originalEnv = { ...process.env };
@@ -273,18 +277,140 @@ describe("postinstall-trampoline", () => {
     });
   });
 
-  describe("scheduleReconciliationChild", () => {
-    it("spawns a detached node -e process that can be unref'd", async () => {
-      // Use a dynamic mock for child_process.spawn so we can observe the call.
-      const unrefSpy = vi.fn();
-      const spawnSpy = vi.fn().mockReturnValue({ unref: unrefSpy });
-      vi.doMock("node:child_process", () => ({ spawn: spawnSpy }));
-      // Re-import module after mock so the in-module spawn binding picks it up.
-      vi.resetModules();
-      const fresh =
-        await import("../../../src/utils/postinstall-trampoline.js");
+  describe("isRunningInCI", () => {
+    /**
+     * Clear VITEST / JEST_WORKER_ID so the CI detection branches can run
+     * under a test runner. The afterEach hook restores them from originalEnv.
+     */
+    function clearTestRunnerEnv(): void {
+      delete process.env.VITEST;
+      delete process.env.JEST_WORKER_ID;
+    }
 
-      fresh.scheduleReconciliationChild(FAKE_PROJECT_DIR, FAKE_LISA_DIST, 4242);
+    it("returns true when CI=true", () => {
+      clearTestRunnerEnv();
+      process.env.CI = "true";
+      delete process.env.GITHUB_ACTIONS;
+      delete process.env.CONTINUOUS_INTEGRATION;
+      expect(isRunningInCI()).toBe(true);
+    });
+
+    it("returns true when CI=1", () => {
+      clearTestRunnerEnv();
+      process.env.CI = "1";
+      delete process.env.GITHUB_ACTIONS;
+      delete process.env.CONTINUOUS_INTEGRATION;
+      expect(isRunningInCI()).toBe(true);
+    });
+
+    it("returns true when GITHUB_ACTIONS=true", () => {
+      clearTestRunnerEnv();
+      delete process.env.CI;
+      process.env.GITHUB_ACTIONS = "true";
+      delete process.env.CONTINUOUS_INTEGRATION;
+      expect(isRunningInCI()).toBe(true);
+    });
+
+    it("returns true when CONTINUOUS_INTEGRATION=true", () => {
+      clearTestRunnerEnv();
+      delete process.env.CI;
+      delete process.env.GITHUB_ACTIONS;
+      process.env.CONTINUOUS_INTEGRATION = "true";
+      expect(isRunningInCI()).toBe(true);
+    });
+
+    it("returns true when both CI and GITHUB_ACTIONS are set", () => {
+      clearTestRunnerEnv();
+      process.env.CI = "true";
+      process.env.GITHUB_ACTIONS = "true";
+      expect(isRunningInCI()).toBe(true);
+    });
+
+    it("returns false when no CI env vars are set", () => {
+      clearTestRunnerEnv();
+      delete process.env.CI;
+      delete process.env.GITHUB_ACTIONS;
+      delete process.env.CONTINUOUS_INTEGRATION;
+      expect(isRunningInCI()).toBe(false);
+    });
+
+    it("returns false when CI has an unrelated value", () => {
+      clearTestRunnerEnv();
+      process.env.CI = "false";
+      delete process.env.GITHUB_ACTIONS;
+      delete process.env.CONTINUOUS_INTEGRATION;
+      expect(isRunningInCI()).toBe(false);
+    });
+
+    it("returns false under Vitest even when CI=true (avoids blocking test runs)", () => {
+      process.env.VITEST = "true";
+      process.env.CI = "true";
+      expect(isRunningInCI()).toBe(false);
+    });
+
+    it("returns false under Jest even when CI=true (avoids blocking test runs)", () => {
+      delete process.env.VITEST;
+      process.env.JEST_WORKER_ID = "1";
+      process.env.CI = "true";
+      expect(isRunningInCI()).toBe(false);
+    });
+  });
+
+  describe("scheduleReconciliationChild", () => {
+    /**
+     * Minimal fake ChildProcess good enough for the assertions below.
+     * Exposes an event emitter (`on`) used for the CI-mode await, plus
+     * `unref` so the detached-mode branch can verify the call.
+     */
+    type FakeChild = {
+      on: ReturnType<typeof vi.fn>;
+      unref: ReturnType<typeof vi.fn>;
+      emit: (event: string, ...args: readonly unknown[]) => void;
+    };
+
+    /**
+     * Build a fake ChildProcess that records `.on` registrations and lets
+     * tests fire them synchronously via `.emit`.
+     * @returns Fake child + its unref/on spies
+     */
+    function makeFakeChild(): FakeChild {
+      const handlers: Record<
+        string,
+        Array<(...args: readonly unknown[]) => void>
+      > = {};
+      const on = vi.fn(
+        (event: string, handler: (...args: unknown[]) => void) => {
+          const list = handlers[event] ?? [];
+          list.push(handler);
+          handlers[event] = list;
+        }
+      );
+      const unref = vi.fn();
+      return {
+        on,
+        unref,
+        emit: (event, ...args) => {
+          for (const h of handlers[event] ?? []) h(...args);
+        },
+      };
+    }
+
+    it("spawns a detached process with unref outside CI (interactive mode)", async () => {
+      delete process.env.CI;
+      delete process.env.GITHUB_ACTIONS;
+      delete process.env.CONTINUOUS_INTEGRATION;
+
+      const child = makeFakeChild();
+      const spawnSpy = vi.fn().mockReturnValue(child);
+      vi.doMock(CHILD_PROCESS_MODULE, () => ({ spawn: spawnSpy }));
+      vi.resetModules();
+      const fresh = await import(TRAMPOLINE_MODULE);
+
+      await fresh.scheduleReconciliationChild(
+        FAKE_PROJECT_DIR,
+        FAKE_LISA_DIST,
+        4242
+      );
 
       expect(spawnSpy).toHaveBeenCalledTimes(1);
       const [nodeBin, args, opts] = spawnSpy.mock.calls[0] as [
@@ -314,10 +440,58 @@ describe("postinstall-trampoline", () => {
       expect(opts.env?.LISA_POSTINSTALL_TRAMPOLINE).toBe("1");
       // Lifecycle env stripped so the re-run is not misidentified as postinstall
       expect(opts.env?.npm_package_json).toBe("");
-      expect(unrefSpy).toHaveBeenCalledTimes(1);
+      expect(child.unref).toHaveBeenCalledTimes(1);
+      // Detached mode must not wait on the child process — never registers an
+      // exit listener because the parent package manager needs to return.
+      expect(child.on).not.toHaveBeenCalled();
 
-      vi.doUnmock("node:child_process");
+      vi.doUnmock(CHILD_PROCESS_MODULE);
+      vi.resetModules();
+    });
+
+    it("spawns a detached process with unref in CI (avoids deadlock with package manager)", async () => {
+      // CI mode must NOT block waiting for the trampoline child. The package
+      // manager (PM) is blocked waiting for Lisa (postinstall) to return, and
+      // the trampoline child waits for the PM to exit before running — creating
+      // a circular wait that resolves only after the 120 s timeout, at which
+      // point the trampoline exits WITHOUT running reconciliation.
+      //
+      // Fix: CI mode behaves the same as interactive mode (detached + unref'd)
+      // so the PM can exit, the trampoline detects the exit, and reconciliation
+      // actually runs.
+      process.env.CI = "true";
+      delete process.env.GITHUB_ACTIONS;
+      delete process.env.CONTINUOUS_INTEGRATION;
+
+      const child = makeFakeChild();
+      const spawnSpy = vi.fn().mockReturnValue(child);
+      vi.doMock(CHILD_PROCESS_MODULE, () => ({ spawn: spawnSpy }));
+      vi.resetModules();
+      const fresh = await import(TRAMPOLINE_MODULE);
+
+      await fresh.scheduleReconciliationChild(
+        FAKE_PROJECT_DIR,
+        FAKE_LISA_DIST,
+        4242
+      );
+
+      expect(spawnSpy).toHaveBeenCalledTimes(1);
+      const opts = spawnSpy.mock.calls[0]?.[2] as {
+        detached?: boolean;
+        stdio?: string;
+      };
+      // Must be fully detached so Lisa can return to the PM immediately and the
+      // PM can exit (which is what the trampoline's waitForParent() is waiting for).
+      expect(opts.detached).toBe(true);
+      expect(opts.stdio).toBe("ignore");
+      expect(child.unref).toHaveBeenCalledTimes(1);
+      // Must NOT register a blocking exit listener — that would re-introduce
+      // the circular wait.
+      expect(child.on).not.toHaveBeenCalled();
+
+      vi.doUnmock(CHILD_PROCESS_MODULE);
       vi.resetModules();
     });
   });
 });
+/* eslint-enable max-lines -- Re-enable after comprehensive test file */
