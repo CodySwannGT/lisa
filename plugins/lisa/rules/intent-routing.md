@@ -273,7 +273,7 @@ When using a team:
 
 1. Create one team per top-level flow invocation. Do not nest teams for sub-flows — sub-flow steps become tasks within the existing team.
 2. Express parallelism with `blockedBy`. The Review sub-flow's four specialists are independent; the "implement valid suggestions" task is `blockedBy` all four.
-3. On every TaskUpdate that sets `owner`, also store it in `metadata.owner` (see [Agent Team Workflows](../../.claude/rules/PROJECT_RULES.md) for the dual-storage pattern and post-compaction recovery).
+3. On every TaskUpdate that sets `owner`, also store it in `metadata.owner` so the assignment survives context compaction.
 4. Re-read TaskList after any compaction event before assigning new work.
 
 ### One-shot Sub-agents (for short or single-agent flows)
