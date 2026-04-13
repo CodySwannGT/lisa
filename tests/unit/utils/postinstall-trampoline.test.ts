@@ -449,7 +449,7 @@ describe("postinstall-trampoline", () => {
       vi.resetModules();
     });
 
-    it("spawns a non-detached process that the parent awaits in CI", async () => {
+    it("spawns a detached process with unref in CI (avoids deadlock in lifecycle scripts)", async () => {
       delete process.env.VITEST;
       delete process.env.JEST_WORKER_ID;
       process.env.CI = "true";
@@ -462,7 +462,7 @@ describe("postinstall-trampoline", () => {
       vi.resetModules();
       const fresh = await import(TRAMPOLINE_MODULE);
 
-      const done = fresh.scheduleReconciliationChild(
+      await fresh.scheduleReconciliationChild(
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
         4242
@@ -473,17 +473,16 @@ describe("postinstall-trampoline", () => {
         detached?: boolean;
         stdio?: string;
       };
-      // In CI we run synchronously: not detached, stdio inherited, parent blocks.
-      expect(opts.detached).toBe(false);
-      expect(opts.stdio).toBe("inherit");
-      // Parent must register an exit listener (that's how we block until done).
-      expect(child.on).toHaveBeenCalledWith("exit", expect.any(Function));
-      // `unref` would defeat the whole point of awaiting; must not be called.
-      expect(child.unref).not.toHaveBeenCalled();
-
-      // Fire exit so the awaited promise resolves and the test completes.
-      child.emit("exit", 0);
-      await done;
+      // In CI we must still detach to avoid a deadlock in lifecycle scripts:
+      // the package manager waits for Lisa (postinstall) to exit, Lisa would
+      // block waiting for the child, and the child polls for the package manager
+      // to exit — creating a circular wait broken only by the 120 s timeout.
+      expect(opts.detached).toBe(true);
+      expect(opts.stdio).toBe("ignore");
+      // unref must be called so Lisa can exit and hand control back to the PM.
+      expect(child.unref).toHaveBeenCalledTimes(1);
+      // No exit listener: we must not await the child in CI lifecycle scripts.
+      expect(child.on).not.toHaveBeenCalled();
 
       vi.doUnmock(CHILD_PROCESS_MODULE);
       vi.resetModules();
