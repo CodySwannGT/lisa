@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.10](https://github.com/CodySwannGT/lisa/compare/vv1.85.9...v1.85.10) (2026-04-13)
+
+
+### Bug Fixes
+
+* **jest:** skip worktree ignore when running from inside a worktree ([#389](https://github.com/CodySwannGT/lisa/issues/389)) ([0763085](https://github.com/CodySwannGT/lisa/commit/07630858fbe7c87e0562e7da4659c85bdc54f74c))
+
 ### [1.85.9](https://github.com/CodySwannGT/lisa/compare/vv1.85.8...v1.85.9) (2026-04-13)
 
 
