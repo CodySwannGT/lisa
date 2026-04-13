@@ -1,6 +1,6 @@
 {
   "name": "lisa-expo",
-  "version": "1.85.8",
+  "version": "1.85.9",
   "description": "Expo/React Native-specific skills, agents, rules, and MCP servers",
   "author": {
     "name": "Cody Swann"

@@ -43,15 +43,44 @@ The `--no-spec` flag is used because this project follows TDD (Test-Driven Devel
 
 ## Database Migrations
 
+### Entity Files Are the Source of Truth
+
+In this project, **entity files (`src/database/entities/*.ts`) are the single source of truth for the database schema**. Migrations are a derived artifact — TypeORM diffs the entity metadata against the current database and emits the migration for you. The workflow is always:
+
+1. Edit the entity file to express the desired schema.
+2. Run `bun run migration:generate --name=<DescriptiveName>` to produce the migration from the diff.
+3. Review the generated migration, then commit both the entity change and the migration together.
+
+If a schema change cannot be expressed via the entity model, the entity model is wrong — fix the entity, do not hand-write the migration.
+
 ### Never Create Migration Files Manually
 
-Never create or modify a TypeORM migration file directly. Instead, use `migration:generate` from `package.json`:
+Never create or modify a TypeORM migration file directly. Use `migration:generate` from `package.json`:
 
 ```bash
-bun run migration:generate
+bun run migration:generate --name=<DescriptiveName>
 ```
 
-**Exception**: Direct modification is allowed only for changes that don't break syncing with entity files (e.g., adding indexes, comments, or non-structural changes).
+### Out-of-Band Migrations (Seed Data, Backfills)
+
+Some changes genuinely cannot be derived from entity diffs:
+
+- **Seed data** (reference rows, lookup tables, initial admin user)
+- **Data backfills** (populating a new column from existing rows)
+- **Data transformations** (splitting a column, normalizing values)
+- **One-off cleanup** (deleting orphaned rows before a constraint is added)
+
+These are legitimate cases for a hand-written migration, but they are **out-of-band** — they bypass the entity-as-source-of-truth contract. When you encounter one:
+
+1. **Stop and tell the user.** Explain what change is needed and why it cannot be expressed via the entity model.
+2. **Get explicit approval** before writing the migration by hand.
+3. Document the rationale in the migration's class comment so future readers understand why this one was not generated.
+
+Do not silently hand-write a migration for a backfill or seed-data change. The user must know that the entity-as-source-of-truth contract is being intentionally bypassed for this case.
+
+### Enforcement
+
+The `lisa-nestjs` plugin ships a `PreToolUse` hook (`block-migration-edits.sh`) that blocks `Write`/`Edit` on any path matching `**/migrations/*.ts` or `**/migrations/*.js`. The block surfaces this rule's guidance to remind you to either (a) edit the entity instead, or (b) ask the user before proceeding with an out-of-band migration.
 
 ### Why Auto-Generation
 

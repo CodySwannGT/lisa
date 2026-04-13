@@ -1,9 +1,21 @@
 {
   "name": "lisa-nestjs",
-  "version": "1.85.8",
-  "description": "NestJS-specific skills (GraphQL, TypeORM)",
+  "version": "1.85.9",
+  "description": "NestJS-specific skills (GraphQL, TypeORM) and hooks (migration write-protection)",
   "author": {
     "name": "Cody Swann"
   },
-  "hooks": {}
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-migration-edits.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
