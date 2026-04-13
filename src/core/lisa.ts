@@ -529,11 +529,13 @@ export class Lisa {
    * the command and rewrite it at the end, clobbering any changes made by
    * postinstall scripts.
    *
-   * The trampoline runs synchronously in CI (so the next workflow step does
-   * not race the reconciliation) and fully detached in interactive use (so
-   * `bun add` returns control to the user). See
+   * A fully detached child process is spawned in all environments (including
+   * CI). The child waits for the package manager to exit, then re-runs Lisa.
+   * Blocking the parent on the child in CI creates a deadlock — the package
+   * manager waits for this postinstall script to return, this script would
+   * wait for the child, and the child waits for the package manager. See
    * utils/postinstall-trampoline.ts for details.
-   * @returns Promise that resolves when the child exits (CI) or immediately (detached)
+   * @returns Promise that resolves immediately after spawning the detached child
    */
   private async schedulePostinstallReconciliation(): Promise<void> {
     if (!shouldSchedulePostinstallReconciliation(this.config.dryRun)) {
