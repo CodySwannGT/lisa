@@ -165,7 +165,7 @@ Automatically fixes CI failures by having Claude analyze error logs and push fix
 Automatically triages CodeRabbit review comments and either fixes valid findings or replies to dismiss invalid ones.
 
 - Triggers when CodeRabbit submits a review (not per inline comment — once per review summary)
-- Skips PRs authored by bots to prevent bot-to-bot loops
+- Skips PRs authored by `coderabbitai[bot]` or `dependabot[bot]` to prevent bot-to-bot loops (PRs authored by `claude[bot]` or other bots are allowed)
 - For each review comment, Claude determines if the finding is valid or a misunderstanding
 - Valid findings: fixes the code and commits with conventional messages
 - Invalid findings: replies to the comment explaining why the suggestion does not apply
