@@ -515,7 +515,7 @@ export class Lisa {
       await this.finalize();
       this.printSummary();
       await this.printMigrationNotices(this.config.destDir);
-      this.schedulePostinstallReconciliation();
+      await this.schedulePostinstallReconciliation();
       return this.getSuccessResult();
     } catch (error) {
       return this.handleApplyError(error);
@@ -523,23 +523,24 @@ export class Lisa {
   }
 
   /**
-   * Schedule a detached reconciliation re-run when Lisa is invoked as a
-   * package-manager lifecycle script. This works around the fact that
-   * `bun add` (and similar package-manager mutations) cache package.json in
-   * memory at the start of the command and rewrite it at the end, clobbering
-   * any changes made by postinstall scripts.
+   * Schedule a reconciliation re-run when Lisa is invoked as a package-manager
+   * lifecycle script. Works around the fact that `bun add` (and similar
+   * package-manager mutations) cache package.json in memory at the start of
+   * the command and rewrite it at the end, clobbering any changes made by
+   * postinstall scripts.
    *
-   * The trampoline spawns a fully detached child that waits for the package
-   * manager to exit, then re-applies Lisa's merges. See
+   * The trampoline is always fully detached so the package manager can exit
+   * normally; the child then detects the exit and re-runs Lisa. See
    * utils/postinstall-trampoline.ts for details.
+   * @returns Promise that resolves immediately after the detached child is spawned
    */
-  private schedulePostinstallReconciliation(): void {
+  private async schedulePostinstallReconciliation(): Promise<void> {
     if (!shouldSchedulePostinstallReconciliation(this.config.dryRun)) {
       return;
     }
     try {
       const lisaDistDir = getLisaDistDir(import.meta.url);
-      scheduleReconciliationChild(
+      await scheduleReconciliationChild(
         this.config.destDir,
         lisaDistDir,
         process.ppid
