@@ -40,9 +40,11 @@ export const defaultThresholds: Config["coverageThreshold"] = {
  * @returns Single-entry array with the worktree ignore pattern, or an empty array when already inside a worktree.
  */
 export function worktreeTestPathIgnorePatterns(): readonly string[] {
-  return process.cwd().includes("/.claude/worktrees/")
-    ? []
-    : ["/.claude/worktrees/"];
+  const isInsideWorktree = /[/\\]\.claude[/\\]worktrees(?:[/\\]|$)/.test(
+    process.cwd()
+  );
+
+  return isInsideWorktree ? [] : ["/.claude/worktrees/"];
 }
 
 /**

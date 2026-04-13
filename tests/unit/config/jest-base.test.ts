@@ -246,5 +246,24 @@ describe("jest.base", () => {
 
       expect(worktreeTestPathIgnorePatterns()).toEqual([]);
     });
+
+    it("returns an empty array when cwd is a Windows-style worktree path", () => {
+      process.cwd = () => "C:\\projects\\.claude\\worktrees\\feature-branch";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual([]);
+    });
+
+    it("returns an empty array when cwd is a Windows worktree path with subdirectory", () => {
+      process.cwd = () =>
+        "C:\\Users\\dev\\project\\.claude\\worktrees\\SE-123\\subdir";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual([]);
+    });
+
+    it("returns the ignore pattern for a Windows-style path outside a worktree", () => {
+      process.cwd = () => "C:\\projects\\my-app";
+
+      expect(worktreeTestPathIgnorePatterns()).toEqual(["/.claude/worktrees/"]);
+    });
   });
 });
