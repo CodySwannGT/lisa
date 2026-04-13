@@ -46,6 +46,16 @@ const LEGACY_LISA_INVOCATION_RE =
   /node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
 
 /**
+ * Guarded Lisa invocation pattern (CI guard directly gates the Lisa command).
+ * Used to detect when the migration has already been applied. Avoids false
+ * positives where the CI guard precedes an unrelated command (e.g.
+ * `[ -n "$CI" ] || patch-package && node ...lisa...`), which would leave Lisa
+ * effectively unguarded inside a `&&` chain.
+ */
+const GUARDED_LISA_INVOCATION_RE =
+  /\[ -n "\$CI" \] \|\| node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
+
+/**
  * Compose the new postinstall, prepending the Lisa invocation to any existing command.
  * If the existing script already contains a legacy Lisa invocation (no CI guard),
  * replace it in place with the guarded invocation rather than duplicating it.
@@ -96,23 +106,32 @@ export class EnsureLisaPostinstallMigration implements Migration {
 
   /**
    * Check whether this migration should run on the project
+   *
+   * Primary path: Node project types (typescript, expo, nestjs, cdk, npm-package)
+   * with a package.json whose postinstall lacks the CI-guarded Lisa invocation.
+   *
+   * Fallback path: non-Node projects (e.g. Rails-only) that nevertheless ship a
+   * package.json containing a legacy Lisa postinstall (unguarded). These were
+   * written by an older Lisa version before the CI guard existed and still need
+   * an upgrade. Projects without a package.json are untouched.
    * @param ctx - Migration context
-   * @returns True when a Node project is missing the Lisa invocation in postinstall
+   * @returns True when a Node project is missing the Lisa invocation in postinstall,
+   *   or when a non-Node project has an unguarded legacy Lisa postinstall
    */
   async applies(ctx: MigrationContext): Promise<boolean> {
-    if (!hasNodePostinstallType(ctx.detectedTypes)) {
-      return false;
-    }
     const pkg = await readPackageJson(ctx.projectDir);
     if (!pkg) {
       return false;
     }
     const postinstall = pkg.scripts?.postinstall;
-    if (
-      postinstall &&
-      postinstall.includes(LISA_MARKER) &&
-      postinstall.includes(CI_GUARD_PREFIX)
-    ) {
+    if (!hasNodePostinstallType(ctx.detectedTypes)) {
+      return (
+        !!postinstall &&
+        postinstall.includes(LISA_MARKER) &&
+        !GUARDED_LISA_INVOCATION_RE.test(postinstall)
+      );
+    }
+    if (postinstall && GUARDED_LISA_INVOCATION_RE.test(postinstall)) {
       return false;
     }
     return true;
