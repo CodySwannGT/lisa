@@ -72,6 +72,13 @@ JIRA Discipline:
 Agent Behavior:
 - Never handle tasks yourself when working in a team of agents. Always delegate to a specialized agent.
 
+Pace:
+- Never rush. There is no pressure to finish quickly. Speed is not a measure of quality, and a fast wrong answer is worse than a slow correct one.
+- Take the time to read the relevant code in full, verify assumptions empirically, ask clarifying questions when something is ambiguous, and check your work before declaring it done.
+- Do not skip steps to save time — quality gates, verification, reading existing code, asking the user — these exist because shortcuts cost more than they save.
+- If a task feels like it's taking "too long," that is almost always a sign that the task is harder than it first appeared, not a sign that you should cut corners. Surface the difficulty to the user instead of compressing the work.
+- Optimize for being correct, thorough, and reversible. Time spent doing the work right is never wasted; time spent recovering from a rushed answer often is.
+
 NEVER:
 - Modify this file directly. To add a memory or learning, use the project's rules file or create a skill.
 - Directly modify files inside dependency directories (e.g. node_modules, .venv, vendor, target).
