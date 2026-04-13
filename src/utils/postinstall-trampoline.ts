@@ -129,18 +129,11 @@ export function isRunningAsTrampoline(): boolean {
 }
 
 /**
- * Detect whether Lisa is running inside a CI environment. In CI we want the
- * trampoline to run synchronously (parent blocks until child exits) so that the
- * next workflow step (e.g. `bun run lint`) does not race with the still-running
- * trampoline reconciliation. Outside CI (interactive `bun add`) we keep the
- * detached behaviour — the package manager would otherwise wait on Lisa and
- * never return control to the user.
+ * Detect whether Lisa is running inside a CI environment.
  *
- * Vitest/Jest runs inside CI pipelines also set CI=true, but Lisa itself runs
- * as a library inside those tests (never as a postinstall lifecycle script),
- * so `VITEST` / `JEST_WORKER_ID` short-circuit sync mode to avoid blocking the
- * test runner on a child that is waiting for a parent PID that does not exist
- * in its form (the test runner is the parent, and it never exits).
+ * Returns false when running inside a Vitest or Jest test runner, even if
+ * `CI=true` is set, because test runners are not package-manager processes
+ * and the trampoline's parent-liveness check would never terminate.
  * @returns true when common CI env vars indicate we're in a CI runner AND we
  *   are not currently inside a test runner process
  */
@@ -247,18 +240,23 @@ export function hashFile(filePath: string): string | null {
  * Spawn a reconciliation child process that waits for the parent package manager
  * to exit, then re-runs Lisa to reconcile package.json.
  *
- * In CI (detected via `isRunningInCI()`) the child is spawned synchronously:
- * `detached: false`, stdio inherited, and the parent awaits the child's exit.
- * This prevents the next CI step (e.g. `bun run lint`) from starting while the
- * trampoline is still overwriting templates.
+ * The child is always spawned fully detached (independent process group, stdio
+ * ignored, unref'd) so the parent package manager can exit normally. The
+ * trampoline child then detects the parent exiting and re-runs Lisa after the
+ * package manager has finished writing package.json.
  *
- * Outside CI the child is fully detached (independent process group, stdio
- * ignored, unref'd) so the interactive `bun add` command returns immediately —
- * otherwise the package manager would block until Lisa finished reconciling.
+ * A blocking (non-detached) CI variant was previously attempted so that the
+ * parent would wait for reconciliation before the next CI step ran. However,
+ * this created a circular deadlock: the package manager blocks waiting for Lisa
+ * (postinstall), Lisa blocks waiting for the trampoline child, and the
+ * trampoline child polls `parentPid` (the package manager) waiting for it to
+ * exit — a wait that can never complete. After the 120 s `MAX_WAIT_MS` timeout
+ * the child exits without running reconciliation at all. Always using the
+ * detached pattern avoids this deadlock and ensures reconciliation actually runs.
  * @param projectDir - Absolute path to the project directory Lisa will reconcile
  * @param lisaDistDir - Absolute path to Lisa's dist directory (where index.js lives)
  * @param parentPid - PID of the package-manager process to wait on (usually process.ppid)
- * @returns Promise resolving when the child exits (CI mode) or immediately (detached mode)
+ * @returns Promise that resolves immediately after spawning the detached child
  */
 export async function scheduleReconciliationChild(
   projectDir: string,
@@ -267,7 +265,6 @@ export async function scheduleReconciliationChild(
 ): Promise<void> {
   const nodeBin = process.execPath;
   const lisaEntry = path.join(lisaDistDir, "index.js");
-  const ci = isRunningInCI();
 
   const trampolineSource = buildTrampolineSource({
     parentPid,
@@ -283,8 +280,8 @@ export async function scheduleReconciliationChild(
 
   const child = spawn(nodeBin, ["-e", trampolineSource], {
     cwd: projectDir,
-    detached: !ci,
-    stdio: ci ? "inherit" : "ignore",
+    detached: true,
+    stdio: "ignore",
     env: {
       ...inheritedEnv(),
       // Prevent the child from seeing package-manager lifecycle env vars that would
@@ -294,18 +291,8 @@ export async function scheduleReconciliationChild(
     },
   });
 
-  if (ci) {
-    // CI mode: block until the child finishes so the next workflow step sees a
-    // fully-reconciled project tree. We resolve on either exit or error — any
-    // failure is already reported via inherited stdio.
-    await new Promise<void>(resolve => {
-      child.on("exit", () => resolve());
-      child.on("error", () => resolve());
-    });
-    return;
-  }
-
-  // Interactive mode: fully detach so the parent package manager can exit.
+  // Fully detach so the parent package manager can exit. The child's
+  // waitForParent() will detect the exit and trigger reconciliation.
   child.unref();
 }
 

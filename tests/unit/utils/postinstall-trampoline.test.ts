@@ -449,9 +449,16 @@ describe("postinstall-trampoline", () => {
       vi.resetModules();
     });
 
-    it("spawns a non-detached process that the parent awaits in CI", async () => {
-      delete process.env.VITEST;
-      delete process.env.JEST_WORKER_ID;
+    it("spawns a detached process with unref in CI (avoids deadlock with package manager)", async () => {
+      // CI mode must NOT block waiting for the trampoline child. The package
+      // manager (PM) is blocked waiting for Lisa (postinstall) to return, and
+      // the trampoline child waits for the PM to exit before running — creating
+      // a circular wait that resolves only after the 120 s timeout, at which
+      // point the trampoline exits WITHOUT running reconciliation.
+      //
+      // Fix: CI mode behaves the same as interactive mode (detached + unref'd)
+      // so the PM can exit, the trampoline detects the exit, and reconciliation
+      // actually runs.
       process.env.CI = "true";
       delete process.env.GITHUB_ACTIONS;
       delete process.env.CONTINUOUS_INTEGRATION;
@@ -462,7 +469,7 @@ describe("postinstall-trampoline", () => {
       vi.resetModules();
       const fresh = await import(TRAMPOLINE_MODULE);
 
-      const done = fresh.scheduleReconciliationChild(
+      await fresh.scheduleReconciliationChild(
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
         4242
@@ -473,17 +480,14 @@ describe("postinstall-trampoline", () => {
         detached?: boolean;
         stdio?: string;
       };
-      // In CI we run synchronously: not detached, stdio inherited, parent blocks.
-      expect(opts.detached).toBe(false);
-      expect(opts.stdio).toBe("inherit");
-      // Parent must register an exit listener (that's how we block until done).
-      expect(child.on).toHaveBeenCalledWith("exit", expect.any(Function));
-      // `unref` would defeat the whole point of awaiting; must not be called.
-      expect(child.unref).not.toHaveBeenCalled();
-
-      // Fire exit so the awaited promise resolves and the test completes.
-      child.emit("exit", 0);
-      await done;
+      // Must be fully detached so Lisa can return to the PM immediately and the
+      // PM can exit (which is what the trampoline's waitForParent() is waiting for).
+      expect(opts.detached).toBe(true);
+      expect(opts.stdio).toBe("ignore");
+      expect(child.unref).toHaveBeenCalledTimes(1);
+      // Must NOT register a blocking exit listener — that would re-introduce
+      // the circular wait.
+      expect(child.on).not.toHaveBeenCalled();
 
       vi.doUnmock(CHILD_PROCESS_MODULE);
       vi.resetModules();
