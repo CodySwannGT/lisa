@@ -253,3 +253,40 @@ The full lifecycle for a large initiative: Research -> Plan -> Implement (per it
 ## Sub-flow Usage
 
 Flows reference sub-flows by name. When a flow says "Investigate sub-flow", execute the full Investigate sub-flow sequence. When it says "Review sub-flow", execute the full Review sequence. Sub-flows can be invoked by any main flow.
+
+## Orchestration
+
+How a flow dispatches its agents depends on the flow's shape. Pick the orchestration mode that matches the work — do not default to the heaviest one.
+
+### Agent Teams (default for multi-step flows)
+
+Use an **agent team** (TeamCreate + TaskCreate per step) for:
+
+- **Implement** (Build, Fix, Improve) — long sequences with parallel review and a real risk of compaction
+- **Plan** — multiple specialists feeding a shared decomposition
+- **Research** — multiple specialists feeding a shared PRD
+- Any flow that invokes the **Review sub-flow** (the four review specialists run in parallel and gate a single follow-up task)
+
+Why: these flows have enough steps that context compaction is likely; the Review sub-flow is parallel-by-design and `blockedBy` expresses that cleanly; durable task state lets the team lead recover assignments after compaction.
+
+When using a team:
+
+1. Create one team per top-level flow invocation. Do not nest teams for sub-flows — sub-flow steps become tasks within the existing team.
+2. Express parallelism with `blockedBy`. The Review sub-flow's four specialists are independent; the "implement valid suggestions" task is `blockedBy` all four.
+3. On every TaskUpdate that sets `owner`, also store it in `metadata.owner` (see [Agent Team Workflows](../../.claude/rules/PROJECT_RULES.md) for the dual-storage pattern and post-compaction recovery).
+4. Re-read TaskList after any compaction event before assigning new work.
+
+### One-shot Sub-agents (for short or single-agent flows)
+
+Use direct `Agent` tool invocations (no team) for:
+
+- **Verify** when run standalone — it's a linear gate sequence with no parallelism
+- **Monitor** standalone — single specialist (`ops-specialist`) producing a report
+- **Investigate Only** spikes — single investigation, findings out
+- Any flow chained as a sub-flow inside a larger team — its agents become tasks in the parent team, not a new team
+
+Why: TeamCreate plus per-step TaskCreate is real overhead. For a one-or-two-agent flow with no parallelism, the bookkeeping cost outweighs the recovery and orchestration benefits.
+
+### When in doubt
+
+If the flow has more than three agent steps, or any parallel step, or is likely to span a compaction boundary, use a team. Otherwise, sub-agents are fine.
