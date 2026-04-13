@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.86.0](https://github.com/CodySwannGT/lisa/compare/vv1.85.10...v1.86.0) (2026-04-13)
+
+
+### Features
+
+* **nestjs:** block migration edits; rule: never rush; port PR [#390](https://github.com/CodySwannGT/lisa/issues/390) to source ([#393](https://github.com/CodySwannGT/lisa/issues/393)) ([ced8981](https://github.com/CodySwannGT/lisa/commit/ced8981f2f510e4a3f594302373c694377aafa5e))
+
 ### [1.85.10](https://github.com/CodySwannGT/lisa/compare/vv1.85.9...v1.85.10) (2026-04-13)
 
 
