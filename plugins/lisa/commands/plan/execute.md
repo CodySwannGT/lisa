@@ -3,4 +3,4 @@ description: "Deploys an agent team to research, implement, review and deploy a 
 argument-hint: "<ticket-url | @file-path | description>"
 ---
 
-Read `.claude/rules/intent-routing.md` and determine the appropriate flow for $ARGUMENTS. Execute the full flow including implementation, review, and verify flows.
+Pass through to `/build` with $ARGUMENTS. The Build command reads `.claude/rules/intent-routing.md` and runs the full Implement → Review → Verify chain, which is what this command historically did.
