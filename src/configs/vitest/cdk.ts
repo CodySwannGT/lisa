@@ -7,7 +7,6 @@
  * Inheritance chain:
  *   cdk.ts (this file)
  *   +-- base.ts
- *
  * @see https://vitest.dev/config/
  * @module configs/vitest/cdk
  */
@@ -54,7 +53,6 @@ interface CdkVitestOptions {
  * TypeScript natively via esbuild. CDK projects keep tests in a separate
  * test/ directory and collect coverage only from lib/ and util/ since
  * bin/ contains entry-point code with minimal logic.
- *
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds in portable format
  * @returns Vitest UserConfig object with node environment and CDK-specific paths

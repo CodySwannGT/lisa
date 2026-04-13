@@ -148,6 +148,45 @@ describe("Lisa Integration Tests", () => {
       expect(await fs.pathExists(manifestPath)).toBe(false);
     });
 
+    it("skips creating files a detected type's deletions.json will delete (CDK jest inheritance)", async () => {
+      // Simulate the real-world CDK/typescript interaction: typescript ships a
+      // jest config via create-only, CDK's deletions.json removes it. Without
+      // the pending-deletion gate, Lisa creates-then-deletes, which races with
+      // any concurrent file-watcher/linter.
+      const JEST_CONFIG_LOCAL = "jest.config.local.ts";
+      await createCDKProject(destDir);
+
+      // Add a file to typescript/create-only that CDK's deletions.json removes
+      const tsCreateOnly = path.join(lisaDir, "typescript", "create-only");
+      await fs.ensureDir(tsCreateOnly);
+      await fs.writeFile(
+        path.join(tsCreateOnly, JEST_CONFIG_LOCAL),
+        "export default {};\n"
+      );
+
+      // Ensure CDK stack directory exists so detectedTypes picks it up
+      const cdkDir = path.join(lisaDir, "cdk");
+      await fs.ensureDir(cdkDir);
+      await fs.writeJson(path.join(cdkDir, "deletions.json"), {
+        paths: [JEST_CONFIG_LOCAL],
+      });
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      // The file must NOT exist after apply (was never created, not
+      // created-then-deleted).
+      expect(await fs.pathExists(path.join(destDir, JEST_CONFIG_LOCAL))).toBe(
+        false
+      );
+      // Verify the pending-deletion gate fired: the file must have been
+      // *skipped* (never written to disk) rather than *deleted* (written then
+      // removed).  If the gate were absent, deleted would be 1 and skipped
+      // would be 0 for this file.
+      expect(result.counters.skipped).toBeGreaterThan(0);
+      expect(result.counters.deleted).toBe(0);
+    });
+
     it("registers plugins at project scope when settings.json has enabledPlugins", async () => {
       await createTypeScriptProject(destDir);
 

@@ -1,6 +1,5 @@
 /**
  * ESLint configuration factory functions for all Lisa-supported stacks.
- *
  * @module configs/eslint
  * @see base.ts for shared rules and utilities
  * @see typescript.ts for TypeScript stack config

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.85.5](https://github.com/CodySwannGT/lisa/compare/vv1.85.4...v1.85.5) (2026-04-12)
+
+
+### Bug Fixes
+
+* trampoline lockfile regen, CDK jest cleanup, cdk tsconfig repair ([#385](https://github.com/CodySwannGT/lisa/issues/385)) ([19e2417](https://github.com/CodySwannGT/lisa/commit/19e2417073dc4134779ad0eede5992d54d45b458))
+
+### [1.85.4](https://github.com/CodySwannGT/lisa/compare/vv1.85.3...v1.85.4) (2026-04-12)
+
+
+### Bug Fixes
+
+* preserve inline hook entries in settings.json during postinstall ([#384](https://github.com/CodySwannGT/lisa/issues/384)) ([38222c3](https://github.com/CodySwannGT/lisa/commit/38222c38d4668e7e194b7e4f187a35bfb62a5add))
+
+### [1.85.3](https://github.com/CodySwannGT/lisa/compare/vv1.85.2...v1.85.3) (2026-04-12)
+
+
+### Bug Fixes
+
+* **postinstall:** preserve package.json merges across bun add via detached trampoline ([#383](https://github.com/CodySwannGT/lisa/issues/383)) ([d0d4048](https://github.com/CodySwannGT/lisa/commit/d0d4048db54d97f61493d966d257d9fa90f43da3))
+
 ### [1.85.2](https://github.com/CodySwannGT/lisa/compare/vv1.85.1...v1.85.2) (2026-04-12)
 
 

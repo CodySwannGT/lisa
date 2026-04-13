@@ -2,7 +2,6 @@
  * Vitest Configuration - Project-Local Customizations (Lisa)
  *
  * Lisa-specific Vitest settings. This file is create-only — Lisa will not overwrite it.
- *
  * @see https://vitest.dev/config/
  * @module vitest.config.local
  */

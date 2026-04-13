@@ -7,7 +7,6 @@
  * Inheritance chain:
  *   nestjs.ts (this file)
  *   └── base.ts
- *
  * @see https://jestjs.io/docs/configuration
  * @module configs/jest/nestjs
  */
@@ -60,7 +59,6 @@ const nestjsCoverageExclusions: readonly string[] = [
 
 /**
  * Creates a Jest configuration for NestJS projects.
- *
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
  * @returns Jest config object with ts-jest transform, node environment, and NestJS-specific exclusions

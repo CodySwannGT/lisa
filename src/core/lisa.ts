@@ -63,6 +63,14 @@ export class Lisa {
     patterns: [],
     shouldIgnore: () => false,
   };
+  /**
+   * Paths marked for deletion by any detected project type's deletions.json.
+   * Used to skip creating files that would just be deleted moments later (e.g.,
+   * CDK inherits jest.* files from typescript but its own deletions.json removes
+   * them — without this gate, Lisa creates then immediately deletes the files,
+   * causing ENOENT races for any concurrent linter/file-watcher).
+   */
+  private pendingDeletions: Set<string> = new Set();
   private readonly separator = "========================================";
   private readonly lisaignoreSuffix = "(.lisaignore)";
 
@@ -125,6 +133,66 @@ export class Lisa {
       } else {
         logger.warn(`No configuration directory found for type: ${type}`);
       }
+    }
+  }
+
+  /**
+   * Pre-compute the set of paths marked for deletion across "all" and every
+   * detected project type. This runs before strategy processing so the copy
+   * strategies can skip creating files that are about to be deleted anyway.
+   *
+   * Motivating case: CDK inherits typescript/create-only, which ships
+   * `jest.config.local.ts` + `jest.thresholds.json`. CDK's own `deletions.json`
+   * then removes them. Without this gate, Lisa would create them and delete
+   * them in the same apply, which causes ENOENT errors for any concurrent
+   * file-watcher/linter that observed the briefly-existing files.
+   *
+   * The `keep` list in a deletions.json (e.g., expo keeps
+   * `zap-baseline-expo.yml`) is honored — paths in `keep` are not treated as
+   * pending-deletions, so they will still be created by upstream strategies.
+   * @returns Promise that resolves once pending deletions have been collected
+   */
+  private async loadPendingDeletions(): Promise<void> {
+    const pending = new Set<string>();
+    for (const type of ["all", ...this.detectedTypes]) {
+      const paths = await this.readPendingDeletionsForType(type);
+      for (const p of paths) {
+        pending.add(p);
+      }
+    }
+    this.pendingDeletions = pending;
+  }
+
+  /**
+   * Read the set of paths a single type's deletions.json will delete,
+   * filtered by the type's `keep` list. Returns an empty array when the file
+   * is missing or malformed — a bad file cannot block strategy processing;
+   * any validation errors are surfaced later by processDeletions itself.
+   * @param type - Project type (e.g., "all", "cdk", "typescript")
+   * @returns Array of relative paths marked for deletion
+   */
+  private async readPendingDeletionsForType(
+    type: string
+  ): Promise<readonly string[]> {
+    const deletionsPath = path.join(
+      this.config.lisaDir,
+      type,
+      "deletions.json"
+    );
+    if (!(await fse.pathExists(deletionsPath))) {
+      return [];
+    }
+
+    try {
+      const content = await readFile(deletionsPath, "utf-8");
+      const deletions: DeletionsConfig = JSON.parse(content);
+      if (!Array.isArray(deletions.paths)) {
+        return [];
+      }
+      const keepSet = new Set(deletions.keep ?? []);
+      return deletions.paths.filter(p => !keepSet.has(p));
+    } catch {
+      return [];
     }
   }
 
@@ -438,6 +506,7 @@ export class Lisa {
       this.printHeader();
       await this.initServices();
       await this.detectTypes();
+      await this.loadPendingDeletions();
       await this.runMigrationsBeforeStrategies();
       await this.processConfigurations();
       await this.processDeletions();
@@ -531,7 +600,10 @@ export class Lisa {
     const { logger } = this.deps;
     const allFiles = await listFilesRecursive(srcDir);
 
-    // Filter out ignored files
+    // Filter out ignored files AND files pending deletion by a detected type.
+    // Pending-deletion filtering prevents the create-then-delete churn (and
+    // associated ENOENT races) when a parent type ships a file the child type
+    // removes, e.g., CDK removes typescript's jest.* files.
     const files = allFiles.filter(srcFile => {
       const relativePath = path.relative(srcDir, srcFile);
       if (this.ignorePatterns.shouldIgnore(relativePath)) {
@@ -540,6 +612,17 @@ export class Lisa {
           logger.dry(`Would skip (ignored): ${relativePath}`);
         } else {
           logger.info(`Ignored: ${relativePath}`);
+        }
+        return false;
+      }
+      if (this.pendingDeletions.has(relativePath)) {
+        this.counters.skipped++;
+        if (this.config.dryRun) {
+          logger.dry(
+            `Would skip (pending deletion by detected type): ${relativePath}`
+          );
+        } else {
+          logger.info(`Skipped (pending deletion): ${relativePath}`);
         }
         return false;
       }

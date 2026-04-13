@@ -7,7 +7,6 @@
  *
  * Published as part of the @codyswann/lisa npm package so downstream
  * projects can import these utilities directly from the package.
- *
  * @see https://jestjs.io/docs/configuration
  * @module configs/jest/base
  */
@@ -55,7 +54,6 @@ export const defaultCoverageExclusions: readonly string[] = [
  * The `global` key receives special treatment: its properties are
  * shallow-merged so individual metrics can be overridden without
  * replacing the entire global object.
- *
  * @param defaults - Base thresholds from the stack config
  * @param overrides - Project-specific overrides from jest.thresholds.json
  * @returns Merged thresholds with overrides taking precedence
@@ -76,7 +74,6 @@ export const mergeThresholds = (
  * Merges multiple Jest configs together with array concatenation and
  * shallow object merging. Later configs take precedence for scalar values.
  * Arrays are concatenated and deduplicated to allow additive composition.
- *
  * @param configs - Jest config objects to merge in order of precedence
  * @returns Single merged Jest config
  * @remarks Used by entry-point jest.config.ts files to combine stack config
