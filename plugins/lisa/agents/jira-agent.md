@@ -76,7 +76,7 @@ If the ticket type is ambiguous, read the description to classify. A "Task" that
 
 ### 5. Delegate to Flow
 
-Hand off to the appropriate flow as defined in `.claude/rules/intent-routing.md`. Pass the full ticket context (description, acceptance criteria, credentials, reproduction steps) to the first agent in the flow.
+Hand off to the appropriate flow as defined in the `intent-routing` rule (loaded via the lisa plugin). Pass the full ticket context (description, acceptance criteria, credentials, reproduction steps) to the first agent in the flow.
 
 ### 6. Sync Progress at Milestones
 

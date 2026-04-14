@@ -47,7 +47,7 @@ If Implement, determine the work type:
 3. Improve (refactoring, optimization, coverage improvement)
 4. Investigate Only (spike -- no code changes, just findings)
 
-Run the readiness gate check for the selected flow as defined in `.claude/rules/intent-routing.md`. If the gate fails, stop and report what is missing.
+Run the readiness gate check for the selected flow as defined in the `intent-routing` rule (loaded via the lisa plugin). If the gate fails, stop and report what is missing.
 
 IF it is a Fix (bug), execute the Reproduce sub-flow FIRST:
 1. Write a failing test that demonstrates the bug (preferred)
