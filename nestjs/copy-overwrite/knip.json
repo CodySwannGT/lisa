@@ -37,6 +37,8 @@
     "@nestjs/platform-express",
     "@nestjs/terminus",
     "@nestjs/typeorm",
+    "@sentry/cli",
+    "@sentry/hub",
     "@sentry/profiling-node",
     "@vendia/serverless-express",
     "aws-jwt-verify",
@@ -59,7 +61,23 @@
     "typeorm",
     "typeorm-naming-strategies"
   ],
-  "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
+  "ignoreBinaries": [
+    "expo",
+    "playwright",
+    "audit",
+    "docker",
+    "eval",
+    "ast-grep",
+    "eslint",
+    "husky",
+    "knip",
+    "prettier",
+    "sentry-cli",
+    "sls",
+    "tsc",
+    "tsx",
+    "vitest"
+  ],
   "ignoreExportsUsedInFile": true,
   "rules": {
     "devDependencies": "off"
