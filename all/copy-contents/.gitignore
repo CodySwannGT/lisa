@@ -162,6 +162,7 @@ tasks.json
 **/.claude/settings.local.json
 **/.claude/debug/
 **/.claude/worktrees/
+**/.claude/scheduled_tasks.lock
 .roo
 .roo/
 .roomodes
