@@ -3,7 +3,7 @@ description: "Ship and verify code. Commits, opens PR, handles review loop, merg
 argument-hint: "[commit-message-hint]"
 ---
 
-Read `.claude/rules/intent-routing.md` and execute the **Verify** flow.
+Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Verify** flow.
 
 This includes: atomic commits, PR creation, CI/review-fix loop, merge, deploy monitoring, and remote verification.
 

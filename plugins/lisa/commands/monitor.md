@@ -3,7 +3,7 @@ description: "Monitor application health. Checks health endpoints, logs, errors,
 argument-hint: "[environment]"
 ---
 
-Read `.claude/rules/intent-routing.md` and execute the **Monitor** sub-flow.
+Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Monitor** sub-flow.
 
 This sub-flow is also invoked as part of the Verify flow's remote verification step. Delegates to `ops-specialist` for health checks, log inspection, error monitoring, and performance analysis.
 

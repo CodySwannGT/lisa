@@ -3,6 +3,6 @@ description: "Research a problem space and produce a PRD. Investigates codebase,
 argument-hint: "<problem-statement-or-feature-idea>"
 ---
 
-Read `.claude/rules/intent-routing.md` and execute the **Research** flow.
+Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Research** flow.
 
 $ARGUMENTS

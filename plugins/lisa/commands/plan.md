@@ -3,7 +3,7 @@ description: "Plan work. Defines acceptance criteria, researches codebase, maps 
 argument-hint: "<description-or-ticket-id-or-url>"
 ---
 
-Read `.claude/rules/intent-routing.md` and execute the **Plan** flow.
+Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Plan** flow.
 
 If no PRD or specification exists, suggest running the **Research** flow first to produce one.
 
