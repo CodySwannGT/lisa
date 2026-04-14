@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.86.2](https://github.com/CodySwannGT/lisa/compare/vv1.86.1...v1.86.2) (2026-04-14)
+
+
+### Bug Fixes
+
+* **nestjs:** add sentry deps and dev binaries to knip ignore lists ([#396](https://github.com/CodySwannGT/lisa/issues/396)) ([e016364](https://github.com/CodySwannGT/lisa/commit/e0163644be209283eeb71132b41428a5aa453b1d))
+
 ### [1.86.1](https://github.com/CodySwannGT/lisa/compare/vv1.86.0...v1.86.1) (2026-04-14)
 
 ## [1.86.0](https://github.com/CodySwannGT/lisa/compare/vv1.85.10...v1.86.0) (2026-04-13)
