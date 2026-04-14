@@ -3,7 +3,7 @@ description: "Improve existing code. Measures baseline, implements improvements 
 argument-hint: "<target-description>"
 ---
 
-Read `.claude/rules/intent-routing.md` and execute the **Implement** flow with the **Improve** work type.
+Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Implement** flow with the **Improve** work type.
 
 For specific improvement types, you can also use:
 - `/lisa:plan:add-test-coverage` -- increase test coverage
