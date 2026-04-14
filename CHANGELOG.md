@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.86.3](https://github.com/CodySwannGT/lisa/compare/vv1.86.2...v1.86.3) (2026-04-14)
+
+
+### Bug Fixes
+
+* **commands:** reference intent-routing rule by name, not deleted file path ([#397](https://github.com/CodySwannGT/lisa/issues/397)) ([e0a6369](https://github.com/CodySwannGT/lisa/commit/e0a6369388104d0fbf1da402b3d126eca848bd02)), closes [#341](https://github.com/CodySwannGT/lisa/issues/341)
+
 ### [1.86.2](https://github.com/CodySwannGT/lisa/compare/vv1.86.1...v1.86.2) (2026-04-14)
 
 
