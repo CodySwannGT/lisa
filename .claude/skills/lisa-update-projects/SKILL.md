@@ -16,8 +16,8 @@ Updates local Lisa projects in batches by running the package manager update com
 5. Check if `@codyswann/lisa` is in the project's `trustedDependencies` array in `package.json`. If missing, add it using `jq`. Bun only runs postinstall scripts for trusted packages, so without this entry Lisa's postinstall (template application and file deletions) is silently skipped.
 6. Determine the project's package manager from `package.json` `engines` BEFORE choosing a command. The `engines` field is authoritative — lockfile presence is not.
    - Read `engines` with `jq -r '.engines // {}' package.json`.
-   - If `engines.bun === "please-use-npm"` (or `engines.yarn` / `engines.pnpm` use the same sentinel), that package manager is **forbidden**. Use `npm`.
-   - If a forbidden lockfile exists anyway (e.g., `bun.lock` in a project where `engines.bun === "please-use-npm"`), it is rogue — bun ignores the engines string and writes the lockfile if invoked. Delete it (`git rm bun.lock`) and include the deletion in the commit.
+   - Check for forbidden package managers with `jq -r '.engines.bun // ""' package.json` (replace `.engines.bun` with `.engines.yarn` or `.engines.pnpm` as needed). If the output is `"please-use-npm"`, that package manager is **forbidden**. Use `npm`.
+   - If a forbidden lockfile exists anyway (e.g., `bun.lock` in a project where bun is forbidden), it is rogue — bun ignores the engines string and writes the lockfile if invoked. Delete it (`git rm bun.lock`) and include the deletion in the commit.
    - Pick the update command from the surviving package manager:
      - `bun.lock` exists and bun is allowed → `bun update @codyswann/lisa`
      - otherwise → `npm install -D @codyswann/lisa@latest` (use `install -D` not `update`; `npm update` only bumps within the existing semver range and won't move pinned versions or update the manifest)
