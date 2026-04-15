@@ -185,6 +185,8 @@
   },
   "devDependencies": {
     "@codyswann/lisa": "^1.81.3",
+    "@types/js-yaml": "^4.0.9",
+    "js-yaml": "^4.1.1",
     "vite": "^8.0.5"
   },
   "type": "module"

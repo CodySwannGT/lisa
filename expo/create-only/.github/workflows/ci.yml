@@ -3,6 +3,21 @@ name: 🔍 CI Quality Checks
 on:
   pull_request:
   workflow_dispatch:
+    # Optional knobs forwarded to the reusable quality workflow. Both default
+    # to values that preserve pre-SE-4551/SE-4552 behavior (single runner, no
+    # build cache), so omitting them produces a byte-identical effective
+    # workflow. Override via the "Run workflow" UI or a calling workflow.
+    inputs:
+      playwright_shards:
+        description: 'Parallel Playwright shards (default 1 = unchanged single runner)'
+        required: false
+        default: 1
+        type: number
+      cache_build:
+        description: 'Cache Expo web build output between runs (default false = full rebuild)'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -17,6 +32,12 @@ jobs:
       node_version: '22.21.1'
       package_manager: 'bun'
       skip_jobs: 'test,test:integration,test:e2e'
+      # Forward SE-4551 / SE-4552 inputs. `|| fromJSON('...')` falls back to
+      # the unchanged defaults when the workflow is triggered by pull_request
+      # (which doesn't supply workflow_dispatch inputs), keeping behavior
+      # byte-identical to pre-SE-4551/SE-4552 for PR runs.
+      playwright_shards: ${{ inputs.playwright_shards || 1 }}
+      cache_build: ${{ inputs.cache_build || false }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
