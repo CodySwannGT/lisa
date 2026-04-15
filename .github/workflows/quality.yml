@@ -124,6 +124,16 @@ on:
         required: false
         default: ''
         type: string
+      playwright_shards:
+        description: 'Number of parallel CI jobs (shards) to run Playwright tests across. Default 1 = single runner (unchanged behavior). Values >= 2 enable matrix sharding via `npx playwright test --shard=i/N`.'
+        required: false
+        default: 1
+        type: number
+      cache_build:
+        description: 'Cache the Expo web build output between runs to skip `expo export` and `<pm> run build` when source unchanged. Default false = full rebuild every run (unchanged behavior). When true, cache key hashes lockfiles + app/components/features sources + Expo/Metro/Babel/TS configs; invalidates when any of those change.'
+        required: false
+        default: false
+        type: boolean
     secrets:
       SONAR_TOKEN:
         description: 'SonarCloud token for SAST analysis'
@@ -665,11 +675,40 @@ jobs:
           echo "::warning::Maestro Cloud E2E tests skipped - no app file provided"
           echo "To run Maestro tests, provide the maestro_app_file input with the path to your app binary"
 
+  # Emits a JSON array consumed by playwright_e2e's matrix strategy.
+  # When playwright_shards <= 1 the array is [1] (single runner, behavior unchanged).
+  # When playwright_shards >= 2 the array is [1,2,...,N] and the test command
+  # passes --shard=i/N so tests split across N parallel runners.
+  playwright_e2e_setup:
+    name: 🎭 Playwright Shard Setup
+    runs-on: ubuntu-latest
+    if: ${{ !contains(inputs.skip_jobs, 'playwright_e2e') }}
+    outputs:
+      shards: ${{ steps.matrix.outputs.shards }}
+    steps:
+      - name: 🧮 Compute shard matrix
+        id: matrix
+        run: |
+          TOTAL="${{ inputs.playwright_shards }}"
+          if [ -z "$TOTAL" ] || [ "$TOTAL" -le 1 ]; then
+            echo 'shards=[1]' >> "$GITHUB_OUTPUT"
+            echo "Playwright sharding disabled (single runner)"
+          else
+            SHARDS=$(seq 1 "$TOTAL" | jq -Rn '[inputs | tonumber]' | tr -d '\n ')
+            echo "shards=$SHARDS" >> "$GITHUB_OUTPUT"
+            echo "Playwright sharding enabled across $TOTAL runners: $SHARDS"
+          fi
+
   playwright_e2e:
     name: 🎭 Playwright E2E Tests
+    needs: playwright_e2e_setup
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: ${{ !contains(inputs.skip_jobs, 'playwright_e2e') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.playwright_e2e_setup.outputs.shards) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -715,9 +754,38 @@ jobs:
         run: ${{ inputs.playwright_setup_command }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Expo build cache — opt-in via `cache_build: true`.
+      #
+      # Cache invalidation contract:
+      #   Key hashes (in order): lockfiles → source directories → config files.
+      #   Any change to a lockfile, app/components/features source, or
+      #   Expo/Metro/Babel/TS config will miss the cache and force a rebuild.
+      #   Runner OS is part of the key to prevent cross-OS cache reuse.
+      # Cached paths:
+      #   - dist/             Expo web export output (consumed by Playwright)
+      #   - .expo/            Expo CLI metadata and bundler cache
+      #   - node_modules/.cache  Metro/Babel bundler caches
+      - name: 💾 Restore Expo build cache
+        if: steps.check_playwright.outputs.has_config == 'true' && inputs.cache_build == true
+        id: expo_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ inputs.working_directory || '.' }}/dist
+            ${{ inputs.working_directory || '.' }}/.expo
+            ${{ inputs.working_directory || '.' }}/node_modules/.cache
+          key: ${{ runner.os }}-expo-build-${{ hashFiles('**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-build-
+
       - name: 🌐 Build web export
-        if: steps.check_playwright.outputs.has_config == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && (inputs.cache_build != true || steps.expo_cache.outputs.cache-hit != 'true')
         run: npx expo export --platform web
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ⏭️ Expo build cache hit — skipping expo export
+        if: steps.check_playwright.outputs.has_config == 'true' && inputs.cache_build == true && steps.expo_cache.outputs.cache-hit == 'true'
+        run: echo "::notice::Expo build cache hit — skipped \`npx expo export --platform web\`"
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🎭 Install Playwright browsers
@@ -725,16 +793,29 @@ jobs:
         run: npx playwright install --with-deps
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # When playwright_shards >= 2 the matrix fans out across N runners and
+      # each runner executes its slice via `--shard=i/N`. When shards <= 1
+      # the matrix has a single element ([1]) and no `--shard` flag is
+      # passed, keeping behavior byte-identical to the pre-sharding workflow.
       - name: 🎭 Run Playwright tests
         if: steps.check_playwright.outputs.has_config == 'true'
-        run: npx playwright test
+        run: |
+          if [ "${{ inputs.playwright_shards }}" -le 1 ]; then
+            npx playwright test
+          else
+            npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }}
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Single-runner runs (playwright_shards <= 1) upload to the original
+      # artifact name — `playwright-report-<run-id>` — preserving consumer
+      # expectations. Sharded runs append `-shard-<n>` so parallel uploads
+      # don't collide; consumers can merge them via `npx playwright merge-reports`.
       - name: 📤 Upload Playwright report
         if: steps.check_playwright.outputs.has_config == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.run_id }}
+          name: playwright-report-${{ github.run_id }}${{ inputs.playwright_shards > 1 && format('-shard-{0}', matrix.shard) || '' }}
           path: ${{ inputs.working_directory || '.' }}/playwright-report
           retention-days: 14
 
@@ -816,10 +897,39 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Build output cache — opt-in via `cache_build: true`.
+      #
+      # Cache invalidation contract (same as playwright_e2e):
+      #   Key hashes lockfiles → app/components/features sources →
+      #   Expo/Metro/Babel/TS configs. Any change forces a rebuild.
+      # Cached paths cover common build output directories (dist, build,
+      # .next, out) plus bundler caches. Default false = unchanged behavior.
+      - name: 💾 Restore build cache
+        if: inputs.cache_build == true
+        id: build_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ inputs.working_directory || '.' }}/dist
+            ${{ inputs.working_directory || '.' }}/build
+            ${{ inputs.working_directory || '.' }}/.next
+            ${{ inputs.working_directory || '.' }}/out
+            ${{ inputs.working_directory || '.' }}/.expo
+            ${{ inputs.working_directory || '.' }}/node_modules/.cache
+          key: ${{ runner.os }}-build-${{ hashFiles('**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
       - name: 🏗️ Build project
+        if: inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true'
         run: ${{ inputs.package_manager }} run build
         env:
           NODE_OPTIONS: --max-old-space-size=6144
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ⏭️ Build cache hit — skipping build
+        if: inputs.cache_build == true && steps.build_cache.outputs.cache-hit == 'true'
+        run: echo "::notice::Build cache hit — skipped \`${{ inputs.package_manager }} run build\`"
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📤 Upload build artifacts
