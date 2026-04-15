@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.88.0](https://github.com/CodySwannGT/lisa/compare/vv1.87.0...v1.88.0) (2026-04-15)
+
+
+### Features
+
+* **ci:** add optional Playwright sharding and Expo build cache ([#400](https://github.com/CodySwannGT/lisa/issues/400)) ([1a53158](https://github.com/CodySwannGT/lisa/commit/1a531581839bd4675ba70f3b089894d5a6e8f486))
+
 ## [1.87.0](https://github.com/CodySwannGT/lisa/compare/vv1.86.4...v1.87.0) (2026-04-15)
 
 
