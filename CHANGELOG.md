@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.89.0](https://github.com/CodySwannGT/lisa/compare/vv1.88.0...v1.89.0) (2026-04-15)
+
+
+### Features
+
+* **ci:** forward shard/cache inputs in expo create-only, add merge-reports job + integration test [SE-4551][SE-4552] ([#401](https://github.com/CodySwannGT/lisa/issues/401)) ([f9dbb86](https://github.com/CodySwannGT/lisa/commit/f9dbb8639de7575efd94237864cf86cae657b42f)), closes [#400](https://github.com/CodySwannGT/lisa/issues/400)
+
+
+### Bug Fixes
+
+* **hooks,ci:** resolve local bins in TS hooks; gate Playwright aggregator on has_config ([#404](https://github.com/CodySwannGT/lisa/issues/404)) ([d890d29](https://github.com/CodySwannGT/lisa/commit/d890d2979b6928f472e47b4c7cfde1d1bc6eed85))
+
 ## [1.88.0](https://github.com/CodySwannGT/lisa/compare/vv1.87.0...v1.88.0) (2026-04-15)
 
 
