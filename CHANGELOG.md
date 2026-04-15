@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.86.4](https://github.com/CodySwannGT/lisa/compare/vv1.86.3...v1.86.4) (2026-04-15)
+
+
+### Bug Fixes
+
+* **skill:** respect engines.bun=please-use-npm in lisa-update-projects ([#398](https://github.com/CodySwannGT/lisa/issues/398)) ([d0675ac](https://github.com/CodySwannGT/lisa/commit/d0675ac2df810e2957929c3f83b5c3378a3b782d))
+
 ### [1.86.3](https://github.com/CodySwannGT/lisa/compare/vv1.86.2...v1.86.3) (2026-04-14)
 
 
