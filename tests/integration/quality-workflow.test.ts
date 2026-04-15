@@ -19,6 +19,7 @@ interface WorkflowInput {
 
 /** Shape of a single step inside a workflow job's `steps:` list. */
 interface WorkflowStep {
+  id?: string;
   name?: string;
   run?: string;
   uses?: string;
@@ -139,6 +140,23 @@ describe("quality.yml reusable workflow", () => {
       // Preserve the original unsharded artifact name so consumers who
       // download `playwright-report-<run-id>` keep working after opt-in.
       expect(upload?.with?.name).toBe("playwright-report-${{ github.run_id }}");
+    });
+
+    it("gates merge-reports on has_config so repos without playwright skip cleanly", () => {
+      // Repos with no playwright.config.* produce no blob artifacts from the
+      // shard matrix (check_playwright.has_config=false in each shard). The
+      // aggregator must apply the same has_config gate to its download/merge
+      // steps — otherwise `npx playwright merge-reports` runs against an
+      // empty directory and fails, breaking the required-status-check.
+      const steps = workflow.jobs.playwright_e2e_aggregate.steps ?? [];
+      const check = steps.find(s => s.id === "check_playwright");
+      expect(check).toBeDefined();
+      const merge = steps.find(
+        s => s.name === "🎭 Merge blob reports into HTML"
+      );
+      expect(merge?.if).toContain(
+        "steps.check_playwright.outputs.has_config == 'true'"
+      );
     });
   });
 

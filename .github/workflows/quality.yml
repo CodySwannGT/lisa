@@ -840,19 +840,33 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
+      - name: 🔍 Check for Playwright config
+        id: check_playwright
+        run: |
+          if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
+            echo "has_config=true" >> $GITHUB_OUTPUT
+            echo "✅ Playwright config found"
+          else
+            echo "has_config=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No Playwright config found — aggregator will skip merge"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔧 Setup Node.js
+        if: steps.check_playwright.outputs.has_config == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
+        if: steps.check_playwright.outputs.has_config == 'true' && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
+        if: steps.check_playwright.outputs.has_config == 'true'
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm ci
@@ -864,6 +878,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📥 Download all shard blob reports
+        if: steps.check_playwright.outputs.has_config == 'true'
         uses: actions/download-artifact@v4
         with:
           path: ${{ inputs.working_directory || '.' }}/all-blob-reports
@@ -871,6 +886,7 @@ jobs:
           merge-multiple: true
 
       - name: 🎭 Merge blob reports into HTML
+        if: steps.check_playwright.outputs.has_config == 'true'
         run: npx playwright merge-reports --reporter=html ./all-blob-reports
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -878,11 +894,17 @@ jobs:
       # consumers (GitHub Actions artifact downloads, Playwright report
       # viewers) don't need to change when a repo opts into sharding.
       - name: 📤 Upload merged Playwright report
+        if: steps.check_playwright.outputs.has_config == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ github.run_id }}
           path: ${{ inputs.working_directory || '.' }}/playwright-report
           retention-days: 14
+
+      - name: 🎭 Playwright aggregator skipped (no config)
+        if: steps.check_playwright.outputs.has_config != 'true'
+        run: |
+          echo "::notice::Playwright aggregator skipped — no playwright.config.ts or playwright.config.js found"
 
   format:
     name: 📐 Check Formatting

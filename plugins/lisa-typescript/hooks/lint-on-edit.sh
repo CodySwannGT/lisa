@@ -41,15 +41,17 @@ esac
 
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
-# Detect package manager
-if [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
-    PKG_MANAGER="bun"
+# Resolve ESLint binary — prefer local node_modules/.bin, then package-manager exec
+if [ -x "./node_modules/.bin/eslint" ]; then
+    ESLINT_CMD="./node_modules/.bin/eslint"
+elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+    ESLINT_CMD="bunx eslint"
 elif [ -f "pnpm-lock.yaml" ]; then
-    PKG_MANAGER="pnpm"
+    ESLINT_CMD="pnpm exec eslint"
 elif [ -f "yarn.lock" ]; then
-    PKG_MANAGER="yarn"
+    ESLINT_CMD="yarn exec eslint"
 else
-    PKG_MANAGER="npm"
+    ESLINT_CMD="npx eslint"
 fi
 
 # Run ESLint with --fix --quiet --cache on the specific file
@@ -60,7 +62,7 @@ fi
 echo "Running ESLint --fix on: $FILE_PATH"
 
 # First pass: attempt auto-fix
-OUTPUT=$($PKG_MANAGER eslint --fix --quiet --cache --rule '@typescript-eslint/no-unused-vars: off' "$FILE_PATH" 2>&1)
+OUTPUT=$($ESLINT_CMD --fix --quiet --cache --rule '@typescript-eslint/no-unused-vars: off' "$FILE_PATH" 2>&1)
 FIX_EXIT=$?
 
 if [ $FIX_EXIT -eq 0 ]; then
@@ -69,7 +71,7 @@ if [ $FIX_EXIT -eq 0 ]; then
 fi
 
 # Auto-fix resolved some issues but errors remain — re-run to get remaining errors
-OUTPUT=$($PKG_MANAGER eslint --quiet --cache "$FILE_PATH" 2>&1)
+OUTPUT=$($ESLINT_CMD --quiet --cache "$FILE_PATH" 2>&1)
 LINT_EXIT=$?
 
 if [ $LINT_EXIT -eq 0 ]; then
