@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.87.0](https://github.com/CodySwannGT/lisa/compare/vv1.86.4...v1.87.0) (2026-04-15)
+
+
+### Features
+
+* **rules:** hoist orchestration selection to prevent task-list bypass ([#399](https://github.com/CodySwannGT/lisa/issues/399)) ([76cf9f9](https://github.com/CodySwannGT/lisa/commit/76cf9f928a7db94b7bdd2372e3f6e1a17606e570))
+
 ### [1.86.4](https://github.com/CodySwannGT/lisa/compare/vv1.86.3...v1.86.4) (2026-04-15)
 
 
