@@ -43,26 +43,27 @@ esac
 # Change to the project directory to ensure package manager commands work
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
-# Detect package manager based on lock file presence
-detect_package_manager() {
-    if [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
-        echo "bun"
-    elif [ -f "pnpm-lock.yaml" ]; then
-        echo "pnpm"
-    elif [ -f "yarn.lock" ]; then
-        echo "yarn"
-    elif [ -f "package-lock.json" ]; then
-        echo "npm"
-    else
-        echo "npm"  # Default fallback
-    fi
-}
-
-PKG_MANAGER=$(detect_package_manager)
+# Resolve Prettier binary — prefer local node_modules/.bin, then package-manager exec
+if [ -x "./node_modules/.bin/prettier" ]; then
+    PRETTIER_CMD="./node_modules/.bin/prettier"
+    PKG_MANAGER="npm"
+elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+    PRETTIER_CMD="bunx prettier"
+    PKG_MANAGER="bun"
+elif [ -f "pnpm-lock.yaml" ]; then
+    PRETTIER_CMD="pnpm exec prettier"
+    PKG_MANAGER="pnpm"
+elif [ -f "yarn.lock" ]; then
+    PRETTIER_CMD="yarn exec prettier"
+    PKG_MANAGER="yarn"
+else
+    PRETTIER_CMD="npx prettier"
+    PKG_MANAGER="npm"
+fi
 
 # Run Prettier on the specific file
 echo "🎨 Running Prettier on: $FILE_PATH"
-$PKG_MANAGER prettier --write "$FILE_PATH" 2>&1 | grep -v "run v" | grep -v "Done in"
+$PRETTIER_CMD --write "$FILE_PATH" 2>&1 | grep -v "run v" | grep -v "Done in"
 
 # Check the exit status
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
