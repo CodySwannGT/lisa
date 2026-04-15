@@ -14,8 +14,15 @@ Updates local Lisa projects in batches by running the package manager update com
 3. If you can't because of existing changes or a dirty worktree, don't do anything. Ask the human what should be done about it before moving on.
 4. Once you have resolution, within each clean project, check out a new branch (e.g. `chore/lisa-update-YYYY-MM-DD`).
 5. Check if `@codyswann/lisa` is in the project's `trustedDependencies` array in `package.json`. If missing, add it using `jq`. Bun only runs postinstall scripts for trusted packages, so without this entry Lisa's postinstall (template application and file deletions) is silently skipped.
-6. Run the project's package manager update command for `@codyswann/lisa` (e.g. `bun update @codyswann/lisa` or `npm update @codyswann/lisa`). This triggers Lisa's postinstall script which applies templates automatically.
-   6b. If the project has BOTH `bun.lock` AND `package-lock.json` (dual-lockfile CDK or infra repo), regenerate the npm lockfile too: run `npm install --package-lock-only --ignore-scripts` and include the resulting `package-lock.json` in the commit. CI that uses `npm ci` will fail otherwise. Evidence: thumbwar-infrastructure PR #103 needed this fix. Also applies to any repo where CI uses `npm ci` but the `bun update` step only refreshes `bun.lock`.
+6. Determine the project's package manager from `package.json` `engines` BEFORE choosing a command. The `engines` field is authoritative — lockfile presence is not.
+   - Read `engines` with `jq -r '.engines // {}' package.json`.
+   - If `engines.bun === "please-use-npm"` (or `engines.yarn` / `engines.pnpm` use the same sentinel), that package manager is **forbidden**. Use `npm`.
+   - If a forbidden lockfile exists anyway (e.g., `bun.lock` in a project where `engines.bun === "please-use-npm"`), it is rogue — bun ignores the engines string and writes the lockfile if invoked. Delete it (`git rm bun.lock`) and include the deletion in the commit.
+   - Pick the update command from the surviving package manager:
+     - `bun.lock` exists and bun is allowed → `bun update @codyswann/lisa`
+     - otherwise → `npm install -D @codyswann/lisa@latest` (use `install -D` not `update`; `npm update` only bumps within the existing semver range and won't move pinned versions or update the manifest)
+   - Bun's postinstall runs templates automatically; npm's does not. After `npm install -D`, manually run `node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check .` to apply templates.
+   - **Never run both `bun add` and `npm install` against the same project.** That perpetuates the dual-lockfile bug. Pick one based on the engines field and stick to it.
 7. After updating, check if `@codyswann/lisa` appears in the project's `dependencies` (not `devDependencies`). If so, move it: remove from `dependencies` and ensure it's in `devDependencies`. Use `jq` to check and the package manager to reinstall correctly.
 8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `auto-update-pr-branches.yml`, `auto-update-pr-branches.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
