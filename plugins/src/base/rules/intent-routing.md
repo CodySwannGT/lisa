@@ -21,6 +21,19 @@ This protocol runs **once per session**, on the first user message. After that, 
    This echo is mandatory. Do not skip it, abbreviate it, or bury it in other output. The user must see the flow classification before any work begins.
 5. If you are a subagent: your parent agent has already determined the flow -- do NOT ask the user to choose a flow. Execute your assigned work within the established flow context.
 
+## Orchestration Selection Protocol
+
+Immediately after echoing the flow (and before any work begins), state the orchestration mode in the same message. The format is:
+
+> **Orchestration: agent team** (or **single agent**)
+> One-sentence justification.
+
+This echo is mandatory. The user must see the orchestration mode before any work begins. See the **Orchestration** section below for the full decision matrix and team-setup protocol.
+
+Quick rule: Research, Plan, Implement (Build/Fix/Improve), and any flow invoking the Review sub-flow → **agent team**. Verify standalone, Monitor standalone, Investigate Only spikes → **single agent**. When in doubt, use a team.
+
+If the mode is `agent team`, the first tool call after the echo MUST be `TeamCreate`. Do not call `TaskCreate`, `Agent`, or direct implementation tools before the team exists.
+
 ## Readiness Gate Protocol
 
 Every flow begins with a gate check. The gate defines what information must be present before the flow can begin.
@@ -46,6 +59,7 @@ Gate:
 - If none is provided, ask: "What problem are you trying to solve or what capability are you trying to add?"
 
 Sequence:
+0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Research is a multi-specialist flow; do this before any other work.
 1. **Investigate sub-flow** -- gather context from codebase, git history, existing behavior, and external sources
 2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items
 3. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
@@ -66,6 +80,7 @@ Gate:
 - If the specification has unresolved ambiguities, stop and list them
 
 Sequence:
+0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Plan is a multi-specialist flow feeding a shared decomposition; do this before any other work.
 1. **Investigate sub-flow** -- explore codebase for architecture, patterns, dependencies relevant to the spec
 2. `product-specialist` -- validate and refine acceptance criteria for the whole scope
 3. `architecture-specialist` -- map dependencies, identify cross-cutting concerns, determine execution order
@@ -95,6 +110,7 @@ Determine the work type and execute the matching variant:
 
 #### Build (features, stories, tasks)
 
+0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Build runs a long sequence with parallel review; do this before any other work.
 1. **Investigate sub-flow** -- explore codebase for related code, patterns, dependencies
 2. `product-specialist` -- define acceptance criteria, user flows, error states
 3. `architecture-specialist` -- design approach, map files to modify, identify reusable code
@@ -108,6 +124,7 @@ Determine the work type and execute the matching variant:
 
 #### Fix (bugs)
 
+0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Fix runs a long sequence with parallel review; do this before any other work.
 1. **Reproduce sub-flow** -- write failing test or script that demonstrates the bug (MANDATORY before any fix is attempted)
 2. **Investigate sub-flow** -- git history, root cause analysis
 3. `debug-specialist` -- prove root cause with evidence
@@ -122,6 +139,7 @@ Determine the work type and execute the matching variant:
 
 #### Improve (refactoring, optimization, coverage improvement)
 
+0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Improve runs a long sequence with parallel review; do this before any other work.
 1. **Investigate sub-flow** -- understand current state, measure baseline
 2. `architecture-specialist` -- identify target, plan approach
 3. `test-specialist` -- ensure existing test coverage before refactoring (safety net)
