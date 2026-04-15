@@ -793,36 +793,22 @@ jobs:
         run: npx playwright install --with-deps
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      # When playwright_shards >= 2 the matrix fans out across N runners and
-      # each runner executes its slice via `--shard=i/N`. When shards <= 1
-      # the matrix has a single element ([1]) and no `--shard` flag is
-      # passed, keeping behavior byte-identical to the pre-sharding workflow.
+      # Matrix runs always emit blob reports — unsharded or sharded. The
+      # matrix adds a `(<shard>)` suffix to the check context (e.g.
+      # `🎭 Playwright E2E Tests (1)`), so these shard-level checks are
+      # distinct from the aggregator's unsuffixed context. `--shard=1/1` is
+      # a no-op split (runs every test) and keeps a single command shape
+      # regardless of `playwright_shards` value.
       - name: 🎭 Run Playwright tests
         if: steps.check_playwright.outputs.has_config == 'true'
-        run: |
-          if [ "${{ inputs.playwright_shards }}" -le 1 ]; then
-            npx playwright test
-          else
-            npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }} --reporter=blob
-          fi
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }} --reporter=blob
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      # Single-runner runs (playwright_shards <= 1) upload the HTML report to
-      # the original artifact name — `playwright-report-<run-id>` — preserving
-      # consumer expectations byte-for-byte.
-      - name: 📤 Upload Playwright report (unsharded)
-        if: steps.check_playwright.outputs.has_config == 'true' && always() && inputs.playwright_shards <= 1
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-${{ github.run_id }}
-          path: ${{ inputs.working_directory || '.' }}/playwright-report
-          retention-days: 14
-
-      # Sharded runs (playwright_shards >= 2) upload per-shard blob reports
-      # that the merge_playwright_reports job combines into a single HTML
-      # report. Unique names prevent artifact collisions across shards.
-      - name: 📤 Upload Playwright blob (sharded)
-        if: steps.check_playwright.outputs.has_config == 'true' && always() && inputs.playwright_shards > 1
+      # Every shard uploads its blob report. The aggregator (below) always
+      # runs and merges these into a single HTML report, so consumers keep
+      # the same downstream artifact name — `playwright-report-<run-id>`.
+      - name: 📤 Upload Playwright blob
+        if: steps.check_playwright.outputs.has_config == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-blob-${{ github.run_id }}-shard-${{ matrix.shard }}
@@ -835,17 +821,21 @@ jobs:
           echo "::warning::Playwright E2E tests skipped - no playwright.config.ts or playwright.config.js found"
           echo "To enable Playwright testing, add a Playwright configuration file to your project"
 
-  # Merges per-shard blob reports from sharded Playwright runs into a single
-  # HTML report. Runs only when `playwright_shards >= 2`; omitted entirely
-  # when sharding is disabled (default), preserving byte-identical behavior
-  # for consumers who don't opt in. Uses `always()` so a partial shard
-  # failure still yields a merged report for debugging.
-  merge_playwright_reports:
-    name: 🎭 Merge Playwright Reports
+  # Aggregator: downloads every shard's blob report, merges into a single
+  # HTML report, and uploads it as `playwright-report-<run-id>`.
+  #
+  # This job is the canonical "🎭 Playwright E2E Tests" check for required-
+  # status-check rulesets. Matrix shards each add a `(<N>)` suffix to their
+  # contexts (non-blocking); this job has no matrix, so its check context
+  # is `<caller>/🎭 Playwright E2E Tests` (unsuffixed) and satisfies the
+  # ruleset regardless of shard count. Runs always so the unsuffixed check
+  # is emitted even when `playwright_shards = 1`.
+  playwright_e2e_aggregate:
+    name: 🎭 Playwright E2E Tests
     needs: playwright_e2e
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ always() && !contains(inputs.skip_jobs, 'playwright_e2e') && inputs.playwright_shards > 1 }}
+    if: ${{ always() && !contains(inputs.skip_jobs, 'playwright_e2e') }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -884,10 +874,13 @@ jobs:
         run: npx playwright merge-reports --reporter=html ./all-blob-reports
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Uploaded under the original unsharded artifact name so downstream
+      # consumers (GitHub Actions artifact downloads, Playwright report
+      # viewers) don't need to change when a repo opts into sharding.
       - name: 📤 Upload merged Playwright report
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.run_id }}-merged
+          name: playwright-report-${{ github.run_id }}
           path: ${{ inputs.working_directory || '.' }}/playwright-report
           retention-days: 14
 

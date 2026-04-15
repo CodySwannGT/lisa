@@ -91,49 +91,63 @@ describe("quality.yml reusable workflow", () => {
     });
   });
 
-  describe("artifact upload preserves unsharded behavior", () => {
-    it("uploads playwright-report-<run-id> (no suffix) when playwright_shards <= 1", () => {
+  describe("matrix always uploads blob", () => {
+    it("uploads per-shard blob regardless of playwright_shards value", () => {
       const steps = workflow.jobs.playwright_e2e.steps ?? [];
-      const unsharded = steps.find(
-        s => s.name === "📤 Upload Playwright report (unsharded)"
+      const uploads = steps.filter(s =>
+        s.uses?.startsWith("actions/upload-artifact")
       );
-      expect(unsharded).toBeDefined();
-      expect(unsharded?.if).toContain("inputs.playwright_shards <= 1");
-      expect(unsharded?.with?.name).toBe(
-        "playwright-report-${{ github.run_id }}"
-      );
-    });
-
-    it("uploads per-shard blob reports when playwright_shards > 1", () => {
-      const steps = workflow.jobs.playwright_e2e.steps ?? [];
-      const sharded = steps.find(
-        s => s.name === "📤 Upload Playwright blob (sharded)"
-      );
-      expect(sharded).toBeDefined();
-      expect(sharded?.if).toContain("inputs.playwright_shards > 1");
-      expect(sharded?.with?.name).toBe(
+      // Exactly one upload step — the always-blob path — so unsharded and
+      // sharded runs both feed the aggregator uniformly.
+      expect(uploads).toHaveLength(1);
+      const [blob] = uploads;
+      expect(blob.name).toBe("📤 Upload Playwright blob");
+      expect(blob.if).not.toContain("playwright_shards");
+      expect(blob.with?.name).toBe(
         "playwright-blob-${{ github.run_id }}-shard-${{ matrix.shard }}"
       );
     });
   });
 
-  describe("merge_playwright_reports job", () => {
-    it("exists and is gated on playwright_shards > 1", () => {
-      const job = workflow.jobs.merge_playwright_reports;
+  describe("playwright_e2e_aggregate job (ruleset anchor)", () => {
+    it("exists, needs the matrix, and always runs (no shard gate)", () => {
+      const job = workflow.jobs.playwright_e2e_aggregate;
       expect(job).toBeDefined();
       expect(job.needs).toBe("playwright_e2e");
-      expect(job.if).toContain("inputs.playwright_shards > 1");
+      // Aggregator must emit its check on every run so the unsuffixed
+      // required-status-check context (`🎭 Playwright E2E Tests`) is
+      // produced regardless of `playwright_shards` value.
+      expect(job.if).not.toContain("inputs.playwright_shards");
+      expect(job.if).toContain("always()");
     });
 
-    it("uploads the merged HTML as playwright-report-<run-id>-merged", () => {
-      const steps = workflow.jobs.merge_playwright_reports.steps ?? [];
+    it("is named `🎭 Playwright E2E Tests` to match the required check context", () => {
+      // The matrix `playwright_e2e` job shares this display name, but the
+      // matrix suffixes its context with `(<shard>)`, so only the
+      // aggregator produces the unsuffixed context the ruleset requires.
+      expect(workflow.jobs.playwright_e2e_aggregate.name).toBe(
+        "🎭 Playwright E2E Tests"
+      );
+    });
+
+    it("uploads the merged HTML as playwright-report-<run-id>", () => {
+      const steps = workflow.jobs.playwright_e2e_aggregate.steps ?? [];
       const upload = steps.find(
         s => s.name === "📤 Upload merged Playwright report"
       );
       expect(upload).toBeDefined();
-      expect(upload?.with?.name).toBe(
-        "playwright-report-${{ github.run_id }}-merged"
-      );
+      // Preserve the original unsharded artifact name so consumers who
+      // download `playwright-report-<run-id>` keep working after opt-in.
+      expect(upload?.with?.name).toBe("playwright-report-${{ github.run_id }}");
+    });
+  });
+
+  describe("matrix job keeps unified check-context display name", () => {
+    it("uses `🎭 Playwright E2E Tests` so shards produce `(N)` suffix checks", () => {
+      // Matrix always suffixes with `(<matrix-value>)`, giving non-blocking
+      // per-shard checks that coexist with the aggregator's unsuffixed
+      // context under the same display name.
+      expect(workflow.jobs.playwright_e2e.name).toBe("🎭 Playwright E2E Tests");
     });
   });
 });
