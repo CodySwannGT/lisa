@@ -803,20 +803,30 @@ jobs:
           if [ "${{ inputs.playwright_shards }}" -le 1 ]; then
             npx playwright test
           else
-            npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }}
+            npx playwright test --shard=${{ matrix.shard }}/${{ inputs.playwright_shards }} --reporter=blob
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      # Single-runner runs (playwright_shards <= 1) upload to the original
-      # artifact name — `playwright-report-<run-id>` — preserving consumer
-      # expectations. Sharded runs append `-shard-<n>` so parallel uploads
-      # don't collide; consumers can merge them via `npx playwright merge-reports`.
-      - name: 📤 Upload Playwright report
-        if: steps.check_playwright.outputs.has_config == 'true' && always()
+      # Single-runner runs (playwright_shards <= 1) upload the HTML report to
+      # the original artifact name — `playwright-report-<run-id>` — preserving
+      # consumer expectations byte-for-byte.
+      - name: 📤 Upload Playwright report (unsharded)
+        if: steps.check_playwright.outputs.has_config == 'true' && always() && inputs.playwright_shards <= 1
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.run_id }}${{ inputs.playwright_shards > 1 && format('-shard-{0}', matrix.shard) || '' }}
+          name: playwright-report-${{ github.run_id }}
           path: ${{ inputs.working_directory || '.' }}/playwright-report
+          retention-days: 14
+
+      # Sharded runs (playwright_shards >= 2) upload per-shard blob reports
+      # that the merge_playwright_reports job combines into a single HTML
+      # report. Unique names prevent artifact collisions across shards.
+      - name: 📤 Upload Playwright blob (sharded)
+        if: steps.check_playwright.outputs.has_config == 'true' && always() && inputs.playwright_shards > 1
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-blob-${{ github.run_id }}-shard-${{ matrix.shard }}
+          path: ${{ inputs.working_directory || '.' }}/blob-report
           retention-days: 14
 
       - name: 🎭 Playwright Tests Skipped (no config)
@@ -824,6 +834,62 @@ jobs:
         run: |
           echo "::warning::Playwright E2E tests skipped - no playwright.config.ts or playwright.config.js found"
           echo "To enable Playwright testing, add a Playwright configuration file to your project"
+
+  # Merges per-shard blob reports from sharded Playwright runs into a single
+  # HTML report. Runs only when `playwright_shards >= 2`; omitted entirely
+  # when sharding is disabled (default), preserving byte-identical behavior
+  # for consumers who don't opt in. Uses `always()` so a partial shard
+  # failure still yields a merged report for debugging.
+  merge_playwright_reports:
+    name: 🎭 Merge Playwright Reports
+    needs: playwright_e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ always() && !contains(inputs.skip_jobs, 'playwright_e2e') && inputs.playwright_shards > 1 }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📥 Download all shard blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ inputs.working_directory || '.' }}/all-blob-reports
+          pattern: playwright-blob-${{ github.run_id }}-shard-*
+          merge-multiple: true
+
+      - name: 🎭 Merge blob reports into HTML
+        run: npx playwright merge-reports --reporter=html ./all-blob-reports
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📤 Upload merged Playwright report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}-merged
+          path: ${{ inputs.working_directory || '.' }}/playwright-report
+          retention-days: 14
 
   format:
     name: 📐 Check Formatting
