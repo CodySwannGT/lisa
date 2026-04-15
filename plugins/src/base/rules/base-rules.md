@@ -2,6 +2,14 @@ Intent Routing (FIRST — before anything else):
 
 Before starting any work in a session, classify the user's initial request using the Intent Routing rule. Determine which flow applies (Research, Plan, Implement, Verify, or None) and check its readiness gate. Once a flow is established, all subsequent messages operate within it. Do not skip this step — even if the request seems simple. See the `intent-routing` rule for the full protocol.
 
+Orchestration Selection (SECOND — immediately after classifying the flow):
+
+After echoing the chosen flow and BEFORE doing any work, state the orchestration mode explicitly — either `Orchestration: agent team` or `Orchestration: single agent` — with a one-sentence justification. This echo is mandatory and must appear in the same message as the flow classification.
+
+Default to an agent team for Research, Plan, Implement (Build/Fix/Improve), and any flow that invokes the Review sub-flow. Use a single agent only for Verify (standalone), Monitor (standalone), and Investigate Only spikes. See the `intent-routing` rule's Orchestration section for the full decision matrix.
+
+When the mode is `agent team`, your FIRST tool call after the classification echo MUST be `TeamCreate`. Do not reach for `TaskCreate`, `Agent`, or direct tool calls before the team exists — those are bypass paths that skip durable task state and parallel review.
+
 Requirement Verification:
 
 Never assume the person providing instructions has given you complete, correct, or technically precise requirements. Treat every request as potentially underspecified. Before starting any work:
