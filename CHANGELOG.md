@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.91.1](https://github.com/CodySwannGT/lisa/compare/vv1.91.0...v1.91.1) (2026-04-19)
+
+
+### Bug Fixes
+
+* **ci:** fail playwright aggregator when any shard fails ([#408](https://github.com/CodySwannGT/lisa/issues/408)) ([19f177a](https://github.com/CodySwannGT/lisa/commit/19f177ac1c10cbbd10064897c053fa3f0fe148e0)), closes [#1964](https://github.com/CodySwannGT/lisa/issues/1964)
+
 ## [1.91.0](https://github.com/CodySwannGT/lisa/compare/vv1.90.0...v1.91.0) (2026-04-19)
 
 
