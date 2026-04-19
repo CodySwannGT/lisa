@@ -63,6 +63,7 @@ describe("MigrationRegistry", () => {
     const names = registry.getAll().map(m => m.name);
 
     expect(names).toContain("ensure-tsconfig-local-includes");
+    expect(names).toContain("ensure-audit-ignore-local-exclusions");
     expect(names).toContain("ensure-lisa-postinstall");
   });
 

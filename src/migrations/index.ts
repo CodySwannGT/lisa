@@ -1,3 +1,4 @@
+import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import type {
@@ -12,6 +13,7 @@ export type {
   MigrationContext,
   MigrationResult,
 } from "./migration.interface.js";
+export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 
@@ -28,6 +30,7 @@ export class MigrationRegistry {
   constructor(migrations?: readonly Migration[]) {
     this.migrations = migrations ?? [
       new EnsureTsconfigLocalIncludesMigration(),
+      new EnsureAuditIgnoreLocalExclusionsMigration(),
       new EnsureLisaPostinstallMigration(),
     ];
   }
