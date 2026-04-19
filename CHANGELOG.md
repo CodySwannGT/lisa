@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.91.0](https://github.com/CodySwannGT/lisa/compare/vv1.90.0...v1.91.0) (2026-04-19)
+
+
+### Features
+
+* **migrations:** relocate project-specific audit exclusions to local file ([#406](https://github.com/CodySwannGT/lisa/issues/406)) ([55bbd51](https://github.com/CodySwannGT/lisa/commit/55bbd51deeff0cd6ed442027bdce2d3c3ebd4c84)), closes [#373](https://github.com/CodySwannGT/lisa/issues/373) [#1960](https://github.com/CodySwannGT/lisa/issues/1960)
+
 ## [1.90.0](https://github.com/CodySwannGT/lisa/compare/vv1.89.0...v1.90.0) (2026-04-19)
 
 
