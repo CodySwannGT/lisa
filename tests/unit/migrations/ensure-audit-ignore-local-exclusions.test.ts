@@ -291,5 +291,50 @@ describe("EnsureAuditIgnoreLocalExclusionsMigration", () => {
       const patched = await fs.readJson(path.join(projectDir, AUDIT_LOCAL));
       expect(patched.exclusions).toEqual([projectSpecific]);
     });
+
+    it("does not migrate when template file is missing for the detected project type", async () => {
+      // Template directory exists for typescript but the file itself does not
+      const dir = path.join(lisaDir, "typescript", "copy-overwrite");
+      await fs.ensureDir(dir);
+      // No audit.ignore.config.json written at that path
+      await fs.writeJson(path.join(projectDir, AUDIT_CONFIG), {
+        exclusions: [{ id: PROJECT_ID_A, package: "pkg-a", reason: "r" }],
+      });
+
+      await migration.beforeStrategies(createContext());
+
+      expect(await migration.applies(createContext())).toBe(false);
+    });
+
+    it("throws when audit.ignore.local.json exists but is malformed JSON", async () => {
+      await seedTemplate("typescript", TEMPLATE_IDS);
+      await fs.writeJson(path.join(projectDir, AUDIT_CONFIG), {
+        exclusions: [{ id: PROJECT_ID_A, package: "pkg-a", reason: "r" }],
+      });
+      await fs.writeFile(
+        path.join(projectDir, AUDIT_LOCAL),
+        "{ invalid json }",
+        "utf-8"
+      );
+
+      await migration.beforeStrategies(createContext());
+      await expect(migration.apply(createContext())).rejects.toThrow();
+    });
+
+    it("deduplicates additions when snapshot contains duplicate ids", async () => {
+      await seedTemplate("typescript", TEMPLATE_IDS);
+      const duplicate = { id: PROJECT_ID_A, package: "pkg-a", reason: "dup" };
+      await fs.writeJson(path.join(projectDir, AUDIT_CONFIG), {
+        exclusions: [duplicate, duplicate],
+      });
+
+      await migration.beforeStrategies(createContext());
+      const result = await migration.apply(createContext());
+
+      expect(result.action).toBe("applied");
+      const patched = await fs.readJson(path.join(projectDir, AUDIT_LOCAL));
+      expect(patched.exclusions).toHaveLength(1);
+      expect(patched.exclusions[0].id).toBe(PROJECT_ID_A);
+    });
   });
 });
