@@ -50,6 +50,7 @@ Git Discipline:
 - Prefix git push with `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"`.
 - Never commit directly to an environment branch (dev, staging, main).
 - Never use --no-verify or attempt to bypass a git hook.
+- Never bypass branch protection. Never use `--admin`, `--force`, or any other flag to merge a PR that has failing CI checks. If CI fails, fix it. If you cannot fix it, escalate to the human. There are zero exceptions. "Green in CI" is the definition of done — not "green locally." A PR is not complete until CI passes on the actual PR branch.
 - Never stash changes you cannot commit. Either fix whatever is preventing the commit or fail out and let the human know why.
 - Never add "BREAKING CHANGE" to a commit message unless there is actually a breaking change.
 - When opening a PR, watch the PR. If any status checks fail, fix them. For all bot code reviews, if the feedback is valid, implement it and push the change to the PR. Then resolve the feedback. If the feedback is not valid, reply to the feedback explaining why it's not valid and then resolve the feedback. Do this in a loop until the PR is able to be merged and then merge it.
