@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.90.0](https://github.com/CodySwannGT/lisa/compare/vv1.89.0...v1.90.0) (2026-04-19)
+
+
+### Features
+
+* **expo,rules:** add playwright-ci-debugging skill; codify branch-protection rule ([#405](https://github.com/CodySwannGT/lisa/issues/405)) ([0cd2cd3](https://github.com/CodySwannGT/lisa/commit/0cd2cd35118b6618d1c52e78cd2e97d8fe1dc53b))
+
 ## [1.89.0](https://github.com/CodySwannGT/lisa/compare/vv1.88.0...v1.89.0) (2026-04-15)
 
 
