@@ -906,6 +906,27 @@ jobs:
         run: |
           echo "::notice::Playwright aggregator skipped — no playwright.config.ts or playwright.config.js found"
 
+      # The aggregator uses `always()` so the merged HTML report is produced
+      # even when shards fail (report is useful for triage). BUT
+      # `playwright merge-reports` succeeds as long as the blobs themselves
+      # merge, regardless of whether the underlying tests passed — so without
+      # this guard the aggregator's conclusion can mask failing shards and
+      # satisfy required-status-check rulesets on a red PR.
+      #
+      # `needs.playwright_e2e.result` aggregates the matrix shards:
+      #   success  → every shard passed
+      #   skipped  → playwright_e2e was skipped (no config / skip_jobs)
+      #   failure  → at least one shard failed
+      #   cancelled → at least one shard was cancelled
+      #
+      # Fail the aggregator on anything other than success/skipped so the
+      # `🎭 Playwright E2E Tests` check accurately reflects shard health.
+      - name: 🚨 Fail if any Playwright shard failed
+        if: ${{ always() && needs.playwright_e2e.result != 'success' && needs.playwright_e2e.result != 'skipped' }}
+        run: |
+          echo "::error::Playwright shard matrix result is '${{ needs.playwright_e2e.result }}' — at least one shard did not pass"
+          exit 1
+
   format:
     name: 📐 Check Formatting
     runs-on: ubuntu-latest
