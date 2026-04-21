@@ -177,7 +177,7 @@ Set `parent` to the Epic key to link stories to their epic.
 | Infrastructure | `ops`, `reference` |
 | Mixed / setup ("X.0") | All domains |
 
-When classification is ambiguous, err on the side of inclusion — a developer can ignore a link, but they can't inherit one that wasn't attached. Classification mistakes are caught by the preservation gate in Phase 6.5 and by the human reviewing the final report.
+When classification is ambiguous, err on the side of inclusion — a developer can ignore a link, but they can't inherit one that wasn't attached. Classification mistakes are caught by the preservation gate in Phase 5.5 and by the human reviewing the final report.
 
 ### Phase 5: Create Sub-tasks
 
