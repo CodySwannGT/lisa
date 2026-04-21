@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.92.0](https://github.com/CodySwannGT/lisa/compare/vv1.91.1...v1.92.0) (2026-04-21)
+
+
+### Features
+
+* **skills:** preserve PRD source artifacts across generated tickets ([#409](https://github.com/CodySwannGT/lisa/issues/409)) ([50a8f85](https://github.com/CodySwannGT/lisa/commit/50a8f85fee32e6fe46040508210812c3d675e8e1))
+
 ### [1.91.1](https://github.com/CodySwannGT/lisa/compare/vv1.91.0...v1.91.1) (2026-04-19)
 
 
