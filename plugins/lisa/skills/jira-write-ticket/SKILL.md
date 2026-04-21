@@ -124,6 +124,28 @@ Identify and attach:
 - Confluence pages (design docs, RFCs, runbooks)
 - Dashboards (Grafana, Datadog, Sentry issue)
 - Incident tickets (PagerDuty, Statuspage)
+- **Source artifacts from the originating PRD / parent epic**: Figma files, Lovable prototypes, Loom walkthroughs, design mockups, example payloads, Google Docs/Slides, collaborative whiteboards. If this ticket has a parent epic, enumerate the epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit generic `reference` links). Never assume a developer will walk up to the epic to find design context — attach it here.
+
+Domain disambiguation (applied on inheritance):
+- Figma URL with `/proto/` in path or `starting-point-node-id=` in query → `ux-flow`; otherwise `ui-design`.
+- Lovable output → always `ux-flow`; its code/styling is not authoritative.
+- Loom / annotated screenshot → `ux-flow`.
+- Bare screenshot → `ui-design`.
+
+If the ticket was generated from a PRD (by `notion-to-jira` or similar) and the parent epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction before proceeding.
+
+### 4d. Source Precedence (must appear on the ticket)
+
+When a ticket carries both design artifacts and a description, different sources are authoritative for different questions. Record this precedence explicitly in the ticket description (under Technical Approach or a dedicated `## Source Precedence` subsection) so the implementer doesn't silently reconcile conflicts:
+
+- **Business rules** (required fields, validation, permissions, data constraints, edge cases) → the **description / PRD body** wins.
+- **Visual treatment** (layout, spacing, typography, color, iconography) → **mocks (`ui-design`)** win.
+- **Flow and interaction** (navigation, transitions, state changes, timing, empty/error/loading states) → **prototypes (`ux-flow`)** win.
+- **API / data shape** → **`data` artifacts** win.
+
+Cross-axis conflicts (mock shows a field the PRD doesn't mention; prototype shows a flow the PRD contradicts; two Figma links disagree) must be raised as BLOCKER items in an `## Open Questions` section on the ticket — never silently reconciled.
+
+For UI-touching tickets, additionally include the reuse expectation: "Before implementing, identify the closest existing component in the codebase. Prefer reuse even if the mock specifies different styling; raise design-vs-code divergence as a discussion item here rather than pixel-matching from scratch."
 
 Use Jira's web UI or `mcp__atlassian__editJiraIssue` to set the `Development` field / remote links where supported.
 
