@@ -1,0 +1,17 @@
+# Project-specific pre-push checks
+#
+# This file is sourced by .husky/pre-push after Lisa's governance block.
+# Add commands here that are unique to this project — Lisa will never
+# overwrite or delete this file on future template updates.
+#
+# The file runs as a sourced POSIX script. Any non-zero exit aborts the push.
+#
+# Examples:
+#   # NestJS AppModule + GraphQL schema boot verification
+#   $RUNNER verify:boot || exit 1
+#
+#   # Project-specific migration lint
+#   $RUNNER migrations:check || exit 1
+#
+# $RUNNER is set by the parent hook based on the detected package manager
+# (bun run / yarn run / npm run).

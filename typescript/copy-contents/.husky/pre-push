@@ -272,6 +272,20 @@ fi
 #   fi
 # fi
 
+# Project-specific extension slot (see .husky/pre-push.local).
+# This hook sources pre-push.local if present so per-project checks
+# (e.g., app-boot verification, schema validation) survive Lisa template
+# updates without editing the governance block above.
+if [ -f .husky/pre-push.local ]; then
+  echo "🔌 Running project-specific pre-push checks (.husky/pre-push.local)..."
+  # shellcheck source=/dev/null
+  . .husky/pre-push.local
+  if [ $? -ne 0 ]; then
+    echo "❌ Project-specific pre-push checks failed."
+    exit 1
+  fi
+fi
+
 exit 0
 
 # END: AI GUARDRAILS
