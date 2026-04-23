@@ -117,6 +117,26 @@
       "id": "GHSA-fvcv-3m26-pcqx",
       "package": "axios",
       "reason": "Cloud metadata exfiltration requires attacker-controlled outbound request header values. Keep this exclusion only if axios request headers are never sourced from untrusted input."
+    },
+    {
+      "id": "GHSA-2v35-w6hq-6mfw",
+      "package": "@xmldom/xmldom",
+      "reason": "Uncontrolled recursion in XML serialization leading to DoS. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path parses or serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-f6ww-3ggp-fr8h",
+      "package": "@xmldom/xmldom",
+      "reason": "XML injection via unvalidated DocumentType serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-x6wf-f3px-wcqx",
+      "package": "@xmldom/xmldom",
+      "reason": "XML node injection via unvalidated processing instruction serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-j759-j44w-7fr8",
+      "package": "@xmldom/xmldom",
+      "reason": "XML node injection via unvalidated comment serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
     }
   ]
 }
