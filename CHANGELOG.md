@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.94.0](https://github.com/CodySwannGT/lisa/compare/vv1.93.0...v1.94.0) (2026-04-23)
+
+
+### Features
+
+* **coderabbit:** acknowledge nits without code changes ([#413](https://github.com/CodySwannGT/lisa/issues/413)) ([a418c6e](https://github.com/CodySwannGT/lisa/commit/a418c6eaad9d3afea7055a2f0f7f3b218bad0786))
+
 ## [1.93.0](https://github.com/CodySwannGT/lisa/compare/vv1.92.0...v1.93.0) (2026-04-23)
 
 
