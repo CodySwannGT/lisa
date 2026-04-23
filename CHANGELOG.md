@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.93.0](https://github.com/CodySwannGT/lisa/compare/vv1.92.0...v1.93.0) (2026-04-23)
+
+
+### Features
+
+* **husky:** add .husky/pre-push.local extension slot ([#412](https://github.com/CodySwannGT/lisa/issues/412)) ([110fffb](https://github.com/CodySwannGT/lisa/commit/110fffbeb4929054e5451eb17ca52a4fea05f7b4)), closes [PropSwapLLC/frontend#583](https://github.com/PropSwapLLC/frontend/issues/583) [#1061](https://github.com/CodySwannGT/lisa/issues/1061) [#1157](https://github.com/CodySwannGT/lisa/issues/1157)
+
 ## [1.92.0](https://github.com/CodySwannGT/lisa/compare/vv1.91.1...v1.92.0) (2026-04-21)
 
 
