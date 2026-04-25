@@ -61,10 +61,10 @@ export interface AgentInstallResult {
  *
  * Looks at `<lisaDir>/plugins/<plugin>/agents/*.md`. Skips the
  * `plugins/src/` source tree (which is the build input — we want the built
- * output). De-duplicates by agent id with stack-specific plugins winning over
- * the base `lisa` plugin: `lisa` is processed first, all other plugins sorted
- * alphabetically after, and the Map dedup is last-wins so any non-base plugin
- * overrides base entries regardless of its name's sort position.
+ * output). De-duplicates by agent id with last-wins semantics: the base `lisa`
+ * plugin is always processed first, then remaining plugins in alphabetical
+ * order, so any stack-specific plugin (e.g. `lisa-rails`) or third-party
+ * plugin overrides the base regardless of how the name sorts.
  * @param lisaDir - Absolute path to the Lisa repo root
  * @returns De-duplicated agent sources, sorted by id
  */
@@ -75,10 +75,9 @@ export async function discoverLisaAgents(
   if (!(await fse.pathExists(pluginsDir))) {
     return [];
   }
-  // Put base `lisa` first so any other plugin (stack-specific or third-party)
-  // comes after in the flat array. Map dedup below is last-wins, so
-  // stack-specific entries always override base entries regardless of how
-  // the non-base plugin names sort alphabetically.
+  // Put the base "lisa" plugin first so it is always overridable by any
+  // other plugin via last-wins Map dedup below.  Remaining plugins are
+  // sorted for deterministic ordering across machines.
   const all = (await readdir(pluginsDir)).filter(name => name !== "src");
   const plugins = [
     ...all.filter(n => n === "lisa"),
@@ -87,8 +86,8 @@ export async function discoverLisaAgents(
   const candidatesByPlugin = await Promise.all(
     plugins.map(pluginName => discoverAgentsInPlugin(pluginsDir, pluginName))
   );
-  // Plugin iteration order: base first, stack-specific last.
-  // Map dedup is last-wins, so stack-specific entries override the base.
+  // Base-first iteration order + last-wins Map → stack-specific (and any
+  // other non-base plugin) overrides base for duplicate agent ids.
   const flat = candidatesByPlugin.flat();
   const deduped = Array.from(
     new Map(flat.map(source => [source.id, source])).values()

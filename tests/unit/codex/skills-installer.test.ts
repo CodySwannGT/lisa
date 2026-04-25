@@ -211,16 +211,40 @@ describe("codex/skills-installer", () => {
       );
     });
 
-    it("de-duplicates skills by name across plugins (stack plugin wins over base lisa)", async () => {
-      await seedSkill("lisa", BUG_TRIAGE, {
-        [SKILL_MD]: SAMPLE_SKILL_MD,
-      });
-      await seedSkill("lisa-rails", BUG_TRIAGE, {
-        [SKILL_MD]: SAMPLE_SKILL_MD.replace(BUG_TRIAGE, "bug-triage-rails"),
-      });
+    it("de-duplicates skills by name across plugins (stack-specific wins over base)", async () => {
+      const lisaContent = SAMPLE_SKILL_MD;
+      const railsContent = SAMPLE_SKILL_MD.replace(
+        "Triage a bug",
+        "Rails version"
+      );
+      await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: lisaContent });
+      await seedSkill("lisa-rails", BUG_TRIAGE, { [SKILL_MD]: railsContent });
       const result = await installSkills(lisaDir, destDir, []);
       const installedNames = result.installed.map(s => s.name);
       expect(installedNames.filter(n => n === BUG_TRIAGE)).toHaveLength(1);
+      const installed = await fs.readFile(
+        path.join(destDir, ".codex", LISA_SKILLS_SUBDIR, BUG_TRIAGE, SKILL_MD),
+        "utf8"
+      );
+      expect(installed).toBe(railsContent);
+    });
+
+    it("non-base plugin sorting before 'lisa' alphabetically still wins over base", async () => {
+      // 'aa-plugin' sorts before 'lisa' alphabetically but should still win
+      // because base is always processed first (explicit base-first ordering)
+      const lisaContent = SAMPLE_SKILL_MD;
+      const aaContent = SAMPLE_SKILL_MD.replace(
+        "Triage a bug",
+        "AA plugin version"
+      );
+      await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: lisaContent });
+      await seedSkill("aa-plugin", BUG_TRIAGE, { [SKILL_MD]: aaContent });
+      await installSkills(lisaDir, destDir, []);
+      const installed = await fs.readFile(
+        path.join(destDir, ".codex", LISA_SKILLS_SUBDIR, BUG_TRIAGE, SKILL_MD),
+        "utf8"
+      );
+      expect(installed).toBe(aaContent);
     });
 
     it("non-base plugin whose name sorts before 'lisa' alphabetically still wins over base lisa", async () => {
