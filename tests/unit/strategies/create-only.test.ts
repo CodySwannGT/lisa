@@ -36,6 +36,8 @@ describe("CreateOnlyStrategy", () => {
       dryRun: false,
       yesMode: true,
       validateOnly: false,
+      skipGitCheck: false,
+      harness: "claude",
       ...overrides,
     };
 

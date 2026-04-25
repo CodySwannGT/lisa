@@ -59,6 +59,30 @@ export const COPY_STRATEGIES: readonly CopyStrategy[] = [
 ] as const;
 
 /**
+ * Target harness(es) for emitted artifacts.
+ *
+ * - "claude": emit Claude Code artifacts (.claude/, .claude-plugin/, etc.)
+ * - "codex":  emit OpenAI Codex CLI artifacts (.codex/, .codex-plugin/, .agents/, AGENTS.md)
+ * - "both":   emit both, so a project can use either harness
+ */
+export type Harness = "claude" | "codex" | "both";
+
+/**
+ * All valid harness values, in canonical order
+ */
+export const HARNESS_VALUES: readonly Harness[] = [
+  "claude",
+  "codex",
+  "both",
+] as const;
+
+/**
+ * Default harness when none is configured (backward compatibility — existing
+ * host projects predate Codex support and have always emitted .claude/ artifacts)
+ */
+export const DEFAULT_HARNESS: Harness = "claude";
+
+/**
  * Runtime configuration for Lisa operations
  */
 export interface LisaConfig {
@@ -79,6 +103,9 @@ export interface LisaConfig {
 
   /** If true, skip the dirty git working directory check (for postinstall use) */
   readonly skipGitCheck: boolean;
+
+  /** Target harness(es) for emitted artifacts (claude | codex | both) */
+  readonly harness: Harness;
 }
 
 /**
