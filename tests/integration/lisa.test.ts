@@ -60,6 +60,8 @@ describe("Lisa Integration Tests", () => {
       dryRun: false,
       yesMode: true,
       validateOnly: false,
+      skipGitCheck: false,
+      harness: "claude",
       ...overrides,
     };
   }

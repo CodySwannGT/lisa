@@ -4,6 +4,15 @@ import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
+import { discoverLisaAgents, installAgents } from "../codex/agent-installer.js";
+import { installHooks } from "../codex/hooks-installer.js";
+import {
+  readManagedManifest,
+  writeManagedManifest,
+} from "../codex/manifest.js";
+import { installAgentsMd } from "../codex/agents-md-installer.js";
+import { installSettings } from "../codex/settings-installer.js";
+import { installSkills } from "../codex/skills-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
   DestinationNotDirectoryError,
@@ -511,6 +520,7 @@ export class Lisa {
       await this.processConfigurations();
       await this.processDeletions();
       await this.processMigrations();
+      await this.processCodexEmit();
       await this.registerPlugins();
       await this.finalize();
       this.printSummary();
@@ -520,6 +530,74 @@ export class Lisa {
     } catch (error) {
       return this.handleApplyError(error);
     }
+  }
+
+  /**
+   * Emit Codex-targeted artifacts (agents, hooks, settings) when the host
+   * project's harness is `codex` or `both`. No-op for `claude` (default).
+   *
+   * Codex artifacts cannot be shipped via plugins (the Codex plugin manifest
+   * has no fields for hooks or agent roles, confirmed in
+   * `codex-rs/core-plugins/src/manifest.rs`). Lisa instead writes them
+   * directly into the host project's `.codex/` tree as part of `apply()`,
+   * tracking ownership via `.codex/.lisa-managed.json` so updates can clean
+   * up stale entries without touching host customizations.
+   */
+  private async processCodexEmit(): Promise<void> {
+    const { harness } = this.config;
+    if (harness !== "codex" && harness !== "both") {
+      return;
+    }
+    if (this.config.dryRun) {
+      this.deps.logger.info(pc.gray("Codex emit: skipped (dry-run mode)"));
+      return;
+    }
+
+    const previous = await readManagedManifest(this.config.destDir);
+
+    const agentSources = await discoverLisaAgents(this.config.lisaDir);
+    const agentResult = await installAgents(
+      agentSources,
+      this.config.destDir,
+      previous.files
+    );
+
+    const hooksResult = await installHooks(
+      this.config.lisaDir,
+      this.config.destDir,
+      this.detectedTypes
+    );
+
+    const settingsResult = await installSettings(this.config.destDir);
+
+    const skillsResult = await installSkills(
+      this.config.lisaDir,
+      this.config.destDir,
+      previous.files
+    );
+
+    // AGENTS.md is create-only — produced once and never managed by Lisa
+    // afterward, so it's not added to the manifest (Lisa doesn't own it).
+    await installAgentsMd(this.config.destDir);
+
+    const allManagedFiles = [
+      ...agentResult.managedFiles,
+      ...hooksResult.managedFiles,
+      ...settingsResult.managedFiles,
+      ...skillsResult.managedFiles,
+    ];
+    await writeManagedManifest(this.config.destDir, allManagedFiles);
+
+    const totalStale = agentResult.deleted.length + skillsResult.deleted.length;
+    this.deps.logger.info(
+      pc.cyan(
+        `Codex emit: ${agentResult.installed.length} agents, ${hooksResult.hookEntries} hooks, ${skillsResult.installed.length} skills, settings ${settingsResult.created ? "created" : "merged"}${
+          totalStale > 0
+            ? ` (${agentResult.deleted.length} stale agents, ${skillsResult.deleted.length} stale skills removed)`
+            : ""
+        }`
+      )
+    );
   }
 
   /**
