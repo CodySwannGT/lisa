@@ -28,6 +28,12 @@ const OPS_SPECIALIST_MD = `${OPS_SPECIALIST}.md`;
 const OLD_AGENT_TOML = "old-agent.toml";
 /** Filename for a host-authored agent file used in safety tests */
 const HOST_AGENT_TOML = "host-agent.toml";
+/** Base Lisa plugin name */
+const PLUGIN_LISA = "lisa";
+/** Stack-specific Rails plugin name (sorts after base alphabetically) */
+const PLUGIN_LISA_RAILS = "lisa-rails";
+/** Hypothetical plugin that sorts before 'lisa' alphabetically */
+const PLUGIN_AA = "aa-plugin";
 
 const SAMPLE_AGENT = `---
 name: bug-fixer
@@ -85,22 +91,24 @@ describe("codex/agent-installer", () => {
     });
 
     it("returns empty list when plugins exist but have no agents", async () => {
-      await fs.ensureDir(path.join(lisaDir, "plugins", "lisa"));
+      await fs.ensureDir(path.join(lisaDir, "plugins", PLUGIN_LISA));
       const result = await discoverLisaAgents(lisaDir);
       expect(result).toEqual([]);
     });
 
     it("discovers agents from a single plugin", async () => {
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
       const result = await discoverLisaAgents(lisaDir);
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe(BUG_FIXER);
-      expect(result[0]?.pluginName).toBe("lisa");
+      expect(result[0]?.pluginName).toBe(PLUGIN_LISA);
     });
 
     it("discovers agents from multiple plugins", async () => {
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
-      await seedPlugin("lisa-rails", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA_RAILS, {
+        [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2,
+      });
       const result = await discoverLisaAgents(lisaDir);
       expect(result.map(r => r.id).sort((a, b) => a.localeCompare(b))).toEqual([
         BUG_FIXER,
@@ -127,7 +135,7 @@ describe("codex/agent-installer", () => {
     });
 
     it("ignores non-.md files", async () => {
-      await seedPlugin("lisa", {
+      await seedPlugin(PLUGIN_LISA, {
         [BUG_FIXER_MD]: SAMPLE_AGENT,
         "README.txt": "ignored",
         "config.json": "{}",
@@ -137,17 +145,31 @@ describe("codex/agent-installer", () => {
       expect(result[0]?.id).toBe(BUG_FIXER);
     });
 
-    it("de-duplicates by agent id (first plugin wins)", async () => {
-      // Both plugins ship 'ops-specialist'; first to appear wins
-      await seedPlugin("lisa", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT });
-      await seedPlugin("lisa-rails", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
+    it("de-duplicates by agent id (stack-specific plugin wins over base)", async () => {
+      // Both plugins ship 'ops-specialist'; stack-specific (lisa-rails) wins over base (lisa)
+      await seedPlugin(PLUGIN_LISA, { [OPS_SPECIALIST_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA_RAILS, {
+        [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2,
+      });
       const result = await discoverLisaAgents(lisaDir);
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe(OPS_SPECIALIST);
+      expect(result[0]?.pluginName).toBe(PLUGIN_LISA_RAILS);
+    });
+
+    it("non-base plugin sorting before 'lisa' alphabetically still wins over base", async () => {
+      // PLUGIN_AA sorts before PLUGIN_LISA alphabetically but should still win
+      // because base is always processed first (explicit base-first ordering)
+      await seedPlugin(PLUGIN_LISA, { [OPS_SPECIALIST_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_AA, { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
+      const result = await discoverLisaAgents(lisaDir);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe(OPS_SPECIALIST);
+      expect(result[0]?.pluginName).toBe(PLUGIN_AA);
     });
 
     it("returns results sorted by id", async () => {
-      await seedPlugin("lisa", {
+      await seedPlugin(PLUGIN_LISA, {
         "zeta.md": SAMPLE_AGENT,
         "alpha.md": SAMPLE_AGENT,
         "mu.md": SAMPLE_AGENT,
@@ -159,7 +181,7 @@ describe("codex/agent-installer", () => {
 
   describe("installAgents", () => {
     it("writes agents to .codex/agents/lisa/", async () => {
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
       const sources = await discoverLisaAgents(lisaDir);
       const result = await installAgents(sources, destDir, []);
 
@@ -181,7 +203,7 @@ describe("codex/agent-installer", () => {
     });
 
     it("creates the .codex/agents/lisa/ directory if absent", async () => {
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
       const sources = await discoverLisaAgents(lisaDir);
       await installAgents(sources, destDir, []);
       expect(
@@ -190,7 +212,7 @@ describe("codex/agent-installer", () => {
     });
 
     it("applies a host override when present", async () => {
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
       // Host wants a different description and adds a sandbox_mode override
       const overridesDir = path.join(destDir, ".codex", HOST_OVERRIDES_SUBDIR);
       await fs.ensureDir(overridesDir);
@@ -221,7 +243,7 @@ describe("codex/agent-installer", () => {
 
     it("deletes stale agents that were managed previously but not shipped now", async () => {
       // Seed only one agent, but tell installAgents that two were managed before
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
       const lisaAgentsDir = path.join(destDir, ".codex", LISA_AGENTS_SUBDIR);
       await fs.ensureDir(lisaAgentsDir);
       // Create a leftover stale file as if from a previous run
@@ -256,7 +278,7 @@ describe("codex/agent-installer", () => {
     it("never deletes files outside .codex/agents/lisa/", async () => {
       // Even if the previous manifest references a host-authored file,
       // we must not delete it
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
       const hostAgentsDir = path.join(destDir, ".codex", "agents", "host");
       await fs.ensureDir(hostAgentsDir);
       await fs.writeFile(
@@ -282,7 +304,7 @@ describe("codex/agent-installer", () => {
     });
 
     it("returns managedFiles list for manifest persistence", async () => {
-      await seedPlugin("lisa", {
+      await seedPlugin(PLUGIN_LISA, {
         [BUG_FIXER_MD]: SAMPLE_AGENT,
         "builder.md": SAMPLE_AGENT_2,
       });
@@ -298,7 +320,7 @@ describe("codex/agent-installer", () => {
     });
 
     it("idempotent: running twice produces the same output", async () => {
-      await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
       const sources = await discoverLisaAgents(lisaDir);
       await installAgents(sources, destDir, []);
       const first = await fs.readFile(

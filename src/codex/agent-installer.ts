@@ -61,9 +61,10 @@ export interface AgentInstallResult {
  *
  * Looks at `<lisaDir>/plugins/<plugin>/agents/*.md`. Skips the
  * `plugins/src/` source tree (which is the build input — we want the built
- * output). De-duplicates by agent id, with first-wins precedence so that
- * stack-specific overrides (e.g. `lisa-rails/agents/ops-specialist.md`) win
- * over the base `lisa/agents/ops-specialist.md` if both exist.
+ * output). De-duplicates by agent id with last-wins semantics: the base `lisa`
+ * plugin is always processed first, then remaining plugins in alphabetical
+ * order, so any stack-specific plugin (e.g. `lisa-rails`) or third-party
+ * plugin overrides the base regardless of how the name sorts.
  * @param lisaDir - Absolute path to the Lisa repo root
  * @returns De-duplicated agent sources, sorted by id
  */
@@ -74,15 +75,19 @@ export async function discoverLisaAgents(
   if (!(await fse.pathExists(pluginsDir))) {
     return [];
   }
-  // Sort plugin names for deterministic precedence on duplicate entries —
-  // readdir order is filesystem-dependent and not stable across machines.
-  const plugins = (await readdir(pluginsDir))
-    .filter(name => name !== "src")
-    .sort((a, b) => a.localeCompare(b));
+  // Put the base "lisa" plugin first so it is always overridable by any
+  // other plugin via last-wins Map dedup below.  Remaining plugins are
+  // sorted for deterministic ordering across machines.
+  const all = (await readdir(pluginsDir)).filter(name => name !== "src");
+  const plugins = [
+    ...all.filter(n => n === "lisa"),
+    ...all.filter(n => n !== "lisa").sort((a, b) => a.localeCompare(b)),
+  ];
   const candidatesByPlugin = await Promise.all(
     plugins.map(pluginName => discoverAgentsInPlugin(pluginsDir, pluginName))
   );
-  // Plugin order = directory order; first-wins on duplicate id
+  // Base-first iteration order + last-wins Map → stack-specific (and any
+  // other non-base plugin) overrides base for duplicate agent ids.
   const flat = candidatesByPlugin.flat();
   const deduped = Array.from(
     new Map(flat.map(source => [source.id, source])).values()

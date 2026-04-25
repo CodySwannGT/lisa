@@ -15,7 +15,7 @@ FILE_PATH="$(echo "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')"
 [ -f "${FILE_PATH}" ] || exit 0
 
 case "${FILE_PATH##*.}" in
-  ts|tsx|js|jsx|mjs|cjs|rb) ;;
+  ts|tsx|js|jsx|mjs|cjs) ;;
   *) exit 0 ;;
 esac
 
