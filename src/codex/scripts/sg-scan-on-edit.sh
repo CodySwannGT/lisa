@@ -9,7 +9,7 @@ JSON_INPUT="$(cat)"
 # Project rule (.claude/rules/PROJECT_RULES.md): never parse JSON in shell
 # with grep/sed/cut/awk — always use jq. Fail open without jq.
 command -v jq >/dev/null 2>&1 || exit 0
-FILE_PATH="$(echo "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')"
+FILE_PATH="$(echo "$JSON_INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)"
 
 [ -n "${FILE_PATH}" ] || exit 0
 [ -f "${FILE_PATH}" ] || exit 0
