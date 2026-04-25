@@ -28,6 +28,8 @@ const OPS_SPECIALIST_MD = `${OPS_SPECIALIST}.md`;
 const OLD_AGENT_TOML = "old-agent.toml";
 /** Filename for a host-authored agent file used in safety tests */
 const HOST_AGENT_TOML = "host-agent.toml";
+/** Stack-specific plugin name used across dedup/precedence tests */
+const LISA_RAILS = "lisa-rails";
 
 const SAMPLE_AGENT = `---
 name: bug-fixer
@@ -100,7 +102,7 @@ describe("codex/agent-installer", () => {
 
     it("discovers agents from multiple plugins", async () => {
       await seedPlugin("lisa", { [BUG_FIXER_MD]: SAMPLE_AGENT });
-      await seedPlugin("lisa-rails", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
+      await seedPlugin(LISA_RAILS, { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
       const result = await discoverLisaAgents(lisaDir);
       expect(result.map(r => r.id).sort((a, b) => a.localeCompare(b))).toEqual([
         BUG_FIXER,
@@ -137,13 +139,27 @@ describe("codex/agent-installer", () => {
       expect(result[0]?.id).toBe(BUG_FIXER);
     });
 
-    it("de-duplicates by agent id (first plugin wins)", async () => {
-      // Both plugins ship 'ops-specialist'; first to appear wins
+    it("de-duplicates by agent id (stack plugin wins over base lisa)", async () => {
+      // Both plugins ship 'ops-specialist'; stack-specific plugin wins over base
       await seedPlugin("lisa", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT });
-      await seedPlugin("lisa-rails", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
+      await seedPlugin(LISA_RAILS, { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
       const result = await discoverLisaAgents(lisaDir);
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe(OPS_SPECIALIST);
+      // lisa-rails is a stack plugin and wins over the base lisa plugin
+      expect(result[0]?.pluginName).toBe(LISA_RAILS);
+    });
+
+    it("non-base plugin whose name sorts before 'lisa' alphabetically still wins over base lisa", async () => {
+      // "aardvark" sorts before "lisa" alphabetically.
+      // With a naive alphabetical sort + last-wins-Map, lisa would overwrite
+      // aardvark. The fix (base lisa first, others after) ensures any non-base
+      // plugin wins regardless of its sort position.
+      await seedPlugin("lisa", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT });
+      await seedPlugin("aardvark", { [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2 });
+      const result = await discoverLisaAgents(lisaDir);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.pluginName).toBe("aardvark");
     });
 
     it("returns results sorted by id", async () => {

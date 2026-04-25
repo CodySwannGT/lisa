@@ -211,7 +211,7 @@ describe("codex/skills-installer", () => {
       );
     });
 
-    it("de-duplicates skills by name across plugins (first wins)", async () => {
+    it("de-duplicates skills by name across plugins (stack plugin wins over base lisa)", async () => {
       await seedSkill("lisa", BUG_TRIAGE, {
         [SKILL_MD]: SAMPLE_SKILL_MD,
       });
@@ -221,6 +221,24 @@ describe("codex/skills-installer", () => {
       const result = await installSkills(lisaDir, destDir, []);
       const installedNames = result.installed.map(s => s.name);
       expect(installedNames.filter(n => n === BUG_TRIAGE)).toHaveLength(1);
+    });
+
+    it("non-base plugin whose name sorts before 'lisa' alphabetically still wins over base lisa", async () => {
+      // "aardvark" sorts before "lisa" alphabetically.
+      // With a naive alphabetical sort + last-wins-Map, lisa would overwrite
+      // aardvark. The fix (base lisa first, others after) ensures any non-base
+      // plugin wins regardless of its sort position.
+      const baseContent = `---\nname: ${BUG_TRIAGE}\ndescription: Base description\n---\n\nBase body.\n`;
+      const stackContent = `---\nname: ${BUG_TRIAGE}\ndescription: Stack description\n---\n\nStack body.\n`;
+      await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: baseContent });
+      await seedSkill("aardvark", BUG_TRIAGE, { [SKILL_MD]: stackContent });
+      await installSkills(lisaDir, destDir, []);
+      const written = await fs.readFile(
+        path.join(destDir, ".codex", LISA_SKILLS_SUBDIR, BUG_TRIAGE, SKILL_MD),
+        "utf8"
+      );
+      // Non-base plugins win over base lisa regardless of alphabetical sort order
+      expect(written).toContain("Stack description");
     });
 
     it("deletes stale skills that were managed previously but not shipped now", async () => {

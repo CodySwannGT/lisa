@@ -181,7 +181,10 @@ interface BundledSkillSource {
 
 /**
  * Walk `plugins/<plugin>/skills/<name>/` discovering each skill folder.
- * De-duplicates by skill name (first plugin wins).
+ * De-duplicates by skill name with stack-specific plugins winning over the
+ * base `lisa` plugin: `lisa` is processed first, all other plugins sorted
+ * alphabetically after, and the Map dedup is last-wins so any non-base plugin
+ * overrides base entries regardless of its name's sort position.
  * @param lisaDir - Absolute path to the Lisa repo / installed package
  * @returns De-duplicated bundled-skill sources, sorted by skill name
  */
@@ -192,14 +195,20 @@ async function discoverBundledSkills(
   if (!(await fse.pathExists(pluginsDir))) {
     return [];
   }
-  // Sort plugin names for deterministic precedence on duplicate entries —
-  // readdir order is filesystem-dependent and not stable across machines.
-  const plugins = (await readdir(pluginsDir))
-    .filter(name => name !== "src")
-    .sort((a, b) => a.localeCompare(b));
+  // Put base `lisa` first so any other plugin (stack-specific or third-party)
+  // comes after in the flat array. Map dedup below is last-wins, so
+  // stack-specific entries always override base entries regardless of how
+  // the non-base plugin names sort alphabetically.
+  const all = (await readdir(pluginsDir)).filter(name => name !== "src");
+  const plugins = [
+    ...all.filter(n => n === "lisa"),
+    ...all.filter(n => n !== "lisa").sort((a, b) => a.localeCompare(b)),
+  ];
   const candidatesByPlugin = await Promise.all(
     plugins.map(pluginName => discoverSkillsInPlugin(pluginsDir, pluginName))
   );
+  // Plugin iteration order: base first, stack-specific last.
+  // Map dedup is last-wins, so stack-specific entries override the base.
   const flat = candidatesByPlugin.flat();
   const deduped = Array.from(
     new Map(flat.map(source => [source.skillName, source])).values()
@@ -316,7 +325,8 @@ interface LisaCommandSource {
  * Nested directories produce dash-joined skill names: `commands/git/commit.md`
  * → `lisa-git-commit`.
  *
- * De-duplicates by final skill name across plugins.
+ * De-duplicates by final skill name with stack-specific plugins winning over
+ * the base `lisa` plugin (same base-first ordering as discoverBundledSkills).
  * @param lisaDir - Absolute path to the Lisa repo / installed package
  * @returns De-duplicated command-derived skill sources, sorted by skill name
  */
@@ -327,14 +337,20 @@ async function discoverLisaCommands(
   if (!(await fse.pathExists(pluginsDir))) {
     return [];
   }
-  // Sort plugin names for deterministic precedence on duplicate entries —
-  // readdir order is filesystem-dependent and not stable across machines.
-  const plugins = (await readdir(pluginsDir))
-    .filter(name => name !== "src")
-    .sort((a, b) => a.localeCompare(b));
+  // Put base `lisa` first so any other plugin (stack-specific or third-party)
+  // comes after in the flat array. Map dedup below is last-wins, so
+  // stack-specific entries always override base entries regardless of how
+  // the non-base plugin names sort alphabetically.
+  const all = (await readdir(pluginsDir)).filter(name => name !== "src");
+  const plugins = [
+    ...all.filter(n => n === "lisa"),
+    ...all.filter(n => n !== "lisa").sort((a, b) => a.localeCompare(b)),
+  ];
   const candidatesByPlugin = await Promise.all(
     plugins.map(pluginName => discoverCommandsInPlugin(pluginsDir, pluginName))
   );
+  // Plugin iteration order: base first, stack-specific last.
+  // Map dedup is last-wins, so stack-specific entries override the base.
   const flat = candidatesByPlugin.flat();
   const deduped = Array.from(
     new Map(flat.map(source => [source.skillName, source])).values()
