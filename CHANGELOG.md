@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.95.0](https://github.com/CodySwannGT/lisa/compare/vv1.94.0...v1.95.0) (2026-04-25)
+
+
+### Features
+
+* **jira:** enforce ticket pre-flight gate for env, sign-in, scope, and relationships ([#414](https://github.com/CodySwannGT/lisa/issues/414)) ([6eaeebe](https://github.com/CodySwannGT/lisa/commit/6eaeebe5467e1bab6ece978f9bd54c85c20a34f0))
+
 ## [1.94.0](https://github.com/CodySwannGT/lisa/compare/vv1.93.0...v1.94.0) (2026-04-23)
 
 
