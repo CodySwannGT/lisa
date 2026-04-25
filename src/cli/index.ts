@@ -1,9 +1,16 @@
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { LisaConfig } from "../core/config.js";
+import type { Harness, LisaConfig } from "../core/config.js";
+import { HARNESS_VALUES } from "../core/config.js";
 import { GitService } from "../core/git-service.js";
 import { Lisa, type LisaDependencies } from "../core/lisa.js";
+import {
+  isHarness,
+  readProjectConfig,
+  resolveHarness,
+  writeProjectConfig,
+} from "../core/project-config.js";
 import { DetectorRegistry } from "../detection/index.js";
 import { ConsoleLogger } from "../logging/index.js";
 import { MigrationRegistry } from "../migrations/index.js";
@@ -24,6 +31,23 @@ function getLisaDir(): string {
 }
 
 /**
+ * Validate the --harness CLI argument. Commander invokes this with the raw
+ * user-supplied string and expects either the parsed value or a thrown
+ * InvalidArgumentError.
+ * @param value - Raw argument value
+ * @returns The validated harness
+ */
+function parseHarnessArg(value: string): Harness {
+  if (!isHarness(value)) {
+    const allowed = HARNESS_VALUES.join(" | ");
+    throw new InvalidArgumentError(
+      `expected ${allowed}, got ${JSON.stringify(value)}`
+    );
+  }
+  return value;
+}
+
+/**
  * Create and configure the CLI program
  * @returns Configured Commander program
  */
@@ -33,7 +57,7 @@ export function createProgram(): Command {
   program
     .name("lisa")
     .description(
-      "Claude Code governance framework - apply guardrails and guidance to projects"
+      "Claude Code / Codex CLI governance framework - apply guardrails and guidance to projects"
     )
     .version("1.0.0")
     .argument("[destination]", "Path to the project directory")
@@ -50,6 +74,11 @@ export function createProgram(): Command {
       "--skip-git-check",
       "Skip dirty git working directory check (for postinstall use)"
     )
+    .option(
+      "--harness <harness>",
+      `Target harness for emitted artifacts: ${HARNESS_VALUES.join(" | ")} (default: claude, or value from .lisa.config.json)`,
+      parseHarnessArg
+    )
     .action(async (destination: string | undefined, options: CLIOptions) => {
       await runLisa(destination, options);
     });
@@ -65,6 +94,7 @@ interface CLIOptions {
   yes?: boolean;
   validate?: boolean;
   skipGitCheck?: boolean;
+  harness?: Harness;
 }
 
 /**
@@ -88,13 +118,22 @@ function printUsageAndExit(): never {
   console.log(
     "  --skip-git-check  Skip dirty git working directory check (for postinstall use)"
   );
+  console.log(
+    `  --harness <h>     Target harness for emitted artifacts: ${HARNESS_VALUES.join(" | ")} (persisted in .lisa.config.json)`
+  );
   console.log("  -h, --help        Show this help message");
   console.log("");
   console.log("Examples:");
   console.log("  lisa /path/to/my-project");
   console.log("  lisa --dry-run .");
-  console.log("  lisa --yes /path/to/project    # CI/CD pipeline usage");
-  console.log("  lisa --validate .              # Check compatibility only");
+  console.log("  lisa --yes /path/to/project          # CI/CD pipeline usage");
+  console.log(
+    "  lisa --validate .                    # Check compatibility only"
+  );
+  console.log("  lisa --harness=codex .               # Emit Codex artifacts");
+  console.log(
+    "  lisa --harness=both .                # Emit both Claude and Codex artifacts"
+  );
   process.exit(1);
 }
 
@@ -139,13 +178,20 @@ async function runLisa(
 
   const dryRun = options.dryRun ?? options.validate ?? false;
   const yesMode = options.yes ?? false;
+  const destDir = toAbsolutePath(destination);
+
+  // Resolve harness with precedence: CLI flag > .lisa.config.json > default
+  const projectConfig = await readProjectConfig(destDir);
+  const harness = resolveHarness(options.harness, projectConfig);
+
   const config: LisaConfig = {
     lisaDir: getLisaDir(),
-    destDir: toAbsolutePath(destination),
+    destDir,
     dryRun,
     yesMode,
     validateOnly: options.validate ?? false,
     skipGitCheck: options.skipGitCheck ?? false,
+    harness,
   };
 
   const logger = new ConsoleLogger();
@@ -160,6 +206,12 @@ async function runLisa(
     if (!result.success) {
       result.errors.forEach(error => logger.error(error));
       process.exit(1);
+    }
+
+    // Persist resolved harness on apply (not validate, not dry-run) so the
+    // choice survives to the next run without requiring the flag every time.
+    if (!options.validate && !dryRun && projectConfig.harness !== harness) {
+      await writeProjectConfig(destDir, { harness });
     }
   } catch (error) {
     logger.error(error instanceof Error ? error.message : String(error));
