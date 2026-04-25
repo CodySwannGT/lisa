@@ -703,7 +703,14 @@ jobs:
     name: 🎭 Playwright E2E Tests
     needs: playwright_e2e_setup
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 30 min was tight for downstream projects whose backend cold-start
+    # tail latency drives shard runtime above ~25 min under workers=4
+    # parallel-shard load. 60 min gives headroom for transient
+    # backend-side latency spikes without masking genuine test hangs
+    # (Playwright's per-test timeout still bounds those at 90s × 3
+    # retries). Raise back down once downstream projects address their
+    # backend-side root causes.
+    timeout-minutes: 60
     if: ${{ !contains(inputs.skip_jobs, 'playwright_e2e') }}
     strategy:
       fail-fast: false

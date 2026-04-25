@@ -75,11 +75,11 @@ describe("quality.yml reusable workflow", () => {
   });
 
   describe("playwright_e2e job preservation", () => {
-    it("preserves runs-on ubuntu-latest and timeout-minutes 30", () => {
+    it("preserves runs-on ubuntu-latest and timeout-minutes 60", () => {
       const job = workflow.jobs.playwright_e2e;
       expect(job).toBeDefined();
       expect(job["runs-on"]).toBe("ubuntu-latest");
-      expect(job["timeout-minutes"]).toBe(30);
+      expect(job["timeout-minutes"]).toBe(60);
     });
 
     it("declares matrix strategy fed by the setup job's shards output", () => {
