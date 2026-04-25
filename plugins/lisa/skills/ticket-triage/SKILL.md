@@ -10,6 +10,22 @@ Perform analytical triage on the JIRA ticket. The caller MUST have run `jira-rea
 
 Repository name for scoped labels and comment headers: determine via `basename $(git rev-parse --show-toplevel)`.
 
+## Phase 0 -- Pre-flight Description Gate
+
+Before any analytical work, confirm the ticket carries the content an implementer needs to start. The caller should already have run `jira-verify`; this phase consumes its output. If `jira-verify` returned `FAIL` for any of the following, emit `BLOCKED` immediately with the missing-requirements list and skip to Phase 6:
+
+- Epic parent missing (non-bug, non-epic)
+- Description quality failures (no Gherkin acceptance criteria, missing audience sections)
+- Validation Journey missing on a runtime-behavior ticket
+- Target backend environment missing on a runtime-behavior ticket
+- Sign-in credentials missing on a ticket that touches authenticated surfaces
+- Single-repo scope violated (Bug / Task / Sub-task spanning repos)
+- Relationship discovery missing (no links AND no documented git+JQL search)
+
+The caller (jira-agent) is responsible for transitioning the ticket to `Blocked`, reassigning to the **Reporter**, and posting a comment listing the missing requirements. This skill only emits the verdict and the missing-requirements list.
+
+If `jira-verify` returned `PASS` for all the above, proceed to Phase 1.
+
 ## Phase 1 -- Relevance Check
 
 Search the local codebase using Glob and Grep for code related to the ticket's subject matter:
@@ -123,7 +139,7 @@ Every verification method must be specific enough that an automated agent could 
 Evaluate the findings and produce exactly one verdict:
 
 - **`NOT_RELEVANT`** -- No relevant code was found in this repository (Phase 1). The caller should add the triage label and skip implementation in this repo.
-- **`BLOCKED`** -- Blocking conditions were found in Phase 1.5 (open blockers, duplicate-of-open) and/or ambiguities were found in Phase 3. Work MUST NOT proceed until resolved by a human. The caller should post findings, add the triage label, and STOP.
+- **`BLOCKED`** -- Blocking conditions were found in Phase 0 (missing required description content), Phase 1.5 (open blockers, duplicate-of-open), and/or Phase 3 (ambiguities). Work MUST NOT proceed until resolved by a human. When the block is from Phase 0, the caller (jira-agent) MUST transition the ticket to `Blocked` and reassign to the Reporter — not just leave it in place. For Phase 1.5 / Phase 3 blocks, post findings, add the triage label, and STOP.
 - **`PASSED_WITH_FINDINGS`** -- No ambiguities, but edge cases or verification findings were identified. Work can proceed. The caller should post findings and add the triage label.
 - **`PASSED`** -- No ambiguities, edge cases, or verification gaps found. Work can proceed. The caller should add the triage label.
 
@@ -159,4 +175,5 @@ Structure all output with clear section headers so the caller can parse and post
 The caller is responsible for:
 1. Posting the findings as comments on the ticket (using whatever Jira mechanism is available)
 2. Adding the `claude-triaged-{repo}` label to the ticket
-3. If `BLOCKED`: stopping all work and reporting the ambiguities to the human
+3. If `BLOCKED` due to Phase 0 (missing required description content): transitioning the ticket to `Blocked`, reassigning to the **Reporter**, posting a comment listing the missing requirements, and stopping all work.
+4. If `BLOCKED` due to Phase 1.5 (open blockers, duplicate-of-open) or Phase 3 (ambiguities): stopping all work and reporting to the human; do NOT auto-transition status in these cases.

@@ -34,13 +34,26 @@ Pass the resulting context bundle verbatim to every downstream agent. Extract cr
 
 **Never act on a ticket in isolation.** If the bundle shows open blockers, flag them and stop. If it shows an epic sibling in progress with a different assignee, surface that before proceeding so work isn't duplicated.
 
-### 2. Validate Ticket Quality
+### 2. Validate Ticket Quality (Pre-flight Gate)
 
-Use the `jira-verify` skill to check:
-- Epic relationship exists (ticket belongs to an epic)
-- Description is complete enough for a coding assistant to act on
+Use the `jira-verify` skill to check the ticket against organizational standards:
+- Epic relationship exists (non-bug, non-epic tickets)
+- Description quality (audience sections, Gherkin acceptance criteria)
+- Validation Journey present (runtime-behavior tickets)
+- Target backend environment named in description (runtime-behavior tickets)
+- Sign-in credentials named in description (when ticket touches authenticated surfaces)
+- Single-repo scope (Bug / Task / Sub-task)
+- Relationship discovery (≥1 link or documented git+JQL search)
 
-If validation fails, update the ticket with what's missing and escalate.
+**Gating behavior — this is the one place auto-transitioning is allowed:**
+
+If `jira-verify` returns `FAIL` on any of the above, do NOT continue:
+1. Transition the ticket status to `Blocked` (use `mcp__atlassian__transitionJiraIssue` or equivalent).
+2. Reassign the ticket to the **Reporter** (the human who filed it — not the Creator field, which may be a bot/integration).
+3. Post a comment using `mcp__atlassian__addCommentToJiraIssue` listing each missing requirement with a one-line remediation. Prefix with `[{repo}]`.
+4. Stop. Do not run triage, do not delegate to a flow, do not start work.
+
+If `jira-verify` returns `PASS`, proceed to Step 3.
 
 ### 3. Analytical Triage Gate
 
@@ -105,8 +118,8 @@ Based on the milestone, suggest (but don't auto-transition):
 
 ## Rules
 
-- Never auto-transition ticket status — always suggest and let the human confirm
+- Never auto-transition ticket status, with one explicit exception: when `jira-verify` returns `FAIL` for the pre-flight gate (Step 2), transition to `Blocked` and reassign to the Reporter. Every other status change remains a suggestion the human confirms.
 - Always read the full ticket graph via `jira-read-ticket` before determining intent — don't rely on ticket type alone
 - Never create or materially edit a ticket by calling MCP write tools directly — always delegate to `jira-write-ticket` so relationships, Gherkin criteria, and metadata gates are enforced
-- If sign-in credentials are in the ticket, extract and pass them to the flow
-- If the ticket has a Validation Journey section, pass it to the verifier agent
+- If sign-in credentials are in the ticket, extract and pass them to the flow. If the ticket touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.
+- If the ticket has a Validation Journey section, pass it to the verifier agent. The Validation Journey's local-verification step must point at the target backend environment named in the description (for FE work, that's the deployed backend QA reported against).
