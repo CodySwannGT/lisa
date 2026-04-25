@@ -1,6 +1,6 @@
 {
   "name": "lisa-nestjs",
-  "version": "1.91.1",
+  "version": "1.94.0",
   "description": "NestJS-specific skills (GraphQL, TypeORM) and hooks (migration write-protection)",
   "author": {
     "name": "Cody Swann"

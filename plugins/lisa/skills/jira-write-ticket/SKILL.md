@@ -26,13 +26,16 @@ Required fields (stop and ask if missing — do not invent values):
 | Field | Required For | Notes |
 |-------|--------------|-------|
 | Project key | CREATE | Call `getVisibleJiraProjects` if unknown |
-| Issue type | CREATE | Story, Task, Bug, Epic, Spike, Improvement |
+| Issue type | CREATE | Story, Task, Bug, Epic, Spike, Sub-task, Improvement |
 | Summary | CREATE, UPDATE | One line, imperative voice, under 100 chars |
 | Description | CREATE, UPDATE | Multi-section — see Phase 3 |
 | Epic parent | Non-bug, non-epic | Enforced by `jira-verify` |
 | Priority | CREATE | Default to project default if unstated |
-| Acceptance criteria | Story, Task, Bug, Improvement | Gherkin — see Phase 3 |
+| Acceptance criteria | Story, Task, Bug, Sub-task, Improvement | Gherkin — see Phase 3 |
 | Validation Journey | Runtime-behavior changes | Delegate to `/jira-add-journey` |
+| Target backend environment | Runtime-behavior changes | `dev` / `staging` / `prod`; recorded in description (Phase 3). Skip only for doc/config/type-only tickets. |
+| Sign-in account / credentials | Tickets that touch authenticated surfaces | Name the account (or source — 1Password item, env var, seeded fixture) and role; recorded in description (Phase 3). Omit when sign-in is not required. |
+| Single-repo scope | Bug, Task, Sub-task | These types MUST cover one repo only. If the work crosses repos, split it before creating. Epic / Spike / Story may span repos. |
 
 Optional but recommended: assignee, components, fix versions, labels, sprint, story points, reporter.
 
@@ -62,6 +65,26 @@ h2. Acceptance Criteria
 h2. Out of Scope
 [Explicit list of what this ticket does NOT cover. Forces scope discipline.]
 
+h2. Target Backend Environment
+[Required when the ticket changes runtime behavior. One of: dev / staging / prod.
+ This is the environment QA/product reported against and the backend the
+ implementer points their local stack at during verification before CI/CD.
+ Backend-only tickets state the deployed env they target. Skip section
+ entirely for doc-only, config-only, or type-only tickets.]
+
+h2. Sign-in Required
+[Include this section ONLY if the work touches authenticated surfaces.
+ Specify: the account/role to sign in as, where to get the credentials
+ (1Password item name, env var, seeded fixture), and any MFA/SSO notes.
+ Omit the section entirely when sign-in is not required — its absence
+ means "no sign-in needed for this ticket."]
+
+h2. Repository
+[Required for Bug / Task / Sub-task. Name the single repo this ticket covers.
+ If the work spans repos, this ticket type is wrong — split into per-repo
+ Tasks/Subtasks under a parent Story or Epic. Epic / Spike / Story may
+ list multiple repos.]
+
 h2. Validation Journey
 [Delegate to /jira-add-journey if the ticket changes runtime behavior.
  Skip only for doc-only, config-only, or type-only tickets.]
@@ -72,6 +95,7 @@ Rules:
 - Every criterion is independently verifiable (UI, API, data, or performance check).
 - If the ticket is a Bug, include reproduction steps, expected vs. actual behavior, and environment.
 - If the ticket is a Spike, include the question being answered and the definition of done (decision doc, prototype, or findings).
+- If sign-in is required, the implementer must be able to sign in from the description alone — never assume they will guess the account or hunt for credentials.
 
 ## Phase 4 — Relationship Discovery (Mandatory)
 
@@ -91,7 +115,24 @@ If the ticket is not a Bug and not an Epic, it MUST have an epic parent:
 
 ### 4b. Related Tickets
 
-Run targeted JQL searches to surface candidate links. Present candidates to the human (or record them on the ticket as a comment) before skipping. Suggested searches:
+Relationship discovery is **mandatory** on every create and every update — never declare "no related work" without doing both searches below and recording their outcomes on the ticket.
+
+**Search 1: local git history** (catches PRs/commits that touched the same area but were never linked to a ticket):
+
+```bash
+# Commits mentioning the keyword
+git log --all --oneline --grep="<keyword>"
+
+# Commits that touched the relevant paths
+git log --all --oneline -- <path-or-glob>
+
+# Recent activity in this area (last 90 days)
+git log --since=90.days --oneline -- <path-or-glob>
+```
+
+If the git search surfaces a PR or commit that relates to this work, capture the PR URL — it becomes a remote link (Phase 4c) and may also point to a sibling ticket worth linking.
+
+**Search 2: Jira JQL** (catches open and recently-closed tickets):
 
 ```jql
 # Open tickets touching the same component
@@ -105,7 +146,12 @@ project = <PROJECT> AND (summary ~ "<keyword>" OR description ~ "<keyword>") AND
 
 # Recent tickets touching the same labels
 project = <PROJECT> AND labels in (<labels>) AND updated >= -30d
+
+# Recently closed tickets in the same area (catches duplicates of work just shipped)
+project = <PROJECT> AND component = "<component>" AND status = Done AND updated >= -30d
 ```
+
+**Record the outcome.** Add a `## Relationship Search` subsection (or a comment if updating an existing ticket) listing the queries you ran and what they returned. If the searches yielded nothing, write that explicitly — "Searched git history for `<keywords>` and JQL for component=`X`, label=`Y`, epic siblings; no related work found." A ticket with zero links and no documented search is rejected.
 
 For each candidate, classify the relationship:
 
@@ -194,7 +240,9 @@ Skip this step only on UPDATE when no material change was made.
 ## Rules
 
 - Never create a non-bug ticket without an epic parent.
-- Never skip relationship discovery — record "none found" explicitly if the search returned nothing.
+- Never skip relationship discovery — both the git history search AND the JQL search must run, and their outcomes must be recorded on the ticket. "None found" is acceptable only when it's documented.
+- Never create a Bug, Task, or Sub-task that spans multiple repos. Split it before creating.
+- Never include a runtime-behavior ticket without a target backend environment, and never include an authenticated-surface ticket without sign-in credentials in the description.
 - Never invent custom field values. If the project requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.
 - All writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `jira-create`) should delegate here rather than calling the MCP write tools directly.
