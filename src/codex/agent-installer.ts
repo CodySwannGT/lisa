@@ -74,7 +74,11 @@ export async function discoverLisaAgents(
   if (!(await fse.pathExists(pluginsDir))) {
     return [];
   }
-  const plugins = (await readdir(pluginsDir)).filter(name => name !== "src");
+  // Sort plugin names for deterministic precedence on duplicate entries —
+  // readdir order is filesystem-dependent and not stable across machines.
+  const plugins = (await readdir(pluginsDir))
+    .filter(name => name !== "src")
+    .sort((a, b) => a.localeCompare(b));
   const candidatesByPlugin = await Promise.all(
     plugins.map(pluginName => discoverAgentsInPlugin(pluginsDir, pluginName))
   );

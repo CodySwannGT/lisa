@@ -210,7 +210,15 @@ async function runLisa(
 
     // Persist resolved harness on apply (not validate, not dry-run) so the
     // choice survives to the next run without requiring the flag every time.
-    if (!options.validate && !dryRun && projectConfig.harness !== harness) {
+    // Only write when the user actually supplied --harness, so existing
+    // host projects don't gain a brand-new .lisa.config.json with the
+    // default value just by running `lisa` once.
+    if (
+      !options.validate &&
+      !dryRun &&
+      options.harness !== undefined &&
+      projectConfig.harness !== harness
+    ) {
       await writeProjectConfig(destDir, { harness });
     }
   } catch (error) {

@@ -165,6 +165,12 @@ function applyNewKeys(toml: string, added: Record<string, unknown>): string {
  * Required because TOML attaches every key to the most-recent table header,
  * so naively appending a root key at the end of a document with sections
  * silently nests it under the last section.
+ *
+ * Quote-state-aware: a line whose first non-whitespace char is `[` does
+ * NOT count as a section header if it sits inside an open multi-line string
+ * (`"""..."""` or `'''...'''`). Without this guard, a host config like
+ * `notes = """\n[release-notes]\nv1\n"""` would have Lisa keys spliced into
+ * the middle of the string, corrupting the file.
  * @param toml - The TOML source to mutate
  * @param keys - Root-level keys to insert
  * @returns The TOML source with the new keys placed above any sections
@@ -174,10 +180,8 @@ function prependRootKeys(toml: string, keys: Record<string, unknown>): string {
     .map(([key, value]) => `${key} = ${formatTomlValue(value)}`)
     .join("\n");
 
-  // Bounded character classes only — `^[ \t]*\[` cannot backtrack into a
-  // super-linear scan even on adversarial input.
   const lines = toml.split("\n");
-  const sectionIndex = lines.findIndex(line => /^[ \t]*\[/.test(line));
+  const sectionIndex = findFirstSectionHeaderIndex(lines);
 
   if (sectionIndex === -1) {
     // No sections — safe to append at the end
@@ -188,6 +192,84 @@ function prependRootKeys(toml: string, keys: Record<string, unknown>): string {
   const after = lines.slice(sectionIndex).join("\n");
   const beforePart = before.length > 0 ? `${before}\n` : "";
   return `${beforePart}${block}\n\n${after}`;
+}
+
+/**
+ * Find the line index of the first real `[section]` header, skipping any
+ * `[`-prefixed lines that sit inside an open multi-line TOML string.
+ *
+ * Tracks a single "currently-open multi-line delimiter" (either `"""` or
+ * `'''`). Per TOML grammar these can't be nested, so a string token is
+ * sufficient state.
+ * @param lines - The TOML source split on `\n`
+ * @returns The 0-based line index, or -1 if no section header exists
+ */
+function findFirstSectionHeaderIndex(lines: readonly string[]): number {
+  return lines.reduce<{
+    readonly index: number;
+    readonly openDelim: string | undefined;
+  }>(
+    (acc, line, idx) => {
+      if (acc.index !== -1) {
+        return acc;
+      }
+      const nextDelim = updateMultilineState(line, acc.openDelim);
+      // A `[` line only counts when we're NOT currently inside a multi-line
+      // string AND the line didn't open one this iteration.
+      if (
+        acc.openDelim === undefined &&
+        nextDelim === undefined &&
+        /^[ \t]*\[/.test(line)
+      ) {
+        return { index: idx, openDelim: nextDelim };
+      }
+      return { index: -1, openDelim: nextDelim };
+    },
+    { index: -1, openDelim: undefined as string | undefined }
+  ).index;
+}
+
+/**
+ * Compute the new "currently-open multi-line delimiter" state for a line.
+ *
+ * Counts `"""` and `'''` occurrences on the line (each pair toggles).
+ * When entering, `openDelim` becomes the delimiter type; an odd count
+ * within the same line toggles state; an even count leaves it unchanged.
+ * @param line - One line of TOML source
+ * @param openDelim - Currently open delimiter (`"""` / `'''` / undefined)
+ * @returns The state after consuming this line
+ */
+function updateMultilineState(
+  line: string,
+  openDelim: string | undefined
+): string | undefined {
+  if (openDelim !== undefined) {
+    const occurrences = countOccurrences(line, openDelim);
+    return occurrences % 2 === 1 ? undefined : openDelim;
+  }
+  const tripleDouble = countOccurrences(line, '"""');
+  const tripleSingle = countOccurrences(line, "'''");
+  if (tripleDouble % 2 === 1) {
+    return '"""';
+  }
+  if (tripleSingle % 2 === 1) {
+    return "'''";
+  }
+  return undefined;
+}
+
+/**
+ * Count non-overlapping occurrences of `needle` in `haystack`.
+ * @param haystack - String to search within
+ * @param needle - Substring to count
+ * @returns Non-negative integer
+ */
+function countOccurrences(haystack: string, needle: string): number {
+  if (needle.length === 0) {
+    return 0;
+  }
+  // Splitting on the needle gives N+1 segments for N occurrences.
+  return haystack.split(needle).length - 1;
 }
 
 /**

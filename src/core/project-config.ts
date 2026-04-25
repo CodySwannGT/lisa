@@ -48,6 +48,12 @@ export async function readProjectConfig(
  * Write `.lisa.config.json` to a destination project, merging into any
  * existing content so unknown fields written by future Lisa versions are
  * preserved on round-trip.
+ *
+ * Rejects an existing file whose root is not a JSON object (e.g., array,
+ * string, number) — `readProjectConfig` already enforces this on read, and
+ * silently coercing such a file via `{...(value as object), ...updates}`
+ * would persist a corrupted config (indexed-key object) that the next read
+ * would then reject.
  * @param destDir - Absolute path to the destination project root
  * @param updates - Partial config to merge into the existing file
  */
@@ -56,11 +62,36 @@ export async function writeProjectConfig(
   updates: ProjectConfig
 ): Promise<void> {
   const configPath = path.join(destDir, PROJECT_CONFIG_FILENAME);
-  const existing = (await fse.pathExists(configPath))
-    ? ((JSON.parse(await readFile(configPath, "utf8")) as unknown) ?? {})
-    : {};
-  const merged = { ...(existing as object), ...updates };
+  const existing = await readRawObject(configPath);
+  const merged = { ...existing, ...updates };
   await writeFile(configPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+}
+
+/**
+ * Read `.lisa.config.json` and return its raw parsed object, preserving
+ * unknown fields. Unlike `readProjectConfig`, this does NOT strip the
+ * result down to the recognized `ProjectConfig` keys — used by
+ * `writeProjectConfig` so round-trips don't drop fields a future Lisa
+ * version added.
+ *
+ * Returns `{}` when the file is absent. Throws on invalid JSON or
+ * non-object root, matching `readProjectConfig`'s strictness.
+ * @param configPath - Absolute path to the JSON file
+ * @returns The parsed object as a generic record (empty if file is absent)
+ */
+async function readRawObject(
+  configPath: string
+): Promise<Record<string, unknown>> {
+  if (!(await fse.pathExists(configPath))) {
+    return {};
+  }
+  const parsed = JSON.parse(await readFile(configPath, "utf8")) as unknown;
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      `Invalid ${PROJECT_CONFIG_FILENAME} at ${configPath}: expected JSON object`
+    );
+  }
+  return parsed as Record<string, unknown>;
 }
 
 /**

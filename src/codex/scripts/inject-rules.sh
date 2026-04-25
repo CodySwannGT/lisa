@@ -14,6 +14,10 @@ RULES_DIR="${REPO_ROOT}/.codex/lisa-rules"
 # Bail silently if the rules dir is absent (e.g., Lisa was uninstalled)
 [ -d "$RULES_DIR" ] || exit 0
 
+# Fail open if jq is missing — without it we can't emit valid hook JSON.
+# Codex would otherwise log a warning on every SessionStart.
+command -v jq >/dev/null 2>&1 || exit 0
+
 CONTEXT=""
 for file in "$RULES_DIR"/*.md; do
   [ -f "$file" ] || continue

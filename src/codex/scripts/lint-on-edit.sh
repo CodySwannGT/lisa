@@ -6,11 +6,10 @@ set -euo pipefail
 
 JSON_INPUT="$(cat)"
 
-if command -v jq >/dev/null 2>&1; then
-  FILE_PATH="$(echo "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')"
-else
-  FILE_PATH="$(echo "$JSON_INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)"
-fi
+# Project rule (.claude/rules/PROJECT_RULES.md): never parse JSON in shell
+# with grep/sed/cut/awk — always use jq. Fail open without jq.
+command -v jq >/dev/null 2>&1 || exit 0
+FILE_PATH="$(echo "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')"
 
 [ -n "${FILE_PATH}" ] || exit 0
 [ -f "${FILE_PATH}" ] || exit 0

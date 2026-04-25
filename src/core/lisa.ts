@@ -588,11 +588,12 @@ export class Lisa {
     ];
     await writeManagedManifest(this.config.destDir, allManagedFiles);
 
+    const totalStale = agentResult.deleted.length + skillsResult.deleted.length;
     this.deps.logger.info(
       pc.cyan(
         `Codex emit: ${agentResult.installed.length} agents, ${hooksResult.hookEntries} hooks, ${skillsResult.installed.length} skills, settings ${settingsResult.created ? "created" : "merged"}${
-          agentResult.deleted.length > 0
-            ? ` (${agentResult.deleted.length} stale removed)`
+          totalStale > 0
+            ? ` (${agentResult.deleted.length} stale agents, ${skillsResult.deleted.length} stale skills removed)`
             : ""
         }`
       )
