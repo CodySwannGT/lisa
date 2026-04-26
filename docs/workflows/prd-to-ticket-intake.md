@@ -199,7 +199,7 @@ jira-build-intake
 
 ### Idempotency
 
-Both intake skills use claim-first ordering: the `Ready → In Review` (Notion) and `Ready → In Progress` (JIRA) transitions happen *before* any other work. A re-entrant cycle's `Status = Ready` filter will not see claimed items, so the second run skips them. Safe to run two cycles overlapping in time as long as they target the same database/project — but the skills are designed for serial execution.
+Both intake skills use claim-first ordering: the `Ready → In Review` (Notion) and `Ready → In Progress` (JIRA) transitions happen *before* any other work. A re-entrant cycle's `Status = Ready` filter will not see claimed items, so the second run skips them. The claim-first ordering makes overlapping cycles relatively safe against double-processing (a claimed item won't be picked up again), but the skills are designed for serial execution — do not run overlapping cycles against the same target in production.
 
 ### Failure isolation
 

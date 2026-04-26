@@ -17,7 +17,7 @@ Analyze the provided file(s) and plan a JIRA hierarchy. **This skill plans struc
    - Epic needed if: multiple features, major changes, >3 related files
    - Direct tasks if: bug fix, single file, minor change
 5. **Plan hierarchy**:
-   ```
+   ```text
    Epic → User Story → Tasks (test, implement, document, cleanup)
    ```
 6. **Delegate every write to `jira-write-ticket`** in dependency order (epic first, then stories with the epic as parent, then sub-tasks with their story as parent). Pass the artifacts (filtered by domain per `jira-source-artifacts` inheritance rules), the walkthrough findings (under `## Current Product`), and — for UI tickets — the Validation Journey draft with `[SCREENSHOT: ...]` markers. See "Delegation to jira-write-ticket" below.
@@ -145,7 +145,7 @@ For every delegated write, pass:
 - The 3-section description body you drafted (Context / Technical Approach / Acceptance Criteria)
 - Gherkin acceptance criteria
 - Parent key (epic key for stories; story key for sub-tasks)
-- The artifact list extracted in "Source Artifact Preservation", filtered by domain per the inheritance rules — `jira-write-ticket` Phase 4c attaches them as remote links
+- The artifact list extracted in "Source Artifacts", filtered by domain per the inheritance rules — `jira-write-ticket` Phase 4c attaches them as remote links
 - For UI-touching tickets: the Validation Journey draft (with `[SCREENSHOT: ...]` markers, viewports, and feature-flag prerequisites). If the journey is missing, instruct it to call `jira-add-journey` after create.
 
 ### What this skill is responsible for

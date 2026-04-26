@@ -8,7 +8,7 @@ allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__cl
 
 `$ARGUMENTS` is a Notion database URL (or bare database ID) — for example:
 
-```
+```text
 https://www.notion.so/geminisports/28fd00244d7d47c5866876f7de48c0fe?v=34eba63a2800815891a3000c643f0ea8
 ```
 
@@ -18,7 +18,7 @@ Run one intake cycle against that database. Each PRD with `Status = Ready` is cl
 
 The PRD database has a `Status` property whose value drives this skill:
 
-```
+```text
 Draft → Ready → In Review → Blocked | Ticketed → Shipped
         (product)  (us)      (us)                  (product)
 ```

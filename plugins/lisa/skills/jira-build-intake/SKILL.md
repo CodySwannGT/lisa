@@ -17,7 +17,7 @@ Run one build-intake cycle. Each Ready ticket is claimed, built via the `jira-ag
 
 The JIRA workflow has these statuses (or equivalents — see Configuration for renaming):
 
-```
+```text
 TODO → Ready → In Progress → On Dev → On QA → Done
        (PM/   (us claim)    (us done; (downstream)
         human)               PR ready)

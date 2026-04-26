@@ -1,6 +1,6 @@
 ---
 name: prd-ticket-coverage
-description: "Verifies that every requirement in a Notion PRD is covered by at least one created JIRA ticket — no silent drops. Parses the PRD into atomic items (goals, user stories, functional/non-functional requirements, acceptance criteria, important notes), maps each to the created tickets, and produces a coverage matrix and verdict (COMPLETE / GAPS_FOUND / SCOPE_CREEP). Used by notion-prd-intake post-write to gate the Status=Ticketed transition; can also be invoked standalone for after-the-fact audits."
+description: "Verifies that every requirement in a Notion PRD is covered by at least one created JIRA ticket — no silent drops. Parses the PRD into atomic items (goals, user stories, functional/non-functional requirements, acceptance criteria, important notes), maps each to the created tickets, and produces a coverage matrix and verdict (COMPLETE / COMPLETE_WITH_SCOPE_CREEP / GAPS_FOUND / NO_TICKETS_FOUND). Used by notion-prd-intake post-write to gate the Status=Ticketed transition; can also be invoked standalone for after-the-fact audits."
 allowed-tools: ["Skill", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-get-comments", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
@@ -65,7 +65,7 @@ For each created ticket (epic + each story + each sub-task), capture: `{ key, su
 
 Build a coverage matrix:
 
-```
+```text
 PRD item id  →  [ticket keys that cover it]
 ```
 

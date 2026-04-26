@@ -137,7 +137,7 @@ For every delegated write, pass:
 - The 3-section description body you drafted (Context / Technical Approach / Acceptance Criteria)
 - Gherkin acceptance criteria
 - Parent key (epic key for stories; story key for sub-tasks)
-- The artifact list extracted in "Source Artifact Preservation", filtered by domain per the inheritance rules — `jira-write-ticket` Phase 4c attaches them as remote links
+- The artifact list extracted in "Source Artifacts", filtered by domain per the inheritance rules — `jira-write-ticket` Phase 4c attaches them as remote links
 - For tickets that change runtime behavior: the Validation Journey draft (or instruct it to call `jira-add-journey` after create)
 
 ### What this skill is responsible for
