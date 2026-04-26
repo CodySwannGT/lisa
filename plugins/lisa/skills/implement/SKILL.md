@@ -3,17 +3,32 @@ name: implement
 description: This skill should be used for any non-trivial request — features, bugs, stories, epics, spikes, or multi-step tasks. It accepts a ticket URL (Jira, Linear, GitHub), a file path containing a spec, or a plain-text prompt. It assembles an agent team, breaks the work into structured tasks, and manages the full lifecycle from research through implementation, code review, deploy, and empirical verification.
 ---
 
+# Implement: $ARGUMENTS
 
-$ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request or the request in text format.
+## Orchestration: agent team
 
-If it's a ticket, use either the Jira CLI (if it's a jira ticket), the Linear CLI (if it's a linear ticket) or the Github CLI (if it's a github ticket) to read and fully understand the request, including any comments or meta data associated with the ticket.
+If you are NOT already operating inside an agent team (no prior `TeamCreate` in this session, not spawned via `Agent` with `team_name`), your FIRST tool call MUST be `TeamCreate`. Do not call `TaskCreate`, `Agent`, or implementation tools before the team exists.
 
-If it's a file, read the entire file without offset or limit to understand the request.
+If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool, or `lisa:intake` is running this skill per Ready ticket), do NOT call `TeamCreate` — the harness rejects double-creates. Continue within the existing team. The team lead created the team; teammates inherit it.
 
-Is this a simple request? Just execute it as usual and ignore the rest...
+When you do create the team, spawn every agent with `mode: "plan"` so they must submit their plan for team lead approval before making any file changes. Every team must include the Explore agent.
 
-Otherwise:
+## Resolve the input
 
+$ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request, or the request in text format.
+
+If it's a ticket, use the appropriate vendor adapter to read and fully understand the request:
+- JIRA ticket → `lisa:jira-read-ticket` (preferred) or the Jira CLI
+- Linear ticket → the Linear CLI (no `lisa:linear-*` adapter built yet)
+- GitHub ticket → the Github CLI
+
+Capture comments and metadata, not just the description.
+
+If it's a file, read the entire file without offset or limit.
+
+Is this a simple request? Just execute it as usual and ignore the rest of this skill.
+
+## Select the agent roster
 
 Review all available agent types listed in the Task tool's `subagent_type` options. This includes built-in agents (like `Explore`, `general-purpose`), custom agents (from `.claude/agents/`), and plugin agents (from `.claude/settings.json` `enabledPlugins`). For each agent, explain in one sentence why it IS or IS NOT relevant to this task. Then select all agents that are relevant. You MUST justify excluding an agent — inclusion is the default.
 
@@ -21,12 +36,6 @@ When deciding the agents to use, consider:
 * Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
 * Each task must be reviewed by the team to make sure their verification passes.
 * Each task must have their learnings reviewed by the learner subagent.
-
-NOTE: Every team must include the Explore agent
-
-Create an agent team composed of the selected agents. Spawn every agent with `mode: "plan"` so they must submit their plan for team lead approval before making any file changes.
-
-Use the TeamCreate tool to create the team before doing anything else.
 
 Using the general-purpose agent in Team Lead session, Determine the name of this plan
 

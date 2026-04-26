@@ -11,7 +11,7 @@ allowed-tools: ["Skill", "Bash", "mcp__atlassian__getAccessibleAtlassianResource
 1. A JIRA project key (e.g. `SE`) — scans that project for `Status = Ready` tickets.
 2. A full JQL filter (e.g. `project = SE AND component = "frontend" AND Status = Ready`) — used as-is. The skill will not append a `Status = Ready` clause if the JQL already names a status, so callers can intentionally widen.
 
-Run one build-intake cycle. Each Ready ticket is claimed, built via the `jira-agent` flow, and transitioned to `On Dev` (or the equivalent next-status for that project). The cycle is the symmetric mirror of `notion-prd-intake`: humans flip `Ready`, agents pick up and progress.
+Run one build-intake cycle. Each Ready ticket is claimed, built via the `lisa:jira-agent` flow, and transitioned to `On Dev` (or the equivalent next-status for that project). The cycle is the symmetric mirror of `lisa:notion-prd-intake`: humans flip `Ready`, agents pick up and progress.
 
 ## Lifecycle assumed
 
@@ -55,28 +55,28 @@ If the transition fails (permission, missing transition, race), log under "Error
 
 #### 3b. Run the build flow
 
-Invoke the `jira-agent` (existing per-ticket lifecycle agent) with the ticket key. `jira-agent` owns:
-- Reading the full ticket graph (`jira-read-ticket`)
-- Running its own pre-flight quality gate (`jira-verify`)
+Invoke the `lisa:jira-agent` (existing per-ticket lifecycle agent) with the ticket key. `lisa:jira-agent` owns:
+- Reading the full ticket graph (`lisa:jira-read-ticket`)
+- Running its own pre-flight quality gate (`lisa:jira-verify`)
 - Running ticket triage (`ticket-triage`)
 - Routing to the appropriate flow (Build / Fix / Investigate / Improve based on type)
-- Posting progress comments via `jira-sync`
-- Posting evidence via `jira-evidence`
+- Posting progress comments via `lisa:jira-sync`
+- Posting evidence via `lisa:jira-evidence`
 
-Wait for `jira-agent` to return. Capture its outcome:
+Wait for `lisa:jira-agent` to return. Capture its outcome:
 - **Success** — PR is ready (open or merged); evidence posted; ready for next status.
-- **Blocked by jira-verify pre-flight gate** — `jira-agent` itself transitions the ticket to `Blocked` and reassigns to Reporter. This is correct and expected — let it stand. Record the outcome and move on.
-- **Blocked by ticket-triage ambiguities** — `jira-agent` posts findings and stops. The ticket stays in `In Progress`. Surface to human; do not auto-transition. Record under "Errors" with reason `"Triage found ambiguities — see comments on <ticket-key>"`.
+- **Blocked by jira-verify pre-flight gate** — `lisa:jira-agent` itself transitions the ticket to `Blocked` and reassigns to Reporter. This is correct and expected — let it stand. Record the outcome and move on.
+- **Blocked by ticket-triage ambiguities** — `lisa:jira-agent` posts findings and stops. The ticket stays in `In Progress`. Surface to human; do not auto-transition. Record under "Errors" with reason `"Triage found ambiguities — see comments on <ticket-key>"`.
 - **Errored** — exception, missing config, etc. Leave the ticket in `In Progress` for human investigation. Record under "Errors" with the exception summary.
 
 #### 3c. Transition to On Dev (only on Success)
 
-If `jira-agent` returned Success:
+If `lisa:jira-agent` returned Success:
 1. Use `getTransitionsForJiraIssue` to find the transition ID for `On Dev` (or the configured next-after-build status).
 2. Transition via `transitionJiraIssue`.
 3. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL>. Transitioned to On Dev."`
 
-For any non-Success outcome, do NOT transition. The ticket sits in `In Progress` (or wherever `jira-agent` left it for the Blocked case) — the cycle's job is done; humans take it from there.
+For any non-Success outcome, do NOT transition. The ticket sits in `In Progress` (or wherever `lisa:jira-agent` left it for the Blocked case) — the cycle's job is done; humans take it from there.
 
 #### 3d. Continue
 
@@ -106,10 +106,10 @@ Total PRs opened: <n>
 
 ## Idempotency & safety
 
-- **Claim-first ordering**: `In Progress` set BEFORE `jira-agent` invocation — no double-pickup.
-- **No writes outside the lifecycle**: this skill only transitions `Ready → In Progress` and `In Progress → On Dev`. Every other status change is owned by `jira-agent` (which suggests transitions but only auto-transitions on the verify-FAIL path).
+- **Claim-first ordering**: `In Progress` set BEFORE `lisa:jira-agent` invocation — no double-pickup.
+- **No writes outside the lifecycle**: this skill only transitions `Ready → In Progress` and `In Progress → On Dev`. Every other status change is owned by `lisa:jira-agent` (which suggests transitions but only auto-transitions on the verify-FAIL path).
 - **Failure isolation**: per-ticket exceptions caught and recorded; the cycle continues.
-- **Single cycle per query**: do not run two `jira-build-intake` cycles in parallel against overlapping queries — concurrent claims could race. The scheduling layer (when added) is responsible for serialization.
+- **Single cycle per query**: do not run two `lisa:jira-build-intake` cycles in parallel against overlapping queries — concurrent claims could race. The scheduling layer (when added) is responsible for serialization.
 - **Never invent a transition**: if `In Progress` or `On Dev` aren't valid transitions in the project's workflow, stop and report rather than guessing alternative names.
 
 ## Configuration
@@ -128,7 +128,7 @@ If a `Ready` status does not exist in the JIRA project's workflow, this skill ca
 ## Rules
 
 - Never transition a ticket the cycle didn't claim. The `In Progress` transition is the signature of cycle ownership.
-- Never bypass `jira-agent` to do build work directly. `jira-agent` owns the per-ticket lifecycle (read, verify, triage, route, sync, evidence). This skill is the dispatcher, not the builder.
+- Never bypass `lisa:jira-agent` to do build work directly. `lisa:jira-agent` owns the per-ticket lifecycle (read, verify, triage, route, sync, evidence). This skill is the dispatcher, not the builder.
 - Never auto-transition past `On Dev`. Downstream statuses (`On QA`, `Done`) are owned by QA / product / a future verification-intake skill — not this one.
-- If the ticket has no Validation Journey or no sign-in credentials in its description, `jira-agent`'s pre-flight verify will catch it and transition to `Blocked` — **don't try to fix the ticket from here**. Pre-flight gating is `jira-agent`'s job; running build work on a thin ticket produces broken work.
-- On any unexpected response from `jira-agent` (status it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.
+- If the ticket has no Validation Journey or no sign-in credentials in its description, `lisa:jira-agent`'s pre-flight verify will catch it and transition to `Blocked` — **don't try to fix the ticket from here**. Pre-flight gating is `lisa:jira-agent`'s job; running build work on a thin ticket produces broken work.
+- On any unexpected response from `lisa:jira-agent` (status it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.

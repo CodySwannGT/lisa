@@ -1,0 +1,38 @@
+---
+name: plan
+description: "Decompose a single PRD or specification into ordered work items in the configured tracker. Vendor-agnostic — the source can be a Notion PRD URL, an existing JIRA epic key, a markdown file, or a free-form description; the destination tracker is whatever the project is configured to use (JIRA today; Linear/GitHub Issues are pluggable). Single-PRD mode only — for batch scanning of all Status=Ready PRDs in a queue, use the lisa:intake skill."
+allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
+---
+
+# Plan: $ARGUMENTS
+
+Decompose the PRD/spec at `$ARGUMENTS` into ordered work items with acceptance criteria, dependencies, and recommended skills/agents.
+
+## Orchestration: agent team
+
+If you are NOT already operating inside an agent team (no prior `TeamCreate` in this session, not spawned via `Agent` with `team_name`), your FIRST tool call MUST be `TeamCreate`. Do not call `TaskCreate`, `Agent`, or implementation tools before the team exists.
+
+If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool), do NOT call `TeamCreate` — the harness rejects double-creates. Continue within the existing team. The team lead created the team; teammates inherit it.
+
+## Source dispatch
+
+Detect the input type from `$ARGUMENTS` and route to the appropriate source skill:
+
+| If `$ARGUMENTS` is... | Hand off to |
+|------------------------|-------------|
+| A Notion **page** URL or page ID (single PRD) | `lisa:notion-to-jira` (with the PRD URL; runs the full pipeline: extract artifacts → walk live product → validate → write tickets → coverage audit) |
+| A Notion **database** URL or database ID | Stop and report — single-PRD mode only. Direct the caller to `lisa:intake` for batch scanning of a database. |
+| A JIRA ticket ID/URL of an Epic (existing epic *is* the spec) | `lisa:jira-agent` (read epic, decompose into stories/sub-tasks) |
+| A Linear / GitHub Issues URL or key | Not yet implemented. Stop and tell the user the adapter doesn't exist yet — the architecture supports it, but no `linear-prd-source` / `github-prd-source` skill has been built. Don't fall back. |
+| A file path (`@plan.md`, `./spec.md`) | Read the file as the spec; run the Plan flow's core decomposition with the file content as input. |
+| A plain-text description | Use the description as the spec; run the Plan flow's core decomposition. |
+
+If no PRD or specification exists, suggest running the `lisa:research` skill first to produce one.
+
+## Flow
+
+Execute the **Plan** flow as defined in the `intent-routing` rule (loaded via the lisa plugin). The rule contains the canonical step sequence (gates, sub-flows, output structure). This skill does NOT restate flow steps — change them in the rule, propagate everywhere.
+
+## Output
+
+Work items in the configured tracker (JIRA today; Linear/GitHub Issues when adapters exist) with acceptance criteria, dependencies, and recommended skills/agents per item. Ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.

@@ -8,7 +8,7 @@ Each flow has a readiness gate that MUST pass before work begins. If the gate fa
 
 This protocol runs **once per session**, on the first user message. After that, every later message inherits the established flow — do not re-run classification.
 
-1. If the user invoked a slash command (`/fix`, `/build`, `/plan`, etc.), the flow is already determined -- skip classification.
+1. If the user invoked a slash command (`/lisa:research`, `/lisa:plan`, `/lisa:implement`, `/lisa:verify`, `/lisa:monitor`, `/lisa:intake`, etc.), the flow is already determined -- skip classification.
 2. Read the user's request and match it against the flow definitions below.
 3. If you cannot confidently classify the request:
    - **Interactive session** (user is present): present a multiple choice using AskUserQuestion with options: Research, Plan, Implement, Verify, No flow.
@@ -23,16 +23,20 @@ This protocol runs **once per session**, on the first user message. After that, 
 
 ## Orchestration Selection Protocol
 
-Immediately after echoing the flow (and before any work begins), state the orchestration mode in the same message. The format is:
+Orchestration is owned by the **lifecycle skill** for the chosen flow, not by this rule. Each top-level lifecycle skill (`lisa:research`, `lisa:plan`, `lisa:implement`, `lisa:verify`, `lisa:monitor`, `lisa:intake`) contains its own cascade-safe orchestration preamble — that's where the team is created (or skipped, if already inside one).
 
-> **Orchestration: agent team** (or **single agent**)
-> One-sentence justification.
+What this rule still enforces:
 
-This echo is mandatory. The user must see the orchestration mode before any work begins. See the **Orchestration** section below for the full decision matrix and team-setup protocol.
+1. **Echo orchestration mode immediately after echoing the flow** (in the same message), so the user sees both before any work begins:
 
-Quick rule: Research, Plan, Implement (Build/Fix/Improve), and any flow invoking the Review sub-flow → **agent team**. Verify standalone, Monitor standalone, Investigate Only spikes → **single agent**. When in doubt, use a team.
+   > **Orchestration: agent team** (or **single agent**)
+   > One-sentence justification.
 
-If the mode is `agent team`, the first tool call after the echo MUST be `TeamCreate`. Do not call `TaskCreate`, `Agent`, or direct implementation tools before the team exists.
+2. **Cascade rule (load-bearing)**: Before calling `TeamCreate`, check whether you are already operating inside an agent team. Signs you are inside a team: a prior `TeamCreate` exists in this session; you were spawned via `Agent` with `team_name`; your context references a team lead. If any of these are true, **do NOT call `TeamCreate`** — the harness rejects double-creates and the work stalls. Continue within the existing team. Invoke flows via the Skill tool; the team lead inherits responsibility for orchestration.
+
+3. **Default mode**: All top-level lifecycle flows (`Research`, `Plan`, `Implement`, `Verify`, `Monitor`, `Intake`) run as agent teams. Single-agent mode is reserved for diagnostics that don't compose multiple specialists (`product-walkthrough` standalone, ad-hoc Investigate-Only spikes that explicitly opt out). When in doubt, use a team.
+
+The mechanical "first tool call MUST be TeamCreate" directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording.
 
 ## Readiness Gate Protocol
 
@@ -59,7 +63,6 @@ Gate:
 - If none is provided, ask: "What problem are you trying to solve or what capability are you trying to add?"
 
 Sequence:
-0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Research is a multi-specialist flow; do this before any other work.
 1. **Investigate sub-flow** -- gather context from codebase, git history, existing behavior, and external sources
 2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items
 3. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
@@ -80,7 +83,6 @@ Gate:
 - If the specification has unresolved ambiguities, stop and list them
 
 Sequence:
-0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Plan is a multi-specialist flow feeding a shared decomposition; do this before any other work.
 1. **Investigate sub-flow** -- explore codebase for architecture, patterns, dependencies relevant to the spec
 2. `product-specialist` -- validate and refine acceptance criteria for the whole scope
 3. `architecture-specialist` -- map dependencies, identify cross-cutting concerns, determine execution order
@@ -110,7 +112,6 @@ Determine the work type and execute the matching variant:
 
 #### Build (features, stories, tasks)
 
-0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Build runs a long sequence with parallel review; do this before any other work.
 1. **Investigate sub-flow** -- explore codebase for related code, patterns, dependencies
 2. `product-specialist` -- define acceptance criteria, user flows, error states
 3. `architecture-specialist` -- design approach, map files to modify, identify reusable code
@@ -124,7 +125,6 @@ Determine the work type and execute the matching variant:
 
 #### Fix (bugs)
 
-0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Fix runs a long sequence with parallel review; do this before any other work.
 1. **Reproduce sub-flow** -- write failing test or script that demonstrates the bug (MANDATORY before any fix is attempted)
 2. **Investigate sub-flow** -- git history, root cause analysis
 3. `debug-specialist` -- prove root cause with evidence
@@ -139,7 +139,6 @@ Determine the work type and execute the matching variant:
 
 #### Improve (refactoring, optimization, coverage improvement)
 
-0. **Create agent team via `TeamCreate`** (see Orchestration section) -- Improve runs a long sequence with parallel review; do this before any other work.
 1. **Investigate sub-flow** -- understand current state, measure baseline
 2. `architecture-specialist` -- identify target, plan approach
 3. `test-specialist` -- ensure existing test coverage before refactoring (safety net)
