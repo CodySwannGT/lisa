@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://github.com/CodySwannGT/lisa/compare/vv2.1.1...v2.2.0) (2026-04-26)
+
+
+### Features
+
+* **intake:** forbid mid-cycle confirmation prompts in intake skills ([#430](https://github.com/CodySwannGT/lisa/issues/430)) ([4cfe629](https://github.com/CodySwannGT/lisa/commit/4cfe629288f491bcd84c3a6356e07ca1e231b2e6))
+
 ### [2.1.1](https://github.com/CodySwannGT/lisa/compare/vv2.1.0...v2.1.1) (2026-04-26)
 
 

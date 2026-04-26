@@ -28,18 +28,35 @@ Dry-run output format:
 
 ### Planned hierarchy
 - Epic: <summary>
+  prd_section: "<heading text from the PRD that produced this epic>"
+  prd_anchor: "<first ~10 chars>...<last ~10 chars>"   # for selection_with_ellipsis; null if no specific section
   - Story 1.1: <summary>
+    prd_section: "<heading or user-story line>"
+    prd_anchor: "<start>...<end>"
     - Sub-task [<repo>]: <summary>
+      prd_section: "<heading or AC bullet>"
+      prd_anchor: "<start>...<end>"
     - ...
   - Story 1.2: ...
 
 ### Per-ticket validation
 - <ticket-id>: PASS | FAIL — <count> failures
-  - <gate-id>: <one-line reason and remediation>
+  prd_section: "<heading text>"
+  prd_anchor: "<start>...<end>"   # mirrored from Planned hierarchy for caller convenience
+  failures:
+    - gate: <gate-id>
+      category: <category from validator>
+      product_relevant: <true|false>
+      what: <plain-language description from validator>
+      recommendation: <1–3 candidate resolutions from validator>
 
 ### Verdict: PASS | FAIL
 ### Total failures: <n>
 ```
+
+`prd_anchor` and `prd_section` exist so downstream callers (notably `lisa:notion-prd-intake`) can post block-anchored Notion comments via `notion-create-comment` with `selection_with_ellipsis`. Build them as you parse the PRD: when you assign a planned ticket to a heading, user-story line, or AC bullet, capture the first ~10 and last ~10 characters of that section's text and emit them in the report. If a planned ticket genuinely doesn't trace to a specific section (cross-cutting infrastructure, derived sub-tasks), set both fields to `null` — the caller will fall back to a page-level comment.
+
+The `failures` array passes the validator's `Failure details` block through verbatim. Do not re-format `what` or `recommendation` here — those fields are already product-readable per the validator's contract, and re-summarizing risks losing concrete recommendations.
 
 The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJiraIssue`. It also never sets a Notion status — that is the orchestrating skill's responsibility.
 
