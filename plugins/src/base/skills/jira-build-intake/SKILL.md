@@ -13,6 +13,23 @@ allowed-tools: ["Skill", "Bash", "mcp__atlassian__getAccessibleAtlassianResource
 
 Run one build-intake cycle. Each Ready ticket is claimed, built via the `lisa:jira-agent` flow, and transitioned to `On Dev` (or the equivalent next-status for that project). The cycle is the symmetric mirror of `lisa:notion-prd-intake`: humans flip `Ready`, agents pick up and progress.
 
+## Confirmation policy
+
+Do NOT ask the caller whether to proceed. Once invoked with a project key or JQL, run the cycle to completion — claim, dispatch each ticket through `lisa:jira-agent`, transition successful builds to `On Dev`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+
+Specifically forbidden:
+
+- Previewing projected scope (ticket count, projected PR count, build duration) and asking whether to continue.
+- Offering A/B/C-style choices like "proceed / skip a few / dry-run only" — the documented behavior IS the default.
+- Pausing because the queue is large, tickets look complex, or tickets are likely to be `Blocked` by `lisa:jira-agent`'s pre-flight gate. The pre-flight `Blocked` outcome is a valid terminal state of the per-ticket lifecycle (owned by `lisa:jira-agent`), not a failure mode — surfacing those tickets to humans is success.
+- Pausing because the build flow looks expensive. The cost of one cycle is bounded; the cost of stalling a scheduled cron waiting on a human is unbounded.
+
+The only legitimate reasons to stop early:
+
+- Missing project key / JQL or required configuration. Surface the missing value and exit.
+- Workflow misconfigured (pre-flight check finds `In Progress` or `On Dev` not reachable, or `Ready` status absent). Surface and exit.
+- Empty `Ready` set. Exit cleanly with `"No tickets with Status=Ready. Nothing to do."`
+
 ## Lifecycle assumed
 
 The JIRA workflow has these statuses (or equivalents — see Configuration for renaming):
