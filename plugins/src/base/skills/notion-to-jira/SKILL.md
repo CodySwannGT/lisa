@@ -14,6 +14,50 @@ description: >
 Convert a Notion PRD into a structured JIRA ticket hierarchy: Epics > Stories > Sub-tasks.
 Each sub-task is scoped to exactly one repo and includes an empirical verification plan.
 
+## Modes
+
+This skill supports two modes, controlled by a `dry_run` flag in `$ARGUMENTS`:
+
+- **`dry_run: false`** (default — full mode): run all phases, write tickets via `jira-write-ticket`, run the preservation gate, report.
+- **`dry_run: true`** (planning + validation only — no writes): run Phases 1, 1.5, 1.6, 2, 3, 4 to plan the hierarchy and draft each ticket spec, then call `jira-validate-ticket` (with `--spec-only`) on every drafted ticket. Aggregate the per-ticket validator reports into a single dry-run report. **Skip Phase 5 (sub-task creation), Phase 5.5 (preservation gate), and Phase 6 (results report)** — none of those make sense without writes. Return the dry-run report so the caller (e.g. `notion-prd-intake`) can decide whether to proceed.
+
+Dry-run output format:
+
+```text
+## notion-to-jira dry-run: <PRD title>
+
+### Planned hierarchy
+- Epic: <summary>
+  - Story 1.1: <summary>
+    - Sub-task [<repo>]: <summary>
+    - ...
+  - Story 1.2: ...
+
+### Per-ticket validation
+- <ticket-id>: PASS | FAIL — <count> failures
+  - <gate-id>: <one-line reason and remediation>
+
+### Verdict: PASS | FAIL
+### Total failures: <n>
+```
+
+The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJiraIssue`. It also never sets a Notion status — that is the orchestrating skill's responsibility.
+
+## Hard Rule: All Writes Go Through `jira-write-ticket`
+
+**Every JIRA ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `jira-write-ticket` skill. Never call `mcp__atlassian__createJiraIssue`, `mcp__atlassian__editJiraIssue`, `mcp__atlassian__createIssueLink`, or any other Atlassian write tool directly from this skill or from any sub-agent it spawns.**
+
+`jira-write-ticket` enforces gates this skill does not:
+- 3-audience description (Context / Technical Approach / Acceptance Criteria)
+- Gherkin acceptance criteria
+- Epic parent validation
+- Explicit issue-link discovery (`blocks` / `is blocked by` / `relates to` / `duplicates` / `clones`)
+- Single-repo scope check on Bug / Task / Sub-task
+- Sign-in account and target environment recorded in description
+- Post-create verification
+
+Bypassing `jira-write-ticket` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. This is the most common failure mode this skill has had — calling `createJiraIssue` directly is a regression, not an optimization. The Atlassian read tools (`getJiraIssue`, `searchJiraIssuesUsingJql`, `getJiraIssueRemoteIssueLinks`, `getAccessibleAtlassianResources`, `getJiraProjectIssueTypesMetadata`, `getVisibleJiraProjects`) ARE allowed for context gathering and the Phase 5.5 preservation gate.
+
 ## Input
 
 A Notion PRD URL. The PRD is expected to have:
@@ -67,66 +111,23 @@ PRDs typically reference external design, UX, and data artifacts (Figma files, L
    - Embedded images and file attachments on the page itself
    - Fenced code blocks with example data (JSON, SQL, GraphQL, cURL request/response)
 
-2. **Classify each artifact by domain**. The split matters — each domain is the source of truth for different implementation decisions:
+2. **Classify each artifact and apply taxonomy rules** by invoking the `jira-source-artifacts` skill. That skill is the single source of truth for: domains (`ui-design` / `ux-flow` / `data` / `ops` / `reference`), per-tool classification rules (Figma `/proto/` vs design, Lovable as `ux-flow`, Loom, screenshots), and coverage smells. Do not restate the rules here — invoke the skill so any drift in the rules propagates uniformly.
 
-   | Domain | What it defines | Examples |
-   |--------|-----------------|----------|
-   | `ui-design` (mocks) | **Visual treatment only** — layout, spacing, typography, color, iconography | Figma design frames, Framer static frames, bare screenshots, mockup PNGs |
-   | `ux-flow` (prototypes) | **Interaction and flow only** — navigation, transitions, state changes, timing, empty/error/loading states | Lovable output, Loom walkthroughs, Figma prototype links, annotated screenshots, Miro/Mural flow diagrams, user journey maps |
-   | `data` | Request/response shape, schema constraints | Example JSON, SQL schemas, GraphQL snippets, API contracts |
-   | `ops` | Deployment/runtime context | Runbooks, dashboards, Terraform refs, deployment diagrams |
-   | `reference` | Cross-cutting context | Confluence, Notion peer pages, Google Docs, related PRDs |
+3. **Build an `artifacts` map** keyed by domain. Each entry: `{ url, title, domain, source_page, source_page_url, classification_reason }`. The `classification_reason` makes disambiguation auditable ("Figma URL contains `/proto/` → ux-flow"). The `source_page` lets you trace each reference back to where it appeared in the PRD.
 
-3. **Apply disambiguation rules** when an artifact could fit multiple domains. These rules exist because agents consistently misclassify Figma and Lovable artifacts, which are the two most common sources of dropped context.
-
-   - **Figma URL**: classify as `ux-flow` if the URL is a prototype share link — it contains `/proto/`, or has `starting-point-node-id=` in the query, or the sharing context labels it "prototype" / "play mode". Otherwise classify as `ui-design`. Never assume.
-   - **Lovable output**: always `ux-flow`. Lovable ships working code, but its code, styling, and any embedded business rules are NOT authoritative. Treat Lovable strictly as a UX/flow reference. Implementation uses existing project components; business rules come from the PRD description, not from Lovable.
-   - **Screenshot with annotations** (arrows between frames, flow labels, numbered steps): `ux-flow`. A bare unannotated screenshot: `ui-design`. A side-by-side gallery of state variants (empty/error/loading): `ui-design` with state variants noted.
-   - **Loom / video walkthrough**: `ux-flow` in the vast majority of cases. The rare exception — a video that's only a static-frame design review with no interaction — is still `ux-flow` for routing purposes (both UX and UI stories benefit from it).
-   - **Figma file with both design frames and a prototype**: emit two entries — one `ui-design` for the file, one `ux-flow` for the prototype URL — so both propagate correctly.
-
-4. **Build an `artifacts` map** keyed by domain. Each entry: `{ url, title, domain, source_page, source_page_url, classification_reason }`. The `classification_reason` makes disambiguation auditable ("Figma URL contains `/proto/` → ux-flow"). The `source_page` lets you trace each reference back to where it appeared in the PRD.
-
-5. **Surface coverage smells** — incomplete artifact sets are a common root cause of implementation drift:
-   - **Zero artifacts** on a non-trivial PRD: almost always an extraction bug, not a design decision. Say so explicitly.
-   - **Prototype but no mock** (`ux-flow` present, `ui-design` absent): flag "missing UI mocks". UI will have to be inferred from prototype frames — note that prototype styling is typically placeholder and must NOT be treated as visual source of truth. Record the smell on the epic.
-   - **Mocks but no prototype** (`ui-design` present, `ux-flow` absent): flag "missing UX prototype". UX will have to be inferred from static mock states (empty/error/loading/hover) — any flow that isn't explicitly depicted in the mocks must be raised as a BLOCKER with recommendation + alternatives, not silently invented.
-   - **Lovable output without a description covering business rules**: flag "business rules missing". Lovable's embedded logic is not authoritative; the PRD description must explicitly state required fields, validation, permissions, and edge cases.
+4. **Surface coverage smells** as defined in `jira-source-artifacts` §5 (zero artifacts, prototype-without-mock, mock-without-prototype, Lovable-without-business-rules). Record any detected smells on the epic.
 
 ### Phase 1.6: Source Precedence & Conflict Resolution
 
-Different artifact domains answer different questions. When they disagree, silent reconciliation is a known failure mode — these rules must be encoded on the tickets and respected during implementation.
+Source precedence rules and cross-axis conflict handling are defined in `jira-source-artifacts` §3 and §4. Apply them during ticket synthesis: every conflict between artifacts must be recorded under `## Open Questions` on the affected ticket, never silently reconciled.
 
-**Authoritative source by question**:
+The existing-component reuse expectation (mocks define visual intent, not implementation shortcut) is defined in `jira-source-artifacts` §7. Encode it on every UI-touching story.
 
-| Question | Authoritative source |
-|----------|---------------------|
-| Does this field exist? Is it required? Who can see/edit it? What validation applies? What are the edge cases, permission rules, data constraints? | **Description / PRD body** (business rules) |
-| What does it look like — layout, spacing, typography, color, iconography? | **Mocks (`ui-design`)** |
-| How does it flow — navigation, transitions, state changes, timing, empty/error/loading states? | **Prototypes (`ux-flow`)** |
-| Where does the data come from, what shape is it, what are the API contracts? | **`data` artifacts** |
+### Phase 2: Codebase + Live Product Research
 
-**Cross-axis conflicts must be surfaced, not reconciled silently**:
+Two complementary inputs ground PRD analysis: the **code** (what's there to reuse / extend) and the **live product** (what users see today). Skipping either produces tickets that misjudge the change.
 
-- Mock shows a field the description doesn't mention → BLOCKER on the story: "Figma shows field `X` not in PRD; confirm it exists, and if so add business rules (required/optional, validation)."
-- Description mandates behavior the prototype contradicts → BLOCKER: "PRD says Y, prototype shows Z; which is correct?"
-- Prototype shows a flow the mocks don't cover (e.g., an error state) → Note on the story: "Error state flow from prototype; no mock exists for the error UI. Use existing error component or request mock."
-- Multiple artifacts of the same domain disagree (e.g., two Figma links showing different layouts) → BLOCKER: list both, ask which is current.
-
-Record every conflict on the ticket description under a `## Open Questions` subsection so the developer picking up the ticket sees it before writing code.
-
-**Existing-component reuse (applies to `ui-design` consumers)**:
-
-Mocks define *visual intent*, not *implementation shortcut*. Before a developer builds UI from a mock, they must search the codebase for the closest-matching existing component. Encode this expectation on every UI-touching story:
-
-- Story description includes: "Before implementing, identify the closest existing component in the codebase. Prefer reuse even if the Figma mock specifies different styling — flag the design-vs-code divergence as a discussion point on this ticket rather than pixel-matching Figma from scratch."
-- If no existing component fits, building a new one is an explicit decision that must be recorded in the ticket (with rationale) before implementation.
-- Lovable-generated components are never the reuse target — always use the project's own components.
-
-### Phase 2: Codebase Research (if needed)
-
-If the session doesn't already have codebase context, explore the repos to understand what exists.
-Use Explore agents for repos not yet examined. Skip repos already explored in the current session.
+**2a. Codebase research.** If the session doesn't already have codebase context, explore the repos to understand what exists. Use Explore agents for repos not yet examined. Skip repos already explored in the current session.
 
 Key things to look for:
 - Existing entities/modules that overlap with the PRD
@@ -134,41 +135,65 @@ Key things to look for:
 - Data model gaps the PRD requires (new fields, new entities)
 - The tech stack per repo (framework, ORM, UI library, deployment)
 
+**2b. Live product walkthrough.** If the PRD touches existing user-facing surfaces (modifies a screen, adds something next to existing functionality, fixes current behavior, re-styles an existing flow), invoke the `product-walkthrough` skill against `E2E_BASE_URL` using the test user from config. This grounds the ticket plan in what's actually shipped — design-vs-current-product divergence, reuse candidates, and behavioral surprises that the PRD didn't anticipate become inputs to ticket creation rather than discoveries during implementation.
+
+Skip 2b only when the work is purely backend with no user-visible surface, or affects a screen that does not yet exist in dev/prod.
+
+Walkthrough findings are attached to the originating Notion PRD as a comment ("Current product walkthrough — `<route>`") and inherited onto the resulting epic / stories under a `## Current Product` subsection.
+
 ### Phase 3: Create Epics
 
-Create one Epic per PRD epic using the JIRA project key from config. Each Epic description should include:
-- Summary of the epic from the PRD
-- List of user stories it contains
-- Key decisions from comments (with attribution)
-- Blockers and open questions
-- Dependencies on other epics or PRDs
-- A **Source Artifacts** section listing every artifact extracted in Phase 1.5 (grouped by domain)
+> **Mode guard**: In `dry_run: true` mode, do not invoke `jira-write-ticket` in this phase. Instead, draft the epic spec (summary, description_body, artifacts) and validate it with `jira-validate-ticket --spec-only`. Record the drafted spec (including a placeholder epic key like `DRY-RUN-EPIC-1`) for Phase 4 to use as parent references. In `dry_run: false` mode (default), proceed as described below.
 
-Use `contentFormat: "markdown"` for all descriptions.
+For each PRD epic, **invoke the `jira-write-ticket` skill** (do not call `createJiraIssue` directly). Pass it everything it needs to enforce its quality gates:
 
-**Attach every artifact from Phase 1.5 as an Epic remote link** — regardless of domain. The epic is the canonical hub, and anyone working on the epic or its descendants must be able to reach the full set from one place. No filtering at the epic level.
+- `project_key`: from `JIRA_PROJECT` config
+- `issue_type`: `Epic`
+- `summary`: epic title from the PRD
+- `description_body`: a draft of the 3-audience description containing:
+  - **Context / Business Value**: epic summary from the PRD, originating Notion URL, business outcome
+  - **Technical Approach**: cross-cutting integration points and constraints surfaced in Phase 2 codebase research
+  - List of user stories the epic contains
+  - Key decisions from comments (with attribution)
+  - Blockers and open questions
+  - Dependencies on other epics or PRDs
+  - A **Source Artifacts** section listing every artifact extracted in Phase 1.5 (grouped by domain)
+- `artifacts`: the full Phase 1.5 artifact list — every artifact, regardless of domain. The epic is the canonical hub, and anyone working on the epic or its descendants must be able to reach the full set from one place. No filtering at the epic level. `jira-write-ticket` Phase 4c attaches them as remote links.
+- `priority`, `labels`, `components`, `fix_version`: as appropriate
+
+Capture the returned epic key — Phase 4 needs it as the parent for stories.
 
 ### Phase 4: Create Stories
 
-For each Epic, create Stories:
+> **Mode guard**: In `dry_run: true` mode, do not invoke `jira-write-ticket` in this phase. Instead, draft each story spec and validate it with `jira-validate-ticket --spec-only`. Use placeholder keys (e.g. `DRY-RUN-STORY-1.1`) for any downstream references. In `dry_run: false` mode (default), proceed as described below.
+
+For each Epic, plan two kinds of stories:
 - **One "X.0 Setup" story** for data model and infrastructure prerequisites (new entities, migrations, new fields, infrastructure like S3 buckets or SQS queues)
 - **One story per user story** from the PRD (numbered to match the PRD)
 
-**Story naming convention**: Prefix with a short code derived from the PRD title:
+**Story naming convention**: Prefix the summary with a short code derived from the PRD title:
 - "Contract Upload" -> `[CU-1.1]`
 - "Squad Planning" -> `[SP-1.1]`
 - Use your judgment for other PRDs
 
-Each story description should include:
-- The user story statement from the PRD
-- Acceptance criteria (from functional requirements)
-- Technical notes from engineering comments
-- Blockers with recommendation + alternatives (if any)
-- A **Source Artifacts** section listing the artifacts inherited from the epic that match this story's scope (see propagation rules below)
+For each story, **invoke `jira-write-ticket`** with:
 
-Set `parent` to the Epic key to link stories to their epic.
+- `project_key`: from `JIRA_PROJECT` config
+- `issue_type`: `Story`
+- `epic_parent`: the Epic key captured in Phase 3 (mandatory — `jira-write-ticket` rejects non-bug, non-epic tickets without an epic parent)
+- `summary`: prefixed per the naming convention above
+- `description_body`: a draft of the 3-audience description containing:
+  - **Context / Business Value**: the user story statement from the PRD
+  - **Technical Approach**: notes from engineering comments and Phase 2 codebase research
+  - **Acceptance Criteria** (Gherkin) derived from the functional requirements — `jira-write-ticket` will reject prose-only acceptance criteria
+  - Blockers with recommendation + alternatives (if any), under `## Open Questions`
+  - A **Source Artifacts** section listing the artifacts inherited from the epic that match this story's scope (see propagation rules below)
+- `artifacts`: the Phase 1.5 artifacts filtered by domain per the inheritance table below — `jira-write-ticket` Phase 4c attaches them as remote links
+- `priority`, `labels`, `components`, `fix_version`: as appropriate
 
-**Inherit domain-matching artifacts as story remote links**. For each story, attach the Phase 1.5 artifacts whose domain matches the story's scope:
+Capture each returned story key — Phase 5 needs it as the parent for sub-tasks.
+
+**Inherit domain-matching artifacts as story remote links**. For each story, the artifact set passed to `jira-write-ticket` should be the Phase 1.5 artifacts whose domain matches the story's scope:
 
 | Story type | Inherits domains |
 |------------|------------------|
@@ -181,10 +206,10 @@ When classification is ambiguous, err on the side of inclusion — a developer c
 
 ### Phase 5: Create Sub-tasks
 
-Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency.
+Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency. **Every spawned agent must invoke `jira-write-ticket` for each sub-task — no agent may call `createJiraIssue` directly.** This is non-negotiable; see the Agent Prompt Template at the bottom of this skill for the exact instructions to pass.
 
 Each sub-task MUST:
-1. **Be scoped to exactly ONE repo** — indicated in brackets in the summary: `[repo-name]`
+1. **Be scoped to exactly ONE repo** — indicated in brackets in the summary: `[repo-name]`. `jira-write-ticket` enforces single-repo scope on Sub-task; cross-repo sub-tasks will be rejected and must be split before delegation.
 2. **Include an Empirical Verification Plan** — real user-like verification, NOT unit tests, linting, or typechecking
 
 **Verification plan examples by stack:**
@@ -192,28 +217,24 @@ Each sub-task MUST:
 - **Frontend web**: Playwright browser tests (login with test user, navigate, interact, screenshot)
 - **Infrastructure**: `cdk synth` / `terraform plan` verification, CLI checks after deploy
 
-Use the test user credentials from config for all verification plans.
+Use the test user credentials from config for all verification plans. The credentials are passed to `jira-write-ticket` as the sign-in account so it can record them in the description per its own rules.
 
-Set `parent` to the Story key. Use `issueTypeName: "Sub-task"`.
+For each sub-task, the spawned agent invokes `jira-write-ticket` with `issue_type: "Sub-task"` and `parent` set to the Story key. The Story key is the parent — the epic relationship is inherited transitively.
 
-Sub-tasks inherit their parent story's artifacts by reference (the parent link). Do not re-attach the same remote links on every sub-task — that creates noise. The only exception is when a sub-task depends on an artifact that the parent story doesn't (e.g., a sub-task spec'd from a specific Figma frame that the broader story doesn't cite) — in that case, attach the specific artifact directly.
+Sub-tasks inherit their parent story's artifacts by reference (the parent link). Do not pass the same artifact list to every sub-task — that creates noise. The only exception is when a sub-task depends on an artifact that the parent story doesn't (e.g., a sub-task spec'd from a specific Figma frame that the broader story doesn't cite) — in that case, pass the specific artifact in the `artifacts` parameter to `jira-write-ticket`.
 
-### Phase 5.5: Artifact Preservation Gate
+### Phase 5.5: Artifact Preservation Gate (mandatory)
 
-Before reporting, verify that every artifact extracted in Phase 1.5 is reachable from the created tickets. This gate exists because silent artifact loss is the failure mode this skill is designed to prevent.
+Run the preservation gate defined in `jira-source-artifacts` §8 against the artifacts extracted in Phase 1.5 and the tickets just created. Do NOT restate or modify the gate logic here — invoke the rules from `jira-source-artifacts` so any rule change propagates uniformly.
 
-1. Pull the remote links of every epic and story created in this run (via the JIRA API).
-2. Build a preservation matrix: `artifact URL → [ticket keys that reference it]`.
-3. For every artifact from Phase 1.5:
-   - It MUST appear on the epic it belongs to (no exceptions).
-   - It SHOULD appear on at least one story whose scope matches its domain (except `reference`-domain artifacts, which may be epic-only if no story is domain-matched).
-4. If any artifact has zero references anywhere, or is missing from its epic, FAIL LOUDLY:
-   - List each dropped artifact with its domain, title, and source page.
-   - State why it was dropped (domain classification error, propagation skipped, attach failure).
-   - Ask the human to confirm the drop or point at the right epic/story, then re-attach before continuing.
-5. If classification seems misrouted (e.g., a Figma link ended up on a backend story and nowhere else), surface the misroute and offer to re-propagate.
+To run the gate, this skill must:
 
-Do NOT skip this gate. If every artifact is preserved, print the matrix compactly and proceed to Phase 6.
+1. Pull the remote links of every epic and story created in this run via `mcp__atlassian__getJiraIssueRemoteIssueLinks`.
+2. Apply the §8 preservation matrix and verdict rules.
+3. If the gate fails: list each dropped/misrouted artifact (domain, title, source page, why it was dropped) and either re-attach via `jira-write-ticket` (UPDATE mode) or stop and ask the human. Never silently proceed past a gate failure.
+4. If the gate passes: print the matrix compactly and proceed to Phase 6.
+
+This gate is not optional. Skipping it is the failure mode the architecture exists to prevent.
 
 ### Phase 6: Report Results
 
@@ -244,19 +265,40 @@ Common blocker categories:
 
 ## Agent Prompt Template for Sub-task Creation
 
-When delegating to agents, provide this context:
+When delegating to agents, provide this context. **The "MUST invoke jira-write-ticket" instruction is load-bearing — do not edit it out when adapting this template.**
 
 ```text
 Create JIRA sub-tasks in the [PROJECT] project at [CLOUD_ID].
-Use issueTypeName "Sub-task" and set parent to the story key.
-Use contentFormat "markdown".
 
-Test user info: [credentials from config]
+CRITICAL: For each sub-task, invoke the `jira-write-ticket` skill via the Skill tool.
+Do NOT call `mcp__atlassian__createJiraIssue` directly. The `jira-write-ticket` skill
+enforces required quality gates (Gherkin acceptance criteria, 3-audience description,
+single-repo scope, sign-in/environment fields, post-create verification). Bypassing it
+produces broken tickets that downstream skills (triage, journey, evidence) cannot use.
+
+For each sub-task, invoke `jira-write-ticket` with:
+- issue_type: "Sub-task"
+- parent: the parent story key
+- project_key: [PROJECT]
+- summary: prefixed with the repo in brackets, e.g. "[backend-api] Add audit log table"
+- description_body: a 3-section draft (Context / Technical Approach / Acceptance Criteria)
+- gherkin_acceptance_criteria: derived from the story's functional requirements
+- sign_in_account: [test user credentials from config — name + role + how to obtain]
+- target_environment: "dev"
+- empirical_verification_plan: real user-like verification (curl + auth token,
+  Playwright browser flow, CLI check after deploy) using the test credentials.
+  NOT unit tests, linting, or typechecking.
 
 Each sub-task must:
-1. Be scoped to ONE repo only
-2. Include an **Empirical Verification Plan** section
-3. Include the repo in brackets in the summary
+1. Be scoped to ONE repo only — repo named in brackets in the summary
+2. Include the Empirical Verification Plan in the description
+3. Be created via `jira-write-ticket`, not via direct MCP calls
+
+If `jira-write-ticket` rejects a sub-task (cross-repo scope, missing Gherkin, missing
+sign-in, etc.), fix the input and re-invoke. Do NOT fall back to a direct
+`createJiraIssue` call to bypass the gate.
+
+Test user info: [credentials from config]
 
 [Then list all sub-tasks grouped by parent story with details]
 ```

@@ -170,28 +170,19 @@ Identify and attach:
 - Confluence pages (design docs, RFCs, runbooks)
 - Dashboards (Grafana, Datadog, Sentry issue)
 - Incident tickets (PagerDuty, Statuspage)
-- **Source artifacts from the originating PRD / parent epic**: Figma files, Lovable prototypes, Loom walkthroughs, design mockups, example payloads, Google Docs/Slides, collaborative whiteboards. If this ticket has a parent epic, enumerate the epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit generic `reference` links). Never assume a developer will walk up to the epic to find design context — attach it here.
-
-Domain disambiguation (applied on inheritance):
-- Figma URL with `/proto/` in path or `starting-point-node-id=` in query → `ux-flow`; otherwise `ui-design`.
-- Lovable output → always `ux-flow`; its code/styling is not authoritative.
-- Loom / annotated screenshot → `ux-flow`.
-- Bare screenshot → `ui-design`.
+- **Source artifacts from the originating PRD / parent epic**: classify and inherit per the rules in `jira-source-artifacts` (invoke that skill if you haven't loaded the rules in this session). The short version: enumerate the parent epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`). Never assume a developer will walk up to the epic to find design context — attach it here.
 
 If the ticket was generated from a PRD (by `notion-to-jira` or similar) and the parent epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction before proceeding.
 
 ### 4d. Source Precedence (must appear on the ticket)
 
-When a ticket carries both design artifacts and a description, different sources are authoritative for different questions. Record this precedence explicitly in the ticket description (under Technical Approach or a dedicated `## Source Precedence` subsection) so the implementer doesn't silently reconcile conflicts:
+Source precedence rules and cross-axis conflict handling are defined in `jira-source-artifacts` §3 and §4. When a ticket carries both design artifacts and a description, record the precedence explicitly in the ticket description (under Technical Approach or a dedicated `## Source Precedence` subsection) so the implementer doesn't silently reconcile conflicts. Cross-axis conflicts go under `## Open Questions` as BLOCKER items.
 
-- **Business rules** (required fields, validation, permissions, data constraints, edge cases) → the **description / PRD body** wins.
-- **Visual treatment** (layout, spacing, typography, color, iconography) → **mocks (`ui-design`)** win.
-- **Flow and interaction** (navigation, transitions, state changes, timing, empty/error/loading states) → **prototypes (`ux-flow`)** win.
-- **API / data shape** → **`data` artifacts** win.
+For UI-touching tickets, include the existing-component reuse expectation per `jira-source-artifacts` §7.
 
-Cross-axis conflicts (mock shows a field the PRD doesn't mention; prototype shows a flow the PRD contradicts; two Figma links disagree) must be raised as BLOCKER items in an `## Open Questions` section on the ticket — never silently reconciled.
+### 4e. Live Product Walkthrough Findings (UI-touching tickets)
 
-For UI-touching tickets, additionally include the reuse expectation: "Before implementing, identify the closest existing component in the codebase. Prefer reuse even if the mock specifies different styling; raise design-vs-code divergence as a discussion item here rather than pixel-matching from scratch."
+If the ticket modifies an existing user-facing surface, a `product-walkthrough` should already have been run upstream (by `notion-to-jira` Phase 2b or `jira-create`). Inherit its findings under a `## Current Product` subsection in the ticket description so the implementer sees what's shipped today before changing it. If the upstream skill skipped the walkthrough but this ticket clearly modifies an existing surface, invoke `product-walkthrough` here before proceeding.
 
 Use Jira's web UI or `mcp__atlassian__editJiraIssue` to set the `Development` field / remote links where supported.
 
@@ -206,6 +197,19 @@ Before create/update, verify each field is populated where applicable:
 - Story points: estimate for Story/Task/Bug, skip for Epic/Spike
 - Sprint: only if actively sprinting this work
 - Assignee: leave unset if unknown rather than auto-assigning
+
+## Phase 5.5 — Validate (Pre-write Gate)
+
+Before any write, invoke `jira-validate-ticket` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `jira-validate-ticket` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
+
+The validator is the **single source of truth** for what makes a valid ticket. The same gates are used by `notion-to-jira` dry-run, by `jira-verify` post-write, and here. Do not re-implement gate logic in this skill — if a gate needs to change, change `jira-validate-ticket` so every caller benefits.
+
+If the validator reports `FAIL`:
+- Surface the failure list and the per-gate remediation to the user.
+- Do NOT proceed to Phase 6. Fix the spec (or stop and ask the human) and re-run validation.
+- Never call `mcp__atlassian__createJiraIssue` or `mcp__atlassian__editJiraIssue` while the validator's verdict is FAIL.
+
+If the validator reports `PASS`, continue to Phase 6.
 
 ## Phase 6 — Create or Update
 
@@ -225,7 +229,7 @@ Before create/update, verify each field is populated where applicable:
 
 ## Phase 7 — Verify
 
-Call the `jira-verify` skill on the resulting ticket. If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
+Call the `jira-verify` skill on the resulting ticket. `jira-verify` fetches the live ticket and runs `jira-validate-ticket` against it — same gates as Phase 5.5, but applied to what JIRA actually stored (catches anything dropped or reformatted on write). If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
 
 ## Phase 8 — Announce
 
@@ -246,3 +250,4 @@ Skip this step only on UPDATE when no material change was made.
 - Never invent custom field values. If the project requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.
 - All writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `jira-create`) should delegate here rather than calling the MCP write tools directly.
+- The gate logic (what makes a valid ticket) lives in `jira-validate-ticket`, NOT in this skill. This skill calls the validator at Phase 5.5 (pre-write) and Phase 7 (via `jira-verify` post-write). When a gate needs to change, change it in `jira-validate-ticket` — every caller (write path, dry-run path, post-write verify) picks it up automatically.
