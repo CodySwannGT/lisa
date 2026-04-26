@@ -143,7 +143,7 @@ Walkthrough findings are attached to the originating Notion PRD as a comment ("C
 
 ### Phase 3: Create Epics
 
-> **Mode guard**: In `dry_run: true` mode, do not invoke `lisa:jira-write-ticket` in this phase. Instead, draft the epic spec (summary, description_body, artifacts) and validate it with `jira-validate-ticket --spec-only`. Record the drafted spec (including a placeholder epic key like `DRY-RUN-EPIC-1`) for Phase 4 to use as parent references. In `dry_run: false` mode (default), proceed as described below.
+> **Mode guard**: In `dry_run: true` mode, do not invoke `lisa:jira-write-ticket` in this phase. Instead, draft the epic spec (summary, description_body, artifacts) and validate it with `lisa:jira-validate-ticket --spec-only`. Record the drafted spec (including a placeholder epic key like `DRY-RUN-EPIC-1`) for Phase 4 to use as parent references. In `dry_run: false` mode (default), proceed as described below.
 
 For each PRD epic, **invoke the `lisa:jira-write-ticket` skill** (do not call `createJiraIssue` directly). Pass it everything it needs to enforce its quality gates:
 
@@ -165,7 +165,7 @@ Capture the returned epic key — Phase 4 needs it as the parent for stories.
 
 ### Phase 4: Create Stories
 
-> **Mode guard**: In `dry_run: true` mode, do not invoke `lisa:jira-write-ticket` in this phase. Instead, draft each story spec and validate it with `jira-validate-ticket --spec-only`. Use placeholder keys (e.g. `DRY-RUN-STORY-1.1`) for any downstream references. In `dry_run: false` mode (default), proceed as described below.
+> **Mode guard**: In `dry_run: true` mode, do not invoke `lisa:jira-write-ticket` in this phase. Instead, draft each story spec and validate it with `lisa:jira-validate-ticket --spec-only`. Use placeholder keys (e.g. `DRY-RUN-STORY-1.1`) for any downstream references. In `dry_run: false` mode (default), proceed as described below.
 
 For each Epic, plan two kinds of stories:
 - **One "X.0 Setup" story** for data model and infrastructure prerequisites (new entities, migrations, new fields, infrastructure like S3 buckets or SQS queues)

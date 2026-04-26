@@ -24,4 +24,4 @@ Pass through `lisa:jira-validate-ticket`'s structured output unchanged. Downstre
 ## Notes
 
 - This skill is read-only. It never edits the ticket, posts comments, or changes status.
-- For UI tickets that fail the Validation Journey gate, the validator's remediation will recommend `/jira-add-journey` — the Expo flavor of `lisa:jira-add-journey` produces the `[SCREENSHOT: ...]` + viewport block that the Playwright-based journey runner consumes.
+- For UI tickets that fail the Validation Journey gate, the validator's remediation will recommend `/lisa:jira-add-journey` — the Expo flavor of `lisa:jira-add-journey` produces the `[SCREENSHOT: ...]` + viewport block that the Playwright-based journey runner consumes.

@@ -58,7 +58,7 @@ If the transition fails (permission, missing transition, race), log under "Error
 Invoke the `lisa:jira-agent` (existing per-ticket lifecycle agent) with the ticket key. `lisa:jira-agent` owns:
 - Reading the full ticket graph (`lisa:jira-read-ticket`)
 - Running its own pre-flight quality gate (`lisa:jira-verify`)
-- Running ticket triage (`ticket-triage`)
+- Running ticket triage (`lisa:ticket-triage`)
 - Routing to the appropriate flow (Build / Fix / Investigate / Improve based on type)
 - Posting progress comments via `lisa:jira-sync`
 - Posting evidence via `lisa:jira-evidence`

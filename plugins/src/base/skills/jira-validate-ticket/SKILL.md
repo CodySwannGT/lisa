@@ -132,7 +132,7 @@ Story / Epic / Spike / Improvement: skipped (may span repos).
 When `runtime_behavior_change = true`, description must contain `h2. Validation Journey`. Skipped for doc-only / config-only / type-only / Epic.
 
 The caller controls the strictness by passing `journey_followup: "auto"` or `journey_followup: "none"` in the spec:
-- `auto` (default): if the section is absent, return `FAIL` with remediation `"Invoke jira-add-journey to append the section after create"`. Callers like `lisa:jira-write-ticket` know to chain `lisa:jira-add-journey` automatically, so this counts as a fixable failure they can resolve in-line — they re-run validation after appending.
+- `auto` (default): if the section is absent, return `FAIL` with remediation `"Invoke lisa:jira-add-journey to append the section after create"`. Callers like `lisa:jira-write-ticket` know to chain `lisa:jira-add-journey` automatically, so this counts as a fixable failure they can resolve in-line — they re-run validation after appending.
 - `none`: missing section is a `FAIL` that the caller will not auto-fix, so the verdict gates progress (used by dry-run paths like `lisa:notion-to-jira` PRD intake, where there's no agent standing by to add the journey).
 
 Either way the gate emits `FAIL`, not a third state. Strictness is the caller's policy, not the validator's.

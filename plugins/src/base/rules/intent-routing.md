@@ -273,7 +273,9 @@ Flows reference sub-flows by name. When a flow says "Investigate sub-flow", exec
 
 ## Orchestration
 
-How a flow dispatches its agents depends on the flow's shape. Pick the orchestration mode that matches the work — do not default to the heaviest one.
+> **Note**: Orchestration authority belongs to lifecycle skills (see `## Orchestration Selection Protocol` above). This section documents the patterns that lifecycle skills implement — it is reference material, not a directive for this rule to choose modes independently.
+
+Lifecycle skills dispatch their agents according to the flow's shape. The following patterns are how they do it — do not default to the heaviest one.
 
 ### Agent Teams (default for multi-step flows)
 

@@ -6,7 +6,7 @@ allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 
 # Ticket Triage: $ARGUMENTS
 
-Perform analytical triage on the JIRA ticket. The caller MUST have run `lisa:jira-read-ticket` first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), epic parent, epic siblings, subtasks, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or epic context, stop and instruct the caller to run `/jira-read-ticket` first.
+Perform analytical triage on the JIRA ticket. The caller MUST have run `lisa:jira-read-ticket` first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), epic parent, epic siblings, subtasks, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or epic context, stop and instruct the caller to run `/lisa:jira-read-ticket` first.
 
 Repository name for scoped labels and comment headers: determine via `basename $(git rev-parse --show-toplevel)`.
 

@@ -26,7 +26,7 @@ Capture comments and metadata, not just the description.
 
 If it's a file, read the entire file without offset or limit.
 
-Is this a simple request? Just execute it as usual and ignore the rest of this skill.
+If this is a simple, self-contained request that requires no complex orchestration, execute it directly within the current team context and skip the agent roster and task planning below.
 
 ## Select the agent roster
 
