@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.1](https://github.com/CodySwannGT/lisa/compare/vv2.1.0...v2.1.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* **lisa-update-projects:** use bun add -D <pkg>[@latest](https://github.com/latest), not bun update ([#428](https://github.com/CodySwannGT/lisa/issues/428)) ([6badd5c](https://github.com/CodySwannGT/lisa/commit/6badd5cfe2fc3bc417fdf4826b789d0dc84887dc))
+
 ## [2.1.0](https://github.com/CodySwannGT/lisa/compare/vv2.0.0...v2.1.0) (2026-04-26)
 
 
