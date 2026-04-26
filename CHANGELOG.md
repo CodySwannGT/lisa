@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/CodySwannGT/lisa/compare/vv2.0.0...v2.1.0) (2026-04-26)
+
+
+### Features
+
+* add /lisa:intake batch scanner; move orchestration into 6 lifecycle skills ([#421](https://github.com/CodySwannGT/lisa/issues/421)) ([a654c48](https://github.com/CodySwannGT/lisa/commit/a654c48701e9bc6f2df84bdb3ca31c414c9baea9))
+
+
+### Bug Fixes
+
+* **tests:** stop mutating CI env vars in trampoline test ([#425](https://github.com/CodySwannGT/lisa/issues/425)) ([e1a4830](https://github.com/CodySwannGT/lisa/commit/e1a48302eced845c5d4c3f451197d61709f6361e)), closes [#421](https://github.com/CodySwannGT/lisa/issues/421)
+
 ## [2.0.0](https://github.com/CodySwannGT/lisa/compare/vv1.96.0...v2.0.0) (2026-04-26)
 
 
