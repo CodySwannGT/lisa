@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.3.0](https://github.com/CodySwannGT/lisa/compare/vv2.2.0...v2.3.0) (2026-04-26)
+
+
+### Features
+
+* **intake:** post product-friendly contextual comments on PRDs ([#431](https://github.com/CodySwannGT/lisa/issues/431)) ([c04521b](https://github.com/CodySwannGT/lisa/commit/c04521b73d66d840782a78a983ccf191c55b7972))
+
+
+### Bug Fixes
+
+* **trampoline:** use DI seam for spawn instead of vi.doMock ([#433](https://github.com/CodySwannGT/lisa/issues/433)) ([3740613](https://github.com/CodySwannGT/lisa/commit/37406134e4aefe0c02ddb72affc98fd57ae3b888))
+
 ## [2.2.0](https://github.com/CodySwannGT/lisa/compare/vv2.1.1...v2.2.0) (2026-04-26)
 
 
