@@ -14,6 +14,23 @@ https://www.notion.so/geminisports/28fd00244d7d47c5866876f7de48c0fe?v=34eba63a28
 
 Run one intake cycle against that database. Each PRD with `Status = Ready` is claimed, validated, and routed to either `Blocked` (with clarifying comments) or `Ticketed` (with JIRA tickets created).
 
+## Confirmation policy
+
+Do NOT ask the caller whether to proceed. Once invoked with a database URL, run the cycle to completion — claim, validate, branch to `Blocked` or `Ticketed`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+
+Specifically forbidden:
+
+- Previewing projected scope (epic count, story count, write count) and asking whether to continue.
+- Offering A/B/C-style choices like "proceed / skip / dry-run only" — the documented behavior IS the default.
+- Pausing because a PRD looks large, has many open questions, or is likely to end in `Blocked`. `Blocked` is a valid terminal state of this lifecycle, not a failure mode — routing a PRD to `Blocked` with gate-failure comments is exactly how this skill communicates "the PRD needs more work before it can be ticketed." That outcome is success.
+- Pausing because the dry-run validation looks expensive. The cost of one cycle is bounded; the cost of stalling a scheduled cron waiting on a human is unbounded.
+
+The only legitimate reasons to stop early:
+
+- Missing database URL or required configuration (`JIRA_PROJECT`, `JIRA_SERVER`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
+- Database misconfigured (Status property missing expected values, data source unreachable). Surface and exit.
+- Empty `Ready` set. Exit cleanly with `"No PRDs with Status=Ready. Nothing to do."`
+
 ## Lifecycle assumed
 
 The PRD database has a `Status` property whose value drives this skill:
