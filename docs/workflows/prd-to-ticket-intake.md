@@ -99,19 +99,29 @@ If a required value is missing, the skill stops and asks rather than inventing a
 
 ## Using the workflow
 
-### Notion side: PRD intake
+The public commands are **vendor-agnostic**: developers don't say "Notion" or "JIRA" — they say "PRD" and "work item". The vendor-specific skills (`notion-prd-intake`, `jira-build-intake`, `notion-to-jira`) are internal implementations dispatched to by `/plan` and `/implement`.
+
+### `/plan` — PRD intake (vendor-agnostic)
 
 ```
-/notion-prd-intake <Notion database URL or ID>
+/plan <PRD-url-or-id>
+/plan @path/to/spec.md
+/plan "free-form description"
 ```
 
-Example:
+Example with a Notion database:
 
 ```
-/notion-prd-intake https://www.notion.so/yourworkspace/28fd00244d7d47c5866876f7de48c0fe
+/plan https://www.notion.so/yourworkspace/28fd00244d7d47c5866876f7de48c0fe
 ```
 
-**What happens per cycle** (`notion-prd-intake` skill):
+`/plan` detects the source type from `$ARGUMENTS` and routes:
+- **Notion URL/ID** → dispatches to the `notion-prd-intake` skill (single PRD or database scan)
+- **JIRA URL/key** → dispatches to `jira-agent` (existing JIRA epic *is* the spec; decompose into stories/sub-tasks)
+- **Linear / GitHub Issues** → adapter not yet built; stops and reports rather than guessing
+- **File / description** → runs the Plan flow's core decomposition with that input
+
+**What happens per cycle** when the source is a Notion database (`notion-prd-intake` skill, internal):
 
 1. **Resolve the database** — parse the URL, fetch the database, get the data source ID, confirm the `Status` property has the expected options.
 2. **Find Ready PRDs** — query the data source for `Status = Ready`. Empty → exit cleanly.
@@ -129,26 +139,32 @@ Example:
 
 When a `Blocked` PRD's comments are addressed, product flips it back to `Ready` and the next cycle picks it up. After product confirms delivery, they flip `Ticketed → Shipped` (this skill never touches `Shipped`).
 
-### JIRA side: build intake
+### `/implement` — work-item intake (vendor-agnostic)
 
 ```
-/jira-build-intake <project key>
-/jira-build-intake "<full JQL filter>"
+/implement <work-item-url-or-key>
+/implement "free-form description"
 ```
 
-Example:
+Examples:
 
 ```
-/jira-build-intake SE
+/implement SE-1234
+/implement https://yourcompany.atlassian.net/browse/SE-1234
 ```
 
-Or with a narrower filter:
+`/implement` reads the work item, determines its type (Story/Task/Epic → BUILD; Bug → FIX; Spike → INVESTIGATE; Improvement → IMPROVE), and runs the matching flow end-to-end (PR opened, code review, deploy, evidence posted).
+
+**For batch processing** (find all `Status = Ready` work items in a tracker and process them), the `jira-build-intake` skill handles it for JIRA:
 
 ```
-/jira-build-intake "project = SE AND component = 'frontend' AND Status = Ready"
+[internal] jira-build-intake SE
+[internal] jira-build-intake "project = SE AND component = 'frontend' AND Status = Ready"
 ```
 
-**What happens per cycle** (`jira-build-intake` skill):
+This skill is **internal** — it's invoked by a scheduled watcher (when one is wired up via `/schedule`), not directly by developers. Developers use `/implement <work-item>` for one-off invocation.
+
+**What happens per cycle** when batch-processing JIRA tickets (`jira-build-intake` skill, internal):
 
 1. **Resolve the query** — bare project key becomes `project = <KEY> AND Status = "Ready" ORDER BY priority DESC, created ASC`. Full JQL is used as-is.
 2. **Pre-flight check** — confirm `In Progress` and `On Dev` are reachable transitions. Misconfigured workflow → stop with an actionable message; never invent transitions.
@@ -166,27 +182,41 @@ Or with a narrower filter:
 
 ## Architecture: composed skills
 
-Both intake skills are thin orchestrators on top of skills you already have. They don't reimplement logic — they sequence existing pieces.
+The public commands are vendor-agnostic dispatchers; the underlying skills are vendor-specific implementations they delegate to. None of the underlying skills are public commands — developers don't invoke them directly.
 
 ```
-notion-prd-intake
-├── notion-to-jira (with dry_run flag)
-│   ├── jira-source-artifacts (taxonomy + classification rules)
-│   ├── product-walkthrough (Playwright-based current-product evaluation)
-│   └── jira-write-ticket
-│       ├── jira-validate-ticket (the gate; pre-write)
-│       ├── jira-add-journey (Validation Journey appender)
-│       └── jira-verify (post-write check, also delegates to jira-validate-ticket)
-└── prd-ticket-coverage (post-write coverage audit)
+PUBLIC COMMANDS (vendor-agnostic dispatchers)
+─────────────────────────────────────────────
+/plan <PRD-or-spec>
+└── routes by source type:
+    ├── Notion URL  → notion-prd-intake (skill)
+    │                 └── notion-to-jira (with dry_run flag)
+    │                     ├── jira-source-artifacts (taxonomy doctrine)
+    │                     ├── product-walkthrough (Playwright current-product eval)
+    │                     └── jira-write-ticket
+    │                         ├── jira-validate-ticket (gate logic, pre-write)
+    │                         ├── jira-add-journey (Validation Journey appender)
+    │                         └── jira-verify (post-write check, delegates to validator)
+    │                 └── prd-ticket-coverage (post-write coverage audit)
+    ├── JIRA URL    → jira-agent (existing epic; decompose into stories/sub-tasks)
+    ├── Linear      → not yet implemented
+    └── file/desc   → core decomposition logic
+
+/implement <work-item>
+└── implement (skill, formerly plan-execute)
+    └── routes by ticket type:
+        ├── Story/Task/Epic → BUILD flow
+        ├── Bug             → FIX flow (with Reproduce sub-flow)
+        ├── Spike           → INVESTIGATE flow
+        └── Improvement     → IMPROVE flow
+
+INTERNAL SCHEDULED RUNNERS (not commands; invoked via /schedule when wired)
+──────────────────────────────────────────────────────────────────────────
+notion-prd-intake (database-scan mode)
+└── invokes notion-to-jira per Ready PRD; transitions Notion Status
 
 jira-build-intake
-└── jira-agent (per-ticket lifecycle)
-    ├── jira-read-ticket
-    ├── jira-verify
-    ├── ticket-triage
-    ├── (build / fix / investigate flows — dispatched per ticket type)
-    ├── jira-sync
-    └── jira-evidence
+└── invokes jira-agent per Ready JIRA ticket; transitions JIRA Status
 ```
 
 **Single source of truth for gate logic**: `jira-validate-ticket`. The same gates run pre-write (inside `jira-write-ticket`), post-write (inside `jira-verify`), and dry-run (inside `notion-to-jira` dry-run mode used by `notion-prd-intake`). Change a gate definition there; every caller picks it up.
@@ -240,15 +270,19 @@ It surfaces scope creep (tickets that don't trace back to PRD content) as **info
 
 ## Future work (intentionally not built yet)
 
-- **Scheduling**: both intake skills are designed to be triggered by a `/schedule` cron later. Today they're invoked manually. Cadence likely 30 min during business hours for both.
+- **Full vendor-agnostic adapter split**: today, `notion-prd-intake` and `notion-to-jira` are dispatched to by `/plan` based on URL detection. The clean architecture would split each into a vendor-agnostic core + per-vendor adapters (`notion-prd-source`, `linear-prd-source`, `jira-tracker`, `linear-tracker`, `github-tracker`). When a second tracker or PRD source is needed, do that split before adding the new vendor.
+- **Linear / GitHub Issues adapters**: `/plan` and `/implement` currently support Notion + JIRA only. Linear and GitHub Issues adapters are not built — the dispatcher in `/plan` will stop and report rather than guess.
+- **Scheduling**: both batch-intake skills (`notion-prd-intake` database-scan mode, `jira-build-intake`) are designed to be triggered by a `/schedule` cron later. Today they're invoked indirectly via `/plan` or `/implement` for one-off processing.
 - **Verification intake**: a third intake skill that picks up `On Dev` tickets, runs the Validation Journey, posts evidence, and transitions to the next state (`Awaiting QA / UAT`, `Done`, etc.). Same `Ready`-style claim/process pattern, applied to verification.
 - **Notification integration**: when an intake cycle completes, push a notification (ntfy or Slack) listing how many PRDs were Ticketed / Blocked / how many tickets moved to `On Dev`. Avoid notification spam — only notify on non-empty cycles.
 
-## Related skills
+## Related public commands
 
-- `/notion-prd-intake <database URL>` — Notion-side intake
-- `/jira-build-intake <project key | JQL>` — JIRA-side build intake
-- `/prd-ticket-coverage <PRD URL> [tickets=...]` — standalone coverage audit (also runs automatically as Phase 3e of intake)
-- `/jira-validate-ticket <ticket key | spec>` — standalone ticket validation
-- `/jira-source-artifacts` — load the taxonomy doctrine
-- `/product-walkthrough <route>` — standalone live-product walkthrough
+- `/plan <PRD-url | @file | desc>` — vendor-agnostic PRD intake (Notion supported today; routes by source type)
+- `/implement <work-item-url | key | desc>` — vendor-agnostic work-item lifecycle (JIRA supported today; routes by tracker)
+- `/research <problem>` — produce a PRD
+- `/verify [hint]` — local verify → ship → remote verify after deploy
+- `/monitor [env]` — observability across environments
+- `/product-walkthrough <route>` — standalone Playwright-based live-product evaluation
+
+The vendor-specific intake skills (`notion-prd-intake`, `jira-build-intake`) and ticket primitives (`jira-create`, `jira-write-ticket`, `jira-validate-ticket`, `jira-source-artifacts`, `jira-verify`, `jira-add-journey`, `jira-read-ticket`, `jira-sync`, `jira-evidence`, `prd-ticket-coverage`) are **internal** — invoked by the public commands above, not directly by developers.
