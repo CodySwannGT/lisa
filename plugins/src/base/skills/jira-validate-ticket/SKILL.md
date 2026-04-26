@@ -66,6 +66,39 @@ If the caller passes only a ticket key, fetch the ticket via `mcp__atlassian__ge
 
 Gates are grouped into **Specification** (spec-only checks, no JIRA lookups) and **Feasibility** (requires JIRA lookups). The dry-run path may opt to run Specification gates only; the write path runs both.
 
+Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Categories drive how downstream callers (notably `lisa:notion-prd-intake`) translate failures into product-facing comments; `product_relevant=false` failures indicate internal data-quality problems (broken parent links, missing core fields) that the agent should fix itself rather than ask product to clarify.
+
+| Gate | Category | Product-relevant |
+|------|----------|------------------|
+| S1 Required core fields | `structural` | false |
+| S2 Summary format | `structural` | false |
+| S3 Description three audiences | `product-clarity` | true |
+| S4 Acceptance criteria in Gherkin | `acceptance-criteria` | true |
+| S5 Bug-specific content | `product-clarity` | true |
+| S6 Spike-specific content | `scope` | true |
+| S7 Epic parent declared | `structural` | false |
+| S8 Target Backend Environment | `technical` | false |
+| S9 Sign-in Required | `technical` | false |
+| S10 Single-repo scope | `scope` | true |
+| S11 Validation Journey | `acceptance-criteria` | true |
+| S12 Source Precedence | `design-ux` | true |
+| S13 Relationship Search | `dependency` | true |
+| F1 Issue type valid in project | `structural` | false |
+| F2 Epic parent exists and is an Epic | `structural` | false |
+| F3 Linked tickets exist | `structural` | false |
+| F4 Required custom fields populated | `structural` | false |
+
+Category values are drawn from this fixed set:
+
+- `product-clarity` — feature behavior or user intent unclear in the PRD
+- `acceptance-criteria` — pass/fail conditions missing or ambiguous
+- `design-ux` — visual or interaction spec missing
+- `scope` — boundary unclear, items overlap, split needed
+- `dependency` — blocked by another team / system / decision
+- `data` — data source / shape / volume unspecified
+- `technical` — engineering decision required (rare from PRD path; mostly internal)
+- `structural` — internal data-quality problem the agent must fix itself, not surface to product
+
 ### Specification Gates
 
 #### S1 — Required core fields
@@ -209,16 +242,32 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 
 ### Verdict: PASS | FAIL
 ### Failures: <count>
-### Remediation
-- <gate-id>: <concrete fix the caller can apply or surface to the user>
-- <gate-id>: <concrete fix>
+### Failure details
+- gate: <gate-id>
+  category: <product-clarity|acceptance-criteria|design-ux|scope|dependency|data|technical|structural>
+  product_relevant: <true|false>
+  what: <plain-language description of what is missing or wrong, no gate-IDs, no JIRA terminology — written so a non-engineer product owner understands the issue>
+  recommendation: <1–3 concrete options the caller (or downstream product team) can pick from. Never "clarify this" — always a specific suggested resolution.>
+- gate: <gate-id>
+  category: ...
+  ...
 ```
 
 The verdict is `PASS` if and only if every applicable gate is `PASS`. Any `FAIL` makes the verdict `FAIL`. `N/A` does not affect the verdict.
+
+### Failure-detail fields
+
+- **gate**: the gate ID (`S1`–`S13`, `F1`–`F4`).
+- **category**: the gate's fixed category from the table above. Callers use this to label or filter comments — `product-clarity`, `acceptance-criteria`, `design-ux`, `scope`, `dependency`, `data`, `technical`, or `structural`.
+- **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem (e.g., the agent built a malformed spec, an issue type is invalid in the project) and the caller should fix it without bothering the product team. `true` means the PRD needs product input to resolve.
+- **what**: plain-language description of the issue. No gate IDs, no JIRA jargon, no engineering shorthand. A product owner reading this on a Notion comment should understand what is unclear and why.
+- **recommendation**: 1–3 concrete options the reader can pick from, not a generic "please clarify." If the answer is genuinely open-ended, list the most plausible candidate resolutions you considered, even if speculative.
 
 ## Rules
 
 - Never write to JIRA. The `allowed-tools` list intentionally excludes `createJiraIssue`, `editJiraIssue`, `createIssueLink`, `addCommentToJiraIssue`.
 - Never auto-fix the spec. This skill reports gaps; callers decide what to do (block, ask the human, regenerate the spec).
 - Never silently skip a gate. If a gate genuinely doesn't apply, return `N/A` with the reason; never omit it.
-- The remediation lines must be concrete and actionable — the dry-run path turns each one into a Notion comment, so vague guidance is useless.
+- The `what` and `recommendation` fields must be concrete and product-readable — the dry-run path turns each failure into a Notion comment, and the audience for those comments is the product team, not engineers. Vague guidance ("clarify this", "decide how to handle X") is useless; always give 1–3 candidate resolutions.
+- Never emit a category outside the fixed set. If a new gate doesn't fit, propose adding the category to the taxonomy in this skill rather than inventing one inline.
+- `product_relevant` is determined by the gate, not by the failure context. Do not flip it per-failure.

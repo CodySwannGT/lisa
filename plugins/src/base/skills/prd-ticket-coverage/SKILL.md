@@ -115,9 +115,13 @@ Atomic PRD items extracted: <n>
 | ... | ... |
 
 ### Gaps  (PRD items with zero ticket coverage — blocks Ticketed status)
-- <item-id> (<type>) — <text>
-  - *Source:* <PRD section reference>
-  - *Suggested fix:* <add a ticket scoped to X / extend ticket Y to cover this / clarify whether this is in scope>
+- item: <item-id> (<type>)
+  text: <text>
+  prd_section: "<heading text from the PRD>"
+  prd_anchor: "<first ~10 chars>...<last ~10 chars>"   # for selection_with_ellipsis; null if no specific section
+  category: <product-clarity|acceptance-criteria|design-ux|scope|dependency|data|technical|structural>
+  what: <plain-language description of the gap, no JIRA jargon — written for the product team>
+  recommendation: <1–3 candidate resolutions: add a ticket scoped to X / extend ticket Y to cover this / mark out-of-scope explicitly. Never "clarify this".>
 
 ### Scope creep  (tickets without PRD trace — informational, does not block)
 - <ticket-key> — <summary>
@@ -127,6 +131,10 @@ Atomic PRD items extracted: <n>
 ### Gap count: <n>
 ### Scope-creep count: <n>
 ```
+
+`prd_anchor` and `prd_section` are built the same way as in `lisa:notion-to-jira` — the start/end snippets locate the source heading or bullet for `selection_with_ellipsis`. Set both to `null` only when the gap is not anchored to any specific section (rare).
+
+`category` is drawn from the same fixed taxonomy used by `lisa:jira-validate-ticket` so downstream callers can apply one consistent comment-formatting policy. Most coverage gaps map to `scope` (item not represented in any ticket) or `product-clarity` (item too vague to map). Use `acceptance-criteria` for missing pass/fail conditions and `design-ux` for missing visuals.
 
 ## Rules
 

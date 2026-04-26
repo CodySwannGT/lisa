@@ -101,7 +101,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
    |---------|--------|
    | `COMPLETE` | Done. Leave `Status = Ticketed`. Move to next PRD. |
    | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory Notion comment naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave `Status = Ticketed`. |
-   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a Notion comment naming the missing PRD item and where it appears in the PRD, with the suggested fix from the audit report. (b) Post one summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition `Status` from `Ticketed` back to `Blocked` via `notion-update-page`. |
+   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a Notion comment using the same product-facing template as Phase 3c.3 — block-anchored via `selection_with_ellipsis` when `prd_anchor` is non-null, page-level otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition `Status` from `Ticketed` back to `Blocked` via `notion-update-page`. |
    | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave `Status = Ticketed` with a comment flagging the audit failure for human review. |
 
 3. The created tickets remain in JIRA regardless of the verdict — they are valid in their own right (they passed `lisa:jira-validate-ticket`). The audit only tells us whether *more* are needed.
@@ -110,24 +110,65 @@ The audit's report should be summarized in the cycle summary alongside the per-P
 
 **If `FAIL`** (one or more planned tickets failed one or more gates):
 
-1. Group the failures by planned ticket.
-2. For each failed ticket, post a Notion comment via `notion-create-comment` with this format:
+The audience for these comments is the **product team**, not engineers. They are not familiar with JIRA gate IDs, validator vocabulary, or skill internals. Follow the rules below strictly — the goal is for a non-engineer product owner to read a comment, understand what is unclear, and know what to do next.
 
-   ```text
-   **Blocker — planned ticket: <ticket-summary>**
+##### 3c.1 Partition failures
 
-   The PRD as written can't produce a valid JIRA ticket for this scope. Specifically:
+1. Drop every failure where `product_relevant = false`. Those are internal data-quality problems — the agent should fix its own spec rather than ask product to clarify a missing core field. Record the dropped failures under `Errors` in the cycle summary so engineers can see them; never surface them on the PRD.
+2. Group the remaining product-relevant failures by `prd_anchor` (the snippet from `notion-to-jira`'s dry-run report). Failures that share an anchor become one comment thread on that block. Failures with `prd_anchor: null` are batched into one page-level summary comment, since they have no source section to attach to.
 
-   - **<gate-id> (<gate-name>)**: <reason>. *Fix:* <concrete remediation>.
-   - **<gate-id> (<gate-name>)**: <reason>. *Fix:* <concrete remediation>.
+##### 3c.2 Render each comment
 
-   Once these are addressed in the PRD, set Status back to `Ready` and Claude will re-run intake.
-   ```
+For each anchored group, post via `mcp__claude_ai_Notion__notion-create-comment` with:
+- `page_id`: the PRD page ID
+- `selection_with_ellipsis`: the `prd_anchor` value (e.g. `"# User taps Fol...esume action"`)
+- `rich_text`: the body, formatted using the template below
 
-3. Set `Status = Blocked` via `notion-update-page`.
-4. Do NOT write any JIRA tickets.
+For the unanchored group, post a single page-level comment (omit `selection_with_ellipsis`) using the same template, prefixed with `Issues without a specific section anchor:` and one block per failure.
 
-Each comment must name the specific planned ticket and the specific gate — vague guidance is useless to product. The remediation field on the validator's report is already concrete; pass it through.
+##### 3c.3 Comment template
+
+Each comment body MUST contain these four parts, in this order, no exceptions:
+
+```text
+[<Category badge>] <prd_section heading text>
+
+**What's unclear:** <validator's `what` field, verbatim — already product-readable>
+
+**Recommendation:** <validator's `recommendation` field, verbatim — must contain 1–3 concrete options, never a generic "please clarify">
+
+**Action:** Update this section in the PRD, then set Status back to `Ready` and Claude will re-run intake.
+```
+
+If multiple failures share an anchor, render each as its own `**What's unclear:** ... **Recommendation:** ...` block within the same comment, separated by horizontal lines (`---`). Keep the single `[Category badge]` heading at the top using the most-severe / most-blocking category from the group.
+
+##### 3c.4 Category badges
+
+Use these exact badge labels — they are the validator's category values translated for product readers:
+
+| Validator category | Badge label |
+|---------------------|-------------|
+| `product-clarity` | `[Product clarity]` |
+| `acceptance-criteria` | `[Acceptance criteria]` |
+| `design-ux` | `[Design / UX]` |
+| `scope` | `[Scope]` |
+| `dependency` | `[Dependency]` |
+| `data` | `[Data]` |
+| `technical` | `[Technical]` |
+
+`structural` failures must never reach this step (filtered in 3c.1). If you see one here, treat it as an Error and surface internally.
+
+##### 3c.5 Forbidden in product comments
+
+- Gate IDs (`S4`, `F2`, etc.). Never appear in a comment body.
+- JIRA terminology that has no product meaning (e.g. "Gherkin", "epic parent", "issue link", "validation journey", "sub-task hierarchy"). If the validator's `what` field uses one of these terms, paraphrase before posting; do not pass through verbatim.
+- Internal skill names (`lisa:jira-validate-ticket`, `notion-to-jira`).
+- Engineering shorthand (`AC`, `OOS`, `repo`, `env var`).
+- "Clarify this" / "Please specify" without candidate resolutions. The validator is required to provide candidates; if `recommendation` is empty or vague, treat the failure as an Error and surface internally rather than posting a useless comment.
+
+##### 3c.6 Status transition
+
+After all comments are posted (anchored groups + the optional page-level summary), set `Status = Blocked` via `notion-update-page`. Do NOT write any JIRA tickets.
 
 #### 3d. Continue
 
@@ -182,5 +223,7 @@ This skill reads project configuration from environment variables (or `$ARGUMENT
 - Never write to JIRA outside of `lisa:notion-to-jira` → `lisa:jira-write-ticket`. The validator's verdict gates progress; bypassing it produces broken tickets.
 - Never set Notion `Status` to a value this skill doesn't own (`In Review`, `Blocked`, `Ticketed`). Product owns `Draft`, `Ready`, `Shipped`.
 - Never edit the PRD's body. Communication with product happens only through Notion comments.
+- Never post a single page-level dump of all gate failures. One comment per `prd_anchor` group (or one page-level summary for unanchored failures only). The audience is product, not engineers — comments must be block-anchored, categorized, plain-language, and contain a concrete recommendation. See Phase 3c.3 for the required template and Phase 3c.5 for forbidden language.
+- Never include a gate ID, internal skill name, or engineering shorthand in a Notion comment body. If the validator's `what` or `recommendation` field uses one, paraphrase before posting.
 - Never run more than one intake cycle concurrently against the same database. This skill assumes serial execution. (Scheduling is a separate concern; the runtime should not start a new cycle if a previous one is still in flight.)
 - If `lisa:notion-to-jira` returns errors (e.g. unreachable artifact, malformed PRD structure), treat them as gate failures: comment + Blocked. Don't silently fail.
