@@ -1,10 +1,6 @@
 ---
-description: "Ship and verify code. Commits, opens PR, handles review loop, merges, deploys, and verifies in target environment."
+description: "Ship and verify code. Commits, opens PR, handles review loop, merges, monitors deploy, and runs remote verification in target environment. Folds in /ship."
 argument-hint: "[commit-message-hint]"
 ---
 
-Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Verify** flow.
-
-This includes: atomic commits, PR creation, CI/review-fix loop, merge, deploy monitoring, and remote verification.
-
-$ARGUMENTS
+Use the /lisa:verify skill to commit, push, PR, merge, deploy, and verify in the target environment. $ARGUMENTS

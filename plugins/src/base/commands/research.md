@@ -1,10 +1,6 @@
 ---
-description: "Research a problem space and produce a PRD. Investigates codebase, defines user flows, assesses technical feasibility."
+description: "Research a problem space and produce a PRD. Investigates the codebase, defines user flows, assesses technical feasibility, and outputs a specification ready for the Plan flow."
 argument-hint: "<problem-statement-or-feature-idea>"
 ---
 
-Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Research** flow.
-
-**Orchestration: agent team.** Research is a multi-specialist flow feeding a shared PRD. After echoing the flow and orchestration mode, your FIRST tool call MUST be `TeamCreate`. Do not call `TaskCreate`, `Agent`, or implementation tools before the team exists.
-
-$ARGUMENTS
+Use the /lisa:research skill to research the problem and produce a PRD. $ARGUMENTS

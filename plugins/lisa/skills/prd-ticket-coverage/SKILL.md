@@ -9,13 +9,13 @@ allowed-tools: ["Skill", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_
 `$ARGUMENTS` is one of:
 
 1. A PRD URL alone — auto-discover created tickets via the PRD's epic remote link.
-2. A PRD URL plus an explicit list of ticket keys — `<PRD URL> tickets=[KEY-1,KEY-2,...]`. Use this when called from `notion-prd-intake` (which knows the keys it just created).
+2. A PRD URL plus an explicit list of ticket keys — `<PRD URL> tickets=[KEY-1,KEY-2,...]`. Use this when called from `lisa:notion-prd-intake` (which knows the keys it just created).
 
 Verify that every atomic item in the PRD is covered by at least one of the listed/discovered JIRA tickets. The output gates whether the PRD's `Status` should remain `Ticketed` or revert to `Blocked`.
 
 ## Why this exists
 
-Per-ticket gates (`jira-validate-ticket`) prove each created ticket is well-formed in isolation. They do NOT prove the *set* of created tickets is complete relative to the source PRD. Silent drops happen — an agent generates 8 tickets when the PRD called for 9, and nothing notices. This skill is the catch.
+Per-ticket gates (`lisa:jira-validate-ticket`) prove each created ticket is well-formed in isolation. They do NOT prove the *set* of created tickets is complete relative to the source PRD. Silent drops happen — an agent generates 8 tickets when the PRD called for 9, and nothing notices. This skill is the catch.
 
 ## Phases
 
@@ -27,7 +27,7 @@ Per-ticket gates (`jira-validate-ticket`) prove each created ticket is well-form
 2. Fetch the PRD via `notion-fetch` with `include_discussions: true`. Capture: title, body, child Epic pages, all comment threads.
 3. If the PRD has child Epic sub-pages (a multi-epic PRD like Home revamp), fetch each in parallel with `include_discussions: true`. The audit walks the full PRD tree.
 4. If `tickets=[...]` not provided, locate the JIRA epic by:
-   - Looking for a JIRA URL in the PRD body, comments, or the PRD's most recent "Ticketed by Claude" comment posted by `notion-prd-intake`.
+   - Looking for a JIRA URL in the PRD body, comments, or the PRD's most recent "Ticketed by Claude" comment posted by `lisa:notion-prd-intake`.
    - Searching JIRA via `searchJiraIssuesUsingJql` for an epic whose summary or description references the PRD title or page ID.
    - If no epic found, return verdict `NO_TICKETS_FOUND` with a clear remediation — coverage cannot be assessed without the ticket set.
 5. Once the epic is known, fetch all child stories and sub-tasks via JQL: `"Epic Link" = <EPIC-KEY>` and recursively for sub-tasks.
@@ -134,4 +134,4 @@ Atomic PRD items extracted: <n>
 - Never silently drop a PRD item from extraction. If an item is ambiguous about whether it's scope, include it in extraction with type `ambiguous` and let the matching phase resolve it. The point of the audit is to catch silent drops; the audit can't have its own.
 - Be explicit about confidence in matches — the matrix is for humans to skim; vague matches help no one. If a match is rule-3 ("scope inheritance"), say so.
 - Scope creep is INFORMATIONAL. It is normal for an agent to add infra tickets (`X.0 Setup`) the PRD doesn't explicitly enumerate. Only flag scope creep when the ticket genuinely doesn't trace to PRD content AND isn't standard scaffolding.
-- The `GAPS_FOUND` verdict is the gate. The caller (e.g. `notion-prd-intake`) uses it to decide whether to revert `Status` from `Ticketed` to `Blocked`.
+- The `GAPS_FOUND` verdict is the gate. The caller (e.g. `lisa:notion-prd-intake`) uses it to decide whether to revert `Status` from `Ticketed` to `Blocked`.

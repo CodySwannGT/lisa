@@ -1,10 +1,6 @@
 ---
-description: "Monitor application health. Checks health endpoints, logs, errors, and performance across environments."
+description: "Monitor application health across environments. Health endpoints, recent logs, error-rate spikes, performance, optional browser UAT. Routes to the stack-specific ops-specialist."
 argument-hint: "[environment]"
 ---
 
-Apply the `intent-routing` rule (loaded via the lisa plugin) and execute the **Monitor** sub-flow.
-
-This sub-flow is also invoked as part of the Verify flow's remote verification step. Delegates to `ops-specialist` for health checks, log inspection, error monitoring, and performance analysis.
-
-$ARGUMENTS
+Use the /lisa:monitor skill to check application health, logs, errors, and performance for the named environment. $ARGUMENTS

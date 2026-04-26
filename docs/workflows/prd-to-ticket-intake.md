@@ -99,86 +99,106 @@ If a required value is missing, the skill stops and asks rather than inventing a
 
 ## Using the workflow
 
-The public commands are **vendor-agnostic**: developers don't say "Notion" or "JIRA" — they say "PRD" and "work item". The vendor-specific skills (`notion-prd-intake`, `jira-build-intake`, `notion-to-jira`) are internal implementations dispatched to by `/plan` and `/implement`.
+The public commands are **vendor-agnostic**: developers don't say "Notion" or "JIRA" — they say "PRD" and "work item". Vendor-specific skills are internal implementations the public commands dispatch to.
 
-### `/plan` — PRD intake (vendor-agnostic)
+| Command | Use for | Mode |
+|---------|---------|------|
+| `/lisa:plan <single-PRD>` | Decompose ONE PRD into work items | single-item |
+| `/lisa:implement <single-work-item>` | Build ONE work item end-to-end | single-item |
+| `/lisa:intake <queue>` | Scan a queue (Notion DB or JIRA project/JQL) for `Status=Ready` items, process each | batch (cron target) |
+| `/lisa:research <problem>` | Produce a PRD | — |
+| `/lisa:verify [hint]` | Local verify → ship → remote verify | — |
+| `/lisa:monitor [env]` | Health observability | — |
 
+### `/lisa:plan` — single PRD or spec
+
+```text
+/lisa:plan <single-PRD-url-or-id>
+/lisa:plan @path/to/spec.md
+/lisa:plan "free-form description"
 ```
-/plan <PRD-url-or-id>
-/plan @path/to/spec.md
-/plan "free-form description"
+
+Routes by input type: a Notion **page** URL → `lisa:notion-to-jira`; a JIRA Epic key → `lisa:jira-agent`; a file or description → core decomposition. **Does not** accept a Notion database URL — that's `/lisa:intake`.
+
+### `/lisa:implement` — single work item
+
+```text
+/lisa:implement <work-item-url-or-key>
+/lisa:implement "free-form description"
 ```
 
-Example with a Notion database:
+Reads the item, determines work type (Story/Task/Epic → BUILD; Bug → FIX; Spike → INVESTIGATE; Improvement → IMPROVE), assembles a team, runs the lifecycle through PR + evidence.
 
+### `/lisa:intake` — batch scanner (cron target)
+
+```text
+/lisa:intake <Notion-PRD-database-URL>
+/lisa:intake <JIRA-project-key>
+/lisa:intake "<JQL filter>"
 ```
-/plan https://www.notion.so/yourworkspace/28fd00244d7d47c5866876f7de48c0fe
+
+Examples:
+
+```text
+/lisa:intake https://www.notion.so/yourworkspace/28fd00244d7d47c5866876f7de48c0fe
+/lisa:intake SE
+/lisa:intake "project = SE AND component = 'frontend'"
 ```
 
-`/plan` detects the source type from `$ARGUMENTS` and routes:
-- **Notion URL/ID** → dispatches to the `notion-prd-intake` skill (single PRD or database scan)
-- **JIRA URL/key** → dispatches to `jira-agent` (existing JIRA epic *is* the spec; decompose into stories/sub-tasks)
-- **Linear / GitHub Issues** → adapter not yet built; stops and reports rather than guessing
-- **File / description** → runs the Plan flow's core decomposition with that input
+`/lisa:intake` detects the queue type and routes:
 
-**What happens per cycle** when the source is a Notion database (`notion-prd-intake` skill, internal):
+| Queue type | Per-item dispatch | Underlying batch skill |
+|------------|-------------------|------------------------|
+| Notion database URL | `lisa:plan` per Ready PRD | `lisa:notion-prd-intake` (internal) |
+| JIRA project key | `lisa:implement` per Ready ticket | `lisa:jira-build-intake` (internal) |
+| JIRA JQL filter | `lisa:implement` per matching Ready ticket | `lisa:jira-build-intake` (internal) |
+| Linear / GitHub Issues | adapter not yet built; stops cleanly | — |
+
+**One team per cron cycle.** `/lisa:intake` creates the team (per its orchestration preamble); the per-item `/lisa:plan` and `/lisa:implement` invocations detect the existing team via the cascade-safe orchestration preamble and skip `TeamCreate`. The same team processes everything that's currently `Status = Ready`.
+
+**What happens per cycle** when scanning a Notion PRD database (Notion side, internal `lisa:notion-prd-intake`):
 
 1. **Resolve the database** — parse the URL, fetch the database, get the data source ID, confirm the `Status` property has the expected options.
 2. **Find Ready PRDs** — query the data source for `Status = Ready`. Empty → exit cleanly.
 3. **Process each Ready PRD serially**:
    - **Claim**: set `Status = In Review` (idempotency lock — re-entrant cycles won't double-process).
-   - **Dry-run validation** (`notion-to-jira` with `dry_run: true`): plan the ticket hierarchy, run each planned spec through `jira-validate-ticket --spec-only`, return PASS/FAIL with per-gate failures.
+   - **Dry-run validation** (`lisa:notion-to-jira` with `dry_run: true`): plan the ticket hierarchy, run each planned spec through `lisa:jira-validate-ticket --spec-only`, return PASS/FAIL with per-gate failures.
    - **Branch on verdict**:
      - **FAIL**: post one Notion comment per failed ticket (gate name + reason + concrete remediation), set `Status = Blocked`. No JIRA tickets are created.
-     - **PASS**: invoke `notion-to-jira` with `dry_run: false` to actually write the tickets, post a Notion comment listing created ticket URLs, set `Status = Ticketed`.
-   - **Coverage audit (post-Ticketed, mandatory)** via `prd-ticket-coverage`: extract every atomic PRD item (goals, user stories, functional/non-functional requirements, acceptance criteria, important notes, mobile specs, states, permissions, decisions from comments) and verify each one is covered by at least one created ticket.
+     - **PASS**: invoke `lisa:notion-to-jira` with `dry_run: false` to actually write the tickets, post a Notion comment listing created ticket URLs, set `Status = Ticketed`.
+   - **Coverage audit (post-Ticketed, mandatory)** via `lisa:prd-ticket-coverage`: extract every atomic PRD item and verify each one is covered by at least one created ticket.
      - `COMPLETE`: leave at `Ticketed`.
      - `COMPLETE_WITH_SCOPE_CREEP`: post advisory comment, leave at `Ticketed`.
-     - `GAPS_FOUND`: post per-gap comments + a summary of which tickets *were* created, transition `Ticketed → Blocked`. Tickets remain in JIRA (they're valid in their own right); the next intake cycle adds the missing scope.
+     - `GAPS_FOUND`: post per-gap comments + a summary of which tickets *were* created, transition `Ticketed → Blocked`.
 4. **Summary report** with per-PRD outcomes.
 
-When a `Blocked` PRD's comments are addressed, product flips it back to `Ready` and the next cycle picks it up. After product confirms delivery, they flip `Ticketed → Shipped` (this skill never touches `Shipped`).
+When a `Blocked` PRD's comments are addressed, product flips it back to `Ready` and the next cycle picks it up. After product confirms delivery, they flip `Ticketed → Shipped` (the skill never touches `Shipped`).
 
-### `/implement` — work-item intake (vendor-agnostic)
-
-```
-/implement <work-item-url-or-key>
-/implement "free-form description"
-```
-
-Examples:
-
-```
-/implement SE-1234
-/implement https://yourcompany.atlassian.net/browse/SE-1234
-```
-
-`/implement` reads the work item, determines its type (Story/Task/Epic → BUILD; Bug → FIX; Spike → INVESTIGATE; Improvement → IMPROVE), and runs the matching flow end-to-end (PR opened, code review, deploy, evidence posted).
-
-**For batch processing** (find all `Status = Ready` work items in a tracker and process them), the `jira-build-intake` skill handles it for JIRA:
-
-```
-[internal] jira-build-intake SE
-[internal] jira-build-intake "project = SE AND component = 'frontend' AND Status = Ready"
-```
-
-This skill is **internal** — it's invoked by a scheduled watcher (when one is wired up via `/schedule`), not directly by developers. Developers use `/implement <work-item>` for one-off invocation.
-
-**What happens per cycle** when batch-processing JIRA tickets (`jira-build-intake` skill, internal):
+**What happens per cycle** when scanning a JIRA project for Ready tickets (JIRA side, internal `lisa:jira-build-intake`):
 
 1. **Resolve the query** — bare project key becomes `project = <KEY> AND Status = "Ready" ORDER BY priority DESC, created ASC`. Full JQL is used as-is.
 2. **Pre-flight check** — confirm `In Progress` and `On Dev` are reachable transitions. Misconfigured workflow → stop with an actionable message; never invent transitions.
 3. **Find Ready tickets** — JQL search. Empty → exit cleanly.
 4. **Process each Ready ticket serially**:
    - **Claim**: transition `Ready → In Progress`. Post a `[claude-build-intake]` comment.
-   - **Dispatch to `jira-agent`** (the existing per-ticket lifecycle agent), which owns: read full ticket graph (`jira-read-ticket`), pre-flight quality verify (`jira-verify`), analytical triage (`ticket-triage`), routing to the appropriate flow (Build / Fix / Investigate / Improve), progress sync (`jira-sync`), evidence posting (`jira-evidence`).
+   - **Dispatch to `lisa:jira-agent`** (the existing per-ticket lifecycle agent), which owns: read full ticket graph (`lisa:jira-read-ticket`), pre-flight quality verify (`lisa:jira-verify`), analytical triage (`lisa:ticket-triage`), routing to the appropriate flow (`lisa:implement`'s Build / Fix / Investigate / Improve sub-flow), progress sync (`lisa:jira-sync`), evidence posting (`lisa:jira-evidence`).
    - **On success**: transition `In Progress → On Dev`. Post a comment with the PR URL.
-   - **On Blocked-by-verify** (`jira-agent`'s gate transitioned to `Blocked` and reassigned): leave it. Surface the count.
-   - **On Held-by-triage** (ambiguities found, jira-agent stopped): leave the ticket in `In Progress`. Surface to human.
+   - **On Blocked-by-verify** (`lisa:jira-agent`'s gate transitioned to `Blocked` and reassigned): leave it. Surface the count.
+   - **On Held-by-triage** (ambiguities found, `lisa:jira-agent` stopped): leave the ticket in `In Progress`. Surface to human.
    - **On error**: leave in `In Progress`, log under "Errors" in the cycle summary.
 5. **Summary report**.
 
-`jira-build-intake` never auto-transitions past `On Dev`. Downstream statuses (`On QA`, `Done`) are owned by QA / product / a future verification-intake skill.
+`lisa:jira-build-intake` never auto-transitions past `On Dev`. Downstream statuses (`On QA`, `Done`) are owned by QA / product / a future verification-intake skill.
+
+### Scheduling
+
+```text
+/schedule "every 30 minutes" /lisa:intake <Notion-PRD-database-URL>
+/schedule "every 30 minutes" /lisa:intake <JIRA-project-key>
+/schedule "every hour"        /lisa:intake "<JQL filter>"
+```
+
+Each scheduled invocation creates one team (per `lisa:intake`'s orchestration preamble), processes everything currently `Status = Ready` in the queue within that single team, and tears the team down on completion. If two scheduled runs overlap, the cascade rule prevents double-`TeamCreate` — but you should serialize at the scheduling layer (don't fire a new cycle while one is still running against the same queue).
 
 ## Architecture: composed skills
 
@@ -278,11 +298,12 @@ It surfaces scope creep (tickets that don't trace back to PRD content) as **info
 
 ## Related public commands
 
-- `/plan <PRD-url | @file | desc>` — vendor-agnostic PRD intake (Notion supported today; routes by source type)
-- `/implement <work-item-url | key | desc>` — vendor-agnostic work-item lifecycle (JIRA supported today; routes by tracker)
-- `/research <problem>` — produce a PRD
-- `/verify [hint]` — local verify → ship → remote verify after deploy
-- `/monitor [env]` — observability across environments
-- `/product-walkthrough <route>` — standalone Playwright-based live-product evaluation
+- `/lisa:plan <single-PRD-url | @file | desc>` — single-PRD decomposition into work items
+- `/lisa:implement <work-item-url | key | desc>` — single work-item lifecycle
+- `/lisa:intake <Notion-DB-URL | JIRA-project-key | JQL>` — batch scanner; cron target
+- `/lisa:research <problem>` — produce a PRD
+- `/lisa:verify [hint]` — local verify → ship → remote verify after deploy
+- `/lisa:monitor [env]` — observability across environments
+- `/lisa:product-walkthrough <route>` — standalone Playwright-based live-product evaluation
 
-The vendor-specific intake skills (`notion-prd-intake`, `jira-build-intake`) and ticket primitives (`jira-create`, `jira-write-ticket`, `jira-validate-ticket`, `jira-source-artifacts`, `jira-verify`, `jira-add-journey`, `jira-read-ticket`, `jira-sync`, `jira-evidence`, `prd-ticket-coverage`) are **internal** — invoked by the public commands above, not directly by developers.
+The vendor-specific batch skills (`lisa:notion-prd-intake`, `lisa:jira-build-intake`) and ticket primitives (`lisa:jira-create`, `lisa:jira-write-ticket`, `lisa:jira-validate-ticket`, `lisa:jira-source-artifacts`, `lisa:jira-verify`, `lisa:jira-add-journey`, `lisa:jira-read-ticket`, `lisa:jira-sync`, `lisa:jira-evidence`, `lisa:prd-ticket-coverage`) are **internal** — invoked by the public commands above, not directly by developers.

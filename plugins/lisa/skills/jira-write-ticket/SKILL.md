@@ -29,7 +29,7 @@ Required fields (stop and ask if missing — do not invent values):
 | Issue type | CREATE | Story, Task, Bug, Epic, Spike, Sub-task, Improvement |
 | Summary | CREATE, UPDATE | One line, imperative voice, under 100 chars |
 | Description | CREATE, UPDATE | Multi-section — see Phase 3 |
-| Epic parent | Non-bug, non-epic | Enforced by `jira-verify` |
+| Epic parent | Non-bug, non-epic | Enforced by `lisa:jira-verify` |
 | Priority | CREATE | Default to project default if unstated |
 | Acceptance criteria | Story, Task, Bug, Sub-task, Improvement | Gherkin — see Phase 3 |
 | Validation Journey | Runtime-behavior changes | Delegate to `/jira-add-journey` |
@@ -170,19 +170,19 @@ Identify and attach:
 - Confluence pages (design docs, RFCs, runbooks)
 - Dashboards (Grafana, Datadog, Sentry issue)
 - Incident tickets (PagerDuty, Statuspage)
-- **Source artifacts from the originating PRD / parent epic**: classify and inherit per the rules in `jira-source-artifacts` (invoke that skill if you haven't loaded the rules in this session). The short version: enumerate the parent epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`). Never assume a developer will walk up to the epic to find design context — attach it here.
+- **Source artifacts from the originating PRD / parent epic**: classify and inherit per the rules in `lisa:jira-source-artifacts` (invoke that skill if you haven't loaded the rules in this session). The short version: enumerate the parent epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`). Never assume a developer will walk up to the epic to find design context — attach it here.
 
-If the ticket was generated from a PRD (by `notion-to-jira` or similar) and the parent epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction before proceeding.
+If the ticket was generated from a PRD (by `lisa:notion-to-jira` or similar) and the parent epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction before proceeding.
 
 ### 4d. Source Precedence (must appear on the ticket)
 
-Source precedence rules and cross-axis conflict handling are defined in `jira-source-artifacts` §3 and §4. When a ticket carries both design artifacts and a description, record the precedence explicitly in the ticket description (under Technical Approach or a dedicated `## Source Precedence` subsection) so the implementer doesn't silently reconcile conflicts. Cross-axis conflicts go under `## Open Questions` as BLOCKER items.
+Source precedence rules and cross-axis conflict handling are defined in `lisa:jira-source-artifacts` §3 and §4. When a ticket carries both design artifacts and a description, record the precedence explicitly in the ticket description (under Technical Approach or a dedicated `## Source Precedence` subsection) so the implementer doesn't silently reconcile conflicts. Cross-axis conflicts go under `## Open Questions` as BLOCKER items.
 
-For UI-touching tickets, include the existing-component reuse expectation per `jira-source-artifacts` §7.
+For UI-touching tickets, include the existing-component reuse expectation per `lisa:jira-source-artifacts` §7.
 
 ### 4e. Live Product Walkthrough Findings (UI-touching tickets)
 
-If the ticket modifies an existing user-facing surface, a `product-walkthrough` should already have been run upstream (by `notion-to-jira` Phase 2b or `jira-create`). Inherit its findings under a `## Current Product` subsection in the ticket description so the implementer sees what's shipped today before changing it. If the upstream skill skipped the walkthrough but this ticket clearly modifies an existing surface, invoke `product-walkthrough` here before proceeding.
+If the ticket modifies an existing user-facing surface, a `lisa:product-walkthrough` should already have been run upstream (by `lisa:notion-to-jira` Phase 2b or `lisa:jira-create`). Inherit its findings under a `## Current Product` subsection in the ticket description so the implementer sees what's shipped today before changing it. If the upstream skill skipped the walkthrough but this ticket clearly modifies an existing surface, invoke `lisa:product-walkthrough` here before proceeding.
 
 Use Jira's web UI or `mcp__atlassian__editJiraIssue` to set the `Development` field / remote links where supported.
 
@@ -200,9 +200,9 @@ Before create/update, verify each field is populated where applicable:
 
 ## Phase 5.5 — Validate (Pre-write Gate)
 
-Before any write, invoke `jira-validate-ticket` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `jira-validate-ticket` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
+Before any write, invoke `lisa:jira-validate-ticket` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `lisa:jira-validate-ticket` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
 
-The validator is the **single source of truth** for what makes a valid ticket. The same gates are used by `notion-to-jira` dry-run, by `jira-verify` post-write, and here. Do not re-implement gate logic in this skill — if a gate needs to change, change `jira-validate-ticket` so every caller benefits.
+The validator is the **single source of truth** for what makes a valid ticket. The same gates are used by `lisa:notion-to-jira` dry-run, by `lisa:jira-verify` post-write, and here. Do not re-implement gate logic in this skill — if a gate needs to change, change `lisa:jira-validate-ticket` so every caller benefits.
 
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.
@@ -219,7 +219,7 @@ If the validator reports `PASS`, continue to Phase 6.
 2. Capture the returned ticket key.
 3. For each relationship from Phase 4b, call `mcp__atlassian__createIssueLink` with the correct link type (verify names via `mcp__atlassian__getIssueLinkTypes` if unsure).
 4. Attach remote links from Phase 4c.
-5. If the ticket changes runtime behavior, invoke the `jira-add-journey` skill to append the Validation Journey section.
+5. If the ticket changes runtime behavior, invoke the `lisa:jira-add-journey` skill to append the Validation Journey section.
 
 ### UPDATE
 
@@ -229,7 +229,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ## Phase 7 — Verify
 
-Call the `jira-verify` skill on the resulting ticket. `jira-verify` fetches the live ticket and runs `jira-validate-ticket` against it — same gates as Phase 5.5, but applied to what JIRA actually stored (catches anything dropped or reformatted on write). If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
+Call the `lisa:jira-verify` skill on the resulting ticket. `lisa:jira-verify` fetches the live ticket and runs `lisa:jira-validate-ticket` against it — same gates as Phase 5.5, but applied to what JIRA actually stored (catches anything dropped or reformatted on write). If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
 
 ## Phase 8 — Announce
 
@@ -249,5 +249,5 @@ Skip this step only on UPDATE when no material change was made.
 - Never include a runtime-behavior ticket without a target backend environment, and never include an authenticated-surface ticket without sign-in credentials in the description.
 - Never invent custom field values. If the project requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.
-- All writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `jira-create`) should delegate here rather than calling the MCP write tools directly.
-- The gate logic (what makes a valid ticket) lives in `jira-validate-ticket`, NOT in this skill. This skill calls the validator at Phase 5.5 (pre-write) and Phase 7 (via `jira-verify` post-write). When a gate needs to change, change it in `jira-validate-ticket` — every caller (write path, dry-run path, post-write verify) picks it up automatically.
+- All writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `lisa:jira-create`) should delegate here rather than calling the MCP write tools directly.
+- The gate logic (what makes a valid ticket) lives in `lisa:jira-validate-ticket`, NOT in this skill. This skill calls the validator at Phase 5.5 (pre-write) and Phase 7 (via `lisa:jira-verify` post-write). When a gate needs to change, change it in `lisa:jira-validate-ticket` — every caller (write path, dry-run path, post-write verify) picks it up automatically.
