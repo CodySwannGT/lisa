@@ -17,7 +17,7 @@ Analyze the provided file(s) and plan a JIRA hierarchy. **This skill plans struc
    - Epic needed if: multiple features, major changes, >3 related files
    - Direct tasks if: bug fix, single file, minor change
 5. **Plan hierarchy**:
-   ```
+   ```text
    Epic → User Story → Tasks (test, implement, document, cleanup)
    ```
 6. **Delegate every write to `jira-write-ticket`** in dependency order (epic first, then stories with the epic as parent, then sub-tasks with their story as parent). Pass the artifacts (filtered by domain per `jira-source-artifacts` inheritance rules) and the walkthrough findings (under `## Current Product`). See "Delegation to jira-write-ticket" below.
