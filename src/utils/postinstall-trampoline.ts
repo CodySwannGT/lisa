@@ -256,12 +256,14 @@ export function hashFile(filePath: string): string | null {
  * @param projectDir - Absolute path to the project directory Lisa will reconcile
  * @param lisaDistDir - Absolute path to Lisa's dist directory (where index.js lives)
  * @param parentPid - PID of the package-manager process to wait on (usually process.ppid)
+ * @param spawnFn - Spawn implementation; defaults to node:child_process spawn. Injected in tests to avoid mocking native modules under v8 coverage.
  * @returns Promise that resolves immediately after spawning the detached child
  */
 export async function scheduleReconciliationChild(
   projectDir: string,
   lisaDistDir: string,
-  parentPid: number
+  parentPid: number,
+  spawnFn: typeof spawn = spawn
 ): Promise<void> {
   const nodeBin = process.execPath;
   const lisaEntry = path.join(lisaDistDir, "index.js");
@@ -278,7 +280,7 @@ export async function scheduleReconciliationChild(
     lockfileRegenPlans: LOCKFILE_REGEN_PLANS,
   });
 
-  const child = spawn(nodeBin, ["-e", trampolineSource], {
+  const child = spawnFn(nodeBin, ["-e", trampolineSource], {
     cwd: projectDir,
     detached: true,
     stdio: "ignore",

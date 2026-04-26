@@ -18,6 +18,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { spawn } from "node:child_process";
 import {
   detectPackageManagers,
   getLisaDistDir,
@@ -26,6 +27,7 @@ import {
   isRunningAsLifecycleScript,
   isRunningAsTrampoline,
   isRunningInCI,
+  scheduleReconciliationChild,
   shouldSchedulePostinstallReconciliation,
 } from "../../../src/utils/postinstall-trampoline.js";
 
@@ -45,8 +47,6 @@ const YARN_LOCK = "yarn.lock";
 const IGNORE_SCRIPTS = "--ignore-scripts";
 const INSTALL_CMD = "install";
 const PACKAGE_JSON = "package.json";
-const CHILD_PROCESS_MODULE = "node:child_process";
-const TRAMPOLINE_MODULE = "../../../src/utils/postinstall-trampoline.js";
 
 describe("postinstall-trampoline", () => {
   const originalEnv = { ...process.env };
@@ -401,15 +401,15 @@ describe("postinstall-trampoline", () => {
       delete process.env.CONTINUOUS_INTEGRATION;
 
       const child = makeFakeChild();
+      // Inject spawnFn directly — avoids vi.doMock of native node:child_process,
+      // which is unreliable under v8 coverage on CI runners.
       const spawnSpy = vi.fn().mockReturnValue(child);
-      vi.doMock(CHILD_PROCESS_MODULE, () => ({ spawn: spawnSpy }));
-      vi.resetModules();
-      const fresh = await import(TRAMPOLINE_MODULE);
 
-      await fresh.scheduleReconciliationChild(
+      await scheduleReconciliationChild(
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
-        4242
+        4242,
+        spawnSpy as unknown as typeof spawn
       );
 
       expect(spawnSpy).toHaveBeenCalledTimes(1);
@@ -444,9 +444,6 @@ describe("postinstall-trampoline", () => {
       // Detached mode must not wait on the child process — never registers an
       // exit listener because the parent package manager needs to return.
       expect(child.on).not.toHaveBeenCalled();
-
-      vi.doUnmock(CHILD_PROCESS_MODULE);
-      vi.resetModules();
     });
 
     it("spawns a detached process with unref in CI (avoids deadlock with package manager)", async () => {
@@ -460,31 +457,21 @@ describe("postinstall-trampoline", () => {
       // so the PM can exit, the trampoline detects the exit, and reconciliation
       // actually runs.
       //
-      // NOTE: We deliberately do NOT mutate process.env.CI / GITHUB_ACTIONS /
-      // CONTINUOUS_INTEGRATION here. scheduleReconciliationChild does not read
-      // those env vars (no CI branch in the source — both modes do the same
-      // thing), so the assertion below holds regardless. Mutating them
-      // interferes with vitest's own CI detection, which on real CI runners
-      // (where GITHUB_ACTIONS=true at process start) breaks vi.doMock for
-      // builtin modules like node:child_process under v8 coverage. This test
-      // is a regression guard against future CI-specific blocking behavior;
-      // it does not need to actually be running under CI env vars to do that.
-
-      // Defensive: clear any stale module cache from prior tests before
-      // installing the mock, so the dynamic import below picks up the spy.
-      vi.resetModules();
-      vi.doUnmock(CHILD_PROCESS_MODULE);
+      // NOTE: scheduleReconciliationChild has no CI-specific branch — both modes
+      // hit the same code path (always spawn detached + unref'd). This test is a
+      // regression guard against future CI-specific blocking behavior; it does not
+      // need to run under real CI env vars. spawnFn is injected directly to avoid
+      // vi.doMock of node:child_process, which is unreliable under v8 coverage on
+      // real CI runners (GITHUB_ACTIONS=true) and causes the real spawn to fire.
 
       const child = makeFakeChild();
       const spawnSpy = vi.fn().mockReturnValue(child);
-      vi.doMock(CHILD_PROCESS_MODULE, () => ({ spawn: spawnSpy }));
-      vi.resetModules();
-      const fresh = await import(TRAMPOLINE_MODULE);
 
-      await fresh.scheduleReconciliationChild(
+      await scheduleReconciliationChild(
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
-        4242
+        4242,
+        spawnSpy as unknown as typeof spawn
       );
 
       expect(spawnSpy).toHaveBeenCalledTimes(1);
@@ -500,9 +487,6 @@ describe("postinstall-trampoline", () => {
       // Must NOT register a blocking exit listener — that would re-introduce
       // the circular wait.
       expect(child.on).not.toHaveBeenCalled();
-
-      vi.doUnmock(CHILD_PROCESS_MODULE);
-      vi.resetModules();
     });
   });
 });
