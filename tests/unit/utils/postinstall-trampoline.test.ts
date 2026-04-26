@@ -445,7 +445,10 @@ describe("postinstall-trampoline", () => {
       // exit listener because the parent package manager needs to return.
       expect(child.on).not.toHaveBeenCalled();
 
-      vi.doUnmock(CHILD_PROCESS_MODULE);
+      // Do NOT call vi.doUnmock here. Calling vi.doUnmock registers the module as
+      // "explicitly unmocked" in Vitest's mock registry and takes precedence over
+      // subsequent vi.doMock calls in the CI test below. vi.resetModules() alone
+      // is sufficient — it clears the module cache without polluting mock state.
       vi.resetModules();
     });
 
