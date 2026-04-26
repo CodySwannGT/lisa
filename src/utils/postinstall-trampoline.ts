@@ -256,12 +256,19 @@ export function hashFile(filePath: string): string | null {
  * @param projectDir - Absolute path to the project directory Lisa will reconcile
  * @param lisaDistDir - Absolute path to Lisa's dist directory (where index.js lives)
  * @param parentPid - PID of the package-manager process to wait on (usually process.ppid)
+ * @param spawnFn - Optional spawn implementation; defaults to node:child_process spawn. Tests pass a vi.fn() spy here as a dependency-injection seam, avoiding the unreliable vi.doMock-on-builtins pattern that breaks under v8 coverage in CI runners.
  * @returns Promise that resolves immediately after spawning the detached child
  */
 export async function scheduleReconciliationChild(
   projectDir: string,
   lisaDistDir: string,
-  parentPid: number
+  parentPid: number,
+  // Dependency-injection seam: callers can override the spawn function for
+  // testing. Default is the real node:child_process spawn. Production callers
+  // pass nothing; tests pass a vi.fn() spy and assert on it directly without
+  // relying on vi.doMock for node builtins (which is flaky in CI under v8
+  // coverage). The seam is invisible to production callers.
+  spawnFn: typeof spawn = spawn
 ): Promise<void> {
   const nodeBin = process.execPath;
   const lisaEntry = path.join(lisaDistDir, "index.js");
@@ -278,7 +285,7 @@ export async function scheduleReconciliationChild(
     lockfileRegenPlans: LOCKFILE_REGEN_PLANS,
   });
 
-  const child = spawn(nodeBin, ["-e", trampolineSource], {
+  const child = spawnFn(nodeBin, ["-e", trampolineSource], {
     cwd: projectDir,
     detached: true,
     stdio: "ignore",
