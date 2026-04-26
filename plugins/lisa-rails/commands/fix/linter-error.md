@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "<rule-1> [rule-2] [rule-3] ..."
 ---
 
-Use the /lisa-rails:plan-fix-linter-error skill to fix linter errors. $ARGUMENTS
+Use the /lisa-rails:fix-linter-error skill to fix linter errors. $ARGUMENTS

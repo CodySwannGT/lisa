@@ -8,7 +8,7 @@ allowed-tools: []
 
 This skill is doctrine, not action — it defines the rules. Skills that need to extract, classify, attach, or reason about external artifacts (design files, prototypes, recordings, data samples) invoke this skill to load the taxonomy and apply it.
 
-The reason this lives in one place: silent drift across skills is the failure mode this body of rules exists to prevent. If the rules differ between `notion-to-jira`, `jira-create`, and `jira-write-ticket`, agents will silently route artifacts wrong and developers will lose source of truth. Edit here, propagate everywhere.
+The reason this lives in one place: silent drift across skills is the failure mode this body of rules exists to prevent. If the rules differ between `lisa:notion-to-jira`, `lisa:jira-create`, and `lisa:jira-write-ticket`, agents will silently route artifacts wrong and developers will lose source of truth. Edit here, propagate everywhere.
 
 ## 1. Domains
 

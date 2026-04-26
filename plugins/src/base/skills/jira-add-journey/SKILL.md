@@ -115,6 +115,6 @@ python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID>
 ## When to Use This Skill
 
 - Ticket was created before the Validation Journey convention was established
-- Ticket was created manually without following `jira-create` guidelines
+- Ticket was created manually without following `lisa:jira-create` guidelines
 - Ticket needs a journey added or updated based on implementation progress
 - Before starting work on a ticket, to ensure verification steps are documented
