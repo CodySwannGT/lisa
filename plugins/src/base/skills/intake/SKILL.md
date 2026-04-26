@@ -8,6 +8,23 @@ allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__cl
 
 Run one batch-intake cycle against the queue identified by `$ARGUMENTS`. Scans for `Status = Ready`, claims each item, and dispatches to the appropriate single-item lifecycle skill.
 
+## Confirmation policy
+
+Do NOT ask the caller whether to proceed. Once invoked with a queue, run the cycle to completion. The caller (a human at the CLI or a scheduled cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+
+Specifically forbidden:
+
+- Previewing projected scope (number of items, projected ticket counts, write counts) and asking whether to continue.
+- Offering A/B/C-style choices like "proceed / skip / dry-run only" — the documented behavior IS the default. Dry-run is a different skill, not an option here.
+- Pausing because the queue is large, items have many open questions, or items are likely to end in `Blocked`. `Blocked` is a valid terminal state of the downstream lifecycles, not a failure mode — routing items to `Blocked` with clarifying comments is success.
+- Pausing because validation looks expensive. The cost of one cycle is bounded; the cost of stalling a scheduled cron waiting on a human is unbounded.
+
+The only legitimate reasons to stop early:
+
+- Missing required input (no queue argument, missing project configuration). Surface the missing value and exit.
+- The queue itself is misconfigured (Status property missing expected values, JIRA workflow can't reach required transitions). Surface and exit.
+- Empty `Ready` set. Exit cleanly with the idle-case message.
+
 ## Orchestration: agent team
 
 If you are NOT already operating inside an agent team (no prior `TeamCreate` in this session, not spawned via `Agent` with `team_name`), your FIRST tool call MUST be `TeamCreate`. Do not call `TaskCreate`, `Agent`, or implementation tools before the team exists.
