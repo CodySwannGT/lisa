@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/CodySwannGT/lisa/compare/vv1.96.0...v2.0.0) (2026-04-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* collapse public command surface to 5 lifecycle verbs (#420)
+
+### Features
+
+* collapse public command surface to 5 lifecycle verbs ([#420](https://github.com/CodySwannGT/lisa/issues/420)) ([427f122](https://github.com/CodySwannGT/lisa/commit/427f12298cb01ae02b472d6504c7e1fd2af1bf79))
+
 ## [1.96.0](https://github.com/CodySwannGT/lisa/compare/vv1.95.0...v1.96.0) (2026-04-26)
 
 
