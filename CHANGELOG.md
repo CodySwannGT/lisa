@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.96.0](https://github.com/CodySwannGT/lisa/compare/vv1.95.0...v1.96.0) (2026-04-26)
+
+
+### Features
+
+* **codex:** add OpenAI Codex CLI as a target harness ([#416](https://github.com/CodySwannGT/lisa/issues/416)) ([18ef0de](https://github.com/CodySwannGT/lisa/commit/18ef0de1f9cf8cbacf3c9bcbc5b0ac8a19d2a3c6))
+* **intake:** add PRD-to-ticket intake pipeline with shared gate skills ([#419](https://github.com/CodySwannGT/lisa/issues/419)) ([e69fe8c](https://github.com/CodySwannGT/lisa/commit/e69fe8cc84fd9e1460834cb4cd069908de0623d9))
+
 ## [1.95.0](https://github.com/CodySwannGT/lisa/compare/vv1.94.0...v1.95.0) (2026-04-25)
 
 
