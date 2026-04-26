@@ -1,47 +1,27 @@
 ---
 name: jira-verify
-description: This skill should be used when verifying that a JIRA ticket meets organizational standards for epic relationships and description quality. It checks epic parent relationships and validates description completeness for coding assistants, developers, and stakeholders.
-allowed-tools: ["mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
+description: This skill should be used when verifying that a JIRA ticket meets organizational standards for epic relationships, description quality, and (for UI tickets) Validation Journey presence. It fetches the live ticket and delegates the gate checks to jira-validate-ticket so the bar matches what jira-write-ticket enforces pre-write.
+allowed-tools: ["Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
 # Verify JIRA Ticket: $ARGUMENTS
 
-Fetch ticket $ARGUMENTS and verify it meets organizational standards.
+Verify that the existing JIRA ticket `$ARGUMENTS` meets organizational standards. This skill is a thin post-write wrapper around `jira-validate-ticket`: it fetches the live ticket and asks `jira-validate-ticket` to run the gates against the fetched state.
 
-## Verification Checks
+This indirection exists so the gate definitions live in exactly one place (`jira-validate-ticket`). When the bar changes, change it there — `jira-verify`, `jira-write-ticket` (Phase 5.5 pre-write), and `notion-to-jira` (PRD dry-run) all pick it up.
 
-### 1. Epic Parent Relationship
+## Process
 
-**Rule**: Non-bug, non-epic tickets MUST have an epic parent
+1. Resolve cloud ID via `mcp__atlassian__getAccessibleAtlassianResources`.
+2. Fetch the ticket via `mcp__atlassian__getJiraIssue` for `$ARGUMENTS`.
+3. Invoke `jira-validate-ticket` and pass the ticket key. The validator runs every gate (Specification + Feasibility) against the live state, including the Validation Journey check (S11) which applies to any runtime-behavior change — UI tickets in Expo always qualify.
+4. Surface the validator's report verbatim.
 
-- If missing: Search filter 10089 (Epic Backlog) and suggest appropriate epics
+## Output
 
-### 2. Description Quality
+Pass through `jira-validate-ticket`'s structured output unchanged. Downstream callers parse the gate lines.
 
-Verify description adequately addresses:
+## Notes
 
-**Coding Assistants**: Acceptance criteria, requirements, constraints, I/O
-**Developers**: Technical context, integration points, testing, edge cases
-**Stakeholders**: Business value, user impact, success metrics, summary
-
-### 3. Validation Journey (Frontend Tickets)
-
-**Rule**: Tickets that touch UI (components, labels, or description mentioning frontend, UI, modal, layout, responsive, screen, page, button, form) MUST include a Validation Journey section.
-
-Check by running:
-
-```bash
-python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID> 2>&1
-```
-
-- If the parser returns steps: PASS
-- If the parser fails with "No 'Validation Journey' section found": FAIL — recommend using `/jira-add-journey <TICKET_ID>` to add one
-
-This check is skipped for:
-- Pure backend/API tickets (no UI surface)
-- Config-only tickets (env vars, feature flags, CI/CD)
-- Epic-level tickets (journeys belong on child stories/tasks)
-
-## Execute Verification
-
-Retrieve ticket details, run all checks, and provide specific improvement recommendations for any failures.
+- This skill is read-only. It never edits the ticket, posts comments, or changes status.
+- For UI tickets that fail the Validation Journey gate, the validator's remediation will recommend `/jira-add-journey` — the Expo flavor of `jira-add-journey` produces the `[SCREENSHOT: ...]` + viewport block that the Playwright-based journey runner consumes.
