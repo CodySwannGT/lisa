@@ -19,7 +19,7 @@ Updates local Lisa projects in batches by running the package manager update com
    - If `engines.bun === "please-use-npm"` (or `engines.yarn` / `engines.pnpm` use the same sentinel), that package manager is **forbidden**. Use `npm`.
    - If a forbidden lockfile exists anyway (e.g., `bun.lock` in a project where `engines.bun === "please-use-npm"`), it is rogue — bun ignores the engines string and writes the lockfile if invoked. Delete it (`git rm bun.lock`) and include the deletion in the commit.
    - Pick the update command from the surviving package manager:
-     - `bun.lock` exists and bun is allowed → `bun update @codyswann/lisa`
+     - `bun.lock` exists and bun is allowed → `bun add -D @codyswann/lisa@latest` (use `bun add -D <pkg>@latest`, **not** `bun update <pkg>`. `bun update` only walks within the existing semver range, so an exact-pinned `1.95.0` or a caret-pinned `^1.95.0` against a new major like `2.x` is a no-op. `bun add -D <pkg>@latest` always resolves to the latest published version and rewrites the manifest.)
      - otherwise → `npm install -D @codyswann/lisa@latest` (use `install -D` not `update`; `npm update` only bumps within the existing semver range and won't move pinned versions or update the manifest)
    - Bun's postinstall runs templates automatically; npm's does not. After `npm install -D`, manually run `node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check .` to apply templates.
    - **Never run both `bun add` and `npm install` against the same project.** That perpetuates the dual-lockfile bug. Pick one based on the engines field and stick to it.
