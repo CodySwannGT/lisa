@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Decompose a single PRD or specification into ordered work items in the configured tracker. Vendor-agnostic — the source can be a Notion PRD URL, an existing JIRA epic key, a markdown file, or a free-form description; the destination tracker is whatever the project is configured to use (JIRA today; Linear/GitHub Issues are pluggable). Single-PRD mode only — for batch scanning of all Status=Ready PRDs in a queue, use the lisa:intake skill."
+description: "Decompose a single PRD or specification into ordered work items in the configured tracker. Vendor-agnostic — the source can be a Notion PRD URL, a Confluence PRD URL, an existing JIRA epic key, a markdown file, or a free-form description; the destination tracker is whatever the project is configured to use (JIRA today; Linear/GitHub Issues are pluggable). Single-PRD mode only — for batch scanning of all Ready PRDs in a queue, use the lisa:intake skill."
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 
@@ -22,6 +22,8 @@ Detect the input type from `$ARGUMENTS` and route to the appropriate source skil
 |------------------------|-------------|
 | A Notion **page** URL or page ID (single PRD) | `lisa:notion-to-jira` (with the PRD URL; runs the full pipeline: extract artifacts → walk live product → validate → write tickets → coverage audit) |
 | A Notion **database** URL or database ID | Stop and report — single-PRD mode only. Direct the caller to `lisa:intake` for batch scanning of a database. |
+| A Confluence **page** URL containing `/wiki/spaces/<KEY>/pages/<ID>/...` (single PRD) | `lisa:confluence-to-jira` (with the PRD URL; same full pipeline as the Notion path) |
+| A Confluence **space** URL (`/wiki/spaces/<KEY>` with no `/pages/...`) | Stop and report — single-PRD mode only. Direct the caller to `lisa:intake` for batch scanning of a space. |
 | A JIRA ticket ID/URL of an Epic (existing epic *is* the spec) | `lisa:jira-agent` (read epic, decompose into stories/sub-tasks) |
 | A Linear / GitHub Issues URL or key | Not yet implemented. Stop and tell the user the adapter doesn't exist yet — the architecture supports it, but no `linear-prd-source` / `github-prd-source` skill has been built. Don't fall back. |
 | A file path (`@plan.md`, `./spec.md`) | Read the file as the spec; run the Plan flow's core decomposition with the file content as input. |

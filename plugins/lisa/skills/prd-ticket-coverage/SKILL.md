@@ -1,7 +1,7 @@
 ---
 name: prd-ticket-coverage
-description: "Verifies that every requirement in a Notion PRD is covered by at least one created JIRA ticket — no silent drops. Parses the PRD into atomic items (goals, user stories, functional/non-functional requirements, acceptance criteria, important notes), maps each to the created tickets, and produces a coverage matrix and verdict (COMPLETE / COMPLETE_WITH_SCOPE_CREEP / GAPS_FOUND / NO_TICKETS_FOUND). Used by notion-prd-intake post-write to gate the Status=Ticketed transition; can also be invoked standalone for after-the-fact audits."
-allowed-tools: ["Skill", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-get-comments", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
+description: "Verifies that every requirement in a PRD (Notion or Confluence) is covered by at least one created JIRA ticket — no silent drops. Parses the PRD into atomic items (goals, user stories, functional/non-functional requirements, acceptance criteria, important notes), maps each to the created tickets, and produces a coverage matrix and verdict (COMPLETE / COMPLETE_WITH_SCOPE_CREEP / GAPS_FOUND / NO_TICKETS_FOUND). Used by notion-prd-intake / confluence-prd-intake post-write to gate the Ticketed transition; can also be invoked standalone for after-the-fact audits."
+allowed-tools: ["Skill", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-get-comments", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__getConfluencePageFooterComments", "mcp__atlassian__getConfluencePageInlineComments", "mcp__atlassian__getConfluenceCommentChildren", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
 # PRD Ticket Coverage Audit: $ARGUMENTS
@@ -9,9 +9,16 @@ allowed-tools: ["Skill", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_
 `$ARGUMENTS` is one of:
 
 1. A PRD URL alone — auto-discover created tickets via the PRD's epic remote link.
-2. A PRD URL plus an explicit list of ticket keys — `<PRD URL> tickets=[KEY-1,KEY-2,...]`. Use this when called from `lisa:notion-prd-intake` (which knows the keys it just created).
+2. A PRD URL plus an explicit list of ticket keys — `<PRD URL> tickets=[KEY-1,KEY-2,...]`. Use this when called from `lisa:notion-prd-intake` or `lisa:confluence-prd-intake` (which know the keys they just created).
 
-Verify that every atomic item in the PRD is covered by at least one of the listed/discovered JIRA tickets. The output gates whether the PRD's `Status` should remain `Ticketed` or revert to `Blocked`.
+The PRD URL can be a **Notion page URL** or a **Confluence page URL**. Detect the vendor from the host:
+
+- `notion.so` / `notion.site` → Notion. Fetch with `mcp__claude_ai_Notion__notion-fetch` (`include_discussions: true`) and `mcp__claude_ai_Notion__notion-get-comments`.
+- Atlassian Confluence host (e.g. `*.atlassian.net/wiki/...`) → Confluence. Fetch with `mcp__atlassian__getConfluencePage`, `mcp__atlassian__getConfluencePageDescendants` (for child epic pages), `mcp__atlassian__getConfluencePageFooterComments`, `mcp__atlassian__getConfluencePageInlineComments`, and `mcp__atlassian__getConfluenceCommentChildren` for nested replies.
+
+Both vendors produce the same downstream artifact-extraction and coverage-matrix logic — only the fetch surface differs. The rest of this skill is vendor-agnostic.
+
+Verify that every atomic item in the PRD is covered by at least one of the listed/discovered JIRA tickets. The output gates whether the PRD's lifecycle should remain at `Ticketed` (Notion `Status = Ticketed`, Confluence `prd-ticketed` label) or revert to `Blocked`.
 
 ## Why this exists
 
@@ -22,12 +29,17 @@ Per-ticket gates (`lisa:jira-validate-ticket`) prove each created ticket is well
 ### Phase 1 — Resolve inputs
 
 1. Parse `$ARGUMENTS`:
-   - PRD URL → extract page ID.
+   - PRD URL → detect vendor from host, extract page ID.
    - Optional `tickets=[...]` → list of explicit ticket keys.
-2. Fetch the PRD via `notion-fetch` with `include_discussions: true`. Capture: title, body, child Epic pages, all comment threads.
-3. If the PRD has child Epic sub-pages (a multi-epic PRD like Home revamp), fetch each in parallel with `include_discussions: true`. The audit walks the full PRD tree.
+2. Fetch the PRD using the vendor-appropriate tool surface:
+   - **Notion**: `notion-fetch` with `include_discussions: true`. Capture: title, body, child Epic pages, all comment threads.
+   - **Confluence**: `getConfluencePage` (capture title, body, labels), `getConfluencePageFooterComments` + `getConfluencePageInlineComments` (capture all comments; walk replies via `getConfluenceCommentChildren` for any thread with children).
+3. If the PRD has child Epic sub-pages (a multi-epic PRD), fetch each in parallel:
+   - **Notion**: `notion-fetch` per child page with `include_discussions: true`.
+   - **Confluence**: enumerate descendants via `getConfluencePageDescendants`, then `getConfluencePage` per child plus its comment streams.
+   The audit walks the full PRD tree.
 4. If `tickets=[...]` not provided, locate the JIRA epic by:
-   - Looking for a JIRA URL in the PRD body, comments, or the PRD's most recent "Ticketed by Claude" comment posted by `lisa:notion-prd-intake`.
+   - Looking for a JIRA URL in the PRD body, comments, or the PRD's most recent "Ticketed by Claude" comment posted by `lisa:notion-prd-intake` / `lisa:confluence-prd-intake`.
    - Searching JIRA via `searchJiraIssuesUsingJql` for an epic whose summary or description references the PRD title or page ID.
    - If no epic found, return verdict `NO_TICKETS_FOUND` with a clear remediation — coverage cannot be assessed without the ticket set.
 5. Once the epic is known, fetch all child stories and sub-tasks via JQL: `"Epic Link" = <EPIC-KEY>` and recursively for sub-tasks.
@@ -115,9 +127,13 @@ Atomic PRD items extracted: <n>
 | ... | ... |
 
 ### Gaps  (PRD items with zero ticket coverage — blocks Ticketed status)
-- <item-id> (<type>) — <text>
-  - *Source:* <PRD section reference>
-  - *Suggested fix:* <add a ticket scoped to X / extend ticket Y to cover this / clarify whether this is in scope>
+- item: <item-id> (<type>)
+  text: <text>
+  prd_section: "<heading text from the PRD>"
+  prd_anchor: "<first ~10 chars>...<last ~10 chars>"   # for selection_with_ellipsis; null if no specific section
+  category: <product-clarity|acceptance-criteria|design-ux|scope|dependency|data|technical|structural>
+  what: <plain-language description of the gap, no JIRA jargon — written for the product team>
+  recommendation: <1–3 candidate resolutions: add a ticket scoped to X / extend ticket Y to cover this / mark out-of-scope explicitly. Never "clarify this".>
 
 ### Scope creep  (tickets without PRD trace — informational, does not block)
 - <ticket-key> — <summary>
@@ -127,6 +143,10 @@ Atomic PRD items extracted: <n>
 ### Gap count: <n>
 ### Scope-creep count: <n>
 ```
+
+`prd_anchor` and `prd_section` are built the same way as in `lisa:notion-to-jira` / `lisa:confluence-to-jira`. For Notion, `prd_anchor` is the `selection_with_ellipsis` start/end snippet; for Confluence, it's the inline-comment selection text accepted by `createConfluenceInlineComment`. The downstream caller knows which vendor it's writing to and uses the right API; this skill just emits the anchor that vendor expects. Set both to `null` only when the gap is not anchored to any specific section (rare).
+
+`category` is drawn from the same fixed taxonomy used by `lisa:jira-validate-ticket` so downstream callers can apply one consistent comment-formatting policy. Most coverage gaps map to `scope` (item not represented in any ticket) or `product-clarity` (item too vague to map). Use `acceptance-criteria` for missing pass/fail conditions and `design-ux` for missing visuals.
 
 ## Rules
 
