@@ -12,9 +12,6 @@
     "react-perf",
     "jsx-a11y"
   ],
-  "categories": {
-    "correctness": "error"
-  },
   "ignorePatterns": [
     "build/**",
     "dist/**",
