@@ -282,15 +282,12 @@ jobs:
           echo "oxlint $(./node_modules/.bin/oxlint --version | head -1) found."
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      - name: 🦀 Run oxlint
-        # Invoke the binary from node_modules/.bin directly. `bun exec` and
-        # `npm exec` have different lookup semantics that aren't worth
-        # reasoning about across runners — the binary path is universal.
-        run: ./node_modules/.bin/oxlint
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🧹 Run ESLint
-        run: ./node_modules/.bin/eslint . --quiet
+      - name: 🧹 Run linter (oxlint + eslint)
+        # The `lint` npm script in package.lisa.json is forced to
+        # "oxlint && eslint . --quiet" by Lisa governance, so this single
+        # step runs both linters in sequence. Per-project script semantics
+        # (e.g. Lisa itself uses --disable-nested-config) are preserved.
+        run: ${{ inputs.package_manager }} run lint
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
