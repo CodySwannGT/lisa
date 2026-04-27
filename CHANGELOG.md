@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.6.2](https://github.com/CodySwannGT/lisa/compare/vv2.6.1...v2.6.2) (2026-04-27)
+
+
+### Bug Fixes
+
+* **oxlint:** loosen default rules to let ESLint own threshold-based limits ([#440](https://github.com/CodySwannGT/lisa/issues/440)) ([bf8e63e](https://github.com/CodySwannGT/lisa/commit/bf8e63eed6b1cc9035efe138e5b0a1794fe60b20)), closes [CodySwannGT/lisa#345](https://github.com/CodySwannGT/lisa/issues/345)
+
 ### [2.6.1](https://github.com/CodySwannGT/lisa/compare/vv2.6.0...v2.6.1) (2026-04-27)
 
 
