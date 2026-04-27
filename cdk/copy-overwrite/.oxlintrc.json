@@ -1,4 +1,15 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["./node_modules/@codyswann/lisa/oxlint/cdk.json"]
+  "extends": ["./node_modules/@codyswann/lisa/oxlint/cdk.json"],
+  "ignorePatterns": [
+    "build/**",
+    "dist/**",
+    ".build/**",
+    "coverage/**",
+    "node_modules/**",
+    "*.generated.*",
+    "**/__generated__/**",
+    "**/generated/**",
+    "cdk.out/**"
+  ]
 }

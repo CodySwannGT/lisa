@@ -1,4 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["./node_modules/@codyswann/lisa/oxlint/typescript.json"]
+  "extends": ["./node_modules/@codyswann/lisa/oxlint/typescript.json"],
+  "ignorePatterns": [
+    "build/**",
+    "dist/**",
+    ".build/**",
+    "coverage/**",
+    "node_modules/**",
+    "*.generated.*",
+    "**/__generated__/**",
+    "**/generated/**"
+  ]
 }
