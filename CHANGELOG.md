@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.5.0](https://github.com/CodySwannGT/lisa/compare/vv2.4.0...v2.5.0) (2026-04-27)
+
+
+### Features
+
+* **intake:** add Linear as PRD source alongside Notion and Confluence ([#435](https://github.com/CodySwannGT/lisa/issues/435)) ([941bd18](https://github.com/CodySwannGT/lisa/commit/941bd189ed276492e5770f2b2270dd5771ce87c7))
+
 ## [2.4.0](https://github.com/CodySwannGT/lisa/compare/vv2.3.0...v2.4.0) (2026-04-27)
 
 
