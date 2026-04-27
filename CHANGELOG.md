@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.6.3](https://github.com/CodySwannGT/lisa/compare/vv2.6.2...v2.6.3) (2026-04-27)
+
+
+### Bug Fixes
+
+* **oxlint:** warn-by-default + inline ignorePatterns in copy-overwrite ([#441](https://github.com/CodySwannGT/lisa/issues/441)) ([9abf9eb](https://github.com/CodySwannGT/lisa/commit/9abf9eb7480bf7766be58414ec453a58cbf770e8)), closes [CodySwannGT/lisa#345](https://github.com/CodySwannGT/lisa/issues/345)
+
 ### [2.6.2](https://github.com/CodySwannGT/lisa/compare/vv2.6.1...v2.6.2) (2026-04-27)
 
 
