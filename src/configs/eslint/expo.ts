@@ -13,6 +13,7 @@
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module configs/eslint/expo
  */
+import oxlint from "eslint-plugin-oxlint";
 import react from "eslint-plugin-react";
 import reactCompiler from "eslint-plugin-react-compiler";
 import { createRequire } from "module";
@@ -332,6 +333,12 @@ export function getExpoConfig({
         "no-restricted-syntax": "off",
       },
     },
+
+    // eslint-plugin-oxlint: turn off ESLint rules covered by oxlint, including
+    // the React/JSX-A11y/perf rule sets specific to Expo. Must come last so
+    // disables override prior enables.
+    ...oxlint.configs["flat/react"],
+    ...oxlint.configs["flat/jsx-a11y"],
   ] as unknown as import("eslint").Linter.Config[];
 }
 

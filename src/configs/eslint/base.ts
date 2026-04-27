@@ -13,6 +13,7 @@ import js from "@eslint/js";
 import type { Linter } from "eslint";
 import functional from "eslint-plugin-functional";
 import jsdoc from "eslint-plugin-jsdoc";
+import oxlint from "eslint-plugin-oxlint";
 import prettier from "eslint-plugin-prettier/recommended";
 import sonarjs from "eslint-plugin-sonarjs";
 import globals from "globals";
@@ -123,6 +124,20 @@ export const getBaseConfigs = (): Linter.Config[] =>
 
     // Prettier (must be last of shared configs)
     prettier,
+
+    // eslint-plugin-oxlint: turn OFF every ESLint rule that oxlint already
+    // covers in the hybrid Phase 2 pipeline. Must come AFTER every other
+    // config so the disables override prior enables.
+    // @see https://github.com/oxc-project/eslint-plugin-oxlint
+    ...oxlint.configs["flat/recommended"],
+    ...oxlint.configs["flat/typescript"],
+    ...oxlint.configs["flat/import"],
+    ...oxlint.configs["flat/jsdoc"],
+    ...oxlint.configs["flat/promise"],
+    ...oxlint.configs["flat/node"],
+    ...oxlint.configs["flat/unicorn"],
+    ...oxlint.configs["flat/jest"],
+    ...oxlint.configs["flat/vitest"],
   ] as unknown as Linter.Config[];
 
 /**
