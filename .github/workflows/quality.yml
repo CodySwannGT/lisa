@@ -270,8 +270,24 @@ jobs:
             bun install --frozen-lockfile
           fi
 
-      - name: 🧹 Run linter
-        run: ${{ inputs.package_manager }} run lint
+      - name: 🦀 Verify oxlint is installed
+        # oxlint is REQUIRED in the Phase 2 hybrid pipeline. Fail loudly if a
+        # downstream project skipped its installation; the slow ESLint pass
+        # alone is no longer a complete lint and must not silently substitute.
+        run: |
+          if ! ${{ inputs.package_manager }} pm ls 2>/dev/null | grep -q "oxlint" \
+             && [ ! -x "node_modules/.bin/oxlint" ]; then
+            echo "::error::oxlint is required but not installed. Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run '${{ inputs.package_manager }} install'."
+            exit 1
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🦀 Run oxlint
+        run: ${{ inputs.package_manager }} exec oxlint
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧹 Run ESLint
+        run: ${{ inputs.package_manager }} exec eslint . --quiet
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}

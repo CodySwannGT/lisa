@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./oxlint/typescript.json"],
+  "rules": {
+    "no-console": "off",
+    "no-unused-vars": "off",
+    "no-unused-expressions": "off",
+    "max-lines": "off",
+    "max-lines-per-function": "off",
+    "jsdoc/check-tag-names": [
+      "error",
+      {
+        "definedTags": [
+          "remarks",
+          "precondition",
+          "entity",
+          "security",
+          "jest-config-loader",
+          "jest-config-loader-options",
+          "module"
+        ]
+      }
+    ],
+    "unicorn/no-useless-fallback-in-spread": "off",
+    "unicorn/no-empty-file": "off"
+  },
+  "ignorePatterns": [
+    "all/copy-overwrite/**",
+    "typescript/copy-overwrite/**",
+    "expo/copy-overwrite/**",
+    "nestjs/copy-overwrite/**",
+    "cdk/copy-overwrite/**",
+    "rails/copy-overwrite/**",
+    "plugins/lisa-typescript/**",
+    "plugins/lisa-expo/**",
+    "plugins/lisa-nestjs/**",
+    "plugins/lisa-cdk/**",
+    "plugins/lisa-rails/**",
+    "plugins/lisa/**",
+    "eslint-plugin-code-organization/**",
+    "eslint-plugin-component-structure/**",
+    "eslint-plugin-ui-standards/**"
+  ]
+}
