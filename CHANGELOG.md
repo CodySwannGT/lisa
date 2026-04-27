@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.6.1](https://github.com/CodySwannGT/lisa/compare/vv2.6.0...v2.6.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* **governance:** propagate oxlint deps + restore baseUrl in stack templates ([#439](https://github.com/CodySwannGT/lisa/issues/439)) ([2b1dd36](https://github.com/CodySwannGT/lisa/commit/2b1dd3640cc58098fd913fb3ded990cdee0d8f86)), closes [CodySwannGT/lisa#345](https://github.com/CodySwannGT/lisa/issues/345)
+
 ## [2.6.0](https://github.com/CodySwannGT/lisa/compare/vv2.5.1...v2.6.0) (2026-04-27)
 
 
