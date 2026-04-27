@@ -3,7 +3,6 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-native",
-    "baseUrl": "./",
     "noEmit": true,
     "declaration": false,
     "allowImportingTsExtensions": true,
