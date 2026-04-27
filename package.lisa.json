@@ -1,10 +1,10 @@
 {
   "force": {
     "scripts": {
-      "lint": "eslint . --quiet",
+      "lint": "oxlint && eslint . --quiet",
       "format:check": "prettier --check .",
       "format": "prettier --check . --write",
-      "lint:fix": "eslint . --fix",
+      "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "typecheck": "tsc --noEmit",
       "knip": "knip",
@@ -32,6 +32,9 @@
       "eslint-plugin-jsdoc": "^61.5.0",
       "eslint-plugin-prettier": "^5.5.0",
       "eslint-plugin-sonarjs": "^4.0.0",
+      "eslint-plugin-oxlint": "^1.62.0",
+      "oxlint": "^1.62.0",
+      "oxlint-tsgolint": "^0.22.1",
       "jscodeshift": "0.15.2",
       "standard-version": "^9.5.0",
       "ts-morph": "^27.0.2",

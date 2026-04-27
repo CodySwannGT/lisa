@@ -2,10 +2,15 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 # =============================================================================
-# ESLint Lint-on-Edit Hook (PostToolUse - Write|Edit)
+# Lint-on-Edit Hook (PostToolUse - Write|Edit)
 # =============================================================================
-# Runs ESLint --fix with --quiet --cache on each edited TypeScript file.
-# Part of the inline self-correction pipeline: prettier → ast-grep → eslint.
+# Runs oxlint --fix, then ESLint --fix --quiet --cache on each edited
+# TypeScript file. Part of the inline self-correction pipeline:
+#   prettier → ast-grep → oxlint --fix → eslint --fix
+#
+# oxlint runs first because it's a Rust-native linter (~1000x faster) that
+# covers the majority of rules, leaving only the slow / type-aware / plugin
+# rules for ESLint to handle.
 #
 # Behavior:
 #   - Exit 0: lint passes or auto-fix resolved all errors
@@ -41,7 +46,19 @@ esac
 
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
-# Resolve ESLint binary — prefer local node_modules/.bin, then package-manager exec
+# Resolve oxlint and ESLint binaries — prefer local node_modules/.bin
+if [ -x "./node_modules/.bin/oxlint" ]; then
+    OXLINT_CMD="./node_modules/.bin/oxlint"
+elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+    OXLINT_CMD="bunx oxlint"
+elif [ -f "pnpm-lock.yaml" ]; then
+    OXLINT_CMD="pnpm exec oxlint"
+elif [ -f "yarn.lock" ]; then
+    OXLINT_CMD="yarn exec oxlint"
+else
+    OXLINT_CMD="npx oxlint"
+fi
+
 if [ -x "./node_modules/.bin/eslint" ]; then
     ESLINT_CMD="./node_modules/.bin/eslint"
 elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
@@ -54,7 +71,36 @@ else
     ESLINT_CMD="npx eslint"
 fi
 
-# Run ESLint with --fix --quiet --cache on the specific file
+# 1) oxlint --fix (REQUIRED in the Phase 2 hybrid pipeline)
+# If oxlint is missing the project is out of sync with the current Lisa
+# governance — fail loudly rather than silently skipping. ESLint alone is
+# no longer a complete lint pass.
+if [ ! -x "./node_modules/.bin/oxlint" ] && ! command -v "${OXLINT_CMD%% *}" >/dev/null 2>&1; then
+    echo "oxlint is required but not installed in this project." >&2
+    echo "Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run install." >&2
+    exit 2
+fi
+
+if [ ! -f ".oxlintrc.json" ] && [ ! -f ".oxlintrc.jsonc" ] && [ ! -f "oxlint.config.ts" ]; then
+    echo "oxlint is installed but no .oxlintrc.json found. Run 'lisa update' to install the stack template." >&2
+    exit 2
+fi
+
+echo "Running oxlint --fix on: $FILE_PATH"
+OX_OUTPUT=$($OXLINT_CMD --fix --quiet "$FILE_PATH" 2>&1)
+OX_EXIT=$?
+if [ $OX_EXIT -ne 0 ]; then
+    # Re-run without --fix to capture remaining errors
+    OX_OUTPUT=$($OXLINT_CMD --quiet "$FILE_PATH" 2>&1)
+    OX_EXIT=$?
+    if [ $OX_EXIT -ne 0 ]; then
+        echo "oxlint found unfixable errors in: $FILE_PATH" >&2
+        echo "$OX_OUTPUT" >&2
+        exit 2
+    fi
+fi
+
+# 2) ESLint --fix --quiet --cache
 # --quiet: suppress warnings, only show errors
 # --cache: use ESLint cache for performance
 # --rule: disable no-unused-vars auto-fix to prevent removing imports that Claude

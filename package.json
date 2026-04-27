@@ -7,8 +7,8 @@
     "test": "vitest run",
     "test:unit": "vitest run --exclude='**/integration/**'",
     "test:cov": "vitest run --coverage",
-    "lint": "eslint . --quiet",
-    "lint:fix": "eslint . --fix",
+    "lint": "oxlint --disable-nested-config && eslint . --quiet",
+    "lint:fix": "oxlint --fix --disable-nested-config && eslint . --fix",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check .",
@@ -51,6 +51,7 @@
     "cdk",
     "rails",
     "tsconfig",
+    "oxlint",
     "scripts",
     "plugins",
     ".claude-plugin",
@@ -108,7 +109,12 @@
     "./tsconfig/cdk": "./tsconfig/cdk.json",
     "./tsconfig/eslint": "./tsconfig/eslint.json",
     "./tsconfig/build": "./tsconfig/build.json",
-    "./tsconfig/spec": "./tsconfig/spec.json"
+    "./tsconfig/spec": "./tsconfig/spec.json",
+    "./oxlint/base": "./oxlint/base.json",
+    "./oxlint/typescript": "./oxlint/typescript.json",
+    "./oxlint/nestjs": "./oxlint/nestjs.json",
+    "./oxlint/expo": "./oxlint/expo.json",
+    "./oxlint/cdk": "./oxlint/cdk.json"
   },
   "bin": {
     "lisa": "dist/index.js",
@@ -188,7 +194,10 @@
   "devDependencies": {
     "@codyswann/lisa": "^1.81.3",
     "@types/js-yaml": "^4.0.9",
+    "eslint-plugin-oxlint": "^1.62.0",
     "js-yaml": "^4.1.1",
+    "oxlint": "^1.62.0",
+    "oxlint-tsgolint": "^0.22.1",
     "vite": "^8.0.5"
   },
   "type": "module"

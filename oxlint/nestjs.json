@@ -1,0 +1,16 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "extends": ["./typescript.json"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "jsdoc",
+    "promise",
+    "node"
+  ],
+  "rules": {
+    "no-empty-function": "off"
+  }
+}

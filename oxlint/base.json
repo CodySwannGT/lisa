@@ -1,0 +1,32 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "jsdoc",
+    "promise"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
+    "max-lines-per-function": ["error", { "max": 75, "skipBlankLines": true, "skipComments": true }],
+    "no-console": "warn",
+    "no-debugger": "error",
+    "prefer-const": "error",
+    "no-var": "error"
+  },
+  "ignorePatterns": [
+    "build/**",
+    "dist/**",
+    ".build/**",
+    "coverage/**",
+    "node_modules/**",
+    "*.generated.*",
+    "**/__generated__/**",
+    "**/generated/**"
+  ]
+}
