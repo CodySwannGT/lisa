@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.6.0](https://github.com/CodySwannGT/lisa/compare/vv2.5.1...v2.6.0) (2026-04-27)
+
+
+### Features
+
+* **lint:** add oxlint to the pipeline in hybrid mode ([#437](https://github.com/CodySwannGT/lisa/issues/437)) ([bcab4a6](https://github.com/CodySwannGT/lisa/commit/bcab4a6d0e891cbdaf3bece87fff53a5eb7f6353)), closes [#345](https://github.com/CodySwannGT/lisa/issues/345) [CodySwannGT/lisa#343](https://github.com/CodySwannGT/lisa/issues/343) [#345](https://github.com/CodySwannGT/lisa/issues/345) [CodySwannGT/lisa#343](https://github.com/CodySwannGT/lisa/issues/343) [CodySwannGT/lisa#343](https://github.com/CodySwannGT/lisa/issues/343) [CodySwannGT/lisa#343](https://github.com/CodySwannGT/lisa/issues/343)
+
 ### [2.5.1](https://github.com/CodySwannGT/lisa/compare/vv2.5.0...v2.5.1) (2026-04-27)
 
 ## [2.5.0](https://github.com/CodySwannGT/lisa/compare/vv2.4.0...v2.5.0) (2026-04-27)
