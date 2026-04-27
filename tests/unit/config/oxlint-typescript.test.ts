@@ -32,14 +32,22 @@ const config = JSON.parse(readFileSync(configPath, "utf8")) as OxlintConfig;
 describe("oxlint/typescript.json", () => {
   describe("test file overrides", () => {
     const overrides = config.overrides ?? [];
-    const testOverride = overrides.find(
+    const testOverrides = overrides.filter(
       o =>
         o.rules["max-lines"] === "off" &&
-        o.rules["max-lines-per-function"] === "off"
+        o.rules["max-lines-per-function"] === "off" &&
+        o.files.some(
+          f =>
+            f.endsWith(".test.ts") ||
+            f.endsWith(".spec.ts") ||
+            f.endsWith(".test.tsx") ||
+            f.endsWith(".spec.tsx")
+        )
     );
+    const testOverride = testOverrides[0];
 
-    it("has an override that relaxes max-lines for test files", () => {
-      expect(testOverride).toBeDefined();
+    it("has exactly one override that relaxes max-lines for test files", () => {
+      expect(testOverrides).toHaveLength(1);
     });
 
     it("includes **/*.test.ts in the test file override", () => {

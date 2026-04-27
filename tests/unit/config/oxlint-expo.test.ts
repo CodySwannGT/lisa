@@ -30,14 +30,41 @@ interface OxlintConfig {
 const configPath = join(process.cwd(), "oxlint", "expo.json");
 const config = JSON.parse(readFileSync(configPath, "utf8")) as OxlintConfig;
 
+/**
+ * Returns true when `filePattern` is fully shadowed by `ignorePattern`.
+ *
+ * Handles two cases:
+ * - Exact match: `"components/ui/**"` shadows `"components/ui/**"`
+ * - Directory glob: `"components/ui/**"` shadows any path that starts with
+ *   `"components/ui/"` such as `"components/ui/**\/\*.tsx"`
+ * @param filePattern - The override file glob to test (e.g. `"components/ui/**\/*.tsx"`)
+ * @param ignorePattern - The ignore pattern to test against (e.g. `"components/ui/**"`)
+ * @returns true if `filePattern` is entirely covered by `ignorePattern`
+ */
+const isShadowedByIgnore = (
+  filePattern: string,
+  ignorePattern: string
+): boolean => {
+  if (filePattern === ignorePattern) return true;
+  if (ignorePattern.endsWith("/**")) {
+    const prefix = ignorePattern.slice(0, -2); // removes "**", keeps the trailing "/"
+    return filePattern.startsWith(prefix);
+  }
+  return false;
+};
+
 describe("oxlint/expo.json", () => {
   describe("ignorePatterns vs overrides consistency", () => {
     it("has no override file pattern that is also in ignorePatterns (unreachable override guard)", () => {
-      const ignoredPatterns = new Set(config.ignorePatterns ?? []);
+      const ignoredPatterns = config.ignorePatterns ?? [];
       const overrides = config.overrides ?? [];
 
       const unreachableOverrides = overrides.filter(override =>
-        override.files.some(filePattern => ignoredPatterns.has(filePattern))
+        override.files.some(filePattern =>
+          ignoredPatterns.some(ignorePattern =>
+            isShadowedByIgnore(filePattern, ignorePattern)
+          )
+        )
       );
 
       expect(unreachableOverrides).toHaveLength(0);
