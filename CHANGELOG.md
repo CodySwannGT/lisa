@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.6.4](https://github.com/CodySwannGT/lisa/compare/vv2.6.3...v2.6.4) (2026-04-27)
+
+
+### Bug Fixes
+
+* **oxlint:** drop expo categories override that re-escalated correctness to error ([#442](https://github.com/CodySwannGT/lisa/issues/442)) ([6e74fed](https://github.com/CodySwannGT/lisa/commit/6e74fedf31649eedc0c9b64d79d7517449307a7f)), closes [CodySwannGT/lisa#345](https://github.com/CodySwannGT/lisa/issues/345)
+
 ### [2.6.3](https://github.com/CodySwannGT/lisa/compare/vv2.6.2...v2.6.3) (2026-04-27)
 
 
