@@ -76,7 +76,14 @@ Build a CQL query and call `mcp__atlassian__searchConfluenceUsingCql`:
 
 The query returns the list of candidate pages with IDs and titles. For each candidate, confirm the label set on the page (CQL hits should be authoritative, but a follow-up `getConfluencePage` with labels included guards against eventual-consistency lag) and ensure exactly one lifecycle label is present.
 
-If the result set is empty, stop and report `"No PRDs labelled prd-ready. Nothing to do."` Exit cleanly — this is the common idle case for a scheduled run.
+If the result set is empty, run a secondary CQL to distinguish between a genuinely empty queue and a project that has not yet adopted the label convention:
+
+- Secondary query (space scope): `space = "<KEY>" AND (label = "prd-ready" OR label = "prd-in-review" OR label = "prd-blocked" OR label = "prd-ticketed") AND type = page`
+- Secondary query (parent scope): `ancestor = <PARENT-ID> AND (label = "prd-ready" OR label = "prd-in-review" OR label = "prd-blocked" OR label = "prd-ticketed") AND type = page`
+
+If the secondary query also returns nothing → the `prd-*` label convention has not been adopted. Surface a misconfiguration message: `"No pages in this scope carry prd-* labels. If this is a new project, apply the prd-ready label to PRDs that are ready for ticketing (see Adoption section)."` Exit with an error — this is a setup issue, not a normal idle cycle.
+
+If the secondary query returns results → the queue is genuinely empty (all PRDs are already in-review, blocked, ticketed, or shipped). Exit cleanly with `"No PRDs labelled prd-ready. Nothing to do."`
 
 ### Phase 3 — Process each Ready PRD
 
@@ -249,4 +256,4 @@ Before this skill can run against a project, the project must adopt the `prd-*` 
 2. Reserve `prd-in-review`, `prd-blocked`, `prd-ticketed` for this skill — humans should not set them manually except to recover from an error.
 3. (Optional but recommended) Add `prd-draft` for in-progress PRDs and `prd-shipped` for delivered work, so the full lifecycle is visible at a glance.
 
-If the project hasn't adopted these labels, the first run against it will exit with the empty-set message — that's the expected signal to set up the convention.
+If the project hasn't adopted these labels, the first run exits with a label-convention error (not the idle empty-set message) — this distinguishes a setup issue from a genuinely empty queue so operators know to apply the convention rather than assuming the queue is drained. See Phase 2 for how the skill detects this case.

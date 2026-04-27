@@ -51,7 +51,7 @@ Disambiguation rules:
 - A `notion.so` / `notion.site` URL → Notion queue.
 - An Atlassian Confluence URL containing `/wiki/spaces/<KEY>` with no `/pages/...` segment → Confluence space queue.
 - An Atlassian Confluence URL containing `/wiki/spaces/<KEY>/pages/<ID>/...` → Confluence parent-page queue (the page is the parent whose descendants are PRDs). If the user actually meant "this single page is a PRD, plan it", route to `lisa:plan` instead — this skill is batch-only.
-- A bare alphanumeric token: prefer the JIRA project interpretation if it matches a configured `JIRA_PROJECT` regex (uppercase letters / digits / hyphen, ≤10 chars). Otherwise treat it as a Confluence space key. If both interpretations are plausible, stop and ask.
+- A bare alphanumeric token that matches the configured `JIRA_PROJECT` regex (uppercase letters / digits / hyphen, ≤10 chars) is treated as a JIRA project key by default. A token that does not match the regex is treated as a Confluence space key. The only time to stop and ask is when the token matches the JIRA_PROJECT regex AND is also a confirmed reachable Confluence space key (verified via Atlassian API) — in that specific overlap the user must disambiguate which queue to scan.
 - A string starting with `project = ` or containing JQL operators (`AND`, `OR`, `=`, `!=`, `~`, etc.) → JQL filter.
 
 The single-item skills (`lisa:plan`, `lisa:implement`) and the per-vendor batch skills (`lisa:notion-prd-intake`, `lisa:confluence-prd-intake`, `lisa:jira-build-intake`) are internal — Intake is the public entry point. Developers schedule `/lisa:intake <queue>`; the rest is composition.
