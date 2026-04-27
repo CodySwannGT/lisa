@@ -1,20 +1,25 @@
 {
   "force": {
     "scripts": {
-      "lint": "eslint . --quiet",
+      "lint": "oxlint && eslint . --quiet",
       "format:check": "prettier --check .",
       "format": "prettier --check . --write",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
       "test:cov": "vitest run --coverage",
       "test:watch": "vitest",
-      "lint:fix": "eslint . --fix",
+      "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "typecheck": "tsc --noEmit",
       "knip": "knip",
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true"
+    },
+    "devDependencies": {
+      "eslint-plugin-oxlint": "^1.62.0",
+      "oxlint": "^1.62.0",
+      "oxlint-tsgolint": "^0.22.1"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",

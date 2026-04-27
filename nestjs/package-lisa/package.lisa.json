@@ -35,7 +35,9 @@
       "test:unit": "vitest run --exclude='**/integration/**'",
       "test:integration": "vitest run '.integration.' --passWithNoTests",
       "test:cov": "vitest run --coverage",
-      "test:watch": "vitest"
+      "test:watch": "vitest",
+      "lint": "oxlint && eslint . --quiet",
+      "lint:fix": "oxlint --fix && eslint . --fix"
     },
     "dependencies": {
       "@apollo/server": "^5.2.0",
@@ -82,7 +84,10 @@
       "serverless-offline": "^14.4.0",
       "vite": "^8.0.5",
       "vitest": "^4.1.0",
-      "@vitest/coverage-v8": "^4.1.0"
+      "@vitest/coverage-v8": "^4.1.0",
+      "eslint-plugin-oxlint": "^1.62.0",
+      "oxlint": "^1.62.0",
+      "oxlint-tsgolint": "^0.22.1"
     }
   }
 }

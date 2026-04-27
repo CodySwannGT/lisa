@@ -48,7 +48,9 @@
       "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
       "test:integration": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
       "test:cov": "NODE_ENV=test jest --coverage",
-      "test:watch": "NODE_ENV=test jest --watch"
+      "test:watch": "NODE_ENV=test jest --watch",
+      "lint": "oxlint && eslint . --quiet",
+      "lint:fix": "oxlint --fix && eslint . --fix"
     },
     "dependencies": {
       "@apollo/client": "^3.10.8",
@@ -141,7 +143,10 @@
       "@jest/test-sequencer": "^30.2.0",
       "jest-environment-jsdom": "^30.2.0",
       "jest-expo": "^54.0.12",
-      "serve": "^14.2.0"
+      "serve": "^14.2.0",
+      "eslint-plugin-oxlint": "^1.62.0",
+      "oxlint": "^1.62.0",
+      "oxlint-tsgolint": "^0.22.1"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",

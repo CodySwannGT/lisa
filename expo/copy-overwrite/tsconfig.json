@@ -1,3 +1,7 @@
 {
-  "extends": ["@codyswann/lisa/tsconfig/expo", "./tsconfig.local.json"]
+  "extends": ["@codyswann/lisa/tsconfig/expo", "./tsconfig.local.json"],
+  "compilerOptions": {
+    "baseUrl": "./",
+    "ignoreDeprecations": "6.0"
+  }
 }
