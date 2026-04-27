@@ -81,7 +81,7 @@ The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJir
 - Sign-in account and target environment recorded in description
 - Post-create verification
 
-Bypassing `lisa:jira-write-ticket` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. The Atlassian read tools (`getJiraIssue`, `searchJiraIssuesUsingJql`, `getJiraIssueRemoteIssueLinks`, `getAccessibleAtlassianResources`, `getJiraProjectIssueTypesMetadata`, `getVisibleJiraProjects`) ARE allowed for context gathering and the Phase 5.5 preservation gate. The Linear read tools listed in `allowed-tools` above are PRD-side only and never write.
+Bypassing `lisa:jira-write-ticket` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. Atlassian reads in this skill are limited to the tools listed in `allowed-tools` (currently `getJiraIssueRemoteIssueLinks`) for the Phase 5.5 preservation gate. The Linear read tools listed in `allowed-tools` above are PRD-side only and never write.
 
 ## Input
 

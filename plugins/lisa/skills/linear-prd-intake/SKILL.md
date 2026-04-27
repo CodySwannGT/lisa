@@ -47,6 +47,7 @@ This skill ONLY transitions:
 - `prd-ready` → `prd-in-review` (claim)
 - `prd-in-review` → `prd-blocked` (gate failures or coverage gaps)
 - `prd-in-review` → `prd-ticketed` (success)
+- `prd-ticketed` → `prd-blocked` (post-write coverage gaps from Phase 3e)
 
 It never adds, removes, or touches `prd-draft` or `prd-shipped`. Those labels are owned by product.
 
