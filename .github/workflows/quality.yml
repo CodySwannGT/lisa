@@ -283,11 +283,14 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🦀 Run oxlint
-        run: ${{ inputs.package_manager }} exec oxlint
+        # Invoke the binary from node_modules/.bin directly. `bun exec` and
+        # `npm exec` have different lookup semantics that aren't worth
+        # reasoning about across runners — the binary path is universal.
+        run: ./node_modules/.bin/oxlint
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧹 Run ESLint
-        run: ${{ inputs.package_manager }} exec eslint . --quiet
+        run: ./node_modules/.bin/eslint . --quiet
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
