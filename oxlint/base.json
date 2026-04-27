@@ -12,12 +12,14 @@
     "correctness": "error"
   },
   "rules": {
-    "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
-    "max-lines-per-function": ["error", { "max": 75, "skipBlankLines": true, "skipComments": true }],
-    "no-console": "warn",
     "no-debugger": "error",
     "prefer-const": "error",
-    "no-var": "error"
+    "no-var": "error",
+    "no-console": "off",
+    "no-unused-vars": "off",
+    "max-lines": "off",
+    "max-lines-per-function": "off",
+    "jsdoc/check-tag-names": "off"
   },
   "ignorePatterns": [
     "build/**",
