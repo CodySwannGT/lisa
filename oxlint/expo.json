@@ -21,12 +21,6 @@
       "rules": {
         "max-lines": ["error", { "max": 400, "skipBlankLines": true, "skipComments": true }]
       }
-    },
-    {
-      "files": ["components/ui/**"],
-      "rules": {
-        "max-lines": "off"
-      }
     }
   ],
   "ignorePatterns": [
