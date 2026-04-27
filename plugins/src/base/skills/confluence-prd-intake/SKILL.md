@@ -236,7 +236,7 @@ Print to the agent's output. Do not write this summary to Confluence or JIRA —
 
 ## Configuration
 
-Same env vars as `lisa:confluence-to-jira` — `JIRA_PROJECT`, `JIRA_SERVER`, `CONFLUENCE_HOST`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, ask the user before proceeding — never invent values.
+Same env vars as `lisa:confluence-to-jira` — `JIRA_PROJECT`, `JIRA_SERVER`, `CONFLUENCE_HOST`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
 
 ## Rules
 
