@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Decompose a single PRD or specification into ordered work items in the configured tracker. Vendor-agnostic — the source can be a Notion PRD URL, a Confluence PRD URL, an existing JIRA epic key, a markdown file, or a free-form description; the destination tracker is whatever the project is configured to use (JIRA today; Linear/GitHub Issues are pluggable). Single-PRD mode only — for batch scanning of all Ready PRDs in a queue, use the lisa:intake skill."
+description: "Decompose a single PRD or specification into ordered work items in the configured tracker. Vendor-agnostic — the source can be a Notion PRD URL, a Confluence PRD URL, a Linear project URL, an existing JIRA epic key, a markdown file, or a free-form description; the destination tracker is whatever the project is configured to use (JIRA today; GitHub Issues is pluggable). Single-PRD mode only — for batch scanning of all Ready PRDs in a queue, use the lisa:intake skill."
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 
@@ -24,8 +24,10 @@ Detect the input type from `$ARGUMENTS` and route to the appropriate source skil
 | A Notion **database** URL or database ID | Stop and report — single-PRD mode only. Direct the caller to `lisa:intake` for batch scanning of a database. |
 | A Confluence **page** URL containing `/wiki/spaces/<KEY>/pages/<ID>/...` (single PRD) | `lisa:confluence-to-jira` (with the PRD URL; same full pipeline as the Notion path) |
 | A Confluence **space** URL (`/wiki/spaces/<KEY>` with no `/pages/...`) | Stop and report — single-PRD mode only. Direct the caller to `lisa:intake` for batch scanning of a space. |
+| A Linear **project** URL (`https://linear.app/<workspace>/project/<slug>-<id>`) | `lisa:linear-to-jira` (with the project URL; same full pipeline as the Notion / Confluence paths). The Linear project's description, attached documents, and sub-issues form the PRD body. |
+| A Linear **workspace** URL (`https://linear.app/<workspace>` with no `/project/...`) or **team** URL | Stop and report — single-PRD mode only. Direct the caller to `lisa:intake` for batch scanning of a workspace or team. |
 | A JIRA ticket ID/URL of an Epic (existing epic *is* the spec) | `lisa:jira-agent` (read epic, decompose into stories/sub-tasks) |
-| A Linear / GitHub Issues URL or key | Not yet implemented. Stop and tell the user the adapter doesn't exist yet — the architecture supports it, but no `linear-prd-source` / `github-prd-source` skill has been built. Don't fall back. |
+| A GitHub Issues URL or key | Not yet implemented. Stop and tell the user the adapter doesn't exist yet — the architecture supports it, but no `github-prd-source` skill has been built. Don't fall back. |
 | A file path (`@plan.md`, `./spec.md`) | Read the file as the spec; run the Plan flow's core decomposition with the file content as input. |
 | A plain-text description | Use the description as the spec; run the Plan flow's core decomposition. |
 
@@ -37,4 +39,4 @@ Execute the **Plan** flow as defined in the `intent-routing` rule (loaded via th
 
 ## Output
 
-Work items in the configured tracker (JIRA today; Linear/GitHub Issues when adapters exist) with acceptance criteria, dependencies, and recommended skills/agents per item. Ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.
+Work items in the configured tracker (JIRA today; GitHub Issues when the adapter exists) with acceptance criteria, dependencies, and recommended skills/agents per item. Ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.
