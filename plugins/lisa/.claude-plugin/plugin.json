@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "2.5.1",
+  "version": "2.6.4",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -44,6 +44,15 @@
           {
             "type": "command",
             "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh"
           }
         ]
       }
