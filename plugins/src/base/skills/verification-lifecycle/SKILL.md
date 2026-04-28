@@ -1,11 +1,11 @@
 ---
 name: verification-lifecycle
-description: "Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, loop. Quality gates (tests/typecheck/lint) are prerequisites, NOT verification. Verification means running the actual system and observing results."
+description: "Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, codify (turn each passing verification into a regression test), spec conformance (verify shipped work matches the spec), loop. Quality gates (tests/typecheck/lint) are prerequisites, NOT verification. Verification means running the actual system and observing results."
 ---
 
 # Verification Lifecycle
 
-This skill defines the complete verification lifecycle that agents must follow for every change: confirm quality gates, classify, check tooling, fail fast, plan, execute, and loop.
+This skill defines the complete verification lifecycle that agents must follow for every change: confirm quality gates, classify, check tooling, fail fast, plan, execute, codify (turn each passing verification into a regression test), spec conformance (verify shipped work matches the spec), and loop.
 
 ## Verification Lifecycle
 

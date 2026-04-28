@@ -20,9 +20,10 @@ if [ -z "$command_str" ]; then
   exit 0
 fi
 
-# Match --no-verify when followed by end-of-string, whitespace, =, or ; (not -).
-# This excludes --no-verify-ssl, --no-verify-host, etc.
-if printf '%s' "$command_str" | grep -Eq '(^|[[:space:]])--no-verify($|[[:space:]=;&|])'; then
+# Match --no-verify bounded by non-token characters (not alphanumeric, _, or -).
+# This catches all syntactic positions including subshells (e.g. `(git commit --no-verify)`)
+# while excluding longer flags like --no-verify-ssl, --no-verify-host, etc.
+if printf '%s' "$command_str" | grep -Eq '(^|[^[:alnum:]_-])--no-verify($|[^[:alnum:]_-])'; then
   cat >&2 <<'EOF'
 Blocked: --no-verify bypasses pre-commit/pre-push hooks. Fix the underlying
 issue (lint error, failing test, formatting) or ask the user before bypassing.
