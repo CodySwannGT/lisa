@@ -1,6 +1,6 @@
 {
   "name": "lisa-typescript",
-  "version": "2.5.1",
+  "version": "2.6.4",
   "description": "TypeScript-specific hooks — Prettier formatting, ESLint linting, and ast-grep scanning on edit",
   "author": {
     "name": "Cody Swann"

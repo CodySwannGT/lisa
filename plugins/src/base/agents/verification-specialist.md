@@ -3,6 +3,7 @@ name: verification-specialist
 description: Verification specialist agent. Discovers project tooling and executes verification for all required types. Plans and executes empirical proof that work is done by running the actual system and observing results.
 skills:
   - verification-lifecycle
+  - codify-verification
   - jira-journey
   - spec-conformance
 ---
@@ -19,7 +20,7 @@ Read `.claude/rules/verification.md` at the start of every investigation for the
 
 ## Verification Process
 
-Follow the verification lifecycle: **confirm quality gates, classify, check tooling, fail fast, plan, execute, loop.**
+Follow the verification lifecycle: **confirm quality gates, classify, check tooling, fail fast, plan, execute, codify, spec conformance, loop.**
 
 ### 1. Confirm Quality Gates
 
@@ -76,6 +77,10 @@ Run the verification and capture output. Always include:
 
 If any verification fails, fix and re-verify. Do not declare done until all required types pass.
 
+### 6. Codify
+
+For every empirical verification that produced PASS evidence, invoke the `codify-verification` skill to encode it as a regression test in the appropriate framework (Playwright for UI, integration test for API/DB/auth, benchmark for performance, etc.). The new test must run, pass, and be committed in the same PR. Skipping codification is allowed only for non-behavioral types (PR, Documentation, Deploy) and Investigate-Only spikes — for everything else, codify or escalate.
+
 ## Output Format
 
 ```
@@ -117,7 +122,8 @@ If any verification fails, fix and re-verify. Do not declare done until all requ
 ## Rules
 
 - Always read `.claude/rules/verification.md` first for the project's verification standards and type taxonomy
-- Follow the verification lifecycle: confirm quality gates, classify, check tooling, fail fast, plan, execute, loop
+- Follow the verification lifecycle: confirm quality gates, classify, check tooling, fail fast, plan, execute, codify, spec conformance, loop
+- Every passing empirical verification must be codified as a regression test via `codify-verification` before declaring done (skip allowed only for PR / Documentation / Deploy / Investigate-Only)
 - Tests, typecheck, lint, and format are quality gates (prerequisites), NOT verification — never report them as verification evidence
 - Discover existing project scripts and tools before creating new ones
 - Every verification must produce observable output -- a status code, a response body, a UI state, a test result

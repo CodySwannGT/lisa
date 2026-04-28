@@ -119,7 +119,7 @@ Determine the work type and execute the matching variant:
 5. `builder` -- implement via TDD (acceptance criteria become tests)
 6. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 7. `verification-specialist` -- verify locally (run the software, observe behavior)
-8. Write e2e test encoding the verification
+8. `verification-specialist` -- invoke `codify-verification` skill per passing verification (Playwright for UI, integration test for API/DB/auth, etc.); commit each test in the same PR
 9. **Review sub-flow**
 10. `learner` -- capture discoveries
 
@@ -133,7 +133,7 @@ Determine the work type and execute the matching variant:
 6. `bug-fixer` -- implement fix via TDD (reproduction becomes failing test)
 7. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 8. `verification-specialist` -- verify locally (prove the bug is fixed)
-9. Write e2e test encoding the verification
+9. `verification-specialist` -- invoke `codify-verification` skill to encode the fix as a regression test (mandatory for bug fixes — the test must fail against the pre-fix commit and pass against the fix); commit in the same PR
 10. **Review sub-flow**
 11. `learner` -- capture discoveries
 
@@ -145,7 +145,7 @@ Determine the work type and execute the matching variant:
 4. `builder` -- implement improvements via TDD
 5. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 6. `verification-specialist` -- measure again, prove improvement over baseline
-7. Write e2e test encoding the verification (if applicable)
+7. `verification-specialist` -- invoke `codify-verification` skill (typically a benchmark asserting against baseline for performance work, or a regression test for behavioral refactors); commit in the same PR
 8. **Review sub-flow**
 9. `learner` -- capture discoveries
 
@@ -156,7 +156,7 @@ Determine the work type and execute the matching variant:
 3. Recommend next action (Research, Plan, Implement, or escalate)
 4. `learner` -- capture discoveries
 
-Output: Code passing all quality gates + local empirical verification + e2e test (except for spikes, which produce findings only).
+Output: Code passing all quality gates + local empirical verification + codified regression test for each verification (except for spikes, which produce findings only, and non-behavioral verification types — PR / Documentation / Deploy — which carry their own proof).
 
 ### Verify
 
@@ -165,6 +165,7 @@ When: Code is ready to ship. All quality gates pass and local empirical verifica
 Gate:
 - Code must pass quality gates (lint, typecheck, tests)
 - Local empirical verification must be complete
+- Each passing local verification must be codified as a regression test (or carry a documented skip from the allowed set: PR / Documentation / Deploy / Investigate-Only). If verifications are not codified, return to the Implement flow's codify step before shipping
 - If quality gates fail, go back to **Implement**
 - If no code changes exist, there is nothing to verify
 

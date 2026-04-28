@@ -18,12 +18,13 @@ If you ARE already inside an agent team (e.g., a teammate invoked this skill via
 
 Execute the **Verify** flow as defined in the `intent-routing` rule (loaded via the lisa plugin). The flow includes:
 
-1. **Commit** any pending changes via `lisa:git-commit`
-2. **Push and PR** via `lisa:git-submit-pr`
-3. **Review loop** — handle CodeRabbit / human review comments via `lisa:pull-request-review`
-4. **Merge** when CI is green
-5. **Remote verification** — invoke the `lisa:monitor` skill against the target environment to confirm the deploy actually works (health endpoints, recent logs/errors, Validation Journey replay if defined)
-6. **Evidence** — post results to the originating ticket via `lisa:jira-evidence` (or equivalent tracker adapter)
+1. **Pre-flight: codification gate** — confirm that every passing local empirical verification on this branch was codified as a regression test (the Implement flow's codify step). If any verification has no committed test and no allowed skip reason (PR / Documentation / Deploy / Investigate-Only), invoke `codify-verification` now and amend the PR before shipping. A change cannot ship until its verifications are guarded.
+2. **Commit** any pending changes via `lisa:git-commit`
+3. **Push and PR** via `lisa:git-submit-pr`
+4. **Review loop** — handle CodeRabbit / human review comments via `lisa:pull-request-review`
+5. **Merge** when CI is green
+6. **Remote verification** — invoke the `lisa:monitor` skill against the target environment to confirm the deploy actually works (health endpoints, recent logs/errors, Validation Journey replay if defined). If remote verification surfaces a behavioral gap that the existing codified tests do not guard, invoke `codify-verification` to add coverage and open a follow-up PR.
+7. **Evidence** — post results to the originating ticket via `lisa:jira-evidence` (or equivalent tracker adapter), including the list of codified tests added on this branch.
 
 The rule contains the canonical step sequence. Change it there, propagate everywhere.
 

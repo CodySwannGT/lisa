@@ -24,7 +24,7 @@ Verification is mandatory. Never skip it, defer it, or claim it was unnecessary.
 
 Before starting implementation, state your verification plan — how you will use the resulting software to prove it works. A verification plan that only lists test/typecheck/lint commands is not a verification plan. Do not begin implementation until the plan is confirmed.
 
-After verifying a change empirically, encode that verification as automated tests. The manual proof that something works should become a repeatable regression test that catches future regressions. Every verification should answer: "How do I turn this into a test?"
+After verifying a change empirically, encode that verification as an automated regression test via the `codify-verification` skill. The manual proof that something works must become a repeatable test that catches future regressions — Playwright for UI/browser flows, integration test for API/DB/auth, benchmark for performance, etc. Codification is mandatory for every empirical verification type except the inherently non-behavioral ones (PR, Documentation, Deploy) and Investigate-Only spikes. If codification is genuinely impossible, escalate via the Escalation Protocol — never silently skip.
 
 Every pull request must include step-by-step instructions for reviewers to independently replicate the verification. These are not test commands — they are the exact steps a human would follow to use the software and confirm the change works. If a reviewer cannot reproduce your verification from the PR description alone, the PR is incomplete.
 
@@ -101,7 +101,7 @@ Every change requires one or more verification types. Classify the change first,
 Verification happens at two stages in the workflow:
 
 - **Quality gates** (enforced automatically): Tests, typecheck, lint, and format run via hooks at write-time, commit-time, and push-time. These are prerequisites, not verification.
-- **Local verification** (part of the Implement flow): After quality gates pass, empirically verify the change by running the actual system in a local or preview environment — make HTTP requests, interact with the UI, execute CLI commands, query the database. This proves the change works before shipping. After local verification succeeds, encode it as an e2e test.
+- **Local verification** (part of the Implement flow): After quality gates pass, empirically verify the change by running the actual system in a local or preview environment — make HTTP requests, interact with the UI, execute CLI commands, query the database. This proves the change works before shipping. After local verification succeeds, invoke `codify-verification` to encode it as a regression test (Playwright for UI, integration test for API/DB/auth, benchmark for performance, etc.) and commit the test in the same PR.
 - **Remote verification** (part of the Verify flow): After the PR is merged and deployed, repeat the same empirical verification against the target environment. This proves the change works in production, not just locally. If remote verification fails, fix and re-deploy.
 
 Both levels use the same verification types table above. The difference is the environment, not the rigor.
