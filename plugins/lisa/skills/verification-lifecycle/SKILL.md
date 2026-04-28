@@ -11,6 +11,16 @@ This skill defines the complete verification lifecycle that agents must follow f
 
 Agents must follow this mandatory sequence for every change:
 
+1. Confirm Quality Gates
+2. Classify
+3. Check Tooling
+4. Fail Fast (if blocked)
+5. Plan
+6. Execute
+7. Codify (turn each passing verification into a regression test)
+8. Spec Conformance
+9. Loop
+
 ### 1. Confirm Quality Gates
 
 Confirm that quality gates (tests, typecheck, lint, format) pass. These are prerequisites, NOT verification. Do not count them as verification — they are enforced automatically by hooks and CI. If quality gates fail, fix them before proceeding.
@@ -42,7 +52,17 @@ A verification plan that only lists `bun run test`, `bun run typecheck`, or `bun
 
 After implementation, run the verification plan. Execute each verification type in order.
 
-### 7. Spec Conformance
+### 7. Codify
+
+After each empirical verification produces PASS evidence, invoke the `codify-verification` skill to encode the verification as an automated regression test. The manual proof becomes a repeatable check that catches future regressions.
+
+The `codify-verification` skill maps the verification type to the appropriate framework (Playwright for browser/UI, integration test for API/DB/auth, benchmark for performance, etc.), generates a deterministic test that asserts the same observable outcome the verification just confirmed, runs it in isolation to confirm PASS, and commits it in the same PR as the change.
+
+Codification is mandatory for every empirical verification type with one exception set: PR, Documentation, Deploy, and Investigate-Only spikes — those have inherently non-behavioral proof. For every other type, skipping codification is not allowed; if codification is genuinely impossible (e.g., the test framework does not exist and cannot be installed in scope), escalate via the Escalation Protocol rather than silently skipping.
+
+A change is not "verified" in the lifecycle sense until each empirical verification has both passed AND been codified.
+
+### 8. Spec Conformance
 
 After empirical verification produces evidence, run spec conformance as a separate, mandatory step. Invoke the `spec-conformance` skill (or delegate to the `spec-conformance-specialist` agent) with the spec source — plan file, JIRA/Linear/GitHub key, or PRD.
 
@@ -56,9 +76,9 @@ Required outputs:
 
 `PARTIAL` or `DIVERGES` blocks completion. Fix the gaps (implement the miss, remove the creep, capture the missing evidence) and re-run both empirical verification AND spec conformance. Never skip this step — it catches failures that empirical verification by itself does not, such as a feature that works but wasn't asked for, or a spec item that was quietly dropped.
 
-### 8. Loop
+### 9. Loop
 
-If any verification or spec-conformance check fails, fix the issue and re-verify. Do not declare done until all required types pass AND the spec-conformance verdict is `CONFORMS`. If a verification or conformance check is stuck after 3 attempts, escalate.
+If any verification, codification, or spec-conformance check fails, fix the issue and re-verify. Do not declare done until all required types pass, all empirical verifications are codified, AND the spec-conformance verdict is `CONFORMS`. If a verification, codification, or conformance check is stuck after 3 attempts, escalate.
 
 ---
 
@@ -194,9 +214,10 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 8. Implement the change.
 9. Execute verification plan — run the actual system and observe results.
 10. Collect proof artifacts.
-11. Run spec conformance — build coverage matrix against the spec source (plan/ticket/issue), flag scope creep and untraceable changes, produce verdict.
-12. Summarize what changed, what was verified, conformance verdict, and remaining risk.
-13. Label the result with a verification level.
+11. Codify — for each passing empirical verification, invoke `codify-verification` to encode it as a regression test (Playwright for UI, integration test for API/DB/auth, benchmark for performance, etc.) and commit the test in the same PR.
+12. Run spec conformance — build coverage matrix against the spec source (plan/ticket/issue), flag scope creep and untraceable changes, produce verdict.
+13. Summarize what changed, what was verified, what was codified, conformance verdict, and remaining risk.
+14. Label the result with a verification level.
 
 ---
 
@@ -305,9 +326,10 @@ A task is done only when:
 
 - End user is identified
 - All applicable verification types are classified and executed
-- Verification lifecycle is completed (classify, check tooling, plan, execute, spec conformance, loop)
+- Verification lifecycle is completed (classify, check tooling, plan, execute, codify, spec conformance, loop)
 - Required verification surfaces and tooling surfaces are used or explicitly unavailable
 - Proof artifacts are captured
+- Every passing empirical verification is codified as a regression test (or has an explicit, documented skip reason from the allowed set)
 - Spec conformance verdict is `CONFORMS` (not `PARTIAL`, not `DIVERGES`)
 - Verification level is declared
 - Risks and gaps are documented
