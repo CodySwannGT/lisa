@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.2](https://github.com/CodySwannGT/lisa/compare/vv2.8.1...v2.8.2) (2026-04-29)
+
+
+### Bug Fixes
+
+* **postinstall:** heal stale local lisa marketplace registrations ([#446](https://github.com/CodySwannGT/lisa/issues/446)) ([7b6fe84](https://github.com/CodySwannGT/lisa/commit/7b6fe84652e7d1b108859ed0a97305e305ed28bf))
+
 ### [2.8.1](https://github.com/CodySwannGT/lisa/compare/vv2.8.0...v2.8.1) (2026-04-29)
 
 
