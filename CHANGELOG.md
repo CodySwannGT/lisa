@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.9.0](https://github.com/CodySwannGT/lisa/compare/vv2.8.10...v2.9.0) (2026-04-29)
+
+
+### Features
+
+* **hooks:** mechanically enforce TeamCreate-first for lifecycle skills ([#456](https://github.com/CodySwannGT/lisa/issues/456)) ([80df08a](https://github.com/CodySwannGT/lisa/commit/80df08a2a9d2364cdbf3ad222dfe5ff33bf72d94)), closes [#455](https://github.com/CodySwannGT/lisa/issues/455)
+
 ### [2.8.10](https://github.com/CodySwannGT/lisa/compare/vv2.8.9...v2.8.10) (2026-04-29)
 
 
