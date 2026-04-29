@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.1](https://github.com/CodySwannGT/lisa/compare/vv2.8.0...v2.8.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* **postinstall:** sync lockfile after manual invocations and preserve oxlint overrides ([#445](https://github.com/CodySwannGT/lisa/issues/445)) ([6be5fb5](https://github.com/CodySwannGT/lisa/commit/6be5fb5dad6aaa3df2da614a88e1ef66aa777164))
+
 ## [2.8.0](https://github.com/CodySwannGT/lisa/compare/vv2.7.0...v2.8.0) (2026-04-29)
 
 
