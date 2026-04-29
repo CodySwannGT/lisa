@@ -36,7 +36,7 @@ What this rule still enforces:
 
 3. **Default mode**: All top-level lifecycle flows (`Research`, `Plan`, `Implement`, `Verify`, `Monitor`, `Intake`) run as agent teams. The `Implement` flow — including every work type (`Build`, `Fix`, `Improve`, `Investigate-Only`) — is **always** a team flow. Bug fixes that "look simple" are not an exception: the Reproduce sub-flow, debug-specialist, bug-fixer, parallel reviewers, and verification-specialist all need to compose. Single-agent mode is reserved for two narrow cases only: `product-walkthrough` invoked standalone (not as part of Research/Plan), and one-off diagnostic Bash/Read sessions that don't invoke any lifecycle skill. When in doubt, use a team.
 
-The mechanical "first tool call MUST be TeamCreate" directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording, including the required `ToolSearch{select:TeamCreate}` step that loads the deferred tool's schema before the first `TeamCreate` call.
+The mechanical TeamCreate bootstrap directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording: first `ToolSearch{select:TeamCreate}` (load deferred schema), then `TeamCreate`.
 
 ## Readiness Gate Protocol
 

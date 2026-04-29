@@ -30,6 +30,7 @@ The team lead does NOT read the input directly. The first task on the team's pla
   - Linear ticket → the Linear CLI (no `lisa:linear-*` build-side adapter; Linear is a PRD source only)
   - Captures comments and metadata, not just the description.
 - If it's a file, reads the entire file without offset or limit.
+- If it's a plain-text request, uses the provided text verbatim as the resolved input.
 - Returns the resolved input to the team lead, who then proceeds to roster selection.
 
 ## Select the agent roster
