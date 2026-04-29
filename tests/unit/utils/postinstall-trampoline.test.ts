@@ -26,6 +26,7 @@ import {
   isRunningAsLifecycleScript,
   isRunningAsTrampoline,
   isRunningInCI,
+  regenerateLockfilesInProcess,
   scheduleReconciliationChild,
   shouldSchedulePostinstallReconciliation,
 } from "../../../src/utils/postinstall-trampoline.js";
@@ -46,6 +47,13 @@ const YARN_LOCK = "yarn.lock";
 const IGNORE_SCRIPTS = "--ignore-scripts";
 const INSTALL_CMD = "install";
 const PACKAGE_JSON = "package.json";
+
+/**
+ * Type alias for the spawn DI seam used in scheduleReconciliationChild and
+ * regenerateLockfilesInProcess. Hoisted so individual tests don't duplicate
+ * the `typeof import("node:child_process").spawn` literal (sonarjs flags >3).
+ */
+type SpawnFn = typeof import("node:child_process").spawn;
 
 describe("postinstall-trampoline", () => {
   const originalEnv = { ...process.env };
@@ -355,6 +363,116 @@ describe("postinstall-trampoline", () => {
     });
   });
 
+  describe("regenerateLockfilesInProcess", () => {
+    /**
+     * Minimal fake child for the spawn DI seam. We only need to fire `exit`
+     * synchronously so the awaited promise resolves and the loop advances.
+     * @returns Fake child with `on` spy and an `emit` helper
+     */
+    function makeFakeChild(): {
+      readonly on: ReturnType<typeof vi.fn>;
+      readonly emit: (event: string) => void;
+    } {
+      const handlers: Record<string, Array<() => void>> = {};
+      const on = vi.fn((event: string, handler: () => void) => {
+        const list = handlers[event] ?? [];
+        list.push(handler);
+        handlers[event] = list;
+      });
+      return {
+        on,
+        emit: (event: string) => {
+          for (const h of handlers[event] ?? []) h();
+        },
+      };
+    }
+
+    /**
+     * Build a temp project dir with the requested lockfiles, run the regen
+     * helper against it, and return the spawn spy plus tempdir for cleanup.
+     * @param lockfiles - lockfile basenames to seed
+     * @returns spawnSpy and tempdir
+     */
+    async function runRegen(lockfiles: readonly string[]): Promise<{
+      readonly spawnSpy: ReturnType<typeof vi.fn>;
+      readonly dir: string;
+    }> {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-regen-test-"));
+      for (const file of lockfiles) {
+        fs.writeFileSync(path.join(dir, file), "");
+      }
+      const spawnSpy = vi.fn().mockImplementation(() => {
+        const child = makeFakeChild();
+        // Resolve on next microtask so the Promise wrapper has time to register
+        // its listener before we fire exit.
+        queueMicrotask(() => child.emit("exit"));
+        return child;
+      });
+      await regenerateLockfilesInProcess(dir, spawnSpy as unknown as SpawnFn);
+      return { spawnSpy, dir };
+    }
+
+    it("runs the npm regen plan when only package-lock.json is present (manual-invocation path)", async () => {
+      // Regression guard: when Lisa is invoked manually after `npm install -D`,
+      // no lifecycle env var is set so the trampoline never schedules. Without
+      // an in-process regen, package-lock.json drifts from package.json and
+      // `npm ci` fails. This is the exact failure mode that hit
+      // geminisportsai/infrastructure-v2 and thumbwar/infrastructure during the
+      // 2.8.0 batch upgrade.
+      const { spawnSpy, dir } = await runRegen([NPM_LOCK]);
+      try {
+        expect(spawnSpy).toHaveBeenCalledTimes(1);
+        const [cmd, args, opts] = spawnSpy.mock.calls[0] as [
+          string,
+          readonly string[],
+          { cwd?: string; stdio?: string },
+        ];
+        expect(cmd).toBe("npm");
+        expect(args).toContain("--package-lock-only");
+        expect(args).toContain(IGNORE_SCRIPTS);
+        expect(opts.cwd).toBe(dir);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("runs both bun and npm regen plans for dual-lockfile projects", async () => {
+      const { spawnSpy, dir } = await runRegen([BUN_LOCK, NPM_LOCK]);
+      try {
+        expect(spawnSpy).toHaveBeenCalledTimes(2);
+        const commands = spawnSpy.mock.calls.map(call => call[0]);
+        expect(commands).toContain("bun");
+        expect(commands).toContain("npm");
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("does nothing when no lockfile is present", async () => {
+      const { spawnSpy, dir } = await runRegen([]);
+      try {
+        expect(spawnSpy).not.toHaveBeenCalled();
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("swallows spawn errors so a missing PM binary does not fail the apply", async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-regen-test-"));
+      try {
+        fs.writeFileSync(path.join(dir, NPM_LOCK), "");
+        const spawnSpy = vi.fn().mockImplementation(() => {
+          throw new Error("ENOENT: npm not on PATH");
+        });
+        await expect(
+          regenerateLockfilesInProcess(dir, spawnSpy as unknown as SpawnFn)
+        ).resolves.toBeUndefined();
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("scheduleReconciliationChild", () => {
     /**
      * Minimal fake ChildProcess good enough for the assertions below.
@@ -410,7 +528,7 @@ describe("postinstall-trampoline", () => {
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
         4242,
-        spawnSpy as unknown as typeof import("node:child_process").spawn
+        spawnSpy as unknown as SpawnFn
       );
 
       expect(spawnSpy).toHaveBeenCalledTimes(1);
@@ -470,7 +588,7 @@ describe("postinstall-trampoline", () => {
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
         4242,
-        spawnSpy as unknown as typeof import("node:child_process").spawn
+        spawnSpy as unknown as SpawnFn
       );
 
       expect(spawnSpy).toHaveBeenCalledTimes(1);

@@ -237,6 +237,46 @@ export function hashFile(filePath: string): string | null {
 }
 
 /**
+ * Regenerate lockfiles in the current process (no trampoline, no detached child).
+ *
+ * This is the synchronous counterpart to the trampoline's `regenerateLockfiles`
+ * closure. It runs in-process when Lisa is invoked manually (e.g.,
+ * `node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check .`
+ * after `npm install -D`), where no parent package-manager process is racing
+ * to rewrite package.json. In that path the trampoline is never scheduled, so
+ * without an in-process regen the lockfile drifts from package.json and the
+ * next `npm ci` (or `bun install --frozen-lockfile`) fails.
+ *
+ * Best-effort: failures (missing PM binary, transient network issues) are
+ * intentionally swallowed so a missing global PM does not cascade into an
+ * apply failure. The caller should already have verified that the project's
+ * primary package manager is on PATH before invoking Lisa manually.
+ * @param projectDir - Absolute path to the project directory
+ * @param spawnFn - Optional spawn implementation; defaults to node:child_process spawn. Tests pass a vi.fn() spy here as a DI seam.
+ * @returns Promise that resolves once all detected lockfiles have been regenerated
+ */
+export async function regenerateLockfilesInProcess(
+  projectDir: string,
+  spawnFn: typeof spawn = spawn
+): Promise<void> {
+  for (const pm of detectPackageManagers(projectDir)) {
+    const plan = LOCKFILE_REGEN_PLANS[pm];
+    await new Promise<void>(resolve => {
+      try {
+        const child = spawnFn(plan.command, [...plan.args], {
+          cwd: projectDir,
+          stdio: "ignore",
+        });
+        child.on("exit", () => resolve());
+        child.on("error", () => resolve());
+      } catch {
+        resolve();
+      }
+    });
+  }
+}
+
+/**
  * Spawn a reconciliation child process that waits for the parent package manager
  * to exit, then re-runs Lisa to reconcile package.json.
  *
