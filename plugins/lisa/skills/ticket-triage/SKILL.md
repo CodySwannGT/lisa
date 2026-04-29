@@ -1,30 +1,30 @@
 ---
 name: ticket-triage
-description: "Analytical triage gate for JIRA tickets. Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed."
+description: "Analytical triage gate for tickets in the configured destination tracker (JIRA or GitHub Issues). Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed. Vendor-neutral: the caller (jira-agent or github-agent) is responsible for fetching the ticket via lisa:tracker-read, running the pre-flight gate via lisa:tracker-verify, and posting findings via the matching vendor comment tool."
 allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 ---
 
 # Ticket Triage: $ARGUMENTS
 
-Perform analytical triage on the JIRA ticket. The caller MUST have run `lisa:jira-read-ticket` first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), epic parent, epic siblings, subtasks, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or epic context, stop and instruct the caller to run `/lisa:jira-read-ticket` first.
+Perform analytical triage on the ticket. The caller MUST have run `lisa:tracker-read` (or its vendor-specific underlying skill — `lisa:jira-read-ticket` for JIRA, `lisa:github-read-issue` for GitHub) first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), parent (Epic in JIRA, parent sub-issue in GitHub), siblings, sub-tasks / sub-issues, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or parent context, stop and instruct the caller to run `/tracker-read` first.
 
 Repository name for scoped labels and comment headers: determine via `basename $(git rev-parse --show-toplevel)`.
 
 ## Phase 0 -- Pre-flight Description Gate
 
-Before any analytical work, confirm the ticket carries the content an implementer needs to start. The caller should already have run `lisa:jira-verify`; this phase consumes its output. If `lisa:jira-verify` returned `FAIL` for any of the following, emit `BLOCKED` immediately with the missing-requirements list and skip to Phase 6:
+Before any analytical work, confirm the ticket carries the content an implementer needs to start. The caller should already have run `lisa:tracker-verify`; this phase consumes its output. If `lisa:tracker-verify` returned `FAIL` for any of the following, emit `BLOCKED` immediately with the missing-requirements list and skip to Phase 6:
 
-- Epic parent missing (non-bug, non-epic)
+- Parent missing (Epic parent for JIRA non-bug-non-epic; parent sub-issue for GitHub non-bug-non-epic)
 - Description quality failures (no Gherkin acceptance criteria, missing audience sections)
 - Validation Journey missing on a runtime-behavior ticket
 - Target backend environment missing on a runtime-behavior ticket
 - Sign-in credentials missing on a ticket that touches authenticated surfaces
 - Single-repo scope violated (Bug / Task / Sub-task spanning repos)
-- Relationship discovery missing (no links AND no documented git+JQL search)
+- Relationship discovery missing (no links AND no documented git + tracker-search outcome)
 
-The caller (jira-agent) is responsible for transitioning the ticket to `Blocked`, reassigning to the **Reporter**, and posting a comment listing the missing requirements. This skill only emits the verdict and the missing-requirements list.
+The caller (jira-agent or github-agent) is responsible for transitioning the ticket to `Blocked` (JIRA status) or relabeling to `status:blocked` (GitHub), reassigning to the **Reporter / original author**, and posting a comment listing the missing requirements. This skill only emits the verdict and the missing-requirements list.
 
-If `lisa:jira-verify` returned `PASS` for all the above, proceed to Phase 1.
+If `lisa:tracker-verify` returned `PASS` for all the above, proceed to Phase 1.
 
 ## Phase 1 -- Relevance Check
 

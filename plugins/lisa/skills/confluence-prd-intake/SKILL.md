@@ -1,6 +1,6 @@
 ---
 name: confluence-prd-intake
-description: "Scans a Confluence space (or a parent page) for PRD pages labelled `prd-ready` and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the label flipped to `prd-ticketed`; PRDs that fail get clarifying-question comments and the label flipped to `prd-blocked`. Confluence counterpart of `lisa:notion-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (confluence-to-jira, jira-validate-ticket, jira-source-artifacts, product-walkthrough)."
+description: "Scans a Confluence space (or a parent page) for PRD pages labelled `prd-ready` and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the label flipped to `prd-ticketed`; PRDs that fail get clarifying-question comments and the label flipped to `prd-blocked`. Confluence counterpart of `lisa:notion-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (confluence-to-tracker, tracker-validate, jira-source-artifacts, product-walkthrough)."
 allowed-tools: ["Skill", "Bash", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluenceSpaces", "mcp__atlassian__getPagesInConfluenceSpace", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__searchConfluenceUsingCql", "mcp__atlassian__updateConfluencePage", "mcp__atlassian__createConfluenceFooterComment", "mcp__atlassian__createConfluenceInlineComment", "mcp__atlassian__getConfluencePageFooterComments", "mcp__atlassian__getConfluencePageInlineComments", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
@@ -99,19 +99,19 @@ The `updateConfluencePage` call must preserve the page body; only the labels cha
 
 #### 3b. Dry-run validation
 
-Invoke the `lisa:confluence-to-jira` skill with `dry_run: true` and the PRD's URL. The skill returns a structured report containing:
+Invoke the `lisa:confluence-to-tracker` skill with `dry_run: true` and the PRD's URL. The skill returns a structured report containing:
 - The planned ticket hierarchy
 - Per-ticket validation verdicts and remediation
 - An overall PASS / FAIL verdict
 - A failure count
 
-This call also indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:jira-validate-ticket`, which `lisa:confluence-to-jira` calls per ticket.
+This call also indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:confluence-to-tracker` calls per ticket.
 
 #### 3c. Branch on the verdict
 
 **If `PASS`** (every planned ticket passed every applicable gate):
 
-1. Re-invoke `lisa:confluence-to-jira` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
+1. Re-invoke `lisa:confluence-to-tracker` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
 2. Capture the created ticket keys from the skill's output.
 3. Post a Confluence **footer comment** on the PRD via `mcp__atlassian__createConfluenceFooterComment` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the prd-shipped label after the work is delivered."`
 4. Transition labels: remove `prd-in-review`, add `prd-ticketed` via `updateConfluencePage`.
@@ -124,7 +124,7 @@ The audience for these comments is the **product team**, not engineers. They are
 ##### 3c.1 Partition failures
 
 1. Drop every failure where `product_relevant = false`. Those are internal data-quality problems — the agent should fix its own spec rather than ask product to clarify a missing core field. Record the dropped failures under `Errors` in the cycle summary so engineers can see them; never surface them on the PRD.
-2. Group the remaining product-relevant failures by `prd_anchor` (the inline-comment anchor from `confluence-to-jira`'s dry-run report). Failures that share an anchor become one comment thread on that block. Failures with `prd_anchor: null` are batched into one footer comment, since they have no source section to attach to.
+2. Group the remaining product-relevant failures by `prd_anchor` (the inline-comment anchor from `confluence-to-tracker`'s dry-run report). Failures that share an anchor become one comment thread on that block. Failures with `prd_anchor: null` are batched into one footer comment, since they have no source section to attach to.
 
 ##### 3c.2 Render each comment
 
@@ -173,7 +173,7 @@ Use these exact badge labels — they are the validator's category values transl
 
 - Gate IDs (`S4`, `F2`, etc.). Never appear in a comment body.
 - JIRA terminology that has no product meaning (e.g. "Gherkin", "epic parent", "issue link", "validation journey", "sub-task hierarchy"). Paraphrase before posting.
-- Internal skill names (`lisa:jira-validate-ticket`, `confluence-to-jira`).
+- Internal skill names (`lisa:tracker-validate`, `confluence-to-tracker`).
 - Engineering shorthand (`AC`, `OOS`, `repo`, `env var`).
 - "Clarify this" / "Please specify" without candidate resolutions. The validator is required to provide candidates; if `recommendation` is empty or vague, treat the failure as an Error and surface internally rather than posting a useless comment.
 
@@ -199,7 +199,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
    | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — inline-anchored when `prd_anchor` is non-null, footer otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one footer summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition labels from `prd-ticketed` back to `prd-blocked` via `updateConfluencePage`. |
    | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave label as `prd-ticketed` with a comment flagging the audit failure for human review. |
 
-3. The created tickets remain in JIRA regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
+3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
 
 ### Phase 4 — Summary report
 
@@ -229,24 +229,24 @@ Print to the agent's output. Do not write this summary to Confluence or JIRA —
 ## Idempotency & safety
 
 - **Single-cycle scope**: this skill processes the `prd-ready` set as it exists at the start of Phase 2. New `prd-ready` PRDs added mid-cycle are picked up next run.
-- **No writes outside the lifecycle**: this skill only ever writes to JIRA via `lisa:confluence-to-jira` (which delegates to `lisa:jira-write-ticket`), and only ever changes Confluence labels among `prd-in-review`, `prd-blocked`, `prd-ticketed`. It never edits PRD body content, never touches `prd-draft` or `prd-shipped`, never deletes pages.
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:confluence-to-tracker` (which delegates to `lisa:tracker-write`), and only ever changes Confluence labels among `prd-in-review`, `prd-blocked`, `prd-ticketed`. It never edits PRD body content, never touches `prd-draft` or `prd-shipped`, never deletes pages.
 - **Claim-first ordering**: the label flip to `prd-in-review` happens BEFORE validation runs, so a re-entrant call won't double-process.
 - **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next PRD. The PRD that errored is left labelled `prd-in-review` — the human investigates from there.
 - **Single-label invariant**: after every transition, verify exactly one lifecycle label is present on the page. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve, the human decides.
 
 ## Configuration
 
-Same env vars as `lisa:confluence-to-jira` — `JIRA_PROJECT`, `JIRA_SERVER`, `CONFLUENCE_HOST`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
+Same env vars as `lisa:confluence-to-tracker` — `JIRA_PROJECT`, `JIRA_SERVER`, `CONFLUENCE_HOST`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
 
 ## Rules
 
-- Never write to JIRA outside of `lisa:confluence-to-jira` → `lisa:jira-write-ticket`. The validator's verdict gates progress; bypassing it produces broken tickets.
+- Never write to the destination tracker outside of `lisa:confluence-to-tracker` → `lisa:tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
 - Never add or remove a label this skill doesn't own (`prd-in-review`, `prd-blocked`, `prd-ticketed`). Product owns `prd-draft`, `prd-ready`, `prd-shipped`.
 - Never edit the PRD's body. Communication with product happens only through Confluence comments. If `updateConfluencePage` requires a body in the payload, refetch and pass it back unchanged.
 - Never post a single page-level dump of all gate failures. One inline comment per `prd_anchor` group (or one footer summary for unanchored failures only). Comments must be inline-anchored where possible, categorized, plain-language, and contain a concrete recommendation.
 - Never include a gate ID, internal skill name, or engineering shorthand in a comment body.
 - Never run more than one intake cycle concurrently against the same scope. This skill assumes serial execution.
-- If `lisa:confluence-to-jira` returns errors, treat them as gate failures: comment + `prd-blocked`. Don't silently fail.
+- If `lisa:confluence-to-tracker` returns errors, treat them as gate failures: comment + `prd-blocked`. Don't silently fail.
 
 ## Adoption (one-time per project)
 

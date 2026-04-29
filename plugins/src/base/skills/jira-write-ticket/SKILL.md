@@ -172,7 +172,7 @@ Identify and attach:
 - Incident tickets (PagerDuty, Statuspage)
 - **Source artifacts from the originating PRD / parent epic**: classify and inherit per the rules in `lisa:jira-source-artifacts` (invoke that skill if you haven't loaded the rules in this session). The short version: enumerate the parent epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`). Never assume a developer will walk up to the epic to find design context — attach it here.
 
-If the ticket was generated from a PRD (by `lisa:notion-to-jira` or similar) and the parent epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction before proceeding.
+If the ticket was generated from a PRD (by `lisa:notion-to-tracker` or similar) and the parent epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction before proceeding.
 
 ### 4d. Source Precedence (must appear on the ticket)
 
@@ -182,7 +182,7 @@ For UI-touching tickets, include the existing-component reuse expectation per `l
 
 ### 4e. Live Product Walkthrough Findings (UI-touching tickets)
 
-If the ticket modifies an existing user-facing surface, a `lisa:product-walkthrough` should already have been run upstream (by `lisa:notion-to-jira` Phase 2b or `lisa:jira-create`). Inherit its findings under a `## Current Product` subsection in the ticket description so the implementer sees what's shipped today before changing it. If the upstream skill skipped the walkthrough but this ticket clearly modifies an existing surface, invoke `lisa:product-walkthrough` here before proceeding.
+If the ticket modifies an existing user-facing surface, a `lisa:product-walkthrough` should already have been run upstream (by `lisa:notion-to-tracker` Phase 2b or `lisa:jira-create`). Inherit its findings under a `## Current Product` subsection in the ticket description so the implementer sees what's shipped today before changing it. If the upstream skill skipped the walkthrough but this ticket clearly modifies an existing surface, invoke `lisa:product-walkthrough` here before proceeding.
 
 Use Jira's web UI or `mcp__atlassian__editJiraIssue` to set the `Development` field / remote links where supported.
 
@@ -202,7 +202,7 @@ Before create/update, verify each field is populated where applicable:
 
 Before any write, invoke `lisa:jira-validate-ticket` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `lisa:jira-validate-ticket` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
 
-The validator is the **single source of truth** for what makes a valid ticket. The same gates are used by `lisa:notion-to-jira` dry-run, by `lisa:jira-verify` post-write, and here. Do not re-implement gate logic in this skill — if a gate needs to change, change `lisa:jira-validate-ticket` so every caller benefits.
+The validator is the **single source of truth** for what makes a valid ticket. The same gates are used by `lisa:notion-to-tracker` dry-run, by `lisa:jira-verify` post-write, and here. Do not re-implement gate logic in this skill — if a gate needs to change, change `lisa:jira-validate-ticket` so every caller benefits.
 
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.

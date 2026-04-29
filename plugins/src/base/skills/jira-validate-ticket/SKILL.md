@@ -1,12 +1,12 @@
 ---
 name: jira-validate-ticket
-description: "Validates a proposed JIRA ticket spec (or an existing ticket) against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. This is the single source of truth for what makes a valid ticket — both the write path (jira-write-ticket runs it pre-write) and the dry-run path (notion-to-jira runs it during PRD intake) call this skill so the bar can never drift."
+description: "Validates a proposed JIRA ticket spec (or an existing ticket) against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. This is the single source of truth for what makes a valid ticket — both the write path (jira-write-ticket runs it pre-write) and the dry-run path (notion-to-tracker runs it during PRD intake) call this skill so the bar can never drift."
 allowed-tools: ["Bash", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getIssueLinkTypes", "mcp__atlassian__getJiraProjectIssueTypesMetadata", "mcp__atlassian__getVisibleJiraProjects", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
 # Validate JIRA Ticket: $ARGUMENTS
 
-Run all organizational quality gates against a ticket spec OR an existing ticket. **This skill is read-only — it never writes to JIRA.** The output is a structured report consumed by callers (`lisa:jira-write-ticket` for pre-write gating, `lisa:notion-to-jira` for PRD dry-run, `lisa:jira-verify` for post-write checks).
+Run all organizational quality gates against a ticket spec OR an existing ticket. **This skill is read-only — it never writes to JIRA.** The output is a structured report consumed by callers (`lisa:jira-write-ticket` for pre-write gating, `lisa:notion-to-tracker` for PRD dry-run, `lisa:jira-verify` for post-write checks).
 
 ## Input
 
@@ -166,7 +166,7 @@ When `runtime_behavior_change = true`, description must contain `h2. Validation 
 
 The caller controls the strictness by passing `journey_followup: "auto"` or `journey_followup: "none"` in the spec:
 - `auto` (default): if the section is absent, return `FAIL` with remediation `"Invoke lisa:jira-add-journey to append the section after create"`. Callers like `lisa:jira-write-ticket` know to chain `lisa:jira-add-journey` automatically, so this counts as a fixable failure they can resolve in-line — they re-run validation after appending.
-- `none`: missing section is a `FAIL` that the caller will not auto-fix, so the verdict gates progress (used by dry-run paths like `lisa:notion-to-jira` PRD intake, where there's no agent standing by to add the journey).
+- `none`: missing section is a `FAIL` that the caller will not auto-fix, so the verdict gates progress (used by dry-run paths like `lisa:notion-to-tracker` PRD intake, where there's no agent standing by to add the journey).
 
 Either way the gate emits `FAIL`, not a third state. Strictness is the caller's policy, not the validator's.
 

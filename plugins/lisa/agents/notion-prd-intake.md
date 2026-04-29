@@ -3,11 +3,11 @@ name: notion-prd-intake
 description: PRD intake agent. Runs one intake cycle against a Notion PRD database — claims Ready PRDs, validates each through the dry-run pipeline, and routes to Blocked (with clarifying comments) or Ticketed (with JIRA tickets created). Designed to be invoked manually via /notion-prd-intake or autonomously via a scheduled cron.
 skills:
   - notion-prd-intake
-  - notion-to-jira
-  - jira-validate-ticket
+  - notion-to-tracker
+  - tracker-validate
   - jira-source-artifacts
   - product-walkthrough
-  - jira-write-ticket
+  - tracker-write
   - prd-ticket-coverage
 ---
 
@@ -55,7 +55,7 @@ If all PRDs ended in `Ticketed` with coverage `COMPLETE`, mention that the next 
 
 - **Never run a cycle without an explicit database URL.** Side effects are too high to default.
 - **Never modify the lifecycle**: only `Ready → In Review → Blocked|Ticketed`. Never touch `Draft` or `Shipped`. Never invent new status values.
-- **Never write JIRA tickets directly.** All writes go through the skill chain (intake → notion-to-jira → jira-write-ticket). Bypassing this skips quality gates.
+- **Never write destination tickets directly.** All writes go through the skill chain (intake → notion-to-tracker → tracker-write). Bypassing this skips quality gates.
 - **Never edit a PRD's body.** Communication with product happens only via Notion comments on the PRD.
 - **Never start a second cycle while one is in flight against the same database.** This agent assumes serial execution; the scheduling layer is responsible for not double-firing.
-- **Stop and surface failures rather than retry-loop.** If `notion-to-jira` returns an error, the skill records it under `Errors` in the summary; pass that through. Do not auto-retry.
+- **Stop and surface failures rather than retry-loop.** If `notion-to-tracker` returns an error, the skill records it under `Errors` in the summary; pass that through. Do not auto-retry.

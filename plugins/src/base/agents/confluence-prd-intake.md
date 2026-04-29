@@ -3,11 +3,11 @@ name: confluence-prd-intake
 description: PRD intake agent for Confluence-hosted PRDs. Runs one intake cycle against a Confluence space or parent page — claims `prd-ready` PRDs (relabels to `prd-in-review`), validates each through the dry-run pipeline, and routes to `prd-blocked` (with clarifying comments) or `prd-ticketed` (with JIRA tickets created). Confluence counterpart of `notion-prd-intake`. Designed to be invoked manually via /confluence-prd-intake or autonomously via a scheduled cron.
 skills:
   - confluence-prd-intake
-  - confluence-to-jira
-  - jira-validate-ticket
+  - confluence-to-tracker
+  - tracker-validate
   - jira-source-artifacts
   - product-walkthrough
-  - jira-write-ticket
+  - tracker-write
   - prd-ticket-coverage
 ---
 
@@ -57,7 +57,7 @@ If all PRDs ended in `prd-ticketed` with coverage `COMPLETE`, mention that the n
 
 - **Never run a cycle without an explicit scope.** Side effects are too high to default.
 - **Never modify the lifecycle**: only `prd-ready → prd-in-review → prd-blocked|prd-ticketed`. Never touch `prd-draft` or `prd-shipped`. Never invent new labels.
-- **Never write JIRA tickets directly.** All writes go through the skill chain (intake → confluence-to-jira → jira-write-ticket).
+- **Never write destination tickets directly.** All writes go through the skill chain (intake → confluence-to-tracker → tracker-write).
 - **Never edit a PRD's body.** Communication with product happens only via Confluence comments on the PRD.
 - **Never start a second cycle while one is in flight against the same scope.** Serial execution; the scheduling layer is responsible for not double-firing.
-- **Stop and surface failures rather than retry-loop.** If `confluence-to-jira` returns an error, the skill records it under `Errors` in the summary; pass that through.
+- **Stop and surface failures rather than retry-loop.** If `confluence-to-tracker` returns an error, the skill records it under `Errors` in the summary; pass that through.

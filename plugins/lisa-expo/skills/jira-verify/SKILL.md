@@ -8,7 +8,7 @@ allowed-tools: ["Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__getAcc
 
 Verify that the existing JIRA ticket `$ARGUMENTS` meets organizational standards. This skill is a thin post-write wrapper around `lisa:jira-validate-ticket`: it fetches the live ticket and asks `lisa:jira-validate-ticket` to run the gates against the fetched state.
 
-This indirection exists so the gate definitions live in exactly one place (`lisa:jira-validate-ticket`). When the bar changes, change it there — `lisa:jira-verify`, `lisa:jira-write-ticket` (Phase 5.5 pre-write), and `lisa:notion-to-jira` (PRD dry-run) all pick it up.
+This indirection exists so the gate definitions live in exactly one place (`lisa:jira-validate-ticket`). When the bar changes, change it there — `lisa:jira-verify`, `lisa:jira-write-ticket` (Phase 5.5 pre-write), and `lisa:notion-to-tracker` (PRD dry-run) all pick it up.
 
 ## Process
 

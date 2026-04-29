@@ -1,6 +1,6 @@
 ---
 name: linear-prd-intake
-description: "Scans a Linear workspace (or a specific team) for projects labelled `prd-ready` and runs each one through the dry-run validation pipeline. Projects that pass every gate get tickets written and the label flipped to `prd-ticketed`; projects that fail get clarifying-question comments (on a sentinel feedback issue under the project) and the label flipped to `prd-blocked`. Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (linear-to-jira, jira-validate-ticket, jira-source-artifacts, product-walkthrough)."
+description: "Scans a Linear workspace (or a specific team) for projects labelled `prd-ready` and runs each one through the dry-run validation pipeline. Projects that pass every gate get tickets written and the label flipped to `prd-ticketed`; projects that fail get clarifying-question comments (on a sentinel feedback issue under the project) and the label flipped to `prd-blocked`. Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (linear-to-tracker, tracker-validate, jira-source-artifacts, product-walkthrough)."
 allowed-tools: ["Skill", "Bash", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__list_documents", "mcp__linear-server__get_document", "mcp__linear-server__list_teams"]
 ---
 
@@ -100,19 +100,19 @@ The `save_project` call must preserve all other project fields (description, sta
 
 #### 3b. Dry-run validation
 
-Invoke the `lisa:linear-to-jira` skill with `dry_run: true` and the project's URL. The skill returns a structured report containing:
+Invoke the `lisa:linear-to-tracker` skill with `dry_run: true` and the project's URL. The skill returns a structured report containing:
 - The planned ticket hierarchy
 - Per-ticket validation verdicts and remediation
 - An overall PASS / FAIL verdict
 - A failure count
 
-This call also indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:jira-validate-ticket`, which `lisa:linear-to-jira` calls per ticket.
+This call also indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:linear-to-tracker` calls per ticket.
 
 #### 3c. Branch on the verdict
 
 **If `PASS`** (every planned ticket passed every applicable gate):
 
-1. Re-invoke `lisa:linear-to-jira` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
+1. Re-invoke `lisa:linear-to-tracker` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
 2. Capture the created ticket keys from the skill's output.
 3. Ensure the project has a sentinel feedback issue (see "Sentinel feedback issue" below for the helper). Post a comment on it via `mcp__linear-server__save_comment` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the prd-shipped label to the Linear project after the work is delivered."`
 4. Transition labels: remove `prd-in-review`, add `prd-ticketed` via `save_project`.
@@ -169,7 +169,7 @@ Use these exact badge labels — they are the validator's category values transl
 
 - Gate IDs (`S4`, `F2`, etc.). Never appear in a comment body.
 - JIRA terminology that has no product meaning (e.g. "Gherkin", "epic parent", "issue link", "validation journey", "sub-task hierarchy"). Paraphrase before posting.
-- Internal skill names (`lisa:jira-validate-ticket`, `linear-to-jira`).
+- Internal skill names (`lisa:tracker-validate`, `linear-to-tracker`).
 - Engineering shorthand (`AC`, `OOS`, `repo`, `env var`).
 - "Clarify this" / "Please specify" without candidate resolutions. The validator is required to provide candidates; if `recommendation` is empty or vague, treat the failure as an Error and surface internally rather than posting a useless comment.
 
@@ -195,7 +195,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
    | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — anchored on the relevant sub-issue when `prd_anchor` is non-null, on the sentinel feedback issue otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment on the sentinel feedback issue listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition labels from `prd-ticketed` back to `prd-blocked` via `save_project`. |
    | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave label as `prd-ticketed` with a comment flagging the audit failure for human review. |
 
-3. The created tickets remain in JIRA regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
+3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
 
 ### Phase 4 — Summary report
 
@@ -243,25 +243,25 @@ Idempotency: the helper finds-or-creates. Re-runs of the cycle reuse the same se
 ## Idempotency & safety
 
 - **Single-cycle scope**: this skill processes the `prd-ready` set as it exists at the start of Phase 2. New `prd-ready` projects added mid-cycle are picked up next run.
-- **No writes outside the lifecycle**: this skill only ever writes to JIRA via `lisa:linear-to-jira` (which delegates to `lisa:jira-write-ticket`), only ever changes Linear project labels among `prd-in-review`, `prd-blocked`, `prd-ticketed`, only ever creates/comments on the sentinel feedback issue (never any other Linear issue). It never edits project descriptions, never edits Linear documents, never touches `prd-draft` or `prd-shipped`, never archives or deletes projects.
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:linear-to-tracker` (which delegates to `lisa:tracker-write`), only ever changes Linear project labels among `prd-in-review`, `prd-blocked`, `prd-ticketed`, only ever creates/comments on the sentinel feedback issue (never any other Linear issue). It never edits project descriptions, never edits Linear documents, never touches `prd-draft` or `prd-shipped`, never archives or deletes projects.
 - **Claim-first ordering**: the label flip to `prd-in-review` happens BEFORE validation runs, so a re-entrant call won't double-process.
 - **Failure isolation**: an exception processing one project must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next project. The project that errored is left labelled `prd-in-review` — the human investigates from there.
 - **Single-label invariant**: after every transition, verify exactly one lifecycle label is present on the project. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve, the human decides.
 
 ## Configuration
 
-Same env vars as `lisa:linear-to-jira` — `JIRA_PROJECT`, `JIRA_SERVER`, `LINEAR_WORKSPACE`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
+Same env vars as `lisa:linear-to-tracker` — `JIRA_PROJECT`, `JIRA_SERVER`, `LINEAR_WORKSPACE`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
 
 ## Rules
 
-- Never write to JIRA outside of `lisa:linear-to-jira` → `lisa:jira-write-ticket`. The validator's verdict gates progress; bypassing it produces broken tickets.
+- Never write to the destination tracker outside of `lisa:linear-to-tracker` → `lisa:tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
 - Never add or remove a label this skill doesn't own (`prd-in-review`, `prd-blocked`, `prd-ticketed`). Product owns `prd-draft`, `prd-ready`, `prd-shipped`. The issue-level `prd-intake-feedback` label is owned by this skill but is not a lifecycle label.
 - Never edit a project's description or any attached Linear document. Communication with product happens only through comments on sub-issues or on the sentinel feedback issue.
 - Never post a single dump of all gate failures on one comment. One comment per `prd_anchor` group on the relevant sub-issue (or one comment on the sentinel feedback issue for unanchored failures only). Comments must be sub-issue-anchored where possible, categorized, plain-language, and contain a concrete recommendation.
 - Never include a gate ID, internal skill name, or engineering shorthand in a comment body.
 - Never run more than one intake cycle concurrently against the same scope. This skill assumes serial execution.
 - Never close, archive, or otherwise modify the sentinel feedback issue except to post comments on it. Its longevity is the audit trail.
-- If `lisa:linear-to-jira` returns errors, treat them as gate failures: comment + `prd-blocked`. Don't silently fail.
+- If `lisa:linear-to-tracker` returns errors, treat them as gate failures: comment + `prd-blocked`. Don't silently fail.
 
 ## Adoption (one-time per project)
 

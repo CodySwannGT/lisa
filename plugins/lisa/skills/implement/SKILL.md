@@ -17,10 +17,10 @@ When you do create the team, spawn every agent with `mode: "plan"` so they must 
 
 $ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request, or the request in text format.
 
-If it's a ticket, use the appropriate vendor adapter to read and fully understand the request:
-- JIRA ticket → `lisa:jira-read-ticket` (preferred) or the Jira CLI
-- Linear ticket → the Linear CLI (no `lisa:linear-*` adapter built yet)
-- GitHub ticket → the Github CLI
+If it's a ticket, use `lisa:tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`):
+- JIRA ticket → `lisa:tracker-read` → `lisa:jira-read-ticket`
+- GitHub Issue → `lisa:tracker-read` → `lisa:github-read-issue`
+- Linear ticket → the Linear CLI (no `lisa:linear-*` build-side adapter; Linear is a PRD source only)
 
 Capture comments and metadata, not just the description.
 
