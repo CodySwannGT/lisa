@@ -194,9 +194,9 @@ claude plugin install "lisa@lisa" --scope project </dev/null 2>&1 || true
 
 # Detect which stack plugin to install from .claude/settings.json
 LISA_STACK=""
-if [ -f "$SETTINGS_FILE" ]; then
+if [ -f "$SETTINGS_FILE" ] && command -v jq >/dev/null 2>&1; then
   for stack in expo nestjs cdk rails; do
-    if grep -q "\"lisa-${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
+    if jq -e "(.enabledPlugins // {}) | has(\"lisa-${stack}@lisa\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
       LISA_STACK="$stack"
       break
     fi
