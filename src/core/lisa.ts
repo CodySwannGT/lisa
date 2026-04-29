@@ -34,6 +34,9 @@ import {
 } from "../utils/ignore-patterns.js";
 import {
   getLisaDistDir,
+  hashFile,
+  isRunningAsTrampoline,
+  regenerateLockfilesInProcess,
   scheduleReconciliationChild,
   shouldSchedulePostinstallReconciliation,
 } from "../utils/postinstall-trampoline.js";
@@ -517,6 +520,9 @@ export class Lisa {
       await this.detectTypes();
       await this.loadPendingDeletions();
       await this.runMigrationsBeforeStrategies();
+      const prePackageJsonHash = hashFile(
+        path.join(this.config.destDir, "package.json")
+      );
       await this.processConfigurations();
       await this.processDeletions();
       await this.processMigrations();
@@ -526,10 +532,52 @@ export class Lisa {
       this.printSummary();
       await this.printMigrationNotices(this.config.destDir);
       await this.schedulePostinstallReconciliation();
+      await this.reconcileLockfilesInProcess(prePackageJsonHash);
       return this.getSuccessResult();
     } catch (error) {
       return this.handleApplyError(error);
     }
+  }
+
+  /**
+   * Sync lockfiles to package.json in-process when the postinstall trampoline
+   * will not run.
+   *
+   * The trampoline only fires when Lisa is invoked as a package-manager
+   * lifecycle script (postinstall, prepare, etc.). When users invoke Lisa
+   * manually after `npm install -D @codyswann/lisa@latest` — the recommended
+   * flow on plain-npm projects, where Lisa's postinstall is not auto-run —
+   * the trampoline never schedules and any package.json changes Lisa just
+   * made (e.g., adding `oxlint-tsgolint` via package.lisa.json merge) leave
+   * package-lock.json out of sync. The next `npm ci` in CI then fails with
+   * "lockfile out of sync".
+   *
+   * This method closes that gap by running the same lockfile-regeneration
+   * commands the trampoline child would have run, but synchronously in the
+   * current process. We skip when the trampoline IS scheduled (it will
+   * regenerate on its own after the parent PM exits) and when running as the
+   * trampoline child itself (the trampoline has its own regen step at the end).
+   * @param prePackageJsonHash - Hash of package.json captured before apply ran (null if file did not exist)
+   */
+  private async reconcileLockfilesInProcess(
+    prePackageJsonHash: string | null
+  ): Promise<void> {
+    if (this.config.dryRun) return;
+    if (isRunningAsTrampoline()) return;
+    if (shouldSchedulePostinstallReconciliation(this.config.dryRun)) return;
+    const pkgPath = path.join(this.config.destDir, "package.json");
+    const postHash = hashFile(pkgPath);
+    if (
+      prePackageJsonHash === null ||
+      postHash === null ||
+      prePackageJsonHash === postHash
+    ) {
+      return;
+    }
+    this.deps.logger.info(
+      pc.cyan("Syncing lockfiles to match updated package.json...")
+    );
+    await regenerateLockfilesInProcess(this.config.destDir);
   }
 
   /**
