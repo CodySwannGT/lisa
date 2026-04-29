@@ -39,7 +39,8 @@
       "type": "json"
     }
   ],
+  "commit-all": true,
   "scripts": {
-    "postbump": "bash scripts/build-plugins.sh && git add plugins/lisa-*"
+    "postbump": "bash scripts/build-plugins.sh"
   }
 }
