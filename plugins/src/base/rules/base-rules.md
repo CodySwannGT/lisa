@@ -8,7 +8,7 @@ After echoing the chosen flow and BEFORE doing any work, state the orchestration
 
 Default to an agent team for Research, Plan, Implement (Build/Fix/Improve), and any flow that invokes the Review sub-flow. Use a single agent only for Verify (standalone), Monitor (standalone), and Investigate Only spikes. See the `intent-routing` rule's Orchestration section for the full decision matrix.
 
-When the mode is `agent team`, your FIRST tool call after the classification echo MUST be `TeamCreate`. Do not reach for `TaskCreate`, `Agent`, or direct tool calls before the team exists — those are bypass paths that skip durable task state and parallel review.
+When the mode is `agent team`, your FIRST tool calls after the classification echo MUST be `ToolSearch` with `query: "select:TeamCreate"` (to load the deferred tool's schema), then `TeamCreate`. Do not reach for `TaskCreate`, `Agent`, `Skill`, MCP tools, `Read`, `Bash`, or any other content-gathering call before the team exists — those are bypass paths that skip durable task state and parallel review. Reading the ticket, exploring the code, querying the API are all tasks for the team, not for the lead session before the team exists.
 
 Requirement Verification:
 
