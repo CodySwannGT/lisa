@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.9.1](https://github.com/CodySwannGT/lisa/compare/vv2.9.0...v2.9.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* **strategies:** child stack create-only overrides parent for same path ([#448](https://github.com/CodySwannGT/lisa/issues/448)) ([f87f399](https://github.com/CodySwannGT/lisa/commit/f87f39994837f32d348fd5c90de74325f6cdb424))
+
 ## [2.9.0](https://github.com/CodySwannGT/lisa/compare/vv2.8.10...v2.9.0) (2026-04-29)
 
 
