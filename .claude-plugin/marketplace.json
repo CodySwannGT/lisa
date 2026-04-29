@@ -13,7 +13,8 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/CodySwannGT/lisa.git",
-        "path": "plugins/lisa"
+        "path": "plugins/lisa",
+        "ref": "main"
       },
       "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
       "category": "productivity"
@@ -23,7 +24,8 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/CodySwannGT/lisa.git",
-        "path": "plugins/lisa-typescript"
+        "path": "plugins/lisa-typescript",
+        "ref": "main"
       },
       "description": "TypeScript hooks — formatting, linting, and ast-grep scanning on edit",
       "category": "productivity"
@@ -33,7 +35,8 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/CodySwannGT/lisa.git",
-        "path": "plugins/lisa-expo"
+        "path": "plugins/lisa-expo",
+        "ref": "main"
       },
       "description": "Expo/React Native skills, agents, and rules",
       "category": "productivity"
@@ -43,7 +46,8 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/CodySwannGT/lisa.git",
-        "path": "plugins/lisa-nestjs"
+        "path": "plugins/lisa-nestjs",
+        "ref": "main"
       },
       "description": "NestJS skills (GraphQL, TypeORM)",
       "category": "productivity"
@@ -53,7 +57,8 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/CodySwannGT/lisa.git",
-        "path": "plugins/lisa-cdk"
+        "path": "plugins/lisa-cdk",
+        "ref": "main"
       },
       "description": "AWS CDK plugin",
       "category": "productivity"
@@ -63,7 +68,8 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/CodySwannGT/lisa.git",
-        "path": "plugins/lisa-rails"
+        "path": "plugins/lisa-rails",
+        "ref": "main"
       },
       "description": "Ruby on Rails skills, rules, and conventions",
       "category": "productivity"
