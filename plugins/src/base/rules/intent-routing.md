@@ -34,9 +34,9 @@ What this rule still enforces:
 
 2. **Cascade rule (load-bearing)**: Before calling `TeamCreate`, check whether you are already operating inside an agent team. Signs you are inside a team: a prior `TeamCreate` exists in this session; you were spawned via `Agent` with `team_name`; your context references a team lead. If any of these are true, **do NOT call `TeamCreate`** — the harness rejects double-creates and the work stalls. Continue within the existing team. Invoke flows via the Skill tool; the team lead inherits responsibility for orchestration.
 
-3. **Default mode**: All top-level lifecycle flows (`Research`, `Plan`, `Implement`, `Verify`, `Monitor`, `Intake`) run as agent teams. Single-agent mode is reserved for diagnostics that don't compose multiple specialists (`product-walkthrough` standalone, ad-hoc Investigate-Only spikes that explicitly opt out). When in doubt, use a team.
+3. **Default mode**: `Research`, `Plan`, `Implement`, and `Intake` run as agent teams. The `Implement` flow — including every work type (`Build`, `Fix`, `Improve`, `Investigate-Only`) — is **always** a team flow. Bug fixes that "look simple" are not an exception: the Reproduce sub-flow, debug-specialist, bug-fixer, parallel reviewers, and verification-specialist all need to compose. `Verify` (standalone) and `Monitor` (standalone) use the One-shot Sub-agents pattern (see `## Orchestration` below) — these flows are linear with no parallelism and the team overhead is not warranted. Single-agent mode is otherwise reserved for: `product-walkthrough` invoked standalone (not as part of Research/Plan), and one-off diagnostic Bash/Read sessions that don't invoke any lifecycle skill. When in doubt, use a team.
 
-The mechanical "first tool call MUST be TeamCreate" directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording.
+The mechanical TeamCreate bootstrap directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording: first `ToolSearch{select:TeamCreate}` (load deferred schema), then `TeamCreate`.
 
 ## Readiness Gate Protocol
 

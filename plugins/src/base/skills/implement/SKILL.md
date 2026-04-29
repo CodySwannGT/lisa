@@ -7,26 +7,31 @@ description: This skill should be used for any non-trivial request — features,
 
 ## Orchestration: agent team
 
-If you are NOT already operating inside an agent team (no prior `TeamCreate` in this session, not spawned via `Agent` with `team_name`), your FIRST tool call MUST be `TeamCreate`. Do not call `TaskCreate`, `Agent`, or implementation tools before the team exists.
+Implement is **always** a team flow. Bug, Build, Improve, and Investigate-Only all compose multiple specialists (Reproduce → debug → fix → review → verify). Single-agent mode is not an option here, regardless of how "simple" the ticket looks.
+
+If you are NOT already operating inside an agent team (no prior `TeamCreate` in this session, not spawned via `Agent` with `team_name`), the very first thing you do is create the team. Two tool calls only, in this exact order:
+
+1. `ToolSearch` with `query: "select:TeamCreate"` — `TeamCreate` is a deferred tool whose schema must be loaded before it can be invoked. A cold call returns `InputValidationError` and tempts a fallback to direct `Agent` calls, which bypasses the team.
+2. `TeamCreate` — actually create the team. Every team must include the Explore agent.
+
+Until `TeamCreate` returns successfully, do NOT call any of: `Agent`, `TaskCreate`, `Skill` (including `lisa:tracker-read`, `lisa:jira-read-ticket`, `lisa:github-read-issue`), MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. Reading the ticket, exploring the code, fetching context — every one of those is a task for the team you are about to create, not for the lead session before the team exists. Doing them inline is the exact bypass path that produces a 1-agent ad-hoc fix instead of a real team flow.
 
 If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool, or `lisa:intake` is running this skill per Ready ticket), do NOT call `TeamCreate` — the harness rejects double-creates. Continue within the existing team. The team lead created the team; teammates inherit it.
 
-When you do create the team, spawn every agent with `mode: "plan"` so they must submit their plan for team lead approval before making any file changes. Every team must include the Explore agent.
-
-## Resolve the input
+## Resolve the input (first task assigned to the team)
 
 $ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request, or the request in text format.
 
-If it's a ticket, use `lisa:tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`):
-- JIRA ticket → `lisa:tracker-read` → `lisa:jira-read-ticket`
-- GitHub Issue → `lisa:tracker-read` → `lisa:github-read-issue`
-- Linear ticket → the Linear CLI (no `lisa:linear-*` build-side adapter; Linear is a PRD source only)
+The team lead does NOT read the input directly. The first task on the team's plan is "resolve the input" — assigned to a teammate, which then:
 
-Capture comments and metadata, not just the description.
-
-If it's a file, read the entire file without offset or limit.
-
-If this is a simple, self-contained request that requires no complex orchestration, execute it directly within the current team context and skip the agent roster and task planning below.
+- If it's a ticket, calls `lisa:tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`). **Mismatch guard**: if the ticket format doesn't match the configured tracker (e.g., a GitHub URL when `tracker` is `jira`), `tracker-read` stops and reports the error — never auto-translates vendors:
+  - JIRA ticket → `lisa:tracker-read` → `lisa:jira-read-ticket`
+  - GitHub Issue → `lisa:tracker-read` → `lisa:github-read-issue`
+  - Linear ticket → the Linear CLI (no `lisa:linear-*` build-side adapter; Linear is a PRD source only)
+  - Captures comments and metadata, not just the description.
+- If it's a file, reads the entire file without offset or limit.
+- If it's a plain-text request, uses the provided text verbatim as the resolved input.
+- Returns the resolved input to the team lead, who then proceeds to roster selection.
 
 ## Select the agent roster
 
