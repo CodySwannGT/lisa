@@ -149,15 +149,30 @@ heal_local_classification() {
   local marker="$cwd/.claude/$HEAL_V2_MARKER_NAME"
   [ -f "$marker" ] && return 0
 
-  (
-    cd "$cwd" || exit 0
-    for plugin in "${LISA_PLUGINS[@]}"; do
-      if printf '%s\n' "$installed_for_cwd" | grep -qx "$plugin"; then
+  # Important: do ALL uninstalls before ANY reinstall.
+  # Interleaved uninstall/install across sibling lisa-* plugins wipes other
+  # plugins' cache directories under ~/.claude/plugins/cache/lisa/, leaving
+  # later reinstalls with phantom installPaths and the /plugin UI hiding the
+  # base lisa plugin entirely. Batched ordering keeps all caches intact.
+  local to_heal=()
+  local plugin
+  for plugin in "${LISA_PLUGINS[@]}"; do
+    if printf '%s\n' "$installed_for_cwd" | grep -qx "$plugin"; then
+      to_heal+=("$plugin")
+    fi
+  done
+
+  if [ "${#to_heal[@]}" -gt 0 ]; then
+    (
+      cd "$cwd" || exit 0
+      for plugin in "${to_heal[@]}"; do
         claude plugin uninstall "$plugin" --scope project </dev/null >/dev/null 2>&1 || true
+      done
+      for plugin in "${to_heal[@]}"; do
         claude plugin install "$plugin" --scope project </dev/null >/dev/null 2>&1 || true
-      fi
-    done
-  )
+      done
+    )
+  fi
   mkdir -p "$cwd/.claude"
   touch "$marker"
 }
