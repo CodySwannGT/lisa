@@ -103,6 +103,27 @@ if ! command -v claude &>/dev/null; then exit 0; fi
 # pointing to the GitHub repo (CodySwannGT/lisa). Built plugins are committed to the repo
 # so relative paths in marketplace.json resolve correctly.
 
+# Heal stale local registrations of the "lisa" marketplace.
+# Earlier Lisa versions (pre-2.0) registered node_modules/@codyswann/lisa as a
+# *local* marketplace named "lisa" via `claude marketplace add "$LISA_DIR"`.
+# That registration persists in the host project's claude state across upgrades
+# and shadows the github source declared in extraKnownMarketplaces, which makes
+# Claude Code's plugin UI mark the lisa plugin as a local plugin and refuse the
+# "Update now" action with: "Local plugins cannot be updated remotely."
+# If we detect a non-github marketplace named "lisa", uninstall the plugins
+# sourced from it and remove the registration so the github source can take over.
+if command -v jq >/dev/null 2>&1; then
+  STALE_LISA_SOURCE=$(claude plugin marketplace list --json 2>/dev/null \
+    | jq -r '.[] | select(.name == "lisa" and .source != "github") | .source' 2>/dev/null \
+    | head -n 1)
+  if [ -n "${STALE_LISA_SOURCE:-}" ]; then
+    for stale_plugin in "lisa@lisa" "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-rails@lisa"; do
+      claude plugin uninstall "$stale_plugin" --scope project </dev/null >/dev/null 2>&1 || true
+    done
+    claude plugin marketplace remove lisa </dev/null >/dev/null 2>&1 || true
+  fi
+fi
+
 # Always install the base plugin (universal governance for all projects)
 claude plugin install "lisa@lisa" --scope project </dev/null 2>&1 || true
 
