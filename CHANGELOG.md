@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.6](https://github.com/CodySwannGT/lisa/compare/vv2.8.5...v2.8.6) (2026-04-29)
+
+
+### Bug Fixes
+
+* **marketplace:** add ref:main to git-subdir plugin sources ([#451](https://github.com/CodySwannGT/lisa/issues/451)) ([e65ed70](https://github.com/CodySwannGT/lisa/commit/e65ed7031f7d1bc758cd65d7488bc1bc6a1db14c))
+
 ### [2.8.5](https://github.com/CodySwannGT/lisa/compare/vv2.8.4...v2.8.5) (2026-04-29)
 
 
