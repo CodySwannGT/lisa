@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.7](https://github.com/CodySwannGT/lisa/compare/vv2.8.6...v2.8.7) (2026-04-29)
+
+
+### Bug Fixes
+
+* **marketplace:** remove pluginRoot from metadata ([#452](https://github.com/CodySwannGT/lisa/issues/452)) ([b5a8fb0](https://github.com/CodySwannGT/lisa/commit/b5a8fb09d09da8653be2abb525f970e46382dfa9)), closes [#451](https://github.com/CodySwannGT/lisa/issues/451)
+
 ### [2.8.6](https://github.com/CodySwannGT/lisa/compare/vv2.8.5...v2.8.6) (2026-04-29)
 
 
