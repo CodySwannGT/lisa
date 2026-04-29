@@ -79,7 +79,7 @@
     "lodash": ">=4.18.1"
   },
   "name": "@codyswann/lisa",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
