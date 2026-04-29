@@ -24,7 +24,7 @@ $ARGUMENTS is either a url to a ticket containing the request, a pointer to a fi
 
 The team lead does NOT read the input directly. The first task on the team's plan is "resolve the input" — assigned to a teammate, which then:
 
-- If it's a ticket, calls `lisa:tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`):
+- If it's a ticket, calls `lisa:tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`). **Mismatch guard**: if the ticket format doesn't match the configured tracker (e.g., a GitHub URL when `tracker` is `jira`), `tracker-read` stops and reports the error — never auto-translates vendors:
   - JIRA ticket → `lisa:tracker-read` → `lisa:jira-read-ticket`
   - GitHub Issue → `lisa:tracker-read` → `lisa:github-read-issue`
   - Linear ticket → the Linear CLI (no `lisa:linear-*` build-side adapter; Linear is a PRD source only)
