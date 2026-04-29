@@ -10,37 +10,61 @@
   "plugins": [
     {
       "name": "lisa",
-      "source": "./plugins/lisa",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/CodySwannGT/lisa.git",
+        "path": "plugins/lisa"
+      },
       "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
       "category": "productivity"
     },
     {
       "name": "lisa-typescript",
-      "source": "./plugins/lisa-typescript",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/CodySwannGT/lisa.git",
+        "path": "plugins/lisa-typescript"
+      },
       "description": "TypeScript hooks — formatting, linting, and ast-grep scanning on edit",
       "category": "productivity"
     },
     {
       "name": "lisa-expo",
-      "source": "./plugins/lisa-expo",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/CodySwannGT/lisa.git",
+        "path": "plugins/lisa-expo"
+      },
       "description": "Expo/React Native skills, agents, and rules",
       "category": "productivity"
     },
     {
       "name": "lisa-nestjs",
-      "source": "./plugins/lisa-nestjs",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/CodySwannGT/lisa.git",
+        "path": "plugins/lisa-nestjs"
+      },
       "description": "NestJS skills (GraphQL, TypeORM)",
       "category": "productivity"
     },
     {
       "name": "lisa-cdk",
-      "source": "./plugins/lisa-cdk",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/CodySwannGT/lisa.git",
+        "path": "plugins/lisa-cdk"
+      },
       "description": "AWS CDK plugin",
       "category": "productivity"
     },
     {
       "name": "lisa-rails",
-      "source": "./plugins/lisa-rails",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/CodySwannGT/lisa.git",
+        "path": "plugins/lisa-rails"
+      },
       "description": "Ruby on Rails skills, rules, and conventions",
       "category": "productivity"
     }

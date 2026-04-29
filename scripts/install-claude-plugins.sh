@@ -124,14 +124,94 @@ if command -v jq >/dev/null 2>&1; then
   fi
 fi
 
+# Heal stale "local plugin" classification (heal-v2).
+#
+# Lisa marketplace v2.9+ switched plugin source declarations from bare
+# relative-path strings (e.g. "source": "./plugins/lisa-expo") to object-form
+# `git-subdir` sources. The relative-path form caused Claude Code's /plugin UI
+# to classify each plugin as local — the UI showed "Local plugins cannot be
+# updated remotely. To update, modify the source at: ./plugins/lisa-expo" and
+# disabled the "Update now" action even though the marketplace itself was
+# github-sourced.
+#
+# Plugins installed against the old marketplace.json schema retain that local
+# classification until they're reinstalled. This block refreshes the cached
+# marketplace.json, detects the new schema, and force-reinstalls already-
+# installed lisa-* plugins so they get re-resolved as remote. Worktrees under
+# .claude/worktrees/ have their own per-cwd plugin install state and are
+# healed in the same pass. A marker file gates one-time execution per cwd.
+LISA_PLUGINS=("lisa@lisa" "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-rails@lisa")
+HEAL_V2_MARKER_NAME=".lisa-marketplace-heal-v2"
+
+heal_local_classification() {
+  local cwd="$1"
+  local installed_for_cwd="$2"
+  local marker="$cwd/.claude/$HEAL_V2_MARKER_NAME"
+  [ -f "$marker" ] && return 0
+
+  # Important: do ALL uninstalls before ANY reinstall.
+  # Interleaved uninstall/install across sibling lisa-* plugins wipes other
+  # plugins' cache directories under ~/.claude/plugins/cache/lisa/, leaving
+  # later reinstalls with phantom installPaths and the /plugin UI hiding the
+  # base lisa plugin entirely. Batched ordering keeps all caches intact.
+  local to_heal=()
+  local plugin
+  for plugin in "${LISA_PLUGINS[@]}"; do
+    if printf '%s\n' "$installed_for_cwd" | grep -qx "$plugin"; then
+      to_heal+=("$plugin")
+    fi
+  done
+
+  if [ "${#to_heal[@]}" -gt 0 ]; then
+    (
+      cd "$cwd" || exit 0
+      for plugin in "${to_heal[@]}"; do
+        claude plugin uninstall "$plugin" --scope project </dev/null >/dev/null 2>&1 || true
+      done
+      for plugin in "${to_heal[@]}"; do
+        claude plugin install "$plugin" --scope project </dev/null >/dev/null 2>&1 || true
+      done
+    )
+  fi
+  mkdir -p "$cwd/.claude"
+  touch "$marker"
+}
+
+if command -v jq >/dev/null 2>&1; then
+  # Refresh the cached marketplace.json so we're reading the latest schema.
+  claude plugin marketplace update lisa </dev/null >/dev/null 2>&1 || true
+
+  MARKETPLACE_JSON_PATH="$HOME/.claude/plugins/marketplaces/lisa/.claude-plugin/marketplace.json"
+  NEW_SCHEMA="false"
+  if [ -f "$MARKETPLACE_JSON_PATH" ]; then
+    NEW_SCHEMA=$(jq -r '[.plugins[]? | select((.source | type) == "object")] | length > 0' "$MARKETPLACE_JSON_PATH" 2>/dev/null || echo "false")
+  fi
+
+  if [ "$NEW_SCHEMA" = "true" ]; then
+    PLUGIN_LIST_JSON=$(claude plugin list --json 2>/dev/null || echo "[]")
+
+    INSTALLED_FOR_PROJECT=$(printf '%s' "$PLUGIN_LIST_JSON" | jq -r --arg cwd "$PROJECT_ROOT" '.[] | select(.projectPath == $cwd) | .id' 2>/dev/null || true)
+    heal_local_classification "$PROJECT_ROOT" "$INSTALLED_FOR_PROJECT"
+
+    if [ -d "$PROJECT_ROOT/.claude/worktrees" ]; then
+      for worktree_dir in "$PROJECT_ROOT/.claude/worktrees"/*/; do
+        worktree_dir="${worktree_dir%/}"
+        [ -d "$worktree_dir" ] || continue
+        INSTALLED_FOR_WORKTREE=$(printf '%s' "$PLUGIN_LIST_JSON" | jq -r --arg cwd "$worktree_dir" '.[] | select(.projectPath == $cwd) | .id' 2>/dev/null || true)
+        heal_local_classification "$worktree_dir" "$INSTALLED_FOR_WORKTREE"
+      done
+    fi
+  fi
+fi
+
 # Always install the base plugin (universal governance for all projects)
 claude plugin install "lisa@lisa" --scope project </dev/null 2>&1 || true
 
 # Detect which stack plugin to install from .claude/settings.json
 LISA_STACK=""
-if [ -f "$SETTINGS_FILE" ]; then
+if [ -f "$SETTINGS_FILE" ] && command -v jq >/dev/null 2>&1; then
   for stack in expo nestjs cdk rails; do
-    if grep -q "\"lisa-${stack}@lisa\"" "$SETTINGS_FILE" 2>/dev/null; then
+    if jq -e "(.enabledPlugins // {}) | has(\"lisa-${stack}@lisa\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
       LISA_STACK="$stack"
       break
     fi
