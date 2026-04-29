@@ -4,8 +4,7 @@
     "name": "Cody Swann"
   },
   "metadata": {
-    "description": "Claude Code governance plugins for TypeScript, Expo, NestJS, CDK, and Rails projects",
-    "pluginRoot": "./plugins"
+    "description": "Claude Code governance plugins for TypeScript, Expo, NestJS, CDK, and Rails projects"
   },
   "plugins": [
     {
