@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.8.0](https://github.com/CodySwannGT/lisa/compare/vv2.7.0...v2.8.0) (2026-04-29)
+
+
+### Features
+
+* **tracker:** add GitHub Issues as PRD source and JIRA-replacement destination ([#444](https://github.com/CodySwannGT/lisa/issues/444)) ([022e118](https://github.com/CodySwannGT/lisa/commit/022e1182c630f4188cbda22c1fc81e27960f8d3d))
+
 ## [2.7.0](https://github.com/CodySwannGT/lisa/compare/vv2.6.4...v2.7.0) (2026-04-28)
 
 
