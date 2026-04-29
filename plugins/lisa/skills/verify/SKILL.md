@@ -24,7 +24,7 @@ Execute the **Verify** flow as defined in the `intent-routing` rule (loaded via 
 4. **Review loop** — handle CodeRabbit / human review comments via `lisa:pull-request-review`
 5. **Merge** when CI is green
 6. **Remote verification** — invoke the `lisa:monitor` skill against the target environment to confirm the deploy actually works (health endpoints, recent logs/errors, Validation Journey replay if defined). If remote verification surfaces a behavioral gap that the existing codified tests do not guard, invoke `codify-verification` to add coverage and open a follow-up PR.
-7. **Evidence** — post results to the originating ticket via `lisa:jira-evidence` (or equivalent tracker adapter), including the list of codified tests added on this branch.
+7. **Evidence** — post results to the originating ticket via `lisa:tracker-evidence` (vendor-neutral; dispatches to `lisa:jira-evidence` or `lisa:github-evidence` per `.lisa.config.json` `tracker`), including the list of codified tests added on this branch.
 
 The rule contains the canonical step sequence. Change it there, propagate everywhere.
 

@@ -3,11 +3,11 @@ name: linear-prd-intake
 description: PRD intake agent for Linear-hosted PRDs. Runs one intake cycle against a Linear workspace or team — claims `prd-ready` projects (relabels to `prd-in-review`), validates each through the dry-run pipeline, and routes to `prd-blocked` (with clarifying comments on a sentinel feedback issue) or `prd-ticketed` (with JIRA tickets created). Linear counterpart of `notion-prd-intake` and `confluence-prd-intake`. Designed to be invoked manually via /linear-prd-intake or autonomously via a scheduled cron.
 skills:
   - linear-prd-intake
-  - linear-to-jira
-  - jira-validate-ticket
+  - linear-to-tracker
+  - tracker-validate
   - jira-source-artifacts
   - product-walkthrough
-  - jira-write-ticket
+  - tracker-write
   - prd-ticket-coverage
 ---
 
@@ -57,8 +57,8 @@ If all PRDs ended in `prd-ticketed` with coverage `COMPLETE`, mention that the n
 
 - **Never run a cycle without an explicit scope.** Side effects are too high to default.
 - **Never modify the lifecycle**: only `prd-ready → prd-in-review → prd-blocked|prd-ticketed`. Never touch `prd-draft` or `prd-shipped`. Never invent new labels.
-- **Never write JIRA tickets directly.** All writes go through the skill chain (intake → linear-to-jira → jira-write-ticket).
+- **Never write destination tickets directly.** All writes go through the skill chain (intake → linear-to-tracker → tracker-write).
 - **Never edit a project's description or any attached Linear document.** Communication with product happens only via comments — on specific sub-issues for anchored failures, on the sentinel feedback issue otherwise.
 - **Never close, archive, or repurpose the sentinel feedback issue.** It is reused across cycles; its longevity is the audit trail.
 - **Never start a second cycle while one is in flight against the same scope.** Serial execution; the scheduling layer is responsible for not double-firing.
-- **Stop and surface failures rather than retry-loop.** If `linear-to-jira` returns an error, the skill records it under `Errors` in the summary; pass that through.
+- **Stop and surface failures rather than retry-loop.** If `linear-to-tracker` returns an error, the skill records it under `Errors` in the summary; pass that through.
