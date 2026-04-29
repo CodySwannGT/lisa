@@ -31,6 +31,7 @@ const TEST_TXT = "test.txt";
 const TSCONFIG_BASE = "tsconfig.base.json";
 const LISAIGNORE = ".lisaignore";
 const LEGACY_WORKFLOW = "legacy-workflow.yml";
+const CREATE_ONLY = "create-only";
 
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
@@ -187,6 +188,55 @@ describe("Lisa Integration Tests", () => {
       // would be 0 for this file.
       expect(result.counters.skipped).toBeGreaterThan(0);
       expect(result.counters.deleted).toBe(0);
+    });
+
+    it("child stack create-only overrides parent stack create-only for the same path", async () => {
+      // Regression for the CDK ci.yml clobber bug:
+      // typescript/create-only/.github/workflows/ci.yml ships a bun-mode CI
+      // workflow. cdk/create-only/.github/workflows/ci.yml ships an npm-mode
+      // CI workflow with CDK-specific determine_environment / cdk-checks
+      // jobs. Without the create-only ownership gate, typescript runs first
+      // and the CreateOnlyStrategy silently no-ops cdk's version because the
+      // destination already exists, leaving CDK projects with the wrong
+      // (bun-mode) workflow — which fails immediately in CI because CDK
+      // projects pin bun to "please-use-npm" and only ship a
+      // package-lock.json.
+      const CI_YML = ".github/workflows/ci.yml";
+      const TS_CI = "package_manager: 'bun'\n# typescript/create-only\n";
+      const CDK_CI =
+        "package_manager: 'npm'\n# cdk/create-only — determine_environment\n";
+
+      await createCDKProject(destDir);
+
+      const tsCreateOnly = path.join(
+        lisaDir,
+        "typescript",
+        CREATE_ONLY,
+        ".github",
+        "workflows"
+      );
+      await fs.ensureDir(tsCreateOnly);
+      await fs.writeFile(path.join(tsCreateOnly, "ci.yml"), TS_CI);
+
+      const cdkCreateOnly = path.join(
+        lisaDir,
+        "cdk",
+        CREATE_ONLY,
+        ".github",
+        "workflows"
+      );
+      await fs.ensureDir(cdkCreateOnly);
+      await fs.writeFile(path.join(cdkCreateOnly, "ci.yml"), CDK_CI);
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      const finalCi = await fs.readFile(path.join(destDir, CI_YML), "utf-8");
+      // The CDK version (npm + determine_environment) must win, not the
+      // typescript bun version. This is the load-bearing assertion — if it
+      // flips, CI breaks for every CDK project on the next Lisa update.
+      expect(finalCi).toBe(CDK_CI);
+      expect(finalCi).not.toBe(TS_CI);
     });
 
     it("registers plugins at project scope when settings.json has enabledPlugins", async () => {

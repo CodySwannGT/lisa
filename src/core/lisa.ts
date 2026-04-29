@@ -83,6 +83,21 @@ export class Lisa {
    * causing ENOENT races for any concurrent linter/file-watcher).
    */
   private pendingDeletions: Set<string> = new Set();
+  /**
+   * Maps each relative path shipped by any type's `create-only/` tree to the
+   * single type that "owns" it (most-specific wins). Computed once before
+   * strategies run; consulted while processing `create-only` to suppress
+   * parent-type sources for paths that a child type also ships.
+   *
+   * Motivating case: CDK projects detect as both `typescript` and `cdk`.
+   * Both ship `.github/workflows/ci.yml` under their `create-only/` trees.
+   * Without this map, typescript's bun-mode ci.yml runs first and creates
+   * the file; cdk's npm-mode + determine_environment ci.yml then sees the
+   * file already exists and is silently skipped — producing a CDK project
+   * wired to use bun, which fails immediately in CI because CDK projects
+   * have `engines.bun = "please-use-npm"` and only a `package-lock.json`.
+   */
+  private createOnlyOwnership: Map<string, string> = new Map();
   private readonly separator = "========================================";
   private readonly lisaignoreSuffix = "(.lisaignore)";
 
@@ -173,6 +188,46 @@ export class Lisa {
       }
     }
     this.pendingDeletions = pending;
+  }
+
+  /**
+   * Pre-compute, for every relative path shipped by any type's `create-only/`
+   * directory, which single type "owns" it. The owner is the most-specific
+   * detected type — i.e., the last entry in [all, ...detectedTypes] (already
+   * canonically ordered parent-before-child by `expandAndOrderTypes`).
+   *
+   * Why this is needed: the `create-only` strategy intentionally does nothing
+   * when the destination file already exists. Combined with the per-type
+   * outer loop in `processConfigurations`, that means the *first* type to
+   * ship a `create-only/<path>` creates the file and every later type's
+   * version is silently skipped. For paths that overlap between a parent
+   * stack (typescript) and a child stack (cdk/expo/nestjs/npm-package), this
+   * lets the parent win — the exact opposite of the rest of Lisa's
+   * "child overrides parent" semantics. See `copy-overwrite` for comparison:
+   * because it always overwrites, the per-type ordering naturally lets
+   * children win. `create-only` needs explicit help.
+   *
+   * The fix: the orchestrator pre-computes this ownership map and, while
+   * processing `create-only`, skips any source whose owning type isn't the
+   * current one. The result is that exactly one source wins per path — the
+   * most-specific detected type.
+   * @returns Promise that resolves once ownership has been resolved
+   */
+  private async loadCreateOnlyOwnership(): Promise<void> {
+    const ownership = new Map<string, string>();
+    for (const type of ["all", ...this.detectedTypes]) {
+      const createOnlyDir = path.join(this.config.lisaDir, type, "create-only");
+      if (!(await fse.pathExists(createOnlyDir))) {
+        continue;
+      }
+      const files = await listFilesRecursive(createOnlyDir);
+      for (const file of files) {
+        const relativePath = path.relative(createOnlyDir, file);
+        // Later types overwrite earlier ones, so child wins over parent.
+        ownership.set(relativePath, type);
+      }
+    }
+    this.createOnlyOwnership = ownership;
   }
 
   /**
@@ -519,6 +574,7 @@ export class Lisa {
       await this.initServices();
       await this.detectTypes();
       await this.loadPendingDeletions();
+      await this.loadCreateOnlyOwnership();
       await this.runMigrationsBeforeStrategies();
       const prePackageJsonHash = hashFile(
         path.join(this.config.destDir, "package.json")
@@ -700,7 +756,11 @@ export class Lisa {
 
       if (await fse.pathExists(srcDir)) {
         logger.info(`Processing ${type}/${strategy}...`);
-        await this.processDirectory(srcDir, strategyRegistry.get(strategy));
+        await this.processDirectory(
+          srcDir,
+          strategyRegistry.get(strategy),
+          type
+        );
       }
     }
   }
@@ -711,6 +771,7 @@ export class Lisa {
    * @param strategy Strategy to apply
    * @param strategy.name Strategy name
    * @param strategy.apply Apply function
+   * @param currentType Project type (e.g. "all", "typescript", "cdk") supplying these files
    */
   private async processDirectory(
     srcDir: string,
@@ -722,39 +783,17 @@ export class Lisa {
         r: string,
         c: StrategyContext
       ) => Promise<FileOperationResult>;
-    }
+    },
+    currentType: string
   ): Promise<void> {
-    const { logger } = this.deps;
     const allFiles = await listFilesRecursive(srcDir);
-
-    // Filter out ignored files AND files pending deletion by a detected type.
-    // Pending-deletion filtering prevents the create-then-delete churn (and
-    // associated ENOENT races) when a parent type ships a file the child type
-    // removes, e.g., CDK removes typescript's jest.* files.
-    const files = allFiles.filter(srcFile => {
-      const relativePath = path.relative(srcDir, srcFile);
-      if (this.ignorePatterns.shouldIgnore(relativePath)) {
-        this.counters.ignored++;
-        if (this.config.dryRun) {
-          logger.dry(`Would skip (ignored): ${relativePath}`);
-        } else {
-          logger.info(`Ignored: ${relativePath}`);
-        }
-        return false;
-      }
-      if (this.pendingDeletions.has(relativePath)) {
-        this.counters.skipped++;
-        if (this.config.dryRun) {
-          logger.dry(
-            `Would skip (pending deletion by detected type): ${relativePath}`
-          );
-        } else {
-          logger.info(`Skipped (pending deletion): ${relativePath}`);
-        }
-        return false;
-      }
-      return true;
-    });
+    const files = allFiles.filter(srcFile =>
+      this.shouldProcessFile(
+        path.relative(srcDir, srcFile),
+        strategy.name,
+        currentType
+      )
+    );
 
     const context: StrategyContext = {
       config: this.config,
@@ -779,6 +818,72 @@ export class Lisa {
       );
       this.updateCounters(result);
       this.logResult(result);
+    }
+  }
+
+  /**
+   * Decide whether a candidate source file should be passed to its strategy.
+   * Centralizes three independent skip rules that all need to short-circuit
+   * before a strategy ever sees the file:
+   *
+   * 1. `.lisaignore` patterns from the destination project
+   * 2. Pending deletions from any detected type's `deletions.json`
+   *    (avoids the create-then-delete ENOENT race)
+   * 3. Create-only ownership conflicts (parent stack ships a path that a
+   *    child stack also ships under create-only — child wins)
+   * @param relativePath - Path relative to the strategy's source directory
+   * @param strategyName - Name of the strategy that would apply the file
+   * @param currentType - Project type currently being processed
+   * @returns True if the strategy should apply the file, false to skip
+   */
+  private shouldProcessFile(
+    relativePath: string,
+    strategyName: CopyStrategy,
+    currentType: string
+  ): boolean {
+    if (this.ignorePatterns.shouldIgnore(relativePath)) {
+      this.counters.ignored++;
+      this.logSkip(`ignored`, relativePath, "Ignored");
+      return false;
+    }
+    if (this.pendingDeletions.has(relativePath)) {
+      this.counters.skipped++;
+      this.logSkip(
+        "pending deletion by detected type",
+        relativePath,
+        "Skipped (pending deletion)"
+      );
+      return false;
+    }
+    if (strategyName === "create-only") {
+      const owner = this.createOnlyOwnership.get(relativePath);
+      if (owner !== undefined && owner !== currentType) {
+        this.counters.skipped++;
+        const reason = `overridden by ${owner}/create-only`;
+        this.logSkip(reason, relativePath, `Skipped (${reason})`);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Emit a "would skip"/"skipped" log line in a single place so all the skip
+   * branches in `shouldProcessFile` stay symmetric.
+   * @param dryReason - Reason text for dry-run mode
+   * @param relativePath - Path being skipped
+   * @param applyMessage - Message to log when not in dry-run mode
+   */
+  private logSkip(
+    dryReason: string,
+    relativePath: string,
+    applyMessage: string
+  ): void {
+    const { logger } = this.deps;
+    if (this.config.dryRun) {
+      logger.dry(`Would skip (${dryReason}): ${relativePath}`);
+    } else {
+      logger.info(`${applyMessage}: ${relativePath}`);
     }
   }
 
