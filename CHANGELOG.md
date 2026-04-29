@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.5](https://github.com/CodySwannGT/lisa/compare/vv2.8.4...v2.8.5) (2026-04-29)
+
+
+### Bug Fixes
+
+* **release:** stage rebuilt plugin manifests in postbump ([#450](https://github.com/CodySwannGT/lisa/issues/450)) ([d5d9ce3](https://github.com/CodySwannGT/lisa/commit/d5d9ce3571436d61e333abfd5cdb58a495345874)), closes [#449](https://github.com/CodySwannGT/lisa/issues/449)
+
 ### [2.8.4](https://github.com/CodySwannGT/lisa/compare/vv2.8.3...v2.8.4) (2026-04-29)
 
 
