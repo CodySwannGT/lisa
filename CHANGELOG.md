@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.3](https://github.com/CodySwannGT/lisa/compare/vv2.8.2...v2.8.3) (2026-04-29)
+
+
+### Bug Fixes
+
+* **marketplace:** switch plugin sources to git-subdir + heal local classification ([#447](https://github.com/CodySwannGT/lisa/issues/447)) ([c91d1cc](https://github.com/CodySwannGT/lisa/commit/c91d1cc4bd6a5c55ad5f24f7d5a534ac4b4e9768))
+
 ### [2.8.2](https://github.com/CodySwannGT/lisa/compare/vv2.8.1...v2.8.2) (2026-04-29)
 
 
