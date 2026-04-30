@@ -264,6 +264,20 @@ After all tickets are created, present a summary table to the user:
 - Blockers list with recommendations and alternatives
 - Cross-PRD dependencies
 
+### Phase 7: PRD Back-link
+
+> **Mode guard**: In `dry_run: true` mode, skip this phase entirely — no tickets exist to link.
+
+After Phase 6, invoke the `lisa:prd-backlink` skill to write a `## Tickets` section back into the source PRD. The section becomes the canonical anchor for the **Debrief** flow once the initiative ships, and gives any human reading the PRD months later a one-click path to every work item created from it.
+
+Invoke `lisa:prd-backlink` with:
+
+- `source_type: "notion"`
+- `source_ref`: the original PRD URL
+- `tickets`: the full list created in Phases 3–5, each entry as `{ key, title, type, url, parent_key }`
+
+If `lisa:prd-backlink` fails (PRD permission denied, Notion unreachable, source mutated mid-run), surface the error in the Phase 6 report rather than aborting — the tickets are already created and their value to the team is not blocked by the back-link write. Recommend the user re-run `lisa:prd-backlink` standalone once the source is reachable again.
+
 ## Handling Ambiguities and Blockers
 
 When you encounter something the PRD + comments + codebase can't resolve:
