@@ -252,6 +252,20 @@ After all tickets are created, present a summary table to the user:
 - Blockers list with recommendations and alternatives
 - Cross-PRD dependencies
 
+### Phase 7: PRD Back-link
+
+> **Mode guard**: In `dry_run: true` mode, skip this phase entirely — no tickets exist to link.
+
+After Phase 6, invoke the `lisa:prd-backlink` skill to write a `## Tickets` section back into the source GitHub Issue PRD body. The section becomes the canonical anchor for the **Debrief** flow once the initiative ships.
+
+Invoke `lisa:prd-backlink` with:
+
+- `source_type: "github"`
+- `source_ref`: the original GitHub Issue URL or `<org>/<repo>#<n>` token
+- `tickets`: the full list created in Phases 3–5, each entry as `{ key, title, type, url, parent_key }`
+
+If `lisa:prd-backlink` fails (permission denied, GitHub unreachable, issue locked), surface the error in the Phase 6 report rather than aborting — the tickets are already created. Recommend the user re-run `lisa:prd-backlink` standalone once the source is reachable.
+
 ## Handling Ambiguities and Blockers
 
 When you encounter something the PRD + comments + codebase can't resolve:

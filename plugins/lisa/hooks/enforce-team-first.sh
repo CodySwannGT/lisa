@@ -2,7 +2,7 @@
 # Enforces team-first orchestration for lifecycle skills.
 #
 # Triggered on four hook events:
-#   - UserPromptSubmit  : detects /lisa:research|plan|implement|intake in the
+#   - UserPromptSubmit  : detects /lisa:research|plan|implement|intake|debrief in the
 #                         raw prompt and arms enforcement for the session
 #   - PreToolUse        : detects the same skills via a `Skill` tool call,
 #                         arms enforcement, and blocks bypass tool calls
@@ -46,7 +46,7 @@ find "$STATE_DIR" -maxdepth 1 -type f -mmin +1440 -delete 2>/dev/null || true
 
 is_lifecycle_skill() {
   case "$1" in
-    lisa:research|lisa:plan|lisa:implement|lisa:intake) return 0 ;;
+    lisa:research|lisa:plan|lisa:implement|lisa:intake|lisa:debrief) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -63,7 +63,13 @@ case "$HOOK_EVENT" in
       # Match a slash command at the start of the prompt (allow optional whitespace).
       LEADING=$(printf '%s' "$PROMPT" | sed -n '1p' | sed -E 's/^[[:space:]]*//')
       case "$LEADING" in
-        /lisa:research*|/lisa:plan*|/lisa:implement*|/lisa:intake*)
+        # /lisa:debrief:apply is single-agent — explicitly excluded by listing
+        # it first with a no-op pattern; the broader /lisa:debrief* below would
+        # otherwise capture it.
+        /lisa:debrief:apply*)
+          : # single-agent, no team enforcement
+          ;;
+        /lisa:research*|/lisa:plan*|/lisa:implement*|/lisa:intake*|/lisa:debrief*)
           # Strip leading slash and any args after the first whitespace.
           SKILL_NAME=$(printf '%s' "$LEADING" | sed -E 's|^/||; s/[[:space:]].*$//')
           printf '%s\n' "$SKILL_NAME" >"$SKILL_FLAG" 2>/dev/null || true
