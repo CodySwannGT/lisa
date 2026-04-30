@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.10.0](https://github.com/CodySwannGT/lisa/compare/vv2.9.1...v2.10.0) (2026-04-30)
+
+
+### Features
+
+* **skills:** add Edge Case Brainstorm sub-flow, Debrief flow, and PRD back-link ([#457](https://github.com/CodySwannGT/lisa/issues/457)) ([2edb0d2](https://github.com/CodySwannGT/lisa/commit/2edb0d2c515755ce41534c300a4386029726087c))
+
 ### [2.9.1](https://github.com/CodySwannGT/lisa/compare/vv2.9.0...v2.9.1) (2026-04-29)
 
 
