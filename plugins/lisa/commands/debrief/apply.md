@@ -3,4 +3,4 @@ description: "Apply human-marked dispositions from a Debrief triage document —
 argument-hint: "<path to triage doc | URL>"
 ---
 
-Use the /lisa:debrief-apply skill to read the triage document at $ARGUMENTS, parse human dispositions, and persist accepted learnings to their categorized destinations.
+Use the /lisa:debrief:apply command (which invokes the `lisa:debrief-apply` skill) to read the triage document at $ARGUMENTS, parse human dispositions, and persist accepted learnings to their categorized destinations.

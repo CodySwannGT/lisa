@@ -46,7 +46,7 @@ After each Accepted row is persisted, replace its `[ ] Accept` checkbox with `[x
 
 A run summary printed to the user:
 
-```
+```text
 Applied <n> learnings:
   <n> edge cases → intent-routing.md
   <n> gotchas → memory

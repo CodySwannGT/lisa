@@ -1,7 +1,7 @@
 ---
 name: debrief
 description: "Run the Debrief flow over a shipped initiative. Input: a PRD URL (Notion / Confluence / Linear / GitHub Issue / file), a JIRA epic key, or a GitHub epic issue URL. Output: a triage-ready learnings document covering every work item in the initiative — edge cases, gotchas, process friction, tooling gaps, convention drift — each with structured evidence and a human-disposition field. Persistence is deferred to lisa:debrief-apply."
-allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
+allowed-tools: ["Skill", "ToolSearch", "TeamCreate", "Bash", "Read", "Glob", "Grep"]
 ---
 
 # Debrief: $ARGUMENTS
@@ -70,7 +70,7 @@ The skill's terminal output is the path to the triage document and a one-line su
 
 After producing the triage document, print:
 
-```
+```text
 Triage document written to: <path>
 Counts: <n> edge cases, <n> gotchas, <n> friction, <n> tooling gaps, <n> convention drift; <n> anomalies
 Next: human triage. When done, run `/lisa:debrief:apply <path>` to persist accepted learnings.
