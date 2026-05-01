@@ -23,3 +23,9 @@ src/graphql-generated
 *.sh
 *.json
 coverage
+
+# Amplify CLI auto-generates files in a format Prettier disallows
+# (quoted keys, commas instead of semicolons in TS object types,
+# no trailing newline). Keep its scaffolding out of format gates.
+# No-op for projects that don't use Amplify.
+amplify
