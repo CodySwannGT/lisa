@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.10.0](https://github.com/CodySwannGT/lisa/compare/vv2.9.1...v2.10.0) (2026-04-30)
+
+
+### Features
+
+* **skills:** add Edge Case Brainstorm sub-flow, Debrief flow, and PRD back-link ([#457](https://github.com/CodySwannGT/lisa/issues/457)) ([2edb0d2](https://github.com/CodySwannGT/lisa/commit/2edb0d2c515755ce41534c300a4386029726087c))
+
+### [2.9.1](https://github.com/CodySwannGT/lisa/compare/vv2.9.0...v2.9.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* **strategies:** child stack create-only overrides parent for same path ([#448](https://github.com/CodySwannGT/lisa/issues/448)) ([f87f399](https://github.com/CodySwannGT/lisa/commit/f87f39994837f32d348fd5c90de74325f6cdb424))
+
+## [2.9.0](https://github.com/CodySwannGT/lisa/compare/vv2.8.10...v2.9.0) (2026-04-29)
+
+
+### Features
+
+* **hooks:** mechanically enforce TeamCreate-first for lifecycle skills ([#456](https://github.com/CodySwannGT/lisa/issues/456)) ([80df08a](https://github.com/CodySwannGT/lisa/commit/80df08a2a9d2364cdbf3ad222dfe5ff33bf72d94)), closes [#455](https://github.com/CodySwannGT/lisa/issues/455)
+
+### [2.8.10](https://github.com/CodySwannGT/lisa/compare/vv2.8.9...v2.8.10) (2026-04-29)
+
+
+### Bug Fixes
+
+* **skills:** close TeamCreate bypass paths in lifecycle orchestration ([#455](https://github.com/CodySwannGT/lisa/issues/455)) ([0294bd0](https://github.com/CodySwannGT/lisa/commit/0294bd009759d581c38da5fde5048cd6a554f8ef))
+
 ### [2.8.9](https://github.com/CodySwannGT/lisa/compare/vv2.8.8...v2.8.9) (2026-04-29)
 
 ### [2.8.8](https://github.com/CodySwannGT/lisa/compare/vv2.8.7...v2.8.8) (2026-04-29)

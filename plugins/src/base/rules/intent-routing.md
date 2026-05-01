@@ -11,7 +11,7 @@ This protocol runs **once per session**, on the first user message. After that, 
 1. If the user invoked a slash command (`/lisa:research`, `/lisa:plan`, `/lisa:implement`, `/lisa:verify`, `/lisa:monitor`, `/lisa:intake`, etc.), the flow is already determined -- skip classification.
 2. Read the user's request and match it against the flow definitions below.
 3. If you cannot confidently classify the request:
-   - **Interactive session** (user is present): present a multiple choice using AskUserQuestion with options: Research, Plan, Implement, Verify, No flow.
+   - **Interactive session** (user is present): present a multiple choice using AskUserQuestion with options: Research, Plan, Implement, Verify, Debrief, No flow.
    - **Headless/non-interactive session** (running with `-p` flag, in a CI pipeline, or as a scheduled agent): do NOT ask the user. Classify to the best of your ability from available context (ticket content, prompt text, current branch state). If you truly cannot classify, default to "No flow" and proceed with the request as-is.
 4. Once a flow is selected, **echo it back explicitly** before doing anything else. State the flow, the work type (if applicable), and a one-sentence justification for why this flow was chosen. Example:
 
@@ -34,9 +34,9 @@ What this rule still enforces:
 
 2. **Cascade rule (load-bearing)**: Before calling `TeamCreate`, check whether you are already operating inside an agent team. Signs you are inside a team: a prior `TeamCreate` exists in this session; you were spawned via `Agent` with `team_name`; your context references a team lead. If any of these are true, **do NOT call `TeamCreate`** — the harness rejects double-creates and the work stalls. Continue within the existing team. Invoke flows via the Skill tool; the team lead inherits responsibility for orchestration.
 
-3. **Default mode**: All top-level lifecycle flows (`Research`, `Plan`, `Implement`, `Verify`, `Monitor`, `Intake`) run as agent teams. Single-agent mode is reserved for diagnostics that don't compose multiple specialists (`product-walkthrough` standalone, ad-hoc Investigate-Only spikes that explicitly opt out). When in doubt, use a team.
+3. **Default mode**: `Research`, `Plan`, `Implement`, `Intake`, and `Debrief` run as agent teams. The `Implement` flow — including every work type (`Build`, `Fix`, `Improve`, `Investigate-Only`) — is **always** a team flow. Bug fixes that "look simple" are not an exception: the Reproduce sub-flow, debug-specialist, bug-fixer, parallel reviewers, and verification-specialist all need to compose. `Debrief` runs as a team because tracker-mining and pr-mining parallelize cleanly and synthesis gates on both completing. `Verify` (standalone) and `Monitor` (standalone) use the One-shot Sub-agents pattern (see `## Orchestration` below) — these flows are linear with no parallelism and the team overhead is not warranted. Single-agent mode is otherwise reserved for: `product-walkthrough` invoked standalone (not as part of Research/Plan), `debrief-apply` (deterministic routing of human-marked dispositions), and one-off diagnostic Bash/Read sessions that don't invoke any lifecycle skill. When in doubt, use a team.
 
-The mechanical "first tool call MUST be TeamCreate" directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording.
+The mechanical TeamCreate bootstrap directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording: first `ToolSearch{select:TeamCreate}` (load deferred schema), then `TeamCreate`.
 
 ## Readiness Gate Protocol
 
@@ -65,10 +65,11 @@ Gate:
 Sequence:
 1. **Investigate sub-flow** -- gather context from codebase, git history, existing behavior, and external sources
 2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items
-3. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
-4. Synthesize findings into a PRD document containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
-5. **Plan Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Plan phase will need. For each recommended skill or agent, state why it is needed. If no skills or agents beyond the defaults are identified, explicitly justify why the standard set is sufficient. Include this as a "Recommended Tooling for Plan Phase" section in the PRD.
-6. `learner` -- capture discoveries for future sessions
+3. **Edge Case Brainstorm sub-flow** -- run the PRD candidate through the edge-case checklist; fold accepted cases into acceptance criteria, out-of-scope, or open questions
+4. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
+5. Synthesize findings into a PRD document containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
+6. **Plan Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Plan phase will need. For each recommended skill or agent, state why it is needed. If no skills or agents beyond the defaults are identified, explicitly justify why the standard set is sufficient. Include this as a "Recommended Tooling for Plan Phase" section in the PRD.
+7. `learner` -- capture discoveries for future sessions
 
 Output: A PRD document that includes a "Recommended Tooling for Plan Phase" section listing the skills and agents the Plan phase should use. If there is not enough context to produce a complete PRD, stop and report what is missing rather than producing an incomplete one.
 
@@ -84,19 +85,21 @@ Gate:
 
 Sequence:
 1. **Investigate sub-flow** -- explore codebase for architecture, patterns, dependencies relevant to the spec
-2. `product-specialist` -- validate and refine acceptance criteria for the whole scope
-3. `architecture-specialist` -- map dependencies, identify cross-cutting concerns, determine execution order
-4. **Implement/Verify Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Implement and Verify phases will need for each work item. For each recommended skill or agent, state why it is needed and which work items it applies to. If no skills or agents beyond the defaults are identified for a work item, explicitly justify why the standard set is sufficient.
-5. Decompose into ordered work items (epics, stories, tasks, spikes, bugs), each with:
+2. `product-specialist` -- validate and refine acceptance criteria for the whole scope, including error states and UX concerns
+3. **Edge Case Brainstorm sub-flow** -- run the PRD as a whole through the checklist to catch scope-shaped gaps before decomposition
+4. `architecture-specialist` -- map dependencies, identify cross-cutting concerns, determine execution order
+5. **Implement/Verify Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Implement and Verify phases will need for each work item. For each recommended skill or agent, state why it is needed and which work items it applies to. If no skills or agents beyond the defaults are identified for a work item, explicitly justify why the standard set is sufficient.
+6. Decompose into ordered work items (epics, stories, tasks, spikes, bugs). For each item, run the **Edge Case Brainstorm sub-flow** scoped to that item — accepted cases become additional acceptance criteria or sub-tasks; rejected ones are noted with a one-line reason. Each item carries:
    - Type (epic, story, task, spike, bug)
-   - Acceptance criteria
+   - Acceptance criteria (including any added by the per-item brainstorm)
    - Verification method
    - Dependencies
-   - Skills and agents required (from step 4)
-6. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria, dependencies, and recommended skills/agents
-7. `learner` -- capture discoveries for future sessions
+   - Skills and agents required (from step 5)
+7. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria, dependencies, and recommended skills/agents
+8. **PRD back-link** -- update the source PRD with a `## Tickets` section listing every created work item (key, title, type, link), so the PRD becomes the canonical anchor for downstream flows (notably **Debrief**). Invoke `lisa:prd-backlink` with the PRD source and the created ticket list. The section is regenerated on each run, not appended, so re-planning never produces stale links.
+9. `learner` -- capture discoveries for future sessions
 
-Output: Work items in a tracker with acceptance criteria and recommended skills/agents, ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.
+Output: Work items in a tracker with acceptance criteria and recommended skills/agents, ordered by dependency. The source PRD carries a `## Tickets` section linking back to every created item. If the specification cannot be decomposed without further clarification, stop and report what is missing.
 
 ### Implement
 
@@ -189,6 +192,32 @@ Sequence:
 
 Output: Merged PR, successful deploy, remote verification passing.
 
+### Debrief
+
+When: An initiative is fully shipped — every work item from the original Plan is in a terminal state and its PR is merged. The user wants to surface candidate learnings (edge cases, gotchas, friction, tooling gaps, convention drift) for human triage so future agents inherit what this initiative taught.
+
+Gate:
+- A PRD or epic must be provided as input — the PRD URL (Notion / Confluence / Linear / GitHub Issue / file), the epic key (JIRA), or the epic issue URL (GitHub). The PRD's `## Tickets` section (written by Plan step 8) is the canonical anchor for the work-item set; an epic's children are the equivalent.
+- Every work item linked from the input must be in a terminal state (Done / Closed / Cancelled). If any item is still open, stop and list the unfinished items.
+- Every Done item that was implementable must have at least one merged PR linked. If a Done item has no PR, surface it as a debrief anomaly rather than silently excluding it.
+- Headless / non-interactive sessions: do not block on missing input — if the input is ambiguous (e.g., only a vague initiative name), fail with a clear error listing what was needed.
+
+Sequence:
+1. **Resolve the work-item set** — read the input. If it's a PRD, follow its `## Tickets` section. If it's an epic, list its children. Build the canonical list of `(work_item, linked_PRs[])` tuples. If a work item has no `linked_PRs` and is not a spike, mark it as an anomaly to surface in step 4.
+2. **Mine in parallel** (run as concurrent tasks within the team):
+   - `tracker-mining-specialist` — for every work item, walk the description, every comment (human, agent evidence, CodeRabbit summary), status transitions and their durations, late-arriving bugs that reference the item, and child sub-tasks added during implementation. Output a structured per-ticket findings list.
+   - `pr-mining-specialist` — for every linked PR, walk the description, every review comment (general + inline; CodeRabbit + human), every commit on the branch (especially late `fix:` / `revert:` / follow-up commits), and every test file added. Output a structured per-PR findings list.
+3. `learnings-synthesizer` — consume both findings lists, deduplicate, and categorize each candidate learning into one of:
+   - **Edge case** — a failure mode that should have been caught at PRD/Plan time; candidate addition to the Edge Case Brainstorm checklist
+   - **Recurring gotcha** — a stack- or codebase-specific trap (e.g., "this ORM silently truncates X")
+   - **Process friction** — a step in the lifecycle that consistently slowed the work
+   - **Tooling gap** — missing skill, wrong agent assignment, broken hook, missing automation
+   - **Convention drift** — an unwritten rule revealed by review comments that should be codified
+4. **Produce the human-triage document** — a markdown file with one row per candidate learning showing: category, summary, evidence (links to the source ticket comment / PR comment / commit), recommended persistence destination, and a checkbox-style disposition field the human will mark (Accept / Reject / Defer). Surface step-1 anomalies (work items missing PRs, etc.) in a separate section. The document is exhaustive — it lists every candidate, even ones the synthesizer rates low confidence — because the human, not the agent, decides what is worth keeping.
+5. **Stop and hand the document to the human.** Debrief does NOT persist accepted learnings itself. The human triages, marks dispositions, and runs the **`/lisa:debrief:apply`** command (skill: `debrief-apply`) to route the accepted items to their destinations.
+
+Output: A triage-ready learnings document covering every work item and PR in the initiative, with structured evidence and disposition fields. Persistence is deferred to `debrief-apply`, which the human invokes after triage.
+
 ## Sub-flows
 
 Sub-flows are reusable sequences invoked by main flows. When a flow says "Investigate sub-flow", execute the full Investigate sequence.
@@ -202,6 +231,54 @@ Sequence:
 2. `debug-specialist` -- reproduce if applicable, trace execution, prove findings with evidence
 3. `ops-specialist` -- check logs, errors, health (if runtime issue)
 4. Report findings with evidence
+
+### Edge Case Brainstorm
+
+Purpose: Force explicit consideration of edge cases at PRD time and at work-item time, so failure modes that change scope or add acceptance criteria are caught before implementation rather than after a bug is filed in production.
+
+Invoked by: Research (against the PRD as a whole), Plan (once against the PRD before decomposition, then once per work item during decomposition), and Build / Fix sub-flows when a `product-specialist` or `test-specialist` step would otherwise rubber-stamp acceptance criteria.
+
+Sequence:
+1. Walk through the checklist below and propose every candidate edge case that plausibly applies to the scope under review. Aim for breadth, not pre-filtered relevance — propose first, judge second.
+2. For each candidate, take an explicit action and record it:
+   - **Accept** — fold into acceptance criteria (PRD-level or work-item level), or open a new work item / sub-task if the case is large enough to warrant one
+   - **Defer** — capture as an open question or `Out of Scope` line with a one-sentence reason
+   - **Reject** — note the case and a one-sentence reason it does not apply (e.g., "single-tenant, no concurrent edits possible")
+3. A silent skip is not allowed — every candidate from the checklist must end up Accepted, Deferred, or Rejected with a reason. "Considered edge cases" without a per-item disposition does not satisfy this sub-flow.
+4. If three or more candidates are Accepted at PRD time, treat that as a signal that the PRD scope is wider than originally framed and call it out in the synthesis step.
+
+Checklist (pattern + question form — ask each question literally of the scope under review):
+
+**Navigation & URL state**
+- *Reload persistence*: if the user reloads mid-task, do they land where they were — same tab, same filters, same scroll, same selection — or get bounced to a default?
+- *Deep linking*: can the URL alone reconstruct the screen, or does it require state from a previous click?
+- *Back / forward*: does browser history match what the user expects, or does it skip steps or re-trigger side effects?
+- *Parameter change then reload*: after the user changes filters / sort / tab / pagination, does a reload preserve those choices?
+
+**Data lifecycle**
+- *Empty state*: what does this look like the very first time, with zero data?
+- *Single vs. many*: does the UI degrade with 1 item, 10k items, or at pagination boundaries?
+- *Stale data*: if the user leaves the tab open for an hour, what is wrong when they come back?
+- *Concurrent edits*: two users (or two tabs) editing the same record — last-write-wins, conflict, or merge?
+- *Deletion mid-flow*: the resource the user is viewing gets deleted by someone else while they have it open.
+
+**Failure modes**
+- *Network*: offline, slow, intermittent, request mid-flight when the user navigates away.
+- *Partial success*: bulk action where 8 of 10 succeed — what does the user see and what state is the system in?
+- *Permission denied mid-flow*: token expires, role changes, resource becomes inaccessible.
+- *Idempotency*: double-click submit, retry after timeout — does the action happen twice?
+
+**Input boundaries**
+- *Text*: empty, max-length, unicode, whitespace-only, leading / trailing whitespace, emoji, RTL.
+- *Numeric*: zero, negative, very large, non-integer, floating-point precision.
+- *Date / time*: timezone, DST transition, leap day, "now" vs. server time skew.
+
+**Auth & session**
+- *Session expiry mid-action*: what happens to in-flight work?
+- *Role downgrade*: the user loses access to the screen they are currently on.
+- *Multi-tab session*: logout in one tab while another tab is mid-action.
+
+This list is non-exhaustive — agents should propose additional edge cases relevant to the domain (e.g., real-time / streaming, money / financial rounding, regulated data, multi-tenant isolation) and run them through the same Accept / Defer / Reject discipline.
 
 ### Reproduce
 
@@ -267,11 +344,13 @@ Vendor-neutral callers (e.g., `implement`, `verify`) should invoke the `tracker-
 
 Flows can chain naturally:
 - Research produces a PRD -- hand it to Plan
-- Plan produces work items -- hand each to Implement
+- Plan produces work items (and writes a `## Tickets` back-link section into the PRD) -- hand each item to Implement
 - Implement produces verified code -- hand to Verify
+- Verify ships and confirms the deploy -- once every work item in the PRD is shipped, hand the PRD (or the epic) to Debrief
+- Debrief produces a triage-ready learnings document -- hand to the human, who marks dispositions and runs `debrief-apply` to persist accepted learnings
 - If any flow discovers it lacks what it needs, it stops and suggests the preceding flow
 
-The full lifecycle for a large initiative: Research -> Plan -> Implement (per item) -> Verify (per item).
+The full lifecycle for a large initiative: Research -> Plan -> Implement (per item) -> Verify (per item) -> Debrief (once across the whole initiative) -> Debrief Apply (human-triggered, after triage).
 
 ## Sub-flow Usage
 
@@ -290,6 +369,7 @@ Use an **agent team** (TeamCreate + TaskCreate per step) for:
 - **Implement** (Build, Fix, Improve) — long sequences with parallel review and a real risk of compaction
 - **Plan** — multiple specialists feeding a shared decomposition
 - **Research** — multiple specialists feeding a shared PRD
+- **Debrief** — tracker-mining and pr-mining run in parallel and gate the synthesizer; the work-item set can be large, so durable task state matters
 - Any flow that invokes the **Review sub-flow** (the four review specialists run in parallel and gate a single follow-up task)
 
 Why: these flows have enough steps that context compaction is likely; the Review sub-flow is parallel-by-design and `blockedBy` expresses that cleanly; durable task state lets the team lead recover assignments after compaction.
