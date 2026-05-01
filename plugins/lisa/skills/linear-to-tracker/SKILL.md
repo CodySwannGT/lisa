@@ -65,11 +65,11 @@ Dry-run output format is identical to `lisa:notion-to-tracker`'s and `lisa:confl
 ### Total failures: <n>
 ```
 
-The dry-run mode never writes to the destination tracker. It also never modifies the source Linear project, never adds/removes labels, never edits sub-issues, and never posts comments — that is the orchestrating skill's responsibility (`lisa:linear-prd-intake`).
+The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJiraIssue`. It also never modifies the source Linear project, never adds/removes labels, never edits sub-issues, and never posts comments — that is the orchestrating skill's responsibility (`lisa:linear-prd-intake`).
 
 ## Hard Rule: All Writes Go Through `lisa:tracker-write`
 
-**Every ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa:tracker-write` skill. Never call vendor-specific write tools (e.g. `mcp__atlassian__createJiraIssue`, GitHub issue creation APIs, or Linear `save_issue`) directly from this skill or from any sub-agent it spawns.**
+**Every JIRA ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa:tracker-write` skill. Never call `mcp__atlassian__createJiraIssue`, `mcp__atlassian__editJiraIssue`, `mcp__atlassian__createIssueLink`, or any other Atlassian write tool directly from this skill or from any sub-agent it spawns.**
 
 `lisa:tracker-write` enforces gates this skill does not:
 - 3-audience description (Context / Technical Approach / Acceptance Criteria)
@@ -80,7 +80,7 @@ The dry-run mode never writes to the destination tracker. It also never modifies
 - Sign-in account and target environment recorded in description
 - Post-create verification
 
-Bypassing `lisa:tracker-write` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. Destination-tracker reads in this skill (if any) are limited to the tools listed in `allowed-tools`. The Linear read tools listed in `allowed-tools` above are PRD-side only and never write.
+Bypassing `lisa:tracker-write` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. Atlassian reads in this skill are limited to the tools listed in `allowed-tools` (currently `getJiraIssueRemoteIssueLinks`) for the Phase 5.5 preservation gate. The Linear read tools listed in `allowed-tools` above are PRD-side only and never write.
 
 ## Input
 

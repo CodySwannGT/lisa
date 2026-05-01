@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.11.0](https://github.com/CodySwannGT/lisa/compare/vv2.10.1...v2.11.0) (2026-05-01)
+
+
+### Features
+
+* **tracker:** expand .lisa.config.json schema and add Linear as destination tracker ([#459](https://github.com/CodySwannGT/lisa/issues/459)) ([e730286](https://github.com/CodySwannGT/lisa/commit/e730286cccf9a7bb57ec19d015a53afd7d73f657))
+
 ### [2.10.1](https://github.com/CodySwannGT/lisa/compare/vv2.10.0...v2.10.1) (2026-05-01)
 
 ## [2.10.0](https://github.com/CodySwannGT/lisa/compare/vv2.9.1...v2.10.0) (2026-04-30)
