@@ -310,33 +310,33 @@ Sequence:
 1. `ops-specialist` -- health checks, log inspection, error monitoring, performance analysis
 2. Report findings, escalate if action needed
 
-## Tracker Entry Point (JIRA or GitHub Issues)
+## Tracker Entry Point (JIRA, GitHub Issues, or Linear)
 
-When the request references a tracker ticket (a JIRA key like `PROJ-123`, a JIRA URL, a GitHub issue URL, or an `org/repo#<n>` token):
+When the request references a tracker ticket (a JIRA key like `PROJ-123`, a JIRA URL, a GitHub issue URL, an `org/repo#<n>` token, or a Linear identifier like `ENG-123` or a Linear project URL):
 
-1. Hand off to the matching vendor agent — `jira-agent` (for JIRA refs) or `github-agent` (for GitHub Issue refs). The configured destination tracker (`.lisa.config.json` `tracker`) is the default when the ref shape is ambiguous.
-2. The agent reads the ticket fully via the matching read skill (`jira-read-ticket` / `github-read-issue`) — description / body, comments, attachments, linked issues, parent (Epic / parent sub-issue), siblings.
-3. The agent validates ticket quality via the matching verify skill (`jira-verify` / `github-verify`).
+1. Hand off to the matching vendor agent — `jira-agent` (JIRA refs), `github-agent` (GitHub Issue refs), or `linear-agent` (Linear identifier or project URL). The configured destination tracker (`.lisa.config.json` `tracker`) is the default when the ref shape is ambiguous.
+2. The agent reads the work item fully via the matching read skill (`jira-read-ticket` / `github-read-issue` / `linear-read-issue`) — description / body, comments, attachments, linked items, parent (Epic / Project / parent Issue), siblings.
+3. The agent validates item quality via the matching verify skill (`jira-verify` / `github-verify` / `linear-verify`).
 4. The agent runs analytical triage via the vendor-neutral `ticket-triage` skill.
 5. If triage finds unresolved ambiguities (`BLOCKED` verdict), the agent posts findings and STOPS -- no work begins.
 6. The agent determines intent and delegates to the appropriate flow:
 
-| Ticket Type | Flow | Work Type |
-|-------------|------|-----------|
-| Epic | Plan | -- |
+| Item kind | Flow | Work Type |
+|-----------|------|-----------|
+| Epic (JIRA Epic / GitHub Epic-labeled / Linear Project) | Plan | -- |
 | Story | Implement | Build |
 | Task | Implement | Build |
 | Bug | Implement | Fix |
 | Spike | Implement | Investigate Only |
 | Improvement | Implement | Improve |
-| Sub-task | Implement | (per parent's intent) |
+| Sub-task / sub-Issue | Implement | (per parent's intent) |
 
-For JIRA, the type comes from the ticket's issue type. For GitHub, the type comes from the `type:<value>` label.
+For JIRA, the type comes from the ticket's issue type. For GitHub, the type comes from the `type:<value>` label. For Linear, the type typically comes from a label (`type:story`, `type:bug`) or is inferred from the description if unlabeled — `linear-agent` handles the inference.
 
-If the ticket type is ambiguous, read the description / body to classify. A "Task" that describes broken behavior is a Fix. A "Bug" that requests new functionality is a Build.
+If the item type is ambiguous, read the description / body to classify. A "Task" that describes broken behavior is a Fix. A "Bug" that requests new functionality is a Build.
 
-7. The agent syncs progress at milestones via the matching sync skill (`jira-sync` / `github-sync`).
-8. The agent posts evidence at completion via the matching evidence skill (`jira-evidence` / `github-evidence`).
+7. The agent syncs progress at milestones via the matching sync skill (`jira-sync` / `github-sync` / `linear-sync`).
+8. The agent posts evidence at completion via the matching evidence skill (`jira-evidence` / `github-evidence` / `linear-evidence`).
 
 Vendor-neutral callers (e.g., `implement`, `verify`) should invoke the `tracker-*` shims — they dispatch to the right vendor automatically.
 

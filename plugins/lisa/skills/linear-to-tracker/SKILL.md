@@ -1,7 +1,7 @@
 ---
 name: linear-to-tracker
 description: >
-  Break down a Linear PRD (a Linear Project) into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA or GitHub Issues per .lisa.config.json). Use this skill
+  Break down a Linear PRD (a Linear Project) into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill
   whenever the user shares a Linear project URL and wants it converted into tracker tickets, or asks to
   "break down this Linear project", "create tickets from a Linear project", "turn this Linear PRD into tickets", or similar. This skill mirrors `lisa:notion-to-tracker` and `lisa:confluence-to-tracker` for projects
   whose PRDs live in Linear — the workflow, gates, dry-run mode, and validation rules are identical;
@@ -11,7 +11,7 @@ allowed-tools: ["Skill", "Bash", "mcp__linear-server__get_project", "mcp__linear
 
 # Linear PRD to Tracker Breakdown
 
-Convert a Linear PRD (a Linear **Project**) into a structured ticket hierarchy in the configured destination tracker (JIRA or GitHub Issues per .lisa.config.json): Epics > Stories > Sub-tasks.
+Convert a Linear PRD (a Linear **Project**) into a structured ticket hierarchy in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json): Epics > Stories > Sub-tasks.
 Each sub-task is scoped to exactly one repo and includes an empirical verification plan.
 
 This skill is the Linear counterpart of `lisa:notion-to-tracker` and `lisa:confluence-to-tracker`. The three skills share the same phases, gates, dry-run contract, and per-ticket validation logic. Only the PRD-side fetch tools differ. When changing workflow logic, change ALL THREE skills together so the source vendors stay behaviorally identical.
@@ -65,11 +65,11 @@ Dry-run output format is identical to `lisa:notion-to-tracker`'s and `lisa:confl
 ### Total failures: <n>
 ```
 
-The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJiraIssue`. It also never modifies the source Linear project, never adds/removes labels, never edits sub-issues, and never posts comments — that is the orchestrating skill's responsibility (`lisa:linear-prd-intake`).
+The dry-run mode never writes to the destination tracker. It also never modifies the source Linear project, never adds/removes labels, never edits sub-issues, and never posts comments — that is the orchestrating skill's responsibility (`lisa:linear-prd-intake`).
 
 ## Hard Rule: All Writes Go Through `lisa:tracker-write`
 
-**Every JIRA ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa:tracker-write` skill. Never call `mcp__atlassian__createJiraIssue`, `mcp__atlassian__editJiraIssue`, `mcp__atlassian__createIssueLink`, or any other Atlassian write tool directly from this skill or from any sub-agent it spawns.**
+**Every ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa:tracker-write` skill. Never call vendor-specific write tools (e.g. `mcp__atlassian__createJiraIssue`, GitHub issue creation APIs, or Linear `save_issue`) directly from this skill or from any sub-agent it spawns.**
 
 `lisa:tracker-write` enforces gates this skill does not:
 - 3-audience description (Context / Technical Approach / Acceptance Criteria)
@@ -80,7 +80,7 @@ The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJir
 - Sign-in account and target environment recorded in description
 - Post-create verification
 
-Bypassing `lisa:tracker-write` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. Atlassian reads in this skill are limited to the tools listed in `allowed-tools` (currently `getJiraIssueRemoteIssueLinks`) for the Phase 5.5 preservation gate. The Linear read tools listed in `allowed-tools` above are PRD-side only and never write.
+Bypassing `lisa:tracker-write` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. Destination-tracker reads in this skill (if any) are limited to the tools listed in `allowed-tools`. The Linear read tools listed in `allowed-tools` above are PRD-side only and never write.
 
 ## Input
 
@@ -101,13 +101,20 @@ Extract the trailing `<short-id>` (the alphanumeric segment after the last `-` i
 
 ## Configuration
 
-This skill reads project-specific configuration from environment variables. If these are not set, ask the user for the values before proceeding.
+This skill reads project configuration from `.lisa.config.json` (with `.lisa.config.local.json` overriding per key) and operational E2E test config from environment variables. See the `config-resolution` rule for the full schema.
+
+### From `.lisa.config.json`
+
+This skill is a **PRD source** (Linear); destination tracker resolution is handled by `lisa:tracker-write` and `lisa:tracker-validate` internally — this skill does NOT read `tracker` directly. The relevant config for the source side:
+
+| Field | Purpose | Required when |
+|-------|---------|---------------|
+| `linear.workspace` | Linear workspace slug (used for URL synthesis on remote links) | always |
+
+### From environment variables (E2E test config — operational, not tracker)
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `JIRA_PROJECT` | JIRA project key for ticket creation | `SE` |
-| `JIRA_SERVER` | Atlassian instance URL (site host) | `mycompany.atlassian.net` |
-| `LINEAR_WORKSPACE` | Linear workspace slug (used for URL synthesis on JIRA remote links) | `acme` |
 | `E2E_TEST_PHONE` | Test user phone number for verification plans | `0000000099` |
 | `E2E_TEST_OTP` | Test user OTP code | `555555` |
 | `E2E_TEST_ORG` | Test organization name | `Arsenal` |
@@ -144,17 +151,17 @@ PRDs typically reference external design, UX, and data artifacts (Figma files, L
    - Embedded images and file attachments referenced in the project / documents
    - Fenced code blocks with example data (JSON, SQL, GraphQL, cURL request/response)
 
-2. **Classify each artifact and apply taxonomy rules** by invoking the `lisa:jira-source-artifacts` skill. That skill is the single source of truth for: domains (`ui-design` / `ux-flow` / `data` / `ops` / `reference`), per-tool classification rules (Figma `/proto/` vs design, Lovable as `ux-flow`, Loom, screenshots), and coverage smells. Do not restate the rules here — invoke the skill so any drift in the rules propagates uniformly.
+2. **Classify each artifact and apply taxonomy rules** by invoking the `lisa:tracker-source-artifacts` skill. That skill is the single source of truth for: domains (`ui-design` / `ux-flow` / `data` / `ops` / `reference`), per-tool classification rules (Figma `/proto/` vs design, Lovable as `ux-flow`, Loom, screenshots), and coverage smells. Do not restate the rules here — invoke the skill so any drift in the rules propagates uniformly.
 
 3. **Build an `artifacts` map** keyed by domain. Each entry: `{ url, title, domain, source_page, source_page_url, classification_reason }`. The `classification_reason` makes disambiguation auditable. The `source_page` lets you trace each reference back to where it appeared (project description vs a specific document title vs a specific sub-issue comment).
 
-4. **Surface coverage smells** as defined in `lisa:jira-source-artifacts` §5. Record any detected smells on the epic.
+4. **Surface coverage smells** as defined in `lisa:tracker-source-artifacts` §5. Record any detected smells on the epic.
 
 ### Phase 1.6: Source Precedence & Conflict Resolution
 
-Source precedence rules and cross-axis conflict handling are defined in `lisa:jira-source-artifacts` §3 and §4. Apply them during ticket synthesis: every conflict between artifacts must be recorded under `## Open Questions` on the affected ticket, never silently reconciled.
+Source precedence rules and cross-axis conflict handling are defined in `lisa:tracker-source-artifacts` §3 and §4. Apply them during ticket synthesis: every conflict between artifacts must be recorded under `## Open Questions` on the affected ticket, never silently reconciled.
 
-The existing-component reuse expectation is defined in `lisa:jira-source-artifacts` §7. Encode it on every UI-touching story.
+The existing-component reuse expectation is defined in `lisa:tracker-source-artifacts` §7. Encode it on every UI-touching story.
 
 ### Phase 2: Codebase + Live Product Research
 
@@ -174,7 +181,7 @@ Walkthrough findings are surfaced back to product via the orchestrating intake s
 
 For each epic identified in Phase 1, **invoke the `lisa:tracker-write` skill** (do not call `createJiraIssue` directly). Pass it everything it needs to enforce its quality gates:
 
-- `project_key`: from `JIRA_PROJECT` config
+- `project_key`: resolved by `lisa:tracker-write` from `.lisa.config.json`
 - `issue_type`: `Epic`
 - `summary`: epic title from the PRD
 - `description_body`: a draft of the 3-audience description containing:
@@ -202,7 +209,7 @@ For each Epic, plan two kinds of stories:
 
 For each story, **invoke `lisa:tracker-write`** with:
 
-- `project_key`: from `JIRA_PROJECT` config
+- `project_key`: resolved by `lisa:tracker-write` from `.lisa.config.json`
 - `issue_type`: `Story`
 - `epic_parent`: the Epic key captured in Phase 3 (mandatory)
 - `summary`: prefixed per the naming convention above
@@ -230,7 +237,7 @@ Sub-tasks inherit their parent story's artifacts by reference (the parent link).
 
 ### Phase 5.5: Artifact Preservation Gate (mandatory)
 
-Run the preservation gate defined in `lisa:jira-source-artifacts` §8 against the artifacts extracted in Phase 1.5 and the tickets just created. Do NOT restate or modify the gate logic here — invoke the rules from `lisa:jira-source-artifacts`.
+Run the preservation gate defined in `lisa:tracker-source-artifacts` §8 against the artifacts extracted in Phase 1.5 and the tickets just created. Do NOT restate or modify the gate logic here — invoke the rules from `lisa:tracker-source-artifacts`.
 
 To run the gate, this skill must:
 

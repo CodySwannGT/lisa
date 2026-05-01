@@ -1,7 +1,7 @@
 ---
 name: confluence-to-tracker
 description: >
-  Break down a Confluence PRD page into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA or GitHub Issues per .lisa.config.json). Use this skill whenever the
+  Break down a Confluence PRD page into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill whenever the
   user shares a Confluence PRD URL and wants it converted into tracker tickets, or asks to "break down
   this Confluence spec", "create tickets from a Confluence page", "turn this Confluence doc into tickets",
   or similar. This skill mirrors `lisa:notion-to-tracker` for projects whose PRDs live in Confluence —
@@ -12,7 +12,7 @@ allowed-tools: ["Skill", "Bash", "mcp__atlassian__getConfluencePage", "mcp__atla
 
 # Confluence PRD to Tracker Breakdown
 
-Convert a Confluence PRD into a structured ticket hierarchy in the configured destination tracker (JIRA or GitHub Issues per .lisa.config.json): Epics > Stories > Sub-tasks.
+Convert a Confluence PRD into a structured ticket hierarchy in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json): Epics > Stories > Sub-tasks.
 Each sub-task is scoped to exactly one repo and includes an empirical verification plan.
 
 This skill is the Confluence counterpart of `lisa:notion-to-tracker`. The two skills share the same
@@ -102,22 +102,29 @@ page. The caller wanted `lisa:confluence-prd-intake` (batch mode).
 
 ## Configuration
 
-This skill reads project-specific configuration from environment variables. If these are not set,
-ask the user for the values before proceeding.
+This skill reads project configuration from `.lisa.config.json` (with `.lisa.config.local.json` overriding per key) and operational E2E test config from environment variables. See the `config-resolution` rule for the full schema.
+
+### From `.lisa.config.json`
+
+This skill is a **PRD source** (Confluence); destination tracker resolution is handled by `lisa:tracker-write` and `lisa:tracker-validate` internally — this skill does NOT read `tracker` directly. The relevant config for the source side:
+
+| Field | Purpose | Required when |
+|-------|---------|---------------|
+| `atlassian.cloudId` | Atlassian Cloud site UUID for Confluence MCP calls | always |
+| `confluence.spaceKey` | Confluence space hosting PRDs | invoked without an explicit page URL (batch / arg-less mode) and `confluence.parentPageId` is unset |
+| `confluence.parentPageId` | Confluence parent page under which PRDs live | invoked without an explicit page URL (batch / arg-less mode) and `confluence.spaceKey` is unset |
+
+### From environment variables (E2E test config — operational, not tracker)
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `JIRA_PROJECT` | JIRA project key for ticket creation | `SE` |
-| `JIRA_SERVER` | Atlassian instance URL (site host) | `mycompany.atlassian.net` |
-| `CONFLUENCE_HOST` | Confluence host (often same as `JIRA_SERVER`) | `mycompany.atlassian.net` |
 | `E2E_TEST_PHONE` | Test user phone number for verification plans | `0000000099` |
 | `E2E_TEST_OTP` | Test user OTP code | `555555` |
 | `E2E_TEST_ORG` | Test organization name | `Arsenal` |
 | `E2E_BASE_URL` | Frontend base URL for Playwright tests | `https://dev.example.io/` |
 | `E2E_GRAPHQL_URL` | GraphQL API URL for curl verification | `https://gql.dev.example.io/graphql` |
 
-If env vars are not available, ask the user to provide them explicitly before proceeding.
-Do not retrieve credentials from repository files or local agent settings.
+If env vars are not available, ask the user to provide them explicitly before proceeding. Do not retrieve credentials from repository files or local agent settings.
 
 ## Workflow
 
@@ -151,17 +158,17 @@ PRDs typically reference external design, UX, and data artifacts (Figma files, L
    - Embedded images and file attachments on the page itself
    - Fenced code blocks with example data (JSON, SQL, GraphQL, cURL request/response)
 
-2. **Classify each artifact and apply taxonomy rules** by invoking the `lisa:jira-source-artifacts` skill. That skill is the single source of truth for: domains (`ui-design` / `ux-flow` / `data` / `ops` / `reference`), per-tool classification rules (Figma `/proto/` vs design, Lovable as `ux-flow`, Loom, screenshots), and coverage smells. Do not restate the rules here — invoke the skill so any drift in the rules propagates uniformly.
+2. **Classify each artifact and apply taxonomy rules** by invoking the `lisa:tracker-source-artifacts` skill. That skill is the single source of truth for: domains (`ui-design` / `ux-flow` / `data` / `ops` / `reference`), per-tool classification rules (Figma `/proto/` vs design, Lovable as `ux-flow`, Loom, screenshots), and coverage smells. Do not restate the rules here — invoke the skill so any drift in the rules propagates uniformly.
 
 3. **Build an `artifacts` map** keyed by domain. Each entry: `{ url, title, domain, source_page, source_page_url, classification_reason }`. The `classification_reason` makes disambiguation auditable. The `source_page` lets you trace each reference back to where it appeared in the PRD.
 
-4. **Surface coverage smells** as defined in `lisa:jira-source-artifacts` §5. Record any detected smells on the epic.
+4. **Surface coverage smells** as defined in `lisa:tracker-source-artifacts` §5. Record any detected smells on the epic.
 
 ### Phase 1.6: Source Precedence & Conflict Resolution
 
-Source precedence rules and cross-axis conflict handling are defined in `lisa:jira-source-artifacts` §3 and §4. Apply them during ticket synthesis: every conflict between artifacts must be recorded under `## Open Questions` on the affected ticket, never silently reconciled.
+Source precedence rules and cross-axis conflict handling are defined in `lisa:tracker-source-artifacts` §3 and §4. Apply them during ticket synthesis: every conflict between artifacts must be recorded under `## Open Questions` on the affected ticket, never silently reconciled.
 
-The existing-component reuse expectation is defined in `lisa:jira-source-artifacts` §7. Encode it on every UI-touching story.
+The existing-component reuse expectation is defined in `lisa:tracker-source-artifacts` §7. Encode it on every UI-touching story.
 
 ### Phase 2: Codebase + Live Product Research
 
@@ -181,7 +188,7 @@ Walkthrough findings are attached to the originating Confluence PRD as a **foote
 
 For each PRD epic, **invoke the `lisa:tracker-write` skill** (do not call `createJiraIssue` directly). Pass it everything it needs to enforce its quality gates:
 
-- `project_key`: from `JIRA_PROJECT` config
+- `project_key`: resolved by `lisa:tracker-write` from `.lisa.config.json`
 - `issue_type`: `Epic`
 - `summary`: epic title from the PRD
 - `description_body`: a draft of the 3-audience description containing:
@@ -209,7 +216,7 @@ For each Epic, plan two kinds of stories:
 
 For each story, **invoke `lisa:tracker-write`** with:
 
-- `project_key`: from `JIRA_PROJECT` config
+- `project_key`: resolved by `lisa:tracker-write` from `.lisa.config.json`
 - `issue_type`: `Story`
 - `epic_parent`: the Epic key captured in Phase 3 (mandatory)
 - `summary`: prefixed per the naming convention above
@@ -237,7 +244,7 @@ Sub-tasks inherit their parent story's artifacts by reference (the parent link).
 
 ### Phase 5.5: Artifact Preservation Gate (mandatory)
 
-Run the preservation gate defined in `lisa:jira-source-artifacts` §8 against the artifacts extracted in Phase 1.5 and the tickets just created. Do NOT restate or modify the gate logic here — invoke the rules from `lisa:jira-source-artifacts`.
+Run the preservation gate defined in `lisa:tracker-source-artifacts` §8 against the artifacts extracted in Phase 1.5 and the tickets just created. Do NOT restate or modify the gate logic here — invoke the rules from `lisa:tracker-source-artifacts`.
 
 To run the gate, this skill must:
 

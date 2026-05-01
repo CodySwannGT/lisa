@@ -1,14 +1,14 @@
 ---
-name: jira-source-artifacts
-description: "Canonical taxonomy and rules for handling source artifacts (Figma, Lovable, Loom, screenshots, design docs, data samples) when generating or evaluating JIRA tickets. Defines: (1) artifact domains, (2) classification rules per tool, (3) source precedence (which artifact is authoritative for which question), (4) inheritance from epic to story to sub-task, (5) cross-axis conflict handling. Invoke this skill from any flow that extracts, attaches, or reasons about external design/UX/data artifacts so the rules don't drift across skills."
+name: tracker-source-artifacts
+description: "Canonical, vendor-neutral taxonomy and rules for handling source artifacts (Figma, Lovable, Loom, screenshots, design docs, data samples) when generating or evaluating tracker tickets (JIRA, GitHub Issues, Linear). Defines: (1) artifact domains, (2) classification rules per tool, (3) source precedence (which artifact is authoritative for which question), (4) inheritance from epic to story to sub-task, (5) cross-axis conflict handling. Invoke this skill from any flow that extracts, attaches, or reasons about external design/UX/data artifacts so the rules don't drift across skills."
 allowed-tools: []
 ---
 
-# JIRA Source Artifact Taxonomy and Rules
+# Tracker Source Artifact Taxonomy and Rules
 
-This skill is doctrine, not action — it defines the rules. Skills that need to extract, classify, attach, or reason about external artifacts (design files, prototypes, recordings, data samples) invoke this skill to load the taxonomy and apply it.
+This skill is doctrine, not action — it defines the rules. Skills that need to extract, classify, attach, or reason about external artifacts (design files, prototypes, recordings, data samples) invoke this skill to load the taxonomy and apply it. The taxonomy is vendor-neutral: it applies equally to JIRA tickets, GitHub Issues, and Linear Issues.
 
-The reason this lives in one place: silent drift across skills is the failure mode this body of rules exists to prevent. If the rules differ between `lisa:notion-to-tracker`, `lisa:jira-create`, and `lisa:jira-write-ticket`, agents will silently route artifacts wrong and developers will lose source of truth. Edit here, propagate everywhere.
+The reason this lives in one place: silent drift across skills is the failure mode this body of rules exists to prevent. If the rules differ between `lisa:notion-to-tracker`, `lisa:tracker-create`, and `lisa:tracker-write`, agents will silently route artifacts wrong and developers will lose source of truth. Edit here, propagate everywhere.
 
 ## 1. Domains
 

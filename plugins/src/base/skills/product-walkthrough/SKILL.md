@@ -66,8 +66,8 @@ For every walkthrough, record:
 
 - **What exists today**: a short prose description of the current flow, the components in use (if you can identify them from the DOM via `browser_snapshot`), and the states observed.
 - **What the PRD changes**: explicit delta — added screens, removed screens, modified components, new states, removed states.
-- **Existing-component reuse candidates**: components in the current product that could absorb the new behavior. The PRD-vs-current-product comparison drives which existing components a developer should reuse instead of building new (see `lisa:jira-source-artifacts` §7).
-- **Design-vs-current-product divergence**: places where the mock/prototype materially diverges from what's shipped. Each divergence is a discussion item, not an automatic "rebuild from scratch" — see `lisa:jira-source-artifacts` §3 (mocks define visual intent, not implementation shortcut).
+- **Existing-component reuse candidates**: components in the current product that could absorb the new behavior. The PRD-vs-current-product comparison drives which existing components a developer should reuse instead of building new (see `lisa:tracker-source-artifacts` §7).
+- **Design-vs-current-product divergence**: places where the mock/prototype materially diverges from what's shipped. Each divergence is a discussion item, not an automatic "rebuild from scratch" — see `lisa:tracker-source-artifacts` §3 (mocks define visual intent, not implementation shortcut).
 - **Coverage smells**: states the PRD doesn't address that exist today (e.g., the mock shows the empty state but ignores the populated state that has 90% of users).
 - **Behavioral surprises**: anything that doesn't match the PRD's assumptions about current behavior — these are usually the most valuable findings, because they invalidate parts of the PRD.
 
