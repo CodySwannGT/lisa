@@ -5,7 +5,7 @@ skills:
   - confluence-prd-intake
   - confluence-to-tracker
   - tracker-validate
-  - jira-source-artifacts
+  - tracker-source-artifacts
   - product-walkthrough
   - tracker-write
   - prd-ticket-coverage

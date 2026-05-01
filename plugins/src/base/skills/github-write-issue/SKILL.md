@@ -92,7 +92,7 @@ Scenario: <name>
 ## Source Artifacts
 [Group by domain (UI / UX flow / Data / Ops / Reference). One bullet per
  artifact with title and URL. Inherited from the parent epic per the rules
- in lisa:jira-source-artifacts.]
+ in lisa:tracker-source-artifacts.]
 
 ## Source Precedence
 [When artifacts are attached, name the authoritative source per axis:
@@ -175,7 +175,7 @@ Identify and attach (under `## Links`):
 - Related GitHub PRs, branches, or commits.
 - Confluence / Notion / Linear PRD pages (the originating PRD).
 - Dashboards (Grafana, Datadog, Sentry).
-- **Source artifacts from the originating PRD / parent Epic**: classify and inherit per `lisa:jira-source-artifacts`. Inherit by domain — UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`. Never assume a developer will walk up to the Epic to find design context.
+- **Source artifacts from the originating PRD / parent Epic**: classify and inherit per `lisa:tracker-source-artifacts`. Inherit by domain — UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`. Never assume a developer will walk up to the Epic to find design context.
 
 If the issue was generated from a PRD and the parent Epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction.
 

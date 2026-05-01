@@ -5,7 +5,7 @@ skills:
   - notion-prd-intake
   - notion-to-tracker
   - tracker-validate
-  - jira-source-artifacts
+  - tracker-source-artifacts
   - product-walkthrough
   - tracker-write
   - prd-ticket-coverage

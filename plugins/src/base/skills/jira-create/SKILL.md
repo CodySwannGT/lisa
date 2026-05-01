@@ -11,7 +11,7 @@ Analyze the provided file(s) and plan a JIRA hierarchy. **This skill plans struc
 ## Process
 
 1. **Analyze**: Read $ARGUMENTS to understand scope.
-2. **Extract source artifacts**: invoke the `lisa:jira-source-artifacts` skill, then enumerate every external URL, embed, attachment, or example payload in the input and classify each by domain per its rules. Build the `artifacts` map (one entry per artifact: url, title, domain, source page, classification reason). See "Source Artifacts" below.
+2. **Extract source artifacts**: invoke the `lisa:tracker-source-artifacts` skill, then enumerate every external URL, embed, attachment, or example payload in the input and classify each by domain per its rules. Build the `artifacts` map (one entry per artifact: url, title, domain, source page, classification reason). See "Source Artifacts" below.
 3. **Walk the live product** (when applicable): if the work touches existing user-facing surfaces, invoke the `lisa:product-walkthrough` skill to capture current behavior, design-vs-product divergence, and reuse candidates. Skip when the work is purely backend or affects a screen that does not yet exist. See "Live Product Walkthrough" below.
 4. **Determine structure**:
    - Epic needed if: multiple features, major changes, >3 related files
@@ -20,8 +20,8 @@ Analyze the provided file(s) and plan a JIRA hierarchy. **This skill plans struc
    ```text
    Epic → User Story → Tasks (test, implement, document, cleanup)
    ```
-6. **Delegate every write to `lisa:jira-write-ticket`** in dependency order (epic first, then stories with the epic as parent, then sub-tasks with their story as parent). Pass the artifacts (filtered by domain per `lisa:jira-source-artifacts` inheritance rules) and the walkthrough findings (under `## Current Product`). See "Delegation to jira-write-ticket" below.
-7. **Run the artifact preservation gate** (`lisa:jira-source-artifacts` §8): after all writes complete, build the preservation matrix and verify every extracted artifact is reachable from the created tickets. Fail loudly if anything was dropped.
+6. **Delegate every write to `lisa:jira-write-ticket`** in dependency order (epic first, then stories with the epic as parent, then sub-tasks with their story as parent). Pass the artifacts (filtered by domain per `lisa:tracker-source-artifacts` inheritance rules) and the walkthrough findings (under `## Current Product`). See "Delegation to jira-write-ticket" below.
+7. **Run the artifact preservation gate** (`lisa:tracker-source-artifacts` §8): after all writes complete, build the preservation matrix and verify every extracted artifact is reachable from the created tickets. Fail loudly if anything was dropped.
 
 ## Mandatory for Every Code Issue
 
@@ -89,7 +89,7 @@ h3. Assertions
 
 If $ARGUMENTS includes (or references) any external artifact — PRD, design doc, Figma URL, Lovable prototype, Loom walkthrough, screenshot, example payload — those references MUST be preserved as remote links on the created tickets. Silent artifact loss is the single most common quality failure in this pipeline.
 
-**Invoke the `lisa:jira-source-artifacts` skill** for the canonical rules: domains, per-tool classification (Figma `/proto/` vs design, Lovable, Loom, screenshots), source precedence, conflict handling under `## Open Questions`, inheritance from epic → story → sub-task, and the existing-component reuse expectation. Do not restate the rules here — invoke the skill so any rule change propagates uniformly.
+**Invoke the `lisa:tracker-source-artifacts` skill** for the canonical rules: domains, per-tool classification (Figma `/proto/` vs design, Lovable, Loom, screenshots), source precedence, conflict handling under `## Open Questions`, inheritance from epic → story → sub-task, and the existing-component reuse expectation. Do not restate the rules here — invoke the skill so any rule change propagates uniformly.
 
 When delegating actual writes to `lisa:jira-write-ticket`, pass the extracted artifact list so its Phase 4c (Remote Links) step can attach them.
 

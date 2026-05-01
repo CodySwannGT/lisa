@@ -24,8 +24,7 @@ Based on the source, load the full spec:
 | Source | How to Load |
 |--------|-------------|
 | Plan file (`.md`) | `Read` the file |
-| JIRA key or GitHub issue ref | Invoke `/tracker-read <ref>` (vendor-neutral; dispatches to `/jira-read-ticket` or `/github-read-issue` per `.lisa.config.json` `tracker`) to get the full context bundle (primary ticket + epic / parent + linked tickets) |
-| Linear key | Fetch via Linear MCP if available; else `Bash` with Linear CLI; else report "Linear reader unavailable" |
+| JIRA key, GitHub issue ref, or Linear identifier | Invoke `/tracker-read <ref>` (vendor-neutral; dispatches to `/jira-read-ticket`, `/github-read-issue`, or `/linear-read-issue` per `.lisa.config.json` `tracker`) to get the full context bundle (primary item + epic / project / parent + linked items) |
 | PRD | `Read` the file or fetch via Notion / Confluence MCP, or `gh issue view` for a GitHub PRD |
 
 ## Phase 2 — Extract Requirements
