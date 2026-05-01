@@ -131,13 +131,16 @@ Total PRs opened: <n>
 
 ## Configuration
 
+Reads `atlassian.cloudId` and `jira.project` from `.lisa.config.json` (with `.lisa.config.local.json` overriding per key). The project key is also accepted as `$ARGUMENTS` for ad-hoc invocations.
+
 Status names default to `Ready`, `In Progress`, `On Dev`. If a project uses different names (`Open` instead of `TODO`, `In Development` instead of `In Progress`, `Code Review` instead of `On Dev`), pass overrides in `$ARGUMENTS` as `claim_status="In Development" done_status="Code Review"`.
 
 If a `Ready` status does not exist in the JIRA project's workflow, this skill cannot run. The remediation is to add `Ready` to the project workflow scheme — JIRA admin task, not something this skill can do.
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `JIRA_PROJECT` | (from `$ARGUMENTS`) | Project key for the default JQL |
+| Field / variable | Default | Purpose |
+|------------------|---------|---------|
+| `.lisa.config.json` `jira.project` | (from `$ARGUMENTS`) | Project key for the default JQL |
+| `.lisa.config.json` `atlassian.cloudId` | — | Atlassian Cloud site UUID (required) |
 | Status: queue | `Ready` | The status that signals "human says this is buildable" |
 | Status: claim | `In Progress` | The intermediate status the agent sets on pickup |
 | Status: done | `On Dev` | The status set after a successful build |

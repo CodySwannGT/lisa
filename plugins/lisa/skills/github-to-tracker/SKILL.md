@@ -103,19 +103,28 @@ Resolve `<org>/<repo>` from `.lisa.config.json` if `$ARGUMENTS` is just `#<n>` o
 
 ## Configuration
 
-This skill reads project-specific configuration from environment variables and from `.lisa.config.json`. If these are not set, ask the user before proceeding — never invent values.
+This skill reads project configuration from `.lisa.config.json` (with `.lisa.config.local.json` overriding per key) and operational E2E test config from environment variables. See the `config-resolution` rule for the full schema.
 
-| Variable / config | Purpose | Example |
-|-------------------|---------|---------|
-| `.lisa.config.json` `tracker` | Destination tracker (jira / github) | `github` |
-| `.lisa.config.json` `github.org` / `github.repo` | GitHub org/repo when tracker=github (and the source repo) | `acme` / `frontend-v2` |
-| `JIRA_PROJECT` | Destination JIRA project key when tracker=jira | `SE` |
-| `JIRA_SERVER` | Atlassian instance URL | `mycompany.atlassian.net` |
+### From `.lisa.config.json`
+
+This skill is a **PRD source** (GitHub Issues). Destination tracker resolution is handled by `lisa:tracker-write` / `lisa:tracker-validate` internally; this skill reads only the source-side config.
+
+| Field | Purpose | Required when |
+|-------|---------|---------------|
+| `github.org` | GitHub org hosting the PRD repo | always (source repo); also when `tracker = "github"` (destination repo, can be the same in self-host case) |
+| `github.repo` | GitHub repo hosting the PRD | same |
+
+### From environment variables (E2E test config — operational, not tracker)
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
 | `E2E_TEST_PHONE` | Test user phone for verification plans | `0000000099` |
 | `E2E_TEST_OTP` | Test user OTP code | `555555` |
 | `E2E_TEST_ORG` | Test organization name | `Arsenal` |
 | `E2E_BASE_URL` | Frontend base URL for Playwright tests | `https://dev.example.io/` |
 | `E2E_GRAPHQL_URL` | GraphQL API URL for curl verification | `https://gql.dev.example.io/graphql` |
+
+If env vars are not available, ask the user to provide them explicitly before proceeding. Do not retrieve credentials from repository files or local agent settings.
 
 ## Workflow
 
@@ -146,17 +155,17 @@ PRDs typically reference external design, UX, and data artifacts (Figma files, L
    - Embedded images and file attachments referenced in the body
    - Fenced code blocks with example data (JSON, SQL, GraphQL, cURL request/response)
 
-2. **Classify each artifact and apply taxonomy rules** by invoking the `lisa:jira-source-artifacts` skill. That skill is the single source of truth for: domains (`ui-design` / `ux-flow` / `data` / `ops` / `reference`), per-tool classification rules, and coverage smells.
+2. **Classify each artifact and apply taxonomy rules** by invoking the `lisa:tracker-source-artifacts` skill. That skill is the single source of truth for: domains (`ui-design` / `ux-flow` / `data` / `ops` / `reference`), per-tool classification rules, and coverage smells.
 
 3. **Build an `artifacts` map** keyed by domain. Each entry: `{ url, title, domain, source_page, source_page_url, classification_reason }`. `source_page` lets you trace each reference back to where it appeared (PRD body vs a specific sub-issue vs a specific comment).
 
-4. **Surface coverage smells** as defined in `lisa:jira-source-artifacts` §5. Record on the Epic.
+4. **Surface coverage smells** as defined in `lisa:tracker-source-artifacts` §5. Record on the Epic.
 
 ### Phase 1.6: Source Precedence & Conflict Resolution
 
-Source precedence rules and cross-axis conflict handling are defined in `lisa:jira-source-artifacts` §3 and §4. Apply them during ticket synthesis: every conflict between artifacts must be recorded under `## Open Questions` on the affected ticket, never silently reconciled.
+Source precedence rules and cross-axis conflict handling are defined in `lisa:tracker-source-artifacts` §3 and §4. Apply them during ticket synthesis: every conflict between artifacts must be recorded under `## Open Questions` on the affected ticket, never silently reconciled.
 
-The existing-component reuse expectation is defined in `lisa:jira-source-artifacts` §7. Encode it on every UI-touching story.
+The existing-component reuse expectation is defined in `lisa:tracker-source-artifacts` §7. Encode it on every UI-touching story.
 
 ### Phase 2: Codebase + Live Product Research
 
@@ -230,7 +239,7 @@ Sub-tasks inherit their parent Story's artifacts by reference (the parent link).
 
 ### Phase 5.5: Artifact Preservation Gate (mandatory)
 
-Run the preservation gate defined in `lisa:jira-source-artifacts` §8 against the artifacts extracted in Phase 1.5 and the tickets just created. Do NOT restate or modify the gate logic here — invoke the rules from `lisa:jira-source-artifacts`.
+Run the preservation gate defined in `lisa:tracker-source-artifacts` §8 against the artifacts extracted in Phase 1.5 and the tickets just created. Do NOT restate or modify the gate logic here — invoke the rules from `lisa:tracker-source-artifacts`.
 
 To run the gate, this skill must:
 

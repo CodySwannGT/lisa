@@ -1,6 +1,6 @@
 ---
 name: notion-prd-intake
-description: "Scans a Notion PRD database for pages with Status=Ready and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and Status=Ticketed; PRDs that fail get clarifying-question comments and Status=Blocked. The skill is the runtime for the Ready → In Review → Blocked|Ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, jira-source-artifacts, product-walkthrough); does not reimplement their logic."
+description: "Scans a Notion PRD database for pages with Status=Ready and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and Status=Ticketed; PRDs that fail get clarifying-question comments and Status=Blocked. The skill is the runtime for the Ready → In Review → Blocked|Ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough); does not reimplement their logic."
 allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-search", "mcp__claude_ai_Notion__notion-update-page", "mcp__claude_ai_Notion__notion-create-comment", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
@@ -27,7 +27,7 @@ Specifically forbidden:
 
 The only legitimate reasons to stop early:
 
-- Missing database URL or required configuration (`JIRA_PROJECT`, `JIRA_SERVER`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
+- Missing database URL or required configuration (`atlassian.cloudId`, `jira.project` or destination-tracker equivalents in `.lisa.config.json`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
 - Database misconfigured (Status property missing expected values, data source unreachable). Surface and exit.
 - Empty `Ready` set. Exit cleanly with `"No PRDs with Status=Ready. Nothing to do."`
 
@@ -78,7 +78,7 @@ Invoke the `lisa:notion-to-tracker` skill with `dry_run: true` and the PRD's URL
 - An overall PASS / FAIL verdict
 - A failure count
 
-This call also indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:notion-to-tracker` calls per ticket.
+This call also indirectly invokes `lisa:tracker-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:notion-to-tracker` calls per ticket.
 
 #### 3c. Branch on the verdict
 
@@ -208,12 +208,18 @@ Print to the agent's output. Do not write this summary to Notion or JIRA — it'
 
 ## Configuration
 
-This skill reads project configuration from environment variables (or `$ARGUMENTS` overrides). If any required value is missing, ask the user before proceeding — never invent values.
+This skill reads project configuration from `.lisa.config.json` (with `.lisa.config.local.json` overriding per key) and operational E2E test config from environment variables. See the `config-resolution` rule for the full schema. Destination tracker config (jira / github / linear) is consumed by `lisa:tracker-write` internally — this skill does NOT read it.
+
+### From `.lisa.config.json`
+
+| Field | Purpose |
+|-------|---------|
+| `notion.prdDatabaseId` | Notion database hosting PRDs (when `$ARGUMENTS` is the literal token `notion`) |
+
+### From environment variables
 
 | Variable | Purpose |
 |----------|---------|
-| `JIRA_PROJECT` | JIRA project key for ticket creation (passed to `lisa:notion-to-tracker`) |
-| `JIRA_SERVER` | Atlassian instance host |
 | `E2E_BASE_URL` | Frontend URL for `lisa:product-walkthrough` |
 | `E2E_TEST_PHONE` / `E2E_TEST_OTP` / `E2E_TEST_ORG` | Test user creds for walkthrough + verification plans |
 | `E2E_GRAPHQL_URL` | API URL for verification plans |

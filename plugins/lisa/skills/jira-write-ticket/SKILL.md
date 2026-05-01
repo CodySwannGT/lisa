@@ -170,15 +170,15 @@ Identify and attach:
 - Confluence pages (design docs, RFCs, runbooks)
 - Dashboards (Grafana, Datadog, Sentry issue)
 - Incident tickets (PagerDuty, Statuspage)
-- **Source artifacts from the originating PRD / parent epic**: classify and inherit per the rules in `lisa:jira-source-artifacts` (invoke that skill if you haven't loaded the rules in this session). The short version: enumerate the parent epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`). Never assume a developer will walk up to the epic to find design context — attach it here.
+- **Source artifacts from the originating PRD / parent epic**: classify and inherit per the rules in `lisa:tracker-source-artifacts` (invoke that skill if you haven't loaded the rules in this session). The short version: enumerate the parent epic's remote links and inherit the ones whose domain matches this ticket's scope (UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`). Never assume a developer will walk up to the epic to find design context — attach it here.
 
 If the ticket was generated from a PRD (by `lisa:notion-to-tracker` or similar) and the parent epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction before proceeding.
 
 ### 4d. Source Precedence (must appear on the ticket)
 
-Source precedence rules and cross-axis conflict handling are defined in `lisa:jira-source-artifacts` §3 and §4. When a ticket carries both design artifacts and a description, record the precedence explicitly in the ticket description (under Technical Approach or a dedicated `## Source Precedence` subsection) so the implementer doesn't silently reconcile conflicts. Cross-axis conflicts go under `## Open Questions` as BLOCKER items.
+Source precedence rules and cross-axis conflict handling are defined in `lisa:tracker-source-artifacts` §3 and §4. When a ticket carries both design artifacts and a description, record the precedence explicitly in the ticket description (under Technical Approach or a dedicated `## Source Precedence` subsection) so the implementer doesn't silently reconcile conflicts. Cross-axis conflicts go under `## Open Questions` as BLOCKER items.
 
-For UI-touching tickets, include the existing-component reuse expectation per `lisa:jira-source-artifacts` §7.
+For UI-touching tickets, include the existing-component reuse expectation per `lisa:tracker-source-artifacts` §7.
 
 ### 4e. Live Product Walkthrough Findings (UI-touching tickets)
 

@@ -27,7 +27,7 @@ The team lead does NOT read the input directly. The first task on the team's pla
 - If it's a ticket, calls `lisa:tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`). **Mismatch guard**: if the ticket format doesn't match the configured tracker (e.g., a GitHub URL when `tracker` is `jira`), `tracker-read` stops and reports the error — never auto-translates vendors:
   - JIRA ticket → `lisa:tracker-read` → `lisa:jira-read-ticket`
   - GitHub Issue → `lisa:tracker-read` → `lisa:github-read-issue`
-  - Linear ticket → the Linear CLI (no `lisa:linear-*` build-side adapter; Linear is a PRD source only)
+  - Linear identifier or project URL → `lisa:tracker-read` → `lisa:linear-read-issue`
   - Captures comments and metadata, not just the description.
 - If it's a file, reads the entire file without offset or limit.
 - If it's a plain-text request, uses the provided text verbatim as the resolved input.

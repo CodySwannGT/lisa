@@ -174,7 +174,7 @@ Either way the gate emits `FAIL`, not a third state. Strictness is the caller's 
 
 When `artifacts_attached = true`, description must include source-precedence guidance covering: business rules → PRD body, visual treatment → mocks, flow → prototypes, API/data → data artifacts. Cross-axis conflicts surfaced under `## Open Questions`.
 
-Accept either placement — both are valid per `lisa:jira-source-artifacts`:
+Accept either placement — both are valid per `lisa:tracker-source-artifacts`:
 - A dedicated `## Source Precedence` (or `h2. Source Precedence`) subsection, OR
 - A "Source Precedence" / "source precedence" / "authoritative source" paragraph under `Technical Approach` that covers the four axes above.
 

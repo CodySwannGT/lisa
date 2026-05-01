@@ -1,6 +1,6 @@
 ---
 name: github-prd-intake
-description: "Scans a GitHub repository for issues labeled `prd-ready` and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written (to whatever destination tracker is configured — JIRA or GitHub Issues itself) and the label flipped to `prd-ticketed`; PRDs that fail get clarifying-question comments and the label flipped to `prd-blocked`. The GitHub counterpart of lisa:notion-prd-intake / lisa:confluence-prd-intake / lisa:linear-prd-intake. Composes existing skills (github-to-tracker, tracker-validate, jira-source-artifacts, product-walkthrough)."
+description: "Scans a GitHub repository for issues labeled `prd-ready` and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written (to whatever destination tracker is configured — JIRA, GitHub Issues itself, or Linear) and the label flipped to `prd-ticketed`; PRDs that fail get clarifying-question comments and the label flipped to `prd-blocked`. The GitHub counterpart of lisa:notion-prd-intake / lisa:confluence-prd-intake / lisa:linear-prd-intake. Composes existing skills (github-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -116,7 +116,7 @@ Invoke the `lisa:github-to-tracker` skill with `dry_run: true` and the PRD issue
 - An overall PASS / FAIL verdict
 - A failure count
 
-This call indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate` (which dispatches to `lisa:jira-validate-ticket` or `lisa:github-validate-issue` depending on the configured destination).
+This call indirectly invokes `lisa:tracker-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate` (which dispatches to `lisa:jira-validate-ticket` or `lisa:github-validate-issue` depending on the configured destination).
 
 #### 3c. Branch on the verdict
 
@@ -254,7 +254,12 @@ When the configured destination tracker is GitHub Issues AND the PRD repo is the
 
 ## Configuration
 
-Same env vars as `lisa:github-to-tracker` plus `.lisa.config.json` `github.org` / `github.repo`. If any required value is missing, surface and exit — never invent values.
+Same configuration as `lisa:github-to-tracker`. See that skill for the full table. Key items:
+
+- **From `.lisa.config.json`**: `github.org` and `github.repo` (required for the source repo, and also for the destination repo when `tracker = "github"` — self-host case).
+- **From environment variables**: `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL` (operational E2E test config).
+
+Destination tracker config (jira / github / linear) is consumed by `lisa:tracker-write` internally — this skill does NOT read it. If any required value is missing, surface and exit — never invent values.
 
 ## Rules
 

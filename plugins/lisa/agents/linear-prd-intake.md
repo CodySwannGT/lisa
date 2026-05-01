@@ -5,7 +5,7 @@ skills:
   - linear-prd-intake
   - linear-to-tracker
   - tracker-validate
-  - jira-source-artifacts
+  - tracker-source-artifacts
   - product-walkthrough
   - tracker-write
   - prd-ticket-coverage
@@ -25,7 +25,7 @@ Once you have a workspace or team scope, RUN. Do not ask the caller whether to p
 
 ### 1. Receive the scope URL or key
 
-The invoking caller (a slash command, a scheduled cron, or a parent agent) hands you a Linear workspace URL, a team URL, a bare team key, or the literal token `linear` (which falls back to `LINEAR_WORKSPACE`). You do not pick the scope yourself.
+The invoking caller (a slash command, a scheduled cron, or a parent agent) hands you a Linear workspace URL, a team URL, a bare team key, or the literal token `linear` (which falls back to `linear.workspace` in `.lisa.config.json`). You do not pick the scope yourself.
 
 If no scope is provided, stop and ask. Never run intake against a default or guessed scope — the side effects (label changes, sentinel-issue creation, JIRA tickets created) are too high to act without an explicit target.
 

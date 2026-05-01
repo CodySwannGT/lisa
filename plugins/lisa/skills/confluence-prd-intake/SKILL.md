@@ -1,6 +1,6 @@
 ---
 name: confluence-prd-intake
-description: "Scans a Confluence space (or a parent page) for PRD pages labelled `prd-ready` and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the label flipped to `prd-ticketed`; PRDs that fail get clarifying-question comments and the label flipped to `prd-blocked`. Confluence counterpart of `lisa:notion-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (confluence-to-tracker, tracker-validate, jira-source-artifacts, product-walkthrough)."
+description: "Scans a Confluence space (or a parent page) for PRD pages labelled `prd-ready` and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the label flipped to `prd-ticketed`; PRDs that fail get clarifying-question comments and the label flipped to `prd-blocked`. Confluence counterpart of `lisa:notion-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (confluence-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
 allowed-tools: ["Skill", "Bash", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluenceSpaces", "mcp__atlassian__getPagesInConfluenceSpace", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__searchConfluenceUsingCql", "mcp__atlassian__updateConfluencePage", "mcp__atlassian__createConfluenceFooterComment", "mcp__atlassian__createConfluenceInlineComment", "mcp__atlassian__getConfluencePageFooterComments", "mcp__atlassian__getConfluencePageInlineComments", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
@@ -28,7 +28,7 @@ Specifically forbidden:
 
 The only legitimate reasons to stop early:
 
-- Missing space/parent argument or required configuration (`JIRA_PROJECT`, `JIRA_SERVER`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
+- Missing space/parent argument or required configuration (`atlassian.cloudId` in `.lisa.config.json`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
 - Space/parent unreachable, or the labelling convention not yet adopted (no PRDs carry any of `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed`). Surface and exit.
 - Empty `prd-ready` set. Exit cleanly with `"No PRDs labelled prd-ready. Nothing to do."`
 
@@ -105,7 +105,7 @@ Invoke the `lisa:confluence-to-tracker` skill with `dry_run: true` and the PRD's
 - An overall PASS / FAIL verdict
 - A failure count
 
-This call also indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:confluence-to-tracker` calls per ticket.
+This call also indirectly invokes `lisa:tracker-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:confluence-to-tracker` calls per ticket.
 
 #### 3c. Branch on the verdict
 
@@ -236,7 +236,12 @@ Print to the agent's output. Do not write this summary to Confluence or JIRA —
 
 ## Configuration
 
-Same env vars as `lisa:confluence-to-tracker` — `JIRA_PROJECT`, `JIRA_SERVER`, `CONFLUENCE_HOST`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
+Same configuration as `lisa:confluence-to-tracker`. See that skill for the full table. Key items:
+
+- **From `.lisa.config.json`**: `atlassian.cloudId` (required for Confluence MCP), `confluence.spaceKey` and/or `confluence.parentPageId` (when `$ARGUMENTS` doesn't pin a specific page).
+- **From environment variables**: `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL` (operational E2E test config).
+
+Destination tracker config (jira / github / linear) is consumed by `lisa:tracker-write` internally — this skill does NOT read it. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
 
 ## Rules
 

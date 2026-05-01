@@ -1,6 +1,6 @@
 ---
 name: linear-prd-intake
-description: "Scans a Linear workspace (or a specific team) for projects labelled `prd-ready` and runs each one through the dry-run validation pipeline. Projects that pass every gate get tickets written and the label flipped to `prd-ticketed`; projects that fail get clarifying-question comments (on a sentinel feedback issue under the project) and the label flipped to `prd-blocked`. Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (linear-to-tracker, tracker-validate, jira-source-artifacts, product-walkthrough)."
+description: "Scans a Linear workspace (or a specific team) for projects labelled `prd-ready` and runs each one through the dry-run validation pipeline. Projects that pass every gate get tickets written and the label flipped to `prd-ticketed`; projects that fail get clarifying-question comments (on a sentinel feedback issue under the project) and the label flipped to `prd-blocked`. Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (linear-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
 allowed-tools: ["Skill", "Bash", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__list_documents", "mcp__linear-server__get_document", "mcp__linear-server__list_teams"]
 ---
 
@@ -10,7 +10,7 @@ allowed-tools: ["Skill", "Bash", "mcp__linear-server__list_projects", "mcp__line
 
 - A Linear **workspace** URL — scans every project in the workspace whose labels include `prd-ready`. Example: `https://linear.app/acme`.
 - A Linear **team** URL or team key — scans every project on the team whose labels include `prd-ready`. Example: `https://linear.app/acme/team/ENG/projects` or bare `ENG`.
-- The literal token `linear` — equivalent to "the default Linear workspace"; only valid if `LINEAR_WORKSPACE` is configured.
+- The literal token `linear` — equivalent to "the default Linear workspace"; only valid if `linear.workspace` is configured in `.lisa.config.json`.
 
 Run one intake cycle against that scope. Each project with the `prd-ready` label is claimed, validated, and routed to either `prd-blocked` (with clarifying comments on a sentinel feedback issue) or `prd-ticketed` (with JIRA tickets created).
 
@@ -29,7 +29,7 @@ Specifically forbidden:
 
 The only legitimate reasons to stop early:
 
-- Missing scope argument or required configuration (`JIRA_PROJECT`, `JIRA_SERVER`, `LINEAR_WORKSPACE`, `E2E_BASE_URL`, etc.). Surface the missing key(s) and exit this cycle — never invent values.
+- Missing scope argument or required configuration (`linear.workspace` in `.lisa.config.json`, `E2E_BASE_URL`, etc.). Surface the missing key(s) and exit this cycle — never invent values.
 - Workspace/team unreachable, or the labelling convention not yet adopted (no projects carry any of `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed`). Surface and exit.
 - Empty `prd-ready` set. Exit cleanly with `"No Linear projects labelled prd-ready. Nothing to do."`
 
@@ -63,7 +63,7 @@ If the project does not yet use `prd-*` labels, this skill cannot run. Adopting 
    - Workspace URL (`https://linear.app/<workspace>`) → extract workspace slug; the scope is the entire workspace.
    - Team URL containing `/team/<KEY>/...` → extract team key; the scope is that team.
    - Bare team key → use as-is; the scope is that team.
-   - The literal `linear` → fall back to `LINEAR_WORKSPACE` env var; error if not set.
+   - The literal `linear` → fall back to `linear.workspace` from `.lisa.config.json`; error if not set.
 2. Verify the scope is reachable:
    - For a workspace: call `mcp__linear-server__list_teams` and confirm at least one team is returned (non-empty workspaces are readable; empty results indicate auth or workspace-mismatch).
    - For a team: call `mcp__linear-server__list_teams({query: <KEY>})` and confirm the team resolves.
@@ -106,7 +106,7 @@ Invoke the `lisa:linear-to-tracker` skill with `dry_run: true` and the project's
 - An overall PASS / FAIL verdict
 - A failure count
 
-This call also indirectly invokes `lisa:jira-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:linear-to-tracker` calls per ticket.
+This call also indirectly invokes `lisa:tracker-source-artifacts` (artifact extraction + classification) and `lisa:product-walkthrough` (when the PRD touches existing user-facing surfaces). All gate logic lives in `lisa:tracker-validate`, which `lisa:linear-to-tracker` calls per ticket.
 
 #### 3c. Branch on the verdict
 
@@ -250,7 +250,12 @@ Idempotency: the helper finds-or-creates. Re-runs of the cycle reuse the same se
 
 ## Configuration
 
-Same env vars as `lisa:linear-to-tracker` — `JIRA_PROJECT`, `JIRA_SERVER`, `LINEAR_WORKSPACE`, `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL`. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
+Same configuration as `lisa:linear-to-tracker`. See that skill for the full table. Key items:
+
+- **From `.lisa.config.json`**: `linear.workspace` (required for Linear MCP). When the destination tracker is `linear`, also `linear.teamKey`.
+- **From environment variables**: `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL` (operational E2E test config).
+
+Destination tracker config (jira / github / linear) is consumed by `lisa:tracker-write` internally — this skill does NOT read it. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
 
 ## Rules
 

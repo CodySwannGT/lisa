@@ -11,7 +11,7 @@ Analyze the provided file(s) and plan a GitHub Issue hierarchy. **This skill pla
 ## Process
 
 1. **Analyze**: Read `$ARGUMENTS` to understand scope.
-2. **Extract source artifacts**: invoke the `lisa:jira-source-artifacts` skill (vendor-neutral), then enumerate every external URL, embed, attachment, or example payload in the input and classify each by domain per its rules. Build the `artifacts` map (one entry per artifact: url, title, domain, source page, classification reason).
+2. **Extract source artifacts**: invoke the `lisa:tracker-source-artifacts` skill (vendor-neutral), then enumerate every external URL, embed, attachment, or example payload in the input and classify each by domain per its rules. Build the `artifacts` map (one entry per artifact: url, title, domain, source page, classification reason).
 3. **Walk the live product** (when applicable): if the work touches existing user-facing surfaces, invoke the `lisa:product-walkthrough` skill.
 4. **Determine structure**:
    - Epic needed if: multiple features, major changes, >3 related files.
@@ -22,8 +22,8 @@ Analyze the provided file(s) and plan a GitHub Issue hierarchy. **This skill pla
    Epic → Story → Sub-tasks (test, implement, document, cleanup)
    ```
 
-6. **Delegate every write to `lisa:github-write-issue`** in dependency order (Epic first, then Stories with the Epic as parent sub-issue, then Sub-tasks with their Story as parent). Pass artifacts (filtered by domain per `lisa:jira-source-artifacts` inheritance rules) and walkthrough findings (under `## Current Product`).
-7. **Run the artifact preservation gate** (`lisa:jira-source-artifacts` §8): after all writes complete, build the preservation matrix and verify every extracted artifact is reachable from the created issues. Fail loudly if anything was dropped.
+6. **Delegate every write to `lisa:github-write-issue`** in dependency order (Epic first, then Stories with the Epic as parent sub-issue, then Sub-tasks with their Story as parent). Pass artifacts (filtered by domain per `lisa:tracker-source-artifacts` inheritance rules) and walkthrough findings (under `## Current Product`).
+7. **Run the artifact preservation gate** (`lisa:tracker-source-artifacts` §8): after all writes complete, build the preservation matrix and verify every extracted artifact is reachable from the created issues. Fail loudly if anything was dropped.
 
 ## Mandatory for Every Code Issue
 
@@ -40,7 +40,7 @@ Issues that change runtime behavior should include a `## Validation Journey` sec
 
 If `$ARGUMENTS` references any external artifact — PRD, design doc, Figma URL, Lovable prototype, Loom walkthrough, screenshot, example payload — those references MUST be preserved as `## Links` and `## Source Artifacts` sections on the created issues. Silent artifact loss is the single most common quality failure in this pipeline.
 
-**Invoke `lisa:jira-source-artifacts`** for the canonical rules: domains, per-tool classification, source precedence, conflict handling under `## Open Questions`, inheritance from epic → story → sub-task, and the existing-component reuse expectation. This skill is vendor-neutral and used by both the JIRA and the GitHub paths.
+**Invoke `lisa:tracker-source-artifacts`** for the canonical rules: domains, per-tool classification, source precedence, conflict handling under `## Open Questions`, inheritance from epic → story → sub-task, and the existing-component reuse expectation. This skill is vendor-neutral and used by both the JIRA and the GitHub paths.
 
 When delegating actual writes to `lisa:github-write-issue`, pass the extracted artifact list so its Phase 4c (Remote Links / Source Artifacts) step attaches them.
 
