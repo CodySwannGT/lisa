@@ -1,6 +1,6 @@
 ---
 name: ticket-triage
-description: "Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear). Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed. Vendor-neutral: the caller (jira-agent or github-agent) is responsible for fetching the ticket via lisa:tracker-read, running the pre-flight gate via lisa:tracker-verify, and posting findings via the matching vendor comment tool."
+description: "Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear). Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed. Vendor-neutral: the caller (jira-agent, github-agent, or linear-agent) is responsible for fetching the ticket via lisa:tracker-read, running the pre-flight gate via lisa:tracker-verify, and posting findings via the matching vendor comment tool."
 allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 ---
 

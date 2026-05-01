@@ -128,7 +128,7 @@ If the item is **not an Epic** and **not a top-level Bug/Spike**, it MUST have a
 If the parent is explicitly provided, use it. Otherwise:
 
 1. Search active Projects in the team:
-   ```
+   ```text
    mcp__linear-server__list_projects({team: <teamKey>, state: ["backlog", "planned", "started"]})
    ```
    Match on keywords from the summary and description.
@@ -150,7 +150,7 @@ If the git search surfaces a PR or commit that relates to this work, capture the
 
 **Search 2: Linear MCP** (catches open and recently-closed items):
 
-```
+```text
 # Open items in the same Project
 mcp__linear-server__list_issues({project: <projectId>, state_type: ["unstarted", "started"]})
 

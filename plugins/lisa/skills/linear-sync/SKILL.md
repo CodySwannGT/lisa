@@ -27,10 +27,13 @@ This skill **suggests** transitions but does not auto-transition the native Line
 
 ## Input
 
-`$ARGUMENTS` is `<IDENTIFIER> <milestone>` where:
+`$ARGUMENTS` is `[--update-label] <IDENTIFIER> <milestone>` where:
 
+- `--update-label` (optional flag) — when present, triggers Phase 4: updates the `status:*` label set on the Linear Issue to reflect the milestone. Without this flag, only a comment is posted (no label changes).
 - `<IDENTIFIER>` is the Linear Issue identifier (e.g. `ENG-123`). If not provided, the skill searches the active plan file for a linked Linear Issue.
 - `<milestone>` is one of `plan-created`, `implementation-in-progress`, `pr-ready`, `pr-merged`.
+
+Example with label update: `lisa:linear-sync --update-label ENG-123 pr-ready`
 
 ## Phase 1 — Resolve Issue
 

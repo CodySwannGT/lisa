@@ -126,7 +126,7 @@ The shim → vendor mapping is fixed:
 | `lisa:tracker-create` | `lisa:jira-create` | `lisa:github-create` | `lisa:linear-create` |
 | `lisa:tracker-build-intake` | `lisa:jira-build-intake` | `lisa:github-build-intake` | `lisa:linear-build-intake` |
 
-The `tracker-source-artifacts` skill (formerly `tracker-source-artifacts`) is read-only and vendor-neutral — it has no shim and is invoked directly by every `*-to-tracker` skill and every destination write skill (`jira-write-ticket`, `github-write-issue`, `linear-write-issue`).
+The `tracker-source-artifacts` skill (formerly `jira-source-artifacts`) is read-only and vendor-neutral — it has no shim and is invoked directly by every `*-to-tracker` skill and every destination write skill (`jira-write-ticket`, `github-write-issue`, `linear-write-issue`).
 
 ## Caller responsibilities
 
