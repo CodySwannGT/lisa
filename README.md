@@ -12,9 +12,9 @@ A request to fix a bug routes to a different flow than a request to build a feat
 
 ### Flows and Agents
 
-A flow is a pipeline. Each step in the pipeline is an **agent** — a scoped AI with specific tools and skills. One agent investigates git history, another reproduces bugs, another writes code, another verifies the result.
+A flow is a pipeline. Each step in the pipeline is an **agent** — a scoped AI with specific tools and instructions. One agent investigates git history, another reproduces bugs, another writes code, another verifies the result.
 
-Agents delegate domain-specific work to **skills** — reusable instruction sets that can be invoked by agents, by slash commands, or by CI workflows. The same skill that triages a JIRA ticket interactively is the same skill invoked by the nightly triage workflow.
+Behind the scenes, agents delegate domain-specific work to reusable instruction sets that are loaded automatically when a command runs. The same logic that triages a JIRA ticket interactively is the same logic invoked by the nightly triage workflow — you don't need to know which one is running.
 
 Flows can nest. A build flow includes a verification sub-flow, which includes a ship sub-flow. This composition keeps each flow focused while enabling complex end-to-end workflows.
 
@@ -28,13 +28,13 @@ Lisa enforces quality through layered gates:
 
 ### Location Agnostic
 
-The same rules, skills, and quality gates apply everywhere:
+The same rules, workflows, and quality gates apply everywhere:
 
 - On a developer's workstation running Claude Code interactively
 - In a GitHub Action running a nightly improvement job
 - In a CI workflow responding to a PR review comment
 
-The analytical logic lives in skills. The enforcement lives in hooks and rules. The orchestration adapts to context — using MCP integrations locally and REST APIs in CI — but the standards don't change.
+The orchestration adapts to context — using MCP integrations locally and REST APIs in CI — but the standards don't change.
 
 ### Template Governance
 
@@ -44,7 +44,7 @@ Lisa distributes its standards to downstream projects as templates. When a proje
 - Test and coverage infrastructure
 - CI/CD workflows
 - Git hooks
-- AI agent definitions, skills, and rules
+- AI agent definitions and project rules
 
 Templates follow governance rules: some files are overwritten on every update (enforced standards), some are created once and left alone (project customization), and some are merged (shared defaults with project additions).
 
@@ -58,15 +58,66 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 ## Working With Lisa
 
-> Ask Claude: "I have JIRA ticket [TICKET-ID]. Research, plan, and implement it."
+Lisa exposes a small set of top-level commands that map to the work lifecycle. Run them in Claude Code; everything underneath — agents, sub-flows, and the supporting libraries that power each step — happens automatically.
 
-Or use slash commands directly:
+### The Lifecycle
 
-- `/fix` — route through the bug fix flow
-- `/build` — route through the feature build flow
-- `/improve` — route through the improvement flow
-- `/investigate` — route through the investigation flow
-- `/jira:triage <TICKET-ID>` — analytical triage gate: detect ambiguities, edge cases, and verification methodology
-- `/plan:improve-tests <target>` — improve test quality by analyzing and strengthening weak or brittle tests
+A piece of work moves through five stages. Each stage has one command.
 
-> Ask Claude: "What commands are available?"
+| Stage | Command | What it does |
+| --- | --- | --- |
+| Research | `/lisa:research <problem>` | Investigates the codebase and problem space, then produces a PRD ready for planning. |
+| Plan | `/lisa:plan <PRD>` | Decomposes a PRD into ordered work items in your tracker (JIRA, GitHub Issues, or Linear). |
+| Implement | `/lisa:implement <ticket>` | Takes one work item from spec to shipped: assembles an agent team, runs the build, opens a PR, handles review, merges. |
+| Verify | `/lisa:verify` | Commits, pushes, opens a PR, monitors deploy, and verifies behavior in the target environment. Folded into `/lisa:implement` but available standalone. |
+| Debrief | `/lisa:debrief <epic>` | After shipping, mines tickets and PRs to surface edge cases, gotchas, and friction. Produces a triage doc; `/lisa:debrief:apply` persists accepted learnings. |
+
+Most users only ever call `/lisa:research`, `/lisa:plan`, and `/lisa:implement`. The rest run automatically as sub-flows.
+
+### Batch and Scheduled Work
+
+| Command | What it does |
+| --- | --- |
+| `/lisa:intake <queue-url>` | Scans a Ready queue (Notion PRD database, JIRA project, GitHub repo, Linear team, Confluence space) and dispatches each item through the right lifecycle command. Designed as the cron target for unattended runs. |
+
+### Maintenance and Operations
+
+| Command | What it does |
+| --- | --- |
+| `/lisa:monitor [environment]` | Checks application health, logs, error rates, and performance for the named environment. |
+| `/lisa:product-walkthrough <route>` | Walks the live product through a real browser to ground PRD or ticket reasoning in current behavior. |
+| `/lisa:codify-verification <type> <what>` | Converts a passing manual verification into a regression test in the appropriate framework (Playwright, integration test, benchmark). Runs automatically after `/lisa:verify`. |
+| `/lisa:review:local` | Reviews local branch changes against `main`. |
+| `/lisa:pull-request:review <pr-url>` | Pulls down review comments on a PR and implements the valid ones. |
+| `/lisa:security:zap-scan` | Runs an OWASP ZAP baseline scan against the local app. |
+
+### Targeted Improvements
+
+These commands tighten a specific quality threshold and fix every violation in one pass — useful for incremental hardening or nightly jobs.
+
+| Command | What it does |
+| --- | --- |
+| `/lisa:improve:test-coverage <pct>` | Raises coverage to the target percentage by adding tests for uncovered code. |
+| `/lisa:improve:tests <target>` | Strengthens weak, brittle, or poorly-written tests. |
+| `/lisa:improve:code-complexity` | Lowers the cognitive-complexity threshold by 2 and fixes resulting violations. |
+| `/lisa:improve:max-lines <n>` | Reduces the max-file-lines threshold and fixes violations. |
+| `/lisa:improve:max-lines-per-function <n>` | Reduces the max-lines-per-function threshold and fixes violations. |
+| `/lisa:fix:linter-error <rule> [...]` | Fixes every violation of one or more ESLint rules across the codebase. |
+
+### Git Helpers
+
+| Command | What it does |
+| --- | --- |
+| `/lisa:git:commit [hint]` | Creates conventional commits from the current changes. |
+| `/lisa:git:submit-pr [hint]` | Pushes and opens or updates a PR. |
+| `/lisa:git:prune` | Prunes local branches whose remotes have been deleted. |
+
+### Talking to Lisa in Plain English
+
+You don't have to remember any of this. Tell Claude what you want and the right command will run:
+
+> "I have JIRA ticket PROJ-1234. Research, plan, and implement it."
+> "Walk through the checkout flow and tell me what's broken."
+> "Get test coverage to 90%."
+
+> Ask Claude: "What commands are available?" for the full list at any time.
