@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.11.1](https://github.com/CodySwannGT/lisa/compare/vv2.11.0...v2.11.1) (2026-05-02)
+
+
+### Documentation
+
+* **readme:** rewrite Working With Lisa around top-level workflows ([#460](https://github.com/CodySwannGT/lisa/issues/460)) ([0c96720](https://github.com/CodySwannGT/lisa/commit/0c96720e9c12284ed8408f8fefe1db3adaa42150))
+
 ## [2.11.0](https://github.com/CodySwannGT/lisa/compare/vv2.10.1...v2.11.0) (2026-05-01)
 
 
