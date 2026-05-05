@@ -27,8 +27,12 @@
 
 set -euo pipefail
 
-ID_OR_URL="${1:?Usage: download-attachment.sh <ATTACHMENT_ID_OR_URL> <OUTPUT_PATH>}"
-OUTPUT_PATH="${2:?Usage: download-attachment.sh <ATTACHMENT_ID_OR_URL> <OUTPUT_PATH>}"
+if [[ $# -lt 2 ]]; then
+  echo "Usage: download-attachment.sh <ATTACHMENT_ID_OR_URL> <OUTPUT_PATH>" >&2
+  exit 3
+fi
+ID_OR_URL="$1"
+OUTPUT_PATH="$2"
 
 # Resolve credentials: prefer env, fall back to jira-cli config for server/login.
 JIRA_CONFIG="${HOME}/.config/.jira/.config.yml"
@@ -60,7 +64,7 @@ else
   ATTACHMENT_URL="${JIRA_SERVER%/}/rest/api/3/attachment/content/$ID_OR_URL"
 fi
 
-JIRA_AUTH=$(printf '%s' "$JIRA_LOGIN:$JIRA_API_TOKEN" | base64)
+JIRA_AUTH=$(printf '%s' "$JIRA_LOGIN:$JIRA_API_TOKEN" | base64 | tr -d '\n')
 
 # Atlassian responds 302 to a signed URL on media.atlassian.com that has its
 # own auth and rejects Basic. Two-step: capture Location, then GET unauthed.
