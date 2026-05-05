@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.12.0](https://github.com/CodySwannGT/lisa/compare/vv2.11.1...v2.12.0) (2026-05-05)
+
+
+### Features
+
+* **jira-read-ticket:** add download-attachment helper ([#461](https://github.com/CodySwannGT/lisa/issues/461)) ([2eef6b3](https://github.com/CodySwannGT/lisa/commit/2eef6b3aaa7db70a0738156de29b06da85c97580))
+
 ### [2.11.1](https://github.com/CodySwannGT/lisa/compare/vv2.11.0...v2.11.1) (2026-05-02)
 
 
