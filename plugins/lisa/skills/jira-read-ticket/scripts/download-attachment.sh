@@ -80,18 +80,18 @@ HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
 
 case "$HTTP_CODE" in
   302|303|307)
-    SIGNED_URL=$(awk 'BEGIN{IGNORECASE=1} /^location:/{sub(/^[Ll]ocation:[ \t]*/,""); sub(/\r$/,""); print; exit}' "$HEADERS_FILE")
+    SIGNED_URL=$(awk '/^[Ll]ocation:/{sub(/^[Ll]ocation:[ \t]*/,""); sub(/\r$/,""); print; exit}' "$HEADERS_FILE")
     if [[ -z "$SIGNED_URL" ]]; then
       echo "ERROR: Got HTTP $HTTP_CODE but no Location header in response." >&2
       exit 1
     fi
-    curl -sSf -o "$OUTPUT_PATH" "$SIGNED_URL"
+    curl -sSf -o "$OUTPUT_PATH" "$SIGNED_URL" || { echo "ERROR: Download from signed URL failed." >&2; exit 1; }
     ;;
   200)
     curl -sSf -o "$OUTPUT_PATH" \
       -H "Authorization: Basic $JIRA_AUTH" \
       -H "Accept: */*" \
-      "$ATTACHMENT_URL"
+      "$ATTACHMENT_URL" || { echo "ERROR: Direct download from $ATTACHMENT_URL failed." >&2; exit 1; }
     ;;
   401|403)
     echo "ERROR: Authentication failed (HTTP $HTTP_CODE). Verify JIRA_LOGIN and JIRA_API_TOKEN." >&2
