@@ -34,7 +34,23 @@ Call `mcp__atlassian__getJiraIssue` for the target ticket. Extract and preserve:
 - Full description (preserve formatting)
 - Acceptance criteria section if separately structured
 - **Validation Journey** section if present (pass verbatim to downstream)
-- Attachments list (names + URLs, do not download unless needed)
+- Attachments list — capture `id`, `filename`, `mimeType`, `size`, and `content` URL for each. Do not download unless a downstream task needs the bytes (see "Downloading attachments" below).
+
+#### Downloading attachments (opt-in)
+
+The Atlassian MCP exposes attachment metadata but no binary-fetch tool ([JRACLOUD-97830](https://jira.atlassian.com/browse/JRACLOUD-97830), [ECO-1265](https://jira.atlassian.com/browse/ECO-1265)). Fetch attachment bytes only when a downstream task explicitly needs them — e.g., a design-fidelity check on an image, log-file analysis, PDF text extraction. For everything else, keep the URL reference and move on.
+
+```bash
+bash .claude/skills/jira-read-ticket/scripts/download-attachment.sh <id-or-content-url> <output-path>
+```
+
+Requires `JIRA_SERVER`, `JIRA_LOGIN`, and `JIRA_API_TOKEN` in the environment (same contract as `jira-evidence`). If those are not set the helper exits with code 2 and a clear remediation message — record the URL only and continue.
+
+After download, branch on `mimeType`:
+- `image/*` — pass the local path to image-aware downstream tools
+- `text/*`, `application/json`, `application/xml`, `application/x-yaml` — read inline as text
+- `application/pdf` — extract text via downstream tooling if needed
+- everything else — record path only; do not attempt to inline binary content
 
 ### Comments
 
@@ -121,7 +137,7 @@ Produce a single structured output that the caller can pass verbatim to downstre
 <chronological comments, flagged items called out>
 
 ### Attachments
-<list>
+<list with id, filename, mimeType, size, content URL — note any that were downloaded and their local paths>
 
 ## Remote Links
 ### Pull Requests (<count>)
