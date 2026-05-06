@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.14.0](https://github.com/CodySwannGT/lisa/compare/vv2.13.0...v2.14.0) (2026-05-06)
+
+
+### Features
+
+* **rules:** forbid squash-merging promotion PRs ([9ef2bea](https://github.com/CodySwannGT/lisa/commit/9ef2bea7ccf88524a6d95ad3ee7dc1577c4cefe8))
+
+
+### Bug Fixes
+
+* **git-submit-pr:** scope --merge to promotion PRs, --squash for feature PRs ([3989bb2](https://github.com/CodySwannGT/lisa/commit/3989bb2e5048dc6e50a8d2498979b10968ff7418))
+
 ## [2.13.0](https://github.com/CodySwannGT/lisa/compare/vv2.12.0...v2.13.0) (2026-05-06)
 
 
