@@ -56,6 +56,7 @@ Git Discipline:
 - When opening a PR, watch the PR. If any status checks fail, fix them. For all bot code reviews, if the feedback is valid, implement it and push the change to the PR. Then resolve the feedback. If the feedback is not valid, reply to the feedback explaining why it's not valid and then resolve the feedback. Do this in a loop until the PR is able to be merged and then merge it.
 - When merging a PR into an environment branch (dev, staging, main), watch the resultant deploy until it fully succeeds. If it fails for any reason, fix the failure and then open a new PR with the fix.
 - When referencing a PR in a response, always include the url
+- **Promotion PRs (environment branch → environment branch — e.g., `dev` → `staging`, `staging` → `main`) MUST be merged with a regular merge commit (`gh pr merge --merge`), NEVER squash-merged.** Squashing flattens the constituent `chore(release): X.Y.Z [skip ci]` commits into a single commit titled with the PR title, which (a) strips the `[skip ci]` markers so the release workflow re-runs and double-bumps the version on the destination branch, and (b) breaks the release workflow's promotion-detection regex (which inspects the merge-commit subject for `Merge branch 'X' into Y` or `Merge pull request #N from .../<env-branch>`). The merge commit produced by `--merge` keeps the subject clean and the per-commit `[skip ci]` markers attached where they belong. Feature PRs (anything → `dev`) use `--squash` as usual.
 
 Testing Discipline:
 - Never skip or disable any tests or quality checks.
