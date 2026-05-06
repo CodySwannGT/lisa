@@ -24,7 +24,7 @@ Push current branch and create or update a pull request. Optional hint: $ARGUMEN
    - Check for existing PR on this branch
    - If exists: Update description with latest changes
    - If not: Create PR with comprehensive description (not a draft)
-5. **Auto-merge**: Enable auto-merge on the PR using `gh pr merge --auto --merge`
+5. **Auto-merge**: Enable auto-merge on the PR using `gh pr merge --auto --merge`. Always `--merge`, never `--squash`. Squashing a promotion PR (env → env, e.g. `dev` → `staging`) flattens the constituent `chore(release): X.Y.Z [skip ci]` commits into one commit titled with the PR title, stripping the `[skip ci]` markers and breaking the release workflow's promotion-detection regex — the destination branch then double-bumps its version. `--merge` keeps each `chore(release)` commit (and its `[skip ci]` marker) intact under a clean merge commit subject the workflow can recognize.
 
 ### PR Description Format
 
