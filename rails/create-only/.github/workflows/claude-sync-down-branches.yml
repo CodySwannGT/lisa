@@ -1,0 +1,37 @@
+# This file was created by Lisa on first setup.
+# You can customize this file — Lisa will not overwrite it.
+#
+# Back-syncs merges down the env chain so hotfixes propagate.
+# Example: PR merged to main -> opens a sync PR to staging.
+#          PR merged to staging -> opens a sync PR to dev.
+#
+# Customize for your project:
+#   - `branches`: list each branch that should *trigger* a back-sync
+#     (typically the keys of `chain` below).
+#   - `chain`: JSON map of source -> target. Examples:
+#       3-env: '{"main":"staging","staging":"dev"}'
+#       2-env main/staging: '{"main":"staging"}'
+#       2-env master/preprod: '{"master":"preprod"}'
+
+name: Claude Sync Down Branches
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, staging]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+  id-token: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.merged == true
+    uses: CodySwannGT/lisa/.github/workflows/reusable-claude-sync-down-branches.yml@main
+    with:
+      chain: '{"main":"staging","staging":"dev"}'
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
