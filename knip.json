@@ -1,7 +1,16 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/**/*.ts","lambdas/**/*.ts", "lib/**/*.ts", "scripts/**/*.ts"],
-  "project": ["src/**/*.ts","lambdas/**/*.ts", "lib/**/*.ts"],
+  "entry": [
+    "src/**/*.ts",
+    "lambdas/**/*.ts",
+    "lib/**/*.ts",
+    "scripts/**/*.ts"
+  ],
+  "project": [
+    "src/**/*.ts",
+    "lambdas/**/*.ts",
+    "lib/**/*.ts"
+  ],
   "ignore": [
     "**/*.test.ts",
     "**/*.spec.ts",
@@ -48,7 +57,15 @@
     "graphql-ws",
     "lodash"
   ],
-  "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval", "serve"],
+  "ignoreBinaries": [
+    "audit",
+    "docker",
+    "eval",
+    "expo",
+    "gh",
+    "playwright",
+    "serve"
+  ],
   "ignoreExportsUsedInFile": true,
   "rules": {
     "devDependencies": "off"
