@@ -35,6 +35,8 @@ jobs:
         env:
           CHAIN: ${{ inputs.chain }}
           SOURCE: ${{ github.event.pull_request.base.ref }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           if ! echo "$CHAIN" | jq empty 2>/dev/null; then
             echo "::error::Invalid chain JSON: $CHAIN"
@@ -43,6 +45,15 @@ jobs:
           TARGET=$(echo "$CHAIN" | jq -r --arg src "$SOURCE" '.[$src] // empty')
           if [ -z "$TARGET" ]; then
             echo "No sync target for source branch '$SOURCE' — terminal in chain. Exiting."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Verify the target branch actually exists on the remote. If a project
+          # configures a chain entry whose target was never created (e.g. a
+          # `staging -> dev` chain on a repo that has no `dev`), exit cleanly
+          # instead of failing the workflow.
+          if ! gh api "repos/$REPO/branches/$TARGET" --silent 2>/dev/null; then
+            echo "::warning::Target branch '$TARGET' does not exist on $REPO — skipping back-sync. Update the chain in your sync-down-branches.yml wrapper to remove this mapping."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
