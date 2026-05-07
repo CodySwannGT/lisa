@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.15.0](https://github.com/CodySwannGT/lisa/compare/vv2.14.0...v2.15.0) (2026-05-07)
+
+
+### Features
+
+* **actions:** add Claude-assisted back-sync workflow for env chains ([#464](https://github.com/CodySwannGT/lisa/issues/464)) ([967f0dc](https://github.com/CodySwannGT/lisa/commit/967f0dcc4030df78b7c82f7f10dcde1b0ac6e87d))
+
 ## [2.14.0](https://github.com/CodySwannGT/lisa/compare/vv2.13.0...v2.14.0) (2026-05-06)
 
 
