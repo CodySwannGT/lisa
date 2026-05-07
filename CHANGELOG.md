@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.15.1](https://github.com/CodySwannGT/lisa/compare/vv2.15.0...v2.15.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* **templates:** restore amplify/rubocop-todo ignores and harden sync-down ([#465](https://github.com/CodySwannGT/lisa/issues/465)) ([c329b5b](https://github.com/CodySwannGT/lisa/commit/c329b5be0aac2bb172489d480ecab96bd776c3b7))
+
 ## [2.15.0](https://github.com/CodySwannGT/lisa/compare/vv2.14.0...v2.15.0) (2026-05-07)
 
 
