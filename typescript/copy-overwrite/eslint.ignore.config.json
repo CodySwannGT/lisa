@@ -75,6 +75,8 @@
     "cdk.out/**",
 
     "audit.ignore.config.json",
-    "audit.ignore.local.json"
+    "audit.ignore.local.json",
+
+    "amplify/**"
   ]
 }

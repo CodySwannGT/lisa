@@ -1,6 +1,11 @@
 inherit_from:
+  - .rubocop_todo.yml
   - rubocop.thresholds.yml
   - .rubocop.local.yml
+
+inherit_mode:
+  merge:
+    - Exclude
 
 plugins:
   - rubocop-rails
