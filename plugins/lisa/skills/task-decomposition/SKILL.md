@@ -82,7 +82,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 ## Task Breakdown
 
 ### Task 1: [[repo-name] imperative description]
-- **Repository:** [single repo name, or N/A for Epic/Story/Spike/Improvement]
+- **Repository:** [single repo name, or N/A for Epic/Story/Spike]
 - **Acceptance criteria:**
   - [specific, measurable criterion]
   - [specific, measurable criterion]
@@ -91,7 +91,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 - **Skills:** [list of skills needed]
 
 ### Task 2: [[repo-name] imperative description]
-- **Repository:** [single repo name, or N/A for Epic/Story/Spike/Improvement]
+- **Repository:** [single repo name, or N/A for Epic/Story/Spike]
 - **Acceptance criteria:**
   - [specific, measurable criterion]
 - **Verification:** [type] -- [how to verify]
