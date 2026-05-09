@@ -1,0 +1,8 @@
+# This is the standard RuboCop "fix later" file.
+# Lisa creates it empty so .rubocop.yml's `inherit_from` resolves cleanly
+# in projects that don't yet have legacy violations to track.
+#
+# Generate or update with:
+#   bundle exec rubocop --auto-gen-config
+#
+# This file is create-only — Lisa will not overwrite your TODO list.
