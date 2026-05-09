@@ -229,6 +229,8 @@ Capture each returned story ref — Phase 5 needs it.
 
 ### Phase 5: Create Sub-tasks
 
+**Auto-split cross-repo work before delegation.** For each candidate sub-task, apply `lisa:task-decomposition` step 1.5: if the work touches more than one repo, split it into one sub-task per repo under the same parent Story (e.g., `[backend-api] Add field` + `[mobile-app] Display field`), and encode the producer-before-consumer ordering via dependencies. Work units that may span repos (Epic, Story, Spike) stay as planned; work units that must be single-repo (Bug, Task, Sub-task, Improvement) are split now. Splitting is this skill's responsibility — the validator's S10 gate is `product_relevant: false` because cross-repo failures are decomposition errors caught here, not product questions sent back to the PRD.
+
 Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency. **Every spawned agent must invoke `lisa:tracker-write` for each sub-task — no agent may call `lisa:jira-write-ticket` / `lisa:github-write-issue` / `gh issue create` directly.**
 
 Each sub-task MUST:
