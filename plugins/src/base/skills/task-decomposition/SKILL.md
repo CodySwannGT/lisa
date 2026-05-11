@@ -1,6 +1,6 @@
 ---
 name: task-decomposition
-description: "Methodology for breaking work into ordered tasks. Each task gets acceptance criteria, verification type, dependencies, and skills required."
+description: "Methodology for breaking work into ordered tasks. Each task gets a single-repo scope, acceptance criteria, verification type, dependencies, and skills required."
 ---
 
 # Task Decomposition
@@ -15,6 +15,26 @@ Break work into ordered, well-scoped tasks that can be independently implemented
 - Each unit should produce a verifiable outcome (a passing test, a working endpoint, observable behavior)
 - Avoid tasks that are too large to complete in a single session
 - Avoid tasks that are too small to be meaningful (e.g., "add an import statement")
+
+### 1.5. Scope Each Unit to a Single Repository
+
+Work units must be implementable inside a single repository. This is a hard invariant — downstream validators (`jira-validate-ticket`, `github-validate-issue`, `linear-validate-issue`) gate writes on it, so a cross-repo task will fail to be created.
+
+Apply this rule by issue type:
+
+| Issue type | Repo scope |
+|------------|-----------|
+| **Epic, Story, Spike** | MAY span repos — these are coordination containers |
+| **Task, Bug, Sub-task, Improvement** | MUST name exactly one repo — these are work units |
+
+If a candidate work unit naturally touches multiple repos (e.g., "add field to backend API and consume it in mobile app"), do not write it as one ticket. Instead:
+
+1. Split it into one work unit per repo (e.g., `[backend-api] Add field to /users endpoint`, `[mobile-app] Display new field on profile screen`).
+2. Group the per-repo units under a single parent Story (or Epic, if the parent Story already exists). The parent stays cross-repo; the children do not.
+3. Encode the order via `Dependencies` in step 4 — typically the producing repo (backend) blocks the consuming repo (frontend/mobile).
+4. Tag each work unit with `[repo-name]` as a summary prefix so the repo is visible in tracker lists at a glance.
+
+Reject any work unit whose acceptance criteria reference behavior in a different repo from the one it's scoped to. If you find yourself writing "and the frontend should also...", that's a signal to split.
 
 ### 2. Define Acceptance Criteria
 
@@ -61,7 +81,8 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 ```
 ## Task Breakdown
 
-### Task 1: [imperative description]
+### Task 1: [[repo-name] imperative description]
+- **Repository:** [single repo name, or N/A for Epic/Story/Spike]
 - **Acceptance criteria:**
   - [specific, measurable criterion]
   - [specific, measurable criterion]
@@ -69,7 +90,8 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 - **Dependencies:** [none | task IDs that must complete first]
 - **Skills:** [list of skills needed]
 
-### Task 2: [imperative description]
+### Task 2: [[repo-name] imperative description]
+- **Repository:** [single repo name, or N/A for Epic/Story/Spike]
 - **Acceptance criteria:**
   - [specific, measurable criterion]
 - **Verification:** [type] -- [how to verify]
@@ -89,6 +111,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 
 - Every task must have at least one acceptance criterion that can be empirically verified
 - Do not create tasks that cannot be verified -- if you cannot define how to prove it is done, the task is not well-scoped
+- Every Task / Bug / Sub-task / Improvement is scoped to exactly one repo -- if the work spans repos, split into per-repo work units under a shared parent Story (see step 1.5)
 - Keep tasks ordered so that no task references work that has not been completed by a prior task
 - Flag any task that requires access, permissions, or external input not yet available
 - Prefer more small tasks over fewer large tasks -- smaller tasks are easier to verify and less risky to fail

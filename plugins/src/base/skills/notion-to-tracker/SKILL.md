@@ -69,7 +69,7 @@ The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJir
 - Gherkin acceptance criteria
 - Epic parent validation
 - Explicit issue-link discovery (`blocks` / `is blocked by` / `relates to` / `duplicates` / `clones`)
-- Single-repo scope check on Bug / Task / Sub-task
+- Single-repo scope check on Bug / Task / Sub-task / Improvement
 - Sign-in account and target environment recorded in description
 - Post-create verification
 
@@ -228,6 +228,8 @@ Capture each returned story key — Phase 5 needs it as the parent for sub-tasks
 When classification is ambiguous, err on the side of inclusion — a developer can ignore a link, but they can't inherit one that wasn't attached. Classification mistakes are caught by the preservation gate in Phase 5.5 and by the human reviewing the final report.
 
 ### Phase 5: Create Sub-tasks
+
+**Auto-split cross-repo work before delegation.** For each candidate sub-task, apply `lisa:task-decomposition` step 1.5: if the work touches more than one repo, split it into one sub-task per repo under the same parent Story (e.g., `[backend-api] Add field` + `[mobile-app] Display field`), and encode the producer-before-consumer ordering via dependencies. Work units that may span repos (Epic, Story, Spike) stay as planned; work units that must be single-repo (Bug, Task, Sub-task, Improvement) are split now. Splitting is this skill's responsibility — the validator's S10 gate is `product_relevant: false` because cross-repo failures are decomposition errors caught here, not product questions sent back to the PRD.
 
 Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency. **Every spawned agent must invoke `lisa:tracker-write` for each sub-task — no agent may call `createJiraIssue` directly.** This is non-negotiable; see the Agent Prompt Template at the bottom of this skill for the exact instructions to pass.
 
