@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.16.0](https://github.com/CodySwannGT/lisa/compare/vv2.15.1...v2.16.0) (2026-05-11)
+
+
+### Features
+
+* **skills:** single-repo scope on work units, auto-split during decomposition ([#466](https://github.com/CodySwannGT/lisa/issues/466)) ([df69670](https://github.com/CodySwannGT/lisa/commit/df696701ce6c432ee39e67ff141a84eea28ee3ba))
+
 ### [2.15.1](https://github.com/CodySwannGT/lisa/compare/vv2.15.0...v2.15.1) (2026-05-07)
 
 
