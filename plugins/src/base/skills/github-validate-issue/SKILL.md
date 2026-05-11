@@ -84,7 +84,7 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | S7 Parent sub-issue declared | `structural` | false |
 | S8 Target Backend Environment | `technical` | false |
 | S9 Sign-in Required | `technical` | false |
-| S10 Single-repo scope | `scope` | true |
+| S10 Single-repo scope | `scope` | false |
 | S11 Validation Journey | `acceptance-criteria` | true |
 | S12 Source Precedence | `design-ux` | true |
 | S13 Relationship Search | `dependency` | true |
@@ -157,11 +157,13 @@ If the spec doesn't set `authenticated_surface`, infer it: scan the body and AC 
 
 #### S10 — Repository section, single-repo scope
 
-When `issue_type ∈ {Bug, Task, Sub-task}`, body must contain `## Repository` naming exactly one repo. Multiple repos OR cross-repo references in AC: FAIL with recommendation to split into per-repo issues under a shared Epic.
+When `issue_type ∈ {Bug, Task, Sub-task, Improvement}`, body must contain `## Repository` naming exactly one repo. Multiple repos OR cross-repo references in AC: FAIL with recommendation `"Split into per-repo work units under a shared parent Story (see lisa:task-decomposition step 1.5)"`.
 
-(GitHub Issues live in one repo by definition, so the `## Repository` section is technically redundant — keep it for parity with the JIRA path so downstream tooling sees the same shape.)
+(GitHub Issues live in one repo by definition, so the `## Repository` section is technically redundant — keep it for parity with the JIRA path so downstream tooling sees the same shape. Cross-repo references in AC are still possible and still fail this gate.)
 
-Story / Epic / Spike / Improvement: skipped (may span repos).
+Story / Epic / Spike: skipped (may span repos — these are coordination containers, not work units).
+
+This gate is `product_relevant: false` because cross-repo work units are not a product question — they are a decomposition error. Callers (`lisa:github-to-tracker`, `lisa:notion-to-tracker`, etc.) MUST pre-split cross-repo work into per-repo work units during the decomposition phase per `lisa:task-decomposition` step 1.5; an S10 failure here indicates the agent skipped that step and must auto-split + revalidate before writing, not surface a clarifying comment to product.
 
 #### S11 — Validation Journey present
 

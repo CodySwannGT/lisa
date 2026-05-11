@@ -1,6 +1,16 @@
 {
   "exclusions": [
     {
+      "id": "GHSA-v39h-62p7-jpjc",
+      "package": "fast-uri",
+      "reason": "Host confusion via percent-encoded authority delimiters — transitive via ajv inside @eslint/eslintrc and @commitlint/config-validator, parses $refs in our own ESLint/commitlint config schemas, no attacker-controlled URI input"
+    },
+    {
+      "id": "GHSA-q3j6-qgpj-74h6",
+      "package": "fast-uri",
+      "reason": "Path traversal via percent-encoded dot segments — transitive via ajv inside @eslint/eslintrc and @commitlint/config-validator, parses $refs in our own ESLint/commitlint config schemas, no attacker-controlled URI input"
+    },
+    {
       "id": "GHSA-xxjr-mmjv-4gpg",
       "package": "lodash",
       "reason": "Prototype pollution in _.unset/_.omit — transitive via conventional-changelog, devDeps only, no untrusted input"
