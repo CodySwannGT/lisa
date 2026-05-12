@@ -1219,25 +1219,26 @@ jobs:
 
       - name: 📋 Load audit exclusions
         id: audit_exclusions
+        shell: bash
         run: |
+          # Disable -e so jq exiting non-zero (e.g. on an empty/missing
+          # `.exclusions` array under `set -e`) does not abort the step.
+          # An exclusion file that doesn't parse should yield zero
+          # exclusions, not a failed build.
+          set +e
           GHSA_IDS=""
           CVE_IDS=""
           for config_file in audit.ignore.config.json audit.ignore.local.json; do
-            if [ -f "$config_file" ]; then
-              FILE_IDS=$(jq -r '.exclusions[].id' "$config_file" 2>/dev/null)
-              if [ -n "$FILE_IDS" ]; then
-                GHSA_IDS="$GHSA_IDS $FILE_IDS"
-              fi
-              FILE_CVES=$(jq -r '.exclusions[] | select(.cve != null) | .cve' "$config_file" 2>/dev/null)
-              if [ -n "$FILE_CVES" ]; then
-                CVE_IDS="$CVE_IDS $FILE_CVES"
-              fi
-            fi
+            if [ ! -f "$config_file" ]; then continue; fi
+            FILE_IDS=$(jq -r '.exclusions[]?.id // empty' "$config_file" 2>/dev/null)
+            [ -n "$FILE_IDS" ] && GHSA_IDS="$GHSA_IDS $FILE_IDS"
+            FILE_CVES=$(jq -r '.exclusions[]? | select(.cve != null) | .cve' "$config_file" 2>/dev/null)
+            [ -n "$FILE_CVES" ] && CVE_IDS="$CVE_IDS $FILE_CVES"
           done
           GHSA_IDS=$(echo "$GHSA_IDS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
           CVE_IDS=$(echo "$CVE_IDS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          echo "ghsa_ids=$GHSA_IDS" >> $GITHUB_OUTPUT
-          echo "cve_ids=$CVE_IDS" >> $GITHUB_OUTPUT
+          echo "ghsa_ids=$GHSA_IDS" >> "$GITHUB_OUTPUT"
+          echo "cve_ids=$CVE_IDS" >> "$GITHUB_OUTPUT"
           echo "Loaded GHSA exclusions: $GHSA_IDS"
           echo "Loaded CVE exclusions: $CVE_IDS"
         working-directory: ${{ inputs.working_directory || '.' }}
