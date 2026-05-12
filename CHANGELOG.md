@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.4](https://github.com/CodySwannGT/lisa/compare/vv2.16.3...v2.16.4) (2026-05-12)
+
+
+### Bug Fixes
+
+* **quality:** harden audit-exclusions loader against set -e ([#470](https://github.com/CodySwannGT/lisa/issues/470)) ([0d81b56](https://github.com/CodySwannGT/lisa/commit/0d81b56ece1946bb84ed924aba99e0bc7a79e000)), closes [#635](https://github.com/CodySwannGT/lisa/issues/635)
+
 ### [2.16.3](https://github.com/CodySwannGT/lisa/compare/vv2.16.2...v2.16.3) (2026-05-12)
 
 
