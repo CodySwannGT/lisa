@@ -82,6 +82,12 @@ jest.mock("expo-router", () => ({
       setOptions: jest.fn(),
     })),
   })),
+  // Invoke the callback synchronously so screens that rely on it for
+  // mount-time effects behave like a focused screen under test.
+  useFocusEffect: jest.fn((callback: () => (() => void) | void) => {
+    callback();
+  }),
+  useIsFocused: jest.fn(() => true),
   Link: ({ children }: { children: React.ReactNode }) => children,
   Stack: {
     Screen: () => null,
