@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.2](https://github.com/CodySwannGT/lisa/compare/vv2.16.1...v2.16.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* **expo:** restore useFocusEffect/useIsFocused mocks in jest.setup.ts ([#468](https://github.com/CodySwannGT/lisa/issues/468)) ([1ce1610](https://github.com/CodySwannGT/lisa/commit/1ce1610664ebc532c61542ef34624daa8cc45df5))
+
 ### [2.16.1](https://github.com/CodySwannGT/lisa/compare/vv2.16.0...v2.16.1) (2026-05-12)
 
 
