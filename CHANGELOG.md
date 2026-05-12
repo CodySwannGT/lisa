@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.1](https://github.com/CodySwannGT/lisa/compare/vv2.16.0...v2.16.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **templates:** bump axios floor to >=1.15.2 and exclude fast-uri advisories ([#467](https://github.com/CodySwannGT/lisa/issues/467)) ([1939ea5](https://github.com/CodySwannGT/lisa/commit/1939ea59a6da21381df622778de5a6f6aa3a19a4))
+
 ## [2.16.0](https://github.com/CodySwannGT/lisa/compare/vv2.15.1...v2.16.0) (2026-05-11)
 
 
