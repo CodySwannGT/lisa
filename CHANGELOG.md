@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.3](https://github.com/CodySwannGT/lisa/compare/vv2.16.2...v2.16.3) (2026-05-12)
+
+
+### Bug Fixes
+
+* **templates:** clarify fast-uri reachability via aws-cdk-lib ([#469](https://github.com/CodySwannGT/lisa/issues/469)) ([b11d385](https://github.com/CodySwannGT/lisa/commit/b11d385cf7d1a3069a01b4f9b9f20154dfafdf2a))
+
 ### [2.16.2](https://github.com/CodySwannGT/lisa/compare/vv2.16.1...v2.16.2) (2026-05-12)
 
 
