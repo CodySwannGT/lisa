@@ -48,7 +48,7 @@ Use the `jira-verify` skill to check the ticket against organizational standards
 **Gating behavior — this is the one place auto-transitioning is allowed:**
 
 If `jira-verify` returns `FAIL` on any of the above, do NOT continue:
-1. Transition the ticket status to `Blocked` (use `mcp__atlassian__transitionJiraIssue` or equivalent).
+1. Transition the ticket status to the configured `blocked` status (typically `Blocked` — read from `.lisa.config.json` `jira.workflow.blocked` if present, otherwise the project's standard blocked status). Use `mcp__atlassian__transitionJiraIssue` or equivalent.
 2. Reassign the ticket to the **Reporter** (the human who filed it — not the Creator field, which may be a bot/integration).
 3. Post a comment using `mcp__atlassian__addCommentToJiraIssue` listing each missing requirement with a one-line remediation. Prefix with `[{repo}]`.
 4. Stop. Do not run triage, do not delegate to a flow, do not start work.
@@ -108,17 +108,19 @@ Use the `jira-evidence` skill to:
 
 ### 8. Suggest Status Transition
 
-Based on the milestone, suggest (but don't auto-transition):
+Based on the milestone, suggest (but don't auto-transition). Status role names are resolved from `.lisa.config.json` `jira.workflow.*`:
 
-| Milestone | Suggested Status |
-|-----------|-----------------|
-| Plan created | In Progress |
-| PR ready | In Review |
-| PR merged | Done |
+| Milestone | Suggested role | Default status |
+|-----------|----------------|----------------|
+| Plan created | `claimed` | `In Progress` |
+| PR ready | (review-equivalent — project's code-review status) | `In Review` |
+| PR merged | `done` (env-aware) | `Done` (or env-keyed variant per `jira.workflow.done`) |
+
+Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`). When suggesting the PR-merged transition, the env is implied by the PR's base branch via `deploy.branches` — surface the resolved status name to the human; do not auto-transition.
 
 ## Rules
 
-- Never auto-transition ticket status, with one explicit exception: when `jira-verify` returns `FAIL` for the pre-flight gate (Step 2), transition to `Blocked` and reassign to the Reporter. Every other status change remains a suggestion the human confirms.
+- Never auto-transition ticket status, with one explicit exception: when `jira-verify` returns `FAIL` for the pre-flight gate (Step 2), transition to the configured `blocked` status and reassign to the Reporter. Every other status change remains a suggestion the human confirms.
 - Always read the full ticket graph via `jira-read-ticket` before determining intent — don't rely on ticket type alone
 - Never create or materially edit a ticket by calling MCP write tools directly — always delegate to `jira-write-ticket` so relationships, Gherkin criteria, and metadata gates are enforced
 - If sign-in credentials are in the ticket, extract and pass them to the flow. If the ticket touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.

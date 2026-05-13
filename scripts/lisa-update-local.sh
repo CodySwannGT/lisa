@@ -2,7 +2,7 @@
 #
 # Lisa Local Project Update
 #
-# Iterates over projects defined in .lisa.config.local.json, checks out their
+# Iterates over projects defined in .lisa.workspaces.json, checks out their
 # target branches, pulls latest changes, and updates @codyswann/lisa via the
 # project's package manager. The postinstall script automatically applies
 # Lisa templates.
@@ -19,7 +19,7 @@
 #
 # Prerequisites:
 #   - jq installed
-#   - .lisa.config.local.json exists in the project root
+#   - .lisa.workspaces.json exists in the project root
 #   - each project's package manager (bun, pnpm, yarn, or npm) installed
 #
 
@@ -27,7 +27,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LISA_ROOT="$(dirname "$SCRIPT_DIR")"
-CONFIG_FILE="$LISA_ROOT/.lisa.config.local.json"
+CONFIG_FILE="$LISA_ROOT/.lisa.workspaces.json"
 
 # Colors for output
 RED='\033[0;31m'
@@ -73,7 +73,7 @@ fi
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
   log_error "Config file not found: $CONFIG_FILE"
-  log_info "Create .lisa.config.local.json with project paths and target branches"
+  log_info "Create .lisa.workspaces.json with project paths and target branches"
   exit 1
 fi
 

@@ -63,6 +63,8 @@ dev-debug.log
 .env*.local
 .env.*.local
 .env.secrets
+.env.lisa
+.envrc
 
 # Test coverage
 coverage/

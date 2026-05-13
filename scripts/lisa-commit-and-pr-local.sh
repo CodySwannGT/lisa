@@ -2,7 +2,7 @@
 #
 # Lisa Local Project Commit & PR
 #
-# Iterates over projects defined in .lisa.config.local.json, creates
+# Iterates over projects defined in .lisa.workspaces.json, creates
 # date-stamped branches for any projects with uncommitted changes,
 # commits those changes, pushes to remote, and opens pull requests.
 #
@@ -19,14 +19,14 @@
 # Prerequisites:
 #   - jq installed
 #   - GitHub CLI (gh) installed and authenticated
-#   - .lisa.config.local.json exists in the project root
+#   - .lisa.workspaces.json exists in the project root
 #
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LISA_ROOT="$(dirname "$SCRIPT_DIR")"
-CONFIG_FILE="$LISA_ROOT/.lisa.config.local.json"
+CONFIG_FILE="$LISA_ROOT/.lisa.workspaces.json"
 
 # Colors for output
 RED='\033[0;31m'
@@ -77,7 +77,7 @@ fi
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
   log_error "Config file not found: $CONFIG_FILE"
-  log_info "Create .lisa.config.local.json with project paths and target branches"
+  log_info "Create .lisa.workspaces.json with project paths and target branches"
   exit 1
 fi
 

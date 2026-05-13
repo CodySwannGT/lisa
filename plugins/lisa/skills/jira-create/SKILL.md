@@ -1,12 +1,14 @@
 ---
 name: jira-create
 description: This skill should be used when creating JIRA epics, stories, and tasks from code files or descriptions. It analyzes the provided input, determines the appropriate issue hierarchy, and creates issues with comprehensive quality requirements including test-first development and documentation.
-allowed-tools: ["Read", "Glob", "LS", "Skill", "mcp__atlassian__getVisibleJiraProjects", "mcp__atlassian__getJiraProjectIssueTypesMetadata", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Read", "Glob", "LS", "Skill"]
 ---
 
 # Create JIRA Issues from $ARGUMENTS
 
-Analyze the provided file(s) and plan a JIRA hierarchy. **This skill plans structure only — every individual ticket write is delegated to `lisa:jira-write-ticket`.** Do not call `mcp__atlassian__createJiraIssue` from this skill; the necessary write tools are intentionally not in `allowed-tools`.
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
+
+Analyze the provided file(s) and plan a JIRA hierarchy. **This skill plans structure only — every individual ticket write is delegated to `lisa:jira-write-ticket`.** Do not invoke `lisa:atlassian-access` write operations directly from this skill — all writes go through `lisa:jira-write-ticket`.
 
 ## Process
 
@@ -110,7 +112,7 @@ Exclude unless requested: migration plans, performance tests
 
 ## Delegation to jira-write-ticket
 
-**Mandatory.** Every ticket created by this skill MUST go through `lisa:jira-write-ticket`. This skill never calls `mcp__atlassian__createJiraIssue` itself — that tool is intentionally excluded from `allowed-tools` so the gate cannot be bypassed.
+**Mandatory.** Every ticket created by this skill MUST go through `lisa:jira-write-ticket`. This skill never invokes `lisa:atlassian-access` write operations itself — all writes are delegated so the gate cannot be bypassed.
 
 `lisa:jira-write-ticket` enforces things this skill does not, and which determine ticket quality:
 - 3-audience description (Context / Technical Approach / Acceptance Criteria)
