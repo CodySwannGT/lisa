@@ -11,13 +11,16 @@ Single chokepoint for all Notion operations. Routes each op to a substrate, enfo
 ## Invocation contract
 
 ```text
-operation: read-page         id: <uuid>
-operation: write-page        payload: {...}        # update page properties
-operation: archive-page      id: <uuid>
-operation: query-database    id: <uuid> filter: {...} sort: {...}
-operation: read-database     id: <uuid>
-operation: append-blocks     page_id: <uuid> children: [...]
-operation: search            query: "..." [filter: { object: "page" }]
+operation: read-page                    id: <uuid>
+operation: write-page                   payload: {...}        # update page properties
+operation: archive-page                 id: <uuid>
+operation: query-database               id: <uuid> filter: {...} sort: {...}
+operation: read-database                id: <uuid>
+operation: append-blocks                page_id: <uuid> children: [...]
+operation: list-comments                block_id: <uuid>
+operation: create-comment               page_id: <uuid> rich_text: [...]
+operation: create-comment-on-block      block_id: <uuid> rich_text: [...]
+operation: search                       query: "..." [filter: { object: "page" }]
 operation: list-users
 operation: get-self
 ```
@@ -157,18 +160,21 @@ Wrap the JSON response in a `<result>` block for caller parsing. On HTTP non-2xx
 ```bash
 exec_op() {
   local method="$1" path="$2" body="${3:-}"
+  local resp_file
+  resp_file="$(mktemp)"
+  trap 'rm -f "$resp_file"' RETURN
   local args=( -s -X "$method"
     -H "Authorization: Bearer $TOKEN"
     -H "Notion-Version: 2022-06-28" )
   [ -n "$body" ] && args+=( -H "Content-Type: application/json" --data-binary "$body" )
-  local code=$(curl "${args[@]}" -o /tmp/notion-resp -w "%{http_code}" \
+  local code=$(curl "${args[@]}" -o "$resp_file" -w "%{http_code}" \
     "https://api.notion.com/v1${path}")
   if [ "${code:0:1}" != "2" ]; then
     echo "Error: Notion API $method $path returned HTTP $code" >&2
-    cat /tmp/notion-resp >&2
+    cat "$resp_file" >&2
     return 1
   fi
-  cat /tmp/notion-resp
+  cat "$resp_file"
 }
 ```
 

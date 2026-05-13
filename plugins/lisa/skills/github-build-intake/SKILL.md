@@ -126,9 +126,17 @@ gh issue list --repo <org>/<repo> --label "$READY" --state open --json number,ti
 If empty, run a secondary check to distinguish a genuinely empty queue from an unconfigured repo:
 
 ```bash
+# When done is an env-keyed map, collect all possible done values; otherwise use the resolved $DONE.
+DONE_TYPE=$(jq -r 'if (.github.labels.build.done // null | type) == "object" then "object" else "string" end' .lisa.config.json 2>/dev/null || echo "string")
+if [ "$DONE_TYPE" = "object" ]; then
+  DONE_VALUES=$(jq -r '(.github.labels.build.done // {}) | to_entries[] | .value' .lisa.config.json 2>/dev/null | tr '\n' ' ')
+else
+  DONE_VALUES="$DONE"
+fi
+
 gh label list --repo <org>/<repo> --json name \
-  | jq -r --arg r "$READY" --arg c "$CLAIMED" --arg v "$REVIEW" --arg d "$DONE" \
-      '[.[] | .name | select(. == $r or . == $c or . == $v or . == $d)] | length'
+  | jq -r --arg r "$READY" --arg c "$CLAIMED" --arg v "$REVIEW" --arg dones "$DONE_VALUES" \
+      '[.[] | .name | select(. == $r or . == $c or . == $v or (. as $n | $dones | split(" ") | map(select(. != "")) | index($n) != null))] | length'
 ```
 
 If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
@@ -208,7 +216,7 @@ Total PRs opened: <n>
 - **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. Every other label change is owned by `lisa:github-agent`.
 - **Failure isolation**: per-issue exceptions caught and recorded; the cycle continues.
 - **Single cycle per repo**: do not run two `lisa:github-build-intake` cycles in parallel against the same repo — concurrent claims could race. The scheduling layer is responsible for serialization.
-- **Single-label invariant**: after every transition, verify exactly one `status:*` label is present on the issue. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve.
+- **Single-label invariant**: after every transition, verify exactly one role label (from the configured `$READY`, `$CLAIMED`, `$REVIEW`, `$DONE` set) is present on the issue. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve.
 - **Never pick an arbitrary env for `$DONE`**. If `done` is a map and env is ambiguous, fail loudly.
 
 ## Configuration
@@ -236,7 +244,7 @@ If the repo has not adopted the `status:*` label namespace, this skill cannot ru
 
 ## Adoption (one-time per repo)
 
-Before this skill can run, the repo must adopt the `status:*` label namespace. Using the defaults:
+Before this skill can run, the repo must create the configured role labels. Using the default label names:
 
 1. Create the labels:
    ```bash
