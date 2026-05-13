@@ -1,10 +1,12 @@
 ---
 name: jira-verify
 description: This skill should be used when verifying that a JIRA ticket meets organizational standards for epic relationships and description quality. It fetches the live ticket and delegates the gate checks to jira-validate-ticket so the bar matches what jira-write-ticket enforces pre-write.
-allowed-tools: ["Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Skill"]
 ---
 
 # Verify JIRA Ticket: $ARGUMENTS
+
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
 
 Verify that the existing JIRA ticket `$ARGUMENTS` meets organizational standards. This skill is a thin post-write wrapper around `lisa:jira-validate-ticket`: it fetches the live ticket and asks `lisa:jira-validate-ticket` to run the gates against the fetched state.
 
@@ -12,8 +14,8 @@ This indirection exists so the gate definitions live in exactly one place (`lisa
 
 ## Process
 
-1. Resolve cloud ID via `mcp__atlassian__getAccessibleAtlassianResources`.
-2. Fetch the ticket via `mcp__atlassian__getJiraIssue` for `$ARGUMENTS`. Pull issue type, summary, description, parent, links, labels, components, and any custom fields needed.
+1. Invoke `lisa:atlassian-access` via the Skill tool with `operation: list-sites` to confirm the configured site is reachable (the access skill enforces connection match against `.lisa.config.json`).
+2. Fetch the ticket via `lisa:atlassian-access` `operation: read-ticket key: $ARGUMENTS`. Pull issue type, summary, description, parent, links, labels, components, and any custom fields needed.
 3. Invoke `lisa:jira-validate-ticket` and pass the ticket key. The validator fetches its own copy if needed and runs every gate (Specification + Feasibility) against the live state.
 4. Surface the validator's report verbatim to the caller.
 

@@ -199,6 +199,7 @@ expo-env.d.ts
 .track-plan-debug.log
 
 .lisa.config.local.json
+.lisa.workspaces.json
 
 # Built Claude Code plugins are committed so the GitHub marketplace works.
 # Regenerate with: bun run build:plugins
