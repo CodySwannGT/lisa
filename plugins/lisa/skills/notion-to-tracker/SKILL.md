@@ -14,8 +14,6 @@ description: >
 Convert a Notion PRD into a structured ticket hierarchy in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json): Epics > Stories > Sub-tasks.
 Each sub-task is scoped to exactly one repo and includes an empirical verification plan.
 
-> **Notion access policy**: all Notion operations in this skill go through `lisa:notion-access`. Do not call Notion REST APIs (`api.notion.com/...`), Notion MCP tools (`mcp__*notion*`), or the `@notionhq/client` library directly. Invoke `lisa:notion-access` via the Skill tool with an operation name and arguments per its dispatch table.
-
 ## Modes
 
 This skill supports two modes, controlled by a `dry_run` flag in `$ARGUMENTS`:
@@ -56,7 +54,7 @@ Dry-run output format:
 ### Total failures: <n>
 ```
 
-`prd_anchor` and `prd_section` exist so downstream callers (notably `lisa:notion-prd-intake`) can post block-anchored Notion comments via `lisa:notion-access` operation `create-comment`. Build them as you parse the PRD: when you assign a planned ticket to a heading, user-story line, or AC bullet, capture the first ~10 and last ~10 characters of that section's text and emit them in the report. If a planned ticket genuinely doesn't trace to a specific section (cross-cutting infrastructure, derived sub-tasks), set both fields to `null` — the caller will fall back to a page-level comment.
+`prd_anchor` and `prd_section` exist so downstream callers (notably `lisa:notion-prd-intake`) can post block-anchored Notion comments via `notion-create-comment` with `selection_with_ellipsis`. Build them as you parse the PRD: when you assign a planned ticket to a heading, user-story line, or AC bullet, capture the first ~10 and last ~10 characters of that section's text and emit them in the report. If a planned ticket genuinely doesn't trace to a specific section (cross-cutting infrastructure, derived sub-tasks), set both fields to `null` — the caller will fall back to a page-level comment.
 
 The `failures` array passes the validator's `Failure details` block through verbatim. Do not re-format `what` or `recommendation` here — those fields are already product-readable per the validator's contract, and re-summarizing risks losing concrete recommendations.
 
@@ -112,10 +110,10 @@ If env vars are not available, ask the user to provide them explicitly before pr
 
 ### Phase 1: Fetch & Analyze the PRD
 
-1. **Fetch the main PRD page** by invoking `lisa:notion-access` via the Skill tool with operation `read-page` and `id: <PRD-page-id>`. The returned payload includes the page's properties and content blocks.
-2. **Identify all Epic sub-pages** from the content (look for child page references in the returned block tree).
-3. **Fetch all Epic pages** in parallel — for each child page ID, invoke `lisa:notion-access` operation `read-page`.
-4. **Fetch full comments** from every page by invoking `lisa:notion-access` operation `list-comments` with `block_id: <page-id>` (page comments and block-anchored comments alike). If `list-comments` is not in the access skill's dispatch table yet, surface that to the caller — comments are required for engineering-decision synthesis below.
+1. **Fetch the main PRD page** with `include_discussions: true`
+2. **Identify all Epic sub-pages** from the content (look for child page links)
+3. **Fetch all Epic pages** in parallel with `include_discussions: true`
+4. **Fetch full comments** from every page using `notion-get-comments` with `include_all_blocks: true`
 5. **Synthesize decisions and blockers** from the PRD content + all comments:
    - Decisions already confirmed by the team (look for agreement in comment threads)
    - Open questions that need product/engineering input

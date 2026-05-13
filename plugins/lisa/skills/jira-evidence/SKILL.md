@@ -1,26 +1,9 @@
 ---
 name: jira-evidence
-description: "Upload text evidence to GitHub pr-assets release, update PR description, post JIRA comment with code blocks, and move ticket to the configured code-review status. Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md."
+description: "Upload text evidence to GitHub pr-assets release, update PR description, post JIRA comment with code blocks, and move ticket to Code Review. Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md."
 ---
 
 # JIRA Evidence Posting
-
-## Workflow resolution
-
-The post-build review status is read from `.lisa.config.json` `jira.workflow.review` (or `jira.workflow.code_review`), falling back to `Code Review`. JIRA does not have a separate `review` role in the canonical config schema (the build lifecycle stays in `claimed` until `done`); this skill uses the project's actual post-build review status when one exists. If the configured status is not a valid transition from the ticket's current state, log a warning and skip the transition — the human will handle it.
-
-```bash
-REVIEW="Code Review"
-if [ -f .lisa.config.json ]; then
-  _cfg=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.json 2>/dev/null)
-  [ -n "$_cfg" ] && REVIEW="$_cfg"
-fi
-if [ -f .lisa.config.local.json ]; then
-  _local=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.local.json 2>/dev/null)
-  [ -n "$_local" ] && REVIEW="$_local"
-fi
-```
-
 
 Upload captured evidence and generated templates to GitHub PR description and JIRA ticket. This skill is the posting step — it assumes evidence files and comment templates already exist in the evidence directory.
 
@@ -60,7 +43,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 2. **Upload to GitHub `pr-assets` release** — Uploads evidence files via `gh release upload --clobber`
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body
 4. **Post JIRA comment** — Posts `comment.txt` as a new comment (wiki markup with code blocks)
-5. **Move ticket to the configured review status** — Transitions the JIRA ticket to `$REVIEW` (default: `Code Review`).
+5. **Move ticket to Code Review** — Transitions the JIRA ticket
 
 ## Evidence Naming Convention
 

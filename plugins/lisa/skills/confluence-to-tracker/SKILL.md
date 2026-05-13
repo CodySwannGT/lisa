@@ -7,12 +7,10 @@ description: >
   or similar. This skill mirrors `lisa:notion-to-tracker` for projects whose PRDs live in Confluence —
   the workflow, gates, dry-run mode, and validation rules are identical; only the source-of-truth tool
   surface differs (Confluence MCP instead of Notion MCP).
-allowed-tools: ["Skill", "Bash"]
+allowed-tools: ["Skill", "Bash", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__getConfluencePageFooterComments", "mcp__atlassian__getConfluencePageInlineComments", "mcp__atlassian__getConfluenceCommentChildren", "mcp__atlassian__searchConfluenceUsingCql", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
 # Confluence PRD to Tracker Breakdown
-
-All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
 
 Convert a Confluence PRD into a structured ticket hierarchy in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json): Epics > Stories > Sub-tasks.
 Each sub-task is scoped to exactly one repo and includes an empirical verification plan.
@@ -31,9 +29,8 @@ This skill supports two modes, controlled by a `dry_run` flag in `$ARGUMENTS`:
 
 Dry-run output format is identical to `lisa:notion-to-tracker`'s. Reuse the same fields, including
 `prd_anchor` and `prd_section`. The only difference: `prd_anchor` is the inline-comment anchor text
-that `lisa:atlassian-access` `operation: comment-page kind: inline` accepts (typically the full
-selected substring; truncate if it exceeds the substrate's max anchor length and emit `null` if no
-resolvable anchor exists).
+that `createConfluenceInlineComment` accepts (typically the full selected substring; truncate if it
+exceeds the tool's max anchor length and emit `null` if no resolvable anchor exists).
 
 ```text
 ## confluence-to-tracker dry-run: <PRD title>
@@ -66,21 +63,13 @@ resolvable anchor exists).
 ### Total failures: <n>
 ```
 
-The dry-run mode never writes to the destination tracker. It also never modifies the source Confluence
-page, never re-parents the PRD between lifecycle parents, and never posts comments — that is the
+The dry-run mode never writes to JIRA and never calls `mcp__atlassian__createJiraIssue`. It also never
+modifies the source Confluence page, never adds/removes labels, and never posts comments — that is the
 orchestrating skill's responsibility (`lisa:confluence-prd-intake`).
-
-## PRD lifecycle is parent-page-based on Confluence
-
-Unlike GitHub and Linear (which use labels for PRD lifecycle state), Confluence encodes PRD lifecycle as **parent-page placement**: each lifecycle role (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`) corresponds to a dedicated parent page in the project's Confluence space, listed in `.lisa.config.json` under `confluence.parents.<role>`. A PRD's current state is determined by which of those parents it sits under; a "transition" is a `PUT /wiki/api/v2/pages/{id}` that swaps `parentId`.
-
-This skill itself does NOT transition the PRD between lifecycle parents — that is the orchestrating skill's job (`lisa:confluence-prd-intake`). This skill consumes the PRD content and produces tickets; lifecycle state changes (`ready` → `in_review`, `in_review` → `ticketed` / `blocked`) happen in the orchestrator, before and after this skill runs.
-
-Why parent-page-based, not label-based: scoped Atlassian API tokens cannot write Confluence labels via the v1 endpoint, and the v2 Label API group has no POST endpoint at all. Parent-id transitions, by contrast, are first-class in v2 and work with `write:page:confluence` scope. See `config-resolution` rule, section "Confluence PRD lifecycle uses parent pages, not labels," for the full rationale.
 
 ## Hard Rule: All Writes Go Through `lisa:tracker-write`
 
-**Every ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa:tracker-write` skill. Never invoke `lisa:atlassian-access` write operations (`write-ticket`, `link`, `comment`, `transition`) directly from this skill or from any sub-agent it spawns.**
+**Every JIRA ticket created by this skill — every epic, story, and sub-task — MUST be created by invoking the `lisa:tracker-write` skill. Never call `mcp__atlassian__createJiraIssue`, `mcp__atlassian__editJiraIssue`, `mcp__atlassian__createIssueLink`, or any other Atlassian write tool directly from this skill or from any sub-agent it spawns.**
 
 `lisa:tracker-write` enforces gates this skill does not:
 - 3-audience description (Context / Technical Approach / Acceptance Criteria)
@@ -91,7 +80,7 @@ Why parent-page-based, not label-based: scoped Atlassian API tokens cannot write
 - Sign-in account and target environment recorded in description
 - Post-create verification
 
-Bypassing `lisa:tracker-write` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. Read operations on Atlassian (ticket reads, JQL search, Confluence page reads, comment fetches) are still performed in this skill — but ONLY via `lisa:atlassian-access` (`operation: read-ticket | search-issues | read-page | search-pages | list-sites`), never via direct MCP tool calls or `acli`.
+Bypassing `lisa:tracker-write` produces thin tickets that the rest of the lifecycle (triage, ticket-verify, journey, evidence) treats as broken. The Atlassian read tools (`getJiraIssue`, `searchJiraIssuesUsingJql`, `getJiraIssueRemoteIssueLinks`, `getAccessibleAtlassianResources`, `getJiraProjectIssueTypesMetadata`, `getVisibleJiraProjects`, and the Confluence read endpoints listed in `allowed-tools` above) ARE allowed for context gathering and the Phase 5.5 preservation gate.
 
 ## Input
 
@@ -141,15 +130,14 @@ If env vars are not available, ask the user to provide them explicitly before pr
 
 ### Phase 1: Fetch & Analyze the PRD
 
-1. **Confirm the configured Atlassian site** by invoking `lisa:atlassian-access` `operation: list-sites` (it enforces connection match against `.lisa.config.json`).
-2. **Fetch the main PRD page** by invoking `lisa:atlassian-access` `operation: read-page id: <PAGE-ID>`. Capture body, parent page id (used by `lisa:confluence-prd-intake` to determine the PRD's lifecycle state — see "PRD lifecycle is parent-page-based" below), and child page references.
-3. **Identify all Epic child pages** by invoking `lisa:atlassian-access` `operation: read-page-descendants id: <PAGE-ID>` (one level deep first; recurse if the PRD nests epics under a "Specs" parent). If `atlassian-access` does not yet expose `read-page-descendants`, request its addition (see report at bottom).
-4. **Fetch all Epic pages** in parallel via `lisa:atlassian-access` `operation: read-page id: <EPIC-PAGE-ID>`.
-5. **Fetch full comments** for the main page and every epic page in parallel via `lisa:atlassian-access`:
-   - `operation: read-page-comments id: <PAGE-ID> kind: footer` — page-level threaded comments (equivalent to Notion's page-level discussions)
-   - `operation: read-page-comments id: <PAGE-ID> kind: inline` — block-anchored comments tied to specific text spans
-   - For any comment with replies, walk the tree via `operation: read-comment-children id: <COMMENT-ID>` until exhausted
-   (If any of these read-comment operations is not yet in `atlassian-access`'s dispatch table, request their addition — they are intentionally listed here so the access skill can be extended.)
+1. **Resolve the Atlassian cloud ID** via `mcp__atlassian__getAccessibleAtlassianResources`. Confluence MCP calls require it.
+2. **Fetch the main PRD page** via `mcp__atlassian__getConfluencePage` with the page ID. Capture body, labels, and child page references.
+3. **Identify all Epic child pages** via `mcp__atlassian__getConfluencePageDescendants` (one level deep first; recurse if the PRD nests epics under a "Specs" parent).
+4. **Fetch all Epic pages** in parallel via `getConfluencePage`.
+5. **Fetch full comments** for the main page and every epic page in parallel:
+   - `mcp__atlassian__getConfluencePageFooterComments` — page-level threaded comments (equivalent to Notion's page-level discussions)
+   - `mcp__atlassian__getConfluencePageInlineComments` — block-anchored comments tied to specific text spans
+   - For any comment with replies, walk the tree via `mcp__atlassian__getConfluenceCommentChildren` until exhausted
 6. **Synthesize decisions and blockers** from the PRD content + all comments:
    - Decisions already confirmed by the team (look for agreement in comment threads)
    - Open questions that need product/engineering input
@@ -192,13 +180,13 @@ Identical to `lisa:notion-to-tracker` Phase 2. Two complementary inputs ground P
 
 Skip 2b only when the work is purely backend with no user-visible surface, or affects a screen that does not yet exist in dev/prod.
 
-Walkthrough findings are attached to the originating Confluence PRD as a **footer comment** (Confluence has no general "page-level discussion attached to a heading" — footer comments are the page-level equivalent), via `lisa:atlassian-access` `operation: comment-page id: <PAGE-ID> kind: footer body: "..."`. Title the comment "Current product walkthrough — `<route>`". Inherited onto the resulting epic / stories under a `## Current Product` subsection.
+Walkthrough findings are attached to the originating Confluence PRD as a **footer comment** (Confluence has no general "page-level discussion attached to a heading" — footer comments are the page-level equivalent), via `mcp__atlassian__createConfluenceFooterComment`. Title the comment "Current product walkthrough — `<route>`". Inherited onto the resulting epic / stories under a `## Current Product` subsection.
 
 ### Phase 3: Create Epics
 
 > **Mode guard**: In `dry_run: true` mode, do not invoke `lisa:tracker-write` in this phase. Instead, draft the epic spec (summary, description_body, artifacts) and validate it with `lisa:tracker-validate --spec-only`. Record the drafted spec (including a placeholder epic key like `DRY-RUN-EPIC-1`) for Phase 4 to use as parent references. In `dry_run: false` mode (default), proceed as described below.
 
-For each PRD epic, **invoke the `lisa:tracker-write` skill** (do not invoke `lisa:atlassian-access` write operations directly). Pass it everything it needs to enforce its quality gates:
+For each PRD epic, **invoke the `lisa:tracker-write` skill** (do not call `createJiraIssue` directly). Pass it everything it needs to enforce its quality gates:
 
 - `project_key`: resolved by `lisa:tracker-write` from `.lisa.config.json`
 - `issue_type`: `Epic`
@@ -248,7 +236,7 @@ Capture each returned story key — Phase 5 needs it as the parent for sub-tasks
 
 **Auto-split cross-repo work before delegation.** For each candidate sub-task, apply `lisa:task-decomposition` step 1.5: if the work touches more than one repo, split it into one sub-task per repo under the same parent Story (e.g., `[backend-api] Add field` + `[mobile-app] Display field`), and encode the producer-before-consumer ordering via dependencies. Work units that may span repos (Epic, Story, Spike) stay as planned; work units that must be single-repo (Bug, Task, Sub-task, Improvement) are split now. Splitting is this skill's responsibility — the validator's S10 gate is `product_relevant: false` because cross-repo failures are decomposition errors caught here, not product questions sent back to the PRD.
 
-Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency. **Every spawned agent must invoke `lisa:tracker-write` for each sub-task — no agent may invoke `lisa:atlassian-access` write operations directly.**
+Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency. **Every spawned agent must invoke `lisa:tracker-write` for each sub-task — no agent may call `createJiraIssue` directly.**
 
 Each sub-task MUST:
 1. **Be scoped to exactly ONE repo** — indicated in brackets in the summary: `[repo-name]`
@@ -305,17 +293,16 @@ When you encounter something the PRD + comments + codebase can't resolve:
 
 ## Agent Prompt Template for Sub-task Creation
 
-When delegating to agents, provide this context. **The "MUST invoke lisa:tracker-write" instruction is load-bearing — do not edit it out when adapting this template.**
+When delegating to agents, provide this context. **The "MUST invoke jira-write-ticket" instruction is load-bearing — do not edit it out when adapting this template.**
 
 ```text
-Create sub-tasks in the [PROJECT] project.
+Create JIRA sub-tasks in the [PROJECT] project at [CLOUD_ID].
 
 CRITICAL: For each sub-task, invoke the `lisa:tracker-write` skill via the Skill tool.
-Do NOT invoke `lisa:atlassian-access` write operations (write-ticket / link / comment /
-transition) directly. The `lisa:tracker-write` skill enforces required quality gates
-(Gherkin acceptance criteria, 3-audience description, single-repo scope,
-sign-in/environment fields, post-create verification). Bypassing it produces broken
-tickets that downstream skills (triage, journey, evidence) cannot use.
+Do NOT call `mcp__atlassian__createJiraIssue` directly. The `lisa:tracker-write` skill
+enforces required quality gates (Gherkin acceptance criteria, 3-audience description,
+single-repo scope, sign-in/environment fields, post-create verification). Bypassing it
+produces broken tickets that downstream skills (triage, journey, evidence) cannot use.
 
 For each sub-task, invoke `lisa:tracker-write` with:
 - issue_type: "Sub-task"
@@ -333,10 +320,10 @@ For each sub-task, invoke `lisa:tracker-write` with:
 Each sub-task must:
 1. Be scoped to ONE repo only — repo named in brackets in the summary
 2. Include the Empirical Verification Plan in the description
-3. Be created via `lisa:tracker-write`, not via direct `lisa:atlassian-access` write operations
+3. Be created via `lisa:tracker-write`, not via direct MCP calls
 
 If `lisa:tracker-write` rejects a sub-task, fix the input and re-invoke. Do NOT fall back
-to a direct `lisa:atlassian-access` `operation: write-ticket` call to bypass the gate.
+to a direct `createJiraIssue` call to bypass the gate.
 
 Test user info: [credentials from config]
 
