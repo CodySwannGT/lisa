@@ -20,7 +20,7 @@ This skill is the GitHub counterpart of `lisa:notion-to-tracker` / `lisa:conflue
 
 ## What "PRD" means in GitHub Issues
 
-GitHub Issues has no native "PRD" entity. This skill treats a single GitHub Issue (carrying the configured `ready` PRD label — `github.labels.prd.ready`, default `prd-ready`) as the PRD container:
+GitHub Issues has no native "PRD" entity. This skill treats a single GitHub Issue (carrying the `prd-ready` label) as the PRD container:
 
 - **Issue body** (markdown) is the PRD body — equivalent to a Notion page body, a Confluence page body, or a Linear project description.
 - **Sub-issues** (native GitHub sub-issues, traversable via `gh api graphql`) act as the candidate set for Epics or User Stories — the same role child Epic pages play in a Notion/Confluence PRD.
@@ -92,7 +92,7 @@ A GitHub issue ref. The PRD is expected to have:
 - An issue body containing context, problems, and (optionally) a list of user stories.
 - One or more sub-issues that act as candidate Epics or user stories (optional — single-issue PRDs are valid).
 - Issue comments capturing engineering notes and product decisions.
-- The configured `ready` PRD label (`github.labels.prd.ready`, default `prd-ready` — if invoked from `lisa:github-prd-intake`; for ad-hoc / direct invocation the label is informational, not gating).
+- The `prd-ready` label (if invoked from `lisa:github-prd-intake`; for ad-hoc / direct invocation the label is informational, not gating).
 
 URL parsing — accept either:
 

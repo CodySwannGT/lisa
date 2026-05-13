@@ -1,12 +1,10 @@
 ---
 name: jira-read-ticket
 description: "Fetches the full scope of a JIRA ticket — metadata, description, acceptance criteria, all comments, remote links (PRs, Confluence, dashboards), issue links (blocks/is blocked by/relates to/duplicates/clones), epic parent with siblings, and subtasks. Produces a consolidated context bundle that downstream agents consume so they never act on a single ticket in isolation."
-allowed-tools: ["Bash", "Skill"]
+allowed-tools: ["Bash", "mcp__atlassian__getJiraIssue", "mcp__atlassian__getJiraIssueRemoteIssueLinks", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 
 # Read JIRA Ticket: $ARGUMENTS
-
-All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
 
 Fetch the full scope of the ticket AND its related graph. Downstream agents must never act on a ticket in isolation — always call this skill first so they see blockers, epic siblings, linked PRs, and historical comments.
 
@@ -14,12 +12,12 @@ Repository name for scoped comments and logs: `basename $(git rev-parse --show-t
 
 ## Phase 1 — Resolve Context
 
-1. Invoke `lisa:atlassian-access` via the Skill tool with `operation: list-sites` to confirm the configured site is reachable and resolve the cloud ID.
+1. Call `mcp__atlassian__getAccessibleAtlassianResources` to get the cloud ID.
 2. If $ARGUMENTS is not a ticket key (e.g. `PROJ-123`), stop and report. Do NOT guess.
 
 ## Phase 2 — Fetch Primary Ticket
 
-Invoke `lisa:atlassian-access` via the Skill tool with `operation: read-ticket key: <TICKET-KEY>` for the target ticket. Extract and preserve:
+Call `mcp__atlassian__getJiraIssue` for the target ticket. Extract and preserve:
 
 ### Metadata
 
@@ -62,7 +60,7 @@ Fetch ALL comments in chronological order. Do not truncate. For each:
 
 ## Phase 3 — Fetch Remote Links
 
-The primary ticket payload returned by `lisa:atlassian-access` `operation: read-ticket` includes the issue's remote links. If the substrate returns remote links separately, request them via `lisa:atlassian-access` with `operation: read-ticket key: <K>` (the operation MUST return remote links — extend `atlassian-access` if it doesn't). For each remote link:
+Call `mcp__atlassian__getJiraIssueRemoteIssueLinks`. For each remote link:
 
 - **GitHub PR or commit** (`github.com/.../(pull|commit)/...`): run `gh pr view <url> --json title,state,body,mergedAt,reviewDecision,comments,reviews` (for PRs) or `gh api repos/<owner>/<repo>/commits/<sha>` (for commits). Capture title, state, body, unresolved review comments, merge status.
 - **Confluence page**: capture title and URL. Do not fetch body unless a downstream task explicitly needs it.
@@ -80,7 +78,7 @@ Every linked ticket must be fetched. Do not skip any link type. For each link in
 - `clones` / `is cloned by`
 - Any other custom link types configured in the project
 
-For each linked ticket, invoke `lisa:atlassian-access` with `operation: read-ticket key: <LINKED-KEY>` and capture:
+For each linked ticket, call `mcp__atlassian__getJiraIssue` and capture:
 
 - Key, summary, type, status, resolution
 - Description (full, unless closed with resolution `Won't Do`/`Duplicate` — then summary only)
@@ -94,19 +92,19 @@ For each linked ticket, invoke `lisa:atlassian-access` with `operation: read-tic
 
 If the primary ticket has an epic parent (or IS an epic):
 
-1. Fetch the epic itself via `lisa:atlassian-access` `operation: read-ticket key: <EPIC-KEY>` — full description, acceptance criteria, all comments, Validation Journey.
+1. Fetch the epic itself via `mcp__atlassian__getJiraIssue` — full description, acceptance criteria, all comments, Validation Journey.
 2. Find epic siblings via JQL:
    ```jql
    "Epic Link" = <EPIC-KEY> AND key != <TICKET-KEY>
    ```
-   Invoke `lisa:atlassian-access` with `operation: search-issues jql: "<above-JQL>"`. For each sibling capture: key, summary, type, status, assignee, priority.
+   Use `mcp__atlassian__searchJiraIssuesUsingJql`. For each sibling capture: key, summary, type, status, assignee, priority.
 3. Read each sibling's description at a SUMMARY level (first paragraph only) — the goal is to surface related in-flight work, not duplicate full content. If a sibling is `In Progress` or `In Review` with an assignee different from the current ticket, flag it prominently.
 
 If the primary ticket IS an epic, also fetch all children via the JQL above.
 
 ## Phase 6 — Fetch Subtasks
 
-If the primary ticket has subtasks, fetch each via `lisa:atlassian-access` `operation: read-ticket key: <SUBTASK-KEY>`: key, summary, type, status, assignee, description (first paragraph), acceptance criteria.
+If the primary ticket has subtasks, fetch each via `mcp__atlassian__getJiraIssue`: key, summary, type, status, assignee, description (first paragraph), acceptance criteria.
 
 ## Phase 7 — Assemble Context Bundle
 

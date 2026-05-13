@@ -1,6 +1,6 @@
 ---
 name: github-build-intake
-description: "GitHub counterpart to lisa:jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, claims each by relabeling to the configured `claimed` label, runs the implementation/build flow via lisa:github-agent, and relabels to the configured `done` label on completion. The `ready` label is the human-flipped signal that an issue is truly ready for development — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "GitHub counterpart to lisa:jira-build-intake. Scans a GitHub repository for issues labeled `status:ready`, claims each by relabeling to `status:in-progress`, runs the implementation/build flow via lisa:github-agent, and relabels to `status:on-dev` on completion. The `status:ready` label is the human-flipped signal that an issue is truly ready for development — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -12,64 +12,11 @@ allowed-tools: ["Skill", "Bash"]
 2. A full GitHub repo URL (e.g., `https://github.com/acme/frontend-v2`).
 3. The literal token `github` — falls back to `.lisa.config.json` (`github.org` / `github.repo`).
 
-Run one build-intake cycle. Each issue in the configured `ready` build label is claimed, built via the `lisa:github-agent` flow, and relabeled to the configured `done` label (env-aware — see Workflow resolution). The cycle is the symmetric mirror of `lisa:notion-prd-intake`: humans flip the `ready` label, agents pick up and progress.
-
-## Workflow resolution
-
-Build-queue label names are read from `.lisa.config.json` `github.labels.build.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
-
-```bash
-# Read role with default fallback. Local overrides global per-key.
-read_role() {
-  local role="$1" default="$2"
-  local local_v global_v
-  local_v=$(jq -r ".github.labels.build.${role} // empty" .lisa.config.local.json 2>/dev/null)
-  global_v=$(jq -r ".github.labels.build.${role} // empty" .lisa.config.json 2>/dev/null)
-  echo "${local_v:-${global_v:-$default}}"
-}
-
-READY=$(read_role ready "status:ready")
-CLAIMED=$(read_role claimed "status:in-progress")
-REVIEW=$(read_role review "status:code-review")
-```
-
-For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
-
-1. Explicit caller arg (`target_env=staging`) wins.
-2. Otherwise, infer the env from the PR's base branch via `deploy.branches` (reverse lookup).
-3. If `done` is a **string** in config, use it directly regardless of env.
-4. If `done` is a **map** and env cannot be resolved, **fail loudly** — do not pick arbitrarily.
-
-```bash
-TARGET_ENV="${target_env:-}"
-if [ -z "$TARGET_ENV" ] && [ -n "$PR_BASE_BRANCH" ]; then
-  TARGET_ENV=$(jq -r --arg b "$PR_BASE_BRANCH" \
-    '.deploy.branches // {} | to_entries[] | select(.value == $b) | .key' \
-    .lisa.config.json 2>/dev/null | head -1)
-fi
-
-DONE_TYPE=$(jq -r '.github.labels.build.done | type' .lisa.config.json 2>/dev/null)
-if [ "$DONE_TYPE" = "string" ]; then
-  DONE=$(jq -r '.github.labels.build.done' .lisa.config.json)
-elif [ "$DONE_TYPE" = "object" ]; then
-  [ -z "$TARGET_ENV" ] && { echo "ERROR: github.labels.build.done is env-keyed but env not resolvable"; exit 1; }
-  DONE=$(jq -r --arg e "$TARGET_ENV" '.github.labels.build.done[$e] // empty' .lisa.config.json)
-  [ -z "$DONE" ] && { echo "ERROR: github.labels.build.done has no entry for env '$TARGET_ENV'"; exit 1; }
-else
-  case "$TARGET_ENV" in
-    dev) DONE="status:on-dev" ;;
-    staging) DONE="status:on-stg" ;;
-    production) DONE="status:done" ;;
-    *) echo "ERROR: cannot resolve done label without env"; exit 1 ;;
-  esac
-fi
-```
-
-In prose below, the role names refer to the resolved labels: e.g. "the `ready` label" means whatever `github.labels.build.ready` resolves to (default: `status:ready`).
+Run one build-intake cycle. Each `status:ready` issue is claimed, built via the `lisa:github-agent` flow, and relabeled to `status:on-dev` (or the equivalent next-label for that repo). The cycle is the symmetric mirror of `lisa:notion-prd-intake`: humans flip `status:ready`, agents pick up and progress.
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion — claim, dispatch each issue through `lisa:github-agent`, relabel successful builds to `$DONE`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion — claim, dispatch each issue through `lisa:github-agent`, relabel successful builds to `status:on-dev`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
 
 Specifically forbidden:
 
@@ -81,30 +28,28 @@ Specifically forbidden:
 The only legitimate reasons to stop early:
 
 - Missing repo or required configuration. Surface the missing value and exit.
-- Label namespace not adopted (no issue carries any of `$READY` / `$CLAIMED` / `$REVIEW` / `$DONE`). Surface a label-convention error and exit (this is setup, not a normal idle cycle — see "Adoption" at the bottom).
-- Empty ready set. Exit cleanly with `"No GitHub issues labeled $READY in <org>/<repo>. Nothing to do."`
+- Label namespace not adopted (no issue carries any of `status:ready` / `status:in-progress` / `status:code-review` / `status:on-dev` / `status:done`). Surface a label-convention error and exit (this is setup, not a normal idle cycle — see "Adoption" at the bottom).
+- Empty `status:ready` set. Exit cleanly with `"No GitHub issues labeled status:ready in <org>/<repo>. Nothing to do."`
 
 ## Lifecycle assumed
 
 The GitHub Issues build lifecycle uses **labels** (we deliberately do NOT key off open/closed alone — closed issues aren't always the right post-build state):
 
 ```text
-ready → claimed → review → done(env-keyed) (downstream merge / archive)
-(human)  (us claim)  (us / PR opens)  (us done; PR ready)
+status:ready → status:in-progress → status:code-review → status:on-dev → status:done
+   (human)       (us claim)            (us / PR opens)        (us done; PR ready)   (downstream / merge)
 ```
-
-(Defaults: `status:ready` / `status:in-progress` / `status:code-review` / `status:on-dev`/`status:on-stg`/`status:done`.)
 
 This skill ONLY transitions:
 
-- `$READY` → `$CLAIMED` (claim)
-- `$CLAIMED` → `$DONE` (build complete, PR ready)
+- `status:ready` → `status:in-progress` (claim)
+- `status:in-progress` → `status:on-dev` (build complete, PR ready)
 
-It never touches `$REVIEW` (set by the agent / PR open hook), `status:done`-as-terminal (set by merge automation or PM), or any other status.
+It never touches `status:code-review` (set by the agent / PR open hook), `status:done` (set by merge automation or PM), or any other status.
 
-A "transition" means: remove the old role label and add the new one, in two `gh issue edit` calls (`--remove-label` + `--add-label`) or one combined call. The skill MUST verify exactly one build-lifecycle label (from the resolved `$READY`/`$CLAIMED`/`$REVIEW`/`$DONE` set) is present after the update — having two simultaneously breaks idempotency.
+A "transition" means: remove the old `status:*` label and add the new one, in two `gh issue edit` calls (`--remove-label` + `--add-label`) or one combined call. The skill MUST verify exactly one `status:*` label is present after the update — having two simultaneously breaks idempotency.
 
-**Pre-flight check**: at the start of each cycle, confirm at least one of the resolved role labels (`$READY`, `$CLAIMED`, `$REVIEW`, or any configured `done` value) exists on the repo via `gh label list --repo <org>/<repo> --json name`. When `github.labels.build.done` is a map (env-keyed), collect all map values and check that at least one exists — not just the value resolved for the current environment. If none exist, the convention has not been adopted — surface the label-convention error and exit.
+**Pre-flight check**: at the start of each cycle, confirm at least one of the `status:*` labels exists on the repo via `gh label list --repo <org>/<repo> --json name`. If none exist, the convention has not been adopted — surface the label-convention error and exit.
 
 ## Phases
 
@@ -117,40 +62,30 @@ A "transition" means: remove the old role label and add the new one, in two `gh 
 2. Confirm `gh auth status` succeeds.
 3. Confirm the repo is reachable: `gh repo view <org>/<repo> --json name --jq '.name'`.
 
-### Phase 2 — Find ready issues
+### Phase 2 — Find Ready issues
 
 ```bash
-gh issue list --repo <org>/<repo> --label "$READY" --state open --json number,title,labels,assignees,milestone,createdAt --limit 100
+gh issue list --repo <org>/<repo> --label status:ready --state open --json number,title,labels,assignees,milestone,createdAt --limit 100
 ```
 
 If empty, run a secondary check to distinguish a genuinely empty queue from an unconfigured repo:
 
 ```bash
-# When done is an env-keyed map, collect all possible done values; otherwise use the resolved $DONE.
-DONE_TYPE=$(jq -r 'if (.github.labels.build.done // null | type) == "object" then "object" else "string" end' .lisa.config.json 2>/dev/null || echo "string")
-if [ "$DONE_TYPE" = "object" ]; then
-  DONE_VALUES=$(jq -r '(.github.labels.build.done // {}) | to_entries[] | .value' .lisa.config.json 2>/dev/null | tr '\n' ' ')
-else
-  DONE_VALUES="$DONE"
-fi
-
-gh label list --repo <org>/<repo> --json name \
-  | jq -r --arg r "$READY" --arg c "$CLAIMED" --arg v "$REVIEW" --arg dones "$DONE_VALUES" \
-      '[.[] | .name | select(. == $r or . == $c or . == $v or (. as $n | $dones | split(" ") | map(select(. != "")) | index($n) != null))] | length'
+gh label list --repo <org>/<repo> --json name --jq '.[] | select(startswith("status:")) | .name'
 ```
 
-If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
+If no `status:*` labels exist → label namespace not adopted, surface a setup error and exit. If `status:*` labels exist but none are `status:ready` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled status:ready. Nothing to do."`
 
-### Phase 3 — Process each ready issue (serial)
+### Phase 3 — Process each Ready issue (serial)
 
 #### 3a. Claim
 
 ```bash
-gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$CLAIMED"
+gh issue edit <number> --repo <org>/<repo> --remove-label status:ready --add-label status:in-progress
 gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Claimed by Claude. Starting build."
 ```
 
-This is the idempotency lock — a re-entrant cycle's `--label $READY` filter will not see this issue again.
+This is the idempotency lock — a re-entrant cycle's `--label status:ready` filter will not see this issue again.
 
 If the relabel fails (permission, race), log under "Errors" in the cycle summary and skip this issue. **Do not invoke the build flow on an issue you didn't successfully claim.**
 
@@ -167,26 +102,24 @@ Invoke `lisa:github-agent` (the per-issue lifecycle agent) with the issue ref. `
 Wait for `lisa:github-agent` to return. Capture its outcome:
 
 - **Success** — PR is ready (open or merged); evidence posted; ready for next status.
-- **Blocked by github-verify pre-flight gate** — `lisa:github-agent` itself relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
-- **Blocked by ticket-triage ambiguities** — `lisa:github-agent` posts findings and stops. The issue stays in `$CLAIMED`. Surface to human; do not auto-relabel. Record under "Errors".
-- **Errored** — exception, missing config, etc. Leave the issue in `$CLAIMED` for human investigation. Record under "Errors".
+- **Blocked by github-verify pre-flight gate** — `lisa:github-agent` itself relabels the issue to `status:blocked` (or removes `status:in-progress` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
+- **Blocked by ticket-triage ambiguities** — `lisa:github-agent` posts findings and stops. The issue stays in `status:in-progress`. Surface to human; do not auto-relabel. Record under "Errors".
+- **Errored** — exception, missing config, etc. Leave the issue in `status:in-progress` for human investigation. Record under "Errors".
 
-#### 3c. Transition to $DONE (only on Success)
+#### 3c. Transition to On Dev (only on Success)
 
 If `lisa:github-agent` returned Success:
 
-1. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
-
 ```bash
-gh issue edit <number> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$DONE"
-gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL>. Transitioned to $DONE."
+gh issue edit <number> --repo <org>/<repo> --remove-label status:in-progress --add-label status:on-dev
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL>. Transitioned to status:on-dev."
 ```
 
-For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever `lisa:github-agent` left it) — humans take it from there.
+For any non-Success outcome, do NOT transition. The issue sits in `status:in-progress` (or wherever `lisa:github-agent` left it) — humans take it from there.
 
 #### 3d. Continue
 
-Move to the next ready issue. One issue failing does not stop others.
+Move to the next Ready issue. One issue failing does not stop others.
 
 ### Phase 4 — Summary report
 
@@ -198,7 +131,7 @@ Cycle started: <ISO timestamp>
 Cycle completed: <ISO timestamp>
 
 Issues processed: <n>
-- $DONE (build complete, PR ready): <n>
+- status:on-dev (build complete, PR ready): <n>
   - <org>/<repo>#<number> <title> → PR <URL>
 - Blocked (pre-flight verify failed): <n>
   - <org>/<repo>#<number> <title> — see issue comments
@@ -212,12 +145,11 @@ Total PRs opened: <n>
 
 ## Idempotency & safety
 
-- **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:github-agent` invocation — no double-pickup.
-- **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. Every other label change is owned by `lisa:github-agent`.
+- **Claim-first ordering**: `status:in-progress` set BEFORE `lisa:github-agent` invocation — no double-pickup.
+- **No writes outside the lifecycle**: this skill only relabels `status:ready → status:in-progress` and `status:in-progress → status:on-dev`. Every other label change is owned by `lisa:github-agent`.
 - **Failure isolation**: per-issue exceptions caught and recorded; the cycle continues.
 - **Single cycle per repo**: do not run two `lisa:github-build-intake` cycles in parallel against the same repo — concurrent claims could race. The scheduling layer is responsible for serialization.
-- **Single-label invariant**: after every transition, verify exactly one role label (from the configured `$READY`, `$CLAIMED`, `$REVIEW`, `$DONE` set) is present on the issue. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve.
-- **Never pick an arbitrary env for `$DONE`**. If `done` is a map and env is ambiguous, fail loudly.
+- **Single-label invariant**: after every transition, verify exactly one `status:*` label is present on the issue. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve.
 
 ## Configuration
 
@@ -225,26 +157,23 @@ Total PRs opened: <n>
 |----------|---------|---------|
 | `.lisa.config.json` `github.org` | (from `$ARGUMENTS`) | GitHub org for the default queue |
 | `.lisa.config.json` `github.repo` | (from `$ARGUMENTS`) | GitHub repo for the default queue |
-| `.lisa.config.json` `github.labels.build.ready` | `status:ready` | The label that signals "human says this is buildable" |
-| `.lisa.config.json` `github.labels.build.claimed` | `status:in-progress` | The label set on pickup |
-| `.lisa.config.json` `github.labels.build.review` | `status:code-review` | The label set when the PR opens (owned by `lisa:github-evidence`) |
-| `.lisa.config.json` `github.labels.build.done` | env-keyed map or string | The label set after a successful build; env-aware |
-| `.lisa.config.json` `deploy.branches` | — | Reverse-lookup map for env inference from PR base branch |
+| Label: queue | `status:ready` | The label that signals "human says this is buildable" |
+| Label: claim | `status:in-progress` | The label set on pickup |
+| Label: done | `status:on-dev` | The label set after a successful build |
 
-If the repo has not adopted the `status:*` label namespace, this skill cannot run. The remediation is to create the labels — `gh label create status:ready --color FBCA04 --description "Ready for build"` and similar — typically a one-time setup. See "Adoption" below for the full command set using the defaults; if your project overrides the role names, substitute accordingly.
+If the repo has not adopted the `status:*` label namespace, this skill cannot run. The remediation is to create the labels — `gh label create status:ready --color FBCA04 --description "Ready for build"` and similar — typically a one-time setup.
 
 ## Rules
 
-- Never relabel an issue the cycle didn't claim. The `$CLAIMED` label is the signature of cycle ownership.
+- Never relabel an issue the cycle didn't claim. The `status:in-progress` label is the signature of cycle ownership.
 - Never bypass `lisa:github-agent` to do build work directly. `lisa:github-agent` owns the per-issue lifecycle.
-- Never auto-transition past `$DONE`. Downstream labels (terminal `status:done`, etc.) are owned by QA / PM / merge automation.
+- Never auto-transition past `status:on-dev`. Downstream labels (`status:done`, etc.) are owned by QA / PM / merge automation.
 - If the issue has no Validation Journey or no sign-in credentials, `lisa:github-agent`'s pre-flight verify will catch it — **don't try to fix the issue from here**.
 - On any unexpected response from `lisa:github-agent` (status it doesn't claim, missing PR URL on success), record as Error and surface — never assume.
-- Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.
 
 ## Adoption (one-time per repo)
 
-Before this skill can run, the repo must create the configured role labels. Using the default label names:
+Before this skill can run, the repo must adopt the `status:*` label namespace:
 
 1. Create the labels:
    ```bash
@@ -254,7 +183,6 @@ Before this skill can run, the repo must create the configured role labels. Usin
    gh label create status:on-dev --color 1D76DB --description "Built, deployed to dev" --repo <org>/<repo>
    gh label create status:done --color 0E8A16 --description "Shipped" --repo <org>/<repo>
    ```
-   If your project overrides any `github.labels.build.*` role name in config, substitute the actual label names you configured.
-2. Apply the `$READY` label to issues that are ready for development.
-3. Reserve `$CLAIMED`, `$DONE` for this skill — humans should not set them manually except to recover from an error.
-4. PRD-source labels (defaults: `prd-ready`, `prd-in-review`, etc.) are a SEPARATE namespace owned by `lisa:github-prd-intake`. Don't conflate.
+2. Apply `status:ready` to issues that are ready for development.
+3. Reserve `status:in-progress`, `status:on-dev` for this skill — humans should not set them manually except to recover from an error.
+4. PRD-source labels (`prd-ready`, `prd-in-review`, etc.) are a SEPARATE namespace owned by `lisa:github-prd-intake`. Don't conflate.
