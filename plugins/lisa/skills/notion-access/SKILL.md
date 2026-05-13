@@ -10,7 +10,7 @@ Single chokepoint for all Notion operations. Routes each op to a substrate, enfo
 
 ## Invocation contract
 
-```
+```text
 operation: read-page         id: <uuid>
 operation: write-page        payload: {...}        # update page properties
 operation: archive-page      id: <uuid>

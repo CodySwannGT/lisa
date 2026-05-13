@@ -21,7 +21,7 @@ Build-label role names (`ready`, `claimed`, `review`, `done`) are resolved from 
 
 ## Confirmation policy
 
-Once you have a team key, RUN. Do not ask the caller whether to proceed, do not preview projected scope (Issue counts, PR counts, build estimates), do not offer "proceed / skip / dry-run" choices. The caller has already authorized the run by invoking you. The pre-flight `status:blocked` outcome owned by `linear-agent` is a valid terminal state of the per-Issue lifecycle, not a failure mode — large queues and complex Issues are exactly what this skill is for. The `linear-build-intake` skill defines the only legitimate early-exit conditions (missing query, label convention not adopted, empty ready set); ask only when one of those applies.
+Once you have a team key, RUN. Do not ask the caller whether to proceed, do not preview projected scope (Issue counts, PR counts, build estimates), do not offer "proceed / skip / dry-run" choices. The caller has already authorized the run by invoking you. The pre-flight configured `blocked` label outcome owned by `linear-agent` is a valid terminal state of the per-Issue lifecycle, not a failure mode — large queues and complex Issues are exactly what this skill is for. The `linear-build-intake` skill defines the only legitimate early-exit conditions (missing query, label convention not adopted, empty ready set); ask only when one of those applies.
 
 ## Workflow
 
@@ -42,7 +42,7 @@ The skill in turn invokes `linear-agent` per Issue, which owns the per-Issue lif
 Pass the skill's summary block through to the caller verbatim. The caller needs the structured record:
 
 - Total processed
-- Per-Issue outcomes (configured `done` label → which PR; `status:blocked` by verify → which gate; `Held` by triage → which ambiguities; Errors → reason)
+- Per-Issue outcomes (configured `done` label → which PR; configured `blocked` label by verify → which gate; `Held` by triage → which ambiguities; Errors → reason)
 - PR count
 
 If the cycle errored before processing any Issues (e.g. label convention not adopted — the configured `ready` label doesn't exist on the team), surface the cause in plain language and stop. Do NOT attempt to invent labels.
@@ -51,14 +51,14 @@ If the cycle errored before processing any Issues (e.g. label convention not ado
 
 After a successful cycle, if any Issues ended at the configured `done` label, mention that the next phase (QA, deploy, or downstream verification) is owned by humans or a future intake skill. This skill does not own anything past `done`.
 
-If any Issues ended at `status:blocked` (pre-flight verify failed) or `Held` (triage found ambiguities), point that out so the caller knows which Issues need human attention before they can be re-claimed. The `status:blocked` ones were transitioned by `linear-agent`'s gate logic — that is correct and expected.
+If any Issues ended at the configured `blocked` label (pre-flight verify failed) or `Held` (triage found ambiguities), point that out so the caller knows which Issues need human attention before they can be re-claimed. The blocked ones were transitioned by `linear-agent`'s gate logic — that is correct and expected.
 
 ## Rules
 
 - **Never run a cycle without an explicit query or configured `linear.teamKey`.** Side effects too high to default.
-- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions. Never touch terminal-`done`, `status:blocked` (owned by `linear-agent`), or any other label. (Exception: the configured `review` label is set by `linear-evidence` mid-flow — that's not your concern.)
+- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions. Never touch terminal-`done`, the configured `blocked` label (owned by `linear-agent`), or any other label. (Exception: the configured `review` label is set by `linear-evidence` mid-flow — that's not your concern.)
 - **Never bypass `linear-agent` to do build work directly.** The intake skill dispatches; `linear-agent` builds. Skipping the dispatch produces broken work.
 - **Never invent labels.** Names live in `.lisa.config.json` `linear.labels.build.*` (canonical) — the setup skill writes them. If a team hasn't adopted them yet, the skill exits with an adoption hint. Don't guess label names.
 - **Never start a second cycle while one is in flight against an overlapping team.** Serial execution. Scheduling layer (when added) is responsible for not double-firing.
 - **Stop and surface failures rather than retry-loop.** If `linear-agent` returns an unexpected response or an error, the skill records it under "Errors" — pass that through. Do not auto-retry.
-- **Pre-flight failures are not your problem to fix.** If an Issue fails `linear-verify` (missing Validation Journey, sign-in, etc.), `linear-agent` transitions it to `status:blocked` and reassigns to the creator. Surface the count and move on. Do NOT try to add the missing pieces from this agent.
+- **Pre-flight failures are not your problem to fix.** If an Issue fails `linear-verify` (missing Validation Journey, sign-in, etc.), `linear-agent` transitions it to the configured `blocked` label and reassigns to the creator. Surface the count and move on. Do NOT try to add the missing pieces from this agent.
