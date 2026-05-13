@@ -77,14 +77,41 @@ if [ -n "$TOKEN" ]; then
   fi
 fi
 
-# Fail loudly if nothing works.
+# Fail loudly with actionable remediation if nothing works.
 if [ -z "$substrate" ]; then
+  # Detect plugin enablement state for the suggestion.
+  plugin_enabled_global=$(jq -r '.enabledPlugins["notion@claude-plugins-official"] // false' ~/.claude/settings.json 2>/dev/null || echo "false")
+  plugin_enabled_project=$(jq -r '.enabledPlugins["notion@claude-plugins-official"] // false' .claude/settings.json 2>/dev/null || echo "false")
+  plugin_enabled_local=$(jq -r '.enabledPlugins["notion@claude-plugins-official"] // false' .claude/settings.local.json 2>/dev/null || echo "false")
+
   cat >&2 <<EOF
 Error: no Notion access substrate available for workspace '$WORKSPACE'.
+
 Attempted:
-  MCP    — not authenticated OR cannot fetch configured prdDatabaseId
-  curl   — no NOTION_API_TOKEN found for $WORKSPACE OR token belongs to wrong workspace
-Run /lisa:setup:notion to provision one.
+  MCP    — $([ "$plugin_enabled_global" = "true" ] || [ "$plugin_enabled_project" = "true" ] || [ "$plugin_enabled_local" = "true" ] && echo "plugin enabled but not authenticated or cannot fetch configured prdDatabaseId" || echo "plugin not enabled in any settings.json scope")
+  curl   — no NOTION_API_TOKEN found for $WORKSPACE (env, slug-suffixed env, or keychain) OR token belongs to a different workspace
+
+Remediation paths (pick one):
+
+1. Install the Notion MCP plugin (local scope — per-developer, gitignored).
+   This is the simplest path for single-workspace developers.
+
+   Run in your terminal:
+
+     jq '.enabledPlugins["notion@claude-plugins-official"] = true' \\
+       .claude/settings.local.json 2>/dev/null > /tmp/s && \\
+       mv /tmp/s .claude/settings.local.json || \\
+       echo '{"enabledPlugins":{"notion@claude-plugins-official":true}}' > .claude/settings.local.json
+
+   Then restart Claude Code (or run /restart-mcp) to load the plugin, and
+   invoke 'mcp__plugin_notion_notion__authenticate' to complete OAuth.
+   Also share the configured prdDatabaseId with the integration via
+   the page's '•••' menu → Connections.
+
+2. Provision an internal-integration API token (headless / CI / multi-workspace).
+
+     Run /lisa:setup:notion — guided flow with clipboard-piped keychain store.
+
 EOF
   exit 1
 fi

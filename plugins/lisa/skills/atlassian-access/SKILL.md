@@ -85,15 +85,45 @@ read_atlassian_token() {
 TOKEN=$(read_atlassian_token "$EMAIL")
 [ -n "$TOKEN" ] && curl_available=true && : ${substrate:=curl}
 
-# Fail loudly if nothing works.
+# Fail loudly with actionable remediation if nothing works.
 if [ -z "$substrate" ]; then
+  # Detect plugin enablement state for the suggestion.
+  plugin_enabled_global=$(jq -r '.enabledPlugins["atlassian@claude-plugins-official"] // false' ~/.claude/settings.json 2>/dev/null || echo "false")
+  plugin_enabled_project=$(jq -r '.enabledPlugins["atlassian@claude-plugins-official"] // false' .claude/settings.json 2>/dev/null || echo "false")
+  plugin_enabled_local=$(jq -r '.enabledPlugins["atlassian@claude-plugins-official"] // false' .claude/settings.local.json 2>/dev/null || echo "false")
+
   cat >&2 <<EOF
 Error: no Atlassian access substrate available for site $SITE.
+
 Attempted:
   acli   — $(command -v acli >/dev/null && echo "installed but identity mismatch or unauthenticated" || echo "not installed")
-  MCP    — not authenticated OR cloudId $CLOUDID not in accessible resources
-  curl   — no ATLASSIAN_API_TOKEN found for $EMAIL
-Run /lisa:setup:atlassian to provision one.
+  MCP    — $([ "$plugin_enabled_global" = "true" ] || [ "$plugin_enabled_project" = "true" ] || [ "$plugin_enabled_local" = "true" ] && echo "plugin enabled but not authenticated or cloudId $CLOUDID not in accessible resources" || echo "plugin not enabled in any settings.json scope")
+  curl   — no ATLASSIAN_API_TOKEN found for $EMAIL (env, slug-suffixed env, or keychain)
+
+Remediation paths (pick one):
+
+1. Install the Atlassian MCP plugin (local scope — per-developer, gitignored).
+   This is the simplest path for single-account developers.
+
+   Run in your terminal:
+
+     jq '.enabledPlugins["atlassian@claude-plugins-official"] = true' \\
+       .claude/settings.local.json 2>/dev/null > /tmp/s && \\
+       mv /tmp/s .claude/settings.local.json || \\
+       echo '{"enabledPlugins":{"atlassian@claude-plugins-official":true}}' > .claude/settings.local.json
+
+   Then restart Claude Code (or run /restart-mcp) to load the plugin, and
+   invoke 'mcp__plugin_atlassian_atlassian__authenticate' to complete OAuth.
+
+2. Install acli and authenticate (best for multi-account developers).
+
+     brew tap atlassian/homebrew-acli && brew install acli
+     acli auth login   # OAuth as the account matching $EMAIL
+
+3. Provision an API token (headless / CI / scoped-token environments).
+
+     Run /lisa:setup:atlassian — guided flow with clipboard-piped keychain store.
+
 EOF
   exit 1
 fi
