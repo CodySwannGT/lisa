@@ -104,7 +104,7 @@ It never touches `$REVIEW` (set by the agent / PR open hook), `status:done`-as-t
 
 A "transition" means: remove the old role label and add the new one, in two `gh issue edit` calls (`--remove-label` + `--add-label`) or one combined call. The skill MUST verify exactly one build-lifecycle label (from the resolved `$READY`/`$CLAIMED`/`$REVIEW`/`$DONE` set) is present after the update — having two simultaneously breaks idempotency.
 
-**Pre-flight check**: at the start of each cycle, confirm at least one of the resolved role labels (`$READY`, `$CLAIMED`, `$REVIEW`, or any `$DONE` value) exists on the repo via `gh label list --repo <org>/<repo> --json name`. If none exist, the convention has not been adopted — surface the label-convention error and exit.
+**Pre-flight check**: at the start of each cycle, confirm at least one of the resolved role labels (`$READY`, `$CLAIMED`, `$REVIEW`, or any configured `done` value) exists on the repo via `gh label list --repo <org>/<repo> --json name`. When `github.labels.build.done` is a map (env-keyed), collect all map values and check that at least one exists — not just the value resolved for the current environment. If none exist, the convention has not been adopted — surface the label-convention error and exit.
 
 ## Phases
 
