@@ -308,7 +308,7 @@ When you encounter something the PRD + comments + codebase can't resolve:
 When delegating to agents, provide this context. **The "MUST invoke jira-write-ticket" instruction is load-bearing — do not edit it out when adapting this template.**
 
 ```text
-Create JIRA sub-tasks in the [PROJECT] project.
+Create sub-tasks in the [PROJECT] project.
 
 CRITICAL: For each sub-task, invoke the `lisa:tracker-write` skill via the Skill tool.
 Do NOT invoke `lisa:atlassian-access` write operations (write-ticket / link / comment /

@@ -126,10 +126,10 @@ gh issue list --repo <org>/<repo> --label "$READY" --state open --json number,ti
 If empty, run a secondary check to distinguish a genuinely empty queue from an unconfigured repo:
 
 ```bash
-gh label list --repo <org>/<repo> --json name --jq '.[] | select(startswith("status:")) | .name'
+gh label list --repo <org>/<repo> --json name --jq --argjson roles "[\"$READY\",\"$CLAIMED\",\"$REVIEW\",\"$DONE\"]" '[.[] | .name] | map(select(IN($roles[]))) | .[]'
 ```
 
-If no `status:*` labels exist → label namespace not adopted, surface a setup error and exit. If `status:*` labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
+If none of the configured role labels (`$READY`, `$CLAIMED`, `$REVIEW`, `$DONE`) exist on the repo → label namespace not adopted, surface a setup error and exit. If the configured role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
 
 ### Phase 3 — Process each ready issue (serial)
 

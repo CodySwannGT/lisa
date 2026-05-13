@@ -10,9 +10,14 @@ description: "Upload text evidence to GitHub pr-assets release, update PR descri
 The post-build review status is read from `.lisa.config.json` `jira.workflow.review` (or `jira.workflow.code_review`), falling back to `Code Review`. JIRA does not have a separate `review` role in the canonical config schema (the build lifecycle stays in `claimed` until `done`); this skill uses the project's actual post-build review status when one exists. If the configured status is not a valid transition from the ticket's current state, log a warning and skip the transition — the human will handle it.
 
 ```bash
-REVIEW=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // "Code Review"' .lisa.config.json 2>/dev/null)
-[ -f .lisa.config.local.json ] && REVIEW_LOCAL=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.local.json 2>/dev/null)
-REVIEW="${REVIEW_LOCAL:-$REVIEW}"
+REVIEW="Code Review"
+if [ -f .lisa.config.json ]; then
+  REVIEW=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // "Code Review"' .lisa.config.json 2>/dev/null || echo "Code Review")
+fi
+if [ -f .lisa.config.local.json ]; then
+  REVIEW_LOCAL=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.local.json 2>/dev/null || true)
+  REVIEW="${REVIEW_LOCAL:-$REVIEW}"
+fi
 ```
 
 

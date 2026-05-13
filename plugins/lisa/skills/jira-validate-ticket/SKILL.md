@@ -194,7 +194,7 @@ A ticket with zero links and no documented search: FAIL.
 
 #### F1 — Issue type valid in project
 
-Invoke `lisa:atlassian-access` to fetch issue-type metadata for `project_key` and confirm `issue_type` exists. (If `atlassian-access` does not yet expose an `issue-type-metadata` operation, extend its dispatch table rather than calling MCP/acli directly.)
+Invoke `lisa:atlassian-access` to fetch issue-type metadata for `project_key` and confirm `issue_type` exists.
 
 #### F2 — Epic parent exists and is an Epic
 

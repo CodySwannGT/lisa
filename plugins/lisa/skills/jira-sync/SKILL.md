@@ -38,7 +38,8 @@ Based on the current milestone:
 
 ### Step 3: Post Update
 
-1. **Add a comment** to the ticket with the gathered content by invoking `lisa:atlassian-access` with `operation: comment key: <TICKET-ID> body: "..."`
+1. **Deduplicate before commenting** — before posting, fetch existing comments via `lisa:atlassian-access` with `operation: getComments key: <TICKET-ID>`. If a comment with the same milestone marker (a stable header such as `## Plan created`, `## PR ready`, etc.) already exists and its content matches the current update, skip posting. Only post when the milestone content is new or has changed.
+2. **Add a comment** to the ticket with the gathered content by invoking `lisa:atlassian-access` with `operation: comment key: <TICKET-ID> body: "..."`
 2. **Update ticket fields** if applicable:
    - Add branch name to a custom field or comment
    - Add PR link to a custom field or comment
