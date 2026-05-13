@@ -38,11 +38,15 @@ Based on the current milestone:
 
 ### Step 3: Post Update
 
-1. **Add a comment** to the ticket with the gathered content by invoking `lisa:atlassian-access` with `operation: comment key: <TICKET-ID> body: "..."`
-2. **Update ticket fields** if applicable:
+Before adding a comment, check for an existing milestone comment to avoid duplicates (idempotency):
+
+1. **Fetch existing comments** by invoking `lisa:atlassian-access` with `operation: search-issues jql: "..."` or by reading the ticket's comments. Look for a comment whose body contains a stable milestone marker (e.g., the heading `## Plan Created`, `## Implementation in Progress`, `## PR Ready`, or `## PR Merged`) that matches the current milestone.
+2. **If a matching comment already exists**, skip posting and proceed to field updates — idempotent re-runs must not create duplicates.
+3. **If no matching comment exists**, add a new comment by invoking `lisa:atlassian-access` with `operation: comment key: <TICKET-ID> body: "..."`.
+4. **Update ticket fields** if applicable:
    - Add branch name to a custom field or comment
    - Add PR link to a custom field or comment
-3. **Report** what was synced to the user
+5. **Report** what was synced to the user
 
 ### Step 4: Suggest Status Transition
 
