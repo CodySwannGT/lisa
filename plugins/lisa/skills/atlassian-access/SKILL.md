@@ -12,7 +12,7 @@ Single chokepoint for all Atlassian operations. Routes each op to a substrate, e
 
 The caller passes one operation plus its arguments. Operations are listed in the dispatch table below. The skill returns either the structured operation result (JSON when the substrate provides it) or a clear error.
 
-```
+```text
 operation: read-ticket  key: PROJ-123
 operation: write-ticket payload: {...}
 operation: transition   key: PROJ-123  to: "In Review"
@@ -54,6 +54,9 @@ if command -v acli >/dev/null 2>&1 && acli auth status >/dev/null 2>&1; then
 fi
 
 # Tier 2: Atlassian MCP (if acli not ready OR the operation isn't acli-covered)
+# $OP_REQUIRES is a conceptual variable set by the dispatch table to "non-acli" for
+# operations that have no acli adapter (e.g. read-page-descendants). It is not a real
+# shell variable initialized here — the condition is illustrative pseudo-code.
 if [ -z "$substrate" ] || [ "$OP_REQUIRES" = "non-acli" ]; then
   # Probe via mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources.
   # (Pseudo-code; actual call is the MCP tool invocation, not a bash command.)

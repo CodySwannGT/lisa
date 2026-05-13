@@ -305,7 +305,7 @@ When you encounter something the PRD + comments + codebase can't resolve:
 
 ## Agent Prompt Template for Sub-task Creation
 
-When delegating to agents, provide this context. **The "MUST invoke jira-write-ticket" instruction is load-bearing — do not edit it out when adapting this template.**
+When delegating to agents, provide this context. **The "MUST invoke lisa:tracker-write" instruction is load-bearing — do not edit it out when adapting this template.**
 
 ```text
 Create sub-tasks in the [PROJECT] project.

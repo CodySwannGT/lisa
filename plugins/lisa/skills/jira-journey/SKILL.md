@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 
 # JIRA Validation Journey (TypeScript)
 
-All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly. Note: the helper scripts (`scripts/parse-plan.py`, `scripts/jira-evidence/post-evidence.sh`) currently use direct API calls and are pending migration to route through `atlassian-access`.
 
 Parse a JIRA ticket's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each `[EVIDENCE: name]` marker, and post to JIRA + GitHub PR.
 

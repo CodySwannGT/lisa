@@ -12,11 +12,12 @@ The post-build review status is read from `.lisa.config.json` `jira.workflow.rev
 ```bash
 REVIEW="Code Review"
 if [ -f .lisa.config.json ]; then
-  REVIEW=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // "Code Review"' .lisa.config.json 2>/dev/null || echo "Code Review")
+  _cfg=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.json 2>/dev/null)
+  [ -n "$_cfg" ] && REVIEW="$_cfg"
 fi
 if [ -f .lisa.config.local.json ]; then
-  REVIEW_LOCAL=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.local.json 2>/dev/null || true)
-  REVIEW="${REVIEW_LOCAL:-$REVIEW}"
+  _local=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.local.json 2>/dev/null)
+  [ -n "$_local" ] && REVIEW="$_local"
 fi
 ```
 

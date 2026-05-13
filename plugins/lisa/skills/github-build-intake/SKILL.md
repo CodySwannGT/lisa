@@ -102,9 +102,9 @@ This skill ONLY transitions:
 
 It never touches `$REVIEW` (set by the agent / PR open hook), `status:done`-as-terminal (set by merge automation or PM), or any other status.
 
-A "transition" means: remove the old `status:*` label and add the new one, in two `gh issue edit` calls (`--remove-label` + `--add-label`) or one combined call. The skill MUST verify exactly one `status:*` label is present after the update — having two simultaneously breaks idempotency.
+A "transition" means: remove the old role label and add the new one, in two `gh issue edit` calls (`--remove-label` + `--add-label`) or one combined call. The skill MUST verify exactly one build-lifecycle label (from the resolved `$READY`/`$CLAIMED`/`$REVIEW`/`$DONE` set) is present after the update — having two simultaneously breaks idempotency.
 
-**Pre-flight check**: at the start of each cycle, confirm at least one of the `status:*` labels exists on the repo via `gh label list --repo <org>/<repo> --json name`. If none exist, the convention has not been adopted — surface the label-convention error and exit.
+**Pre-flight check**: at the start of each cycle, confirm at least one of the resolved role labels (`$READY`, `$CLAIMED`, `$REVIEW`, or any `$DONE` value) exists on the repo via `gh label list --repo <org>/<repo> --json name`. If none exist, the convention has not been adopted — surface the label-convention error and exit.
 
 ## Phases
 
@@ -126,10 +126,12 @@ gh issue list --repo <org>/<repo> --label "$READY" --state open --json number,ti
 If empty, run a secondary check to distinguish a genuinely empty queue from an unconfigured repo:
 
 ```bash
-gh label list --repo <org>/<repo> --json name --jq --argjson roles "[\"$READY\",\"$CLAIMED\",\"$REVIEW\",\"$DONE\"]" '[.[] | .name] | map(select(IN($roles[]))) | .[]'
+gh label list --repo <org>/<repo> --json name \
+  | jq -r --arg r "$READY" --arg c "$CLAIMED" --arg v "$REVIEW" --arg d "$DONE" \
+      '[.[] | .name | select(. == $r or . == $c or . == $v or . == $d)] | length'
 ```
 
-If none of the configured role labels (`$READY`, `$CLAIMED`, `$REVIEW`, `$DONE`) exist on the repo → label namespace not adopted, surface a setup error and exit. If the configured role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
+If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
 
 ### Phase 3 — Process each ready issue (serial)
 

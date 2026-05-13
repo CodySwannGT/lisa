@@ -213,7 +213,7 @@ After all comments are posted (anchored groups + the optional page-level summary
 
 The Notion comments API (`POST /v1/comments`) is the correct endpoint for both page-level and block-anchored comments. Invoke `lisa:notion-access` via the Skill tool with:
 
-```
+```text
 operation: create-comment
 page_id: <PRD-page-id>
 block_anchor: <prd_anchor string from notion-to-tracker, or null for page-level>
