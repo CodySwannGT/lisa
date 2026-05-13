@@ -1,0 +1,13 @@
+{
+  "tracker": "github",
+  "source": "github",
+  "github": {
+    "org": "CodySwannGT",
+    "repo": "lisa"
+  },
+  "deploy": {
+    "branches": {
+      "production": "main"
+    }
+  }
+}

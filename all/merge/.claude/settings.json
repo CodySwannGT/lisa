@@ -10,8 +10,7 @@
     "code-review@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true,
-    "atlassian@claude-plugins-official": true
+    "skill-creator@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "CodySwannGT/lisa": {

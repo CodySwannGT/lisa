@@ -1,10 +1,12 @@
 ---
 name: jira-sync
 description: "Syncs plan progress to a linked JIRA ticket. Posts plan contents, progress updates, branch links, and PR links at key milestones. Use this skill throughout the plan lifecycle to keep tickets in sync."
-allowed-tools: ["mcp__atlassian__*", "Bash", "Read", "Glob", "Grep"]
+allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 
 # JIRA Ticket Sync
+
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
 
 Sync current plan progress to JIRA ticket: $ARGUMENTS
 
@@ -15,7 +17,7 @@ If no argument provided, search for a ticket URL in the active plan file (most r
 ### Step 1: Identify Ticket and Context
 
 1. **Parse ticket ID** from `$ARGUMENTS` or extract from the active plan file
-2. **Fetch current ticket state** via JIRA MCP (`mcp__atlassian__getJiraIssue`)
+2. **Fetch current ticket state** by invoking `lisa:atlassian-access` via the Skill tool with `operation: read-ticket key: <TICKET-ID>`
 3. **Determine current milestone** by checking:
    - Does a plan file exist? → Plan created
    - Is there a working branch? → Implementation started
@@ -36,7 +38,7 @@ Based on the current milestone:
 
 ### Step 3: Post Update
 
-1. **Add a comment** to the ticket with the gathered content via JIRA MCP
+1. **Add a comment** to the ticket with the gathered content by invoking `lisa:atlassian-access` with `operation: comment key: <TICKET-ID> body: "..."`
 2. **Update ticket fields** if applicable:
    - Add branch name to a custom field or comment
    - Add PR link to a custom field or comment
