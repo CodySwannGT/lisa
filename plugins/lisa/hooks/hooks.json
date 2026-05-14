@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
+            "command": "if command -v entire >/dev/null 2>&1; then entire hooks claude-code user-prompt-submit; fi"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true"
+            "command": "if command -v entire >/dev/null 2>&1; then entire hooks claude-code post-task; fi"
           }
         ]
       },
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true"
+            "command": "if command -v entire >/dev/null 2>&1; then entire hooks claude-code post-todo; fi"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true"
+            "command": "if command -v entire >/dev/null 2>&1; then entire hooks claude-code pre-task; fi"
           }
         ]
       },
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/block-no-verify.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
+            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/block-no-verify.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort -V | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
           }
         ]
       }
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/notify-ntfy.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
+            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/notify-ntfy.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort -V | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
           }
         ]
       },
@@ -66,7 +66,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true"
+            "command": "if command -v entire >/dev/null 2>&1; then entire hooks claude-code stop; fi"
           }
         ]
       }
@@ -77,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/install-pkgs.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
+            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/install-pkgs.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort -V | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
           }
         ]
       },
@@ -86,7 +86,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/setup-jira-cli.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
+            "command": "bash -lc 'plugin=\"lisa\"; script=\"hooks/setup-jira-cli.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort -V | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
           }
         ]
       },
@@ -95,7 +95,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true"
+            "command": "if command -v entire >/dev/null 2>&1; then entire hooks claude-code session-start; fi"
           }
         ]
       }
