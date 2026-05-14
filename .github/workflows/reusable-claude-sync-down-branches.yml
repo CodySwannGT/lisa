@@ -219,50 +219,55 @@ jobs:
         run: |
           git push -u origin "$BRANCH" --force-with-lease
 
-      - name: Open or update sync PR
-        if: |
-          steps.target.outputs.skip != 'true' &&
-          steps.diff.outputs.empty != 'true' &&
-          (steps.merge.outputs.conflicts != 'true' || steps.resolved.outputs.resolved == 'true')
+      # The sync PR must be opened by Claude (not the default GITHUB_TOKEN),
+      # otherwise GitHub treats it as authored by `app/github-actions` and
+      # suppresses downstream `pull_request` workflow triggers — i.e. CI never
+      # runs on the sync PR. Routing the `gh pr create` call through the
+      # Claude action authenticates as `claude[bot]`, which is not subject to
+      # that guardrail, so `pull_request`-triggered CI fires normally.
+      - name: Open or update sync PR (via Claude, so CI triggers)
         id: pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SOURCE: ${{ steps.target.outputs.source }}
-          TARGET: ${{ steps.target.outputs.target }}
-          BRANCH: ${{ steps.branch.outputs.branch }}
-          ORIG_PR: ${{ github.event.pull_request.number }}
-          ORIG_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          BODY=$(cat <<EOF
-          Automated back-sync of \`$SOURCE\` into \`$TARGET\`.
-
-          Triggered by #$ORIG_PR: $ORIG_TITLE
-          EOF
-          )
-          EXISTING=$(gh pr list --head "$BRANCH" --base "$TARGET" --state open --json number --jq '.[0].number' || echo "")
-          if [ -n "$EXISTING" ]; then
-            gh pr edit "$EXISTING" --body "$BODY"
-            PR_NUM="$EXISTING"
-          else
-            PR_URL=$(gh pr create \
-              --base "$TARGET" \
-              --head "$BRANCH" \
-              --title "chore: sync $SOURCE -> $TARGET (from #$ORIG_PR)" \
-              --body "$BODY")
-            PR_NUM="${PR_URL##*/}"
-          fi
-          echo "number=$PR_NUM" >> "$GITHUB_OUTPUT"
-
-      - name: Enable auto-merge on sync PR
         if: |
           steps.target.outputs.skip != 'true' &&
           steps.diff.outputs.empty != 'true' &&
           (steps.merge.outputs.conflicts != 'true' || steps.resolved.outputs.resolved == 'true')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUM: ${{ steps.pr.outputs.number }}
-        run: |
-          gh pr merge "$PR_NUM" --auto --merge || echo "Could not enable auto-merge (auto-merge may be disabled on this repo)."
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          prompt: |
+            Open or update the automated back-sync pull request. The PR must
+            be authored as `claude[bot]` so downstream `pull_request`-triggered
+            workflows (CI) run on it — that is the whole reason this step
+            routes through you instead of a plain `gh pr create` shell step.
+
+            Context:
+            - Source branch: `${{ steps.target.outputs.source }}`
+            - Target branch: `${{ steps.target.outputs.target }}`
+            - Sync branch (already pushed): `${{ steps.branch.outputs.branch }}`
+            - Triggered by PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+
+            PR title:
+            `chore: sync ${{ steps.target.outputs.source }} -> ${{ steps.target.outputs.target }} (from #${{ github.event.pull_request.number }})`
+
+            PR body (use exactly):
+            ```
+            Automated back-sync of `${{ steps.target.outputs.source }}` into `${{ steps.target.outputs.target }}`.
+
+            Triggered by #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+            ```
+
+            Steps:
+            1. Check for an existing open PR from `${{ steps.branch.outputs.branch }}` -> `${{ steps.target.outputs.target }}`:
+               `gh pr list --head ${{ steps.branch.outputs.branch }} --base ${{ steps.target.outputs.target }} --state open --json number --jq '.[0].number'`
+            2. If one exists, update its body via `gh pr edit <num> --body "<body>"` (use a heredoc to preserve newlines).
+            3. Otherwise, create a new PR via `gh pr create --base ${{ steps.target.outputs.target }} --head ${{ steps.branch.outputs.branch }} --title "<title>" --body "<body>"`.
+            4. Enable auto-merge: `gh pr merge <num> --auto --merge`. If this fails (auto-merge disabled on the repo), log it and move on — do not fail the step.
+            5. Do NOT push commits, do NOT modify code, do NOT touch git state. The sync branch is already pushed. Use only the GitHub CLI (`gh`).
+          claude_args: |
+            --allowedTools "Bash(gh:*),Bash(echo:*),Bash(cat:*)"
+            --max-turns 10
+            --system-prompt "You are creating or updating an automated back-sync pull request via the GitHub CLI. You are authenticated as claude[bot] — that identity is required so the resulting PR's pull_request events trigger downstream CI workflows. Use only `gh`. Do not run any git commands. Do not modify files. If auto-merge cannot be enabled, log it and exit successfully."
 
       - name: Report unresolvable conflicts to original PR
         if: steps.merge.outputs.conflicts == 'true' && steps.resolved.outputs.resolved == 'false'
