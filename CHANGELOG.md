@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.6](https://github.com/CodySwannGT/lisa/compare/vv2.16.5...v2.16.6) (2026-05-14)
+
+
+### Documentation
+
+* make wiki canonical documentation home ([#472](https://github.com/CodySwannGT/lisa/issues/472)) ([4ec1ebf](https://github.com/CodySwannGT/lisa/commit/4ec1ebf109d0b0e589f4a8e9d96010dfeb77431a)), closes [#635](https://github.com/CodySwannGT/lisa/issues/635)
+
 ### [2.16.5](https://github.com/CodySwannGT/lisa/compare/vv2.16.4...v2.16.5) (2026-05-13)
 
 ### [2.16.4](https://github.com/CodySwannGT/lisa/compare/vv2.16.3...v2.16.4) (2026-05-12)
