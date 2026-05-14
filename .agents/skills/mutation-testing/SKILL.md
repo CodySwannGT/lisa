@@ -220,8 +220,9 @@ For each validated test:
 Remove all mutant commits from the experimental branch, keeping only test improvements:
 
 ```bash
-# Revert mutant commits (identified by "mutant:" prefix in commit message)
-git log --oneline | grep "^.* mutant:" | awk '{print $1}' | while read hash; do
+# Revert only the mutant hashes recorded during Step 3c
+jq -r '.[].commit_hash' .mutation-testing/mutants.json | while read -r hash; do
+  [ -n "$hash" ] || continue
   git revert --no-commit "$hash"
 done
 git commit -m "chore: revert all mutants after test hardening"
