@@ -1,0 +1,31 @@
+{
+  "name": "lisa-expo",
+  "version": "2.16.6",
+  "description": "Expo and React Native-specific skills, agents, rules, and MCP servers.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "mobile",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Lisa Expo",
+    "shortDescription": "Expo and React Native workflows",
+    "longDescription": "Lisa skills and MCP configuration for Expo and React Native development, testing, operations, and security review.",
+    "developerName": "Cody Swann",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use Lisa Expo to review this screen",
+      "Debug this Expo app workflow"
+    ]
+  }
+}

@@ -10,6 +10,7 @@
  * Lisa-managed keys (currently a small set; expand as needs arise):
  *   - `project_doc_max_bytes`: bumped to 65536 so AGENTS.md content beyond
  *     Codex's 32 KiB default isn't truncated.
+ *   - `[features].codex_hooks`: enabled so Lisa lifecycle checks actually run.
  * @module codex/settings-installer
  */
 import * as fse from "fs-extra";
@@ -34,6 +35,11 @@ export const CONFIG_FILENAME = "config.toml";
  */
 export const LISA_REQUIRED_SETTINGS: Readonly<Record<string, unknown>> = {
   project_doc_max_bytes: 65536,
+};
+
+/** Lisa-required feature flags under `[features]` */
+export const LISA_REQUIRED_FEATURES: Readonly<Record<string, boolean>> = {
+  codex_hooks: true,
 };
 
 /** Result of a settings install pass */
@@ -101,7 +107,8 @@ export function mergeSettings(existingToml: string): string {
     partitioned.updated
   );
   const afterPrepend = applyNewKeys(afterUpdates, partitioned.added);
-  return afterPrepend.endsWith("\n") ? afterPrepend : `${afterPrepend}\n`;
+  const afterFeatures = applyRequiredFeatures(afterPrepend);
+  return afterFeatures.endsWith("\n") ? afterFeatures : `${afterFeatures}\n`;
 }
 
 /**
@@ -311,7 +318,163 @@ function formatLisaSettings(): string {
   const settings = Object.entries(LISA_REQUIRED_SETTINGS).map(
     ([key, value]) => `${key} = ${formatTomlValue(value)}`
   );
-  return [...header, ...settings].join("\n");
+  const features = [
+    "",
+    "[features]",
+    ...Object.entries(LISA_REQUIRED_FEATURES).map(
+      ([key, value]) => `${key} = ${formatTomlValue(value)}`
+    ),
+  ];
+  return [...header, ...settings, ...features].join("\n");
+}
+
+/**
+ * Ensure Lisa-required Codex feature flags are present under `[features]`.
+ * This is intentionally string-based because the TOML patcher can append root
+ * keys under the wrong table, and we want to preserve host comments/order.
+ * @param toml - TOML source after root Lisa settings have been merged
+ * @returns TOML with required `[features]` keys present
+ */
+function applyRequiredFeatures(toml: string): string {
+  const lines = toml.split("\n");
+  const featuresStart = findSectionHeaderIndex(lines, "features");
+  if (featuresStart === -1) {
+    return appendFeaturesSection(toml);
+  }
+  const featuresEnd = findNextSectionHeaderIndex(lines, featuresStart + 1);
+  const sectionEnd = featuresEnd === -1 ? lines.length : featuresEnd;
+  const updated = Object.entries(LISA_REQUIRED_FEATURES).reduce<string[]>(
+    (acc, [key, value]) =>
+      upsertSectionKey(acc, featuresStart, sectionEnd, key, value),
+    lines
+  );
+  return updated.join("\n");
+}
+
+/**
+ * Append a new `[features]` table to a TOML document.
+ * @param toml - Existing TOML source
+ * @returns TOML with the features table appended
+ */
+function appendFeaturesSection(toml: string): string {
+  const block = [
+    "[features]",
+    ...Object.entries(LISA_REQUIRED_FEATURES).map(
+      ([key, value]) => `${key} = ${formatTomlValue(value)}`
+    ),
+  ].join("\n");
+  return `${stripTrailingNewlines(toml)}\n\n${block}\n`;
+}
+
+/**
+ * Add or update one key within an existing TOML table.
+ * @param lines - TOML split into lines
+ * @param sectionStart - Index of the table header
+ * @param sectionEnd - First line after the table
+ * @param key - Key to upsert
+ * @param value - Value to emit
+ * @returns Updated TOML lines
+ */
+function upsertSectionKey(
+  lines: string[],
+  sectionStart: number,
+  sectionEnd: number,
+  key: string,
+  value: unknown
+): string[] {
+  const keyPattern = new RegExp(
+    `^(\\s*${escapeRegExp(key)}\\s*=\\s*)([^#\\n]*?)(\\s*#.*)?$`
+  );
+  const existingIndex = lines
+    .slice(sectionStart + 1, sectionEnd)
+    .findIndex(line => keyPattern.test(line));
+  if (existingIndex === -1) {
+    const rendered = `${key} = ${formatTomlValue(value)}`;
+    return [
+      ...lines.slice(0, sectionStart + 1),
+      rendered,
+      ...lines.slice(sectionStart + 1),
+    ];
+  }
+  const absoluteIndex = sectionStart + 1 + existingIndex;
+  const existingLine = lines[absoluteIndex] ?? "";
+  const renderedValue = formatTomlValue(value);
+  const replacedLine = existingLine.replace(
+    keyPattern,
+    (_match, prefix: string, rawValue: string, suffix = "") =>
+      rawValue.trim() === renderedValue
+        ? existingLine
+        : `${prefix}${renderedValue}${suffix}`
+  );
+  return [
+    ...lines.slice(0, absoluteIndex),
+    replacedLine,
+    ...lines.slice(absoluteIndex + 1),
+  ];
+}
+
+/**
+ * Find a specific TOML section header outside multiline strings.
+ * @param lines - TOML split into lines
+ * @param sectionName - Table name without brackets
+ * @returns The line index, or -1 when absent
+ */
+function findSectionHeaderIndex(
+  lines: readonly string[],
+  sectionName: string
+): number {
+  return (
+    findSectionHeaderIndexes(lines).find(
+      idx => lines[idx]?.trim() === `[${sectionName}]`
+    ) ?? -1
+  );
+}
+
+/**
+ * Find the next TOML section header at or after `fromIndex`.
+ * @param lines - TOML split into lines
+ * @param fromIndex - Starting index
+ * @returns The line index, or -1 when there is no later table
+ */
+function findNextSectionHeaderIndex(
+  lines: readonly string[],
+  fromIndex: number
+): number {
+  return findSectionHeaderIndexes(lines).find(idx => idx >= fromIndex) ?? -1;
+}
+
+/**
+ * Find all TOML section header lines outside multiline strings.
+ * @param lines - TOML split into lines
+ * @returns Header indexes
+ */
+function findSectionHeaderIndexes(lines: readonly string[]): readonly number[] {
+  return lines.reduce<{
+    readonly indexes: readonly number[];
+    readonly openDelim: string | undefined;
+  }>(
+    (acc, line, idx) => {
+      const nextDelim = updateMultilineState(line, acc.openDelim);
+      const isHeader =
+        acc.openDelim === undefined &&
+        nextDelim === undefined &&
+        /^[ \t]*\[[^\]]+\][ \t]*(#.*)?$/.test(line);
+      return {
+        indexes: isHeader ? [...acc.indexes, idx] : acc.indexes,
+        openDelim: nextDelim,
+      };
+    },
+    { indexes: [], openDelim: undefined as string | undefined }
+  ).indexes;
+}
+
+/**
+ * Escape a string for use inside a RegExp literal.
+ * @param value - Raw string
+ * @returns Escaped string
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**

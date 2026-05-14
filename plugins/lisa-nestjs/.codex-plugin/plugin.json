@@ -1,0 +1,31 @@
+{
+  "name": "lisa-nestjs",
+  "version": "2.16.6",
+  "description": "NestJS-specific skills and migration write-protection hooks.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "nestjs",
+    "graphql",
+    "typeorm",
+    "hooks"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Lisa NestJS",
+    "shortDescription": "NestJS workflow guidance",
+    "longDescription": "Lisa skills and lifecycle checks for NestJS GraphQL, TypeORM, and migration-safe development.",
+    "developerName": "Cody Swann",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review this NestJS resolver",
+      "Check this TypeORM change"
+    ]
+  }
+}

@@ -54,6 +54,7 @@
     "oxlint",
     "scripts",
     "plugins",
+    ".agents/plugins",
     ".claude-plugin",
     "eslint-plugin-code-organization",
     "eslint-plugin-component-structure",

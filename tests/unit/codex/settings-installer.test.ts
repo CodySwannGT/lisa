@@ -31,6 +31,9 @@ describe("codex/settings-installer", () => {
       for (const [key, value] of Object.entries(LISA_REQUIRED_SETTINGS)) {
         expect(parsed[key]).toBe(value);
       }
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
     });
 
     it("includes a managed-by-Lisa header in fresh files", () => {
@@ -46,6 +49,9 @@ describe("codex/settings-installer", () => {
       expect(parsed.approval_policy).toBe("on-request");
       // And Lisa's keys are added on top
       expect(parsed.project_doc_max_bytes).toBe(65536);
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
     });
 
     it("Lisa keys win on conflict with host keys", () => {
@@ -53,6 +59,35 @@ describe("codex/settings-installer", () => {
       const out = mergeSettings(existing);
       const parsed = parseToml(out) as Record<string, unknown>;
       expect(parsed.project_doc_max_bytes).toBe(65536);
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
+    });
+
+    it("adds codex_hooks to an existing features table", () => {
+      const out = mergeSettings(`[features]\nmodel_reasoning_summary = true\n`);
+      const parsed = parseToml(out) as Record<string, unknown>;
+      const features = parsed.features as Record<string, unknown>;
+      expect(features.model_reasoning_summary).toBe(true);
+      expect(features.codex_hooks).toBe(true);
+    });
+
+    it("preserves inline comments when updating codex_hooks", () => {
+      const out = mergeSettings(
+        `[features]\ncodex_hooks = false # disabled while debugging\n`
+      );
+      expect(out).toContain("codex_hooks = true # disabled while debugging");
+      const parsed = parseToml(out) as Record<string, unknown>;
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
+    });
+
+    it("leaves matching codex_hooks lines unchanged", () => {
+      const existing = `[features]\ncodex_hooks = true # keep this note\n`;
+      const out = mergeSettings(existing);
+      expect(out).toContain("codex_hooks = true # keep this note");
+      expect(out.match(/codex_hooks/g)).toHaveLength(1);
     });
 
     it("preserves existing comments through round-trip", () => {
@@ -85,6 +120,16 @@ command = "linear-mcp"
     it("preserves trailing newline through merge", () => {
       const out = mergeSettings(`model = "gpt-5"\n`);
       expect(out.endsWith("\n")).toBe(true);
+    });
+
+    it("preserves inline comments when updating an existing features key", () => {
+      const existing = `[features]\ncodex_hooks = false # disabled while debugging\n`;
+      const out = mergeSettings(existing);
+      expect(out).toContain("# disabled while debugging");
+      const parsed = parseToml(out) as Record<string, unknown>;
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
     });
   });
 

@@ -1,0 +1,32 @@
+{
+  "name": "lisa",
+  "version": "2.16.6",
+  "description": "Universal governance: agents, skills, commands, hooks, and rules for all projects.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "governance",
+    "skills",
+    "hooks",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Lisa",
+    "shortDescription": "Universal project governance workflows",
+    "longDescription": "Reusable Lisa skills and lifecycle checks for planning, implementation, review, verification, and tracker workflows.",
+    "developerName": "Cody Swann",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Plan this implementation with Lisa",
+      "Review this change with Lisa",
+      "Verify this project with Lisa"
+    ]
+  }
+}
