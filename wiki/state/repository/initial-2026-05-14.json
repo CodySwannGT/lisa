@@ -1,0 +1,23 @@
+{
+  "source": "repository",
+  "ingested_at": "2026-05-14T10:56:25.611996+00:00",
+  "mode": "initial",
+  "path": ".",
+  "remote": "git@github.com:CodySwannGT/lisa.git",
+  "branch_at_ingestion": "fix/audit-exclusions-load-set-e",
+  "head_at_ingestion": "610f410cb4955734365acdcd1c94e5a74edcbfc0",
+  "package_name": "@codyswann/lisa",
+  "package_version": "2.16.3",
+  "source_notes": [
+    "wiki/sources/repository/2026-05-14-monorepo-baseline.md"
+  ],
+  "synthesis_pages": [
+    "wiki/projects/lisa-monorepo.md",
+    "wiki/architecture/lisa-architecture.md",
+    "wiki/architecture/template-governance.md",
+    "wiki/playbooks/lisa-workflow-playbook.md",
+    "wiki/requirements/lisa-governance-requirements.md",
+    "wiki/concepts/lisa-vocabulary.md",
+    "wiki/open-questions/lisa-open-questions.md"
+  ]
+}

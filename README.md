@@ -121,3 +121,31 @@ You don't have to remember any of this. Tell Claude what you want and the right 
 > "Get test coverage to 90%."
 
 > Ask Claude: "What commands are available?" for the full list at any time.
+
+## Lisa LLM Wiki
+
+Lisa keeps an in-repository LLM Wiki under `wiki/`. It is the durable markdown knowledge base for Lisa architecture, workflows, skills, commands, templates, quality gates, git history, and ingestion notes.
+
+Start with:
+
+- `wiki/start-here.md` for orientation.
+- `wiki/index.md` for the maintained map.
+- `wiki/documentation/` for canonical Lisa documentation moved from root docs/spec files.
+- `wiki/projects/registry.md` for the monorepo registry.
+- `wiki/log.md` for ingestion history.
+- `wiki/sources/` for provenance.
+
+Sample questions:
+
+- What are Lisa's main architecture layers?
+- How do rules, skills, hooks, commands, and CI quality gates work together?
+- Which template strategies does Lisa use?
+- What changed in recent merged PRs?
+- What should a new contributor read first?
+
+Useful ingestion requests:
+
+- Ingest the latest repository commits and merged PRs.
+- Ingest this design plan into the Lisa wiki.
+- Ingest these meeting notes.
+- Update the architecture overview from recent source changes.

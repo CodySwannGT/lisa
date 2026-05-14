@@ -1,6 +1,6 @@
 # Lisa: Claude Code Governance Framework
 
-![Lisa Architecture](docs/lisa-architecture.svg)
+![Lisa Architecture](assets/lisa-architecture.svg)
 
 ## Executive Summary
 
@@ -1077,4 +1077,4 @@ Start small—one rule, one command, one hook—and expand as your team gains co
 
 - Run `/help` for Claude Code help
 - Check [GitHub Issues](https://github.com/CodySwannGT/lisa/issues) for known issues
-- Read [Contributing Guide](CONTRIBUTING.md) to contribute improvements
+- Read [Contributing Guide](contributing.md) to contribute improvements
