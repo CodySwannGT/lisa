@@ -1,3 +1,8 @@
+---
+name: lisa-wiki-usage
+description: Use when explaining how to query, browse, update, maintain, or contribute to the Lisa LLM Wiki.
+---
+
 # Lisa Wiki Usage Skill
 
 Use this skill when explaining how to query, browse, update, maintain, or contribute to the Lisa LLM Wiki.

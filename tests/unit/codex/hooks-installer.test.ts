@@ -34,6 +34,12 @@ const FORMAT_ON_EDIT_ID = "format-on-edit";
 const RUBOCOP_ON_EDIT_ID = "rubocop-on-edit";
 /** Hook id for the NestJS-stack migration-block hook */
 const BLOCK_MIGRATION_EDITS_ID = "block-migration-edits";
+/** Universal Bash policy hook id */
+const BLOCK_NO_VERIFY_ID = "block-no-verify";
+/** Universal dependency bootstrap hook id */
+const INSTALL_PKGS_ID = "install-pkgs";
+/** Universal Jira configuration hook id */
+const SETUP_JIRA_CLI_ID = "setup-jira-cli";
 /** Filename of the notify-ntfy hook script */
 const NOTIFY_NTFY_SH = `${NOTIFY_NTFY_ID}.sh`;
 /** Filename of the rubocop-on-edit hook script */
@@ -113,12 +119,12 @@ describe("codex/hooks-installer", () => {
     expect(baseRules).toContain("# Base Rules");
   });
 
-  it("creates .codex/hooks.json with one Lisa SessionStart entry", async () => {
+  it("creates .codex/hooks.json with Lisa SessionStart entries", async () => {
     await installHooks(lisaDir, destDir, []);
     const hooksFilePath = path.join(destDir, ".codex", HOOKS_FILENAME);
     expect(await fs.pathExists(hooksFilePath)).toBe(true);
     const parsed = parseHooksFile(await fs.readFile(hooksFilePath, "utf8"));
-    expect(parsed.hooks?.SessionStart).toHaveLength(1);
+    expect(parsed.hooks?.SessionStart).toHaveLength(3);
     const handler = parsed.hooks?.SessionStart?.[0]?.hooks[0];
     expect(handler?.[LISA_MANAGED_MARKER]).toBe(true);
     expect(handler?.[LISA_ID_MARKER]).toBe(INJECT_RULES_ID);
@@ -154,8 +160,8 @@ describe("codex/hooks-installer", () => {
     expect(parsed.hooks?.PostToolUse?.[0]?.hooks[0]?.command).toBe(
       "./scripts/host-edit-hook.sh"
     );
-    // Lisa's SessionStart entry was added alongside
-    expect(parsed.hooks?.SessionStart).toHaveLength(1);
+    // Lisa's SessionStart entries were added alongside
+    expect(parsed.hooks?.SessionStart).toHaveLength(3);
   });
 
   it("idempotent: running twice produces the same hooks.json", async () => {
@@ -174,8 +180,9 @@ describe("codex/hooks-installer", () => {
 
   it("returns managedFiles list including script + rules + hooks.json", async () => {
     const result = await installHooks(lisaDir, destDir, []);
-    // Universal hooks: inject-rules + notify-ntfy = 2 entries
-    expect(result.hookEntries).toBe(2);
+    // Universal hooks: inject-rules + install-pkgs + setup-jira-cli +
+    // block-no-verify + notify-ntfy = 5 entries
+    expect(result.hookEntries).toBe(5);
     const sortedFiles = [...result.managedFiles].sort((a, b) =>
       a.localeCompare(b)
     );
@@ -206,11 +213,14 @@ describe("codex/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, []);
       const ids = await readLisaHookIds(destDir);
       expect(ids).toContain(INJECT_RULES_ID);
+      expect(ids).toContain(INSTALL_PKGS_ID);
+      expect(ids).toContain(SETUP_JIRA_CLI_ID);
+      expect(ids).toContain(BLOCK_NO_VERIFY_ID);
       expect(ids).toContain(NOTIFY_NTFY_ID);
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
-      expect(result.hookEntries).toBe(2);
+      expect(result.hookEntries).toBe(5);
     });
 
     it("ships TypeScript hooks when typescript is detected", async () => {
@@ -225,7 +235,7 @@ describe("codex/hooks-installer", () => {
       // NOT rails or nestjs
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
-      expect(result.hookEntries).toBe(5);
+      expect(result.hookEntries).toBe(8);
     });
 
     it("ships Rails hooks when rails is detected", async () => {
@@ -233,7 +243,7 @@ describe("codex/hooks-installer", () => {
       const ids = await readLisaHookIds(destDir);
       expect(ids).toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
-      expect(result.hookEntries).toBe(3);
+      expect(result.hookEntries).toBe(6);
     });
 
     it("ships NestJS migration block when nestjs is detected", async () => {
@@ -246,7 +256,7 @@ describe("codex/hooks-installer", () => {
       const ids = await readLisaHookIds(destDir);
       expect(ids).toContain(BLOCK_MIGRATION_EDITS_ID);
       expect(ids).toContain(FORMAT_ON_EDIT_ID);
-      expect(result.hookEntries).toBe(6);
+      expect(result.hookEntries).toBe(9);
     });
 
     it("copies only the script files for applicable hooks", async () => {
@@ -256,9 +266,12 @@ describe("codex/hooks-installer", () => {
         a.localeCompare(b)
       );
       expect(scriptFiles).toEqual([
+        "block-no-verify.sh",
         INJECT_RULES_SH,
+        "install-pkgs.sh",
         NOTIFY_NTFY_SH,
         RUBOCOP_ON_EDIT_SH,
+        "setup-jira-cli.sh",
       ]);
     });
   });

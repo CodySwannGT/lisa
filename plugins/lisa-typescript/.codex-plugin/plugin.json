@@ -1,0 +1,28 @@
+{
+  "name": "lisa-typescript",
+  "version": "2.16.6",
+  "description": "TypeScript-specific hooks for formatting, linting, and ast-grep scanning on edit.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "typescript",
+    "linting",
+    "formatting",
+    "hooks"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Lisa TypeScript",
+    "shortDescription": "TypeScript lifecycle checks",
+    "longDescription": "TypeScript-focused Lisa hooks for formatting, linting, and ast-grep scanning around file edits.",
+    "developerName": "Cody Swann",
+    "category": "Productivity",
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Check this TypeScript change"
+    ]
+  }
+}

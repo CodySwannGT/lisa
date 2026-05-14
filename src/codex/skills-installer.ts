@@ -19,7 +19,6 @@
  * @module codex/skills-installer
  */
 import * as fse from "fs-extra";
-import yaml from "js-yaml";
 import {
   copyFile,
   mkdir,
@@ -30,6 +29,9 @@ import {
   writeFile,
 } from "node:fs/promises";
 import * as path from "node:path";
+import { convertCommandToSkill } from "./command-skill-transformer.js";
+
+export { convertCommandToSkill } from "./command-skill-transformer.js";
 
 /** Subdirectory inside `.codex/skills/` where Lisa-owned skills live */
 export const LISA_SKILLS_SUBDIR = path.join("skills", "lisa");
@@ -394,10 +396,9 @@ async function discoverCommandsInPlugin(
 /**
  * Convert a Lisa command Markdown file into a Codex skill.
  *
- * The command's frontmatter (description) becomes the skill description.
- * The command body becomes the skill body, with `$ARGUMENTS` removed since
- * skills don't have CLI argument substitution — the user's natural-language
- * input flows in via the surrounding conversation.
+ * The command's frontmatter becomes skill metadata plus a compatibility note.
+ * The command body becomes the skill body, with `$ARGUMENTS` replaced by an
+ * explicit instruction to use the user's surrounding request as arguments.
  * @param cmd - Discovered command source
  * @param skillsDir - Absolute path to `<destDir>/.codex/skills/lisa/`
  * @returns Result describing the installed (command-derived) skill
@@ -424,68 +425,4 @@ async function emitCommandAsSkill(
     source: "command",
     relativePath: path.join(LISA_SKILLS_SUBDIR, cmd.skillName),
   };
-}
-
-/**
- * Pure transform: convert a Lisa command markdown to a Codex skill markdown.
- *
- * Preserves the description from the command's frontmatter; strips the
- * `argument-hint` field (no analog in skills); strips `$ARGUMENTS`
- * substitution markers from the body.
- * @param commandSource - Raw contents of the command .md file
- * @param skillName - Target skill name (already includes the `lisa-` prefix)
- * @param displayName - Human-readable name used as a fallback description
- * @returns The Codex skill SKILL.md content as a string
- */
-export function convertCommandToSkill(
-  commandSource: string,
-  skillName: string,
-  displayName: string
-): string {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(
-    commandSource
-  );
-  if (match === null || match[1] === undefined || match[2] === undefined) {
-    throw new Error(
-      `Command source is missing YAML frontmatter for ${displayName}`
-    );
-  }
-  const rawFrontmatter = match[1];
-  const rawBody = match[2];
-
-  // Parse the frontmatter properly so we get YAML-correct value extraction
-  // (handles quoting, escapes, multiline forms — all of which a hand-rolled
-  // regex would get wrong on adversarial input).
-  const parsedFrontmatter = yaml.load(rawFrontmatter);
-  const description = extractDescription(parsedFrontmatter, displayName);
-
-  const body = rawBody
-    .trimStart()
-    .replace(/\$ARGUMENTS\s*/g, "")
-    .trimEnd();
-
-  const frontmatter = [
-    "---",
-    `name: ${skillName}`,
-    `description: ${JSON.stringify(description)}`,
-    "---",
-    "",
-  ].join("\n");
-
-  return `${frontmatter}${body}\n`;
-}
-
-/**
- * Pull the `description` field out of a parsed YAML frontmatter mapping,
- * falling back to `displayName` if it's missing or not a string.
- * @param parsed - Output of `yaml.load(rawFrontmatter)` (untrusted shape)
- * @param displayName - Fallback used when no description is available
- * @returns The description string to embed in the skill frontmatter
- */
-function extractDescription(parsed: unknown, displayName: string): string {
-  if (parsed === null || typeof parsed !== "object") {
-    return displayName;
-  }
-  const value = (parsed as Record<string, unknown>).description;
-  return typeof value === "string" && value.length > 0 ? value : displayName;
 }

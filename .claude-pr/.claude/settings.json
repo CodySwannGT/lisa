@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "1800000",
+    "BASH_MAX_TIMEOUT_MS": "7200000",
+    "CLAUDE_DEBUG": "0",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "ENABLE_LSP_TOOL": "1"
+  },
+  "attribution": {
+    "commit": "🤖 Generated with Claude Code\n\nCo-Authored-By: Claude",
+    "pr": "🤖 Generated with Claude Code"
+  },
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Read(./.entire/metadata/**)"
+    ],
+    "ask": []
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "safety-net@cc-marketplace": true,
+    "code-simplifier@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "coderabbit@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true,
+    "lisa-typescript@lisa": true,
+    "lisa@lisa": true,
+    "skill-creator@claude-plugins-official": true,
+    "atlassian@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "CodySwannGT/lisa": {
+      "source": {
+        "source": "github",
+        "repo": "CodySwannGT/lisa"
+      }
+    },
+    "kenryu42/cc-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "kenryu42/cc-marketplace"
+      }
+    }
+  },
+  "plansDirectory": "./plans"
+}

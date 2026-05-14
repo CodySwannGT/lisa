@@ -1,0 +1,27 @@
+{
+  "name": "lisa-cdk",
+  "version": "2.16.6",
+  "description": "AWS CDK-specific Lisa plugin.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "infrastructure"
+  ],
+  "interface": {
+    "displayName": "Lisa CDK",
+    "shortDescription": "AWS CDK workflows",
+    "longDescription": "Lisa plugin metadata for AWS CDK-focused project workflows.",
+    "developerName": "Cody Swann",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review this CDK change"
+    ]
+  }
+}

@@ -1,3 +1,8 @@
+---
+name: lisa-wiki-ingest
+description: Use when ingesting Lisa repository, GitHub, Linear, document, or transcript knowledge into the in-repository wiki.
+---
+
 # Lisa Wiki Ingestion Skill
 
 Use this skill when ingesting Lisa repository, GitHub, Linear, document, or transcript knowledge into the in-repository wiki.
