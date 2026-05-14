@@ -1,0 +1,14 @@
+{
+  "env": {
+    "BRAVE_API_KEY": "xxxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "FIRECRAWL_API_KEY": "xxxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "xxxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "CONTEXT7_API_KEY": "xxxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "MEMORY_PATH": ".ai/memory.jsonl"
+  },
+  "permissions": {
+    "allow": ["Bash(git add:*)"],
+    "deny": []
+  },
+  "enableAllProjectMcpServers": true
+}

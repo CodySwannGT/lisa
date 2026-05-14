@@ -1,0 +1,277 @@
+# BEGIN: AI GUARDRAILS
+
+# Skip pre-push checks in Claude Code remote environment
+# These checks run in CI/CD anyway, and remote environments have limited resources
+if [ "$CLAUDE_CODE_REMOTE" = "true" ]; then
+  echo "ℹ️  Skipping pre-push checks (running in Claude Code remote environment)"
+  exit 0
+fi
+
+# Detect package manager (check if tool is available before using it)
+# Priority: bun > yarn > npm (bun first since package.json engines prefer it)
+if ([ -f "bun.lockb" ] || [ -f "bun.lock" ]) && command -v bun >/dev/null 2>&1; then
+  PACKAGE_MANAGER="bun"
+  RUNNER="bun run"
+elif [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+  PACKAGE_MANAGER="yarn"
+  RUNNER="yarn"
+elif [ -f "package-lock.json" ]; then
+  PACKAGE_MANAGER="npm"
+  RUNNER="npm run"
+else
+  # Default to npm if no lock file is found or tool is not available
+  PACKAGE_MANAGER="npm"
+  RUNNER="npm run"
+fi
+
+echo "📦 Using package manager: $PACKAGE_MANAGER"
+
+# Run security audit
+echo "🔒 Running security audit..."
+
+# jq is required for all audit paths (JSON config reading, npm/yarn filtering)
+if ! command -v jq >/dev/null 2>&1; then
+  echo ""
+  echo "⚠️  WARNING: jq is not installed - required for security audit"
+  echo ""
+  echo "To install jq:"
+  echo "  macOS:    brew install jq"
+  echo "  Windows:  choco install jq  # or scoop install jq"
+  echo "  Linux:    apt-get install jq"
+  echo ""
+  echo "Continuing without security audit..."
+  echo ""
+else
+  # Load GHSA exclusion IDs from JSON config files (managed + project-local)
+  load_audit_exclusions() {
+    _EXCLUSIONS=""
+    for _config_file in audit.ignore.config.json audit.ignore.local.json; do
+      if [ -f "$_config_file" ]; then
+        _FILE_IDS=$(jq -r '.exclusions[].id' "$_config_file" 2>/dev/null)
+        if [ -n "$_FILE_IDS" ]; then
+          _EXCLUSIONS="$_EXCLUSIONS $_FILE_IDS"
+        fi
+      fi
+    done
+    echo "$_EXCLUSIONS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' '
+  }
+
+  # Load CVE exclusion IDs from JSON config files (for yarn's CVE-based filtering)
+  load_audit_cves() {
+    _CVES=""
+    for _config_file in audit.ignore.config.json audit.ignore.local.json; do
+      if [ -f "$_config_file" ]; then
+        _FILE_CVES=$(jq -r '.exclusions[] | select(.cve != null) | .cve' "$_config_file" 2>/dev/null)
+        if [ -n "$_FILE_CVES" ]; then
+          _CVES="$_CVES $_FILE_CVES"
+        fi
+      fi
+    done
+    echo "$_CVES" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' '
+  }
+
+  AUDIT_EXCLUSIONS=$(load_audit_exclusions)
+  AUDIT_CVES=$(load_audit_cves)
+
+  if [ "$PACKAGE_MANAGER" = "yarn" ]; then
+    # Build jq filter for GHSA IDs
+    GHSA_FILTER=""
+    for _id in $AUDIT_EXCLUSIONS; do
+      if [ -n "$GHSA_FILTER" ]; then
+        GHSA_FILTER="$GHSA_FILTER or .data.advisory.github_advisory_id == \"$_id\""
+      else
+        GHSA_FILTER=".data.advisory.github_advisory_id == \"$_id\""
+      fi
+    done
+
+    # Build jq filter for CVE IDs
+    CVE_FILTER=""
+    for _cve in $AUDIT_CVES; do
+      if [ -n "$CVE_FILTER" ]; then
+        CVE_FILTER="$CVE_FILTER or . == \"$_cve\""
+      else
+        CVE_FILTER=". == \"$_cve\""
+      fi
+    done
+
+    # Combine GHSA and CVE filters
+    COMBINED_FILTER=""
+    if [ -n "$GHSA_FILTER" ] && [ -n "$CVE_FILTER" ]; then
+      COMBINED_FILTER="($GHSA_FILTER or (.data.advisory.cves | any($CVE_FILTER)))"
+    elif [ -n "$GHSA_FILTER" ]; then
+      COMBINED_FILTER="($GHSA_FILTER)"
+    elif [ -n "$CVE_FILTER" ]; then
+      COMBINED_FILTER="((.data.advisory.cves | any($CVE_FILTER)))"
+    fi
+
+    if [ -n "$COMBINED_FILTER" ]; then
+      yarn audit --groups dependencies --json | jq -r "select(.type == \"auditAdvisory\") | select(.data.advisory.severity == \"high\" or .data.advisory.severity == \"critical\") | select(($COMBINED_FILTER) | not) | .data.advisory" > high_vulns.json
+    else
+      yarn audit --groups dependencies --json | jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | .data.advisory' > high_vulns.json
+    fi
+
+    if [ -s high_vulns.json ]; then
+      echo "❌ High or critical vulnerabilities found in production dependencies!"
+      cat high_vulns.json
+      rm high_vulns.json
+      exit 1
+    fi
+
+    echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
+    rm -f high_vulns.json
+
+  elif [ "$PACKAGE_MANAGER" = "npm" ]; then
+    # Build jq exclusion filter for npm audit GHSA IDs
+    NPM_EXCLUDE_FILTER=""
+    for _id in $AUDIT_EXCLUSIONS; do
+      if [ -n "$NPM_EXCLUDE_FILTER" ]; then
+        NPM_EXCLUDE_FILTER="$NPM_EXCLUDE_FILTER or . == \"$_id\""
+      else
+        NPM_EXCLUDE_FILTER=". == \"$_id\""
+      fi
+    done
+
+    AUDIT_JSON=$(npm audit --production --json 2>/dev/null || true)
+    if [ -n "$NPM_EXCLUDE_FILTER" ]; then
+      UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq "[.vulnerabilities | to_entries[] | select(.value.severity == \"high\" or .value.severity == \"critical\") | .value.via[] | select(type == \"object\") | .url | ltrimstr(\"https://github.com/advisories/\")] | unique | map(select($NPM_EXCLUDE_FILTER | not)) | length")
+    else
+      UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq '[.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .value.via[] | select(type == "object") | .url | ltrimstr("https://github.com/advisories/")] | unique | length')
+    fi
+    if [ "$UNFIXED_HIGH" -gt 0 ]; then
+      echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
+      exit 1
+    fi
+    echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
+
+  elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+    # Build --ignore flags dynamically from exclusion list
+    BUN_IGNORE_FLAGS=""
+    for _id in $AUDIT_EXCLUSIONS; do
+      BUN_IGNORE_FLAGS="$BUN_IGNORE_FLAGS --ignore $_id"
+    done
+
+    if ! bun audit --audit-level=high $BUN_IGNORE_FLAGS; then
+      echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
+      exit 1
+    fi
+    echo "✅ No high or critical vulnerabilities found in production dependencies"
+  fi
+fi
+
+# Run slow lint rules - only if script exists
+if jq -e '.scripts["lint:slow"]' package.json >/dev/null 2>&1; then
+  echo "🐢 Running slow lint rules..."
+  $RUNNER lint:slow
+  if [ $? -ne 0 ]; then
+    echo "❌ Slow lint rules failed. Please fix linting issues before pushing."
+    exit 1
+  fi
+  echo "✅ Slow lint rules passed"
+else
+  echo "ℹ️  Skipping slow lint rules (lint:slow not configured)"
+fi
+
+# Run dead code detection (knip) - only if script exists
+if jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
+  echo "🗑️ Running dead code detection (knip)..."
+  $RUNNER knip
+  if [ $? -ne 0 ]; then
+    echo "❌ Dead code detected. Please remove unused exports/dependencies before pushing."
+    echo ""
+    echo "To auto-fix some issues, run: $RUNNER knip:fix"
+    exit 1
+  fi
+  echo "✅ No dead code detected"
+else
+  echo "ℹ️  Skipping dead code detection (knip not configured)"
+fi
+
+# Run unit tests with coverage
+echo "🧪 Running unit tests with coverage..."
+$RUNNER test:cov
+if [ $? -ne 0 ]; then
+  echo "❌ Unit tests or coverage thresholds failed. Please fix before pushing."
+  exit 1
+fi
+
+# Run integration tests
+echo "🧪 Running integration tests..."
+$RUNNER test:integration
+if [ $? -ne 0 ]; then
+  echo "❌ Integration tests failed. Please fix failing tests before pushing."
+  exit 1
+fi
+
+# Run Lighthouse CI performance audit (only if installed)
+# Disable Lighthouse beause it takes too long to run on push. Just let it run in ci/cd 
+# Check if lighthouse:check script exists in package.json
+# if ! grep -q '"lighthouse:check"' package.json 2>/dev/null; then
+#   echo ""
+#   echo "ℹ️  Skipping Lighthouse CI audit (not configured for this project)"
+#   echo ""
+# else
+#   # Check if Chrome is available (required for Lighthouse)
+#   CHROME_AVAILABLE=false
+#   if command -v google-chrome >/dev/null 2>&1 || \
+#      command -v google-chrome-stable >/dev/null 2>&1 || \
+#      command -v chromium >/dev/null 2>&1 || \
+#      command -v chromium-browser >/dev/null 2>&1 || \
+#      [ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
+#     CHROME_AVAILABLE=true
+#   fi
+
+
+#   if [ "$CHROME_AVAILABLE" = "false" ]; then
+#     echo ""
+#     echo "⚠️  WARNING: Chrome/Chromium not found - skipping Lighthouse CI audit"
+#     echo ""
+#     echo "To enable Lighthouse performance audits, install Chrome:"
+#     echo "  macOS:    brew install --cask google-chrome"
+#     echo "  Linux:    apt-get install chromium-browser  # or google-chrome-stable"
+#     echo "  Windows:  choco install googlechrome"
+#     echo ""
+#     echo "Continuing without Lighthouse audit..."
+#     echo ""
+#   else
+#     echo "🔦 Building web export for Lighthouse..."
+#     $RUNNER export:web
+#     if [ $? -ne 0 ]; then
+#       echo "❌ Web export failed. Please fix build errors before pushing."
+#       exit 1
+#     fi
+
+#     echo "🔦 Running Lighthouse CI performance audit..."
+#     LIGHTHOUSE_OUTPUT=$($RUNNER lighthouse:check 2>&1)
+#     LIGHTHOUSE_EXIT=$?
+#     echo "$LIGHTHOUSE_OUTPUT"
+
+#     # Extract report URL from output
+#     REPORT_URL=$(echo "$LIGHTHOUSE_OUTPUT" | grep -o 'https://storage.googleapis.com/[^ ]*\.html' | head -1)
+
+#     if [ $LIGHTHOUSE_EXIT -ne 0 ]; then
+#       echo ""
+#       echo "❌ Lighthouse CI performance audit failed!"
+#       echo ""
+#       echo "Your changes caused performance regressions that exceed the allowed thresholds."
+#       echo ""
+#       if [ -n "$REPORT_URL" ]; then
+#         echo "📊 View full report: $REPORT_URL"
+#         echo ""
+#       fi
+#       echo "Common fixes:"
+#       echo "  • Bundle size too large → Remove unused dependencies, add code splitting"
+#       echo "  • LCP/FCP too slow → Optimize images, reduce render-blocking resources"
+#       echo "  • CLS too high → Add explicit dimensions to images/containers"
+#       echo "  • Too much unused JS → Implement lazy loading for non-critical code"
+#       echo ""
+#       echo "See lighthouserc.js for threshold details."
+#       echo ""
+#       exit 1
+#     fi
+#     echo "✅ Lighthouse CI performance audit passed"
+#   fi
+# fi
+
+exit 0
+
+# END: AI GUARDRAILS

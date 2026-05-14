@@ -20,3 +20,5 @@ Core rules:
 - Preserve unrelated working tree changes.
 - Do not stage local secrets, dependency directories, build output, coverage output, or generated distribution files unless explicitly requested.
 - Commit and push after each successful ingestion.
+- Claude is Lisa's production harness today. Codex support must improve without reducing Claude behavior, install flows, hooks, commands, agents, skills, settings, or tests.
+- Whenever adding or changing Lisa features, keep the Claude and Codex implementations in parity where Codex has an equivalent surface. If a Claude behavior cannot be represented in Codex, document the gap in code comments, tests, or user-facing guidance instead of silently dropping it.
