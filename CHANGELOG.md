@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.8](https://github.com/CodySwannGT/lisa/compare/vv2.16.7...v2.16.8) (2026-05-14)
+
+
+### Bug Fixes
+
+* **sync-down-branches:** open sync PR via Claude so CI triggers ([#474](https://github.com/CodySwannGT/lisa/issues/474)) ([e13a2b7](https://github.com/CodySwannGT/lisa/commit/e13a2b7d60cbb4861a6abc0654f1b305fa4ec4e6))
+
 ### [2.16.7](https://github.com/CodySwannGT/lisa/compare/vv2.16.6...v2.16.7) (2026-05-14)
 
 ### [2.16.6](https://github.com/CodySwannGT/lisa/compare/vv2.16.5...v2.16.6) (2026-05-14)
