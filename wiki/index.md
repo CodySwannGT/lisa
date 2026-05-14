@@ -9,6 +9,28 @@
 ## Project
 
 - [Project Registry](projects/registry.md)
+- [lisa-monorepo](projects/lisa-monorepo.md)
+
+## Architecture
+
+- [Lisa Architecture](architecture/lisa-architecture.md)
+- [Template Governance](architecture/template-governance.md)
+
+## Requirements
+
+- [Lisa Governance Requirements](requirements/lisa-governance-requirements.md)
+
+## Playbooks
+
+- [Lisa Workflow Playbook](playbooks/lisa-workflow-playbook.md)
+
+## Concepts
+
+- [Lisa Vocabulary](concepts/lisa-vocabulary.md)
+
+## Open Questions
+
+- [Lisa Open Questions](open-questions/lisa-open-questions.md)
 
 ## Categories
 
