@@ -1,0 +1,19 @@
+{
+  "source": "github",
+  "ingested_at": "2026-05-14T10:56:25.611996+00:00",
+  "mode": "initial",
+  "repo": "CodySwannGT/lisa",
+  "full_commit_count_across_refs": 1814,
+  "remote_branch_count": 32,
+  "tag_count": 330,
+  "merged_pr_count": 425,
+  "latest_commit": {
+    "hash": "610f410cb4955734365acdcd1c94e5a74edcbfc0",
+    "author_date": "2026-05-14T06:54:11-04:00",
+    "subject": "docs: initialize lisa llm wiki"
+  },
+  "latest_merged_pr_at": "2026-05-13T20:01:21Z",
+  "source_notes": [
+    "wiki/sources/github/2026-05-14-git-and-pr-history.md"
+  ]
+}

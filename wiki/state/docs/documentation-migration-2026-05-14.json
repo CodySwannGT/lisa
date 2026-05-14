@@ -1,0 +1,10 @@
+{
+  "source": "repository-documentation",
+  "tenant": null,
+  "ingested_at": "2026-05-14",
+  "mode": "documentation-migration",
+  "moved_files": 18,
+  "canonical_root": "wiki/documentation",
+  "source_note": "wiki/sources/docs/2026-05-14-documentation-migration.md",
+  "documentation_index": "wiki/documentation/index.md"
+}

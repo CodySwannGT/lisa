@@ -4,7 +4,7 @@ This directory contains four comprehensive guides for understanding and writing 
 
 ## Documents Overview
 
-### 1. STRATEGY_TEST_PATTERNS.md
+### 1. [strategy-test-patterns.md](strategy-test-patterns.md)
 **Main reference guide for understanding existing test patterns**
 
 Contains:
@@ -20,7 +20,7 @@ Contains:
 
 **Use this to**: Understand how tests are currently structured and what patterns are established.
 
-### 2. STRATEGY_TEST_TEMPLATE.md
+### 2. [strategy-test-template.md](strategy-test-template.md)
 **Ready-to-use template for writing new strategy tests**
 
 Contains:
@@ -35,7 +35,7 @@ Contains:
 
 **Use this to**: Start writing tests for a new strategy (copy and fill in the blanks).
 
-### 3. STRATEGY_TESTS_VISUAL_GUIDE.md
+### 3. [strategy-tests-visual-guide.md](strategy-tests-visual-guide.md)
 **Visual diagrams and flow charts**
 
 Contains:
@@ -54,7 +54,7 @@ Contains:
 
 **Use this to**: Visualize how tests work and understand the overall structure.
 
-### 4. STRATEGY_TESTS_COPY_PASTE.md
+### 4. [strategy-tests-copy-paste.md](strategy-tests-copy-paste.md)
 **Ready-to-copy code snippets**
 
 Contains:
@@ -73,10 +73,10 @@ Contains:
 
 ## Quick Start for Writing Package-Lisa Tests
 
-1. **Review the patterns**: Start with STRATEGY_TEST_PATTERNS.md to see how existing tests are organized
-2. **Get the template**: Copy STRATEGY_TEST_TEMPLATE.md as your base
-3. **Add test snippets**: Use STRATEGY_TESTS_COPY_PASTE.md for specific test implementations
-4. **Check the visuals**: Refer to STRATEGY_TESTS_VISUAL_GUIDE.md if you're confused about flow
+1. **Review the patterns**: Start with [strategy-test-patterns.md](strategy-test-patterns.md) to see how existing tests are organized
+2. **Get the template**: Copy [strategy-test-template.md](strategy-test-template.md) as your base
+3. **Add test snippets**: Use [strategy-tests-copy-paste.md](strategy-tests-copy-paste.md) for specific test implementations
+4. **Check the visuals**: Refer to [strategy-tests-visual-guide.md](strategy-tests-visual-guide.md) if you're confused about flow
 5. **Run the tests**: Use `npm test tests/unit/strategies/your-strategy.test.ts`
 
 ## Existing Test Statistics
@@ -217,7 +217,7 @@ describe("YourStrategy", () => {
 ```
 
 ### Step 3: Add your tests
-Use STRATEGY_TESTS_COPY_PASTE.md snippets for specific tests.
+Use [strategy-tests-copy-paste.md](strategy-tests-copy-paste.md) snippets for specific tests.
 
 ### Step 4: Run tests
 ```bash
@@ -296,10 +296,10 @@ npm run test:cov -- tests/unit/strategies/your-strategy.test.ts
 
 ## Next Steps
 
-1. Read STRATEGY_TEST_PATTERNS.md for comprehensive understanding
-2. Review STRATEGY_TESTS_VISUAL_GUIDE.md for structure clarity
-3. Copy snippets from STRATEGY_TESTS_COPY_PASTE.md
-4. Use STRATEGY_TEST_TEMPLATE.md as starting structure
+1. Read [strategy-test-patterns.md](strategy-test-patterns.md) for comprehensive understanding
+2. Review [strategy-tests-visual-guide.md](strategy-tests-visual-guide.md) for structure clarity
+3. Copy snippets from [strategy-tests-copy-paste.md](strategy-tests-copy-paste.md)
+4. Use [strategy-test-template.md](strategy-test-template.md) as starting structure
 5. Write your tests
 6. Run `npm test` to verify
 7. Check coverage with `npm run test:cov`
