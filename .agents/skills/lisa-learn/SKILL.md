@@ -135,15 +135,16 @@ Would you like to run typecheck/lint/test on the project to detect breakage?
 ```
 
 If yes:
-1. Detect package manager from lockfile:
-   - `bun.lockb` → bun
-   - `pnpm-lock.yaml` → pnpm
-   - `yarn.lock` → yarn
-   - `package-lock.json` → npm
+1. Detect whether the project is Rails or JS/TS:
+   - If `Gemfile` exists in the project path → Rails project
+   - Otherwise → JS/TS project; detect package manager from lockfile:
+     - `bun.lockb` → bun
+     - `pnpm-lock.yaml` → pnpm
+     - `yarn.lock` → yarn
+     - `package-lock.json` → npm
 2. Run in order (stop at first failure):
-   - `cd <project-path> && <pm> run typecheck`
-   - `cd <project-path> && <pm> run lint`
-   - `cd <project-path> && <pm> run test`
+   - **Rails**: `cd <project-path> && bundle exec rails test` (or `bundle exec rspec` if `spec/` exists), then `bundle exec rubocop`. Skip JS/TS commands.
+   - **JS/TS**: `cd <project-path> && <pm> run typecheck`, then `<pm> run lint`, then `<pm> run test`
 3. Report results and add any failures to the **Potential Breakage** category
 
 ### Step 7: Generate Report

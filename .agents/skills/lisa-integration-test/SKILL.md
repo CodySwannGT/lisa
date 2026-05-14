@@ -51,7 +51,19 @@ If nothing changed, report "Lisa applied cleanly with no changes" and stop.
 
 ### Step 5: Verify the Project
 
-Run the project's verification commands in order. Stop at the first failure:
+First detect whether the project is a Rails project or a JS/TS project:
+
+- If `Gemfile` or `config/application.rb` exists in the project path → Rails project
+- Otherwise → JS/TS project
+
+**For Rails projects**, run the following commands in order. Stop at the first failure:
+
+1. **Tests**: `cd <project-path> && bundle exec rails test` (or `bundle exec rspec` if `spec/` directory exists)
+2. **Lint**: `cd <project-path> && bundle exec rubocop`
+
+JS/TS commands (typecheck, npm/bun lint) are skipped for Rails projects.
+
+**For JS/TS projects**, run the project's verification commands in order. Stop at the first failure:
 
 1. **Typecheck**: `cd <project-path> && bun run typecheck` (or `npm run typecheck` based on package manager)
 2. **Lint**: `cd <project-path> && bun run lint` (or equivalent)
