@@ -11,6 +11,15 @@
 - [Project Registry](projects/registry.md)
 - [lisa-monorepo](projects/lisa-monorepo.md)
 
+## Documentation
+
+- [Documentation Index](documentation/index.md)
+- [Overview](documentation/overview.md)
+- [Contributing](documentation/contributing.md)
+- [Testing Documentation](documentation/testing/)
+- [Workflow Documentation](documentation/workflows/)
+- [Specifications](documentation/specs/)
+
 ## Architecture
 
 - [Lisa Architecture](architecture/lisa-architecture.md)
@@ -37,6 +46,7 @@
 - [Architecture](architecture/)
 - [Concepts](concepts/)
 - [Decisions](decisions/)
+- [Documentation](documentation/)
 - [Entities](entities/)
 - [Open Questions](open-questions/)
 - [Playbooks](playbooks/)

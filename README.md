@@ -130,6 +130,7 @@ Start with:
 
 - `wiki/start-here.md` for orientation.
 - `wiki/index.md` for the maintained map.
+- `wiki/documentation/` for canonical Lisa documentation moved from root docs/spec files.
 - `wiki/projects/registry.md` for the monorepo registry.
 - `wiki/log.md` for ingestion history.
 - `wiki/sources/` for provenance.

@@ -13,6 +13,7 @@ Use it to answer questions about:
 Begin with:
 
 - `wiki/index.md` for the maintained map.
+- `wiki/documentation/index.md` for canonical Lisa documentation.
 - `wiki/projects/registry.md` for the monorepo registry.
 - `wiki/log.md` for ingestion history.
 - `wiki/sources/` for provenance.

@@ -15,7 +15,7 @@ Verify these files exist:
 - `AGENTS.md`
 - `CLAUDE.md`
 - `README.md`
-- `OVERVIEW.md`
+- `wiki/documentation/overview.md`
 - `wiki/schema/llm-wiki-contract.md`
 - `wiki/projects/registry.md`
 - `wiki/index.md`

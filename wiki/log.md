@@ -14,3 +14,9 @@
 - Wrote source notes under `wiki/sources/repository/` and `wiki/sources/github/`.
 - Synthesized Lisa architecture, template governance, workflow, requirements, vocabulary, project, and open-question pages.
 - Advanced repository and GitHub state under `wiki/state/`.
+
+## 2026-05-14 - Documentation migration and ingestion
+
+- Moved durable root docs, docs workflows, and specs into `wiki/documentation/` so the wiki is the canonical documentation home.
+- Preserved `docs/wiki-inbox/` as an ingestion inbox and left operational `plans/` and product/template `plugins/` markdown in place.
+- Added documentation provenance under `wiki/sources/docs/` and advanced docs state under `wiki/state/docs/`.

@@ -6,6 +6,8 @@ This contract defines how Lisa knowledge is stored, updated, verified, and trace
 
 The durable source of truth is markdown under `wiki/`.
 
+Canonical Lisa documentation belongs under `wiki/documentation/`. Root-level package files such as `README.md`, operational workflow state under `plans/`, and product/template payloads under `plugins/` may remain outside the wiki, but durable project documentation should be moved or synthesized into `wiki/documentation/` during ingestion.
+
 This repository is not a wrapper. The wiki shares the existing Lisa git repository and branch.
 
 ## Ingestion Inputs
@@ -14,7 +16,7 @@ Default ingestion inputs:
 
 - The Lisa monorepo working tree and git history.
 - GitHub merged pull request metadata for `CodySwannGT/lisa`.
-- Repository docs, specs, plans, package metadata, workflows, commands, skills, templates, and source structure.
+- Repository package metadata, plans, workflows, commands, skills, templates, source structure, and canonical documentation under `wiki/documentation/`.
 - Linear only when an available MCP tool is explicitly configured and a Linear ingestion is requested.
 - `docs/wiki-inbox/` and `transcripts/` when the user provides local documents or meeting notes.
 
@@ -35,6 +37,7 @@ Source notes should preserve enough information for a future reader to understan
 Durable knowledge belongs in stable category pages:
 
 - `wiki/projects/`
+- `wiki/documentation/`
 - `wiki/architecture/`
 - `wiki/requirements/`
 - `wiki/decisions/`

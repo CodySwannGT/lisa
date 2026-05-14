@@ -7,7 +7,7 @@ Before changing wiki structure or ingestion behavior, read:
 - `wiki/schema/llm-wiki-contract.md`
 - `wiki/projects/registry.md`
 - `README.md`
-- `OVERVIEW.md`
+- `wiki/documentation/overview.md`
 
 Claude skills for Lisa wiki work live under `.claude/skills/`.
 

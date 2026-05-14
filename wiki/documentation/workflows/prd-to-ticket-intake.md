@@ -90,7 +90,7 @@ Both intake skills read configuration from env vars. Set these in your shell con
 | Variable | Purpose |
 |----------|---------|
 | `JIRA_PROJECT` | JIRA project key (e.g. `SE`) |
-| `JIRA_SERVER` | Atlassian instance host (e.g. `geminisportsanalytics.atlassian.net`) |
+| `JIRA_SERVER` | Atlassian instance host (e.g. `your-company.atlassian.net`) |
 | `E2E_BASE_URL` | Frontend URL for `product-walkthrough` (e.g. `https://dev.example.io/`) |
 | `E2E_TEST_PHONE` / `E2E_TEST_OTP` / `E2E_TEST_ORG` | Test user credentials |
 | `E2E_GRAPHQL_URL` | GraphQL endpoint for verification plans |

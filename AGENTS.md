@@ -7,7 +7,7 @@ Before changing wiki structure, ingestion behavior, or setup conventions, read:
 - `wiki/schema/llm-wiki-contract.md`
 - `wiki/projects/registry.md`
 - `README.md`
-- `OVERVIEW.md`
+- `wiki/documentation/overview.md`
 
 Codex skills for Lisa wiki work live under `.agents/skills/`.
 

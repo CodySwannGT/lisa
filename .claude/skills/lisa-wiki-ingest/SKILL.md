@@ -20,7 +20,7 @@ For every ingestion:
 
 Initial ingestion should capture:
 
-- README, OVERVIEW, docs, specs, plans, package metadata, workflows, commands, skills, templates, and source structure.
+- README, wiki documentation, docs inbox files, specs, plans, package metadata, workflows, commands, skills, templates, and source structure.
 - Full fetched git commit history across refs.
 - Merged PR metadata through `gh` when available.
 - Monorepo workspace package roles.
