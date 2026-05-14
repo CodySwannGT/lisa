@@ -103,6 +103,16 @@ command = "linear-mcp"
       const out = mergeSettings(`model = "gpt-5"\n`);
       expect(out.endsWith("\n")).toBe(true);
     });
+
+    it("preserves inline comments when updating an existing features key", () => {
+      const existing = `[features]\ncodex_hooks = false # disabled while debugging\n`;
+      const out = mergeSettings(existing);
+      expect(out).toContain("# disabled while debugging");
+      const parsed = parseToml(out) as Record<string, unknown>;
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
+    });
   });
 
   describe("installSettings (I/O)", () => {

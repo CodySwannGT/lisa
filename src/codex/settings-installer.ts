@@ -368,6 +368,11 @@ function appendFeaturesSection(toml: string): string {
 
 /**
  * Add or update one key within an existing TOML table.
+ *
+ * When a matching key already exists on a line that has an inline comment
+ * (e.g. `codex_hooks = false # disabled while debugging`), the comment
+ * suffix is preserved so host-authored context isn't silently lost on
+ * every Lisa update.
  * @param lines - TOML split into lines
  * @param sectionStart - Index of the table header
  * @param sectionEnd - First line after the table
@@ -382,12 +387,14 @@ function upsertSectionKey(
   key: string,
   value: unknown
 ): string[] {
-  const keyPattern = new RegExp(`^\\s*${escapeRegExp(key)}\\s*=`);
+  const keyPattern = new RegExp(
+    `^(\\s*${escapeRegExp(key)}\\s*=\\s*)([^#\\n]*?)(\\s*#.*)?$`
+  );
   const existingIndex = lines
     .slice(sectionStart + 1, sectionEnd)
     .findIndex(line => keyPattern.test(line));
-  const rendered = `${key} = ${formatTomlValue(value)}`;
   if (existingIndex === -1) {
+    const rendered = `${key} = ${formatTomlValue(value)}`;
     return [
       ...lines.slice(0, sectionStart + 1),
       rendered,
@@ -395,9 +402,15 @@ function upsertSectionKey(
     ];
   }
   const absoluteIndex = sectionStart + 1 + existingIndex;
+  const existingLine = lines[absoluteIndex] ?? "";
+  const replaced = existingLine.replace(
+    keyPattern,
+    (_m, prefix, _val, comment = "") =>
+      `${prefix}${formatTomlValue(value)}${comment}`
+  );
   return [
     ...lines.slice(0, absoluteIndex),
-    rendered,
+    replaced,
     ...lines.slice(absoluteIndex + 1),
   ];
 }
