@@ -1,11 +1,11 @@
 ---
-name: Codex-action
-description: Knowledge base for creating and configuring Codex Action GitHub workflows
+name: claude-code-action
+description: Knowledge base for creating and configuring Claude Code Action GitHub workflows
 ---
 
-# Codex Action Workflow Guide
+# Claude Code Action Workflow Guide
 
-Reference guide for creating `anthropics/Codex-action@v1` GitHub workflows.
+Reference guide for creating `anthropics/claude-code-action@v1` GitHub workflows.
 
 ## Authentication
 
@@ -13,18 +13,18 @@ Choose one authentication method:
 
 | Method | Input | Use Case |
 |--------|-------|----------|
-| OAuth Token | `claude_code_oauth_token` | Recommended for most setups (requires Codex Pro or Max) |
+| OAuth Token | `claude_code_oauth_token` | Recommended for most setups (requires Claude Pro or Max) |
 | API Key | `anthropic_api_key` | Direct Anthropic API key from console.anthropic.com |
-| AWS Bedrock | `aws_access_key_id` + `aws_secret_access_key` | AWS-hosted Codex |
-| GCP Vertex | `gcp_project_id` + `gcp_region` + `gcp_workload_identity_provider` | Google Cloud Codex |
+| AWS Bedrock | `aws_access_key_id` + `aws_secret_access_key` | AWS-hosted Claude Code |
+| GCP Vertex | `gcp_project_id` + `gcp_region` + `gcp_workload_identity_provider` | Google Cloud Claude Code |
 
 ### Getting `CLAUDE_CODE_OAUTH_TOKEN`
 
-Requires a **Codex Pro or Max subscription**.
+Requires a **Claude Pro or Max subscription**.
 
 1. Run locally:
    ```bash
-   Codex setup-token
+   claude setup-token
    ```
 2. Copy the output token
 3. Add it as a GitHub repository secret:
@@ -33,20 +33,20 @@ Requires a **Codex Pro or Max subscription**.
    ```
    Paste the token when prompted.
 
-On macOS, Codex stores credentials in the encrypted Keychain (not a plain file). The `setup-token` command is the official way to extract a token for CI use.
+On macOS, Claude Code stores credentials in the encrypted Keychain (not a plain file). The `setup-token` command is the official way to extract a token for CI use.
 
 ### Repository Configuration
 
 | Name | Type | Required For | How to Set |
 |------|------|-------------|------------|
-| `CLAUDE_CODE_OAUTH_TOKEN` | Secret | All Codex workflows | `gh secret set CLAUDE_CODE_OAUTH_TOKEN` |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Secret | All Claude Code workflows | `gh secret set CLAUDE_CODE_OAUTH_TOKEN` |
 | `ENABLE_CLAUDE_NIGHTLY` | Variable | Nightly workflows (opt-in) | `gh variable set ENABLE_CLAUDE_NIGHTLY --body "true"` |
 
 ## Workflow Patterns
 
 ### Interactive (PR/Issue mentions)
 
-Triggered when users mention `@Codex` in comments, reviews, or issues.
+Triggered when users mention `@claude-code` in comments, reviews, or issues.
 
 ```yaml
 on:
@@ -76,7 +76,7 @@ Guard against infinite loops:
 ```yaml
 if: |
   github.event.workflow_run.conclusion == 'failure' &&
-  !startsWith(github.event.workflow_run.head_branch, 'Codex-auto-fix-') &&
+  !startsWith(github.event.workflow_run.head_branch, 'claude-auto-fix-') &&
   github.event.workflow_run.head_branch != 'main' &&
   github.event.workflow_run.head_branch != 'staging' &&
   github.event.workflow_run.head_branch != 'dev'
@@ -129,10 +129,10 @@ This covers:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `prompt` | No | Task instructions for Codex |
+| `prompt` | No | Task instructions for Claude Code |
 | `claude_code_oauth_token` | Yes* | OAuth token for authentication |
 | `claude_args` | No | CLI args: `--allowedTools`, `--max-turns`, `--system-prompt`, `--mcp-config` |
-| `branch_prefix` | No | Prefix for auto-created branches (e.g., `Codex/nightly-`) |
+| `branch_prefix` | No | Prefix for auto-created branches (e.g., `claude/nightly-`) |
 | `additional_permissions` | No | Extra GitHub permissions (e.g., `actions: read`) |
 | `max_turns` | No | Max agentic turns (via claude_args `--max-turns`) |
 | `track_progress` | No | Enable progress tracking comments |
@@ -169,14 +169,14 @@ Before running nightly workflows, check for existing open PRs:
         per_page: 100,
       });
       const existing = pulls.data.find(pr =>
-        pr.head.ref.startsWith('Codex/nightly-') &&
+        pr.head.ref.startsWith('claude/nightly-') &&
         pr.title.toLowerCase().includes('your-keyword')
       );
       core.setOutput('has_existing_pr', existing ? 'true' : 'false');
 
-- name: Run Codex
+- name: Run Claude Code
   if: steps.check-pr.outputs.has_existing_pr != 'true'
-  uses: anthropics/Codex-action@v1
+  uses: anthropics/claude-code-action@v1
 ```
 
 ### Cost Control
@@ -199,4 +199,4 @@ Recommended limits:
 - Never hardcode secrets in workflow files
 - Use `${{ secrets.* }}` for all sensitive values
 - Sanitize dynamic content in prompts to prevent injection
-- Use `allowed_bots` to control which bots can trigger Codex
+- Use `allowed_bots` to control which bots can trigger Claude Code
