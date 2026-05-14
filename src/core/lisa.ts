@@ -13,6 +13,7 @@ import {
 import { installAgentsMd } from "../codex/agents-md-installer.js";
 import { installSettings } from "../codex/settings-installer.js";
 import { installSkills } from "../codex/skills-installer.js";
+import { installCodexMarketplace } from "../codex/plugin-marketplace-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
   DestinationNotDirectoryError,
@@ -640,12 +641,12 @@ export class Lisa {
    * Emit Codex-targeted artifacts (agents, hooks, settings) when the host
    * project's harness is `codex` or `both`. No-op for `claude` (default).
    *
-   * Codex artifacts cannot be shipped via plugins (the Codex plugin manifest
-   * has no fields for hooks or agent roles, confirmed in
-   * `codex-rs/core-plugins/src/manifest.rs`). Lisa instead writes them
-   * directly into the host project's `.codex/` tree as part of `apply()`,
-   * tracking ownership via `.codex/.lisa-managed.json` so updates can clean
-   * up stale entries without touching host customizations.
+   * Codex can now ship skills, MCP servers, apps, and hooks via plugins, so
+   * Lisa emits a repo-local marketplace as the durable plugin-native path.
+   * Subagents, project settings, command-derived skills, and AGENTS.md still
+   * require a project overlay. Lisa writes those into `.codex/`, tracking
+   * ownership via `.codex/.lisa-managed.json` so updates can clean up stale
+   * entries without touching host customizations.
    */
   private async processCodexEmit(): Promise<void> {
     const { harness } = this.config;
@@ -658,6 +659,10 @@ export class Lisa {
     }
 
     const previous = await readManagedManifest(this.config.destDir);
+    const marketplaceResult = await installCodexMarketplace(
+      this.config.lisaDir,
+      this.config.destDir
+    );
 
     const agentSources = await discoverLisaAgents(this.config.lisaDir);
     const agentResult = await installAgents(
@@ -699,7 +704,7 @@ export class Lisa {
           totalStale > 0
             ? ` (${agentResult.deleted.length} stale agents, ${skillsResult.deleted.length} stale skills removed)`
             : ""
-        }`
+        }, marketplace ${marketplaceResult.created ? "created" : "merged"}`
       )
     );
   }

@@ -7,8 +7,8 @@
  * ---
  * name: bug-fixer
  * description: ...
- * tools: Read, Bash             # optional; ignored on the Codex side
- * model: sonnet                 # optional; mapped if present
+ * tools: Read, Bash             # optional; preserved as compatibility context
+ * model: sonnet                 # optional; preserved as compatibility context
  * skills: [skill-a, skill-b]    # optional; preserved in body as context
  * ---
  * # Body becomes developer_instructions
@@ -124,26 +124,30 @@ export function transformAgentMarkdownToToml(
 }
 
 /**
- * Build the `developer_instructions` body. Claude Code agents sometimes
- * carry `skills:` in frontmatter that act as soft guidance; we surface that
- * as a header in the instructions so the Codex agent has the same context.
+ * Build the `developer_instructions` body. Claude Code agents sometimes carry
+ * `skills:`, `tools:`, and `model:` in frontmatter. Codex rejects unknown TOML
+ * fields, so Lisa preserves that metadata as normal instructions instead of
+ * dropping it on the floor.
  * @param parsed - Output of parseAgentMarkdown for the source agent file
  * @returns The composed body to write into `developer_instructions`
  */
 function composeDeveloperInstructions(parsed: ParsedAgent): string {
+  const compatibilityBlock = formatCompatibilityBlock(parsed.frontmatter);
   const skills = parsed.frontmatter.skills;
-  if (skills === undefined || skills.length === 0) {
-    return parsed.body.trimEnd();
-  }
-  const skillsBlock = [
-    "## Available Lisa Skills",
-    "",
-    "This agent operates in a Lisa-managed Codex environment with access to the following skills:",
-    "",
-    ...skills.map(s => `- ${s}`),
-    "",
-  ].join("\n");
-  return `${skillsBlock}\n${parsed.body.trimEnd()}`;
+  const skillsBlock =
+    skills === undefined || skills.length === 0
+      ? ""
+      : [
+          "## Available Lisa Skills",
+          "",
+          "This agent operates in a Lisa-managed Codex environment with access to the following skills:",
+          "",
+          ...skills.map(s => `- ${s}`),
+          "",
+        ].join("\n");
+  return [compatibilityBlock, skillsBlock, parsed.body.trimEnd()]
+    .filter(block => block.length > 0)
+    .join("\n\n");
 }
 
 /**
@@ -192,6 +196,31 @@ function parseSkills(raw: unknown): readonly string[] | undefined {
     (entry): entry is string => typeof entry === "string" && entry.length > 0
   );
   return filtered.length > 0 ? Object.freeze(filtered) : undefined;
+}
+
+/**
+ * Preserve Claude-only agent frontmatter inside Codex instructions.
+ * @param frontmatter - Validated Claude agent metadata
+ * @returns Markdown compatibility block, or an empty string when unnecessary
+ */
+function formatCompatibilityBlock(frontmatter: AgentFrontmatter): string {
+  const modelLines =
+    frontmatter.model === undefined
+      ? []
+      : [
+          `- Claude requested model: \`${frontmatter.model}\`. Use the active Codex model unless the host supplies a Codex agent override.`,
+        ];
+  const toolLines =
+    frontmatter.tools === undefined
+      ? []
+      : [
+          `- Claude allowed tools: \`${frontmatter.tools}\`. Codex tool access is governed by the active Codex runtime, sandbox, and project policy.`,
+        ];
+  const lines = [...modelLines, ...toolLines];
+  if (lines.length === 0) {
+    return "";
+  }
+  return ["## Claude Agent Compatibility", "", ...lines].join("\n");
 }
 
 /**

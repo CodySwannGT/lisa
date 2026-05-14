@@ -31,6 +31,9 @@ describe("codex/settings-installer", () => {
       for (const [key, value] of Object.entries(LISA_REQUIRED_SETTINGS)) {
         expect(parsed[key]).toBe(value);
       }
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
     });
 
     it("includes a managed-by-Lisa header in fresh files", () => {
@@ -46,6 +49,9 @@ describe("codex/settings-installer", () => {
       expect(parsed.approval_policy).toBe("on-request");
       // And Lisa's keys are added on top
       expect(parsed.project_doc_max_bytes).toBe(65536);
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
     });
 
     it("Lisa keys win on conflict with host keys", () => {
@@ -53,6 +59,17 @@ describe("codex/settings-installer", () => {
       const out = mergeSettings(existing);
       const parsed = parseToml(out) as Record<string, unknown>;
       expect(parsed.project_doc_max_bytes).toBe(65536);
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
+    });
+
+    it("adds codex_hooks to an existing features table", () => {
+      const out = mergeSettings(`[features]\nmodel_reasoning_summary = true\n`);
+      const parsed = parseToml(out) as Record<string, unknown>;
+      const features = parsed.features as Record<string, unknown>;
+      expect(features.model_reasoning_summary).toBe(true);
+      expect(features.codex_hooks).toBe(true);
     });
 
     it("preserves existing comments through round-trip", () => {

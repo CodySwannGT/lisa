@@ -1,0 +1,80 @@
+{
+  "name": "lisa",
+  "interface": {
+    "displayName": "Lisa Plugins"
+  },
+  "plugins": [
+    {
+      "name": "lisa",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lisa"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lisa-typescript",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lisa-typescript"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lisa-expo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lisa-expo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lisa-nestjs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lisa-nestjs"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lisa-cdk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lisa-cdk"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lisa-rails",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lisa-rails"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

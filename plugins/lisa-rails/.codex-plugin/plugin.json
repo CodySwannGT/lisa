@@ -1,0 +1,31 @@
+{
+  "name": "lisa-rails",
+  "version": "2.16.6",
+  "description": "Ruby on Rails-specific skills and hooks for RuboCop and ast-grep scanning on edit.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "rails",
+    "ruby",
+    "rubocop",
+    "hooks"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Lisa Rails",
+    "shortDescription": "Ruby on Rails workflows",
+    "longDescription": "Lisa skills and lifecycle checks for Rails conventions, code improvement, linting, and operations workflows.",
+    "developerName": "Cody Swann",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review this Rails controller",
+      "Improve this Rails model"
+    ]
+  }
+}

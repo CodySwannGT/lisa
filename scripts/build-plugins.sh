@@ -30,6 +30,7 @@ rm -rf "$BASE_OUT"
 mkdir -p "$BASE_OUT"
 cp -r "$SRC_DIR/base/." "$BASE_OUT/"
 inject_version "$BASE_OUT/.claude-plugin/plugin.json"
+node "$ROOT_DIR/scripts/generate-codex-plugin-artifacts.mjs" "$BASE_OUT" "$VERSION"
 echo "Built plugins/lisa (v$VERSION)"
 
 # Build stack-specific plugins (NO base copy)
@@ -45,5 +46,6 @@ for stack in "${STACKS[@]}"; do
   mkdir -p "$OUT"
   cp -r "$STACK_SRC/." "$OUT/"
   inject_version "$OUT/.claude-plugin/plugin.json"
+  node "$ROOT_DIR/scripts/generate-codex-plugin-artifacts.mjs" "$OUT" "$VERSION"
   echo "Built plugins/lisa-$stack (v$VERSION)"
 done

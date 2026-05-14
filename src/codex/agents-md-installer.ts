@@ -68,6 +68,13 @@ know about *this particular* project that isn't covered by Lisa's rules.
 - \`.codex/hooks/lisa/\` — Lisa-managed hook scripts
 - \`.codex/config.toml\` — partly Lisa-managed Codex config
 
+## Lisa harness parity
+
+Claude is Lisa's production harness. When adding or changing Lisa behavior in
+this project, keep the Claude and Codex implementations in parity where Codex
+has an equivalent surface. Document any intentional gap instead of silently
+dropping Claude behavior from the Codex path.
+
 ## Custom rules for this project
 
 Add project-specific guidance below. This section is preserved across Lisa

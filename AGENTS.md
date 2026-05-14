@@ -28,3 +28,5 @@ Codex skills for Lisa wiki work live under `.agents/skills/`.
 - Lisa is a Bun/TypeScript monorepo published as `@codyswann/lisa`.
 - The repo includes workspace packages for ESLint plugins and template directories for supported project stacks.
 - Existing `.mcp.json` configures Linear MCP. Do not add unrelated client MCPs to this repository.
+- Claude is Lisa's production harness today. Codex support must improve without reducing Claude behavior, install flows, hooks, commands, agents, skills, settings, or tests.
+- Whenever adding or changing Lisa features, keep the Claude and Codex implementations in parity where Codex has an equivalent surface. If a Claude behavior cannot be represented in Codex, document the gap in code comments, tests, or user-facing guidance instead of silently dropping it.
