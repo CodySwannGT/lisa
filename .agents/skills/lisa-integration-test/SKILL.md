@@ -51,19 +51,16 @@ If nothing changed, report "Lisa applied cleanly with no changes" and stop.
 
 ### Step 5: Verify the Project
 
-First detect whether the project is a Rails project or a JS/TS project:
+Run the project's verification commands in order. Stop at the first failure.
 
-- If `Gemfile` or `config/application.rb` exists in the project path → Rails project
-- Otherwise → JS/TS project
+For Rails projects (`Gemfile`, `bin/rails`, or `config/application.rb` present), use the Rails path:
 
-**For Rails projects**, run the following commands in order. Stop at the first failure:
+1. **Bundle check**: `cd <project-path> && bundle check` (or `bundle install` if dependencies are missing and the user approves dependency installation)
+2. **Database status**: `cd <project-path> && bundle exec rails db:migrate:status`
+3. **Lint**: `cd <project-path> && bundle exec rubocop` when RuboCop is configured; otherwise record "Lint: SKIPPED (RuboCop not configured)"
+4. **Test**: `cd <project-path> && bundle exec rails test` (or the project's documented Rails test command)
 
-1. **Tests**: `cd <project-path> && bundle exec rails test` (or `bundle exec rspec` if `spec/` directory exists)
-2. **Lint**: `cd <project-path> && bundle exec rubocop`
-
-JS/TS commands (typecheck, npm/bun lint) are skipped for Rails projects.
-
-**For JS/TS projects**, run the project's verification commands in order. Stop at the first failure:
+For Node/Bun/TypeScript projects, use the JS path:
 
 1. **Typecheck**: `cd <project-path> && bun run typecheck` (or `npm run typecheck` based on package manager)
 2. **Lint**: `cd <project-path> && bun run lint` (or equivalent)

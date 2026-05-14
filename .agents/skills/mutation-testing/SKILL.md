@@ -220,10 +220,11 @@ For each validated test:
 Remove all mutant commits from the experimental branch, keeping only test improvements:
 
 ```bash
-# Revert only the mutant hashes recorded during Step 3c
-jq -r '.[].commit_hash' .mutation-testing/mutants.json | while read -r hash; do
-  [ -n "$hash" ] || continue
-  git revert --no-commit "$hash"
+# Revert only the mutant commits recorded in Step 3c metadata.
+jq -r '.[].commit_hash // empty' .mutation-testing/mutants.json | while read -r commit_hash; do
+  if printf '%s' "$commit_hash" | grep -Eq '^[0-9a-f]{7,40}$'; then
+    git revert --no-commit "$commit_hash"
+  fi
 done
 git commit -m "chore: revert all mutants after test hardening"
 ```

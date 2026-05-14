@@ -123,7 +123,10 @@ function convertHookGroups(pluginName, groups) {
 }
 
 function normalizeMatcher(matcher) {
-  return String(matcher).replaceAll("Write|Edit", "Edit|Write");
+  const normalized = String(matcher).replaceAll("Write|Edit", "Edit|Write");
+  return normalized.includes("apply_patch")
+    ? normalized
+    : normalized.replaceAll("Edit|Write", "Edit|Write|apply_patch");
 }
 
 function convertHookHandler(pluginName, hook) {
@@ -149,12 +152,22 @@ function convertHookCommand(pluginName, command) {
     /\$\{CLAUDE_PLUGIN_ROOT\}\/(hooks\/[^ "';]+)/
   );
   if (!pluginScript) {
-    return command;
+    return normalizeInlineCommand(command);
   }
   if (UNSUPPORTED_CODEX_HOOK_SCRIPTS.has(pluginScript[1])) {
     return undefined;
   }
   return buildPluginScriptRunner(pluginName, pluginScript[1]);
+}
+
+function normalizeInlineCommand(command) {
+  const entireMatch = command.match(
+    /^command -v entire >\/dev\/null 2>&1 && entire hooks claude-code ([a-z-]+) \|\| true$/
+  );
+  if (!entireMatch) {
+    return command;
+  }
+  return `if command -v entire >/dev/null 2>&1; then entire hooks claude-code ${entireMatch[1]}; fi`;
 }
 
 function buildPluginScriptRunner(pluginName, scriptPath) {
@@ -168,7 +181,7 @@ function buildPluginScriptRunner(pluginName, scriptPath) {
     '[ -n "$root" ] || continue; ',
     'if [ -x "$root/$script" ]; then CLAUDE_PLUGIN_ROOT="$root" CODEX_PLUGIN_ROOT="$root" exec "$root/$script"; fi; ',
     "done; ",
-    'found=$(find "$HOME/.codex/plugins/cache" -path "*/$plugin/*/$script" -type f 2>/dev/null | sort | tail -n 1); ',
+    'found=$(find "$HOME/.codex/plugins/cache" -path "*/$plugin/*/$script" -type f -exec ls -t {} + 2>/dev/null | head -n 1); ',
     '[ -n "$found" ] || exit 0; ',
     "root=${found%/$script}; ",
     'CLAUDE_PLUGIN_ROOT="$root" CODEX_PLUGIN_ROOT="$root" exec "$found"',

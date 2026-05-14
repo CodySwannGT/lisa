@@ -54,6 +54,22 @@ describe("codex/plugin-marketplace-installer", () => {
     expect(parsed.plugins[0].source.path).toBe(
       "./node_modules/@codyswann/lisa/plugins/lisa"
     );
+    expect(parsed.plugins[0].policy.installation).toBe("INSTALLED_BY_DEFAULT");
+    expect(
+      Object.fromEntries(
+        parsed.plugins.map((plugin: { category: string; name: string }) => [
+          plugin.name,
+          plugin.category,
+        ])
+      )
+    ).toEqual({
+      lisa: "Productivity",
+      "lisa-typescript": "Productivity",
+      "lisa-expo": "Coding",
+      "lisa-nestjs": "Coding",
+      "lisa-cdk": "Coding",
+      "lisa-rails": "Coding",
+    });
   });
 
   it("preserves host marketplace entries while replacing Lisa entries", () => {

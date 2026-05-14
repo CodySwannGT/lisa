@@ -15,8 +15,8 @@ Choose one authentication method:
 |--------|-------|----------|
 | OAuth Token | `claude_code_oauth_token` | Recommended for most setups (requires Claude Pro or Max) |
 | API Key | `anthropic_api_key` | Direct Anthropic API key from console.anthropic.com |
-| AWS Bedrock | `aws_access_key_id` + `aws_secret_access_key` | AWS-hosted Claude Code |
-| GCP Vertex | `gcp_project_id` + `gcp_region` + `gcp_workload_identity_provider` | Google Cloud Claude Code |
+| AWS Bedrock | `aws_access_key_id` + `aws_secret_access_key` | AWS-hosted Claude |
+| GCP Vertex | `gcp_project_id` + `gcp_region` + `gcp_workload_identity_provider` | Google Cloud Claude |
 
 ### Getting `CLAUDE_CODE_OAUTH_TOKEN`
 
@@ -39,14 +39,14 @@ On macOS, Claude Code stores credentials in the encrypted Keychain (not a plain 
 
 | Name | Type | Required For | How to Set |
 |------|------|-------------|------------|
-| `CLAUDE_CODE_OAUTH_TOKEN` | Secret | All Claude Code workflows | `gh secret set CLAUDE_CODE_OAUTH_TOKEN` |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Secret | All Claude workflows | `gh secret set CLAUDE_CODE_OAUTH_TOKEN` |
 | `ENABLE_CLAUDE_NIGHTLY` | Variable | Nightly workflows (opt-in) | `gh variable set ENABLE_CLAUDE_NIGHTLY --body "true"` |
 
 ## Workflow Patterns
 
 ### Interactive (PR/Issue mentions)
 
-Triggered when users mention `@claude-code` in comments, reviews, or issues.
+Triggered when users mention `@claude` in comments, reviews, or issues.
 
 ```yaml
 on:
@@ -129,7 +129,7 @@ This covers:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `prompt` | No | Task instructions for Claude Code |
+| `prompt` | No | Task instructions for Claude |
 | `claude_code_oauth_token` | Yes* | OAuth token for authentication |
 | `claude_args` | No | CLI args: `--allowedTools`, `--max-turns`, `--system-prompt`, `--mcp-config` |
 | `branch_prefix` | No | Prefix for auto-created branches (e.g., `claude/nightly-`) |
@@ -174,7 +174,7 @@ Before running nightly workflows, check for existing open PRs:
       );
       core.setOutput('has_existing_pr', existing ? 'true' : 'false');
 
-- name: Run Claude Code
+- name: Run Claude
   if: steps.check-pr.outputs.has_existing_pr != 'true'
   uses: anthropics/claude-code-action@v1
 ```
@@ -199,4 +199,4 @@ Recommended limits:
 - Never hardcode secrets in workflow files
 - Use `${{ secrets.* }}` for all sensitive values
 - Sanitize dynamic content in prompts to prevent injection
-- Use `allowed_bots` to control which bots can trigger Claude Code
+- Use `allowed_bots` to control which bots can trigger Claude

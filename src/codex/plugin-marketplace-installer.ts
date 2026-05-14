@@ -26,6 +26,16 @@ const LISA_CODEX_PLUGINS = [
   "lisa-rails",
 ] as const;
 
+/** Marketplace category should match each generated `.codex-plugin` manifest. */
+const LISA_CODEX_PLUGIN_CATEGORIES: Readonly<Record<string, string>> = {
+  lisa: "Productivity",
+  "lisa-typescript": "Productivity",
+  "lisa-expo": "Coding",
+  "lisa-nestjs": "Coding",
+  "lisa-cdk": "Coding",
+  "lisa-rails": "Coding",
+};
+
 /** Result of a marketplace install pass */
 export interface MarketplaceInstallResult {
   readonly created: boolean;
@@ -157,7 +167,7 @@ function lisaPluginMarketplaceEntry(
         pluginName === "lisa" ? "INSTALLED_BY_DEFAULT" : "AVAILABLE",
       authentication: "ON_INSTALL",
     },
-    category: pluginName === "lisa-typescript" ? "Productivity" : "Coding",
+    category: LISA_CODEX_PLUGIN_CATEGORIES[pluginName] ?? "Coding",
   };
 }
 

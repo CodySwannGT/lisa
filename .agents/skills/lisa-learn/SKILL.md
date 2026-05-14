@@ -135,17 +135,22 @@ Would you like to run typecheck/lint/test on the project to detect breakage?
 ```
 
 If yes:
-1. Detect whether the project is Rails or JS/TS:
-   - If `Gemfile` exists in the project path → Rails project
-   - Otherwise → JS/TS project; detect package manager from lockfile:
-     - `bun.lockb` → bun
-     - `pnpm-lock.yaml` → pnpm
-     - `yarn.lock` → yarn
-     - `package-lock.json` → npm
-2. Run in order (stop at first failure):
-   - **Rails**: `cd <project-path> && bundle exec rails test` (or `bundle exec rspec` if `spec/` exists), then `bundle exec rubocop`. Skip JS/TS commands.
-   - **JS/TS**: `cd <project-path> && <pm> run typecheck`, then `<pm> run lint`, then `<pm> run test`
-3. Report results and add any failures to the **Potential Breakage** category
+1. If Rails is detected (`bin/rails` or `config/application.rb` from Step 2), run Rails checks instead of JS checks:
+   - `cd <project-path> && bundle check`
+   - `cd <project-path> && bundle exec rails db:migrate:status`
+   - `cd <project-path> && bundle exec rubocop` when RuboCop is configured; otherwise report `Lint: SKIPPED (RuboCop not configured)`
+   - `cd <project-path> && bundle exec rails test` (or the project's documented Rails test command)
+   - Report any failure in the **Potential Breakage** category
+2. For Node/Bun/TypeScript projects, detect package manager from lockfile:
+   - `bun.lockb` → bun
+   - `pnpm-lock.yaml` → pnpm
+   - `yarn.lock` → yarn
+   - `package-lock.json` → npm
+3. Run in order (stop at first failure):
+   - `cd <project-path> && <pm> run typecheck`
+   - `cd <project-path> && <pm> run lint`
+   - `cd <project-path> && <pm> run test`
+4. Report results and add any failures to the **Potential Breakage** category
 
 ### Step 7: Generate Report
 

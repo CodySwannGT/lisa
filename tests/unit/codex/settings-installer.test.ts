@@ -72,6 +72,24 @@ describe("codex/settings-installer", () => {
       expect(features.codex_hooks).toBe(true);
     });
 
+    it("preserves inline comments when updating codex_hooks", () => {
+      const out = mergeSettings(
+        `[features]\ncodex_hooks = false # disabled while debugging\n`
+      );
+      expect(out).toContain("codex_hooks = true # disabled while debugging");
+      const parsed = parseToml(out) as Record<string, unknown>;
+      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
+        true
+      );
+    });
+
+    it("leaves matching codex_hooks lines unchanged", () => {
+      const existing = `[features]\ncodex_hooks = true # keep this note\n`;
+      const out = mergeSettings(existing);
+      expect(out).toContain("codex_hooks = true # keep this note");
+      expect(out.match(/codex_hooks/g)).toHaveLength(1);
+    });
+
     it("preserves existing comments through round-trip", () => {
       const existing = `# This is my host config
 # Important comment here
