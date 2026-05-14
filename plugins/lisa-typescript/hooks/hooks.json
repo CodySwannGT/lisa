@@ -2,19 +2,19 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|apply_patch",
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'plugin=\"lisa-typescript\"; script=\"hooks/format-on-edit.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
+            "command": "bash -lc 'plugin=\"lisa-typescript\"; script=\"hooks/format-on-edit.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort -V | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
           },
           {
             "type": "command",
-            "command": "bash -lc 'plugin=\"lisa-typescript\"; script=\"hooks/sg-scan-on-edit.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
+            "command": "bash -lc 'plugin=\"lisa-typescript\"; script=\"hooks/sg-scan-on-edit.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort -V | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
           },
           {
             "type": "command",
-            "command": "bash -lc 'plugin=\"lisa-typescript\"; script=\"hooks/lint-on-edit.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
+            "command": "bash -lc 'plugin=\"lisa-typescript\"; script=\"hooks/lint-on-edit.sh\"; repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); for root in \"${CODEX_PLUGIN_ROOT:-}\" \"${CLAUDE_PLUGIN_ROOT:-}\" \"$repo/plugins/$plugin\" \"$HOME/.codex/plugins/cache/lisa/$plugin/local\"; do [ -n \"$root\" ] || continue; if [ -x \"$root/$script\" ]; then CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$root/$script\"; fi; done; found=$(find \"$HOME/.codex/plugins/cache\" -path \"*/$plugin/*/$script\" -type f 2>/dev/null | sort -V | tail -n 1); [ -n \"$found\" ] || exit 0; root=${found%/$script}; CLAUDE_PLUGIN_ROOT=\"$root\" CODEX_PLUGIN_ROOT=\"$root\" exec \"$found\"'"
           }
         ]
       }
