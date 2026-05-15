@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.16.9](https://github.com/CodySwannGT/lisa/compare/vv2.16.8...v2.16.9) (2026-05-15)
+
+
+### Documentation
+
+* **agents:** require ingestion PR auto-merge ([#475](https://github.com/CodySwannGT/lisa/issues/475)) ([123dce2](https://github.com/CodySwannGT/lisa/commit/123dce2778b8971ba7474b3083c1af6596206bd6))
+* **agents:** require ingestion PR auto-merge ([#476](https://github.com/CodySwannGT/lisa/issues/476)) ([2044b46](https://github.com/CodySwannGT/lisa/commit/2044b46df64341c90ea3ab1132ebcedb8824c6b2))
+
 ### [2.16.8](https://github.com/CodySwannGT/lisa/compare/vv2.16.7...v2.16.8) (2026-05-14)
 
 
