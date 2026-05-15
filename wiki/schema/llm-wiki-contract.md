@@ -69,6 +69,8 @@ Before committing:
 - No secrets, tokens, private keys, MCP OAuth artifacts, dependency directories, build outputs, coverage output, or generated distribution files may be staged.
 - Existing unrelated working tree changes must remain unstaged unless the user explicitly requests otherwise.
 
-## Commit And Push
+## Commit And Pull Request
 
-After every successful ingestion, commit and push automatically to the current branch of the existing Lisa repository.
+After every successful ingestion, verify, commit only the ingestion changes, push, open a pull request targeting `main`, and enable auto-merge.
+
+If ingestion starts on `main`, create a dedicated ingestion branch before committing so the PR flow is preserved.

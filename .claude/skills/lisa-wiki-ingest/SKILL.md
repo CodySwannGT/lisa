@@ -14,7 +14,7 @@ For every ingestion:
 4. Append `wiki/log.md`.
 5. Advance `wiki/state/<source>/` only after source notes, synthesis, index, and log are complete.
 6. Run verification checks.
-7. Commit and push automatically.
+7. Commit only the ingestion changes, push, open a PR targeting `main`, and enable auto-merge. If ingestion started on `main`, create a dedicated ingestion branch before committing.
 
 ## Initial Repository Ingestion
 

@@ -21,7 +21,7 @@ Codex skills for Lisa wiki work live under `.agents/skills/`.
 - Update `wiki/index.md` whenever creating or materially changing wiki pages.
 - Preserve unrelated working tree changes. In particular, do not stage or modify `.lisa.workspaces.json` unless explicitly requested.
 - Do not commit local secrets, MCP OAuth artifacts, tokens, private keys, dependency directories, build outputs, coverage output, or generated distribution files unless the user explicitly requests release artifacts.
-- After every successful ingestion, verify, commit, and push automatically.
+- After every successful ingestion, verify, commit only the ingestion changes, push, open a PR targeting `main`, and enable auto-merge. If ingestion started on `main`, create a dedicated ingestion branch before committing.
 
 ## Lisa-Specific Notes
 

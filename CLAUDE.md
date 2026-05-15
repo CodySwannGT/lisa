@@ -19,4 +19,4 @@ Core rules:
 - Update `wiki/index.md` when creating or materially changing wiki pages.
 - Preserve unrelated working tree changes.
 - Do not stage local secrets, dependency directories, build output, coverage output, or generated distribution files unless explicitly requested.
-- Commit and push after each successful ingestion.
+- After each successful ingestion, verify, commit only the ingestion changes, push, open a PR targeting `main`, and enable auto-merge. If ingestion started on `main`, create a dedicated ingestion branch before committing.
