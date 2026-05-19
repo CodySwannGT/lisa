@@ -11,6 +11,9 @@
     "typeorm",
     "hooks"
   ],
+  "dependencies": [
+    "lisa-typescript"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "interface": {

@@ -5,5 +5,8 @@
   "author": {
     "name": "Cody Swann"
   },
+  "dependencies": [
+    "lisa-typescript"
+  ],
   "hooks": {}
 }

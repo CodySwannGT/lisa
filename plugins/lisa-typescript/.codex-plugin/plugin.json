@@ -11,6 +11,9 @@
     "formatting",
     "hooks"
   ],
+  "dependencies": [
+    "lisa"
+  ],
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Lisa TypeScript",

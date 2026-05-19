@@ -11,6 +11,9 @@
     "rubocop",
     "hooks"
   ],
+  "dependencies": [
+    "lisa"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "interface": {
