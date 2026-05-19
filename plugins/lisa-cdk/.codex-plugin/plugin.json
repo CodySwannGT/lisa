@@ -10,6 +10,9 @@
     "cdk",
     "infrastructure"
   ],
+  "dependencies": [
+    "lisa-typescript"
+  ],
   "interface": {
     "displayName": "Lisa CDK",
     "shortDescription": "AWS CDK workflows",
