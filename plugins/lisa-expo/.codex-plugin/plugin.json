@@ -11,6 +11,9 @@
     "mobile",
     "mcp"
   ],
+  "dependencies": [
+    "lisa-typescript"
+  ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {

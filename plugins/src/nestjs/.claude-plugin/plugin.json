@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "NestJS-specific skills (GraphQL, TypeORM) and hooks (migration write-protection)",
   "author": { "name": "Cody Swann" },
+  "dependencies": ["lisa-typescript"],
   "hooks": {
     "PreToolUse": [
       {

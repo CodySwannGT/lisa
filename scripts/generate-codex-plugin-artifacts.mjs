@@ -47,6 +47,9 @@ function writeCodexManifest(pluginName, version, hooksFile) {
     description: metadata.description ?? claudeManifest.description,
     author: claudeManifest.author ?? { name: "Cody Swann" },
     keywords: metadata.keywords,
+    ...(claudeManifest.dependencies
+      ? { dependencies: claudeManifest.dependencies }
+      : {}),
     ...componentPointers(hooksFile),
     interface: {
       displayName: metadata.displayName,
