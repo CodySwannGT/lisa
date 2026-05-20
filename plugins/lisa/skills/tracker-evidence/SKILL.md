@@ -24,7 +24,6 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 - The GitHub `pr-assets` release lives on the implementation repo (the one with the PR), regardless of which tracker hosts the ticket/issue. All vendor skills upload there.
 - Never post evidence to a different ticket than the one named — `$ARGUMENTS` is the source of truth.
-- **Evidence-manifest gate (leaf work units).** Before dispatching to a vendor skill that transitions the ticket, confirm `EVIDENCE_DIR` contains a non-empty artifact for every `[EVIDENCE: name]` marker declared in the ticket's Validation Journey. If any declared marker has no captured artifact (or only an empty one), stop and report the missing markers by name instead of posting — a leaf work unit (Bug / Task / Sub-task / Improvement) may not advance to its review/Done state with an unsatisfied manifest (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Epics / Stories / Spikes, and leaf units without a Validation Journey, are exempt.
 
 ## UI Evidence Checklist (when work is UI-visible)
 
