@@ -88,7 +88,6 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | S11 Validation Journey | `acceptance-criteria` | true |
 | S12 Source Precedence | `design-ux` | true |
 | S13 Relationship Search | `dependency` | true |
-| S14 Evidence manifest binding (leaf work units) | `acceptance-criteria` | true |
 | F1 Issue type label exists in repo | `structural` | false |
 | F2 Parent sub-issue exists and is the right type | `structural` | false |
 | F3 Linked issues exist | `structural` | false |
@@ -190,14 +189,6 @@ The issue must EITHER have at least one entry in `links`, OR the body must conta
 
 An issue with zero links and no documented search: FAIL.
 
-#### S14 — Evidence manifest binding (leaf work units)
-
-When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_change = true`, the `## Validation Journey` must declare at least one `[EVIDENCE: name]` marker. Each marker name must be kebab-case and unique within the issue. These markers are the work unit's **evidence manifest** — the exact, enumerated set of artifacts that must be captured and attached before the issue may be closed (see the "Per-Work-Unit Evidence Contract" section of the `verification` rule, the Definition of Done in `verification-lifecycle`, and the evidence-manifest gate in `tracker-evidence`).
-
-FAIL when the Validation Journey is present but declares zero `[EVIDENCE: name]` markers, or when any marker name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
-
-This gate depends on S11. It is `N/A` for Epic / Story / Spike (coordination containers, not work units) and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa:github-add-journey`.
-
 ### Feasibility Gates (require GitHub lookups; skip in `--spec-only`)
 
 #### F1 — Issue type label exists in repo
@@ -257,7 +248,6 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S11 Validation Journey — <one-line reason>
 - [PASS|FAIL|N/A] S12 Source Precedence — <one-line reason>
 - [PASS|FAIL|N/A] S13 Relationship Search — <one-line reason>
-- [PASS|FAIL|N/A] S14 Evidence manifest binding — <one-line reason>
 
 ### Feasibility Gates  (omit this section when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type label exists in repo — <one-line reason>
@@ -283,7 +273,7 @@ The verdict is `PASS` if every applicable gate is `PASS`. Any `FAIL` makes the v
 
 Same shape and meaning as `lisa:jira-validate-ticket` so downstream PRD-intake skills (Notion, Confluence, Linear, GitHub) can format comments uniformly:
 
-- **gate**: the gate ID (`S1`–`S14`, `F1`–`F4`).
+- **gate**: the gate ID (`S1`–`S13`, `F1`–`F4`).
 - **category**: the gate's fixed category from the table.
 - **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem the caller should fix without bothering product.
 - **what**: plain-language, product-readable.

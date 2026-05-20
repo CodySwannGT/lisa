@@ -86,7 +86,6 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | S11 Validation Journey | `acceptance-criteria` | true |
 | S12 Source Precedence | `design-ux` | true |
 | S13 Relationship Search | `dependency` | true |
-| S14 Evidence manifest binding (leaf work units) | `acceptance-criteria` | true |
 | F1 Issue type valid in team | `structural` | false |
 | F2 Project parent exists and is in same team | `structural` | false |
 | F3 Linked items exist | `structural` | false |
@@ -192,14 +191,6 @@ The item must EITHER have at least one entry in `relations`, OR the description 
 
 An item with zero relations and no documented search: FAIL.
 
-#### S14 — Evidence manifest binding (leaf work units)
-
-When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_change = true`, the `## Validation Journey` must declare at least one `[EVIDENCE: name]` marker. Each marker name must be kebab-case and unique within the item. These markers are the work unit's **evidence manifest** — the exact, enumerated set of artifacts that must be captured and attached before the item may be closed (see the "Per-Work-Unit Evidence Contract" section of the `verification` rule, the Definition of Done in `verification-lifecycle`, and the evidence-manifest gate in `tracker-evidence`).
-
-FAIL when the Validation Journey is present but declares zero `[EVIDENCE: name]` markers, or when any marker name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
-
-This gate depends on S11. It is `N/A` for Project / Story / Spike (coordination containers, not work units) and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa:linear-add-journey`.
-
 ### Feasibility Gates (require Linear lookups; skip in dry-run if requested)
 
 #### F1 — Issue type valid in team
@@ -251,7 +242,6 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S11 Validation Journey — <one-line reason>
 - [PASS|FAIL|N/A] S12 Source Precedence — <one-line reason>
 - [PASS|FAIL|N/A] S13 Relationship Search — <one-line reason>
-- [PASS|FAIL|N/A] S14 Evidence manifest binding — <one-line reason>
 
 ### Feasibility Gates  (omit when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type valid in team — <one-line reason>

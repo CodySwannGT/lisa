@@ -53,8 +53,6 @@ If `jira-verify` returns `FAIL` on any of the above, do NOT continue:
 3. Post a comment using `mcp__atlassian__addCommentToJiraIssue` listing each missing requirement with a one-line remediation. Prefix with `[{repo}]`.
 4. Stop. Do not run triage, do not delegate to a flow, do not start work.
 
-**Exception — single-repo scope is split, not blocked.** A single-repo-scope FAIL is the one gate failure the agent fixes rather than bounces to the reporter: a cross-repo work unit is a decomposition error the agent owns (S10 is `product_relevant: false`), not a product question. Instead of blocking, run the **work-time split procedure** in the `repo-scope-split` rule — narrow this ticket to one repo, create a sibling per additional repo cloning its metadata, link the producer→consumer dependency (`Blocks` / `is blocked by`), comment on the original, then re-run `jira-verify` on the original and every new sibling. Block (per the path above) only if the split is ambiguous (see "When to block instead of split"). If single-repo scope was the only FAIL and the split succeeded, proceed to Step 3 once every resulting ticket passes.
-
 If `jira-verify` returns `PASS`, proceed to Step 3.
 
 ### 3. Analytical Triage Gate

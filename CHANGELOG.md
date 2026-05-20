@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.18.0](https://github.com/CodySwannGT/lisa/compare/vv2.17.0...v2.18.0) (2026-05-20)
+
+
+### Features
+
+* **verification:** per-work-unit evidence manifest + work-time cross-repo split ([#478](https://github.com/CodySwannGT/lisa/issues/478)) ([7295678](https://github.com/CodySwannGT/lisa/commit/729567808d4963ca8b397623d7cdb10de8cbc15c)), closes [#7](https://github.com/CodySwannGT/lisa/issues/7)
+
 ## [2.17.0](https://github.com/CodySwannGT/lisa/compare/vv2.16.9...v2.17.0) (2026-05-19)
 
 
