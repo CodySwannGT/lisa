@@ -100,6 +100,8 @@ Every change requires one or more verification types. Classify the change first,
 
 Every **leaf work unit** — an individually implementable ticket with no child tickets (issue types Bug, Task, Sub-task, Improvement) — that changes runtime behavior must declare, at creation time, the exact evidence that proves it is done. Epics, Stories, and Spikes are coordination containers, not work units: their evidence is the rollup of their children, so this contract does not apply to them.
 
+A work unit is a leaf only while it has no child tickets. If it later acquires Sub-task children (e.g., through work-time decomposition), it immediately transitions to a coordination role and evidence manifest responsibility transfers to the child work units. Any evidence already captured against the original manifest must be reconciled — handed off or copied to the appropriate child — so there are no gaps in coverage.
+
 The declaration is not a separate field — it is the set of `[EVIDENCE: name]` markers in the work unit's **Validation Journey**. Those markers are the work unit's **evidence manifest**: an enumerated, named list of the artifacts a verifier must capture. The manifest binds both ends of the ticket lifecycle:
 
 - **At creation** — the work unit cannot be written without a Validation Journey that names at least one `[EVIDENCE: name]` artifact (enforced by gate S14 in `tracker-validate` and the vendor `*-validate-*` skills). A behavior-changing unit should name both a success artifact and an error/edge artifact.
