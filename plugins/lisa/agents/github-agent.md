@@ -62,6 +62,8 @@ If `github-verify` returns `FAIL` on any of the above, do NOT continue:
    ```
 4. Stop. Do not run triage, do not delegate to a flow, do not start work.
 
+**Exception — single-repo scope is split, not blocked.** A single-repo-scope FAIL is the one gate failure the agent fixes rather than bounces to the author: a cross-repo work unit is a decomposition error the agent owns (S10 is `product_relevant: false`), not a product question. Instead of blocking, run the **work-time split procedure** in the `repo-scope-split` rule — narrow this issue to one repo, create a sibling issue per additional repo cloning its metadata, encode the producer→consumer dependency (`Blocked by #<n>` / `Blocks #<n>`), comment on the original, then re-run `github-verify` on the original and every new sibling. Block (per the path above) only if the split is ambiguous (see "When to block instead of split"). If single-repo scope was the only FAIL and the split succeeded, proceed to Step 3 once every resulting issue passes.
+
 If `github-verify` returns `PASS`, proceed to Step 3.
 
 ### 3. Analytical Triage Gate
