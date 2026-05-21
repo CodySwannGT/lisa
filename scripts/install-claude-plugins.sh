@@ -117,7 +117,7 @@ if command -v jq >/dev/null 2>&1; then
     | jq -r '.[] | select(.name == "lisa" and .source != "github") | .source' 2>/dev/null \
     | head -n 1)
   if [ -n "${STALE_LISA_SOURCE:-}" ]; then
-    for stale_plugin in "lisa@lisa" "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-rails@lisa"; do
+    for stale_plugin in "lisa@lisa" "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-harper-fabric@lisa" "lisa-rails@lisa"; do
       claude plugin uninstall "$stale_plugin" --scope project </dev/null >/dev/null 2>&1 || true
     done
     claude plugin marketplace remove lisa </dev/null >/dev/null 2>&1 || true
@@ -140,7 +140,7 @@ fi
 # installed lisa-* plugins so they get re-resolved as remote. Worktrees under
 # .claude/worktrees/ have their own per-cwd plugin install state and are
 # healed in the same pass. A marker file gates one-time execution per cwd.
-LISA_PLUGINS=("lisa@lisa" "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-rails@lisa")
+LISA_PLUGINS=("lisa@lisa" "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-harper-fabric@lisa" "lisa-rails@lisa")
 HEAL_V2_MARKER_NAME=".lisa-marketplace-heal-v2"
 
 heal_local_classification() {
@@ -210,7 +210,7 @@ claude plugin install "lisa@lisa" --scope project </dev/null 2>&1 || true
 # Detect which stack plugin to install from .claude/settings.json
 LISA_STACK=""
 if [ -f "$SETTINGS_FILE" ] && command -v jq >/dev/null 2>&1; then
-  for stack in expo nestjs cdk rails; do
+  for stack in expo nestjs cdk harper-fabric rails; do
     if jq -e "(.enabledPlugins // {}) | has(\"lisa-${stack}@lisa\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
       LISA_STACK="$stack"
       break
@@ -232,7 +232,7 @@ if [ -n "$LISA_STACK" ]; then
 fi
 
 # Uninstall old monolithic plugins during migration
-for old_plugin in "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-rails@lisa"; do
+for old_plugin in "lisa-typescript@lisa" "lisa-expo@lisa" "lisa-nestjs@lisa" "lisa-cdk@lisa" "lisa-harper-fabric@lisa" "lisa-rails@lisa"; do
   # Skip if it's the same as what we just installed
   case "$LISA_STACK" in
     "") [ "$old_plugin" = "lisa-typescript@lisa" ] && continue ;;
@@ -255,7 +255,7 @@ for plugin in \
 done
 
 # Install stack-specific third-party plugins
-if [ "$LISA_STACK" = "expo" ]; then
+if [ "$LISA_STACK" = "expo" ] || [ "$LISA_STACK" = "harper-fabric" ]; then
   for plugin in \
     "playwright@claude-plugins-official" \
     "posthog@claude-plugins-official"; do

@@ -12,6 +12,7 @@ import {
   createExpoProject,
   createNestJSProject,
   createCDKProject,
+  createHarperFabricProject,
 } from "../../helpers/test-utils.js";
 
 describe("PackageLisaStrategy", () => {
@@ -629,6 +630,39 @@ describe("PackageLisaStrategy", () => {
       expect(content.scripts.build).toBe("tsc --noEmit");
       // All's lint script should still be applied
       expect(content.scripts.lint).toBe("eslint .");
+    });
+
+    it("Harper/Fabric type overrides typescript type values", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          scripts: { build: "tsc" },
+        },
+      });
+
+      await createPackageLisaTemplate("harper-fabric", {
+        force: {
+          scripts: { build: "tsc && node dist/src/build/build.js" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createHarperFabricProject(projectDir);
+
+      await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.build).toBe("tsc && node dist/src/build/build.js");
     });
   });
 

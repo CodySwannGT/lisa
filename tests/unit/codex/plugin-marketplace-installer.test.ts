@@ -36,7 +36,7 @@ describe("codex/plugin-marketplace-installer", () => {
   it("creates a repo-local marketplace with Lisa plugin entries", async () => {
     const result = await installCodexMarketplace(lisaDir, destDir);
     expect(result.created).toBe(true);
-    expect(result.pluginEntries).toBe(6);
+    expect(result.pluginEntries).toBe(7);
 
     const marketplacePath = path.join(destDir, CODEX_MARKETPLACE_PATH);
     const parsed = JSON.parse(await fs.readFile(marketplacePath, "utf8"));
@@ -49,6 +49,7 @@ describe("codex/plugin-marketplace-installer", () => {
       "lisa-expo",
       "lisa-nestjs",
       "lisa-cdk",
+      "lisa-harper-fabric",
       "lisa-rails",
     ]);
     expect(parsed.plugins[0].source.path).toBe(
@@ -68,6 +69,7 @@ describe("codex/plugin-marketplace-installer", () => {
       "lisa-expo": "Coding",
       "lisa-nestjs": "Coding",
       "lisa-cdk": "Coding",
+      "lisa-harper-fabric": "Coding",
       "lisa-rails": "Coding",
     });
   });

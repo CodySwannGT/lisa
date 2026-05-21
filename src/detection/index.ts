@@ -5,6 +5,7 @@ import { TypeScriptDetector } from "./detectors/typescript.js";
 import { ExpoDetector } from "./detectors/expo.js";
 import { NestJSDetector } from "./detectors/nestjs.js";
 import { CDKDetector } from "./detectors/cdk.js";
+import { HarperFabricDetector } from "./detectors/harper-fabric.js";
 import { NpmPackageDetector } from "./detectors/npm-package.js";
 import { RailsDetector } from "./detectors/rails.js";
 
@@ -24,6 +25,7 @@ export class DetectorRegistry {
     this.detectors = detectors ?? [
       new TypeScriptDetector(),
       new NpmPackageDetector(),
+      new HarperFabricDetector(),
       new ExpoDetector(),
       new NestJSDetector(),
       new CDKDetector(),
