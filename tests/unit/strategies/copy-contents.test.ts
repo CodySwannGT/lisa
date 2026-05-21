@@ -8,6 +8,8 @@ import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 const GITIGNORE = ".gitignore";
 const BEGIN_MARKER = "# BEGIN: AI GUARDRAILS";
 const END_MARKER = "# END: AI GUARDRAILS";
+const HARPER_BEGIN_MARKER = "# BEGIN: AI GUARDRAILS HARPER-FABRIC";
+const HARPER_END_MARKER = "# END: AI GUARDRAILS HARPER-FABRIC";
 
 describe("CopyContentsStrategy", () => {
   let strategy: CopyContentsStrategy;
@@ -140,6 +142,57 @@ describe("CopyContentsStrategy", () => {
     expect(content).toContain("# My custom entries");
     expect(content).toContain("my-dir");
     expect(content).toContain(sourceContent);
+  });
+
+  it("keeps labeled guardrail blocks separate from the universal block", async () => {
+    const srcFile = path.join(srcDir, GITIGNORE);
+    const destFile = path.join(destDir, GITIGNORE);
+    const sourceContent = `${HARPER_BEGIN_MARKER}\nharper-app/resources.js\n${HARPER_END_MARKER}`;
+    const destContent = `${BEGIN_MARKER}\nnode_modules\n${END_MARKER}\n`;
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GITIGNORE,
+      createContext()
+    );
+
+    expect(result.action).toBe("merged");
+
+    const content = await fs.readFile(destFile, "utf-8");
+    expect(content).toContain(`${BEGIN_MARKER}\nnode_modules\n${END_MARKER}`);
+    expect(content).toContain(sourceContent);
+  });
+
+  it("replaces only the matching labeled guardrail block", async () => {
+    const srcFile = path.join(srcDir, GITIGNORE);
+    const destFile = path.join(destDir, GITIGNORE);
+    const sourceContent = `${HARPER_BEGIN_MARKER}\nharper-app/resources.js\n${HARPER_END_MARKER}`;
+    const destContent = [
+      `${BEGIN_MARKER}\nnode_modules\n${END_MARKER}`,
+      `${HARPER_BEGIN_MARKER}\nold-harper-entry\n${HARPER_END_MARKER}`,
+      "",
+    ].join("\n");
+
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      GITIGNORE,
+      createContext()
+    );
+
+    expect(result.action).toBe("merged");
+
+    const content = await fs.readFile(destFile, "utf-8");
+    expect(content).toContain(`${BEGIN_MARKER}\nnode_modules\n${END_MARKER}`);
+    expect(content).toContain("harper-app/resources.js");
+    expect(content).not.toContain("old-harper-entry");
   });
 
   it("adds double newline when appending to file without trailing newline", async () => {

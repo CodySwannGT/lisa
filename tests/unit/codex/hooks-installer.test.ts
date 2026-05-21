@@ -26,6 +26,8 @@ const INJECT_RULES_SH = `${INJECT_RULES_ID}.sh`;
 const BASE_RULES_MD = "base-rules.md";
 /** Second rule .md file shipped from the lisa-plugin */
 const CODING_PHILOSOPHY_MD = "coding-philosophy.md";
+/** Rule .md file shipped from the Harper/Fabric stack plugin */
+const HARPER_FABRIC_MD = "harper-fabric.md";
 /** Hook id for the universal Stop-event ntfy notifier */
 const NOTIFY_NTFY_ID = "notify-ntfy";
 /** Hook id for the format-on-edit hook (TypeScript stack) */
@@ -117,6 +119,29 @@ describe("codex/hooks-installer", () => {
       "utf8"
     );
     expect(baseRules).toContain("# Base Rules");
+  });
+
+  it("mirrors detected stack plugin rules into .codex/lisa-rules/", async () => {
+    const harperRulesDir = path.join(
+      lisaDir,
+      "plugins",
+      "lisa-harper-fabric",
+      "rules"
+    );
+    await fs.ensureDir(harperRulesDir);
+    await fs.writeFile(
+      path.join(harperRulesDir, HARPER_FABRIC_MD),
+      "# Harper/Fabric Project Rules\n",
+      "utf8"
+    );
+
+    await installHooks(lisaDir, destDir, ["typescript", "harper-fabric"]);
+
+    const rulesDir = path.join(destDir, ".codex", LISA_RULES_SUBDIR);
+    expect(await fs.pathExists(path.join(rulesDir, BASE_RULES_MD))).toBe(true);
+    expect(await fs.pathExists(path.join(rulesDir, HARPER_FABRIC_MD))).toBe(
+      true
+    );
   });
 
   it("creates .codex/hooks.json with Lisa SessionStart entries", async () => {

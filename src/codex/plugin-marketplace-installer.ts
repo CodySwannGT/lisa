@@ -23,6 +23,7 @@ const LISA_CODEX_PLUGINS = [
   "lisa-expo",
   "lisa-nestjs",
   "lisa-cdk",
+  "lisa-harper-fabric",
   "lisa-rails",
 ] as const;
 
@@ -33,6 +34,7 @@ const LISA_CODEX_PLUGIN_CATEGORIES: Readonly<Record<string, string>> = {
   "lisa-expo": "Coding",
   "lisa-nestjs": "Coding",
   "lisa-cdk": "Coding",
+  "lisa-harper-fabric": "Coding",
   "lisa-rails": "Coding",
 };
 

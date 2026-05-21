@@ -1,0 +1,11 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "extends": ["./typescript.json"],
+  "ignorePatterns": [
+    "dist/**",
+    "coverage/**",
+    "node_modules/**",
+    "harper-app/resources.js",
+    "harper-app/web/**/*.js"
+  ]
+}
