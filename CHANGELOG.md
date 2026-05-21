@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.19.0](https://github.com/CodySwannGT/lisa/compare/vv2.18.0...v2.19.0) (2026-05-21)
+
+
+### Features
+
+* **lisa-update-projects:** worktree per project, auto-merge, blocker fix, self-upgrade ([#479](https://github.com/CodySwannGT/lisa/issues/479)) ([b0c6a41](https://github.com/CodySwannGT/lisa/commit/b0c6a411e23248b28fff8ebbf32d80b64d4576bd))
+
 ## [2.18.0](https://github.com/CodySwannGT/lisa/compare/vv2.17.0...v2.18.0) (2026-05-20)
 
 
