@@ -144,6 +144,27 @@ describe("codex/hooks-installer", () => {
     );
   });
 
+  it("throws when two plugins have rules with the same filename", async () => {
+    // Create a lisa-harper-fabric plugin with a rule file whose name collides
+    // with an existing lisa base rule (base-rules.md already seeded in beforeEach)
+    const harperRulesDir = path.join(
+      lisaDir,
+      "plugins",
+      "lisa-harper-fabric",
+      "rules"
+    );
+    await fs.ensureDir(harperRulesDir);
+    await fs.writeFile(
+      path.join(harperRulesDir, BASE_RULES_MD),
+      "# Duplicate Rule\n",
+      "utf8"
+    );
+
+    await expect(
+      installHooks(lisaDir, destDir, ["harper-fabric"])
+    ).rejects.toThrow(`Duplicate Lisa rule filename "${BASE_RULES_MD}"`);
+  });
+
   it("creates .codex/hooks.json with Lisa SessionStart entries", async () => {
     await installHooks(lisaDir, destDir, []);
     const hooksFilePath = path.join(destDir, ".codex", HOOKS_FILENAME);

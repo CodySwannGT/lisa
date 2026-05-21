@@ -297,26 +297,42 @@ async function mirrorRules(
   detectedTypes: readonly ProjectType[]
 ): Promise<readonly string[]> {
   const pluginNames = ["lisa", ...detectedTypes.map(type => `lisa-${type}`)];
-  const copiedByPlugin = await Promise.all(
+
+  // First pass: list all .md files per plugin without copying
+  const filesByPlugin = await Promise.all(
     pluginNames.map(async pluginName => {
-      const rulesSourceDir = path.join(lisaDir, "plugins", pluginName, "rules");
-      if (!(await fse.pathExists(rulesSourceDir))) {
-        return [];
+      const sourceDir = path.join(lisaDir, "plugins", pluginName, "rules");
+      if (!(await fse.pathExists(sourceDir))) {
+        return { sourceDir, files: [] as string[] };
       }
-      const files = (await readdir(rulesSourceDir)).filter(name =>
+      const files = (await readdir(sourceDir)).filter(name =>
         name.endsWith(".md")
       );
-      await Promise.all(
-        files.map(file =>
-          copyFile(
-            path.join(rulesSourceDir, file),
-            path.join(rulesDestDir, file)
-          )
-        )
-      );
-      return files;
+      return { sourceDir, files };
     })
   );
 
-  return Object.freeze(copiedByPlugin.flat());
+  // Detect filename collisions before performing any copies
+  const allFiles = filesByPlugin.flatMap(({ files }) => files);
+  if (new Set(allFiles).size !== allFiles.length) {
+    const duplicate = allFiles.find(
+      (name, index) => allFiles.indexOf(name) !== index
+    );
+    throw new Error(
+      `Duplicate Lisa rule filename "${duplicate ?? "unknown"}" across plugin rules/ directories`
+    );
+  }
+
+  // Second pass: copy files now that we know there are no collisions
+  await Promise.all(
+    filesByPlugin.map(({ sourceDir, files }) =>
+      Promise.all(
+        files.map(file =>
+          copyFile(path.join(sourceDir, file), path.join(rulesDestDir, file))
+        )
+      )
+    )
+  );
+
+  return Object.freeze(allFiles);
 }

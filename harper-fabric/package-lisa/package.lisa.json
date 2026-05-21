@@ -36,7 +36,7 @@
       "load:extractions": "bun run build && node dist/src/scripts/load_extractions.js",
       "brokercheck": "bun run build && node dist/src/scripts/fetch_brokercheck.js",
       "brokercheck:crawl": "bun run build && node dist/src/scripts/brokercheck_crawl_all.js",
-      "reset": "harperdb stop || true; rm -rf $HOME/.harperdb && bun run bootstrap && bun run seed && bun run verify",
+      "reset": "harperdb stop || true; [ -n \"$HOME\" ] && rm -rf \"$HOME/.harperdb\" && bun run bootstrap && bun run seed && bun run verify",
       "prepare": "husky install || true"
     },
     "dependencies": {
