@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.21.0](https://github.com/CodySwannGT/lisa/compare/vv2.20.0...v2.21.0) (2026-05-21)
+
+
+### Features
+
+* add Harper/Fabric runtime knowledge skills ([#490](https://github.com/CodySwannGT/lisa/issues/490)) ([43d9665](https://github.com/CodySwannGT/lisa/commit/43d9665340690c31e9137d5d1d9d151adcefee59))
+
 ## [2.20.0](https://github.com/CodySwannGT/lisa/compare/vv2.19.1...v2.20.0) (2026-05-21)
 
 
