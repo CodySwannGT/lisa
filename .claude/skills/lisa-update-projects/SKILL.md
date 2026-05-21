@@ -1,6 +1,6 @@
 ---
 name: lisa-update-projects
-description: This skill should be used when updating local Lisa projects in batches. It reads the project list from .lisa.config.local.json, checks out the target branch, pulls the latest, creates an update branch, runs the package manager update for @codyswann/lisa, migrates legacy CI workflows, checks for upstream changes, then commits, pushes, and opens a PR for each project.
+description: This skill should be used when updating local Lisa projects in batches. It reads the project list from .lisa.config.local.json, then for each project works in a dedicated git worktree based off the target branch, runs the package manager update for @codyswann/lisa, migrates legacy CI workflows, checks for upstream changes, commits, pushes, and opens a PR with auto-merge enabled, auto-fixing any blockers to mergeability (upstreaming fixes when needed). As the final step, Lisa upgrades itself.
 ---
 
 # Lisa Update Projects
@@ -10,9 +10,9 @@ Updates local Lisa projects in batches by running the package manager update com
 ## Instructions
 
 1. Read @.lisa.config.local.json to get the list of projects and their target branches.
-2. For each project directory, checkout the target branch and pull the latest from the remote.
-3. If you can't because of existing changes or a dirty worktree, don't do anything. Ask the human what should be done about it before moving on.
-4. Once you have resolution, within each clean project, check out a new branch (e.g. `chore/lisa-update-YYYY-MM-DD`).
+2. For each project, `git fetch` the target branch from the remote so you have the latest commit to branch from.
+3. Do **all** work for a project inside a dedicated git worktree based off the target branch — never modify the project's primary checkout. Create it with the update branch in one step, e.g. `git worktree add <worktree-path>/<project>-lisa-update-YYYY-MM-DD -b chore/lisa-update-YYYY-MM-DD origin/<target-branch>`. This keeps the project's main working tree untouched, isolates each project's changes, and lets the parallel subagents operate without colliding. Clean up the worktree (`git worktree remove`) after the PR is opened and the branch is pushed.
+4. If you can't create the worktree cleanly (e.g. an update branch already exists, the target branch can't be fetched, or the project has uncommitted changes you'd be discarding), don't do anything for that project. Ask the human what should be done about it before moving on.
 5. Check if `@codyswann/lisa` is in the project's `trustedDependencies` array in `package.json`. If missing, add it using `jq`. Bun only runs postinstall scripts for trusted packages, so without this entry Lisa's postinstall (template application and file deletions) is silently skipped.
 6. Determine the project's package manager from `package.json` `engines` BEFORE choosing a command. The `engines` field is authoritative — lockfile presence is not.
    - Read `engines` with `jq -r '.engines // {}' package.json`.
@@ -45,8 +45,10 @@ Updates local Lisa projects in batches by running the package manager update com
    - Preserve all non-file-path hook entries (inline commands like `echo ...`, `command -v entire ...`, etc.)
 11. Update create-only workflow schedules that have drifted from the current templates. For each create-only workflow in `.github/workflows/` (e.g., `claude-nightly-jira-triage.yml`), compare the `cron` schedule against the corresponding template in `typescript/create-only/.github/workflows/` (or `rails/create-only/` for Rails projects) in the Lisa repo. If the project's schedule differs from the template, update it to match. For example, if the template uses `0 */2 * * *` but the project still has `0 6 * * 1-5`, update the project file.
 12. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
-13. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
+13. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json. Enable auto-merge on the PR if the repository supports it (e.g. `gh pr merge --auto --squash`). If the repository has auto-merge disabled, note it and leave the PR open for manual merge — do not treat the absence of auto-merge as a failure.
 14. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
+15. After the PR is open, drive it to a mergeable state. Poll the PR's checks and mergeability and auto-fix any blockers: failing CI checks, merge conflicts with the target branch, lint/typecheck/test failures, and required-check gates. When the root cause of a blocker is a Lisa template or postinstall bug (not project-specific code), fix it upstream in the Lisa source per "Fixing Upstream Bugs" below and propagate the fix down, rather than patching only the downstream project. Never lower thresholds or disable checks to force mergeability — fix the underlying code. Continue until the PR is mergeable (and auto-merge can complete) or you hit a blocker that genuinely requires human input, in which case stop and ask.
+16. As the final step, have Lisa upgrade itself: run this same update flow against the Lisa monorepo (the current working directory) — bump `@codyswann/lisa` to latest where Lisa consumes its own templates, apply templates, and commit/push/PR a self-update branch with auto-merge enabled, following the same worktree (rule 3), auto-merge (step 13), and blocker-fixing (step 15) rules. Skip this step only if the Lisa repo has no pending self-update changes after running the flow.
 
 For steps 4-13, use up to 4 parallel subagents to accomplish those steps.
 
