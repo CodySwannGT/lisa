@@ -26,7 +26,7 @@ Push current branch and create or update a pull request. Optional hint: $ARGUMEN
    - If not: Create PR with comprehensive description (not a draft)
 5. **Auto-merge**: Choose merge strategy by PR type:
    - **Promotion PRs** (env → env, e.g. `dev` → `staging`): use `gh pr merge --auto --merge` (never squash). Squashing flattens the constituent `chore(release): X.Y.Z [skip ci]` commits into one commit titled with the PR title, stripping the `[skip ci]` markers and breaking the release workflow's promotion-detection regex — the destination branch then double-bumps its version. `--merge` keeps each `chore(release)` commit (and its `[skip ci]` marker) intact under a clean merge commit subject the workflow can recognize.
-   - **Feature PRs** (anything → `dev`): use `gh pr merge --auto --squash`.
+   - **Feature PRs** (anything → `dev`): use `gh pr merge --auto --merge`.
 
 ### PR Description Format
 
