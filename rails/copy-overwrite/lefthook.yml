@@ -5,7 +5,11 @@ pre-commit:
       glob: '*.rb'
       run: bundle exec rubocop --force-exclusion {staged_files}
     bundler-audit:
-      run: bundle exec bundler-audit check --update
+      # Unset GIT_DIR/GIT_WORK_TREE so `--update`'s internal git pull of the
+      # ruby-advisory-db (~/.local/share/ruby-advisory-db) does not inherit the
+      # repo's git context. Without this, the command fails when the hook runs
+      # inside a git worktree (the inherited GIT_DIR points at the wrong repo).
+      run: env -u GIT_DIR -u GIT_WORK_TREE bundle exec bundler-audit check --update
 
 commit-msg:
   commands:
