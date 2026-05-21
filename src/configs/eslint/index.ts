@@ -6,6 +6,7 @@
  * @see nestjs.ts for NestJS stack config
  * @see expo.ts for Expo/React Native stack config
  * @see cdk.ts for AWS CDK stack config
+ * @see harper-fabric.ts for Harper/Fabric stack config
  * @see slow.ts for slow rules run periodically
  */
 export * from "./base.js";
@@ -13,4 +14,5 @@ export * from "./typescript.js";
 export * from "./nestjs.js";
 export * from "./expo.js";
 export * from "./cdk.js";
+export * from "./harper-fabric.js";
 export * from "./slow.js";

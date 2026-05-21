@@ -18,6 +18,7 @@ import {
   countFiles,
   createCDKProject,
   createExpoProject,
+  createHarperFabricProject,
   createMockLisaDir,
   createNestJSProject,
   createRailsProject,
@@ -32,6 +33,9 @@ const TSCONFIG_BASE = "tsconfig.base.json";
 const LISAIGNORE = ".lisaignore";
 const LEGACY_WORKFLOW = "legacy-workflow.yml";
 const CREATE_ONLY = "create-only";
+const COPY_OVERWRITE = "copy-overwrite";
+const HARPER_FABRIC_TYPE = "harper-fabric";
+const HARPER_FABRIC_TXT = "harper-fabric.txt";
 
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
@@ -141,6 +145,23 @@ describe("Lisa Integration Tests", () => {
       expect(result.detectedTypes).toContain("typescript");
     });
 
+    it("applies configurations to Harper/Fabric project", async () => {
+      await createHarperFabricProject(destDir);
+
+      const harperDir = path.join(lisaDir, HARPER_FABRIC_TYPE, COPY_OVERWRITE);
+      await fs.ensureDir(harperDir);
+      await fs.writeFile(path.join(harperDir, HARPER_FABRIC_TXT), "ok\n");
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      expect(result.detectedTypes).toContain(HARPER_FABRIC_TYPE);
+      expect(result.detectedTypes).toContain("typescript");
+      expect(await fs.pathExists(path.join(destDir, HARPER_FABRIC_TXT))).toBe(
+        true
+      );
+    });
+
     it("removes an existing manifest file during apply", async () => {
       await createTypeScriptProject(destDir);
       const manifestPath = path.join(destDir, ".lisa-manifest");
@@ -237,6 +258,42 @@ describe("Lisa Integration Tests", () => {
       // flips, CI breaks for every CDK project on the next Lisa update.
       expect(finalCi).toBe(CDK_CI);
       expect(finalCi).not.toBe(TS_CI);
+    });
+
+    it("Harper/Fabric child stack overrides TypeScript parent templates", async () => {
+      const SHARED_CONFIG = "shared-stack-config.txt";
+      const TS_CONFIG = "typescript parent\n";
+      const HARPER_CONFIG = "harper child\n";
+
+      await createHarperFabricProject(destDir);
+
+      const tsCopyOverwrite = path.join(
+        lisaDir,
+        "typescript",
+        "copy-overwrite"
+      );
+      await fs.ensureDir(tsCopyOverwrite);
+      await fs.writeFile(path.join(tsCopyOverwrite, SHARED_CONFIG), TS_CONFIG);
+
+      const harperCopyOverwrite = path.join(
+        lisaDir,
+        HARPER_FABRIC_TYPE,
+        COPY_OVERWRITE
+      );
+      await fs.ensureDir(harperCopyOverwrite);
+      await fs.writeFile(
+        path.join(harperCopyOverwrite, SHARED_CONFIG),
+        HARPER_CONFIG
+      );
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      const finalConfig = await fs.readFile(
+        path.join(destDir, SHARED_CONFIG),
+        "utf-8"
+      );
+      expect(finalConfig).toBe(HARPER_CONFIG);
     });
 
     it("registers plugins at project scope when settings.json has enabledPlugins", async () => {

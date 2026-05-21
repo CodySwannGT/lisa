@@ -267,6 +267,21 @@ function metadataFor(pluginName) {
       keywords: ["aws", "cdk", "infrastructure"],
       defaultPrompt: ["Review this CDK change"],
     },
+    "lisa-harper-fabric": {
+      displayName: "Lisa Harper/Fabric",
+      description:
+        "Harper/Fabric-specific Lisa rules for TypeScript component apps.",
+      shortDescription: "Harper/Fabric workflow guidance",
+      longDescription:
+        "Lisa rules for Harper/Fabric deploy surfaces, generated JavaScript artifacts, operational docs, Playwright UI verification, and immutable TypeScript.",
+      category: "Coding",
+      capabilities: ["Interactive", "Write"],
+      keywords: ["harper", "fabric", "typescript", "playwright"],
+      defaultPrompt: [
+        "Review this Harper/Fabric change",
+        "Verify this Harper/Fabric deployment path",
+      ],
+    },
     "lisa-rails": {
       displayName: "Lisa Rails",
       description:

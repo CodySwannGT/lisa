@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/build/**/*.ts",
+    "src/harper/**/*.ts",
+    "src/scripts/**/*.ts",
+    "src/web/**/*.ts",
+    "tests/**/*smoke.ts"
+  ],
+  "project": ["src/**/*.ts", "tests/**/*.ts"],
+  "ignore": [
+    "**/*.test.ts",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/node_modules/**",
+    "harper-app/resources.js",
+    "harper-app/web/**/*.js"
+  ],
+  "ignoreDependencies": ["@types/node", "@vitest/coverage-v8"],
+  "ignoreBinaries": ["harperdb", "playwright", "tsx"],
+  "rules": {
+    "devDependencies": "off"
+  }
+}

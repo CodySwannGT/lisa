@@ -1,9 +1,11 @@
+/* eslint-disable max-lines -- detector matrix covers every Lisa-supported project type */
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { TypeScriptDetector } from "../../../src/detection/detectors/typescript.js";
 import { ExpoDetector } from "../../../src/detection/detectors/expo.js";
 import { NestJSDetector } from "../../../src/detection/detectors/nestjs.js";
 import { CDKDetector } from "../../../src/detection/detectors/cdk.js";
+import { HarperFabricDetector } from "../../../src/detection/detectors/harper-fabric.js";
 import { RailsDetector } from "../../../src/detection/detectors/rails.js";
 import { DetectorRegistry } from "../../../src/detection/index.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
@@ -18,9 +20,14 @@ const TYPESCRIPT_TYPE = "typescript";
 const EXPO_DEP = "expo";
 const NESTJS_TYPE = "nestjs";
 const CDK_TYPE = "cdk";
+const HARPER_FABRIC_TYPE = "harper-fabric";
 const RAILS_TYPE = "rails";
 const BIN_RAILS = "bin/rails";
 const CONFIG_APPLICATION_RB = "config/application.rb";
+const HARPER_APP_DIR = "harper-app";
+const HARPER_APP_CONFIG = "harper-app/config.yaml";
+const HARPER_APP_SCHEMA = "harper-app/schema.graphql";
+const HARPER_SCHEMA_BODY = "type Query\n";
 const HAS_CORRECT_TYPE = "has correct type";
 
 describe("TypeScriptDetector", () => {
@@ -209,6 +216,74 @@ describe("CDKDetector", () => {
   });
 });
 
+describe("HarperFabricDetector", () => {
+  let detector: HarperFabricDetector;
+  let tempDir: string;
+
+  beforeEach(async () => {
+    detector = new HarperFabricDetector();
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  it(HAS_CORRECT_TYPE, () => {
+    expect(detector.type).toBe(HARPER_FABRIC_TYPE);
+  });
+
+  it("detects by Harper assets and component config", async () => {
+    await fs.ensureDir(path.join(tempDir, HARPER_APP_DIR));
+    await fs.writeFile(
+      path.join(tempDir, HARPER_APP_CONFIG),
+      "graphqlSchema:\njsResource:\nstatic:\n"
+    );
+    await fs.writeFile(
+      path.join(tempDir, HARPER_APP_SCHEMA),
+      HARPER_SCHEMA_BODY
+    );
+
+    expect(await detector.detect(tempDir)).toBe(true);
+  });
+
+  it("detects by Harper assets and harperdb dependency", async () => {
+    await fs.ensureDir(path.join(tempDir, HARPER_APP_DIR));
+    await fs.writeFile(path.join(tempDir, HARPER_APP_CONFIG), "rest: true\n");
+    await fs.writeFile(
+      path.join(tempDir, HARPER_APP_SCHEMA),
+      HARPER_SCHEMA_BODY
+    );
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
+      dependencies: { harperdb: "^4.7.29" },
+    });
+
+    expect(await detector.detect(tempDir)).toBe(true);
+  });
+
+  it("returns false without schema.graphql", async () => {
+    await fs.ensureDir(path.join(tempDir, HARPER_APP_DIR));
+    await fs.writeFile(
+      path.join(tempDir, HARPER_APP_CONFIG),
+      "graphqlSchema:\njsResource:\nstatic:\n"
+    );
+
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+
+  it("returns false for generic Harper-shaped files without signals", async () => {
+    await fs.ensureDir(path.join(tempDir, HARPER_APP_DIR));
+    await fs.writeFile(path.join(tempDir, HARPER_APP_CONFIG), "name: test\n");
+    await fs.writeFile(
+      path.join(tempDir, HARPER_APP_SCHEMA),
+      HARPER_SCHEMA_BODY
+    );
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {});
+
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+});
+
 describe("RailsDetector", () => {
   let detector: RailsDetector;
   let tempDir: string;
@@ -301,6 +376,12 @@ describe("DetectorRegistry", () => {
     expect(expanded).toContain(CDK_TYPE);
   });
 
+  it("expands Harper/Fabric to include TypeScript parent", () => {
+    const expanded = registry.expandAndOrderTypes([HARPER_FABRIC_TYPE]);
+
+    expect(expanded).toEqual([TYPESCRIPT_TYPE, HARPER_FABRIC_TYPE]);
+  });
+
   it("deduplicates types", () => {
     const expanded = registry.expandAndOrderTypes([TYPESCRIPT_TYPE, EXPO_DEP]);
 
@@ -329,3 +410,4 @@ describe("DetectorRegistry", () => {
     expect(types).toContain(RAILS_TYPE);
   });
 });
+/* eslint-enable max-lines -- Re-enable after detector matrix */

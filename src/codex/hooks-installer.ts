@@ -196,7 +196,7 @@ export async function installHooks(
   const ruleFiles: readonly string[] = applicable.some(
     e => e.id === "inject-rules"
   )
-    ? (await mirrorRules(lisaDir, rulesDir)).map(file =>
+    ? (await mirrorRules(lisaDir, rulesDir, detectedTypes)).map(file =>
         path.join(LISA_RULES_SUBDIR, file)
       )
     : [];
@@ -284,28 +284,55 @@ function resolveBundledScript(filename: string): string {
 }
 
 /**
- * Copy every .md file from Lisa's `plugins/lisa/rules/` into the host's
- * `.codex/lisa-rules/`. Returns the list of filenames copied (without
- * directory).
+ * Copy every .md file from Lisa's base and detected stack plugin `rules/`
+ * directories into the host's `.codex/lisa-rules/`.
  * @param lisaDir - Absolute path to the Lisa repo / installed package
  * @param rulesDestDir - Absolute path to `<destDir>/.codex/lisa-rules/`
+ * @param detectedTypes - Project types Lisa detected for the host
  * @returns Filenames (without directory) of every rule .md file copied
  */
 async function mirrorRules(
   lisaDir: string,
-  rulesDestDir: string
+  rulesDestDir: string,
+  detectedTypes: readonly ProjectType[]
 ): Promise<readonly string[]> {
-  const rulesSourceDir = path.join(lisaDir, "plugins", "lisa", "rules");
-  if (!(await fse.pathExists(rulesSourceDir))) {
-    return [];
-  }
-  const files = (await readdir(rulesSourceDir)).filter(name =>
-    name.endsWith(".md")
+  const pluginNames = ["lisa", ...detectedTypes.map(type => `lisa-${type}`)];
+
+  // First pass: list all .md files per plugin without copying
+  const filesByPlugin = await Promise.all(
+    pluginNames.map(async pluginName => {
+      const sourceDir = path.join(lisaDir, "plugins", pluginName, "rules");
+      if (!(await fse.pathExists(sourceDir))) {
+        return { sourceDir, files: [] as string[] };
+      }
+      const files = (await readdir(sourceDir)).filter(name =>
+        name.endsWith(".md")
+      );
+      return { sourceDir, files };
+    })
   );
+
+  // Detect filename collisions before performing any copies
+  const allFiles = filesByPlugin.flatMap(({ files }) => files);
+  if (new Set(allFiles).size !== allFiles.length) {
+    const duplicate = allFiles.find(
+      (name, index) => allFiles.indexOf(name) !== index
+    );
+    throw new Error(
+      `Duplicate Lisa rule filename "${duplicate ?? "unknown"}" across plugin rules/ directories`
+    );
+  }
+
+  // Second pass: copy files now that we know there are no collisions
   await Promise.all(
-    files.map(file =>
-      copyFile(path.join(rulesSourceDir, file), path.join(rulesDestDir, file))
+    filesByPlugin.map(({ sourceDir, files }) =>
+      Promise.all(
+        files.map(file =>
+          copyFile(path.join(sourceDir, file), path.join(rulesDestDir, file))
+        )
+      )
     )
   );
-  return Object.freeze(files);
+
+  return Object.freeze(allFiles);
 }

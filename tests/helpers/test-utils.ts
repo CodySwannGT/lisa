@@ -7,6 +7,8 @@ const TSCONFIG_JSON = "tsconfig.json";
 const APP_JSON = "app.json";
 const NEST_CLI_JSON = "nest-cli.json";
 const CDK_JSON = "cdk.json";
+const HARPER_APP_CONFIG = "harper-app/config.yaml";
+const HARPER_APP_SCHEMA = "harper-app/schema.graphql";
 const BIN_RAILS = "bin/rails";
 const CONFIG_APPLICATION_RB = "config/application.rb";
 const GEMFILE = "Gemfile";
@@ -91,6 +93,34 @@ export async function createCDKProject(dir: string): Promise<void> {
     dependencies: { "aws-cdk-lib": "^2.0.0" },
   });
   await fs.writeJson(path.join(dir, CDK_JSON), {});
+}
+
+/**
+ * Create a Harper/Fabric project structure with Harper app deploy assets.
+ * @param dir - Directory to create project structure in
+ */
+export async function createHarperFabricProject(dir: string): Promise<void> {
+  await fs.ensureDir(path.join(dir, "harper-app"));
+  await fs.writeJson(path.join(dir, PACKAGE_JSON), {
+    private: true,
+    dependencies: { harperdb: "^4.7.29" },
+    devDependencies: { typescript: "^6.0.0" },
+  });
+  await fs.writeJson(path.join(dir, TSCONFIG_JSON), {});
+  await fs.writeFile(
+    path.join(dir, HARPER_APP_CONFIG),
+    [
+      "graphqlSchema:",
+      "  files: '*.graphql'",
+      "rest: true",
+      "jsResource:",
+      "  files: 'resources.js'",
+      "static:",
+      "  files: 'web/**'",
+      "",
+    ].join("\n")
+  );
+  await fs.writeFile(path.join(dir, HARPER_APP_SCHEMA), "type Query\n");
 }
 
 /**

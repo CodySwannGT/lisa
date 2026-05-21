@@ -1,0 +1,15 @@
+{
+  "name": "lisa-harper-fabric",
+  "version": "1.0.0",
+  "description": "Harper/Fabric-specific rules for TypeScript component apps",
+  "author": { "name": "Cody Swann" },
+  "dependencies": ["lisa-typescript"],
+  "hooks": {
+    "SessionStart": [
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh" }] }
+    ],
+    "SubagentStart": [
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh" }] }
+    ]
+  }
+}

@@ -41,6 +41,7 @@ const TEMPLATE_PATHS = [
   "expo/package-lisa/package.lisa.json",
   "nestjs/package-lisa/package.lisa.json",
   "cdk/package-lisa/package.lisa.json",
+  "harper-fabric/package-lisa/package.lisa.json",
   "npm-package/package-lisa/package.lisa.json",
 ] as const;
 

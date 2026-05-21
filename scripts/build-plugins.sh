@@ -34,7 +34,7 @@ node "$ROOT_DIR/scripts/generate-codex-plugin-artifacts.mjs" "$BASE_OUT" "$VERSI
 echo "Built plugins/lisa (v$VERSION)"
 
 # Build stack-specific plugins (NO base copy)
-STACKS=(typescript expo nestjs cdk rails)
+STACKS=(typescript expo nestjs cdk harper-fabric rails)
 for stack in "${STACKS[@]}"; do
   STACK_SRC="$SRC_DIR/$stack"
   if [ ! -d "$STACK_SRC" ]; then

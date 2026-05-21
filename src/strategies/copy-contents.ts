@@ -14,31 +14,59 @@ import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
 export class CopyContentsStrategy implements ICopyStrategy {
   readonly name = "copy-contents" as const;
 
-  private readonly BEGIN_MARKER = "# BEGIN: AI GUARDRAILS";
-  private readonly END_MARKER = "# END: AI GUARDRAILS";
+  private readonly BEGIN_MARKER_PREFIX = "# BEGIN: AI GUARDRAILS";
+  private readonly END_MARKER_PREFIX = "# END: AI GUARDRAILS";
 
   /**
    * Find the guardrails block in content
    * @param content File content to search
+   * @param beginMarker Opening marker for this managed block
+   * @param endMarker Closing marker for this managed block
    * @returns Object with start/end indices or null if not found
    */
   private findGuardrailsBlock(
-    content: string
+    content: string,
+    beginMarker: string,
+    endMarker: string
   ): { start: number; end: number } | null {
-    const startIndex = content.indexOf(this.BEGIN_MARKER);
+    const startIndex = content.indexOf(beginMarker);
     if (startIndex === -1) {
       return null;
     }
 
     const endIndex = content.indexOf(
-      this.END_MARKER,
-      startIndex + this.BEGIN_MARKER.length
+      endMarker,
+      startIndex + beginMarker.length
     );
     if (endIndex === -1) {
       return null;
     }
 
-    return { start: startIndex, end: endIndex + this.END_MARKER.length };
+    return { start: startIndex, end: endIndex + endMarker.length };
+  }
+
+  /**
+   * Read the guardrail marker pair from the source block. This supports
+   * stack-specific blocks such as `# BEGIN: AI GUARDRAILS HARPER-FABRIC`
+   * without replacing the universal guardrails block.
+   * @param sourceContent Source file content
+   * @returns Marker pair to use while merging
+   */
+  private getSourceMarkers(sourceContent: string): {
+    readonly begin: string;
+    readonly end: string;
+  } {
+    const lines = sourceContent.split(/\r?\n/);
+    const begin =
+      lines.find(line => line.startsWith(this.BEGIN_MARKER_PREFIX)) ??
+      this.BEGIN_MARKER_PREFIX;
+    const suffix = begin.slice(this.BEGIN_MARKER_PREFIX.length);
+    const matchingEnd = `${this.END_MARKER_PREFIX}${suffix}`;
+    const end = lines.includes(matchingEnd)
+      ? matchingEnd
+      : this.END_MARKER_PREFIX;
+
+    return { begin, end };
   }
 
   /**
@@ -48,7 +76,12 @@ export class CopyContentsStrategy implements ICopyStrategy {
    * @returns Merged content
    */
   private mergeContent(sourceContent: string, destContent: string): string {
-    const block = this.findGuardrailsBlock(destContent);
+    const markers = this.getSourceMarkers(sourceContent);
+    const block = this.findGuardrailsBlock(
+      destContent,
+      markers.begin,
+      markers.end
+    );
 
     if (block) {
       // Replace existing block, trimming source trailing newline

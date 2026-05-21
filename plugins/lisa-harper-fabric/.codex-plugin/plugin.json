@@ -1,0 +1,32 @@
+{
+  "name": "lisa-harper-fabric",
+  "version": "2.19.0",
+  "description": "Harper/Fabric-specific Lisa rules for TypeScript component apps.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "harper",
+    "fabric",
+    "typescript",
+    "playwright"
+  ],
+  "dependencies": [
+    "lisa-typescript"
+  ],
+  "interface": {
+    "displayName": "Lisa Harper/Fabric",
+    "shortDescription": "Harper/Fabric workflow guidance",
+    "longDescription": "Lisa rules for Harper/Fabric deploy surfaces, generated JavaScript artifacts, operational docs, Playwright UI verification, and immutable TypeScript.",
+    "developerName": "Cody Swann",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review this Harper/Fabric change",
+      "Verify this Harper/Fabric deployment path"
+    ]
+  }
+}

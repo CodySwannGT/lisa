@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "tsc && bun run build:plugins",
+    "build": "tsc && node scripts/copy-codex-scripts.mjs && bun run build:plugins",
     "test:integration": "vitest run tests/integration",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true",
     "pretest": "[ -d dist/configs ] || bun run build",
@@ -49,6 +49,7 @@
     "expo",
     "nestjs",
     "cdk",
+    "harper-fabric",
     "rails",
     "tsconfig",
     "oxlint",
@@ -91,6 +92,7 @@
     "./eslint/nestjs": "./dist/configs/eslint/nestjs.js",
     "./eslint/expo": "./dist/configs/eslint/expo.js",
     "./eslint/cdk": "./dist/configs/eslint/cdk.js",
+    "./eslint/harper-fabric": "./dist/configs/eslint/harper-fabric.js",
     "./eslint/slow": "./dist/configs/eslint/slow.js",
     "./jest": "./dist/configs/jest/index.js",
     "./jest/base": "./dist/configs/jest/base.js",
@@ -103,11 +105,13 @@
     "./vitest/typescript": "./dist/configs/vitest/typescript.js",
     "./vitest/nestjs": "./dist/configs/vitest/nestjs.js",
     "./vitest/cdk": "./dist/configs/vitest/cdk.js",
+    "./vitest/harper-fabric": "./dist/configs/vitest/harper-fabric.js",
     "./tsconfig/base": "./tsconfig/base.json",
     "./tsconfig/typescript": "./tsconfig/typescript.json",
     "./tsconfig/nestjs": "./tsconfig/nestjs.json",
     "./tsconfig/expo": "./tsconfig/expo.json",
     "./tsconfig/cdk": "./tsconfig/cdk.json",
+    "./tsconfig/harper-fabric": "./tsconfig/harper-fabric.json",
     "./tsconfig/eslint": "./tsconfig/eslint.json",
     "./tsconfig/build": "./tsconfig/build.json",
     "./tsconfig/spec": "./tsconfig/spec.json",
@@ -115,7 +119,8 @@
     "./oxlint/typescript": "./oxlint/typescript.json",
     "./oxlint/nestjs": "./oxlint/nestjs.json",
     "./oxlint/expo": "./oxlint/expo.json",
-    "./oxlint/cdk": "./oxlint/cdk.json"
+    "./oxlint/cdk": "./oxlint/cdk.json",
+    "./oxlint/harper-fabric": "./oxlint/harper-fabric.json"
   },
   "bin": {
     "lisa": "dist/index.js",

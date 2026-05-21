@@ -481,6 +481,16 @@ export class Lisa {
 
     logger.info("Registering plugins with Claude Code (project scope)...");
 
+    try {
+      await execAsync("claude plugin marketplace update lisa", {
+        cwd: this.config.destDir,
+        shell: "/bin/sh",
+      });
+    } catch {
+      // Best-effort cache refresh. Individual plugin installs below will still
+      // report whether the marketplace entry is available.
+    }
+
     for (const plugin of plugins) {
       if (!validPluginName.test(plugin)) {
         logger.warn(`Skipping invalid plugin name: ${plugin}`);

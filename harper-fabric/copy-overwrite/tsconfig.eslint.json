@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "module": "preserve",
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "eslint.config.ts",
+    "eslint.config.local.ts",
+    "vitest.config.ts",
+    "vitest.config.local.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "harper-app/resources.js",
+    "harper-app/web/**/*.js"
+  ]
+}

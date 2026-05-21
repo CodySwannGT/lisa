@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Package merge strategy is intentionally comprehensive */
 import * as fse from "fs-extra";
 import path from "node:path";
 import type { FileOperationResult, ProjectType } from "../core/config.js";
@@ -50,6 +51,11 @@ export class PackageLisaStrategy implements ICopyStrategy {
   private readonly EAS_JSON = "eas.json";
   private readonly NEST_CLI_JSON = "nest-cli.json";
   private readonly CDK_JSON = "cdk.json";
+  private readonly HARPER_APP_CONFIG = path.join("harper-app", "config.yaml");
+  private readonly HARPER_APP_SCHEMA = path.join(
+    "harper-app",
+    "schema.graphql"
+  );
 
   /**
    * Apply package-lisa strategy: Load templates from inheritance chain, apply to package.json
@@ -201,7 +207,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
   /**
    * Detect which project types apply to this project
-   * (TypeScript, Expo, NestJS, CDK, npm-package)
+   * (TypeScript, Expo, NestJS, CDK, Harper/Fabric, npm-package)
    * @param projectDir - Root directory of the project
    * @returns Array of detected project types
    * @private
@@ -234,6 +240,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
       (await this.packageJsonHasDependencyPrefix(projectDir, "aws-cdk"));
     if (hasCDK) types.push("cdk");
 
+    // Harper/Fabric detection
+    const hasHarperFabric =
+      (await fse.pathExists(path.join(projectDir, this.HARPER_APP_CONFIG))) &&
+      (await fse.pathExists(path.join(projectDir, this.HARPER_APP_SCHEMA))) &&
+      ((await this.harperConfigHasComponentSignals(projectDir)) ||
+        (await this.packageJsonHasDependency(projectDir, "harperdb")));
+    if (hasHarperFabric) types.push("harper-fabric");
+
     // npm-package detection
     const isPrivate = await this.packageJsonField<boolean>(
       projectDir,
@@ -250,6 +264,31 @@ export class PackageLisaStrategy implements ICopyStrategy {
     }
 
     return types;
+  }
+
+  /**
+   * Check whether harper-app/config.yaml declares the expected Harper component
+   * resource keys.
+   * @param projectDir - The project directory to check
+   * @returns True if the config has Harper/Fabric component signals
+   * @private
+   */
+  private async harperConfigHasComponentSignals(
+    projectDir: string
+  ): Promise<boolean> {
+    try {
+      const content = await fse.readFile(
+        path.join(projectDir, this.HARPER_APP_CONFIG),
+        "utf8"
+      );
+      return (
+        content.includes("graphqlSchema:") &&
+        content.includes("jsResource:") &&
+        content.includes("static:")
+      );
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -542,3 +581,4 @@ export class PackageLisaStrategy implements ICopyStrategy {
     return result;
   }
 }
+/* eslint-enable max-lines -- Re-enable after comprehensive package merge strategy */
