@@ -73,6 +73,7 @@ jobs:
       override_blackout: true
       node_version: '22.21.1'
       package_manager: 'bun'
+      skip_jobs: 'secret_scanning'
     secrets: inherit
 
   # Publish to npm (only on main, and only if a version was created)
