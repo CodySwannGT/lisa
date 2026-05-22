@@ -19,10 +19,13 @@ Before any analytical work, confirm the ticket carries the content an implemente
 - Validation Journey missing on a runtime-behavior ticket
 - Target backend environment missing on a runtime-behavior ticket
 - Sign-in credentials missing on a ticket that touches authenticated surfaces
-- Single-repo scope violated (Bug / Task / Sub-task spanning repos)
 - Relationship discovery missing (no links AND no documented git + tracker-search outcome)
 
+Single-repo scope is handled separately — see below.
+
 The caller (jira-agent or github-agent) is responsible for transitioning the ticket to `Blocked` (JIRA status) or relabeling to `status:blocked` (GitHub), reassigning to the **Reporter / original author**, and posting a comment listing the missing requirements. This skill only emits the verdict and the missing-requirements list.
+
+**Single-repo scope is split, not blocked.** A cross-repo leaf work unit (Bug / Task / Sub-task / Improvement spanning repos) is a decomposition error the agent owns, not a terminal BLOCKED. Do not emit BLOCKED for it. The caller runs the **work-time split procedure** in the `repo-scope-split` rule (narrow the original to one repo, spin off a sibling per additional repo, link the producer→consumer dependency), then re-runs `tracker-verify` and re-enters triage on the now single-repo ticket. Only fall back to BLOCKED if the split is ambiguous (see "When to block instead of split" in that rule).
 
 If `lisa:tracker-verify` returned `PASS` for all the above, proceed to Phase 1.
 

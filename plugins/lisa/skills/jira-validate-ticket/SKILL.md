@@ -1,10 +1,12 @@
 ---
 name: jira-validate-ticket
 description: "Validates a proposed JIRA ticket spec (or an existing ticket) against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. This is the single source of truth for what makes a valid ticket — both the write path (jira-write-ticket runs it pre-write) and the dry-run path (notion-to-tracker runs it during PRD intake) call this skill so the bar can never drift."
-allowed-tools: ["Bash", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getIssueLinkTypes", "mcp__atlassian__getJiraProjectIssueTypesMetadata", "mcp__atlassian__getVisibleJiraProjects", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Bash", "Skill"]
 ---
 
 # Validate JIRA Ticket: $ARGUMENTS
+
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
 
 Run all organizational quality gates against a ticket spec OR an existing ticket. **This skill is read-only — it never writes to JIRA.** The output is a structured report consumed by callers (`lisa:jira-write-ticket` for pre-write gating, `lisa:notion-to-tracker` for PRD dry-run, `lisa:jira-verify` for post-write checks).
 
@@ -60,7 +62,7 @@ links: [{ key: "PROJ-99", type: "is blocked by" }]   # known issue links (may be
 remote_links: [{ url: "https://github.com/...", title: "PR #42" }]
 ```
 
-If the caller passes only a ticket key, fetch the ticket via `mcp__atlassian__getJiraIssue`, derive the same fields from the fetched data, then run gates.
+If the caller passes only a ticket key, fetch the ticket via `lisa:atlassian-access` `operation: read-ticket key: <KEY>`, derive the same fields from the fetched data, then run gates.
 
 ## Gates
 
@@ -83,6 +85,7 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | S11 Validation Journey | `acceptance-criteria` | true |
 | S12 Source Precedence | `design-ux` | true |
 | S13 Relationship Search | `dependency` | true |
+| S14 Evidence manifest binding (leaf work units) | `acceptance-criteria` | true |
 | F1 Issue type valid in project | `structural` | false |
 | F2 Epic parent exists and is an Epic | `structural` | false |
 | F3 Linked tickets exist | `structural` | false |
@@ -188,28 +191,36 @@ The ticket must EITHER have at least one issue link in `links`, OR the descripti
 
 A ticket with zero links and no documented search: FAIL.
 
+#### S14 — Evidence manifest binding (leaf work units)
+
+When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_change = true`, the `h2. Validation Journey` must declare at least one `[EVIDENCE: name]` marker. Each marker name must be kebab-case and unique within the ticket. These markers are the work unit's **evidence manifest** — the exact, enumerated set of artifacts that must be captured and attached before the ticket may be marked complete (see the "Per-Work-Unit Evidence Contract" section of the `verification` rule, the Definition of Done in `verification-lifecycle`, and the evidence-manifest gate in `tracker-evidence`).
+
+FAIL when the Validation Journey is present but declares zero `[EVIDENCE: name]` markers, or when any marker name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
+
+This gate depends on S11. It is `N/A` for Epic / Story / Spike (coordination containers, not work units) and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa:jira-add-journey`.
+
 ### Feasibility Gates (require JIRA lookups; skip in dry-run if requested)
 
 #### F1 — Issue type valid in project
 
-Call `mcp__atlassian__getJiraProjectIssueTypesMetadata` and confirm `issue_type` exists in `project_key`.
+Invoke `lisa:atlassian-access` to fetch issue-type metadata for `project_key` and confirm `issue_type` exists.
 
 #### F2 — Epic parent exists and is an Epic
 
-When `parent_key` is set for non-Sub-task: fetch via `mcp__atlassian__getJiraIssue`, confirm the issue type is `Epic`. For Sub-task, confirm the parent is a non-Sub-task in the same project.
+When `parent_key` is set for non-Sub-task: fetch via `lisa:atlassian-access` `operation: read-ticket key: <parent_key>`, confirm the issue type is `Epic`. For Sub-task, confirm the parent is a non-Sub-task in the same project.
 
 #### F3 — Linked tickets exist
 
-For each entry in `links`, call `mcp__atlassian__getJiraIssue` to confirm the key resolves. Flag broken keys.
+For each entry in `links`, invoke `lisa:atlassian-access` `operation: read-ticket key: <link.key>` to confirm the key resolves. Flag broken keys.
 
 #### F4 — Required custom fields populated
 
-`mcp__atlassian__getJiraProjectIssueTypesMetadata` returns required custom fields for the issue type. Any required custom field not provided in the spec: FAIL.
+Use the same project-issue-type-metadata lookup from F1 (via `lisa:atlassian-access`) to learn required custom fields for the issue type. Any required custom field not provided in the spec: FAIL.
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. If it's a ticket key, fetch the ticket and derive the spec from the fetched fields. Otherwise parse the YAML spec.
-2. Resolve cloud ID via `mcp__atlassian__getAccessibleAtlassianResources` if any feasibility gate will run.
+1. Parse `$ARGUMENTS`. If it's a ticket key, fetch the ticket via `lisa:atlassian-access` `operation: read-ticket` and derive the spec from the fetched fields. Otherwise parse the YAML spec.
+2. If any feasibility gate will run, invoke `lisa:atlassian-access` `operation: list-sites` once to confirm the configured site is reachable (it enforces connection match against `.lisa.config.json`).
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only` (dry-run), run every Feasibility gate. Collect results.
 5. Emit the report below.
@@ -235,6 +246,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S11 Validation Journey — <one-line reason>
 - [PASS|FAIL|N/A] S12 Source Precedence — <one-line reason>
 - [PASS|FAIL|N/A] S13 Relationship Search — <one-line reason>
+- [PASS|FAIL|N/A] S14 Evidence manifest binding — <one-line reason>
 
 ### Feasibility Gates  (omit this section when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type valid in project — <one-line reason>
@@ -259,7 +271,7 @@ The verdict is `PASS` if and only if every applicable gate is `PASS`. Any `FAIL`
 
 ### Failure-detail fields
 
-- **gate**: the gate ID (`S1`–`S13`, `F1`–`F4`).
+- **gate**: the gate ID (`S1`–`S14`, `F1`–`F4`).
 - **category**: the gate's fixed category from the table above. Callers use this to label or filter comments — `product-clarity`, `acceptance-criteria`, `design-ux`, `scope`, `dependency`, `data`, `technical`, or `structural`.
 - **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem (e.g., the agent built a malformed spec, an issue type is invalid in the project) and the caller should fix it without bothering the product team. `true` means the PRD needs product input to resolve.
 - **what**: plain-language description of the issue. No gate IDs, no JIRA jargon, no engineering shorthand. A product owner reading this on a Notion comment should understand what is unclear and why.
@@ -267,7 +279,7 @@ The verdict is `PASS` if and only if every applicable gate is `PASS`. Any `FAIL`
 
 ## Rules
 
-- Never write to JIRA. The `allowed-tools` list intentionally excludes `createJiraIssue`, `editJiraIssue`, `createIssueLink`, `addCommentToJiraIssue`.
+- Never write to JIRA. This skill only invokes `lisa:atlassian-access` with read-only operations (`read-ticket`, `search-issues`, `list-sites`); it never calls write operations (`write-ticket`, `transition`, `comment`, `link`).
 - Never auto-fix the spec. This skill reports gaps; callers decide what to do (block, ask the human, regenerate the spec).
 - Never silently skip a gate. If a gate genuinely doesn't apply, return `N/A` with the reason; never omit it.
 - The `what` and `recommendation` fields must be concrete and product-readable — the dry-run path turns each failure into a Notion comment, and the audience for those comments is the product team, not engineers. Vague guidance ("clarify this", "decide how to handle X") is useless; always give 1–3 candidate resolutions.
