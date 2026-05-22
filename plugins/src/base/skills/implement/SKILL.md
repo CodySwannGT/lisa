@@ -7,7 +7,7 @@ description: This skill should be used for any non-trivial request — features,
 
 ## Orchestration: agent team
 
-Implement is **always** a team flow. Bug, Build, Improve, and Investigate-Only all compose multiple specialists (Reproduce → debug → fix → review → verify). Single-agent mode is not an option here, regardless of how "simple" the ticket looks.
+Implement is a **team-first** flow. Bug, Build, Improve, and Investigate-Only all compose multiple specialists (Reproduce → debug → fix → review → verify). Single-agent mode is not permitted based on task complexity — the only exception is when no team creation tool is available in the current runtime (see no-team fallback in the paragraph below).
 
 If you are NOT already operating inside an agent team (no prior successful team-creation tool call in this session, not spawned into a team context), the very first thing you do is establish team orchestration.
 
