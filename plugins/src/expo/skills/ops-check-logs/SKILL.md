@@ -40,7 +40,7 @@ For inspecting JavaScript errors, warnings, and `console.log` output in the brow
 
 Use when you need to capture browser logs programmatically during UAT or debugging.
 
-1. **Load Playwright tools** — use `ToolSearch` to search for `playwright browser`.
+1. **Load Playwright tools** — use the current runtime's tool-discovery mechanism to search for `playwright browser`.
 
 2. **Navigate to the app**:
    - `browser_navigate` to the target URL (discover from `e2e/constants.ts` or `.env.*` files)

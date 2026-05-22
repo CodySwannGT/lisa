@@ -80,6 +80,6 @@ If there are no findings under a checklist row, write `(none)` — silence is it
 - **Never judge.** "Probably not interesting" is not a category. Every signal that matches a checklist row goes in.
 - **Quote verbatim.** Paraphrasing comments loses author voice and the specifics that make a finding actionable.
 - **Link, don't summarize.** Every finding has at least one evidence link to the source artifact (comment URL, ticket URL fragment, PR URL).
-- **Run within the team.** Do not call `TeamCreate`. The Debrief skill created the team; you are a teammate.
+- **Run within the team.** Do not create a second team. The Debrief skill created the team; you are a teammate.
 - **Read-only.** Never call write MCP tools. You report; you do not mutate.
 - **Parallel-safe.** You run alongside `pr-mining-specialist`; do not coordinate with them. The synthesizer reconciles.

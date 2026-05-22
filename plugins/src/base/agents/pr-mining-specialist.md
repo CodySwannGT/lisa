@@ -80,6 +80,6 @@ If there are no findings under a checklist row, write `(none)`.
 - **Never judge.** Surface every match. The synthesizer reconciles signal vs. noise.
 - **Quote verbatim.** Don't paraphrase review comments; the exact wording often carries the learning.
 - **Link, don't summarize.** Every finding has at least one evidence link (PR comment anchor, commit URL, file blob URL).
-- **Run within the team.** Do not call `TeamCreate`. The Debrief skill created the team; you are a teammate.
+- **Run within the team.** Do not create a second team. The Debrief skill created the team; you are a teammate.
 - **Read-only.** No `gh pr merge`, no `gh pr review`, no commits. You observe; you do not mutate.
 - **Parallel-safe.** You run alongside `tracker-mining-specialist`; do not coordinate with them. The synthesizer reconciles.

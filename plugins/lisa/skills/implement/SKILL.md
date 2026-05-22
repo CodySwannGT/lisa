@@ -7,16 +7,15 @@ description: This skill should be used for any non-trivial request — features,
 
 ## Orchestration: agent team
 
-Implement is **always** a team flow. Bug, Build, Improve, and Investigate-Only all compose multiple specialists (Reproduce → debug → fix → review → verify). Single-agent mode is not an option here, regardless of how "simple" the ticket looks.
+Implement is a **team-first** flow. Bug, Build, Improve, and Investigate-Only all compose multiple specialists (Reproduce → debug → fix → review → verify). Single-agent mode is not permitted based on task complexity — the only exception is when no team creation tool is available in the current runtime (see no-team fallback in the paragraph below).
 
-If you are NOT already operating inside an agent team (no prior `TeamCreate` in this session, not spawned via `Agent` with `team_name`), the very first thing you do is create the team. Two tool calls only, in this exact order:
+If you are NOT already operating inside an agent team (no prior successful team-creation tool call in this session, not spawned into a team context), the very first thing you do is establish team orchestration.
 
-1. `ToolSearch` with `query: "select:TeamCreate"` — `TeamCreate` is a deferred tool whose schema must be loaded before it can be invoked. A cold call returns `InputValidationError` and tempts a fallback to direct `Agent` calls, which bypasses the team.
-2. `TeamCreate` — actually create the team. Every team must include the Explore agent.
+Use `TeamCreate` if available. In Claude, if `TeamCreate` has not been loaded yet, first use `ToolSearch` with `query: "select:TeamCreate"` to load its schema. If `TeamCreate` is not available, use the current runtime's tool-discovery mechanism (for Codex, `tool_search`) to discover available multi-agent/team tools, then call the appropriate team creation tool. If no team creation tool is available, explicitly state that team orchestration is unavailable in this runtime, continue as the lead agent, and preserve the workflow's review, verification, and task-tracking obligations locally. Every team must include the Explore agent.
 
-Until `TeamCreate` returns successfully, do NOT call any of: `Agent`, `TaskCreate`, `Skill` (including `lisa:tracker-read`, `lisa:jira-read-ticket`, `lisa:github-read-issue`), MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. Reading the ticket, exploring the code, fetching context — every one of those is a task for the team you are about to create, not for the lead session before the team exists. Doing them inline is the exact bypass path that produces a 1-agent ad-hoc fix instead of a real team flow.
+Until the team is established or the no-team fallback has been declared, do NOT call any of: `Agent`, `TaskCreate`, `Skill` (including `lisa:tracker-read`, `lisa:jira-read-ticket`, `lisa:github-read-issue`), MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. Reading the ticket, exploring the code, fetching context — every one of those is a task for the team you are about to create, not for the lead session before orchestration exists. Doing them inline is the exact bypass path that produces a 1-agent ad-hoc fix instead of a real team flow.
 
-If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool, or `lisa:intake` is running this skill per Ready ticket), do NOT call `TeamCreate` — the harness rejects double-creates. Continue within the existing team. The team lead created the team; teammates inherit it.
+If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool, or `lisa:intake` is running this skill per Ready ticket), do NOT create a second team — many harnesses reject double-creates. Continue within the existing team. The team lead created the team; teammates inherit it.
 
 ## Resolve the input (first task assigned to the team)
 
