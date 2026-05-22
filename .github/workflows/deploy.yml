@@ -67,6 +67,7 @@ jobs:
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
+      skip_jobs: 'secret_scanning'
       require_approval: false
       require_signatures: false
       generate_sbom: true
