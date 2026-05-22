@@ -199,7 +199,7 @@
     "vitest": "^4.1.0"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^2.19.0",
+    "@codyswann/lisa": "^2.23.1",
     "@types/js-yaml": "^4.0.9",
     "eslint-plugin-oxlint": "^1.62.0",
     "js-yaml": "^4.1.1",

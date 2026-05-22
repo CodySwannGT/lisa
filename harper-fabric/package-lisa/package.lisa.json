@@ -2,7 +2,6 @@
   "force": {
     "scripts": {
       "bootstrap": "bash scripts/bootstrap.sh",
-      "build": "tsc && node dist/src/build/build.js",
       "typecheck": "tsc --noEmit",
       "test": "vitest run",
       "test:cov": "vitest run --coverage",
@@ -17,25 +16,6 @@
       "start": "harperdb start",
       "stop": "harperdb stop",
       "status": "harperdb status",
-      "seed": "bun run build && node dist/src/scripts/seed.js",
-      "verify": "bun run build && node dist/src/scripts/verify.js",
-      "seed:rest": "bun run build && node dist/src/scripts/seed_via_rest.js",
-      "verify:rest": "bun run build && node dist/src/scripts/verify_via_rest.js",
-      "preview": "bun run build && node dist/src/scripts/preview_feed.js",
-      "dev:server": "bun run build && node dist/src/scripts/dev_server.js",
-      "deploy": "bun run build && node dist/src/scripts/deploy.js",
-      "smoke": "bun run build && node dist/tests/web_smoke.js",
-      "smoke:brokercheck": "bun run build && node dist/tests/brokercheck_web_smoke.js",
-      "token": "bun run build && node dist/src/scripts/get_token.js",
-      "crawl:wpjson": "bun run build && node dist/src/scripts/crawl_via_wpjson.js",
-      "crawl:html": "bun run build && node dist/src/scripts/crawl_html.js",
-      "crawl:playwright": "bun run build && node dist/src/scripts/crawl_playwright.js",
-      "extract:fields": "bun run build && node dist/src/scripts/extract_fields.js",
-      "extract:helper": "bun run build && node dist/src/scripts/extract_helper.js",
-      "ingest": "bun run build && node dist/src/scripts/ingest.js",
-      "load:extractions": "bun run build && node dist/src/scripts/load_extractions.js",
-      "brokercheck": "bun run build && node dist/src/scripts/fetch_brokercheck.js",
-      "brokercheck:crawl": "bun run build && node dist/src/scripts/brokercheck_crawl_all.js",
       "reset": "harperdb stop || true; [ -n \"$HOME\" ] && rm -rf \"$HOME/.harperdb\" && bun run bootstrap && bun run seed && bun run verify",
       "prepare": "husky install || true"
     },
@@ -45,7 +25,6 @@
     },
     "devDependencies": {
       "@ast-grep/cli": "^0.40.4",
-      "@codyswann/lisa": "^2.19.0",
       "@commitlint/cli": "^20.3.1",
       "@commitlint/config-conventional": "^20.3.1",
       "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
@@ -90,5 +69,29 @@
       "@codyswann/lisa",
       "@sentry/cli"
     ]
+  },
+  "defaults": {
+    "scripts": {
+      "build": "tsc && node dist/src/build/build.js",
+      "seed": "bun run build && node dist/src/scripts/seed.js",
+      "verify": "bun run build && node dist/src/scripts/verify.js",
+      "seed:rest": "bun run build && node dist/src/scripts/seed_via_rest.js",
+      "verify:rest": "bun run build && node dist/src/scripts/verify_via_rest.js",
+      "preview": "bun run build && node dist/src/scripts/preview_feed.js",
+      "dev:server": "bun run build && node dist/src/scripts/dev_server.js",
+      "deploy": "bun run build && node dist/src/scripts/deploy.js",
+      "smoke": "bun run build && node dist/tests/web_smoke.js",
+      "smoke:brokercheck": "bun run build && node dist/tests/brokercheck_web_smoke.js",
+      "token": "bun run build && node dist/src/scripts/get_token.js",
+      "crawl:wpjson": "bun run build && node dist/src/scripts/crawl_via_wpjson.js",
+      "crawl:html": "bun run build && node dist/src/scripts/crawl_html.js",
+      "crawl:playwright": "bun run build && node dist/src/scripts/crawl_playwright.js",
+      "extract:fields": "bun run build && node dist/src/scripts/extract_fields.js",
+      "extract:helper": "bun run build && node dist/src/scripts/extract_helper.js",
+      "ingest": "bun run build && node dist/src/scripts/ingest.js",
+      "load:extractions": "bun run build && node dist/src/scripts/load_extractions.js",
+      "brokercheck": "bun run build && node dist/src/scripts/fetch_brokercheck.js",
+      "brokercheck:crawl": "bun run build && node dist/src/scripts/brokercheck_crawl_all.js"
+    }
   }
 }
