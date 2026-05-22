@@ -32,11 +32,11 @@ What this rule still enforces:
    > **Orchestration: agent team** (or **single agent**)
    > One-sentence justification.
 
-2. **Cascade rule (load-bearing)**: Before calling `TeamCreate`, check whether you are already operating inside an agent team. Signs you are inside a team: a prior `TeamCreate` exists in this session; you were spawned via `Agent` with `team_name`; your context references a team lead. If any of these are true, **do NOT call `TeamCreate`** — the harness rejects double-creates and the work stalls. Continue within the existing team. Invoke flows via the Skill tool; the team lead inherits responsibility for orchestration.
+2. **Cascade rule (load-bearing)**: Before creating a team, check whether you are already operating inside an agent team. Signs you are inside a team: a prior successful team-creation tool call exists in this session; you were spawned into a team context; your context references a team lead. If any of these are true, **do NOT create a second team** — many harnesses reject double-creates and the work stalls. Continue within the existing team. Invoke flows via the Skill tool; the team lead inherits responsibility for orchestration.
 
 3. **Default mode**: `Research`, `Plan`, `Implement`, `Intake`, and `Debrief` run as agent teams. The `Implement` flow — including every work type (`Build`, `Fix`, `Improve`, `Investigate-Only`) — is **always** a team flow. Bug fixes that "look simple" are not an exception: the Reproduce sub-flow, debug-specialist, bug-fixer, parallel reviewers, and verification-specialist all need to compose. `Debrief` runs as a team because tracker-mining and pr-mining parallelize cleanly and synthesis gates on both completing. `Verify` (standalone) and `Monitor` (standalone) use the One-shot Sub-agents pattern (see `## Orchestration` below) — these flows are linear with no parallelism and the team overhead is not warranted. Single-agent mode is otherwise reserved for: `product-walkthrough` invoked standalone (not as part of Research/Plan), `debrief-apply` (deterministic routing of human-marked dispositions), and one-off diagnostic Bash/Read sessions that don't invoke any lifecycle skill. When in doubt, use a team.
 
-The mechanical TeamCreate bootstrap directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording: first `ToolSearch{select:TeamCreate}` (load deferred schema), then `TeamCreate`.
+The mechanical team bootstrap directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording. The Claude path uses `TeamCreate`; other runtimes must use their equivalent team-discovery and team-creation tools, or explicitly declare the no-team fallback when no such tool exists.
 
 ## Readiness Gate Protocol
 
@@ -364,7 +364,7 @@ Lifecycle skills dispatch their agents according to the flow's shape. The follow
 
 ### Agent Teams (default for multi-step flows)
 
-Use an **agent team** (TeamCreate + TaskCreate per step) for:
+Use an **agent team** (runtime team creation + durable task state per step) for:
 
 - **Implement** (Build, Fix, Improve) — long sequences with parallel review and a real risk of compaction
 - **Plan** — multiple specialists feeding a shared decomposition
@@ -390,7 +390,7 @@ Use direct `Agent` tool invocations (no team) for:
 - **Investigate Only** spikes — single investigation, findings out
 - Any flow chained as a sub-flow inside a larger team — its agents become tasks in the parent team, not a new team
 
-Why: TeamCreate plus per-step TaskCreate is real overhead. For a one-or-two-agent flow with no parallelism, the bookkeeping cost outweighs the recovery and orchestration benefits.
+Why: team creation plus per-step task state is real overhead. For a one-or-two-agent flow with no parallelism, the bookkeeping cost outweighs the recovery and orchestration benefits.
 
 ### When in doubt
 

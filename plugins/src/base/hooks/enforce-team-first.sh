@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-# Enforces team-first orchestration for lifecycle skills.
+# Enforces Claude's TeamCreate-first orchestration for lifecycle skills.
+#
+# This hook is intentionally Claude-specific. Other harnesses may use different
+# team tooling or an explicit no-team fallback; those paths are described in the
+# shared rules/skills but are not enforced by this Claude hook.
 #
 # Triggered on four hook events:
 #   - UserPromptSubmit  : detects /lisa:research|plan|implement|intake|debrief in the
 #                         raw prompt and arms enforcement for the session
 #   - PreToolUse        : detects the same skills via a `Skill` tool call,
 #                         arms enforcement, and blocks bypass tool calls
-#                         until ToolSearch+TeamCreate have fired
-#   - PostToolUse       : on a successful TeamCreate, marks the session as
+#                         until ToolSearch+TeamCreate have fired in Claude
+#   - PostToolUse       : on a successful Claude TeamCreate, marks the session as
 #                         team-created (lifts enforcement)
 #   - SubagentStart     : marks the new subagent session as a teammate so
 #                         it is exempt — teammates inherit the lead's team
-#                         and must never call TeamCreate (double-create
-#                         is rejected by the harness)
+#                         and must never create a second team (double-create
+#                         is rejected by the Claude harness)
 #
 # Per-session state lives under "$STATE_DIR" as flag files keyed by
 # session_id. Stale state (>24h) is cleaned on each invocation.
@@ -159,7 +163,7 @@ fi
 ACTIVE_SKILL=$(cat "$SKILL_FLAG" 2>/dev/null || echo "lisa:???")
 cat >&2 <<EOF
 Blocked: this session invoked /${ACTIVE_SKILL}, which is an agent-team flow.
-Before any other tool call, you must:
+In Claude, before any other tool call, you must:
 
   1. ToolSearch with query: "select:TeamCreate"  (load the deferred schema)
   2. TeamCreate                                   (actually create the team)
@@ -168,6 +172,10 @@ The current attempt to call \`${TOOL_NAME}\` is a team-bypass path. Reading
 the ticket, exploring the code, fetching context — those are tasks for the
 team you are about to create, not for the lead session before the team
 exists.
+
+If you are running Lisa in a non-Claude harness, this Claude enforcement hook
+should not be installed; follow the runtime-aware orchestration preamble in the
+skill instead.
 
 Re-read the orchestration preamble in /${ACTIVE_SKILL} and start with
 ToolSearch.

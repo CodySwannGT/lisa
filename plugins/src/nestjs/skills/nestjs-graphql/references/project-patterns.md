@@ -443,6 +443,54 @@ export class UsersModule {}
 export class AppModule {}
 ```
 
+## Resolver Boundary Patterns
+
+Resolvers translate GraphQL requests into service calls. Keep business rules in
+services so the same behavior is available to jobs, REST handlers, and future
+GraphQL fields without copying resolver logic.
+
+### Thin Resolver
+
+```typescript
+@Resolver(() => User)
+export class UsersResolver {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Query(() => User)
+  async user(@Args("id", { type: () => ID }) id: string): Promise<User> {
+    return this.usersService.findById(id);
+  }
+}
+```
+
+### Field Resolver
+
+Use field resolvers for data that depends on the parent object or benefits from
+DataLoader batching. Do not fetch relation-heavy data inside the parent query
+when only some clients ask for it.
+
+```typescript
+@ResolveField(() => [Post])
+async posts(@Parent() user: User): Promise<readonly Post[]> {
+  return this.postsByUserLoader.load(user.id);
+}
+```
+
+### Mutation Resolver
+
+Validate transport-level shape in DTOs and leave state transitions to the
+service. This keeps GraphQL decorators from becoming the source of business
+truth.
+
+```typescript
+@Mutation(() => User)
+async updateUser(
+  @Args("input") input: UpdateUserInput
+): Promise<User> {
+  return this.usersService.update(input);
+}
+```
+
 ## Error Handling Patterns
 
 ### Standard Error Response
