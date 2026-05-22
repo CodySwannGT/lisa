@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.23.1](https://github.com/CodySwannGT/lisa/compare/vv2.23.0...v2.23.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* make team bootstrap runtime-aware ([431f6ad](https://github.com/CodySwannGT/lisa/commit/431f6add82ffe859ec79ad798bb8519e1fed3bd6))
+
+
+### Documentation
+
+* **implement:** resolve team-always vs no-team-fallback contradiction ([b922291](https://github.com/CodySwannGT/lisa/commit/b922291c3b72c06256f6dafe917195f494410fd1))
+
 ## [2.23.0](https://github.com/CodySwannGT/lisa/compare/vv2.21.1...v2.23.0) (2026-05-22)
 
 
