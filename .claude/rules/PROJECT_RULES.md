@@ -7,6 +7,25 @@ Add project-specific patterns, conventions, and requirements below.
 
 ---
 
+## Never edit generated plugin artifacts (plugins/lisa, plugins/lisa-*)
+
+`plugins/lisa/` and every `plugins/lisa-<stack>/` directory are **generated build output**. `scripts/build-plugins.sh` (run via `bun run build:plugins`) does `rm -rf plugins/lisa && cp -r plugins/src/base`, so any edit made directly to an artifact is silently discarded on the next build or release.
+
+The source of truth is **`plugins/src/`**:
+
+- `plugins/src/base/` → builds `plugins/lisa`
+- `plugins/src/<stack>/` (typescript, expo, nestjs, cdk, harper-fabric, rails) → builds `plugins/lisa-<stack>`
+
+To change a skill, agent, rule, command, or hook:
+
+1. Edit the file under `plugins/src/...`.
+2. Run `bun run build:plugins`.
+3. Commit **both** `plugins/src` and the regenerated `plugins/lisa*`.
+
+The `🧩 Plugins Sync` CI workflow (and `bun run check:plugins` locally) rebuilds from source and fails if committed artifacts don't match — catching artifact-only edits. Two PRs (#471, #478) were wiped this way before the guard existed; do not reintroduce the pattern.
+
+---
+
 ## package.json and package.lisa.json Management
 
 When updating package.json, always check if there's a corresponding `package.lisa.json` template file. Update both together:
