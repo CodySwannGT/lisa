@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.22.0](https://github.com/CodySwannGT/lisa/compare/vv2.21.1...v2.22.0) (2026-05-22)
+
+
+### Features
+
+* **config:** re-land wiped PRs [#471](https://github.com/CodySwannGT/lisa/issues/471) + [#478](https://github.com/CodySwannGT/lisa/issues/478), guard against artifact-only plugin edits ([#505](https://github.com/CodySwannGT/lisa/issues/505)) ([8be8f9d](https://github.com/CodySwannGT/lisa/commit/8be8f9d6cec0cee29415dfe1750ca66aa4cc3568))
+
 ### [2.21.1](https://github.com/CodySwannGT/lisa/compare/vv2.21.0...v2.21.1) (2026-05-21)
 
 ## [2.21.0](https://github.com/CodySwannGT/lisa/compare/vv2.20.0...v2.21.0) (2026-05-21)
