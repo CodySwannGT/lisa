@@ -1,10 +1,12 @@
 ---
 name: jira-journey
 description: "Parse a JIRA ticket's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database queries), capture evidence, and post to JIRA + GitHub PR using the jira-evidence skill."
-allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__updateJiraIssue"]
+allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 ---
 
 # JIRA Validation Journey (TypeScript)
+
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly. Note: the helper scripts (`scripts/parse-plan.py`, `scripts/jira-evidence/post-evidence.sh`) currently use direct API calls and are pending migration to route through `atlassian-access`.
 
 Parse a JIRA ticket's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each `[EVIDENCE: name]` marker, and post to JIRA + GitHub PR.
 

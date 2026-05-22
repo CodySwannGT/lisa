@@ -28,7 +28,8 @@
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
     "lisa:update:local": "bash scripts/lisa-update-local.sh",
     "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
-    "prepublishOnly": "$npm_execpath run build"
+    "prepublishOnly": "$npm_execpath run build",
+    "check:plugins": "bash scripts/check-plugins-sync.sh"
   },
   "engines": {
     "npm": "please-use-bun",

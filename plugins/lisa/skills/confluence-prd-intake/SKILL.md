@@ -1,101 +1,176 @@
 ---
 name: confluence-prd-intake
-description: "Scans a Confluence space (or a parent page) for PRD pages labelled `prd-ready` and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the label flipped to `prd-ticketed`; PRDs that fail get clarifying-question comments and the label flipped to `prd-blocked`. Confluence counterpart of `lisa:notion-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (confluence-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
-allowed-tools: ["Skill", "Bash", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluenceSpaces", "mcp__atlassian__getPagesInConfluenceSpace", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__searchConfluenceUsingCql", "mcp__atlassian__updateConfluencePage", "mcp__atlassian__createConfluenceFooterComment", "mcp__atlassian__createConfluenceInlineComment", "mcp__atlassian__getConfluencePageFooterComments", "mcp__atlassian__getConfluencePageInlineComments", "mcp__atlassian__getAccessibleAtlassianResources"]
+description: "Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and are re-parented under the `ticketed` lifecycle page; PRDs that fail get clarifying-question comments and are re-parented under the `blocked` lifecycle page. Confluence counterpart of `lisa:notion-prd-intake` — the workflow is identical; only the source-of-truth tools and the state encoding differ (parent-page re-parenting instead of a status property). Composes existing skills (confluence-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # Confluence PRD Intake: $ARGUMENTS
 
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
+
 `$ARGUMENTS` is one of:
 
-- A Confluence **space** URL or space key — scans every page in the space whose labels include `prd-ready`. Example: `https://mycompany.atlassian.net/wiki/spaces/PRD` or `PRD`.
-- A Confluence **parent page** URL or page ID — scans every descendant of the parent whose labels include `prd-ready`. Example: `https://mycompany.atlassian.net/wiki/spaces/PRD/pages/123456789/PRDs`.
+- A Confluence **space** URL or space key — used as the surrounding scope sanity check. Example: `https://mycompany.atlassian.net/wiki/spaces/PRD` or `PRD`.
+- A Confluence **parent page** URL or page ID — overrides the configured `confluence.parents.ready` page for this run (useful when an operator wants to drain an alternative lifecycle parent). Example: `https://mycompany.atlassian.net/wiki/spaces/PRD/pages/123456789/PRDs`.
+- Empty — use `confluence.parents.ready` from `.lisa.config.json` as the scope.
 
-Run one intake cycle against that scope. Each PRD with the `prd-ready` label is claimed, validated, and routed to either `prd-blocked` (with clarifying comments) or `prd-ticketed` (with JIRA tickets created).
+Run one intake cycle against the resolved `ready` lifecycle parent. Each direct child of that parent is treated as a PRD currently in the `ready` state. Each PRD is claimed (re-parented to `in_review`), validated, and routed to either the `blocked` parent (with clarifying comments) or the `ticketed` parent (with destination tickets created).
 
-This skill is the Confluence counterpart of `lisa:notion-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **page labels** instead of a Status property, and (2) the fetch / comment / update tools are Confluence MCP instead of Notion MCP. Keep the two skills behaviorally aligned: when changing intake logic, change BOTH skills together.
+## Why parent pages, not labels
+
+GitHub and Linear PRD lifecycles use labels (`prd-ready` / `prd-in-review` / etc.). Confluence does NOT — it uses parent pages instead. Scoped Atlassian API tokens (the only secure form Atlassian offers) cannot write Confluence labels via the v1 endpoint, and the v2 Label API group has no POST endpoint at all. Parent-id transitions, by contrast, are first-class in v2 and work with `write:page:confluence` scope. See `config-resolution` rule, section "Confluence PRD lifecycle uses parent pages, not labels," for the full rationale.
+
+## Workflow resolution
+
+Lifecycle parent-page IDs are read from `.lisa.config.json` `confluence.parents.*`. Local overrides global per-key. Bash pattern:
+
+```bash
+# Read a lifecycle parent-page id by role. Local overrides global per-key.
+read_parent_id() {
+  local role="$1"
+  local local_v global_v
+  local_v=$(jq -r ".confluence.parents.${role} // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r ".confluence.parents.${role} // empty" .lisa.config.json 2>/dev/null)
+  echo "${local_v:-$global_v}"
+}
+
+READY_PARENT=$(read_parent_id ready)
+IN_REVIEW_PARENT=$(read_parent_id in_review)
+BLOCKED_PARENT=$(read_parent_id blocked)
+TICKETED_PARENT=$(read_parent_id ticketed)
+SHIPPED_PARENT=$(read_parent_id shipped)
+DRAFT_PARENT=$(read_parent_id draft)
+
+# Fail fast if any required role is unmapped — the lifecycle scaffolding hasn't been provisioned.
+for role in ready in_review blocked ticketed; do
+  if [ -z "$(read_parent_id "$role")" ]; then
+    echo "Error: confluence.parents.${role} is not set in .lisa.config.json. Run /lisa:setup:confluence to provision the lifecycle parent pages." >&2
+    exit 1
+  fi
+done
+
+# Reverse-lookup: given a page's parentId, return which lifecycle role it currently occupies.
+current_role_for_prd() {
+  local parent_id="$1"
+  for role in draft ready in_review blocked ticketed shipped; do
+    if [ "$(read_parent_id "$role")" = "$parent_id" ]; then
+      echo "$role"; return
+    fi
+  done
+  echo "unknown"
+}
+```
+
+In prose below, the role names refer to the resolved parent-page IDs: e.g. "the `ready` parent" means whatever `confluence.parents.ready` resolves to.
+
+This skill is the Confluence counterpart of `lisa:notion-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **parent-page placement** instead of a status property, and (2) the fetch / comment / update tools route through `lisa:atlassian-access`. Keep the two skills behaviorally aligned: when changing intake logic, change BOTH skills together.
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a space or parent-page URL, run the cycle to completion — claim, validate, branch to `prd-blocked` or `prd-ticketed`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked, run the cycle to completion — claim, validate, branch to the `blocked` or `ticketed` parent, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
 
 Specifically forbidden:
 
 - Previewing projected scope (epic count, story count, write count) and asking whether to continue.
 - Offering A/B/C-style choices like "proceed / skip / dry-run only" — the documented behavior IS the default.
-- Pausing because a PRD looks large, has many open questions, or is likely to end in `prd-blocked`. `prd-blocked` is a valid terminal state of this lifecycle, not a failure mode — routing a PRD to `prd-blocked` with gate-failure comments is exactly how this skill communicates "the PRD needs more work before it can be ticketed." That outcome is success.
+- Pausing because a PRD looks large, has many open questions, or is likely to end under the `blocked` parent. The `blocked` parent is a valid terminal state of this lifecycle, not a failure mode — routing a PRD there with gate-failure comments is exactly how this skill communicates "the PRD needs more work before it can be ticketed." That outcome is success.
 - Pausing because the dry-run validation looks expensive. The cost of one cycle is bounded; the cost of stalling a scheduled cron waiting on a human is unbounded.
 
 The only legitimate reasons to stop early:
 
-- Missing space/parent argument or required configuration (`atlassian.cloudId` in `.lisa.config.json`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
-- Space/parent unreachable, or the labelling convention not yet adopted (no PRDs carry any of `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed`). Surface and exit.
-- Empty `prd-ready` set. Exit cleanly with `"No PRDs labelled prd-ready. Nothing to do."`
+- Missing required configuration (`atlassian.cloudId`, `confluence.parents.{ready,in_review,blocked,ticketed}` in `.lisa.config.json`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
+- Lifecycle parent unreachable. Surface and exit.
+- Empty ready set. Exit cleanly with `"No PRDs currently parented under the 'ready' lifecycle page. Nothing to do."`
 
 ## Lifecycle assumed
 
-The Confluence PRD lifecycle is encoded as **page labels** (Confluence has no native status field). Exactly one of these labels is expected on a PRD page at any time:
+The Confluence PRD lifecycle is encoded as **parent-page placement** — Confluence has no native status field, and scoped API tokens cannot write labels. Each lifecycle role corresponds to a dedicated parent page in the project's Confluence space:
 
 ```text
-prd-draft → prd-ready → prd-in-review → prd-blocked | prd-ticketed → prd-shipped
-            (product)    (us)            (us)                          (product)
+draft → ready → in_review → blocked | ticketed → shipped
+        (product)  (us)      (us)                  (product)
 ```
+
+A PRD's current state is determined entirely by which lifecycle parent it sits under. Re-parenting is the transition.
 
 This skill ONLY transitions:
 
-- `prd-ready` → `prd-in-review` (claim)
-- `prd-in-review` → `prd-blocked` (gate failures or coverage gaps)
-- `prd-in-review` → `prd-ticketed` (success)
+- `ready` → `in_review` (claim)
+- `in_review` → `blocked` (gate failures or coverage gaps)
+- `in_review` → `ticketed` (success)
 
-It never adds, removes, or touches `prd-draft` or `prd-shipped`. Those labels are owned by product.
+It never re-parents PRDs into or out of the `draft` or `shipped` parents. Those parents are owned by product.
 
-A "transition" means: remove the old lifecycle label and add the new one in a single `updateConfluencePage` call. The skill MUST verify that exactly one lifecycle label exists on the page after the update — having two simultaneously breaks idempotency.
+A "transition" means: update the PRD's `parentId` to the new role's parent-page id via `lisa:atlassian-access` `operation: write-page payload: { id, parentId, title, version: { number: <next> } }`. The v2 PUT endpoint requires the next version number and the page title in the payload; the body content is not strictly required for a re-parent-only edit, but some Atlassian deployments reject PUTs without a body. The skill MUST therefore GET the page first via `read-page`, capture title + current version + current body, then PUT with `parentId` swapped and `version.number` bumped — preserving body content is non-negotiable, this skill never edits PRD content. See `transition_prd` helper in Phase 3a for the canonical implementation.
 
-If the project does not yet use `prd-*` labels, this skill cannot run. Adopting the convention is a one-time setup the project owner does (see "Adoption" at the bottom of this file).
+If the project does not yet have the lifecycle parent pages provisioned, this skill cannot run. Provisioning is a one-time setup the project owner does (see "Adoption" at the bottom of this file).
 
 ## Phases
 
 ### Phase 1 — Resolve the scope
 
 1. Parse `$ARGUMENTS`:
-   - Space URL → extract space key from `/wiki/spaces/<KEY>`.
-   - Bare space key → use as-is.
-   - Parent page URL → extract numeric page ID from `/pages/<ID>/...`.
-   - Bare page ID → use as-is.
-2. Resolve Atlassian cloud ID via `mcp__atlassian__getAccessibleAtlassianResources` (downstream tools need it).
-3. Verify the scope is reachable:
-   - For a space: call `mcp__atlassian__getConfluenceSpaces` and confirm the key resolves.
-   - For a parent page: call `mcp__atlassian__getConfluencePage` on the ID and confirm it loads.
+   - Space URL → extract space key from `/wiki/spaces/<KEY>`. (Used only as a sanity check that the operator's scope matches the configured space.)
+   - Bare space key → same.
+   - Parent page URL → extract numeric page ID from `/pages/<ID>/...`; use as the override for `READY_PARENT` for this run.
+   - Bare page ID → same.
+   - Empty → use `confluence.parents.ready` from config as `READY_PARENT`.
+2. Confirm the configured Atlassian site by invoking `lisa:atlassian-access` `operation: list-sites` (it enforces connection match against `.lisa.config.json`).
+3. Verify `READY_PARENT` is reachable: invoke `lisa:atlassian-access` `operation: read-page id: $READY_PARENT` and confirm it loads. If 404, surface a provisioning error and exit.
 
-### Phase 2 — Find Ready PRDs
+### Phase 2 — Find ready PRDs
 
-Build a CQL query and call `mcp__atlassian__searchConfluenceUsingCql`:
+Invoke `lisa:atlassian-access` `operation: read-page-descendants id: $READY_PARENT` and take the **direct children** (depth 1) of the ready lifecycle parent. Those are the PRDs currently in the `ready` state. Capture each child's id and title.
 
-- For a space: `space = "<KEY>" AND label = "prd-ready" AND type = page`
-- For a parent: `ancestor = <PARENT-ID> AND label = "prd-ready" AND type = page`
+For each candidate, follow up with `lisa:atlassian-access` `operation: read-page id: <PAGE-ID>` and read its `parentId` to confirm it is still parented under `$READY_PARENT` (guards against eventual-consistency lag and concurrent re-parenting by another operator).
 
-The query returns the list of candidate pages with IDs and titles. For each candidate, confirm the label set on the page (CQL hits should be authoritative, but a follow-up `getConfluencePage` with labels included guards against eventual-consistency lag) and ensure exactly one lifecycle label is present.
+If the result set is empty, run a sanity probe across the other lifecycle parents to distinguish between a genuinely empty queue and a project where the lifecycle scaffolding is misconfigured:
 
-If the result set is empty, run a secondary CQL to distinguish between a genuinely empty queue and a project that has not yet adopted the label convention:
+- For each of `IN_REVIEW_PARENT`, `BLOCKED_PARENT`, `TICKETED_PARENT`: invoke `read-page-descendants id: <parent>` and count direct children.
+- If every lifecycle parent has zero direct children → the lifecycle scaffolding is provisioned but unused, OR PRDs are still parented under the legacy structure. Surface: `"No PRDs found under any of the configured lifecycle parent pages (ready, in_review, blocked, ticketed). If this is a new project, move PRDs that are ready for ticketing under the configured 'ready' parent page (see Adoption section)."` Exit with an error — this is a setup / migration issue, not a normal idle cycle.
+- If any non-ready parent has children → the queue is genuinely empty (PRDs exist but are in `in_review`, `blocked`, `ticketed`, or `shipped`). Exit cleanly with `"No PRDs currently parented under the 'ready' lifecycle page. Nothing to do."`
 
-- Secondary query (space scope): `space = "<KEY>" AND (label = "prd-ready" OR label = "prd-in-review" OR label = "prd-blocked" OR label = "prd-ticketed") AND type = page`
-- Secondary query (parent scope): `ancestor = <PARENT-ID> AND (label = "prd-ready" OR label = "prd-in-review" OR label = "prd-blocked" OR label = "prd-ticketed") AND type = page`
+### Phase 3 — Process each ready PRD
 
-If the secondary query also returns nothing → the `prd-*` label convention has not been adopted. Surface a misconfiguration message: `"No pages in this scope carry prd-* labels. If this is a new project, apply the prd-ready label to PRDs that are ready for ticketing (see Adoption section)."` Exit with an error — this is a setup issue, not a normal idle cycle.
-
-If the secondary query returns results → the queue is genuinely empty (all PRDs are already in-review, blocked, ticketed, or shipped). Exit cleanly with `"No PRDs labelled prd-ready. Nothing to do."`
-
-### Phase 3 — Process each Ready PRD
-
-For each PRD page (process serially to keep label transitions auditable):
+For each PRD page (process serially to keep transitions auditable):
 
 #### 3a. Claim
 
-Transition labels via `mcp__atlassian__updateConfluencePage`: remove `prd-ready`, add `prd-in-review`. This is the idempotency lock — a re-entrant cycle running concurrently won't see this PRD because its CQL query filters on `label = "prd-ready"`.
+Transition the PRD from `ready` to `in_review` by re-parenting it:
+
+```bash
+# Pseudo-code; the actual call is a Skill tool invocation of lisa:atlassian-access.
+#
+# NOTE: the v2 PUT endpoint that backs write-page requires:
+#   - id
+#   - title (unchanged)
+#   - version.number (current + 1)
+#   - parentId (the new lifecycle parent)
+#   - body (some deployments reject PUTs without a body; preserving the body
+#     also matches this skill's invariant of never editing PRD content)
+# We therefore GET-then-PUT: fetch via read-page to capture title, version,
+# and body, then write-page with parentId swapped.
+transition_prd() {
+  local prd_id="$1" target_role="$2"
+  local new_parent
+  new_parent=$(read_parent_id "$target_role")
+  # 1. read-page id: $prd_id  -> capture title, version.number (=N), body.storage.value
+  # 2. write-page payload: {
+  #      "id":       "$prd_id",
+  #      "title":    "<unchanged>",
+  #      "parentId": "$new_parent",
+  #      "version":  { "number": N+1 },
+  #      "body":     { "storage": { "value": "<unchanged>", "representation": "storage" } }
+  #    }
+}
+
+# Claim:
+transition_prd "$PRD_ID" in_review
+```
+
+This re-parent is the idempotency lock — a re-entrant cycle running concurrently won't see this PRD because `read-page-descendants id: $READY_PARENT` no longer includes it once parentId has moved.
 
 If the update fails (permission error, version conflict / 409 race), log it and skip this PRD. Do not proceed to validation on a PRD you didn't successfully claim.
-
-The `updateConfluencePage` call must preserve the page body; only the labels change. (If the MCP tool requires a full body in the update payload, fetch the current body via `getConfluencePage` immediately before the update and pass it back unchanged — preserving body content is non-negotiable, this skill never edits PRD content.)
 
 #### 3b. Dry-run validation
 
@@ -113,8 +188,8 @@ This call also indirectly invokes `lisa:tracker-source-artifacts` (artifact extr
 
 1. Re-invoke `lisa:confluence-to-tracker` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
 2. Capture the created ticket keys from the skill's output.
-3. Post a Confluence **footer comment** on the PRD via `mcp__atlassian__createConfluenceFooterComment` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the prd-shipped label after the work is delivered."`
-4. Transition labels: remove `prd-in-review`, add `prd-ticketed` via `updateConfluencePage`.
+3. Post a Confluence **footer comment** on the PRD via `lisa:atlassian-access` `operation: comment-page id: <PAGE-ID> kind: footer body: "..."` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Move this page under the 'shipped' lifecycle parent after the work is delivered."`
+4. Re-parent to `ticketed`: `transition_prd "$PRD_ID" ticketed`.
 5. **Run Phase 3e (coverage audit)** before considering this PRD done.
 
 **If `FAIL`** (one or more planned tickets failed one or more gates):
@@ -128,14 +203,14 @@ The audience for these comments is the **product team**, not engineers. They are
 
 ##### 3c.2 Render each comment
 
-For each anchored group, post via `mcp__atlassian__createConfluenceInlineComment` with:
-- `page_id`: the PRD page ID
-- `inline_text` (or whatever the MCP tool calls the selection-anchor parameter): the `prd_anchor` value
+For each anchored group, invoke `lisa:atlassian-access` `operation: comment-page kind: inline` with:
+- `id`: the PRD page ID
+- `anchor`: the `prd_anchor` value (the substring the inline comment will be attached to)
 - `body`: the comment body, formatted using the template below
 
-For the unanchored group, post a single footer comment via `mcp__atlassian__createConfluenceFooterComment` using the same template, prefixed with `Issues without a specific section anchor:` and one block per failure.
+For the unanchored group, post a single footer comment via `lisa:atlassian-access` `operation: comment-page kind: footer body: "..."` using the same template, prefixed with `Issues without a specific section anchor:` and one block per failure.
 
-If `createConfluenceInlineComment` returns "anchor not found" (the page text changed between fetch and post), fall back to a footer comment for that group. Do not silently drop the failure.
+If the inline comment call returns "anchor not found" (the page text changed between fetch and post), fall back to a footer comment for that group via the same access skill operation. Do not silently drop the failure.
 
 ##### 3c.3 Comment template
 
@@ -148,7 +223,7 @@ Each comment body MUST contain these four parts, in this order, no exceptions:
 
 **Recommendation:** <validator's `recommendation` field, verbatim — must contain 1–3 concrete options, never a generic "please clarify">
 
-**Action:** Update this section in the PRD, then replace the `prd-blocked` label with `prd-ready` and Claude will re-run intake.
+**Action:** Update this section in the PRD, then move the page back under the 'ready' lifecycle parent and Claude will re-run intake.
 ```
 
 If multiple failures share an anchor, render each as its own `**What's unclear:** ... **Recommendation:** ...` block within the same comment, separated by horizontal lines (`---`). Keep the single `[Category badge]` heading at the top using the most-severe / most-blocking category from the group.
@@ -177,15 +252,15 @@ Use these exact badge labels — they are the validator's category values transl
 - Engineering shorthand (`AC`, `OOS`, `repo`, `env var`).
 - "Clarify this" / "Please specify" without candidate resolutions. The validator is required to provide candidates; if `recommendation` is empty or vague, treat the failure as an Error and surface internally rather than posting a useless comment.
 
-##### 3c.6 Label transition
+##### 3c.6 Lifecycle transition
 
-After all comments are posted (anchored groups + the optional footer summary), transition labels: remove `prd-in-review`, add `prd-blocked` via `updateConfluencePage`. Do NOT write any JIRA tickets.
+After all comments are posted (anchored groups + the optional footer summary), re-parent the PRD to the `blocked` lifecycle parent: `transition_prd "$PRD_ID" blocked`. Do NOT write any destination tickets.
 
 #### 3d. Continue
 
-Move to the next Ready PRD. One PRD failing does not affect others.
+Move to the next ready PRD. One PRD failing does not affect others.
 
-#### 3e. Coverage audit (mandatory after prd-ticketed)
+#### 3e. Coverage audit (mandatory after re-parenting to `ticketed`)
 
 Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* of created tickets covers the *whole* PRD. Silent drops happen — invoke the `lisa:prd-ticket-coverage` skill to catch them.
 
@@ -194,71 +269,81 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
 
    | Verdict | Action |
    |---------|--------|
-   | `COMPLETE` | Done. Leave label as `prd-ticketed`. Move to next PRD. |
-   | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory footer comment naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave label as `prd-ticketed`. |
-   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — inline-anchored when `prd_anchor` is non-null, footer otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one footer summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition labels from `prd-ticketed` back to `prd-blocked` via `updateConfluencePage`. |
-   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave label as `prd-ticketed` with a comment flagging the audit failure for human review. |
+   | `COMPLETE` | Done. Leave PRD under `ticketed` parent. Move to next PRD. |
+   | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory footer comment naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave PRD under `ticketed` parent. |
+   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — inline-anchored when `prd_anchor` is non-null, footer otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one footer summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Re-parent the PRD from `ticketed` back to `blocked`: `transition_prd "$PRD_ID" blocked`. |
+   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave the PRD under `ticketed` with a comment flagging the audit failure for human review. |
 
 3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
 
 ### Phase 4 — Summary report
 
-After processing every Ready PRD, emit a summary:
+After processing every ready PRD, emit a summary:
 
 ```text
 ## confluence-prd-intake summary
 
-Scope: <space-key | parent-page-title> (<URL>)
+Scope: ready parent = <READY_PARENT> (<URL>)
 Cycle started: <ISO timestamp>
 Cycle completed: <ISO timestamp>
 
 PRDs processed: <n>
-- prd-ticketed: <n>
+- Ticketed: <n>
   - <PRD title> → <epic-key> + <story-count> stories + <subtask-count> sub-tasks (coverage: COMPLETE | COMPLETE_WITH_SCOPE_CREEP)
-- prd-blocked: <n>
+- Blocked: <n>
   - <PRD title> → <gate-failure-count> gate failures (pre-write) OR <gap-count> coverage gaps (post-write)
 - Errors (claim failed, etc): <n>
   - <PRD title> — <reason>
 
-Total JIRA tickets created: <n>
+Total destination tickets created: <n>
 Coverage audit summary: <n> COMPLETE / <n> COMPLETE_WITH_SCOPE_CREEP / <n> GAPS_FOUND
 ```
 
-Print to the agent's output. Do not write this summary to Confluence or JIRA — it's an operational record for the human.
+Print to the agent's output. Do not write this summary to Confluence or the destination tracker — it's an operational record for the human.
 
 ## Idempotency & safety
 
-- **Single-cycle scope**: this skill processes the `prd-ready` set as it exists at the start of Phase 2. New `prd-ready` PRDs added mid-cycle are picked up next run.
-- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:confluence-to-tracker` (which delegates to `lisa:tracker-write`), and only ever changes Confluence labels among `prd-in-review`, `prd-blocked`, `prd-ticketed`. It never edits PRD body content, never touches `prd-draft` or `prd-shipped`, never deletes pages.
-- **Claim-first ordering**: the label flip to `prd-in-review` happens BEFORE validation runs, so a re-entrant call won't double-process.
-- **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next PRD. The PRD that errored is left labelled `prd-in-review` — the human investigates from there.
-- **Single-label invariant**: after every transition, verify exactly one lifecycle label is present on the page. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve, the human decides.
+- **Single-cycle scope**: this skill processes the ready set as it exists at the start of Phase 2. New PRDs moved under the `ready` parent mid-cycle are picked up next run.
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:confluence-to-tracker` (which delegates to `lisa:tracker-write`), and only ever re-parents PRDs among `in_review`, `blocked`, and `ticketed` via `lisa:atlassian-access` `operation: write-page`. It never edits PRD body content, never re-parents into or out of `draft` / `shipped`, never deletes pages.
+- **Claim-first ordering**: the re-parent to `in_review` happens BEFORE validation runs, so a re-entrant call won't double-process.
+- **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next PRD. The PRD that errored is left under whatever parent it currently occupies (usually `in_review` if claim succeeded) — the human investigates from there.
+- **Single-parent invariant**: a page has exactly one parent by construction in Confluence — the multi-state ambiguity that label-based systems can hit (two `prd-*` labels simultaneously) cannot occur here. After every transition, re-read the page and confirm `parentId` matches the expected role; if not, surface as an Error and skip.
 
 ## Configuration
 
 Same configuration as `lisa:confluence-to-tracker`. See that skill for the full table. Key items:
 
-- **From `.lisa.config.json`**: `atlassian.cloudId` (required for Confluence MCP), `confluence.spaceKey` and/or `confluence.parentPageId` (when `$ARGUMENTS` doesn't pin a specific page).
+- **From `.lisa.config.json`**: `atlassian.cloudId` (required), `confluence.spaceKey` and/or `confluence.parentPageId` (for breadth-of-scope sanity checks), and `confluence.parents.{draft,ready,in_review,blocked,ticketed,shipped}` for the lifecycle parent-page IDs.
 - **From environment variables**: `E2E_BASE_URL`, `E2E_TEST_PHONE`, `E2E_TEST_OTP`, `E2E_TEST_ORG`, `E2E_GRAPHQL_URL` (operational E2E test config).
 
 Destination tracker config (jira / github / linear) is consumed by `lisa:tracker-write` internally — this skill does NOT read it. If any required value is missing, surface the missing key(s) and exit this cycle — never invent values.
 
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `.lisa.config.json` `confluence.parents.ready` | yes | Parent page id for "ready for ticketing" |
+| `.lisa.config.json` `confluence.parents.in_review` | yes | Parent page id for "claimed by the agent" |
+| `.lisa.config.json` `confluence.parents.blocked` | yes | Parent page id for "validation failure" |
+| `.lisa.config.json` `confluence.parents.ticketed` | yes | Parent page id for "successfully ticketed" |
+| `.lisa.config.json` `confluence.parents.draft` | recommended | Parent page id for PRDs still being drafted by product |
+| `.lisa.config.json` `confluence.parents.shipped` | recommended | Parent page id for delivered PRDs |
+
 ## Rules
 
 - Never write to the destination tracker outside of `lisa:confluence-to-tracker` → `lisa:tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
-- Never add or remove a label this skill doesn't own (`prd-in-review`, `prd-blocked`, `prd-ticketed`). Product owns `prd-draft`, `prd-ready`, `prd-shipped`.
-- Never edit the PRD's body. Communication with product happens only through Confluence comments. If `updateConfluencePage` requires a body in the payload, refetch and pass it back unchanged.
+- Never re-parent a PRD into a lifecycle parent this skill doesn't own (`in_review`, `blocked`, `ticketed`). Product owns `draft`, `ready` (as the entry signal), and `shipped`.
+- Never edit the PRD's body. Communication with product happens only through Confluence comments. The `write-page` call preserves the body verbatim — fetch then PUT with body unchanged.
 - Never post a single page-level dump of all gate failures. One inline comment per `prd_anchor` group (or one footer summary for unanchored failures only). Comments must be inline-anchored where possible, categorized, plain-language, and contain a concrete recommendation.
 - Never include a gate ID, internal skill name, or engineering shorthand in a comment body.
 - Never run more than one intake cycle concurrently against the same scope. This skill assumes serial execution.
-- If `lisa:confluence-to-tracker` returns errors, treat them as gate failures: comment + `prd-blocked`. Don't silently fail.
+- If `lisa:confluence-to-tracker` returns errors, treat them as gate failures: comment + re-parent to `blocked`. Don't silently fail.
 
 ## Adoption (one-time per project)
 
-Before this skill can run against a project, the project must adopt the `prd-*` label convention:
+Before this skill can run against a project, the project must adopt the lifecycle parent-page convention:
 
-1. Apply `prd-ready` to PRDs that are ready for ticketing (replaces the Notion `Status = Ready` flip).
-2. Reserve `prd-in-review`, `prd-blocked`, `prd-ticketed` for this skill — humans should not set them manually except to recover from an error.
-3. (Optional but recommended) Add `prd-draft` for in-progress PRDs and `prd-shipped` for delivered work, so the full lifecycle is visible at a glance.
+1. Create six pages in the project's Confluence space, one per lifecycle role: `Draft`, `Ready`, `In Review`, `Blocked`, `Ticketed`, `Shipped`. (Page titles are not significant — they exist to be re-parenting targets.)
+2. Record each page's numeric id in `.lisa.config.json` under `confluence.parents.<role>`. `/lisa:setup:confluence` automates this.
+3. Move each existing PRD page under the appropriate lifecycle parent based on its current state. Product moves PRDs from `draft` → `ready` when they are ready for ticketing (replaces the Notion `Status = Ready` flip).
+4. Reserve the `in_review`, `blocked`, and `ticketed` parents for this skill — humans should not re-parent PRDs into them manually except to recover from an error.
 
-If the project hasn't adopted these labels, the first run exits with a label-convention error (not the idle empty-set message) — this distinguishes a setup issue from a genuinely empty queue so operators know to apply the convention rather than assuming the queue is drained. See Phase 2 for how the skill detects this case.
+If the project hasn't adopted these parent pages, the first run exits with a provisioning error (not the idle empty-set message) — this distinguishes a setup issue from a genuinely empty queue so operators know to run `/lisa:setup:confluence` rather than assuming the queue is drained. See Phase 2 for how the skill detects this case.

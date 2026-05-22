@@ -1,10 +1,12 @@
 ---
 name: notion-prd-intake
-description: "Scans a Notion PRD database for pages with Status=Ready and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and Status=Ticketed; PRDs that fail get clarifying-question comments and Status=Blocked. The skill is the runtime for the Ready → In Review → Blocked|Ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough); does not reimplement their logic."
-allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-search", "mcp__claude_ai_Notion__notion-update-page", "mcp__claude_ai_Notion__notion-create-comment", "mcp__atlassian__getAccessibleAtlassianResources"]
+description: "Scans a Notion PRD database for pages in the configured `ready` status and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the status flipped to the configured `ticketed` value; PRDs that fail get clarifying-question comments and the status flipped to the configured `blocked` value. The skill is the runtime for the ready → in_review → blocked|ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough); does not reimplement their logic."
+allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "AskUserQuestion"]
 ---
 
 # Notion PRD Intake: $ARGUMENTS
+
+> **Notion access policy**: all Notion operations in this skill go through `lisa:notion-access`. Do not call Notion REST APIs (`api.notion.com/...`), Notion MCP tools (`mcp__*notion*`), or the `@notionhq/client` library directly. Invoke `lisa:notion-access` via the Skill tool with an operation name and arguments per its dispatch table.
 
 `$ARGUMENTS` is a Notion database URL (or bare database ID) — for example:
 
@@ -12,35 +14,60 @@ allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__cl
 https://www.notion.so/geminisports/28fd00244d7d47c5866876f7de48c0fe?v=34eba63a2800815891a3000c643f0ea8
 ```
 
-Run one intake cycle against that database. Each PRD with `Status = Ready` is claimed, validated, and routed to either `Blocked` (with clarifying comments) or `Ticketed` (with JIRA tickets created).
+Run one intake cycle against that database. Each PRD in the configured `ready` status is claimed, validated, and routed to either `blocked` (with clarifying comments) or `ticketed` (with destination tickets created).
+
+## Workflow resolution
+
+Status names are read from `.lisa.config.json` `notion.values.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
+
+```bash
+# Read role with default fallback. Local overrides global per-key.
+read_role() {
+  local role="$1" default="$2"
+  local local_v global_v
+  local_v=$(jq -r ".notion.values.${role} // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r ".notion.values.${role} // empty" .lisa.config.json 2>/dev/null)
+  echo "${local_v:-${global_v:-$default}}"
+}
+
+DRAFT=$(read_role draft "Draft")
+READY=$(read_role ready "Ready")
+IN_REVIEW=$(read_role in_review "In Review")
+BLOCKED=$(read_role blocked "Blocked")
+TICKETED=$(read_role ticketed "Ticketed")
+SHIPPED=$(read_role shipped "Shipped")
+STATUS_PROP=$(jq -r '.notion.statusProperty // "Status"' .lisa.config.json 2>/dev/null)
+```
+
+In prose below, the role names refer to the resolved values: e.g. "the `ready` status" means whatever `notion.values.ready` resolves to (default: `Ready`).
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a database URL, run the cycle to completion — claim, validate, branch to `Blocked` or `Ticketed`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked with a database URL, run the cycle to completion — claim, validate, branch to `blocked` or `ticketed`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
 
 Specifically forbidden:
 
 - Previewing projected scope (epic count, story count, write count) and asking whether to continue.
 - Offering A/B/C-style choices like "proceed / skip / dry-run only" — the documented behavior IS the default.
-- Pausing because a PRD looks large, has many open questions, or is likely to end in `Blocked`. `Blocked` is a valid terminal state of this lifecycle, not a failure mode — routing a PRD to `Blocked` with gate-failure comments is exactly how this skill communicates "the PRD needs more work before it can be ticketed." That outcome is success.
+- Pausing because a PRD looks large, has many open questions, or is likely to end in the `blocked` status. The `blocked` status is a valid terminal state of this lifecycle, not a failure mode — routing a PRD there with gate-failure comments is exactly how this skill communicates "the PRD needs more work before it can be ticketed." That outcome is success.
 - Pausing because the dry-run validation looks expensive. The cost of one cycle is bounded; the cost of stalling a scheduled cron waiting on a human is unbounded.
 
 The only legitimate reasons to stop early:
 
 - Missing database URL or required configuration (`atlassian.cloudId`, `jira.project` or destination-tracker equivalents in `.lisa.config.json`, `E2E_BASE_URL`, etc.). Surface the missing value and exit.
-- Database misconfigured (Status property missing expected values, data source unreachable). Surface and exit.
-- Empty `Ready` set. Exit cleanly with `"No PRDs with Status=Ready. Nothing to do."`
+- Database misconfigured (status property missing expected values, data source unreachable). Surface and exit.
+- Empty ready set. Exit cleanly with `"No PRDs with $STATUS_PROP=$READY. Nothing to do."`
 
 ## Lifecycle assumed
 
-The PRD database has a `Status` property whose value drives this skill:
+The PRD database has a status property (configurable via `notion.statusProperty`, default `Status`) whose value drives this skill:
 
 ```text
-Draft → Ready → In Review → Blocked | Ticketed → Shipped
+draft → ready → in_review → blocked | ticketed → shipped
         (product)  (us)      (us)                  (product)
 ```
 
-This skill ONLY transitions `Ready → In Review`, then `In Review → Blocked` or `In Review → Ticketed`. Never touches `Draft` or `Shipped`.
+This skill ONLY transitions `ready → in_review`, then `in_review → blocked` or `in_review → ticketed`. Never touches `draft` or `shipped`.
 
 ## Phases
 
@@ -49,24 +76,36 @@ This skill ONLY transitions `Ready → In Review`, then `In Review → Blocked` 
 1. Parse `$ARGUMENTS`:
    - Full URL: extract the database ID from the path segment (the 32-hex-char ID after the last `/`, before `?`). Strip dashes if present. Ignore the `?v=...` view ID — we query the data source directly.
    - Bare ID: use as-is.
-2. Call `mcp__claude_ai_Notion__notion-fetch` on the database ID. Capture:
-   - The data source ID from `<data-source url="collection://...">` — needed for queries.
-   - Confirm the schema includes a `Status` property of type `select` (or `status`) with the expected option names (`Ready`, `In Review`, `Blocked`, `Ticketed` at minimum). If any are missing, stop and report — the database is misconfigured.
-3. Resolve Atlassian cloud ID via `mcp__atlassian__getAccessibleAtlassianResources` (downstream skills need it).
+2. Invoke `lisa:notion-access` via the Skill tool with operation `read-database` and `id: <database-id>`. Capture:
+   - The database schema (returned in the response's `properties` field) — needed to confirm the status property exists.
+   - Confirm the schema includes the configured `$STATUS_PROP` property of type `select` (or `status`) with the expected option names (`$READY`, `$IN_REVIEW`, `$BLOCKED`, `$TICKETED` at minimum). If any are missing, stop and report — the database is misconfigured.
+3. Resolve the destination tracker's workspace/cloud identifier via the tracker-specific config in `.lisa.config.json` (e.g., `atlassian.cloudId` for JIRA). Downstream skills consume this from config directly; this skill does not need to probe an external API for it.
 
-### Phase 2 — Find Ready PRDs
+### Phase 2 — Find ready PRDs
 
-Query the data source for pages where `Status = Ready`. Use `mcp__claude_ai_Notion__notion-search` with `data_source_url: collection://<data-source-id>` and a query that scopes to that collection. The search supports semantic queries; for an exact-status filter, scan the returned page list and keep only those whose `Status` property equals `Ready` (re-fetch each page if the search results don't expose properties).
+Query the database for pages where `$STATUS_PROP = $READY`. Invoke `lisa:notion-access` via the Skill tool with operation `query-database`, `id: <database-id>`, and a filter scoped to the status property. For a `status`-type property the filter shape is:
 
-If the result set is empty, stop and report `"No PRDs with Status=Ready. Nothing to do."` Exit cleanly — this is the common idle case for a scheduled run.
+```json
+{ "property": "<STATUS_PROP>", "status": { "equals": "<READY>" } }
+```
 
-### Phase 3 — Process each Ready PRD
+For a `select`-type property substitute `"select"` for `"status"`. The response contains the matching pages with their properties inline — no per-page re-fetch is required for status filtering. If you need additional page content (body blocks, child blocks), invoke `lisa:notion-access` with operation `read-page` per page.
+
+If the result set is empty, stop and report `"No PRDs with $STATUS_PROP=$READY. Nothing to do."` Exit cleanly — this is the common idle case for a scheduled run.
+
+### Phase 3 — Process each ready PRD
 
 For each PRD page (process serially to keep status transitions auditable):
 
 #### 3a. Claim
 
-Set `Status = In Review` via `mcp__claude_ai_Notion__notion-update-page` with `command: update_properties`, `properties: { "Status": "In Review" }`. This is the idempotency lock — if a second cycle starts while this one is mid-flight, the second skip-filter (`Status = Ready`) won't see this PRD.
+Set `$STATUS_PROP = $IN_REVIEW` by invoking `lisa:notion-access` via the Skill tool with operation `write-page` and payload:
+
+```json
+{ "id": "<PRD-page-id>", "properties": { "<STATUS_PROP>": { "status": { "name": "<IN_REVIEW>" } } } }
+```
+
+(Use `"select": { "name": ... }` instead of `"status": { "name": ... }` if the property is a `select`.) This is the idempotency lock — if a second cycle starts while this one is mid-flight, the second skip-filter (`$STATUS_PROP = $READY`) won't see this PRD.
 
 If the update fails (permission error, race), log it and skip this PRD. Do not proceed to validation on a PRD you didn't successfully claim.
 
@@ -86,11 +125,11 @@ This call also indirectly invokes `lisa:tracker-source-artifacts` (artifact extr
 
 1. Re-invoke `lisa:notion-to-tracker` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
 2. Capture the created ticket keys from the skill's output.
-3. Post a Notion comment on the PRD via `mcp__claude_ai_Notion__notion-create-comment` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Move Status to Shipped after the work is delivered."`
-4. Set `Status = Ticketed` via `notion-update-page`.
+3. Post a Notion comment on the PRD via `lisa:notion-access` operation `create-comment` (see "Commenting on PRDs" below), listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Move $STATUS_PROP to $SHIPPED after the work is delivered."`
+4. Set `$STATUS_PROP = $TICKETED` by invoking `lisa:notion-access` operation `write-page` with payload `{ "id": "<PRD-page-id>", "properties": { "<STATUS_PROP>": { "status": { "name": "<TICKETED>" } } } }`.
 5. **Run Phase 3e (coverage audit)** before considering this PRD done.
 
-#### 3e. Coverage audit (mandatory after Ticketed)
+#### 3e. Coverage audit (mandatory after ticketed)
 
 Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* of created tickets covers the *whole* PRD. Silent drops happen — invoke the `lisa:prd-ticket-coverage` skill to catch them.
 
@@ -99,10 +138,10 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
 
    | Verdict | Action |
    |---------|--------|
-   | `COMPLETE` | Done. Leave `Status = Ticketed`. Move to next PRD. |
-   | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory Notion comment naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave `Status = Ticketed`. |
-   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a Notion comment using the same product-facing template as Phase 3c.3 — block-anchored via `selection_with_ellipsis` when `prd_anchor` is non-null, page-level otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition `Status` from `Ticketed` back to `Blocked` via `notion-update-page`. |
-   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave `Status = Ticketed` with a comment flagging the audit failure for human review. |
+   | `COMPLETE` | Done. Leave `$STATUS_PROP = $TICKETED`. Move to next PRD. |
+   | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory Notion comment naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave `$STATUS_PROP = $TICKETED`. |
+   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a Notion comment using the same product-facing template as Phase 3c.3 — block-anchored when `prd_anchor` is non-null, page-level otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition `$STATUS_PROP` from `$TICKETED` back to `$BLOCKED` by invoking `lisa:notion-access` operation `write-page` with the blocked-status payload. |
+   | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave `$STATUS_PROP = $TICKETED` with a comment flagging the audit failure for human review. |
 
 3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right (they passed `lisa:tracker-validate`). The audit only tells us whether *more* are needed.
 
@@ -119,12 +158,12 @@ The audience for these comments is the **product team**, not engineers. They are
 
 ##### 3c.2 Render each comment
 
-For each anchored group, post via `mcp__claude_ai_Notion__notion-create-comment` with:
+For each anchored group, post via `lisa:notion-access` operation `create-comment` (see "Commenting on PRDs" below) with:
 - `page_id`: the PRD page ID
-- `selection_with_ellipsis`: the `prd_anchor` value (e.g. `"# User taps Fol...esume action"`)
+- `block_anchor`: the `prd_anchor` value (e.g. `"# User taps Fol...esume action"`) — the access skill resolves this to a Notion block reference; pass `null` for page-level comments
 - `rich_text`: the body, formatted using the template below
 
-For the unanchored group, post a single page-level comment (omit `selection_with_ellipsis`) using the same template, prefixed with `Issues without a specific section anchor:` and one block per failure.
+For the unanchored group, post a single page-level comment (omit `block_anchor` or pass `null`) using the same template, prefixed with `Issues without a specific section anchor:` and one block per failure.
 
 ##### 3c.3 Comment template
 
@@ -137,7 +176,7 @@ Each comment body MUST contain these four parts, in this order, no exceptions:
 
 **Recommendation:** <validator's `recommendation` field, verbatim — must contain 1–3 concrete options, never a generic "please clarify">
 
-**Action:** Update this section in the PRD, then set Status back to `Ready` and Claude will re-run intake.
+**Action:** Update this section in the PRD, then set $STATUS_PROP back to `$READY` and Claude will re-run intake.
 ```
 
 If multiple failures share an anchor, render each as its own `**What's unclear:** ... **Recommendation:** ...` block within the same comment, separated by horizontal lines (`---`). Keep the single `[Category badge]` heading at the top using the most-severe / most-blocking category from the group.
@@ -168,15 +207,28 @@ Use these exact badge labels — they are the validator's category values transl
 
 ##### 3c.6 Status transition
 
-After all comments are posted (anchored groups + the optional page-level summary), set `Status = Blocked` via `notion-update-page`. Do NOT write any JIRA tickets.
+After all comments are posted (anchored groups + the optional page-level summary), set `$STATUS_PROP = $BLOCKED` by invoking `lisa:notion-access` operation `write-page` with payload `{ "id": "<PRD-page-id>", "properties": { "<STATUS_PROP>": { "status": { "name": "<BLOCKED>" } } } }`. Do NOT write any destination tickets.
+
+## Commenting on PRDs
+
+The Notion comments API (`POST /v1/comments`) is the correct endpoint for both page-level and block-anchored comments. Invoke `lisa:notion-access` via the Skill tool with:
+
+```text
+operation: create-comment
+page_id: <PRD-page-id>
+block_anchor: <prd_anchor string from notion-to-tracker, or null for page-level>
+rich_text: <Notion rich_text array — the comment body>
+```
+
+The access skill resolves a `prd_anchor` substring to the matching block ID by paging through the PRD's children and posts the comment with `discussion_id` or `parent: { block_id }` as appropriate. If `block_anchor` is `null`, the access skill posts a page-level comment via `parent: { page_id }`.
 
 #### 3d. Continue
 
-Move to the next Ready PRD. One PRD failing does not affect others.
+Move to the next ready PRD. One PRD failing does not affect others.
 
 ### Phase 4 — Summary report
 
-After processing every Ready PRD, emit a summary:
+After processing every ready PRD, emit a summary:
 
 ```text
 ## notion-prd-intake summary
@@ -186,25 +238,25 @@ Cycle started: <ISO timestamp>
 Cycle completed: <ISO timestamp>
 
 PRDs processed: <n>
-- Ticketed: <n>
+- $TICKETED: <n>
   - <PRD title> → <epic-key> + <story-count> stories + <subtask-count> sub-tasks (coverage: COMPLETE | COMPLETE_WITH_SCOPE_CREEP)
-- Blocked: <n>
+- $BLOCKED: <n>
   - <PRD title> → <gate-failure-count> gate failures (pre-write) OR <gap-count> coverage gaps (post-write)
 - Errors (claim failed, etc): <n>
   - <PRD title> — <reason>
 
-Total JIRA tickets created: <n>
+Total destination tickets created: <n>
 Coverage audit summary: <n> COMPLETE / <n> COMPLETE_WITH_SCOPE_CREEP / <n> GAPS_FOUND
 ```
 
-Print to the agent's output. Do not write this summary to Notion or JIRA — it's an operational record for the human.
+Print to the agent's output. Do not write this summary to Notion or the destination tracker — it's an operational record for the human.
 
 ## Idempotency & safety
 
-- **Single-cycle scope**: this skill processes the Ready set as it exists at the start of Phase 2. New `Ready` PRDs added mid-cycle are picked up next run.
-- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:notion-to-tracker` (which delegates to `lisa:tracker-write`), and only ever changes Notion `Status` to `In Review`, `Blocked`, or `Ticketed`. It never edits PRD content, never touches `Draft` or `Shipped`, never deletes pages.
-- **Claim-first ordering**: `Status = In Review` is set BEFORE validation runs, so a re-entrant call won't double-process.
-- **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next PRD. The PRD that errored is left in `In Review` — the human investigates from there.
+- **Single-cycle scope**: this skill processes the ready set as it exists at the start of Phase 2. New ready PRDs added mid-cycle are picked up next run.
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:notion-to-tracker` (which delegates to `lisa:tracker-write`), and only ever changes the Notion status property to `$IN_REVIEW`, `$BLOCKED`, or `$TICKETED`. It never edits PRD content, never touches `$DRAFT` or `$SHIPPED`, never deletes pages.
+- **Claim-first ordering**: the status flip to `$IN_REVIEW` is set BEFORE validation runs, so a re-entrant call won't double-process.
+- **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next PRD. The PRD that errored is left in `$IN_REVIEW` — the human investigates from there.
 
 ## Configuration
 
@@ -212,9 +264,16 @@ This skill reads project configuration from `.lisa.config.json` (with `.lisa.con
 
 ### From `.lisa.config.json`
 
-| Field | Purpose |
-|-------|---------|
-| `notion.prdDatabaseId` | Notion database hosting PRDs (when `$ARGUMENTS` is the literal token `notion`) |
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `notion.prdDatabaseId` | — | Notion database hosting PRDs (when `$ARGUMENTS` is the literal token `notion`) |
+| `notion.statusProperty` | `Status` | Database property name driving the lifecycle |
+| `notion.values.draft` | `Draft` | Value meaning "in progress; agent ignores" |
+| `notion.values.ready` | `Ready` | Value meaning "ready for ticketing; agent claims" |
+| `notion.values.in_review` | `In Review` | Value the agent sets on claim |
+| `notion.values.blocked` | `Blocked` | Value the agent sets on validation failure |
+| `notion.values.ticketed` | `Ticketed` | Value the agent sets on success |
+| `notion.values.shipped` | `Shipped` | Value product sets after delivery (agent never writes) |
 
 ### From environment variables
 
@@ -227,9 +286,9 @@ This skill reads project configuration from `.lisa.config.json` (with `.lisa.con
 ## Rules
 
 - Never write to the destination tracker outside of `lisa:notion-to-tracker` → `lisa:tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
-- Never set Notion `Status` to a value this skill doesn't own (`In Review`, `Blocked`, `Ticketed`). Product owns `Draft`, `Ready`, `Shipped`.
+- Never set the Notion status to a value this skill doesn't own (`$IN_REVIEW`, `$BLOCKED`, `$TICKETED`). Product owns `$DRAFT`, `$READY`, `$SHIPPED`.
 - Never edit the PRD's body. Communication with product happens only through Notion comments.
 - Never post a single page-level dump of all gate failures. One comment per `prd_anchor` group (or one page-level summary for unanchored failures only). The audience is product, not engineers — comments must be block-anchored, categorized, plain-language, and contain a concrete recommendation. See Phase 3c.3 for the required template and Phase 3c.5 for forbidden language.
 - Never include a gate ID, internal skill name, or engineering shorthand in a Notion comment body. If the validator's `what` or `recommendation` field uses one, paraphrase before posting.
 - Never run more than one intake cycle concurrently against the same database. This skill assumes serial execution. (Scheduling is a separate concern; the runtime should not start a new cycle if a previous one is still in flight.)
-- If `lisa:notion-to-tracker` returns errors (e.g. unreachable artifact, malformed PRD structure), treat them as gate failures: comment + Blocked. Don't silently fail.
+- If `lisa:notion-to-tracker` returns errors (e.g. unreachable artifact, malformed PRD structure), treat them as gate failures: comment + `$BLOCKED`. Don't silently fail.

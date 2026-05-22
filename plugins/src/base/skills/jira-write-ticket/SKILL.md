@@ -1,10 +1,12 @@
 ---
 name: jira-write-ticket
 description: "Creates or updates a JIRA ticket following organizational best practices. Enforces description quality (coding assistant / developer / stakeholder sections), Gherkin acceptance criteria, epic parent relationship, explicit link discovery (blocks / is blocked by / relates to / duplicates / clones), remote links (PRs, Confluence, dashboards), labels, components, fix version, priority, story points, and Validation Journey. Rejects thin tickets — use this skill any time a ticket is created or significantly edited."
-allowed-tools: ["Bash", "Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__createJiraIssue", "mcp__atlassian__editJiraIssue", "mcp__atlassian__createIssueLink", "mcp__atlassian__getIssueLinkTypes", "mcp__atlassian__addCommentToJiraIssue", "mcp__atlassian__getVisibleJiraProjects", "mcp__atlassian__getJiraProjectIssueTypesMetadata", "mcp__atlassian__getAccessibleAtlassianResources"]
+allowed-tools: ["Bash", "Skill"]
 ---
 
 # Write JIRA Ticket: $ARGUMENTS
+
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
 
 Create or update a JIRA ticket with all required relationships, metadata, and quality gates. Every section below is mandatory. Thin tickets are rejected.
 
@@ -17,7 +19,7 @@ Determine from $ARGUMENTS and context whether this is a CREATE or UPDATE:
 - **CREATE**: no existing ticket key provided
 - **UPDATE**: ticket key provided — call `/jira-read-ticket <KEY>` first to load the full current state before editing. Never overwrite without reading.
 
-Resolve cloud ID via `mcp__atlassian__getAccessibleAtlassianResources`.
+Resolve the active Atlassian site via `lisa:atlassian-access` `operation: list-sites` (the access skill enforces connection match against `.lisa.config.json`).
 
 ## Phase 2 — Gather Required Inputs
 
@@ -25,7 +27,7 @@ Required fields (stop and ask if missing — do not invent values):
 
 | Field | Required For | Notes |
 |-------|--------------|-------|
-| Project key | CREATE | Call `getVisibleJiraProjects` if unknown |
+| Project key | CREATE | Resolve from `.lisa.config.json` (`jira.project`); ask the human if not configured |
 | Issue type | CREATE | Story, Task, Bug, Epic, Spike, Sub-task, Improvement |
 | Summary | CREATE, UPDATE | One line, imperative voice, under 100 chars |
 | Description | CREATE, UPDATE | Multi-section — see Phase 3 |
@@ -39,7 +41,7 @@ Required fields (stop and ask if missing — do not invent values):
 
 Optional but recommended: assignee, components, fix versions, labels, sprint, story points, reporter.
 
-Use `mcp__atlassian__getJiraProjectIssueTypesMetadata` to verify the issue type exists in the project and discover required custom fields.
+Issue-type validity and required custom fields are enforced by `lisa:jira-validate-ticket`'s F1 / F4 gates (which run via `lisa:atlassian-access` under the hood). If you need to inspect the metadata directly, request a new operation in `atlassian-access` rather than calling MCP / acli yourself.
 
 ## Phase 3 — Description Quality
 
@@ -110,7 +112,7 @@ If the ticket is not a Bug and not an Epic, it MUST have an epic parent:
    ```jql
    project = <PROJECT> AND issuetype = Epic AND statusCategory != Done
    ```
-   via `mcp__atlassian__searchJiraIssuesUsingJql`. Match on keywords from the summary and description.
+   via `lisa:atlassian-access` `operation: search-issues jql: "<query>"`. Match on keywords from the summary and description.
 3. If no epic matches, stop and ask the human to create or pick one. Do NOT orphan the ticket.
 
 ### 4b. Related Tickets
@@ -184,7 +186,7 @@ For UI-touching tickets, include the existing-component reuse expectation per `l
 
 If the ticket modifies an existing user-facing surface, a `lisa:product-walkthrough` should already have been run upstream (by `lisa:notion-to-tracker` Phase 2b or `lisa:jira-create`). Inherit its findings under a `## Current Product` subsection in the ticket description so the implementer sees what's shipped today before changing it. If the upstream skill skipped the walkthrough but this ticket clearly modifies an existing surface, invoke `lisa:product-walkthrough` here before proceeding.
 
-Use Jira's web UI or `mcp__atlassian__editJiraIssue` to set the `Development` field / remote links where supported.
+Use Jira's web UI or `lisa:atlassian-access` `operation: write-ticket` (UPDATE form) to set the `Development` field / remote links where supported.
 
 ## Phase 5 — Set Metadata
 
@@ -207,7 +209,7 @@ The validator is the **single source of truth** for what makes a valid ticket. T
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.
 - Do NOT proceed to Phase 6. Fix the spec (or stop and ask the human) and re-run validation.
-- Never call `mcp__atlassian__createJiraIssue` or `mcp__atlassian__editJiraIssue` while the validator's verdict is FAIL.
+- Never invoke `lisa:atlassian-access` with `operation: write-ticket` while the validator's verdict is FAIL.
 
 If the validator reports `PASS`, continue to Phase 6.
 
@@ -215,16 +217,16 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE
 
-1. Call `mcp__atlassian__createJiraIssue` with all Phase 2/3/5 fields and the epic parent from Phase 4a.
+1. Invoke `lisa:atlassian-access` via the Skill tool with `operation: write-ticket payload: {...}` containing all Phase 2/3/5 fields and the epic parent from Phase 4a (CREATE form — no existing key).
 2. Capture the returned ticket key.
-3. For each relationship from Phase 4b, call `mcp__atlassian__createIssueLink` with the correct link type (verify names via `mcp__atlassian__getIssueLinkTypes` if unsure).
-4. Attach remote links from Phase 4c.
+3. For each relationship from Phase 4b, invoke `lisa:atlassian-access` with `operation: link from: <K1> to: <K2> type: "<link-type>"`. Use the exact link-type names supported by the project; surface errors if an unknown type is passed.
+4. Attach remote links from Phase 4c (via `lisa:atlassian-access` `operation: write-ticket` UPDATE form or whatever remote-link operation is dispatched).
 5. If the ticket changes runtime behavior, invoke the `lisa:jira-add-journey` skill to append the Validation Journey section.
 
 ### UPDATE
 
-1. Call `mcp__atlassian__editJiraIssue` with only the fields being changed. Do NOT resend fields that weren't in the change set — it blows away history.
-2. Add new relationships via `mcp__atlassian__createIssueLink`. Existing links are not touched unless explicitly removed.
+1. Invoke `lisa:atlassian-access` with `operation: write-ticket payload: {key: <K>, ...fields-being-changed}`. Do NOT resend fields that weren't in the change set — it blows away history.
+2. Add new relationships via `lisa:atlassian-access` `operation: link from: <K1> to: <K2> type: "<link-type>"`. Existing links are not touched unless explicitly removed.
 3. If description changes, preserve sections you are not editing. Re-read via `/jira-read-ticket` first.
 
 ## Phase 7 — Verify
@@ -233,7 +235,7 @@ Call the `lisa:jira-verify` skill on the resulting ticket. `lisa:jira-verify` fe
 
 ## Phase 8 — Announce
 
-Post a creation comment via `mcp__atlassian__addCommentToJiraIssue` with:
+Post a creation comment via `lisa:atlassian-access` `operation: comment key: <K> body: "..."` with:
 - `[{repo}]` prefix if the ticket is repo-scoped
 - Who the ticket is assigned to (if known)
 - The relationships that were set (`blocks`, `is blocked by`, `relates to`) with links
@@ -249,5 +251,5 @@ Skip this step only on UPDATE when no material change was made.
 - Never include a runtime-behavior ticket without a target backend environment, and never include an authenticated-surface ticket without sign-in credentials in the description.
 - Never invent custom field values. If the project requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.
-- All writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `lisa:jira-create`) should delegate here rather than calling the MCP write tools directly.
+- All writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `lisa:jira-create`) should delegate here rather than invoking `lisa:atlassian-access` write operations directly.
 - The gate logic (what makes a valid ticket) lives in `lisa:jira-validate-ticket`, NOT in this skill. This skill calls the validator at Phase 5.5 (pre-write) and Phase 7 (via `lisa:jira-verify` post-write). When a gate needs to change, change it in `lisa:jira-validate-ticket` — every caller (write path, dry-run path, post-write verify) picks it up automatically.

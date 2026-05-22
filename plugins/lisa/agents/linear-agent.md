@@ -47,11 +47,15 @@ Use the `linear-verify` skill to check the item against organizational standards
 
 **Gating behavior — this is the one place auto-transitioning is allowed:**
 
+Resolve build labels from `.lisa.config.json` `linear.labels.build.*` (defaults: `status:ready` / `status:in-progress` / `status:code-review`); resolve the `blocked` label from the same section (`linear.labels.build.blocked`, default `status:blocked`).
+
 If `linear-verify` returns `FAIL` on any of the above, do NOT continue:
-1. Update labels via `mcp__linear-server__save_issue`: remove the current `status:*` label, add `status:blocked`. (Create `status:blocked` via `create_issue_label` if needed.)
+1. Update labels via `mcp__linear-server__save_issue`: remove the current build label, add the configured `blocked` label. (Create the `blocked` label via `create_issue_label` if needed.)
 2. Reassign the item to the **Issue creator** (the human who filed it — Linear's `creator` field).
 3. Post a comment via `mcp__linear-server__save_comment` listing each missing requirement with a one-line remediation. Prefix with `[{repo}]`.
 4. Stop. Do not run triage, do not delegate to a flow, do not start work.
+
+**Exception — single-repo scope is split, not blocked.** A single-repo-scope FAIL is the one gate failure the agent fixes rather than bounces to the creator: a cross-repo work unit is a decomposition error the agent owns (S10 is `product_relevant: false`), not a product question. Instead of blocking, run the **work-time split procedure** in the `repo-scope-split` rule — narrow this item to one repo, create a sibling Issue per additional repo cloning its metadata (same `projectId`), add the producer→consumer blocking relation, comment on the original, then re-run `linear-verify` on the original and every new sibling. Block (per the path above) only if the split is ambiguous (see "When to block instead of split"). If single-repo scope was the only FAIL and the split succeeded, proceed to Step 3 once every resulting item passes.
 
 If `linear-verify` returns `PASS`, proceed to Step 3.
 
@@ -105,23 +109,25 @@ Use the `linear-sync` skill to update the item at these milestones:
 Use the `linear-evidence` skill to:
 - Upload verification evidence to the GitHub PR
 - Post evidence summary as a Linear comment
-- Transition labels: remove `status:in-progress`, add `status:code-review`
+- Transition labels: remove the configured `claimed` label, add the configured `review` label (`linear.labels.build.{claimed,review}`)
 
 ### 8. Suggest Status Transition
 
-Based on the milestone, suggest (but don't auto-transition the native Linear `state`):
+Based on the milestone, suggest (but don't auto-transition the native Linear `state`). Label role names are resolved from `.lisa.config.json` `linear.labels.build.*`:
 
-| Milestone | Suggested label transition |
-|-----------|---------------------------|
-| Plan created | `status:in-progress` |
-| PR ready | `status:code-review` |
-| PR merged | `status:on-dev` (build-intake will perform if dispatched via that flow) |
+| Milestone | Suggested role | Default label |
+|-----------|----------------|---------------|
+| Plan created | `claimed` | `status:in-progress` |
+| PR ready | `review` | `status:code-review` |
+| PR merged | `done` (env-aware; build-intake performs if dispatched via that flow) | env-keyed variant per `linear.labels.build.done` |
+
+Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`). When suggesting the PR-merged transition, the env is implied by the PR's base branch via `deploy.branches` — surface the resolved label name; do not auto-transition.
 
 The label transitions ARE the canonical signal. The native `state` field stays as the human / triage decision.
 
 ## Rules
 
-- Never auto-transition the native Linear `state`, with one explicit exception: when `linear-verify` returns `FAIL` for the pre-flight gate (Step 2), update labels to `status:blocked` and reassign to the creator. Every other status change remains a label-driven suggestion.
+- Never auto-transition the native Linear `state`, with one explicit exception: when `linear-verify` returns `FAIL` for the pre-flight gate (Step 2), update labels to the configured `blocked` label and reassign to the creator. Every other status change remains a label-driven suggestion.
 - Always read the full item graph via `linear-read-issue` before determining intent — don't rely on type labels alone.
 - Never create or materially edit an item by calling MCP write tools directly — always delegate to `linear-write-issue` so relationships, Gherkin criteria, and metadata gates are enforced. Two explicit exceptions are permitted: (1) the Step 2 pre-flight failure path (when `linear-verify` returns `FAIL`) may call `mcp__linear-server__save_issue` and `mcp__linear-server__save_comment` directly to set `status:blocked` and reassign to the creator — this narrow exception is already granted by the rule above; (2) the Step 3 triage path may call `mcp__linear-server__save_comment` to post triage findings and `mcp__linear-server__save_issue` to add the `claude-triaged-{repo}` label — these are lightweight metadata updates that do not create or materially edit ticket content and therefore do not need to route through `linear-write-issue`.
 - If sign-in credentials are in the item, extract and pass them to the flow. If the item touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.
