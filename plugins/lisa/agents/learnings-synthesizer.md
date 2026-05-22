@@ -131,5 +131,5 @@ The `Disposition` column is the contract with `debrief-apply`. Keep it exactly a
 - **Exhaustive, not selective.** Every distinct (post-dedupe) finding becomes a row. If the doc is large, that reflects the size of the initiative — do not trim.
 - **Group by category, not by source.** The human is triaging by what to do, not by where the signal came from.
 - **Preserve evidence links.** Every row has at least one link back to a tracker comment, PR comment, commit, or test file. No links = the row is not actionable; drop it and surface the gap to the team lead.
-- **Run within the team.** Do not call `TeamCreate`.
+- **Run within the team.** Do not create a second team.
 - **Block on missing input.** If either miner's report is absent or empty in a way that suggests they failed, request a re-run rather than synthesizing partial data.

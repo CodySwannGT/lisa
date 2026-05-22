@@ -10,14 +10,13 @@ Walk the original Plan for `$ARGUMENTS`, mine the completed work items and their
 
 ## Orchestration: agent team
 
-If you are NOT already operating inside an agent team (no prior `TeamCreate` in this session, not spawned via `Agent` with `team_name`), the very first thing you do is create the team. Two tool calls only, in this exact order:
+If you are NOT already operating inside an agent team (no prior successful team-creation tool call in this session, not spawned into a team context), the very first thing you do is establish team orchestration.
 
-1. `ToolSearch` with `query: "select:TeamCreate"` — `TeamCreate` is a deferred tool whose schema must be loaded before it can be invoked. A cold call returns `InputValidationError` and tempts a fallback to direct `Agent` calls, which bypasses the team.
-2. `TeamCreate` — actually create the team.
+Use `TeamCreate` if available. In Claude, if `TeamCreate` has not been loaded yet, first use `ToolSearch` with `query: "select:TeamCreate"` to load its schema. If `TeamCreate` is not available, use the current runtime's tool-discovery mechanism (for Codex, `tool_search`) to discover available multi-agent/team tools, then call the appropriate team creation tool. If no team creation tool is available, explicitly state that team orchestration is unavailable in this runtime, continue as the lead agent, and preserve the workflow's review, verification, and task-tracking obligations locally.
 
-Until `TeamCreate` returns successfully, do NOT call any of: `Agent`, `TaskCreate`, `Skill`, MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. Resolving the work-item set, fetching tickets, walking PRs — all of those are tasks for the team you are about to create, not for the lead session before the team exists.
+Until the team is established or the no-team fallback has been declared, do NOT call any of: `Agent`, `TaskCreate`, `Skill`, MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. Resolving the work-item set, fetching tickets, walking PRs — all of those are tasks for the team you are about to create, not for the lead session before orchestration exists.
 
-If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool), do NOT call `TeamCreate` — the harness rejects double-creates. Continue within the existing team.
+If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool), do NOT create a second team — many harnesses reject double-creates. Continue within the existing team.
 
 ## Input
 

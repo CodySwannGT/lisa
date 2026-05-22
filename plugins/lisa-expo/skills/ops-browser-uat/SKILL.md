@@ -14,7 +14,7 @@ Perform browser-based user acceptance testing using Playwright MCP tools.
 
 ## Prerequisites
 
-1. **Load Playwright MCP tools** — use `ToolSearch` to search for `playwright browser` and load all browser tools.
+1. **Load Playwright MCP tools** — use the current runtime's tool-discovery mechanism to search for `playwright browser` and load all browser tools.
 2. **Verify target environment is up** — curl check the frontend URL before launching the browser.
 3. **For localhost** — ensure the frontend is running on port 8081.
 
