@@ -55,6 +55,8 @@ If `linear-verify` returns `FAIL` on any of the above, do NOT continue:
 3. Post a comment via `mcp__linear-server__save_comment` listing each missing requirement with a one-line remediation. Prefix with `[{repo}]`.
 4. Stop. Do not run triage, do not delegate to a flow, do not start work.
 
+**Exception — single-repo scope is split, not blocked.** A single-repo-scope FAIL is the one gate failure the agent fixes rather than bounces to the creator: a cross-repo work unit is a decomposition error the agent owns (S10 is `product_relevant: false`), not a product question. Instead of blocking, run the **work-time split procedure** in the `repo-scope-split` rule — narrow this item to one repo, create a sibling Issue per additional repo cloning its metadata (same `projectId`), add the producer→consumer blocking relation, comment on the original, then re-run `linear-verify` on the original and every new sibling. Block (per the path above) only if the split is ambiguous (see "When to block instead of split"). If single-repo scope was the only FAIL and the split succeeded, proceed to Step 3 once every resulting item passes.
+
 If `linear-verify` returns `PASS`, proceed to Step 3.
 
 ### 3. Analytical Triage Gate

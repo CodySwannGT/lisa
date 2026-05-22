@@ -83,6 +83,7 @@ Linear descriptions are markdown. Use `##` and `###` headings — not Jira wiki 
 4. **Evidence names in kebab-case** — `api-response`, `schema-check`, `rate-limit-hit`.
 5. **Assertions are measurable** — "Returns 200 with `{status: ok}`" not "API works correctly".
 6. **Cover happy path and error path** — At minimum, one success and one failure evidence marker.
+7. **On a leaf work unit, the markers are binding** — For a Bug / Task / Sub-task / Improvement, every `[EVIDENCE: name]` here is the item's evidence manifest: validation gate S14 requires at least one, and the item cannot be closed until each named artifact is captured and attached (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Name only evidence you intend to capture — and name all of it.
 
 ### Step 6: Present to User for Approval
 

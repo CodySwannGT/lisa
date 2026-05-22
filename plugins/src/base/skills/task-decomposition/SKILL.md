@@ -36,6 +36,8 @@ If a candidate work unit naturally touches multiple repos (e.g., "add field to b
 
 Reject any work unit whose acceptance criteria reference behavior in a different repo from the one it's scoped to. If you find yourself writing "and the frontend should also...", that's a signal to split.
 
+This is the **decomposition-time** strategy (greenfield — you are creating the tickets now, so a parent Story + per-repo children is the natural shape). It is distinct from the **work-time** strategy in the `repo-scope-split` rule, which applies when an agent picks up an *already-existing* ticket to implement and discovers it spans repos: there it narrows the original in place and spins off sibling work units rather than introducing a new parent. Use the phase-appropriate one; do not mix them.
+
 ### 2. Define Acceptance Criteria
 
 For each task, define what "done" looks like:
