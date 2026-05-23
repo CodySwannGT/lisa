@@ -35,7 +35,7 @@ if ! git diff --quiet -- plugins/; then
   echo "  overwrites the change." >&2
   echo "" >&2
   echo "  Fix:" >&2
-  echo "    1. Make your edit under plugins/src/<base|stack>/..." >&2
+  echo "    1. Make your edit under plugins/src/<base|stack|standalone (e.g. wiki)>/..." >&2
   echo "    2. Run: bun run build:plugins" >&2
   echo "    3. Commit both plugins/src and the regenerated plugins/lisa*." >&2
   # Leave the tree dirty so the diff is inspectable locally; CI fails on exit.

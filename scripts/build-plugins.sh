@@ -24,28 +24,36 @@ inject_version() {
   fi
 }
 
-# Build base plugin
-BASE_OUT="$PLUGINS_DIR/lisa"
-rm -rf "$BASE_OUT"
-mkdir -p "$BASE_OUT"
-cp -r "$SRC_DIR/base/." "$BASE_OUT/"
-inject_version "$BASE_OUT/.claude-plugin/plugin.json"
-node "$ROOT_DIR/scripts/generate-codex-plugin-artifacts.mjs" "$BASE_OUT" "$VERSION"
-echo "Built plugins/lisa (v$VERSION)"
+# Build one plugin: copy plugins/src/<src_name> -> plugins/<out_name>, inject the
+# release version into its Claude manifest, then derive the Codex artifacts.
+build_plugin() {
+  local src_name="$1"
+  local out_name="$2"
+  local src="$SRC_DIR/$src_name"
+  if [ ! -d "$src" ]; then
+    echo "Skipping plugins/$out_name (no source at plugins/src/$src_name)"
+    return 0
+  fi
+  local out="$PLUGINS_DIR/$out_name"
+  rm -rf "$out"
+  mkdir -p "$out"
+  cp -r "$src/." "$out/"
+  inject_version "$out/.claude-plugin/plugin.json"
+  node "$ROOT_DIR/scripts/generate-codex-plugin-artifacts.mjs" "$out" "$VERSION"
+  echo "Built plugins/$out_name (v$VERSION)"
+}
 
-# Build stack-specific plugins (NO base copy)
+# Base plugin
+build_plugin base lisa
+
+# Stack-specific plugins (NO base copy)
 STACKS=(typescript expo nestjs cdk harper-fabric rails)
 for stack in "${STACKS[@]}"; do
-  STACK_SRC="$SRC_DIR/$stack"
-  if [ ! -d "$STACK_SRC" ]; then
-    echo "Skipping plugins/lisa-$stack (no source)"
-    continue
-  fi
-  OUT="$PLUGINS_DIR/lisa-$stack"
-  rm -rf "$OUT"
-  mkdir -p "$OUT"
-  cp -r "$STACK_SRC/." "$OUT/"
-  inject_version "$OUT/.claude-plugin/plugin.json"
-  node "$ROOT_DIR/scripts/generate-codex-plugin-artifacts.mjs" "$OUT" "$VERSION"
-  echo "Built plugins/lisa-$stack (v$VERSION)"
+  build_plugin "$stack" "lisa-$stack"
+done
+
+# Standalone plugins (not language stacks): each builds plugins/src/<name> -> plugins/lisa-<name>
+STANDALONE=(wiki)
+for name in "${STANDALONE[@]}"; do
+  build_plugin "$name" "lisa-$name"
 done

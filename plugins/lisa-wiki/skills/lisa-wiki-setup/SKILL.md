@@ -1,0 +1,45 @@
+---
+name: lisa-wiki-setup
+description: Scaffold, repair, verify, or upgrade a project's LLM Wiki from its config. Use when setting up the wiki in a new repo, fixing a broken/incomplete structure, or upgrading to a newer kernel version. Asks the wiki's purpose and README mode, renders the contract snapshot, scaffolds the canonical folders, and seeds the staff roster. Idempotent and non-destructive.
+---
+
+# lisa-wiki-setup
+
+Bring a repo's `wiki/` into conformance with the canonical structure from
+`wiki/lisa-wiki.config.json`. Safe to re-run: it creates what is missing and repairs drift, but
+never overwrites human-authored content.
+
+## When to use
+- First-time setup of the wiki in a repo.
+- Repairing a wiki that fails `/doctor` structural checks.
+- Upgrading after a new `lisa-wiki` release (`--upgrade`): re-render the contract snapshot and run a
+  compatibility report before writing.
+- `--with-ci`: also install the optional GitHub Action validator (`ci/lisa-wiki-validate.yml`).
+
+## Workflow
+1. **Config.** Read `wiki/lisa-wiki.config.json`, or create it interactively. Ask for: `org`,
+   `displayName`, **`purpose`** (one paragraph — what this wiki is for), `mode`
+   (`embedded|wrapper|standalone|subdir`), `categories`, source layout, connectors, sensitivity,
+   `sourceRetention`, and the **README mode** (`rich` default | `stub` | `preserve` — always ask;
+   never select `stub` implicitly). Validate with `scripts/validate-config.mjs`.
+2. **Structure.** Scaffold the canonical tree per `schema/wiki-structure.schema.json`:
+   `wiki/{index.md, log.md, start-here.md, schema/, sources/, state/, staff/, <category dirs>}`.
+   Create only what is missing.
+3. **Contract.** Render `wiki/schema/llm-wiki-contract.md` from the plugin templates + config via
+   `scripts/render-contract.mjs`, stamping the `kernelVersion`. This snapshot keeps the wiki
+   self-describing without the plugin installed.
+4. **Pointers.** Ensure `AGENTS.md` / `CLAUDE.md` point at the contract + plugin (thin pointers only).
+5. **Staff.** For each `config.staff[]` entry, generate the role's `wiki/staff/<role>.md` page and its
+   dual-runtime subagents by delegating to `lisa-wiki-add-role` (running the subagents is out of scope).
+6. **README.** Apply the chosen README mode (ingest the old README first; `rich` keeps install/usage +
+   adds the onboarding line; `stub` is the minimal pointer; `preserve` leaves it).
+7. **Verify.** Run `lisa-wiki-doctor` and report the verdict + any blocking items.
+
+## Rules
+- Idempotent; re-running produces no spurious changes.
+- Never overwrite human content; only create/repair structure and the rendered snapshot. The README is
+  rewritten only after its old content has been ingested, and only per the chosen `readme.mode`.
+- Project-scoped only; never stage secrets/OAuth artifacts; honor `mode` safety (wrapper/standalone).
+
+## Related
+`lisa-wiki-add-role`, `lisa-wiki-doctor`, `lisa-wiki-migrate`, `lisa-wiki-usage`.
