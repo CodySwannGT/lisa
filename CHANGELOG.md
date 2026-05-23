@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.24.0](https://github.com/CodySwannGT/lisa/compare/vv2.23.2...v2.24.0) (2026-05-23)
+
+
+### Features
+
+* **setup:** add setup-github and setup-linear skills ([#509](https://github.com/CodySwannGT/lisa/issues/509)) ([8e10921](https://github.com/CodySwannGT/lisa/commit/8e10921e73cbe06e9d2db47a059768bcbfc36762))
+
 ### [2.23.2](https://github.com/CodySwannGT/lisa/compare/vv2.23.1...v2.23.2) (2026-05-22)
 
 ### [2.23.1](https://github.com/CodySwannGT/lisa/compare/vv2.23.0...v2.23.1) (2026-05-22)
