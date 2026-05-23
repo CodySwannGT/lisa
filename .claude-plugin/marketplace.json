@@ -43,6 +43,12 @@
       "source": "./plugins/lisa-rails",
       "description": "Ruby on Rails skills, rules, and conventions",
       "category": "productivity"
+    },
+    {
+      "name": "lisa-wiki",
+      "source": "./plugins/lisa-wiki",
+      "description": "LLM Wiki — git-native markdown knowledge base: ingest, query, lint, onboard (Claude + Codex)",
+      "category": "productivity"
     }
   ]
 }

@@ -1,0 +1,32 @@
+# lisa-wiki validation — OPTIONAL. Installed into a project by `/setup --with-ci`.
+#
+# Runs the deterministic wiki validators on pull requests that touch the wiki.
+# Node-only, no extra dependencies (the validators are dependency-free).
+#
+# LISA_WIKI_SCRIPTS must point at the installed plugin's scripts/ directory.
+# `/setup --with-ci` wires this — either by resolving the installed plugin path or
+# by vendoring the plugin's scripts/ into the repo (default below: .lisa-wiki/scripts).
+name: 🧠 LLM Wiki Validate
+
+on:
+  pull_request:
+    paths:
+      - 'wiki/**'
+      - '.lisa-wiki/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      LISA_WIKI_SCRIPTS: ${{ vars.LISA_WIKI_SCRIPTS || '.lisa-wiki/scripts' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate config
+        run: node "$LISA_WIKI_SCRIPTS/validate-config.mjs" wiki/lisa-wiki.config.json
+
+      - name: Lint wiki (strict — warnings block once the repo is at hard-enforcement)
+        run: node "$LISA_WIKI_SCRIPTS/lint-wiki.mjs" --wiki wiki --config wiki/lisa-wiki.config.json --strict

@@ -297,6 +297,28 @@ function metadataFor(pluginName) {
         "Improve this Rails model",
       ],
     },
+    "lisa-wiki": {
+      displayName: "LLM Wiki",
+      description:
+        "Distributable LLM Wiki kernel — ingest, query, lint, and maintain a git-native markdown knowledge base across Claude and Codex.",
+      shortDescription: "LLM Wiki knowledge base",
+      longDescription:
+        "A config-driven, git-native LLM Wiki: ingest sources (git, PRs, project-scoped memory, Jira, Slack, docs, …) into durable markdown, query with citations, lint integrity, onboard users, absorb existing documentation, and scaffold domain-expert role subagents. Distributed for both Claude Code and Codex.",
+      category: "Productivity",
+      capabilities: ["Interactive", "Write"],
+      keywords: [
+        "wiki",
+        "knowledge-base",
+        "ingest",
+        "documentation",
+        "llm-wiki",
+      ],
+      defaultPrompt: [
+        "Onboard me to this project",
+        "Ingest the latest sources into the wiki",
+        "Query the wiki",
+      ],
+    },
   };
   return (
     map[pluginName] ?? {
