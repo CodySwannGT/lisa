@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.26.2](https://github.com/CodySwannGT/lisa/compare/vv2.26.1...v2.26.2) (2026-05-23)
+
+
+### Bug Fixes
+
+* **ci:** soft-fail GitGuardian quota exhaustion ([#606](https://github.com/CodySwannGT/lisa/issues/606)) ([393511b](https://github.com/CodySwannGT/lisa/commit/393511b6276d8a3553a1787fafe965ce0502a4cc))
+* **ci:** use supported ggshield scan flags ([#609](https://github.com/CodySwannGT/lisa/issues/609)) ([dbce535](https://github.com/CodySwannGT/lisa/commit/dbce535f5f3ac71febca68e4a7f18c70b1cb327d))
+* **codex:** route lifecycle teams without TeamCreate ([#601](https://github.com/CodySwannGT/lisa/issues/601)) ([d4acfd5](https://github.com/CodySwannGT/lisa/commit/d4acfd5b32eca3b83c267649fadb3516bbbb4ac1))
+
 ### [2.26.1](https://github.com/CodySwannGT/lisa/compare/vv2.26.0...v2.26.1) (2026-05-23)
 
 
