@@ -227,10 +227,16 @@ for (const f of allMd) {
 // --- F. log non-empty -----------------------------------------------------
 const logPath = path.join(wikiRoot, "log.md");
 if (exists(logPath)) {
+  // Accept the canonical table row (| YYYY-MM-DD | ...) AND the legacy heading
+  // formats (## YYYY-MM-DD or ## [YYYY-MM-DD]) tolerated during migration.
   const rows = fs
     .readFileSync(logPath, "utf8")
     .split("\n")
-    .filter(l => /^\|\s*\d{4}-\d{2}-\d{2}\s*\|/.test(l));
+    .filter(
+      l =>
+        /^\|\s*\d{4}-\d{2}-\d{2}\s*\|/.test(l) ||
+        /^##\s*\[?\d{4}-\d{2}-\d{2}/.test(l)
+    );
   report.add(
     "log",
     "non-empty",
