@@ -43,3 +43,40 @@ if ! git diff --quiet -- plugins/; then
 fi
 
 echo "✓ Plugin artifacts are in sync with plugins/src."
+
+# Marketplace coverage: every built plugin directory (plugins/lisa, plugins/lisa-*)
+# must be registered in .claude-plugin/marketplace.json, and every marketplace
+# entry must point at a directory that exists. The reproducibility check above
+# only proves artifacts match plugins/src — it does NOT prove a built plugin is
+# actually published. lisa-harper-fabric shipped built-but-unpublished for
+# exactly this reason: install-claude-plugins.sh tried "lisa-harper-fabric@lisa"
+# but the marketplace never advertised it, so resolution failed at install time.
+MARKETPLACE="$ROOT_DIR/.claude-plugin/marketplace.json"
+marketplace_fail=0
+
+# Every built plugin dir needs a marketplace entry whose source points to it.
+while IFS= read -r dir; do
+  name="$(basename "$dir")"
+  if ! jq -e --arg src "./plugins/$name" '.plugins[] | select(.source == $src)' "$MARKETPLACE" >/dev/null; then
+    echo "✗ Built plugin plugins/$name is not registered in .claude-plugin/marketplace.json (expected source \"./plugins/$name\")." >&2
+    marketplace_fail=1
+  fi
+done < <(find "$ROOT_DIR/plugins" -maxdepth 1 -mindepth 1 -type d ! -name src | sort)
+
+# Every marketplace entry must point at a directory that exists.
+while IFS= read -r src; do
+  if [ ! -d "$ROOT_DIR/$src" ]; then
+    echo "✗ marketplace.json entry source \"$src\" does not exist as a built plugin directory." >&2
+    marketplace_fail=1
+  fi
+done < <(jq -r '.plugins[].source' "$MARKETPLACE")
+
+if [ "$marketplace_fail" -ne 0 ]; then
+  echo "" >&2
+  echo "  Every plugins/lisa* directory must be registered in .claude-plugin/marketplace.json" >&2
+  echo "  and every marketplace source must point to a real built directory. Edit the manifest" >&2
+  echo "  at .claude-plugin/marketplace.json, then re-run: bun run check:plugins" >&2
+  exit 1
+fi
+
+echo "✓ Marketplace registers every built plugin."
