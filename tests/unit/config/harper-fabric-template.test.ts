@@ -18,6 +18,15 @@ function readJson(relativePath: string): unknown {
   );
 }
 
+/**
+ * Read a text template from the Lisa repository.
+ * @param relativePath - Repo-relative text path
+ * @returns Template content
+ */
+function readText(relativePath: string): string {
+  return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf-8");
+}
+
 describe("Harper/Fabric templates", () => {
   it("delete inherited Jest local config from the TypeScript parent stack", () => {
     const deletions = readJson("harper-fabric/deletions.json") as {
@@ -46,5 +55,14 @@ describe("Harper/Fabric templates", () => {
 
     expect(tsconfig.include).toContain("eslint.slow.config.ts");
     expect(tsconfig.include).not.toContain("jest.config.local.ts");
+  });
+
+  it("keeps generated web and scraped research captures out of Prettier", () => {
+    const prettierIgnore = readText(
+      "harper-fabric/copy-contents/.prettierignore"
+    );
+
+    expect(prettierIgnore).toContain("harper-app/web/");
+    expect(prettierIgnore).toContain("research/articles/");
   });
 });
