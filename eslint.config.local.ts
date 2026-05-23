@@ -20,7 +20,10 @@
  */
 export default [
   {
-    // Lisa-specific: ignore template directories that get copied to target projects
+    // Lisa-specific: ignore distributable payloads that are copied/published to other
+    // projects, not part of this monorepo's app source. plugins/** also covers GENERATED
+    // build artifacts (plugins/lisa, plugins/lisa-*) which must never be auto-fixed —
+    // a lint --fix there would desync them from plugins/src and break check:plugins.
     ignores: [
       "all/**",
       "cdk/**",
@@ -28,6 +31,7 @@ export default [
       "nestjs/**",
       "npm-package/**",
       "typescript/**",
+      "plugins/**",
     ],
   },
 ];
