@@ -17,7 +17,7 @@
     "harper-app/web/**/*.js"
   ],
   "ignoreDependencies": ["@types/node", "@vitest/coverage-v8"],
-  "ignoreBinaries": ["harperdb", "playwright", "tsx"],
+  "ignoreBinaries": ["audit", "harperdb", "knip", "playwright", "tsx"],
   "rules": {
     "devDependencies": "off"
   }
