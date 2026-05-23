@@ -1,0 +1,94 @@
+# Leaf-Only Build-Ready Invariant & Parent Status Rollup
+
+This is the single vendor-neutral source of truth for two coupled lifecycle rules. Every `*-to-tracker`, `*-write-*`, `*-validate-*`, and `*-build-intake` skill cites this rule rather than restating it, so per-vendor logic does not drift.
+
+1. **Leaf-only invariant** — only an independently implementable **leaf work unit** may carry the build-ready role. A parent/container with child work is never directly build-ready.
+2. **Parent status rollup** — a parent/container's lifecycle state is *derived* from its children, never set independently.
+
+The two are the same idea seen from opposite ends: a parent never enters the build queue as work; it only ever *reflects* the state of the leaves underneath it.
+
+## Why this exists
+
+Build intake claims and implements whatever carries the build-ready role (the `ready` role — see `config-resolution`). A parent container (an Epic, a Story, a Linear Project, any issue with child work) is not a unit of implementation; it organizes work. If a parent is marked build-ready, an agent will try to implement the container itself — the wrong permission and lifecycle boundary. This surfaced in real PRD intake: a PRD decomposed into an Epic, Stories, and Sub-tasks, and *every* item received the build-ready label, so a subsequent build pass would have tried to "implement" the Epic.
+
+The fix is not vendor-specific. It belongs here, in a cross-vendor rule, and every writer / validator / intake path enforces it.
+
+## Container vs. leaf taxonomy
+
+A **leaf work unit** is an individually implementable item with **no child work** — issue types **Bug, Task, Sub-task, Improvement**. These are what an agent claims and implements. This is the same definition used by the `repo-scope-split` rule (a leaf work unit is also single-repo).
+
+A **container** organizes other work and is never directly implemented:
+
+| Class | Examples by type | May carry build-ready? |
+|---|---|---|
+| **Leaf work unit** | Bug, Task, Sub-task, Improvement — with no children | **Yes** |
+| **Container** | Epic, Story, Spike, or *any* item that has child work | **No** — state rolls up from children |
+
+The classification is **structural, not nominal**: an item is a container if it has child work, regardless of its declared type. A "Task" that has acquired sub-tasks is a container for rollup purposes. The type label is a strong default (Epic/Story/Spike are containers by design), but the presence of children is decisive. See the childless-parent exception below for the converse case.
+
+### How each vendor encodes hierarchy
+
+The invariant is vendor-neutral; the mechanics of "has child work" differ. A skill resolves child membership using the native hierarchy first, falling back to text/metadata links where the vendor has no native parent/child:
+
+- **GitHub Issues** — native **sub-issues** (parent ↔ child issue graph), plus task-list checkboxes and `Blocked by #<n>` / parent references in the body. Epic and Story are modeled as parent issues; their Sub-tasks are sub-issues.
+- **JIRA** — native **Epic → Story → Sub-task** hierarchy: Epic link / parent field for Stories under an Epic, and the subtask relationship for Sub-tasks under a Story/Task. Issue links (`blocks` / `is blocked by`) express cross-item dependencies but are not parentage.
+- **Linear** — **Project** (the Epic equivalent) groups **Issues** via `projectId`; an Issue groups **sub-issues** via `parentId`. Project state and Issue state are native. Relations (`save_issue_relation`) express dependencies, not parentage. (Initiatives are not used — see `config-resolution`.)
+
+Where a vendor lacks native hierarchy for a given pair, a text link or metadata marker establishes the relationship (per PRD #522 non-goals: vendors need not expose identical native hierarchy features).
+
+## Leaf-only invariant (the rule)
+
+**Build-ready means a directly implementable leaf work unit.** Therefore:
+
+- **At decomposition / write time** — when a PRD decomposes into a hierarchy, only the leaf work units receive the `ready` role (status/label). Parent containers (Epic, Story, Project, and any parent issue that has child work) are created in their normal non-ready state and never receive the build-ready role directly. The leaves are what downstream build intake will claim.
+- **At validate time** — the `*-validate-*` gate FAILs any container carrying the build-ready role. This is the symmetric write-side guard: a stale or hand-applied build-ready role on a parent is a lifecycle error.
+- **At claim time** — build intake scans for the `ready` role but claims **only leaf work units**. A container that still carries a stale build-ready role (e.g. applied before this rule existed) is **not claimed**: intake either skips it or safely blocks it with a clear lifecycle-repair message (move the role to the leaves; roll the parent up). Intake never silently implements a container.
+
+The permission boundary is the maintainer-applied build-ready role, not authorship — do not add author-based guards (PRD #522 non-goal). This rule narrows *what* may carry that role, not *who* may apply it.
+
+## Childless-parent exception
+
+A container *type* with **no child work** is, structurally, a leaf — and may be build-ready **iff its issue type is itself a valid leaf work unit**.
+
+- A **Task** or **Bug** with no children → leaf → may be build-ready. (Many real tickets are flat Tasks with no sub-tasks; this rule must not strand them.)
+- An **Epic, Story, or Spike** with no children → still **not** build-ready. These types are coordination containers by design; an empty one is an incomplete decomposition, not an implementable unit. The correct repair is to decompose it (add leaf children) or reclassify it to a leaf type — not to claim it.
+
+So the exception is narrow: childlessness *enables* build-ready only for types that are leaf work units to begin with. It never promotes an Epic/Story/Spike to directly implementable.
+
+## Parent status rollup (the state machine)
+
+A parent/container never sets its own lifecycle state; it **derives** it from the roll-up of its children's states. Rollup is evaluated whenever a child transitions (or when intake observes the child set). Using the canonical build-lifecycle roles from `config-resolution` (`ready`, `claimed`, `review`, `blocked`, `done`):
+
+Evaluate the children in priority order and take the **first** match:
+
+| If among the required leaves… | …the parent rolls up to | Role |
+|---|---|---|
+| any leaf is **blocked** | blocked / attention-needed | `blocked` |
+| else any leaf is **in progress** (claimed or in review) | active / in-progress | `claimed` |
+| else **all** required leaves are **terminal** (`done`) | the configured rollup terminal state | `done` (or `review` / `ticketed` per lifecycle — see below) |
+| else (leaves exist but none started) | unchanged (parent stays in its non-ready container state) | — |
+
+Notes:
+
+- **Blocked dominates.** A single blocked leaf surfaces blocked/attention on the parent even if other leaves are progressing, so a human sees the parent needs attention.
+- **"Required" leaves.** Optional or won't-do children do not hold a parent open; only the leaves that must ship for the parent to be complete are counted toward the all-terminal check.
+- **Rollup is recursive.** An Epic rolls up from its Stories, each of which rolls up from its own leaves. Evaluate bottom-up: a Story reaches `done` only when its leaves are all terminal; an Epic reaches `done` only when its Stories are all `done`.
+- **Vendor support varies.** Apply the rollup state the vendor can express. Where a vendor has no native intermediate state, use the nearest configured role or a metadata/comment signal rather than forcing a non-existent status (PRD #522 non-goal: vendors need not expose identical states).
+- **The parent never carries `ready`.** `ready` is a *human* "this is buildable, claim it" signal and only ever lives on leaves. Rollup moves a parent between non-ready container states (in-progress / blocked / terminal); it never sets the parent to `ready`.
+
+### The rollup terminal state is the configured "done" — multi-env capable
+
+The terminal rollup state is whatever the project configures for `done` — which is **env-keyed** (`config-resolution` "Env-keyed `done`"): a `done` map keyed by environment (`dev`, `staging`, `production`), resolved from the merged PR's base branch. This rule does **not** hardcode a `dev → staging → prod` promotion chain as required — that is a project-specific deploy topology. A downstream project with dev/staging/prod environments rolls a parent up to whichever terminal `done` value matches the environment its leaves shipped to. The rule stays generic and multi-env capable.
+
+**Single-environment collapse (this repo).** Lisa's own deploy has only `main`/`production` (no dev/staging), so `done` is a single value, not a map, and the build lifecycle collapses to one chain: `ready → claimed (in-progress) → review (code-review) → done`. The rollup terminal state is simply `done`. This is the *collapsed* case of the generic rule, not a different rule — projects with more environments keep the env-keyed map.
+
+## Citation
+
+Skills that enforce this invariant or perform rollup cite this rule by slug (the `leaf-only-lifecycle` rule) instead of restating it:
+
+- **Decomposition / write** (`*-to-tracker`, `*-write-*`) — apply the `ready` role to leaves only; never to containers.
+- **Validate** (`*-validate-*`) — FAIL a container carrying the build-ready role; FAIL a childless Epic/Story/Spike marked build-ready.
+- **Build intake** (`*-build-intake`, `tracker-build-intake`) — claim leaves only; skip or safe-block containers with stale build-ready roles.
+- **Rollup** — derive parent state from children per the state machine above.
+
+This is the inverse-direction companion to `repo-scope-split` (which governs a leaf's *repo* scope); together they define what a build-ready leaf work unit is: directly implementable, single-repo, childless-or-leaf-typed.
