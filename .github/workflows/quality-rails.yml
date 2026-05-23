@@ -227,11 +227,29 @@ jobs:
 
       - name: 🔐 GitGuardian scan
         if: steps.check_gitguardian.outputs.has_token == 'true'
-        uses: GitGuardian/ggshield-action@master
+        shell: bash
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
-        with:
-          args: --show-secrets --all-policies
+        run: |
+          python -m pip install --user 'ggshield==1.50.3'
+          export PATH="$HOME/.local/bin:$PATH"
+
+          set +e
+          ggshield secret scan ci --show-secrets --all-policies 2>&1 | tee ggshield.log
+          scan_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$scan_status" -eq 0 ]; then
+            exit 0
+          fi
+
+          if grep -qiE 'no more API calls available|quota.*exhaust|exhaust.*quota|quota.*exceed|rate limit' ggshield.log; then
+            echo "::warning::GitGuardian secret detection skipped because API quota is exhausted"
+            echo "GitGuardian quota exhaustion is treated as non-blocking; real secret findings still fail this job."
+            exit 0
+          fi
+
+          exit "$scan_status"
 
       - name: 🔐 GitGuardian Scan Skipped
         if: steps.check_gitguardian.outputs.has_token != 'true'
