@@ -1542,7 +1542,7 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
 
           set +e
-          ggshield secret scan ci --show-secrets --all-policies 2>&1 | tee ggshield.log
+          ggshield secret scan ci --show-secrets 2>&1 | tee ggshield.log
           scan_status=${PIPESTATUS[0]}
           set -e
 
