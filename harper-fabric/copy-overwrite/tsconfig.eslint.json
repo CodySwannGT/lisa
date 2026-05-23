@@ -12,6 +12,7 @@
     "tests/**/*.ts",
     "eslint.config.ts",
     "eslint.config.local.ts",
+    "eslint.slow.config.ts",
     "vitest.config.ts",
     "vitest.config.local.ts"
   ],
