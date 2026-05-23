@@ -35,11 +35,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -97,7 +98,7 @@ jobs:
 
       - name: Upload ZAP report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zap-baseline-report-expo-${{ github.run_id }}
           path: |

@@ -71,8 +71,9 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
       - name: Setup Bun
@@ -116,7 +117,7 @@ jobs:
       - name: Check for existing PR
         if: steps.changes.outputs.skip != 'true'
         id: check-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pulls = await github.rest.pulls.list({
