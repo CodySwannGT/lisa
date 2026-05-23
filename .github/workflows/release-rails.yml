@@ -21,7 +21,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ssh-key: ${{ secrets.DEPLOY_KEY }}
@@ -66,9 +66,10 @@ jobs:
 
           echo "skip=false" >> $GITHUB_OUTPUT
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: steps.skip.outputs.skip != 'true'
         with:
+          package-manager-cache: false
           node-version: '22'
 
       - name: Configure Git

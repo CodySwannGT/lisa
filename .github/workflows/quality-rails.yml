@@ -75,7 +75,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'lint') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -91,7 +91,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'security') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -127,7 +127,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -166,7 +166,7 @@ jobs:
       DATABASE_PORT: 3306
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -185,7 +185,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'code_quality') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -208,7 +208,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'secret_scanning') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -246,7 +246,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'sg_scan') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Install ast-grep
         run: npm install -g @ast-grep/cli@0.40.4
@@ -300,7 +300,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'license_compliance') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔍 Check for FOSSA API key
         id: check_fossa
@@ -334,7 +334,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'zap_baseline') && inputs.zap_target_url != '' }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔍 Check for ZAP rules file
         id: check_rules
@@ -356,7 +356,7 @@ jobs:
 
       - name: 📤 Upload ZAP report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zap-baseline-report-${{ github.run_id }}
           path: |

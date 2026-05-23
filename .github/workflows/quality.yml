@@ -164,11 +164,12 @@ jobs:
       cache-hit: ${{ steps.cache.outputs.cache-hit }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -193,7 +194,7 @@ jobs:
 
       - name: 📦 Cache node_modules
         id: cache-modules
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules
@@ -222,7 +223,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📤 Upload dependencies artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: node-modules-${{ github.run_id }}
           path: |
@@ -246,11 +247,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -300,11 +302,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -339,11 +342,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -378,11 +382,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -424,11 +429,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -489,11 +495,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -554,11 +561,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -619,7 +627,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔍 Check for Maestro API key
         id: check_maestro
@@ -735,11 +743,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -791,7 +800,7 @@ jobs:
       - name: 💾 Restore Expo build cache
         if: steps.check_playwright.outputs.has_config == 'true' && inputs.cache_build == true
         id: expo_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ inputs.working_directory || '.' }}/dist
@@ -832,7 +841,7 @@ jobs:
       # the same downstream artifact name — `playwright-report-<run-id>`.
       - name: 📤 Upload Playwright blob
         if: steps.check_playwright.outputs.has_config == 'true' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-blob-${{ github.run_id }}-shard-${{ matrix.shard }}
           path: ${{ inputs.working_directory || '.' }}/blob-report
@@ -861,7 +870,7 @@ jobs:
     if: ${{ always() && !contains(inputs.skip_jobs, 'playwright_e2e') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔍 Check for Playwright config
         id: check_playwright
@@ -877,8 +886,9 @@ jobs:
 
       - name: 🔧 Setup Node.js
         if: steps.check_playwright.outputs.has_config == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -902,7 +912,7 @@ jobs:
 
       - name: 📥 Download all shard blob reports
         if: steps.check_playwright.outputs.has_config == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ${{ inputs.working_directory || '.' }}/all-blob-reports
           pattern: playwright-blob-${{ github.run_id }}-shard-*
@@ -918,7 +928,7 @@ jobs:
       # viewers) don't need to change when a repo opts into sharding.
       - name: 📤 Upload merged Playwright report
         if: steps.check_playwright.outputs.has_config == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ github.run_id }}
           path: ${{ inputs.working_directory || '.' }}/playwright-report
@@ -958,11 +968,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -997,11 +1008,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -1032,7 +1044,7 @@ jobs:
       - name: 💾 Restore build cache
         if: inputs.cache_build == true
         id: build_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ inputs.working_directory || '.' }}/dist
@@ -1058,7 +1070,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: success()
         with:
           name: build-output-${{ github.run_id }}
@@ -1078,11 +1090,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -1115,11 +1128,12 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -1192,11 +1206,12 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'npm_security_scan') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -1340,7 +1355,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'sonarcloud') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # Full depth for proper analysis
 
@@ -1430,7 +1445,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'snyk') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔍 Check for Snyk token
         id: check_snyk
@@ -1447,8 +1462,9 @@ jobs:
 
       - name: 🔧 Setup Node.js
         if: steps.check_snyk.outputs.has_token == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -1480,7 +1496,7 @@ jobs:
 
       - name: 📤 Upload Snyk results
         if: steps.check_snyk.outputs.has_token == 'true' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: snyk-results
           path: snyk-results.json
@@ -1499,7 +1515,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'secret_scanning') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # Full depth for scanning history
 
@@ -1537,7 +1553,7 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'license_compliance') }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔍 Check for FOSSA API key
         id: check_fossa
@@ -1573,11 +1589,12 @@ jobs:
     if: ${{ !contains(inputs.skip_jobs, 'zap_baseline') && inputs.zap_target_url != '' }}
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -1619,7 +1636,7 @@ jobs:
 
       - name: 📤 Upload ZAP report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zap-baseline-report-${{ github.run_id }}
           path: |
@@ -2002,7 +2019,7 @@ jobs:
       ]
     steps:
       - name: 📝 Generate audit log
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const auditLog = {
@@ -2079,7 +2096,7 @@ jobs:
             core.setOutput('filename', filename);
 
       - name: 📤 Upload audit log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: audit-log-${{ github.run_id }}
           path: audit-log-*.json
@@ -2127,7 +2144,7 @@ jobs:
 
       - name: 📤 Upload evidence package
         if: ${{ inputs.generate_evidence_package == true }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compliance-evidence-${{ github.run_id }}
           path: evidence-package/
@@ -2180,7 +2197,7 @@ jobs:
           EOF
 
       - name: 📤 Upload approval record
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: approval-record-${{ github.run_id }}
           path: approval-record-*.json

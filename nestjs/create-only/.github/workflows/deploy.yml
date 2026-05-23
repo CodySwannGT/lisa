@@ -86,7 +86,7 @@ jobs:
       has_aws_credentials: ${{ steps.check.outputs.has_aws_credentials }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: noliran/branch-based-secrets@v1
         with:
           secrets: AWS_ACCOUNT_ID
@@ -110,7 +110,7 @@ jobs:
       requires_migration: ${{ steps.check.outputs.requires_migration }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - id: check
         run: |
           if [[ -z "${SKIP_MIGRATIONS}" ]]; then
@@ -132,7 +132,7 @@ jobs:
       has_vpn_setup: ${{ steps.check.outputs.has_vpn_setup }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: noliran/branch-based-secrets@v1
         with:
           secrets: OVPN_CONFIG
@@ -155,7 +155,7 @@ jobs:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint.
       contents: read
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - uses: noliran/branch-based-secrets@v1
         with:
           secrets: AWS_ACCOUNT_ID
@@ -205,11 +205,12 @@ jobs:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint
       contents: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Use Node.js 22.21.1
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: 22.21.1
+          package-manager-cache: false
       - uses: noliran/branch-based-secrets@v1
         with:
           secrets: AWS_ACCOUNT_ID

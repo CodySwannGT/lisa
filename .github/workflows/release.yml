@@ -186,7 +186,7 @@ jobs:
       is_promotion: ${{ steps.check.outputs.is_promotion }}
       skip_reason: ${{ steps.check.outputs.skip_reason }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 10 # Need some history to analyze merge commits
 
@@ -387,7 +387,7 @@ jobs:
     steps:
       # Use SSH deploy key for pushing to protected branches
       # Setup: Add DEPLOY_KEY secret and add the deploy key to ruleset bypass list
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ssh-key: ${{ secrets.DEPLOY_KEY }}
@@ -474,8 +474,9 @@ jobs:
             "signatures_required" "${{ inputs.require_signatures }}"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
@@ -659,7 +660,7 @@ jobs:
             "components" "$(jq '.components | length' sbom.json)"
 
       - name: Upload Version Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: version-artifacts-${{ github.run_id }}
           path: |
@@ -679,13 +680,13 @@ jobs:
       signed: ${{ steps.sign.outputs.signed }}
       signature_files: ${{ steps.sign.outputs.files }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.sha }}
 
       - name: Download Version Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: version-artifacts-${{ github.run_id }}
 
@@ -840,7 +841,7 @@ jobs:
 
       - name: Upload Signed Artifacts
         if: steps.sign.outputs.signed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: signed-artifacts-${{ github.run_id }}
           path: |
@@ -995,7 +996,7 @@ jobs:
           echo "url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" >> $GITHUB_OUTPUT
 
       - name: Store Attestations
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-attestations-${{ needs.version.outputs.version }}
           path: |
@@ -1019,12 +1020,12 @@ jobs:
       release_id: ${{ steps.create_release.outputs.id }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: '*-${{ github.run_id }}'
 
@@ -1185,7 +1186,7 @@ jobs:
       sentry_release_created: ${{ steps.set_outputs.outputs.created }}
       sentry_release_url: ${{ steps.set_outputs.outputs.url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -1257,7 +1258,7 @@ jobs:
       has_jira_setup: ${{ steps.check.outputs.has_jira_setup }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: noliran/branch-based-secrets@v1
         with:
           secrets: JIRA_AUTOMATION_WEBHOOK
@@ -1296,7 +1297,7 @@ jobs:
       jira_release_url: ${{ steps.create.outputs.url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: noliran/branch-based-secrets@v1
         with:
           secrets: JIRA_AUTOMATION_WEBHOOK
@@ -1349,7 +1350,7 @@ jobs:
       report_url: ${{ steps.compliance.outputs.report_url }}
     steps:
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: '*-${{ github.run_id }}'
 
@@ -1515,7 +1516,7 @@ jobs:
           tar -czf compliance-evidence-${{ needs.version.outputs.version }}.tar.gz compliance-evidence/
 
       - name: Store Compliance Evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compliance-evidence-${{ needs.version.outputs.version }}
           path: compliance-evidence-${{ needs.version.outputs.version }}.tar.gz

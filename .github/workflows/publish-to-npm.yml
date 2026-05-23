@@ -62,7 +62,7 @@ jobs:
           echo "✅ Inputs validated: tag=${{ inputs.tag }}, version=${{ inputs.version }}"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -93,8 +93,9 @@ jobs:
           bun-version: '1.3.8'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           registry-url: 'https://registry.npmjs.org'
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
@@ -104,7 +105,7 @@ jobs:
 
       - name: Get OIDC Token for npm
         id: npm-oidc
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const token = await core.getIDToken('https://registry.npmjs.org');
