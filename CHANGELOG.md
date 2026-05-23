@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.25.5](https://github.com/CodySwannGT/lisa/compare/vv2.25.4...v2.25.5) (2026-05-23)
+
+
+### Bug Fixes
+
+* **harper-fabric:** ignore generated web in prettier ([8e87cae](https://github.com/CodySwannGT/lisa/commit/8e87cae19cb2cf59920807f1a59efdb3e11a198c))
+
 ### [2.25.4](https://github.com/CodySwannGT/lisa/compare/vv2.25.3...v2.25.4) (2026-05-23)
 
 
