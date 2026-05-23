@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.26.0](https://github.com/CodySwannGT/lisa/compare/vv2.25.5...v2.26.0) (2026-05-23)
+
+
+### Features
+
+* **plugins:** add exploratory-qa skill and command to expo, rails, harper-fabric ([ede7add](https://github.com/CodySwannGT/lisa/commit/ede7addcb5f37a297c6b8eaefb6cb3a528ef0b29))
+
 ### [2.25.5](https://github.com/CodySwannGT/lisa/compare/vv2.25.4...v2.25.5) (2026-05-23)
 
 
