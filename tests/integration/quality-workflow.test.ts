@@ -8,6 +8,12 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const QUALITY_YML = path.join(REPO_ROOT, ".github", "workflows", "quality.yml");
+const QUALITY_RAILS_YML = path.join(
+  REPO_ROOT,
+  ".github",
+  "workflows",
+  "quality-rails.yml"
+);
 
 /** Shape of a single `workflow_call` input declaration. */
 interface WorkflowInput {
@@ -166,6 +172,25 @@ describe("quality.yml reusable workflow", () => {
       // per-shard checks that coexist with the aggregator's unsuffixed
       // context under the same display name.
       expect(workflow.jobs.playwright_e2e.name).toBe("🎭 Playwright E2E Tests");
+    });
+  });
+
+  describe("GitGuardian quota exhaustion", () => {
+    it.each([
+      ["quality.yml", QUALITY_YML],
+      ["quality-rails.yml", QUALITY_RAILS_YML],
+    ])("%s soft-fails only quota exhaustion", (_label, workflowPath) => {
+      const raw = fs.readFileSync(workflowPath, "utf8");
+      const parsed = yaml.load(raw) as QualityWorkflow;
+      const steps = parsed.jobs.secret_scanning.steps ?? [];
+      const scan = steps.find(s => s.name === "🔐 GitGuardian scan");
+
+      expect(scan).toBeDefined();
+      expect(scan?.uses).toBeUndefined();
+      expect(scan?.run).toContain("ggshield secret scan ci --show-secrets");
+      expect(scan?.run).not.toContain("--all-policies");
+      expect(scan?.run).toContain("no more API calls available");
+      expect(scan?.run).toContain('exit "$scan_status"');
     });
   });
 });
