@@ -7,10 +7,24 @@
  *   3. For inject-rules: also mirror Lisa rules into `.codex/lisa-rules/`
  *   4. Tagged-merge `.codex/hooks.json`
  *
- * Codex hook event support map (vs. Lisa's existing Claude Code hooks):
+ * Codex hook event support map (vs. Lisa's existing Claude Code hooks),
+ * verified against codex-cli 0.125.0 by source-read + runtime tests:
  *   - SessionStart, PreToolUse, PostToolUse, UserPromptSubmit, Stop  ✅
  *   - PermissionRequest                                             ✅ (Codex-only)
  *   - SubagentStart, SessionEnd, Notification, PreCompact           ❌ (Codex doesn't have these)
+ *
+ * Claude hooks intentionally NOT ported (no Codex equivalent):
+ *   - enforce-team-first.sh — gates Claude's TeamCreate/Skill/ToolSearch agent-
+ *     team orchestration; Codex's multi-agent model is different.
+ *   - inject-flow-context.sh — fires on SubagentStart, which Codex lacks.
+ *   - the SessionEnd `entire` hook — Codex has no SessionEnd event.
+ * inject-rules also fires on SubagentStart under Claude; on Codex only its
+ * SessionStart variant applies (Codex has no per-subagent start event).
+ *
+ * Codex does NOT execute plugin-bundled hooks (a `.codex-plugin` `hooks`
+ * pointer / `hooks/hooks.json` never fires), so this installer writes hooks
+ * into the project's own `.codex/hooks.json` instead. See
+ * scripts/generate-codex-plugin-artifacts.mjs for the build-side counterpart.
  * @module codex/hooks-installer
  */
 import * as fse from "fs-extra";
@@ -35,6 +49,14 @@ import {
 
 /** Subdirectory inside `.codex/` for Lisa-managed hook scripts */
 export const LISA_HOOKS_SUBDIR = path.join("hooks", "lisa");
+
+/**
+ * Shared shell helper sourced by every edit-aware hook to resolve the file
+ * path(s) a tool touches (handles single-file Edit/Write and multi-file
+ * apply_patch). Copied alongside the hook scripts whenever an edit hook is
+ * installed so the apply_patch parsing lives in exactly one place.
+ */
+export const EDIT_PATHS_LIB = "_extract-edit-paths.sh";
 
 /** Subdirectory inside `.codex/` for Lisa rules content (read by inject-rules) */
 export const LISA_RULES_SUBDIR = "lisa-rules";
@@ -63,6 +85,12 @@ interface HookCatalogEntry {
   readonly forProjectTypes: readonly (ProjectType | "*")[];
   /** Optional human-readable status message Codex shows during the hook */
   readonly statusMessage?: string;
+  /**
+   * Whether the script sources the shared `_extract-edit-paths.sh` helper.
+   * When any installed hook sets this, the helper is copied alongside the
+   * scripts so the apply_patch path parsing stays in one place.
+   */
+  readonly needsEditPathLib?: boolean;
 }
 
 /**
@@ -120,6 +148,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     matcher: WRITE_MATCHER,
     scriptFilename: "format-on-edit.sh",
     forProjectTypes: ["typescript"],
+    needsEditPathLib: true,
   },
   {
     id: "lint-on-edit",
@@ -127,13 +156,15 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     matcher: WRITE_MATCHER,
     scriptFilename: "lint-on-edit.sh",
     forProjectTypes: ["typescript"],
+    needsEditPathLib: true,
   },
   {
     id: "sg-scan-on-edit",
     event: "PostToolUse",
     matcher: WRITE_MATCHER,
     scriptFilename: "sg-scan-on-edit.sh",
-    forProjectTypes: ["typescript"],
+    forProjectTypes: ["typescript", "rails"],
+    needsEditPathLib: true,
   },
   {
     id: "rubocop-on-edit",
@@ -141,6 +172,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     matcher: WRITE_MATCHER,
     scriptFilename: "rubocop-on-edit.sh",
     forProjectTypes: ["rails"],
+    needsEditPathLib: true,
   },
   {
     id: "block-migration-edits",
@@ -148,6 +180,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     matcher: WRITE_MATCHER,
     scriptFilename: "block-migration-edits.sh",
     forProjectTypes: ["nestjs"],
+    needsEditPathLib: true,
   },
 ];
 
@@ -191,6 +224,18 @@ export async function installHooks(
     })
   );
 
+  // Step 1b: copy the shared edit-path helper when any installed hook sources
+  // it. Edit-aware hooks (format/lint/sg-scan/rubocop/block-migration) source
+  // this for apply_patch path parsing.
+  const libFiles: readonly string[] = applicable.some(e => e.needsEditPathLib)
+    ? await (async () => {
+        const libDest = path.join(hooksDir, EDIT_PATHS_LIB);
+        await copyFile(resolveBundledScript(EDIT_PATHS_LIB), libDest);
+        await chmod(libDest, 0o755);
+        return [path.join(LISA_HOOKS_SUBDIR, EDIT_PATHS_LIB)];
+      })()
+    : [];
+
   // Step 2: mirror rules from Lisa into .codex/lisa-rules/ (only when
   // inject-rules is being installed — i.e., always, since it's a "*" hook)
   const ruleFiles: readonly string[] = applicable.some(
@@ -211,7 +256,12 @@ export async function installHooks(
   await writeFile(hooksFilePath, serializeHooksFile(merged), "utf8");
 
   return {
-    managedFiles: Object.freeze([...scriptFiles, ...ruleFiles, HOOKS_FILENAME]),
+    managedFiles: Object.freeze([
+      ...scriptFiles,
+      ...libFiles,
+      ...ruleFiles,
+      HOOKS_FILENAME,
+    ]),
     hookEntries: lisaHookSpecs.length,
   };
 }

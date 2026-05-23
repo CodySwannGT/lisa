@@ -2,9 +2,19 @@
 /**
  * Generate Codex plugin artifacts from the built Claude plugin directories.
  *
- * Claude remains Lisa's production path; this script makes the Codex side
- * durable by deriving .codex-plugin metadata and compatible hook manifests
- * every time plugins are rebuilt.
+ * Claude remains Lisa's production path; this script derives the .codex-plugin
+ * metadata (skills + MCP pointers) every time plugins are rebuilt.
+ *
+ * NOTE ON HOOKS: this script does NOT emit Codex hooks. Codex (codex-cli
+ * 0.125.0) does not execute plugin-bundled hooks — its plugin manifest parser
+ * only honors `skills`, `mcpServers`, `apps`, and interface fields, and a
+ * runtime test confirmed a bundled `hooks/hooks.json` never fires. Lisa's
+ * Codex hooks are instead installed into the project's `.codex/hooks.json`
+ * by `src/codex/hooks-installer.ts` (run during `lisa` apply). Hooks with no
+ * Codex equivalent are intentionally not ported: `enforce-team-first.sh`
+ * (Claude-team-specific), `inject-flow-context.sh` and any SubagentStart hook
+ * (Codex has no SubagentStart event), and the SessionEnd `entire` hook (Codex
+ * has no SessionEnd event).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -29,17 +39,10 @@ if (!fs.existsSync(claudeManifestPath)) {
 
 const claudeManifest = JSON.parse(fs.readFileSync(claudeManifestPath, "utf8"));
 const pluginName = claudeManifest.name;
-const UNSUPPORTED_CODEX_HOOK_SCRIPTS = new Set([
-  "hooks/enforce-team-first.sh",
-  "hooks/inject-flow-context.sh",
-  "hooks/inject-rules.sh",
-]);
-const codexHooks = convertHooks(pluginName, claudeManifest.hooks ?? {});
 
-writeCodexManifest(pluginName, versionArg, codexHooks);
-writeCodexHooks(codexHooks);
+writeCodexManifest(pluginName, versionArg);
 
-function writeCodexManifest(pluginName, version, hooksFile) {
+function writeCodexManifest(pluginName, version) {
   const metadata = metadataFor(pluginName);
   const manifest = {
     name: pluginName,
@@ -50,7 +53,7 @@ function writeCodexManifest(pluginName, version, hooksFile) {
     ...(claudeManifest.dependencies
       ? { dependencies: claudeManifest.dependencies }
       : {}),
-    ...componentPointers(hooksFile),
+    ...componentPointers(),
     interface: {
       displayName: metadata.displayName,
       shortDescription: metadata.shortDescription,
@@ -70,7 +73,7 @@ function writeCodexManifest(pluginName, version, hooksFile) {
   );
 }
 
-function componentPointers(hooksFile) {
+function componentPointers() {
   return {
     ...(fs.existsSync(path.join(pluginDir, "skills"))
       ? { skills: "./skills/" }
@@ -78,122 +81,7 @@ function componentPointers(hooksFile) {
     ...(fs.existsSync(path.join(pluginDir, ".mcp.json"))
       ? { mcpServers: "./.mcp.json" }
       : {}),
-    ...(hooksFile ? { hooks: "./hooks/hooks.json" } : {}),
   };
-}
-
-function writeCodexHooks(hooksFile) {
-  const hooksDir = path.join(pluginDir, "hooks");
-  const hooksPath = path.join(hooksDir, "hooks.json");
-  if (!hooksFile) {
-    if (fs.existsSync(hooksPath)) {
-      fs.rmSync(hooksPath);
-    }
-    return;
-  }
-  fs.mkdirSync(hooksDir, { recursive: true });
-  fs.writeFileSync(hooksPath, `${JSON.stringify(hooksFile, null, 2)}\n`);
-}
-
-function convertHooks(pluginName, claudeHooks) {
-  const supportedEvents = new Set([
-    "UserPromptSubmit",
-    "PostToolUse",
-    "PreToolUse",
-    "Stop",
-    "SessionStart",
-  ]);
-  const entries = Object.entries(claudeHooks)
-    .filter(([event]) => supportedEvents.has(event))
-    .map(([event, groups]) => [event, convertHookGroups(pluginName, groups)])
-    .filter(([, groups]) => groups.length > 0);
-  return entries.length > 0
-    ? { hooks: Object.fromEntries(entries) }
-    : undefined;
-}
-
-function convertHookGroups(pluginName, groups) {
-  return groups
-    .map(group => ({
-      ...(group.matcher !== undefined
-        ? { matcher: normalizeMatcher(group.matcher) }
-        : {}),
-      hooks: (group.hooks ?? [])
-        .map(hook => convertHookHandler(pluginName, hook))
-        .filter(Boolean),
-    }))
-    .filter(group => group.hooks.length > 0);
-}
-
-function normalizeMatcher(matcher) {
-  const normalized = String(matcher).replaceAll("Write|Edit", "Edit|Write");
-  return normalized.includes("apply_patch")
-    ? normalized
-    : normalized.replaceAll("Edit|Write", "Edit|Write|apply_patch");
-}
-
-function convertHookHandler(pluginName, hook) {
-  if (hook.type !== "command" || typeof hook.command !== "string") {
-    return undefined;
-  }
-  const command = convertHookCommand(pluginName, hook.command);
-  if (command === undefined) {
-    return undefined;
-  }
-  return {
-    type: "command",
-    command,
-    ...(hook.timeout !== undefined ? { timeout: hook.timeout } : {}),
-    ...(hook.statusMessage !== undefined
-      ? { statusMessage: hook.statusMessage }
-      : {}),
-  };
-}
-
-function convertHookCommand(pluginName, command) {
-  const pluginScript = command.match(
-    /\$\{CLAUDE_PLUGIN_ROOT\}\/(hooks\/[^ "';]+)/
-  );
-  if (!pluginScript) {
-    return normalizeInlineCommand(command);
-  }
-  if (UNSUPPORTED_CODEX_HOOK_SCRIPTS.has(pluginScript[1])) {
-    return undefined;
-  }
-  return buildPluginScriptRunner(pluginName, pluginScript[1]);
-}
-
-function normalizeInlineCommand(command) {
-  const entireMatch = command.match(
-    /^command -v entire >\/dev\/null 2>&1 && entire hooks claude-code ([a-z-]+) \|\| true$/
-  );
-  if (!entireMatch) {
-    return command;
-  }
-  return `if command -v entire >/dev/null 2>&1; then entire hooks claude-code ${entireMatch[1]}; fi`;
-}
-
-function buildPluginScriptRunner(pluginName, scriptPath) {
-  const script = JSON.stringify(scriptPath);
-  const plugin = JSON.stringify(pluginName);
-  return [
-    "bash -lc '",
-    `plugin=${shellQuote(plugin)}; script=${shellQuote(script)}; `,
-    "repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd); ",
-    'for root in "${CODEX_PLUGIN_ROOT:-}" "${CLAUDE_PLUGIN_ROOT:-}" "$repo/plugins/$plugin" "$HOME/.codex/plugins/cache/lisa/$plugin/local"; do ',
-    '[ -n "$root" ] || continue; ',
-    'if [ -x "$root/$script" ]; then CLAUDE_PLUGIN_ROOT="$root" CODEX_PLUGIN_ROOT="$root" exec "$root/$script"; fi; ',
-    "done; ",
-    'found=$(find "$HOME/.codex/plugins/cache" -path "*/$plugin/*/$script" -type f -exec ls -t {} + 2>/dev/null | head -n 1); ',
-    '[ -n "$found" ] || exit 0; ',
-    "root=${found%/$script}; ",
-    'CLAUDE_PLUGIN_ROOT="$root" CODEX_PLUGIN_ROOT="$root" exec "$found"',
-    "'",
-  ].join("");
-}
-
-function shellQuote(jsonStringLiteral) {
-  return jsonStringLiteral.replaceAll("'", "'\\''");
 }
 
 function metadataFor(pluginName) {

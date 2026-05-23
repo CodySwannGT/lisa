@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "2.26.0",
+  "version": "2.26.2",
   "description": "Universal governance: agents, skills, commands, hooks, and rules for all projects.",
   "author": {
     "name": "Cody Swann"
@@ -12,7 +12,6 @@
     "workflow"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Lisa",
     "shortDescription": "Universal project governance workflows",
