@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.25.1](https://github.com/CodySwannGT/lisa/compare/vv2.25.0...v2.25.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* **marketplace:** register lisa-harper-fabric and guard marketplace coverage ([#512](https://github.com/CodySwannGT/lisa/issues/512)) ([3f2f72b](https://github.com/CodySwannGT/lisa/commit/3f2f72be8bbf2043ea8711ce15ad127aa7428303))
+* **setup:** make Windows credential read functional via Win32 CredRead ([#513](https://github.com/CodySwannGT/lisa/issues/513)) ([efde416](https://github.com/CodySwannGT/lisa/commit/efde416799c347098fdcb5e910f44b4a6feff61b)), closes [#509](https://github.com/CodySwannGT/lisa/issues/509)
+
 ## [2.25.0](https://github.com/CodySwannGT/lisa/compare/vv2.24.0...v2.25.0) (2026-05-23)
 
 
