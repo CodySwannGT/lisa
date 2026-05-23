@@ -6,6 +6,7 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  EDIT_PATHS_LIB,
   HOOKS_FILENAME,
   LISA_HOOKS_SUBDIR,
   LISA_RULES_SUBDIR,
@@ -288,8 +289,11 @@ describe("codex/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["rails"]);
       const ids = await readLisaHookIds(destDir);
       expect(ids).toContain(RUBOCOP_ON_EDIT_ID);
+      // ast-grep scanning applies to Rails too (Ruby files)
+      expect(ids).toContain("sg-scan-on-edit");
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
-      expect(result.hookEntries).toBe(6);
+      // rubocop + sg-scan + 5 universal
+      expect(result.hookEntries).toBe(7);
     });
 
     it("ships NestJS migration block when nestjs is detected", async () => {
@@ -311,14 +315,19 @@ describe("codex/hooks-installer", () => {
       const scriptFiles = [...(await fs.readdir(hooksDir))].sort((a, b) =>
         a.localeCompare(b)
       );
-      expect(scriptFiles).toEqual([
+      // Rails ships rubocop + sg-scan edit hooks, so the shared apply_patch
+      // path helper is copied alongside the universal scripts.
+      const expected = [
+        EDIT_PATHS_LIB,
         "block-no-verify.sh",
         INJECT_RULES_SH,
         "install-pkgs.sh",
         NOTIFY_NTFY_SH,
         RUBOCOP_ON_EDIT_SH,
         "setup-jira-cli.sh",
-      ]);
+        "sg-scan-on-edit.sh",
+      ].sort((a, b) => a.localeCompare(b));
+      expect(scriptFiles).toEqual(expected);
     });
   });
 });

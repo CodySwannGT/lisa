@@ -15,7 +15,6 @@
     "lisa-typescript"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Lisa NestJS",
     "shortDescription": "NestJS workflow guidance",
