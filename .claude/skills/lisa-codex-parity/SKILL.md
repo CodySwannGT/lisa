@@ -1,6 +1,7 @@
 ---
 name: lisa-codex-parity
 description: This skill should be used when adding or changing a Lisa feature surface (hooks, skills, agents, slash-commands, MCP servers, settings, memory) and you need the Codex distribution to reach parity with the Claude distribution. It drives the `codex` CLI in a back-and-forth conversation to investigate what Codex actually supports (source-read AND empirical runtime capture — never docs alone), builds a Claude→Codex gap matrix, implements the missing equivalents, and has Codex empirically verify the result end-to-end. Use it whenever Claude Code or Codex ships a new capability, or whenever you bundle something new into Lisa for Claude and need to mirror it for Codex.
+allowed-tools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "Skill"]
 ---
 
 # Lisa ↔ Codex Parity
