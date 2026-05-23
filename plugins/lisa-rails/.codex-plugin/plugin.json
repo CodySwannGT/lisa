@@ -15,7 +15,6 @@
     "lisa"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Lisa Rails",
     "shortDescription": "Ruby on Rails workflows",
