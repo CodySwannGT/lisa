@@ -108,7 +108,7 @@ jobs:
 
       - name: Check for existing PR
         id: check-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pulls = await github.rest.pulls.list({
@@ -128,7 +128,7 @@ jobs:
       - name: Read coverage thresholds
         if: steps.check-pr.outputs.has_existing_pr != 'true'
         id: thresholds
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -336,7 +336,7 @@ jobs:
 
       - name: Check for existing PR
         id: check-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pulls = await github.rest.pulls.list({
@@ -356,7 +356,7 @@ jobs:
       - name: Read coverage thresholds
         if: steps.check-pr.outputs.has_existing_pr != 'true'
         id: thresholds
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');

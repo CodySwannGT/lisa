@@ -107,7 +107,7 @@ jobs:
       app_config_changed: ${{ steps.check_changes.outputs.app_config_changed }}
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -151,12 +151,13 @@ jobs:
       needs.release.result == 'success'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }} # Use branch HEAD to include version bump from release job
       - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: '22.21.1'
       - name: 🍞 Setup Bun
         uses: oven-sh/setup-bun@v2
