@@ -641,7 +641,7 @@ describe("PackageLisaStrategy", () => {
 
       await createPackageLisaTemplate("harper-fabric", {
         force: {
-          scripts: { build: "tsc && node dist/src/build/build.js" },
+          scripts: { build: "tsc && node dist/build/build.js" },
         },
       });
 
@@ -662,7 +662,82 @@ describe("PackageLisaStrategy", () => {
       );
 
       const content = await fs.readJson(destPath);
-      expect(content.scripts.build).toBe("tsc && node dist/src/build/build.js");
+      expect(content.scripts.build).toBe("tsc && node dist/build/build.js");
+    });
+  });
+
+  describe("Harper/Fabric real template script paths", () => {
+    // Regression for the advisory-rankings build break: Harper/Fabric projects
+    // follow the TypeScript-family convention (tsconfig rootDir "src"), so tsc
+    // strips the leading "src/" and emits to dist/<subdir>/*.js (e.g.
+    // src/build/build.ts -> dist/build/build.js). The shipped package.lisa.json
+    // "defaults" must match that emitted layout, NOT a "src"-prefixed dist/src/*
+    // path, or a fresh project's `bun run build` fails with
+    // "Cannot find module .../dist/src/build/build.js". These tests load the
+    // REAL templates (lisaDir = repo root) so the defaults can never drift back.
+    const repoRoot = process.cwd();
+    const harperSource = path.join(
+      repoRoot,
+      "harper-fabric",
+      "package-lisa",
+      "package.lisa.json"
+    );
+
+    it("fills a fresh project with dist/<subdir> build scripts, never dist/src/*", async () => {
+      await createHarperFabricProject(projectDir);
+      // A fresh Harper/Fabric project has no build-output-dependent scripts yet.
+      await fs.writeJson(path.join(projectDir, "package.json"), {
+        private: true,
+        dependencies: { harperdb: "^4.7.29" },
+        devDependencies: { typescript: "^6.0.0" },
+        scripts: {},
+      });
+      const destPath = path.join(projectDir, "package.json");
+
+      await strategy.apply(
+        harperSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.build).toBe("tsc && node dist/build/build.js");
+      expect(content.scripts.seed).toBe(
+        "bun run build && node dist/scripts/seed.js"
+      );
+      const srcPrefixed = Object.entries(
+        content.scripts as Record<string, string>
+      ).filter(([, value]) => value.includes("dist/src/"));
+      expect(srcPrefixed).toEqual([]);
+    });
+
+    it("never clobbers a project's own build-output-dependent scripts (defaults semantics)", async () => {
+      await createHarperFabricProject(projectDir);
+      const destPath = path.join(projectDir, "package.json");
+      // Project pins its own emit paths (e.g. a custom outDir layout).
+      await fs.writeJson(destPath, {
+        private: true,
+        dependencies: { harperdb: "^4.7.29" },
+        devDependencies: { typescript: "^6.0.0" },
+        scripts: {
+          build: "tsc && node dist/custom/build.js",
+          seed: "bun run build && node dist/custom/seed.js",
+        },
+      });
+
+      await strategy.apply(
+        harperSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.build).toBe("tsc && node dist/custom/build.js");
+      expect(content.scripts.seed).toBe(
+        "bun run build && node dist/custom/seed.js"
+      );
     });
   });
 
