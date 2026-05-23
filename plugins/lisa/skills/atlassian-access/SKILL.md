@@ -79,7 +79,38 @@ read_atlassian_token() {
   case "$(uname -s)" in
     Darwin)  security find-generic-password -s lisa-atlassian -a "$email" -w 2>/dev/null ;;
     Linux)   command -v secret-tool >/dev/null && secret-tool lookup service lisa-atlassian account "$email" 2>/dev/null ;;
-    MINGW*|MSYS*|CYGWIN*) cmdkey /list:"lisa-atlassian-${email}" 2>/dev/null | grep Password | awk '{print $NF}' ;;
+    MINGW*|MSYS*|CYGWIN*)
+      # `cmdkey /generic ... /pass:` stores the secret in Windows Credential Manager, but
+      # `cmdkey /list` never prints stored passwords (by design). Read the CredentialBlob
+      # back via the Win32 CredRead API through PowerShell; pass the target name via an env
+      # var to dodge nested quoting, and strip the CRLF powershell.exe appends.
+      LISA_CRED_TARGET="lisa-atlassian-${email}" powershell.exe -NoProfile -NonInteractive -Command '
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class LisaCred {
+  [StructLayout(LayoutKind.Sequential)]
+  private struct CREDENTIAL {
+    public int Flags; public int Type; public IntPtr TargetName; public IntPtr Comment;
+    public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+    public int CredentialBlobSize; public IntPtr CredentialBlob; public int Persist;
+    public int AttributeCount; public IntPtr Attributes; public IntPtr TargetAlias; public IntPtr UserName;
+  }
+  [DllImport("advapi32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  private static extern bool CredRead(string target, int type, int flags, out IntPtr credential);
+  [DllImport("advapi32.dll")] private static extern void CredFree(IntPtr cred);
+  public static string Read(string target) {
+    IntPtr p;
+    if (!CredRead(target, 1, 0, out p)) { return null; }
+    try {
+      CREDENTIAL c = (CREDENTIAL)Marshal.PtrToStructure(p, typeof(CREDENTIAL));
+      if (c.CredentialBlobSize == 0) { return String.Empty; }
+      return Marshal.PtrToStringUni(c.CredentialBlob, c.CredentialBlobSize / 2);
+    } finally { CredFree(p); }
+  }
+}
+"@
+[LisaCred]::Read($env:LISA_CRED_TARGET)' 2>/dev/null | tr -d '\r' ;;
   esac
 }
 TOKEN=$(read_atlassian_token "$EMAIL")
