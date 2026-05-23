@@ -24,6 +24,8 @@ export default [
     // projects, not part of this monorepo's app source. plugins/** also covers GENERATED
     // build artifacts (plugins/lisa, plugins/lisa-*) which must never be auto-fixed —
     // a lint --fix there would desync them from plugins/src and break check:plugins.
+    // wiki/** is the LLM Wiki content (markdown + JSON config/state cursors), not app
+    // code, so app lint rules (e.g. sonarjs/no-duplicate-string on the config) don't apply.
     ignores: [
       "all/**",
       "cdk/**",
@@ -32,6 +34,7 @@ export default [
       "npm-package/**",
       "typescript/**",
       "plugins/**",
+      "wiki/**",
     ],
   },
 ];
