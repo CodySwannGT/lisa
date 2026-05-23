@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "org": "Lisa",
+  "displayName": "Lisa LLM Wiki",
+  "purpose": "The durable knowledge base for the Lisa monorepo — governance, templates, agents, flows, decisions, and canonical documentation.",
+  "mode": "embedded",
+  "wikiRoot": "wiki",
+  "frontmatter": true,
+  "categories": [
+    "concepts",
+    "entities",
+    "decisions",
+    "architecture",
+    "requirements",
+    "playbooks",
+    "open-questions",
+    "projects"
+  ],
+  "sources": { "layout": "by-system" },
+  "git": { "prPerIngestion": true, "autoMerge": true, "targetBranch": "main", "branchPrefix": "wiki/" },
+  "sensitivity": { "enabled": false, "default": "internal" },
+  "sourceRetention": "sanitized-note-only",
+  "readme": { "mode": "rich" },
+  "documentation": { "absorb": true },
+  "connectors": {
+    "git": { "enabled": true, "sideEffects": "read-only-ingest" },
+    "memory": { "enabled": true, "sideEffects": "read-only-ingest" },
+    "roles": { "enabled": true, "sideEffects": "read-only-ingest" }
+  }
+}
