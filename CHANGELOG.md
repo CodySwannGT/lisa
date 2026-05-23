@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.25.4](https://github.com/CodySwannGT/lisa/compare/vv2.25.3...v2.25.4) (2026-05-23)
+
+
+### Bug Fixes
+
+* **harper-fabric:** stop creating Jest local config ([303f3e7](https://github.com/CodySwannGT/lisa/commit/303f3e7aa72a99586b91a9a6da2f9321b6a753be))
+
 ### [2.25.3](https://github.com/CodySwannGT/lisa/compare/vv2.25.2...v2.25.3) (2026-05-23)
 
 ### [2.25.2](https://github.com/CodySwannGT/lisa/compare/vv2.25.1...v2.25.2) (2026-05-23)
