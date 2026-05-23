@@ -39,6 +39,12 @@
       "category": "productivity"
     },
     {
+      "name": "lisa-harper-fabric",
+      "source": "./plugins/lisa-harper-fabric",
+      "description": "Harper/Fabric-specific rules for TypeScript component apps (Claude + Codex)",
+      "category": "productivity"
+    },
+    {
       "name": "lisa-rails",
       "source": "./plugins/lisa-rails",
       "description": "Ruby on Rails skills, rules, and conventions",
