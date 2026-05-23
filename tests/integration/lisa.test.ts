@@ -36,6 +36,7 @@ const CREATE_ONLY = "create-only";
 const COPY_OVERWRITE = "copy-overwrite";
 const HARPER_FABRIC_TYPE = "harper-fabric";
 const HARPER_FABRIC_TXT = "harper-fabric.txt";
+const JEST_CONFIG_LOCAL = "jest.config.local.ts";
 
 describe("Lisa Integration Tests", () => {
   let tempDir: string;
@@ -177,11 +178,10 @@ describe("Lisa Integration Tests", () => {
       // jest config via create-only, CDK's deletions.json removes it. Without
       // the pending-deletion gate, Lisa creates-then-deletes, which races with
       // any concurrent file-watcher/linter.
-      const JEST_CONFIG_LOCAL = "jest.config.local.ts";
       await createCDKProject(destDir);
 
       // Add a file to typescript/create-only that CDK's deletions.json removes
-      const tsCreateOnly = path.join(lisaDir, "typescript", "create-only");
+      const tsCreateOnly = path.join(lisaDir, "typescript", CREATE_ONLY);
       await fs.ensureDir(tsCreateOnly);
       await fs.writeFile(
         path.join(tsCreateOnly, JEST_CONFIG_LOCAL),
@@ -207,6 +207,32 @@ describe("Lisa Integration Tests", () => {
       // *skipped* (never written to disk) rather than *deleted* (written then
       // removed).  If the gate were absent, deleted would be 1 and skipped
       // would be 0 for this file.
+      expect(result.counters.skipped).toBeGreaterThan(0);
+      expect(result.counters.deleted).toBe(0);
+    });
+
+    it("skips inherited Jest local config for Harper/Fabric projects", async () => {
+      await createHarperFabricProject(destDir);
+
+      const tsCreateOnly = path.join(lisaDir, "typescript", CREATE_ONLY);
+      await fs.ensureDir(tsCreateOnly);
+      await fs.writeFile(
+        path.join(tsCreateOnly, JEST_CONFIG_LOCAL),
+        "export default {};\n"
+      );
+
+      const harperDir = path.join(lisaDir, HARPER_FABRIC_TYPE);
+      await fs.ensureDir(harperDir);
+      await fs.writeJson(path.join(harperDir, "deletions.json"), {
+        paths: [JEST_CONFIG_LOCAL],
+      });
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, JEST_CONFIG_LOCAL))).toBe(
+        false
+      );
       expect(result.counters.skipped).toBeGreaterThan(0);
       expect(result.counters.deleted).toBe(0);
     });
@@ -267,11 +293,7 @@ describe("Lisa Integration Tests", () => {
 
       await createHarperFabricProject(destDir);
 
-      const tsCopyOverwrite = path.join(
-        lisaDir,
-        "typescript",
-        "copy-overwrite"
-      );
+      const tsCopyOverwrite = path.join(lisaDir, "typescript", COPY_OVERWRITE);
       await fs.ensureDir(tsCopyOverwrite);
       await fs.writeFile(path.join(tsCopyOverwrite, SHARED_CONFIG), TS_CONFIG);
 
