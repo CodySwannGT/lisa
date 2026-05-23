@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.25.2](https://github.com/CodySwannGT/lisa/compare/vv2.25.1...v2.25.2) (2026-05-23)
+
+
+### Bug Fixes
+
+* **harper-fabric:** align package script defaults with rootDir:src emit ([#515](https://github.com/CodySwannGT/lisa/issues/515)) ([ddffad3](https://github.com/CodySwannGT/lisa/commit/ddffad3f637c23cecf728652334a8f5abead30ae))
+
 ### [2.25.1](https://github.com/CodySwannGT/lisa/compare/vv2.25.0...v2.25.1) (2026-05-23)
 
 
