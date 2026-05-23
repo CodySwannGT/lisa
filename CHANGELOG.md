@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.26.1](https://github.com/CodySwannGT/lisa/compare/vv2.26.0...v2.26.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* **codex:** make edit hooks fire on apply_patch and block migration edits ([b2116ef](https://github.com/CodySwannGT/lisa/commit/b2116ef81015c79aad29ee840d344441de86f300))
+
+
+### Documentation
+
+* **skill:** add allowed-tools to lisa-codex-parity frontmatter ([48e1d05](https://github.com/CodySwannGT/lisa/commit/48e1d056fa3aef729e1bacb3a2e13cca857de24b)), closes [#523](https://github.com/CodySwannGT/lisa/issues/523)
+* **skill:** add lisa-codex-parity skill for Claude<->Codex feature parity ([b328a80](https://github.com/CodySwannGT/lisa/commit/b328a805eb720a95be18a4855f3427a70eaac882))
+
 ## [2.26.0](https://github.com/CodySwannGT/lisa/compare/vv2.25.5...v2.26.0) (2026-05-23)
 
 
