@@ -12,7 +12,6 @@
     "workflow"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Lisa",
     "shortDescription": "Universal project governance workflows",
