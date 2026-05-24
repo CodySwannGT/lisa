@@ -1,6 +1,6 @@
 ---
 name: notion-prd-intake
-description: "Scans a Notion PRD database for pages in the configured `ready` status and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the status flipped to the configured `ticketed` value; PRDs that fail get clarifying-question comments and the status flipped to the configured `blocked` value. The skill is the runtime for the ready → in_review → blocked|ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough); does not reimplement their logic."
+description: "Scans a Notion PRD database for pages in the configured `ready` status and runs the first eligible one through the dry-run validation pipeline. A PRD that passes every gate gets tickets written and the status flipped to the configured `ticketed` value; a PRD that fails gets clarifying-question comments and the status flipped to the configured `blocked` value. The skill is the runtime for the ready → in_review → blocked|ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough); does not reimplement their logic."
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "AskUserQuestion"]
 ---
 
@@ -14,7 +14,7 @@ allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "AskUserQuestion"]
 https://www.notion.so/geminisports/28fd00244d7d47c5866876f7de48c0fe?v=34eba63a2800815891a3000c643f0ea8
 ```
 
-Run one intake cycle against that database. Each PRD in the configured `ready` status is claimed, validated, and routed to either `blocked` (with clarifying comments) or `ticketed` (with destination tickets created).
+Run one intake cycle against that database. The first eligible PRD in the configured `ready` status is claimed, validated, routed to either `blocked` (with clarifying comments) or `ticketed` (with destination tickets created), then the cycle exits. Remaining ready PRDs stay queued for later scheduler invocations.
 
 ## Workflow resolution
 
@@ -43,7 +43,7 @@ In prose below, the role names refer to the resolved values: e.g. "the `ready` s
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a database URL, run the cycle to completion — claim, validate, branch to `blocked` or `ticketed`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked with a database URL, run the cycle to completion for the first eligible PRD — claim, validate, branch to `blocked` or `ticketed`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
 
 Specifically forbidden:
 
@@ -93,9 +93,9 @@ For a `select`-type property substitute `"select"` for `"status"`. The response 
 
 If the result set is empty, stop and report `"No PRDs with $STATUS_PROP=$READY. Nothing to do."` Exit cleanly — this is the common idle case for a scheduled run.
 
-### Phase 3 — Process each ready PRD
+### Phase 3 — Process the first eligible ready PRD
 
-For each PRD page (process serially to keep status transitions auditable):
+Select the first ready PRD page returned by Phase 2 and process only that page. Later scheduler invocations process the remaining ready PRDs.
 
 #### 3a. Claim
 
@@ -138,7 +138,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
 
    | Verdict | Action |
    |---------|--------|
-   | `COMPLETE` | Done. Leave `$STATUS_PROP = $TICKETED`. Move to next PRD. |
+   | `COMPLETE` | Done. Leave `$STATUS_PROP = $TICKETED`. End the cycle. |
    | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory Notion comment naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave `$STATUS_PROP = $TICKETED`. |
    | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a Notion comment using the same product-facing template as Phase 3c.3 — block-anchored when `prd_anchor` is non-null, page-level otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition `$STATUS_PROP` from `$TICKETED` back to `$BLOCKED` by invoking `lisa:notion-access` operation `write-page` with the blocked-status payload. |
    | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave `$STATUS_PROP = $TICKETED` with a comment flagging the audit failure for human review. |
@@ -222,13 +222,13 @@ rich_text: <Notion rich_text array — the comment body>
 
 The access skill resolves a `prd_anchor` substring to the matching block ID by paging through the PRD's children and posts the comment with `discussion_id` or `parent: { block_id }` as appropriate. If `block_anchor` is `null`, the access skill posts a page-level comment via `parent: { page_id }`.
 
-#### 3d. Continue
+#### 3d. Stop
 
-Move to the next ready PRD. One PRD failing does not affect others.
+Stop immediately after the claimed PRD is ticketed, blocked, or recorded as an error.
 
 ### Phase 4 — Summary report
 
-After processing every ready PRD, emit a summary:
+After processing the single selected PRD, emit a summary:
 
 ```text
 ## notion-prd-intake summary
@@ -253,10 +253,10 @@ Print to the agent's output. Do not write this summary to Notion or the destinat
 
 ## Idempotency & safety
 
-- **Single-cycle scope**: this skill processes the ready set as it exists at the start of Phase 2. New ready PRDs added mid-cycle are picked up next run.
+- **One item per cycle**: this skill processes the first eligible ready PRD from Phase 2, then exits. New or remaining ready PRDs are picked up by later scheduler invocations.
 - **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:notion-to-tracker` (which delegates to `lisa:tracker-write`), and only ever changes the Notion status property to `$IN_REVIEW`, `$BLOCKED`, or `$TICKETED`. It never edits PRD content, never touches `$DRAFT` or `$SHIPPED`, never deletes pages.
 - **Claim-first ordering**: the status flip to `$IN_REVIEW` is set BEFORE validation runs, so a re-entrant call won't double-process.
-- **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next PRD. The PRD that errored is left in `$IN_REVIEW` — the human investigates from there.
+- **Failure handling**: an exception processing the selected PRD is caught and recorded under "Errors" in the summary, then the cycle exits. The PRD that errored is left in `$IN_REVIEW` — the human investigates from there.
 
 ## Configuration
 

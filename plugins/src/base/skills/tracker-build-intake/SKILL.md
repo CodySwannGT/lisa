@@ -1,6 +1,6 @@
 ---
 name: tracker-build-intake
-description: "Vendor-neutral wrapper for the build-queue batch scanner. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-build-intake (JQL/project-key queue), lisa:github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa:linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner enforces the claim-time arm of the `leaf-only-lifecycle` rule — claim leaf work units only; skip or safe-block a container with open child work (or a childless Epic/Story/Spike) that carries a stale build-ready role. Counterpart to lisa:intake's PRD-side dispatchers."
+description: "Vendor-neutral wrapper for the build-queue scanner. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-build-intake (JQL/project-key queue), lisa:github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa:linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner processes at most one eligible item per cycle and enforces the claim-time arm of the `leaf-only-lifecycle` rule — claim leaf work units only; skip or safe-block a container with open child work (or a childless Epic/Story/Spike) that carries a stale build-ready role. Counterpart to lisa:intake's PRD-side dispatchers."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -39,7 +39,7 @@ The shim never needs to inspect the item itself — it forwards `$ARGUMENTS` ver
 
 ## Rules
 
-- Single cycle per invocation — the vendor skill processes the current `Ready` set and exits.
+- Single cycle per invocation — the vendor skill processes at most one eligible `Ready` item and exits. Scheduler repetition works the rest of the queue.
 - The vendor skills run their own pre-flight checks (JIRA workflow transitions for the JIRA path; label namespace adoption for the GitHub and Linear paths) before processing items. Never bypass.
 - **Leaf-only claim, every vendor.** Per the `leaf-only-lifecycle` rule, each vendor scanner claims leaf work units only and skips / safe-blocks a container (open child work, or a childless Epic/Story/Spike) carrying a stale build-ready role. This shim does not re-implement the gate — it relies on the vendor scanner's Phase 3a — but the contract is uniform across `jira`, `github`, and `linear` so behavior never drifts by tracker.
 - Never run two intake cycles concurrently against overlapping queues — the scheduling layer is responsible for serialization.
