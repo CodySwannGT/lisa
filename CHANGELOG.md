@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.37.0](https://github.com/CodySwannGT/lisa/compare/vv2.36.0...v2.37.0) (2026-05-24)
+
+
+### Features
+
+* **codex:** add deterministic openai.yaml serializer to artifact generator ([0f050b4](https://github.com/CodySwannGT/lisa/commit/0f050b4ab1d2ff5dcf068a047ade8ac08e2d1f41)), closes [#547](https://github.com/CodySwannGT/lisa/issues/547) [#548](https://github.com/CodySwannGT/lisa/issues/548) [#546](https://github.com/CodySwannGT/lisa/issues/546)
+
 ## [2.36.0](https://github.com/CodySwannGT/lisa/compare/vv2.35.0...v2.36.0) (2026-05-24)
 
 
