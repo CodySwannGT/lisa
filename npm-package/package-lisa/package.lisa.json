@@ -2,6 +2,7 @@
   "force": {
     "scripts": {
       "prepublishOnly": "$npm_execpath run build",
+      "setup:deploy-key": "setup-deploy-key",
       "prepare": "$npm_execpath run build || husky install || true"
     },
     "devDependencies": {
