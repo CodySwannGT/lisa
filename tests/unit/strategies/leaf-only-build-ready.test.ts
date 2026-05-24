@@ -11,8 +11,8 @@
  * an S15 gate that FAILs a build-ready container (or a childless
  * Epic/Story/Spike) and PASSes a childless build-ready leaf work unit.
  *
- * Issue #542: `lisa:github-build-intake` adds the claim-time arm — Phase 3a
- * classifies each candidate before claiming and skips / safe-blocks any parent
+ * Issue #542/#649: `lisa:github-build-intake` adds the claim-time arm — Phase 3a
+ * classifies each candidate before claiming and repairs any parent
  * with open child work (or a childless Epic/Story/Spike) carrying a stale
  * build-ready label, while a childless leaf is claimed normally.
  *
@@ -20,7 +20,7 @@
  * scanners — `jira-build-intake` and `linear-build-intake` each add a Phase 3a
  * leaf-only claim gate ahead of the claim step — and documents the forwarded
  * contract in the vendor-neutral `tracker-build-intake` shim, so all three
- * build scanners skip / safe-block containers identically.
+ * build scanners repair / safe-block containers consistently.
  *
  * Issue #539: mirrors the #538 decomposition-side change into the other three
  * PRD-to-tracker skills — `notion-to-tracker`, `confluence-to-tracker`,
@@ -272,9 +272,9 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
   });
 
-  // Issue #542: github-build-intake must skip / safe-block any parent that
+  // Issue #542/#649: github-build-intake must repair any parent that
   // carries the build-ready label but has open child work (and any childless
-  // Epic/Story/Spike), claiming only leaf work units. The gate lives in
+  // Epic/Story/Spike), dispatching only leaf work units. The gate lives in
   // Phase 3a, ahead of the claim relabel. Asserting both roots catches an
   // artifact-only edit or a missed `bun run build:plugins`.
   describe.each(SKILL_ROOTS)("%s/github-build-intake (#542)", root => {
@@ -291,17 +291,20 @@ describe("leaf-only build-ready invariant (#538)", () => {
       const claimIndex = content.indexOf("#### 3b. Claim");
       expect(gateIndex).toBeGreaterThan(-1);
       expect(claimIndex).toBeGreaterThan(-1);
-      // The gate must precede the claim step so a container is never claimed.
+      // The gate must precede the claim step so a container is never dispatched.
       expect(gateIndex).toBeLessThan(claimIndex);
     });
 
-    it("skips / safe-blocks a parent with open child work", () => {
+    it("moves a parent with open child work out of the ready queue without dispatch", () => {
       const gateIndex = content.indexOf(gateHeading);
       const section = content.slice(gateIndex);
       // Structural container detection via open sub-issues.
       expect(section).toMatch(/open child work/i);
-      expect(section).toMatch(/do NOT claim|never claimed|not claimed/i);
-      expect(section).toMatch(/skip|safe-block/i);
+      expect(section).toMatch(/remove-label "\$READY"/);
+      expect(section).toMatch(/add-label "\$CLAIMED"/);
+      expect(section).toMatch(
+        /do NOT dispatch|never dispatched|without invoking/i
+      );
     });
 
     it("queries native sub-issues to detect open children", () => {
@@ -313,7 +316,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(section).toMatch(/OPEN/);
     });
 
-    it("does not claim a childless Epic/Story/Spike", () => {
+    it("does not dispatch a childless Epic/Story/Spike", () => {
       const gateIndex = content.indexOf(gateHeading);
       const section = content.slice(gateIndex);
       expect(section).toMatch(
@@ -322,6 +325,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(section).toMatch(/Epic/);
       expect(section).toMatch(/Story/);
       expect(section).toMatch(/Spike/);
+      expect(section).toMatch(/never dispatched|do NOT dispatch/i);
     });
 
     it("claims a childless leaf work unit", () => {
@@ -336,18 +340,18 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(section).toMatch(/[Pp]roceed.*claim|claim/);
     });
 
-    it("posts a lifecycle-repair comment when safe-blocking a container", () => {
+    it("posts a lifecycle-repair comment when moving a container", () => {
       const gateIndex = content.indexOf(gateHeading);
       const section = content.slice(gateIndex);
       expect(section).toMatch(/lifecycle-repair/i);
-      // The repair guidance points the label off the parent onto its leaves.
+      expect(section).toMatch(/rollup\/build-lane progress/i);
       expect(section).toMatch(
-        /onto its leaf children|move .* off this parent/i
+        /direct implementation must happen on leaf issues/i
       );
     });
 
-    it("lists a Skipped (container) bucket in the summary report", () => {
-      expect(content).toMatch(/Skipped \(container/);
+    it("lists a Repaired (container) bucket in the summary report", () => {
+      expect(content).toMatch(/Repaired \(container/);
     });
   });
 
@@ -476,9 +480,11 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    it("documents the forwarded leaf-only claim contract", () => {
-      expect(content).toMatch(/claims only.*leaf work units/i);
-      expect(content).toMatch(/skip|safe-block/i);
+    it("documents the forwarded leaf-only dispatch contract", () => {
+      expect(content).toMatch(
+        /claims only.*leaf work units|dispatch.*leaf work units/i
+      );
+      expect(content).toMatch(/move|safe-block/i);
       expect(content).toMatch(/open child work/i);
     });
 
