@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.55.0](https://github.com/CodySwannGT/lisa/compare/vv2.54.0...v2.55.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** emit project-ideation runtime metadata prompts ([#667](https://github.com/CodySwannGT/lisa/issues/667)) ([e25eee8](https://github.com/CodySwannGT/lisa/commit/e25eee8116caa6290c556f2f668d91ef5aa2c829)), closes [#661](https://github.com/CodySwannGT/lisa/issues/661) [#550](https://github.com/CodySwannGT/lisa/issues/550)
+
 ## [2.54.0](https://github.com/CodySwannGT/lisa/compare/vv2.53.0...v2.54.0) (2026-05-24)
 
 
