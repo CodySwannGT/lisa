@@ -1,6 +1,7 @@
 {
   "force": {
     "scripts": {
+      "setup:deploy-key": "setup-deploy-key",
       "lint": "oxlint && eslint . --quiet",
       "format:check": "prettier --check .",
       "format": "prettier --check . --write",
