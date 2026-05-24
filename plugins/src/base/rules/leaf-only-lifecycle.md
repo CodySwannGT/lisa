@@ -80,7 +80,7 @@ Notes:
 
 The terminal rollup state is whatever the project configures for `done` — which is **env-keyed** (`config-resolution` "Env-keyed `done`"): a `done` map keyed by environment (`dev`, `staging`, `production`), resolved from the merged PR's base branch. This rule does **not** hardcode a `dev → staging → prod` promotion chain as required — that is a project-specific deploy topology. A downstream project with dev/staging/prod environments rolls a parent up to whichever terminal `done` value matches the environment its leaves shipped to. The rule stays generic and multi-env capable.
 
-**Single-environment collapse (this repo).** Lisa's own deploy has only `main`/`production` (no dev/staging), so `done` is a single value, not a map, and the build lifecycle collapses to one chain: `ready → claimed (in-progress) → review (code-review) → done`. The rollup terminal state is simply `done`. This is the *collapsed* case of the generic rule, not a different rule — projects with more environments keep the env-keyed map.
+**Single-environment collapse (this repo).** Lisa's own deploy has only `main`/`production` (no dev/staging), so `done` is a single value, not a map. For GitHub, the build lifecycle collapses to one chain: `ready → claimed (in-progress) → done`. The rollup terminal state is simply `done`. This is the *collapsed* case of the generic rule, not a different rule — projects with more environments keep the env-keyed map.
 
 ## Citation
 

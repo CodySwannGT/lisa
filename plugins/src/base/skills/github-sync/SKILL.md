@@ -57,10 +57,10 @@ Based on the milestone, suggest (but do NOT automatically perform) a label trans
 | Milestone | Suggested label |
 |-----------|-----------------|
 | Plan created | `status:in-progress` |
-| PR ready | `status:code-review` |
-| PR merged | `status:done` |
+| PR ready | configured `done` label (`status:done` in this repo) |
+| PR merged | no additional build-label transition |
 
-The actual `status:in-progress` flip is owned by `lisa:github-build-intake` (claim) and `lisa:github-agent`. The `status:code-review` flip is owned by `lisa:github-evidence`. The `status:done` flip is typically owned by merge automation or PM. This skill never relabels.
+The actual `status:in-progress` flip is owned by `lisa:github-build-intake` (claim) and `lisa:github-agent`. The configured `done` flip is owned by the build-intake owner after a successful build and evidence post. This skill never relabels.
 
 ### Step 5: Parent Status Rollup (`--rollup`)
 
@@ -82,12 +82,12 @@ gh api graphql -f query='
 
 If the `subIssues` field is unavailable (older GHES), fall back to body parentage exactly as `lisa:github-read-issue` does. If the issue has **no** children it is a leaf, not a parent — rollup is N/A; behave as a normal milestone sync.
 
-**Evaluate the required children in priority order and take the first match** (canonical roles from `config-resolution`; the GitHub label map is `status:blocked`, `status:in-progress`, `status:code-review`, `status:done`):
+**Evaluate the required children in priority order and take the first match** (canonical roles from `config-resolution`; the GitHub label map is `status:blocked`, `status:in-progress`, `status:done`):
 
 | If among the required child leaves… | Derived parent role | GitHub label |
 |---|---|---|
 | any child carries `status:blocked` (or is otherwise blocked) | `blocked` | `status:blocked` |
-| else any child carries `status:in-progress` **or** `status:code-review` | `claimed` | `status:in-progress` |
+| else any child carries `status:in-progress` | `claimed` | `status:in-progress` |
 | else **all** required children are terminal (closed / `status:done`) | `done` | the configured terminal `done` label |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container label |
 
