@@ -215,11 +215,23 @@ Wait for `lisa:github-agent` to return. Capture its outcome:
 If `lisa:github-agent` returned Success:
 
 1. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
+2. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
+   - If `github.labels.build.done` is a string, that string is terminal.
+   - If `github.labels.build.done` is an object, only the production/final environment value is terminal (default: `status:done`). Intermediate env values such as `status:on-dev` and `status:on-stg` are not terminal and must stay open.
+   - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not close.
 
 ```bash
 gh issue edit <number> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$DONE"
 gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL>. Transitioned to $DONE."
 ```
+
+If `$DONE` is terminal, immediately close the native GitHub issue:
+
+```bash
+gh issue close <number> --repo <org>/<repo> --reason completed
+```
+
+This close is idempotent: if the issue is already closed, record that native closure was already satisfied and continue. If `$DONE` is an intermediate env state, leave the issue open by design.
 
 For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever `lisa:github-agent` left it) — humans take it from there.
 
@@ -256,6 +268,7 @@ Total PRs opened: <n>
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic/Story/Spike) is skipped/safe-blocked, never claimed. The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:github-agent` invocation — no double-pickup.
 - **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. Every other label change is owned by `lisa:github-agent`.
+- **Terminal native closure**: after `$CLAIMED → $DONE`, close the GitHub issue only when `$DONE` is the true terminal done value per `leaf-only-lifecycle`; intermediate env labels stay open.
 - **Failure isolation**: per-issue exceptions caught and recorded; the cycle continues.
 - **Single cycle per repo**: do not run two `lisa:github-build-intake` cycles in parallel against the same repo — concurrent claims could race. The scheduling layer is responsible for serialization.
 - **Single-label invariant**: after every transition, verify exactly one `status:*` label is present on the issue. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve.
@@ -281,6 +294,7 @@ If the repo has not adopted the `status:*` label namespace, this skill cannot ru
 - Never relabel an issue the cycle didn't claim. The `$CLAIMED` label is the signature of cycle ownership.
 - Never bypass `lisa:github-agent` to do build work directly. `lisa:github-agent` owns the per-issue lifecycle.
 - Never auto-transition past `$DONE`. Downstream labels (terminal `status:done`, etc.) are owned by QA / PM / merge automation.
+- Never close a GitHub issue at intermediate env states (`status:on-dev`, `status:on-stg`, or configured equivalents). Native close happens only at the terminal `done` value.
 - If the issue has no Validation Journey or no sign-in credentials, `lisa:github-agent`'s pre-flight verify will catch it — **don't try to fix the issue from here**.
 - On any unexpected response from `lisa:github-agent` (status it doesn't claim, missing PR URL on success), record as Error and surface — never assume.
 - Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.

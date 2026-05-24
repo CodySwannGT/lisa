@@ -59,11 +59,26 @@ current_role_for_prd() {
   done
   echo "unknown"
 }
+
+# Resolve a boolean rollup flag. Local overrides global per-key; default when unset.
+# NOTE: Confluence rollup config lives under `confluence.rollup` (NOT
+# `confluence.parents.rollup`) — see the config-resolution rule.
+read_rollup_flag() {
+  local key="$1" default="$2"
+  local local_v global_v
+  local_v=$(jq -r ".confluence.rollup.${key} // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r ".confluence.rollup.${key} // empty" .lisa.config.json 2>/dev/null)
+  echo "${local_v:-${global_v:-$default}}"
+}
+
+CLOSE_ON_SHIPPED=$(read_rollup_flag closeOnShipped false)
 ```
 
 In prose below, the role names refer to the resolved parent-page IDs: e.g. "the `ready` parent" means whatever `confluence.parents.ready` resolves to.
 
-This skill is the Confluence counterpart of `lisa:notion-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **parent-page placement** instead of a status property, and (2) the fetch / comment / update tools route through `lisa:atlassian-access`. Keep the two skills behaviorally aligned: when changing intake logic, change BOTH skills together.
+This skill is the Confluence counterpart of `lisa:notion-prd-intake`, and shares its PRD closure rollup phase (3f) with `lisa:github-prd-intake` and `lisa:linear-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **parent-page placement** instead of a status property, and (2) the fetch / comment / update tools route through `lisa:atlassian-access`. Keep all four intake skills behaviorally aligned: when changing intake logic — including the rollup phase — change them together.
+
+The **PRD closure rollup phase (3f)** re-parents a `ticketed` PRD to the `shipped` parent (and optionally archives it) once all its generated top-level work is terminal, per the `prd-lifecycle-rollup` rule. This is the Confluence leg of the same vendor-neutral rollup that `lisa:github-prd-intake` implements for GitHub (LPC-1.3 #584); only the vendor surface (parent-page placement + documented generated-work section, since Confluence has no native ticket hierarchy) differs.
 
 ## Confirmation policy
 
@@ -87,19 +102,25 @@ The only legitimate reasons to stop early:
 The Confluence PRD lifecycle is encoded as **parent-page placement** — Confluence has no native status field, and scoped API tokens cannot write labels. Each lifecycle role corresponds to a dedicated parent page in the project's Confluence space:
 
 ```text
-draft → ready → in_review → blocked | ticketed → shipped
-        (product)  (us)      (us)                  (product)
+draft → ready → in_review → blocked | ticketed → shipped → verified
+        (product)  (us)      (us)                  (product)  (product)
 ```
+
+(Each role corresponds to a dedicated parent page; the `verified` parent is resolved from `confluence.parents.verified`.)
+
+`verified` is the terminal state after `shipped`: it means the shipped product has been empirically checked against the PRD (set by `/lisa:verify-prd`, not by this intake skill). A failed post-ship verification re-parents back under `blocked` rather than introducing a separate `verifying` / `verification-failed` parent. Like `draft` and `shipped`, `verified` is **product-owned** — this intake skill never re-parents a PRD into or out of the `verified` parent. See the "PRD-level verification vs ticket verification" section of the `prd-lifecycle-rollup` rule.
 
 A PRD's current state is determined entirely by which lifecycle parent it sits under. Re-parenting is the transition.
 
-This skill ONLY transitions:
+This skill transitions:
 
 - `ready` → `in_review` (claim)
 - `in_review` → `blocked` (gate failures or coverage gaps)
 - `in_review` → `ticketed` (success)
+- `ticketed` → `blocked` (post-write coverage gaps from Phase 3e)
+- `ticketed` → `shipped` (PRD closure rollup, Phase 3f — only when **all** generated top-level children are terminal)
 
-It never re-parents PRDs into or out of the `draft` or `shipped` parents. Those parents are owned by product.
+It never re-parents PRDs into or out of the `draft` or `verified` parents — those parents are owned by product (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` parent is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also re-parent there by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD page unless `confluence.rollup.closeOnShipped` is configured `true` (default `false` → re-parent under `shipped`, leave the page active).
 
 A "transition" means: update the PRD's `parentId` to the new role's parent-page id via `lisa:atlassian-access` `operation: write-page payload: { id, parentId, title, version: { number: <next> } }`. The v2 PUT endpoint requires the next version number and the page title in the payload; the body content is not strictly required for a re-parent-only edit, but some Atlassian deployments reject PUTs without a body. The skill MUST therefore GET the page first via `read-page`, capture title + current version + current body, then PUT with `parentId` swapped and `version.number` bumped — preserving body content is non-negotiable, this skill never edits PRD content. See `transition_prd` helper in Phase 3a for the canonical implementation.
 
@@ -276,6 +297,61 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
 
 3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
 
+#### 3f. PRD closure rollup (config-gated)
+
+A PRD's lifecycle terminal state (`shipped`) is **derived** from whether the work it generated is done — it is never set by hand here on its own authority. This phase implements the Confluence leg of that derivation, per the `prd-lifecycle-rollup` rule (cite it by slug; do not restate its taxonomy or terminal-state semantics here). It is behaviorally identical to `lisa:github-prd-intake`'s Phase 3f — only the vendor surface (parent-page re-parenting via `lisa:atlassian-access` + the documented generated-work section) differs from GitHub's (issue close + labels via `gh`).
+
+Rollup runs over PRD pages that are already under the `ticketed` parent (the only state from which a PRD can ship): the freshly-ticketed PRD from Phase 3c, and — because rollup also catches PRDs whose children finished in a *later* cycle — every page currently parented under `$TICKETED_PARENT`. (Re-read its direct children via `lisa:atlassian-access` `operation: read-page-descendants id: $TICKETED_PARENT`.) Process each independently; one PRD never blocks another's rollup.
+
+##### 3f.0 Resolve closure config
+
+Closure is gated on `confluence.rollup.closeOnShipped` (default `false`), resolved via `read_rollup_flag` (defined in the Workflow resolution block, same local-overrides-global precedence the lifecycle parents use). Note the config lives under `confluence.rollup` (NOT `confluence.parents.rollup`):
+
+```bash
+CLOSE_ON_SHIPPED=$(read_rollup_flag closeOnShipped false)
+```
+
+When `false` (the default), rollup re-parents the PRD under `$SHIPPED_PARENT` but leaves the page **active** for a human to archive. When `true`, rollup also archives the page (where the deployment supports archival) after the `shipped` re-parent. Closure NEVER happens before all generated top-level work is terminal (`prd-lifecycle-rollup` rule; PRD #525 non-goal).
+
+##### 3f.1 Idempotency guard (no-op if already shipped)
+
+Rollup is keyed by the PRD's current state. If the PRD is already parented under `$SHIPPED_PARENT` (and is already archived, when `$CLOSE_ON_SHIPPED` is `true`), it is a **no-op** — do not re-parent, do not re-archive, do not re-comment. Record it as `already shipped (no-op)` in the cycle summary and move on. This is what makes re-running intake safe.
+
+##### 3f.2 Read the generated top-level child set
+
+Read the PRD's **generated top-level work** — its created Epics and any top-level Stories created directly under it, **excluding** leaf Sub-tasks and any Story nested under a generated Epic (`prd-lifecycle-rollup` rule, generated-top-level-work contract). Confluence has **no native ticket hierarchy**, so the child set comes from the documented section only:
+
+1. **Documented `## Tickets` section (primary and only source).** Parse the machine-readable generated-work section `lisa:prd-backlink` writes to the PRD body (`## Tickets`, alias `## Generated Work`; see #582) via `lisa:atlassian-access` `operation: read-page id: <PRD-ID>`. Top-level children are the `### <Epic key>: <title>` group headers' first line (`- [<ref>](<url>) — Epic`) plus any top-level Story listed directly under `### Unparented items`. Lines nested deeper (`  - ... — Story:` under an Epic, `    - ... — Sub-task:`) are descendants, NOT top-level children — skip them.
+
+Dedupe the resulting child set by **child-ref identity** — the destination ticket ref recorded in each generated-work entry (the entry is keyed by that ref, not by list position) — per the `prd-lifecycle-rollup` idempotency dedupe key. If the section yields no child (the PRD generated nothing, or the relationship was never recorded), record `no generated top-level children — rollup skipped` and leave the PRD under `$TICKETED_PARENT`; do not ship an empty PRD.
+
+##### 3f.3 Apply the terminal-state predicate
+
+For each top-level child, classify per the `prd-lifecycle-rollup` Confluence/Notion predicate:
+
+- **Terminal (shipped).** The documented generated-work entry for the child is marked **done** in the PRD's machine-readable section (the durable equivalent of a closed ticket, since Confluence has no native ticket state). A child Epic is terminal only when it has itself rolled up to its own terminal state per `leaf-only-lifecycle` — read the child's own recorded state; do not re-derive it from its leaves here.
+- **Terminal-but-dropped.** The entry is marked won't-do / canceled. Like a not-planned leaf, it does not hold the PRD open and is excluded from the shipped set.
+- **Incomplete / blocked.** Anything else: the entry is not yet marked done. Holds the PRD open.
+
+The set of **required** children for the all-terminal check is the top-level children minus the terminal-but-dropped ones.
+
+##### 3f.4 Branch on the rollup verdict
+
+**All required children terminal** (every required top-level child is terminal; at least one required child exists):
+
+1. Re-parent to `shipped`: `transition_prd "$PRD_ID" shipped` (GET-then-PUT via `lisa:atlassian-access` preserving the body verbatim). After the re-parent, re-read the page and confirm `parentId` matches `$SHIPPED_PARENT` (the single-parent invariant).
+2. **If `$CLOSE_ON_SHIPPED` is `true`**, archive the PRD page where the deployment supports archival. When `false`, leave it active.
+3. Post a short rollup footer comment via `lisa:atlassian-access` `operation: comment-page kind: footer` naming the terminal child set and (when dropped children exist) the dropped set, so the audit trail records *why* the PRD shipped. Lead with `"Shipped by Claude — all generated top-level work is complete."`
+
+**Any required child incomplete / blocked**:
+
+1. Leave the PRD under `$TICKETED_PARENT` and leave the page **active**. Do NOT re-parent to `shipped`. Do NOT archive.
+2. Report the incomplete child set — both in the cycle summary and, when at least one cycle has previously ticketed this PRD, as a single advisory footer comment listing the still-open children (`- <ref> "<title>" — <state>`), so product can see what's blocking the rollup. Keep it idempotent: regenerate the advisory rather than appending a fresh one each cycle.
+
+##### 3f.5 Rollup cites the rule
+
+This phase implements exactly one PRD-lifecycle hop — `ticketed → shipped` — and the optional config-gated archive that follows it. All terminal-state semantics, the generated-top-level-work boundary, and the dedupe-by-child-ref idempotency come from the `prd-lifecycle-rollup` rule; this skill is its Confluence implementation, not a second source of truth.
+
 ### Phase 4 — Summary report
 
 After processing every ready PRD, emit a summary:
@@ -304,10 +380,11 @@ Print to the agent's output. Do not write this summary to Confluence or the dest
 ## Idempotency & safety
 
 - **Single-cycle scope**: this skill processes the ready set as it exists at the start of Phase 2. New PRDs moved under the `ready` parent mid-cycle are picked up next run.
-- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:confluence-to-tracker` (which delegates to `lisa:tracker-write`), and only ever re-parents PRDs among `in_review`, `blocked`, and `ticketed` via `lisa:atlassian-access` `operation: write-page`. It never edits PRD body content, never re-parents into or out of `draft` / `shipped`, never deletes pages.
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:confluence-to-tracker` (which delegates to `lisa:tracker-write`), and only ever re-parents PRDs among `in_review`, `blocked`, `ticketed`, and `shipped` (the last via the rollup phase 3f only) via `lisa:atlassian-access` `operation: write-page`. It never edits PRD body content, never re-parents into or out of `draft`, never deletes pages. It re-parents under `shipped` and may archive the PRD page **only** through the config-gated rollup phase (3f).
 - **Claim-first ordering**: the re-parent to `in_review` happens BEFORE validation runs, so a re-entrant call won't double-process.
 - **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next PRD. The PRD that errored is left under whatever parent it currently occupies (usually `in_review` if claim succeeded) — the human investigates from there.
 - **Single-parent invariant**: a page has exactly one parent by construction in Confluence — the multi-state ambiguity that label-based systems can hit (two `prd-*` labels simultaneously) cannot occur here. After every transition, re-read the page and confirm `parentId` matches the expected role; if not, surface as an Error and skip.
+- **Rollup idempotency**: rollup (Phase 3f) is a no-op on a PRD already parented under `$SHIPPED_PARENT` (and already archived when `closeOnShipped` is `true`) — no duplicate re-parent, no duplicate archive, no duplicate comment. The all-terminal condition is a pure function of the children's current states (deduped by child-ref identity), so recomputing it is safe to re-run. Archival NEVER precedes the all-terminal condition.
 
 ## Configuration
 
@@ -325,12 +402,14 @@ Destination tracker config (jira / github / linear) is consumed by `lisa:tracker
 | `.lisa.config.json` `confluence.parents.blocked` | yes | Parent page id for "validation failure" |
 | `.lisa.config.json` `confluence.parents.ticketed` | yes | Parent page id for "successfully ticketed" |
 | `.lisa.config.json` `confluence.parents.draft` | recommended | Parent page id for PRDs still being drafted by product |
-| `.lisa.config.json` `confluence.parents.shipped` | recommended | Parent page id for delivered PRDs |
+| `.lisa.config.json` `confluence.parents.shipped` | recommended | Parent page id the rollup phase (3f) re-parents delivered PRDs under; product may also use it by hand |
+| `.lisa.config.json` `confluence.rollup.closeOnShipped` | no (default `false`) | When `true`, rollup archives the PRD page after the `shipped` re-parent; when `false`, re-parents under `shipped` and leaves the page active |
 
 ## Rules
 
 - Never write to the destination tracker outside of `lisa:confluence-to-tracker` → `lisa:tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
-- Never re-parent a PRD into a lifecycle parent this skill doesn't own (`in_review`, `blocked`, `ticketed`). Product owns `draft`, `ready` (as the entry signal), and `shipped`.
+- Never re-parent a PRD into a lifecycle parent this skill doesn't own (`in_review`, `blocked`, `ticketed`, and `shipped` via the rollup phase only). Product owns `draft` and `ready` (as the entry signal); product and the rollup phase (3f) both re-parent under `shipped`.
+- Re-parent under `shipped` (and archive the PRD page when `closeOnShipped` is configured) only from the rollup phase, and only when all generated top-level children are terminal per the `prd-lifecycle-rollup` rule. Never ship or archive on partial completion.
 - Never edit the PRD's body. Communication with product happens only through Confluence comments. The `write-page` call preserves the body verbatim — fetch then PUT with body unchanged.
 - Never post a single page-level dump of all gate failures. One inline comment per `prd_anchor` group (or one footer summary for unanchored failures only). Comments must be inline-anchored where possible, categorized, plain-language, and contain a concrete recommendation.
 - Never include a gate ID, internal skill name, or engineering shorthand in a comment body.
