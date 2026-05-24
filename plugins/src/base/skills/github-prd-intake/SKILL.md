@@ -1,6 +1,6 @@
 ---
 name: github-prd-intake
-description: "Scans a GitHub repository for issues carrying the configured `ready` PRD label and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written (to whatever destination tracker is configured — JIRA, GitHub Issues itself, or Linear) and the label flipped to the configured `ticketed` label; PRDs that fail get clarifying-question comments and the label flipped to the configured `blocked` label. The GitHub counterpart of lisa:notion-prd-intake / lisa:confluence-prd-intake / lisa:linear-prd-intake. Composes existing skills (github-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
+description: "Scans a GitHub repository for issues carrying the configured `ready` PRD label and runs the first eligible one through the dry-run validation pipeline. A PRD that passes every gate gets tickets written (to whatever destination tracker is configured — JIRA, GitHub Issues itself, or Linear) and the label flipped to the configured `ticketed` label; a PRD that fails gets clarifying-question comments and the label flipped to the configured `blocked` label. The GitHub counterpart of lisa:notion-prd-intake / lisa:confluence-prd-intake / lisa:linear-prd-intake. Composes existing skills (github-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -12,7 +12,7 @@ allowed-tools: ["Skill", "Bash"]
 - A full GitHub repo URL (e.g., `https://github.com/acme/product-prds`).
 - The literal token `github` — falls back to `.lisa.config.json` (`github.org` / `github.repo`).
 
-Run one intake cycle against that repo. Each issue with the `ready` label is claimed, validated, and routed to either the `blocked` label (with clarifying comments) or the `ticketed` label (with destination tickets created).
+Run one intake cycle against that repo. The first eligible issue with the `ready` label is claimed, validated, routed to either the `blocked` label (with clarifying comments) or the `ticketed` label (with destination tickets created), then the cycle exits. Remaining ready PRDs stay queued for later scheduler invocations.
 
 ## Workflow resolution
 
@@ -41,7 +41,7 @@ This skill is the GitHub counterpart of `lisa:notion-prd-intake`, `lisa:confluen
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion — claim, validate, branch to `$BLOCKED` or `$TICKETED`, write the summary. The caller has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion for the first eligible PRD — claim, validate, branch to `$BLOCKED` or `$TICKETED`, write the summary, and exit. The caller has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
 
 Specifically forbidden:
 
@@ -119,9 +119,9 @@ gh issue list --repo <org>/<repo> --state open --limit 100 --json number,labels 
 
 If no PRD lifecycle labels appear on any open issue → convention not adopted; surface error and exit. If lifecycle labels exist but none are `$READY` → genuinely empty queue, exit cleanly with the idle message.
 
-### Phase 3 — Process each ready PRD
+### Phase 3 — Process the first eligible ready PRD
 
-Process serially to keep label transitions auditable.
+Select the first ready PRD issue returned by Phase 2 and process only that issue. Later scheduler invocations process the remaining ready PRDs.
 
 #### 3a. Claim
 
@@ -220,9 +220,9 @@ For unanchored failures (`prd_anchor: null`), post one rollup comment prefixed w
 
 After all comments are posted, transition: `gh issue edit <num> --remove-label "$IN_REVIEW" --add-label "$BLOCKED"`. Do NOT write any tickets.
 
-#### 3d. Continue
+#### 3d. Stop
 
-Move to the next ready PRD. One PRD failing does not affect others.
+Stop immediately after the claimed PRD is ticketed, blocked, or recorded as an error.
 
 #### 3e. Coverage audit (mandatory after $TICKETED)
 
@@ -233,7 +233,7 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
 
    | Verdict | Action |
    |---------|--------|
-   | `COMPLETE` | Done. Leave label as `$TICKETED`. Move to next PRD. |
+   | `COMPLETE` | Done. Leave label as `$TICKETED`. End the cycle. |
    | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory comment on the PRD issue naming the scope-creep tickets. Leave label as `$TICKETED`. |
    | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.2 — anchored when `prd_anchor` is non-null. (b) Post one summary comment listing the tickets that *were* successfully created. (c) Transition labels from `$TICKETED` back to `$BLOCKED`. |
    | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. Log as Error; leave label as `$TICKETED` with a flag comment. |
@@ -273,10 +273,10 @@ When the configured destination tracker is GitHub Issues AND the PRD repo is the
 
 ## Idempotency & safety
 
-- **Single-cycle scope**: this skill processes the ready set as it exists at the start of Phase 2. New ready issues added mid-cycle are picked up next run.
+- **One item per cycle**: this skill processes the first eligible ready PRD issue from Phase 2, then exits. New or remaining ready issues are picked up by later scheduler invocations.
 - **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:github-to-tracker` (which delegates to `lisa:tracker-write`), only ever changes labels among `$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, only ever comments on the source PRD issue. It never edits PRD bodies, never touches `draft` or `shipped` labels, never closes or deletes PRD issues.
 - **Claim-first ordering**: the label flip to `$IN_REVIEW` happens BEFORE validation runs.
-- **Failure isolation**: an exception processing one PRD must not stop the cycle. Catch, record under "Errors" in the summary, continue. The PRD that errored is left labeled `$IN_REVIEW` — humans investigate from there.
+- **Failure handling**: an exception processing the selected PRD is caught and recorded under "Errors" in the summary, then the cycle exits. The PRD that errored is left labeled `$IN_REVIEW` — humans investigate from there.
 - **Single-label invariant**: after every transition, verify exactly one lifecycle label is present.
 
 ## Configuration

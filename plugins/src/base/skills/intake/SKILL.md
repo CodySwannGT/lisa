@@ -1,12 +1,12 @@
 ---
 name: intake
-description: "Vendor-agnostic batch scanner for Ready queues. Given a Notion PRD database URL → finds Ready PRDs and runs lisa:plan per item. Given a Confluence space or parent page URL → finds prd-ready PRDs and runs lisa:plan per item. Given a Linear workspace URL or team key → finds prd-ready Linear projects and runs lisa:plan per item. Given a GitHub repo URL or `org/repo` token → finds prd-ready GitHub issues and runs lisa:plan per item. Given a JIRA project key or JQL filter → finds Ready tickets and runs lisa:implement per item. Given a GitHub repo URL or `org/repo` token when `tracker = github` → finds `status:ready` issues and runs lisa:implement per item. Designed as the cron target for /schedule — one cycle per invocation, processes everything currently Ready, exits cleanly on empty. Symmetric counterpart to the single-item lisa:plan and lisa:implement skills."
+description: "Vendor-agnostic scanner for Ready queues. Given a Notion PRD database URL → finds the first Ready PRD and runs lisa:plan. Given a Confluence space or parent page URL → finds the first prd-ready PRD and runs lisa:plan. Given a Linear workspace URL or team key → finds the first prd-ready Linear project and runs lisa:plan. Given a GitHub repo URL or `org/repo` token → finds the first prd-ready GitHub issue and runs lisa:plan. Given a JIRA project key or JQL filter → finds the first Ready ticket and runs lisa:implement. Given a GitHub repo URL or `org/repo` token when `tracker = github` → finds the first `status:ready` issue and runs lisa:implement. Designed as the cron target for /schedule — one eligible item per invocation, exits cleanly on empty. Symmetric counterpart to the single-item lisa:plan and lisa:implement skills."
 allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-search", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluenceSpaces", "mcp__atlassian__searchConfluenceUsingCql", "mcp__atlassian__getAccessibleAtlassianResources", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getJiraIssue", "mcp__linear-server__list_projects", "mcp__linear-server__list_teams", "mcp__linear-server__list_project_labels"]
 ---
 
 # Intake: $ARGUMENTS
 
-Run one batch-intake cycle against the queue identified by `$ARGUMENTS`. Scans for `Status = Ready`, claims each item, and dispatches to the appropriate single-item lifecycle skill.
+Run one intake cycle against the queue identified by `$ARGUMENTS`. Scans for `Status = Ready`, claims the first eligible item, dispatches it to the appropriate single-item lifecycle skill, then exits. Remaining Ready items are left for later scheduler invocations.
 
 ## Confirmation policy
 
@@ -41,7 +41,7 @@ Until the team is established, the first Codex teammate has been spawned, or the
 
 If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool), do NOT create a second team — many harnesses reject double-creates. Continue within the existing team. The team lead created the team; teammates inherit it.
 
-The cycle's outer team is created by Intake. Each item it processes (a PRD via `lisa:plan`, a ticket via `lisa:implement`) executes within the same team — those skills' orchestration preambles detect the existing team and skip creating a second team. One team per cron cycle, processes everything currently Ready.
+The cycle's outer team is created by Intake. The one item it processes (a PRD via `lisa:plan`, a ticket via `lisa:implement`) executes within that team — those skills' orchestration preambles detect the existing team and skip creating a second team. One team per cron cycle, one eligible Ready item per cycle.
 
 ## Source dispatch
 
@@ -49,16 +49,16 @@ Detect the queue type from `$ARGUMENTS` and route:
 
 | If `$ARGUMENTS` is... | Queue type | Per-item dispatch |
 |------------------------|------------|---------------------|
-| A Notion **database** URL or database ID | PRD queue (Notion) | Invoke `lisa:notion-prd-intake` (which scans the DB for Status=Ready, claims each, runs `lisa:plan` per PRD via the dry-run validate → branch → write pipeline) |
-| A Confluence **space** URL or space key (e.g. `https://acme.atlassian.net/wiki/spaces/PRD` or `PRD`) | PRD queue (Confluence) | Invoke `lisa:confluence-prd-intake` (which CQL-queries the space for `label = "prd-ready"`, claims each by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline) |
+| A Notion **database** URL or database ID | PRD queue (Notion) | Invoke `lisa:notion-prd-intake` (which scans the DB for Status=Ready, claims the first eligible PRD, runs `lisa:plan` via the dry-run validate → branch → write pipeline, then exits) |
+| A Confluence **space** URL or space key (e.g. `https://acme.atlassian.net/wiki/spaces/PRD` or `PRD`) | PRD queue (Confluence) | Invoke `lisa:confluence-prd-intake` (which CQL-queries the space for `label = "prd-ready"`, claims the first eligible PRD by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline, then exits) |
 | A Confluence **parent page** URL or page ID (the page whose descendants are PRDs) | PRD queue (Confluence, narrowed) | Invoke `lisa:confluence-prd-intake` with the parent ID (CQL: `ancestor = <id> AND label = "prd-ready"`) |
-| A Linear **workspace** URL (e.g. `https://linear.app/acme`) | PRD queue (Linear) | Invoke `lisa:linear-prd-intake` (which queries `list_projects({label: "prd-ready"})` across the workspace, claims each by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline) |
+| A Linear **workspace** URL (e.g. `https://linear.app/acme`) | PRD queue (Linear) | Invoke `lisa:linear-prd-intake` (which queries `list_projects({label: "prd-ready"})` across the workspace, claims the first eligible project by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline, then exits) |
 | A Linear **team** URL (e.g. `https://linear.app/acme/team/ENG/projects`) or a token already routed as a Linear team key | PRD queue (Linear, narrowed) | Invoke `lisa:linear-prd-intake` with the team key (`list_projects({team, label: "prd-ready"})`) |
 | The literal token `linear` | PRD queue (Linear, default workspace) | Invoke `lisa:linear-prd-intake linear` — only valid if `linear.workspace` is configured in `.lisa.config.json` |
-| A JIRA project key (e.g. `SE`) | Work queue (JIRA) | Invoke `lisa:jira-build-intake` (which scans the project for Status=Ready, claims each via In Progress, runs `lisa:implement` per ticket, transitions to On Dev on success) |
+| A JIRA project key (e.g. `SE`) | Work queue (JIRA) | Invoke `lisa:jira-build-intake` (which scans the project for Status=Ready, claims the first eligible ticket via In Progress, runs `lisa:implement`, transitions to On Dev on success, then exits) |
 | A full JQL filter (e.g. `project = SE AND component = "frontend"`) | Work queue (JIRA, narrowed) | Invoke `lisa:jira-build-intake` with the JQL |
-| A GitHub **repository** URL or `org/repo` token (e.g. `https://github.com/acme/product-prds` or `acme/product-prds`) when used for **PRDs** | PRD queue (GitHub) | Invoke `lisa:github-prd-intake` (which queries `gh issue list --label prd-ready`, claims each by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline). PRD discovery is independent of the destination tracker — the resulting tickets land wherever `.lisa.config.json` `tracker` says. |
-| A GitHub **repository** URL or `org/repo` token when `tracker = github` is configured (build-queue mode) | Work queue (GitHub) | Invoke `lisa:tracker-build-intake` which dispatches to `lisa:github-build-intake` (which queries `gh issue list --label status:ready`, claims via `status:in-progress`, runs `lisa:implement` per issue, relabels to `status:on-dev` on success). |
+| A GitHub **repository** URL or `org/repo` token (e.g. `https://github.com/acme/product-prds` or `acme/product-prds`) when used for **PRDs** | PRD queue (GitHub) | Invoke `lisa:github-prd-intake` (which queries `gh issue list --label prd-ready`, claims the first eligible PRD by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline, then exits). PRD discovery is independent of the destination tracker — the resulting tickets land wherever `.lisa.config.json` `tracker` says. |
+| A GitHub **repository** URL or `org/repo` token when `tracker = github` is configured (build-queue mode) | Work queue (GitHub) | Invoke `lisa:tracker-build-intake` which dispatches to `lisa:github-build-intake` (which queries `gh issue list --label status:ready`, claims the first eligible issue via `status:in-progress`, runs `lisa:implement`, relabels to `status:on-dev` on success, then exits). |
 | The literal token `github` | Defaults to `.lisa.config.json` `github.org` / `github.repo`. Routes by **the `intake_mode` flag** in `$ARGUMENTS` (`prd` or `build`); if the flag is absent, prefer the PRD queue when both label namespaces are present, otherwise pick whichever exists. | Invoke the matching skill (`lisa:github-prd-intake` or `lisa:tracker-build-intake`). |
 
 Disambiguation rules:
@@ -81,15 +81,15 @@ The single-item skills (`lisa:plan`, `lisa:implement`) and the per-vendor batch 
 1. **Resolve the queue** — fetch the database/project metadata, confirm the Status property/workflow has the expected `Ready` value.
 2. **Pre-flight check** — for JIRA, confirm `In Progress` and `On Dev` are reachable transitions before doing any per-ticket work. Stop with a clear error if the workflow is misconfigured.
 3. **Find Ready items** — query the queue. Empty → exit cleanly with `"No items with Status=Ready. Nothing to do."` This is the common idle case for a scheduled run.
-4. **Process each Ready item serially** (claim-first ordering for idempotency):
+4. **Process the first eligible Ready item only** (claim-first ordering for idempotency):
    - Notion PRDs → `lisa:notion-prd-intake` handles per-item: claim (Status=In Review), dry-run validate, branch to Blocked or Ticketed, coverage audit
    - Confluence PRDs → `lisa:confluence-prd-intake` handles per-item: claim (relabel to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed`, coverage audit
    - Linear PRDs → `lisa:linear-prd-intake` handles per-item: claim (relabel project to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed` (with a sentinel feedback issue under each project hosting clarifying-question comments), coverage audit
    - GitHub PRDs → `lisa:github-prd-intake` handles per-item: claim (relabel issue to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed` (with clarifying-question comments posted directly on the PRD issue), coverage audit
    - JIRA tickets → `lisa:jira-build-intake` handles per-item: claim, dispatch to `lisa:jira-agent`, transition to On Dev on success
    - GitHub build issues (when `tracker = github`) → `lisa:tracker-build-intake` → `lisa:github-build-intake` handles per-item: claim (relabel to `status:in-progress`), dispatch to `lisa:github-agent`, relabel to `status:on-dev` on success
-5. **Failure isolation** — one item failing does not stop the cycle; record under "Errors" and continue.
-6. **Summary report** — per-item outcomes, total processed, total errors.
+5. **Stop after one item** — a claimed item, a safe-blocked container, or a per-item error ends the cycle. Remaining Ready items stay untouched for later scheduler invocations.
+6. **Summary report** — the single processed/skipped/error item, total processed, total errors.
 
 ## Schedule examples
 
