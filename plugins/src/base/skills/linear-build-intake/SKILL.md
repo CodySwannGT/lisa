@@ -1,6 +1,6 @@
 ---
 name: linear-build-intake
-description: "Symmetric counterpart to lisa:jira-build-intake on the Linear side. Scans a Linear team for Issues carrying the configured `ready` build label, claims each by relabeling to the configured `claimed` label, runs the implementation/build flow via lisa:linear-agent, and relabels to the configured `done` label on completion. The `ready` label is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "Symmetric counterpart to lisa:jira-build-intake on the Linear side. Scans a Linear team for Issues carrying the configured `ready` build label, claims each by relabeling to the configured `claimed` label, runs the implementation/build flow via lisa:linear-agent, and relabels to the configured `done` label on completion. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic/Story/Spike) that still carries a stale build-ready label is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` label is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed."
 allowed-tools: ["Skill", "Bash", "mcp__linear-server__list_teams", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label"]
 ---
 
@@ -128,7 +128,48 @@ If empty, report `"No Linear Issues labeled $READY. Nothing to do."` and exit. C
 
 ### Phase 3 — Process each ready Issue (serial)
 
-#### 3a. Claim
+#### 3a. Leaf-only claim gate (skip / safe-block containers)
+
+Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready label (e.g. `status:ready` applied before this rule existed, or hand-applied to a Project-grouped parent Issue) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa:linear-write-issue` and the validate-time S15 gate in `lisa:linear-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
+
+Run this gate **before** the claim relabel, for every candidate Issue. Do NOT relabel, comment "Claimed", or invoke `lisa:linear-agent` for an Issue that fails the gate.
+
+**Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an Issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa:linear-read-issue` uses — Linear's native parentage: an Issue groups **sub-issues** via `parentId`, and a **Project** (the Epic equivalent) groups Issues via `projectId`. Relations (`save_issue_relation` — `blocks` / `is blocked by`) express dependencies and are **not** parentage — do not count them as children.
+
+Fetch the Issue's sub-issues via `mcp__linear-server__get_issue` (which returns the children) or `mcp__linear-server__list_issues({parentId: <issueId>})`, then count those still open (Linear `state.type` not in the completed/canceled set):
+
+```text
+# Children of <issueId>: native sub-issues via parentId.
+# Count children whose Linear state.type is NOT terminal ("completed" / "canceled").
+# A parent whose children are all completed is no longer holding open work and
+# rolls up via leaf-only-lifecycle's rollup, not here.
+OPEN_CHILDREN = count(list_issues({parentId: <issueId>})
+                       where state.type not in {"completed", "canceled"})
+```
+
+For a Project-level parent (an Issue that itself anchors a `projectId` grouping rather than a `parentId` tree), resolve membership the same way `lisa:linear-read-issue` does and treat the parent as a container if any grouped Issue is still open. If sub-issue resolution is unavailable, fall back to the parentage `lisa:linear-read-issue` derives and treat the Issue as a container if any derived child is open. Note "sub-issues unavailable — parentage derived" so the operator knows how children were resolved.
+
+Classify and act (first match wins). The type comes from the Issue's `type:` label (`type:Epic`, `type:Story`, `type:Spike`, `type:Bug`, `type:Task`, `type:Sub-task`, `type:Improvement`):
+
+| Condition | Class | Action |
+|---|---|---|
+| `OPEN_CHILDREN > 0` (open child work, any type) | **Container** | **Skip / safe-block — do NOT claim** |
+| no open children AND type ∈ {Epic, Story, Spike} | **Childless container-type** | **Skip / safe-block — do NOT claim** |
+| no open children AND type ∈ {Bug, Task, Sub-task, Improvement} (or no `type:` label) | **Leaf work unit** | **Proceed to 3b claim** |
+
+The childless-parent exception is narrow: childlessness enables a claim **only** for types that are leaf work units to begin with. A childless Epic/Story/Spike is an incomplete decomposition, not an implementable unit — it is never claimed.
+
+**Safe-block (default action for a flagged container).** Leave the build-ready label in place (don't silently strip it — that hides the lifecycle error), post a single lifecycle-repair comment, and record the Issue under "Skipped (container)" in the summary. Do NOT relabel to `$CLAIMED`. Keep the comment idempotent — skip posting if an identical `[claude-build-intake]` lifecycle-repair comment already exists on the Issue, so a re-entrant cycle doesn't spam it.
+
+Post via `mcp__linear-server__save_comment` with:
+
+```text
+[claude-build-intake] Not claimed: this Issue carries the build-ready label ($READY) but is a container with open child work (or a childless Epic/Story/Spike), which violates the leaf-only-lifecycle rule. Build-ready (status:ready) is leaf-only per leaf-only-lifecycle — an agent claims and implements leaves, never a container. Repair: move $READY off this parent onto its leaf children (or, for a childless Epic/Story/Spike, decompose it into leaf children or reclassify it to a leaf type). A parent's lifecycle state rolls up from its children and is never set to ready directly.
+```
+
+This gate never blocks a legitimate flat Task/Bug: those have no open children and a leaf `type:`, so they fall straight through to the claim in 3b.
+
+#### 3b. Claim
 
 Update labels via `mcp__linear-server__save_issue`: remove `$READY`, add `$CLAIMED`. Resolve label IDs via `list_issue_labels` (create `$CLAIMED` if missing).
 
@@ -138,7 +179,7 @@ This is the idempotency lock — a re-entrant cycle's `label: $READY` filter wil
 
 If the relabel fails (permission, race), record under "Errors" and skip. **Do not invoke the build flow on an Issue you didn't successfully claim.**
 
-#### 3b. Run the build flow
+#### 3c. Run the build flow
 
 Invoke `lisa:linear-agent` (per-Issue lifecycle agent) with the Issue identifier. `lisa:linear-agent` owns:
 - Reading the full Issue graph (`lisa:linear-read-issue`)
@@ -154,7 +195,7 @@ Wait for the agent to return. Capture its outcome:
 - **Blocked by ticket-triage ambiguities** — agent posts findings and stops. The Issue stays at `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave at `$CLAIMED`. Record with exception summary.
 
-#### 3c. Relabel to $DONE (only on Success)
+#### 3d. Relabel to $DONE (only on Success)
 
 If `lisa:linear-agent` returned Success:
 1. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
@@ -163,7 +204,7 @@ If `lisa:linear-agent` returned Success:
 
 For any non-Success outcome, do NOT transition. The Issue sits where the agent left it — humans take it from there.
 
-#### 3d. Continue
+#### 3e. Continue
 
 Move to the next ready Issue. One Issue failing does not stop others.
 
@@ -179,6 +220,8 @@ Cycle completed: <ISO timestamp>
 Issues processed: <n>
 - $DONE (build complete, PR ready): <n>
   - <ID> <title> → PR <URL>
+- Skipped (container — leaf-only-lifecycle): <n>
+  - <ID> <title> — build-ready on a parent with open child work; lifecycle-repair comment posted
 - status:blocked (pre-flight verify failed): <n>
   - <ID> <title> — see Issue comments
 - Held (triage found ambiguities): <n>
@@ -191,6 +234,7 @@ Total PRs opened: <n>
 
 ## Idempotency & safety
 
+- **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic/Story/Spike) is skipped/safe-blocked, never claimed (the `leaf-only-lifecycle` rule's claim-time arm). The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE agent invocation — no double-pickup.
 - **No writes outside the lifecycle**: this skill only adds/removes `$READY`, `$CLAIMED`, `$DONE`. Every other label change (and the native state) is owned by the agent or `lisa:linear-evidence`.
 - **Failure isolation**: per-Issue exceptions caught and recorded; the cycle continues.
@@ -210,6 +254,7 @@ If the team hasn't adopted these labels, the first run exits with an adoption hi
 
 ## Rules
 
+- **Claim leaves only.** Per the `leaf-only-lifecycle` rule, never claim a container — an Issue with open child work, or a childless Epic/Story/Spike — even if it carries the build-ready label. Skip or safe-block it (Phase 3a); never silently implement a container.
 - Never relabel an Issue the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
 - Never bypass `lisa:linear-agent` to do build work directly. The agent owns the per-Issue lifecycle.
 - Never auto-transition past `$DONE`. Downstream labels are owned by QA / product / a future verification-intake skill.
