@@ -90,6 +90,8 @@ The dedupe key is **child-ref identity** — the stable, vendor-native identifie
 - **JIRA** — the issue key (e.g. `PROJ-123`).
 - **Confluence / Notion** — the destination ticket ref recorded in the generated-work entry (the entry is keyed by that ref, not by list position).
 
+**Match by stable ref, never by title.** Identity is the child-ref above and *only* the child-ref — never the child's title, summary, or any other mutable field. A child whose **title changed but whose ref is unchanged is the same child**: re-running linking/backlink matches it by ref, updates the displayed title in place, and does **not** create a second link or a duplicate generated-work entry. Conversely, two distinct refs are two distinct children even if their titles happen to be identical. Title-based matching would both miss a renamed child (duplicating it) and falsely collapse two same-named children, so it is never used as the dedupe key (PRD #525: "Dedupe matches by stable ref not title").
+
 Apply it as follows:
 
 - **Linking** is keyed by child-ref: before adding a native child link or a documented generated-work entry, check whether that exact child-ref is already linked/listed; if so, it's a no-op. The documented generated-work section is **regenerated** from the current child set on each run rather than appended, so re-planning never accumulates stale or duplicate entries (the same regenerate-don't-append discipline `prd-backlink` already uses for its `## Tickets` section).
