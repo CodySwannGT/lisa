@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.47.0](https://github.com/CodySwannGT/lisa/compare/vv2.46.0...v2.47.0) (2026-05-24)
+
+
+### Features
+
+* **prd-lifecycle:** harden idempotency with match-by-ref-not-title ([#585](https://github.com/CodySwannGT/lisa/issues/585)) ([815ad09](https://github.com/CodySwannGT/lisa/commit/815ad093476cbcf8527128abb5652cceadaf04e3)), closes [#580](https://github.com/CodySwannGT/lisa/issues/580) [-#584](https://github.com/CodySwannGT/-/issues/584) [#579](https://github.com/CodySwannGT/lisa/issues/579)
+
 ## [2.46.0](https://github.com/CodySwannGT/lisa/compare/vv2.45.0...v2.46.0) (2026-05-24)
 
 
