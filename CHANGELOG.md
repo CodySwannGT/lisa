@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.35.0](https://github.com/CodySwannGT/lisa/compare/vv2.34.0...v2.35.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** mirror leaf-only claim gate into jira/linear build-intake + tracker shim ([2abe983](https://github.com/CodySwannGT/lisa/commit/2abe9835c69b6181ce9a4409b6be9634aad3d4f6)), closes [#543](https://github.com/CodySwannGT/lisa/issues/543) [#542](https://github.com/CodySwannGT/lisa/issues/542) [#543](https://github.com/CodySwannGT/lisa/issues/543)
+
 ## [2.34.0](https://github.com/CodySwannGT/lisa/compare/vv2.33.2...v2.34.0) (2026-05-24)
 
 
