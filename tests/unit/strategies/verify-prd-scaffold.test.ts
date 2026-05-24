@@ -92,7 +92,7 @@ describe("verify-prd scaffold (#597)", () => {
       });
     });
 
-    describe("skills/verify-prd/SKILL.md", () => {
+    describe(SKILL_REL, () => {
       const skill = read(root, SKILL_REL);
 
       it("declares frontmatter name, description, and allowed-tools", () => {
@@ -153,8 +153,10 @@ describe("verify-prd scaffold (#597)", () => {
         expect(skill).toContain("STOP");
         // Reports the incomplete child set.
         expect(skill).toMatch(/incomplete child set/i);
-        // Does NOT run empirical verification.
-        expect(skill).toMatch(/do(es)? not run empirical verification/i);
+        // Does NOT run empirical verification (tolerate markdown emphasis on "not").
+        expect(skill).toMatch(
+          /do(es)?\s+\**not\**\s+run empirical verification/i
+        );
         // Leaves the PRD lifecycle untouched — stays at shipped.
         expect(skill).toMatch(/stays at .?shipped.?|left at .?shipped.?/i);
         expect(skill).toMatch(/untouched|do not transition/i);
@@ -178,6 +180,80 @@ describe("verify-prd scaffold (#597)", () => {
         // Tolerate markdown emphasis around "not" (e.g. "Do **not** re-prompt").
         expect(skill).toMatch(/do(es)?\s+\**not\**\s+re-prompt/i);
         expect(skill).toMatch(/read-only/i);
+      });
+    });
+  });
+});
+
+describe("verify-prd PASS path (#598)", () => {
+  describe.each(PLUGIN_ROOTS)("%s", root => {
+    describe(SKILL_REL, () => {
+      const skill = read(root, SKILL_REL);
+
+      // (1) Phase 4: invoke spec-conformance with the PRD as the spec source,
+      //     never reimplementing the coverage matrix.
+      it("invokes spec-conformance with the PRD as spec source without reimplementing the matrix", () => {
+        expect(skill).toMatch(/spec-conformance/);
+        // The PRD itself is the spec source (not a plan file or leaf ticket).
+        expect(skill).toMatch(/PRD as (the )?spec source/i);
+        // A section-by-section coverage matrix is produced by that skill.
+        expect(skill).toMatch(/coverage matrix/i);
+        // Explicitly forbids reimplementing the matrix.
+        expect(skill).toMatch(/(do|does) not reimplement[^]*matrix/i);
+        // The verdict vocabulary it consumes.
+        expect(skill).toContain("CONFORMS");
+        expect(skill).toMatch(/PARTIAL/);
+        expect(skill).toMatch(/DIVERGES/);
+      });
+
+      // (2) Phase 5: empirical verification of the PRD-dependent surface via the
+      //     verification-lifecycle skill; quality gates are NOT verification.
+      it("runs empirical verification of the PRD-dependent surface via verification-lifecycle", () => {
+        expect(skill).toMatch(/verification-lifecycle/);
+        // The surface is PRD-dependent, spanning the empirical surfaces.
+        expect(skill).toMatch(/surface is PRD-dependent/i);
+        expect(skill).toMatch(/browser/i);
+        expect(skill).toMatch(/\bAPI\b/);
+        expect(skill).toMatch(/\bCLI\b/);
+        // Quality gates (test/typecheck/lint) are explicitly NOT verification.
+        expect(skill).toMatch(/quality gates[^]*not[^]*verification/i);
+        // Each passing empirical check is codified as a regression test.
+        expect(skill).toMatch(/codify-verification/);
+      });
+
+      // (3) Phase 6 PASS: shipped → verified transition + evidence, only on
+      //     CONFORMS + all empirical passing.
+      it("transitions shipped → verified and posts evidence on a passing result", () => {
+        expect(skill).toMatch(/shipped → verified/);
+        // Gated on BOTH conformance CONFORMS and empirical passing.
+        expect(skill).toMatch(/CONFORMS[^]*empirical|empirical[^]*CONFORMS/i);
+        // Posts verification evidence back on the PRD.
+        expect(skill).toMatch(/evidence/i);
+        expect(skill).toMatch(/tracker-evidence/);
+        // Vendor-neutral verified role vocabulary (config-resolution).
+        expect(skill).toContain("prd-verified");
+        expect(skill).toMatch(/config-resolution/);
+        expect(skill).toMatch(/confluence\.parents\.verified/);
+      });
+
+      // (4) The PASS verdict tokens and the not-passed branches that leave the
+      //     PRD at shipped (FAIL path stays sibling work).
+      it("declares the PASS verdict and leaves non-pass branches at shipped", () => {
+        expect(skill).toContain("VERIFIED_PASS");
+        expect(skill).toContain("CONFORMANCE_FAILED");
+        expect(skill).toContain("EMPIRICAL_FAILED");
+        // Non-pass branches leave the PRD at shipped (FAIL path is out of scope).
+        expect(skill).toMatch(/left? (the PRD )?at .?shipped.?/i);
+        expect(skill).toMatch(/FAIL (path|sibling)/i);
+        expect(skill).toMatch(/out of scope/i);
+      });
+
+      // (5) Cites prd-lifecycle-rollup for the PASS hop; verified is product-owned.
+      it("cites prd-lifecycle-rollup for the shipped → verified hop", () => {
+        expect(skill).toContain(RULE_SLUG);
+        expect(skill).toMatch(/shipped → verified/);
+        // verified is product-owned and this skill is its only automated writer.
+        expect(skill).toMatch(/verified.{0,40}product-owned/i);
       });
     });
   });
