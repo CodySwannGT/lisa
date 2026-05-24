@@ -1,0 +1,4 @@
+display_name: "tracker-add-journey"
+short_description: "Vendor-neutral wrapper for appending a Validation Journey section to an existing ticket/issue. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-add-journey, lisa:github-add-journey, or lisa:linear-add-journey."
+default_prompt:
+  - "Use $tracker-add-journey"

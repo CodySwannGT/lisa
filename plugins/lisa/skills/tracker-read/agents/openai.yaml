@@ -1,0 +1,4 @@
+display_name: "tracker-read"
+short_description: "Vendor-neutral wrapper for fetching the full scope of a ticket/issue and its related graph. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-read-ticket, lisa:github-read-issue, or lisa:linear-read-issue. Returns a consolidated context bundle so downstream agents never act on a single ticket in isolation."
+default_prompt:
+  - "Use $tracker-read"

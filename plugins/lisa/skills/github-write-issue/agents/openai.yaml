@@ -1,0 +1,4 @@
+display_name: "github-write-issue"
+short_description: "Creates or updates a GitHub Issue following the same organizational best practices as lisa:jira-write-ticket — three-audience description, Gherkin acceptance criteria, parent sub-issue (Epic/Story hierarchy), explicit relationship discovery, remote links, labels for status/components/priority/story-points, and Validation Journey. Uses the `gh` CLI exclusively (no MCP). Rejects thin issues. The GitHub counterpart of lisa:jira-write-ticket."
+default_prompt:
+  - "Use $github-write-issue"

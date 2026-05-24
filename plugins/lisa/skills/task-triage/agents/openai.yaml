@@ -1,0 +1,4 @@
+display_name: "task-triage"
+short_description: "8-step task triage and implementation workflow. Ensures tasks have clear requirements, dependencies, and verification plans before implementation begins."
+default_prompt:
+  - "Use $task-triage"

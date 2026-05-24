@@ -1,0 +1,4 @@
+display_name: "linear-prd-intake"
+short_description: "Scans a Linear workspace (or a specific team) for projects carrying the configured `ready` PRD label and runs each one through the dry-run validation pipeline. Projects that pass every gate get tickets written and the label flipped to the configured `ticketed` label; projects that fail get clarifying-question comments (on a sentinel feedback issue under the project) and the label flipped to the configured `blocked` label. Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (linear-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
+default_prompt:
+  - "Use $linear-prd-intake"

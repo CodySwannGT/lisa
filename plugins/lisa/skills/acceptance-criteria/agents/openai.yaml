@@ -1,0 +1,4 @@
+display_name: "acceptance-criteria"
+short_description: "Acceptance criteria definition. Gherkin user flows (Given/When/Then), error states, UX concerns, and empirical verification from the user perspective."
+default_prompt:
+  - "Use $acceptance-criteria"

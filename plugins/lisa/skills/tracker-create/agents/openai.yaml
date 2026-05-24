@@ -1,0 +1,4 @@
+display_name: "tracker-create"
+short_description: "Vendor-neutral wrapper for creating tickets/issues from code files or descriptions. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-create, lisa:github-create, or lisa:linear-create. Plans hierarchy structure (epic / story / sub-task), then delegates each individual write through the tracker-write shim."
+default_prompt:
+  - "Use $tracker-create"

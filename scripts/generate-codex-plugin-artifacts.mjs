@@ -18,32 +18,219 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const [pluginDirArg, versionArg] = process.argv.slice(2);
-if (!pluginDirArg || !versionArg) {
-  console.error(
-    "Usage: generate-codex-plugin-artifacts.mjs <plugin-dir> <version>"
+/**
+ * Parse the leading YAML frontmatter block of a SKILL.md file.
+ *
+ * The frontmatter is the simple `key: value` YAML between the first two `---`
+ * fences at the very top of the file (the shape every `plugins/*\/skills/*\/SKILL.md`
+ * uses). Values are read verbatim as strings (trimmed); nested structures and
+ * arrays are not interpreted because skill frontmatter does not use them.
+ *
+ * @param {string} skillMdPath Absolute or relative path to a SKILL.md file.
+ * @returns {{ name?: string, description?: string } & Record<string, string> | null}
+ *   The parsed key/value pairs, or `null` (skip sentinel) when the file has no
+ *   leading `---`-delimited frontmatter block. Pure: never writes.
+ */
+export function parseSkillFrontmatter(skillMdPath) {
+  const raw = fs.readFileSync(skillMdPath, "utf8");
+  // Frontmatter must be the very first thing in the file. Normalize CRLF so a
+  // Windows-authored SKILL.md parses identically to a LF one.
+  const normalized = raw.replace(/\r\n/g, "\n");
+  if (!normalized.startsWith("---\n")) {
+    return null;
+  }
+  const closingIndex = normalized.indexOf("\n---", 3);
+  if (closingIndex === -1) {
+    return null;
+  }
+  const block = normalized.slice(4, closingIndex);
+  const frontmatter = {};
+  for (const line of block.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed === "" || trimmed.startsWith("#")) {
+      continue;
+    }
+    const separator = trimmed.indexOf(":");
+    if (separator === -1) {
+      continue;
+    }
+    const key = trimmed.slice(0, separator).trim();
+    if (key === "") {
+      continue;
+    }
+    const value = trimmed
+      .slice(separator + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
+    frontmatter[key] = value;
+  }
+  return frontmatter;
+}
+
+/**
+ * Encode a single string as a YAML double-quoted scalar.
+ *
+ * Double-quoting unconditionally is the deterministic choice: it round-trips
+ * every possible string — colons, leading `#`/`-`, quotes, indicators — without
+ * the branchy "is this plain-safe?" logic that risks emitting ambiguous YAML.
+ * Only the five escapes YAML's double-quoted style requires are applied, in a
+ * fixed order, so output is a pure function of the input.
+ *
+ * @param {string} value Raw string to encode.
+ * @returns {string} The value wrapped in double quotes with `\`, `"`, and the
+ *   C0 control characters (tab, newline, carriage return) escaped.
+ */
+function yamlQuote(value) {
+  const escaped = value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\t/g, "\\t")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r");
+  return `"${escaped}"`;
+}
+
+/**
+ * Serialize a Codex `interface` object to deterministic `openai.yaml` content.
+ *
+ * Emits exactly three keys in a fixed order — `display_name`,
+ * `short_description`, then `default_prompt` (a block sequence) — with every
+ * scalar double-quoted and a single trailing newline. The function is pure:
+ * given the same input it returns byte-identical output (no timestamps, no
+ * randomness, no filesystem), which is what keeps `bun run build:plugins`
+ * reproducible and the Plugins Sync CI gate stable.
+ *
+ * @param {{ display_name: string, short_description: string, default_prompt: readonly string[] }} iface
+ *   The normalized interface object. `default_prompt` is always rendered as a
+ *   block sequence (an empty array becomes `default_prompt: []`).
+ * @returns {string} Deterministic YAML, terminated by exactly one newline.
+ */
+export function serializeInterfaceToYaml(iface) {
+  const prompts = iface.default_prompt ?? [];
+  const promptBlock =
+    prompts.length === 0
+      ? "default_prompt: []"
+      : ["default_prompt:", ...prompts.map(p => `  - ${yamlQuote(p)}`)].join(
+          "\n"
+        );
+  const lines = [
+    `display_name: ${yamlQuote(iface.display_name)}`,
+    `short_description: ${yamlQuote(iface.short_description)}`,
+    promptBlock,
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Derive a Codex `interface` object from a skill's SKILL.md frontmatter.
+ *
+ * NOTE ON DERIVATION RULES: this is the minimal/placeholder derivation that the
+ * walk-and-emit shell (issue #547) needs to produce a valid `interface` block.
+ * The richer humanization/summarization rules — title-casing `display_name`,
+ * trimming `short_description`, and the `$<name>` starter prompt — are issue
+ * #548's responsibility and will refine these defaults. Until then we fall back
+ * to the raw frontmatter values (and the skill directory name when frontmatter
+ * is missing) so every skill still emits a well-formed file.
+ *
+ * @param {{ name?: string, description?: string } | null} frontmatter Parsed
+ *   SKILL.md frontmatter (or `null` when the file has no frontmatter block).
+ * @param {string} skillName The skill directory name, used as a fallback.
+ * @returns {{ display_name: string, short_description: string, default_prompt: string[] }}
+ *   The normalized interface object the serializer consumes. Pure.
+ */
+export function deriveSkillInterface(frontmatter, skillName) {
+  const name = frontmatter?.name?.trim() || skillName;
+  const description = frontmatter?.description?.trim() || "";
+  return {
+    display_name: name,
+    short_description: description,
+    default_prompt: [`Use $${name}`],
+  };
+}
+
+/**
+ * Walk every `skills/<name>/SKILL.md` in a built plugin and emit a per-skill
+ * `skills/<name>/agents/openai.yaml` (issue #547).
+ *
+ * For each skill directory containing a SKILL.md, the frontmatter is parsed
+ * (#545), an interface object is derived (#548 refines the rules), and the
+ * deterministic serializer (#546) writes `agents/openai.yaml`, creating the
+ * `agents/` directory when missing. Behavior boundaries:
+ *
+ *  - No-op when the plugin has no `skills/` directory.
+ *  - Never clobber a hand-authored `agents/openai.yaml` that already exists in
+ *    source (that is issue #550's surface — but we must not overwrite it here
+ *    regardless).
+ *  - The `commands/` directory is left untouched — Codex does not consume Claude
+ *    `commands/`.
+ *
+ * @param {string} pluginDir Absolute path to a built plugin directory.
+ * @returns {void} Writes files as a side effect.
+ */
+export function writeSkillAgents(pluginDir) {
+  const skillsDir = path.join(pluginDir, "skills");
+  if (!fs.existsSync(skillsDir)) {
+    return;
+  }
+
+  const entries = fs
+    .readdirSync(skillsDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .sort();
+
+  for (const skillName of entries) {
+    const skillDir = path.join(skillsDir, skillName);
+    const skillMdPath = path.join(skillDir, "SKILL.md");
+    if (!fs.existsSync(skillMdPath)) {
+      continue;
+    }
+
+    const openaiYamlPath = path.join(skillDir, "agents", "openai.yaml");
+    // Don't clobber a hand-authored openai.yaml carried over from source.
+    if (fs.existsSync(openaiYamlPath)) {
+      continue;
+    }
+
+    const frontmatter = parseSkillFrontmatter(skillMdPath);
+    const iface = deriveSkillInterface(frontmatter, skillName);
+    fs.mkdirSync(path.dirname(openaiYamlPath), { recursive: true });
+    fs.writeFileSync(openaiYamlPath, serializeInterfaceToYaml(iface));
+  }
+}
+
+function main() {
+  const [pluginDirArg, versionArg] = process.argv.slice(2);
+  if (!pluginDirArg || !versionArg) {
+    console.error(
+      "Usage: generate-codex-plugin-artifacts.mjs <plugin-dir> <version>"
+    );
+    process.exit(1);
+  }
+
+  const pluginDir = path.resolve(pluginDirArg);
+  const claudeManifestPath = path.join(
+    pluginDir,
+    ".claude-plugin",
+    "plugin.json"
   );
-  process.exit(1);
+  if (!fs.existsSync(claudeManifestPath)) {
+    process.exit(0);
+  }
+
+  const claudeManifest = JSON.parse(
+    fs.readFileSync(claudeManifestPath, "utf8")
+  );
+  const pluginName = claudeManifest.name;
+
+  writeCodexManifest(pluginDir, claudeManifest, pluginName, versionArg);
+  writeSkillAgents(pluginDir);
 }
 
-const pluginDir = path.resolve(pluginDirArg);
-const claudeManifestPath = path.join(
-  pluginDir,
-  ".claude-plugin",
-  "plugin.json"
-);
-if (!fs.existsSync(claudeManifestPath)) {
-  process.exit(0);
-}
-
-const claudeManifest = JSON.parse(fs.readFileSync(claudeManifestPath, "utf8"));
-const pluginName = claudeManifest.name;
-
-writeCodexManifest(pluginName, versionArg);
-
-function writeCodexManifest(pluginName, version) {
-  const metadata = metadataFor(pluginName);
+function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
+  const metadata = metadataFor(pluginName, claudeManifest);
   const manifest = {
     name: pluginName,
     version,
@@ -53,7 +240,7 @@ function writeCodexManifest(pluginName, version) {
     ...(claudeManifest.dependencies
       ? { dependencies: claudeManifest.dependencies }
       : {}),
-    ...componentPointers(),
+    ...componentPointers(pluginDir),
     interface: {
       displayName: metadata.displayName,
       shortDescription: metadata.shortDescription,
@@ -73,7 +260,7 @@ function writeCodexManifest(pluginName, version) {
   );
 }
 
-function componentPointers() {
+function componentPointers(pluginDir) {
   return {
     ...(fs.existsSync(path.join(pluginDir, "skills"))
       ? { skills: "./skills/" }
@@ -84,7 +271,7 @@ function componentPointers() {
   };
 }
 
-function metadataFor(pluginName) {
+function metadataFor(pluginName, claudeManifest) {
   const map = {
     lisa: {
       displayName: "Lisa",
@@ -235,4 +422,10 @@ function metadataFor(pluginName) {
       defaultPrompt: [`Use ${pluginName}`],
     }
   );
+}
+
+// Run the generator only when invoked directly (e.g. via build-plugins.sh),
+// not when this module is imported (e.g. by unit tests for the parser).
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main();
 }
