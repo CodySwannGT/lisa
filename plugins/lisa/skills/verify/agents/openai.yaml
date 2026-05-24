@@ -1,4 +1,4 @@
-display_name: "verify"
-short_description: "Ship and verify code. Commits any pending changes, opens or updates the PR, handles the review loop, merges when green, monitors the deploy, and runs remote verification (health checks, Validation Journey replay, Sentry/log inspection) in the target environment. Folds in the legacy /ship alias."
+display_name: "Verify"
+short_description: "Ship and verify code"
 default_prompt:
-  - "Use $verify"
+  - "Use $verify: Ship and verify code."

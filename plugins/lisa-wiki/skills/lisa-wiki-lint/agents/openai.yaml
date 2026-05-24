@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-lint"
-short_description: "Health-check the LLM Wiki. Reports orphan pages, contradictions, stale claims, broken internal links, missing index/log coverage, structure-manifest violations, and secret/tenant leaks. Use periodically or before hardening a wiki. Read-only — it reports findings, it does not fix them."
+display_name: "Lisa Wiki Lint"
+short_description: "Health-check the LLM Wiki"
 default_prompt:
-  - "Use $lisa-wiki-lint"
+  - "Use $lisa-wiki-lint: Health-check the LLM Wiki."

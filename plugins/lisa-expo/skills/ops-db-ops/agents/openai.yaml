@@ -1,4 +1,4 @@
-display_name: "ops-db-ops"
-short_description: "Database migrations, reverts, schema generation, and GraphQL codegen for Expo + serverless backend projects. Operates on the backend (TypeORM) and frontend (GraphQL code generation)."
+display_name: "Ops Db Ops"
+short_description: "Database migrations, reverts, schema generation, and GraphQL codegen for Expo + serverless backend projects"
 default_prompt:
-  - "Use $ops-db-ops"
+  - "Use $ops-db-ops: Database migrations, reverts, schema generation, and GraphQL codegen for Expo + serverless backend projects."

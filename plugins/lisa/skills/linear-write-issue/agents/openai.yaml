@@ -1,4 +1,4 @@
-display_name: "linear-write-issue"
-short_description: "Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices. Polymorphic: dispatches internally on issue_type to save_project (Epic) or save_issue (Story / Sub-task). Enforces description quality (three audiences), Gherkin acceptance criteria, project-as-parent for Stories, parentId for Sub-tasks, explicit relationship discovery (blocks / is blocked by / relates to / duplicates), labels, components-as-labels, project milestones for fix versions, native priority and estimate fields, and Validation Journey. Rejects thin items — use this skill any time a Linear work item is created or significantly edited."
+display_name: "Linear Write Issue"
+short_description: "Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices"
 default_prompt:
-  - "Use $linear-write-issue"
+  - "Use $linear-write-issue: Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices."

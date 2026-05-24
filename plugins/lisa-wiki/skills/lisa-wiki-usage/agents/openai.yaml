@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-usage"
-short_description: "Explain how to browse, query, and contribute to this project's LLM Wiki. Use when a user asks how the wiki works, where knowledge lives, how to find something, or how to add to it — the read/navigation path, not an ingestion or write workflow."
+display_name: "Lisa Wiki Usage"
+short_description: "Explain how to browse, query, and contribute to this project's LLM Wiki"
 default_prompt:
-  - "Use $lisa-wiki-usage"
+  - "Use $lisa-wiki-usage: Explain how to browse, query, and contribute to this project's LLM Wiki."

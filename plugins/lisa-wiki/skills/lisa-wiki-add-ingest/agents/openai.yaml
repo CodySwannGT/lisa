@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-add-ingest"
-short_description: "Scaffold a project-specific \"front-door\" ingest skill that does something unique (classify a source, fetch from a special system, stamp domain frontmatter) and then chains into /ingest. Use when a project needs a bespoke ingestion path that the core connectors do not cover — instead of forking the kernel. The generated skill enriches and delegates; the kernel still owns synthesis, index, log, verify, state, and PR."
+display_name: "Lisa Wiki Add Ingest"
+short_description: "Scaffold a project-specific \"front-door\" ingest skill that does something unique (classify a source, fetch from a special system, stamp…"
 default_prompt:
-  - "Use $lisa-wiki-add-ingest"
+  - "Use $lisa-wiki-add-ingest: Scaffold a project-specific \"front-door\" ingest skill that does something unique (classify a source, fetch from a special system, stamp…."

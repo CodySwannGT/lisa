@@ -1,4 +1,4 @@
-display_name: "linear-build-intake"
-short_description: "Symmetric counterpart to lisa:jira-build-intake on the Linear side. Scans a Linear team for Issues carrying the configured `ready` build label, claims each by relabeling to the configured `claimed` label, runs the implementation/build flow via lisa:linear-agent, and relabels to the configured `done` label on completion. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic/Story/Spike) that still carries a stale build-ready label is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` label is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed."
+display_name: "Linear Build Intake"
+short_description: "Symmetric counterpart to lisa:jira-build-intake on the Linear side"
 default_prompt:
-  - "Use $linear-build-intake"
+  - "Use $linear-build-intake: Symmetric counterpart to lisa:jira-build-intake on the Linear side."

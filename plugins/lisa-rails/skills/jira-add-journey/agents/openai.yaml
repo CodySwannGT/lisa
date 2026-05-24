@@ -1,4 +1,4 @@
-display_name: "jira-add-journey"
-short_description: "Add a Validation Journey section to an existing JIRA ticket by reading the ticket description, understanding the feature, and generating the journey steps and assertions."
+display_name: "Jira Add Journey"
+short_description: "Add a Validation Journey section to an existing JIRA ticket by reading the ticket description, understanding the feature, and generating…"
 default_prompt:
-  - "Use $jira-add-journey"
+  - "Use $jira-add-journey: Add a Validation Journey section to an existing JIRA ticket by reading the ticket description, understanding the feature, and generating…."

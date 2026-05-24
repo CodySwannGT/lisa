@@ -1,4 +1,4 @@
-display_name: "directory-structure"
-short_description: "This skill enforces the project's directory structure standards when creating or moving files. Use this skill when creating new components, screens, features, hooks, utilities, or any other code files to ensure they are placed in the correct location with proper naming conventions. Also use when reviewing file placement or restructuring code."
+display_name: "Directory Structure"
+short_description: "This skill enforces the project's directory structure standards when creating or moving files"
 default_prompt:
-  - "Use $directory-structure"
+  - "Use $directory-structure: This skill enforces the project's directory structure standards when creating or moving files."

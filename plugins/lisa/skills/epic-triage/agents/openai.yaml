@@ -1,4 +1,4 @@
-display_name: "epic-triage"
-short_description: "9-step epic triage and 5-step implementation workflow. Ensures epics are fully scoped, broken down, and ordered before execution begins."
+display_name: "Epic Triage"
+short_description: "9-step epic triage and 5-step implementation workflow"
 default_prompt:
-  - "Use $epic-triage"
+  - "Use $epic-triage: 9-step epic triage and 5-step implementation workflow."

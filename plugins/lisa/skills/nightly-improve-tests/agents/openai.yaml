@@ -1,4 +1,4 @@
-display_name: "nightly-improve-tests"
-short_description: "Nightly direct-execution skill for improving test quality. In nightly mode, focuses on tests for recently changed files. In general mode, scans all tests for the weakest ones. Commits and creates a PR."
+display_name: "Nightly Improve Tests"
+short_description: "Nightly direct-execution skill for improving test quality"
 default_prompt:
-  - "Use $nightly-improve-tests"
+  - "Use $nightly-improve-tests: Nightly direct-execution skill for improving test quality."

@@ -1,4 +1,4 @@
-display_name: "spec-conformance"
-short_description: "Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey assertions, and any explicit deliverables. Builds a coverage matrix mapping each requirement to evidence, flags scope creep separately from misses, and produces a verdict (CONFORMS / PARTIAL / DIVERGES). Runs during the verification phase alongside empirical system verification."
+display_name: "Spec Conformance"
+short_description: "Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey…"
 default_prompt:
-  - "Use $spec-conformance"
+  - "Use $spec-conformance: Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey…."

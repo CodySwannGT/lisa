@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-connector-confluence"
-short_description: "Produce sanitized Confluence source notes for lisa-wiki ingest via the Atlassian MCP. Use only when lisa-wiki-ingest routes to the confluence connector. Read-only; tenant-guarded."
+display_name: "Lisa Wiki Connector Confluence"
+short_description: "Produce sanitized Confluence source notes for lisa-wiki ingest via the Atlassian MCP"
 default_prompt:
-  - "Use $lisa-wiki-connector-confluence"
+  - "Use $lisa-wiki-connector-confluence: Produce sanitized Confluence source notes for lisa-wiki ingest via the Atlassian MCP."

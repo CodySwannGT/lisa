@@ -1,4 +1,4 @@
-display_name: "lisa-review-implementation"
-short_description: "This skill should be used when comparing a project's Lisa-managed files against Lisa's source templates to identify drift. It reads the project manifest, locates source templates, generates diffs for drifted files, and offers to upstream improvements back to Lisa."
+display_name: "Lisa Review Implementation"
+short_description: "comparing a project's Lisa-managed files against Lisa's source templates to identify drift"
 default_prompt:
-  - "Use $lisa-review-implementation"
+  - "Use $lisa-review-implementation: comparing a project's Lisa-managed files against Lisa's source templates to identify drift."

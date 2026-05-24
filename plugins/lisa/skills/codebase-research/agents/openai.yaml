@@ -1,4 +1,4 @@
-display_name: "codebase-research"
-short_description: "Codebase exploration and architecture analysis. Read files, trace data flow, identify modification points, map dependencies, find reusable code, evaluate design patterns."
+display_name: "Codebase Research"
+short_description: "Codebase exploration and architecture analysis"
 default_prompt:
-  - "Use $codebase-research"
+  - "Use $codebase-research: Codebase exploration and architecture analysis."
