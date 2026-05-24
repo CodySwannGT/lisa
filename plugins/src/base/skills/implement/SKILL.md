@@ -116,7 +116,7 @@ Before shutting down the team, execute the Verify flow:
 4. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 5. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
 6. Open a pull request with auto-merge on
-7. PR Watch Loop: Monitor the PR. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. Continue until all checks pass.
+7. PR Watch Loop: Monitor the PR using `git-submit-pr`'s drive-to-merge behavior. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. If the PR is `BEHIND`, blocked by stale review state, or cannot enable auto-merge, follow the harness-agnostic `git-submit-pr` re-sync, review-gate, and direct-merge fallback loop until the PR is actually merged or a blocking failure is surfaced.
 8. Merge the PR
 9. Monitor the deploy action that triggers automatically from the successful merge
 10. If deploy fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 7
