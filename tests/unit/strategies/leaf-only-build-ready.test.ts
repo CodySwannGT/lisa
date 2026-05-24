@@ -10,10 +10,15 @@
  * an S15 gate that FAILs a build-ready container (or a childless
  * Epic/Story/Spike) and PASSes a childless build-ready leaf work unit.
  *
+ * Issue #542: `lisa:github-build-intake` adds the claim-time arm — Phase 3a
+ * classifies each candidate before claiming and skips / safe-blocks any parent
+ * with open child work (or a childless Epic/Story/Spike) carrying a stale
+ * build-ready label, while a childless leaf is claimed normally.
+ *
  * The invariant itself is the vendor-neutral `leaf-only-lifecycle` rule (merged
- * in #537); these tests assert that the writer, decomposition, and validator
- * skills encode it so the label is never hard-applied to — nor accepted on — a
- * container.
+ * in #537); these tests assert that the writer, decomposition, validator, and
+ * build-intake skills encode it so the label is never hard-applied to — nor
+ * accepted on, nor claimed from — a container.
  *
  * Both the source (`plugins/src/base/skills`) and the generated artifact
  * (`plugins/lisa/skills`) are asserted, so an artifact-only edit or a missed
@@ -22,6 +27,8 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+
+import { describe, expect, it } from "vitest";
 
 const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
@@ -153,6 +160,85 @@ describe("leaf-only build-ready invariant (#538)", () => {
     it("documents the build_ready and child_refs spec inputs", () => {
       expect(content).toContain("build_ready");
       expect(content).toContain("child_refs");
+    });
+  });
+
+  // Issue #542: github-build-intake must skip / safe-block any parent that
+  // carries the build-ready label but has open child work (and any childless
+  // Epic/Story/Spike), claiming only leaf work units. The gate lives in
+  // Phase 3a, ahead of the claim relabel. Asserting both roots catches an
+  // artifact-only edit or a missed `bun run build:plugins`.
+  describe.each(SKILL_ROOTS)("%s/github-build-intake (#542)", root => {
+    const content = readSkill(root, "github-build-intake");
+    /** Heading that anchors the claim-time leaf-only gate. */
+    const gateHeading = "#### 3a. Leaf-only claim gate";
+
+    it(CITES_SLUG, () => {
+      expect(content).toContain(RULE_SLUG);
+    });
+
+    it("defines a Phase 3a leaf-only claim gate ahead of the claim", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const claimIndex = content.indexOf("#### 3b. Claim");
+      expect(gateIndex).toBeGreaterThan(-1);
+      expect(claimIndex).toBeGreaterThan(-1);
+      // The gate must precede the claim step so a container is never claimed.
+      expect(gateIndex).toBeLessThan(claimIndex);
+    });
+
+    it("skips / safe-blocks a parent with open child work", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const section = content.slice(gateIndex);
+      // Structural container detection via open sub-issues.
+      expect(section).toMatch(/open child work/i);
+      expect(section).toMatch(/do NOT claim|never claimed|not claimed/i);
+      expect(section).toMatch(/skip|safe-block/i);
+    });
+
+    it("queries native sub-issues to detect open children", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const section = content.slice(gateIndex);
+      // Same native hierarchy lisa:github-read-issue uses.
+      expect(section).toMatch(/subIssues/);
+      expect(section).toMatch(/graphql/i);
+      expect(section).toMatch(/OPEN/);
+    });
+
+    it("does not claim a childless Epic/Story/Spike", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const section = content.slice(gateIndex);
+      expect(section).toMatch(
+        /childless container-type|childless Epic\/Story\/Spike/i
+      );
+      expect(section).toMatch(/Epic/);
+      expect(section).toMatch(/Story/);
+      expect(section).toMatch(/Spike/);
+    });
+
+    it("claims a childless leaf work unit", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const section = content.slice(gateIndex);
+      // The childless-parent exception: flat Bug/Task/Sub-task/Improvement
+      // with no open children falls through to the claim.
+      expect(section).toMatch(/leaf work unit/i);
+      expect(section).toMatch(
+        /Bug, Task, Sub-task, Improvement|Bug \/ Task \/ Sub-task \/ Improvement/
+      );
+      expect(section).toMatch(/[Pp]roceed.*claim|claim/);
+    });
+
+    it("posts a lifecycle-repair comment when safe-blocking a container", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const section = content.slice(gateIndex);
+      expect(section).toMatch(/lifecycle-repair/i);
+      // The repair guidance points the label off the parent onto its leaves.
+      expect(section).toMatch(
+        /onto its leaf children|move .* off this parent/i
+      );
+    });
+
+    it("lists a Skipped (container) bucket in the summary report", () => {
+      expect(content).toMatch(/Skipped \(container/);
     });
   });
 });
