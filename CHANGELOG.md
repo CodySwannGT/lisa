@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.44.0](https://github.com/CodySwannGT/lisa/compare/vv2.43.0...v2.44.0) (2026-05-24)
+
+
+### Features
+
+* **prd-backlink:** always-written, machine-readable generated-work section ([78ca342](https://github.com/CodySwannGT/lisa/commit/78ca34270e71a121bc8fc1f149bc3aaf7fb115e2)), closes [#582](https://github.com/CodySwannGT/lisa/issues/582) [#525](https://github.com/CodySwannGT/lisa/issues/525) [#580](https://github.com/CodySwannGT/lisa/issues/580) [#581](https://github.com/CodySwannGT/lisa/issues/581) [#579](https://github.com/CodySwannGT/lisa/issues/579)
+
 ## [2.43.0](https://github.com/CodySwannGT/lisa/compare/vv2.42.0...v2.43.0) (2026-05-24)
 
 
