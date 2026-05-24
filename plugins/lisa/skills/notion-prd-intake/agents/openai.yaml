@@ -1,0 +1,4 @@
+display_name: "notion-prd-intake"
+short_description: "Scans a Notion PRD database for pages in the configured `ready` status and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and the status flipped to the configured `ticketed` value; PRDs that fail get clarifying-question comments and the status flipped to the configured `blocked` value. The skill is the runtime for the ready → in_review → blocked|ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough); does not reimplement their logic."
+default_prompt:
+  - "Use $notion-prd-intake"

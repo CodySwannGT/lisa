@@ -1,0 +1,4 @@
+display_name: "notion-to-tracker"
+short_description: ">"
+default_prompt:
+  - "Use $notion-to-tracker"

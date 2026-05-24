@@ -1,0 +1,4 @@
+display_name: "ops-verify-jobs"
+short_description: "Verify Solid Queue background jobs are running in Rails applications. Check worker health, queue depth, failed jobs, recurring job execution, and retry stuck jobs."
+default_prompt:
+  - "Use $ops-verify-jobs"

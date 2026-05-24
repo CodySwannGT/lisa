@@ -1,0 +1,4 @@
+display_name: "tracker-source-artifacts"
+short_description: "Canonical, vendor-neutral taxonomy and rules for handling source artifacts (Figma, Lovable, Loom, screenshots, design docs, data samples) when generating or evaluating tracker tickets (JIRA, GitHub Issues, Linear). Defines: (1) artifact domains, (2) classification rules per tool, (3) source precedence (which artifact is authoritative for which question), (4) inheritance from epic to story to sub-task, (5) cross-axis conflict handling. Invoke this skill from any flow that extracts, attaches, or reasons about external design/UX/data artifacts so the rules don't drift across skills."
+default_prompt:
+  - "Use $tracker-source-artifacts"

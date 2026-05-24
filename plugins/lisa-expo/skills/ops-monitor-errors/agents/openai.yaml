@@ -1,0 +1,4 @@
+display_name: "ops-monitor-errors"
+short_description: "Monitor Sentry for unresolved errors in frontend and backend projects. Supports filtering by project, environment, and time range."
+default_prompt:
+  - "Use $ops-monitor-errors"

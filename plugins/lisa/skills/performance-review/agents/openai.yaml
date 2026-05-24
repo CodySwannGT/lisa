@@ -1,0 +1,4 @@
+display_name: "performance-review"
+short_description: "Performance review methodology. N+1 queries, inefficient algorithms, memory leaks, missing indexes, unnecessary re-renders, bundle size issues. Evidence-based recommendations."
+default_prompt:
+  - "Use $performance-review"

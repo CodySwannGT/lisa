@@ -123,6 +123,84 @@ export function serializeInterfaceToYaml(iface) {
   return `${lines.join("\n")}\n`;
 }
 
+/**
+ * Derive a Codex `interface` object from a skill's SKILL.md frontmatter.
+ *
+ * NOTE ON DERIVATION RULES: this is the minimal/placeholder derivation that the
+ * walk-and-emit shell (issue #547) needs to produce a valid `interface` block.
+ * The richer humanization/summarization rules — title-casing `display_name`,
+ * trimming `short_description`, and the `$<name>` starter prompt — are issue
+ * #548's responsibility and will refine these defaults. Until then we fall back
+ * to the raw frontmatter values (and the skill directory name when frontmatter
+ * is missing) so every skill still emits a well-formed file.
+ *
+ * @param {{ name?: string, description?: string } | null} frontmatter Parsed
+ *   SKILL.md frontmatter (or `null` when the file has no frontmatter block).
+ * @param {string} skillName The skill directory name, used as a fallback.
+ * @returns {{ display_name: string, short_description: string, default_prompt: string[] }}
+ *   The normalized interface object the serializer consumes. Pure.
+ */
+export function deriveSkillInterface(frontmatter, skillName) {
+  const name = frontmatter?.name?.trim() || skillName;
+  const description = frontmatter?.description?.trim() || "";
+  return {
+    display_name: name,
+    short_description: description,
+    default_prompt: [`Use $${name}`],
+  };
+}
+
+/**
+ * Walk every `skills/<name>/SKILL.md` in a built plugin and emit a per-skill
+ * `skills/<name>/agents/openai.yaml` (issue #547).
+ *
+ * For each skill directory containing a SKILL.md, the frontmatter is parsed
+ * (#545), an interface object is derived (#548 refines the rules), and the
+ * deterministic serializer (#546) writes `agents/openai.yaml`, creating the
+ * `agents/` directory when missing. Behavior boundaries:
+ *
+ *  - No-op when the plugin has no `skills/` directory.
+ *  - Never clobber a hand-authored `agents/openai.yaml` that already exists in
+ *    source (that is issue #550's surface — but we must not overwrite it here
+ *    regardless).
+ *  - The `commands/` directory is left untouched — Codex does not consume Claude
+ *    `commands/`.
+ *
+ * @param {string} pluginDir Absolute path to a built plugin directory.
+ * @returns {void} Writes files as a side effect.
+ */
+export function writeSkillAgents(pluginDir) {
+  const skillsDir = path.join(pluginDir, "skills");
+  if (!fs.existsSync(skillsDir)) {
+    return;
+  }
+
+  const entries = fs
+    .readdirSync(skillsDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .sort();
+
+  for (const skillName of entries) {
+    const skillDir = path.join(skillsDir, skillName);
+    const skillMdPath = path.join(skillDir, "SKILL.md");
+    if (!fs.existsSync(skillMdPath)) {
+      continue;
+    }
+
+    const openaiYamlPath = path.join(skillDir, "agents", "openai.yaml");
+    // Don't clobber a hand-authored openai.yaml carried over from source.
+    if (fs.existsSync(openaiYamlPath)) {
+      continue;
+    }
+
+    const frontmatter = parseSkillFrontmatter(skillMdPath);
+    const iface = deriveSkillInterface(frontmatter, skillName);
+    fs.mkdirSync(path.dirname(openaiYamlPath), { recursive: true });
+    fs.writeFileSync(openaiYamlPath, serializeInterfaceToYaml(iface));
+  }
+}
+
 function main() {
   const [pluginDirArg, versionArg] = process.argv.slice(2);
   if (!pluginDirArg || !versionArg) {
@@ -148,6 +226,7 @@ function main() {
   const pluginName = claudeManifest.name;
 
   writeCodexManifest(pluginDir, claudeManifest, pluginName, versionArg);
+  writeSkillAgents(pluginDir);
 }
 
 function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {

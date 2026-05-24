@@ -1,0 +1,4 @@
+display_name: "research"
+short_description: "Research a problem space and produce a PRD. Investigates the codebase, defines user flows, assesses technical feasibility, and outputs a specification ready to hand to the Plan flow. Vendor-agnostic — the resulting PRD lands wherever the configured destination is (Notion, Confluence, file, etc.)."
+default_prompt:
+  - "Use $research"
