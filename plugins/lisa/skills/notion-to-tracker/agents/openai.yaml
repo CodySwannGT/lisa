@@ -1,4 +1,4 @@
-display_name: "notion-to-tracker"
+display_name: "Notion To Tracker"
 short_description: ">"
 default_prompt:
-  - "Use $notion-to-tracker"
+  - "Use $notion-to-tracker: >."

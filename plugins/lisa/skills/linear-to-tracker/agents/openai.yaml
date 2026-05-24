@@ -1,4 +1,4 @@
-display_name: "linear-to-tracker"
+display_name: "Linear To Tracker"
 short_description: ">"
 default_prompt:
-  - "Use $linear-to-tracker"
+  - "Use $linear-to-tracker: >."

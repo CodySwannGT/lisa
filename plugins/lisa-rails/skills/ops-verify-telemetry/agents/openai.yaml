@@ -1,4 +1,4 @@
-display_name: "ops-verify-telemetry"
-short_description: "Verify OpenTelemetry traces are being collected and exported to AWS X-Ray for Rails applications. Check collector health, trace export, and CloudWatch metrics."
+display_name: "Ops Verify Telemetry"
+short_description: "Verify OpenTelemetry traces are being collected and exported to AWS X-Ray for Rails applications"
 default_prompt:
-  - "Use $ops-verify-telemetry"
+  - "Use $ops-verify-telemetry: Verify OpenTelemetry traces are being collected and exported to AWS X-Ray for Rails applications."

@@ -1,4 +1,4 @@
-display_name: "git-prune"
-short_description: "This skill should be used when pruning local branches that have been deleted on the remote. It fetches remote changes, identifies stale local branches, and safely deletes them."
+display_name: "Git Prune"
+short_description: "pruning local branches that have been deleted on the remote"
 default_prompt:
-  - "Use $git-prune"
+  - "Use $git-prune: pruning local branches that have been deleted on the remote."

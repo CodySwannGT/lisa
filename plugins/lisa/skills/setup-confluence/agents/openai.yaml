@@ -1,4 +1,4 @@
-display_name: "setup-confluence"
-short_description: "Configure Confluence as the PRD source for this project. Writes `confluence.spaceKey` and/or `confluence.parentPageId` into `.lisa.config.json` and offers to set top-level `source: \\\"confluence\\\"`. Depends on /lisa:setup:atlassian — atlassian.cloudId must already be present. Idempotent."
+display_name: "Setup Confluence"
+short_description: "Configure Confluence as the PRD source for this project"
 default_prompt:
-  - "Use $setup-confluence"
+  - "Use $setup-confluence: Configure Confluence as the PRD source for this project."

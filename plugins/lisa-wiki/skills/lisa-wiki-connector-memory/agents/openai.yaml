@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-connector-memory"
-short_description: "Ingest the agent's PROJECT-SCOPED memory into a sanitized source note. Use only when lisa-wiki-ingest routes to the memory connector. NEVER ingests global or unrelated memory — global Codex memory and the Chronicle store are refused."
+display_name: "Lisa Wiki Connector Memory"
+short_description: "Ingest the agent's PROJECT-SCOPED memory into a sanitized source note"
 default_prompt:
-  - "Use $lisa-wiki-connector-memory"
+  - "Use $lisa-wiki-connector-memory: Ingest the agent's PROJECT-SCOPED memory into a sanitized source note."
