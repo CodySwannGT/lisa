@@ -83,13 +83,17 @@ fi
 
 echo "🤖 Checking for AI co-authorship..."
 
-if ! echo "$COMMIT_MSG" | grep -q "Co-Authored-By:.*Claude"; then
+# Accept attribution from any supported coding agent (Claude or Codex),
+# case-insensitively. Claude Code emits "Co-Authored-By: Claude"; the Codex CLI
+# emits "Co-authored-by: Codex <noreply@openai.com>".
+if ! echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex)"; then
   echo ""
   echo "❌ Commit message must include AI co-authorship!"
   echo ""
-  echo "All commits must include a Co-Authored-By line for Claude."
+  echo "All commits must include a Co-authored-by line for a coding agent (Claude or Codex)."
   echo ""
   echo "If you're using Claude Code, use the /git:commit command"
+  echo "If you're using Codex, enable commit_attribution in .codex/config.toml"
   echo ""
   exit 1
 fi
