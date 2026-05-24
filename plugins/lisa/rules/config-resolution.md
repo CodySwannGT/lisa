@@ -220,6 +220,12 @@ Skills that transition to `done` MUST resolve the env first:
 
 If a project's terminal state is the same regardless of env, set `done` to a string instead of a map (lifecycle skills accept either shape).
 
+The true terminal `done` value is also the only value that triggers provider-native closure / resolution per `leaf-only-lifecycle`:
+
+- If `done` is a string, that value is terminal.
+- If `done` is an env-keyed map, the production / final environment's value is terminal. The conventional key is `production`; project-specific final env names must be explicit in deploy config or the lifecycle skill must fail rather than guessing.
+- Intermediate env values (`dev`, `staging`, or configured equivalents) are deployment waypoints. Applying them must not close / resolve / complete the native tracker item.
+
 ### What's configurable, what's not
 
 - **Status / label NAMES** are configurable per project — that's the point of the vocabulary maps.

@@ -49,14 +49,14 @@ If the cycle errored before processing any issues (e.g. label namespace not adop
 
 ### 4. Suggest next actions when warranted
 
-After a successful cycle, if any issues ended in the configured `done` label, mention that the next phase (QA, deploy, or downstream verification) is owned by either humans or a future intake skill. This skill does not own anything past `done`.
+After a successful cycle, if any issues ended in the configured `done` label, mention whether the vendor skill also performed terminal native closure. This skill does not own anything past `done`, except that `github-build-intake` closes the GitHub issue when `done` is the true terminal value per `leaf-only-lifecycle`.
 
 If any issues ended in `Blocked` (pre-flight verify failed) or `Held` (triage found ambiguities), point that out so the caller knows which issues need human attention before they can be re-claimed. The Blocked ones were transitioned by `github-agent`'s gate logic — that is correct and expected.
 
 ## Rules
 
 - **Never run a cycle without an explicit repo.** Side effects too high to default.
-- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions. Never touch terminal-`done` or any other label. (Exception: `github-agent` may relabel to the configured `blocked` label as part of its pre-flight gate — that's its job, not yours.)
+- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions and terminal-only native issue closure. Never touch any other label. (Exception: `github-agent` may relabel to the configured `blocked` label as part of its pre-flight gate — that's its job, not yours.)
 - **Never bypass `github-agent` to do build work directly.** The intake skill dispatches; `github-agent` builds. Skipping the dispatch produces broken work.
 - **Never invent labels.** The label namespace lives in `.lisa.config.json` `github.labels.build.*` (canonical) — the setup skill writes it. Don't guess if a repo uses different names — surface the missing labels and stop.
 - **Never start a second cycle while one is in flight against the same repo.** Serial execution. Scheduling layer (when added) is responsible for not double-firing.
