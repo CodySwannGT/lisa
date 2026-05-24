@@ -1,4 +1,4 @@
-display_name: "setup-github"
-short_description: "Configure GitHub Issues as the destination tracker and/or the PRD source for this project. Verifies the gh CLI is installed and authenticated, resolves `org/repo`, scaffolds the build-queue label namespace (`status:*`) when GitHub is the tracker and/or the PRD-lifecycle label namespace (`prd-*` + sentinel) when GitHub is the PRD source, writes the `github` section into `.lisa.config.json`, and offers to set top-level `tracker: \\\"github\\\"` and/or `source: \\\"github\\\"`. Idempotent — re-running updates the existing section and reuses existing labels rather than duplicating. No /lisa:setup:atlassian prerequisite (GitHub auth is standalone)."
+display_name: "Setup Github"
+short_description: "Configure GitHub Issues as the destination tracker and/or the PRD source for this project"
 default_prompt:
-  - "Use $setup-github"
+  - "Use $setup-github: Configure GitHub Issues as the destination tracker and/or the PRD source for this project."

@@ -1,4 +1,4 @@
-display_name: "ops-performance"
-short_description: "Performance analysis for Expo + serverless backend projects. Runs Lighthouse audits, bundle size analysis, and k6 load tests."
+display_name: "Ops Performance"
+short_description: "Performance analysis for Expo + serverless backend projects"
 default_prompt:
-  - "Use $ops-performance"
+  - "Use $ops-performance: Performance analysis for Expo + serverless backend projects."

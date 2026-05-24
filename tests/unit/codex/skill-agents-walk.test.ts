@@ -75,14 +75,20 @@ describe("codex/skill-agents-walk", () => {
 
     writeSkillAgents(tempDir);
 
-    for (const name of ["alpha", "beta", "gamma"]) {
+    // display_name is humanized (#548): the lowercase directory name is
+    // title-cased on emit, so "alpha" -> "Alpha".
+    for (const [name, displayName] of [
+      ["alpha", "Alpha"],
+      ["beta", "Beta"],
+      ["gamma", "Gamma"],
+    ]) {
       const yamlPath = openaiYamlPath(name);
       expect(await fs.pathExists(yamlPath)).toBe(true);
       const parsed = parseYaml(await fs.readFile(yamlPath, "utf8")) as Record<
         string,
         unknown
       >;
-      expect(parsed.display_name).toBe(name);
+      expect(parsed.display_name).toBe(displayName);
       expect(parsed).toHaveProperty("short_description");
       expect(parsed).toHaveProperty("default_prompt");
     }
@@ -144,19 +150,129 @@ describe("codex/skill-agents-walk", () => {
   });
 
   describe("deriveSkillInterface", () => {
-    it("uses frontmatter name and description", () => {
+    // The PRD's reference frontmatter description for the exploratory-qa skill.
+    const EXPLORATORY_QA_DESCRIPTION =
+      "Playwright-backed exploratory QA workflow for web apps. Use when asked to audit an app or project with Playwright/e2e tests, find human-noticeable bugs, identify gaps in automated test coverage, test responsive breakpoints, observe slow or unclear load states, exercise mutable workflows with cleanup, or produce a QA gaps report.";
+
+    // ---- Acceptance criteria from issue #548 ----
+
+    it("humanizes display_name from the frontmatter name (AC: exploratory-qa -> Exploratory QA)", () => {
       const iface = deriveSkillInterface(
-        { name: EXPLORATORY_QA, description: "QA workflow" },
+        { name: EXPLORATORY_QA, description: EXPLORATORY_QA_DESCRIPTION },
         EXPLORATORY_QA
       );
-      expect(iface.display_name).toBe(EXPLORATORY_QA);
-      expect(iface.short_description).toBe("QA workflow");
-      expect(iface.default_prompt).toEqual([`Use $${EXPLORATORY_QA}`]);
+      expect(iface.display_name).toBe("Exploratory QA");
     });
 
-    it("falls back to the directory name when frontmatter is null", () => {
+    it("default_prompt references the skill token (AC: contains $exploratory-qa)", () => {
+      const iface = deriveSkillInterface(
+        { name: EXPLORATORY_QA, description: EXPLORATORY_QA_DESCRIPTION },
+        EXPLORATORY_QA
+      );
+      expect(iface.default_prompt).toHaveLength(1);
+      expect(iface.default_prompt[0]).toContain(`$${EXPLORATORY_QA}`);
+    });
+
+    // ---- display_name humanization ----
+
+    it("title-cases multi-word kebab names", () => {
+      const iface = deriveSkillInterface(
+        { name: "review-local", description: "Review local changes." },
+        "review-local"
+      );
+      expect(iface.display_name).toBe("Review Local");
+    });
+
+    it("upper-cases known acronyms in display_name", () => {
+      const iface = deriveSkillInterface(
+        { name: "setup-jira-api", description: "Set it up." },
+        "setup-jira-api"
+      );
+      expect(iface.display_name).toBe("Setup Jira API");
+    });
+
+    it("humanizes snake_case and whitespace-delimited names too", () => {
+      expect(
+        deriveSkillInterface(
+          { name: "foo_bar baz", description: "Do a thing." },
+          "foo_bar baz"
+        ).display_name
+      ).toBe("Foo Bar Baz");
+    });
+
+    it("title-cases (does not force all-caps) tokens not in the acronym set", () => {
+      // "jsdoc" is a mixed-case product name, not a pure initialism, so it is
+      // deliberately NOT in the acronym set — forcing "JSDOC" would be wrong.
+      expect(
+        deriveSkillInterface(
+          { name: "jsdoc-best-practices", description: "Enforce JSDoc." },
+          "jsdoc-best-practices"
+        ).display_name
+      ).toBe("Jsdoc Best Practices");
+    });
+
+    // ---- short_description summarization ----
+
+    it("derives a concise short_description from the first sentence", () => {
+      const iface = deriveSkillInterface(
+        { name: EXPLORATORY_QA, description: EXPLORATORY_QA_DESCRIPTION },
+        EXPLORATORY_QA
+      );
+      expect(iface.short_description).toBe(
+        "Playwright-backed exploratory QA workflow for web apps"
+      );
+    });
+
+    it("strips a 'This skill should be used when ...' boilerplate prefix", () => {
+      const iface = deriveSkillInterface(
+        {
+          name: "git-commit",
+          description:
+            "This skill should be used when creating conventional commits for current changes. It groups related changes into logical commits.",
+        },
+        "git-commit"
+      );
+      expect(iface.short_description).toBe(
+        "creating conventional commits for current changes"
+      );
+    });
+
+    it("clamps an over-long single-sentence description with an ellipsis", () => {
+      const longSentence = `${"word ".repeat(60).trim()} end`;
+      const iface = deriveSkillInterface(
+        { name: "verbose", description: longSentence },
+        "verbose"
+      );
+      expect(iface.short_description.length).toBeLessThanOrEqual(141);
+      expect(iface.short_description.endsWith("…")).toBe(true);
+    });
+
+    // ---- default_prompt composition ----
+
+    it("composes default_prompt as 'Use $<name>: <summary>.'", () => {
+      const iface = deriveSkillInterface(
+        { name: EXPLORATORY_QA, description: EXPLORATORY_QA_DESCRIPTION },
+        EXPLORATORY_QA
+      );
+      expect(iface.default_prompt).toEqual([
+        "Use $exploratory-qa: Playwright-backed exploratory QA workflow for web apps.",
+      ]);
+    });
+
+    it("falls back to a bare 'Use $<name>' when there is no description", () => {
+      const iface = deriveSkillInterface(
+        { name: "no-desc", description: "" },
+        "no-desc"
+      );
+      expect(iface.short_description).toBe("");
+      expect(iface.default_prompt).toEqual(["Use $no-desc"]);
+    });
+
+    // ---- fallback when frontmatter is missing ----
+
+    it("falls back to the humanized directory name when frontmatter is null", () => {
       const iface = deriveSkillInterface(null, "fallback-skill");
-      expect(iface.display_name).toBe("fallback-skill");
+      expect(iface.display_name).toBe("Fallback Skill");
       expect(iface.short_description).toBe("");
       expect(iface.default_prompt).toEqual(["Use $fallback-skill"]);
     });

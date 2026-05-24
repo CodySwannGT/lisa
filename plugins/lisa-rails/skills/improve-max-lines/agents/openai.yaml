@@ -1,4 +1,4 @@
-display_name: "improve-max-lines"
-short_description: "This skill should be used when reducing the maximum class/module lines threshold and fixing all violations. It updates the RuboCop configuration, identifies classes and modules exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized files."
+display_name: "Improve Max Lines"
+short_description: "reducing the maximum class/module lines threshold and fixing all violations"
 default_prompt:
-  - "Use $improve-max-lines"
+  - "Use $improve-max-lines: reducing the maximum class/module lines threshold and fixing all violations."

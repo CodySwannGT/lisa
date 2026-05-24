@@ -1,4 +1,4 @@
-display_name: "ops-check-logs"
-short_description: "Check application logs from local processes, browser console, React Native device logs, or remote AWS CloudWatch. Supports log tailing, filtering, and error searching across all platforms."
+display_name: "Ops Check Logs"
+short_description: "Check application logs from local processes, browser console, React Native device logs, or remote AWS CloudWatch"
 default_prompt:
-  - "Use $ops-check-logs"
+  - "Use $ops-check-logs: Check application logs from local processes, browser console, React Native device logs, or remote AWS CloudWatch."

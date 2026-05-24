@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-doctor"
-short_description: "Verify that a wiki is correctly set up and (after migration) fully functional. Runs the deterministic checks plus functional smoke tests, writes a doctor report, and returns an overall verdict. Use as the final gate of /migrate, after /setup, or anytime to confirm wiki health. A repo is not \"migrated\" until its doctor verdict is READY."
+display_name: "Lisa Wiki Doctor"
+short_description: "Verify that a wiki is correctly set up and (after migration) fully functional"
 default_prompt:
-  - "Use $lisa-wiki-doctor"
+  - "Use $lisa-wiki-doctor: Verify that a wiki is correctly set up and (after migration) fully functional."
