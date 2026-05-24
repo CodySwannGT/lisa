@@ -55,6 +55,12 @@
       "source": "./plugins/lisa-wiki",
       "description": "LLM Wiki — git-native markdown knowledge base: ingest, query, lint, onboard (Claude + Codex)",
       "category": "productivity"
+    },
+    {
+      "name": "lisa-openclaw",
+      "source": "./plugins/lisa-openclaw",
+      "description": "Connect staff to Telegram or Slack via OpenClaw — facilitator/specialist routing and repo-coding topics (Claude + Codex)",
+      "category": "productivity"
     }
   ]
 }
