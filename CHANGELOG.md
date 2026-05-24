@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.41.1](https://github.com/CodySwannGT/lisa/compare/vv2.41.0...v2.41.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* harden git submit pr merge loop ([b352505](https://github.com/CodySwannGT/lisa/commit/b35250577aed22cedf2e49a2ff0a23238b725ba4)), closes [#612](https://github.com/CodySwannGT/lisa/issues/612)
+
 ## [2.41.0](https://github.com/CodySwannGT/lisa/compare/vv2.40.0...v2.41.0) (2026-05-24)
 
 
