@@ -1,0 +1,4 @@
+display_name: "linear-journey"
+short_description: "Parse a Linear Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database queries, Playwright), capture evidence at each [EVIDENCE: name] marker, and post to Linear + GitHub PR using the linear-evidence skill. Linear counterpart of lisa:jira-journey."
+default_prompt:
+  - "Use $linear-journey"

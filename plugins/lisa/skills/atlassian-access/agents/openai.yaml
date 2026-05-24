@@ -1,0 +1,4 @@
+display_name: "atlassian-access"
+short_description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and confluence-* skill MUST delegate through this skill rather than calling Atlassian directly. Resolves a substrate per operation in this order: (1) acli if installed and its active profile matches the configured site, (2) Atlassian MCP if authenticated and the configured cloudId is in its accessible resources, (3) curl + API-token Basic auth. Verifies the active connection matches `.lisa.config.json` before every operation — substrates authenticated as a different Atlassian account are skipped, not used."
+default_prompt:
+  - "Use $atlassian-access"

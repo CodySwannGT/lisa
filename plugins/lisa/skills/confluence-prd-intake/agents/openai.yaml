@@ -1,0 +1,4 @@
+display_name: "confluence-prd-intake"
+short_description: "Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs each one through the dry-run validation pipeline. PRDs that pass every gate get tickets written and are re-parented under the `ticketed` lifecycle page; PRDs that fail get clarifying-question comments and are re-parented under the `blocked` lifecycle page. Confluence counterpart of `lisa:notion-prd-intake` — the workflow is identical; only the source-of-truth tools and the state encoding differ (parent-page re-parenting instead of a status property). Composes existing skills (confluence-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
+default_prompt:
+  - "Use $confluence-prd-intake"

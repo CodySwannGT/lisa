@@ -1,0 +1,4 @@
+display_name: "exploratory-qa"
+short_description: "Playwright-backed exploratory QA workflow for web apps. Use when asked to audit an app or project with Playwright/e2e tests, find human-noticeable bugs, identify gaps in automated test coverage, test responsive breakpoints, observe slow or unclear load states, exercise mutable workflows with cleanup, or produce a QA gaps report."
+default_prompt:
+  - "Use $exploratory-qa"
