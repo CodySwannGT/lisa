@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.33.0](https://github.com/CodySwannGT/lisa/compare/vv2.32.0...v2.33.0) (2026-05-24)
+
+
+### Features
+
+* **to-tracker:** mirror leaf-only build-ready labeling into notion/confluence/linear ([93922f2](https://github.com/CodySwannGT/lisa/commit/93922f288f00500a1c5755bb31289e9a3b219dad)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#538](https://github.com/CodySwannGT/lisa/issues/538) [#539](https://github.com/CodySwannGT/lisa/issues/539) [#539](https://github.com/CodySwannGT/lisa/issues/539)
+
 ## [2.32.0](https://github.com/CodySwannGT/lisa/compare/vv2.31.0...v2.32.0) (2026-05-24)
 
 
