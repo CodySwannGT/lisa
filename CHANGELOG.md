@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.55.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.55.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** require research-backed project ideation ([de8dc2b](https://github.com/CodySwannGT/lisa/commit/de8dc2bc4801004b4c1ed6d63d8833051c30dab8)), closes [#668](https://github.com/CodySwannGT/lisa/issues/668)
+
 ## [2.54.0](https://github.com/CodySwannGT/lisa/compare/vv2.53.0...v2.54.0) (2026-05-24)
 
 
