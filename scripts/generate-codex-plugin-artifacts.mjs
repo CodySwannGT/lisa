@@ -69,6 +69,60 @@ export function parseSkillFrontmatter(skillMdPath) {
   return frontmatter;
 }
 
+/**
+ * Encode a single string as a YAML double-quoted scalar.
+ *
+ * Double-quoting unconditionally is the deterministic choice: it round-trips
+ * every possible string — colons, leading `#`/`-`, quotes, indicators — without
+ * the branchy "is this plain-safe?" logic that risks emitting ambiguous YAML.
+ * Only the five escapes YAML's double-quoted style requires are applied, in a
+ * fixed order, so output is a pure function of the input.
+ *
+ * @param {string} value Raw string to encode.
+ * @returns {string} The value wrapped in double quotes with `\`, `"`, and the
+ *   C0 control characters (tab, newline, carriage return) escaped.
+ */
+function yamlQuote(value) {
+  const escaped = value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\t/g, "\\t")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r");
+  return `"${escaped}"`;
+}
+
+/**
+ * Serialize a Codex `interface` object to deterministic `openai.yaml` content.
+ *
+ * Emits exactly three keys in a fixed order — `display_name`,
+ * `short_description`, then `default_prompt` (a block sequence) — with every
+ * scalar double-quoted and a single trailing newline. The function is pure:
+ * given the same input it returns byte-identical output (no timestamps, no
+ * randomness, no filesystem), which is what keeps `bun run build:plugins`
+ * reproducible and the Plugins Sync CI gate stable.
+ *
+ * @param {{ display_name: string, short_description: string, default_prompt: readonly string[] }} iface
+ *   The normalized interface object. `default_prompt` is always rendered as a
+ *   block sequence (an empty array becomes `default_prompt: []`).
+ * @returns {string} Deterministic YAML, terminated by exactly one newline.
+ */
+export function serializeInterfaceToYaml(iface) {
+  const prompts = iface.default_prompt ?? [];
+  const promptBlock =
+    prompts.length === 0
+      ? "default_prompt: []"
+      : ["default_prompt:", ...prompts.map(p => `  - ${yamlQuote(p)}`)].join(
+          "\n"
+        );
+  const lines = [
+    `display_name: ${yamlQuote(iface.display_name)}`,
+    `short_description: ${yamlQuote(iface.short_description)}`,
+    promptBlock,
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
 function main() {
   const [pluginDirArg, versionArg] = process.argv.slice(2);
   if (!pluginDirArg || !versionArg) {
