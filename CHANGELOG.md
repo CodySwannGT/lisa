@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.27.0](https://github.com/CodySwannGT/lisa/compare/vv2.26.3...v2.27.0) (2026-05-24)
+
+
+### Features
+
+* **rules:** add leaf-only-invariant + parent rollup vendor-neutral rule ([a75b560](https://github.com/CodySwannGT/lisa/commit/a75b56067ab770521d6cf5c2e93f4be170c24303)), closes [#522](https://github.com/CodySwannGT/lisa/issues/522) [#537](https://github.com/CodySwannGT/lisa/issues/537)
+
+
+### Documentation
+
+* **rules:** drop PRD-only 'ticketed' from build-lifecycle rollup terminals ([346ab10](https://github.com/CodySwannGT/lisa/commit/346ab101892d7f0317fc2dd8a2020bdedca27196)), closes [#610](https://github.com/CodySwannGT/lisa/issues/610)
+
 ### [2.26.3](https://github.com/CodySwannGT/lisa/compare/vv2.26.2...v2.26.3) (2026-05-23)
 
 
