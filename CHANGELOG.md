@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.52.0](https://github.com/CodySwannGT/lisa/compare/vv2.51.0...v2.52.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** scaffold command+skill with child-set read and terminal-child guard ([c80e4c6](https://github.com/CodySwannGT/lisa/commit/c80e4c653ae128a94676791970cd1735a8df7430)), closes [#553](https://github.com/CodySwannGT/lisa/issues/553) [#590](https://github.com/CodySwannGT/lisa/issues/590) [#587](https://github.com/CodySwannGT/lisa/issues/587) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#597](https://github.com/CodySwannGT/lisa/issues/597)
+
 ## [2.51.0](https://github.com/CodySwannGT/lisa/compare/vv2.50.0...v2.51.0) (2026-05-24)
 
 
