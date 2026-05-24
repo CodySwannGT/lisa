@@ -25,6 +25,7 @@ const LISA_CODEX_PLUGINS = [
   "lisa-cdk",
   "lisa-harper-fabric",
   "lisa-rails",
+  "lisa-wiki",
 ] as const;
 
 /** Marketplace category should match each generated `.codex-plugin` manifest. */
@@ -36,6 +37,7 @@ const LISA_CODEX_PLUGIN_CATEGORIES: Readonly<Record<string, string>> = {
   "lisa-cdk": "Coding",
   "lisa-harper-fabric": "Coding",
   "lisa-rails": "Coding",
+  "lisa-wiki": "Productivity",
 };
 
 /** Result of a marketplace install pass */
