@@ -34,6 +34,8 @@ Blocked  OR  Ticketed   ─────►  To Do
                                  ... → Done
   ↑ (after delivery)
 Shipped
+  ↓ (/lisa:verify-prd — empirical PRD-level acceptance)
+Verified   (on fail → back to Blocked + linked fix issues)
 ```
 
 Two human decision points, in bold:
@@ -42,11 +44,25 @@ Two human decision points, in bold:
 
 Everything else is automated.
 
+### `shipped` vs `verified` — and ticket verification vs PRD verification
+
+The PRD lifecycle has two distinct terminal facts, established by two distinct flows:
+
+- **`Shipped`** means all generated work has shipped — the work graph is *complete*. It is rolled up automatically from the child-ticket states (`ticketed → shipped`).
+- **`Verified`** means the shipped product has been *empirically checked against the PRD itself* — the initiative-level acceptance gate has passed. `Shipped` is necessary but not sufficient: every ticket can be closed while a requirement is still missing or a real user workflow still fails.
+
+Two verification scopes back these states, and they are not interchangeable:
+
+- **`/lisa:verify`** verifies **one work item** (a single ticket) in its target environment, as part of that ticket's Build/Fix/Improve flow. It drives a build ticket to `Done`; it does not read the PRD or judge initiative acceptance.
+- **`/lisa:verify-prd`** is the **initiative-level acceptance gate**. It runs after the PRD is `Shipped`, checks the whole PRD's requirements via spec-conformance plus empirical proof, then moves the PRD `Shipped → Verified` on pass, or `Shipped → Blocked` (with linked fix issues and a failure report) on fail. A failed verification reuses `Blocked` rather than adding a separate `verifying`/`verification-failed` state. `Verified` is terminal and product-owned — a PRD is never moved there just because its tickets are closed.
+
+See the `prd-lifecycle-rollup` and `config-resolution` rules for the canonical, vendor-neutral definition.
+
 ## Setup
 
 ### 1. Notion side
 
-Your PRDs need to live in a **database** with a `Status` property whose options are at minimum: `Draft`, `Ready`, `In Review`, `Blocked`, `Ticketed`, `Shipped`. Freeform Notion pages don't have properties, so a database is required.
+Your PRDs need to live in a **database** with a `Status` property whose options are at minimum: `Draft`, `Ready`, `In Review`, `Blocked`, `Ticketed`, `Shipped`, `Verified`. Freeform Notion pages don't have properties, so a database is required.
 
 If your PRDs live as freeform pages today, migrate them into a database. Notion preserves page IDs and URLs through moves, child pages travel with their parents, and discussions stay attached — see the migration sequence used in this repo's session: create a new database via `notion-create-database`, then `notion-move-pages` to relocate each PRD into it.
 
@@ -55,7 +71,7 @@ Recommended schema (matches what `notion-prd-intake` expects):
 | Property | Type | Notes |
 |----------|------|-------|
 | `Name` | Title | Required |
-| `Status` | Select (or Status) | `Draft`, `Ready`, `In Review`, `Blocked`, `Ticketed`, `Shipped` — in workflow order |
+| `Status` | Select (or Status) | `Draft`, `Ready`, `In Review`, `Blocked`, `Ticketed`, `Shipped`, `Verified` — in workflow order |
 | `Section (legacy)` | Select | Optional; useful during migration to track the original heading bucket |
 | `Owner` | People | Optional |
 | `Created` | Created time | Auto |
@@ -172,7 +188,7 @@ Examples:
      - `GAPS_FOUND`: post per-gap comments + a summary of which tickets *were* created, transition `Ticketed → Blocked`.
 4. **Summary report** with per-PRD outcomes.
 
-When a `Blocked` PRD's comments are addressed, product flips it back to `Ready` and the next cycle picks it up. After product confirms delivery, they flip `Ticketed → Shipped` (the skill never touches `Shipped`).
+When a `Blocked` PRD's comments are addressed, product flips it back to `Ready` and the next cycle picks it up. The `Ticketed → Shipped` hop rolls up automatically once all generated work is terminal (the intake skill never sets `Shipped` on partial completion); product may also flip it by hand. Once `Shipped`, `/lisa:verify-prd` runs the initiative-level acceptance gate and moves the PRD `Shipped → Verified` on pass, or `Shipped → Blocked` (with linked fix issues) on fail. The intake skill never touches `Shipped` or `Verified`.
 
 **What happens per cycle** when scanning a JIRA project for Ready tickets (JIRA side, internal `lisa:jira-build-intake`):
 
@@ -264,7 +280,8 @@ A single failed PRD or ticket does not stop the cycle. Errors are caught, record
 | Notion `In Review` | Agent | Claim lock |
 | Notion `Blocked` | Agent (sets), Product (resolves) | Gate failures with comments |
 | Notion `Ticketed` | Agent | Tickets created + coverage verified |
-| Notion `Shipped` | Product | Post-delivery confirmation; agent never touches |
+| Notion `Shipped` | Rollup (sets when all work terminal), Product (by hand) | Generated work complete; intake skill never sets on partial completion |
+| Notion `Verified` | Product / `/lisa:verify-prd` | Empirical PRD-level acceptance passed; intake agent never touches |
 | JIRA `To Do` | Default for new tickets | Agent never sets/changes |
 | JIRA `Ready` | PM/human | Per-ticket build readiness signal |
 | JIRA `In Progress` | Agent | Claim lock |
