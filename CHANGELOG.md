@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.36.0](https://github.com/CodySwannGT/lisa/compare/vv2.35.0...v2.36.0) (2026-05-24)
+
+
+### Features
+
+* **codex:** add SKILL.md frontmatter parser to artifact generator ([cd91672](https://github.com/CodySwannGT/lisa/commit/cd916725921a61f609e3825b74f895ed5f9c1276)), closes [#521](https://github.com/CodySwannGT/lisa/issues/521) [#533](https://github.com/CodySwannGT/lisa/issues/533) [#546](https://github.com/CodySwannGT/lisa/issues/546) [#547](https://github.com/CodySwannGT/lisa/issues/547) [#548](https://github.com/CodySwannGT/lisa/issues/548) [#545](https://github.com/CodySwannGT/lisa/issues/545)
+
 ## [2.35.0](https://github.com/CodySwannGT/lisa/compare/vv2.34.0...v2.35.0) (2026-05-24)
 
 
