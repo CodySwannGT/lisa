@@ -1,0 +1,4 @@
+display_name: "security-zap-scan"
+short_description: "Run an OWASP ZAP baseline security scan locally using Docker. Checks for the ZAP baseline script, executes the scan, and summarizes findings by risk level with remediation recommendations."
+default_prompt:
+  - "Use $security-zap-scan"

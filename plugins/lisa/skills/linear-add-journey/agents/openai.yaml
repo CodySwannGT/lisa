@@ -1,0 +1,4 @@
+display_name: "linear-add-journey"
+short_description: "Add a Validation Journey section to an existing Linear Issue by analyzing the change type and generating appropriate verification steps with evidence markers. Linear counterpart of lisa:jira-add-journey."
+default_prompt:
+  - "Use $linear-add-journey"

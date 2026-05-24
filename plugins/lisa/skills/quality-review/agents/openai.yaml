@@ -1,0 +1,4 @@
+display_name: "quality-review"
+short_description: "Code quality review checklist. Correctness, coding philosophy compliance, test coverage, documentation quality. Findings ranked by severity in plain English."
+default_prompt:
+  - "Use $quality-review"
