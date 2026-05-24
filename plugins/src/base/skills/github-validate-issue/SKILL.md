@@ -63,6 +63,8 @@ artifacts_attached: true          # → requires Source Precedence section
 links: [{ ref: "my-org/my-repo#99", type: "is blocked by" }]   # known issue links (may be empty)
 remote_links: [{ url: "https://github.com/.../pull/42", title: "PR #42" }]
 journey_followup: auto            # auto | none — see S11
+build_ready: true                 # caller asserts the build-ready role (status:ready) is/would be applied — see S15
+child_refs: ["my-org/my-repo#601", "my-org/my-repo#602"]   # known child work (sub-issues / task-list / "Blocked by" parentage) — see S15
 ```
 
 If the caller passes only an issue ref, fetch via `gh issue view <number> --repo <org>/<repo> --json number,title,body,labels,state,milestone,assignees`, parse the body sections, derive the spec fields, then run gates. The parser lives in `lisa:github-read-issue` (composition).
@@ -89,6 +91,7 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | S12 Source Precedence | `design-ux` | true |
 | S13 Relationship Search | `dependency` | true |
 | S14 Evidence manifest binding (leaf work units) | `acceptance-criteria` | true |
+| S15 Leaf-only build-ready | `structural` | false |
 | F1 Issue type label exists in repo | `structural` | false |
 | F2 Parent sub-issue exists and is the right type | `structural` | false |
 | F3 Linked issues exist | `structural` | false |
@@ -198,6 +201,33 @@ FAIL when the Validation Journey is present but declares zero `[EVIDENCE: name]`
 
 This gate depends on S11. It is `N/A` for Epic / Story / Spike (coordination containers, not work units) and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa:github-add-journey`.
 
+#### S15 — Leaf-only build-ready
+
+Enforces the build-side of the vendor-neutral `leaf-only-lifecycle` rule: **only a leaf work unit may carry the build-ready role.** This is the symmetric write-side guard for the GitHub validator — a stale or hand-applied `status:ready` on a container is a lifecycle error and must FAIL here, regardless of how the issue was produced. (Mirrors the "Build-ready label is leaf-only" rule that `lisa:github-write-issue` applies at write time.)
+
+**When the gate applies.** Run S15 whenever the issue is build-ready — i.e. `build_ready = true`, or the spec/live labels include `status:ready`. If the issue is not build-ready, S15 is `N/A` (nothing claims a non-ready issue, so the invariant is vacuous).
+
+**Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an item is a **container** if it has child work, whatever its declared type; otherwise the **type label** decides. Determine child work from (in order) `child_refs`, native sub-issues, body task-list checkboxes, and `Blocked by #<n>` / parent references — the same hierarchy resolution `lisa:github-read-issue` uses. When validating a live ref, query sub-issues alongside the issue fetch.
+
+Apply this decision and FAIL the two invariant-violating cases:
+
+1. **Container with child work + build-ready** — `issue_type ∈ {Epic, Story, Spike}` OR child work is present (any type that has children), AND build-ready. FAIL. A parent organizes work; it is never claimed and implemented directly. Its lifecycle state rolls up from its children.
+2. **Childless container-type + build-ready** — `issue_type ∈ {Epic, Story, Spike}` with **no** child work, AND build-ready. Still FAIL: these types are coordination containers by design, and an empty one is an incomplete decomposition, not an implementable unit (the childless-parent exception in `leaf-only-lifecycle` does **not** promote an Epic/Story/Spike to build-ready).
+
+PASS (the childless-parent exception) when the issue is build-ready and is a **leaf work unit**: `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND has **no** child work. A flat Task or Bug with no sub-issues is a valid build-ready leaf and must not be stranded.
+
+| issue_type | has child work | build-ready | S15 |
+|---|---|---|---|
+| Bug / Task / Sub-task / Improvement | no | yes | **PASS** (leaf) |
+| Bug / Task / Sub-task / Improvement | yes | yes | **FAIL** (structurally a container) |
+| Epic / Story / Spike | yes | yes | **FAIL** (container with children) |
+| Epic / Story / Spike | no | yes | **FAIL** (childless container-type, exception does not apply) |
+| any | any | no | **N/A** (not build-ready) |
+
+Remediation: `"Build-ready (status:ready) is leaf-only per leaf-only-lifecycle. Move status:ready off this container onto its leaf children (or, for a childless Epic/Story/Spike, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
+
+`product_relevant: false` — a build-ready container is a lifecycle/decomposition error for the caller to repair, not a product question.
+
 ### Feasibility Gates (require GitHub lookups; skip in `--spec-only`)
 
 #### F1 — Issue type label exists in repo
@@ -230,7 +260,7 @@ Per `Phase 5` of `lisa:github-write-issue`, every issue MUST carry: `type:<issue
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. If it's an issue ref, fetch via `gh issue view --json` and derive the spec fields. Otherwise parse the YAML spec.
+1. Parse `$ARGUMENTS`. If it's an issue ref, fetch via `gh issue view --json` and derive the spec fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (native sub-issues plus body task-list / `Blocked by #<n>` parentage, resolved as in `lisa:github-read-issue`) so S15 can classify the issue. Otherwise parse the YAML spec.
 2. Confirm `gh auth status` succeeds before any feasibility gate runs.
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only`, run every Feasibility gate.
@@ -258,6 +288,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S12 Source Precedence — <one-line reason>
 - [PASS|FAIL|N/A] S13 Relationship Search — <one-line reason>
 - [PASS|FAIL|N/A] S14 Evidence manifest binding — <one-line reason>
+- [PASS|FAIL|N/A] S15 Leaf-only build-ready — <one-line reason>
 
 ### Feasibility Gates  (omit this section when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type label exists in repo — <one-line reason>
@@ -283,7 +314,7 @@ The verdict is `PASS` if every applicable gate is `PASS`. Any `FAIL` makes the v
 
 Same shape and meaning as `lisa:jira-validate-ticket` so downstream PRD-intake skills (Notion, Confluence, Linear, GitHub) can format comments uniformly:
 
-- **gate**: the gate ID (`S1`–`S14`, `F1`–`F4`).
+- **gate**: the gate ID (`S1`–`S15`, `F1`–`F4`).
 - **category**: the gate's fixed category from the table.
 - **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem the caller should fix without bothering product.
 - **what**: plain-language, product-readable.
