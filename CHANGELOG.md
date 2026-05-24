@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.38.0](https://github.com/CodySwannGT/lisa/compare/vv2.37.0...v2.38.0) (2026-05-24)
+
+
+### Features
+
+* **codex:** walk skills and emit per-skill agents/openai.yaml ([#547](https://github.com/CodySwannGT/lisa/issues/547)) ([c095a24](https://github.com/CodySwannGT/lisa/commit/c095a24798d6796c6ffe8ad1a77e23f6547ed31d)), closes [#545](https://github.com/CodySwannGT/lisa/issues/545) [#546](https://github.com/CodySwannGT/lisa/issues/546) [#521](https://github.com/CodySwannGT/lisa/issues/521) [#548](https://github.com/CodySwannGT/lisa/issues/548)
+
 ## [2.37.0](https://github.com/CodySwannGT/lisa/compare/vv2.36.0...v2.37.0) (2026-05-24)
 
 
