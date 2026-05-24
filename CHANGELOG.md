@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.40.0](https://github.com/CodySwannGT/lisa/compare/vv2.39.4...v2.40.0) (2026-05-24)
+
+
+### Features
+
+* close terminal work items natively ([19385eb](https://github.com/CodySwannGT/lisa/commit/19385ebbd6d1608fc475c1be9f548bd763909915)), closes [#613](https://github.com/CodySwannGT/lisa/issues/613)
+
 ### [2.39.4](https://github.com/CodySwannGT/lisa/compare/vv2.39.3...v2.39.4) (2026-05-24)
 
 ### [2.39.3](https://github.com/CodySwannGT/lisa/compare/vv2.39.2...v2.39.3) (2026-05-24)
