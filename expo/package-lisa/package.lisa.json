@@ -1,6 +1,7 @@
 {
   "force": {
     "scripts": {
+      "setup:deploy-key": "setup-deploy-key",
       "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless'",
       "playwright:build": "expo export --platform web",
       "playwright:test": "bun run playwright:build && playwright test",
