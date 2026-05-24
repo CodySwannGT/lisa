@@ -116,3 +116,12 @@ When the user wants to act on an idea, preserve its feasibility and verification
 - Turn a PRD into tickets → `/lisa:plan`
 - Build a ticket end-to-end → `/lisa:implement`
 - Lock in the verification so it never regresses → `/lisa:codify-verification`
+
+## Example outputs
+
+Use the markdown examples in `examples/` as shape references when composing reports:
+
+- `host-project-only.md` shows ideas grounded only in the current repository.
+- `public-external-inspiration.md` shows how public, no-login external sources can inspire ideas without becoming hidden requirements.
+- `unavailable-data-rejection.md` shows how to name missing private, paid, or unavailable data sources when demoting ideas.
+- `evidence-card-format.md` shows the required evidence fields every Practical Idea card must carry.
