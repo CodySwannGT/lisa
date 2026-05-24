@@ -80,6 +80,8 @@ Most users only ever call `/lisa:research`, `/lisa:plan`, and `/lisa:implement`.
 | --- | --- |
 | `/lisa:intake <queue-url>` | Scans a Ready queue (Notion PRD database, JIRA project, GitHub repo, Linear team, Confluence space) and dispatches each item through the right lifecycle command. Designed as the cron target for unattended runs. |
 
+PRD intake records generated work with native hierarchy where the source and tracker support it, and with a durable generated-work fallback everywhere else. The vendor matrix for GitHub, Linear, JIRA/Atlassian, Confluence, Notion, and cross-vendor queues lives in `plugins/src/base/rules/prd-lifecycle-rollup.md`.
+
 ### Maintenance and Operations
 
 | Command | What it does |
