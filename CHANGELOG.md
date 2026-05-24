@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.57.0](https://github.com/CodySwannGT/lisa/compare/vv2.56.0...v2.57.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** add FAIL path (shipped->blocked + failure report + linked fix issues) ([c967803](https://github.com/CodySwannGT/lisa/commit/c967803d655c1527771f4c47b9b4edd31234eed6)), closes [#597](https://github.com/CodySwannGT/lisa/issues/597) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#599](https://github.com/CodySwannGT/lisa/issues/599)
+
 ## [2.56.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.56.0) (2026-05-24)
 
 
