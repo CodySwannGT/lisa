@@ -15,6 +15,12 @@
  * with open child work (or a childless Epic/Story/Spike) carrying a stale
  * build-ready label, while a childless leaf is claimed normally.
  *
+ * Issue #539: mirrors the #538 decomposition-side change into the other three
+ * PRD-to-tracker skills — `notion-to-tracker`, `confluence-to-tracker`,
+ * `linear-to-tracker` — so all four PRD sources are behaviorally identical:
+ * Phase 3 (Epics) and Phase 4 (Stories) never pass `status:ready`; Phase 5
+ * (Sub-tasks) is the only phase that applies it.
+ *
  * The invariant itself is the vendor-neutral `leaf-only-lifecycle` rule (merged
  * in #537); these tests assert that the writer, decomposition, validator, and
  * build-intake skills encode it so the label is never hard-applied to — nor
@@ -239,6 +245,78 @@ describe("leaf-only build-ready invariant (#538)", () => {
 
     it("lists a Skipped (container) bucket in the summary report", () => {
       expect(content).toMatch(/Skipped \(container/);
+    });
+  });
+
+  // Issue #539: the three non-GitHub PRD-to-tracker skills must mirror the #538
+  // decomposition-side change so all four PRD sources are behaviorally
+  // identical — Phase 3 (Epics) and Phase 4 (Stories) never pass status:ready;
+  // Phase 5 (Sub-tasks) is the only phase that applies it. Asserting both roots
+  // catches an artifact-only edit or a missed `bun run build:plugins`.
+  const TO_TRACKER_SKILLS = [
+    "notion-to-tracker",
+    "confluence-to-tracker",
+    "linear-to-tracker",
+  ] as const;
+  /** Phase headings used to slice each to-tracker skill into phase windows. */
+  const PHASE_3_HEADING = "### Phase 3: Create Epics";
+  const PHASE_4_HEADING = "### Phase 4: Create Stories";
+  const PHASE_5_HEADING = "### Phase 5: Create Sub-tasks";
+  const PHASE_55_HEADING = "### Phase 5.5: Artifact Preservation Gate";
+
+  describe.each(TO_TRACKER_SKILLS)("%s (#539)", skill => {
+    describe.each(SKILL_ROOTS)("%s", root => {
+      const content = readSkill(root, skill);
+      /**
+       * Slice the skill content to the window for a single phase.
+       * @param from heading that opens the phase window (inclusive)
+       * @param to heading that opens the next phase (exclusive bound)
+       * @returns the content between the two headings
+       */
+      const phaseWindow = (from: string, to: string): string => {
+        const fromIndex = content.indexOf(from);
+        const toIndex = content.indexOf(to);
+        expect(fromIndex).toBeGreaterThan(-1);
+        expect(toIndex).toBeGreaterThan(fromIndex);
+        return content.slice(fromIndex, toIndex);
+      };
+
+      it(CITES_SLUG, () => {
+        expect(content).toContain(RULE_SLUG);
+      });
+
+      it("states Epics (Phase 3) are never marked build-ready", () => {
+        const phase3 = phaseWindow(PHASE_3_HEADING, PHASE_4_HEADING);
+        // The Epic block must carry the leaf-only guidance and forbid the label.
+        expect(phase3).toContain(RULE_SLUG);
+        expect(phase3).toMatch(/container, not a leaf work unit/);
+        expect(phase3).toMatch(/status:ready/);
+      });
+
+      it("states Stories (Phase 4) are never marked build-ready", () => {
+        const phase4 = phaseWindow(PHASE_4_HEADING, PHASE_5_HEADING);
+        expect(phase4).toContain(RULE_SLUG);
+        expect(phase4).toMatch(/a Story is a container/);
+        expect(phase4).toMatch(/status:ready/);
+      });
+
+      it("applies the build-ready label only to Sub-tasks (Phase 5)", () => {
+        const phase5 = phaseWindow(PHASE_5_HEADING, PHASE_55_HEADING);
+        expect(phase5).toContain(RULE_SLUG);
+        expect(phase5).toMatch(/leaf work units/);
+        // Sub-tasks are the ONLY items that receive the label.
+        expect(phase5).toMatch(/the ONLY items in the hierarchy/);
+        expect(phase5).toMatch(/status:ready/);
+      });
+
+      it("cites the vendor-neutral build intake, not the GitHub one", () => {
+        const phase5 = phaseWindow(PHASE_5_HEADING, PHASE_55_HEADING);
+        // These are vendor-neutral PRD sources: the destination tracker is
+        // resolved by lisa:tracker-write, so the leaf-only guidance must point
+        // at lisa:tracker-build-intake rather than lisa:github-build-intake.
+        expect(phase5).toContain("lisa:tracker-build-intake");
+        expect(phase5).not.toContain("lisa:github-build-intake");
+      });
     });
   });
 });
