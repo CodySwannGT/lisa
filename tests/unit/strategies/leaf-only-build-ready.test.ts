@@ -21,6 +21,11 @@
  * Phase 3 (Epics) and Phase 4 (Stories) never pass `status:ready`; Phase 5
  * (Sub-tasks) is the only phase that applies it.
  *
+ * Issue #541: mirrors the #540 read-side gate into the JIRA and Linear
+ * validators — `jira-validate-ticket` and `linear-validate-issue` each add an
+ * S15 gate with the equivalent leaf-only remediation, keeping the three
+ * validators symmetric so PRD-intake comment formatting stays shared.
+ *
  * The invariant itself is the vendor-neutral `leaf-only-lifecycle` rule (merged
  * in #537); these tests assert that the writer, decomposition, validator, and
  * build-intake skills encode it so the label is never hard-applied to — nor
@@ -166,6 +171,97 @@ describe("leaf-only build-ready invariant (#538)", () => {
     it("documents the build_ready and child_refs spec inputs", () => {
       expect(content).toContain("build_ready");
       expect(content).toContain("child_refs");
+    });
+  });
+
+  // Issue #541: the JIRA and Linear validators must mirror the #540
+  // github-validate-issue leaf-only gate — FAIL a build-ready container (or a
+  // childless Epic/Story/Spike) and PASS a build-ready leaf. The gate is
+  // documented as S15 in both jira-validate-ticket and linear-validate-issue,
+  // keeping the three validators symmetric. Asserting both roots catches an
+  // artifact-only edit or a missed `bun run build:plugins`.
+  const VALIDATE_SKILLS = [
+    "jira-validate-ticket",
+    "linear-validate-issue",
+  ] as const;
+
+  describe.each(VALIDATE_SKILLS)("%s (#541)", skill => {
+    describe.each(SKILL_ROOTS)("%s", root => {
+      const content = readSkill(root, skill);
+
+      it(CITES_SLUG, () => {
+        expect(content).toContain(RULE_SLUG);
+      });
+
+      it("registers the S15 Leaf-only build-ready gate in the gate table", () => {
+        // Fixed category `structural`, product_relevant false — the same fixed
+        // taxonomy github-validate-issue uses so PRD-intake formatting is shared.
+        expect(content).toMatch(
+          /\|\s*S15 Leaf-only build-ready\s*\|\s*`structural`\s*\|\s*false\s*\|/
+        );
+      });
+
+      it("defines an S15 gate section", () => {
+        expect(content).toContain(S15_HEADING);
+      });
+
+      it("lists S15 in the output report template", () => {
+        expect(content).toMatch(
+          /S15 Leaf-only build-ready — <one-line reason>/
+        );
+      });
+
+      it("FAILs a container that carries the build-ready role", () => {
+        const s15Index = content.indexOf(S15_HEADING);
+        expect(s15Index).toBeGreaterThan(-1);
+        const section = content.slice(s15Index);
+        expect(section).toMatch(/Container with child work \+ build-ready/);
+        expect(section).toMatch(/FAIL/);
+      });
+
+      it("FAILs a childless Epic/Story/Spike marked build-ready", () => {
+        const s15Index = content.indexOf(S15_HEADING);
+        const section = content.slice(s15Index);
+        expect(section).toMatch(/Childless container-type \+ build-ready/);
+        // The childless-parent exception must NOT promote these types.
+        expect(section).toMatch(
+          /does \*\*not\*\* promote an Epic\/Story\/Spike/
+        );
+      });
+
+      it("PASSes a childless leaf work unit marked build-ready", () => {
+        const s15Index = content.indexOf(S15_HEADING);
+        const section = content.slice(s15Index);
+        expect(section).toMatch(/PASS \(the childless-parent exception\)/);
+        expect(section).toMatch(
+          /Bug, Task, Sub-task, Improvement|Bug \/ Task \/ Sub-task \/ Improvement/
+        );
+      });
+
+      it("treats a non-build-ready item as N/A for S15", () => {
+        const s15Index = content.indexOf(S15_HEADING);
+        const section = content.slice(s15Index);
+        expect(section).toMatch(/N\/A.*not build-ready|not build-ready.*N\/A/i);
+      });
+
+      it("documents the build_ready and child_refs spec inputs", () => {
+        expect(content).toContain("build_ready");
+        expect(content).toContain("child_refs");
+      });
+
+      it("uses the same leaf-only remediation as github-validate-issue", () => {
+        const s15Index = content.indexOf(S15_HEADING);
+        const section = content.slice(s15Index);
+        // The shared remediation wording keeps PRD-intake comment formatting
+        // identical across the three validators (the #541 acceptance criterion:
+        // "equivalent leaf-only remediation").
+        expect(section).toContain(
+          "Build-ready (status:ready) is leaf-only per leaf-only-lifecycle."
+        );
+        expect(section).toMatch(
+          /a parent's lifecycle state rolls up from its children and is never set to ready directly/
+        );
+      });
     });
   });
 
