@@ -604,7 +604,6 @@ describe("postinstall-trampoline", () => {
       // Must NOT register a blocking exit listener — that would re-introduce
       // the circular wait.
       expect(child.on).not.toHaveBeenCalled();
-      vi.resetModules();
     });
   });
 });
