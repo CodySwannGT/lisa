@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.43.0](https://github.com/CodySwannGT/lisa/compare/vv2.42.0...v2.43.0) (2026-05-24)
+
+
+### Features
+
+* **prd-backlink:** attach generated top-level work via Linear/JIRA native parent ([9448170](https://github.com/CodySwannGT/lisa/commit/9448170852ea054859ad31f5eea53e4cf35c9dba)), closes [#580](https://github.com/CodySwannGT/lisa/issues/580) [#525](https://github.com/CodySwannGT/lisa/issues/525) [#582](https://github.com/CodySwannGT/lisa/issues/582) [#579](https://github.com/CodySwannGT/lisa/issues/579) [#581](https://github.com/CodySwannGT/lisa/issues/581)
+
 ## [2.42.0](https://github.com/CodySwannGT/lisa/compare/vv2.41.1...v2.42.0) (2026-05-24)
 
 
