@@ -182,6 +182,23 @@ describe("codex/skills-installer", () => {
       );
     });
 
+    it("converts the wiki setup command alias into lisa-setup-wiki", async () => {
+      await seedCommand("lisa-wiki", "setup/wiki.md", SAMPLE_COMMAND_MD);
+      const result = await installSkills(lisaDir, destDir, []);
+
+      const skillName = `${LISA_COMMAND_SKILL_PREFIX}setup-wiki`;
+      const skillPath = path.join(
+        destDir,
+        ".codex",
+        LISA_SKILLS_SUBDIR,
+        skillName,
+        SKILL_MD
+      );
+      expect(await fs.pathExists(skillPath)).toBe(true);
+      const skill = result.installed.find(s => s.name === skillName);
+      expect(skill?.source).toBe("command");
+    });
+
     it("ignores non-md files in the commands tree", async () => {
       await seedCommand("lisa", "fix.md", SAMPLE_COMMAND_MD);
       await seedCommand("lisa", "README.txt", "just a readme");
