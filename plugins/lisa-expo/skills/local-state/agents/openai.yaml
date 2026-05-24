@@ -1,4 +1,4 @@
-display_name: "local-state"
-short_description: "This skill should be used when implementing local state management in this React Native/Expo codebase. It covers Apollo Client Reactive Variables for in-memory reactive state and React Native AsyncStorage for persistent storage. Use this skill when creating feature flags, user preferences, session state, or any client-only state that needs to survive component unmounts or app restarts."
+display_name: "Local State"
+short_description: "implementing local state management in this React Native/Expo codebase"
 default_prompt:
-  - "Use $local-state"
+  - "Use $local-state: implementing local state management in this React Native/Expo codebase."

@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-connector-docs"
-short_description: "Ingest a local document (PDF, DOCX, Markdown, text) into a sanitized source note for lisa-wiki ingest. Use only when lisa-wiki-ingest routes to the docs connector (a file-path input). Uses available local converters; no heavy bundled dependency."
+display_name: "Lisa Wiki Connector Docs"
+short_description: "Ingest a local document (PDF, DOCX, Markdown, text) into a sanitized source note for lisa-wiki ingest"
 default_prompt:
-  - "Use $lisa-wiki-connector-docs"
+  - "Use $lisa-wiki-connector-docs: Ingest a local document (PDF, DOCX, Markdown, text) into a sanitized source note for lisa-wiki ingest."

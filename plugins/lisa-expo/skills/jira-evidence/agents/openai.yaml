@@ -1,4 +1,4 @@
-display_name: "jira-evidence"
-short_description: "Upload screenshots to GitHub pr-assets release, update PR description with evidence, upload attachments to JIRA, post wiki markup comment, and move ticket to Code Review. Reusable by any skill that captures screenshots and generates evidence/comment.txt + evidence/comment.md."
+display_name: "Jira Evidence"
+short_description: "Upload screenshots to GitHub pr-assets release, update PR description with evidence, upload attachments to JIRA, post wiki markup comment…"
 default_prompt:
-  - "Use $jira-evidence"
+  - "Use $jira-evidence: Upload screenshots to GitHub pr-assets release, update PR description with evidence, upload attachments to JIRA, post wiki markup comment…."

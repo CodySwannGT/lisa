@@ -1,4 +1,4 @@
-display_name: "git-submit-pr"
-short_description: "This skill should be used when pushing changes and creating or updating a pull request. It verifies the branch state, pushes to remote, creates or updates a PR with a comprehensive description, and enables auto-merge."
+display_name: "Git Submit PR"
+short_description: "pushing changes and creating or updating a pull request"
 default_prompt:
-  - "Use $git-submit-pr"
+  - "Use $git-submit-pr: pushing changes and creating or updating a pull request."

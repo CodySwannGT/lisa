@@ -1,4 +1,4 @@
-display_name: "github-journey"
-short_description: "Parse a GitHub Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database queries), capture evidence at each marker, and post results via lisa:github-evidence. The GitHub counterpart of lisa:jira-journey."
+display_name: "Github Journey"
+short_description: "Parse a GitHub Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…"
 default_prompt:
-  - "Use $github-journey"
+  - "Use $github-journey: Parse a GitHub Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…."

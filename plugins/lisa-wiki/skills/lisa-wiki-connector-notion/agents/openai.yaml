@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-connector-notion"
-short_description: "Produce sanitized Notion source notes for lisa-wiki ingest via the Notion MCP. Use only when lisa-wiki-ingest routes to the notion connector. Read-only; teamspace-guarded."
+display_name: "Lisa Wiki Connector Notion"
+short_description: "Produce sanitized Notion source notes for lisa-wiki ingest via the Notion MCP"
 default_prompt:
-  - "Use $lisa-wiki-connector-notion"
+  - "Use $lisa-wiki-connector-notion: Produce sanitized Notion source notes for lisa-wiki ingest via the Notion MCP."

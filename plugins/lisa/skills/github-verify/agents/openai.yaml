@@ -1,4 +1,4 @@
-display_name: "github-verify"
-short_description: "This skill should be used when verifying that a GitHub Issue meets organizational standards for parent-sub-issue relationships and description quality. It fetches the live issue and delegates the gate checks to github-validate-issue so the bar matches what github-write-issue enforces pre-write. The GitHub counterpart of lisa:jira-verify."
+display_name: "Github Verify"
+short_description: "verifying that a GitHub Issue meets organizational standards for parent-sub-issue relationships and description quality"
 default_prompt:
-  - "Use $github-verify"
+  - "Use $github-verify: verifying that a GitHub Issue meets organizational standards for parent-sub-issue relationships and description quality."

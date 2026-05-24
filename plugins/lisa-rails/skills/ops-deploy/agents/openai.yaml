@@ -1,4 +1,4 @@
-display_name: "ops-deploy"
-short_description: "Deploy Rails applications via Kamal or CI/CD branch push to staging or production environments."
+display_name: "Ops Deploy"
+short_description: "Deploy Rails applications via Kamal or CI/CD branch push to staging or production environments"
 default_prompt:
-  - "Use $ops-deploy"
+  - "Use $ops-deploy: Deploy Rails applications via Kamal or CI/CD branch push to staging or production environments."
