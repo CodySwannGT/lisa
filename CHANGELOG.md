@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.46.0](https://github.com/CodySwannGT/lisa/compare/vv2.45.0...v2.46.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** propagate PRD closure rollup to linear/confluence/notion intake ([22d8a3d](https://github.com/CodySwannGT/lisa/commit/22d8a3d2b369d95f193dc89c149fed857aaf7ceb)), closes [#583](https://github.com/CodySwannGT/lisa/issues/583) [#579](https://github.com/CodySwannGT/lisa/issues/579) [#584](https://github.com/CodySwannGT/lisa/issues/584)
+
 ## [2.45.0](https://github.com/CodySwannGT/lisa/compare/vv2.44.0...v2.45.0) (2026-05-24)
 
 
