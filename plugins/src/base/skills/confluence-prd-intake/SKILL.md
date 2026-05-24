@@ -102,9 +102,13 @@ The only legitimate reasons to stop early:
 The Confluence PRD lifecycle is encoded as **parent-page placement** — Confluence has no native status field, and scoped API tokens cannot write labels. Each lifecycle role corresponds to a dedicated parent page in the project's Confluence space:
 
 ```text
-draft → ready → in_review → blocked | ticketed → shipped
-        (product)  (us)      (us)                  (product)
+draft → ready → in_review → blocked | ticketed → shipped → verified
+        (product)  (us)      (us)                  (product)  (product)
 ```
+
+(Each role corresponds to a dedicated parent page; the `verified` parent is resolved from `confluence.parents.verified`.)
+
+`verified` is the terminal state after `shipped`: it means the shipped product has been empirically checked against the PRD (set by `/lisa:verify-prd`, not by this intake skill). A failed post-ship verification re-parents back under `blocked` rather than introducing a separate `verifying` / `verification-failed` parent. Like `draft` and `shipped`, `verified` is **product-owned** — this intake skill never re-parents a PRD into or out of the `verified` parent. See the "PRD-level verification vs ticket verification" section of the `prd-lifecycle-rollup` rule.
 
 A PRD's current state is determined entirely by which lifecycle parent it sits under. Re-parenting is the transition.
 
@@ -116,7 +120,7 @@ This skill transitions:
 - `ticketed` → `blocked` (post-write coverage gaps from Phase 3e)
 - `ticketed` → `shipped` (PRD closure rollup, Phase 3f — only when **all** generated top-level children are terminal)
 
-It never re-parents PRDs into or out of the `draft` parent — that parent is owned by product. The `shipped` parent is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also re-parent there by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD page unless `confluence.rollup.closeOnShipped` is configured `true` (default `false` → re-parent under `shipped`, leave the page active).
+It never re-parents PRDs into or out of the `draft` or `verified` parents — those parents are owned by product (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` parent is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also re-parent there by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD page unless `confluence.rollup.closeOnShipped` is configured `true` (default `false` → re-parent under `shipped`, leave the page active).
 
 A "transition" means: update the PRD's `parentId` to the new role's parent-page id via `lisa:atlassian-access` `operation: write-page payload: { id, parentId, title, version: { number: <next> } }`. The v2 PUT endpoint requires the next version number and the page title in the payload; the body content is not strictly required for a re-parent-only edit, but some Atlassian deployments reject PUTs without a body. The skill MUST therefore GET the page first via `read-page`, capture title + current version + current body, then PUT with `parentId` swapped and `version.number` bumped — preserving body content is non-negotiable, this skill never edits PRD content. See `transition_prd` helper in Phase 3a for the canonical implementation.
 
