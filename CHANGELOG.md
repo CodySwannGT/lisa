@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.39.0](https://github.com/CodySwannGT/lisa/compare/vv2.38.0...v2.39.0) (2026-05-24)
+
+
+### Features
+
+* **codex:** derive humanized display_name/short_description/default_prompt from frontmatter ([#548](https://github.com/CodySwannGT/lisa/issues/548)) ([925d625](https://github.com/CodySwannGT/lisa/commit/925d625df25c02802b5e353b890cc2954ab56f88)), closes [#547](https://github.com/CodySwannGT/lisa/issues/547)
+
 ## [2.38.0](https://github.com/CodySwannGT/lisa/compare/vv2.37.0...v2.38.0) (2026-05-24)
 
 
