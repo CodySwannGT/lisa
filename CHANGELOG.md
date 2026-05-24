@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.30.0](https://github.com/CodySwannGT/lisa/compare/vv2.29.0...v2.30.0) (2026-05-24)
+
+
+### Features
+
+* **github-build-intake:** skip/safe-block parents with open child work (leaf-only claim gate) ([65c9186](https://github.com/CodySwannGT/lisa/commit/65c91862921dde8a1627a5b93ec025e0583c6aa0)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#540](https://github.com/CodySwannGT/lisa/issues/540) [#542](https://github.com/CodySwannGT/lisa/issues/542) [#542](https://github.com/CodySwannGT/lisa/issues/542)
+
 ## [2.29.0](https://github.com/CodySwannGT/lisa/compare/vv2.28.0...v2.29.0) (2026-05-24)
 
 
