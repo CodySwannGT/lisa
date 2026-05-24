@@ -4,6 +4,7 @@
  * @module tests/unit/codex/project-ideation-distribution
  */
 import * as fs from "fs-extra";
+import { load as parseYaml } from "js-yaml";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -60,20 +61,23 @@ describe("codex/project-ideation-distribution (#670)", () => {
   it("emits Codex runtime metadata for project-ideation", async () => {
     const manifest = await fs.readJson(CODEX_MANIFEST);
     const openaiYaml = await fs.readFile(BUILT_OPENAI_YAML, "utf8");
+    const metadata = parseYaml(openaiYaml) as {
+      default_prompt?: unknown;
+      display_name?: unknown;
+      short_description?: unknown;
+    };
 
     expect(manifest.skills).toBe("./skills/");
-    expect(openaiYaml).toContain("display_name: 'Project Ideation'");
-    expect(openaiYaml).toContain(
-      "short_description: 'Generate practical, verifiable product or workflow ideas for the current host project'"
+    expect(metadata.display_name).toBe("Project Ideation");
+    expect(metadata.short_description).toBe(
+      "Generate practical, verifiable product or workflow ideas for the current host project"
     );
-    expect(openaiYaml).toContain(
-      "Use $project-ideation: Generate practical feature ideas for this project."
-    );
-    expect(openaiYaml).toContain(
-      "Use $project-ideation: Looking at an external public product, what should we add here?"
-    );
-    expect(openaiYaml).toContain(
-      "Use $project-ideation: Suggest practical improvements we can verify ourselves."
+    expect(metadata.default_prompt).toEqual(
+      expect.arrayContaining([
+        "Use $project-ideation: Generate practical feature ideas for this project.",
+        "Use $project-ideation: Looking at an external public product, what should we add here?",
+        "Use $project-ideation: Suggest practical improvements we can verify ourselves.",
+      ])
     );
   });
 });
