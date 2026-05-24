@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.42.0](https://github.com/CodySwannGT/lisa/compare/vv2.41.1...v2.42.0) (2026-05-24)
+
+
+### Features
+
+* **prd-backlink:** link generated Epic as native GitHub sub-issue of the PRD ([69bf36b](https://github.com/CodySwannGT/lisa/commit/69bf36b2a69ef3c621b1f02a93010449f7433a9e)), closes [#525](https://github.com/CodySwannGT/lisa/issues/525) [#579](https://github.com/CodySwannGT/lisa/issues/579) [#581](https://github.com/CodySwannGT/lisa/issues/581) [#582](https://github.com/CodySwannGT/lisa/issues/582) [#580](https://github.com/CodySwannGT/lisa/issues/580)
+
 ### [2.41.1](https://github.com/CodySwannGT/lisa/compare/vv2.41.0...v2.41.1) (2026-05-24)
 
 
