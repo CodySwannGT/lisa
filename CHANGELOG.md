@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.58.0](https://github.com/CodySwannGT/lisa/compare/vv2.57.0...v2.58.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** idempotent reruns (no duplicate evidence, fix issues, or lifecycle labels) ([e335d5b](https://github.com/CodySwannGT/lisa/commit/e335d5bdd837cd9cebffa52e0999c2b4554b877a)), closes [#600](https://github.com/CodySwannGT/lisa/issues/600) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#599](https://github.com/CodySwannGT/lisa/issues/599)
+
+## [2.57.0](https://github.com/CodySwannGT/lisa/compare/vv2.56.0...v2.57.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** add FAIL path (shipped->blocked + failure report + linked fix issues) ([c967803](https://github.com/CodySwannGT/lisa/commit/c967803d655c1527771f4c47b9b4edd31234eed6)), closes [#597](https://github.com/CodySwannGT/lisa/issues/597) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#599](https://github.com/CodySwannGT/lisa/issues/599)
+
+## [2.56.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.56.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** require research-backed project ideation ([de8dc2b](https://github.com/CodySwannGT/lisa/commit/de8dc2bc4801004b4c1ed6d63d8833051c30dab8)), closes [#668](https://github.com/CodySwannGT/lisa/issues/668)
+* **verify-prd:** add spec-conformance + empirical verification + PASS path (shipped->verified) ([2beb2b0](https://github.com/CodySwannGT/lisa/commit/2beb2b0a09876fdb9bfe4c89a87db99c120f9c3d)), closes [#597](https://github.com/CodySwannGT/lisa/issues/597) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#598](https://github.com/CodySwannGT/lisa/issues/598)
+
 ## [2.55.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.55.0) (2026-05-24)
 
 

@@ -22,17 +22,17 @@
  *       generated TOP-LEVEL work only (excluding leaf sub-tasks), and on any
  *       non-terminal required child STOPS, reports the incomplete set, runs no
  *       verification, and leaves the PRD at `shipped`;
- *   (4) the scaffold cites `prd-lifecycle-rollup` by slug and scopes the PASS
- *       path / FAIL path / idempotency to sibling work (#598/#599/#600);
+ *   (4) the scaffold cites `prd-lifecycle-rollup` by slug; the PASS path (#598),
+ *       FAIL path (#599), and idempotency (#600) are all now implemented here;
  *   (5) the front-half is read-only and does not re-prompt once invoked.
  *
- * Beyond asserting the scaffold documents these guarantees, this suite proves
- * the guard's selection + verdict logic is genuinely derivable from the contract
- * verify-prd consumes: it parses a `lisa:gw` generated-work section, selects the
- * generated TOP-LEVEL child set (empty `parent`), applies the GitHub terminal
- * predicate, and computes GUARD_BLOCKED vs GUARD_PASSED — the empirical trace
- * #597's terminal-child-guard evidence required (PRD #525 → top-level Epic #562
- * OPEN → GUARD_BLOCKED).
+ * This suite asserts the scaffold + PASS-path (#598) + FAIL-path (#599)
+ * guarantees the skill documents. The executable proof that the guard's
+ * selection + verdict logic is derivable from the consumed `prd-lifecycle-rollup`
+ * contract lives in the sibling `verify-prd-guard-logic.test.ts`, and the
+ * idempotency (#600) doc-presence + selector logic lives in
+ * `verify-prd-idempotency.test.ts` (both split out to keep each file within the
+ * max-lines budget).
  *
  * Both plugin roots are asserted (`plugins/src/base` source of truth and the
  * generated `plugins/lisa` artifact), so an artifact-only edit or a missed
@@ -92,7 +92,7 @@ describe("verify-prd scaffold (#597)", () => {
       });
     });
 
-    describe("skills/verify-prd/SKILL.md", () => {
+    describe(SKILL_REL, () => {
       const skill = read(root, SKILL_REL);
 
       it("declares frontmatter name, description, and allowed-tools", () => {
@@ -153,19 +153,21 @@ describe("verify-prd scaffold (#597)", () => {
         expect(skill).toContain("STOP");
         // Reports the incomplete child set.
         expect(skill).toMatch(/incomplete child set/i);
-        // Does NOT run empirical verification.
-        expect(skill).toMatch(/do(es)? not run empirical verification/i);
+        // Does NOT run empirical verification (tolerate markdown emphasis on "not").
+        expect(skill).toMatch(
+          /do(es)?\s+\**not\**\s+run empirical verification/i
+        );
         // Leaves the PRD lifecycle untouched — stays at shipped.
         expect(skill).toMatch(/stays at .?shipped.?|left at .?shipped.?/i);
         expect(skill).toMatch(/untouched|do not transition/i);
       });
 
-      // (4) cites the rule by slug; PASS/FAIL/idempotency are sibling work.
-      it("cites prd-lifecycle-rollup by slug and scopes the rest to siblings", () => {
+      // (4) cites the rule by slug; the PASS path, FAIL path, and idempotency
+      //     are all now implemented in this skill (#598/#599/#600 merged).
+      it("cites prd-lifecycle-rollup by slug and covers PASS, FAIL, and idempotency", () => {
         expect(skill).toContain(RULE_SLUG);
         expect(skill).toMatch(/cite[^]*by slug|cites the rule by slug/i);
-        expect(skill).toMatch(/out of scope/i);
-        // The PASS path, FAIL path, and idempotency are sibling work.
+        // The PASS path, FAIL path, and idempotency are all in this skill.
         expect(skill).toMatch(/PASS path/i);
         expect(skill).toMatch(/FAIL path/i);
         expect(skill).toMatch(/idempoten/i);
@@ -183,208 +185,172 @@ describe("verify-prd scaffold (#597)", () => {
   });
 });
 
-/**
- * A generated top-level child as the guard reads it: its child-ref, GitHub
- * issue state, and close reason (for the terminal-but-dropped distinction).
- * Mirrors the fields the skill's two-source read captures per child.
- */
-type TopLevelChild = {
-  readonly ref: string;
-  readonly title: string;
-  /** GitHub issue state. */
-  readonly state: "OPEN" | "CLOSED";
-  /** Close reason — `not_planned` is terminal-but-dropped. */
-  readonly stateReason: "completed" | "not_planned" | null;
-  /** Whether the resolved build `done` role label is present. */
-  readonly hasDoneLabel: boolean;
-};
+describe("verify-prd PASS path (#598)", () => {
+  describe.each(PLUGIN_ROOTS)("%s", root => {
+    describe(SKILL_REL, () => {
+      const skill = read(root, SKILL_REL);
 
-/** A `lisa:gw` token parsed from a rendered generated-work section. */
-type GeneratedWorkEntry = {
-  readonly ref: string;
-  readonly type: string;
-  readonly parent: string;
-};
+      // (1) Phase 4: invoke spec-conformance with the PRD as the spec source,
+      //     never reimplementing the coverage matrix.
+      it("invokes spec-conformance with the PRD as spec source without reimplementing the matrix", () => {
+        expect(skill).toMatch(/spec-conformance/);
+        // The PRD itself is the spec source (not a plan file or leaf ticket).
+        expect(skill).toMatch(/PRD as (the )?spec source/i);
+        // A section-by-section coverage matrix is produced by that skill.
+        expect(skill).toMatch(/coverage matrix/i);
+        // Explicitly forbids reimplementing the matrix.
+        expect(skill).toMatch(/(do|does) not reimplement[^]*matrix/i);
+        // The verdict vocabulary it consumes.
+        expect(skill).toContain("CONFORMS");
+        expect(skill).toMatch(/PARTIAL/);
+        expect(skill).toMatch(/DIVERGES/);
+      });
 
-/**
- * Enumerate the generated child set from a rendered generated-work section by
- * matching only the machine-readable `lisa:gw` tokens — never prose, headings,
- * links, or indentation. This is the read the skill consumes (it does not
- * reimplement enumeration); the parser proves the contract is consumable.
- * @param section - A rendered generated-work (`## Tickets`) section.
- * @returns Every `lisa:gw` entry, in document order.
- */
-const parseEntries = (section: string): readonly GeneratedWorkEntry[] => {
-  const tokenPattern =
-    /<!-- lisa:gw ref=(\S+) url=\S+ type=(\S+) parent=(\S*) -->/g;
-  const entries: GeneratedWorkEntry[] = [];
-  let match = tokenPattern.exec(section);
-  while (match !== null) {
-    entries.push({
-      ref: match[1] ?? "",
-      type: match[2] ?? "",
-      parent: match[3] ?? "",
+      // (2) Phase 5: empirical verification of the PRD-dependent surface via the
+      //     verification-lifecycle skill; quality gates are NOT verification.
+      it("runs empirical verification of the PRD-dependent surface via verification-lifecycle", () => {
+        expect(skill).toMatch(/verification-lifecycle/);
+        // The surface is PRD-dependent, spanning the empirical surfaces.
+        expect(skill).toMatch(/surface is PRD-dependent/i);
+        expect(skill).toMatch(/browser/i);
+        expect(skill).toMatch(/\bAPI\b/);
+        expect(skill).toMatch(/\bCLI\b/);
+        // Quality gates (test/typecheck/lint) are explicitly NOT verification.
+        expect(skill).toMatch(/quality gates[^]*not[^]*verification/i);
+        // Each passing empirical check is codified as a regression test.
+        expect(skill).toMatch(/codify-verification/);
+      });
+
+      // (3) Phase 6 PASS: shipped → verified transition + evidence, only on
+      //     CONFORMS + all empirical passing.
+      it("transitions shipped → verified and posts evidence on a passing result", () => {
+        expect(skill).toMatch(/shipped → verified/);
+        // Gated on BOTH conformance CONFORMS and empirical passing.
+        expect(skill).toMatch(/CONFORMS[^]*empirical|empirical[^]*CONFORMS/i);
+        // Posts verification evidence back on the PRD.
+        expect(skill).toMatch(/evidence/i);
+        expect(skill).toMatch(/tracker-evidence/);
+        // Vendor-neutral verified role vocabulary (config-resolution).
+        expect(skill).toContain("prd-verified");
+        expect(skill).toMatch(/config-resolution/);
+        expect(skill).toMatch(/confluence\.parents\.verified/);
+      });
+
+      // (4) The PASS verdict tokens are declared. The non-pass verdicts route to
+      //     the FAIL path (#599); idempotency (#600) is now implemented too.
+      it("declares the PASS verdict tokens alongside the non-pass verdicts", () => {
+        expect(skill).toContain("VERIFIED_PASS");
+        expect(skill).toContain("CONFORMANCE_FAILED");
+        expect(skill).toContain("EMPIRICAL_FAILED");
+        // The guard/no-children branches still leave the PRD at shipped.
+        expect(skill).toMatch(
+          /left? (the PRD )?at .?shipped.?|stays at .?shipped.?/i
+        );
+        // Idempotency is implemented (Phase 8), not deferred.
+        expect(skill).toMatch(/idempoten/i);
+      });
+
+      // (5) Cites prd-lifecycle-rollup for the PASS hop; verified is product-owned.
+      it("cites prd-lifecycle-rollup for the shipped → verified hop", () => {
+        expect(skill).toContain(RULE_SLUG);
+        expect(skill).toMatch(/shipped → verified/);
+        // verified is product-owned and this skill is its only automated writer.
+        expect(skill).toMatch(/verified.{0,40}product-owned/i);
+      });
     });
-    match = tokenPattern.exec(section);
-  }
-  return entries;
-};
-
-/**
- * Apply the `prd-lifecycle-rollup` GitHub terminal-state predicate to one
- * generated top-level child.
- * @param child - The top-level child's current resolved state.
- * @returns Its rollup classification.
- */
-const classifyChild = (
-  child: TopLevelChild
-): "terminal" | "terminal-but-dropped" | "incomplete" => {
-  if (child.state === "CLOSED" && child.stateReason === "not_planned") {
-    return "terminal-but-dropped";
-  }
-  if (child.state === "CLOSED" && child.hasDoneLabel) {
-    return "terminal";
-  }
-  return "incomplete";
-};
-
-/**
- * Compute the terminal-child guard verdict over a generated top-level child set,
- * exactly as the skill's Phase 3 prescribes: required = top-level minus
- * terminal-but-dropped; GUARD_BLOCKED if any required child is incomplete,
- * GUARD_PASSED if all required children are terminal (and at least one exists),
- * NO_CHILDREN if the set is empty.
- * @param children - The generated top-level child set.
- * @returns The verdict plus the incomplete required child refs.
- */
-const guardVerdict = (
-  children: readonly TopLevelChild[]
-): {
-  readonly verdict: "GUARD_PASSED" | "GUARD_BLOCKED" | "NO_CHILDREN";
-  readonly incompleteRefs: readonly string[];
-} => {
-  if (children.length === 0) {
-    return { verdict: "NO_CHILDREN", incompleteRefs: [] };
-  }
-  const required = children.filter(
-    child => classifyChild(child) !== "terminal-but-dropped"
-  );
-  const incompleteRefs = required
-    .filter(child => classifyChild(child) === "incomplete")
-    .map(child => child.ref);
-  if (required.length === 0) {
-    // Every child was dropped — nothing required ships the PRD.
-    return { verdict: "NO_CHILDREN", incompleteRefs: [] };
-  }
-  return {
-    verdict: incompleteRefs.length > 0 ? "GUARD_BLOCKED" : "GUARD_PASSED",
-    incompleteRefs,
-  };
-};
-
-/**
- * Stable child-refs for the guard fixtures (hoisted to satisfy
- * sonarjs/no-duplicate-string and keep fixtures and expectations DRY).
- */
-const EPIC_REF = "CodySwannGT/lisa#100";
-const STORY2_REF = "CodySwannGT/lisa#200";
-
-describe("terminal-child guard logic is derivable from the rollup contract", () => {
-  it("selects generated TOP-LEVEL children by empty parent, excluding descendants", () => {
-    // Epic E (top-level) → Story S → Sub-task T, plus top-level Story S2.
-    const section = [
-      "## Tickets",
-      "",
-      `- [${EPIC_REF}](https://x/100) — Epic <!-- lisa:gw ref=${EPIC_REF} url=https://x/100 type=Epic parent= -->`,
-      `  - [CodySwannGT/lisa#101](https://x/101) — Story: s <!-- lisa:gw ref=CodySwannGT/lisa#101 url=https://x/101 type=Story parent=${EPIC_REF} -->`,
-      "    - [CodySwannGT/lisa#102](https://x/102) — Sub-task: t <!-- lisa:gw ref=CodySwannGT/lisa#102 url=https://x/102 type=Sub-task parent=CodySwannGT/lisa#101 -->",
-      `- [${STORY2_REF}](https://x/200) — Story: s2 <!-- lisa:gw ref=${STORY2_REF} url=https://x/200 type=Story parent= -->`,
-      "",
-    ].join("\n");
-    const topLevel = parseEntries(section)
-      .filter(entry => entry.parent === "")
-      .map(entry => entry.ref);
-    // Only the top-level Epic and the top-level Story — never the nested Story
-    // or the leaf Sub-task (those are owned by their own parent).
-    expect(topLevel).toEqual([EPIC_REF, STORY2_REF]);
   });
+});
 
-  it("blocks when a required top-level child is open (the #525 → #562 trace)", () => {
-    // The empirical [terminal-child-guard] evidence: PRD #525's one generated
-    // top-level child is Epic #562, OPEN → incomplete → GUARD_BLOCKED.
-    const result = guardVerdict([
-      {
-        ref: "CodySwannGT/lisa#562",
-        title: "Link generated top-level work as PRD children",
-        state: "OPEN",
-        stateReason: null,
-        hasDoneLabel: false,
-      },
-    ]);
-    expect(result.verdict).toBe("GUARD_BLOCKED");
-    expect(result.incompleteRefs).toEqual(["CodySwannGT/lisa#562"]);
-  });
+describe("verify-prd FAIL path (#599)", () => {
+  describe.each(PLUGIN_ROOTS)("%s", root => {
+    describe(SKILL_REL, () => {
+      const skill = read(root, SKILL_REL);
 
-  it("blocks when a closed child lacks the done role label", () => {
-    const result = guardVerdict([
-      {
-        ref: "CodySwannGT/lisa#300",
-        title: "closed but not done-labelled",
-        state: "CLOSED",
-        stateReason: "completed",
-        hasDoneLabel: false,
-      },
-    ]);
-    expect(result.verdict).toBe("GUARD_BLOCKED");
-    expect(result.incompleteRefs).toEqual(["CodySwannGT/lisa#300"]);
-  });
+      // AC scenario "fail transitions shipped to blocked": the FAIL path moves
+      // the PRD shipped → blocked, REUSING the existing blocked role (no new
+      // failure state), gated on the non-pass verdicts.
+      it("transitions shipped → blocked reusing the blocked role with no new failure state", () => {
+        expect(skill).toMatch(/shipped → blocked/);
+        // Triggered by either non-pass verdict cause.
+        expect(skill).toContain("CONFORMANCE_FAILED");
+        expect(skill).toContain("EMPIRICAL_FAILED");
+        // Reuses the existing blocked role — explicitly NO new failure state.
+        expect(skill).toMatch(/reus(e|ing|es)[^]*blocked role/i);
+        expect(skill).toMatch(/no new failure state/i);
+        // Does not invent a prd-verification-failed / prd-verifying state.
+        expect(skill).toMatch(
+          /no(t)?[^]*prd-verification-failed|prd-verification-failed[^]*prd-verifying/i
+        );
+        // Vendor-neutral blocked role vocabulary (config-resolution).
+        expect(skill).toContain("prd-blocked");
+        expect(skill).toMatch(/config-resolution/);
+        expect(skill).toMatch(/confluence\.parents\.blocked/);
+      });
 
-  it("passes when every required top-level child is terminal", () => {
-    const result = guardVerdict([
-      {
-        ref: EPIC_REF,
-        title: "done epic",
-        state: "CLOSED",
-        stateReason: "completed",
-        hasDoneLabel: true,
-      },
-      {
-        ref: STORY2_REF,
-        title: "done story",
-        state: "CLOSED",
-        stateReason: "completed",
-        hasDoneLabel: true,
-      },
-    ]);
-    expect(result.verdict).toBe("GUARD_PASSED");
-    expect(result.incompleteRefs).toEqual([]);
-  });
+      // AC scenario "failure report is posted": a product-readable report naming
+      // which requirements/ACs failed with observed-vs-expected evidence.
+      it("posts a product-readable failure report with observed-vs-expected evidence", () => {
+        expect(skill).toMatch(/failure report/i);
+        // Written for a non-engineer product owner, in plain language.
+        expect(skill).toMatch(/product-readable|non-engineer/i);
+        expect(skill).toMatch(/plain language/i);
+        // Names the specific failed requirement / acceptance criterion.
+        expect(skill).toMatch(
+          /requirement[^]*acceptance criterion|acceptance criteri/i
+        );
+        // Observed vs expected evidence is included.
+        expect(skill).toMatch(
+          /expected vs[^]*observed|observed vs[^]*expected/i
+        );
+        // Posted via the vendor-neutral evidence surface (tracker-evidence).
+        expect(skill).toMatch(/tracker-evidence/);
+      });
 
-  it("excludes terminal-but-dropped (not_planned) children from the required set", () => {
-    // One done child + one closed-as-not-planned child → all required terminal.
-    const result = guardVerdict([
-      {
-        ref: EPIC_REF,
-        title: "done epic",
-        state: "CLOSED",
-        stateReason: "completed",
-        hasDoneLabel: true,
-      },
-      {
-        ref: "CodySwannGT/lisa#400",
-        title: "dropped epic",
-        state: "CLOSED",
-        stateReason: "not_planned",
-        hasDoneLabel: false,
-      },
-    ]);
-    expect(result.verdict).toBe("GUARD_PASSED");
-    expect(result.incompleteRefs).toEqual([]);
-  });
+      // AC scenario "linked fix issues are created": one or more fix issues via
+      // tracker-write, each back-linked to the PRD + failure report, each with
+      // captured evidence and acceptance criteria.
+      it("creates linked fix issues via tracker-write with evidence, ACs, and back-links", () => {
+        expect(skill).toMatch(/fix issue/i);
+        // Created via the vendor-neutral writer (so they pass tracker-validate).
+        expect(skill).toMatch(/tracker-write/);
+        // Each carries Gherkin acceptance criteria.
+        expect(skill).toMatch(/[Gg]herkin/);
+        expect(skill).toMatch(/acceptance criteria/i);
+        // Each back-links to BOTH the PRD and the failure report.
+        expect(skill).toMatch(/back-link[^]*PRD|PRD[^]*failure report/i);
+        // Each references the specific failed requirement / AC and carries evidence.
+        expect(skill).toMatch(
+          /specific failed requirement|failed requirement\/AC/i
+        );
+        expect(skill).toMatch(
+          /carry the captured evidence|carrying the captured evidence/i
+        );
+      });
 
-  it("reports NO_CHILDREN for an empty generated top-level set", () => {
-    const result = guardVerdict([]);
-    expect(result.verdict).toBe("NO_CHILDREN");
-    expect(result.incompleteRefs).toEqual([]);
+      // The FAIL path AND idempotency are both implemented HERE (#599 + #600) —
+      // neither is deferred to a sibling any longer.
+      it("implements the FAIL path and idempotency here, deferring nothing", () => {
+        // FAIL path is in scope (Phase 7 exists with the shipped → blocked hop).
+        expect(skill).toMatch(/Phase 7[^]*FAIL/i);
+        // Idempotency is in scope (Phase 8 exists), not deferred to a sibling.
+        expect(skill).toMatch(/Phase 8[^]*Idempotency/i);
+        expect(skill).not.toMatch(/idempotency \(#600\)/);
+        expect(skill).not.toMatch(
+          /[Rr]e-run idempotency is handled by sibling work/
+        );
+        // Fix issues are NOT reopens of the already-terminal generated children.
+        expect(skill).toMatch(/never[^]*reopen|not[^]*reopen/i);
+        expect(skill).toMatch(/leaf-only-lifecycle/);
+      });
+
+      // Cites prd-lifecycle-rollup for the FAIL hop by slug (consumer, not a
+      // second source of truth for the shipped → blocked transition).
+      it("cites prd-lifecycle-rollup for the shipped → blocked FAIL hop", () => {
+        expect(skill).toContain(RULE_SLUG);
+        expect(skill).toMatch(/shipped → blocked/);
+        // The "no extra failure states" rule the FAIL hop honors.
+        expect(skill).toMatch(/no extra failure states|no new failure state/i);
+      });
+    });
   });
 });
