@@ -198,6 +198,8 @@ For each epic identified in Phase 1, **invoke the `lisa:tracker-write` shim** (d
 - `artifacts`: the full Phase 1.5 artifact list — every artifact, regardless of domain. The Epic is the canonical hub.
 - `priority`, `labels`, `components`, `fix_version`: as appropriate
 
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: an Epic is a container, not a leaf work unit. Do NOT mark it build-ready — `lisa:tracker-write` must not be passed `status:ready` for an Epic, and the Epic's lifecycle state rolls up from its children. The build-ready label is applied only in Phase 5.
+
 Capture the returned epic ref — Phase 4 needs it as the parent for Stories.
 
 ### Phase 4: Create Stories
@@ -225,6 +227,8 @@ For each Story, **invoke `lisa:tracker-write`** with:
 | Infrastructure | `ops`, `reference` |
 | Mixed / setup ("X.0") | All domains |
 
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: a Story is a container (it has child Sub-tasks), not a leaf work unit. Do NOT mark it build-ready — never pass `status:ready` to `lisa:tracker-write` for a Story. Its lifecycle state rolls up from its Sub-tasks. The build-ready label is applied only in Phase 5.
+
 Capture each returned story ref — Phase 5 needs it.
 
 ### Phase 5: Create Sub-tasks
@@ -236,6 +240,8 @@ Delegate sub-task creation to **parallel agents** (one per epic or batch of stor
 Each sub-task MUST:
 1. **Be scoped to exactly ONE repo** — indicated in brackets in the summary: `[repo-name]`.
 2. **Include an Empirical Verification Plan** — real user-like verification, NOT unit tests, linting, or typechecking.
+
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: Sub-tasks are the **leaf work units** of the decomposition — they are the ONLY items in the hierarchy that receive the build-ready label. `lisa:tracker-write` applies `status:ready` here so downstream build intake (`lisa:github-build-intake`) claims the leaves and never the Epic or Stories. Apply `status:ready` to each Sub-task; never to its parent Story or Epic (Phases 3–4). `lisa:github-write-issue` enforces the same invariant on the write side, so a Sub-task split into per-repo children (the cross-repo case above) carries build-ready on the children, not on any intermediate parent that gains child work.
 
 Sub-tasks inherit their parent Story's artifacts by reference (the parent link). Do not pass the same artifact list to every sub-task.
 
