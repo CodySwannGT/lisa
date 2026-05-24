@@ -22,15 +22,17 @@
  *       generated TOP-LEVEL work only (excluding leaf sub-tasks), and on any
  *       non-terminal required child STOPS, reports the incomplete set, runs no
  *       verification, and leaves the PRD at `shipped`;
- *   (4) the scaffold cites `prd-lifecycle-rollup` by slug and scopes the PASS
- *       path / FAIL path / idempotency to sibling work (#598/#599/#600);
+ *   (4) the scaffold cites `prd-lifecycle-rollup` by slug; the PASS path (#598),
+ *       FAIL path (#599), and idempotency (#600) are all now implemented here;
  *   (5) the front-half is read-only and does not re-prompt once invoked.
  *
  * This suite asserts the scaffold + PASS-path (#598) + FAIL-path (#599)
  * guarantees the skill documents. The executable proof that the guard's
  * selection + verdict logic is derivable from the consumed `prd-lifecycle-rollup`
- * contract lives in the sibling `verify-prd-guard-logic.test.ts` (split out to
- * keep both files within the max-lines budget).
+ * contract lives in the sibling `verify-prd-guard-logic.test.ts`, and the
+ * idempotency (#600) doc-presence + selector logic lives in
+ * `verify-prd-idempotency.test.ts` (both split out to keep each file within the
+ * max-lines budget).
  *
  * Both plugin roots are asserted (`plugins/src/base` source of truth and the
  * generated `plugins/lisa` artifact), so an artifact-only edit or a missed
@@ -160,12 +162,12 @@ describe("verify-prd scaffold (#597)", () => {
         expect(skill).toMatch(/untouched|do not transition/i);
       });
 
-      // (4) cites the rule by slug; PASS/FAIL/idempotency are sibling work.
-      it("cites prd-lifecycle-rollup by slug and scopes the rest to siblings", () => {
+      // (4) cites the rule by slug; the PASS path, FAIL path, and idempotency
+      //     are all now implemented in this skill (#598/#599/#600 merged).
+      it("cites prd-lifecycle-rollup by slug and covers PASS, FAIL, and idempotency", () => {
         expect(skill).toContain(RULE_SLUG);
         expect(skill).toMatch(/cite[^]*by slug|cites the rule by slug/i);
-        expect(skill).toMatch(/out of scope/i);
-        // The PASS path, FAIL path, and idempotency are sibling work.
+        // The PASS path, FAIL path, and idempotency are all in this skill.
         expect(skill).toMatch(/PASS path/i);
         expect(skill).toMatch(/FAIL path/i);
         expect(skill).toMatch(/idempoten/i);
@@ -234,9 +236,8 @@ describe("verify-prd PASS path (#598)", () => {
         expect(skill).toMatch(/confluence\.parents\.verified/);
       });
 
-      // (4) The PASS verdict tokens are declared. The non-pass verdicts now
-      //     route to the FAIL path (#599) rather than being left at shipped;
-      //     only idempotency (#600) remains out of scope.
+      // (4) The PASS verdict tokens are declared. The non-pass verdicts route to
+      //     the FAIL path (#599); idempotency (#600) is now implemented too.
       it("declares the PASS verdict tokens alongside the non-pass verdicts", () => {
         expect(skill).toContain("VERIFIED_PASS");
         expect(skill).toContain("CONFORMANCE_FAILED");
@@ -245,8 +246,7 @@ describe("verify-prd PASS path (#598)", () => {
         expect(skill).toMatch(
           /left? (the PRD )?at .?shipped.?|stays at .?shipped.?/i
         );
-        // Idempotency (#600) is the only phase still out of scope.
-        expect(skill).toMatch(/out of scope/i);
+        // Idempotency is implemented (Phase 8), not deferred.
         expect(skill).toMatch(/idempoten/i);
       });
 
@@ -327,13 +327,17 @@ describe("verify-prd FAIL path (#599)", () => {
         );
       });
 
-      // The FAIL path is implemented HERE — it must NOT be deferred to a sibling.
-      // Only idempotency (#600) remains out of scope.
-      it("implements the FAIL path here and scopes only idempotency to a sibling", () => {
+      // The FAIL path AND idempotency are both implemented HERE (#599 + #600) —
+      // neither is deferred to a sibling any longer.
+      it("implements the FAIL path and idempotency here, deferring nothing", () => {
         // FAIL path is in scope (Phase 7 exists with the shipped → blocked hop).
         expect(skill).toMatch(/Phase 7[^]*FAIL/i);
-        // Idempotency (#600) is the remaining sibling work / out of scope.
-        expect(skill).toMatch(/idempotency \(#600\)|idempoten[^]*sibling/i);
+        // Idempotency is in scope (Phase 8 exists), not deferred to a sibling.
+        expect(skill).toMatch(/Phase 8[^]*Idempotency/i);
+        expect(skill).not.toMatch(/idempotency \(#600\)/);
+        expect(skill).not.toMatch(
+          /[Rr]e-run idempotency is handled by sibling work/
+        );
         // Fix issues are NOT reopens of the already-terminal generated children.
         expect(skill).toMatch(/never[^]*reopen|not[^]*reopen/i);
         expect(skill).toMatch(/leaf-only-lifecycle/);
