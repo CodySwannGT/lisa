@@ -186,6 +186,8 @@ For each PRD epic, **invoke the `lisa:tracker-write` skill** (do not call `creat
 - `artifacts`: the full Phase 1.5 artifact list — every artifact, regardless of domain. The epic is the canonical hub, and anyone working on the epic or its descendants must be able to reach the full set from one place. No filtering at the epic level. `lisa:tracker-write` Phase 4c attaches them as remote links.
 - `priority`, `labels`, `components`, `fix_version`: as appropriate
 
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: an Epic is a container, not a leaf work unit. Do NOT mark it build-ready — `lisa:tracker-write` must not be passed `status:ready` for an Epic, and the Epic's lifecycle state rolls up from its children. The build-ready label is applied only in Phase 5.
+
 Capture the returned epic key — Phase 4 needs it as the parent for stories.
 
 ### Phase 4: Create Stories
@@ -216,6 +218,8 @@ For each story, **invoke `lisa:tracker-write`** with:
 - `artifacts`: the Phase 1.5 artifacts filtered by domain per the inheritance table below — `lisa:tracker-write` Phase 4c attaches them as remote links
 - `priority`, `labels`, `components`, `fix_version`: as appropriate
 
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: a Story is a container (it has child Sub-tasks), not a leaf work unit. Do NOT mark it build-ready — never pass `status:ready` to `lisa:tracker-write` for a Story. Its lifecycle state rolls up from its Sub-tasks. The build-ready label is applied only in Phase 5.
+
 Capture each returned story key — Phase 5 needs it as the parent for sub-tasks.
 
 **Inherit domain-matching artifacts as story remote links**. For each story, the artifact set passed to `lisa:tracker-write` should be the Phase 1.5 artifacts whose domain matches the story's scope:
@@ -238,6 +242,8 @@ Delegate sub-task creation to **parallel agents** (one per epic or batch of stor
 Each sub-task MUST:
 1. **Be scoped to exactly ONE repo** — indicated in brackets in the summary: `[repo-name]`. `lisa:tracker-write` enforces single-repo scope on Sub-task; cross-repo sub-tasks will be rejected and must be split before delegation.
 2. **Include an Empirical Verification Plan** — real user-like verification, NOT unit tests, linting, or typechecking
+
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: Sub-tasks are the **leaf work units** of the decomposition — they are the ONLY items in the hierarchy that receive the build-ready label. `lisa:tracker-write` applies `status:ready` here so downstream build intake (`lisa:tracker-build-intake`) claims the leaves and never the Epic or Stories. Apply `status:ready` to each Sub-task; never to its parent Story or Epic (Phases 3–4). `lisa:tracker-write` enforces the same invariant on the write side, so a Sub-task split into per-repo children (the cross-repo case above) carries build-ready on the children, not on any intermediate parent that gains child work.
 
 **Verification plan examples by stack:**
 - **Backend APIs**: curl GraphQL/REST calls with auth token, database queries, checking audit entries
