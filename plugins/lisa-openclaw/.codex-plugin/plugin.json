@@ -1,0 +1,32 @@
+{
+  "name": "lisa-openclaw",
+  "version": "2.30.0",
+  "description": "Connect staff roles to Telegram or Slack via OpenClaw — facilitator/specialist hub-and-spoke routing and repo-coding topics, across Claude and Codex.",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "openclaw",
+    "telegram",
+    "slack",
+    "agents",
+    "chat-ops"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Lisa OpenClaw",
+    "shortDescription": "Staff on Telegram/Slack via OpenClaw",
+    "longDescription": "Wire staff roles to human chat surfaces through OpenClaw: set up the gateway prerequisites, connect a facilitator (chief of staff) and its specialists on Telegram or Slack with hub-and-spoke routing, and bind Telegram forum topics to dispatcher+worker pairs for repo-coding work. Distributed for both Claude Code and Codex.",
+    "developerName": "Cody Swann",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Set up OpenClaw for this project",
+      "Connect my chief of staff to Telegram",
+      "Connect staff to Slack via OpenClaw"
+    ]
+  }
+}
