@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.58.0](https://github.com/CodySwannGT/lisa/compare/vv2.57.0...v2.58.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** idempotent reruns (no duplicate evidence, fix issues, or lifecycle labels) ([e335d5b](https://github.com/CodySwannGT/lisa/commit/e335d5bdd837cd9cebffa52e0999c2b4554b877a)), closes [#600](https://github.com/CodySwannGT/lisa/issues/600) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#599](https://github.com/CodySwannGT/lisa/issues/599)
+
 ## [2.57.0](https://github.com/CodySwannGT/lisa/compare/vv2.56.0...v2.57.0) (2026-05-24)
 
 
