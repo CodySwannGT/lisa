@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.41.0](https://github.com/CodySwannGT/lisa/compare/vv2.40.0...v2.41.0) (2026-05-24)
+
+
+### Features
+
+* **rules:** add vendor-neutral prd-lifecycle-rollup rule and wire config schema ([2940335](https://github.com/CodySwannGT/lisa/commit/294033576b38e20da3264eb055d0eebd5b8d63c8)), closes [#525](https://github.com/CodySwannGT/lisa/issues/525) [#580](https://github.com/CodySwannGT/lisa/issues/580) [#586](https://github.com/CodySwannGT/lisa/issues/586) [#579](https://github.com/CodySwannGT/lisa/issues/579)
+
 ## [2.40.0](https://github.com/CodySwannGT/lisa/compare/vv2.39.4...v2.40.0) (2026-05-24)
 
 
