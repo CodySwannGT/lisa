@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.48.0](https://github.com/CodySwannGT/lisa/compare/vv2.47.1...v2.48.0) (2026-05-24)
+
+
+### Features
+
+* **setup-github:** scaffold prd-verified PRD label idempotently ([d17f393](https://github.com/CodySwannGT/lisa/commit/d17f393dae0629eead32a1340f18f75adb9debdc)), closes [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593) [#591](https://github.com/CodySwannGT/lisa/issues/591)
+
 ### [2.47.1](https://github.com/CodySwannGT/lisa/compare/vv2.47.0...v2.47.1) (2026-05-24)
 
 
