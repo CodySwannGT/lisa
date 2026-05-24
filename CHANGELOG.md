@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.49.0](https://github.com/CodySwannGT/lisa/compare/vv2.48.0...v2.49.0) (2026-05-24)
+
+
+### Features
+
+* **hooks:** accept Codex commit attribution in commit-msg guardrail ([38a8b43](https://github.com/CodySwannGT/lisa/commit/38a8b43c27901fc76c1528ab812c98c1f1e83d82))
+* **setup-linear:** scaffold prd-verified PRD project label idempotently ([7152bd1](https://github.com/CodySwannGT/lisa/commit/7152bd1c2b2887c340505ca541fd3017d8e600e6)), closes [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593)
+
 ## [2.48.0](https://github.com/CodySwannGT/lisa/compare/vv2.47.1...v2.48.0) (2026-05-24)
 
 
