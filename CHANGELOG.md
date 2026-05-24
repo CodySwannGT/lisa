@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.45.0](https://github.com/CodySwannGT/lisa/compare/vv2.44.0...v2.45.0) (2026-05-24)
+
+
+### Features
+
+* **github-prd-intake:** add config-gated PRD closure rollup phase ([2d6f193](https://github.com/CodySwannGT/lisa/commit/2d6f1935055439d0cef3ca51f84fb9974c76f12c)), closes [#583](https://github.com/CodySwannGT/lisa/issues/583) [#525](https://github.com/CodySwannGT/lisa/issues/525) [#582](https://github.com/CodySwannGT/lisa/issues/582) [#584](https://github.com/CodySwannGT/lisa/issues/584)
+
 ## [2.44.0](https://github.com/CodySwannGT/lisa/compare/vv2.43.0...v2.44.0) (2026-05-24)
 
 
