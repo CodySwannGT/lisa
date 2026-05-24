@@ -18,32 +18,86 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const [pluginDirArg, versionArg] = process.argv.slice(2);
-if (!pluginDirArg || !versionArg) {
-  console.error(
-    "Usage: generate-codex-plugin-artifacts.mjs <plugin-dir> <version>"
+/**
+ * Parse the leading YAML frontmatter block of a SKILL.md file.
+ *
+ * The frontmatter is the simple `key: value` YAML between the first two `---`
+ * fences at the very top of the file (the shape every `plugins/*\/skills/*\/SKILL.md`
+ * uses). Values are read verbatim as strings (trimmed); nested structures and
+ * arrays are not interpreted because skill frontmatter does not use them.
+ *
+ * @param {string} skillMdPath Absolute or relative path to a SKILL.md file.
+ * @returns {{ name?: string, description?: string } & Record<string, string> | null}
+ *   The parsed key/value pairs, or `null` (skip sentinel) when the file has no
+ *   leading `---`-delimited frontmatter block. Pure: never writes.
+ */
+export function parseSkillFrontmatter(skillMdPath) {
+  const raw = fs.readFileSync(skillMdPath, "utf8");
+  // Frontmatter must be the very first thing in the file. Normalize CRLF so a
+  // Windows-authored SKILL.md parses identically to a LF one.
+  const normalized = raw.replace(/\r\n/g, "\n");
+  if (!normalized.startsWith("---\n")) {
+    return null;
+  }
+  const closingIndex = normalized.indexOf("\n---", 3);
+  if (closingIndex === -1) {
+    return null;
+  }
+  const block = normalized.slice(4, closingIndex);
+  const frontmatter = {};
+  for (const line of block.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed === "" || trimmed.startsWith("#")) {
+      continue;
+    }
+    const separator = trimmed.indexOf(":");
+    if (separator === -1) {
+      continue;
+    }
+    const key = trimmed.slice(0, separator).trim();
+    if (key === "") {
+      continue;
+    }
+    const value = trimmed
+      .slice(separator + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
+    frontmatter[key] = value;
+  }
+  return frontmatter;
+}
+
+function main() {
+  const [pluginDirArg, versionArg] = process.argv.slice(2);
+  if (!pluginDirArg || !versionArg) {
+    console.error(
+      "Usage: generate-codex-plugin-artifacts.mjs <plugin-dir> <version>"
+    );
+    process.exit(1);
+  }
+
+  const pluginDir = path.resolve(pluginDirArg);
+  const claudeManifestPath = path.join(
+    pluginDir,
+    ".claude-plugin",
+    "plugin.json"
   );
-  process.exit(1);
+  if (!fs.existsSync(claudeManifestPath)) {
+    process.exit(0);
+  }
+
+  const claudeManifest = JSON.parse(
+    fs.readFileSync(claudeManifestPath, "utf8")
+  );
+  const pluginName = claudeManifest.name;
+
+  writeCodexManifest(pluginDir, claudeManifest, pluginName, versionArg);
 }
 
-const pluginDir = path.resolve(pluginDirArg);
-const claudeManifestPath = path.join(
-  pluginDir,
-  ".claude-plugin",
-  "plugin.json"
-);
-if (!fs.existsSync(claudeManifestPath)) {
-  process.exit(0);
-}
-
-const claudeManifest = JSON.parse(fs.readFileSync(claudeManifestPath, "utf8"));
-const pluginName = claudeManifest.name;
-
-writeCodexManifest(pluginName, versionArg);
-
-function writeCodexManifest(pluginName, version) {
-  const metadata = metadataFor(pluginName);
+function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
+  const metadata = metadataFor(pluginName, claudeManifest);
   const manifest = {
     name: pluginName,
     version,
@@ -53,7 +107,7 @@ function writeCodexManifest(pluginName, version) {
     ...(claudeManifest.dependencies
       ? { dependencies: claudeManifest.dependencies }
       : {}),
-    ...componentPointers(),
+    ...componentPointers(pluginDir),
     interface: {
       displayName: metadata.displayName,
       shortDescription: metadata.shortDescription,
@@ -73,7 +127,7 @@ function writeCodexManifest(pluginName, version) {
   );
 }
 
-function componentPointers() {
+function componentPointers(pluginDir) {
   return {
     ...(fs.existsSync(path.join(pluginDir, "skills"))
       ? { skills: "./skills/" }
@@ -84,7 +138,7 @@ function componentPointers() {
   };
 }
 
-function metadataFor(pluginName) {
+function metadataFor(pluginName, claudeManifest) {
   const map = {
     lisa: {
       displayName: "Lisa",
@@ -235,4 +289,10 @@ function metadataFor(pluginName) {
       defaultPrompt: [`Use ${pluginName}`],
     }
   );
+}
+
+// Run the generator only when invoked directly (e.g. via build-plugins.sh),
+// not when this module is imported (e.g. by unit tests for the parser).
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main();
 }
