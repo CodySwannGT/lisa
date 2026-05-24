@@ -206,6 +206,12 @@ Milestones map to `fix-version:<value>` labels OR native GitHub Milestones — p
 
 Create labels lazily — call `gh label create` if a referenced label doesn't exist. Use a stable color palette per category so the issue board reads cleanly.
 
+### Build-ready label is leaf-only
+
+The build-ready status label (`status:ready`) is governed by the `leaf-only-lifecycle` rule. **Apply `status:ready` only when the issue is a leaf work unit** — an individually implementable issue type (`Bug`, `Task`, `Sub-task`, `Improvement`) that has **no child work**. A container (`Epic`, `Story`, `Spike`, or *any* issue that has sub-issues) is **never** written with `status:ready`; its lifecycle state rolls up from its children. The classification is structural: an item is a container if it has child work, regardless of its declared type (see the childless-parent exception in the rule). Do not hand-apply `status:ready` to a parent.
+
+For non-build-ready issues created fresh (Epics, Stories, and other containers), omit the status label entirely; the container's rollup state is derived, not set directly.
+
 ## Phase 5.5 — Validate (Pre-write Gate)
 
 Before any write, invoke `lisa:github-validate-issue` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `lisa:github-validate-issue` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
@@ -218,13 +224,24 @@ If the validator reports `FAIL`, do NOT proceed to Phase 6. Fix the spec and re-
 
 ### CREATE
 
-1. Compose the body markdown from Phases 2/3/4 in a temp file (avoid quoting hell):
+1. Compose the body markdown from Phases 2/3/4 in a temp file (avoid quoting hell). Apply `status:ready` **only for a leaf work unit** per the Phase 5 leaf-only rule (`leaf-only-lifecycle`) — omit it for `Epic` / `Story` / `Spike` and any issue that has child work:
    ```bash
+   # Leaf work unit (Bug / Task / Sub-task / Improvement with no children):
    gh issue create \
      --repo <org>/<repo> \
      --title "<summary>" \
      --body-file /tmp/issue-body.md \
      --label "type:<type>" --label "status:ready" --label "priority:<priority>" \
+     [--label "component:<name>" ...] [--milestone "<milestone>"] \
+     [--assignee "<login>"]
+
+   # Container (Epic / Story / Spike / any issue with child work):
+   # identical, but WITHOUT --label "status:ready" — its state rolls up from children.
+   gh issue create \
+     --repo <org>/<repo> \
+     --title "<summary>" \
+     --body-file /tmp/issue-body.md \
+     --label "type:<type>" --label "priority:<priority>" \
      [--label "component:<name>" ...] [--milestone "<milestone>"] \
      [--assignee "<login>"]
    ```
