@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.56.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.56.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** require research-backed project ideation ([de8dc2b](https://github.com/CodySwannGT/lisa/commit/de8dc2bc4801004b4c1ed6d63d8833051c30dab8)), closes [#668](https://github.com/CodySwannGT/lisa/issues/668)
+* **verify-prd:** add spec-conformance + empirical verification + PASS path (shipped->verified) ([2beb2b0](https://github.com/CodySwannGT/lisa/commit/2beb2b0a09876fdb9bfe4c89a87db99c120f9c3d)), closes [#597](https://github.com/CodySwannGT/lisa/issues/597) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#598](https://github.com/CodySwannGT/lisa/issues/598)
+
 ## [2.55.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.55.0) (2026-05-24)
 
 
