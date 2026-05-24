@@ -62,10 +62,18 @@ describe("codex/project-ideation-distribution (#670)", () => {
     const openaiYaml = await fs.readFile(BUILT_OPENAI_YAML, "utf8");
 
     expect(manifest.skills).toBe("./skills/");
-    expect(openaiYaml).toContain('display_name: "Project Ideation"');
+    expect(openaiYaml).toContain("display_name: 'Project Ideation'");
     expect(openaiYaml).toContain(
-      'short_description: "Generate practical, verifiable product or workflow ideas for the current host project by grounding recommendations in available code, data…"'
+      "short_description: 'Generate practical, verifiable product or workflow ideas for the current host project'"
     );
-    expect(openaiYaml).toContain("Use $project-ideation:");
+    expect(openaiYaml).toContain(
+      "Use $project-ideation: Generate practical feature ideas for this project."
+    );
+    expect(openaiYaml).toContain(
+      "Use $project-ideation: Looking at an external public product, what should we add here?"
+    );
+    expect(openaiYaml).toContain(
+      "Use $project-ideation: Suggest practical improvements we can verify ourselves."
+    );
   });
 });
