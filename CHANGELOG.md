@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.50.0](https://github.com/CodySwannGT/lisa/compare/vv2.49.0...v2.50.0) (2026-05-24)
+
+
+### Features
+
+* **setup-notion:** map/create the Verified PRD status value idempotently ([be5b8ec](https://github.com/CodySwannGT/lisa/commit/be5b8ecfa40b2d02b5501a67e3c80f7db092245d)), closes [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#595](https://github.com/CodySwannGT/lisa/issues/595) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594)
+
 ## [2.49.0](https://github.com/CodySwannGT/lisa/compare/vv2.48.0...v2.49.0) (2026-05-24)
 
 
