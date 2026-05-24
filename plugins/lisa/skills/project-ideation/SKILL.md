@@ -44,7 +44,11 @@ Never propose ideas before you understand what exists. Inspect the host project 
 - **Available data sources and ingestion/scraping paths** — integrated APIs, public datasets, scrapeable public pages, local databases, event streams.
 - **Existing verification tooling and empirical paths** — how a human currently observes that the software works (a local dev server, a CLI you can run, a seedable DB, a dry-run mode).
 
-Use Lisa's existing methodology rather than inventing a parallel flow. Read the host code through the same lens as `/lisa:codebase-research` (trace data flow, find reusable code, identify modification points). When the request references an external product, use web/browser research; when the ideas would touch a live UI, use `/lisa:product-walkthrough` to ground the analysis in what exists today.
+Use Lisa's existing methodology rather than inventing a parallel flow. Route each evidence source through the matching established practice before any idea is promoted to **Practical Ideas**:
+
+- **Host-code inspection** uses `/lisa:codebase-research` concepts: trace data flow from entry point to output, identify modification points, map dependencies, and find reusable code or patterns.
+- **Public, no-login comparison** uses web/browser research when those tools are available: inspect the public surface, preserve source URLs, and separate observed behavior from inference.
+- **UI-facing recommendations** use `/lisa:product-walkthrough` methodology first: inspect the current product surface, note existing-component reuse candidates, capture coverage smells or behavioral surprises, and only then list a UI idea as build-ready.
 
 ## Step 2 — Optional external / public-source inspection
 
