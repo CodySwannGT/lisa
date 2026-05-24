@@ -15,8 +15,8 @@
  *
  * Single-environment collapse (this repo): `.lisa.config.json` `deploy.branches`
  * declares only `production: main`, so the env-keyed `done` collapses to one
- * `done` value and the lifecycle is `ready → in-progress → code-review → done`
- * with no dev/staging promotion hops. The rule and skills stay multi-env
+ * `done` value. GitHub's lifecycle is `ready → in-progress → done` with no
+ * code-review hop and no dev/staging promotion hops. The rule and skills stay multi-env
  * capable; these tests assert the collapse is documented and that the rollup
  * never resolves a dev/staging `done` in this repo.
  *

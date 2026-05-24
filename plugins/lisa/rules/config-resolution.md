@@ -66,7 +66,6 @@ fi
       "build": {
         "ready":   "status:ready",
         "claimed": "status:in-progress",
-        "review":  "status:code-review",
         "blocked": "status:blocked",
         "done":    { "dev": "status:on-dev", "staging": "status:on-stg", "production": "status:done" }
       },
@@ -188,11 +187,11 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 |---|---|---|---|
 | `ready` | Human signal "this is buildable; agent may claim" | `Ready` (status) | `status:ready` (label) |
 | `claimed` | Agent has picked the item up | `In Progress` (status) | `status:in-progress` (label) |
-| `review` | Build complete, in code review | `Code Review` (status) | `status:code-review` (label) |
+| `review` | Optional post-build review hold, when a tracker/project still uses one | `Code Review` (status) | Linear default: `status:code-review`; GitHub has no default review label |
 | `blocked` | Agent stopped on triage ambiguities or external blocker | `Blocked` (status) | `status:blocked` (label) |
 | `done` | Terminal state for this work, **env-keyed** | map of env → status | map of env → label |
 
-`review` is required for label-driven systems (GitHub, Linear) because that's how the agent signals "PR opened, awaiting human review." For JIRA, `review` is optional — projects that keep the ticket in `claimed` until terminal can omit it and lifecycle skills will skip the intermediate transition.
+`review` is optional. GitHub build intake skips it by default and moves successful builds directly from `claimed` to the configured `done` label. Linear and JIRA projects that still use a post-build review hold can configure `review`; projects that keep the ticket in `claimed` until terminal can omit it and lifecycle skills will skip the intermediate transition.
 
 `blocked` is what every vendor agent flips to when triage finds unresolved ambiguities or the build path is blocked by something the agent can't resolve. Different from `claimed` because it explicitly signals "human attention required."
 
@@ -303,7 +302,7 @@ Initiatives (Linear's cross-Project rollup) are NOT used — they're intended fo
 When `github-to-tracker` is invoked AND `tracker = "github"`, both reads and writes hit the same GitHub repo. Label namespaces are kept separate so the two flows don't collide:
 
 - PRD-source labels: `prd-draft`, `prd-ready`, `prd-in-review`, `prd-blocked`, `prd-ticketed`, `prd-shipped` — owned by `github-prd-intake` and the human PM.
-- Build-queue labels: `status:ready`, `status:in-progress`, `status:code-review`, `status:on-dev`, `status:done` — owned by `github-build-intake` and `github-agent`.
+- Build-queue labels: `status:ready`, `status:in-progress`, `status:on-dev`, `status:done` — owned by `github-build-intake` and `github-agent`.
 - Sentinel issue label: `prd-intake-feedback` — owned by `github-prd-intake`.
 
 Never overload one label across both lifecycles.

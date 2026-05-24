@@ -1,29 +1,12 @@
 ---
 name: github-evidence
-description: "Upload text evidence to the GitHub `pr-assets` release, update PR description, post a GitHub Issue comment with code blocks, and relabel the issue to the configured `review` label (default `status:code-review`). Reusable by any skill that captures evidence and generates evidence/comment.md (and optionally evidence/comment.txt). The GitHub counterpart of lisa:jira-evidence."
+description: "Upload text evidence to the GitHub `pr-assets` release, update PR description, and post a GitHub Issue comment with code blocks. Reusable by any skill that captures evidence and generates evidence/comment.md (and optionally evidence/comment.txt). The GitHub counterpart of lisa:jira-evidence."
 allowed-tools: ["Bash"]
 ---
 
 # GitHub Evidence Posting
 
 Upload captured evidence and generated templates to the GitHub PR description and the originating GitHub Issue. This skill is the posting step — it assumes evidence files and a comment template already exist in the evidence directory.
-
-## Workflow resolution
-
-The `claimed` and `review` build labels are read from `.lisa.config.json` `github.labels.build.*`, falling back to the defaults documented in the `config-resolution` rule (`status:in-progress` and `status:code-review`).
-
-```bash
-read_role() {
-  local role="$1" default="$2"
-  local local_v global_v
-  local_v=$(jq -r ".github.labels.build.${role} // empty" .lisa.config.local.json 2>/dev/null)
-  global_v=$(jq -r ".github.labels.build.${role} // empty" .lisa.config.json 2>/dev/null)
-  echo "${local_v:-${global_v:-$default}}"
-}
-
-CLAIMED=$(read_role claimed "status:in-progress")
-REVIEW=$(read_role review "status:code-review")
-```
 
 ## Arguments
 
@@ -92,15 +75,9 @@ REVIEW=$(read_role review "status:code-review")
    gh issue comment <issue-number> --repo <issue-org>/<issue-repo> --body-file "$EVIDENCE_DIR/comment.md"
    ```
 
-6. **Relabel the issue to the configured `review` label**
+6. **Leave lifecycle labels unchanged**
 
-   ```bash
-   gh issue edit <issue-number> --repo <issue-org>/<issue-repo> \
-     --remove-label "$CLAIMED" \
-     --add-label "$REVIEW"
-   ```
-
-   If the current label is already `$REVIEW`, skip. If neither `$CLAIMED` nor `$REVIEW` is present, log a warning and continue without changing labels — the issue may have been hand-managed.
+   GitHub evidence posting is evidence-only. The caller that owns the build lifecycle (`lisa:github-build-intake` / `lisa:github-agent`) transitions the issue from the configured `claimed` label directly to the configured `done` label after a successful build. Do not apply `status:code-review` here.
 
 ## Evidence Naming Convention
 

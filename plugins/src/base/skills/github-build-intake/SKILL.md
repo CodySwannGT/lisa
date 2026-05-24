@@ -30,7 +30,6 @@ read_role() {
 
 READY=$(read_role ready "status:ready")
 CLAIMED=$(read_role claimed "status:in-progress")
-REVIEW=$(read_role review "status:code-review")
 ```
 
 For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
@@ -81,7 +80,7 @@ Specifically forbidden:
 The only legitimate reasons to stop early:
 
 - Missing repo or required configuration. Surface the missing value and exit.
-- Label namespace not adopted (no issue carries any of `$READY` / `$CLAIMED` / `$REVIEW` / `$DONE`). Surface a label-convention error and exit (this is setup, not a normal idle cycle — see "Adoption" at the bottom).
+- Label namespace not adopted (no issue carries any of `$READY` / `$CLAIMED` / `$DONE`). Surface a label-convention error and exit (this is setup, not a normal idle cycle — see "Adoption" at the bottom).
 - Empty ready set. Exit cleanly with `"No GitHub issues labeled $READY in <org>/<repo>. Nothing to do."`
 
 ## Lifecycle assumed
@@ -89,22 +88,20 @@ The only legitimate reasons to stop early:
 The GitHub Issues build lifecycle uses **labels** (we deliberately do NOT key off open/closed alone — closed issues aren't always the right post-build state):
 
 ```text
-ready → claimed → review → done(env-keyed) (downstream merge / archive)
-(human)  (us claim)  (us / PR opens)  (us done; PR ready)
+ready → claimed → done(env-keyed)
+(human)  (us claim)  (us done; PR ready)
 ```
 
-(Defaults: `status:ready` / `status:in-progress` / `status:code-review` / `status:on-dev`/`status:on-stg`/`status:done`.)
+(Defaults: `status:ready` / `status:in-progress` / `status:on-dev`/`status:on-stg`/`status:done`.)
 
 This skill ONLY transitions:
 
 - `$READY` → `$CLAIMED` (claim)
 - `$CLAIMED` → `$DONE` (build complete, PR ready)
 
-It never touches `$REVIEW` (set by the agent / PR open hook), `status:done`-as-terminal (set by merge automation or PM), or any other status.
+A "transition" means: remove the old role label and add the new one, in two `gh issue edit` calls (`--remove-label` + `--add-label`) or one combined call. The skill MUST verify exactly one build-lifecycle label (from the resolved `$READY`/`$CLAIMED`/`$DONE` set) is present after the update — having two simultaneously breaks idempotency.
 
-A "transition" means: remove the old role label and add the new one, in two `gh issue edit` calls (`--remove-label` + `--add-label`) or one combined call. The skill MUST verify exactly one build-lifecycle label (from the resolved `$READY`/`$CLAIMED`/`$REVIEW`/`$DONE` set) is present after the update — having two simultaneously breaks idempotency.
-
-**Pre-flight check**: at the start of each cycle, confirm at least one of the resolved role labels (`$READY`, `$CLAIMED`, `$REVIEW`, or any `$DONE` value) exists on the repo via `gh label list --repo <org>/<repo> --json name`. If none exist, the convention has not been adopted — surface the label-convention error and exit.
+**Pre-flight check**: at the start of each cycle, confirm at least one of the resolved role labels (`$READY`, `$CLAIMED`, or any `$DONE` value) exists on the repo via `gh label list --repo <org>/<repo> --json name`. If none exist, the convention has not been adopted — surface the label-convention error and exit.
 
 ## Phases
 
@@ -127,8 +124,8 @@ If empty, run a secondary check to distinguish a genuinely empty queue from an u
 
 ```bash
 gh label list --repo <org>/<repo> --json name \
-  | jq -r --arg r "$READY" --arg c "$CLAIMED" --arg v "$REVIEW" --arg d "$DONE" \
-      '[.[] | .name | select(. == $r or . == $c or . == $v or . == $d)] | length'
+  | jq -r --arg r "$READY" --arg c "$CLAIMED" --arg d "$DONE" \
+      '[.[] | .name | select(. == $r or . == $c or . == $d)] | length'
 ```
 
 If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
@@ -269,7 +266,6 @@ Total PRs opened: <n>
 | `.lisa.config.json` `github.repo` | (from `$ARGUMENTS`) | GitHub repo for the default queue |
 | `.lisa.config.json` `github.labels.build.ready` | `status:ready` | The label that signals "human says this is buildable" |
 | `.lisa.config.json` `github.labels.build.claimed` | `status:in-progress` | The label set on pickup |
-| `.lisa.config.json` `github.labels.build.review` | `status:code-review` | The label set when the PR opens (owned by `lisa:github-evidence`) |
 | `.lisa.config.json` `github.labels.build.done` | env-keyed map or string | The label set after a successful build; env-aware |
 | `.lisa.config.json` `deploy.branches` | — | Reverse-lookup map for env inference from PR base branch |
 
@@ -293,7 +289,6 @@ Before this skill can run, the repo must adopt the `status:*` label namespace. U
    ```bash
    gh label create status:ready --color FBCA04 --description "Ready for build" --repo <org>/<repo>
    gh label create status:in-progress --color 0E8A16 --description "Build in progress" --repo <org>/<repo>
-   gh label create status:code-review --color 5319E7 --description "PR open, awaiting review" --repo <org>/<repo>
    gh label create status:on-dev --color 1D76DB --description "Built, deployed to dev" --repo <org>/<repo>
    gh label create status:done --color 0E8A16 --description "Shipped" --repo <org>/<repo>
    ```

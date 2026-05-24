@@ -49,7 +49,7 @@ Use the `github-verify` skill to check the issue against organizational standard
 
 **Gating behavior — this is the one place auto-relabeling is allowed:**
 
-Resolve build labels from `.lisa.config.json` `github.labels.build.*` (defaults: `status:ready` / `status:in-progress` / `status:code-review` / env-keyed `status:on-*`); resolve the `blocked` label from the same section (`github.labels.build.blocked`, default `status:blocked`).
+Resolve build labels from `.lisa.config.json` `github.labels.build.*` (defaults: `status:ready` / `status:in-progress` / env-keyed `status:on-*`); resolve the `blocked` label from the same section (`github.labels.build.blocked`, default `status:blocked`).
 
 If `github-verify` returns `FAIL` on any of the above, do NOT continue:
 
@@ -126,7 +126,6 @@ Use the `github-evidence` skill to:
 - Upload verification evidence to the GitHub `pr-assets` release (in the implementation repo)
 - Update the PR description's `## Evidence` section
 - Post a comment on the originating issue with the evidence summary
-- Relabel the issue from the `claimed` label to the `review` label (configured via `github.labels.build.{claimed,review}`)
 
 ### 8. Suggest Status Transition
 
@@ -135,14 +134,14 @@ Based on the milestone, suggest (but don't auto-relabel beyond the explicit Step
 | Milestone | Suggested role | Default label |
 |-----------|----------------|---------------|
 | Plan created | `claimed` | `status:in-progress` |
-| PR ready | `review` (Step 7 sets this) | `status:code-review` |
-| PR merged | `done` (env-aware) | env-keyed variant per `github.labels.build.done` |
+| PR ready | `done` (env-aware; build-intake sets this after success) | env-keyed variant per `github.labels.build.done` |
+| PR merged | no additional build-label transition | already at configured `done` |
 
 Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`). When suggesting the PR-merged transition, the env is implied by the PR's base branch via `deploy.branches` — surface the resolved label name; do not auto-transition.
 
 ## Rules
 
-- Never auto-relabel build labels, with two explicit exceptions: (a) when `github-verify` returns FAIL for the pre-flight gate (Step 2), relabel to the configured `blocked` label and reassign to the original author; (b) when `github-evidence` runs at completion (Step 7), relabel to the configured `review` label. Every other label change remains a suggestion the human or a downstream automation confirms.
+- Never auto-relabel build labels, with one explicit exception: when `github-verify` returns FAIL for the pre-flight gate (Step 2), relabel to the configured `blocked` label and reassign to the original author. The build-intake owner transitions a successful issue from `claimed` directly to the configured `done` label after PR evidence is posted.
 - Always read the full issue graph via `github-read-issue` before determining intent — don't rely on the `type:` label alone.
 - Never create or materially edit an issue by calling `gh issue create` / `gh issue edit` directly — always delegate to `github-write-issue` (or, from a vendor-neutral caller, `tracker-write`) so relationships, Gherkin criteria, and metadata gates are enforced.
 - If sign-in credentials are in the issue body, extract and pass them to the flow. If the issue touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.
