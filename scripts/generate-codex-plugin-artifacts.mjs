@@ -207,6 +207,22 @@ function metadataFor(pluginName) {
         "Query the wiki",
       ],
     },
+    "lisa-openclaw": {
+      displayName: "Lisa OpenClaw",
+      description:
+        "Connect staff roles to Telegram or Slack via OpenClaw — facilitator/specialist hub-and-spoke routing and repo-coding topics, across Claude and Codex.",
+      shortDescription: "Staff on Telegram/Slack via OpenClaw",
+      longDescription:
+        "Wire staff roles to human chat surfaces through OpenClaw: set up the gateway prerequisites, connect a facilitator (chief of staff) and its specialists on Telegram or Slack with hub-and-spoke routing, and bind Telegram forum topics to dispatcher+worker pairs for repo-coding work. Distributed for both Claude Code and Codex.",
+      category: "Productivity",
+      capabilities: ["Interactive", "Write"],
+      keywords: ["openclaw", "telegram", "slack", "agents", "chat-ops"],
+      defaultPrompt: [
+        "Set up OpenClaw for this project",
+        "Connect my chief of staff to Telegram",
+        "Connect staff to Slack via OpenClaw",
+      ],
+    },
   };
   return (
     map[pluginName] ?? {
