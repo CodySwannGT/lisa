@@ -57,7 +57,8 @@ fi
       "shipped":   "<page-id>"
     },
     "dashboardPageId": "<page-id>",
-    "feedbackPageId":  "<page-id>"
+    "feedbackPageId":  "<page-id>",
+    "rollup": { "closeOnShipped": false }
   },
   "github": {
     "org": "<org-or-user>",
@@ -75,7 +76,8 @@ fi
         "ready": "prd-ready", "in_review": "prd-in-review",
         "blocked": "prd-blocked", "ticketed": "prd-ticketed",
         "shipped": "prd-shipped",
-        "sentinel": "prd-intake-feedback"
+        "sentinel": "prd-intake-feedback",
+        "rollup": { "closeOnShipped": false }
       }
     }
   },
@@ -86,7 +88,8 @@ fi
     "values": {
       "draft": "Draft", "ready": "Ready", "in_review": "In Review",
       "blocked": "Blocked", "ticketed": "Ticketed", "shipped": "Shipped"
-    }
+    },
+    "rollup": { "closeOnShipped": false }
   },
   "linear": {
     "workspace": "<workspace-slug>",
@@ -104,7 +107,8 @@ fi
         "ready": "prd-ready", "in_review": "prd-in-review",
         "blocked": "prd-blocked", "ticketed": "prd-ticketed",
         "shipped": "prd-shipped",
-        "sentinel": "prd-intake-feedback"
+        "sentinel": "prd-intake-feedback",
+        "rollup": { "closeOnShipped": false }
       }
     }
   },
@@ -207,6 +211,18 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 | `ticketed` | Validated and tickets created | `Ticketed` (status) | `prd-ticketed` (label) |
 | `shipped` | All child tickets shipped | `Shipped` (status) | `prd-shipped` (label) |
 | `sentinel` | (PRD-intake feedback issue marker, GitHub/Linear self-host only) | — | `prd-intake-feedback` |
+
+### PRD rollup config (`prd.rollup`)
+
+PRD lifecycle completion is **derived** from the PRD's generated top-level work, not set independently — see the `prd-lifecycle-rollup` rule for the full contract (generated-top-level-work definition, per-vendor terminal-state predicate, the `shipped` transition, and the child-ref idempotency key). When all required generated top-level children are terminal, rollup transitions the PRD to its `shipped` role; the `prd.rollup` block configures the optional close/archive step that follows.
+
+The `rollup` object lives in each PRD-source vendor section (`github.labels.prd.rollup`, `linear.labels.prd.rollup`, `notion.rollup`, `confluence.rollup`):
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `closeOnShipped` | no | `false` | When `true`, rollup closes/archives the PRD after the `shipped` transition (GitHub: close the issue; Linear: move to a closed/archived state; JIRA: transition to Done; Confluence/Notion: archive where supported). When `false` (the default), the PRD is set to `shipped` but left open for a human to close. Closure never happens before all generated top-level work is terminal. |
+
+Like every other vocabulary key, `prd.rollup` is **optional** — a missing block inherits `closeOnShipped: false`. The `shipped` transition itself is unconditional on the all-terminal condition; only the close/archive step is gated by this flag.
 
 ### Env-keyed `done`
 
