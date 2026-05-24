@@ -49,14 +49,14 @@ If the cycle errored before processing any tickets (e.g. workflow misconfigured 
 
 ### 4. Suggest next actions when warranted
 
-After a successful cycle, if any tickets ended in the configured `done` status, mention that the next phase (QA, deploy, or downstream verification — depending on the project workflow) is owned by either humans or a future intake skill. This skill does not own anything past `done`.
+After a successful cycle, if any tickets ended in the configured `done` status, mention whether terminal native resolution was verified. This skill does not own anything past `done`, except that `jira-build-intake` verifies the JIRA ticket is natively resolved / closed when `done` is the true terminal value per `leaf-only-lifecycle`.
 
 If any tickets ended in `Blocked` (pre-flight verify failed) or `Held` (triage found ambiguities), point that out so the caller knows which tickets need human attention before they can be re-claimed. The Blocked ones were transitioned by `jira-agent`'s gate logic — that is correct and expected.
 
 ## Rules
 
 - **Never run a cycle without an explicit query.** Side effects too high to default.
-- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions. Never touch `TODO`, post-`done` statuses, or any other status. (Exception: `jira-agent` may transition to `Blocked` as part of its pre-flight gate — that's its job, not yours.)
+- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions and terminal-only native resolution verification. Never touch `TODO`, post-`done` statuses, or any other status. (Exception: `jira-agent` may transition to `Blocked` as part of its pre-flight gate — that's its job, not yours.)
 - **Never bypass `jira-agent` to do build work directly.** The intake skill dispatches; `jira-agent` builds. Skipping the dispatch produces broken work.
 - **Never invent transitions.** If a project's workflow uses different status names, they are configured in `.lisa.config.json` `jira.workflow.*` (canonical) — the setup skill writes them. Per-invocation `$ARGUMENTS` overrides are a secondary escape hatch. Don't guess.
 - **Never start a second cycle while one is in flight against an overlapping query.** Serial execution. Scheduling layer (when added) is responsible for not double-firing.
