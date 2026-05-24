@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.51.0](https://github.com/CodySwannGT/lisa/compare/vv2.50.0...v2.51.0) (2026-05-24)
+
+
+### Features
+
+* **setup-confluence:** scaffold Verified parent page + dashboard tile + config persist ([81696fa](https://github.com/CodySwannGT/lisa/commit/81696faf041ad266b86e790d41a6d60bf8bc3e96)), closes [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#595](https://github.com/CodySwannGT/lisa/issues/595) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#596](https://github.com/CodySwannGT/lisa/issues/596) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#595](https://github.com/CodySwannGT/lisa/issues/595)
+
 ## [2.50.0](https://github.com/CodySwannGT/lisa/compare/vv2.49.0...v2.50.0) (2026-05-24)
 
 
