@@ -190,14 +190,14 @@ describe("project-config", () => {
     );
 
     it.each([
-      "cursor",
-      "Claude",
-      "",
-      42,
-      null,
-      undefined,
-      ["claude"],
-      { harness: "claude" },
+      ["cursor"],
+      ["Claude"],
+      [""],
+      [42],
+      [null],
+      [undefined],
+      [["claude"]],
+      [{ harness: "claude" }],
     ])("rejects %p", value => {
       expect(isHarness(value)).toBe(false);
     });
