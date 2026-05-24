@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.47.1](https://github.com/CodySwannGT/lisa/compare/vv2.47.0...v2.47.1) (2026-05-24)
+
+
+### Documentation
+
+* **prd-lifecycle:** add verified terminal state + verify vs verify-prd distinction ([c7c8374](https://github.com/CodySwannGT/lisa/commit/c7c83740dae5adda2f39d7855636e09e5b8b8e50)), closes [#553](https://github.com/CodySwannGT/lisa/issues/553) [#592](https://github.com/CodySwannGT/lisa/issues/592) [#553](https://github.com/CodySwannGT/lisa/issues/553)
+
 ## [2.47.0](https://github.com/CodySwannGT/lisa/compare/vv2.46.0...v2.47.0) (2026-05-24)
 
 
