@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.31.0](https://github.com/CodySwannGT/lisa/compare/vv2.30.0...v2.31.0) (2026-05-24)
+
+
+### Features
+
+* **plugins:** add lisa-openclaw — connect staff to Telegram/Slack via OpenClaw ([2a7d85c](https://github.com/CodySwannGT/lisa/commit/2a7d85ca8788ce7aa990bdbeb584be75b684abfe))
+
 ## [2.30.0](https://github.com/CodySwannGT/lisa/compare/vv2.29.0...v2.30.0) (2026-05-24)
 
 
