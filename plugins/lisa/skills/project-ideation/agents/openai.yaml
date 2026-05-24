@@ -1,0 +1,4 @@
+display_name: "Project Ideation"
+short_description: "Generate practical, verifiable product or workflow ideas for the current host project"
+default_prompt:
+  - "Use $project-ideation: Generate practical, verifiable product or workflow ideas for the current host project."
