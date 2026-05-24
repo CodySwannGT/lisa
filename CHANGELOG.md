@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.53.0](https://github.com/CodySwannGT/lisa/compare/vv2.52.0...v2.53.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** add base project-ideation skill ([#666](https://github.com/CodySwannGT/lisa/issues/666)) ([c244a69](https://github.com/CodySwannGT/lisa/commit/c244a69c97e3d5809da53408a8d97d1507d9f1b6))
+
 ## [2.52.0](https://github.com/CodySwannGT/lisa/compare/vv2.51.0...v2.52.0) (2026-05-24)
 
 
