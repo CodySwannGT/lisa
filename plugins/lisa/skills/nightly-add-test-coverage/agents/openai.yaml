@@ -1,0 +1,4 @@
+display_name: "nightly-add-test-coverage"
+short_description: "Nightly direct-execution skill for increasing test coverage. Receives pre-computed threshold data, writes tests targeting coverage gaps, updates thresholds, commits, and creates a PR."
+default_prompt:
+  - "Use $nightly-add-test-coverage"

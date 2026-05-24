@@ -1,0 +1,4 @@
+display_name: "task-decomposition"
+short_description: "Methodology for breaking work into ordered tasks. Each task gets a single-repo scope, acceptance criteria, verification type, dependencies, and skills required."
+default_prompt:
+  - "Use $task-decomposition"

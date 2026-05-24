@@ -23,3 +23,13 @@ src/graphql-generated
 *.sh
 *.json
 coverage
+
+# Generated Codex plugin artifacts. plugins/lisa and plugins/lisa-* are built
+# from plugins/src by scripts/build-plugins.sh and must stay byte-identical to
+# the deterministic serializer output (scripts/generate-codex-plugin-artifacts.mjs),
+# or the Plugins Sync CI gate (bun run check:plugins) fails. Prettier's YAML
+# single-quote style would rewrite the serializer's double-quoted scalars, so the
+# generated openai.yaml files are excluded here. plugins/src (source of truth)
+# stays formatted.
+plugins/lisa/**/openai.yaml
+plugins/lisa-*/**/openai.yaml

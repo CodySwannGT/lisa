@@ -1,0 +1,4 @@
+display_name: "tracker-verify"
+short_description: "Vendor-neutral wrapper for the post-write verification gate. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-verify, lisa:github-verify, or lisa:linear-verify. Fetches the live ticket/issue and runs the validator gates against the stored state — catches anything dropped or reformatted on write. Read-only."
+default_prompt:
+  - "Use $tracker-verify"

@@ -1,0 +1,4 @@
+display_name: "tracker-evidence"
+short_description: "Vendor-neutral wrapper for posting verification evidence. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-evidence, lisa:github-evidence, or lisa:linear-evidence. Uploads evidence to the GitHub `pr-assets` release, updates the PR description, posts a comment on the originating ticket/issue, and transitions the ticket/issue to its post-build review state."
+default_prompt:
+  - "Use $tracker-evidence"

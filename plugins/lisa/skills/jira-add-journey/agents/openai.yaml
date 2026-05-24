@@ -1,0 +1,4 @@
+display_name: "jira-add-journey"
+short_description: "Add a Validation Journey section to an existing JIRA ticket by analyzing the change type and generating appropriate verification steps with evidence markers."
+default_prompt:
+  - "Use $jira-add-journey"
