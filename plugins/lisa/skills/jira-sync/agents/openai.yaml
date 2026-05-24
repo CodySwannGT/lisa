@@ -1,0 +1,4 @@
+display_name: "jira-sync"
+short_description: "Syncs plan progress to a linked JIRA ticket. Posts plan contents, progress updates, branch links, and PR links at key milestones. Use this skill throughout the plan lifecycle to keep tickets in sync."
+default_prompt:
+  - "Use $jira-sync"

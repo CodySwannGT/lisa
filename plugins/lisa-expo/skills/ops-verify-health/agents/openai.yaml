@@ -1,0 +1,4 @@
+display_name: "ops-verify-health"
+short_description: "Health check all services across environments. Checks frontend URLs, backend GraphQL endpoints, and reports response times."
+default_prompt:
+  - "Use $ops-verify-health"

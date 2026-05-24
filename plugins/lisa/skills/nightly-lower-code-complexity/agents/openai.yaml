@@ -1,0 +1,4 @@
+display_name: "nightly-lower-code-complexity"
+short_description: "Nightly direct-execution skill for reducing code complexity thresholds. Receives pre-computed threshold data, refactors violations, updates thresholds, commits, and creates a PR."
+default_prompt:
+  - "Use $nightly-lower-code-complexity"

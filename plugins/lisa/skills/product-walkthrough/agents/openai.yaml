@@ -1,0 +1,4 @@
+display_name: "product-walkthrough"
+short_description: "Methodology for evaluating the live product via a real browser (Playwright MCP) when planning work or evaluating a PRD. Reading a PRD or a mock without seeing the current product produces tickets that misjudge the change — this skill grounds the analysis in what actually exists today. Invoke this skill from notion-to-tracker (Phase 2b live-product walkthrough), jira-create, and any PRD intake flow whose work touches existing user-facing surfaces."
+default_prompt:
+  - "Use $product-walkthrough"

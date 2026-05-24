@@ -1,0 +1,4 @@
+display_name: "root-cause-analysis"
+short_description: "Root cause analysis methodology. Evidence gathering from logs, execution path tracing, strategic log placement, and building irrefutable proof chains."
+default_prompt:
+  - "Use $root-cause-analysis"

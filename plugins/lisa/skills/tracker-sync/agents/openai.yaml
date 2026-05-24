@@ -1,0 +1,4 @@
+display_name: "tracker-sync"
+short_description: "Vendor-neutral wrapper for posting milestone updates to the linked ticket/issue. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-sync, lisa:github-sync, or lisa:linear-sync. Posts at: plan created, implementation in progress, PR ready, PR merged. Suggests (never auto-transitions) the next status."
+default_prompt:
+  - "Use $tracker-sync"
