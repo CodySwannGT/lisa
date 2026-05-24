@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.34.0](https://github.com/CodySwannGT/lisa/compare/vv2.33.2...v2.34.0) (2026-05-24)
+
+
+### Features
+
+* **codex:** register lisa-wiki plugin in the marketplace installer ([f177d9c](https://github.com/CodySwannGT/lisa/commit/f177d9cb58efb95d8106856f3291310ab00e5f73))
+* **validators:** mirror leaf-only build-ready gate into jira/linear validators ([fb1ef4c](https://github.com/CodySwannGT/lisa/commit/fb1ef4cc7e5219d8955def64f9500a2506b608f5)), closes [#540](https://github.com/CodySwannGT/lisa/issues/540) [#541](https://github.com/CodySwannGT/lisa/issues/541) [#541](https://github.com/CodySwannGT/lisa/issues/541)
+
 ### [2.33.2](https://github.com/CodySwannGT/lisa/compare/vv2.33.1...v2.33.2) (2026-05-24)
 
 ### [2.33.1](https://github.com/CodySwannGT/lisa/compare/vv2.33.0...v2.33.1) (2026-05-24)
