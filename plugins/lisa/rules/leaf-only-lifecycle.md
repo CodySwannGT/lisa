@@ -65,7 +65,7 @@ Evaluate the children in priority order and take the **first** match:
 |---|---|---|
 | any leaf is **blocked** | blocked / attention-needed | `blocked` |
 | else any leaf is **in progress** (claimed or in review) | active / in-progress | `claimed` |
-| else **all** required leaves are **terminal** (`done`) | the configured rollup terminal state | `done` (or `review` / `ticketed` per lifecycle — see below) |
+| else **all** required leaves are **terminal** (`done`) | the configured rollup terminal state | `done` (or `review` where supported — see below) |
 | else (leaves exist but none started) | unchanged (parent stays in its non-ready container state) | — |
 
 Notes:
