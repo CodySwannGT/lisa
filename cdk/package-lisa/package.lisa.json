@@ -1,6 +1,7 @@
 {
   "force": {
     "scripts": {
+      "setup:deploy-key": "setup-deploy-key",
       "watch": "tsc -w",
       "cdk": "cdk",
       "build": "tsc --noEmit",

@@ -11,6 +11,7 @@
   },
   "force": {
     "scripts": {
+      "setup:deploy-key": "setup-deploy-key",
       "k6": "./scripts/k6-run.sh",
       "k6:smoke": "./scripts/k6-run.sh --scenario smoke",
       "k6:load": "./scripts/k6-run.sh --scenario load",
