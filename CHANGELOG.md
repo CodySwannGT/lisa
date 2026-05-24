@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.28.0](https://github.com/CodySwannGT/lisa/compare/vv2.27.0...v2.28.0) (2026-05-24)
+
+
+### Features
+
+* **github-to-tracker:** apply build-ready label only to leaf sub-tasks ([d702c9b](https://github.com/CodySwannGT/lisa/commit/d702c9b8b9352691335b33a3439479f0e6f32d89)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538)
+
 ## [2.27.0](https://github.com/CodySwannGT/lisa/compare/vv2.26.3...v2.27.0) (2026-05-24)
 
 
