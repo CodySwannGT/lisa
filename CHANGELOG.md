@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.26.3](https://github.com/CodySwannGT/lisa/compare/vv2.26.2...v2.26.3) (2026-05-23)
+
+
+### Documentation
+
+* add documentation source path rules ([440c8bd](https://github.com/CodySwannGT/lisa/commit/440c8bdb58ba21c42cf5dde3bd996e61ac5e4283))
+
 ### [2.26.2](https://github.com/CodySwannGT/lisa/compare/vv2.26.1...v2.26.2) (2026-05-23)
 
 
