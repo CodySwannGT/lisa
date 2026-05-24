@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.29.0](https://github.com/CodySwannGT/lisa/compare/vv2.28.0...v2.29.0) (2026-05-24)
+
+
+### Features
+
+* **github-validate-issue:** add leaf-only build-ready gate (S15) ([bbdfac2](https://github.com/CodySwannGT/lisa/commit/bbdfac2f117715c5f68722527f4622697c06d190)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#540](https://github.com/CodySwannGT/lisa/issues/540)
+
 ## [2.28.0](https://github.com/CodySwannGT/lisa/compare/vv2.27.0...v2.28.0) (2026-05-24)
 
 
