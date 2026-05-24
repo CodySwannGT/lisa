@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.33.0](https://github.com/CodySwannGT/lisa/compare/vv2.32.0...v2.33.0) (2026-05-24)
+
+
+### Features
+
+* **to-tracker:** mirror leaf-only build-ready labeling into notion/confluence/linear ([93922f2](https://github.com/CodySwannGT/lisa/commit/93922f288f00500a1c5755bb31289e9a3b219dad)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#538](https://github.com/CodySwannGT/lisa/issues/538) [#539](https://github.com/CodySwannGT/lisa/issues/539) [#539](https://github.com/CodySwannGT/lisa/issues/539)
+
+## [2.32.0](https://github.com/CodySwannGT/lisa/compare/vv2.31.0...v2.32.0) (2026-05-24)
+
+
+### Features
+
+* **sync:** implement parent status rollup across GitHub/JIRA/Linear ([#544](https://github.com/CodySwannGT/lisa/issues/544)) ([a277037](https://github.com/CodySwannGT/lisa/commit/a277037ba5daad78ea5f6cf20d021e99611dbb1a)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#540](https://github.com/CodySwannGT/lisa/issues/540) [#542](https://github.com/CodySwannGT/lisa/issues/542)
+
+## [2.31.0](https://github.com/CodySwannGT/lisa/compare/vv2.30.0...v2.31.0) (2026-05-24)
+
+
+### Features
+
+* **plugins:** add lisa-openclaw — connect staff to Telegram/Slack via OpenClaw ([2a7d85c](https://github.com/CodySwannGT/lisa/commit/2a7d85ca8788ce7aa990bdbeb584be75b684abfe))
+
+## [2.30.0](https://github.com/CodySwannGT/lisa/compare/vv2.29.0...v2.30.0) (2026-05-24)
+
+
+### Features
+
+* **github-build-intake:** skip/safe-block parents with open child work (leaf-only claim gate) ([65c9186](https://github.com/CodySwannGT/lisa/commit/65c91862921dde8a1627a5b93ec025e0583c6aa0)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#540](https://github.com/CodySwannGT/lisa/issues/540) [#542](https://github.com/CodySwannGT/lisa/issues/542) [#542](https://github.com/CodySwannGT/lisa/issues/542)
+
+## [2.29.0](https://github.com/CodySwannGT/lisa/compare/vv2.28.0...v2.29.0) (2026-05-24)
+
+
+### Features
+
+* **github-validate-issue:** add leaf-only build-ready gate (S15) ([bbdfac2](https://github.com/CodySwannGT/lisa/commit/bbdfac2f117715c5f68722527f4622697c06d190)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#540](https://github.com/CodySwannGT/lisa/issues/540)
+
+## [2.28.0](https://github.com/CodySwannGT/lisa/compare/vv2.27.0...v2.28.0) (2026-05-24)
+
+
+### Features
+
+* **github-to-tracker:** apply build-ready label only to leaf sub-tasks ([d702c9b](https://github.com/CodySwannGT/lisa/commit/d702c9b8b9352691335b33a3439479f0e6f32d89)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538)
+
+## [2.27.0](https://github.com/CodySwannGT/lisa/compare/vv2.26.3...v2.27.0) (2026-05-24)
+
+
+### Features
+
+* **rules:** add leaf-only-invariant + parent rollup vendor-neutral rule ([a75b560](https://github.com/CodySwannGT/lisa/commit/a75b56067ab770521d6cf5c2e93f4be170c24303)), closes [#522](https://github.com/CodySwannGT/lisa/issues/522) [#537](https://github.com/CodySwannGT/lisa/issues/537)
+
+
+### Documentation
+
+* **rules:** drop PRD-only 'ticketed' from build-lifecycle rollup terminals ([346ab10](https://github.com/CodySwannGT/lisa/commit/346ab101892d7f0317fc2dd8a2020bdedca27196)), closes [#610](https://github.com/CodySwannGT/lisa/issues/610)
+
 ### [2.26.3](https://github.com/CodySwannGT/lisa/compare/vv2.26.2...v2.26.3) (2026-05-23)
 
 

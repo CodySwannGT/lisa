@@ -1,7 +1,7 @@
 ---
 name: linear-sync
 description: "Syncs plan progress to a linked Linear Issue. Posts plan contents, progress updates, branch links, and PR links at key milestones. Use this skill throughout the plan lifecycle to keep Linear Issues in sync. The Linear counterpart of lisa:jira-sync and lisa:github-sync."
-allowed-tools: ["Bash", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__save_issue"]
+allowed-tools: ["Bash", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__list_issues", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__save_issue"]
 ---
 
 # Sync Plan to Linear: $ARGUMENTS
@@ -81,9 +81,34 @@ Verify exactly one `status:*` label remains after the update — having two simu
 
 Without `--update-label`, this skill posts the comment only and does NOT touch labels.
 
+## Phase 5 — Parent Status Rollup (`--rollup`)
+
+When the caller passes `--rollup`, this skill **derives a parent/container's `status:*` label from the roll-up of its children** instead of acting on a leaf. A **Project** (the Epic equivalent) rolls up from its Issues; an **Issue** rolls up from its sub-Issues. This implements the Linear child-issue-status arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy.
+
+**Resolve the child set the same way `lisa:linear-read-issue` does** — `mcp__linear-server__list_issues({project: <id>})` for a Project's Issues, or `mcp__linear-server__get_issue` per child for an Issue's sub-Issues (via `parentId`). Capture each child's `status:*` label. If the item has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
+
+**Evaluate the required children in priority order and take the first match** (canonical roles from `config-resolution`; Linear label map is `status:blocked`, `status:in-progress`, `status:code-review`, `status:done`):
+
+| If among the required child leaves… | Derived parent role | Linear label |
+|---|---|---|
+| any child carries `status:blocked` | `blocked` | `status:blocked` |
+| else any child carries `status:in-progress` **or** `status:code-review` | `claimed` | `status:in-progress` |
+| else **all** required children carry `status:done` | `done` | the configured terminal `done` label |
+| else (children exist, none started) | — | unchanged — parent keeps its non-ready container label |
+
+- **Blocked dominates** — one blocked child surfaces `status:blocked` on the parent even while siblings progress.
+- **"Required" children only** — won't-do / optional (e.g. `Canceled`) children do not hold the parent open.
+- **Recursive** — a Project reaches `status:done` only when its Issues have themselves rolled up to `status:done`. Evaluate bottom-up.
+- **Never set the parent to `status:ready`** — `ready` is leaf-only. Rollup only moves the parent between non-ready container labels.
+
+**Single-environment collapse (this repo).** The terminal `done` resolves via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to the single `status:done` label and the lifecycle is `status:ready → status:in-progress → status:code-review → status:done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map.
+
+**Apply the derived label** via `mcp__linear-server__save_issue` (Project or Issue), removing the parent's existing `status:*` and adding the derived one so exactly one `status:*` label remains. Post an idempotent rollup comment naming the derived state and the child tally. The native Linear `state` is **not** auto-transitioned — only the `status:*` label, mirroring the `--update-label` rule. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's label untouched.
+
 ## Rules
 
-- Never auto-transition the native Linear `state` — only the label, and only when the caller explicitly asks.
+- Never auto-transition the native Linear `state` — only the label, and only when the caller explicitly asks (`--update-label`, or `--rollup` for parent derivation per the `leaf-only-lifecycle` rule).
+- Rollup derives a *parent's* `status:*` label from its children and never sets a parent to `status:ready`. It cites the `leaf-only-lifecycle` rule by slug rather than restating the state machine.
 - Never post empty or minimal comments — if a milestone has no meaningful content, skip the post.
 - Do not delete prior milestone comments. They are the audit trail.
 - If `save_comment` fails, retry once. If it fails again, surface the error.
