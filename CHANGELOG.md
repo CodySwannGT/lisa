@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.32.0](https://github.com/CodySwannGT/lisa/compare/vv2.31.0...v2.32.0) (2026-05-24)
+
+
+### Features
+
+* **sync:** implement parent status rollup across GitHub/JIRA/Linear ([#544](https://github.com/CodySwannGT/lisa/issues/544)) ([a277037](https://github.com/CodySwannGT/lisa/commit/a277037ba5daad78ea5f6cf20d021e99611dbb1a)), closes [#538](https://github.com/CodySwannGT/lisa/issues/538) [#540](https://github.com/CodySwannGT/lisa/issues/540) [#542](https://github.com/CodySwannGT/lisa/issues/542)
+
 ## [2.31.0](https://github.com/CodySwannGT/lisa/compare/vv2.30.0...v2.31.0) (2026-05-24)
 
 
