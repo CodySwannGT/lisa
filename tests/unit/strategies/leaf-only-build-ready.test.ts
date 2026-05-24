@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- one regression suite tracks the leaf-only invariant across every write/validate/intake skill and both plugin roots (#538-#543) */
 /**
  * Regression tests for the leaf-only build-ready invariant across the GitHub
  * write and validate paths.
@@ -14,6 +15,12 @@
  * classifies each candidate before claiming and skips / safe-blocks any parent
  * with open child work (or a childless Epic/Story/Spike) carrying a stale
  * build-ready label, while a childless leaf is claimed normally.
+ *
+ * Issue #543: mirrors the #542 claim-time gate into the JIRA and Linear build
+ * scanners — `jira-build-intake` and `linear-build-intake` each add a Phase 3a
+ * leaf-only claim gate ahead of the claim step — and documents the forwarded
+ * contract in the vendor-neutral `tracker-build-intake` shim, so all three
+ * build scanners skip / safe-block containers identically.
  *
  * Issue #539: mirrors the #538 decomposition-side change into the other three
  * PRD-to-tracker skills — `notion-to-tracker`, `confluence-to-tracker`,
@@ -344,6 +351,158 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
   });
 
+  // Issue #543: jira-build-intake and linear-build-intake must mirror the #542
+  // github-build-intake claim-time gate — a Phase 3a leaf-only claim gate ahead
+  // of the claim step that skips / safe-blocks any parent with open child work
+  // (or a childless Epic/Story/Spike) carrying a stale build-ready role, while a
+  // childless leaf is claimed normally. Both vendor scanners keep the gate
+  // symmetric with the GitHub one so behavior never drifts by tracker. Asserting
+  // both roots catches an artifact-only edit or a missed `bun run build:plugins`.
+  const BUILD_INTAKE_SKILLS = [
+    "jira-build-intake",
+    "linear-build-intake",
+  ] as const;
+
+  describe.each(BUILD_INTAKE_SKILLS)("%s (#543)", skill => {
+    describe.each(SKILL_ROOTS)("%s", root => {
+      const content = readSkill(root, skill);
+      /** Heading that anchors the claim-time leaf-only gate. */
+      const gateHeading = "#### 3a. Leaf-only claim gate";
+
+      it(CITES_SLUG, () => {
+        expect(content).toContain(RULE_SLUG);
+      });
+
+      it("defines a Phase 3a leaf-only claim gate ahead of the claim", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const claimIndex = content.indexOf("#### 3b. Claim");
+        expect(gateIndex).toBeGreaterThan(-1);
+        expect(claimIndex).toBeGreaterThan(-1);
+        // The gate must precede the claim step so a container is never claimed.
+        expect(gateIndex).toBeLessThan(claimIndex);
+      });
+
+      it("skips / safe-blocks a parent with open child work", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const section = content.slice(gateIndex);
+        expect(section).toMatch(/open child work/i);
+        expect(section).toMatch(/do NOT claim|never claimed|not claimed/i);
+        expect(section).toMatch(/skip|safe-block/i);
+      });
+
+      it("counts only open children, excluding terminal ones", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const section = content.slice(gateIndex);
+        // Same OPEN_CHILDREN structural detection the GitHub gate uses, mapped
+        // to each vendor's terminal state vocabulary.
+        expect(section).toMatch(/OPEN_CHILDREN/);
+        expect(section).toMatch(/still open|not.*(Done|terminal|completed)/i);
+      });
+
+      it("resolves children via the vendor's native hierarchy", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const section = content.slice(gateIndex);
+        // The gate must reuse the same hierarchy the vendor read skill uses and
+        // explicitly exclude dependency links (blocks / is blocked by) from
+        // parentage, per leaf-only-lifecycle.
+        expect(section).toMatch(/read-(ticket|issue)/);
+        expect(section).toMatch(/not parentage|not.*children/i);
+      });
+
+      it("does not claim a childless Epic/Story/Spike", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const section = content.slice(gateIndex);
+        expect(section).toMatch(
+          /childless container-type|childless Epic\/Story\/Spike/i
+        );
+        expect(section).toMatch(/Epic/);
+        expect(section).toMatch(/Story/);
+        expect(section).toMatch(/Spike/);
+      });
+
+      it("claims a childless leaf work unit", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const section = content.slice(gateIndex);
+        // The childless-parent exception: flat Bug/Task/Sub-task/Improvement
+        // with no open children falls through to the claim.
+        expect(section).toMatch(/leaf work unit/i);
+        expect(section).toMatch(
+          /Bug, Task, Sub-task, Improvement|Bug \/ Task \/ Sub-task \/ Improvement/
+        );
+        expect(section).toMatch(/[Pp]roceed.*claim|claim/);
+      });
+
+      it("posts a lifecycle-repair comment when safe-blocking a container", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const section = content.slice(gateIndex);
+        expect(section).toMatch(/lifecycle-repair/i);
+        // The repair guidance points the role off the parent onto its leaves.
+        expect(section).toMatch(
+          /onto its leaf children|move .* off this parent/i
+        );
+      });
+
+      it("uses the same leaf-only repair wording as the other arms", () => {
+        const gateIndex = content.indexOf(gateHeading);
+        const section = content.slice(gateIndex);
+        // Shared wording keeps the lifecycle-repair message consistent with the
+        // validators' S15 remediation (the #543 cross-vendor symmetry goal).
+        expect(section).toContain(
+          "Build-ready (status:ready) is leaf-only per leaf-only-lifecycle"
+        );
+        // Case-insensitive: the safe-block comment mirrors github-build-intake's
+        // capitalized sentence ("A parent's …"); the validators use it lowercase
+        // mid-sentence. Both encode the same rollup invariant.
+        expect(section).toMatch(
+          /a parent's lifecycle state rolls up from its children and is never set to ready directly/i
+        );
+      });
+
+      it("lists a Skipped (container) bucket in the summary report", () => {
+        expect(content).toMatch(/Skipped \(container/);
+      });
+    });
+  });
+
+  // Issue #543: the vendor-neutral tracker-build-intake shim must document and
+  // forward the leaf-only claim contract so the three vendor scanners do not
+  // drift. The shim is dispatch-only — it does not re-gate — but it cites the
+  // rule by slug and names each vendor's Phase 3a gate. Asserting both roots
+  // catches an artifact-only edit or a missed `bun run build:plugins`.
+  describe.each(SKILL_ROOTS)("%s/tracker-build-intake (#543)", root => {
+    const content = readSkill(root, "tracker-build-intake");
+
+    it(CITES_SLUG, () => {
+      expect(content).toContain(RULE_SLUG);
+    });
+
+    it("documents the forwarded leaf-only claim contract", () => {
+      expect(content).toMatch(/claims only.*leaf work units/i);
+      expect(content).toMatch(/skip|safe-block/i);
+      expect(content).toMatch(/open child work/i);
+    });
+
+    it("names each vendor's Phase 3a gate", () => {
+      expect(content).toContain("lisa:github-build-intake");
+      expect(content).toContain("lisa:jira-build-intake");
+      expect(content).toContain("lisa:linear-build-intake");
+      expect(content).toMatch(/Phase 3a/);
+    });
+
+    it("states the shim forwards rather than re-gates", () => {
+      // The shim must not claim to re-implement the gate — it relies on the
+      // resolved vendor scanner's Phase 3a.
+      expect(content).toMatch(
+        /forward|dispatch only|does not re-?(implement|gate)/i
+      );
+    });
+
+    it("ties the claim-time arm to its write and validate siblings", () => {
+      expect(content).toContain("lisa:tracker-write");
+      expect(content).toContain("lisa:tracker-validate");
+    });
+  });
+
   // Issue #539: the three non-GitHub PRD-to-tracker skills must mirror the #538
   // decomposition-side change so all four PRD sources are behaviorally
   // identical — Phase 3 (Epics) and Phase 4 (Stories) never pass status:ready;
@@ -416,3 +575,4 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
   });
 });
+/* eslint-enable max-lines -- re-enable after the leaf-only invariant suite */
