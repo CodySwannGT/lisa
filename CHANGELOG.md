@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.74.0](https://github.com/CodySwannGT/lisa/compare/vv2.73.0...v2.74.0) (2026-05-25)
+
+
+### Features
+
+* record lifecycle usage on research plan and debrief artifacts ([4625f23](https://github.com/CodySwannGT/lisa/commit/4625f23190c9205ed6afc440c6e7cfa9fc0a5fb8))
+
 ## [2.73.0](https://github.com/CodySwannGT/lisa/compare/vv2.72.0...v2.73.0) (2026-05-25)
 
 
