@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.62.0](https://github.com/CodySwannGT/lisa/compare/vv2.61.1...v2.62.0) (2026-05-25)
+
+
+### Features
+
+* **automations:** add /setup-automations and /tear-down-automations skills ([3818d5a](https://github.com/CodySwannGT/lisa/commit/3818d5ac482afb1c2f21d43dd7f2e7f36a7a5851))
+* **build-intake:** claim-time repo scoping for multi-repo trackers ([46fec29](https://github.com/CodySwannGT/lisa/commit/46fec2969742b27a5ef007a08452255190b1c3eb))
+* **exploratory-qa:** file findings as lifecycle tickets + add build_ready write-control ([bb96411](https://github.com/CodySwannGT/lisa/commit/bb96411cb79bc76f1a4d58f3e217e43431abdc84))
+* **implement:** rebase onto the ticket's target-environment branch before work; PR to that branch ([9255222](https://github.com/CodySwannGT/lisa/commit/92552221e0fe7c379dc69e5c3def466d3ecf8c4e))
+* **intake:** close the PRD loop — dispatch verify-prd for shipped PRDs ([ea5574c](https://github.com/CodySwannGT/lisa/commit/ea5574c433c599b5b4b4d353197742a7d78c8132))
+* **lisa-wiki-ingest:** bookend every ingest with branch sync + auto-merge PR ([586458a](https://github.com/CodySwannGT/lisa/commit/586458a88fa7c1585cb317c1d10a09ff81c1421c))
+* **project-ideation:** persona-driven ideation that creates PRDs in the source ([415e4fb](https://github.com/CodySwannGT/lisa/commit/415e4fb6e7a084bdab98365796f18f85bb830a61))
+* **repair-intake:** add /lisa:repair-intake recovery scanner ([795d5c0](https://github.com/CodySwannGT/lisa/commit/795d5c0f594cbc8ee54d3465f3368be9300ccadb))
+* **verify-prd:** self-healing FAIL — re-open to ticketed + build-ready fix tickets (never blocked) ([e902fd3](https://github.com/CodySwannGT/lisa/commit/e902fd3cc559c655107ffe62d769037b71f3a7b8))
+
+
+### Bug Fixes
+
+* **skills:** address CodeRabbit review findings — doc clarity and correctness ([6604685](https://github.com/CodySwannGT/lisa/commit/66046854fffb778cbe6fe835be079dfec956c054))
+
+
+### Documentation
+
+* **verify-prd:** correct stale command description ([2ff3c5f](https://github.com/CodySwannGT/lisa/commit/2ff3c5ff0eb11447fb4fc1ab3257e9a8b594793d))
+
 ### [2.61.1](https://github.com/CodySwannGT/lisa/compare/vv2.61.0...v2.61.1) (2026-05-25)
 
 
