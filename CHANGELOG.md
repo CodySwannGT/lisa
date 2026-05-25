@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.60.0](https://github.com/CodySwannGT/lisa/compare/vv2.59.1...v2.60.0) (2026-05-25)
+
+
+### Features
+
+* add verified PRD lifecycle role ([5bccb29](https://github.com/CodySwannGT/lisa/commit/5bccb29dc91dbbee1bbc524ee41c0e3b2550f9ec))
+* **github-build-intake:** hold ready issues with active blockers ([26609b4](https://github.com/CodySwannGT/lisa/commit/26609b4b12b57782142cf0e0a812edd0cb7e0312)), closes [#644](https://github.com/CodySwannGT/lisa/issues/644)
+
+
+### Documentation
+
+* add PRD rollup vendor matrix ([68a563a](https://github.com/CodySwannGT/lisa/commit/68a563ae499aa85bb4ecdebf8ec46a0a5e05cfb1))
+
 ### [2.59.1](https://github.com/CodySwannGT/lisa/compare/vv2.59.0...v2.59.1) (2026-05-25)
 
 ## [2.59.0](https://github.com/CodySwannGT/lisa/compare/vv2.58.0...v2.59.0) (2026-05-25)
