@@ -242,8 +242,8 @@ export function createLisaUsageRollup(
   const directCost = sumNullable(entries.map(entry => entry.cost));
   const childEntryIds = previousRollup?.childEntryIds ?? [];
   const childRefs = previousRollup?.childRefs ?? [];
-  const childTokens = previousRollup?.childTokens ?? 0;
-  const childCost = previousRollup?.childCost ?? 0;
+  const childTokens = previousRollup ? previousRollup.childTokens : null;
+  const childCost = previousRollup ? previousRollup.childCost : null;
   const totalTokens =
     directTokens === null && childTokens === null
       ? null

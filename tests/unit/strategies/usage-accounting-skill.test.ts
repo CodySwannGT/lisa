@@ -15,6 +15,12 @@ import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 const SKILL_SLUG = "usage-accounting";
+const OPENAI_AGENT_PATH = path.resolve(
+  "plugins/lisa/skills",
+  SKILL_SLUG,
+  "agents",
+  "openai.yaml"
+);
 
 const readSkill = (root: string): string =>
   readFileSync(path.resolve(root, SKILL_SLUG, "SKILL.md"), "utf8");
@@ -66,5 +72,18 @@ describe("usage-accounting skill contract", () => {
       expect(content).toMatch(/createLisaUsageRollup/i);
       expect(content).toMatch(/upsertLisaUsageSection/i);
     });
+  });
+
+  it("keeps the generated OpenAI agent metadata aligned with the skill surface", () => {
+    expect(existsSync(OPENAI_AGENT_PATH)).toBe(true);
+    const content = readFileSync(OPENAI_AGENT_PATH, "utf8");
+
+    expect(content).toContain('display_name: "Usage Accounting"');
+    expect(content).toContain(
+      'short_description: "Shared usage-ledger utility for Lisa lifecycle flows and artifact writers"'
+    );
+    expect(content).toContain(
+      '"Use $usage-accounting: Shared usage-ledger utility for Lisa lifecycle flows and artifact writers."'
+    );
   });
 });

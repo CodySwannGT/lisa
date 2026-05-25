@@ -3,6 +3,7 @@ import {
   LISA_USAGE_HEADING,
   parseLisaUsageSection,
   type LisaUsageEntry,
+  type LisaUsageRollup,
   upsertLisaUsageSection,
 } from "../../../src/utils/usage-accounting.js";
 
@@ -10,6 +11,8 @@ const USAGE_HEADING_COUNT = 1;
 const USAGE_HEADING_MATCHER = /## Lisa Usage/g;
 const ARTIFACT_HEADING = "# Artifact";
 const ARTIFACT_DOCUMENT = `${ARTIFACT_HEADING}\n`;
+const PRICING_SOURCE = "config:openai-api-pricing@2026-05-25";
+const PRICED_ENTRY_ID = "entry-priced";
 
 /**
  * Create a deterministic direct usage entry for unit tests.
@@ -38,6 +41,28 @@ function makeEntry(
     runId: overrides.runId,
     source: "prompt",
     totalTokens: 120,
+    ...overrides,
+  };
+}
+
+/**
+ * Create a deterministic rollup payload for unit tests.
+ *
+ * @param overrides Test-specific rollup overrides.
+ * @returns A complete rollup payload.
+ */
+function makeRollup(overrides: Partial<LisaUsageRollup> = {}): LisaUsageRollup {
+  return {
+    childCost: 0,
+    childEntryIds: [],
+    childRefs: [],
+    childTokens: 0,
+    currency: "USD",
+    directCost: 0,
+    directEntryIds: [],
+    directTokens: 0,
+    totalCost: 0,
+    totalTokens: 0,
     ...overrides,
   };
 }
@@ -155,5 +180,104 @@ describe("usage-accounting utilities", () => {
     expect(parsed.rollup?.directEntryIds).toEqual(["entry-1", "entry-2"]);
     expect(parsed.rollup?.directTokens).toBe(200);
     expect(parsed.rollup?.totalCost).toBeCloseTo(0.2);
+  });
+
+  it("round-trips explicit unavailable usage entries with nullable fields", () => {
+    const unavailableEntry = makeEntry({
+      entryId: "entry-unavailable",
+      runId: "run-unavailable",
+      cachedInputTokens: null,
+      cost: null,
+      currency: null,
+      inputTokens: null,
+      outputTokens: null,
+      pricingSource: null,
+      pricingStatus: "unavailable",
+      reasoningTokens: null,
+      source: "unavailable",
+      totalTokens: null,
+    });
+
+    const updated = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [unavailableEntry],
+      rollup: createLisaUsageRollup([unavailableEntry]),
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(updated).toContain("source=unavailable");
+    expect(updated).toContain("pricing_status=unavailable");
+    expect(updated).toContain("total_tokens=null");
+    expect(updated).toContain("cost=null");
+    expect(parsed.entries[0]).toMatchObject({
+      cachedInputTokens: null,
+      cost: null,
+      currency: null,
+      inputTokens: null,
+      outputTokens: null,
+      pricingSource: null,
+      pricingStatus: "unavailable",
+      reasoningTokens: null,
+      source: "unavailable",
+      totalTokens: null,
+    });
+    expect(parsed.rollup?.directTokens).toBeNull();
+    expect(parsed.rollup?.totalCost).toBeNull();
+  });
+
+  it("preserves pricing metadata and prior child rollups during direct-entry refreshes", () => {
+    const existingEntry = makeEntry({
+      entryId: PRICED_ENTRY_ID,
+      pricingSource: PRICING_SOURCE,
+      pricingStatus: "estimated",
+    });
+    const existingSection = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [existingEntry],
+      rollup: makeRollup({
+        childCost: 0.21,
+        childEntryIds: ["child-a", "shared-descendant"],
+        childRefs: ["github:issue:900", "github:issue:901"],
+        childTokens: 210,
+        currency: "USD",
+        directCost: 0.12,
+        directEntryIds: [PRICED_ENTRY_ID],
+        directTokens: 120,
+        totalCost: 0.33,
+        totalTokens: 330,
+      }),
+    });
+    const refreshedEntry = makeEntry({
+      entryId: PRICED_ENTRY_ID,
+      runId: "run-priced-refresh",
+      cost: 0.18,
+      pricingSource: PRICING_SOURCE,
+      pricingStatus: "estimated",
+      totalTokens: 180,
+    });
+
+    const updated = upsertLisaUsageSection(existingSection, {
+      entries: [refreshedEntry],
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(parsed.entries).toHaveLength(1);
+    expect(parsed.entries[0]).toMatchObject({
+      cost: 0.18,
+      entryId: PRICED_ENTRY_ID,
+      pricingSource: PRICING_SOURCE,
+      pricingStatus: "estimated",
+      runId: "run-priced-refresh",
+      totalTokens: 180,
+    });
+    expect(parsed.rollup).toMatchObject({
+      childCost: 0.21,
+      childEntryIds: ["child-a", "shared-descendant"],
+      childRefs: ["github:issue:900", "github:issue:901"],
+      childTokens: 210,
+      directCost: 0.18,
+      directEntryIds: [PRICED_ENTRY_ID],
+      directTokens: 180,
+      totalCost: 0.39,
+      totalTokens: 390,
+    });
   });
 });
