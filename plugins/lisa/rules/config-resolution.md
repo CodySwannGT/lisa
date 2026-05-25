@@ -120,6 +120,13 @@ fi
       "staging":    "staging",
       "production": "main"
     }
+  },
+
+  "intake": {
+    "repair": {
+      "staleAfterHours": 24,
+      "maxCandidates": 100
+    }
   }
 }
 ```
@@ -226,6 +233,22 @@ The `rollup` object lives in each PRD-source vendor section (`github.labels.prd.
 
 Like every other vocabulary key, `prd.rollup` is **optional** — a missing block inherits `closeOnShipped: false`. The `shipped` transition itself is unconditional on the all-terminal condition; only the close/archive step is gated by this flag.
 
+### Repair intake config (`intake.repair`)
+
+`lisa:repair-intake` (the recovery counterpart to `lisa:intake`) reads two optional tuning keys
+from the top-level `intake.repair` block. Both are **optional** — a missing block inherits the
+documented defaults, so existing projects need no config change.
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `intake.repair.staleAfterHours` | no | `24` | How long an in-progress item (build `claimed`, PRD `in_review`) may show no observable activity before repair-intake treats it as stalled and resumes it. `blocked` items are judged on blocker/answer state, not this threshold. Overridable per-run via `stale_after=<dur>` in `$ARGUMENTS` (which always wins). The same value is the default backoff window for loop-prevention notes. |
+| `intake.repair.maxCandidates` | no | `100` | Upper bound on how many stuck items repair-intake enumerates while searching for the first actionable one. Bounds scan cost. Overridable per-run via `max_candidates=<n>`. |
+
+Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.config.local.json` →
+`.lisa.config.json` → built-in default. The role SEMANTICS repair-intake operates on (which
+roles count as "stuck", what each repair does) are fixed like every other lifecycle transition;
+only these thresholds are tunable.
+
 ### Env-keyed `done`
 
 The `done` role is special: the terminal status/label depends on which environment a PR was merged into. A hotfix to staging ends at `On Stg`; a production hotfix ends at `Done`. So `done` is a **map** keyed by env name (`dev`, `staging`, `production`).
@@ -237,6 +260,16 @@ Skills that transition to `done` MUST resolve the env first:
 3. **Failure** — if neither resolves and `done` is a map, fail loudly. Never pick arbitrarily.
 
 If a project's terminal state is the same regardless of env, set `done` to a string instead of a map (lifecycle skills accept either shape).
+
+### Env → base branch (forward: the build base and PR base)
+
+`deploy.branches` is also read in the **forward** direction by the build flow (`lisa:implement`): the environment a work item targets determines the branch the work is built on and the branch the PR opens against.
+
+1. **Resolve the work item's target environment** — its `## Target Backend Environment` field. If the item names no environment, use the **remote default branch** (`gh repo view --json defaultBranchRef`, or `origin/HEAD`).
+2. **Map env → base branch** via `deploy.branches` (e.g. `staging → staging`, `production → main`). Absent env or missing branch → stop and report; never guess.
+3. **Before any code is written**, `lisa:implement` fetches and **rebases the working branch onto `origin/<base>`, resolving conflicts**, so implementation builds on the latest target-environment code. **The PR then opens against that same base branch** (`target_branch=<base>` to `lisa:git-submit-pr`).
+
+This is the exact inverse of the env-keyed `done` "Branch inference" above: `done` derives the env *from* the PR base branch (reverse); the build flow derives the base branch *from* the env (forward). Both use the one `deploy.branches` map, so the branch a PR targets and the `done` status it earns always agree.
 
 The true terminal `done` value is also the only value that triggers provider-native closure / resolution per `leaf-only-lifecycle`:
 
@@ -436,6 +469,33 @@ GitHub and Linear PRD lifecycles use labels (`prd-ready` / `prd-in-review` / etc
 **Identity-match is mandatory at every tier.** A substrate that's authenticated as the *wrong* Atlassian account is more dangerous than no substrate — it silently performs operations against the wrong workspace. `atlassian-access` verifies identity before every operation and skips substrates that don't match.
 
 **Why curl is still needed**: acli's Confluence surface only covers `space` and `page view`. v1 page-write endpoints accept scoped tokens but return 410 Gone (deprecated); v2 endpoints require granular OAuth scopes acli doesn't request. API tokens via Basic auth bypass this with full user scope, so curl is the headless-friendly path for ops neither acli nor MCP can do.
+
+## Repo scoping (multi-repo trackers)
+
+A ticketing system can oversee **multiple repos** — e.g. one JIRA project (or Linear team) for `frontend`, `backend`, and `infrastructure`. When build-intake runs inside one repo, it must claim only the tickets that belong to **that** repo and skip the rest. Two pieces make this work; the claim-time enforcement lives in the `repo-scope-split` rule.
+
+### The `repo:<name>` label (the repo marker)
+
+A work item's target repo is recorded as a **label** `repo:<name>`, where `<name>` is the repo's short name (e.g. `repo:frontend`). The convention is uniform across trackers (JIRA / GitHub / Linear), consistent with the other namespaced labels (`status:`, `type:`, `component:`). On JIRA a **component** equal to the repo name is accepted as an alias (matches the legacy `component = "frontend"` JQL pattern). A leaf work unit carries **exactly one** `repo:<name>` (leaves are single-repo per `repo-scope-split`); a container (Epic/Story/Spike) may carry several or none.
+
+The label is not required to exist up front: build-intake **determines** the target repo from the ticket's content + code surfaces when the label is absent and **stamps** `repo:<name>` so later cycles filter cheaply (see `repo-scope-split` "claim-time repo scoping").
+
+### Current-repo resolution (which repo am I?)
+
+Resolve the name of the repo intake is running in, highest priority first:
+
+1. `.lisa.config.local.json` then `.lisa.config.json` `repo` (an explicit override, e.g. `"repo": "frontend"`).
+2. `.lisa.config.json` `github.repo` when set (the repo's own identity).
+3. The git remote basename: `basename -s .git "$(git remote get-url origin)"` (e.g. `git@github.com:acme/frontend.git` → `frontend`).
+
+```bash
+read_g() { local lv gv; lv=$(jq -r "$1 // empty" .lisa.config.local.json 2>/dev/null); gv=$(jq -r "$1 // empty" .lisa.config.json 2>/dev/null); echo "${lv:-${gv}}"; }
+CURRENT_REPO=$(read_g '.repo')
+[ -z "$CURRENT_REPO" ] && CURRENT_REPO=$(read_g '.github.repo')
+[ -z "$CURRENT_REPO" ] && CURRENT_REPO=$(basename -s .git "$(git remote get-url origin 2>/dev/null)" 2>/dev/null)
+```
+
+If the current repo cannot be resolved by any tier, build-intake stops with a clear error rather than claiming tickets it cannot scope. The match is by repo short name (`repo:<CURRENT_REPO>`), case-insensitive.
 
 ## Invariants
 

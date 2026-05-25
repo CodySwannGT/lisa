@@ -3,4 +3,4 @@ description: "Vendor-agnostic batch scanner for Ready queues. Notion PRD databas
 argument-hint: "<Notion-PRD-database-URL | Confluence-space-URL | Confluence-parent-page-URL | Linear-workspace-URL | Linear-team-URL | GitHub-repo-URL | org/repo | JIRA-project-key | JQL-filter>"
 ---
 
-Use the /lisa:intake skill to scan the queue for Ready items and dispatch each one through the appropriate single-item lifecycle skill. $ARGUMENTS
+Use the /lisa:intake skill to scan the queue for Ready items and dispatch one eligible Ready item per invocation through the appropriate single-item lifecycle skill — and, on the PRD side, close the loop by dispatching /lisa:verify-prd for one shipped PRD per cycle (shipped → verified on pass, or re-opened to ticketed with build-ready fix tickets that auto-build and re-verify on fail — never blocked). $ARGUMENTS

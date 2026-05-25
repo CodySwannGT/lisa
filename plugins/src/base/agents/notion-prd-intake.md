@@ -51,7 +51,7 @@ After a successful cycle, if any PRDs ended in the `blocked` status, mention to 
 
 When reporting `blocked` outcomes, distinguish the cause: **pre-write gate failure** (per-ticket validator caught a problem before any tickets were created) vs **post-write coverage gap** (tickets were created and remain in the destination tracker, but the PRD has uncovered requirements that the next intake cycle will address). Both result in the `blocked` status, but the implication for product is different — coverage gaps mean some tickets are already real and product should not re-author the PRD from scratch.
 
-If all PRDs ended in the `ticketed` status with coverage `COMPLETE`, mention that the next step is for product to monitor the created tickets and flip the PRDs to the configured `shipped` status after delivery, then run `/lisa:verify-prd` to empirically verify the shipped product against the PRD and move it to `verified` (or back to `blocked` with linked fix issues on failure). If any are `COMPLETE_WITH_SCOPE_CREEP`, point that out so product can review the flagged tickets.
+If all PRDs ended in the `ticketed` status with coverage `COMPLETE`, mention that the next step is for product to monitor the created tickets and flip the PRDs to the configured `shipped` status after delivery, then run `/lisa:verify-prd` to empirically verify the shipped product against the PRD and move it to `verified` (or, on failure, re-open it to `ticketed` with build-ready fix tickets that auto-build and re-verify — never `blocked`). If any are `COMPLETE_WITH_SCOPE_CREEP`, point that out so product can review the flagged tickets.
 
 ## Rules
 

@@ -128,6 +128,19 @@ If empty, report `"No Linear Issues labeled $READY. Nothing to do."` and exit. C
 
 ### Phase 3 — Process the first eligible ready Issue
 
+#### 3a.0 Repo-scope gate (claim only current-repo Issues)
+
+A Linear team can oversee multiple repos (`frontend` / `backend` / `infrastructure`). This skill claims only Issues for the repo it is running in. Run this gate **before** the leaf-only gate (3a) and the claim (3b), per the `repo-scope-split` rule's "Claim-time repo scoping" section (cite it by slug; do not restate its decision table).
+
+1. **Resolve the current repo** per `config-resolution` "Repo scoping" (`.repo` → `.github.repo` → `git remote get-url origin` basename). If unresolvable, stop and report.
+2. **Cheap path first.** Prefer candidates already carrying the `repo:<current>` label. Keep the Phase 2 scan broad so unlabeled Issues are still seen, determined, and stamped.
+3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
+   - Carries `repo:<other>` → **skip** (leave it `ready` for that repo's own intake); next candidate.
+   - **Unlabeled** → determine the target repo(s) from the Issue + code surfaces, then **stamp** `repo:<name>` via `mcp__linear-server__save_issue` (resolve/create the label via `list_issue_labels`/`create_issue_label`) so later cycles filter cheaply; re-apply with the now-known repo.
+   - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
+   - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
+4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the ready set is exhausted — exit cleanly with `"No ready Issues for repo <current>. Nothing to do."`.
+
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
 
 Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready label (e.g. `status:ready` applied before this rule existed, or hand-applied to a Project-grouped parent Issue) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa:linear-write-issue` and the validate-time S15 gate in `lisa:linear-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**

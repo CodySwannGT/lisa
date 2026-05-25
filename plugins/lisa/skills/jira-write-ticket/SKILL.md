@@ -200,6 +200,13 @@ Before create/update, verify each field is populated where applicable:
 - Sprint: only if actively sprinting this work
 - Assignee: leave unset if unknown rather than auto-assigning
 
+### Build-ready control input (`build_ready`)
+
+`build_ready` is an optional write-control input (default: **omitted**). It governs whether a **leaf** work unit is promoted to the build-ready role on create. It never overrides `leaf-only-lifecycle` — a container is never promoted regardless of `build_ready`. Unlike the label-based trackers, JIRA tickets are **already created not-ready** (in the project's default initial status, e.g. `TODO`/`Backlog`); the build-ready role is the configured `ready` status (`jira.workflow.ready`, default `Ready`), reached by an explicit transition.
+
+- **Omitted** or **`build_ready: false`** → current behavior: leave the ticket in the project's default created status. No transition. A human (or `build_ready: true`) promotes it to the `ready` status later.
+- **`build_ready: true`** → after create, transition the **leaf** to the resolved `ready` role so `lisa:intake` / `lisa:jira-build-intake` auto-picks it up (see Phase 6 CREATE step). Resolve the role name with the standard pattern (`.jira.workflow.ready` // `Ready`, local overrides global). Best-effort: if the transition is unreachable, record it and leave the ticket in its default status rather than failing the write.
+
 ## Phase 5.5 — Validate (Pre-write Gate)
 
 Before any write, invoke `lisa:jira-validate-ticket` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `lisa:jira-validate-ticket` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
@@ -222,6 +229,7 @@ If the validator reports `PASS`, continue to Phase 6.
 3. For each relationship from Phase 4b, invoke `lisa:atlassian-access` with `operation: link from: <K1> to: <K2> type: "<link-type>"`. Use the exact link-type names supported by the project; surface errors if an unknown type is passed.
 4. Attach remote links from Phase 4c (via `lisa:atlassian-access` `operation: write-ticket` UPDATE form or whatever remote-link operation is dispatched).
 5. If the ticket changes runtime behavior, invoke the `lisa:jira-add-journey` skill to append the Validation Journey section.
+6. **Build-ready promotion (only when `build_ready: true` and the ticket is a leaf work unit):** transition the new ticket to the resolved `ready` status via `lisa:atlassian-access` `operation: transition key: <K> to: "<ready-status>"` (resolve `<ready-status>` as `.jira.workflow.ready` // `Ready`, local overrides global). Skip this step entirely when `build_ready` is omitted or `false`, or for any container. If the transition is unreachable, record it and leave the ticket in its default status — do not fail the write.
 
 ### UPDATE
 

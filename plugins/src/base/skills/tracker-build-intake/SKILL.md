@@ -39,6 +39,10 @@ This is the claim-time arm of the rule. Its siblings are the write-time labeling
 
 The shim never needs to inspect the item itself — it forwards `$ARGUMENTS` verbatim and the resolved vendor scanner runs its Phase 3a gate before any claim.
 
+## Repo-scope claim contract (forwarded to every vendor)
+
+Equally part of the build-intake API, and forwarded identically: when the tracker oversees multiple repos, each vendor scanner claims only tickets for the repo it is running in. Per the `repo-scope-split` rule's "Claim-time repo scoping" section, before the leaf-only gate each scanner (Phase 3a.0) resolves the current repo (`config-resolution` "Repo scoping": `repo` → `github.repo` → git remote basename), then for each ready candidate: skips a ticket labeled `repo:<other>`, determines + stamps `repo:<name>` on an unlabeled one, splits a multi-repo leaf into single-repo build-ready siblings, and claims only a single-repo leaf for the current repo. This shim does not re-implement the gate — it relies on the vendor scanner's Phase 3a.0 — but the contract is uniform across `jira`, `github`, and `linear` so behavior never drifts by tracker. It is the claim-time complement to the write-time S10 scope gate (`lisa:tracker-validate`) and `task-decomposition` step 1.5; all cite `repo-scope-split`.
+
 ## Terminal native-closure contract (forwarded to every vendor)
 
 This shim also forwards the `leaf-only-lifecycle` terminal native-closure contract. It does not decide whether a `done` value is terminal; the vendor scanner resolves that from its own config and deployment topology after the per-item agent succeeds.

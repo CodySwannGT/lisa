@@ -1,12 +1,21 @@
 ---
 name: research
-description: "Research a problem space and produce a PRD. Investigates the codebase, defines user flows, assesses technical feasibility, and outputs a specification ready to hand to the Plan flow. Vendor-agnostic — the resulting PRD lands wherever the configured destination is (Notion, Confluence, file, etc.)."
+description: "Research a problem space and create a PRD in the configured PRD source. Investigates the codebase, defines user flows, assesses technical feasibility, synthesizes the spec, then creates it in the source (Notion / Confluence / GitHub / Linear per .lisa.config.json `source`) via lisa:prd-source-write — there is no loose document artifact. Vendor-agnostic. Accepts an optional `prd_ready` flag (default false → the PRD is created in the `draft` role; true → created `ready` so lisa:intake auto-claims it) and an optional dedupe `marker`/`dedupe_key` (used when invoked by lisa:project-ideation) so re-runs reference the existing PRD instead of duplicating it."
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 
 # Research
 
-Produce a PRD for the problem in `$ARGUMENTS`.
+Produce a PRD for the problem in `$ARGUMENTS`, then create it in the configured PRD source.
+
+## Inputs
+
+- The problem statement / feature idea (required) — free text, a feasibility card, or a URL.
+- `prd_ready` (optional, default `false`) — `false` creates the PRD in the source's `draft` role for
+  human review; `true` creates it in the `ready` role so `lisa:intake` (PRD side) auto-claims it.
+- `dedupe_key` / `marker` (optional) — a stable dedupe marker (e.g. supplied by
+  `lisa:project-ideation`) embedded in the created PRD so re-runs reference the existing PRD rather
+  than creating a duplicate.
 
 ## Orchestration: agent team
 
@@ -30,4 +39,11 @@ Execute the **Research** flow as defined in the `intent-routing` rule (loaded vi
 
 ## Output
 
-A PRD that includes (per the intent-routing rule's Research flow definition): context, problem statement, user flows, acceptance criteria, technical feasibility notes, and any open questions. The PRD lands in the configured destination (Notion database, Confluence space, local markdown file) per project config. The Plan flow consumes it next.
+A PRD **created in the configured PRD source** (per the intent-routing rule's Research flow
+definition) containing: context, problem statement, user flows, acceptance criteria, technical
+feasibility notes, open questions, and the "Recommended Tooling for Plan Phase" section. The final
+flow step invokes `lisa:prd-source-write`, which creates the PRD in the configured `source` (Notion
+page in the PRD database, Confluence page under the lifecycle parent, GitHub issue, or Linear
+project) in the `draft` role by default or `ready` when `prd_ready=true`. **The PRD lives in the
+source — there is no loose document artifact.** A `source` must be configured; if it is not, stop and
+report it rather than emitting a document. The Plan flow consumes the created PRD next.

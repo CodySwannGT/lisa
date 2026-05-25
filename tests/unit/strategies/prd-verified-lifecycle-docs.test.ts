@@ -10,9 +10,10 @@
  *
  * Target lifecycle:
  *   draft → ready → in_review → blocked | ticketed → shipped → verified
- * with failed post-ship verification reusing `blocked` (no separate
- * `verifying` / `verification-failed` states), and `verified` terminal and
- * product-owned like `draft` and `shipped`.
+ * with failed post-ship verification re-opening the PRD to `ticketed` with
+ * build-ready fix tickets (NEVER `blocked`; no separate `verifying` /
+ * `verification-failed` states), and `verified` terminal and product-owned
+ * like `draft` and `shipped`.
  *
  * Both plugin roots are asserted (`plugins/src/base` source of truth and the
  * generated `plugins/lisa` artifact), so an artifact-only edit or a missed
@@ -63,8 +64,11 @@ describe("verified PRD lifecycle state in docs (#592)", () => {
         );
       });
 
-      it("reuses blocked for failed post-ship verification (no new failure states)", () => {
-        expect(content).toMatch(/reuses?\s+`?blocked`?|back under `blocked`/i);
+      it("re-opens to ticketed (never blocked) with build-ready fix tickets on failed post-ship verification", () => {
+        expect(content).toMatch(/does \*\*not\*\* use `blocked`/i);
+        expect(content).toMatch(/shipped → ticketed/);
+        expect(content).toMatch(/build-ready fix tickets/i);
+        // Still introduces no separate verifying/verification-failed state.
         expect(content).toMatch(
           /verifying.*verification-failed|verification-failed/
         );
@@ -99,9 +103,9 @@ describe("verified PRD lifecycle state in docs (#592)", () => {
         );
       });
 
-      it("documents shipped → verified (pass) and shipped → blocked (fail) owned by verify-prd", () => {
+      it("documents shipped → verified (pass) and shipped → ticketed (fail) owned by verify-prd", () => {
         expect(content).toMatch(/shipped → verified/);
-        expect(content).toMatch(/shipped → blocked/);
+        expect(content).toMatch(/shipped → ticketed/);
         expect(content).toMatch(/verify-prd/);
       });
 
@@ -124,8 +128,9 @@ describe("verified PRD lifecycle state in docs (#592)", () => {
         expect(content).toMatch(/necessary but not sufficient/i);
       });
 
-      it("keeps the lifecycle small: failed verification reuses blocked, no extra states", () => {
-        expect(content).toMatch(/reuses the existing `blocked` role/i);
+      it("keeps the lifecycle small: failed verification re-opens to ticketed (never blocked), no extra states", () => {
+        expect(content).toMatch(/does \*\*not\*\* move the PRD to `blocked`/i);
+        expect(content).toMatch(/shipped → ticketed/);
         expect(content).toMatch(
           /prd-verifying.*prd-verification-failed|verification-failed/
         );
