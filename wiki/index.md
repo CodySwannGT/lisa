@@ -55,6 +55,8 @@
 
 ## Sources
 
+- [Git Sources](sources/git/)
+- [Roles Sources](sources/roles/)
 - [Repository Sources](sources/repository/)
 - [GitHub Sources](sources/github/)
 - [Linear Sources](sources/linear/)
