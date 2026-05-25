@@ -2,7 +2,7 @@
  * Regression tests for the shared GitHub ProjectV2 utility contract.
  *
  * Issue #700 introduces a single chokepoint skill for Project membership so
- * `github-write-prd`, `github-write-issue`, and linked-PR/evidence flows do
+ * `github-write-prd`, `github-write-issue`, and linked pull request flows do
  * not duplicate GraphQL handling. The utility must resolve the configured
  * Project, add Issue or Pull Request node ids, optionally update Project
  * fields, and preserve exact GitHub failures while branching by `required`.
@@ -28,7 +28,7 @@ describe.each(ROOTS)("github-project-v2 utility (%s)", root => {
     expect(content).toMatch(/single chokepoint/i);
     expect(content).toMatch(/github-write-prd/i);
     expect(content).toMatch(/github-write-issue/i);
-    expect(content).toMatch(/linked-PR/i);
+    expect(content).toMatch(/git-submit-pr|linked-PR/i);
   });
 
   it("documents project resolution from github.projects.v2 config", () => {

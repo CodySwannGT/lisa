@@ -1,7 +1,7 @@
 ---
 name: git-submit-pr
-description: This skill should be used when pushing changes and creating or updating a pull request. It verifies the branch state, pushes to remote, creates or updates a PR with a comprehensive description, and enables auto-merge.
-allowed-tools: ["Bash", "mcp__github__create_pull_request", "mcp__github__get_pull_request", "mcp__github__update_pull_request"]
+description: This skill should be used when pushing changes and creating or updating a pull request. It verifies the branch state, pushes to remote, creates or updates a PR with a comprehensive description, optionally coordinates the resulting Pull Request into the configured GitHub ProjectV2, and enables auto-merge.
+allowed-tools: ["Bash", "Skill", "mcp__github__create_pull_request", "mcp__github__get_pull_request", "mcp__github__update_pull_request"]
 ---
 
 # Submit Pull Request Workflow
@@ -31,6 +31,7 @@ Recognized optional hints:
    - If exists: Update description with latest changes
    - If not: Create PR with comprehensive description (not a draft)
    - Include native development linkage for the source work item when `work_item_ref` can be inferred from `$ARGUMENTS`, the current branch name, an existing PR body, or the issue/ticket context passed by the caller.
+   - After the PR exists, re-resolve the live Pull Request node id and, when `github.projects.v2` is enabled, invoke `lisa:github-project-v2` with `operation: ensure-item` and `content_node_id: <pull-request-node-id>` so linked pull requests join the configured shared Project without replacing the PR as the durable review/merge surface.
 5. **Auto-merge**: Choose merge strategy by PR type:
    - **Promotion PRs** (env → env, e.g. `dev` → `staging`): use `gh pr merge --auto --merge` (never squash). Squashing flattens the constituent `chore(release): X.Y.Z [skip ci]` commits into one commit titled with the PR title, stripping the `[skip ci]` markers and breaking the release workflow's promotion-detection regex — the destination branch then double-bumps its version. `--merge` keeps each `chore(release)` commit (and its `[skip ci]` marker) intact under a clean merge commit subject the workflow can recognize.
    - **Feature PRs** (anything → `dev`): use `gh pr merge --auto --merge`.
@@ -60,6 +61,30 @@ Add provider-appropriate linkage to the PR title and/or body without changing th
 - **No supported provider**: Skip this section without error; do not invent references.
 
 When updating an existing PR, preserve any existing linkage line unless the new `work_item_ref` is more specific. Do not duplicate equivalent references.
+
+### GitHub ProjectV2 Coordination
+
+After PR creation or update, resolve the live Pull Request node id:
+
+```bash
+gh pr view <pr-number> --json id,url --jq '{ id, url }'
+```
+
+When `github.projects.v2` is enabled, delegate membership to `lisa:github-project-v2`:
+
+```text
+operation: ensure-item
+content_node_id: <pull-request-node-id>
+```
+
+Branch on the shared utility outcome exactly as GitHub Issue writers do:
+
+- `outcome: disabled` — no Project configured; continue normally.
+- `outcome: added` or `outcome: reused` — PR membership is now present; continue normally.
+- `outcome: warning` with `required: false` — preserve the exact Project error, keep the underlying PR creation/update as the durable success, and continue the normal auto-merge/watch flow.
+- `outcome: blocked` with `required: true` — surface the exact Project failure and treat the submit flow as blocked even if the PR already exists, so operators can fix Project access/config before reporting full success.
+
+Never inline separate `gh api graphql` ProjectV2 mutations here. All Pull Request membership coordination goes through `lisa:github-project-v2` so linked-PR flows and Issue writers stay in parity.
 
 ### PR Description Format
 
