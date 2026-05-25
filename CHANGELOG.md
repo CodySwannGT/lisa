@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.83.0](https://github.com/CodySwannGT/lisa/compare/vv2.82.0...v2.83.0) (2026-05-25)
+
+
+### Features
+
+* **skills:** add first-round council consultation flow ([ca3693e](https://github.com/CodySwannGT/lisa/commit/ca3693ef0391ee011148e10cf2456111370860fe))
+
 ## [2.82.0](https://github.com/CodySwannGT/lisa/compare/vv2.81.0...v2.82.0) (2026-05-25)
 
 
