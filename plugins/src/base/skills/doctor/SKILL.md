@@ -78,6 +78,17 @@ The final report must:
 - Emit exactly one overall verdict: `READY`, `READY_WITH_WARNINGS`, or `NOT_READY`.
 - Stay read-only by default.
 
+Render the report in grouped sections using the shared `scripts/doctor-report.mjs` contract:
+
+- Start with `Overall verdict: <VERDICT>` and one `Counts:` line covering `PASS`, `WARN`, `FAIL`,
+  and `SKIP`.
+- Then print each group as `<group-id>. <group-title>`.
+- Under each group, print one line per check as `- <STATUS> <check-id>: <summary>`.
+- When available, print `Observed:` and `Remediation:` lines beneath the check so the report keeps
+  facts separate from advice.
+- If a group has no applicable checks yet, render it as a grouped `SKIP` with the reason instead of
+  silently omitting the section.
+
 The verdict ladder is:
 
 - `READY` — no `FAIL` and no `WARN`.
