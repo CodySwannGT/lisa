@@ -12,6 +12,7 @@ Single chokepoint for all Notion operations. Routes each op to a substrate, enfo
 
 ```text
 operation: read-page         id: <uuid>
+operation: create-page       parent_database_id: <uuid> properties: {...} [children: [...]]  # create a new page (e.g. a PRD row) in a database; children is optional — omit to create a page without initial block content
 operation: write-page        payload: {...}        # update page properties
 operation: archive-page      id: <uuid>
 operation: query-database    id: <uuid> filter: {...} sort: {...}
@@ -164,6 +165,7 @@ Substrate columns: try the column matching `$substrate` first. If that column is
 |---|---|---|
 | **Pages** | | |
 | `read-page id:<I>` | `mcp__claude_ai_Notion__notion-fetch` | `GET /v1/pages/<I>` |
+| `create-page parent_database_id:<D> properties:<P> [children:<arr>]` | `mcp__claude_ai_Notion__notion-create-pages` | `POST /v1/pages` body `{ "parent": { "database_id": "<D>" }, "properties": <P>, "children": <arr?> }` (children optional per Notion API) |
 | `write-page payload:<P>` | `mcp__claude_ai_Notion__notion-update-page` | `PATCH /v1/pages/<I>` body `{ "properties": {...}, "archived": true/false }` |
 | `archive-page id:<I>` | `mcp__claude_ai_Notion__notion-update-page` (with `archived: true`) | `PATCH /v1/pages/<I>` body `{ "archived": true }` |
 | `append-blocks page_id:<P> children:<arr>` | (no direct equivalent) | `PATCH /v1/blocks/<P>/children` body `{ "children": <arr> }` |

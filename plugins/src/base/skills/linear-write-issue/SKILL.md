@@ -203,7 +203,7 @@ If the item modifies an existing user-facing surface, a `lisa:product-walkthroug
 
 Before create/update, verify each field is populated where applicable:
 
-- **Labels**: include `status:ready` for new items; component labels (`component:<name>`); status / priority labels are NOT redundant with native fields — labels exist for portability and downstream queries.
+- **Labels**: include `status:ready` for a new **leaf** work unit (Bug / Task / Sub-task / Improvement with no child work) per `leaf-only-lifecycle`, **unless `build_ready: false`** (see the Build-ready control input below); component labels (`component:<name>`); status / priority labels are NOT redundant with native fields — labels exist for portability and downstream queries. A container (Epic Project / Story with sub-issues / Spike) never receives `status:ready`.
 - **Native priority field**: 0–4 per Linear's scale; explicit, not "unset".
 - **Native estimate**: per Linear's team-configured estimate scale (often 0–8 Fibonacci); skip for Epic / Spike.
 - **ProjectMilestone**: when the team uses dated milestones, set the milestone on the Project (Epic) or on the Issue (when an Issue belongs to a milestone).
@@ -211,6 +211,14 @@ Before create/update, verify each field is populated where applicable:
 - **Assignee**: leave unset if unknown rather than auto-assigning.
 
 For Bug / Task / Sub-task, ensure the summary is prefixed with `[<repo-name>]`.
+
+### Build-ready control input (`build_ready`)
+
+`build_ready` is an optional write-control input (default: **omitted**). It governs whether a **leaf** work unit's `status:ready` label is applied on create. It never overrides `leaf-only-lifecycle` — a container is never stamped build-ready regardless of `build_ready`. "Not build-ready" is not a special state: the Issue is still created with Linear's default native `Todo` state; it just lacks the `status:ready` **label** the build lifecycle keys off, so a human can promote it later.
+
+- **Omitted** → current behavior: a leaf work unit receives `status:ready`. Preserves what every existing caller (`lisa:plan`, the `*-to-tracker` skills) relies on.
+- **`build_ready: false`** → create the leaf **without** the `status:ready` label, so it sits in the backlog for a human to review and promote into the queue.
+- **`build_ready: true`** → ensure the leaf carries `status:ready` so `lisa:intake` / `lisa:linear-build-intake` auto-picks it up.
 
 ## Phase 5.5 — Validate (Pre-write Gate)
 
@@ -236,7 +244,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Story / Task / Bug / Spike / Improvement (Issue with projectId)
 
-1. Resolve any required Issue labels (`status:ready`, `component:<name>`, `prd-intake-feedback` only if this is a sentinel issue, etc.) via `mcp__linear-server__list_issue_labels` (create via `create_issue_label` if missing).
+1. Resolve any required Issue labels (`component:<name>`, `prd-intake-feedback` only if this is a sentinel issue, etc.) via `mcp__linear-server__list_issue_labels` (create via `create_issue_label` if missing). Include `status:ready` in `labelIds` only for a **leaf** work unit and only when `build_ready` is not `false` (per the Build-ready control input) — omit it for a container, and for a `build_ready: false` leaf which then waits in the backlog for a human to promote it.
 2. Call `mcp__linear-server__save_issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
 3. Capture the returned identifier (e.g. `ENG-123`) — Phase 4 sub-tasks need it as `parentId`.
 4. Add relationships from Phase 4b via `save_issue` (relations field) or paired relation calls.

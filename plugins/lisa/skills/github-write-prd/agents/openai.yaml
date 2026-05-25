@@ -1,0 +1,4 @@
+display_name: "Github Write PRD"
+short_description: "Creates or idempotently updates a PRD as a GitHub Issue in the configured source repo, carrying exactly one PRD lifecycle label…"
+default_prompt:
+  - "Use $github-write-prd: Creates or idempotently updates a PRD as a GitHub Issue in the configured source repo, carrying exactly one PRD lifecycle label…."

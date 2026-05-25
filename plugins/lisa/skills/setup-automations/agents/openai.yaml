@@ -1,0 +1,4 @@
+display_name: "Setup Automations"
+short_description: "Set up the recurring Lisa automations on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native…"
+default_prompt:
+  - "Use $setup-automations: Set up the recurring Lisa automations on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native…."

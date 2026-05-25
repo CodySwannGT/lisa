@@ -49,16 +49,23 @@ When deciding the agents to use, consider:
 
 Using the general-purpose agent in Team Lead session, Determine the name of this plan
 
-Using the general-purpose agent in Team Lead session, Determine what branch to use:
-1. Are we already on a feature branch with an open pull request? Use that and set the target branch to the existing target of the pull request
-2. Are we on a feature branch without an open pull request? Use the branch, but ask the human what branch to target for the PR
-3. Are we on an environment branch (dev, staging, main, prod, production)? Check out a feature branch named for this plan and set the target branch of the PR to the environment branch
+Using the general-purpose agent in Team Lead session, **determine the base branch from the ticket's target environment, then sync the working branch onto the latest of it before any work** — so implementation always builds on current target-environment code:
+
+1. **Resolve the target environment** from the resolved work item — its `## Target Backend Environment` section (the field the `*-write-*` / `*-add-journey` skills record).
+2. **Map the environment to a base branch** via `.lisa.config.json` `deploy.branches` (e.g. `staging → staging`, `production → main`) — the forward direction of the same map the env-keyed `done` resolution uses in reverse (see the `config-resolution` rule). If the work item names **no** environment, the base branch is the **remote default branch** (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, or `git remote set-head origin -a` then read `origin/HEAD`). If the named environment is absent from `deploy.branches`, or its branch does not exist on the remote, **stop and report** — never guess a base.
+3. **Establish the feature branch off the latest base, conflict-free:**
+   - `git fetch origin`.
+   - Already on a feature branch with an **open PR** → reuse it. If the PR's base ≠ the resolved base branch, surface the mismatch and re-target only with confirmation — the ticket's environment is the source of truth.
+   - Already on a feature branch with **no open PR** → reuse it; its PR base will be the resolved base branch (do not ask the human — the environment determines it).
+   - On an **environment / default branch** → check out a feature branch named for this plan (with the work-item ref prefix, per the linkage rules below) **from `origin/<base>`**.
+   - **Rebase the feature branch onto `origin/<base>` and resolve any merge conflicts BEFORE starting work.** If the conflicts cannot be resolved cleanly and safely, create a fix task for the agent team (with the conflicting file list and current merge state) and resolve it before implementation begins — never start work on stale or conflicted code.
+4. **The PR targets the resolved base branch** — carry it as `target_branch=<base>` into `lisa:git-submit-pr` (Verify flow). `git-submit-pr` already chooses a closing keyword when the base is the production/default branch and a non-closing reference for a non-terminal environment branch.
 
 When the request came from a tracker work item, preserve its native identifier for development linkage:
 
 - Capture `tracker_provider` and `work_item_ref` from the resolved input before creating or reusing a branch. Examples: `github` + `CodySwannGT/lisa#614`, `linear` + `ENG-123`, `jira` + `ENG-123`.
 - If a new branch is needed and the provider can link branches by identifier, include the identifier in the branch name before the human-readable slug. Linear and JIRA integrations commonly link from branch names; GitHub issue linkage is PR-body driven, but including the issue number in the branch name is still useful. Keep branch names URL-safe, for example `codex/ENG-123-add-checkout-copy` or `codex/614-add-checkout-copy`.
-- Pass the work-item ref and target branch to `lisa:git-submit-pr` when opening or updating the PR, for example `work_item_ref=CodySwannGT/lisa#614 target_branch=main`. The PR workflow owns provider-specific body text and must decide whether to use a closing keyword or a non-closing reference.
+- Pass the work-item ref and target branch to `lisa:git-submit-pr` when opening or updating the PR, for example `work_item_ref=CodySwannGT/lisa#614 target_branch=<base resolved from the ticket's environment above>` (not hardcoded `main`). The PR workflow owns provider-specific body text and must decide whether to use a closing keyword or a non-closing reference.
 - If the provider has no native branch or PR development-linkage surface, continue without linkage and mention that the provider was skipped.
 
 Using the general-purpose agent in Team Lead session, Determine which flow applies:
@@ -122,7 +129,7 @@ Before shutting down the team, execute the Verify flow:
 3. Write e2e test encoding the verification
 4. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 5. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-6. Open a pull request with auto-merge on via `lisa:git-submit-pr`, including the work-item ref when one exists so the PR can be linked natively to the source issue.
+6. Open a pull request with auto-merge on via `lisa:git-submit-pr`, targeting the **base branch resolved from the ticket's environment** (`target_branch=<base>`, per the branch step above), and including the work-item ref when one exists so the PR can be linked natively to the source issue.
 7. PR Watch Loop: Monitor the PR using `git-submit-pr`'s drive-to-merge behavior. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. If the PR is `BEHIND`, blocked by stale review state, or cannot enable auto-merge, follow the harness-agnostic `git-submit-pr` re-sync, review-gate, and direct-merge fallback loop until the PR is actually merged or a blocking failure is surfaced.
 8. Merge the PR
 9. Monitor the deploy action that triggers automatically from the successful merge

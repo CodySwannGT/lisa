@@ -2,7 +2,7 @@
 
 Leaf work units are single-repo. A **leaf work unit** is an individually implementable ticket with no child tickets — issue types **Bug, Task, Sub-task, Improvement**. Each must name exactly one repository. **Epic, Story, Spike** are coordination containers and may span repos.
 
-This invariant is enforced at three points: gate **S10** in the `*-validate-*` skills (write time), `task-decomposition` step 1.5 (PRD-decomposition time), and the work-time split procedure below (when an agent picks up an existing ticket to implement it).
+This invariant is enforced at four points: gate **S10** in the `*-validate-*` skills (write time), `task-decomposition` step 1.5 (PRD-decomposition time), **claim-time repo scoping** in the build-intake skills (when intake decides whether to claim a ready ticket for the current repo — see below), and the work-time split procedure below (when an agent picks up an existing ticket to implement it).
 
 ## Two splitting strategies, by phase
 
@@ -31,6 +31,23 @@ Auto-split only when the split is unambiguous. Fall back to the standard BLOCK +
 - The repos touched cannot be determined confidently from the ticket and the code.
 - Splitting would strand stakeholder context that only the reporter can re-scope (e.g. the acceptance criteria describe a single indivisible cross-repo behavior with no clean per-repo boundary).
 - The metadata required to clone (parent, environment, credentials) is itself missing — block on the missing metadata first; do not propagate gaps into the siblings.
+
+## Claim-time repo scoping (build-intake)
+
+A ticketing system can oversee multiple repos (one JIRA project / Linear team for `frontend`, `backend`, `infrastructure`). When `lisa:*-build-intake` runs inside one repo, it claims only tickets for **that** repo — it never pulls a ready ticket meant for a sibling repo. This is the fourth enforcement point of the single-repo-leaf invariant; it runs in each vendor build-intake's claim gate (Phase 3a), **before** the leaf-only container gate and the claim.
+
+Resolve the current repo per the `config-resolution` "Repo scoping" section (config `repo` → `github.repo` → git remote basename; stop with a clear error if unresolvable). Then walk the ready candidates in priority order and apply the **repo-scope decision** to each before claiming:
+
+1. **Read the candidate's repo marker** — the `repo:<name>` label (JIRA: also a component equal to a repo name).
+   - **Labeled for another repo** → **skip** cheaply (do not claim, do not re-determine); it stays `ready` for that repo's own intake. Move to the next candidate.
+   - **Labeled for the current repo** → proceed to the leaf-only gate + claim (the cheap, common path once labels exist).
+   - **Unlabeled** → **determine** the target repo(s) from the ticket (description, acceptance criteria, technical approach) confirmed against the actual code surfaces the change requires — the same detection as step 1 of the work-time split. Then **stamp** the resolved `repo:<name>` label(s) so future cycles filter cheaply, and re-apply this decision with the now-known repo.
+2. **Multi-repo leaf → split, never claim.** If determination finds the leaf touches more than one repo, run the **work-time split procedure** below to break it into single-repo siblings — each created **build-ready** (`build_ready: true`, so the build queue auto-claims it) and stamped with its own `repo:<name>`. After the split, the current repo's sibling (if any) becomes a normal current-repo candidate; the others are separate single-repo `ready` leaves for their repos. A multi-repo leaf is never claimed as-is.
+3. **Wrong repo → skip.** A single-repo leaf whose `repo:<name>` ≠ the current repo is left `ready` (and labeled) and skipped; intake moves on until it finds a claimable current-repo leaf, then stops (one item per cycle).
+
+**Cost.** Only **unlabeled** candidates need content determination; once stamped, wrong-repo candidates are skipped by label alone. Prefer candidates already labeled `repo:<current>` first (cheap claim), falling through to unlabeled candidates (determine + stamp) only when no pre-labeled current-repo leaf is ready.
+
+A container (Epic/Story/Spike) is handled by the leaf-only gate, not here — containers may span repos and are never claimed/built directly.
 
 ## Vendor mechanics
 
