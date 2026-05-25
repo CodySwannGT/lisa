@@ -50,10 +50,12 @@ fi
 DONE_TYPE=$(jq -r '.github.labels.build.done | type' .lisa.config.json 2>/dev/null)
 if [ "$DONE_TYPE" = "string" ]; then
   DONE=$(jq -r '.github.labels.build.done' .lisa.config.json)
+  DONE_LABELS_JSON=$(jq -c '[.github.labels.build.done]' .lisa.config.json)
 elif [ "$DONE_TYPE" = "object" ]; then
   [ -z "$TARGET_ENV" ] && { echo "ERROR: github.labels.build.done is env-keyed but env not resolvable"; exit 1; }
   DONE=$(jq -r --arg e "$TARGET_ENV" '.github.labels.build.done[$e] // empty' .lisa.config.json)
   [ -z "$DONE" ] && { echo "ERROR: github.labels.build.done has no entry for env '$TARGET_ENV'"; exit 1; }
+  DONE_LABELS_JSON=$(jq -c '[.github.labels.build.done[]]' .lisa.config.json)
 else
   case "$TARGET_ENV" in
     dev) DONE="status:on-dev" ;;
@@ -61,6 +63,7 @@ else
     production) DONE="status:done" ;;
     *) echo "ERROR: cannot resolve done label without env"; exit 1 ;;
   esac
+  DONE_LABELS_JSON=$(jq -cn --arg d "$DONE" '[$d]')
 fi
 ```
 
@@ -124,8 +127,8 @@ If empty, run a secondary check to distinguish a genuinely empty queue from an u
 
 ```bash
 gh label list --repo <org>/<repo> --json name \
-  | jq -r --arg r "$READY" --arg c "$CLAIMED" --arg d "$DONE" \
-      '[.[] | .name | select(. == $r or . == $c or . == $d)] | length'
+  | jq -r --arg r "$READY" --arg c "$CLAIMED" --argjson d "$DONE_LABELS_JSON" \
+      '[.[] | .name | select(. == $r or . == $c or (. as $n | $d | index($n)))] | length'
 ```
 
 If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
