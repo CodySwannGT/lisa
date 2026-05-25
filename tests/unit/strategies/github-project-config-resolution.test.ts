@@ -1,11 +1,12 @@
 /**
  * Regression tests for the optional GitHub ProjectV2 coordination config.
  *
- * Issue #698 extends the canonical config-resolution schema with an optional
- * `github.projects.v2` block so later setup/doctor and writer utilities can
- * resolve a shared GitHub Project without changing the repository-local issue
- * model. V1 permits only namespace-matched ownership: the Project owner slug
- * must match the tracked repository namespace (`github.org`).
+ * Issues #698 and #699 extend the canonical GitHub ProjectV2 docs with an
+ * optional `github.projects.v2` block plus the validation semantics later
+ * setup/doctor and writer utilities must follow. V1 permits only
+ * namespace-matched ownership: the Project owner slug must match the tracked
+ * repository namespace (`github.org`). Validation reads owner/access and
+ * downgrades failures to warnings only when `required` remains false.
  *
  * Both source and generated plugin roots are asserted so a missed
  * `bun run build:plugins` fails the suite.
@@ -46,6 +47,15 @@ describe.each(RULE_ROOTS)(
         /Default `false` keeps Project membership best-effort/i
       );
     });
+
+    it("documents validation behavior for best-effort vs required mode", () => {
+      expect(content).toMatch(
+        /setup\/doctor and writer preflight validation MUST read/i
+      );
+      expect(content).toMatch(/owner \+ access/i);
+      expect(content).toMatch(/required = false.*warnings/i);
+      expect(content).toMatch(/required = true.*blocking errors/i);
+    });
   }
 );
 
@@ -71,6 +81,13 @@ describe.each(SKILL_ROOTS)(
       );
       expect(content).toMatch(/cross-namespace Project ownership is rejected/i);
       expect(content).toMatch(/best-effort unless .* opts into strict mode/i);
+    });
+
+    it("documents warning-vs-error validation behavior for project access", () => {
+      expect(content).toMatch(/setup\/doctor.*runtime validation.*must read/i);
+      expect(content).toMatch(/owner \+ access/i);
+      expect(content).toMatch(/required: false.*warning-level/i);
+      expect(content).toMatch(/required: true.*blocking errors/i);
     });
   }
 );
