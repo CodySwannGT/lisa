@@ -70,7 +70,8 @@ Sequence:
 5. Synthesize findings into a PRD containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
 6. **Plan Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Plan phase will need. For each recommended skill or agent, state why it is needed. If no skills or agents beyond the defaults are identified, explicitly justify why the standard set is sufficient. Include this as a "Recommended Tooling for Plan Phase" section in the PRD.
 7. **Create the PRD in the configured source** -- invoke `lisa:prd-source-write` with the synthesized PRD (`title`, `body`, `initial_role` resolved from the caller's `prd_ready` flag — `draft` by default, `ready` when `prd_ready=true`, plus any `dedupe_key`/`marker`/`source_ref` the caller passed). The PRD **lives in the source** (Notion page / Confluence page / GitHub issue / Linear project per `.lisa.config.json` `source`); there is no separate document artifact. A `source` must be configured — if it is not, stop and report it. `prd-source-write` dedupes by marker, so re-running against the same idea references the existing PRD instead of creating a duplicate.
-8. `learner` -- capture discoveries for future sessions
+8. **Record Research usage on the PRD artifact** -- invoke `lisa:usage-accounting` against the created PRD/source artifact so it gains a direct `research` usage entry in the canonical `## Lisa Usage` section at creation time. If the runtime cannot provide trustworthy usage, still write the row with `source: unavailable` and nullable token/cost fields; missing usage is never treated as zero or silently omitted.
+9. `learner` -- capture discoveries for future sessions
 
 Output: A PRD created in the configured source, carrying a "Recommended Tooling for Plan Phase" section, in the `draft` role by default (or `ready` when `prd_ready=true`, so `lisa:intake` auto-claims it). If there is not enough context to produce a complete PRD, stop and report what is missing rather than creating an incomplete one. If no `source` is configured, stop and report it rather than emitting a loose document.
 
@@ -97,8 +98,10 @@ Sequence:
    - Dependencies
    - Skills and agents required (from step 5)
 7. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria, dependencies, and recommended skills/agents
-8. **PRD back-link** -- update the source PRD with a `## Tickets` section listing every created work item (key, title, type, link), so the PRD becomes the canonical anchor for downstream flows (notably **Debrief**). Invoke `lisa:prd-backlink` with the PRD source and the created ticket list. The section is regenerated on each run, not appended, so re-planning never produces stale links.
-9. `learner` -- capture discoveries for future sessions
+8. **Record Plan usage on the PRD and created work items** -- route all direct usage writes through `lisa:usage-accounting`: attach a `plan` entry to the source PRD/spec artifact and to each created work item. If runtime usage is unavailable, still write an explicit `source: unavailable` row with nullable token/cost fields instead of omitting the entry.
+9. **PRD back-link** -- update the source PRD with a `## Tickets` section listing every created work item (key, title, type, link), so the PRD becomes the canonical anchor for downstream flows (notably **Debrief**). Invoke `lisa:prd-backlink` with the PRD source and the created ticket list. The section is regenerated on each run, not appended, so re-planning never produces stale links.
+10. **Refresh the PRD usage rollup** -- re-invoke `lisa:usage-accounting` on the source PRD after `lisa:prd-backlink` regenerates child refs so the PRD `## Lisa Usage` rollup reflects the created ticket set.
+11. `learner` -- capture discoveries for future sessions
 
 Output: Work items in a tracker with acceptance criteria and recommended skills/agents, ordered by dependency. The source PRD carries a `## Tickets` section linking back to every created item. If the specification cannot be decomposed without further clarification, stop and report what is missing.
 
@@ -215,7 +218,8 @@ Sequence:
    - **Tooling gap** — missing skill, wrong agent assignment, broken hook, missing automation
    - **Convention drift** — an unwritten rule revealed by review comments that should be codified
 4. **Produce the human-triage document** — a markdown file with one row per candidate learning showing: category, summary, evidence (links to the source ticket comment / PR comment / commit), recommended persistence destination, and a checkbox-style disposition field the human will mark (Accept / Reject / Defer). Surface step-1 anomalies (work items missing PRs, etc.) in a separate section. The document is exhaustive — it lists every candidate, even ones the synthesizer rates low confidence — because the human, not the agent, decides what is worth keeping.
-5. **Stop and hand the document to the human.** Debrief does NOT persist accepted learnings itself. The human triages, marks dispositions, and runs the **`/lisa:debrief:apply`** command (skill: `debrief-apply`) to route the accepted items to their destinations.
+5. **Record Debrief usage on the triage document** — invoke `lisa:usage-accounting` against the generated markdown artifact so the document carries its own direct `debrief` usage entry in the canonical `## Lisa Usage` section. If runtime usage is unavailable, write the entry with `source: unavailable` and nullable token/cost fields rather than skipping it.
+6. **Stop and hand the document to the human.** Debrief does NOT persist accepted learnings itself. The human triages, marks dispositions, and runs the **`/lisa:debrief:apply`** command (skill: `debrief-apply`) to route the accepted items to their destinations.
 
 Output: A triage-ready learnings document covering every work item and PR in the initiative, with structured evidence and disposition fields. Persistence is deferred to `debrief-apply`, which the human invokes after triage.
 
