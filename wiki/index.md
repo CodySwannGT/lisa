@@ -16,6 +16,7 @@
 - [Documentation Index](documentation/index.md)
 - [Overview](documentation/overview.md)
 - [Contributing](documentation/contributing.md)
+- [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/prd-lifecycle-rollup.md)
 - [Testing Documentation](documentation/testing/)
 - [Workflow Documentation](documentation/workflows/)
 - [Specifications](documentation/specs/)
