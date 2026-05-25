@@ -50,6 +50,10 @@ Each direct usage entry records one logical Lisa run or sub-run on one artifact.
 
 The absence of data is never treated as zero. `null` means unknown; `0` means explicitly observed or derived zero.
 
+For example, an unavailable Verify run still records a direct entry with `source = unavailable`,
+`pricing_status = unavailable`, and `null` token/cost fields so downstream readers can distinguish
+"missing telemetry" from "zero usage."
+
 ## Pricing semantics
 
 `pricing_status` describes how trustworthy the money fields are:
@@ -120,6 +124,11 @@ Rollups aggregate descendant usage from native tracker hierarchy, documented gen
 - Count each `entry_id` at most once even if the same descendant is discoverable through more than one path.
 - Preserve direct totals separately from child totals.
 - Exclude descendant entries whose `entry_id` is already present in the artifact's direct-entry set.
+
+Concrete example: if child artifact A and child artifact B both surface descendant entry
+`verify-123`, the parent rollup lists `verify-123` once in `child_entry_ids`. If the parent also
+records `verify-123` directly, exclude that descendant copy from child totals and keep the entry in
+the direct half only.
 
 The rollup contract is additive across the hierarchy: PRDs may roll up Epics/Stories/leaves, and leaves may roll up evidence or verification artifacts, without double counting shared descendants.
 
