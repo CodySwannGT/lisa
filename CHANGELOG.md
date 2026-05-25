@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.66.0](https://github.com/CodySwannGT/lisa/compare/vv2.65.0...v2.66.0) (2026-05-25)
+
+
+### Features
+
+* **github:** document project validation modes ([4a5cedd](https://github.com/CodySwannGT/lisa/commit/4a5cedd9c0ebc49595033645089ec7e6853ea723))
+
 ## [2.65.0](https://github.com/CodySwannGT/lisa/compare/vv2.64.0...v2.65.0) (2026-05-25)
 
 
