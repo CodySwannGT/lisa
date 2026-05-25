@@ -429,6 +429,36 @@ Doctor must validate config in three layers:
 Doctor's severity rule is simple: unusable merged config is `FAIL`; locality drift with a still
 usable merged config is `WARN`.
 
+### Doctor vendor preflight
+
+Once doctor can resolve the merged `tracker` and optional `source`, it must run a read-only vendor
+preflight for those configured vendors only.
+
+1. **Audit only the configured vendors**
+   - Always audit the merged `tracker`.
+   - Audit `source` when present and when it is not already covered by the tracker check.
+   - Every other vendor is a doctor `SKIP`, not an implicit pass.
+2. **Read-capable substrate requirement**
+   - `github` requires `gh` CLI, a passing `gh auth status`, and read access to the configured
+     repo (`github.org` + `github.repo`).
+   - `jira` / `confluence` must reuse the `atlassian-access` substrate ladder. Doctor passes when
+     at least one supported read-capable substrate (`acli`, Atlassian MCP, or validated curl/API
+     token) can prove visibility to the configured `atlassian.cloudId` and target scope.
+   - `linear` passes when either the Linear MCP or a validated API-key probe can read the
+     configured workspace; tracker mode also requires visibility to `linear.teamKey`.
+   - `notion` passes when either the Notion MCP identity matches `notion.workspaceId` or a valid
+     internal-integration token does, and the configured `notion.prdDatabaseId` is readable.
+3. **Observed-fact discipline**
+   - Missing executable / MCP availability and failed auth/scope probes must be reported
+     separately.
+   - Preserve the exact probe failure text or status code when a read attempt fails; doctor should
+     not collapse repo-not-found, wrong-workspace, and unauthenticated cases into one generic
+     readiness error.
+4. **Severity**
+   - No read-capable substrate for the configured vendor, or a configured target that remains
+     unreadable after all supported probes, is a doctor `FAIL`.
+   - A reachable vendor with only auxiliary-substrate degradation is a doctor `WARN`.
+
 ## Skill mapping
 
 The shim → vendor mapping is fixed:

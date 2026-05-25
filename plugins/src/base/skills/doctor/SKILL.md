@@ -104,6 +104,42 @@ this order:
 Locality findings are advisory unless the merged config is unusable. Missing shared keys after the
 merge are `FAIL`; shared keys that exist only locally are `WARN`.
 
+### Minimum tracker/source preflight checks
+
+After config readiness passes far enough to resolve the merged `tracker` and optional `source`,
+doctor must perform read-only preflight checks for the configured vendors only. It does not probe
+every vendor Lisa supports.
+
+1. **Scope the audit to configured vendors**
+   - Audit the merged `tracker`.
+   - Audit the merged `source` only when present and distinct from the tracker.
+   - Report every non-configured vendor as `SKIP` rather than pretending it was checked.
+2. **Prove a readable substrate exists**
+   - `tracker=github` or `source=github`: require `gh` CLI availability, a passing `gh auth status`,
+     and a read probe against the configured repo such as `gh repo view <org>/<repo>`.
+   - `tracker=jira`, `source=jira`, or `source=confluence`: follow the `atlassian-access`
+     substrate ladder and prove at least one read-capable path can see the configured
+     `atlassian.cloudId` and vendor scope. Acceptable substrates are `acli`, Atlassian MCP, or the
+     validated API-token/curl path documented by `config-resolution`.
+   - `tracker=linear` or `source=linear`: require either readable Linear MCP access or a valid
+     personal API-key probe against the configured workspace. When Linear is the tracker, doctor
+     must also prove the configured `linear.teamKey` is visible.
+   - `source=notion`: require either a Notion MCP identity match for `notion.workspaceId` or a
+     valid internal-integration token probe, plus read visibility to `notion.prdDatabaseId`.
+3. **Separate missing tooling from missing auth or scope**
+   - Missing executable / MCP substrate availability is a distinct observed fact, not the same as
+     "auth failed."
+   - When a probe runs and fails, preserve the exact read-only failure text or HTTP/GraphQL status
+     in the observed output so the operator can distinguish wrong workspace/site/repo from missing
+     credentials.
+4. **Severity ladder**
+   - `PASS` when at least one supported read-only substrate proves the configured vendor is
+     reachable with the required scope.
+   - `WARN` when the configured vendor is reachable, but an additional optional substrate is
+     unavailable and later Lisa flows would need to fall back.
+   - `FAIL` when no supported substrate can prove read access for the configured tracker/source, or
+     when the configured vendor target is unreadable from the current runtime.
+
 ## Output contract
 
 The final report must:
