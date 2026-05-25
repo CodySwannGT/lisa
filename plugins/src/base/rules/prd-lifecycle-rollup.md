@@ -86,11 +86,31 @@ Where a vendor's terminal predicate references the build-status `done` role (Git
 
 When **all required** generated top-level children are terminal, the PRD rolls up to its terminal PRD-lifecycle state and, where configured, is closed/archived:
 
-1. **Transition to `shipped`.** Set the PRD to the configured `shipped` role (`config-resolution` PRD-lifecycle roles: `prd-shipped` label for GitHub/Linear, `Shipped` status for Notion, the shipped parent page for Confluence). The PRD lifecycle is `ready → in_review → (blocked | ticketed) → shipped`; rollup performs the `ticketed → shipped` hop only, and only on the all-terminal condition.
+1. **Transition to `shipped`.** Set the PRD to the configured `shipped` role (`config-resolution` PRD-lifecycle roles: `prd-shipped` label for GitHub/Linear, `Shipped` status for Notion, the shipped parent page for Confluence). The PRD lifecycle is `ready → in_review → (blocked | ticketed) → shipped → verified`; rollup performs the `ticketed → shipped` hop only, and only on the all-terminal condition. The subsequent `shipped → verified` (pass) / `shipped → blocked` (fail) hops are owned by PRD-level verification (`/lisa:verify-prd`), **not** by this rollup — see "PRD-level verification vs ticket verification" below.
 2. **Config-gated close/archive.** When the source tool supports closure/archival *and* the project configures it, also close (GitHub: close the issue; Linear: move to a closed/archived state; JIRA: transition to Done; Confluence/Notion: archive where supported). Closure is **gated on configuration** via `prd.rollup.closeOnShipped` (`config-resolution`): when false (the default), the PRD is set to `shipped` but left open for a human to close; when true, rollup closes/archives it after the `shipped` transition. Never close a PRD before all generated top-level work is terminal (PRD #525 non-goal).
 3. **Partial completion is a no-op + report.** If only some required children are terminal, leave the PRD in its current state and report the incomplete/blocked child set. Do not advance, do not close.
 
 The PRD never advances to `shipped` on its own authority — it is **derived** from the generated-top-level-child set, exactly as a container's state is derived from its leaves in `leaf-only-lifecycle`.
+
+## PRD-level verification vs ticket verification
+
+`shipped` and `verified` are two different terminal facts about a PRD, and they are established by two different flows. Keeping them distinct is the whole point of the `verified` state:
+
+| | `shipped` | `verified` |
+|---|---|---|
+| **Meaning** | All generated top-level work is terminal — the work graph is *complete* | The shipped product has been *empirically checked against the PRD itself* |
+| **Established by** | This rollup (`ticketed → shipped`), derived from child-ticket state | `/lisa:verify-prd`, the initiative-level acceptance gate |
+| **Evidence** | The terminal-child set (closed issues / done labels / completed states) | Spec-conformance against the PRD's requirements + empirical proof (browser/computer use, API/CLI/DB checks, screenshots, logs) |
+| **Ownership** | Set by the intake rollup phase; product may also set by hand | Product-owned, like `draft` and `shipped`; set only by `/lisa:verify-prd` |
+
+`shipped` is **necessary but not sufficient** for `verified`: a PRD can have every ticket closed while still missing a requirement, diverging from its acceptance criteria, or failing a real user workflow. `verified` is what proves the shipped product actually matches the PRD.
+
+**`/lisa:verify` (one work item) vs `/lisa:verify-prd` (the whole initiative).** These are deliberately separate scopes:
+
+- **`/lisa:verify`** empirically verifies a **single work item** (a ticket / story / sub-task) in its target environment as part of that item's Build/Fix/Improve flow. It is what drives a build ticket to its `done` state; it operates at the *leaf/build* level (see `leaf-only-lifecycle`). It does **not** read the PRD or judge initiative-level acceptance, and it is **not** replaced by PRD verification.
+- **`/lisa:verify-prd`** is the **initiative-level acceptance gate**. It runs *after* the PRD is `shipped` (all generated top-level work terminal), reads the PRD and its generated child set, confirms the children are terminal, then runs spec-conformance against the original PRD requirements plus empirical verification of the shipped surface. On pass it transitions the PRD `shipped → verified` and posts evidence; on fail it transitions the PRD `shipped → blocked`, posts a product-readable failure report, and creates linked fix issues for the missing or incorrect behavior. Re-runs are idempotent (no duplicate evidence, fix issues, or lifecycle transitions).
+
+**No extra failure states.** A failed PRD verification reuses the existing `blocked` role (`shipped → blocked`) rather than introducing a `prd-verifying` or `prd-verification-failed` state — the lifecycle stays intentionally small. `verified` is terminal and product-owned (like `draft` and `shipped`); a PRD is never moved to `verified` solely because its tickets are closed, and a PRD is never closed/archived before verification has passed. The vendor maps for the `verified` role (`prd-verified` label for GitHub/Linear, `Verified` status for Notion, the verified parent page for Confluence) live in the `config-resolution` rule.
 
 ## Idempotency dedupe key
 
@@ -102,6 +122,8 @@ The dedupe key is **child-ref identity** — the stable, vendor-native identifie
 - **Linear** — the issue/project identifier (e.g. `TEAM-123`) or its UUID.
 - **JIRA** — the issue key (e.g. `PROJ-123`).
 - **Confluence / Notion** — the destination ticket ref recorded in the generated-work entry (the entry is keyed by that ref, not by list position).
+
+**Match by stable ref, never by title.** Identity is the child-ref above and *only* the child-ref — never the child's title, summary, or any other mutable field. A child whose **title changed but whose ref is unchanged is the same child**: re-running linking/backlink matches it by ref, updates the displayed title in place, and does **not** create a second link or a duplicate generated-work entry. Conversely, two distinct refs are two distinct children even if their titles happen to be identical. Title-based matching would both miss a renamed child (duplicating it) and falsely collapse two same-named children, so it is never used as the dedupe key (PRD #525: "Dedupe matches by stable ref not title").
 
 Apply it as follows:
 

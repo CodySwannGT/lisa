@@ -1,5 +1,11 @@
+# Stamp Codex-authored commits with an attribution trailer so the commit-msg
+# hook's AI co-authorship check passes (mirrors Claude Code's attribution.commit).
+# Emits: "Co-authored-by: Codex <noreply@openai.com>". Requires features.codex_git_commit.
+commit_attribution = "Codex <noreply@openai.com>"
+
 [features]
 codex_hooks = true
+codex_git_commit = true
 
 [mcp_servers.linear-server]
 url = "https://mcp.linear.app/mcp"
