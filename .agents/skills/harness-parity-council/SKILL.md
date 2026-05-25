@@ -53,6 +53,8 @@ The skill is designed around these configurable CLI command slots:
 
 Adapter implementation details, safe flags, timeout handling, auth detection, and output capture are handled by follow-on council tickets. This scaffold defines the contract they must satisfy.
 
+The current adapter source of truth lives in `./runtime-adapters.mjs`. Run `node .agents/skills/harness-parity-council/runtime-adapters.mjs` to print the resolved command slots, read-only-safe base flags, timeout budget, and local help/version probe results for each runtime.
+
 ## Operating Rules
 
 - Default to read-only advisory execution.
