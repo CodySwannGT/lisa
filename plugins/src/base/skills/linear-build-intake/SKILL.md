@@ -71,7 +71,7 @@ In prose below, the role names refer to the resolved labels: e.g. "the `ready` l
 
 ## Why labels, not native states
 
-Linear's per-team workflow state names vary (`Todo` / `Backlog` / `Up Next` / etc.). Labels are workspace-scoped or team-scoped and stable across teams, so we drive the build queue off labels rather than chasing renamed native states. The native `state` field is informational only for this skill.
+Linear's per-team workflow state names vary (`Todo` / `Backlog` / `Up Next` / etc.). Labels are workspace-scoped or team-scoped and stable across teams, so we drive the build queue off labels rather than chasing renamed native states. The native `state` field is informational until terminal completion; at the true terminal `done` value, the `leaf-only-lifecycle` rule requires native closure by moving the Issue to a configured Done / Completed workflow state when one exists.
 
 ## Configuration
 
@@ -199,8 +199,13 @@ Wait for the agent to return. Capture its outcome:
 
 If `lisa:linear-agent` returned Success:
 1. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
-2. Update labels via `mcp__linear-server__save_issue`: remove `$CLAIMED` (or `$REVIEW` if `lisa:linear-evidence` already moved it forward), add `$DONE`.
-3. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL>. Transitioned to $DONE."`
+2. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
+   - If `linear.labels.build.done` is a string, that string is terminal.
+   - If `linear.labels.build.done` is an object, only the production/final environment value is terminal (default: `status:done`). Intermediate env values such as `status:on-dev` and `status:on-stg` are not terminal and must keep the native Issue open.
+   - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not change the native state.
+3. Update labels via `mcp__linear-server__save_issue`: remove `$CLAIMED` (or `$REVIEW` if `lisa:linear-evidence` already moved it forward), add `$DONE`.
+4. If `$DONE` is terminal, move the native Linear Issue state to the configured Done / Completed state. Resolve that state from project configuration if present; otherwise inspect the team workflow for a terminal state with `state.type = "completed"` and a name such as `Done` or `Completed`. If no terminal state can be resolved, record an Error and leave the labels as the source of truth — do not invent a state name.
+5. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL>. Transitioned to $DONE."` Include whether native closure was applied, already satisfied, skipped for an intermediate env, or unavailable for setup reasons.
 
 For any non-Success outcome, do NOT transition. The Issue sits where the agent left it — humans take it from there.
 
@@ -236,7 +241,8 @@ Total PRs opened: <n>
 
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic/Story/Spike) is skipped/safe-blocked, never claimed (the `leaf-only-lifecycle` rule's claim-time arm). The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE agent invocation — no double-pickup.
-- **No writes outside the lifecycle**: this skill only adds/removes `$READY`, `$CLAIMED`, `$DONE`. Every other label change (and the native state) is owned by the agent or `lisa:linear-evidence`.
+- **No writes outside the lifecycle**: this skill only adds/removes `$READY`, `$CLAIMED`, `$DONE`, plus terminal-only native state completion required by `leaf-only-lifecycle`. Every other label change (and non-terminal native state change) is owned by the agent or `lisa:linear-evidence`.
+- **Terminal native closure**: after the `$DONE` label is applied, move the Linear Issue to a native completed state only when `$DONE` is the true terminal done value; intermediate env labels stay open / active.
 - **One item per cycle**: per-Issue exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
 - **Single cycle per team**: do not run two concurrent cycles against the same team — concurrent claims could race.
 - **Single-label invariant**: after every transition, verify exactly one `status:*` label is present. Two simultaneously breaks the build queue.
@@ -258,6 +264,7 @@ If the team hasn't adopted these labels, the first run exits with an adoption hi
 - Never relabel an Issue the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
 - Never bypass `lisa:linear-agent` to do build work directly. The agent owns the per-Issue lifecycle.
 - Never auto-transition past `$DONE`. Downstream labels are owned by QA / product / a future verification-intake skill.
+- Never move the native Linear state to Done / Completed for intermediate env states (`status:on-dev`, `status:on-stg`, or configured equivalents). Native completion happens only at the terminal `done` value.
 - If the Issue has no Validation Journey or no sign-in credentials in its description, `lisa:linear-agent`'s pre-flight verify will catch it and relabel to `status:blocked` — don't try to fix the Issue from here.
 - On any unexpected response from `lisa:linear-agent` (label it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.
 - Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.

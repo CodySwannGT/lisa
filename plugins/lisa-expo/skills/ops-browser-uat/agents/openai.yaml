@@ -1,4 +1,4 @@
-display_name: "ops-browser-uat"
-short_description: "Browser-based user acceptance testing via Playwright MCP tools. Logs into the application, navigates through features, and captures visual proof with screenshots."
+display_name: "Ops Browser Uat"
+short_description: "Browser-based user acceptance testing via Playwright MCP tools"
 default_prompt:
-  - "Use $ops-browser-uat"
+  - "Use $ops-browser-uat: Browser-based user acceptance testing via Playwright MCP tools."

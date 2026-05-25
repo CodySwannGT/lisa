@@ -1,4 +1,4 @@
-display_name: "intake"
-short_description: "Vendor-agnostic scanner for Ready queues. Given a Notion PRD database URL → finds the first Ready PRD and runs lisa:plan. Given a Confluence space or parent page URL → finds the first prd-ready PRD and runs lisa:plan. Given a Linear workspace URL or team key → finds the first prd-ready Linear project and runs lisa:plan. Given a GitHub repo URL or `org/repo` token → finds the first prd-ready GitHub issue and runs lisa:plan. Given a JIRA project key or JQL filter → finds the first Ready ticket and runs lisa:implement. Given a GitHub repo URL or `org/repo` token when `tracker = github` → finds the first `status:ready` issue and runs lisa:implement. Designed as the cron target for /schedule — one eligible item per invocation, exits cleanly on empty. Symmetric counterpart to the single-item lisa:plan and lisa:implement skills."
+display_name: "Intake"
+short_description: "Vendor-agnostic scanner for Ready queues"
 default_prompt:
-  - "Use $intake"
+  - "Use $intake: Vendor-agnostic scanner for Ready queues."

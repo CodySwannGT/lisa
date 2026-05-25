@@ -1,4 +1,4 @@
-display_name: "ops-check-logs"
-short_description: "Check application logs from local Docker Compose or remote AWS CloudWatch for Rails applications. Supports log tailing, filtering, and error searching."
+display_name: "Ops Check Logs"
+short_description: "Check application logs from local Docker Compose or remote AWS CloudWatch for Rails applications"
 default_prompt:
-  - "Use $ops-check-logs"
+  - "Use $ops-check-logs: Check application logs from local Docker Compose or remote AWS CloudWatch for Rails applications."

@@ -124,29 +124,166 @@ export function serializeInterfaceToYaml(iface) {
 }
 
 /**
+ * Acronyms that should stay fully upper-cased when a skill name is humanized.
+ *
+ * Skill names are kebab/snake tokens (e.g. `exploratory-qa`); naive title-casing
+ * would yield "Qa". Tokens listed here (compared case-insensitively) are emitted
+ * upper-case instead so `exploratory-qa` -> "Exploratory QA". The set is small and
+ * deliberately conservative — only well-known initialisms that appear in Lisa
+ * skill names — so humanization stays a pure, predictable function of the input.
+ */
+const ACRONYMS = new Set([
+  "qa",
+  "ci",
+  "cd",
+  "pr",
+  "prd",
+  "ui",
+  "ux",
+  "api",
+  "cli",
+  "sdk",
+  "tdd",
+  "mcp",
+  "aws",
+  "cdk",
+  "zap",
+  "owasp",
+  "sql",
+  "url",
+  "id",
+  "io",
+  "llm",
+]);
+
+/**
+ * Humanize a kebab/snake/space-delimited token into a Title-Cased display name.
+ *
+ * Splits on `-`, `_`, and runs of whitespace, then title-cases each word —
+ * except tokens in {@link ACRONYMS}, which are upper-cased. This is the rule the
+ * PRD (#521) specifies for `display_name`: `exploratory-qa` -> "Exploratory QA".
+ * Pure: same input always yields the same output.
+ *
+ * @param {string} raw The raw skill/frontmatter name token.
+ * @returns {string} The humanized, title-cased display name.
+ */
+function humanizeName(raw) {
+  return raw
+    .split(/[-_\s]+/)
+    .filter(word => word.length > 0)
+    .map(word =>
+      ACRONYMS.has(word.toLowerCase())
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(" ");
+}
+
+/**
+ * Boilerplate openings that several Lisa skill descriptions share (e.g. "This
+ * skill should be used when ..."). They add no signal to a short UI summary, so
+ * the leading phrase is stripped before the first-sentence summary is taken.
+ * Matched case-insensitively at the very start of the description only.
+ */
+const DESCRIPTION_PREFIXES = [
+  /^this skill should be used (when|to|for|whenever|any time|anytime|while)\s+/i,
+  /^this skill should be used\s+/i,
+  /^use this skill (when|to|for|whenever|any time|anytime|while)\s+/i,
+  /^use when\s+/i,
+];
+
+/** Upper bound on the derived `short_description` length (characters). */
+const SHORT_DESCRIPTION_MAX = 140;
+
+/**
+ * Derive a concise `short_description` from a skill's full frontmatter
+ * `description`.
+ *
+ * DERIVATION RULE (Epic Open Question — "use best judgement based on the context
+ * of the project", per the PRD #521 author): a Lisa skill description leads with
+ * a one-line summary and then enumerates trigger conditions across several
+ * sentences. The concise summary is therefore the first sentence:
+ *
+ *  1. Strip a leading "This skill should be used when/to/for ..." boilerplate
+ *     prefix (see {@link DESCRIPTION_PREFIXES}) so the summary carries signal.
+ *  2. Take the text up to the first sentence terminator (`. `, `! `, `? `).
+ *  3. Trim a trailing period and clamp to {@link SHORT_DESCRIPTION_MAX} chars
+ *     (word-boundary truncation with an ellipsis) so it stays a *short*
+ *     description.
+ *
+ * For `exploratory-qa` this yields "Playwright-backed exploratory QA workflow
+ * for web apps", matching the PRD's hand-written example shape.
+ *
+ * @param {string} description The full (trimmed) frontmatter description.
+ * @returns {string} A concise one-line summary (may be empty if input is empty).
+ */
+function summarizeDescription(description) {
+  if (description === "") {
+    return "";
+  }
+  const deboilerplated = DESCRIPTION_PREFIXES.reduce(
+    (text, prefix) => text.replace(prefix, ""),
+    description
+  ).trim();
+  // First sentence: stop at the first `.`, `!`, or `?` that is followed by
+  // whitespace or end-of-string (so "e2e" / "U.S." mid-sentence don't split).
+  const sentenceMatch = /^(.*?[.!?])(?:\s|$)/.exec(deboilerplated);
+  const firstSentence = (
+    sentenceMatch ? sentenceMatch[1] : deboilerplated
+  ).replace(/[.\s]+$/, "");
+  if (firstSentence.length <= SHORT_DESCRIPTION_MAX) {
+    return firstSentence;
+  }
+  const clamped = firstSentence.slice(0, SHORT_DESCRIPTION_MAX);
+  const lastSpace = clamped.lastIndexOf(" ");
+  const truncated = lastSpace > 0 ? clamped.slice(0, lastSpace) : clamped;
+  return `${truncated.replace(/[,;:.\s]+$/, "")}…`;
+}
+
+/**
  * Derive a Codex `interface` object from a skill's SKILL.md frontmatter.
  *
- * NOTE ON DERIVATION RULES: this is the minimal/placeholder derivation that the
- * walk-and-emit shell (issue #547) needs to produce a valid `interface` block.
- * The richer humanization/summarization rules — title-casing `display_name`,
- * trimming `short_description`, and the `$<name>` starter prompt — are issue
- * #548's responsibility and will refine these defaults. Until then we fall back
- * to the raw frontmatter values (and the skill directory name when frontmatter
- * is missing) so every skill still emits a well-formed file.
+ * DERIVATION RULES (issue #548; the Epic Open Question asked the author for the
+ * `short_description`/`default_prompt` rule and the guidance was "use best
+ * judgement based on the context of the project"):
+ *
+ *  - `display_name`  — {@link humanizeName} of `frontmatter.name`: title-cased,
+ *    with known acronyms upper-cased (`exploratory-qa` -> "Exploratory QA").
+ *  - `short_description` — {@link summarizeDescription} of `frontmatter.description`:
+ *    the boilerplate-stripped first sentence, clamped to a short length.
+ *  - `default_prompt` — a single short starter prompt that references the skill
+ *    token `$<name>` (the canonical kebab name, not the humanized one, because
+ *    Codex invokes skills by their `$<name>` token). When a summary is available
+ *    the prompt reads "Use $<name>: <summary>." — a colon join is used rather
+ *    than "Use $<name> to <summary>" because a derived summary may be a noun
+ *    phrase ("Playwright-backed exploratory QA workflow") rather than a verb
+ *    clause, and "... to <noun phrase>" reads awkwardly. The colon form is
+ *    grammatical for either shape. When there is no description it falls back to
+ *    a bare "Use $<name>". The `$<name>` token is always present — the
+ *    acceptance criterion.
+ *
+ * Falls back to the skill directory name (and an empty description) when the
+ * frontmatter is missing, so every skill still emits a well-formed file. Pure:
+ * no I/O, deterministic output for deterministic input.
  *
  * @param {{ name?: string, description?: string } | null} frontmatter Parsed
  *   SKILL.md frontmatter (or `null` when the file has no frontmatter block).
  * @param {string} skillName The skill directory name, used as a fallback.
  * @returns {{ display_name: string, short_description: string, default_prompt: string[] }}
- *   The normalized interface object the serializer consumes. Pure.
+ *   The normalized interface object the serializer consumes.
  */
 export function deriveSkillInterface(frontmatter, skillName) {
   const name = frontmatter?.name?.trim() || skillName;
   const description = frontmatter?.description?.trim() || "";
+  const shortDescription = summarizeDescription(description);
+  const starter =
+    shortDescription === ""
+      ? `Use $${name}`
+      : `Use $${name}: ${shortDescription}.`;
   return {
-    display_name: name,
-    short_description: description,
-    default_prompt: [`Use $${name}`],
+    display_name: humanizeName(name),
+    short_description: shortDescription,
+    default_prompt: [starter],
   };
 }
 
@@ -155,9 +292,9 @@ export function deriveSkillInterface(frontmatter, skillName) {
  * `skills/<name>/agents/openai.yaml` (issue #547).
  *
  * For each skill directory containing a SKILL.md, the frontmatter is parsed
- * (#545), an interface object is derived (#548 refines the rules), and the
- * deterministic serializer (#546) writes `agents/openai.yaml`, creating the
- * `agents/` directory when missing. Behavior boundaries:
+ * (#545), an interface object is derived via {@link deriveSkillInterface} (#548),
+ * and the deterministic serializer (#546) writes `agents/openai.yaml`, creating
+ * the `agents/` directory when missing. Behavior boundaries:
  *
  *  - No-op when the plugin has no `skills/` directory.
  *  - Never clobber a hand-authored `agents/openai.yaml` that already exists in

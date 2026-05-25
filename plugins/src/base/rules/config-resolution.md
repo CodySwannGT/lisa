@@ -54,10 +54,12 @@ fi
       "in_review": "<page-id>",
       "blocked":   "<page-id>",
       "ticketed":  "<page-id>",
-      "shipped":   "<page-id>"
+      "shipped":   "<page-id>",
+      "verified":  "<page-id>"
     },
     "dashboardPageId": "<page-id>",
-    "feedbackPageId":  "<page-id>"
+    "feedbackPageId":  "<page-id>",
+    "rollup": { "closeOnShipped": false }
   },
   "github": {
     "org": "<org-or-user>",
@@ -74,8 +76,9 @@ fi
         "draft": "prd-draft",
         "ready": "prd-ready", "in_review": "prd-in-review",
         "blocked": "prd-blocked", "ticketed": "prd-ticketed",
-        "shipped": "prd-shipped",
-        "sentinel": "prd-intake-feedback"
+        "shipped": "prd-shipped", "verified": "prd-verified",
+        "sentinel": "prd-intake-feedback",
+        "rollup": { "closeOnShipped": false }
       }
     }
   },
@@ -85,8 +88,10 @@ fi
     "statusProperty": "Status",
     "values": {
       "draft": "Draft", "ready": "Ready", "in_review": "In Review",
-      "blocked": "Blocked", "ticketed": "Ticketed", "shipped": "Shipped"
-    }
+      "blocked": "Blocked", "ticketed": "Ticketed", "shipped": "Shipped",
+      "verified": "Verified"
+    },
+    "rollup": { "closeOnShipped": false }
   },
   "linear": {
     "workspace": "<workspace-slug>",
@@ -103,8 +108,9 @@ fi
         "draft": "prd-draft",
         "ready": "prd-ready", "in_review": "prd-in-review",
         "blocked": "prd-blocked", "ticketed": "prd-ticketed",
-        "shipped": "prd-shipped",
-        "sentinel": "prd-intake-feedback"
+        "shipped": "prd-shipped", "verified": "prd-verified",
+        "sentinel": "prd-intake-feedback",
+        "rollup": { "closeOnShipped": false }
       }
     }
   },
@@ -167,7 +173,7 @@ When `tracker = "github"` AND `source = "github"` (self-host), both reads and wr
 | `notion.workspaceId` | `source = "notion"` | **committed** | Workspace identifier (Notion workspace UUID, or a stable human slug the user picks at setup). Same for every developer on the project. Used as the keychain `account` value when looking up the Notion API token, so each project's `notion-access` finds the right per-workspace token. |
 | `notion.prdDatabaseId` | `source = "notion"` | **committed** | Notion database ID (UUID, dashes optional). The database is the PRD queue. Same for every developer on the project. |
 | `notion.statusProperty` | `source = "notion"` | **committed** | Name of the database property that drives the lifecycle. Defaults to `"Status"` if absent. |
-| `notion.values` | optional | **committed** | Map of role → Notion status-value name (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`). Defaults match the role names in title case. Override here if your Notion DB uses different value names. |
+| `notion.values` | optional | **committed** | Map of role → Notion status-value name (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`, `verified`). Defaults match the role names in title case. Override here if your Notion DB uses different value names. |
 
 #### `linear`
 
@@ -206,7 +212,20 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 | `blocked` | Validation failed; clarifying-comments posted | `Blocked` (status) | `prd-blocked` (label) |
 | `ticketed` | Validated and tickets created | `Ticketed` (status) | `prd-ticketed` (label) |
 | `shipped` | All child tickets shipped | `Shipped` (status) | `prd-shipped` (label) |
+| `verified` | Shipped product empirically checked against the PRD | `Verified` (status) | `prd-verified` (label); parent-page lookup (Confluence) |
 | `sentinel` | (PRD-intake feedback issue marker, GitHub/Linear self-host only) | — | `prd-intake-feedback` |
+
+### PRD rollup config (`prd.rollup`)
+
+PRD lifecycle completion is **derived** from the PRD's generated top-level work, not set independently — see the `prd-lifecycle-rollup` rule for the full contract (generated-top-level-work definition, per-vendor terminal-state predicate, the `shipped` transition, and the child-ref idempotency key). When all required generated top-level children are terminal, rollup transitions the PRD to its `shipped` role; the `prd.rollup` block configures the optional close/archive step that follows.
+
+The `rollup` object lives in each PRD-source vendor section (`github.labels.prd.rollup`, `linear.labels.prd.rollup`, `notion.rollup`, `confluence.rollup`):
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `closeOnShipped` | no | `false` | When `true`, rollup closes/archives the PRD after the `shipped` transition (GitHub: close the issue; Linear: move to a closed/archived state; JIRA: transition to Done; Confluence/Notion: archive where supported). When `false` (the default), the PRD is set to `shipped` but left open for a human to close. Closure never happens before all generated top-level work is terminal. |
+
+Like every other vocabulary key, `prd.rollup` is **optional** — a missing block inherits `closeOnShipped: false`. The `shipped` transition itself is unconditional on the all-terminal condition; only the close/archive step is gated by this flag.
 
 ### Env-keyed `done`
 
@@ -220,10 +239,16 @@ Skills that transition to `done` MUST resolve the env first:
 
 If a project's terminal state is the same regardless of env, set `done` to a string instead of a map (lifecycle skills accept either shape).
 
+The true terminal `done` value is also the only value that triggers provider-native closure / resolution per `leaf-only-lifecycle`:
+
+- If `done` is a string, that value is terminal.
+- If `done` is an env-keyed map, the production / final environment's value is terminal. The conventional key is `production`; project-specific final env names must be explicit in deploy config or the lifecycle skill must fail rather than guessing.
+- Intermediate env values (`dev`, `staging`, or configured equivalents) are deployment waypoints. Applying them must not close / resolve / complete the native tracker item.
+
 ### What's configurable, what's not
 
 - **Status / label NAMES** are configurable per project — that's the point of the vocabulary maps.
-- **Role SEMANTICS and TRANSITIONS** are not. The build lifecycle is always `ready → claimed → done` (with optional `review` for label-driven systems). The PRD lifecycle is always `ready → in_review → (blocked | ticketed) → shipped`. Lisa skills hardcode these transitions because they encode the design intent of the framework, not the project's preferences.
+- **Role SEMANTICS and TRANSITIONS** are not. The build lifecycle is always `ready → claimed → done` (with optional `review` for label-driven systems). The PRD lifecycle is always `ready → in_review → (blocked | ticketed) → shipped`, then verification may move `shipped → verified` on a pass or `shipped → blocked` on a failed verification. `verified` is terminal and product-owned like `draft` and `shipped`; Lisa does not add `prd-verifying` or `prd-verification-failed` states. Skills hardcode these transitions because they encode the design intent of the framework, not the project's preferences.
 - **Extra statuses/labels** the project uses outside these roles are fine — lisa never touches them.
 
 ### Defaults vs. requirements
@@ -302,7 +327,7 @@ Initiatives (Linear's cross-Project rollup) are NOT used — they're intended fo
 
 When `github-to-tracker` is invoked AND `tracker = "github"`, both reads and writes hit the same GitHub repo. Label namespaces are kept separate so the two flows don't collide:
 
-- PRD-source labels: `prd-draft`, `prd-ready`, `prd-in-review`, `prd-blocked`, `prd-ticketed`, `prd-shipped` — owned by `github-prd-intake` and the human PM.
+- PRD-source labels: `prd-draft`, `prd-ready`, `prd-in-review`, `prd-blocked`, `prd-ticketed`, `prd-shipped`, `prd-verified` — owned by `github-prd-intake`, `verify-prd`, and the human PM.
 - Build-queue labels: `status:ready`, `status:in-progress`, `status:code-review`, `status:on-dev`, `status:done` — owned by `github-build-intake` and `github-agent`.
 - Sentinel issue label: `prd-intake-feedback` — owned by `github-prd-intake`.
 

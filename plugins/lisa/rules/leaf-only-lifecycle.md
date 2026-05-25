@@ -1,15 +1,16 @@
-# Leaf-Only Build-Ready Invariant & Parent Status Rollup
+# Leaf-Only Build-Ready Invariant, Parent Status Rollup & Terminal Native Closure
 
-This is the single vendor-neutral source of truth for two coupled lifecycle rules. Every `*-to-tracker`, `*-write-*`, `*-validate-*`, and `*-build-intake` skill cites this rule rather than restating it, so per-vendor logic does not drift.
+This is the single vendor-neutral source of truth for three coupled lifecycle rules. Every `*-to-tracker`, `*-write-*`, `*-validate-*`, and `*-build-intake` skill cites this rule rather than restating it, so per-vendor logic does not drift.
 
 1. **Leaf-only invariant** — only an independently implementable **leaf work unit** may carry the build-ready role. A parent/container with child work is never directly build-ready.
 2. **Parent status rollup** — a parent/container's lifecycle state is *derived* from its children, never set independently.
+3. **Terminal native closure** — when a leaf work unit reaches the configured terminal `done` role, Lisa also closes / resolves / completes it using the provider's native mechanism where one exists. Intermediate done-like environment states stay open.
 
-The two are the same idea seen from opposite ends: a parent never enters the build queue as work; it only ever *reflects* the state of the leaves underneath it.
+The first two are the same idea seen from opposite ends: a parent never enters the build queue as work; it only ever *reflects* the state of the leaves underneath it. The third keeps the provider's native open/closed signal aligned with Lisa's terminal lifecycle state so finished work does not linger as open.
 
 ## Why this exists
 
-Build intake claims and implements whatever carries the build-ready role (the `ready` role — see `config-resolution`). A parent container (an Epic, a Story, a Linear Project, any issue with child work) is not a unit of implementation; it organizes work. If a parent is marked build-ready, an agent will try to implement the container itself — the wrong permission and lifecycle boundary. This surfaced in real PRD intake: a PRD decomposed into an Epic, Stories, and Sub-tasks, and *every* item received the build-ready label, so a subsequent build pass would have tried to "implement" the Epic.
+Build intake processes whatever carries the build-ready role (the `ready` role — see `config-resolution`). A parent container (an Epic, a Story, a Linear Project, any issue with child work) is not a unit of implementation; it organizes work. If a parent is marked build-ready, an agent may try to implement the container itself unless intake gates it first — the wrong permission and lifecycle boundary. This surfaced in real PRD intake: a PRD decomposed into an Epic, Stories, and Sub-tasks, and *every* item received the build-ready label, so a subsequent build pass would have tried to "implement" the Epic.
 
 The fix is not vendor-specific. It belongs here, in a cross-vendor rule, and every writer / validator / intake path enforces it.
 
@@ -42,7 +43,7 @@ Where a vendor lacks native hierarchy for a given pair, a text link or metadata 
 
 - **At decomposition / write time** — when a PRD decomposes into a hierarchy, only the leaf work units receive the `ready` role (status/label). Parent containers (Epic, Story, Project, and any parent issue that has child work) are created in their normal non-ready state and never receive the build-ready role directly. The leaves are what downstream build intake will claim.
 - **At validate time** — the `*-validate-*` gate FAILs any container carrying the build-ready role. This is the symmetric write-side guard: a stale or hand-applied build-ready role on a parent is a lifecycle error.
-- **At claim time** — build intake scans for the `ready` role but claims **only leaf work units**. A container that still carries a stale build-ready role (e.g. applied before this rule existed) is **not claimed**: intake either skips it or safely blocks it with a clear lifecycle-repair message (move the role to the leaves; roll the parent up). Intake never silently implements a container.
+- **At claim time** — build intake scans for the `ready` role but dispatches **only leaf work units**. A container that still carries a stale build-ready role (e.g. applied before this rule existed) is **not dispatched**: intake either moves it into the vendor's parent/container progress state or safely blocks it with a clear lifecycle-repair message. Intake never silently implements a container.
 
 The permission boundary is the maintainer-applied build-ready role, not authorship — do not add author-based guards (PRD #522 non-goal). This rule narrows *what* may carry that role, not *who* may apply it.
 
@@ -82,13 +83,33 @@ The terminal rollup state is whatever the project configures for `done` — whic
 
 **Single-environment collapse (this repo).** Lisa's own deploy has only `main`/`production` (no dev/staging), so `done` is a single value, not a map, and the build lifecycle collapses to one chain: `ready → claimed (in-progress) → review (code-review) → done`. The rollup terminal state is simply `done`. This is the *collapsed* case of the generic rule, not a different rule — projects with more environments keep the env-keyed map.
 
+## Terminal native closure
+
+The configured terminal `done` role is not just another label or status. Once a **leaf work unit** reaches the true terminal `done` value, Lisa must also finalize the item through the tracker's native completion mechanism when the tracker supports one:
+
+| Tracker | Terminal native action |
+|---|---|
+| GitHub Issues | `gh issue close <number> --reason completed` after applying the terminal `done` label |
+| Linear | move the Issue's native workflow `state` to the team's configured Done / Completed state after applying the terminal `done` label |
+| JIRA | transition to the configured terminal Done / Resolved / Closed status and verify the resulting issue is in `statusCategory = Done` with a resolution when the workflow requires one |
+| Provider without a close / archive concept | no-op; the terminal lifecycle role is sufficient |
+
+This action is **terminal-only**:
+
+- Intermediate env-keyed states such as `status:on-dev`, `status:on-stg`, `On Dev`, or `On Stg` remain open / unresolved / active. They are deployment waypoints, not terminal completion.
+- A single-environment project whose `done` resolves to one value treats that value as terminal. In this repo, `production: main` means `status:done` / `Done` is terminal.
+- A multi-environment project treats only the production / final environment's `done` value as terminal unless the project explicitly configures `done` as a single string. Do not close native work items at lower environments.
+- The native finalization must be idempotent. If the item is already closed / completed / resolved, report that and continue.
+- If a provider exposes no native close / archive operation, or a project has not configured the native Done state, record a capability-aware no-op or setup error according to the vendor skill. Do not invent a state name.
+
 ## Citation
 
 Skills that enforce this invariant or perform rollup cite this rule by slug (the `leaf-only-lifecycle` rule) instead of restating it:
 
 - **Decomposition / write** (`*-to-tracker`, `*-write-*`) — apply the `ready` role to leaves only; never to containers.
 - **Validate** (`*-validate-*`) — FAIL a container carrying the build-ready role; FAIL a childless Epic/Story/Spike marked build-ready.
-- **Build intake** (`*-build-intake`, `tracker-build-intake`) — claim leaves only; skip or safe-block containers with stale build-ready roles.
+- **Build intake** (`*-build-intake`, `tracker-build-intake`) — dispatch leaves only; move or safe-block containers with stale build-ready roles according to vendor lifecycle semantics.
 - **Rollup** — derive parent state from children per the state machine above.
+- **Terminal native closure** (`*-build-intake`, terminal helpers) — after a leaf reaches the true terminal `done` role, finalize it through the provider's native close / complete / resolve mechanism where available; never do this for intermediate env states.
 
 This is the inverse-direction companion to `repo-scope-split` (which governs a leaf's *repo* scope); together they define what a build-ready leaf work unit is: directly implementable, single-repo, childless-or-leaf-typed.

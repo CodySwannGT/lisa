@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-connector-jira"
-short_description: "Produce sanitized JIRA source notes for lisa-wiki ingest via the Atlassian MCP. Use only when lisa-wiki-ingest routes to the jira connector. Read-only; tenant-guarded."
+display_name: "Lisa Wiki Connector Jira"
+short_description: "Produce sanitized JIRA source notes for lisa-wiki ingest via the Atlassian MCP"
 default_prompt:
-  - "Use $lisa-wiki-connector-jira"
+  - "Use $lisa-wiki-connector-jira: Produce sanitized JIRA source notes for lisa-wiki ingest via the Atlassian MCP."

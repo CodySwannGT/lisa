@@ -1,4 +1,4 @@
-display_name: "tracker-build-intake"
-short_description: "Vendor-neutral wrapper for the build-queue scanner. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-build-intake (JQL/project-key queue), lisa:github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa:linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner processes at most one eligible item per cycle and enforces the claim-time arm of the `leaf-only-lifecycle` rule — claim leaf work units only; skip or safe-block a container with open child work (or a childless Epic/Story/Spike) that carries a stale build-ready role. Counterpart to lisa:intake's PRD-side dispatchers."
+display_name: "Tracker Build Intake"
+short_description: "Vendor-neutral wrapper for the build-queue scanner"
 default_prompt:
-  - "Use $tracker-build-intake"
+  - "Use $tracker-build-intake: Vendor-neutral wrapper for the build-queue scanner."

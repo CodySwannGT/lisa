@@ -1,4 +1,4 @@
-display_name: "prd-backlink"
-short_description: "Update a source PRD with a `## Tickets` section linking back to every work item created from it. Vendor-aware on the source side (Notion / Confluence / Linear / GitHub Issue / file) and tracker-agnostic on the ticket side. Idempotent — regenerates the section on each run rather than appending, so re-planning never accumulates stale links. Invoked by the *-to-tracker skills at the end of their pipeline and standalone if a PRD's Tickets section needs to be refreshed."
+display_name: "PRD Backlink"
+short_description: "Update a source PRD with an always-written, machine-readable `## Tickets` (alias `## Generated Work`) section linking back to every work…"
 default_prompt:
-  - "Use $prd-backlink"
+  - "Use $prd-backlink: Update a source PRD with an always-written, machine-readable `## Tickets` (alias `## Generated Work`) section linking back to every work…."

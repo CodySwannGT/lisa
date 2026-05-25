@@ -189,8 +189,13 @@ Wait for `lisa:jira-agent` to return. Capture its outcome:
 
 If `lisa:jira-agent` returned Success:
 1. Resolve `$DONE` for this ticket's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
-2. Invoke `lisa:atlassian-access` `operation: transition key: <TICKET> to: "$DONE"`.
-3. Post a `[claude-build-intake]` comment via `lisa:atlassian-access` `operation: comment key: <TICKET> body: "Build complete. PR <URL>. Transitioned to $DONE."`
+2. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
+   - If `jira.workflow.done` is a string, that status is terminal.
+   - If `jira.workflow.done` is an object, only the production/final environment value is terminal (default: `Done`). Intermediate env statuses such as `On Dev` and `On Stg` are not terminal and must remain unresolved / open.
+   - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not finalize native resolution.
+3. Invoke `lisa:atlassian-access` `operation: transition key: <TICKET> to: "$DONE"`.
+4. If `$DONE` is terminal, verify the resulting JIRA issue is natively closed/resolved: status category is `Done`, and resolution is set when the project's workflow requires one. If the transition screen requires an explicit resolution, use the configured default resolution if present; otherwise record an Error naming the missing workflow setup rather than silently landing in an unresolved Done-named status.
+5. Post a `[claude-build-intake]` comment via `lisa:atlassian-access` `operation: comment key: <TICKET> body: "Build complete. PR <URL>. Transitioned to $DONE."` Include whether terminal native resolution was verified, already satisfied, skipped for an intermediate env, or blocked by workflow setup.
 
 For any non-Success outcome, do NOT transition. The ticket sits in `$CLAIMED` (or wherever `lisa:jira-agent` left it for the Blocked case) — the cycle's job is done; humans take it from there.
 
@@ -226,7 +231,8 @@ Total PRs opened: <n>
 
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic/Story/Spike) is skipped/safe-blocked, never claimed (the `leaf-only-lifecycle` rule's claim-time arm). The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:jira-agent` invocation — no double-pickup.
-- **No writes outside the lifecycle**: this skill only transitions `$READY → $CLAIMED` and `$CLAIMED → $DONE`. Every other status change is owned by `lisa:jira-agent` (which suggests transitions but only auto-transitions on the verify-FAIL path).
+- **No writes outside the lifecycle**: this skill only transitions `$READY → $CLAIMED` and `$CLAIMED → $DONE`, then verifies terminal native resolution when `$DONE` is the true terminal state per `leaf-only-lifecycle`. Every other status change is owned by `lisa:jira-agent` (which suggests transitions but only auto-transitions on the verify-FAIL path).
+- **Terminal native closure**: for terminal `$DONE`, the resulting JIRA issue must be in a resolved / closed state (`statusCategory = Done` and resolution set when required). Intermediate env statuses stay unresolved / open.
 - **One item per cycle**: per-ticket exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
 - **Single cycle per query**: do not run two `lisa:jira-build-intake` cycles concurrently against overlapping queries — concurrent claims could race. The scheduling layer (when added) is responsible for serialization.
 - **Never invent a transition**: if `$CLAIMED` or `$DONE` aren't valid transitions in the project's workflow, stop and report rather than guessing alternative names.
@@ -261,6 +267,7 @@ If a ready-equivalent status does not exist in the JIRA project's workflow, this
 - Never transition a ticket the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
 - Never bypass `lisa:jira-agent` to do build work directly. `lisa:jira-agent` owns the per-ticket lifecycle (read, verify, triage, route, sync, evidence). This skill is the dispatcher, not the builder.
 - Never auto-transition past `$DONE`. Downstream statuses are owned by QA / product / a future verification-intake skill — not this one.
+- Never resolve / close a JIRA ticket at intermediate env statuses (`On Dev`, `On Stg`, or configured equivalents). Native resolution is terminal-only.
 - If the ticket has no Validation Journey or no sign-in credentials in its description, `lisa:jira-agent`'s pre-flight verify will catch it and transition to `Blocked` — **don't try to fix the ticket from here**. Pre-flight gating is `lisa:jira-agent`'s job; running build work on a thin ticket produces broken work.
 - On any unexpected response from `lisa:jira-agent` (status it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.
 - Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.

@@ -1,4 +1,4 @@
-display_name: "bug-triage"
-short_description: "8-step bug triage and implementation workflow. Ensures bugs are reproducible, root-caused, and fixable before implementation begins."
+display_name: "Bug Triage"
+short_description: "8-step bug triage and implementation workflow"
 default_prompt:
-  - "Use $bug-triage"
+  - "Use $bug-triage: 8-step bug triage and implementation workflow."
