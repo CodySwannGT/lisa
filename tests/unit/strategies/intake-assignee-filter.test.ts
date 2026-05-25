@@ -60,25 +60,32 @@ describe("intake assignee filter", () => {
   });
 });
 
-describe("config-resolution intake.assignee docs", () => {
-  const content = readFileSync(
-    path.resolve("plugins/src/base/rules/config-resolution.md"),
-    "utf8"
-  );
+const RULES_ROOTS = ["plugins/src/base/rules", "plugins/lisa/rules"] as const;
 
-  it("documents intake.assignee as a local-only override", () => {
-    expect(content).toContain("### Intake assignee filter (`intake.assignee`)");
-    expect(content).toMatch(/local-only/i);
-    expect(content).toMatch(/\.lisa\.config\.local\.json/);
-  });
+describe.each(RULES_ROOTS)(
+  "config-resolution intake.assignee docs (%s)",
+  rulesRoot => {
+    const content = readFileSync(
+      path.resolve(rulesRoot, "config-resolution.md"),
+      "utf8"
+    );
 
-  it("documents argument override and empty default behavior", () => {
-    expect(content).toContain(
-      "$ARGUMENTS` `assignee=<vendor-user-id-or-login>`"
-    );
-    expect(content).toMatch(/empty default/i);
-    expect(content).toMatch(
-      /empty resolved value disables the[\s\S]*shared ready-queue behavior/i
-    );
-  });
-});
+    it("documents intake.assignee as a local-only override", () => {
+      expect(content).toContain(
+        "### Intake assignee filter (`intake.assignee`)"
+      );
+      expect(content).toMatch(/local-only/i);
+      expect(content).toMatch(/\.lisa\.config\.local\.json/);
+    });
+
+    it("documents argument override and empty default behavior", () => {
+      expect(content).toContain(
+        "$ARGUMENTS` `assignee=<vendor-user-id-or-login>`"
+      );
+      expect(content).toMatch(/empty default/i);
+      expect(content).toMatch(
+        /empty resolved value disables the[\s\S]*shared ready-queue behavior/i
+      );
+    });
+  }
+);
