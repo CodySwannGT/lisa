@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.68.0](https://github.com/CodySwannGT/lisa/compare/vv2.67.0...v2.68.0) (2026-05-25)
+
+
+### Features
+
+* **github:** coordinate writer project membership ([ce4a5d2](https://github.com/CodySwannGT/lisa/commit/ce4a5d2f7f46b42ee2b0ee6b51f30a924dd476e3))
+
 ## [2.67.0](https://github.com/CodySwannGT/lisa/compare/vv2.66.0...v2.67.0) (2026-05-25)
 
 
