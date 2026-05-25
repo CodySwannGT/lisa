@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.75.0](https://github.com/CodySwannGT/lisa/compare/vv2.74.1...v2.75.0) (2026-05-25)
+
+
+### Features
+
+* **config-resolution:** add usage pricing contract ([5983ed4](https://github.com/CodySwannGT/lisa/commit/5983ed4f49802393ea7a71528da1a1018b107271))
+
 ### [2.74.1](https://github.com/CodySwannGT/lisa/compare/vv2.74.0...v2.74.1) (2026-05-25)
 
 
