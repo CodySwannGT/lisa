@@ -21,6 +21,7 @@
     "dist",
     "coverage",
     "harper-app/resources.js",
+    "harper-app/resource-*.js",
     "harper-app/web/**/*.js"
   ]
 }

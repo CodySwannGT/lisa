@@ -29,3 +29,9 @@ coverage
 # no trailing newline). Keep its scaffolding out of format gates.
 # No-op for projects that don't use Amplify.
 amplify
+
+# Lisa regenerates the Codex distribution mirror (.codex/) on every run.
+# Those agent/skill artifacts are generated output (e.g. double-quoted YAML
+# scalars) and are not source formatting inputs. Keep them out of format gates.
+# No-op for projects without a Codex mirror.
+.codex
