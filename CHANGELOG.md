@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.61.1](https://github.com/CodySwannGT/lisa/compare/vv2.61.0...v2.61.1) (2026-05-25)
+
+
+### Bug Fixes
+
+* **intake:** process one ready item per cycle ([b7e0fbc](https://github.com/CodySwannGT/lisa/commit/b7e0fbc80f3abba97d6d2af00c2fc41816cd678b))
+* recognize all github build done labels ([b5712d9](https://github.com/CodySwannGT/lisa/commit/b5712d9eb1bb4bfd51e048225e111d54172c8f3e))
+* remove github code-review build hop ([354966d](https://github.com/CodySwannGT/lisa/commit/354966d308f2b6eae25d7fcd4cca554c724809a1)), closes [#632](https://github.com/CodySwannGT/lisa/issues/632)
+
 ## [2.61.0](https://github.com/CodySwannGT/lisa/compare/vv2.60.1...v2.61.0) (2026-05-25)
 
 
