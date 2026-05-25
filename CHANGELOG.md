@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.78.0](https://github.com/CodySwannGT/lisa/compare/vv2.77.2...v2.78.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** validate github project readiness ([6ba4362](https://github.com/CodySwannGT/lisa/commit/6ba43628a863ba8e1b63b6a24f6a0ae62ce88f5d))
+
 ### [2.77.2](https://github.com/CodySwannGT/lisa/compare/vv2.77.1...v2.77.2) (2026-05-25)
 
 
