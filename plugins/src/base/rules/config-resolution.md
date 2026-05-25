@@ -183,11 +183,19 @@ Each vendor section is **conditionally required**: required only when that vendo
 | `github.projects.v2.owner.kind` | GitHub Project coordination is enabled | Owner type for the shared ProjectV2. Supported values are `organization` and `user`. |
 | `github.projects.v2.owner.slug` | GitHub Project coordination is enabled | Owner login for the shared ProjectV2. In v1 it MUST match the tracked repository namespace (`github.org`); cross-namespace coordination is rejected. |
 | `github.projects.v2.number` | GitHub Project coordination is enabled | Human-facing ProjectV2 number from the GitHub UI / URL. Later utilities resolve the opaque node id from this owner + number pair. |
-| `github.projects.v2.required` | no | Coordination strictness flag. Default `false` keeps Project membership best-effort; `true` makes Project membership failures block the write. |
+| `github.projects.v2.required` | no | Coordination strictness flag. Default `false` keeps Project membership best-effort; `true` makes Project membership failures block the write. Setup/doctor/runtime validation reads Project ownership + access and branches on this flag: best-effort failures warn, required-mode failures stop the write. |
 
 When `tracker = "github"` AND `source = "github"` (self-host), both reads and writes hit the same GitHub repo. Label namespaces are kept separate so the two flows don't collide — see "Self-host edge case" below.
 
 `github.projects.v2` is optional. When absent, GitHub issue / PR writes remain repository-local exactly as they work today. When present, the shared Project is a coordination view layered on top of real issues and pull requests; it does not replace lifecycle labels, comments, dependencies, or native issue / PR state as Lisa's durable source of truth.
+
+When `github.projects.v2` is present, later setup/doctor and writer preflight validation MUST read the referenced Project's owner + access level before any membership write depends on it. The validation contract is:
+
+- Resolve the Project from `owner.kind`, `owner.slug`, and `number`.
+- Confirm the owner namespace still matches `github.org`; cross-namespace Project ownership is a configuration error.
+- Confirm the authenticated identity can read the Project and has sufficient access for membership coordination.
+- If `required = false`, surface Project-validation failures as warnings and continue repository-local issue / PR writes without Project membership.
+- If `required = true`, surface the same failures as blocking errors and stop the write before mutating issue / PR membership.
 
 #### `notion`
 
