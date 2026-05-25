@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.77.2](https://github.com/CodySwannGT/lisa/compare/vv2.77.1...v2.77.2) (2026-05-25)
+
+
+### Documentation
+
+* **doctor:** define vendor preflight readiness contract ([03b9375](https://github.com/CodySwannGT/lisa/commit/03b93756c2ea133689ad0dc85f74086137be25db))
+
 ### [2.77.1](https://github.com/CodySwannGT/lisa/compare/vv2.77.0...v2.77.1) (2026-05-25)
 
 
