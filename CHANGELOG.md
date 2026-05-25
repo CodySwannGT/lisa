@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.69.0](https://github.com/CodySwannGT/lisa/compare/vv2.68.0...v2.69.0) (2026-05-25)
+
+
+### Features
+
+* **github:** coordinate linked PR project membership ([aa4d556](https://github.com/CodySwannGT/lisa/commit/aa4d556384c38dcb034721f97a89064fdeaa9c64))
+
 ## [2.68.0](https://github.com/CodySwannGT/lisa/compare/vv2.67.0...v2.68.0) (2026-05-25)
 
 
