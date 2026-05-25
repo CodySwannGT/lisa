@@ -89,7 +89,7 @@ Use `lisa:github-evidence` to post everything:
 # Equivalent of: bash scripts/post-evidence.sh — but invoked via the Skill tool
 ```
 
-Invoke the skill with `<ISSUE_REF> ./evidence <PR_NUMBER>`. It uploads the files to the `pr-assets` release, edits the PR's `## Evidence` section, posts a comment on the issue, and relabels the issue to `status:code-review`.
+Invoke the skill with `<ISSUE_REF> ./evidence <PR_NUMBER>`. It uploads the files to the `pr-assets` release, edits the PR's `## Evidence` section, and posts a comment on the issue. The build-intake owner performs the direct `claimed` → `done` lifecycle transition after success.
 
 ### Step 6: Verify
 
@@ -97,7 +97,7 @@ Confirm:
 - Evidence files exist as release assets named `pr-<PR>-NN-name.{txt,json}`.
 - The PR description contains the `## Evidence` section with code-block embeds.
 - The issue has a new comment whose body matches `comment.md`.
-- The issue's labels include `status:code-review` and not `status:in-progress`.
+- The issue has the evidence comment, and the build-intake owner can transition it from `status:in-progress` directly to the configured `done` label.
 
 ## Verification Patterns Reference
 

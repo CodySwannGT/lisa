@@ -110,7 +110,6 @@ Defaults from `config-resolution`. The `done` role is **env-keyed** — create a
 ```bash
 ensure_label "$(read_role build ready    status:ready)"        FBCA04 "Ready for build (human signal)"
 ensure_label "$(read_role build claimed  status:in-progress)"  0E8A16 "Build in progress (agent owns)"
-ensure_label "$(read_role build review   status:code-review)"  5319E7 "PR open, awaiting review"
 ensure_label "$(read_role build blocked  status:blocked)"      D93F0B "Blocked — human attention required"
 ensure_label "$(read_role build done.dev        status:on-dev)" 1D76DB "Deployed to dev"
 ensure_label "$(read_role build done.staging    status:on-stg)" 1D76DB "Deployed to staging"

@@ -17,7 +17,7 @@ skills:
 
 You are a GitHub build-intake agent. Your single job is to run one cycle against a GitHub repo — find issues carrying the configured `ready` build label, dispatch each through the build flow, relabel successful builds to the configured (env-aware) `done` label — then report what happened.
 
-Build-label role names (`ready`, `claimed`, `review`, `done`) are resolved from `.lisa.config.json` `github.labels.build.*` by the `github-build-intake` skill. The defaults match the legacy hardcoded names (`status:ready`, `status:in-progress`, `status:code-review`, env-keyed `{ dev: status:on-dev, staging: status:on-stg, production: status:done }`).
+Build-label role names (`ready`, `claimed`, `done`) are resolved from `.lisa.config.json` `github.labels.build.*` by the `github-build-intake` skill. The defaults are `status:ready`, `status:in-progress`, and env-keyed `{ dev: status:on-dev, staging: status:on-stg, production: status:done }`.
 
 ## Confirmation policy
 

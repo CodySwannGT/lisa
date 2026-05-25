@@ -194,7 +194,7 @@ GitHub Issues uses **labels** for the structured metadata that JIRA stores in cu
 | Concept | Label format | Example |
 |---------|--------------|---------|
 | Issue type | `type:<value>` | `type:Story`, `type:Bug`, `type:Epic`, `type:Sub-task`, `type:Spike`, `type:Improvement` |
-| Status | `status:<value>` | `status:ready`, `status:in-progress`, `status:code-review`, `status:on-dev`, `status:done` |
+| Status | `status:<value>` | `status:ready`, `status:in-progress`, `status:on-dev`, `status:done` |
 | Priority | `priority:<value>` | `priority:low`, `priority:medium`, `priority:high`, `priority:critical` |
 | Components | `component:<name>` | `component:auth`, `component:billing` |
 | Story points | `points:<n>` | `points:3`, `points:5`, `points:8` |
@@ -293,7 +293,7 @@ The mapping below is the single source of truth for how JIRA concepts translate 
 | JIRA concept | GitHub Issues equivalent |
 |---|---|
 | Issue type | Label `type:<value>` |
-| Status (Ready / In Progress / Code Review / On Dev / Done) | Label `status:<value>` |
+| Status (Ready / In Progress / On Dev / Done) | Label `status:<value>` |
 | Epic / Story / Sub-task hierarchy | Native sub-issues via `gh api graphql addSubIssue` |
 | Acceptance Criteria | `## Acceptance Criteria` markdown section with a Gherkin code-fence |
 | Validation Journey | `## Validation Journey` markdown section |
