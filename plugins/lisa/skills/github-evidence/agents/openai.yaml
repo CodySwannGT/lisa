@@ -1,4 +1,4 @@
 display_name: "Github Evidence"
-short_description: "Upload text evidence to the GitHub `pr-assets` release, update PR description, post a GitHub Issue comment with code blocks, and relabel…"
+short_description: "Upload text evidence to the GitHub `pr-assets` release, update PR description, and post a GitHub Issue comment with code blocks"
 default_prompt:
-  - "Use $github-evidence: Upload text evidence to the GitHub `pr-assets` release, update PR description, post a GitHub Issue comment with code blocks, and relabel…."
+  - "Use $github-evidence: Upload text evidence to the GitHub `pr-assets` release, update PR description, and post a GitHub Issue comment with code blocks."
