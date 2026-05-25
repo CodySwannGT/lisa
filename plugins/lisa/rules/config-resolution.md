@@ -460,6 +460,33 @@ GitHub and Linear PRD lifecycles use labels (`prd-ready` / `prd-in-review` / etc
 
 **Why curl is still needed**: acli's Confluence surface only covers `space` and `page view`. v1 page-write endpoints accept scoped tokens but return 410 Gone (deprecated); v2 endpoints require granular OAuth scopes acli doesn't request. API tokens via Basic auth bypass this with full user scope, so curl is the headless-friendly path for ops neither acli nor MCP can do.
 
+## Repo scoping (multi-repo trackers)
+
+A ticketing system can oversee **multiple repos** — e.g. one JIRA project (or Linear team) for `frontend`, `backend`, and `infrastructure`. When build-intake runs inside one repo, it must claim only the tickets that belong to **that** repo and skip the rest. Two pieces make this work; the claim-time enforcement lives in the `repo-scope-split` rule.
+
+### The `repo:<name>` label (the repo marker)
+
+A work item's target repo is recorded as a **label** `repo:<name>`, where `<name>` is the repo's short name (e.g. `repo:frontend`). The convention is uniform across trackers (JIRA / GitHub / Linear), consistent with the other namespaced labels (`status:`, `type:`, `component:`). On JIRA a **component** equal to the repo name is accepted as an alias (matches the legacy `component = "frontend"` JQL pattern). A leaf work unit carries **exactly one** `repo:<name>` (leaves are single-repo per `repo-scope-split`); a container (Epic/Story/Spike) may carry several or none.
+
+The label is not required to exist up front: build-intake **determines** the target repo from the ticket's content + code surfaces when the label is absent and **stamps** `repo:<name>` so later cycles filter cheaply (see `repo-scope-split` "claim-time repo scoping").
+
+### Current-repo resolution (which repo am I?)
+
+Resolve the name of the repo intake is running in, highest priority first:
+
+1. `.lisa.config.local.json` then `.lisa.config.json` `repo` (an explicit override, e.g. `"repo": "frontend"`).
+2. `.lisa.config.json` `github.repo` when set (the repo's own identity).
+3. The git remote basename: `basename -s .git "$(git remote get-url origin)"` (e.g. `git@github.com:acme/frontend.git` → `frontend`).
+
+```bash
+read_g() { local lv gv; lv=$(jq -r "$1 // empty" .lisa.config.local.json 2>/dev/null); gv=$(jq -r "$1 // empty" .lisa.config.json 2>/dev/null); echo "${lv:-${gv}}"; }
+CURRENT_REPO=$(read_g '.repo')
+[ -z "$CURRENT_REPO" ] && CURRENT_REPO=$(read_g '.github.repo')
+[ -z "$CURRENT_REPO" ] && CURRENT_REPO=$(basename -s .git "$(git remote get-url origin 2>/dev/null)" 2>/dev/null)
+```
+
+If the current repo cannot be resolved by any tier, build-intake stops with a clear error rather than claiming tickets it cannot scope. The match is by repo short name (`repo:<CURRENT_REPO>`), case-insensitive.
+
 ## Invariants
 
 - Project tracker selection is **persistent** within a project — always read from config, never infer from the shape of `$ARGUMENTS`. If a developer wants a different destination for one run, they edit `.lisa.config.local.json`.
