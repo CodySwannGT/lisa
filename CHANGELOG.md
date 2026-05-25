@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.60.1](https://github.com/CodySwannGT/lisa/compare/vv2.60.0...v2.60.1) (2026-05-25)
+
+
+### Bug Fixes
+
+* **github-build-intake:** repair ready containers ([8a96ba8](https://github.com/CodySwannGT/lisa/commit/8a96ba8957492dc38b34a15876c40157a480452e))
+
 ## [2.60.0](https://github.com/CodySwannGT/lisa/compare/vv2.59.1...v2.60.0) (2026-05-25)
 
 
