@@ -212,6 +212,14 @@ The build-ready status label (`status:ready`) is governed by the `leaf-only-life
 
 For non-build-ready issues created fresh (Epics, Stories, and other containers), omit the status label entirely; the container's rollup state is derived, not set directly.
 
+### Build-ready control input (`build_ready`)
+
+`build_ready` is an optional write-control input (default: **omitted**). It governs whether a **leaf** work unit is stamped with the build-ready role on create. It never overrides `leaf-only-lifecycle` — a container is never stamped build-ready regardless of `build_ready`. "Not build-ready" is not a special status: it simply means the issue is created in its natural default (a plain open issue with **no `status:ready` label**), which a human can promote later.
+
+- **Omitted** → current behavior: a leaf work unit receives `status:ready`. Preserves what every existing caller (`lisa:plan`, the `*-to-tracker` skills) relies on.
+- **`build_ready: false`** → create the leaf **without** `status:ready`, so it sits in the backlog for a human to review and promote into the queue.
+- **`build_ready: true`** → ensure the leaf carries `status:ready` so `lisa:intake` / `lisa:github-build-intake` auto-picks it up.
+
 ## Phase 5.5 — Validate (Pre-write Gate)
 
 Before any write, invoke `lisa:github-validate-issue` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `lisa:github-validate-issue` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
@@ -224,9 +232,9 @@ If the validator reports `FAIL`, do NOT proceed to Phase 6. Fix the spec and re-
 
 ### CREATE
 
-1. Compose the body markdown from Phases 2/3/4 in a temp file (avoid quoting hell). Apply `status:ready` **only for a leaf work unit** per the Phase 5 leaf-only rule (`leaf-only-lifecycle`) — omit it for `Epic` / `Story` / `Spike` and any issue that has child work:
+1. Compose the body markdown from Phases 2/3/4 in a temp file (avoid quoting hell). Apply `status:ready` **only for a leaf work unit** per the Phase 5 leaf-only rule (`leaf-only-lifecycle`) — omit it for `Epic` / `Story` / `Spike` and any issue that has child work, **and** only when `build_ready` is not `false` (a leaf with `build_ready: false` is created without `status:ready`; see the Build-ready control input):
    ```bash
-   # Leaf work unit (Bug / Task / Sub-task / Improvement with no children):
+   # Leaf work unit (Bug / Task / Sub-task / Improvement with no children), build_ready not false:
    gh issue create \
      --repo <org>/<repo> \
      --title "<summary>" \
@@ -235,8 +243,9 @@ If the validator reports `FAIL`, do NOT proceed to Phase 6. Fix the spec and re-
      [--label "component:<name>" ...] [--milestone "<milestone>"] \
      [--assignee "<login>"]
 
-   # Container (Epic / Story / Spike / any issue with child work):
-   # identical, but WITHOUT --label "status:ready" — its state rolls up from children.
+   # Container (Epic / Story / Spike / any issue with child work), OR a leaf with build_ready: false:
+   # identical, but WITHOUT --label "status:ready" — a container's state rolls up from children;
+   # a build_ready: false leaf waits in the backlog for a human to promote it.
    gh issue create \
      --repo <org>/<repo> \
      --title "<summary>" \
