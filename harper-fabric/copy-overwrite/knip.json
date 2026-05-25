@@ -14,6 +14,7 @@
     "**/coverage/**",
     "**/node_modules/**",
     "harper-app/resources.js",
+    "harper-app/resource-*.js",
     "harper-app/web/**/*.js"
   ],
   "ignoreDependencies": ["@types/node", "@vitest/coverage-v8"],
