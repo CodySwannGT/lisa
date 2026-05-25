@@ -1,3 +1,5 @@
+import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
+
 export const LISA_USAGE_HEADING = "## Lisa Usage";
 
 /**
@@ -37,6 +39,14 @@ export interface LisaUsageRollup {
   directTokens: number | null;
   totalCost: number | null;
   totalTokens: number | null;
+}
+
+/**
+ *
+ */
+export interface LisaUsageChildArtifact {
+  artifactRef: string;
+  entries: readonly LisaUsageEntry[];
 }
 
 /**
@@ -231,19 +241,36 @@ export function mergeLisaUsageEntries(
  *
  * @param entries Direct usage entries that should appear in the section.
  * @param previousRollup Existing rollup token parsed from the artifact, if any.
+ * @param childArtifacts Optional child ledgers to recompute descendant totals from current work.
  * @returns A deterministic rollup token payload for the managed section.
  */
 export function createLisaUsageRollup(
   entries: readonly LisaUsageEntry[],
-  previousRollup?: LisaUsageRollup | null
+  previousRollup?: LisaUsageRollup | null,
+  childArtifacts?: readonly LisaUsageChildArtifact[]
 ): LisaUsageRollup {
   const directEntryIds = entries.map(entry => entry.entryId);
   const directTokens = sumNullable(entries.map(entry => entry.totalTokens));
   const directCost = sumNullable(entries.map(entry => entry.cost));
-  const childEntryIds = previousRollup?.childEntryIds ?? [];
-  const childRefs = previousRollup?.childRefs ?? [];
-  const childTokens = previousRollup?.childTokens ?? 0;
-  const childCost = previousRollup?.childCost ?? 0;
+  const hasChildArtifacts = (childArtifacts?.length ?? 0) > 0;
+  const collectedChildArtifacts = collectLisaUsageChildArtifacts(
+    childArtifacts ?? [],
+    directEntryIds
+  );
+  const dedupedChildEntries = collectedChildArtifacts.childEntries;
+
+  const childEntryIds = hasChildArtifacts
+    ? dedupedChildEntries.map(entry => entry.entryId)
+    : (previousRollup?.childEntryIds ?? []);
+  const childRefs = hasChildArtifacts
+    ? collectedChildArtifacts.childRefs
+    : (previousRollup?.childRefs ?? []);
+  const childTokens = hasChildArtifacts
+    ? sumNullable(dedupedChildEntries.map(entry => entry.totalTokens))
+    : (previousRollup?.childTokens ?? 0);
+  const childCost = hasChildArtifacts
+    ? sumNullable(dedupedChildEntries.map(entry => entry.cost))
+    : (previousRollup?.childCost ?? 0);
   const totalTokens =
     directTokens === null && childTokens === null
       ? null
@@ -254,6 +281,7 @@ export function createLisaUsageRollup(
       : (directCost ?? 0) + (childCost ?? 0);
   const currency =
     entries.find(entry => entry.currency !== null)?.currency ??
+    dedupedChildEntries.find(entry => entry.currency !== null)?.currency ??
     previousRollup?.currency ??
     null;
 
@@ -383,6 +411,7 @@ export function parseLisaUsageSection(
  *
  * @param document Existing artifact markdown or comment body.
  * @param input New usage content to merge into the managed section.
+ * @param input.childArtifacts Optional child ledgers to recompute descendant totals from current work.
  * @param input.entries Newly observed direct usage entries.
  * @param input.rollup Optional explicit rollup payload to serialize.
  * @returns The updated artifact markdown with exactly one managed usage block.
@@ -390,6 +419,7 @@ export function parseLisaUsageSection(
 export function upsertLisaUsageSection(
   document: string,
   input: {
+    childArtifacts?: readonly LisaUsageChildArtifact[];
     entries: readonly LisaUsageEntry[];
     rollup?: LisaUsageRollup | null;
   }
@@ -397,7 +427,8 @@ export function upsertLisaUsageSection(
   const parsed = parseLisaUsageSection(document);
   const mergedEntries = mergeLisaUsageEntries(parsed.entries, input.entries);
   const rollup =
-    input.rollup ?? createLisaUsageRollup(mergedEntries, parsed.rollup);
+    input.rollup ??
+    createLisaUsageRollup(mergedEntries, parsed.rollup, input.childArtifacts);
   const usageSection = renderLisaUsageSection({
     entries: mergedEntries,
     rollup,
