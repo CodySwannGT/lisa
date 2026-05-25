@@ -162,6 +162,34 @@ describe("usage-accounting utilities", () => {
     expect(parsed.rollup?.totalCost).toBeCloseTo(0.2);
   });
 
+  it("clears stale child rollup fields when childArtifacts: [] is explicitly supplied", () => {
+    const directEntry = makeEntry({ entryId: "entry-1", runId: "run-1" });
+    const previousRollup: import("../../../src/utils/usage-accounting.js").LisaUsageRollup =
+      {
+        childCost: 0.99,
+        childEntryIds: ["stale-child"],
+        childRefs: ["github:issue:stale"],
+        childTokens: 999,
+        currency: "USD",
+        directCost: 0.12,
+        directEntryIds: ["entry-0"],
+        directTokens: 120,
+        totalCost: 1.11,
+        totalTokens: 1119,
+      };
+
+    // Passing childArtifacts: [] explicitly means "no children now" —
+    // stale previous rollup child totals must be cleared, not preserved.
+    const rollup = createLisaUsageRollup([directEntry], previousRollup, []);
+
+    expect(rollup.childEntryIds).toEqual([]);
+    expect(rollup.childRefs).toEqual([]);
+    // sumNullable([]) → null (no child data, not inherited stale value of 999)
+    expect(rollup.childTokens).toBeNull();
+    // sumNullable([]) → null (no child data, not inherited stale value of 0.99)
+    expect(rollup.childCost).toBeNull();
+  });
+
   it("dedupes child usage entries by stable entry id across child work", () => {
     const directEntry = makeEntry({ entryId: "entry-1", runId: "run-1" });
     const sharedChild = makeEntry({

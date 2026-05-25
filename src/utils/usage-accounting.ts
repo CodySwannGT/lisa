@@ -252,7 +252,7 @@ export function createLisaUsageRollup(
   const directEntryIds = entries.map(entry => entry.entryId);
   const directTokens = sumNullable(entries.map(entry => entry.totalTokens));
   const directCost = sumNullable(entries.map(entry => entry.cost));
-  const hasChildArtifacts = (childArtifacts?.length ?? 0) > 0;
+  const hasChildArtifacts = childArtifacts !== undefined;
   const collectedChildArtifacts = collectLisaUsageChildArtifacts(
     childArtifacts ?? [],
     directEntryIds
