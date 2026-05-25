@@ -193,6 +193,47 @@ FAIL github.projects.v2: github.projects.v2.owner.slug must match github.org in 
 Remediation: use a Project owned by CodySwannGT or remove github.projects.v2.
 ```
 
+### Minimum automation-readiness checks
+
+Doctor's automation-readiness group stays read-only: it audits whether this repo and runtime could
+support `/lisa:setup-automations` and the resulting recurring jobs, but it does **not** create,
+edit, delete, or reconcile automations on the default doctor path.
+
+1. **Resolve the queue inputs exactly as setup-automations would**
+   - Resolve the PRD queue from merged `source`.
+   - Resolve the build queue from merged `tracker`.
+   - Resolve the repair queue from the same queue-detection rules as `lisa:repair-intake`
+     (identical source-dispatch contract to `lisa:intake`).
+   - If any automation would require guessing because `source`, `tracker`, or their vendor keys are
+     still unresolved after the config-readiness audit, report that automation as `FAIL` rather
+     than pretending scheduling can proceed safely.
+2. **Audit the current runtime's native scheduler surface without mutating it**
+   - Codex: doctor should report whether the runtime exposes the native automations surface
+     (`automation_update`) needed by `/lisa:setup-automations`.
+   - Claude: doctor should report whether the runtime exposes `/schedule`.
+   - Other runtimes: doctor should explicitly say that no native Lisa scheduler is known for the
+     current runtime.
+   - This is observability only. Never create a placeholder automation just to prove the scheduler
+     works.
+3. **Check exploratory-automation support by shipped stack surface**
+   - `exploratory-bugs` is supported only when the project ships an `exploratory-qa` command
+     surface (the `expo`, `rails`, or `harper-fabric` stacks today). Reuse the same stack/support
+     rule documented by `setup-automations`; do not invent exploratory jobs for stacks that do not
+     ship that command.
+   - When the repo does not ship `exploratory-qa`, report `exploratory-bugs` as `SKIP` with the
+     reason.
+   - `exploratory-prds` remains applicable when the repo can run `/lisa:project-ideation`; if its
+     queue/config prerequisites are unresolved, report the exact blocking config fact.
+4. **Severity ladder**
+   - `PASS` when an automation's queue inputs are resolvable and the runtime exposes the required
+     native scheduler surface for that automation.
+   - `WARN` when Lisa remains usable manually, but the current runtime has no native scheduler
+     surface for unattended runs, so automation setup would be unavailable from here.
+   - `SKIP` when an optional automation is intentionally unsupported for this repo surface (for
+     example, `exploratory-bugs` on a stack with no `exploratory-qa` command).
+   - `FAIL` when the repo's config cannot resolve the queue that an automation needs, because that
+     would make unattended runs ambiguous or broken before scheduling even starts.
+
 ## Output contract
 
 The final report must:
