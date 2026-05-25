@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.81.0](https://github.com/CodySwannGT/lisa/compare/vv2.80.1...v2.81.0) (2026-05-25)
+
+
+### Features
+
+* **skills:** add harness parity council scaffold ([dfa595a](https://github.com/CodySwannGT/lisa/commit/dfa595ae5fbfb5e7740c56d1d2082304bb507920))
+
 ### [2.80.1](https://github.com/CodySwannGT/lisa/compare/vv2.80.0...v2.80.1) (2026-05-25)
 
 ## [2.80.0](https://github.com/CodySwannGT/lisa/compare/vv2.79.0...v2.80.0) (2026-05-25)
