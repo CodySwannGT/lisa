@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.77.0](https://github.com/CodySwannGT/lisa/compare/vv2.76.0...v2.77.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** add grouped report renderer ([1572c1e](https://github.com/CodySwannGT/lisa/commit/1572c1e6e9a3680513ae6f7197d0f0ef8ec3463e))
+
 ## [2.76.0](https://github.com/CodySwannGT/lisa/compare/vv2.75.1...v2.76.0) (2026-05-25)
 
 
