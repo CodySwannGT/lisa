@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.80.0](https://github.com/CodySwannGT/lisa/compare/vv2.79.0...v2.80.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** define wiki delegation contract ([f38b197](https://github.com/CodySwannGT/lisa/commit/f38b197698b691dba232846d0994995b18c85da6))
+
 ## [2.79.0](https://github.com/CodySwannGT/lisa/compare/vv2.78.0...v2.79.0) (2026-05-25)
 
 
