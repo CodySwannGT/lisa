@@ -20,27 +20,26 @@ const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
 
 describe("task-decomposition preserves cross-repo containers", () => {
-  const content = readFileSync(
-    path.resolve("plugins/src/base/skills/task-decomposition/SKILL.md"),
-    "utf8"
-  );
+  describe.each(ROOTS)("%s", root => {
+    const content = readSkill(root, "task-decomposition");
 
-  it("allows the source PRD and containers to span repositories", () => {
-    expect(content).toMatch(/PRD.*MAY span repos/i);
-    expect(content).toMatch(/Epic, Story, Spike.*MAY span repos/i);
-  });
+    it("allows the source PRD and containers to span repositories", () => {
+      expect(content).toMatch(/PRD.*MAY span repos/i);
+      expect(content).toMatch(/Epic, Story, Spike.*MAY span repos/i);
+    });
 
-  it("requires every buildable leaf work unit to name exactly one repo", () => {
-    expect(content).toMatch(
-      /Task, Bug, Sub-task, Improvement.*MUST name exactly one repo/i
-    );
-    expect(content).toMatch(/buildable leaf work units/i);
-  });
+    it("requires every buildable leaf work unit to name exactly one repo", () => {
+      expect(content).toMatch(
+        /Task, Bug, Sub-task, Improvement.*MUST name exactly one repo/i
+      );
+      expect(content).toMatch(/buildable leaf work units/i);
+    });
 
-  it("keeps decomposition-time and work-time repo splitting distinct", () => {
-    expect(content).toMatch(/decomposition-time/i);
-    expect(content).toMatch(/work-time/i);
-    expect(content).toMatch(/already-existing leaf ticket/i);
+    it("keeps decomposition-time and work-time repo splitting distinct", () => {
+      expect(content).toMatch(/decomposition-time/i);
+      expect(content).toMatch(/work-time/i);
+      expect(content).toMatch(/already-existing leaf ticket/i);
+    });
   });
 });
 
