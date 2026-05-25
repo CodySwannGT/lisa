@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.77.1](https://github.com/CodySwannGT/lisa/compare/vv2.77.0...v2.77.1) (2026-05-25)
+
+
+### Documentation
+
+* lock doctor config readiness contract ([cc3fd99](https://github.com/CodySwannGT/lisa/commit/cc3fd9923fb301b2ec93ac7a1d42ac4c01dbc691))
+
 ## [2.77.0](https://github.com/CodySwannGT/lisa/compare/vv2.76.0...v2.77.0) (2026-05-25)
 
 
