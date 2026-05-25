@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.74.1](https://github.com/CodySwannGT/lisa/compare/vv2.74.0...v2.74.1) (2026-05-25)
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([651f1fa](https://github.com/CodySwannGT/lisa/commit/651f1fae0135aaed67a51777d9affd43b9f001eb))
+* wire usage accounting into delivery flows ([8958987](https://github.com/CodySwannGT/lisa/commit/8958987c831d4c077590c405e755f237e076d77b))
+
 ## [2.74.0](https://github.com/CodySwannGT/lisa/compare/vv2.73.0...v2.74.0) (2026-05-25)
 
 
