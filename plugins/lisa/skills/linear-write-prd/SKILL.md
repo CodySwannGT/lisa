@@ -52,9 +52,12 @@ marker, **never** the project name:
 
 ## Phase 3 — Create or update
 
-**Marker normalization (both paths).** Before writing the `description`, ensure it contains
-**exactly one** marker line — inject the marker if the synthesized description lacks it. **Never write
-a markerless description** (including UPDATE / `source_ref`): that breaks future dedupe.
+**Marker + usage-ledger preservation (both paths).** Before writing the `description`, ensure it
+contains **exactly one** marker line — inject the marker if the synthesized description lacks it.
+**Never write a markerless description** (including UPDATE / `source_ref`): that breaks future
+dedupe. If the live Project description already contains the canonical managed `## Lisa Usage`
+section, preserve it verbatim unless the caller intentionally supplied an updated canonical section;
+use the shared `usage-accounting` serializer/merge path rather than hand-editing ledger rows.
 
 **CREATE:** `mcp__linear-server__save_project` with:
 - `name`: `$TITLE`
@@ -64,8 +67,9 @@ a markerless description** (including UPDATE / `source_ref`): that breaks future
 - `state`: Linear Project default (e.g. `backlog`)
 
 **UPDATE** (existing project or `source_ref`): `save_project` with the project id and **only** the
-changed fields — regenerate the marker-normalized `description`, and reconcile labels to **exactly
-one** PRD lifecycle label: add the role label, remove every other label in the resolved
+changed fields — regenerate the marker-normalized `description` without dropping the managed
+`## Lisa Usage` section, and reconcile labels to **exactly one** PRD lifecycle label: add the role
+label, remove every other label in the resolved
 `${ALL_PRD_LABELS[@]}` set (config-resolved names, not a hard-coded list). Do **not** down-rank a
 Project whose current label is in the resolved `${PROGRESSED[@]}` set (already past `ready`) — leave
 it and report `reused (already past ready)`.
@@ -84,6 +88,8 @@ outcome: created | reused
 
 - Exactly one PRD lifecycle project-label at all times.
 - Match dedupe by marker, never by project name.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - Never down-rank a Project already past `ready`.
 - Source-side writer (`prd-*` project labels) — never touches issue-level build labels (`status:*`),
   which are `lisa:linear-write-issue`'s lane (see `config-resolution` self-host separation).
