@@ -172,7 +172,7 @@ describe("verify-prd scaffold (#597)", () => {
         expect(skill).toMatch(/FAIL path/i);
         expect(skill).toMatch(/idempoten/i);
         expect(skill).toMatch(/shipped → verified/);
-        expect(skill).toMatch(/shipped → blocked/);
+        expect(skill).toMatch(/shipped → ticketed/);
       });
 
       // (5) read-only front-half that does not re-prompt.
@@ -266,25 +266,23 @@ describe("verify-prd FAIL path (#599)", () => {
     describe(SKILL_REL, () => {
       const skill = read(root, SKILL_REL);
 
-      // AC scenario "fail transitions shipped to blocked": the FAIL path moves
-      // the PRD shipped → blocked, REUSING the existing blocked role (no new
-      // failure state), gated on the non-pass verdicts.
-      it("transitions shipped → blocked reusing the blocked role with no new failure state", () => {
-        expect(skill).toMatch(/shipped → blocked/);
+      // AC scenario "fail re-opens to ticketed with build-ready fix tickets":
+      // the FAIL path moves the PRD shipped → ticketed (NEVER blocked) and creates
+      // build-ready fix tickets, gated on the non-pass verdicts.
+      it("re-opens shipped → ticketed (never blocked) with build-ready fix tickets", () => {
+        expect(skill).toMatch(/shipped → ticketed/);
         // Triggered by either non-pass verdict cause.
         expect(skill).toContain("CONFORMANCE_FAILED");
         expect(skill).toContain("EMPIRICAL_FAILED");
-        // Reuses the existing blocked role — explicitly NO new failure state.
-        expect(skill).toMatch(/reus(e|ing|es)[^]*blocked role/i);
-        expect(skill).toMatch(/no new failure state/i);
-        // Does not invent a prd-verification-failed / prd-verifying state.
-        expect(skill).toMatch(
-          /no(t)?[^]*prd-verification-failed|prd-verification-failed[^]*prd-verifying/i
-        );
-        // Vendor-neutral blocked role vocabulary (config-resolution).
-        expect(skill).toContain("prd-blocked");
+        // Never uses the blocked role for verification failure — no new state.
+        expect(skill).toMatch(/never[^]*`blocked`/i);
+        // Fix tickets are build-ready (auto-build) — that is what self-heals.
+        expect(skill).toMatch(/build-ready fix tickets/i);
+        expect(skill).toMatch(/build_ready: true/);
+        // Vendor-neutral ticketed role vocabulary (config-resolution).
+        expect(skill).toContain("prd-ticketed");
         expect(skill).toMatch(/config-resolution/);
-        expect(skill).toMatch(/confluence\.parents\.blocked/);
+        expect(skill).toMatch(/confluence\.parents\.ticketed/);
       });
 
       // AC scenario "failure report is posted": a product-readable report naming
@@ -344,10 +342,10 @@ describe("verify-prd FAIL path (#599)", () => {
       });
 
       // Cites prd-lifecycle-rollup for the FAIL hop by slug (consumer, not a
-      // second source of truth for the shipped → blocked transition).
-      it("cites prd-lifecycle-rollup for the shipped → blocked FAIL hop", () => {
+      // second source of truth for the shipped → ticketed re-open transition).
+      it("cites prd-lifecycle-rollup for the shipped → ticketed FAIL hop", () => {
         expect(skill).toContain(RULE_SLUG);
-        expect(skill).toMatch(/shipped → blocked/);
+        expect(skill).toMatch(/shipped → ticketed/);
         // The "no extra failure states" rule the FAIL hop honors.
         expect(skill).toMatch(/no extra failure states|no new failure state/i);
       });

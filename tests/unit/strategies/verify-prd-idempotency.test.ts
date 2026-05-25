@@ -98,7 +98,7 @@ describe("verify-prd idempotency (#600)", () => {
       // (3) Lifecycle transition: no-op when already at target role.
       it("documents a no-op transition when the PRD already carries the target role", () => {
         expect(skill).toMatch(/no-op if already verified/i);
-        expect(skill).toMatch(/no-op if already blocked/i);
+        expect(skill).toMatch(/no-op if already ticketed/i);
         // Single-label invariant: exactly one lifecycle label/status remains.
         expect(skill).toMatch(/single-label invariant/i);
         expect(skill).toMatch(
@@ -340,7 +340,7 @@ describe("verify-prd fix-issue dedupe by marker (Phase 7.4)", () => {
 describe("verify-prd lifecycle transition idempotency (Phase 6.2 / 7.2)", () => {
   const SHIPPED = "prd-shipped";
   const VERIFIED = "prd-verified";
-  const BLOCKED = "prd-blocked";
+  const TICKETED = "prd-ticketed";
 
   it("transitions shipped → verified, leaving exactly one lifecycle label", () => {
     const result = applyTransition([SHIPPED], SHIPPED, VERIFIED);
@@ -354,10 +354,10 @@ describe("verify-prd lifecycle transition idempotency (Phase 6.2 / 7.2)", () => 
     expect(result.labels).toEqual([VERIFIED]);
   });
 
-  it("is a no-op when the PRD already carries the blocked role", () => {
-    const result = applyTransition([BLOCKED], SHIPPED, BLOCKED);
+  it("is a no-op when the PRD already carries the ticketed (FAIL) role", () => {
+    const result = applyTransition([TICKETED], SHIPPED, TICKETED);
     expect(result.noop).toBe(true);
-    expect(result.labels).toEqual([BLOCKED]);
+    expect(result.labels).toEqual([TICKETED]);
   });
 
   it("collapses an accidental double-labelled PRD to a single target label", () => {

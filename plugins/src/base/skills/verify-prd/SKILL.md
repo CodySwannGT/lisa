@@ -1,6 +1,6 @@
 ---
 name: verify-prd
-description: "Initiative-level PRD acceptance gate. Given a PRD ref/URL (GitHub Issue, Linear project/issue, Notion page, Confluence page, or JIRA issue), resolves the source vendor, reads the PRD body and its generated top-level child work set via the prd-lifecycle-rollup contract (native hierarchy first, machine-readable generated-work section fallback — never reimplementing child enumeration), and confirms every required generated top-level work item is terminal before any verification runs. If any required top-level child is non-terminal, it reports the incomplete child set and STOPS without verifying or transitioning the PRD. When the guard passes, it runs spec-conformance against the original PRD requirements (via the spec-conformance skill) plus empirical verification appropriate to the shipped surface (via verification-lifecycle). On a CONFORMS verdict with all empirical checks passing it runs the PASS path: transitions the PRD shipped → verified and posts verification evidence. On a PARTIAL/DIVERGES conformance verdict or any failing empirical check it runs the FAIL path: transitions the PRD shipped → blocked (reusing the existing blocked role — no new failure state), posts a product-readable failure report naming which requirements/ACs failed with observed-vs-expected evidence, and creates linked fix issues (via tracker-write) back-linked to the PRD and the failure report, each carrying the captured evidence and acceptance criteria. Re-runs are idempotent: evidence/failure-report comments are regenerated in place via a stable sentinel marker (never appended), fix issues are deduped by a stable PRD-ref + requirement marker (referenced/updated, never duplicated), and the lifecycle transition is a no-op when the PRD already carries the target role (exactly one lifecycle label/status remains) — per the prd-lifecycle-rollup idempotency dedupe key (match by stable ref, never by title)."
+description: "Initiative-level PRD acceptance gate. Given a PRD ref/URL (GitHub Issue, Linear project/issue, Notion page, Confluence page, or JIRA issue), resolves the source vendor, reads the PRD body and its generated top-level child work set via the prd-lifecycle-rollup contract (native hierarchy first, machine-readable generated-work section fallback — never reimplementing child enumeration), and confirms every required generated top-level work item is terminal before any verification runs. If any required top-level child is non-terminal, it reports the incomplete child set and STOPS without verifying or transitioning the PRD. When the guard passes, it runs spec-conformance against the original PRD requirements (via the spec-conformance skill) plus empirical verification appropriate to the shipped surface (via verification-lifecycle). On a CONFORMS verdict with all empirical checks passing it runs the PASS path: transitions the PRD shipped → verified and posts verification evidence. On a PARTIAL/DIVERGES conformance verdict or any failing empirical check it runs the self-healing FAIL path: it re-opens the PRD shipped → ticketed (NEVER blocked), creates build-ready fix tickets (via tracker-write with build_ready: true) for each missing/incorrect/divergent behavior — registered as the PRD's generated work — and posts a product-readable failure report (with a verification-round count) naming which requirements/ACs failed with observed-vs-expected evidence. The fix tickets auto-build, rollup re-ships the PRD once they are terminal, and a later intake cycle re-verifies — the loop closes itself and never auto-halts. Re-runs are idempotent: evidence/failure-report comments are regenerated in place via a stable sentinel marker (never appended, round incremented), fix tickets are deduped by a stable PRD-ref + requirement marker (referenced/updated, never duplicated), and the lifecycle transition is a no-op when the PRD already carries the target role (exactly one lifecycle label/status remains) — per the prd-lifecycle-rollup idempotency dedupe key (match by stable ref, never by title)."
 allowed-tools: ["Skill", "Bash", "Read", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-get-comments", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources", "mcp__linear-server__get_project", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__list_documents", "mcp__linear-server__get_document"]
 ---
 
@@ -26,10 +26,10 @@ This skill covers the **read/guard front-half**, **both verdict branches** (PASS
 4. **Spec conformance** — when the guard passes, invoke the `spec-conformance` skill with the PRD as the spec source to build a section-by-section coverage matrix against the shipped product (never reimplementing the matrix).
 5. **Empirical verification** — invoke `verification-lifecycle` to run empirical checks appropriate to the PRD's surface (browser/computer-use, API, CLI, DB, screenshots, logs), honoring the `verification` rule. Quality gates (test/typecheck/lint) are **not** verification.
 6. **PASS transition + evidence** — when spec conformance is `CONFORMS` **and** every applicable empirical check passes, transition the PRD lifecycle from the resolved `shipped` role to the resolved `verified` role (vendor-neutral via `config-resolution`) and post verification evidence (the coverage matrix + empirical proof artifacts) back on the PRD.
-7. **FAIL transition + failure report + fix issues** — when spec conformance is `PARTIAL`/`DIVERGES`, or any applicable empirical check fails (or a required surface is unavailable), transition the PRD from the resolved `shipped` role to the resolved `blocked` role (reusing the existing `blocked` role — **no new failure state**, vendor-neutral via `config-resolution`), post a product-readable failure report on the PRD, and create linked fix issues via `tracker-write` for each missing/incorrect/divergent behavior.
-8. **Idempotency** — every write in Phases 6 and 7 is safe to re-run: evidence/failure-report comments carry a stable sentinel marker and are **regenerated in place** (never appended), fix issues are deduped by a stable PRD-ref + requirement marker (**referenced/updated, never duplicated**), and the lifecycle transition is a **no-op when the PRD already carries the target role** (exactly one lifecycle label/status remains). See **Phase 8 — Idempotency** for the per-write guards.
+7. **FAIL — re-open as `ticketed` + build-ready fix tickets (self-healing, never `blocked`)** — when spec conformance is `PARTIAL`/`DIVERGES`, or any applicable empirical check fails (or a required surface is unavailable), move the PRD from the resolved `shipped` role back to the resolved `ticketed` role, create **build-ready fix tickets** via `tracker-write` (`build_ready: true`) for each missing/incorrect/divergent behavior — **added to the PRD's generated top-level work** — and post a product-readable failure report (with the verification-round count). PRD verification **never** moves the PRD to `blocked`. The fix tickets auto-build, rollup (`*-prd-intake` Phase 3f) re-ships the PRD once they are terminal, and a later intake cycle (Phase 3g) re-verifies — the loop closes itself.
+8. **Idempotency** — every write in Phases 6 and 7 is safe to re-run: evidence/failure-report comments carry a stable sentinel marker and are **regenerated in place** (never appended), fix tickets are deduped by a stable PRD-ref + requirement marker (**referenced/updated, never duplicated**), and the lifecycle transition is a **no-op when the PRD already carries the target role** (exactly one lifecycle label/status remains). See **Phase 8 — Idempotency** for the per-write guards.
 
-When verification passes, this skill runs the **PASS** branch of Phase 6 (`shipped → verified`). When it does not pass — spec conformance not `CONFORMS`, or any empirical check failing — this skill runs the **FAIL** branch of Phase 7 (`shipped → blocked` + failure report + fix issues); it does **not** leave the PRD at `shipped`. Re-running the skill against the same PRD produces no duplicate evidence comments, no duplicate fix issues, and no duplicate lifecycle labels/statuses — the **Phase 8** guards make each Phase 6/7 write idempotent, exactly as `prd-backlink` regenerates its `## Tickets` section in place and `github-prd-intake` no-ops a rollup on an already-shipped PRD.
+When verification passes, this skill runs the **PASS** branch of Phase 6 (`shipped → verified`). When it does not pass — spec conformance not `CONFORMS`, or any empirical check failing — this skill runs the **FAIL** branch of Phase 7 (`shipped → ticketed` + build-ready fix tickets + failure report); it does **not** leave the PRD at `shipped` and **never** uses `blocked` (PRD verification is self-healing — the fix tickets auto-build and the PRD re-ships and re-verifies). Re-running the skill against the same PRD produces no duplicate evidence comments, no duplicate fix tickets, and no duplicate lifecycle labels/statuses — the **Phase 8** guards make each Phase 6/7 write idempotent, exactly as `prd-backlink` regenerates its `## Tickets` section in place and `github-prd-intake` no-ops a rollup on an already-shipped PRD.
 
 ## Phase 1 — Resolve the PRD ref and detect the source vendor
 
@@ -146,7 +146,7 @@ Reach this phase **only** when **both** are true:
 - Phase 4 spec conformance returned **`CONFORMS`**, and
 - Phase 5 every applicable empirical check **passed** (and was codified where required).
 
-If either is false, do not enter this phase — record the verdict and route to **Phase 7 — FAIL**, which owns the `shipped → blocked` path.
+If either is false, do not enter this phase — record the verdict and route to **Phase 7 — FAIL**, which owns the `shipped → ticketed` (re-open + build-ready fix tickets) path.
 
 ### 6.1 — Resolve the `verified` and `shipped` roles
 
@@ -212,28 +212,30 @@ The marked comment is the single canonical evidence comment for the PRD — a re
 
 Then emit the PASS output block (below).
 
-## Phase 7 — FAIL: transition `shipped → blocked`, post a failure report, and create fix issues
+## Phase 7 — FAIL: re-open as `ticketed`, create build-ready fix tickets, post a failure report (never `blocked`)
 
 Reach this phase when verification did **not** pass — i.e. **either** is true:
 
 - Phase 4 spec conformance returned **`PARTIAL`** or **`DIVERGES`** (`CONFORMANCE_FAILED` cause), or
 - Phase 5 had **any** applicable empirical check fail or a required surface unavailable (`EMPIRICAL_FAILED` cause).
 
-This is the FAIL counterpart of the Phase 6 PASS hop. It is the `shipped → blocked` FAIL hop the `prd-lifecycle-rollup` rule defines (cite it by slug; this skill is its FAIL-path implementation, not a second source of truth). It **reuses the existing `blocked` role** — it does **not** introduce a `prd-verification-failed` / `prd-verifying` state, per the "No extra failure states" rule in `prd-lifecycle-rollup`.
+PRD verification failure is **self-healing, not a dead end**. Instead of parking the PRD in `blocked` for a human, this phase: (1) moves the PRD back to `ticketed` (work in flight again), (2) creates **build-ready fix tickets** for the gaps so the build queue picks them up with no human promotion, and (3) posts a failure report. The fix tickets are added to the PRD's generated top-level work, so the existing machinery closes the loop on its own: the fix tickets build → reach terminal → the `*-prd-intake` rollup (Phase 3f) re-ships the PRD `ticketed → shipped` → the next intake cycle (Phase 3g) re-dispatches `/lisa:verify-prd` → PASS gives `verified`, FAIL runs this phase again with another round of fix tickets. This is the FAIL counterpart of the Phase 6 PASS hop and is the `shipped → ticketed` FAIL hop the `prd-lifecycle-rollup` rule's "Closing the loop" section defines (cite it by slug; this skill is its FAIL-path implementation, not a second source of truth).
+
+**PRD verification never moves the PRD to `blocked`.** `blocked` is the *intake* (ready-stage validation) failure state, not the verification failure state — there is no `prd-verifying` / `prd-verification-failed` state either; the lifecycle stays small. The loop never auto-halts; the failure report carries a **verification-round count** so a human can spot a PRD stuck across repeated rounds, but the skill keeps creating fix tickets and re-verifying.
 
 Carry forward the verdict cause and the concrete **findings** that produced it: from `CONFORMANCE_FAILED`, the matrix's missed/divergent/scope-crept requirements; from `EMPIRICAL_FAILED`, each failing check (the requirement/AC it exercised, the tool/command, observed vs expected, and any captured artifacts). These findings drive both the failure report (7.3) and the fix issues (7.4).
 
-### 7.1 — Resolve the `blocked` and `shipped` roles
+### 7.1 — Resolve the `shipped` and `ticketed` roles
 
 Resolve the PRD-lifecycle roles from `.lisa.config.json` (then `.lisa.config.local.json` override) per the `config-resolution` rule — the same role-resolution Phase 6.1 and the `*-prd-intake` skills use. **Cite `config-resolution` for the role vocabulary; do not hardcode label strings except as the documented defaults.** Resolution per vendor:
 
-| Vendor | `shipped` role | `blocked` role | Default `blocked` |
+| Vendor | `shipped` role | `ticketed` role | Default `ticketed` |
 |---|---|---|---|
-| **GitHub** | `github.labels.prd.shipped` | `github.labels.prd.blocked` | `prd-blocked` (label) |
-| **Linear** | `linear.labels.prd.shipped` | `linear.labels.prd.blocked` | `prd-blocked` (project/issue label) |
-| **Notion** | `notion.values.shipped` | `notion.values.blocked` | `Blocked` (status value) |
-| **Confluence** | `confluence.parents.shipped` | `confluence.parents.blocked` | the `Blocked` parent page id |
-| **JIRA** | the configured shipped status | the configured blocked status | per `config-resolution` |
+| **GitHub** | `github.labels.prd.shipped` | `github.labels.prd.ticketed` | `prd-ticketed` (label) |
+| **Linear** | `linear.labels.prd.shipped` | `linear.labels.prd.ticketed` | `prd-ticketed` (project/issue label) |
+| **Notion** | `notion.values.shipped` | `notion.values.ticketed` | `Ticketed` (status value) |
+| **Confluence** | `confluence.parents.shipped` | `confluence.parents.ticketed` | the `Ticketed` parent page id |
+| **JIRA** | the configured shipped status | the configured ticketed status | per `config-resolution` |
 
 For GitHub, resolve with the same helper Phase 6.1 / `github-prd-intake` use:
 
@@ -245,25 +247,25 @@ read_role() {  # role default → resolved value (local override wins)
   echo "${local_v:-${global_v:-$default}}"
 }
 SHIPPED=$(read_role shipped prd-shipped)
-BLOCKED=$(read_role blocked prd-blocked)
+TICKETED=$(read_role ticketed prd-ticketed)
 ```
 
-### 7.2 — Transition the PRD `shipped → blocked`
+### 7.2 — Re-open the PRD `shipped → ticketed`
 
-**Idempotency guard (no-op if already blocked).** Before transitioning, read the PRD's current lifecycle role. If the PRD **already carries `$BLOCKED`** (the common re-run-after-a-previous-failure case — same unsatisfiable requirement still missing), the transition is a **no-op** — do not re-add the label/status, do not re-remove `$SHIPPED` (already gone). Record it as `already blocked (no-op)` and proceed to 7.3, where the existing failure report is **updated in place** (not stacked) and 7.4, where existing fix issues are **referenced** rather than re-created. This mirrors `github-prd-intake` Phase 3f.1's "no-op if already shipped" guard and the `prd-lifecycle-rollup` "rollup is keyed by the PRD's current state" rule (cite both by slug).
+**Idempotency guard (no-op if already ticketed).** Before transitioning, read the PRD's current lifecycle role. If the PRD **already carries `$TICKETED`** (the common re-run case — a prior failed round already re-opened it and its fix tickets are still in flight), the transition is a **no-op** — do not re-add the label/status, do not re-remove `$SHIPPED` (already gone). Record it as `already ticketed (no-op)` and proceed to 7.3, where the existing failure report is **updated in place** (not stacked, round count incremented) and 7.4, where existing fix tickets are **referenced** rather than re-created. This mirrors `github-prd-intake` Phase 3f.1's "no-op if already shipped" guard and the `prd-lifecycle-rollup` "rollup is keyed by the PRD's current state" rule (cite both by slug).
 
-Otherwise apply the vendor-appropriate transition. This is the `shipped → blocked` FAIL hop from `prd-lifecycle-rollup` (cite it by slug):
+Otherwise apply the vendor-appropriate transition. This is the `shipped → ticketed` FAIL hop from the `prd-lifecycle-rollup` rule's "Closing the loop" section (cite it by slug) — a deliberate backward hop that puts the PRD back into "work in flight" so its new fix tickets are the in-flight work the rollup waits on:
 
-- **GitHub / Linear** — remove the `shipped` label and add the `blocked` label. For GitHub:
+- **GitHub / Linear** — remove the `shipped` label and add the `ticketed` label. For GitHub:
   ```bash
-  gh issue edit <prd-num> --repo <org>/<repo> --remove-label "$SHIPPED" --add-label "$BLOCKED"
+  gh issue edit <prd-num> --repo <org>/<repo> --remove-label "$SHIPPED" --add-label "$TICKETED"
   ```
-  Verify exactly **one** PRD-lifecycle label remains afterward (the single-label invariant `github-prd-intake` enforces) — a re-run must never leave both `$SHIPPED` and `$BLOCKED`, nor two copies of `$BLOCKED`. For Linear, set the project/issue label equivalently.
-- **Notion** — set the PRD page's `notion.statusProperty` (default `Status`) to the resolved `blocked` value (default `Blocked`). A status property holds exactly one value, so re-setting the same value is inherently a no-op.
-- **Confluence** — move the PRD page's `parentId` to `confluence.parents.blocked` (the parent-page-based lifecycle; Atlassian scoped tokens cannot write labels — see `config-resolution`). A page has exactly one parent, so re-parenting to the same parent is a no-op.
-- **JIRA** — transition the PRD issue to the configured `blocked` status. An issue holds exactly one status; if already `blocked`, skip the transition.
+  Verify exactly **one** PRD-lifecycle label remains afterward (the single-label invariant `github-prd-intake` enforces) — a re-run must never leave both `$SHIPPED` and `$TICKETED`, nor two copies of `$TICKETED`. For Linear, set the project/issue label equivalently.
+- **Notion** — set the PRD page's `notion.statusProperty` (default `Status`) to the resolved `ticketed` value (default `Ticketed`). A status property holds exactly one value, so re-setting the same value is inherently a no-op.
+- **Confluence** — move the PRD page's `parentId` to `confluence.parents.ticketed` (the parent-page-based lifecycle; Atlassian scoped tokens cannot write labels — see `config-resolution`). A page has exactly one parent, so re-parenting to the same parent is a no-op.
+- **JIRA** — transition the PRD issue to the configured `ticketed` status. An issue holds exactly one status; if already `ticketed`, skip the transition.
 
-Do **not** close or archive the PRD here — `blocked` signals "verification failed; human attention required," not "done." The PRD stays open so product can see it failed acceptance.
+Do **not** close or archive the PRD here, and **never** move it to `blocked` — `ticketed` signals "verification found gaps; fix work is in flight," and the PRD re-ships and re-verifies automatically once that work lands.
 
 ### 7.3 — Post a product-readable failure report on the PRD
 
@@ -273,7 +275,7 @@ Post a **failure report** comment back on the PRD, via the same vendor surface P
 
 1. **Sentinel marker** — the literal `<!-- lisa:verify-prd-failure-report -->` as the first line, so the next run finds and regenerates this exact comment.
 2. **AI disclosure** — lead with "PRD-level verification by Claude (AI agent, not a human)."
-3. **Verdict line** — `shipped → blocked — FAIL` and the cause (`CONFORMANCE_FAILED` or `EMPIRICAL_FAILED`).
+3. **Verdict line + round** — `shipped → ticketed — FAIL (re-opened for fixes)`, the cause (`CONFORMANCE_FAILED` or `EMPIRICAL_FAILED`), and `Round: N` — the count of failed verification rounds for this PRD. Read the prior in-place failure report's round and increment (start at 1). The loop **never auto-halts** on a high count, but surfacing it lets a human notice a PRD stuck across repeated fix-and-re-verify rounds.
 4. **What failed, in plain language** — for each finding, name the **specific PRD requirement / acceptance criterion** that was not met, then **what was expected vs what was observed** (the empirical evidence: what was checked, what the shipped product did instead). One bullet per finding so product can follow each independently.
 5. **Spec-conformance coverage matrix** — for a `CONFORMANCE_FAILED` cause, the section-by-section matrix from Phase 4 verbatim with the `PARTIAL`/`DIVERGES` verdict, so the missed/divergent/scope-crept rows are visible.
 6. **Proof artifacts** — any captured empirical artifacts (screenshots uploaded via `gh release upload pr-assets <files> --clobber` and referenced as plain URLs per the `tracker-evidence` UI Evidence Checklist, request/response captures, query outputs, log excerpts).
@@ -281,7 +283,7 @@ Post a **failure report** comment back on the PRD, via the same vendor surface P
 
 ### 7.4 — Create linked fix issues for the missing/incorrect behavior
 
-For **each** failed/missing/incorrect/divergent finding, create a **fix issue** via `tracker-write` (the vendor-neutral writer) — never by hand-rolling `gh issue create`, so each issue passes the same quality gates (`tracker-validate`) every Lisa ticket does: three-audience description, **Gherkin acceptance criteria**, labels, and explicit relationship discovery. Group findings that share one root cause into one fix issue; do not fan out one issue per matrix cell when several rows are the same defect.
+For **each** failed/missing/incorrect/divergent finding, create a **build-ready fix ticket** via `tracker-write` with **`build_ready: true`** (the vendor-neutral writer) — never by hand-rolling `gh issue create`, so each ticket passes the same quality gates (`tracker-validate`) every Lisa ticket does: three-audience description, **Gherkin acceptance criteria**, labels, and explicit relationship discovery. `build_ready: true` makes the build queue (`lisa:intake` build side / `*-build-intake`) auto-claim it with **no human promotion** — that is what makes the loop self-healing. Group findings that share one root cause into one fix ticket; do not fan out one ticket per matrix cell when several rows are the same defect.
 
 **Idempotent — dedupe fix issues by a stable marker; reference/update, never duplicate.** This is the "re-run after a previous failure with the same missing behavior" scenario: the prior run already opened a fix issue for that requirement, so the re-run must **find and reuse it**, not create a second one. Apply the `prd-lifecycle-rollup` idempotency dedupe key discipline (**match by a stable ref, never by title**):
 
@@ -297,8 +299,9 @@ Each fix issue (whether freshly created or referenced/updated) MUST:
 3. **Carry the captured evidence** — the observed-vs-expected from the failure report (what was checked, what was expected, what the shipped product did), so an implementer can reproduce without re-deriving it.
 4. **Back-link to the PRD and the failure report** — link to the PRD (so the fix rolls back up to the initiative) and to the failure-report comment from 7.3 (so the full context is one click away). On GitHub, reference the PRD issue number and the failure-report comment URL in the body and, where supported, as a sub-issue/`Relates to` link; on Linear, set the relation; on JIRA, add the issue link and remote link.
 5. **Have acceptance criteria** — Gherkin ACs describing the corrected behavior (what "fixed" looks like), enforced by `tracker-write` → the vendor `*-validate-issue` gate.
+6. **Be build-ready and counted as PRD work** — created via `tracker-write` with `build_ready: true`, and **registered in the PRD's generated top-level work**: refresh the PRD's `## Tickets` / generated-work section via `lisa:prd-backlink` and, where the host supports it, link it as a native sub-issue/child of the PRD. This is what closes the loop — the `*-prd-intake` rollup (Phase 3f) holds the PRD in `ticketed` until every fix ticket is terminal, and a re-verify's Phase 2/3 then counts them as required children.
 
-Pass each new fix issue's spec to `tracker-write` (which dispatches to `github-write-issue` / `jira-write-ticket` / `linear-write-issue` per config). Collect the created **and referenced** refs/URLs and fold them into the failure report's **Fix issues** list (7.3 item 7).
+Pass each new fix ticket's spec to `tracker-write` with `build_ready: true` (which dispatches to `github-write-issue` / `jira-write-ticket` / `linear-write-issue` per config — each honors `build_ready`). Collect the created **and referenced** refs/URLs, register them as PRD generated work (item 6), and fold them into the failure report's **Fix tickets** list (7.3 item 7).
 
 > **Why not reopen children?** The generated top-level children are already terminal (that is the Phase 3 precondition for verification). A failed PRD-level acceptance is a **new** defect discovered against the shipped initiative, so it gets **new** fix issues linked to the PRD — not a reopen of closed build tickets, which would corrupt their build lifecycle (`leaf-only-lifecycle`).
 
@@ -326,7 +329,7 @@ Emit a single fenced text block so callers can parse it.
 ## verify-prd: <PRD title>
 
 PRD: <ref/URL>  (vendor: <github|linear|notion|confluence|jira>)
-PRD lifecycle state: <shipped | verified>
+PRD lifecycle state: <shipped | verified | ticketed>
 Generated top-level children read: <n>  (source: native | documented | both)
 
 ### Terminal-child guard
@@ -345,20 +348,20 @@ Surface: <browser | api | cli | db | logs | ...>  (PRD-dependent)
 
 ### Lifecycle transition   (PASS or FAIL)
 shipped → verified   (role: <resolved verified role>)   evidence posted: <link>          # on VERIFIED_PASS  (re-run: evidence comment regenerated in place; transition no-op if already verified)
-shipped → blocked    (role: <resolved blocked role>)    failure report: <link>   fix issues: <refs>   # on CONFORMANCE_FAILED | EMPIRICAL_FAILED  (re-run: failure report regenerated in place; fix issues deduped by marker; transition no-op if already blocked)
+shipped → ticketed   (re-opened for fixes; round: N)    fix tickets (ready): <refs>   failure report: <link>   # on CONFORMANCE_FAILED | EMPIRICAL_FAILED  (re-run: failure report regenerated in place + round incremented; fix tickets deduped by marker; transition no-op if already ticketed; never blocked)
 
 ### Verdict: VERIFIED_PASS | CONFORMANCE_FAILED | EMPIRICAL_FAILED | GUARD_BLOCKED | NO_CHILDREN
 ```
 
 - `GUARD_BLOCKED` — one or more required top-level children are non-terminal; verification did not run; the PRD was left at `shipped`.
 - `NO_CHILDREN` — no generated top-level children found; cannot verify; the PRD was left untouched.
-- `CONFORMANCE_FAILED` — guard passed but spec conformance returned `PARTIAL`/`DIVERGES`; empirical verification was skipped; the FAIL path ran — the PRD was transitioned `shipped → blocked` (reusing the `blocked` role), a product-readable failure report was posted, and linked fix issues were created (Phase 7).
-- `EMPIRICAL_FAILED` — guard passed and conformance `CONFORMS`, but an applicable empirical check failed or a required surface was unavailable; the FAIL path ran — the PRD was transitioned `shipped → blocked` (reusing the `blocked` role), a product-readable failure report was posted, and linked fix issues were created (Phase 7).
+- `CONFORMANCE_FAILED` — guard passed but spec conformance returned `PARTIAL`/`DIVERGES`; empirical verification was skipped; the FAIL path ran — the PRD was re-opened `shipped → ticketed`, **build-ready** fix tickets were created and registered as PRD generated work, and a product-readable failure report (with the round count) was posted (Phase 7). The PRD re-ships and re-verifies once the fix tickets are terminal; it is **never** moved to `blocked`.
+- `EMPIRICAL_FAILED` — guard passed and conformance `CONFORMS`, but an applicable empirical check failed or a required surface was unavailable; the FAIL path ran — the PRD was re-opened `shipped → ticketed`, **build-ready** fix tickets were created and registered as PRD generated work, and a product-readable failure report (with the round count) was posted (Phase 7). The PRD re-ships and re-verifies once the fix tickets are terminal; it is **never** moved to `blocked`.
 - `VERIFIED_PASS` — guard passed, conformance `CONFORMS`, every applicable empirical check passed and was codified; the PRD was transitioned `shipped → verified` and verification evidence was posted (Phase 6).
 
 ## Rules
 
-- **The lifecycle writes are the PASS hop `shipped → verified` and the FAIL hop `shipped → blocked`.** The front-half (resolve → read child set → guard) is read-only and never transitions the PRD. After the guard passes and verification runs, this skill writes exactly one of two transitions: the Phase 6 PASS hop `shipped → verified` (when spec conformance is `CONFORMS` and every applicable empirical check passes), or the Phase 7 FAIL hop `shipped → blocked` (when conformance is `PARTIAL`/`DIVERGES` or any applicable empirical check fails). The FAIL hop **reuses the existing `blocked` role — it introduces no new failure state.** The guard-blocked and no-children paths run no verification and leave the PRD at `shipped` untouched.
+- **The lifecycle writes are the PASS hop `shipped → verified` and the FAIL hop `shipped → ticketed`.** The front-half (resolve → read child set → guard) is read-only and never transitions the PRD. After the guard passes and verification runs, this skill writes exactly one of two transitions: the Phase 6 PASS hop `shipped → verified` (when spec conformance is `CONFORMS` and every applicable empirical check passes), or the Phase 7 FAIL hop `shipped → ticketed` (when conformance is `PARTIAL`/`DIVERGES` or any applicable empirical check fails). The FAIL hop **never uses `blocked`** — it re-opens the PRD to `ticketed` with build-ready fix tickets (the self-healing loop), introducing no new failure state. The guard-blocked and no-children paths run no verification and leave the PRD at `shipped` untouched.
 - **Every write is idempotent (Phase 8).** Re-running the skill against the same PRD produces no duplicate evidence/failure-report comments, no duplicate fix issues, and no duplicate lifecycle labels/statuses. Evidence and failure-report comments are regenerated in place via a stable sentinel marker (`<!-- lisa:verify-prd-evidence -->` / `<!-- lisa:verify-prd-failure-report -->`); fix issues are deduped by a stable PRD-ref + requirement marker (`<!-- lisa:verify-prd-fix prd=… req=… -->`) and referenced/updated rather than re-created; the lifecycle transition is a no-op when the PRD already carries the target role, leaving exactly one lifecycle label/status. The dedupe key is the `prd-lifecycle-rollup` idempotency dedupe key — **match by stable ref, never by title** — and the no-op-already-at-target-role guard mirrors `github-prd-intake` Phase 3f.1.
 - **The FAIL path opens fix issues via `tracker-write`, never by hand.** Each fix issue is created through the vendor-neutral writer so it passes the same `tracker-validate` quality gate (three-audience description, Gherkin ACs, labels, relationships) every Lisa ticket does. Fix issues are **new** defects against the shipped initiative, back-linked to the PRD and the failure report — never reopens of the already-terminal generated children (`leaf-only-lifecycle`).
 - **Never reimplement child enumeration.** Consume the recorded PRD→child relationship (`prd-lifecycle-rollup` native linking + machine-readable generated-work section). The two-source read here mirrors `github-prd-intake` Phase 3f.2 — same sources, same dedupe-by-child-ref, same top-level-only boundary.
@@ -366,7 +369,7 @@ shipped → blocked    (role: <resolved blocked role>)    failure report: <link>
 - **Quality gates are not verification.** Tests, typecheck, and lint are prerequisites enforced by hooks/CI. Phase 5 requires running the actual shipped system and observing results on a surface chosen from what the PRD delivered — never substituting a green test suite for empirical proof (`verification` rule).
 - **The verification surface is PRD-dependent.** Classify the empirical surface (browser/API/CLI/DB/logs/…) from what the PRD shipped; do not assume a fixed surface. A single-environment project with no deployed app verifies on its CLI/dry-run surface per the PRD's Empirical Verification Plan.
 - **`verified` is product-owned and terminal.** This skill is the only automated writer of the `verified` role; intake/rollup never set it. The PASS hop does not close or archive the PRD (closure is governed by `prd.rollup.closeOnShipped` at the `shipped` hop).
-- **`blocked` is reused, not invented, and is non-terminal.** The FAIL hop sets the existing `blocked` PRD role (`config-resolution`) — the same role intake uses for failed validation — so the lifecycle stays small (`prd-lifecycle-rollup` "No extra failure states"). `blocked` means "verification failed; human attention required"; the FAIL hop never closes or archives the PRD.
+- **Verification failure never uses `blocked`; it re-opens to `ticketed`.** The FAIL hop sets the existing `ticketed` PRD role (`config-resolution`) and creates build-ready fix tickets registered as the PRD's generated work, so the lifecycle stays small (`prd-lifecycle-rollup` "No extra failure states") and self-heals — the fix tickets auto-build, rollup re-ships the PRD, and a later cycle re-verifies. `blocked` remains the *intake* (ready-stage validation) failure role, not the verification one; the FAIL hop never closes or archives the PRD.
 - **Top-level only.** Exclude leaf Sub-tasks and Stories nested under a generated Epic. The PRD owns its top-level work; those top-level units own their descendants (`prd-lifecycle-rollup` generated-top-level-work contract).
 - **Cite, don't restate.** The generated-top-level-work boundary, the per-vendor terminal predicate, the env-keyed `done` resolution, the dedupe-by-child-ref idempotency key, and the `shipped → verified | blocked` PRD-level verification hops all come from the `prd-lifecycle-rollup` rule; the `verified`/`shipped`/`blocked` role vocabulary comes from `config-resolution`. This skill is a consumer of those contracts, not a second source of truth.
 
@@ -383,7 +386,7 @@ shipped → blocked    (role: <resolved blocked role>)    failure report: <link>
 
 ## Related rules
 
-- `prd-lifecycle-rollup` — the vendor-neutral source of truth for PRD→generated-top-level-work ownership, the per-vendor terminal predicate, the `shipped` rollup, the `shipped → verified | blocked` PRD-level verification hops, the "no extra failure states" rule (the FAIL hop reuses `blocked`), and the **idempotency dedupe key** ("match by stable ref, never by title"; no-op already-shipped rollup). This skill consumes that contract — implementing the `shipped → verified` PASS hop, the `shipped → blocked` FAIL hop, and the Phase 8 idempotency guards (marker-based comment regeneration, marker-based fix-issue dedupe, no-op-already-at-target-role transition) — citing the rule by slug rather than restating its taxonomy.
+- `prd-lifecycle-rollup` — the vendor-neutral source of truth for PRD→generated-top-level-work ownership, the per-vendor terminal predicate, the `shipped` rollup, the `shipped → verified` (pass) / `shipped → ticketed` (fail) PRD-level verification hops, the "no extra failure states" rule (the FAIL hop re-opens to `ticketed` and never uses `blocked`), the "Closing the loop" self-healing dispatch, and the **idempotency dedupe key** ("match by stable ref, never by title"; no-op already-shipped rollup). This skill consumes that contract — implementing the `shipped → verified` PASS hop, the `shipped → ticketed` FAIL hop, and the Phase 8 idempotency guards (marker-based comment regeneration, marker-based fix-ticket dedupe, no-op-already-at-target-role transition) — citing the rule by slug rather than restating its taxonomy.
 - `verification` — defines what counts as empirical verification (the Verification Types table) and that quality gates (test/typecheck/lint) are prerequisites, not verification. Phase 5 honors it when classifying and running the surface-appropriate checks.
 - `leaf-only-lifecycle` — governs the build lifecycle of leaf work units and how a generated Epic rolls up from its own children; this skill trusts that bottom-up rollup when reading a top-level child's resolved state.
 - `config-resolution` — the PRD-lifecycle role vocabulary (`shipped`, `verified`, `blocked`), the per-vendor `verified` role maps (`prd-verified` label for GitHub/Linear, `Verified` status for Notion, `confluence.parents.verified` parent page) Phase 6.1 resolves, the per-vendor `blocked` role maps (`prd-blocked` label for GitHub/Linear, `Blocked` status for Notion, `confluence.parents.blocked` parent page) Phase 7.1 resolves, and the env-keyed `done` map the terminal predicate resolves against.
