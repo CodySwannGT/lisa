@@ -259,9 +259,11 @@ STATUS_PROP=$(jq -r '.properties | to_entries[] | select(.value.type == "status"
 STATUS_VALUES=$(jq -r --arg p "$STATUS_PROP" '.properties[$p] | (.status.options // .select.options) | .[].name' <<<"$DB_SCHEMA")
 ```
 
-For each lisa role (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`), check if its default name (`Draft`, `Ready`, etc.) appears in `$STATUS_VALUES`. If a role's default is missing but a similar-looking value exists, prompt the user to map it via `AskUserQuestion`. If a role has no plausible match, prompt to either create the value in Notion or accept that the lifecycle stage is unrepresented.
+For each lisa role (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`, `verified`), check if its default name (`Draft`, `Ready`, etc.; `Verified` for `verified`) appears in `$STATUS_VALUES`. If a role's default is missing but a similar-looking value exists, prompt the user to map it via `AskUserQuestion`. If a role has no plausible match, prompt to either create the value in Notion or accept that the lifecycle stage is unrepresented. This find-or-create-or-accept path is idempotent per role: a value already present (default or mapped) is reused untouched, so re-running never duplicates a status option.
 
-Collect overrides as a partial values map. Only write keys that differ from defaults.
+`verified` is the terminal lifecycle state after `shipped` (the `verified` role from the `config-resolution` rule, #591): `/lisa:verify-prd` transitions a Notion PRD into it once the shipped product has been empirically verified against the PRD. Notion models the PRD lifecycle as `Status` (or `select`) property options rather than labels, so `verified` is mapped or created through the exact same path as every other role above — and, like them, persisted to `notion.values.verified` when the workspace uses a non-default option name.
+
+Collect overrides as a partial values map. Only write keys that differ from defaults — `verified` included, so a non-default `Verified` option name lands in `notion.values.verified`.
 
 ### Step 7 — Write `.lisa.config.json`
 
@@ -298,7 +300,7 @@ jq -e '.notion.workspaceId and .notion.prdDatabaseId' .lisa.config.json >/dev/nu
 echo "Token validated (${#TOKEN} chars). Workspace: $ME_WORKSPACE. Database: $DATABASE_ID."
 ```
 
-Report success with the resolved workspace, database, status property name, and value overrides (if any). Direct the user to `/lisa:intake` to test.
+Report success with the resolved workspace, database, status property name, and value overrides (if any), confirming all lifecycle roles — including the terminal `verified` — were detected, mapped, or flagged for creation. Direct the user to `/lisa:intake` to test.
 
 ## Idempotency
 

@@ -2,6 +2,99 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.58.0](https://github.com/CodySwannGT/lisa/compare/vv2.57.0...v2.58.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** idempotent reruns (no duplicate evidence, fix issues, or lifecycle labels) ([e335d5b](https://github.com/CodySwannGT/lisa/commit/e335d5bdd837cd9cebffa52e0999c2b4554b877a)), closes [#600](https://github.com/CodySwannGT/lisa/issues/600) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#599](https://github.com/CodySwannGT/lisa/issues/599)
+
+## [2.57.0](https://github.com/CodySwannGT/lisa/compare/vv2.56.0...v2.57.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** add FAIL path (shipped->blocked + failure report + linked fix issues) ([c967803](https://github.com/CodySwannGT/lisa/commit/c967803d655c1527771f4c47b9b4edd31234eed6)), closes [#597](https://github.com/CodySwannGT/lisa/issues/597) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#599](https://github.com/CodySwannGT/lisa/issues/599)
+
+## [2.56.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.56.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** require research-backed project ideation ([de8dc2b](https://github.com/CodySwannGT/lisa/commit/de8dc2bc4801004b4c1ed6d63d8833051c30dab8)), closes [#668](https://github.com/CodySwannGT/lisa/issues/668)
+* **verify-prd:** add spec-conformance + empirical verification + PASS path (shipped->verified) ([2beb2b0](https://github.com/CodySwannGT/lisa/commit/2beb2b0a09876fdb9bfe4c89a87db99c120f9c3d)), closes [#597](https://github.com/CodySwannGT/lisa/issues/597) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#598](https://github.com/CodySwannGT/lisa/issues/598)
+
+## [2.55.0](https://github.com/CodySwannGT/lisa/compare/vv2.55.0...v2.55.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** require research-backed project ideation ([de8dc2b](https://github.com/CodySwannGT/lisa/commit/de8dc2bc4801004b4c1ed6d63d8833051c30dab8)), closes [#668](https://github.com/CodySwannGT/lisa/issues/668)
+
+## [2.54.0](https://github.com/CodySwannGT/lisa/compare/vv2.53.0...v2.54.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** add project ideation examples ([b2f674e](https://github.com/CodySwannGT/lisa/commit/b2f674ebad7de1e4c28b081bbafa0d344540535b))
+
+## [2.53.0](https://github.com/CodySwannGT/lisa/compare/vv2.52.0...v2.53.0) (2026-05-24)
+
+
+### Features
+
+* **skills:** add base project-ideation skill ([#666](https://github.com/CodySwannGT/lisa/issues/666)) ([c244a69](https://github.com/CodySwannGT/lisa/commit/c244a69c97e3d5809da53408a8d97d1507d9f1b6))
+
+## [2.52.0](https://github.com/CodySwannGT/lisa/compare/vv2.51.0...v2.52.0) (2026-05-24)
+
+
+### Features
+
+* **verify-prd:** scaffold command+skill with child-set read and terminal-child guard ([c80e4c6](https://github.com/CodySwannGT/lisa/commit/c80e4c653ae128a94676791970cd1735a8df7430)), closes [#553](https://github.com/CodySwannGT/lisa/issues/553) [#590](https://github.com/CodySwannGT/lisa/issues/590) [#587](https://github.com/CodySwannGT/lisa/issues/587) [#598](https://github.com/CodySwannGT/lisa/issues/598) [#599](https://github.com/CodySwannGT/lisa/issues/599) [#600](https://github.com/CodySwannGT/lisa/issues/600) [#597](https://github.com/CodySwannGT/lisa/issues/597)
+
+## [2.51.0](https://github.com/CodySwannGT/lisa/compare/vv2.50.0...v2.51.0) (2026-05-24)
+
+
+### Features
+
+* **setup-confluence:** scaffold Verified parent page + dashboard tile + config persist ([81696fa](https://github.com/CodySwannGT/lisa/commit/81696faf041ad266b86e790d41a6d60bf8bc3e96)), closes [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#595](https://github.com/CodySwannGT/lisa/issues/595) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#596](https://github.com/CodySwannGT/lisa/issues/596) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#595](https://github.com/CodySwannGT/lisa/issues/595)
+
+## [2.50.0](https://github.com/CodySwannGT/lisa/compare/vv2.49.0...v2.50.0) (2026-05-24)
+
+
+### Features
+
+* **setup-notion:** map/create the Verified PRD status value idempotently ([be5b8ec](https://github.com/CodySwannGT/lisa/commit/be5b8ecfa40b2d02b5501a67e3c80f7db092245d)), closes [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#595](https://github.com/CodySwannGT/lisa/issues/595) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594)
+
+## [2.49.0](https://github.com/CodySwannGT/lisa/compare/vv2.48.0...v2.49.0) (2026-05-24)
+
+
+### Features
+
+* **hooks:** accept Codex commit attribution in commit-msg guardrail ([38a8b43](https://github.com/CodySwannGT/lisa/commit/38a8b43c27901fc76c1528ab812c98c1f1e83d82))
+* **setup-linear:** scaffold prd-verified PRD project label idempotently ([7152bd1](https://github.com/CodySwannGT/lisa/commit/7152bd1c2b2887c340505ca541fd3017d8e600e6)), closes [#593](https://github.com/CodySwannGT/lisa/issues/593) [#594](https://github.com/CodySwannGT/lisa/issues/594) [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593)
+
+## [2.48.0](https://github.com/CodySwannGT/lisa/compare/vv2.47.1...v2.48.0) (2026-05-24)
+
+
+### Features
+
+* **setup-github:** scaffold prd-verified PRD label idempotently ([d17f393](https://github.com/CodySwannGT/lisa/commit/d17f393dae0629eead32a1340f18f75adb9debdc)), closes [#591](https://github.com/CodySwannGT/lisa/issues/591) [#593](https://github.com/CodySwannGT/lisa/issues/593) [#591](https://github.com/CodySwannGT/lisa/issues/591)
+
+### [2.47.1](https://github.com/CodySwannGT/lisa/compare/vv2.47.0...v2.47.1) (2026-05-24)
+
+
+### Documentation
+
+* **prd-lifecycle:** add verified terminal state + verify vs verify-prd distinction ([c7c8374](https://github.com/CodySwannGT/lisa/commit/c7c83740dae5adda2f39d7855636e09e5b8b8e50)), closes [#553](https://github.com/CodySwannGT/lisa/issues/553) [#592](https://github.com/CodySwannGT/lisa/issues/592) [#553](https://github.com/CodySwannGT/lisa/issues/553)
+
+## [2.47.0](https://github.com/CodySwannGT/lisa/compare/vv2.46.0...v2.47.0) (2026-05-24)
+
+
+### Features
+
+* **prd-lifecycle:** harden idempotency with match-by-ref-not-title ([#585](https://github.com/CodySwannGT/lisa/issues/585)) ([815ad09](https://github.com/CodySwannGT/lisa/commit/815ad093476cbcf8527128abb5652cceadaf04e3)), closes [#580](https://github.com/CodySwannGT/lisa/issues/580) [-#584](https://github.com/CodySwannGT/-/issues/584) [#579](https://github.com/CodySwannGT/lisa/issues/579)
+
 ## [2.46.0](https://github.com/CodySwannGT/lisa/compare/vv2.45.0...v2.46.0) (2026-05-24)
 
 

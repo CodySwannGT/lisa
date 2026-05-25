@@ -75,11 +75,13 @@ The only legitimate reasons to stop early:
 The Linear PRD lifecycle is encoded as **project labels** (we deliberately do NOT key off Linear's native project state, since project state is product's day-to-day signal and we don't want to fight it). Exactly one of these labels is expected on a project at any time:
 
 ```text
-draft → ready → in_review → blocked | ticketed → shipped
-        (product)  (us)      (us)                  (product)
+draft → ready → in_review → blocked | ticketed → shipped → verified
+        (product)  (us)      (us)                  (product)  (product)
 ```
 
-(Defaults: `prd-draft` / `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed` / `prd-shipped`.)
+(Defaults: `prd-draft` / `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed` / `prd-shipped` / `prd-verified`.)
+
+`verified` is the terminal state after `shipped`: it means the shipped product has been empirically checked against the PRD (set by `/lisa:verify-prd`, not by this intake skill). A failed post-ship verification reuses `blocked` rather than introducing a separate `verifying` / `verification-failed` state. Like `draft` and `shipped`, `verified` is **product-owned** — this intake skill never sets, clears, or otherwise touches it. See the "PRD-level verification vs ticket verification" section of the `prd-lifecycle-rollup` rule.
 
 This skill transitions:
 
@@ -89,7 +91,7 @@ This skill transitions:
 - `$TICKETED` → `$BLOCKED` (post-write coverage gaps from Phase 3e)
 - `$TICKETED` → `$SHIPPED` (PRD closure rollup, Phase 3f — only when **all** generated top-level children are terminal)
 
-It never touches the `draft` label — that label is owned by product. The `shipped` label is set by this skill's **rollup phase (3f)** when, and only when, the PRD project's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD project unless `linear.labels.prd.rollup.closeOnShipped` is configured `true` (default `false` → set `shipped`, leave the project active).
+It never touches the `draft` or `verified` labels — those labels are owned by product (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` label is set by this skill's **rollup phase (3f)** when, and only when, the PRD project's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD project unless `linear.labels.prd.rollup.closeOnShipped` is configured `true` (default `false` → set `shipped`, leave the project active).
 
 A "transition" means: remove the old lifecycle label and add the new one in a single `save_project` call (passing the full new label set in the `labels` array). The skill MUST verify that exactly one lifecycle label exists on the project after the update — having two simultaneously breaks idempotency.
 
