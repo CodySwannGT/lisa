@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.69.1](https://github.com/CodySwannGT/lisa/compare/vv2.69.0...v2.69.1) (2026-05-25)
+
+
+### Documentation
+
+* **github:** preserve multi-repo containers ([d7150e5](https://github.com/CodySwannGT/lisa/commit/d7150e5a2a0822db24ff86948ad51abb78fa1cd9))
+
 ## [2.69.0](https://github.com/CodySwannGT/lisa/compare/vv2.68.0...v2.69.0) (2026-05-25)
 
 
