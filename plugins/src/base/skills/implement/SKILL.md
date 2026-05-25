@@ -127,13 +127,14 @@ Before shutting down the team, execute the Verify flow:
 1. Run quality gates: lint, typecheck, tests — all must pass. These are prerequisites, NOT verification.
 2. `verification-specialist`: verify locally by running the actual system and observing results (empirical proof that the change works). This is the real verification step.
 3. Write e2e test encoding the verification
-4. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
-5. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-6. Open a pull request with auto-merge on via `lisa:git-submit-pr`, targeting the **base branch resolved from the ticket's environment** (`target_branch=<base>`, per the branch step above), and including the work-item ref when one exists so the PR can be linked natively to the source issue.
-7. PR Watch Loop: Monitor the PR using `git-submit-pr`'s drive-to-merge behavior. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. If the PR is `BEHIND`, blocked by stale review state, or cannot enable auto-merge, follow the harness-agnostic `git-submit-pr` re-sync, review-gate, and direct-merge fallback loop until the PR is actually merged or a blocking failure is surfaced.
-8. Merge the PR
-9. Monitor the deploy action that triggers automatically from the successful merge
-10. If deploy fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 7
-11. Remote verification: `verification-specialist` verifies in target environment (same checks as local verification, but on remote)
-12. `ops-specialist`: post-deploy health check, monitor for errors in first minutes
-13. If remote verification fails, create a task for the agent team to find out why it failed, fix it and return to step 4 (repeat until you get all the way through)
+4. Record Implement usage on the originating work artifact via `lisa:usage-accounting` so the work item (or other implementation-owned artifact) gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the parent / child graph is already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if runtime usage is unavailable, use `source: unavailable` with nullable token/cost fields instead of skipping the row.
+5. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
+6. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
+7. Open a pull request with auto-merge on via `lisa:git-submit-pr`, targeting the **base branch resolved from the ticket's environment** (`target_branch=<base>`, per the branch step above), and including the work-item ref when one exists so the PR can be linked natively to the source issue.
+8. PR Watch Loop: Monitor the PR using `git-submit-pr`'s drive-to-merge behavior. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. If the PR is `BEHIND`, blocked by stale review state, or cannot enable auto-merge, follow the harness-agnostic `git-submit-pr` re-sync, review-gate, and direct-merge fallback loop until the PR is actually merged or a blocking failure is surfaced.
+9. Merge the PR
+10. Monitor the deploy action that triggers automatically from the successful merge
+11. If deploy fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 7
+12. Remote verification: `verification-specialist` verifies in target environment (same checks as local verification, but on remote)
+13. `ops-specialist`: post-deploy health check, monitor for errors in first minutes
+14. If remote verification fails, create a task for the agent team to find out why it failed, fix it and return to step 5 (repeat until you get all the way through)
