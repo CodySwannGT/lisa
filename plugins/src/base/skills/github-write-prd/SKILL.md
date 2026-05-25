@@ -1,6 +1,6 @@
 ---
 name: github-write-prd
-description: "Creates or idempotently updates a PRD as a GitHub Issue in the configured source repo, carrying exactly one PRD lifecycle label (`prd-draft` by default, or `prd-ready` when initial_role is ready so lisa:github-prd-intake auto-claims it). The GitHub PRD-source writer behind lisa:prd-source-write — the source-side counterpart of lisa:github-write-issue. Dedupes by a stable marker embedded in the issue body (matched by marker, never by title) so re-running ideation references the existing PRD instead of opening a duplicate. Uses the `gh` CLI exclusively."
+description: "Creates or idempotently updates a PRD as a GitHub Issue in the configured source repo, carrying exactly one PRD lifecycle label (`prd-draft` by default, or `prd-ready` when initial_role is ready so lisa:github-prd-intake auto-claims it). The GitHub PRD-source writer behind lisa:prd-source-write — the source-side counterpart of lisa:github-write-issue. Dedupes by a stable marker embedded in the issue body (matched by marker, never by title) so re-running ideation references the existing PRD instead of opening a duplicate, and when `github.projects.v2` is enabled it coordinates PRD issue membership through `lisa:github-project-v2` without replacing the issue as the lifecycle source of truth. Uses the `gh` CLI exclusively."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -67,6 +67,12 @@ the marker breaks future dedupe. If the body already has the marker, leave the s
    gh issue create --repo "$ORG/$REPO" --title "$TITLE" --body-file /tmp/prd-body.md --label "$ROLE_LABEL"
    ```
 3. Capture the returned issue number/URL.
+4. If `github.projects.v2` is enabled, resolve the created PRD issue node id and invoke
+   `lisa:github-project-v2` with `operation: ensure-item` and `content_node_id: <issue-node-id>`.
+   - `outcome: disabled` → continue normally.
+   - `outcome: added` or `reused` → continue normally; membership is now present.
+   - `outcome: warning` (`required: false`) → preserve the exact warning and keep the PRD issue write as the durable success.
+   - `outcome: blocked` (`required: true`) → surface the exact failure and stop returning success; do not report Project coordination as completed.
 
 **UPDATE** (existing issue or `source_ref`):
 
@@ -77,6 +83,10 @@ the marker breaks future dedupe. If the body already has the marker, leave the s
    `gh issue edit <n> --add-label / --remove-label`. Never leave a PRD carrying two lifecycle labels.
    - Exception: do **not** down-rank a PRD whose current label is in the resolved `${PROGRESSED[@]}`
      set (already past `ready`). If so, leave it and report `reused (already past ready)`.
+3. Re-resolve the live PRD issue node id and invoke `lisa:github-project-v2` with
+   `operation: ensure-item` so updates keep the PRD present in the configured shared Project without
+   duplicating membership writes. Branch on `disabled` / `added` / `reused` / `warning` / `blocked`
+   exactly as in CREATE.
 
 ## Phase 4 — Return
 
@@ -98,3 +108,4 @@ outcome: created | reused
 - A *closed* prior PRD does not suppress a new one — a recurrence after closure is a genuine new PRD.
 - This is a source-side writer (`prd-*` labels). It never touches build labels (`status:*`) — that is
   `lisa:github-write-issue`'s lane. See `config-resolution` "Self-host edge case".
+- When GitHub Project coordination is enabled, always delegate membership to `lisa:github-project-v2`; never inline separate ProjectV2 GraphQL from this skill.
