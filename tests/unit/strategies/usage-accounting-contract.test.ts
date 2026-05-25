@@ -193,6 +193,7 @@ describe("usage-accounting contract docs", () => {
       expect(content).toMatch(/observed/i);
       expect(content).toMatch(/estimated/i);
       expect(content).toMatch(/unavailable/i);
+      expect(content).toMatch(/missing telemetry/i);
     });
 
     it("documents fixed-order usage-entry and usage-rollup tokens", () => {
@@ -206,6 +207,10 @@ describe("usage-accounting contract docs", () => {
       expect(content).toMatch(/Dedupe strictly by stable `entry_id`/i);
       expect(content).toMatch(/Count each `entry_id` at most once/i);
       expect(content).toMatch(/Exclude descendant entries/i);
+      expect(content).toMatch(/child artifact A and child artifact B/i);
+      expect(content).toMatch(
+        /exclude that descendant copy from child totals/i
+      );
     });
 
     it("documents deterministic rewrite rules with no timestamps", () => {
