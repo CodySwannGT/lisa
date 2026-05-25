@@ -49,14 +49,14 @@ If the cycle errored before processing any Issues (e.g. label convention not ado
 
 ### 4. Suggest next actions when warranted
 
-After a successful cycle, if any Issues ended at the configured `done` label, mention that the next phase (QA, deploy, or downstream verification) is owned by humans or a future intake skill. This skill does not own anything past `done`.
+After a successful cycle, if any Issues ended at the configured `done` label, mention whether the vendor skill also performed terminal native completion. This skill does not own anything past `done`, except that `linear-build-intake` moves the native Issue state to Done / Completed when `done` is the true terminal value per `leaf-only-lifecycle`.
 
 If any Issues ended at the configured `blocked` label (pre-flight verify failed) or `Held` (triage found ambiguities), point that out so the caller knows which Issues need human attention before they can be re-claimed. The blocked ones were transitioned by `linear-agent`'s gate logic — that is correct and expected.
 
 ## Rules
 
 - **Never run a cycle without an explicit query or configured `linear.teamKey`.** Side effects too high to default.
-- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions. Never touch terminal-`done`, the configured `blocked` label (owned by `linear-agent`), or any other label. (Exception: the configured `review` label is set by `linear-evidence` mid-flow — that's not your concern.)
+- **Never modify the lifecycle**: only the configured `ready → claimed → done` transitions and terminal-only native Issue completion. Never touch the configured `blocked` label (owned by `linear-agent`) or any other label. (Exception: the configured `review` label is set by `linear-evidence` mid-flow — that's not your concern.)
 - **Never bypass `linear-agent` to do build work directly.** The intake skill dispatches; `linear-agent` builds. Skipping the dispatch produces broken work.
 - **Never invent labels.** Names live in `.lisa.config.json` `linear.labels.build.*` (canonical) — the setup skill writes them. If a team hasn't adopted them yet, the skill exits with an adoption hint. Don't guess label names.
 - **Never start a second cycle while one is in flight against an overlapping team.** Serial execution. Scheduling layer (when added) is responsible for not double-firing.
