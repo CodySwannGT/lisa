@@ -120,6 +120,13 @@ fi
       "staging":    "staging",
       "production": "main"
     }
+  },
+
+  "intake": {
+    "repair": {
+      "staleAfterHours": 24,
+      "maxCandidates": 100
+    }
   }
 }
 ```
@@ -225,6 +232,22 @@ The `rollup` object lives in each PRD-source vendor section (`github.labels.prd.
 | `closeOnShipped` | no | `false` | When `true`, rollup closes/archives the PRD after the `shipped` transition (GitHub: close the issue; Linear: move to a closed/archived state; JIRA: transition to Done; Confluence/Notion: archive where supported). When `false` (the default), the PRD is set to `shipped` but left open for a human to close. Closure never happens before all generated top-level work is terminal. |
 
 Like every other vocabulary key, `prd.rollup` is **optional** — a missing block inherits `closeOnShipped: false`. The `shipped` transition itself is unconditional on the all-terminal condition; only the close/archive step is gated by this flag.
+
+### Repair intake config (`intake.repair`)
+
+`lisa:repair-intake` (the recovery counterpart to `lisa:intake`) reads two optional tuning keys
+from the top-level `intake.repair` block. Both are **optional** — a missing block inherits the
+documented defaults, so existing projects need no config change.
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `intake.repair.staleAfterHours` | no | `24` | How long an in-progress item (build `claimed`, PRD `in_review`) may show no observable activity before repair-intake treats it as stalled and resumes it. `blocked` items are judged on blocker/answer state, not this threshold. Overridable per-run via `stale_after=<dur>` in `$ARGUMENTS` (which always wins). The same value is the default backoff window for loop-prevention notes. |
+| `intake.repair.maxCandidates` | no | `100` | Upper bound on how many stuck items repair-intake enumerates while searching for the first actionable one. Bounds scan cost. Overridable per-run via `max_candidates=<n>`. |
+
+Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.config.local.json` →
+`.lisa.config.json` → built-in default. The role SEMANTICS repair-intake operates on (which
+roles count as "stuck", what each repair does) are fixed like every other lifecycle transition;
+only these thresholds are tunable.
 
 ### Env-keyed `done`
 
