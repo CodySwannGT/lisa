@@ -10,210 +10,57 @@ project: lisa-monorepo
 
 # git history — lisa-monorepo (2026-05-25)
 
-- Repo: `/Users/cody/.codex/worktrees/7ac9/lisa`
-- HEAD: `45c1d709337ba550d4e589fab1ea1f6ad6642cc3`
-- Total commits on HEAD: 1841
-- New commits since last ingest (first run): 1841
-- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #687 "chore(deps): bump @codyswann/lisa to 2.63.0 (dogfood self-update)"
+- Repo: `.` (ingested from an isolated worktree rooted at `/tmp/lisa-wiki-ingest.5rAvEM`)
+- HEAD: `362e4bf1248d47e406b19d56f2d3d8b27e7740c9`
+- Total commits on HEAD: 1888
+- New commits since last ingest (`45c1d709337ba550d4e589fab1ea1f6ad6642cc3`): 47
+- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #740 "feat: record lifecycle usage on research plan and debrief artifacts"
 
 ## New commits
-- 45c1d70 · 2026-05-25 · chore(release): 2.63.1 [skip ci]
-- 6ceea75 · 2026-05-25 · Merge pull request #687 from CodySwannGT/chore/lisa-self-update-2.63.0
-- 19142be · 2026-05-25 · chore(deps): bump @codyswann/lisa to 2.63.0 (dogfood self-update)
-- 7649370 · 2026-05-25 · chore(release): 2.63.0 [skip ci]
-- 37b6c95 · 2026-05-25 · Merge pull request #686 from CodySwannGT/feat/wiki-ingest-automations
-- d49cc4c · 2026-05-25 · feat(wiki): add setup-automations / tear-down-automations to the wiki plugin
-- 18185bf · 2026-05-25 · chore(release): 2.62.2 [skip ci]
-- 5cf557b · 2026-05-25 · Merge pull request #685 from CodySwannGT/fix/harper-fabric-resource-ignores
-- d54d691 · 2026-05-25 · fix(harper-fabric): ignore per-resource generated files; exclude .codex from prettier
-- 3d76f4a · 2026-05-25 · chore(release): 2.62.1 [skip ci]
-- 1467072 · 2026-05-25 · Merge pull request #684 from CodySwannGT/claude/lisa-self-update-2.62.0
-- c19c921 · 2026-05-25 · chore(deps): bump @codyswann/lisa to 2.62.0 (dogfood self-update)
-- 24a6510 · 2026-05-25 · chore(release): 2.62.0 [skip ci]
-- 4996a4b · 2026-05-25 · Merge pull request #683 from CodySwannGT/claude/wonderful-vaughan-61d007
-- 6604685 · 2026-05-25 · fix(skills): address CodeRabbit review findings — doc clarity and correctness
-- 09e47e2 · 2026-05-25 · Merge branch 'main' into claude/wonderful-vaughan-61d007
-- 3818d5a · 2026-05-25 · feat(automations): add /setup-automations and /tear-down-automations skills
-- 9255222 · 2026-05-25 · feat(implement): rebase onto the ticket's target-environment branch before work; PR to that branch
-- 46fec29 · 2026-05-25 · feat(build-intake): claim-time repo scoping for multi-repo trackers
-- e902fd3 · 2026-05-25 · feat(verify-prd): self-healing FAIL — re-open to ticketed + build-ready fix tickets (never blocked)
-- ea5574c · 2026-05-25 · feat(intake): close the PRD loop — dispatch verify-prd for shipped PRDs
-- 586458a · 2026-05-25 · feat(lisa-wiki-ingest): bookend every ingest with branch sync + auto-merge PR
-- 415e4fb · 2026-05-25 · feat(project-ideation): persona-driven ideation that creates PRDs in the source
-- bb96411 · 2026-05-25 · feat(exploratory-qa): file findings as lifecycle tickets + add build_ready write-control
-- 2ff3c5f · 2026-05-25 · docs(verify-prd): correct stale command description
-- 795d5c0 · 2026-05-25 · feat(repair-intake): add /lisa:repair-intake recovery scanner
-- 09135dc · 2026-05-25 · chore(release): 2.61.1 [skip ci]
-- 803a3ec · 2026-05-25 · Merge pull request #634 from CodySwannGT/codex/632-remove-code-review-lifecycle
-- c8796ee · 2026-05-25 · Merge pull request #630 from CodySwannGT/codex/619-one-intake-item
-- 777a0b4 · 2026-05-25 · Merge remote-tracking branch 'origin/main' into codex/619-one-intake-item
-- c83a67a · 2026-05-25 · Merge remote-tracking branch 'origin/main' into codex/632-remove-code-review-lifecycle
-- d77aea0 · 2026-05-25 · Merge remote-tracking branch 'origin/main' into codex/619-one-intake-item
-- b5712d9 · 2026-05-25 · fix: recognize all github build done labels
-- b3f7a62 · 2026-05-25 · chore(release): 2.61.0 [skip ci]
-- 4cdb318 · 2026-05-25 · Merge branch 'main' into codex/632-remove-code-review-lifecycle
-- 922194c · 2026-05-25 · Merge pull request #637 from CodySwannGT/codex/614-dev-linkage
-- 4444ac5 · 2026-05-25 · Merge remote-tracking branch 'origin/main' into codex/614-dev-linkage
-- 335b7b3 · 2026-05-25 · Merge remote-tracking branch 'origin/main' into codex/632-remove-code-review-lifecycle
-- 5c8973a · 2026-05-25 · chore(release): 2.60.1 [skip ci]
-- e26aac7 · 2026-05-25 · Merge pull request #651 from CodySwannGT/codex/649-ready-parent-repair
-- ac8afc6 · 2026-05-25 · Merge remote-tracking branch 'origin/main' into codex/649-ready-parent-repair
-- 17f2f41 · 2026-05-25 · Merge remote-tracking branch 'origin/main' into codex/649-ready-parent-repair
-- 695fb96 · 2026-05-25 · chore(release): 2.60.0 [skip ci]
-- 0a91ca5 · 2026-05-25 · Merge pull request #648 from CodySwannGT/codex/591-verified-prd-role
-- 65c4298 · 2026-05-25 · Merge branch 'main' into codex/632-remove-code-review-lifecycle
-- 1fcdb18 · 2026-05-25 · Merge branch 'main' into codex/591-verified-prd-role
-- 88b0f55 · 2026-05-25 · Merge pull request #653 from CodySwannGT/codex/586-vendor-rollup-matrix
-- 74ae9a0 · 2026-05-25 · Merge pull request #680 from CodySwannGT/codex/644-github-build-blocker-holds
-- e8739e3 · 2026-05-25 · chore(release): 2.59.1 [skip ci]
-- b9a9f59 · 2026-05-25 · Merge branch 'main' into codex/632-remove-code-review-lifecycle
-- c8a8c00 · 2026-05-25 · Merge branch 'main' into codex/591-verified-prd-role
-- ef41cb4 · 2026-05-25 · Merge branch 'main' into codex/649-ready-parent-repair
-- 41b995c · 2026-05-25 · Merge branch 'main' into codex/586-vendor-rollup-matrix
-- 40ee8eb · 2026-05-25 · Merge branch 'main' into codex/644-github-build-blocker-holds
-- 505fa9a · 2026-05-24 · Merge pull request #681 from CodySwannGT/chore/lisa-self-update-2026-05-24
-- f4ca1c0 · 2026-05-24 · chore: bump self-dependency @codyswann/lisa to 2.59.0
-- c5e8f6f · 2026-05-25 · chore(release): 2.59.0 [skip ci]
-- 8d0b244 · 2026-05-25 · Merge branch 'main' into codex/632-remove-code-review-lifecycle
-- 2eea258 · 2026-05-25 · Merge branch 'main' into codex/591-verified-prd-role
-- a43c154 · 2026-05-25 · Merge branch 'main' into codex/649-ready-parent-repair
-- 138622f · 2026-05-25 · Merge branch 'main' into codex/586-vendor-rollup-matrix
-- 30f70a6 · 2026-05-25 · Merge branch 'main' into codex/644-github-build-blocker-holds
-- b01c537 · 2026-05-24 · Merge pull request #671 from CodySwannGT/codex/670-project-ideation-distribution
-- 26609b4 · 2026-05-24 · feat(github-build-intake): hold ready issues with active blockers
-- cbf5a17 · 2026-05-24 · Merge remote-tracking branch 'origin/main' into codex/670-project-ideation-distribution
-- 301f7ca · 2026-05-24 · test(codex): parse project ideation metadata
-- 64f0346 · 2026-05-24 · chore(release): 2.58.0 [skip ci]
-- 5793a1b · 2026-05-24 · Merge pull request #679 from CodySwannGT/feat/600-verify-prd-idempotent-reruns
-- e335d5b · 2026-05-24 · feat(verify-prd): idempotent reruns (no duplicate evidence, fix issues, or lifecycle labels)
-- 5a95f32 · 2026-05-24 · chore(release): 2.57.0 [skip ci]
-- 20c21be · 2026-05-24 · Merge pull request #678 from CodySwannGT/feat/599-verify-prd-fail-path
-- c967803 · 2026-05-24 · feat(verify-prd): add FAIL path (shipped->blocked + failure report + linked fix issues)
-- c256c93 · 2026-05-24 · chore(release): 2.56.0 [skip ci]
-- 6f3bc93 · 2026-05-24 · Merge pull request #677 from CodySwannGT/worktree-agent-a5bb617349cff4fb5
-- 037c308 · 2026-05-24 · test(verify-prd): codify PASS-path guarantees (spec-conformance + empirical + shipped->verified)
-- 2beb2b0 · 2026-05-24 · feat(verify-prd): add spec-conformance + empirical verification + PASS path (shipped->verified)
-- 32649d0 · 2026-05-24 · Merge remote-tracking branch 'origin/main' into codex/670-project-ideation-distribution
-- 15cb4bd · 2026-05-24 · chore(release): 2.55.0 [skip ci]
-- 2837bb1 · 2026-05-24 · Merge pull request #675 from CodySwannGT/codex/668-research-walkthrough-guidance
-- 5b99972 · 2026-05-24 · Merge origin/main into codex/668-research-walkthrough-guidance
-- de8dc2b · 2026-05-24 · feat(skills): require research-backed project ideation
-- d0c6402 · 2026-05-24 · chore(release): 2.55.0 [skip ci]
-- 2980607 · 2026-05-24 · Merge pull request #674 from CodySwannGT/worktree-agent-ac92b59497a3328e9
-- 2e5f607 · 2026-05-24 · Merge branch 'main' into worktree-agent-ac92b59497a3328e9
-- e25eee8 · 2026-05-24 · feat(skills): emit project-ideation runtime metadata prompts (#667)
-- 1c08502 · 2026-05-24 · chore(release): 2.54.0 [skip ci]
-- f719e85 · 2026-05-24 · Merge pull request #673 from CodySwannGT/codex/669-project-ideation-examples
-- b2f674e · 2026-05-24 · feat(skills): add project ideation examples
-- ffda7f7 · 2026-05-24 · chore(release): 2.53.0 [skip ci]
-- fe15d9e · 2026-05-24 · Merge pull request #672 from CodySwannGT/feat/666-project-ideation-skill
-- c244a69 · 2026-05-24 · feat(skills): add base project-ideation skill (#666)
-- e5f3f56 · 2026-05-24 · feat(skills): ship project ideation distribution check
-- bb082cd · 2026-05-24 · chore(release): 2.52.0 [skip ci]
-- 3a8908f · 2026-05-24 · Merge pull request #660 from CodySwannGT/worktree-agent-ad25e44bc5eb21d0d
-- 8b26169 · 2026-05-24 · test(verify-prd): codify scaffold + terminal-child guard invariants
-- c80e4c6 · 2026-05-24 · feat(verify-prd): scaffold command+skill with child-set read and terminal-child guard
-- d5f52b7 · 2026-05-24 · chore(release): 2.51.0 [skip ci]
-- e6256b5 · 2026-05-24 · Merge pull request #659 from CodySwannGT/feat/596-setup-confluence-verified-parent
-- 81696fa · 2026-05-24 · feat(setup-confluence): scaffold Verified parent page + dashboard tile + config persist
-- 0d6fa33 · 2026-05-24 · chore(release): 2.50.0 [skip ci]
-- cb7e0f1 · 2026-05-24 · Merge pull request #658 from CodySwannGT/feat/595-setup-notion-prd-verified-status
-- 5e1fc19 · 2026-05-24 · Merge branch 'main' into feat/595-setup-notion-prd-verified-status
-- be5b8ec · 2026-05-24 · feat(setup-notion): map/create the Verified PRD status value idempotently
-- cc9c5ca · 2026-05-24 · chore(release): 2.49.0 [skip ci]
-- ee9f765 · 2026-05-24 · Merge pull request #657 from CodySwannGT/claude/eager-gagarin-74c3e7
-- ff958ab · 2026-05-24 · Merge branch 'main' into claude/eager-gagarin-74c3e7
-- e55eab5 · 2026-05-24 · Merge pull request #656 from CodySwannGT/worktree-agent-a6e1c9abec797a899
-- 38a8b43 · 2026-05-24 · feat(hooks): accept Codex commit attribution in commit-msg guardrail
-- 7152bd1 · 2026-05-24 · feat(setup-linear): scaffold prd-verified PRD project label idempotently
-- faa00ff · 2026-05-24 · chore(release): 2.48.0 [skip ci]
-- b11b368 · 2026-05-24 · Merge pull request #655 from CodySwannGT/feat/593-setup-github-prd-verified-label
-- d17f393 · 2026-05-24 · feat(setup-github): scaffold prd-verified PRD label idempotently
-- 7950a82 · 2026-05-24 · chore(release): 2.47.1 [skip ci]
-- cff148e · 2026-05-24 · Merge pull request #654 from CodySwannGT/worktree-agent-a4f9edadae85bba90
-- c7c8374 · 2026-05-24 · docs(prd-lifecycle): add verified terminal state + verify vs verify-prd distinction
-- 68a563a · 2026-05-24 · docs: add PRD rollup vendor matrix
-- 53424de · 2026-05-24 · chore(release): 2.47.0 [skip ci]
-- 211416d · 2026-05-24 · Merge pull request #652 from CodySwannGT/feat/585-idempotency-hardening
-- 815ad09 · 2026-05-24 · feat(prd-lifecycle): harden idempotency with match-by-ref-not-title (#585)
-- 8a96ba8 · 2026-05-24 · fix(github-build-intake): repair ready containers
-- bbad7f5 · 2026-05-24 · chore(release): 2.46.0 [skip ci]
-- 65084c3 · 2026-05-24 · Merge pull request #650 from CodySwannGT/worktree-agent-a31fbedccc9d2cf98
-- 22d8a3d · 2026-05-24 · feat(skills): propagate PRD closure rollup to linear/confluence/notion intake
-- 5bccb29 · 2026-05-24 · feat: add verified PRD lifecycle role
-- 22a59f5 · 2026-05-24 · chore(release): 2.45.0 [skip ci]
-- 168b46a · 2026-05-24 · Merge pull request #647 from CodySwannGT/worktree-agent-a263bd29f686928c3
-- fe49882 · 2026-05-24 · Merge branch 'main' into worktree-agent-a263bd29f686928c3
-- 2d6f193 · 2026-05-24 · feat(github-prd-intake): add config-gated PRD closure rollup phase
-- d12ad6e · 2026-05-24 · chore(release): 2.44.0 [skip ci]
-- 1776d03 · 2026-05-24 · Merge pull request #646 from CodySwannGT/worktree-agent-addc48fc4c75f4a5f
-- 78ca342 · 2026-05-24 · feat(prd-backlink): always-written, machine-readable generated-work section
-- 40d2acc · 2026-05-24 · chore(release): 2.43.0 [skip ci]
-- 695289d · 2026-05-24 · Merge pull request #645 from CodySwannGT/worktree-agent-a10300c7da0dcf4b4
-- 9448170 · 2026-05-24 · feat(prd-backlink): attach generated top-level work via Linear/JIRA native parent
-- df4da78 · 2026-05-24 · chore(release): 2.42.0 [skip ci]
-- 0dac016 · 2026-05-24 · Merge pull request #643 from CodySwannGT/worktree-agent-a597bc34e6ce06992
-- 6e6eff0 · 2026-05-24 · Merge branch 'main' into worktree-agent-a597bc34e6ce06992
-- 69bf36b · 2026-05-24 · feat(prd-backlink): link generated Epic as native GitHub sub-issue of the PRD
-- bac3cfd · 2026-05-24 · chore(release): 2.41.1 [skip ci]
-- dd20885 · 2026-05-24 · Merge pull request #642 from CodySwannGT/codex/612-harden-git-submit-pr-merge
-- 724ae41 · 2026-05-24 · Merge branch 'main' into codex/612-harden-git-submit-pr-merge
-- 130bcc1 · 2026-05-24 · chore(release): 2.41.0 [skip ci]
-- b352505 · 2026-05-24 · fix: harden git submit pr merge loop
-- 15dcf3b · 2026-05-24 · Merge pull request #641 from CodySwannGT/worktree-agent-a4eb9695af0554a1b
-- c68d04c · 2026-05-24 · Merge branch 'main' into worktree-agent-a4eb9695af0554a1b
-- e56acff · 2026-05-24 · chore(release): 2.40.0 [skip ci]
-- c0c8647 · 2026-05-24 · Merge branch 'main' into worktree-agent-a4eb9695af0554a1b
-- 2940335 · 2026-05-24 · feat(rules): add vendor-neutral prd-lifecycle-rollup rule and wire config schema
-- 73f9f2d · 2026-05-24 · Merge pull request #640 from CodySwannGT/codex/613-terminal-native-closure
-- 19385eb · 2026-05-24 · feat: close terminal work items natively
-- 516cf44 · 2026-05-24 · chore(release): 2.39.4 [skip ci]
-- e9ed280 · 2026-05-24 · Merge pull request #639 from CodySwannGT/feat/552-committed-openai-yaml-in-sync
-- 7c07336 · 2026-05-24 · test(codex): codify committed openai.yaml stays in sync with source (#552)
-- abf91b8 · 2026-05-24 · chore(release): 2.39.3 [skip ci]
-- 9019321 · 2026-05-24 · Merge pull request #638 from CodySwannGT/worktree-agent-a86c627f4385f4c6f
-- d7844b7 · 2026-05-24 · test(codex): codify build:plugins byte-stability regression (#551)
-- 289257b · 2026-05-24 · chore(release): 2.39.2 [skip ci]
-- 13eaa0b · 2026-05-24 · Merge pull request #636 from CodySwannGT/feat/550-source-authored-openai-yaml-regression
-- dd5a4e0 · 2026-05-24 · feat: link build PRs to source issues
-- 1311da0 · 2026-05-24 · Merge branch 'main' into feat/550-source-authored-openai-yaml-regression
-- 0f3c95f · 2026-05-24 · test(codex): codify source-authored openai.yaml survives build (#550)
-- df9b72b · 2026-05-24 · chore(release): 2.39.1 [skip ci]
-- 354966d · 2026-05-24 · fix: remove github code-review build hop
-- b987d2d · 2026-05-24 · Merge pull request #635 from CodySwannGT/worktree-agent-a4b59cd17cde82522
-- f5a9779 · 2026-05-24 · Merge branch 'main' into worktree-agent-a4b59cd17cde82522
-- 6bb62ed · 2026-05-24 · test(codex): codify skills-less no-op and untouched commands/ (#549)
-- 4346737 · 2026-05-24 · chore(release): 2.39.0 [skip ci]
-- 21b2609 · 2026-05-24 · Merge pull request #633 from CodySwannGT/feat/issue-548-derive-skill-interface
-- 925d625 · 2026-05-24 · feat(codex): derive humanized display_name/short_description/default_prompt from frontmatter (#548)
-- e899b29 · 2026-05-24 · chore(plugins): refresh intake openai agent artifacts
-- e642dff · 2026-05-24 · Merge branch 'main' into codex/619-one-intake-item
-- b7e0fbc · 2026-05-24 · fix(intake): process one ready item per cycle
-- 5e1fc8b · 2026-05-24 · chore(release): 2.38.0 [skip ci]
-- 5edec7e · 2026-05-24 · Merge pull request #629 from CodySwannGT/feat/issue-547-walk-skills-emit-openai-yaml
-- c095a24 · 2026-05-24 · feat(codex): walk skills and emit per-skill agents/openai.yaml (#547)
-- 662185e · 2026-05-24 · chore(release): 2.37.0 [skip ci]
-- bc56f94 · 2026-05-24 · Merge pull request #628 from CodySwannGT/feat/issue-546-openai-yaml-serializer
-- 0f050b4 · 2026-05-24 · feat(codex): add deterministic openai.yaml serializer to artifact generator
-- 3d1088a · 2026-05-24 · chore(release): 2.36.0 [skip ci]
-- 7f8f225 · 2026-05-24 · Merge pull request #627 from CodySwannGT/feat/issue-545-skill-frontmatter-parser
-- cd91672 · 2026-05-24 · feat(codex): add SKILL.md frontmatter parser to artifact generator
-- 106e836 · 2026-05-24 · chore(release): 2.35.0 [skip ci]
-- 3cce34e · 2026-05-24 · Merge pull request #626 from CodySwannGT/feat/543-leaf-only-jira-linear-tracker-build-intake
-- 153cdb9 · 2026-05-24 · Merge branch 'main' into feat/543-leaf-only-jira-linear-tracker-build-intake
-- 2abe983 · 2026-05-24 · feat(skills): mirror leaf-only claim gate into jira/linear build-intake + tracker shim
-- c167cf5 · 2026-05-24 · chore(release): 2.34.0 [skip ci]
-- 1d5ee26 · 2026-05-24 · Merge pull request #625 from CodySwannGT/feat/register-lisa-wiki-plugin
-- 916fb75 · 2026-05-24 · Merge branch 'main' into feat/register-lisa-wiki-plugin
-- 5f4442d · 2026-05-24 · Merge pull request #623 from CodySwannGT/worktree-agent-af03302593e7da817
-- 192f0ef · 2026-05-24 · Merge branch 'main' into worktree-agent-af03302593e7da817
-- f177d9c · 2026-05-24 · feat(codex): register lisa-wiki plugin in the marketplace installer
-- be97e44 · 2026-05-24 · chore(release): 2.33.2 [skip ci]
-- 209ca1f · 2026-05-24 · Merge pull request #624 from CodySwannGT/codex/remove-nightly-jira-triage
-- 2ec05c5 · 2026-05-24 · chore: stop templating nightly Jira triage workflow
-- 79d784b · 2026-05-24 · chore(release): 2.33.1 [skip ci]
-- e045ecf · 2026-05-24 · Merge pull request #622 from CodySwannGT/fix/wire-setup-deploy-key-script
-- 5adb535 · 2026-05-24 · Merge branch 'main' into fix/wire-setup-deploy-key-script
-- fb1ef4c · 2026-05-24 · feat(validators): mirror leaf-only build-ready gate into jira/linear validators
-- df1208a · 2026-05-24 · fix: wire setup:deploy-key script into host project package.json
-- 82c2a23 · 2026-05-24 · chore(release): 2.33.0 [skip ci]
+- 362e4bf1 · 2026-05-25 · chore(release): 2.74.0 [skip ci]
+- 25b55e57 · 2026-05-25 · Merge pull request #740 from CodySwannGT/codex/issue-731-github-build-intake
+- 4625f231 · 2026-05-25 · feat: record lifecycle usage on research plan and debrief artifacts
+- 9a23f053 · 2026-05-25 · chore(release): 2.73.0 [skip ci]
+- dc6e22c9 · 2026-05-25 · Merge pull request #739 from CodySwannGT/codex/issue-730-github-build-intake
+- 64655375 · 2026-05-25 · fix: align writer preservation tests
+- 22cee0c4 · 2026-05-25 · feat: preserve usage ledgers in writers
+- 15bcaf6a · 2026-05-25 · chore(release): 2.72.0 [skip ci]
+- b2de29cc · 2026-05-25 · Merge pull request #738 from CodySwannGT/codex/issue-729-github-build-intake
+- eaa69068 · 2026-05-25 · feat: add usage-accounting skill contract
+- 60666351 · 2026-05-25 · chore(release): 2.71.0 [skip ci]
+- 81eea1c0 · 2026-05-25 · Merge pull request #737 from CodySwannGT/codex/issue-728-github-build-intake
+- 070bc05b · 2026-05-25 · feat(utils): add idempotent Lisa usage section utility
+- dc1b43c9 · 2026-05-25 · chore(release): 2.70.0 [skip ci]
+- e2236607 · 2026-05-25 · Merge pull request #736 from CodySwannGT/codex/issue-727-github-build-intake
+- 5e07aa70 · 2026-05-25 · feat: add usage accounting contract
+- 7b1748c5 · 2026-05-25 · chore(release): 2.69.2 [skip ci]
+- 53d9e13d · 2026-05-25 · Merge pull request #716 from CodySwannGT/codex/issue-705-github-build-intake
+- f487ae19 · 2026-05-25 · Merge branch 'main' into codex/issue-705-github-build-intake
+- caa31308 · 2026-05-25 · docs(setup-github): validate project coordination setup
+- 2d9407ec · 2026-05-25 · chore(release): 2.69.1 [skip ci]
+- d856fcee · 2026-05-25 · Merge pull request #714 from CodySwannGT/codex/issue-703-multi-repo-decomposition
+- 432011f6 · 2026-05-25 · test: extend task-decomposition assertions to cover both plugin roots
+- d7150e5a · 2026-05-25 · docs(github): preserve multi-repo containers
+- f540cefe · 2026-05-25 · chore(release): 2.69.0 [skip ci]
+- baf550e6 · 2026-05-25 · Merge pull request #713 from CodySwannGT/codex/issue-702-pr-project-membership
+- aa4d5563 · 2026-05-25 · feat(github): coordinate linked PR project membership
+- 3e9a0b28 · 2026-05-25 · chore(release): 2.68.0 [skip ci]
+- 1f93fd5a · 2026-05-25 · Merge pull request #712 from CodySwannGT/codex/issue-701-github-writer-project
+- ce4a5d2f · 2026-05-25 · feat(github): coordinate writer project membership
+- 8e8e73c5 · 2026-05-25 · chore(release): 2.67.0 [skip ci]
+- 65858bfd · 2026-05-25 · Merge pull request #711 from CodySwannGT/codex/issue-700-projectv2-membership
+- d5525f72 · 2026-05-25 · feat(github): add project v2 utility contract
+- 04770a80 · 2026-05-25 · chore(release): 2.66.0 [skip ci]
+- c0a6bd23 · 2026-05-25 · Merge pull request #710 from CodySwannGT/codex/issue-699-project-validation
+- 4a5cedd9 · 2026-05-25 · feat(github): document project validation modes
+- 8689a2a0 · 2026-05-25 · chore(release): 2.65.0 [skip ci]
+- 5aa69014 · 2026-05-25 · Merge pull request #709 from CodySwannGT/codex/issue-698-github-project-config
+- 5606de0c · 2026-05-25 · feat(config): add GitHub ProjectV2 coordination docs
+- f8e6c7e0 · 2026-05-25 · chore(release): 2.64.0 [skip ci]
+- 04bafafa · 2026-05-25 · Merge pull request #691 from CodySwannGT/codex/issue-689-intake-assignee-filter
+- 100e6b47 · 2026-05-25 · test(intake): add generated-plugin parity check for config-resolution docs
+- e16152c6 · 2026-05-25 · Merge branch 'main' into codex/issue-689-intake-assignee-filter
+- c32e3f31 · 2026-05-25 · feat(intake): add local assignee queue filter
+- 4ef3cda0 · 2026-05-25 · chore(release): 2.63.2 [skip ci]
+- c83cb7bc · 2026-05-25 · Merge pull request #688 from CodySwannGT/wiki/ingest-2026-05-25
+- 40a1a1d9 · 2026-05-25 · docs(wiki): ingest git and roles connectors
