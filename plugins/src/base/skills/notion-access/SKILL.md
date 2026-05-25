@@ -165,7 +165,7 @@ Substrate columns: try the column matching `$substrate` first. If that column is
 |---|---|---|
 | **Pages** | | |
 | `read-page id:<I>` | `mcp__claude_ai_Notion__notion-fetch` | `GET /v1/pages/<I>` |
-| `create-page parent_database_id:<D> properties:<P> [children:<arr>]` | `mcp__claude_ai_Notion__notion-create-pages` | `POST /v1/pages` body `{ "parent": { "database_id": "<D>" }, "properties": <P>, "children": <arr> }` (children omitted if not provided) |
+| `create-page parent_database_id:<D> properties:<P> [children:<arr>]` | `mcp__claude_ai_Notion__notion-create-pages` | `POST /v1/pages` body `{ "parent": { "database_id": "<D>" }, "properties": <P>, "children": <arr?> }` |
 | `write-page payload:<P>` | `mcp__claude_ai_Notion__notion-update-page` | `PATCH /v1/pages/<I>` body `{ "properties": {...}, "archived": true/false }` |
 | `archive-page id:<I>` | `mcp__claude_ai_Notion__notion-update-page` (with `archived: true`) | `PATCH /v1/pages/<I>` body `{ "archived": true }` |
 | `append-blocks page_id:<P> children:<arr>` | (no direct equivalent) | `PATCH /v1/blocks/<P>/children` body `{ "children": <arr> }` |
