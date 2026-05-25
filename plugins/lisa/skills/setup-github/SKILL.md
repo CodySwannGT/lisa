@@ -154,6 +154,24 @@ if [ -n "$LABEL_OVERRIDES_JSON" ] && [ "$LABEL_OVERRIDES_JSON" != "{}" ]; then
 fi
 ```
 
+If this project later enables shared GitHub Project coordination, store it under the same `github` block as:
+
+```json
+"github": {
+  "org": "<tracked-repo-owner>",
+  "repo": "<tracked-repo>",
+  "projects": {
+    "v2": {
+      "owner": { "kind": "organization", "slug": "<tracked-repo-owner>" },
+      "number": 7,
+      "required": false
+    }
+  }
+}
+```
+
+That block is optional and coordination-only: real issues and pull requests stay the durable source of truth. In v1, `github.projects.v2.owner.slug` MUST match the tracked repository namespace (`github.org`) — user-owned repos use a user-owned Project, org-owned repos use an org-owned Project, and cross-namespace Project ownership is rejected. `required` defaults to `false`, meaning Project membership is best-effort unless a later setup/doctor flow explicitly opts into strict mode.
+
 No secrets go in config — the GitHub token lives in `gh`'s own store (`~/.config/gh/`) or the `GH_TOKEN` env var, never in `.lisa.config.json`.
 
 ### Step 5 — Offer to set top-level `tracker` / `source`
