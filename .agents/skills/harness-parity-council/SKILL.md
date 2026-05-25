@@ -55,6 +55,8 @@ Adapter implementation details, safe flags, timeout handling, auth detection, an
 
 The current adapter source of truth lives in `./runtime-adapters.mjs`. Run `node .agents/skills/harness-parity-council/runtime-adapters.mjs` to print the resolved command slots, read-only-safe base flags, timeout budget, and local help/version probe results for each runtime.
 
+The first-round consultation source of truth lives in `./first-round.mjs`. Run `node .agents/skills/harness-parity-council/first-round.mjs "<topic>"` to emit the structured runtime prompt, normalized first-round capture shape, and Claude-facing synthesis inputs for the currently available runtimes.
+
 ## Operating Rules
 
 - Default to read-only advisory execution.

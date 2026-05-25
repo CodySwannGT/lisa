@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.82.0](https://github.com/CodySwannGT/lisa/compare/vv2.81.0...v2.82.0) (2026-05-25)
+
+
+### Features
+
+* **skills:** add council runtime adapter planning ([478cff7](https://github.com/CodySwannGT/lisa/commit/478cff7b79a53d4f9e255a828bab808db7fb6e18))
+
 ## [2.81.0](https://github.com/CodySwannGT/lisa/compare/vv2.80.1...v2.81.0) (2026-05-25)
 
 
