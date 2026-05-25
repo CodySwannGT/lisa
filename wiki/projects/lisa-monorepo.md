@@ -20,19 +20,19 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-25` from `origin/main`
-- HEAD at 2026-05-25 incremental ingest: `45c1d709337ba550d4e589fab1ea1f6ad6642cc3`
-- Current package version: `2.63.1`
-- Total commits on HEAD: 1841
-- Total merged PRs captured from GitHub: 518
-- Merged PRs since the 2026-05-14 baseline ingestion: 90
+- Ingest branch: `wiki/ingest-2026-05-25-2` from `origin/main`
+- HEAD at 2026-05-25 incremental ingest: `362e4bf1248d47e406b19d56f2d3d8b27e7740c9`
+- Current package version: `2.74.0`
+- Total commits on HEAD: 1888
+- Latest merged PR captured in the incremental git snapshot: `#740`
+- New commits since the previous incremental git cursor: `47`
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Wiki operations now include native automation setup and teardown flows, and the ingest workflow itself now standardizes a pre-ingest branch sync plus PR auto-merge.
-- PRD lifecycle coverage expanded with a durable `verified` state, `verify-prd` PASS and FAIL paths, idempotent reruns, and broader rollup propagation across trackers.
-- Build intake behavior hardened around blocker holds, ready-container repair, repo-scoped claiming for multi-repo trackers, and implementation rebases to the ticket's target-environment branch.
-- Codex artifact generation and distribution checks continued to expand across skill metadata, `openai.yaml` emission, byte-stability tests, and plugin registration/distribution safeguards.
+- Wiki operations now include native automation setup and teardown flows, and the first wiki ingest PR has merged back to `main` as part of the standing branch-sync and auto-merge workflow.
+- GitHub project coordination coverage expanded across project configuration, validation modes, project-v2 utility contracts, writer coordination, linked-PR membership, and multi-repo container preservation.
+- Usage accounting coverage landed across shared contract docs, idempotent utilities, writer preservation, and research-plan plus debrief usage ledgers.
+- Intake behavior added repo-local assignee queue filtering while release automation continued to publish rapid follow-on versions through `2.74.0`.
 
 ## Workspace Packages
 
