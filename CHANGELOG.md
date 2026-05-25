@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.67.0](https://github.com/CodySwannGT/lisa/compare/vv2.66.0...v2.67.0) (2026-05-25)
+
+
+### Features
+
+* **github:** add project v2 utility contract ([d5525f7](https://github.com/CodySwannGT/lisa/commit/d5525f72d164e426cc69e85469108bc954b2f9e3))
+
 ## [2.66.0](https://github.com/CodySwannGT/lisa/compare/vv2.65.0...v2.66.0) (2026-05-25)
 
 
