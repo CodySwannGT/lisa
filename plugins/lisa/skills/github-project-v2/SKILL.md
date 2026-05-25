@@ -1,13 +1,13 @@
 ---
 name: github-project-v2
-description: "Shared GitHub ProjectV2 coordination utility. Every GitHub writer or evidence flow that needs Project membership MUST delegate through this skill instead of inlining GraphQL. Resolves the configured ProjectV2 id from `github.projects.v2`, validates namespace + access, adds Issue or Pull Request node ids to the Project, optionally updates Project field values, and returns exact failures with best-effort vs required-mode branching."
+description: "Shared GitHub ProjectV2 coordination utility. Every GitHub writer or linked pull request flow that needs Project membership MUST delegate through this skill instead of inlining GraphQL. Resolves the configured ProjectV2 id from `github.projects.v2`, validates namespace + access, adds Issue or Pull Request node ids to the Project, optionally updates Project field values, and returns exact failures with best-effort vs required-mode branching."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
 # GitHub ProjectV2: $ARGUMENTS
 
 Single chokepoint for GitHub ProjectV2 coordination. Caller skills (`github-write-prd`,
-`github-write-issue`, linked-PR / evidence flows, later doctor/setup checks) MUST go through
+`github-write-issue`, `git-submit-pr`, later linked-PR flows, later doctor/setup checks) MUST go through
 this skill rather than duplicating `gh api graphql` calls.
 
 The utility never invents policy. It applies the config + validation contract already defined in
