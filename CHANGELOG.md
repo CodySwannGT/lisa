@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.61.0](https://github.com/CodySwannGT/lisa/compare/vv2.60.1...v2.61.0) (2026-05-25)
+
+
+### Features
+
+* link build PRs to source issues ([dd5a4e0](https://github.com/CodySwannGT/lisa/commit/dd5a4e080865e1ffd4f593bf42f6466d73e25b93))
+
 ### [2.60.1](https://github.com/CodySwannGT/lisa/compare/vv2.60.0...v2.60.1) (2026-05-25)
 
 
