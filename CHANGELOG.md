@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.59.0](https://github.com/CodySwannGT/lisa/compare/vv2.58.0...v2.59.0) (2026-05-25)
+
+
+### Features
+
+* **skills:** ship project ideation distribution check ([e5f3f56](https://github.com/CodySwannGT/lisa/commit/e5f3f56bd1f0a31775d927fd250b0d0c9a5b2421))
+
 ## [2.58.0](https://github.com/CodySwannGT/lisa/compare/vv2.57.0...v2.58.0) (2026-05-24)
 
 
