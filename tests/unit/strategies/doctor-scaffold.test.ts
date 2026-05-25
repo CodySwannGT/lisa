@@ -27,6 +27,7 @@ const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 
 const COMMAND_REL = "commands/doctor.md";
 const SKILL_REL = "skills/doctor/SKILL.md";
+const SCRIPT_REL = "scripts/doctor-report.mjs";
 
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
@@ -35,10 +36,12 @@ describe("doctor scaffold (#749)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     const commandPath = path.resolve(root, COMMAND_REL);
     const skillPath = path.resolve(root, SKILL_REL);
+    const scriptPath = path.resolve(root, SCRIPT_REL);
 
-    it("ships both the command and the skill in this plugin root", () => {
+    it("ships the command, skill, and shared report script in this plugin root", () => {
       expect(existsSync(commandPath)).toBe(true);
       expect(existsSync(skillPath)).toBe(true);
+      expect(existsSync(scriptPath)).toBe(true);
     });
 
     describe(COMMAND_REL, () => {
@@ -89,10 +92,34 @@ describe("doctor scaffold (#749)", () => {
         expect(skill).toMatch(/The verdict ladder is:/);
       });
 
+      it("documents the shared grouped report rendering contract", () => {
+        expect(skill).toContain("scripts/doctor-report.mjs");
+        expect(skill).toMatch(/Overall verdict: <VERDICT>/);
+        expect(skill).toMatch(/Counts:/);
+        expect(skill).toMatch(/Observed:/);
+        expect(skill).toMatch(/Remediation:/);
+      });
+
       it("reuses existing contracts for GitHub Project and wiki checks", () => {
         expect(skill).toContain("config-resolution");
         expect(skill).toContain("github-project-v2");
         expect(skill).toContain("lisa-wiki-doctor");
+      });
+    });
+
+    describe(SCRIPT_REL, () => {
+      const script = read(root, SCRIPT_REL);
+
+      it("exports the verdict helpers for later doctor checks", () => {
+        expect(script).toContain("computeDoctorVerdict");
+        expect(script).toContain("countDoctorStatuses");
+        expect(script).toContain("renderDoctorReport");
+      });
+
+      it("keeps observed facts separate from remediation advice", () => {
+        expect(script).toMatch(/Observed:/);
+        expect(script).toMatch(/Remediation:/);
+        expect(script).toContain("Overall verdict:");
       });
     });
   });

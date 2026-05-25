@@ -1,0 +1,173 @@
+/**
+ * Regression coverage for the shared doctor report renderer.
+ *
+ * Issue #750 (Story #745, PRD #741): doctor needs a concrete grouped output
+ * contract rather than prose-only instructions. This suite proves the shared
+ * renderer emits grouped PASS/WARN/FAIL/SKIP checks, keeps observed facts
+ * separate from remediation text, and computes the overall verdict ladder.
+ * @module tests/unit/strategies/doctor-report-rendering
+ */
+import { describe, expect, it } from "vitest";
+
+import {
+  computeDoctorVerdict,
+  countDoctorStatuses,
+  renderDoctorReport,
+} from "../../../plugins/src/base/scripts/doctor-report.mjs";
+
+describe("doctor report rendering (#750)", () => {
+  it("renders grouped sections with PASS, WARN, FAIL, and SKIP checks", () => {
+    const report = renderDoctorReport({
+      generatedAt: "2026-05-25T22:30:00.000Z",
+      groups: [
+        {
+          id: "1",
+          title: "Project detection and runtime basics",
+          checks: [
+            {
+              id: "repo-root",
+              status: "PASS",
+              summary: "repository root resolved",
+              observed:
+                "package.json and .git are present at the working root.",
+            },
+            {
+              id: "codex-runtime",
+              status: "WARN",
+              summary:
+                "Codex runtime detected without downstream plugin install",
+              observed: "The repo exposes source plugin assets only.",
+              remediation:
+                "Run `bun run build:plugins` before downstream smoke checks.",
+            },
+          ],
+        },
+        {
+          id: "2",
+          title: "Lisa config readiness",
+          checks: [
+            {
+              id: "tracker-config",
+              status: "FAIL",
+              summary: "configured tracker keys are incomplete",
+              observed: "tracker=github but github.repo is missing.",
+              remediation:
+                "Add `github.repo` to .lisa.config.json or .lisa.config.local.json.",
+            },
+          ],
+        },
+        {
+          id: "3",
+          title: "Optional wiki delegation",
+          checks: [
+            {
+              id: "wiki-checks",
+              status: "SKIP",
+              summary: "no wiki/ directory detected",
+              observed:
+                "This repository does not carry the wiki plugin surface.",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(report.verdict).toBe("NOT_READY");
+    expect(report.counts).toEqual({ PASS: 1, WARN: 1, FAIL: 1, SKIP: 1 });
+    expect(report.text).toContain("Overall verdict: NOT_READY");
+    expect(report.text).toContain("Counts: 1 PASS, 1 WARN, 1 FAIL, 1 SKIP");
+    expect(report.text).toContain("1. Project detection and runtime basics");
+    expect(report.text).toContain("- PASS repo-root: repository root resolved");
+    expect(report.text).toContain(
+      "- WARN codex-runtime: Codex runtime detected without downstream plugin install"
+    );
+    expect(report.text).toContain(
+      "- FAIL tracker-config: configured tracker keys are incomplete"
+    );
+    expect(report.text).toContain(
+      "- SKIP wiki-checks: no wiki/ directory detected"
+    );
+    expect(report.text).toContain(
+      "Observed: tracker=github but github.repo is missing."
+    );
+    expect(report.text).toContain(
+      "Remediation: Add `github.repo` to .lisa.config.json or .lisa.config.local.json."
+    );
+  });
+
+  it("returns READY when there are no warnings or failures", () => {
+    expect(
+      computeDoctorVerdict([
+        {
+          id: "1",
+          title: "Runtime distribution surfaces",
+          checks: [
+            {
+              id: "doctor-command",
+              status: "PASS",
+              summary: "doctor command surface is installed",
+            },
+            {
+              id: "doctor-skill",
+              status: "SKIP",
+              summary: "runtime-specific subagent check not applicable here",
+            },
+          ],
+        },
+      ])
+    ).toBe("READY");
+  });
+
+  it("returns READY_WITH_WARNINGS when warnings exist without failures", () => {
+    expect(
+      computeDoctorVerdict([
+        {
+          id: "1",
+          title: "Automation readiness",
+          checks: [
+            {
+              id: "schedule-surface",
+              status: "WARN",
+              summary: "scheduler runtime not observable from this shell",
+            },
+          ],
+        },
+      ])
+    ).toBe("READY_WITH_WARNINGS");
+  });
+
+  it("counts statuses across all groups", () => {
+    expect(
+      countDoctorStatuses([
+        {
+          id: "1",
+          title: "A",
+          checks: [
+            { id: "one", status: "PASS", summary: "ok" },
+            { id: "two", status: "WARN", summary: "warn" },
+          ],
+        },
+        {
+          id: "2",
+          title: "B",
+          checks: [
+            { id: "three", status: "FAIL", summary: "fail" },
+            { id: "four", status: "SKIP", summary: "skip" },
+          ],
+        },
+      ])
+    ).toEqual({ PASS: 1, WARN: 1, FAIL: 1, SKIP: 1 });
+  });
+
+  it("renders empty groups as grouped skips instead of omitting them", () => {
+    const report = renderDoctorReport({
+      groups: [{ id: "7", title: "Optional wiki delegation", checks: [] }],
+    });
+
+    expect(report.verdict).toBe("READY");
+    expect(report.text).toContain("7. Optional wiki delegation");
+    expect(report.text).toContain(
+      "- SKIP empty-group: no checks registered yet"
+    );
+  });
+});
