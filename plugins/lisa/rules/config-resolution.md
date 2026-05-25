@@ -64,6 +64,16 @@ fi
   "github": {
     "org": "<org-or-user>",
     "repo": "<repo>",
+    "projects": {
+      "v2": {
+        "owner": {
+          "kind": "organization",
+          "slug": "<org-or-user>"
+        },
+        "number": 7,
+        "required": false
+      }
+    },
     "labels": {
       "build": {
         "ready":   "status:ready",
@@ -170,8 +180,14 @@ Each vendor section is **conditionally required**: required only when that vendo
 |-------|---------------|-------|
 | `github.org` | `tracker = "github"` or `source = "github"` or any `github-*` skill is invoked | GitHub organization or user name. |
 | `github.repo` | same as above | GitHub repository name. |
+| `github.projects.v2.owner.kind` | GitHub Project coordination is enabled | Owner type for the shared ProjectV2. Supported values are `organization` and `user`. |
+| `github.projects.v2.owner.slug` | GitHub Project coordination is enabled | Owner login for the shared ProjectV2. In v1 it MUST match the tracked repository namespace (`github.org`); cross-namespace coordination is rejected. |
+| `github.projects.v2.number` | GitHub Project coordination is enabled | Human-facing ProjectV2 number from the GitHub UI / URL. Later utilities resolve the opaque node id from this owner + number pair. |
+| `github.projects.v2.required` | no | Coordination strictness flag. Default `false` keeps Project membership best-effort; `true` makes Project membership failures block the write. |
 
 When `tracker = "github"` AND `source = "github"` (self-host), both reads and writes hit the same GitHub repo. Label namespaces are kept separate so the two flows don't collide — see "Self-host edge case" below.
+
+`github.projects.v2` is optional. When absent, GitHub issue / PR writes remain repository-local exactly as they work today. When present, the shared Project is a coordination view layered on top of real issues and pull requests; it does not replace lifecycle labels, comments, dependencies, or native issue / PR state as Lisa's durable source of truth.
 
 #### `notion`
 
