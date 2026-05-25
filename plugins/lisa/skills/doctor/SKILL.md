@@ -69,6 +69,41 @@ as applicable to the current repo:
 
 If a check family is not applicable to the current repo, report `SKIP` with the reason.
 
+### Minimum config-readiness checks
+
+The Lisa config group is not just "does a file exist?" Doctor must audit the config contract in
+this order:
+
+1. **Presence + parseability**
+   - `FAIL` when `.lisa.config.json` is missing, empty, or invalid JSON.
+   - Read `.lisa.config.local.json` only when present; if present but invalid JSON, `FAIL`.
+2. **Merged effective config**
+   - Resolve every key with the same per-key local-overrides-global semantics documented by
+     `config-resolution`. Doctor must describe findings against the effective merged value, not by
+     pretending one file fully replaces the other.
+3. **Required top-level dispatch keys**
+   - `FAIL` when merged `tracker` is missing or is not one of `jira`, `github`, or `linear`.
+   - `FAIL` when merged `source` is present but is not one of `notion`, `confluence`, `linear`,
+     `github`, or `jira`.
+4. **Vendor required-key audit**
+   - `FAIL` when the configured tracker/source points at a vendor whose required keys are absent
+     after merge. Examples: `tracker=github` requires `github.org` + `github.repo`;
+     `tracker=jira` requires `atlassian.cloudId` + `jira.project`; `source=notion` requires
+     `notion.workspaceId` + `notion.prdDatabaseId`.
+   - Reuse the `config-resolution` vendor tables rather than inventing a second required-key list.
+5. **Local-vs-committed locality audit**
+   - `WARN` when developer-specific fields appear in committed config. At minimum enforce the
+     documented local-only examples: `atlassian.email`, `intake.assignee`, and
+     `jira.verified_workflow_hash`.
+   - `WARN` when project-wide shared fields exist only in `.lisa.config.local.json` and are absent
+     from `.lisa.config.json`, because the current machine may work while the repository remains
+     under-configured for teammates and automations. Examples include `tracker`, `source`,
+     `github.org`, `github.repo`, `atlassian.cloudId`, `atlassian.site`, `jira.project`,
+     `linear.workspace`, `linear.teamKey`, and `deploy.branches`.
+
+Locality findings are advisory unless the merged config is unusable. Missing shared keys after the
+merge are `FAIL`; shared keys that exist only locally are `WARN`.
+
 ## Output contract
 
 The final report must:
