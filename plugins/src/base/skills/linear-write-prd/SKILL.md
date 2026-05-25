@@ -33,6 +33,7 @@ PRD_VERIFIED=$(read_g '.linear.labels.prd.verified' 'prd-verified')
 ALL_PRD_LABELS=("$PRD_DRAFT" "$PRD_READY" "$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")
 PROGRESSED=("$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")
 [ -z "$WORKSPACE" ] && { echo "Error: linear.workspace not set in .lisa.config.json."; exit 1; }
+[ -z "$TEAM" ] && { echo "Error: linear.teamKey not set in .lisa.config.json. A team key is required to create or scope a Linear Project."; exit 1; }
 ```
 
 Resolve the target project-label from `initial_role`: `ready` → `$PRD_READY`, else `$PRD_DRAFT`.
