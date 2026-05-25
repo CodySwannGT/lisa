@@ -1,6 +1,6 @@
 ---
 name: prd-source-write
-description: "Vendor-neutral wrapper for creating (or idempotently updating) a PRD in the configured PRD source. The PRD-side sibling of lisa:tracker-write. Reads `source` from .lisa.config.json and dispatches to lisa:notion-write-prd, lisa:confluence-write-prd, lisa:github-write-prd, or lisa:linear-write-prd. Callers (notably lisa:research) MUST invoke this skill instead of a vendor PRD writer directly — that is what makes the PRD source switchable per project. Accepts an `initial_role` of `draft` (default) or `ready` so a freshly created PRD either waits for human promotion or is immediately picked up by lisa:intake; and a stable dedupe marker so re-runs reference the existing PRD instead of creating a duplicate. The PRD lives in the source — there is no separate document artifact."
+description: "Vendor-neutral wrapper for creating (or idempotently updating) a PRD in the configured PRD source. The PRD-side sibling of lisa:tracker-write. Resolves `source` from .lisa.config.local.json first (then .lisa.config.json) and dispatches to lisa:notion-write-prd, lisa:confluence-write-prd, lisa:github-write-prd, or lisa:linear-write-prd. Callers (notably lisa:research) MUST invoke this skill instead of a vendor PRD writer directly — that is what makes the PRD source switchable per project. Accepts an `initial_role` of `draft` (default) or `ready` so a freshly created PRD either waits for human promotion or is immediately picked up by lisa:intake; and a stable dedupe marker so re-runs reference the existing PRD instead of creating a duplicate. The PRD lives in the source — there is no separate document artifact."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -41,14 +41,15 @@ prior PRD-source-write behavior to preserve, so omitted means `draft`.
 ## Workflow
 
 1. **Resolve the source.** Read `.lisa.config.local.json` first (if present), then
-   `.lisa.config.json`. Local overrides global per key. Use `jq` — never hand-parse JSON.
+   `.lisa.config.json`. Local overrides global per key — so `.lisa.config.local.json` takes
+   precedence when both files define `source`. Use `jq` — never hand-parse JSON.
 
    ```bash
    local_source=$(jq -r '.source // empty' .lisa.config.local.json 2>/dev/null)
    global_source=$(jq -r '.source // empty' .lisa.config.json 2>/dev/null)
    source="${local_source:-${global_source}}"
    if [ -z "$source" ]; then
-     echo "Error: 'source' is not set in .lisa.config.json. A PRD source (notion / confluence / github / linear) is required to create a PRD. Run /lisa:setup:notion (or :confluence, :github, :linear)." >&2
+     echo "Error: 'source' is not set in .lisa.config.local.json or .lisa.config.json. A PRD source (notion / confluence / github / linear) is required to create a PRD. Run /lisa:setup:notion (or :confluence, :github, :linear)." >&2
      exit 1
    fi
    ```
