@@ -1,6 +1,6 @@
 ---
 name: tracker-build-intake
-description: "Vendor-neutral wrapper for the build-queue batch scanner. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-build-intake (JQL/project-key queue), lisa:github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa:linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner enforces the claim-time arm of the `leaf-only-lifecycle` rule — claim leaf work units only; skip or safe-block a container with open child work (or a childless Epic/Story/Spike) that carries a stale build-ready role. Counterpart to lisa:intake's PRD-side dispatchers."
+description: "Vendor-neutral wrapper for the build-queue batch scanner. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa:jira-build-intake (JQL/project-key queue), lisa:github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa:linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner enforces the claim-time arm of the `leaf-only-lifecycle` rule — dispatch leaf work units only; move or safe-block a container with open child work (or a childless Epic/Story/Spike) that carries a stale build-ready role according to the vendor's lifecycle semantics. Counterpart to lisa:intake's PRD-side dispatchers."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -27,7 +27,7 @@ The vendor scanners also own the terminal native-closure step from `leaf-only-li
 This shim is dispatch only — it does not reclassify or re-gate items — but the contract it forwards is part of the build-intake API, so it is documented here once and the three vendor scanners implement it identically. Per the vendor-neutral `leaf-only-lifecycle` rule, **build intake claims only independently implementable leaf work units**:
 
 - A **leaf work unit** (Bug, Task, Sub-task, Improvement with no open child work) is claimed and built.
-- A **container** — anything with open child work, or a childless Epic/Story/Spike — that still carries a stale build-ready role is **never claimed**. The vendor scanner skips it or safe-blocks it with an idempotent lifecycle-repair comment (move the build-ready role off the parent onto its leaf children; a parent's state rolls up from its children and is never set to ready directly).
+- A **container** — anything with open child work, or a childless Epic/Story/Spike — that still carries a stale build-ready role is **never dispatched**. The GitHub scanner moves it out of the pickup queue by replacing `status:ready` with `status:in-progress` and posting an idempotent lifecycle-repair comment; other vendor scanners skip or safe-block according to their native lifecycle semantics.
 
 This is the claim-time arm of the rule. Its siblings are the write-time labeling (`lisa:tracker-write` → the vendor `*-write-*` skills apply build-ready to leaves only) and the validate-time S15 gate (`lisa:tracker-validate` → the vendor `*-validate-*` skills FAIL a build-ready container). All three arms cite `leaf-only-lifecycle` so no vendor drifts. Each vendor scanner implements the gate against its own hierarchy:
 
@@ -55,6 +55,6 @@ Intermediate env states are not native closure. A vendor scanner that resolves `
 
 - Single cycle per invocation — the vendor skill processes the current `Ready` set and exits.
 - The vendor skills run their own pre-flight checks (JIRA workflow transitions for the JIRA path; label namespace adoption for the GitHub and Linear paths) before processing items. Never bypass.
-- **Leaf-only claim, every vendor.** Per the `leaf-only-lifecycle` rule, each vendor scanner claims leaf work units only and skips / safe-blocks a container (open child work, or a childless Epic/Story/Spike) carrying a stale build-ready role. This shim does not re-implement the gate — it relies on the vendor scanner's Phase 3a — but the contract is uniform across `jira`, `github`, and `linear` so behavior never drifts by tracker.
+- **Leaf-only dispatch, every vendor.** Per the `leaf-only-lifecycle` rule, each vendor scanner dispatches leaf work units only and moves or safe-blocks a container (open child work, or a childless Epic/Story/Spike) carrying a stale build-ready role according to its lifecycle semantics. This shim does not re-implement the gate — it relies on the vendor scanner's Phase 3a — but the contract is uniform across `jira`, `github`, and `linear` so behavior never drifts by tracker.
 - **Terminal native closure, every capable vendor.** Per the same rule, each vendor scanner finalizes native open/closed state only at the true terminal `done` value. This shim never performs native closure itself, but callers can rely on the dispatched vendor scanner to apply the contract.
 - Never run two intake cycles concurrently against overlapping queues — the scheduling layer is responsible for serialization.
