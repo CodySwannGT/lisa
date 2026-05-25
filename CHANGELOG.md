@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.63.0](https://github.com/CodySwannGT/lisa/compare/vv2.62.2...v2.63.0) (2026-05-25)
+
+
+### Features
+
+* **wiki:** add setup-automations / tear-down-automations to the wiki plugin ([d49cc4c](https://github.com/CodySwannGT/lisa/commit/d49cc4c47615107579b08b89070285d5f8dd8b07))
+
 ### [2.62.2](https://github.com/CodySwannGT/lisa/compare/vv2.62.1...v2.62.2) (2026-05-25)
 
 
