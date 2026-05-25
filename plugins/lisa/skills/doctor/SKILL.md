@@ -234,6 +234,44 @@ edit, delete, or reconcile automations on the default doctor path.
    - `FAIL` when the repo's config cannot resolve the queue that an automation needs, because that
      would make unattended runs ambiguous or broken before scheduling even starts.
 
+### Minimum wiki-delegation checks
+
+When a repo-local `wiki/` directory exists, doctor must surface the specialized wiki-readiness path
+without turning the base doctor into a second `lisa-wiki-doctor`.
+
+1. **Detect whether wiki delegation applies**
+   - If no repo-local `wiki/` directory exists, report the entire wiki group as `SKIP` with the
+     reason that no wiki surface is present in this repository.
+   - If `wiki/` exists, keep the group present in the final report; do not silently omit it.
+2. **Prefer summary of an existing specialized verdict**
+   - If the repo already has a readable `wiki/state/migration/doctor-report.json`, doctor may
+     summarize the specialized verdict (`READY`, `READY_WITH_WARNINGS`, or `NOT_READY`) plus the
+     most relevant blocking/warning facts, clearly attributing them to `lisa-wiki-doctor`.
+   - Preserve the base doctor's narrower scope: summarize or quote the specialized verdict, but do
+     not inline the full migration/readiness checklist into the base doctor output.
+3. **Otherwise advertise the deeper follow-up explicitly**
+   - If `wiki/` exists but no specialized report is available yet, doctor must still tell the
+     operator that deeper wiki checks live behind `lisa-wiki-doctor`.
+   - The report should make the next action explicit, for example:
+
+     ```text
+     WARN wiki-follow-up: wiki/ detected; deeper wiki migration checks not yet summarized
+     Observed: wiki/ exists, but no wiki/state/migration/doctor-report.json was found.
+     Remediation: run lisa-wiki-doctor to produce the wiki-specific readiness verdict.
+     ```
+4. **Severity ladder**
+   - `SKIP` when `wiki/` is absent.
+   - `PASS` when `wiki/` exists and doctor successfully summarizes an existing
+     `lisa-wiki-doctor` verdict.
+   - `WARN` when `wiki/` exists and doctor can only advertise the specialized follow-up because no
+     persisted wiki verdict is available yet.
+   - `FAIL` only when `wiki/` exists but the repo cannot surface the specialized follow-up at all
+     (for example, the required `lisa-wiki-doctor` distribution surface is missing or the existing
+     report is unreadable/malformed enough that doctor cannot safely summarize it).
+5. **Keep wiki readiness optional for non-wiki repos**
+   - Never require a wiki plugin surface when `wiki/` is absent.
+   - Never let wiki-specific checks downgrade unrelated non-wiki repositories.
+
 ## Output contract
 
 The final report must:
