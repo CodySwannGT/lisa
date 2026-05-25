@@ -261,6 +261,16 @@ Skills that transition to `done` MUST resolve the env first:
 
 If a project's terminal state is the same regardless of env, set `done` to a string instead of a map (lifecycle skills accept either shape).
 
+### Env → base branch (forward: the build base and PR base)
+
+`deploy.branches` is also read in the **forward** direction by the build flow (`lisa:implement`): the environment a work item targets determines the branch the work is built on and the branch the PR opens against.
+
+1. **Resolve the work item's target environment** — its `## Target Backend Environment` field. If the item names no environment, use the **remote default branch** (`gh repo view --json defaultBranchRef`, or `origin/HEAD`).
+2. **Map env → base branch** via `deploy.branches` (e.g. `staging → staging`, `production → main`). Absent env or missing branch → stop and report; never guess.
+3. **Before any code is written**, `lisa:implement` fetches and **rebases the working branch onto `origin/<base>`, resolving conflicts**, so implementation builds on the latest target-environment code. **The PR then opens against that same base branch** (`target_branch=<base>` to `lisa:git-submit-pr`).
+
+This is the exact inverse of the env-keyed `done` "Branch inference" above: `done` derives the env *from* the PR base branch (reverse); the build flow derives the base branch *from* the env (forward). Both use the one `deploy.branches` map, so the branch a PR targets and the `done` status it earns always agree.
+
 The true terminal `done` value is also the only value that triggers provider-native closure / resolution per `leaf-only-lifecycle`:
 
 - If `done` is a string, that value is terminal.
