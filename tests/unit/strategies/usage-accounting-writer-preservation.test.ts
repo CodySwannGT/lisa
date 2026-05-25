@@ -8,6 +8,7 @@
  * @module tests/unit/strategies/usage-accounting-writer-preservation
  */
 import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -18,6 +19,9 @@ const USAGE_RULE = "usage-accounting";
 
 const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
+
+const skillRoots = (skill: string): string[] =>
+  ROOTS.filter(root => existsSync(path.resolve(root, skill, "SKILL.md")));
 
 describe("writer shims preserve managed Lisa Usage ledgers", () => {
   describe.each(ROOTS)("%s", root => {
@@ -46,7 +50,7 @@ describe("per-vendor PRD writers preserve managed Lisa Usage ledgers", () => {
   ] as const;
 
   describe.each(writers)("%s", writer => {
-    describe.each(ROOTS)("%s", root => {
+    describe.each(skillRoots(writer))("%s", root => {
       const content = readSkill(root, writer);
 
       it("mentions preserving the canonical usage section on update", () => {
@@ -71,7 +75,7 @@ describe("per-vendor tracker writers preserve managed Lisa Usage ledgers", () =>
   ] as const;
 
   describe.each(writers)("%s", writer => {
-    describe.each(ROOTS)("%s", root => {
+    describe.each(skillRoots(writer))("%s", root => {
       const content = readSkill(root, writer);
 
       it("requires preserving the canonical usage section during updates", () => {

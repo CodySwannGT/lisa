@@ -61,11 +61,7 @@ accept the markdown content directly (it performs this conversion) — prefer th
 conversion is the curl-substrate path.
 
 **Marker + usage-ledger preservation (both paths).** The page must always carry **exactly one**
-marker. On CREATE the marker is the first body block; on UPDATE never remove it. Never write a
-markerless page. If the existing page content already contains the canonical managed `## Lisa Usage`
-section, preserve that section when regenerating the page body unless the caller intentionally
-supplied an updated canonical section; use the shared `usage-accounting` serializer/merge path
-rather than freehand block edits to ledger rows.
+marker. On CREATE the marker is the first body block; on UPDATE never remove it. Never write a markerless body. Never write a markerless page. If the existing page content already contains the canonical managed `## Lisa Usage` section, preserve that section when regenerating the page body unless the caller intentionally supplied an updated canonical section; use the shared `usage-accounting` serializer/merge path rather than freehand block edits to ledger rows.
 
 **CREATE:**
 
