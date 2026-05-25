@@ -55,10 +55,13 @@ EXISTING=$(gh issue list --repo "$ORG/$REPO" --state open --search "\"$MARKER\" 
 
 ## Phase 3 — Create or update
 
-**Marker normalization (both paths).** Before writing any body, ensure it contains **exactly one**
-marker line — inject `<!-- $MARKER -->` if the caller's synthesized body doesn't already carry it.
-**Never write a markerless body** (including on UPDATE or when `source_ref` is passed): a body without
-the marker breaks future dedupe. If the body already has the marker, leave the single instance.
+**Marker + usage-ledger preservation (both paths).** Before writing any body, ensure it contains
+**exactly one** marker line — inject `<!-- $MARKER -->` if the caller's synthesized body doesn't
+already carry it. **Never write a markerless body** (including on UPDATE or when `source_ref` is
+passed): a body without the marker breaks future dedupe. If the body already has the marker, leave
+the single instance. If the live issue body already contains the canonical managed `## Lisa Usage`
+section, preserve it verbatim unless the caller intentionally supplied an updated canonical section;
+use the shared `usage-accounting` serializer/merge path rather than hand-editing ledger rows.
 
 **CREATE** (no existing issue):
 
@@ -77,7 +80,7 @@ the marker breaks future dedupe. If the body already has the marker, leave the s
 **UPDATE** (existing issue or `source_ref`):
 
 1. `gh issue edit <n> --repo "$ORG/$REPO" --body-file /tmp/prd-body.md` with the **marker-normalized**
-   body (regenerate in place; never drop the marker).
+   body (regenerate in place; never drop the marker or an existing managed `## Lisa Usage` section).
 2. Reconcile the lifecycle label to **exactly one**: add `$ROLE_LABEL`, remove every other label in
    the resolved `${ALL_PRD_LABELS[@]}` set (the config-resolved names — not a hard-coded list) via
    `gh issue edit <n> --add-label / --remove-label`. Never leave a PRD carrying two lifecycle labels.
@@ -104,6 +107,8 @@ outcome: created | reused
 
 - Exactly one PRD lifecycle label at all times (leaf-only does not apply — PRDs are not build leaves).
 - Match dedupe by marker, never by title.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - Never down-rank a PRD already past `ready`.
 - A *closed* prior PRD does not suppress a new one — a recurrence after closure is a genuine new PRD.
 - This is a source-side writer (`prd-*` labels). It never touches build labels (`status:*`) — that is

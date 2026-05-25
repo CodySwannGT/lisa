@@ -276,7 +276,7 @@ If the validator reports `FAIL`, do NOT proceed to Phase 6. Fix the spec and re-
 
 ### UPDATE
 
-1. Re-read the current body via `gh issue view <number> --repo <org>/<repo> --json body --jq '.body'`. Edit only the sections being changed; preserve everything else verbatim.
+1. Re-read the current body via `gh issue view <number> --repo <org>/<repo> --json body --jq '.body'`. Edit only the sections being changed; preserve everything else verbatim, including any existing canonical managed `## Lisa Usage` section unless the caller intentionally supplied an updated canonical section. Use the shared `usage-accounting` serializer/merge path rather than freehand edits to ledger rows.
 2. Apply the edit:
    ```bash
    gh issue edit <number> --repo <org>/<repo> --body-file /tmp/updated-body.md
@@ -331,6 +331,8 @@ The mapping below is the single source of truth for how JIRA concepts translate 
 - Never create a Bug, Task, or Sub-task whose AC references work in a different repo. GitHub Issues already live in one repo; reject AC bullets that span others — split into per-repo issues under a shared Epic.
 - Never include a runtime-behavior issue without a target backend environment, and never include an authenticated-surface issue without sign-in credentials.
 - Never overwrite an issue body without reading the current version first.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - All writes go through this skill (or the `tracker-write` shim). Other vendor-neutral skills must NEVER call `gh issue create` directly.
 - The gate logic lives in `lisa:github-validate-issue`, NOT here. This skill calls the validator at Phase 5.5 and Phase 7. When a gate needs to change, change it in `lisa:github-validate-issue`.
 - Never bypass the sub-issue mutation by encoding the parent only in the body. The native sub-issue link is what `lisa:github-read-issue` and the GitHub UI use to render the hierarchy.

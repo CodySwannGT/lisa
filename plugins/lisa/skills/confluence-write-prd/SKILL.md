@@ -65,7 +65,10 @@ else → **create**.
 format** (XHTML): `#`/`##`/`###` → `<h1>/<h2>/<h3>`, paragraphs → `<p>`, lists → `<ul>/<ol><li>`,
 fenced code → `<ac:structured-macro ac:name="code">`. Embed the marker as a storage comment
 (`<!-- $MARKER -->`) or a small `<p>` so future CQL dedupe finds it. The body must always contain
-**exactly one** marker; never write a markerless page (CREATE or UPDATE).
+**exactly one** marker; never write a markerless page (CREATE or UPDATE). If the live page body
+already contains the canonical managed `## Lisa Usage` section, preserve it verbatim unless the
+caller intentionally supplied an updated canonical section; use the shared `usage-accounting`
+serializer/merge path rather than hand-editing ledger rows in storage XHTML.
 
 **CREATE:** `lisa:atlassian-access` `operation: write-page` (create form) with a payload that sets:
 - `title`: `$TITLE`
@@ -77,7 +80,8 @@ fenced code → `<ac:structured-macro ac:name="code">`. Embed the marker as a st
 1. **GET-then-PUT** (load-bearing, as `confluence-prd-intake` documents): first `operation: read-page
    id: <page-id>` to read the current `version.number`, then `operation: write-page` (edit form) with
    the marker-normalized storage body and `version.number` bumped to current+1. A PUT without the
-   current version is rejected; never drop the marker on the edit.
+   current version is rejected; never drop the marker or an existing managed `## Lisa Usage` section
+   on the edit.
 2. Re-parent to the target lifecycle parent if the role changed — **unless** the page's current
    parent is in the resolved `${PROGRESSED_PARENTS[@]}` set (already past `ready`). If so, leave it
    and report `reused (already past ready)`. Reverse-lookup the current parent in
@@ -99,5 +103,7 @@ outcome: created | reused
 - State is the parent page, not a label — never attempt Confluence label writes (they 401 on scoped
   tokens; see `config-resolution`).
 - Match dedupe by marker, never by title.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - Never re-parent a PRD already past `ready` down to draft/ready.
 - Resolve parents from config (`confluence.parents.{draft,ready}`) — never hardcode page ids.
