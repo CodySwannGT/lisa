@@ -54,6 +54,13 @@ Using the general-purpose agent in Team Lead session, Determine what branch to u
 2. Are we on a feature branch without an open pull request? Use the branch, but ask the human what branch to target for the PR
 3. Are we on an environment branch (dev, staging, main, prod, production)? Check out a feature branch named for this plan and set the target branch of the PR to the environment branch
 
+When the request came from a tracker work item, preserve its native identifier for development linkage:
+
+- Capture `tracker_provider` and `work_item_ref` from the resolved input before creating or reusing a branch. Examples: `github` + `CodySwannGT/lisa#614`, `linear` + `ENG-123`, `jira` + `ENG-123`.
+- If a new branch is needed and the provider can link branches by identifier, include the identifier in the branch name before the human-readable slug. Linear and JIRA integrations commonly link from branch names; GitHub issue linkage is PR-body driven, but including the issue number in the branch name is still useful. Keep branch names URL-safe, for example `codex/ENG-123-add-checkout-copy` or `codex/614-add-checkout-copy`.
+- Pass the work-item ref and target branch to `lisa:git-submit-pr` when opening or updating the PR, for example `work_item_ref=CodySwannGT/lisa#614 target_branch=main`. The PR workflow owns provider-specific body text and must decide whether to use a closing keyword or a non-closing reference.
+- If the provider has no native branch or PR development-linkage surface, continue without linkage and mention that the provider was skipped.
+
 Using the general-purpose agent in Team Lead session, Determine which flow applies:
 1. Research -- needs a PRD (no specification exists)
 2. Plan -- needs decomposition (specification exists but no work items)
@@ -115,7 +122,7 @@ Before shutting down the team, execute the Verify flow:
 3. Write e2e test encoding the verification
 4. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 5. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
-6. Open a pull request with auto-merge on
+6. Open a pull request with auto-merge on via `lisa:git-submit-pr`, including the work-item ref when one exists so the PR can be linked natively to the source issue.
 7. PR Watch Loop: Monitor the PR using `git-submit-pr`'s drive-to-merge behavior. Create a task for the agent team to resolve any code review comments by either implementing the suggestions or commenting why they should not be implemented and close the comment. Fix any failing checks and repush. If the PR is `BEHIND`, blocked by stale review state, or cannot enable auto-merge, follow the harness-agnostic `git-submit-pr` re-sync, review-gate, and direct-merge fallback loop until the PR is actually merged or a blocking failure is surfaced.
 8. Merge the PR
 9. Monitor the deploy action that triggers automatically from the successful merge
