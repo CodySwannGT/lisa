@@ -1,6 +1,6 @@
 ---
 name: task-decomposition
-description: "Methodology for breaking work into ordered tasks. Each task gets a single-repo scope, acceptance criteria, verification type, dependencies, and skills required."
+description: "Methodology for breaking work into ordered tasks. Cross-repo source PRDs and coordination containers stay cross-repo; each buildable leaf task gets a single-repo scope, acceptance criteria, verification type, dependencies, and skills required."
 ---
 
 # Task Decomposition
@@ -16,16 +16,23 @@ Break work into ordered, well-scoped tasks that can be independently implemented
 - Avoid tasks that are too large to complete in a single session
 - Avoid tasks that are too small to be meaningful (e.g., "add an import statement")
 
-### 1.5. Scope Each Unit to a Single Repository
+### 1.5. Preserve Cross-Repo Containers, Split Leaf Work by Repository
 
-Work units must be implementable inside a single repository. This is a hard invariant — downstream validators (`jira-validate-ticket`, `github-validate-issue`, `linear-validate-issue`) gate writes on it, so a cross-repo task will fail to be created.
+Start from the right shape:
 
-Apply this rule by issue type:
+- A source PRD may span multiple repositories.
+- Coordination containers may also span multiple repositories.
+- Buildable leaf work units must be implementable inside exactly one repository.
 
-| Issue type | Repo scope |
-|------------|-----------|
+That last point is a hard invariant — downstream validators (`jira-validate-ticket`, `github-validate-issue`, `linear-validate-issue`) gate writes on it, so a cross-repo leaf will fail to be created.
+
+Apply this rule by layer:
+
+| Layer | Repo scope |
+|-------|------------|
+| **PRD / source initiative** | MAY span repos — it describes the full initiative |
 | **Epic, Story, Spike** | MAY span repos — these are coordination containers |
-| **Task, Bug, Sub-task, Improvement** | MUST name exactly one repo — these are work units |
+| **Task, Bug, Sub-task, Improvement** | MUST name exactly one repo — these are buildable leaf work units |
 
 If a candidate work unit naturally touches multiple repos (e.g., "add field to backend API and consume it in mobile app"), do not write it as one ticket. Instead:
 
@@ -36,7 +43,7 @@ If a candidate work unit naturally touches multiple repos (e.g., "add field to b
 
 Reject any work unit whose acceptance criteria reference behavior in a different repo from the one it's scoped to. If you find yourself writing "and the frontend should also...", that's a signal to split.
 
-This is the **decomposition-time** strategy (greenfield — you are creating the tickets now, so a parent Story + per-repo children is the natural shape). It is distinct from the **work-time** strategy in the `repo-scope-split` rule, which applies when an agent picks up an *already-existing* ticket to implement and discovers it spans repos: there it narrows the original in place and spins off sibling work units rather than introducing a new parent. Use the phase-appropriate one; do not mix them.
+This is the **decomposition-time** strategy (greenfield — you are creating the tickets now, so a cross-repo PRD can stay whole, its Epic/Story/Spike containers can stay cross-repo, and a parent Story + per-repo children is the natural shape). It is distinct from the **work-time** strategy in the `repo-scope-split` rule, which applies when an agent picks up an *already-existing leaf ticket* to implement and discovers it spans repos: there it narrows the original in place and spins off sibling work units rather than introducing a new parent. Use the phase-appropriate one; do not mix them.
 
 ### 2. Define Acceptance Criteria
 
