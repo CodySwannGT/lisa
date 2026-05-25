@@ -76,11 +76,15 @@ The only legitimate reasons to stop early:
 The PRD database has a status property (configurable via `notion.statusProperty`, default `Status`) whose value drives this skill:
 
 ```text
-draft → ready → in_review → blocked | ticketed → shipped
-        (product)  (us)      (us)                  (product)
+draft → ready → in_review → blocked | ticketed → shipped → verified
+        (product)  (us)      (us)                  (product)  (product)
 ```
 
-This skill transitions `ready → in_review`, then `in_review → blocked` or `in_review → ticketed`, then (via the rollup phase 3f) `ticketed → shipped`. It never touches `draft` — that status is owned by product. The `shipped` status is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD page unless `notion.rollup.closeOnShipped` is configured `true` (default `false` → set `$SHIPPED`, leave the page active).
+(Default status values: `Draft` / `Ready` / `In Review` / `Blocked` / `Ticketed` / `Shipped` / `Verified`.)
+
+`verified` is the terminal status after `shipped`: it means the shipped product has been empirically checked against the PRD (set by `/lisa:verify-prd`, not by this intake skill). A failed post-ship verification reuses `blocked` rather than introducing a separate `verifying` / `verification-failed` status. Like `draft` and `shipped`, `verified` is **product-owned** — this intake skill never sets, clears, or otherwise touches it. See the "PRD-level verification vs ticket verification" section of the `prd-lifecycle-rollup` rule.
+
+This skill transitions `ready → in_review`, then `in_review → blocked` or `in_review → ticketed`, then (via the rollup phase 3f) `ticketed → shipped`. It never touches `draft` or `verified` — those statuses are owned by product (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` status is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD page unless `notion.rollup.closeOnShipped` is configured `true` (default `false` → set `$SHIPPED`, leave the page active).
 
 ## Phases
 

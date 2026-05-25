@@ -168,7 +168,9 @@ Probe with `mcp__linear-server__list_issue_labels` (scoped to the team). For eac
 
 #### 3b. PRD-lifecycle labels — PROJECT labels (only if Linear is the PRD source)
 
-Probe with `mcp__linear-server__list_project_labels`. Create missing ones via `mcp__linear-server__create_project_label`. These are a **separate label kind** from issue labels — creating an issue label of the same name will NOT work for the PRD flow.
+Probe with `mcp__linear-server__list_project_labels`. Create missing ones via `mcp__linear-server__create_project_label`. This probe-then-create is find-or-create per label: a label already present is reused untouched, so re-running never duplicates `prd-*`. These are a **separate label kind** from issue labels — creating an issue label of the same name will NOT work for the PRD flow.
+
+`prd-verified` is the terminal lifecycle state after `prd-shipped` (the `verified` role from config-resolution, #591): `/lisa:verify-prd` transitions a Linear PRD project into it once the shipped product has been empirically verified against the PRD. Scaffold it through the same find-or-create path as every other `prd-*` row.
 
 | Role | Default | Kind |
 |------|---------|------|
@@ -178,6 +180,7 @@ Probe with `mcp__linear-server__list_project_labels`. Create missing ones via `m
 | `blocked` | `prd-blocked` | project label |
 | `ticketed` | `prd-ticketed` | project label |
 | `shipped` | `prd-shipped` | project label |
+| `verified` | `prd-verified` | project label |
 | `sentinel` | `prd-intake-feedback` | **issue** label (marks the sentinel feedback issue — create via `create_issue_label`) |
 
 #### 3c. Handle name collisions / renames
@@ -230,7 +233,7 @@ jq -e '.linear.workspace' .lisa.config.json >/dev/null
 [ "$(jq -r '.tracker // empty' .lisa.config.json)" = "linear" ] && jq -e '.linear.teamKey' .lisa.config.json >/dev/null
 ```
 
-Confirm the scaffolded labels are present (`list_issue_labels` for `status:*` + the sentinel; `list_project_labels` for `prd-*`). Report success with the resolved workspace, team key (if any), which namespaces were scaffolded (created vs. already existed), any non-default overrides, and whether `tracker` / `source` were set. Direct the user to `/lisa:intake` to test.
+Confirm the scaffolded labels are present (`list_issue_labels` for `status:*` + the sentinel; `list_project_labels` for `prd-*`, including the terminal `prd-verified`). Report success with the resolved workspace, team key (if any), which namespaces were scaffolded (created vs. already existed), any non-default overrides, and whether `tracker` / `source` were set. Direct the user to `/lisa:intake` to test.
 
 ## Idempotency
 
