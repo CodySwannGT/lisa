@@ -18,6 +18,22 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - CLI binary: `lisa`
 - Package manager: Bun
 
+## Current Snapshot
+
+- Ingest branch: `wiki/ingest-2026-05-25` from `origin/main`
+- HEAD at 2026-05-25 incremental ingest: `45c1d709337ba550d4e589fab1ea1f6ad6642cc3`
+- Current package version: `2.63.1`
+- Total commits on HEAD: 1841
+- Total merged PRs captured from GitHub: 518
+- Merged PRs since the 2026-05-14 baseline ingestion: 90
+
+## Recent Changes Since The 2026-05-14 Baseline
+
+- Wiki operations now include native automation setup and teardown flows, and the ingest workflow itself now standardizes a pre-ingest branch sync plus PR auto-merge.
+- PRD lifecycle coverage expanded with a durable `verified` state, `verify-prd` PASS and FAIL paths, idempotent reruns, and broader rollup propagation across trackers.
+- Build intake behavior hardened around blocker holds, ready-container repair, repo-scoped claiming for multi-repo trackers, and implementation rebases to the ticket's target-environment branch.
+- Codex artifact generation and distribution checks continued to expand across skill metadata, `openai.yaml` emission, byte-stability tests, and plugin registration/distribution safeguards.
+
 ## Workspace Packages
 
 | Path | Package |
@@ -30,3 +46,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 - `wiki/sources/repository/2026-05-14-monorepo-baseline.md`
 - `wiki/sources/github/2026-05-14-git-and-pr-history.md`
+- `wiki/sources/git/2026-05-25-lisa-monorepo-git.md`
+- `wiki/sources/roles/2026-05-25-roles.md`
