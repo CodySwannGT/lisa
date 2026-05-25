@@ -41,14 +41,15 @@ prior PRD-source-write behavior to preserve, so omitted means `draft`.
 ## Workflow
 
 1. **Resolve the source.** Read `.lisa.config.local.json` first (if present), then
-   `.lisa.config.json`. Local overrides global per key. Use `jq` — never hand-parse JSON.
+   `.lisa.config.json`. Local overrides global per key — so `.lisa.config.local.json` takes
+   precedence when both files define `source`. Use `jq` — never hand-parse JSON.
 
    ```bash
    local_source=$(jq -r '.source // empty' .lisa.config.local.json 2>/dev/null)
    global_source=$(jq -r '.source // empty' .lisa.config.json 2>/dev/null)
    source="${local_source:-${global_source}}"
    if [ -z "$source" ]; then
-     echo "Error: 'source' is not set in .lisa.config.json. A PRD source (notion / confluence / github / linear) is required to create a PRD. Run /lisa:setup:notion (or :confluence, :github, :linear)." >&2
+     echo "Error: 'source' is not set in .lisa.config.local.json or .lisa.config.json. A PRD source (notion / confluence / github / linear) is required to create a PRD. Run /lisa:setup:notion (or :confluence, :github, :linear)." >&2
      exit 1
    fi
    ```
