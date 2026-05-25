@@ -132,6 +132,22 @@ fi
     }
   },
 
+  "usage": {
+    "pricing": {
+      "currency": "USD",
+      "source": "openai-api-pricing",
+      "snapshot": "2026-05-25",
+      "models": {
+        "openai/gpt-5": {
+          "inputPer1M": 1.25,
+          "cachedInputPer1M": 0.125,
+          "outputPer1M": 10.0,
+          "reasoningPer1M": 10.0
+        }
+      }
+    }
+  },
+
   "intake": {
     "assignee": "<vendor-user-id-or-login>",
     "repair": {
@@ -212,6 +228,34 @@ When `github.projects.v2` is present, later setup/doctor and writer preflight va
 |-------|---------------|-------|
 | `linear.workspace` | `tracker = "linear"`, `source = "linear"`, or any `linear-*` skill is invoked | Linear workspace slug (e.g. `acme`). |
 | `linear.teamKey` | `tracker = "linear"` | Linear team key (e.g. `ENG`). The team owns the destination Issues. For source mode, projects are workspace-scoped or team-scoped per the URL passed. |
+
+#### `usage`
+
+`usage` is optional. It carries non-secret pricing metadata Lisa may use when runtime token counts are trustworthy but runtime monetary cost is absent.
+
+| Field | Required when | Where it lives | Notes |
+|-------|---------------|----------------|-------|
+| `usage.pricing.currency` | estimating cost from config | **committed** | ISO currency code paired with the configured rates (for example `USD`). |
+| `usage.pricing.source` | estimating cost from config | **committed** | Human-readable source label for the configured pricing schedule (for example `openai-api-pricing`). This is metadata, not a URL requirement. |
+| `usage.pricing.snapshot` | no | **committed** | Version/date/hash describing when the pricing schedule was captured. Use it to make estimated-cost provenance durable across later vendor price changes. |
+| `usage.pricing.models` | estimating cost from config | **committed** | Map of `<provider>/<model>` to per-million-token rates. Lisa has **no built-in provider rates**; every estimated-cost model must be declared here explicitly. |
+
+Each `usage.pricing.models["<provider>/<model>"]` value supports these numeric keys:
+
+| Key | Required | Notes |
+|-----|----------|-------|
+| `inputPer1M` | yes | Price per 1M non-cached input tokens. |
+| `cachedInputPer1M` | no | Price per 1M cached input tokens when the runtime exposes them separately. If absent, cached tokens cannot be priced and the entry falls back to `pricing_status=missing` unless the runtime already supplied cost. |
+| `outputPer1M` | yes | Price per 1M output/completion tokens. |
+| `reasoningPer1M` | no | Price per 1M reasoning/internal tokens when the provider bills them separately. If absent, treat reasoning tokens as unpriceable rather than folding them into another bucket. |
+
+Resolution rules for estimated pricing:
+
+- Resolve `usage.pricing.*` with the same per-key local-overrides-global precedence as every other config section.
+- Estimates are allowed only when trustworthy token counts exist and a matching `usage.pricing.models["<provider>/<model>"]` entry supplies every rate needed for the exposed token buckets.
+- Missing model entries or missing required bucket rates do **not** trigger built-in defaults. Preserve the token counts, leave `cost = null`, and emit `pricing_status = missing`.
+- When an estimate is produced from config, write `pricing_source` as `config:<source>@<snapshot>` when both fields exist, `config:<source>` when only `source` exists, or `config` when neither metadata field is available.
+- Runtime-observed monetary cost always wins over config estimates; config pricing is fallback-only.
 
 ## Workflow & vocabulary roles
 
