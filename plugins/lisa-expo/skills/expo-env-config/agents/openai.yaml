@@ -1,4 +1,4 @@
-display_name: "expo-env-config"
-short_description: "This skill should be used when creating, modifying, or accessing environment variables in this Expo/React Native codebase. It enforces type-safe, validated environment configuration using Zod schemas. Use this skill when adding new environment variables, setting up env validation, or writing code that reads from process.env."
+display_name: "Expo Env Config"
+short_description: "creating, modifying, or accessing environment variables in this Expo/React Native codebase"
 default_prompt:
-  - "Use $expo-env-config"
+  - "Use $expo-env-config: creating, modifying, or accessing environment variables in this Expo/React Native codebase."

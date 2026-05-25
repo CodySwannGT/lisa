@@ -1,4 +1,4 @@
-display_name: "ops-run-local"
-short_description: "Manage the local development environment for Expo + serverless backend projects. Supports start, stop, restart, and status for the full stack or individual services."
+display_name: "Ops Run Local"
+short_description: "Manage the local development environment for Expo + serverless backend projects"
 default_prompt:
-  - "Use $ops-run-local"
+  - "Use $ops-run-local: Manage the local development environment for Expo + serverless backend projects."

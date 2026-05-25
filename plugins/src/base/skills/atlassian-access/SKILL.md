@@ -261,6 +261,8 @@ Substrate column meanings:
 
 **acli flag note:** acli's `--output` flag does not exist; the correct flag is `--json`. List commands require `--paginate` or `--limit` (no implicit fetch-all). Several documented adapters are nominal — verify against `acli <subcmd> --help` before relying on them. When acli's adapter is broken or missing for a specific op, fall through to MCP (if identity-matched) then curl per the tier ordering.
 
+**JIRA terminal-resolution note:** when a caller marks a transition as terminal per `leaf-only-lifecycle`, the substrate must not treat a Done-named status as sufficient by name alone. After `transition key:<K> to:<S>`, re-read the issue and verify `statusCategory = Done`; if the workflow requires a resolution, verify `resolution` is set. If the transition screen requires a resolution value, pass the configured default resolution when available; otherwise return a setup error so the build-intake skill can report the workflow gap instead of silently leaving an unresolved ticket in a Done-looking status.
+
 Operations not in this table are unsupported — add an adapter row before using them. Adapters MUST return a structured response (parse `acli`'s `--json`; jq-process curl's raw JSON).
 
 ### Payload conventions

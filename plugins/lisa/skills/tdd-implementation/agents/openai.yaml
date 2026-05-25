@@ -1,4 +1,4 @@
-display_name: "tdd-implementation"
-short_description: "Test-Driven Development implementation workflow. RED: write failing test, GREEN: minimum code to pass, REFACTOR: clean up. Includes task metadata requirements, verification, and atomic commit practices."
+display_name: "TDD Implementation"
+short_description: "Test-Driven Development implementation workflow"
 default_prompt:
-  - "Use $tdd-implementation"
+  - "Use $tdd-implementation: Test-Driven Development implementation workflow."

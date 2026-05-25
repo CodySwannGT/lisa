@@ -1,4 +1,4 @@
-display_name: "ops-deploy"
-short_description: "Deploy Expo frontend (EAS Update/Build) or serverless backend (Serverless Framework) to dev, staging, or production environments."
+display_name: "Ops Deploy"
+short_description: "Deploy Expo frontend (EAS Update/Build) or serverless backend (Serverless Framework) to dev, staging, or production environments"
 default_prompt:
-  - "Use $ops-deploy"
+  - "Use $ops-deploy: Deploy Expo frontend (EAS Update/Build) or serverless backend (Serverless Framework) to dev, staging, or production environments."

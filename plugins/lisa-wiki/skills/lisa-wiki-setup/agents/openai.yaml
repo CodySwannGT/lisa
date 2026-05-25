@@ -1,4 +1,4 @@
-display_name: "lisa-wiki-setup"
-short_description: "Scaffold, repair, verify, or upgrade a project's LLM Wiki from its config. Use when setting up the wiki in a new repo, fixing a broken/incomplete structure, or upgrading to a newer kernel version. Asks the wiki's purpose and README mode, renders the contract snapshot, scaffolds the canonical folders, and seeds the staff roster. Idempotent and non-destructive."
+display_name: "Lisa Wiki Setup"
+short_description: "Scaffold, repair, verify, or upgrade a project's LLM Wiki from its config"
 default_prompt:
-  - "Use $lisa-wiki-setup"
+  - "Use $lisa-wiki-setup: Scaffold, repair, verify, or upgrade a project's LLM Wiki from its config."

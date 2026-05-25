@@ -1,4 +1,4 @@
-display_name: "test-strategy"
-short_description: "Test strategy design. Coverage matrix, edge cases, TDD sequence planning, test quality review. Behavior-focused testing over implementation details."
+display_name: "Test Strategy"
+short_description: "Test strategy design"
 default_prompt:
-  - "Use $test-strategy"
+  - "Use $test-strategy: Test strategy design."

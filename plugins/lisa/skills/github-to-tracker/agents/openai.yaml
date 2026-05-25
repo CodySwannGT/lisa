@@ -1,4 +1,4 @@
-display_name: "github-to-tracker"
+display_name: "Github To Tracker"
 short_description: ">"
 default_prompt:
-  - "Use $github-to-tracker"
+  - "Use $github-to-tracker: >."

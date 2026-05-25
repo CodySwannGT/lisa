@@ -1,4 +1,4 @@
-display_name: "reduce-complexity"
-short_description: "This skill provides strategies and patterns for reducing cognitive complexity in React components. It should be used when ESLint reports sonarjs/cognitive-complexity violations, when refactoring complex View components, or when planning how to break down large components. The skill enforces this project's Container/View pattern requirements when extracting components."
+display_name: "Reduce Complexity"
+short_description: "This skill provides strategies and patterns for reducing cognitive complexity in React components"
 default_prompt:
-  - "Use $reduce-complexity"
+  - "Use $reduce-complexity: This skill provides strategies and patterns for reducing cognitive complexity in React components."

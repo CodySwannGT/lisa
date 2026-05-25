@@ -1,4 +1,4 @@
-display_name: "reproduce-bug"
-short_description: "How to create reliable bug reproduction scenarios. Covers failing tests, minimal scripts, environment verification, and reproduction evidence capture."
+display_name: "Reproduce Bug"
+short_description: "How to create reliable bug reproduction scenarios"
 default_prompt:
-  - "Use $reproduce-bug"
+  - "Use $reproduce-bug: How to create reliable bug reproduction scenarios."

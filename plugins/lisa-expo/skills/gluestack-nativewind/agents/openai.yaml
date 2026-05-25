@@ -1,4 +1,4 @@
-display_name: "gluestack-nativewind"
-short_description: "This skill enforces Gluestack UI v3 and NativeWind v4 design patterns for consistent, performant, and maintainable styling. It should be used when creating or reviewing components, fixing styling issues, or refactoring styles to follow the constrained design system."
+display_name: "Gluestack Nativewind"
+short_description: "This skill enforces Gluestack UI v3 and NativeWind v4 design patterns for consistent, performant, and maintainable styling"
 default_prompt:
-  - "Use $gluestack-nativewind"
+  - "Use $gluestack-nativewind: This skill enforces Gluestack UI v3 and NativeWind v4 design patterns for consistent, performant, and maintainable styling."
