@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.65.0](https://github.com/CodySwannGT/lisa/compare/vv2.64.0...v2.65.0) (2026-05-25)
+
+
+### Features
+
+* **config:** add GitHub ProjectV2 coordination docs ([5606de0](https://github.com/CodySwannGT/lisa/commit/5606de0c7670c0a9b7b1d279c6b21b3bb2a3a0e5))
+
 ## [2.64.0](https://github.com/CodySwannGT/lisa/compare/vv2.63.2...v2.64.0) (2026-05-25)
 
 
