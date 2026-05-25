@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.71.0](https://github.com/CodySwannGT/lisa/compare/vv2.70.0...v2.71.0) (2026-05-25)
+
+
+### Features
+
+* **utils:** add idempotent Lisa usage section utility ([070bc05](https://github.com/CodySwannGT/lisa/commit/070bc05bb296faefe9f7585cdff07b42e23a3558))
+
 ## [2.70.0](https://github.com/CodySwannGT/lisa/compare/vv2.69.2...v2.70.0) (2026-05-25)
 
 
