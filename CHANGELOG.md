@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.73.0](https://github.com/CodySwannGT/lisa/compare/vv2.72.0...v2.73.0) (2026-05-25)
+
+
+### Features
+
+* preserve usage ledgers in writers ([22cee0c](https://github.com/CodySwannGT/lisa/commit/22cee0c42297b9c31e34b7c1b25baa930d8c91f3))
+
+
+### Bug Fixes
+
+* align writer preservation tests ([6465537](https://github.com/CodySwannGT/lisa/commit/64655375fcce0cee3b09520856633ec390e70614))
+
 ## [2.72.0](https://github.com/CodySwannGT/lisa/compare/vv2.71.0...v2.72.0) (2026-05-25)
 
 
