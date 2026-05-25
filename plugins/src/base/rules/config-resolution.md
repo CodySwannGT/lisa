@@ -123,6 +123,7 @@ fi
   },
 
   "intake": {
+    "assignee": "<vendor-user-id-or-login>",
     "repair": {
       "staleAfterHours": 24,
       "maxCandidates": 100
@@ -243,6 +244,26 @@ documented defaults, so existing projects need no config change.
 |-----|----------|---------|-------|
 | `intake.repair.staleAfterHours` | no | `24` | How long an in-progress item (build `claimed`, PRD `in_review`) may show no observable activity before repair-intake treats it as stalled and resumes it. `blocked` items are judged on blocker/answer state, not this threshold. Overridable per-run via `stale_after=<dur>` in `$ARGUMENTS` (which always wins). The same value is the default backoff window for loop-prevention notes. |
 | `intake.repair.maxCandidates` | no | `100` | Upper bound on how many stuck items repair-intake enumerates while searching for the first actionable one. Bounds scan cost. Overridable per-run via `max_candidates=<n>`. |
+
+### Intake assignee filter (`intake.assignee`)
+
+The optional intake assignee filter narrows **ready-item selection only**. It never assigns or
+reassigns tickets; it simply tells build-intake to consider only ready items that are already
+assigned to the resolved person for this local run.
+
+Resolution order:
+
+1. `$ARGUMENTS` `assignee=<vendor-user-id-or-login>`
+2. `.lisa.config.local.json` `intake.assignee`
+3. empty default (no filtering)
+
+The setting is intentionally **local-only**: personal or machine-specific intake lanes belong in
+`.lisa.config.local.json`, not the committed project config. An empty resolved value disables the
+filter and preserves the shared ready-queue behavior.
+
+| Field | Required | Default | Notes |
+|-------|----------|---------|-------|
+| `intake.assignee` | no | empty | Local ready-queue filter for build intake. When non-empty, vendor build-intake skills query only ready items already assigned to that vendor-specific user id or login. When empty, no assignee filter is applied. Runtime `$ARGUMENTS` `assignee=<...>` always wins over config for that invocation. |
 
 Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.config.local.json` →
 `.lisa.config.json` → built-in default. The role SEMANTICS repair-intake operates on (which

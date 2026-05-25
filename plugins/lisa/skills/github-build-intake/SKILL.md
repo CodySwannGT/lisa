@@ -14,6 +14,17 @@ allowed-tools: ["Skill", "Bash"]
 
 Run one build-intake cycle. The first eligible issue in the configured `ready` build label is claimed, built via the `lisa:github-agent` flow, relabeled to the configured `done` label (env-aware — see Workflow resolution), then the cycle exits. Remaining ready issues stay queued for later scheduler invocations.
 
+This skill also accepts an optional `assignee=<github-login>` queue filter. Resolve it in this
+order:
+
+1. `$ARGUMENTS` `assignee=<login>`
+2. `.lisa.config.local.json` `intake.assignee`
+3. empty default
+
+When the resolved assignee is empty, scan the shared ready queue exactly as before. When it is
+non-empty, filter the ready-item query to issues already assigned to that login. This filter is
+selection-only: never assign or reassign issues as part of build intake.
+
 ## Workflow resolution
 
 Build-queue label names are read from `.lisa.config.json` `github.labels.build.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
@@ -30,6 +41,15 @@ read_role() {
 
 READY=$(read_role ready "status:ready")
 CLAIMED=$(read_role claimed "status:in-progress")
+
+read_intake_assignee() {
+  local cli_value local_v
+  cli_value=$(printf '%s\n' "$ARGUMENTS" | sed -n 's/.*assignee=\([^[:space:]]*\).*/\1/p' | head -1)
+  local_v=$(jq -r '.intake.assignee // empty' .lisa.config.local.json 2>/dev/null)
+  echo "${cli_value:-${local_v:-}}"
+}
+
+ASSIGNEE=$(read_intake_assignee)
 ```
 
 For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
@@ -120,7 +140,13 @@ A "transition" means: remove the old role label and add the new one, in two `gh 
 ### Phase 2 — Find ready issues
 
 ```bash
-gh issue list --repo <org>/<repo> --label "$READY" --state open --json number,title,labels,assignees,milestone,createdAt --limit 100
+if [ -n "$ASSIGNEE" ]; then
+  gh issue list --repo <org>/<repo> --label "$READY" --assignee "$ASSIGNEE" --state open \
+    --json number,title,labels,assignees,milestone,createdAt --limit 100
+else
+  gh issue list --repo <org>/<repo> --label "$READY" --state open \
+    --json number,title,labels,assignees,milestone,createdAt --limit 100
+fi
 ```
 
 If empty, run a secondary check to distinguish a genuinely empty queue from an unconfigured repo:
@@ -131,7 +157,7 @@ gh label list --repo <org>/<repo> --json name \
       '[.[] | .name | select(. == $r or . == $c or (. as $n | $d | index($n)))] | length'
 ```
 
-If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
+If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue matching the resolved assignee filter (or any open issue when the filter is empty) → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
 
 ### Phase 3 — Process the first eligible ready issue
 

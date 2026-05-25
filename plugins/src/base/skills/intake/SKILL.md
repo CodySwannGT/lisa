@@ -8,6 +8,18 @@ allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__cl
 
 Run one intake cycle against the queue identified by `$ARGUMENTS`. Scans for `Status = Ready`, claims the first eligible item, dispatches it to the appropriate single-item lifecycle skill, then exits. Remaining Ready items are left for later scheduler invocations.
 
+For build-queue runs, Intake also accepts an optional `assignee=<vendor-user-id-or-login>` filter.
+Resolution order is:
+
+1. `$ARGUMENTS` `assignee=<...>`
+2. `.lisa.config.local.json` `intake.assignee`
+3. empty default
+
+When the resolved assignee is empty, Intake keeps the shared queue behavior and scans any ready
+item. When non-empty, it forwards the filter to the vendor build-intake skill so that only ready
+items already assigned to that assignee are considered. Intake never assigns or reassigns tickets
+as part of this filter.
+
 ## Confirmation policy
 
 Do NOT ask the caller whether to proceed. Once invoked with a queue, run the cycle to completion. The caller (a human at the CLI or a scheduled cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
@@ -58,7 +70,7 @@ Detect the queue type from `$ARGUMENTS` and route:
 | A JIRA project key (e.g. `SE`) | Work queue (JIRA) | Invoke `lisa:jira-build-intake` (which scans the project for Status=Ready, claims the first eligible ticket via In Progress, runs `lisa:implement`, transitions to On Dev on success, then exits) |
 | A full JQL filter (e.g. `project = SE AND component = "frontend"`) | Work queue (JIRA, narrowed) | Invoke `lisa:jira-build-intake` with the JQL |
 | A GitHub **repository** URL or `org/repo` token (e.g. `https://github.com/acme/product-prds` or `acme/product-prds`) when used for **PRDs** | PRD queue (GitHub) | Invoke `lisa:github-prd-intake` (which queries `gh issue list --label prd-ready`, claims the first eligible PRD by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline, then exits). PRD discovery is independent of the destination tracker — the resulting tickets land wherever `.lisa.config.json` `tracker` says. |
-| A GitHub **repository** URL or `org/repo` token when `tracker = github` is configured (build-queue mode) | Work queue (GitHub) | Invoke `lisa:tracker-build-intake` which dispatches to `lisa:github-build-intake` (which queries `gh issue list --label status:ready`, claims the first eligible issue via `status:in-progress`, runs `lisa:implement`, relabels to `status:on-dev` on success, then exits). |
+| A GitHub **repository** URL or `org/repo` token when `tracker = github` is configured (build-queue mode) | Work queue (GitHub) | Invoke `lisa:tracker-build-intake` which dispatches to `lisa:github-build-intake` (which queries `gh issue list --label status:ready`, optionally narrows by the resolved assignee filter, claims the first eligible issue via `status:in-progress`, runs `lisa:implement`, relabels to `status:on-dev` on success, then exits). |
 | The literal token `github` | Defaults to `.lisa.config.json` `github.org` / `github.repo`. Routes by **the `intake_mode` flag** in `$ARGUMENTS` (`prd` or `build`); if the flag is absent, prefer the PRD queue when both label namespaces are present, otherwise pick whichever exists. | Invoke the matching skill (`lisa:github-prd-intake` or `lisa:tracker-build-intake`). |
 
 Disambiguation rules:
@@ -87,7 +99,7 @@ The single-item skills (`lisa:plan`, `lisa:implement`) and the per-vendor batch 
    - Linear PRDs → `lisa:linear-prd-intake` handles per-item: claim (relabel project to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed` (with a sentinel feedback issue under each project hosting clarifying-question comments), coverage audit
    - GitHub PRDs → `lisa:github-prd-intake` handles per-item: claim (relabel issue to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed` (with clarifying-question comments posted directly on the PRD issue), coverage audit
    - JIRA tickets → `lisa:jira-build-intake` handles per-item: claim, dispatch to `lisa:jira-agent`, transition to On Dev on success
-   - GitHub build issues (when `tracker = github`) → `lisa:tracker-build-intake` → `lisa:github-build-intake` handles per-item: claim (relabel to `status:in-progress`), dispatch to `lisa:github-agent`, relabel to `status:on-dev` on success
+   - GitHub build issues (when `tracker = github`) → `lisa:tracker-build-intake` → `lisa:github-build-intake` handles per-item: optional ready-queue assignee filtering, claim (relabel to `status:in-progress`), dispatch to `lisa:github-agent`, relabel to `status:on-dev` on success
    - **Closing the PRD loop:** beyond claiming one Ready PRD, every PRD scanner also runs the closure rollup (`ticketed → shipped`, Phase 3f) and **dispatches `lisa:verify-prd` for one shipped PRD** (Phase 3g) each cycle — so a shipped PRD does not sit unverified. On pass the PRD goes `shipped → verified`; on fail it is re-opened `shipped → ticketed` with **build-ready fix tickets** that auto-build and trigger a re-verify (never `blocked`). The scanner only dispatches; `lisa:verify-prd` owns the transition (per the `prd-lifecycle-rollup` rule's "Closing the loop" section), and the self-healing loop continues until the PRD verifies.
 5. **Stop after one item** — a claimed Ready item, a safe-blocked container, or a per-item error ends the *ready-claim* portion of the cycle. The per-vendor PRD scanner still runs its rollup and one verify-prd dispatch. Remaining Ready items stay untouched for later scheduler invocations.
 6. **Summary report** — the single processed/skipped/error item, total processed, total errors.
@@ -103,6 +115,7 @@ The single-item skills (`lisa:plan`, `lisa:implement`) and the per-vendor batch 
 /schedule "every 30 minutes" /lisa:intake acme/product-prds
 /schedule "every 30 minutes" /lisa:intake SE
 /schedule "every 30 minutes" /lisa:intake acme/frontend-v2 intake_mode=build
+/schedule "every 30 minutes" /lisa:intake acme/frontend-v2 intake_mode=build assignee=codyswanngt
 /schedule "every hour" /lisa:intake "project = SE AND component = 'frontend'"
 ```
 
