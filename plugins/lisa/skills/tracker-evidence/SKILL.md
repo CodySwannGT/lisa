@@ -13,17 +13,19 @@ See the `config-resolution` rule for configuration and dispatch table.
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa:tracker-write`).
-2. Dispatch:
+2. Before dispatching, update the generated evidence artifact through `lisa:usage-accounting` so the comment body / PR evidence section carries a direct `verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item's parentage or child refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if trustworthy runtime usage is unavailable, write `source: unavailable` with nullable token/cost fields instead of skipping the row.
+3. Dispatch:
    - `jira` → invoke `lisa:jira-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>`.
    - `github` → invoke `lisa:github-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<ISSUE_REF> <EVIDENCE_DIR> <PR_NUMBER>` where `ISSUE_REF` is `org/repo#<number>` or a GitHub issue URL.
    - `linear` → invoke `lisa:linear-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<IDENTIFIER> <EVIDENCE_DIR>` where `IDENTIFIER` is a Linear Issue identifier (e.g., `ENG-123`).
    - Anything else → stop and report `"Unknown tracker '<value>' in .lisa.config.json. Expected 'jira', 'github', or 'linear'."`
-3. Pass through the vendor skill's output.
+4. Pass through the vendor skill's output.
 
 ## Rules
 
 - The GitHub `pr-assets` release lives on the implementation repo (the one with the PR), regardless of which tracker hosts the ticket/issue. All vendor skills upload there.
 - Never post evidence to a different ticket than the one named — `$ARGUMENTS` is the source of truth.
+- Never invent a verify-specific usage footer. Evidence artifact usage must flow through `lisa:usage-accounting`, preserve the canonical `## Lisa Usage` section, and surface `source: unavailable` explicitly when the runtime cannot provide trustworthy numbers.
 - **Evidence-manifest gate (leaf work units).** Before dispatching to a vendor skill that transitions the ticket, confirm `EVIDENCE_DIR` contains a non-empty artifact for every `[EVIDENCE: name]` marker declared in the ticket's Validation Journey. If any declared marker has no captured artifact (or only an empty one), stop and report the missing markers by name instead of posting — a leaf work unit (Bug / Task / Sub-task / Improvement) may not advance to its review/Done state with an unsatisfied manifest (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Epics / Stories / Spikes, and leaf units without a Validation Journey, are exempt.
 
 ## UI Evidence Checklist (when work is UI-visible)
