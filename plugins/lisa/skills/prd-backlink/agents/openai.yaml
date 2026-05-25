@@ -1,4 +1,4 @@
 display_name: "PRD Backlink"
-short_description: "Update a source PRD with a `## Tickets` section linking back to every work item created from it"
+short_description: "Update a source PRD with an always-written, machine-readable `## Tickets` (alias `## Generated Work`) section linking back to every work…"
 default_prompt:
-  - "Use $prd-backlink: Update a source PRD with a `## Tickets` section linking back to every work item created from it."
+  - "Use $prd-backlink: Update a source PRD with an always-written, machine-readable `## Tickets` (alias `## Generated Work`) section linking back to every work…."

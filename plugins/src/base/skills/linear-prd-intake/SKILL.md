@@ -34,11 +34,24 @@ BLOCKED=$(read_role blocked "prd-blocked")
 TICKETED=$(read_role ticketed "prd-ticketed")
 SHIPPED=$(read_role shipped "prd-shipped")
 SENTINEL=$(read_role sentinel "prd-intake-feedback")
+
+# Resolve a boolean rollup flag. Local overrides global per-key; default when unset.
+read_rollup_flag() {
+  local key="$1" default="$2"
+  local local_v global_v
+  local_v=$(jq -r ".linear.labels.prd.rollup.${key} // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r ".linear.labels.prd.rollup.${key} // empty" .lisa.config.json 2>/dev/null)
+  echo "${local_v:-${global_v:-$default}}"
+}
+
+CLOSE_ON_SHIPPED=$(read_rollup_flag closeOnShipped false)
 ```
 
 In prose below, the role names refer to the resolved labels: e.g. "the `ready` label" means whatever `linear.labels.prd.ready` resolves to (default: `prd-ready`).
 
-This skill is the Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **project labels** instead of a status property, (2) the fetch / update tools are Linear MCP, and (3) clarifying-question comments land on a sentinel feedback Issue under the project (because Linear's MCP does not expose project-level comments). Keep all three skills behaviorally aligned: when changing intake logic, change them together.
+This skill is the Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake`, and shares its PRD closure rollup phase (3f) with `lisa:github-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **project labels** instead of a status property, (2) the fetch / update tools are Linear MCP, and (3) clarifying-question comments land on a sentinel feedback Issue under the project (because Linear's MCP does not expose project-level comments). Keep all four intake skills behaviorally aligned: when changing intake logic — including the rollup phase — change them together.
+
+The **PRD closure rollup phase (3f)** transitions a `$TICKETED` PRD project to `$SHIPPED` (and optionally closes/archives it) once all its generated top-level work is terminal, per the `prd-lifecycle-rollup` rule. This is the Linear leg of the same vendor-neutral rollup that `lisa:github-prd-intake` implements for GitHub (LPC-1.3 #584); only the vendor surface (Linear workflow states + project labels) differs.
 
 ## Confirmation policy
 
@@ -62,20 +75,23 @@ The only legitimate reasons to stop early:
 The Linear PRD lifecycle is encoded as **project labels** (we deliberately do NOT key off Linear's native project state, since project state is product's day-to-day signal and we don't want to fight it). Exactly one of these labels is expected on a project at any time:
 
 ```text
-draft → ready → in_review → blocked | ticketed → shipped
-        (product)  (us)      (us)                  (product)
+draft → ready → in_review → blocked | ticketed → shipped → verified
+        (product)  (us)      (us)                  (product)  (product)
 ```
 
-(Defaults: `prd-draft` / `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed` / `prd-shipped`.)
+(Defaults: `prd-draft` / `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed` / `prd-shipped` / `prd-verified`.)
 
-This skill ONLY transitions:
+`verified` is the terminal state after `shipped`: it means the shipped product has been empirically checked against the PRD (set by `/lisa:verify-prd`, not by this intake skill). A failed post-ship verification reuses `blocked` rather than introducing a separate `verifying` / `verification-failed` state. Like `draft` and `shipped`, `verified` is **product-owned** — this intake skill never sets, clears, or otherwise touches it. See the "PRD-level verification vs ticket verification" section of the `prd-lifecycle-rollup` rule.
+
+This skill transitions:
 
 - `$READY` → `$IN_REVIEW` (claim)
 - `$IN_REVIEW` → `$BLOCKED` (gate failures or coverage gaps)
 - `$IN_REVIEW` → `$TICKETED` (success)
 - `$TICKETED` → `$BLOCKED` (post-write coverage gaps from Phase 3e)
+- `$TICKETED` → `$SHIPPED` (PRD closure rollup, Phase 3f — only when **all** generated top-level children are terminal)
 
-It never adds, removes, or touches the `draft` or `shipped` labels. Those labels are owned by product.
+It never touches the `draft` or `verified` labels — those labels are owned by product (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` label is set by this skill's **rollup phase (3f)** when, and only when, the PRD project's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD project unless `linear.labels.prd.rollup.closeOnShipped` is configured `true` (default `false` → set `shipped`, leave the project active).
 
 A "transition" means: remove the old lifecycle label and add the new one in a single `save_project` call (passing the full new label set in the `labels` array). The skill MUST verify that exactly one lifecycle label exists on the project after the update — having two simultaneously breaks idempotency.
 
@@ -223,6 +239,63 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
 
 3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
 
+#### 3f. PRD closure rollup (config-gated)
+
+A PRD's lifecycle terminal state (`shipped`) is **derived** from whether the work it generated is done — it is never set by hand here on its own authority. This phase implements the Linear leg of that derivation, per the `prd-lifecycle-rollup` rule (cite it by slug; do not restate its taxonomy or terminal-state semantics here). It is behaviorally identical to `lisa:github-prd-intake`'s Phase 3f — only the vendor surface (Linear workflow states + project labels via Linear MCP) differs from GitHub's (issue close + labels via `gh`).
+
+Rollup runs over PRD projects that are already `$TICKETED` (the only state from which a PRD can ship): the freshly-ticketed project from Phase 3c, and — because rollup also catches PRDs whose children finished in a *later* cycle — every project currently carrying `$TICKETED`. Process each independently; one PRD never blocks another's rollup.
+
+##### 3f.0 Resolve closure config
+
+Closure is gated on `linear.labels.prd.rollup.closeOnShipped` (default `false`), resolved via `read_rollup_flag` (defined in the Workflow resolution block, same local-overrides-global precedence the lifecycle labels use):
+
+```bash
+CLOSE_ON_SHIPPED=$(read_rollup_flag closeOnShipped false)
+```
+
+When `false` (the default), rollup sets `$SHIPPED` but leaves the PRD project **active** for a human to archive. When `true`, rollup also moves the project to a closed/archived state after the `$SHIPPED` transition. Closure NEVER happens before all generated top-level work is terminal (`prd-lifecycle-rollup` rule; PRD #525 non-goal).
+
+##### 3f.1 Idempotency guard (no-op if already shipped)
+
+Rollup is keyed by the PRD's current state. If the PRD project already carries `$SHIPPED` (and is already archived, when `$CLOSE_ON_SHIPPED` is `true`), it is a **no-op** — do not re-transition, do not re-archive, do not re-comment. Record it as `already shipped (no-op)` in the cycle summary and move on. This is what makes re-running intake safe.
+
+##### 3f.2 Read the generated top-level child set
+
+Read the PRD's **generated top-level work** — its created Epics and any top-level Stories created directly under it, **excluding** leaf Sub-tasks and any Story nested under a generated Epic (`prd-lifecycle-rollup` rule, generated-top-level-work contract). Use two sources, native first:
+
+1. **Native parent / project relationships (primary).** Linear records the PRD→child relationship natively where the PRD also lives in Linear: a generated top-level Issue uses `parentId`, or a generated Project groups the generated Issues. Read the PRD project's generated top-level Issues via `mcp__linear-server__list_issues({project: <id>})` and take the **top-level** ones (no `parentId`, or whose parent is the PRD itself) — those are the PRD's direct children. Fetch each with `mcp__linear-server__get_issue` for its workflow state.
+
+2. **Documented `## Tickets` section (fallback).** When the native relationship is unavailable (the destination tracker is a *different* system — e.g. Linear PRD → JIRA tracker — so the children were never linked as Linear issues), parse the machine-readable generated-work section `lisa:prd-backlink` writes to the PRD (`## Tickets`, alias `## Generated Work`; see #582). Top-level children are the `### <Epic key>: <title>` group headers' first line (`- [<ref>](<url>) — Epic`) plus any top-level Story listed directly under `### Unparented items`. Lines nested deeper (`  - ... — Story:` under an Epic, `    - ... — Sub-task:`) are descendants, NOT top-level children — skip them.
+
+Dedupe the resulting child set by **child-ref identity** (the Linear issue/project identifier, e.g. `TEAM-123` or its UUID) so a child that appears both as a native relationship and in the documented section is counted once (`prd-lifecycle-rollup` idempotency dedupe key). If neither source yields any child (the PRD generated nothing, or the relationship was never recorded), record `no generated top-level children — rollup skipped` and leave the PRD as `$TICKETED`; do not ship an empty PRD.
+
+##### 3f.3 Apply the terminal-state predicate
+
+For each top-level child, fetch its workflow state and classify per the `prd-lifecycle-rollup` Linear predicate:
+
+- **Terminal (shipped).** The child Issue/Project is in a **completed** workflow state (the `completed` / `done`-category state). A child Epic is terminal only when it has itself rolled up to its own terminal state per `leaf-only-lifecycle` — read the child's own resolved state; do not re-derive it from its leaves here.
+- **Terminal-but-dropped.** The child is in a **canceled** workflow state (the `canceled`-category state). Like a not-planned leaf, it does not hold the PRD open and is excluded from the shipped set.
+- **Incomplete / blocked.** Anything else: any backlog / unstarted / started / triage workflow state. Holds the PRD open.
+
+The set of **required** children for the all-terminal check is the top-level children minus the canceled (terminal-but-dropped) ones.
+
+##### 3f.4 Branch on the rollup verdict
+
+**All required children terminal** (every required top-level child is terminal; at least one required child exists):
+
+1. Transition labels: remove `$TICKETED`, add `$SHIPPED` via `mcp__linear-server__save_project({id, labels})`. Verify exactly one lifecycle label remains (the single-label invariant).
+2. **If `$CLOSE_ON_SHIPPED` is `true`**, move the PRD project to a closed/archived state via `save_project` (set the project to a completed/canceled state or archive it). When `false`, leave it active.
+3. Post a short rollup comment on the sentinel feedback issue naming the terminal child set and (when dropped children exist) the dropped set, so the audit trail records *why* the PRD shipped. Lead with `"Shipped by Claude — all generated top-level work is complete."`
+
+**Any required child incomplete / blocked**:
+
+1. Leave the PRD label as `$TICKETED` and leave the project **active**. Do NOT add `$SHIPPED`. Do NOT archive.
+2. Report the incomplete child set — both in the cycle summary and, when at least one cycle has previously ticketed this PRD, as a single advisory comment on the sentinel feedback issue listing the still-open children (`- <ref> "<title>" — <state>`), so product can see what's blocking the rollup. Keep it idempotent: regenerate the advisory rather than appending a fresh one each cycle.
+
+##### 3f.5 Rollup cites the rule
+
+This phase implements exactly one PRD-lifecycle hop — `$TICKETED → $SHIPPED` — and the optional config-gated archive that follows it. All terminal-state semantics, the generated-top-level-work boundary, and the dedupe-by-child-ref idempotency come from the `prd-lifecycle-rollup` rule; this skill is its Linear implementation, not a second source of truth.
+
 ### Phase 4 — Summary report
 
 After processing every ready PRD, emit a summary:
@@ -269,10 +342,11 @@ Idempotency: the helper finds-or-creates. Re-runs of the cycle reuse the same se
 ## Idempotency & safety
 
 - **Single-cycle scope**: this skill processes the ready set as it exists at the start of Phase 2. New `$READY` projects added mid-cycle are picked up next run.
-- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:linear-to-tracker` (which delegates to `lisa:tracker-write`), only ever changes Linear project labels among `$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, only ever creates/comments on the sentinel feedback issue (never any other Linear issue). It never edits project descriptions, never edits Linear documents, never touches the `draft` or `shipped` labels, never archives or deletes projects.
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:linear-to-tracker` (which delegates to `lisa:tracker-write`), only ever changes Linear project labels among `$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, and `$SHIPPED` (the last via the rollup phase 3f only), only ever creates/comments on the sentinel feedback issue (never any other Linear issue). It never edits project descriptions, never edits Linear documents, never touches the `draft` label, and never deletes projects. It sets the `$SHIPPED` label and may archive the PRD project **only** through the config-gated rollup phase (3f).
 - **Claim-first ordering**: the label flip to `$IN_REVIEW` happens BEFORE validation runs, so a re-entrant call won't double-process.
 - **Failure isolation**: an exception processing one project must not stop the cycle. Catch, record under "Errors" in the summary, continue to the next project. The project that errored is left labelled `$IN_REVIEW` — the human investigates from there.
 - **Single-label invariant**: after every transition, verify exactly one lifecycle label is present on the project. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve, the human decides.
+- **Rollup idempotency**: rollup (Phase 3f) is a no-op on a PRD project already carrying `$SHIPPED` (and already archived when `closeOnShipped` is `true`) — no duplicate transition, no duplicate archive, no duplicate comment. The all-terminal condition is a pure function of the children's current states (deduped by child-ref identity), so recomputing it is safe to re-run. Archival NEVER precedes the all-terminal condition.
 
 ## Configuration
 
@@ -289,13 +363,15 @@ Destination tracker config (jira / github / linear) is consumed by `lisa:tracker
 | `.lisa.config.json` `linear.labels.prd.in_review` | `prd-in-review` | Project label set on claim |
 | `.lisa.config.json` `linear.labels.prd.blocked` | `prd-blocked` | Project label set on validation failure |
 | `.lisa.config.json` `linear.labels.prd.ticketed` | `prd-ticketed` | Project label set on success |
-| `.lisa.config.json` `linear.labels.prd.shipped` | `prd-shipped` | Project label product sets after delivery |
+| `.lisa.config.json` `linear.labels.prd.shipped` | `prd-shipped` | Project label set by the rollup phase (3f) when all generated top-level work is terminal; product may also set it by hand |
+| `.lisa.config.json` `linear.labels.prd.rollup.closeOnShipped` | `false` | When `true`, rollup archives the PRD project after the `$SHIPPED` transition; when `false`, sets `$SHIPPED` and leaves it active |
 | `.lisa.config.json` `linear.labels.prd.sentinel` | `prd-intake-feedback` | Issue-level label marking the sentinel feedback issue |
 
 ## Rules
 
 - Never write to the destination tracker outside of `lisa:linear-to-tracker` → `lisa:tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
-- Never add or remove a label this skill doesn't own (`$IN_REVIEW`, `$BLOCKED`, `$TICKETED`). Product owns the `draft`, `ready`, and `shipped` labels. The issue-level `$SENTINEL` label is owned by this skill but is not a lifecycle label.
+- Never add or remove a label this skill doesn't own (`$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, and `$SHIPPED` via the rollup phase only). Product owns the `draft` and `ready` labels; product and the rollup phase (3f) both set `shipped`. The issue-level `$SENTINEL` label is owned by this skill but is not a lifecycle label.
+- Set `$SHIPPED` (and archive the PRD project when `closeOnShipped` is configured) only from the rollup phase, and only when all generated top-level children are terminal per the `prd-lifecycle-rollup` rule. Never ship or archive on partial completion.
 - Never edit a project's description or any attached Linear document. Communication with product happens only through comments on sub-issues or on the sentinel feedback issue.
 - Never post a single dump of all gate failures on one comment. One comment per `prd_anchor` group on the relevant sub-issue (or one comment on the sentinel feedback issue for unanchored failures only). Comments must be sub-issue-anchored where possible, categorized, plain-language, and contain a concrete recommendation.
 - Never include a gate ID, internal skill name, or engineering shorthand in a comment body.
