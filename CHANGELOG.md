@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.64.0](https://github.com/CodySwannGT/lisa/compare/vv2.63.2...v2.64.0) (2026-05-25)
+
+
+### Features
+
+* **intake:** add local assignee queue filter ([c32e3f3](https://github.com/CodySwannGT/lisa/commit/c32e3f3136b4ab8ea4d995649fab4701f4606459))
+
 ### [2.63.2](https://github.com/CodySwannGT/lisa/compare/vv2.63.1...v2.63.2) (2026-05-25)
 
 
