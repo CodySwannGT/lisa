@@ -56,6 +56,50 @@ describe("research/plan/debrief usage-accounting integration", () => {
   });
 });
 
+describe("implement/verify/intake usage-accounting integration", () => {
+  describe.each(ROOTS)("%s", root => {
+    it("records implement usage on the work artifact and refreshes ancestor totals when known", () => {
+      const content = readSkill(root, "implement");
+
+      expect(content).toContain(USAGE_SKILL);
+      expect(content).toContain(USAGE_SECTION);
+      expect(content).toMatch(/direct `implement` usage entry/i);
+      expect(content).toMatch(/record_and_rollup/i);
+      expect(content).toMatch(UNAVAILABLE_USAGE);
+    });
+
+    it("records verify usage on evidence artifacts before posting", () => {
+      const content = readSkill(root, "verify");
+
+      expect(content).toContain(USAGE_SKILL);
+      expect(content).toContain(USAGE_SECTION);
+      expect(content).toMatch(/direct `verify` usage entry/i);
+      expect(content).toMatch(/tracker-evidence/i);
+      expect(content).toMatch(UNAVAILABLE_USAGE);
+    });
+
+    it("records intake usage on cycle summaries and refreshes ancestor totals when known", () => {
+      const content = readSkill(root, "intake");
+
+      expect(content).toContain(USAGE_SKILL);
+      expect(content).toContain(USAGE_SECTION);
+      expect(content).toMatch(/direct `intake` entry/i);
+      expect(content).toMatch(/record_and_rollup/i);
+      expect(content).toMatch(UNAVAILABLE_USAGE);
+    });
+
+    it("routes tracker evidence usage through the shared usage-accounting contract", () => {
+      const content = readSkill(root, "tracker-evidence");
+
+      expect(content).toContain(USAGE_SKILL);
+      expect(content).toContain(USAGE_SECTION);
+      expect(content).toMatch(/direct `verify` usage entry/i);
+      expect(content).toMatch(/record_and_rollup/i);
+      expect(content).toMatch(UNAVAILABLE_USAGE);
+    });
+  });
+});
+
 describe("intent-routing lifecycle flows include usage writes", () => {
   describe.each(RULES)("%s", rulePath => {
     const content = readFileSync(path.resolve(rulePath), "utf8");
@@ -77,6 +121,20 @@ describe("intent-routing lifecycle flows include usage writes", () => {
     it("adds Debrief usage recording on the triage document", () => {
       expect(content).toMatch(/Record Debrief usage on the triage document/i);
       expect(content).toContain(USAGE_SECTION);
+    });
+
+    it("adds Implement usage recording on delivery work artifacts", () => {
+      expect(content).toMatch(/Record Implement usage on the work artifact/i);
+      expect(content).toContain(USAGE_SKILL);
+      expect(content).toMatch(/record_and_rollup/i);
+      expect(content).toMatch(UNAVAILABLE_USAGE);
+    });
+
+    it("adds Verify usage recording on evidence artifacts", () => {
+      expect(content).toMatch(/Record Verify usage on the evidence artifact/i);
+      expect(content).toContain(USAGE_SKILL);
+      expect(content).toMatch(/tracker-evidence/i);
+      expect(content).toMatch(UNAVAILABLE_USAGE);
     });
   });
 });

@@ -127,8 +127,9 @@ Determine the work type and execute the matching variant:
 6. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 7. `verification-specialist` -- verify locally (run the software, observe behavior)
 8. `verification-specialist` -- invoke `codify-verification` skill per passing verification (Playwright for UI, integration test for API/DB/auth, etc.); commit each test in the same PR
-9. **Review sub-flow**
-10. `learner` -- capture discoveries
+9. **Record Implement usage on the work artifact** -- invoke `lisa:usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+10. **Review sub-flow**
+11. `learner` -- capture discoveries
 
 #### Fix (bugs)
 
@@ -141,8 +142,9 @@ Determine the work type and execute the matching variant:
 7. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 8. `verification-specialist` -- verify locally (prove the bug is fixed)
 9. `verification-specialist` -- invoke `codify-verification` skill to encode the fix as a regression test (mandatory for bug fixes — the test must fail against the pre-fix commit and pass against the fix); commit in the same PR
-10. **Review sub-flow**
-11. `learner` -- capture discoveries
+10. **Record Implement usage on the work artifact** -- invoke `lisa:usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+11. **Review sub-flow**
+12. `learner` -- capture discoveries
 
 #### Improve (refactoring, optimization, coverage improvement)
 
@@ -153,8 +155,9 @@ Determine the work type and execute the matching variant:
 5. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 6. `verification-specialist` -- measure again, prove improvement over baseline
 7. `verification-specialist` -- invoke `codify-verification` skill (typically a benchmark asserting against baseline for performance work, or a regression test for behavioral refactors); commit in the same PR
-8. **Review sub-flow**
-9. `learner` -- capture discoveries
+8. **Record Implement usage on the work artifact** -- invoke `lisa:usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+9. **Review sub-flow**
+10. `learner` -- capture discoveries
 
 #### Investigate Only (spikes)
 
@@ -193,6 +196,8 @@ Sequence:
    - `verification-specialist` -- verify in target environment (same checks as local verification, but on remote)
    - `ops-specialist` -- post-deploy health check, smoke test, monitor for errors in first minutes
    - If remote verification fails -- fix, open new PR, return to step 3
+7. **Record Verify usage on the evidence artifact** -- invoke `lisa:usage-accounting` against the generated evidence artifact (comment body, PR evidence section, or markdown proof) so it gains a direct `verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item or PRD parentage is known, prefer `record_and_rollup` so ancestor totals refresh in the same pass. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+8. **Post evidence via the tracker surface** -- invoke `lisa:tracker-evidence` after the usage write so the same canonical evidence artifact is uploaded / posted without hand-editing a second format.
 
 Output: Merged PR, successful deploy, remote verification passing.
 
