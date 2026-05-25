@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-05-25T23:31:00.000Z",
+  "groups": [
+    {
+      "id": "1",
+      "title": "Project detection and runtime basics",
+      "checks": [
+        {
+          "id": "repo-root",
+          "status": "PASS",
+          "summary": "repository root resolved",
+          "observed": "package.json, .git, and lisa distribution surfaces are present."
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Lisa config readiness",
+      "checks": [
+        {
+          "id": "github-tracker",
+          "status": "PASS",
+          "summary": "merged tracker config resolves to GitHub self-host",
+          "observed": "tracker=github with github.org=CodySwannGT and github.repo=lisa."
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Tracker/source preflight",
+      "checks": [
+        {
+          "id": "gh-access",
+          "status": "PASS",
+          "summary": "gh auth and repo read probe succeeded",
+          "observed": "gh auth status passed and gh repo view CodySwannGT/lisa is readable."
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Automation readiness",
+      "checks": [
+        {
+          "id": "scheduler-surface",
+          "status": "WARN",
+          "summary": "manual Lisa usage is ready, but native scheduler support is unavailable in this runtime",
+          "observed": "Queue inputs are resolvable, but the current runtime cannot expose the scheduler surface here.",
+          "remediation": "Run doctor from a runtime with native automation support before configuring unattended jobs."
+        },
+        {
+          "id": "exploratory-bugs",
+          "status": "SKIP",
+          "summary": "exploratory-bugs is not shipped for this repo surface",
+          "observed": "This repository does not ship an exploratory-qa command surface."
+        }
+      ]
+    }
+  ]
+}
