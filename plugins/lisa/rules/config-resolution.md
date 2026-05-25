@@ -398,6 +398,37 @@ For batch skills that consume `source`:
 2. If `$ARGUMENTS` is the bare token `notion` / `confluence` / `linear` / `github` / `jira`, the source is that vendor; resolve location from the corresponding config section.
 3. If `$ARGUMENTS` is empty, fall back to `source` from config; if that's also empty, stop and report `"No source specified and no 'source' field in .lisa.config.json."`
 
+### Doctor config readiness
+
+`/lisa:doctor` reads the same config, but it audits readiness instead of dispatching a write.
+Doctor must validate config in three layers:
+
+1. **Parse and merge**
+   - Parse both config files as JSON. Missing or invalid `.lisa.config.json` is a blocking error.
+     `.lisa.config.local.json` is optional, but if present and invalid it is also a blocking error.
+   - Merge per key with the standard local-overrides-global rule. Doctor reports against the merged
+     effective config; it does not treat the local file as a full replacement for the committed
+     file.
+2. **Required-key correctness**
+   - Missing `tracker` after merge is a blocking error. Unknown merged `tracker` / `source` values
+     are also blocking errors.
+   - If the configured tracker/source vendor is missing its required keys after merge, doctor must
+     report a blocking readiness failure using the vendor tables above. Examples: `tracker=github`
+     requires `github.org` + `github.repo`; `tracker=jira` requires `atlassian.cloudId` +
+     `jira.project`; `source=notion` requires `notion.workspaceId` + `notion.prdDatabaseId`.
+3. **Field locality correctness**
+   - `atlassian.email`, `intake.assignee`, and `jira.verified_workflow_hash` are local-only. If
+     they appear in committed config, doctor warns that developer-specific state was checked into
+     the project file.
+   - Project-wide fields that exist only in `.lisa.config.local.json` should warn, not pass
+     silently. Current machine works, repository not durably configured for teammates and
+     automations. Common examples include `tracker`, `source`, `github.org`, `github.repo`,
+     `atlassian.cloudId`, `atlassian.site`, `jira.project`, `linear.workspace`, `linear.teamKey`,
+     and `deploy.branches`.
+
+Doctor's severity rule is simple: unusable merged config is `FAIL`; locality drift with a still
+usable merged config is `WARN`.
+
 ## Skill mapping
 
 The shim → vendor mapping is fixed:
