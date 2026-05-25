@@ -52,4 +52,4 @@ Execute the **Plan** flow as defined in the `intent-routing` rule (loaded via th
 
 ## Output
 
-Work items in the configured tracker (JIRA, GitHub Issues, or Linear, per `.lisa.config.json` `tracker`) with acceptance criteria, dependencies, and recommended skills/agents per item. Ordered by dependency. If the specification cannot be decomposed without further clarification, stop and report what is missing.
+Work items in the configured tracker (JIRA, GitHub Issues, or Linear, per `.lisa.config.json` `tracker`) with acceptance criteria, dependencies, and recommended skills/agents per item. Ordered by dependency. Before finishing, route usage writes through `lisa:usage-accounting`: record the Plan run as a direct entry on the source PRD/spec artifact, attach a plan usage entry (or an explicit `source: unavailable` entry with nullable token/cost fields) to each created work item, and refresh the PRD rollup after `lisa:prd-backlink` regenerates the `## Tickets` child refs. Do not invent plan-specific ledger formats or omit missing usage silently. If the specification cannot be decomposed without further clarification, stop and report what is missing.

@@ -69,6 +69,11 @@ A markdown triage document at `./debrief/<initiative-slug>-<YYYY-MM-DD>.md` (or 
    - `Disposition` — empty checkbox-style field the human will fill: `[ ] Accept` / `[ ] Reject` / `[ ] Defer` plus a free-text reason
 4. **Source map** — appendix listing every work item and PR walked, so the human can verify completeness.
 
+Before returning, write the Debrief run's direct usage onto the triage document through
+`lisa:usage-accounting` so the markdown artifact carries its own `## Lisa Usage` section separate
+from delivery-time usage. If runtime usage is unavailable, record a debrief entry with
+`source: unavailable` and nullable token/cost fields instead of skipping the row.
+
 The skill's terminal output is the path to the triage document and a one-line summary of counts per category. Persistence does not happen here — that is `lisa:debrief-apply`'s job.
 
 ## Hand-off
