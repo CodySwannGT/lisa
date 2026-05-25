@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.63.2](https://github.com/CodySwannGT/lisa/compare/vv2.63.1...v2.63.2) (2026-05-25)
+
+
+### Documentation
+
+* **wiki:** ingest git and roles connectors ([40a1a1d](https://github.com/CodySwannGT/lisa/commit/40a1a1d9ec58cdf477779b0181a1cf903542696c))
+
 ### [2.63.1](https://github.com/CodySwannGT/lisa/compare/vv2.63.0...v2.63.1) (2026-05-25)
 
 ## [2.63.0](https://github.com/CodySwannGT/lisa/compare/vv2.62.2...v2.63.0) (2026-05-25)
