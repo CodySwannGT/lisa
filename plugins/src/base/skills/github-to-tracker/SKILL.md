@@ -198,7 +198,9 @@ For each epic identified in Phase 1, **invoke the `lisa:tracker-write` shim** (d
 - `artifacts`: the full Phase 1.5 artifact list — every artifact, regardless of domain. The Epic is the canonical hub.
 - `priority`, `labels`, `components`, `fix_version`: as appropriate
 
-**Leaf-only build-ready (`leaf-only-lifecycle`)**: an Epic is a container, not a leaf work unit. Do NOT mark it build-ready — `lisa:tracker-write` must not be passed `status:ready` for an Epic, and the Epic's lifecycle state rolls up from its children. The build-ready label is applied only in Phase 5.
+The source GitHub PRD may span multiple repositories, and the Epics created from it may stay cross-repo when they are coordination containers rather than buildable leaf work.
+
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: an Epic is a container, not a leaf work unit. Do NOT mark it build-ready — `lisa:tracker-write` must not be passed `status:ready` for an Epic, and the Epic's lifecycle state rolls up from its children. Epics may span repositories; only the leaf work created later must collapse to one repo each. The build-ready label is applied only in Phase 5.
 
 Capture the returned epic ref — Phase 4 needs it as the parent for Stories.
 
@@ -227,13 +229,13 @@ For each Story, **invoke `lisa:tracker-write`** with:
 | Infrastructure | `ops`, `reference` |
 | Mixed / setup ("X.0") | All domains |
 
-**Leaf-only build-ready (`leaf-only-lifecycle`)**: a Story is a container (it has child Sub-tasks), not a leaf work unit. Do NOT mark it build-ready — never pass `status:ready` to `lisa:tracker-write` for a Story. Its lifecycle state rolls up from its Sub-tasks. The build-ready label is applied only in Phase 5.
+**Leaf-only build-ready (`leaf-only-lifecycle`)**: a Story is a container (it has child Sub-tasks), not a leaf work unit. Do NOT mark it build-ready — never pass `status:ready` to `lisa:tracker-write` for a Story. Its lifecycle state rolls up from its Sub-tasks. Stories may span repositories when they coordinate work across repos; the build-ready label is applied only in Phase 5 to the per-repo leaves.
 
 Capture each returned story ref — Phase 5 needs it.
 
 ### Phase 5: Create Sub-tasks
 
-**Auto-split cross-repo work before delegation.** For each candidate sub-task, apply `lisa:task-decomposition` step 1.5: if the work touches more than one repo, split it into one sub-task per repo under the same parent Story (e.g., `[backend-api] Add field` + `[mobile-app] Display field`), and encode the producer-before-consumer ordering via dependencies. Work units that may span repos (Epic, Story, Spike) stay as planned; work units that must be single-repo (Bug, Task, Sub-task, Improvement) are split now. Splitting is this skill's responsibility — the validator's S10 gate is `product_relevant: false` because cross-repo failures are decomposition errors caught here, not product questions sent back to the PRD.
+**Auto-split cross-repo work before delegation.** For each candidate sub-task, apply `lisa:task-decomposition` step 1.5: if the work touches more than one repo, split it into one sub-task per repo under the same parent Story (e.g., `[backend-api] Add field` + `[mobile-app] Display field`), and encode the producer-before-consumer ordering via dependencies. The source GitHub PRD and its coordination containers (Epic, Story, Spike) may remain cross-repo. Build-ready work units may not: every Bug, Task, Sub-task, or Improvement written from this phase must resolve to exactly one repository. Splitting is this skill's responsibility — the validator's S10 gate is `product_relevant: false` because cross-repo failures are decomposition errors caught here, not product questions sent back to the PRD.
 
 Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency. **Every spawned agent must invoke `lisa:tracker-write` for each sub-task — no agent may call `lisa:jira-write-ticket` / `lisa:github-write-issue` / `gh issue create` directly.**
 
