@@ -10,6 +10,8 @@ Thin dispatcher. Resolves the configured destination tracker and delegates to th
 
 See the `config-resolution` rule for configuration and dispatch table.
 
+The vendor scanners also own the terminal native-closure step from `leaf-only-lifecycle`: after a leaf reaches the true terminal `done` value, they close / resolve / complete the native tracker item where supported, while leaving intermediate env states open.
+
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa:tracker-write`).
@@ -37,9 +39,22 @@ This is the claim-time arm of the rule. Its siblings are the write-time labeling
 
 The shim never needs to inspect the item itself — it forwards `$ARGUMENTS` verbatim and the resolved vendor scanner runs its Phase 3a gate before any claim.
 
+## Terminal native-closure contract (forwarded to every vendor)
+
+This shim also forwards the `leaf-only-lifecycle` terminal native-closure contract. It does not decide whether a `done` value is terminal; the vendor scanner resolves that from its own config and deployment topology after the per-item agent succeeds.
+
+| Tracker | Vendor scanner behavior at true terminal `done` |
+|---|---|
+| `github` | apply the terminal `done` label, then `gh issue close --reason completed` |
+| `jira` | transition to the configured terminal status and verify native resolved / closed state |
+| `linear` | apply the terminal `done` label, then move the Issue to the configured completed workflow state |
+
+Intermediate env states are not native closure. A vendor scanner that resolves `On Dev`, `On Stg`, `status:on-dev`, `status:on-stg`, or a configured equivalent leaves the item open / unresolved.
+
 ## Rules
 
 - Single cycle per invocation — the vendor skill processes the current `Ready` set and exits.
 - The vendor skills run their own pre-flight checks (JIRA workflow transitions for the JIRA path; label namespace adoption for the GitHub and Linear paths) before processing items. Never bypass.
 - **Leaf-only claim, every vendor.** Per the `leaf-only-lifecycle` rule, each vendor scanner claims leaf work units only and skips / safe-blocks a container (open child work, or a childless Epic/Story/Spike) carrying a stale build-ready role. This shim does not re-implement the gate — it relies on the vendor scanner's Phase 3a — but the contract is uniform across `jira`, `github`, and `linear` so behavior never drifts by tracker.
+- **Terminal native closure, every capable vendor.** Per the same rule, each vendor scanner finalizes native open/closed state only at the true terminal `done` value. This shim never performs native closure itself, but callers can rely on the dispatched vendor scanner to apply the contract.
 - Never run two intake cycles concurrently against overlapping queues — the scheduling layer is responsible for serialization.

@@ -125,6 +125,7 @@ ensure_label "$(read_role prd in_review prd-in-review)"        5319E7 "Claude is
 ensure_label "$(read_role prd blocked   prd-blocked)"          D93F0B "PRD blocked — see comments"
 ensure_label "$(read_role prd ticketed  prd-ticketed)"         0E8A16 "Tickets created — see comments"
 ensure_label "$(read_role prd shipped   prd-shipped)"          1D76DB "Work delivered (product owns)"
+ensure_label "$(read_role prd verified  prd-verified)"         0E8A16 "Shipped product empirically verified against the PRD (product owns)"
 ensure_label "$(read_role prd sentinel  prd-intake-feedback)"  EDEDED "Marker for PRD-intake feedback issues"
 ```
 
