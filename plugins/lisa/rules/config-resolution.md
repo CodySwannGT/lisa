@@ -459,6 +459,38 @@ preflight for those configured vendors only.
      unreadable after all supported probes, is a doctor `FAIL`.
    - A reachable vendor with only auxiliary-substrate degradation is a doctor `WARN`.
 
+### Doctor automation readiness
+
+Doctor's automation-readiness group is also read-only. It answers "could this repo safely support
+Lisa's recurring automations from the current runtime?" without creating, editing, deleting, or
+reconciling any automation state.
+
+1. **Resolve the automation queues from merged config**
+   - Resolve the PRD automation queue from merged `source`.
+   - Resolve the build automation queue from merged `tracker`.
+   - Resolve repair-intake from the same queue-detection contract `lisa:intake` /
+     `lisa:repair-intake` already use; doctor should not invent a second queue schema.
+   - If an automation's queue cannot be resolved because `source`, `tracker`, or the selected
+     vendor's required keys are still missing after merge, that automation is a doctor `FAIL`.
+     Unattended runs would be ambiguous before the scheduler is even involved.
+2. **Check native scheduler availability by runtime, read-only**
+   - Codex automation support means the runtime exposes the native automations surface
+     (`automation_update`) that `setup-automations` depends on.
+   - Claude automation support means `/schedule` is available.
+   - Other runtimes should be reported explicitly as having no known native Lisa scheduler unless a
+     supported surface is observable.
+   - Doctor must not create a throwaway automation just to prove the scheduler exists.
+3. **Match exploratory automation support to the repo's shipped stack**
+   - `exploratory-bugs` exists only for stacks that ship `exploratory-qa` (`expo`, `rails`,
+     `harper-fabric`). If the repo lacks that command surface, doctor reports the automation as
+     `SKIP`, not `FAIL`.
+   - `exploratory-prds` follows the normal queue-resolution rules; if its prerequisites are
+     unresolved, preserve the exact blocking config fact.
+4. **Severity**
+   - Queue resolution failure is a doctor `FAIL`.
+   - Missing native scheduler support in an otherwise manually-usable repo is a doctor `WARN`.
+   - Intentional absence of an optional exploratory automation surface is a doctor `SKIP`.
+
 ## Skill mapping
 
 The shim → vendor mapping is fixed:
