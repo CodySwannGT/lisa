@@ -118,6 +118,19 @@ If empty, report `"No tickets with Status=$READY. Nothing to do."` and exit. Thi
 
 ### Phase 3 — Process the first eligible ready ticket
 
+#### 3a.0 Repo-scope gate (claim only current-repo tickets)
+
+A JIRA project can oversee multiple repos (`frontend` / `backend` / `infrastructure`). This skill claims only tickets for the repo it is running in. Run this gate **before** the leaf-only gate (3a) and the claim (3b), per the `repo-scope-split` rule's "Claim-time repo scoping" section (cite it by slug; do not restate its decision table).
+
+1. **Resolve the current repo** per `config-resolution` "Repo scoping" (`.repo` → `.github.repo` → `git remote get-url origin` basename). If unresolvable, stop and report — do not claim tickets you cannot scope.
+2. **Cheap path first.** Prefer candidates already carrying `repo:<current>` — a JIRA **label**, or a **component** equal to the repo name (accepted as an alias). Keep the Phase 2 scan broad (it must still see unlabeled tickets so they can be determined and stamped); this gate orders/filters the results.
+3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
+   - Carries `repo:<other>` (label or component) → **skip** (leave it `ready` for that repo's own intake); next candidate.
+   - **Unlabeled** → determine the target repo(s) from the ticket (description, AC, technical approach) confirmed against the code surfaces, then **stamp** `repo:<name>` via `lisa:atlassian-access` `operation: write-ticket` (add the label / set the component) so later cycles filter cheaply; re-apply with the now-known repo.
+   - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure to break it into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
+   - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
+4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the ready set is exhausted — exit cleanly with `"No ready tickets for repo <current>. Nothing to do."`.
+
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
 
 Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready status (e.g. `Ready` applied before this rule existed, or hand-applied to an Epic/Story) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa:jira-write-ticket` and the validate-time S15 gate in `lisa:jira-validate-ticket`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
