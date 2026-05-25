@@ -39,7 +39,7 @@ In prose below, the role names refer to the resolved labels: e.g. "the `ready` l
 
 This skill is the GitHub counterpart of `lisa:notion-prd-intake`, `lisa:confluence-prd-intake`, and `lisa:linear-prd-intake`. Phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **issue labels** (mirroring Linear's project labels and Confluence's page labels), (2) the fetch / update tools are the `gh` CLI, and (3) clarifying-question comments land directly on the source PRD issue (because GitHub Issues *do* have native comments — no sentinel issue required, unlike Linear). Keep all four skills behaviorally aligned: when changing intake logic, change them together.
 
-The **PRD closure rollup phase (3f)** is, for now, GitHub-only: it transitions a `$TICKETED` PRD to `$SHIPPED` (and optionally closes it) once all its generated top-level work is terminal, per the `prd-lifecycle-rollup` rule. The Linear / Confluence / Notion counterparts gain the same rollup in sibling sub-task #584; until then, those three intake skills do not roll up to `shipped`, so this alignment note covers the shared intake/validation phases (1–3e), not yet the rollup phase.
+The **PRD closure rollup phase (3f)** transitions a `$TICKETED` PRD to `$SHIPPED` (and optionally closes it) once all its generated top-level work is terminal, per the `prd-lifecycle-rollup` rule. This phase is GitHub-only here because its vendor surface (issue close + labels via `gh`) is GitHub-specific; the Linear / Confluence / Notion intake skills carry the **same** vendor-neutral rollup with their own surfaces (sibling sub-task #584, now landed). All four intake skills are behaviorally aligned across the rollup phase too — keep them in sync when changing rollup logic.
 
 ## Confirmation policy
 
@@ -63,11 +63,13 @@ The only legitimate reasons to stop early:
 The PRD lifecycle is encoded as **issue labels**:
 
 ```text
-draft → ready → in_review → blocked | ticketed → shipped
-        (product)  (us)      (us)                  (product)
+draft → ready → in_review → blocked | ticketed → shipped → verified
+        (product)  (us)      (us)                  (product)  (product)
 ```
 
-(Defaults: `prd-draft` / `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed` / `prd-shipped`.)
+(Defaults: `prd-draft` / `prd-ready` / `prd-in-review` / `prd-blocked` / `prd-ticketed` / `prd-shipped` / `prd-verified`.)
+
+`verified` is the terminal state after `shipped`: it means the shipped product has been empirically checked against the PRD (set by `/lisa:verify-prd`, not by this intake skill). A failed post-ship verification reuses `blocked` rather than introducing a separate `verifying` / `verification-failed` state. Like `draft` and `shipped`, `verified` is **product-owned** — this intake skill never sets, clears, or otherwise touches it. See the "PRD-level verification vs ticket verification" section of the `prd-lifecycle-rollup` rule.
 
 Exactly one of these labels is expected on a PRD issue at any time.
 
@@ -79,7 +81,7 @@ This skill transitions:
 - `$TICKETED` → `$BLOCKED` (post-write coverage gaps from Phase 3e)
 - `$TICKETED` → `$SHIPPED` (PRD closure rollup, Phase 3f — only when **all** generated top-level children are terminal)
 
-The `draft` label is owned by product and is never touched here. The `shipped` label is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never closes a PRD issue unless `github.labels.prd.rollup.closeOnShipped` is configured `true` (default `false` → set `shipped`, leave open).
+The `draft` and `verified` labels are owned by product and are never touched here (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` label is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never closes a PRD issue unless `github.labels.prd.rollup.closeOnShipped` is configured `true` (default `false` → set `shipped`, leave open).
 
 A "transition" means: remove the old lifecycle label and add the new one (`gh issue edit <num> --remove-label <old> --add-label <new>`). The skill MUST verify exactly one lifecycle label is present after the update.
 

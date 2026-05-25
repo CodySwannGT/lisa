@@ -35,11 +35,11 @@ If neither arg is supplied, ask which mode (or both). Setting only `parentPageId
 
 ### Step 3 — Create lifecycle parent pages
 
-Confluence PRD lifecycle is **parent-page-based**, not label-based (see the `config-resolution` rule for why — Atlassian's scoped API tokens cannot write labels). Each lifecycle role gets its own parent page; a PRD's state = which parent it's a child of.
+Confluence PRD lifecycle is **parent-page-based**, not label-based (see the `config-resolution` rule for why — Atlassian's scoped API tokens cannot write labels). Each lifecycle role gets its own parent page; a PRD's state = which parent it's a child of. The full PRD lifecycle is `draft → ready → in_review → (blocked | ticketed) → shipped → verified` (the `prd-lifecycle-rollup` rule, slug `prd-lifecycle-rollup`): rollup performs the `ticketed → shipped` hop, then `/lisa:verify-prd` performs the terminal `shipped → verified` (pass) / `shipped → blocked` (fail) hop. `verified` is the terminal lifecycle state after `shipped` (the `verified` role from the `config-resolution` rule, #591).
 
 #### 3a. Decide where the parents live
 
-If `confluence.parentPageId` is set in config, the six parent pages are created as children of that page (keeps the lifecycle scoped to a sub-tree of the space). Otherwise, they're created at the space root.
+If `confluence.parentPageId` is set in config, the seven parent pages are created as children of that page (keeps the lifecycle scoped to a sub-tree of the space). Otherwise, they're created at the space root.
 
 ```bash
 SPACE_ID=$(curl -s -H "Authorization: Basic $AUTH" \
@@ -50,7 +50,7 @@ PARENT_ROOT=$(jq -r '.confluence.parentPageId // empty' .lisa.config.json)
 
 #### 3b. Create each parent page
 
-For each role in `[draft, ready, in_review, blocked, ticketed, shipped]`, create a page named after the role (`Draft`, `Ready`, `In Review`, `Blocked`, `Ticketed`, `Shipped`). Body: a short description of what PRDs in this state mean.
+For each role in `[draft, ready, in_review, blocked, ticketed, shipped, verified]`, create a page named after the role (`Draft`, `Ready`, `In Review`, `Blocked`, `Ticketed`, `Shipped`, `Verified`). Body: a short description of what PRDs in this state mean.
 
 ```bash
 create_parent() {
@@ -77,16 +77,18 @@ P_READY=$(create_parent     ready     "Ready"     "PRDs flagged by humans as rea
 P_REVIEW=$(create_parent    in_review "In Review" "PRDs the agent has claimed and is validating.")
 P_BLOCKED=$(create_parent   blocked   "Blocked"   "Validation failed — clarifying comments posted by the agent. Edit the PRD, then move back to Ready.")
 P_TICKETED=$(create_parent  ticketed  "Ticketed"  "Validated and tickets created. Tracked through the build queue from here.")
-P_SHIPPED=$(create_parent   shipped   "Shipped"   "All child tickets shipped. Terminal state.")
+P_SHIPPED=$(create_parent   shipped   "Shipped"   "All child tickets shipped.")
+P_VERIFIED=$(create_parent  verified  "Verified"  "Shipped product empirically checked against the PRD. Terminal state.")
 ```
 
-Handle the "title already exists" case (400 BAD_REQUEST) by searching for an existing page with that title first and re-using its id rather than failing.
+Handle the "title already exists" case (400 BAD_REQUEST) by searching for an existing page with that title first and re-using its id rather than failing. This find-or-reuse path is what makes the scaffolding **idempotent** — re-running `setup-confluence` reuses an existing `Verified` parent page rather than creating a duplicate.
 
 #### 3c. Write `confluence.parents` to config
 
 ```bash
 jq --arg d "$P_DRAFT" --arg r "$P_READY" --arg iv "$P_REVIEW" \
-   --arg b "$P_BLOCKED" --arg t "$P_TICKETED" --arg s "$P_SHIPPED" '
+   --arg b "$P_BLOCKED" --arg t "$P_TICKETED" --arg s "$P_SHIPPED" \
+   --arg v "$P_VERIFIED" '
   .confluence = ((.confluence // {})
     | .parents = {
         draft:     $d,
@@ -94,11 +96,14 @@ jq --arg d "$P_DRAFT" --arg r "$P_READY" --arg iv "$P_REVIEW" \
         in_review: $iv,
         blocked:   $b,
         ticketed:  $t,
-        shipped:   $s
+        shipped:   $s,
+        verified:  $v
       })
 ' .lisa.config.json > .lisa.config.json.tmp \
    && mv .lisa.config.json.tmp .lisa.config.json
 ```
+
+This persists `confluence.parents.verified` to config, matching the `confluence.parents.verified` schema from the `config-resolution` rule, #591.
 
 ### Step 4 — Write top-level `confluence` section (spaceKey / parentPageId)
 
@@ -132,7 +137,7 @@ jq '.source = "confluence"' .lisa.config.json > .lisa.config.json.tmp \
 
 ### Step 6 — Create / update PRD Dashboard page
 
-Confluence has no native swimlane / kanban view for label-driven lifecycles. To approximate the Notion-board experience, create a single "PRD Dashboard" page in the configured space that renders six `Content by Label` macros side-by-side — one per PRD lifecycle status (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`). The dashboard is the team's single-screen view of the PRD pipeline.
+Confluence has no native swimlane / kanban view for label-driven lifecycles. To approximate the Notion-board experience, create a single "PRD Dashboard" page in the configured space that renders seven `Children Display` macros side-by-side — one per PRD lifecycle status (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`, `verified`). The dashboard is the team's single-screen view of the PRD pipeline.
 
 The `draft` column captures PRDs that have been created but not yet flipped to `ready` — useful for authors to track their own in-flight work and for editors to find PRDs that need a polish pass before they hit the agent queue.
 
@@ -142,7 +147,7 @@ If `confluence.dashboardPageId` already exists in `.lisa.config.json`, update th
 
 #### Build the page body (Confluence storage format)
 
-Five columns inside a `ac:layout` block. Each column is a `Content by Label` macro filtered to one label, scoped to the configured space (or parent page, if set).
+Seven columns inside a `ac:layout` block. Each column is a `Children Display` macro targeting one lifecycle parent, scoped to the configured space (or parent page, if set).
 
 Read the parent page IDs from config:
 
@@ -153,6 +158,7 @@ P_REVIEW=$(jq -r '.confluence.parents.in_review' .lisa.config.json)
 P_BLOCKED=$(jq -r '.confluence.parents.blocked' .lisa.config.json)
 P_TICKETED=$(jq -r '.confluence.parents.ticketed' .lisa.config.json)
 P_SHIPPED=$(jq -r '.confluence.parents.shipped' .lisa.config.json)
+P_VERIFIED=$(jq -r '.confluence.parents.verified' .lisa.config.json)
 ```
 
 Build a `Children Display` macro per parent. The macro shows direct children of the specified page, automatically updating as PRDs move between parents:
@@ -169,9 +175,9 @@ Build a `Children Display` macro per parent. The macro shows direct children of 
 
 Children Display targets a parent by **content-title** (not by id, in storage format). The `ri:content-title` attribute references the parent by its title within the current space.
 
-Wrap the six macros in two rows of three columns (`ac:layout-section ac:type="three_equal"`). Confluence's `ac:layout` has no native 6-column preset; two rows of three is the cleanest readable layout. Row 1: Draft, Ready, In Review. Row 2: Blocked, Ticketed, Shipped.
+Wrap the seven macros in three rows of `ac:layout-section`. Confluence's `ac:layout` has no native 7-column preset, so lay out as three rows: two `three_equal` rows plus a final single-column row for the seventh tile. Row 1 (`three_equal`): Draft, Ready, In Review. Row 2 (`three_equal`): Blocked, Ticketed, Shipped. Row 3 (`single`): Verified.
 
-The grouping is semantic too — top row covers the human-driven lead-up to agent pickup; bottom row covers agent-driven states post-pickup.
+The grouping is semantic too — top row covers the human-driven lead-up to agent pickup; middle row covers agent-driven build states post-pickup; the final row is the terminal `verified` state where the shipped product has been empirically checked against the PRD itself (`/lisa:verify-prd`).
 
 Heading each column with the status name and count keeps the board scannable:
 
@@ -185,9 +191,10 @@ Heading each column with the status name and count keeps the board scannable:
 Above the layout, include a short header describing what the page is and how to use it:
 
 ```xml
-<p>This page is the PRD pipeline view. PRDs live as child pages of one of six lifecycle
+<p>This page is the PRD pipeline view. PRDs live as child pages of one of seven lifecycle
    parents: <strong>Draft</strong>, <strong>Ready</strong>, <strong>In Review</strong>,
-   <strong>Blocked</strong>, <strong>Ticketed</strong>, <strong>Shipped</strong>.
+   <strong>Blocked</strong>, <strong>Ticketed</strong>, <strong>Shipped</strong>,
+   <strong>Verified</strong>.
    Move a PRD between states by re-parenting the page (drag in the page tree, or
    via the page's location settings).</p>
 <p>To add a new PRD: create a page under <strong>Draft</strong>. When ready for
@@ -228,14 +235,16 @@ Skip Step 6 entirely if:
 
 ```bash
 jq -e '.confluence.spaceKey // .confluence.parentPageId' .lisa.config.json >/dev/null
+jq -e '.confluence.parents.verified' .lisa.config.json >/dev/null
 ```
 
-Report success with the resolved scope (`spaceKey`, `parentPageId`, or both), whether `source` was set, and the PRD Dashboard URL if Step 6 ran.
+Report success with the resolved scope (`spaceKey`, `parentPageId`, or both), the seven lifecycle parents created or reused (including the terminal `verified` parent), whether `source` was set, and the PRD Dashboard URL if Step 6 ran.
 
 ## Idempotency
 
 - Re-running replaces fields cleanly (jq merge).
 - Re-running does not re-prompt for `source` if it's already `"confluence"`.
+- Re-running reuses an existing lifecycle parent page (by title) rather than duplicating it — so the terminal `Verified` parent is created once and reused on every subsequent run.
 - Re-running with an existing `dashboardPageId` updates the page in place rather than creating duplicates.
 
 ## Rules
