@@ -172,6 +172,8 @@ If this project later enables shared GitHub Project coordination, store it under
 
 That block is optional and coordination-only: real issues and pull requests stay the durable source of truth. In v1, `github.projects.v2.owner.slug` MUST match the tracked repository namespace (`github.org`) — user-owned repos use a user-owned Project, org-owned repos use an org-owned Project, and cross-namespace Project ownership is rejected. `required` defaults to `false`, meaning Project membership is best-effort unless a later setup/doctor flow explicitly opts into strict mode.
 
+When that block is present, later setup/doctor and runtime validation must read the shared Project's owner + access before membership writes depend on it. Best-effort mode (`required: false`) reports warning-level validation failures and continues repository-local writes without Project membership; strict mode (`required: true`) reports the same failures as blocking errors and stops the write.
+
 No secrets go in config — the GitHub token lives in `gh`'s own store (`~/.config/gh/`) or the `GH_TOKEN` env var, never in `.lisa.config.json`.
 
 ### Step 5 — Offer to set top-level `tracker` / `source`
