@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.76.0](https://github.com/CodySwannGT/lisa/compare/vv2.75.1...v2.76.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** add doctor command scaffold ([27b2cea](https://github.com/CodySwannGT/lisa/commit/27b2ceafd2e93be9e7737599dc3e7681e98ed099))
+
 ### [2.75.1](https://github.com/CodySwannGT/lisa/compare/vv2.75.0...v2.75.1) (2026-05-25)
 
 ## [2.75.0](https://github.com/CodySwannGT/lisa/compare/vv2.74.1...v2.75.0) (2026-05-25)
