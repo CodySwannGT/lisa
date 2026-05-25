@@ -1,6 +1,6 @@
 ---
 name: github-build-intake
-description: "GitHub counterpart to lisa:jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, claims each leaf work unit by relabeling to the configured `claimed` label, runs the implementation/build flow via lisa:github-agent, and relabels to the configured `done` label on completion. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic/Story/Spike) that still carries a stale build-ready label is moved out of the ready pickup queue into the configured `claimed` label with a lifecycle-repair comment, never dispatched to lisa:github-agent. The `ready` label is the human-flipped signal that an issue is truly ready for direct development pickup — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "GitHub counterpart to lisa:jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, processes the first eligible issue, runs leaf work via lisa:github-agent, relabels to the configured `done` label on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic/Story/Spike) that still carries a stale build-ready label is moved out of the ready pickup queue into the configured `claimed` label with a lifecycle-repair comment, never dispatched to lisa:github-agent. The `ready` label is the human-flipped signal that an issue is truly ready for direct development pickup — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -12,7 +12,7 @@ allowed-tools: ["Skill", "Bash"]
 2. A full GitHub repo URL (e.g., `https://github.com/acme/frontend-v2`).
 3. The literal token `github` — falls back to `.lisa.config.json` (`github.org` / `github.repo`).
 
-Run one build-intake cycle. Each issue in the configured `ready` build label is claimed, built via the `lisa:github-agent` flow, and relabeled to the configured `done` label (env-aware — see Workflow resolution). The cycle is the symmetric mirror of `lisa:notion-prd-intake`: humans flip the `ready` label, agents pick up and progress.
+Run one build-intake cycle. The first eligible issue in the configured `ready` build label is claimed, built via the `lisa:github-agent` flow, relabeled to the configured `done` label (env-aware — see Workflow resolution), then the cycle exits. Remaining ready issues stay queued for later scheduler invocations.
 
 ## Workflow resolution
 
@@ -69,7 +69,7 @@ In prose below, the role names refer to the resolved labels: e.g. "the `ready` l
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion — claim, dispatch each issue through `lisa:github-agent`, relabel successful builds to `$DONE`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion — claim and dispatch the first eligible issue through `lisa:github-agent`, relabel a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
 
 Specifically forbidden:
 
@@ -133,13 +133,13 @@ gh label list --repo <org>/<repo> --json name \
 
 If none of the configured role labels exist on the repo → label convention not adopted, surface a setup error and exit. If the role labels exist but none are `$READY` on any open issue → genuinely empty queue, exit cleanly with `"No GitHub issues labeled $READY. Nothing to do."`
 
-### Phase 3 — Process each ready issue (serial)
+### Phase 3 — Process the first eligible ready issue
 
 #### 3a. Leaf-only claim gate (repair containers)
 
 Build intake dispatches **only independently implementable leaf work units** to the build agent. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready role (e.g. `status:ready` applied before this rule existed, or hand-applied to an Epic/Story) is **never dispatched** — intake moves it out of the pickup queue by replacing `$READY` with `$CLAIMED`, then posts a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa:github-write-issue` and the validate-time S15 gate in `lisa:github-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
 
-Run this gate **before** the leaf claim relabel, for every candidate issue. Do NOT comment "Claimed" or invoke `lisa:github-agent` for an issue that fails the gate. A container repair still changes labels: remove `$READY`, add `$CLAIMED`, and explain that parent/container `$CLAIMED` means rollup/build-lane progress through child/leaf work, not direct implementation.
+Run this gate **before** the leaf claim relabel, starting with the oldest/highest-priority ready candidate. Do NOT comment "Claimed" or invoke `lisa:github-agent` for an issue that fails the gate. A container repair still changes labels: remove `$READY`, add `$CLAIMED`, explain that parent/container `$CLAIMED` means rollup/build-lane progress through child/leaf work rather than direct implementation, record it, and end the cycle.
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa:github-read-issue` uses — native sub-issues first, then body parentage (task-list checkboxes referencing other issues, `Parent: #<n>` references). Dependency links such as `Blocked by:` are not parentage; they are handled by the active dependency hold gate below.
 
@@ -254,9 +254,9 @@ This close is idempotent: if the issue is already closed, record that native clo
 
 For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever `lisa:github-agent` left it) — humans take it from there.
 
-#### 3e. Continue
+#### 3e. Stop
 
-Move to the next ready issue. One issue failing does not stop others.
+Stop immediately after the first claimed, skipped, blocked, held, or errored issue. Later scheduler invocations process the remaining ready issues.
 
 ### Phase 4 — Summary report
 
@@ -291,7 +291,7 @@ Total PRs opened: <n>
 - **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:github-agent` invocation for leaves; containers are also moved to `$CLAIMED` to leave the ready pickup queue, but are not dispatched.
 - **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. For containers, `$READY → $CLAIMED` is a lifecycle repair, not a direct build claim. Every other label change is owned by `lisa:github-agent`.
 - **Terminal native closure**: after `$CLAIMED → $DONE`, close the GitHub issue only when `$DONE` is the true terminal done value per `leaf-only-lifecycle`; intermediate env labels stay open.
-- **Failure isolation**: per-issue exceptions caught and recorded; the cycle continues.
+- **One item per cycle**: per-issue exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
 - **Single cycle per repo**: do not run two `lisa:github-build-intake` cycles in parallel against the same repo — concurrent claims could race. The scheduling layer is responsible for serialization.
 - **Single-label invariant**: after every transition, verify exactly one `status:*` label is present on the issue. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve.
 - **Never pick an arbitrary env for `$DONE`**. If `done` is a map and env is ambiguous, fail loudly.

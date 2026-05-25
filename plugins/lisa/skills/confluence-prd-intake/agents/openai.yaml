@@ -1,4 +1,4 @@
 display_name: "Confluence PRD Intake"
-short_description: "Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs each one…"
+short_description: "Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs the first…"
 default_prompt:
-  - "Use $confluence-prd-intake: Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs each one…."
+  - "Use $confluence-prd-intake: Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs the first…."

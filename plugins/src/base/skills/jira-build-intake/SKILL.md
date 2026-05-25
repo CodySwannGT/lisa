@@ -1,6 +1,6 @@
 ---
 name: jira-build-intake
-description: "Symmetric counterpart to notion-prd-intake on the JIRA side. Scans a JIRA project (or JQL filter) for tickets in the configured `ready` status, claims each by transitioning to the configured `claimed` status, runs the implementation/build flow via jira-agent, and transitions to the configured `done` status on completion. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic/Story/Spike) that still carries a stale build-ready status is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` status is the human-flipped signal that a TODO ticket is truly ready for development — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "Symmetric counterpart to notion-prd-intake on the JIRA side. Scans a JIRA project (or JQL filter) for tickets in the configured `ready` status, claims the first eligible ticket by transitioning to the configured `claimed` status, runs the implementation/build flow via jira-agent, transitions to the configured `done` status on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic/Story/Spike) that still carries a stale build-ready status is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` status is the human-flipped signal that a TODO ticket is truly ready for development — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -13,7 +13,7 @@ All Atlassian operations in this skill go through `lisa:atlassian-access`. Do no
 1. A JIRA project key (e.g. `SE`) — scans that project for tickets in the configured `ready` status.
 2. A full JQL filter (e.g. `project = SE AND component = "frontend" AND Status = Ready`) — used as-is. The skill will not append a `Status = <ready>` clause if the JQL already names a status, so callers can intentionally widen.
 
-Run one build-intake cycle. Each ready ticket is claimed, built via the `lisa:jira-agent` flow, and transitioned to the configured `done` status (env-aware — see below). The cycle is the symmetric mirror of `lisa:notion-prd-intake`: humans flip the ready status, agents pick up and progress.
+Run one build-intake cycle. The first eligible ready ticket is claimed, built via the `lisa:jira-agent` flow, transitioned to the configured `done` status (env-aware — see below), then the cycle exits. Remaining ready tickets stay queued for later scheduler invocations.
 
 ## Workflow resolution
 
@@ -68,11 +68,11 @@ else
 fi
 ```
 
-Run one build-intake cycle. Each ticket in `$READY` is claimed by transitioning to `$CLAIMED`, built via the `lisa:jira-agent` flow, and transitioned to `$DONE` on completion.
+Run one build-intake cycle. The first eligible ticket in `$READY` is claimed by transitioning to `$CLAIMED`, built via the `lisa:jira-agent` flow, transitioned to `$DONE` on completion, then the cycle exits.
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a project key or JQL, run the cycle to completion — claim, dispatch each ticket through `lisa:jira-agent`, transition successful builds to `$DONE`, write the summary. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked with a project key or JQL, run the cycle to completion — claim and dispatch the first eligible ticket through `lisa:jira-agent`, transition a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
 
 Specifically forbidden:
 
@@ -116,13 +116,13 @@ Invoke `lisa:atlassian-access` `operation: search-issues jql: "<JQL>"`. Capture 
 
 If empty, report `"No tickets with Status=$READY. Nothing to do."` and exit. This is the common idle case.
 
-### Phase 3 — Process each ready ticket (serial)
+### Phase 3 — Process the first eligible ready ticket
 
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
 
 Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready status (e.g. `Ready` applied before this rule existed, or hand-applied to an Epic/Story) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa:jira-write-ticket` and the validate-time S15 gate in `lisa:jira-validate-ticket`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
 
-Run this gate **before** the claim transition, for every candidate ticket. Do NOT transition, comment "Claimed", or invoke `lisa:jira-agent` for a ticket that fails the gate.
+Run this gate **before** the claim transition, starting with the oldest/highest-priority ready candidate. Do NOT transition, comment "Claimed", or invoke `lisa:jira-agent` for a ticket that fails the gate.
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: a ticket is a **container** if it has **open** child work, whatever its declared type; otherwise the **issue type** decides. Resolve child work using the same hierarchy `lisa:jira-read-ticket` uses — JIRA's native Epic → Story → Sub-task parentage (Epic link / parent field for Stories under an Epic, and the subtask relationship for Sub-tasks under a Story/Task). Issue links (`blocks` / `is blocked by`) express cross-item dependencies and are **not** parentage — do not count them as children.
 
@@ -151,7 +151,7 @@ Classify and act (first match wins). The issue type comes from the ticket's `iss
 
 The childless-parent exception is narrow: childlessness enables a claim **only** for types that are leaf work units to begin with. A childless Epic/Story/Spike is an incomplete decomposition, not an implementable unit — it is never claimed.
 
-**Safe-block (default action for a flagged container).** Leave the build-ready status in place (don't silently transition it away — that hides the lifecycle error), post a single lifecycle-repair comment, and record the ticket under "Skipped (container)" in the summary. Do NOT transition to `$CLAIMED`. Keep the comment idempotent — skip posting if an identical `[claude-build-intake]` lifecycle-repair comment already exists on the ticket, so a re-entrant cycle doesn't spam it.
+**Safe-block (default action for a flagged container).** Leave the build-ready status in place (don't silently transition it away — that hides the lifecycle error), post a single lifecycle-repair comment, record the ticket under "Skipped (container)" in the summary, and end the cycle. Do NOT transition to `$CLAIMED`. Keep the comment idempotent — skip posting if an identical `[claude-build-intake]` lifecycle-repair comment already exists on the ticket, so a re-entrant cycle doesn't spam it.
 
 Post via `lisa:atlassian-access` `operation: comment key: <TICKET> body: "<message>"` with:
 
@@ -199,9 +199,9 @@ If `lisa:jira-agent` returned Success:
 
 For any non-Success outcome, do NOT transition. The ticket sits in `$CLAIMED` (or wherever `lisa:jira-agent` left it for the Blocked case) — the cycle's job is done; humans take it from there.
 
-#### 3e. Continue
+#### 3e. Stop
 
-Move to the next ready ticket. One ticket failing does not stop others.
+Stop immediately after the first claimed, skipped, blocked, held, or errored ticket. Later scheduler invocations process the remaining ready tickets.
 
 ### Phase 4 — Summary report
 
@@ -233,8 +233,8 @@ Total PRs opened: <n>
 - **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:jira-agent` invocation — no double-pickup.
 - **No writes outside the lifecycle**: this skill only transitions `$READY → $CLAIMED` and `$CLAIMED → $DONE`, then verifies terminal native resolution when `$DONE` is the true terminal state per `leaf-only-lifecycle`. Every other status change is owned by `lisa:jira-agent` (which suggests transitions but only auto-transitions on the verify-FAIL path).
 - **Terminal native closure**: for terminal `$DONE`, the resulting JIRA issue must be in a resolved / closed state (`statusCategory = Done` and resolution set when required). Intermediate env statuses stay unresolved / open.
-- **Failure isolation**: per-ticket exceptions caught and recorded; the cycle continues.
-- **Single cycle per query**: do not run two `lisa:jira-build-intake` cycles in parallel against overlapping queries — concurrent claims could race. The scheduling layer (when added) is responsible for serialization.
+- **One item per cycle**: per-ticket exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
+- **Single cycle per query**: do not run two `lisa:jira-build-intake` cycles concurrently against overlapping queries — concurrent claims could race. The scheduling layer (when added) is responsible for serialization.
 - **Never invent a transition**: if `$CLAIMED` or `$DONE` aren't valid transitions in the project's workflow, stop and report rather than guessing alternative names.
 
 ## Configuration

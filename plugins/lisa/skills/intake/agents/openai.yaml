@@ -1,4 +1,4 @@
 display_name: "Intake"
-short_description: "Vendor-agnostic batch scanner for Ready queues"
+short_description: "Vendor-agnostic scanner for Ready queues"
 default_prompt:
-  - "Use $intake: Vendor-agnostic batch scanner for Ready queues."
+  - "Use $intake: Vendor-agnostic scanner for Ready queues."
