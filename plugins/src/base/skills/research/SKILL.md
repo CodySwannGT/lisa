@@ -45,5 +45,10 @@ feasibility notes, open questions, and the "Recommended Tooling for Plan Phase" 
 flow step invokes `lisa:prd-source-write`, which creates the PRD in the configured `source` (Notion
 page in the PRD database, Confluence page under the lifecycle parent, GitHub issue, or Linear
 project) in the `draft` role by default or `ready` when `prd_ready=true`. **The PRD lives in the
-source — there is no loose document artifact.** A `source` must be configured; if it is not, stop and
-report it rather than emitting a document. The Plan flow consumes the created PRD next.
+source — there is no loose document artifact.** Before handing the synthesized PRD to
+`lisa:prd-source-write`, record the Research run's direct usage on that artifact through
+`lisa:usage-accounting` so the PRD body carries the canonical `## Lisa Usage` ledger from creation
+time onward. If the runtime does not expose trustworthy usage, the direct entry must still be
+written with `source: unavailable` and nullable token/cost fields rather than silently omitting the
+Research row. A `source` must be configured; if it is not, stop and report it rather than emitting
+a document. The Plan flow consumes the created PRD next.
