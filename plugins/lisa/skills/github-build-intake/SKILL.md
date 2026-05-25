@@ -138,7 +138,7 @@ Build intake claims **only independently implementable leaf work units**. This e
 
 Run this gate **before** the claim relabel, for every candidate issue. Do NOT relabel, comment "Claimed", or invoke `lisa:github-agent` for an issue that fails the gate.
 
-**Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa:github-read-issue` uses — native sub-issues first, then body parentage (task-list checkboxes referencing other issues, `Blocked by #<n>` / `Parent: #<n>` references):
+**Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa:github-read-issue` uses — native sub-issues first, then body parentage (task-list checkboxes referencing other issues, `Parent: #<n>` references). Dependency links such as `Blocked by:` are not parentage; they are handled by the active dependency hold gate below.
 
 ```bash
 # Native sub-issues via GraphQL (same query lisa:github-read-issue uses).
@@ -178,6 +178,24 @@ gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Not 
 ```
 
 This gate never blocks a legitimate flat Task/Bug: those have no open children and a leaf `type:`, so they fall straight through to the claim in 3b.
+
+**Active dependency hold gate.** After the leaf-only gate passes, but still before the claim relabel, parse explicit blocker relationships from the issue body and durable Lisa relationship sections. Support these forms at minimum:
+
+- `Blocked by: #123`
+- `Blocked by: #123, #456`
+- `Blocked by: owner/repo#123`
+- `Blocked by: https://github.com/owner/repo/issues/123`
+
+Resolve local `#123` references against the candidate issue's repo. Resolve qualified refs and GitHub issue URLs against their named repo. For each blocker, read the blocker issue's status labels with `gh issue view <number> --repo <owner>/<repo> --json labels,state`.
+
+Default cleared blocker labels for GitHub build intake are:
+
+- `status:code-review`
+- `status:on-dev`
+- `status:on-stg`
+- `status:done`
+
+A blocker is active if it is open and has no cleared status label. Treat `status:ready`, `status:in-progress`, missing status labels, and inaccessible blockers as active. Closed blockers are cleared. If any blocker is active, skip the candidate without changing lifecycle labels, without posting "Claimed", and without invoking `lisa:github-agent`. Record it under "Skipped (active blockers)" in the summary and include the active blocker refs. Keep any dependency-hold comment idempotent with a `[claude-build-intake]` prefix.
 
 #### 3b. Claim
 
@@ -250,6 +268,8 @@ Issues processed: <n>
   - <org>/<repo>#<number> <title> → PR <URL>
 - Skipped (container — leaf-only-lifecycle): <n>
   - <org>/<repo>#<number> <title> — build-ready on a parent with open child work; lifecycle-repair comment posted
+- Skipped (active blockers): <n>
+  - <org>/<repo>#<number> <title> — waiting on <blocker refs>
 - Blocked (pre-flight verify failed): <n>
   - <org>/<repo>#<number> <title> — see issue comments
 - Held (triage found ambiguities): <n>
@@ -263,6 +283,7 @@ Total PRs opened: <n>
 ## Idempotency & safety
 
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic/Story/Spike) is skipped/safe-blocked, never claimed. The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
+- **Dependency hold runs before claim**: explicit `Blocked by:` relationships are resolved before `$READY → $CLAIMED`; active blockers leave the candidate in `$READY` and are reported as skipped, not blocked.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:github-agent` invocation — no double-pickup.
 - **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. Every other label change is owned by `lisa:github-agent`.
 - **Terminal native closure**: after `$CLAIMED → $DONE`, close the GitHub issue only when `$DONE` is the true terminal done value per `leaf-only-lifecycle`; intermediate env labels stay open.
