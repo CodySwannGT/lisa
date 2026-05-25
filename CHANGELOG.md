@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.69.2](https://github.com/CodySwannGT/lisa/compare/vv2.69.1...v2.69.2) (2026-05-25)
+
+
+### Documentation
+
+* **setup-github:** validate project coordination setup ([caa3130](https://github.com/CodySwannGT/lisa/commit/caa3130856fec382d8570efc42b6169bc11cf604))
+
 ### [2.69.1](https://github.com/CodySwannGT/lisa/compare/vv2.69.0...v2.69.1) (2026-05-25)
 
 
