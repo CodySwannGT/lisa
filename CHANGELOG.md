@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.79.0](https://github.com/CodySwannGT/lisa/compare/vv2.78.0...v2.79.0) (2026-05-25)
+
+
+### Features
+
+* document doctor automation readiness ([46a11ce](https://github.com/CodySwannGT/lisa/commit/46a11ce4c47201ee8e01b51d2f4581fffedf72cc))
+
 ## [2.78.0](https://github.com/CodySwannGT/lisa/compare/vv2.77.2...v2.78.0) (2026-05-25)
 
 
