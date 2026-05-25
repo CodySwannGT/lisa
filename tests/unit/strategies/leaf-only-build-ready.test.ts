@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- one regression suite tracks the leaf-only invariant across every write/validate/intake skill and both plugin roots (#538-#543) */
 /**
- * Regression tests for the leaf-only build-ready invariant across the GitHub
- * write and validate paths.
+ * Regression tests for build-ready intake invariants across the GitHub write,
+ * validate, and claim paths.
  *
  * Issue #538: `lisa:github-to-tracker` / `lisa:github-write-issue` must apply
  * the build-ready label (`status:ready`) ONLY to leaf sub-tasks when writing a
@@ -37,6 +37,10 @@
  * in #537); these tests assert that the writer, decomposition, validator, and
  * build-intake skills encode it so the label is never hard-applied to — nor
  * accepted on, nor claimed from — a container.
+ *
+ * Issue #644: `lisa:github-build-intake` must also hold an otherwise valid
+ * ready leaf when explicit `Blocked by:` relationships still point at active
+ * issues, without mutating lifecycle labels or invoking the build agent.
  *
  * Both the source (`plugins/src/base/skills`) and the generated artifact
  * (`plugins/lisa/skills`) are asserted, so an artifact-only edit or a missed
@@ -281,6 +285,8 @@ describe("leaf-only build-ready invariant (#538)", () => {
     const content = readSkill(root, "github-build-intake");
     /** Heading that anchors the claim-time leaf-only gate. */
     const gateHeading = "#### 3a. Leaf-only claim gate";
+    /** Heading that anchors the claim step after all pre-claim gates. */
+    const claimHeading = "#### 3b. Claim";
 
     it(CITES_SLUG, () => {
       expect(content).toContain(RULE_SLUG);
@@ -288,7 +294,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
 
     it("defines a Phase 3a leaf-only claim gate ahead of the claim", () => {
       const gateIndex = content.indexOf(gateHeading);
-      const claimIndex = content.indexOf("#### 3b. Claim");
+      const claimIndex = content.indexOf(claimHeading);
       expect(gateIndex).toBeGreaterThan(-1);
       expect(claimIndex).toBeGreaterThan(-1);
       // The gate must precede the claim step so a container is never dispatched.
@@ -352,6 +358,42 @@ describe("leaf-only build-ready invariant (#538)", () => {
 
     it("lists a Repaired (container) bucket in the summary report", () => {
       expect(content).toMatch(/Repaired \(container/);
+    });
+
+    it("checks explicit Blocked by relationships before claiming", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const claimIndex = content.indexOf(claimHeading);
+      const section = content.slice(gateIndex, claimIndex);
+
+      expect(section).toMatch(/Active dependency hold gate/);
+      expect(section).toMatch(/Blocked by: #123/);
+      expect(section).toMatch(/Blocked by: #123, #456/);
+      expect(section).toMatch(/owner\/repo#123/);
+      expect(section).toMatch(
+        /https:\/\/github\.com\/owner\/repo\/issues\/123/
+      );
+      expect(section).toMatch(/before the claim relabel/i);
+      expect(section).toMatch(/without changing lifecycle labels/i);
+      expect(section).toMatch(/without invoking `lisa:github-agent`/);
+    });
+
+    it("defines cleared and active blocker status semantics", () => {
+      const gateIndex = content.indexOf(gateHeading);
+      const claimIndex = content.indexOf(claimHeading);
+      const section = content.slice(gateIndex, claimIndex);
+
+      expect(section).toMatch(/status:code-review/);
+      expect(section).toMatch(/status:on-dev/);
+      expect(section).toMatch(/status:on-stg/);
+      expect(section).toMatch(/status:done/);
+      expect(section).toMatch(/status:ready/);
+      expect(section).toMatch(/status:in-progress/);
+      expect(section).toMatch(/inaccessible blockers as active/i);
+    });
+
+    it("lists a Skipped (active blockers) bucket in the summary report", () => {
+      expect(content).toMatch(/Skipped \(active blockers\)/);
+      expect(content).toMatch(/waiting on <blocker refs>/);
     });
   });
 
