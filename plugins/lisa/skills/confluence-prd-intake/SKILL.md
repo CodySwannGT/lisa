@@ -352,6 +352,14 @@ The set of **required** children for the all-terminal check is the top-level chi
 
 This phase implements exactly one PRD-lifecycle hop — `ticketed → shipped` — and the optional config-gated archive that follows it. All terminal-state semantics, the generated-top-level-work boundary, and the dedupe-by-child-ref idempotency come from the `prd-lifecycle-rollup` rule; this skill is its Confluence implementation, not a second source of truth.
 
+#### 3g. PRD verification dispatch (close the loop on shipped PRDs)
+
+`shipped` and `verified` are distinct facts about a PRD (see the `prd-lifecycle-rollup` rule's "PRD-level verification vs ticket verification" and "Closing the loop" sections). Rollup (3f) only reaches the shipped parent; the `shipped → verified` / `shipped → blocked` hops are owned by `/lisa:verify-prd`. This phase **closes that loop** by dispatching the initiative-level acceptance gate for shipped PRDs. It never performs the verification transition itself — the "never sets `verified`" invariant holds: `lisa:verify-prd`, not this skill, sets `verified` (or, on failure, `blocked`).
+
+Re-query the PRDs currently parented under the shipped lifecycle parent via `lisa:atlassian-access` `operation: read-page-descendants id: <confluence.parents.shipped>`. Pick the **first** one and invoke `lisa:verify-prd <page-url>`. Process **one shipped PRD per cycle** — `lisa:verify-prd` is a heavy full flow (spec-conformance + empirical verification + fix-issue creation), so it is bounded exactly like the single-ready-PRD claim in Phase 3; the scheduler drains the rest.
+
+`lisa:verify-prd` owns the outcome: on a CONFORMS verdict with all empirical checks passing it transitions the PRD to the verified parent and posts evidence; on a conformance miss or a failing/unavailable check it re-parents to the blocked parent, posts a product-readable failure report, and opens linked fix issues. Either branch moves the PRD out of the shipped parent, so it is not re-picked next cycle; a PRD whose generated work is not actually terminal is guard-stopped by `lisa:verify-prd` (left under shipped) — that is verify-prd's gate, not this skill's. A PRD archived on ship (`confluence.rollup.closeOnShipped = true`) is out of the open verification queue. This phase, like 3f, is **behaviorally identical across all four intake skills** (`github-prd-intake`, `linear-prd-intake`, `notion-prd-intake`, `confluence-prd-intake`) — only the `$SHIPPED` query surface differs; keep them aligned. Record the dispatched PRD + verify-prd's verdict in the summary.
+
 ### Phase 4 — Summary report
 
 After processing the single selected PRD, emit a summary:
