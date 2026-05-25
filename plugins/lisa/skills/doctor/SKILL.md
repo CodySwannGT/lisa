@@ -140,6 +140,59 @@ every vendor Lisa supports.
    - `FAIL` when no supported substrate can prove read access for the configured tracker/source, or
      when the configured vendor target is unreadable from the current runtime.
 
+### Minimum GitHub Project coordination checks
+
+When `github.projects.v2` is configured, doctor must run one additional read-only coordination
+check instead of treating the config block as implicitly ready.
+
+1. **Delegate through the shared chokepoint**
+   - Call `lisa:github-project-v2` in read-only resolution mode:
+
+     ```text
+     operation: resolve-project
+     ```
+
+   - Do not inline ad-hoc Project GraphQL in doctor. Setup, doctor, writers, and linked-PR flows
+     must all read the same owner/access contract from the shared utility.
+2. **Preserve exact namespace + access failures**
+   - Enforce the v1 namespace rule exactly as documented by the shared utility. If
+     `github.projects.v2.owner.slug` does not match `github.org`, report:
+
+     ```yaml
+     code: project_namespace_mismatch
+     message: "github.projects.v2.owner.slug must match github.org in v1"
+     remediation: "Use a Project owned by <github.org> or remove github.projects.v2."
+     ```
+
+   - For owner-access or GraphQL failures, preserve the exact GitHub / GraphQL failure text in the
+     observed output. Examples include missing Project, `Resource not accessible by integration`,
+     unsupported owner kind, or a wrong owner/number pair.
+3. **Report exact remediation paths**
+   - Doctor must make the next operator action explicit. At minimum, say whether they need to:
+     1. choose a Project owned by the tracked repo namespace,
+     2. grant the token Project read/write access,
+     3. correct the configured Project number/owner, or
+     4. remove `github.projects.v2` when coordination is not required.
+4. **Map shared utility outcomes into doctor severity**
+   - `required: false` => doctor `WARN`. Repository-local GitHub issue/PR flows remain usable while
+     Project coordination is degraded.
+   - `required: true` => doctor `FAIL`. The same Project validation failure blocks Lisa readiness
+     because coordination was configured as required.
+
+Good output examples:
+
+```text
+WARN github.projects.v2: Resource not accessible by integration
+Observed: exact GitHub / GraphQL failure text preserved from resolve-project.
+Remediation: grant the token Project read/write access or remove github.projects.v2.required.
+Repository-local GitHub issue/PR flows remain usable; Project coordination is disabled.
+```
+
+```text
+FAIL github.projects.v2: github.projects.v2.owner.slug must match github.org in v1
+Remediation: use a Project owned by CodySwannGT or remove github.projects.v2.
+```
+
 ## Output contract
 
 The final report must:
