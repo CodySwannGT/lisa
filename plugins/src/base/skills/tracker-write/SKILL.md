@@ -6,7 +6,12 @@ allowed-tools: ["Skill", "Bash", "Read"]
 
 # Tracker Write: $ARGUMENTS
 
-Thin dispatcher. Resolves the configured destination tracker and delegates to the matching vendor write skill.
+Thin dispatcher. Resolves the configured destination tracker and delegates to the matching vendor
+write skill.
+
+When the incoming description/body already contains the canonical `## Lisa Usage` ledger, the vendor
+writer must preserve that managed section on update and use the `usage-accounting` contract for any
+body-vs-comment fallback. This shim only routes — it never edits tracker artifacts itself.
 
 See the `config-resolution` rule for the full configuration schema and skill-mapping table.
 
@@ -40,6 +45,9 @@ See the `config-resolution` rule for the full configuration schema and skill-map
 ## Rules
 
 - Never bypass dispatch — calling the vendor skill directly from a vendor-neutral caller defeats the per-project switch.
+- Never drop, duplicate, or hand-rewrite an existing managed `## Lisa Usage` section in this shim.
+  Writer-specific preservation logic belongs in the vendor writers and follows the
+  `usage-accounting` contract.
 - Never accept a tracker value outside `{jira, github, linear}`.
 - Never mutate `$ARGUMENTS` between layers. The vendor skills define their own input contract.
 - Never inline gate logic here. All validation rules live in the vendor skills (`lisa:jira-validate-ticket` / `lisa:github-validate-issue` / `lisa:linear-validate-issue`); this skill only routes.

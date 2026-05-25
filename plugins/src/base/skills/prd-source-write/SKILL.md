@@ -8,7 +8,9 @@ allowed-tools: ["Skill", "Bash", "Read"]
 
 Thin dispatcher. Resolves the configured PRD `source` and delegates to the matching vendor PRD
 writer, which owns the concrete create/update, the lifecycle-role application, and the marker-based
-dedupe. This skill only routes — it never talks to a source API itself.
+dedupe. When the supplied PRD body already contains the canonical `## Lisa Usage` ledger, the
+vendor writer must preserve that managed section on update instead of dropping it or reformatting it
+ad hoc. This skill only routes — it never talks to a source API itself.
 
 See the `config-resolution` rule for the full configuration schema and the PRD lifecycle roles.
 
@@ -74,6 +76,8 @@ prior PRD-source-write behavior to preserve, so omitted means `draft`.
 
 - Never bypass dispatch — a vendor-neutral caller calling a `*-write-prd` skill directly defeats the
   per-project source switch (exactly the `tracker-write` discipline, mirrored).
+- Never drop or duplicate an existing managed `## Lisa Usage` section. Writer-specific preservation
+  and fallback behavior belongs in the vendor writers and follows the `usage-accounting` contract.
 - Never accept a source outside `{notion, confluence, github, linear}`. `jira` and `file` fail loudly.
 - Never mutate the spec between layers. The vendor writers define their own create/dedupe contract.
 - Never invent a PRD lifecycle role string — resolve every role from `config-resolution` per vendor.
