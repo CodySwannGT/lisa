@@ -64,6 +64,13 @@ describe("PRD verification dispatch — Phase 3g closes the shipped loop", () =>
         expect(section).toMatch(/one shipped PRD per cycle/i);
       });
 
+      it("on fail re-opens to ticketed with build-ready fix tickets — never blocked", () => {
+        const section = content.slice(content.indexOf(PHASE_3G));
+        expect(section).toMatch(/ticketed/);
+        expect(section).toMatch(/never[^]*blocked/i);
+        expect(section).toMatch(/build-ready/i);
+      });
+
       it("cites the prd-lifecycle-rollup rule and stays aligned across all four", () => {
         const section = content.slice(content.indexOf(PHASE_3G));
         expect(section).toContain(RULE_SLUG);
@@ -84,6 +91,12 @@ describe("prd-lifecycle-rollup documents the loop-closing dispatch", () => {
     expect(content).toMatch(/one shipped PRD per cycle/i);
     // Dispatch, not transition — the invariant is preserved at the rule level.
     expect(content).toMatch(/dispatch, not a transition|never \*?sets\*?/i);
+  });
+
+  it("documents the self-healing FAIL loop: re-open to ticketed, never blocked", () => {
+    expect(content).toMatch(/self-healing/i);
+    expect(content).toMatch(/shipped → ticketed/);
+    expect(content).toMatch(/never[^]*blocked/i);
   });
 });
 
