@@ -67,11 +67,12 @@ Sequence:
 2. `product-specialist` -- define user goals, user flows (Gherkin), acceptance criteria, error states, UX concerns, and out-of-scope items
 3. **Edge Case Brainstorm sub-flow** -- run the PRD candidate through the edge-case checklist; fold accepted cases into acceptance criteria, out-of-scope, or open questions
 4. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
-5. Synthesize findings into a PRD document containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
+5. Synthesize findings into a PRD containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
 6. **Plan Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Plan phase will need. For each recommended skill or agent, state why it is needed. If no skills or agents beyond the defaults are identified, explicitly justify why the standard set is sufficient. Include this as a "Recommended Tooling for Plan Phase" section in the PRD.
-7. `learner` -- capture discoveries for future sessions
+7. **Create the PRD in the configured source** -- invoke `lisa:prd-source-write` with the synthesized PRD (`title`, `body`, `initial_role` resolved from the caller's `prd_ready` flag — `draft` by default, `ready` when `prd_ready=true`, plus any `dedupe_key`/`marker`/`source_ref` the caller passed). The PRD **lives in the source** (Notion page / Confluence page / GitHub issue / Linear project per `.lisa.config.json` `source`); there is no separate document artifact. A `source` must be configured — if it is not, stop and report it. `prd-source-write` dedupes by marker, so re-running against the same idea references the existing PRD instead of creating a duplicate.
+8. `learner` -- capture discoveries for future sessions
 
-Output: A PRD document that includes a "Recommended Tooling for Plan Phase" section listing the skills and agents the Plan phase should use. If there is not enough context to produce a complete PRD, stop and report what is missing rather than producing an incomplete one.
+Output: A PRD created in the configured source, carrying a "Recommended Tooling for Plan Phase" section, in the `draft` role by default (or `ready` when `prd_ready=true`, so `lisa:intake` auto-claims it). If there is not enough context to produce a complete PRD, stop and report what is missing rather than creating an incomplete one. If no `source` is configured, stop and report it rather than emitting a loose document.
 
 ### Plan
 

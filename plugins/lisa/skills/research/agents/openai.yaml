@@ -1,4 +1,4 @@
 display_name: "Research"
-short_description: "Research a problem space and produce a PRD"
+short_description: "Research a problem space and create a PRD in the configured PRD source"
 default_prompt:
-  - "Use $research: Research a problem space and produce a PRD."
+  - "Use $research: Research a problem space and create a PRD in the configured PRD source."

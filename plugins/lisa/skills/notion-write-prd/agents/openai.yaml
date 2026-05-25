@@ -1,0 +1,4 @@
+display_name: "Notion Write PRD"
+short_description: "Creates or idempotently updates a PRD as a page in the configured Notion PRD database, setting the lifecycle Status property to the draft…"
+default_prompt:
+  - "Use $notion-write-prd: Creates or idempotently updates a PRD as a page in the configured Notion PRD database, setting the lifecycle Status property to the draft…."
