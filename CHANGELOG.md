@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.70.0](https://github.com/CodySwannGT/lisa/compare/vv2.69.2...v2.70.0) (2026-05-25)
+
+
+### Features
+
+* add usage accounting contract ([5e07aa7](https://github.com/CodySwannGT/lisa/commit/5e07aa700ce88c1b7fc4f64a476ca5707e7218e8))
+
 ### [2.69.2](https://github.com/CodySwannGT/lisa/compare/vv2.69.1...v2.69.2) (2026-05-25)
 
 
