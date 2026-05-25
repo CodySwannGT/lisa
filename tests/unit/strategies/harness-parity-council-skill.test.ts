@@ -28,6 +28,7 @@ describe("harness-parity-council internal skill contract", () => {
     expect(skill).toContain("LISA_CODEX_CLI");
     expect(skill).toContain("LISA_COPILOT_CLI");
     expect(skill).toContain("LISA_ANTIGRAVITY_CLI");
+    expect(skill).toContain("first-round.mjs");
   });
 
   it("locks the default mode to read-only advisory behavior", () => {
