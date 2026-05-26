@@ -26,18 +26,6 @@ const WORKTREE_PATH_PATTERNS = Object.freeze([
 ]);
 
 /**
- * Map runtime adapter IDs to the worktree reason they imply when explicitly
- * selected as the council runtime.  A runtime being consulted from the CLI
- * means the operator is running *inside* that runtime's isolated environment,
- * so we treat it as a guarded workspace even when the cwd pattern does not
- * match (e.g. during unit-test execution).
- */
-const RUNTIME_WORKTREE_REASONS = Object.freeze({
-  codex: "codex-worktree",
-  claude: "claude-worktree",
-});
-
-/**
  * Read council environment values without assuming a Node global exists.
  * @returns {NodeJS.ProcessEnv} Process environment values when available.
  */
@@ -64,13 +52,11 @@ function readEnvFlag(env, name) {
  * Detect whether the current council run is already isolated in a guarded workspace.
  * @param {string} [cwd=process.cwd()] Working directory to classify.
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env=defaultEnv()] Environment values to inspect.
- * @param {string | null} [runtime=null] Council runtime adapter ID, if a single runtime was explicitly selected.
  * @returns {{ guarded: boolean; reason: string }} Guard status plus the reason it was granted.
  */
 export function detectGuardedWorkspace(
   cwd = process.cwd(),
-  env = defaultEnv(),
-  runtime = null
+  env = defaultEnv()
 ) {
   if (readEnvFlag(env, COUNCIL_GUARDED_WORKSPACE_ENV)) {
     return {
@@ -89,16 +75,6 @@ export function detectGuardedWorkspace(
     };
   }
 
-  const runtimeWorktreeReason = runtime
-    ? RUNTIME_WORKTREE_REASONS[runtime]
-    : undefined;
-  if (runtimeWorktreeReason) {
-    return {
-      guarded: true,
-      reason: runtimeWorktreeReason,
-    };
-  }
-
   return {
     guarded: false,
     reason: "none",
@@ -107,7 +83,7 @@ export function detectGuardedWorkspace(
 
 /**
  * Resolve whether a council run must stay read-only or may enter guarded write mode.
- * @param {{ writeMode?: string | null; cwd?: string; runtime?: string | null }} [options={}] Requested execution settings.
+ * @param {{ writeMode?: string | null; cwd?: string }} [options={}] Requested execution settings.
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env=defaultEnv()] Environment values to inspect.
  * @returns {{
  *   mode: "read-only" | "guarded-write";
@@ -120,11 +96,11 @@ export function detectGuardedWorkspace(
  * }} Normalized execution policy for the council run.
  */
 export function resolveCouncilExecutionPolicy(
-  { writeMode = null, cwd = process.cwd(), runtime = null } = {},
+  { writeMode = null, cwd = process.cwd() } = {},
   env = defaultEnv()
 ) {
   const normalizedWriteMode = writeMode?.trim() ?? null;
-  const workspace = detectGuardedWorkspace(cwd, env, runtime);
+  const workspace = detectGuardedWorkspace(cwd, env);
   const writeAck = readEnvFlag(env, COUNCIL_WRITE_ACK_ENV);
 
   if (!normalizedWriteMode) {
