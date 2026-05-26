@@ -21,7 +21,7 @@ const CLAUDE_ACTIVE_STATUSES = new Set([
 const RUN_FAILURE_PATTERN =
   /\b(failed|failure|errored|error|exception|crash(?:ed)?)\b/i;
 const NEGATED_FAILURE_PATTERN =
-  /\b(no|without)\s+(?:recent\s+)?fail(?:ure|ed)\b/i;
+  /\b(no|without)\s+(?:recent\s+)?(?:fail(?:ure|ed)|errors?|exceptions?)\b/i;
 
 /**
  * @typedef {import("./automation-status-expected-fleet.mjs").resolveExpectedAutomationFleet extends (...args: any[]) => infer T ? T : never} ExpectedFleet
