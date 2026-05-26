@@ -175,6 +175,23 @@ export function deriveClaudeObservedCommand(command) {
   return undefined;
 }
 
+function extractClaudeScheduleCadence(command) {
+  if (!command) {
+    return undefined;
+  }
+
+  const scheduleLine = command
+    .trim()
+    .match(/^\/schedule\s+(?:"([^"]+)"|'([^']+)'|`([^`]+)`|(\S+))/m);
+
+  return firstString(
+    scheduleLine?.[1],
+    scheduleLine?.[2],
+    scheduleLine?.[3],
+    scheduleLine?.[4]
+  );
+}
+
 function createObservedStatusItem(input) {
   const expected = input.expected;
   const comparison = input.comparison;
@@ -405,7 +422,7 @@ function normalizeClaudeScheduleTextEntry(block) {
 
   const cadenceSource =
     extractField(block, /^(?:Cadence|Schedule):\s*(.+)$/im) ??
-    block.match(/^\/schedule\s+(?:"[^"]+"|'[^']+'|`[^`]+`|\S+)/m)?.[0];
+    extractClaudeScheduleCadence(block);
   const commandSource =
     extractField(block, /^(?:Command|Prompt):\s*(.+)$/im) ??
     extractField(

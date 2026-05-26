@@ -155,6 +155,42 @@ Last result: No recent failures reported.
     );
   });
 
+  it("normalizes quoted /schedule cadences when text listings omit cadence fields", () => {
+    const expectedFleet = resolveExpectedAutomationFleet({
+      config: REPO_CONFIG,
+      detectedTypes: DETECTED_TYPES,
+      autoStartPrds: true,
+    });
+
+    const report = inspectClaudeAutomationFleet({
+      expectedFleet,
+      scheduleListing: `
+ID: lisa-auto-codyswanngt-lisa-exploratory-prds
+/schedule "once a day" /lisa:project-ideation prd_ready=false
+Status: ACTIVE
+
+ID: ${BUILD_AUTOMATION_ID}
+/schedule "hourly" /lisa:intake github intake_mode=build
+Status: ACTIVE
+      `.trim(),
+      now: FIXTURE_NOW,
+    });
+
+    expect(report.observedAutomations).toContainEqual(
+      expect.objectContaining({
+        automationId: "lisa-auto-codyswanngt-lisa-exploratory-prds",
+        observedCadence: "once a day",
+        observedRRule: "FREQ=DAILY;INTERVAL=1",
+      })
+    );
+    expect(report.observedAutomations).toContainEqual(
+      expect.objectContaining({
+        automationId: BUILD_AUTOMATION_ID,
+        observedRRule: "FREQ=HOURLY;INTERVAL=1",
+      })
+    );
+  });
+
   it("derives normalized Lisa slash commands from Claude schedule entries", () => {
     expect(deriveClaudeObservedCommand(BUILD_SCHEDULE_COMMAND)).toBe(
       "/lisa:intake github intake_mode=build"
