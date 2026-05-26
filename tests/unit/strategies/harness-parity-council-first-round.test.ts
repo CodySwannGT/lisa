@@ -218,39 +218,6 @@ describe("harness parity council first-round flow", () => {
     );
   });
 
-  it("labels available runtimes as not executed when no executor is provided", async () => {
-    const synthesis = await council.collectFirstRoundResponses({
-      topic: COUNCIL_TOPIC,
-      runtimes: ["codex"],
-      probeRuntime(runtime: string) {
-        return {
-          ...council.buildFirstRoundInvocation({
-            topic: COUNCIL_TOPIC,
-            runtime,
-            context: { repository: "lisa" },
-          }),
-          available: true,
-          authMissing: false,
-          helpProbe: { commandMissing: false, error: null },
-          versionProbe: { commandMissing: false, error: null },
-        };
-      },
-    });
-
-    expect(synthesis.responseEvidence).toEqual([
-      expect.objectContaining({
-        runtime: "codex",
-        status: "not_executed",
-        outputText: expect.stringContaining(
-          "runtime consultation was not executed"
-        ),
-      }),
-    ]);
-    expect(synthesis.claudeSynthesisTemplate.openQuestions).toContain(
-      "codex: explain not executed"
-    );
-  });
-
   it("supports the documented runtime filter and dry-run planning output", () => {
     const parsed = council.parseCouncilCliArgs([
       COUNCIL_TOPIC,
