@@ -140,6 +140,21 @@ describe("queue-status build readers (#825)", () => {
     });
   });
 
+  it("applies default GitHub build labels when roles are omitted", () => {
+    const snapshot = readGithubBuildQueueSnapshot({
+      namespaceAdopted: true,
+      issues: [
+        {
+          number: 875,
+          title: "Ready build item using the default label",
+          labels: [{ name: GITHUB_READY_LABEL }],
+        },
+      ],
+    });
+
+    expect(snapshot.counts.ready).toBe(1);
+  });
+
   it("fails loudly when a non-GitHub tracker has no raw reader input", () => {
     const snapshot = createBuildQueueSnapshot({
       tracker: "linear",
