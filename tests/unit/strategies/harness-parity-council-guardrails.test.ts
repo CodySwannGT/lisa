@@ -16,13 +16,16 @@ const WORKSPACE_WRITE_MODE = "workspace-write";
 const GUARDED_WORKSPACE_ENV = "LISA_COUNCIL_GUARDED_WORKSPACE";
 const WRITE_ACK_ENV = "LISA_COUNCIL_ALLOW_WRITE";
 const REGULAR_WORKSPACE_CWD = "/Users/dev/workspace/lisa";
+const CODEX_WORKTREE_CWD = "/Users/dev/.codex/worktrees/lisa";
+const GUARDED_WORKSPACE_ERROR =
+  /requires an isolated worktree or LISA_COUNCIL_GUARDED_WORKSPACE=1/;
 
 describe("harness parity council guardrails", () => {
   it("defaults to explicit read-only policy even inside a worktree", () => {
     expect(
       shared.resolveCouncilExecutionPolicy(
         {
-          cwd: "/Users/dev/.codex/worktrees/lisa",
+          cwd: CODEX_WORKTREE_CWD,
         },
         {}
       )
@@ -46,9 +49,30 @@ describe("harness parity council guardrails", () => {
         },
         {}
       )
-    ).toThrow(
-      /requires an isolated worktree or LISA_COUNCIL_GUARDED_WORKSPACE=1/
-    );
+    ).toThrow(GUARDED_WORKSPACE_ERROR);
+  });
+
+  it("does not treat a selected runtime as a guarded workspace", () => {
+    expect(() =>
+      shared.resolveCouncilExecutionPolicy(
+        {
+          writeMode: WORKSPACE_WRITE_MODE,
+          runtime: "codex",
+          cwd: REGULAR_WORKSPACE_CWD,
+        },
+        {}
+      )
+    ).toThrow(GUARDED_WORKSPACE_ERROR);
+
+    expect(() =>
+      shared.resolveCouncilExecutionPolicy(
+        {
+          writeMode: WORKSPACE_WRITE_MODE,
+          cwd: REGULAR_WORKSPACE_CWD,
+        },
+        {}
+      )
+    ).toThrow(GUARDED_WORKSPACE_ERROR);
   });
 
   it("rejects write mode without an explicit mutation acknowledgement", () => {
@@ -56,7 +80,7 @@ describe("harness parity council guardrails", () => {
       shared.resolveCouncilExecutionPolicy(
         {
           writeMode: WORKSPACE_WRITE_MODE,
-          cwd: "/Users/dev/.codex/worktrees/lisa",
+          cwd: CODEX_WORKTREE_CWD,
         },
         {}
       )
@@ -91,7 +115,7 @@ describe("harness parity council guardrails", () => {
       topic: "Review Codex parity for install-time hooks",
       runtime: "codex",
       env: {},
-      cwd: REGULAR_WORKSPACE_CWD,
+      cwd: CODEX_WORKTREE_CWD,
     });
 
     expect(plan.executionPolicy).toEqual({
