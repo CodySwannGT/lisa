@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.106.4](https://github.com/CodySwannGT/lisa/compare/vv2.106.3...v2.106.4) (2026-05-26)
+
+
+### Bug Fixes
+
+* **plugin-sync:** compare generated drift in scratch ([251fe7b](https://github.com/CodySwannGT/lisa/commit/251fe7b2e9cc630ebeaf7edf87cec4441d742291))
+
 ### [2.106.3](https://github.com/CodySwannGT/lisa/compare/vv2.106.2...v2.106.3) (2026-05-26)
 
 
