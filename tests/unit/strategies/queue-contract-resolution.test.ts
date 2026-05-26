@@ -45,9 +45,6 @@ describe("queue contract resolution (#822)", () => {
         shipped: "prd-shipped",
         verified: "prd-verified",
       },
-      rollup: {
-        closeOnShipped: false,
-      },
     });
     expect(contract.buildQueue).toMatchObject({
       vendor: "github",
@@ -179,6 +176,63 @@ describe("queue contract resolution (#822)", () => {
           production: "status:done",
         },
       },
+    });
+  });
+
+  it("ignores invalid GitHub PRD role overrides instead of disabling defaults", () => {
+    expect(
+      resolvePrdLifecycleRoles({
+        source: "github",
+        github: {
+          labels: {
+            prd: {
+              ready: "",
+              blocked: null,
+              ticketed: 123,
+              shipped: "custom-shipped",
+            },
+          },
+        },
+      }).roles
+    ).toMatchObject({
+      ready: "prd-ready",
+      blocked: "prd-blocked",
+      ticketed: "prd-ticketed",
+      shipped: "custom-shipped",
+    });
+  });
+
+  it("ignores invalid Notion status overrides while preserving Confluence null parent defaults", () => {
+    expect(
+      resolvePrdLifecycleRoles({
+        source: "notion",
+        notion: {
+          values: {
+            ready: null,
+            blocked: "",
+            ticketed: "Custom Ticketed",
+          },
+        },
+      }).roles
+    ).toMatchObject({
+      ready: "Ready",
+      blocked: "Blocked",
+      ticketed: "Custom Ticketed",
+    });
+
+    expect(
+      resolvePrdLifecycleRoles({
+        source: "confluence",
+        confluence: {
+          parents: {
+            ready: null,
+            blocked: "12345",
+          },
+        },
+      }).roles
+    ).toMatchObject({
+      ready: null,
+      blocked: "12345",
     });
   });
 });

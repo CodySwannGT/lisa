@@ -40,6 +40,41 @@ const DRIFT_LABELS = {
  */
 
 /**
+ * Compare the expected automation fleet against observed scheduler entries,
+ * consuming each observed automation at most once.
+ *
+ * @param {{
+ *   readonly expectedAutomations: readonly ExpectedAutomationContract[]
+ *   readonly observedAutomations?: readonly ObservedAutomationContract[]
+ * }} input
+ * @returns {readonly AutomationContractComparison[]}
+ */
+export function compareAutomationFleet(input) {
+  const remainingObserved = [...(input.observedAutomations ?? [])];
+
+  return input.expectedAutomations.map(expected => {
+    const observed = findObservedAutomationMatch(
+      expected,
+      remainingObserved,
+      input.expectedAutomations
+    );
+    const comparison = compareAutomationContract({
+      expected,
+      observedAutomation: observed,
+    });
+
+    if (observed) {
+      const index = remainingObserved.indexOf(observed);
+      if (index >= 0) {
+        remainingObserved.splice(index, 1);
+      }
+    }
+
+    return comparison;
+  });
+}
+
+/**
  * Find the best observed scheduler entry for an expected automation contract.
  *
  * Match order is:
@@ -50,11 +85,13 @@ const DRIFT_LABELS = {
  *
  * @param {ExpectedAutomationContract} expected
  * @param {readonly ObservedAutomationContract[]} observedAutomations
+ * @param {readonly ExpectedAutomationContract[]} expectedAutomations
  * @returns {ObservedAutomationContract | null}
  */
 export function findObservedAutomationMatch(
   expected,
-  observedAutomations = []
+  observedAutomations = [],
+  expectedAutomations = [expected]
 ) {
   const exactId = observedAutomations.find(
     observed => observed.automationId === expected.automationId
@@ -97,6 +134,15 @@ export function findObservedAutomationMatch(
   });
   if (exactCommand) {
     return exactCommand;
+  }
+
+  if (
+    isSharedExpectedCommandToken(
+      expectedCommand.commandToken,
+      expectedAutomations
+    )
+  ) {
+    return null;
   }
 
   return (
@@ -159,6 +205,24 @@ export function compareAutomationContract(input) {
     driftKinds,
     observedAutomation: observed,
   };
+}
+
+/**
+ * @param {string} commandToken
+ * @param {readonly ExpectedAutomationContract[]} expectedAutomations
+ * @returns {boolean}
+ */
+function isSharedExpectedCommandToken(commandToken, expectedAutomations) {
+  if (!commandToken) {
+    return false;
+  }
+
+  return (
+    expectedAutomations.filter(expected => {
+      const normalized = normalizeAutomationCommand(expected.expectedCommand);
+      return normalized.commandToken === commandToken;
+    }).length > 1
+  );
 }
 
 /**

@@ -73,7 +73,7 @@ Every visible direct entry row ends with exactly one machine-readable token:
 <!-- lisa:usage-entry entry_id=<id> flow=<flow> run_id=<run-id> provider=<provider> model=<model> source=<source> input_tokens=<n|null> cached_input_tokens=<n|null> output_tokens=<n|null> reasoning_tokens=<n|null> total_tokens=<n|null> cost=<decimal|null> currency=<code|null> pricing_status=<status> pricing_source=<ref|null> artifact_ref=<ref> parent_artifact_ref=<ref-or-empty> -->
 ```
 
-Field order is fixed. A reader parses the usage ledger by matching `<!-- lisa:usage-entry ` lines only; it never needs to scrape prose or table cell positions.
+Field order is fixed. A reader parses the usage ledger by matching `<!-- lisa:usage-entry ` lines only; it never needs to scrape prose or table cell positions. String fields are percent-encoded before rendering and decoded after parsing, so whitespace, commas, and HTML comment terminators inside source values cannot split or truncate the token.
 
 Every managed section also ends with exactly one rollup token:
 
@@ -86,7 +86,7 @@ Every managed section also ends with exactly one rollup token:
 - `child_refs` enumerates the child artifacts consulted for the rollup.
 - `total_*` fields equal direct plus child totals over the deduped entry set.
 
-The rollup token is the machine-readable summary. The visible rollup table mirrors it for humans.
+The rollup token is the machine-readable summary. The visible rollup table mirrors it for humans. List fields are comma-delimited after encoding each item independently; commas inside an item are encoded as data, not treated as separators.
 
 ## Visible rendering contract
 
