@@ -188,6 +188,34 @@ The `Next action:` line should stay small and specific. Prefer one actionable fo
 - "manual product clarification" when Lisa is not the current owner
 - "fix `.lisa.config.json` or lifecycle labels" when the problem is misconfiguration
 
+## Smoke fixtures and read-only assertions
+
+Intake-explain must keep representative smoke fixtures for both PRD and build lifecycles. These fixtures are contract examples for implementers and tests: they prove that lifecycle classification, dependency holds, staleness windows, and repair backoff map to the same verdict language operators see in real diagnosis output.
+
+Minimum PRD smoke fixtures:
+
+| Fixture | Decisive signals | Expected verdict |
+|---|---|---|
+| `prd-draft-product-owned` | PRD role `draft`; source lane resolved; no Lisa claim marker | `PRODUCT_OWNED_STATE` |
+| `prd-ready-actionable` | PRD role `ready`; source lane resolved; validation-ready content present | `ELIGIBLE_FOR_INTAKE` |
+| `prd-in-review-fresh` | PRD role `in_review`; newest Lisa or tracker activity is inside `stale_after` | `WAITING_ON_STALENESS` |
+| `prd-blocked-backoff` | PRD role `blocked`; latest `[lisa-repair-intake]` fingerprint is unchanged and inside the backoff window | `WAITING_ON_STALENESS` |
+| `prd-blocked-new-signal` | PRD role `blocked`; clarifying answer or blocker fingerprint changed after the last repair marker | `ELIGIBLE_FOR_REPAIR` |
+
+Minimum build smoke fixtures:
+
+| Fixture | Decisive signals | Expected verdict |
+|---|---|---|
+| `build-ready-leaf` | `status:ready`; `repo:<current>`; leaf type; no open children; no active blockers | `ELIGIBLE_FOR_INTAKE` |
+| `build-active-dependency` | otherwise actionable ready leaf; `Blocked by:` points at an open blocker without a cleared status | `HELD_BY_BLOCKERS` |
+| `build-cleared-dependency` | otherwise actionable ready leaf; blockers are closed or carry cleared build status | `ELIGIBLE_FOR_INTAKE` |
+| `build-open-children` | build lifecycle role present; native sub-issues or body parentage include open child work | `NON_LEAF_CONTAINER` |
+| `build-claimed-fresh` | `status:in-progress`; newest claim, PR, check, or issue activity is inside `stale_after` | `WAITING_ON_STALENESS` |
+| `build-blocked-backoff` | `status:blocked`; blocker fingerprint unchanged and repair-backoff marker still suppresses retries | `WAITING_ON_STALENESS` |
+| `build-blocked-cleared` | `status:blocked`; parsed blockers are now cleared or the blocker fingerprint changed | `ELIGIBLE_FOR_REPAIR` |
+
+Every smoke fixture must assert read-only behavior. A diagnosis may call vendor read APIs, inspect config, and render a verdict, but it must not call write APIs such as `gh issue edit`, `gh issue comment`, label creation, issue creation, transition endpoints, PR mutation, or tracker comment/update calls. If execution intake would stamp repo labels, split a multi-repo leaf, repair a stale container label, add a dependency-hold comment, or retry stuck work, the smoke fixture should assert that intake-explain only reports that action as the next step.
+
 ## Output shape
 
 Use a stable grouped shape so one diagnosis is easy to scan:
