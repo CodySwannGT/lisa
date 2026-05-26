@@ -41,6 +41,10 @@ export const LISA_COMMAND_SKILL_PREFIX = "lisa-";
 
 /** Filename of the skill manifest at the root of every skill folder */
 const SKILL_MD_FILENAME = "SKILL.md";
+const INTERNAL_CODEX_SKILL_POLICY_RELATIVE_PATH = path.join(
+  "scripts",
+  "internal-codex-skill-policy.json"
+);
 
 /** Result of one skill copy */
 export interface InstalledSkill {
@@ -79,9 +83,10 @@ export async function installSkills(
 ): Promise<SkillsInstallResult> {
   const skillsDir = path.join(destDir, ".codex", LISA_SKILLS_SUBDIR);
   await fse.ensureDir(skillsDir);
+  const denylistedSkills = await loadInternalCodexSkillPolicy(lisaDir);
 
   // Step 1: bundled skills
-  const bundled = await discoverBundledSkills(lisaDir);
+  const bundled = await discoverBundledSkills(lisaDir, denylistedSkills);
   const bundledInstalls = await Promise.all(
     bundled.map(source => copyBundledSkill(source, skillsDir))
   );
@@ -117,6 +122,41 @@ export async function installSkills(
     managedFiles: Object.freeze([...bundledFiles, ...commandFiles]),
     deleted: Object.freeze(deleted),
   };
+}
+
+/**
+ * Load the Codex distribution policy that marks Lisa-maintainer-only skills as
+ * non-distributable.
+ *
+ * Missing or malformed policy files fail open to an empty set so tests and
+ * minimal package layouts remain usable.
+ * @param lisaDir - Absolute path to the Lisa repo / installed package
+ * @returns Skill directory names that must not be installed into host projects
+ */
+async function loadInternalCodexSkillPolicy(
+  lisaDir: string
+): Promise<ReadonlySet<string>> {
+  const policyPath = path.join(
+    lisaDir,
+    INTERNAL_CODEX_SKILL_POLICY_RELATIVE_PATH
+  );
+  if (!(await fse.pathExists(policyPath))) {
+    return new Set();
+  }
+  try {
+    const raw = await readFile(policyPath, "utf8");
+    const parsed = JSON.parse(raw) as { denylistedSkills?: unknown };
+    if (!Array.isArray(parsed.denylistedSkills)) {
+      return new Set();
+    }
+    return new Set(
+      parsed.denylistedSkills.filter(
+        (name): name is string => typeof name === "string"
+      )
+    );
+  } catch {
+    return new Set();
+  }
 }
 
 /**
@@ -188,10 +228,12 @@ interface BundledSkillSource {
  * order, so any stack-specific or third-party plugin overrides the base
  * regardless of how the name sorts.
  * @param lisaDir - Absolute path to the Lisa repo / installed package
+ * @param denylistedSkills - Skill names that must not ship to host projects
  * @returns De-duplicated bundled-skill sources, sorted by skill name
  */
 async function discoverBundledSkills(
-  lisaDir: string
+  lisaDir: string,
+  denylistedSkills: ReadonlySet<string>
 ): Promise<readonly BundledSkillSource[]> {
   const pluginsDir = path.join(lisaDir, "plugins");
   if (!(await fse.pathExists(pluginsDir))) {
@@ -215,7 +257,9 @@ async function discoverBundledSkills(
     new Map(flat.map(source => [source.skillName, source])).values()
   );
   return Object.freeze(
-    [...deduped].sort((a, b) => a.skillName.localeCompare(b.skillName))
+    [...deduped]
+      .filter(source => !denylistedSkills.has(source.skillName))
+      .sort((a, b) => a.skillName.localeCompare(b.skillName))
   );
 }
 
