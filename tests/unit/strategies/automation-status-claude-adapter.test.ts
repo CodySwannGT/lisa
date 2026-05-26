@@ -186,6 +186,7 @@ Status: ACTIVE
     expect(report.observedAutomations).toContainEqual(
       expect.objectContaining({
         automationId: BUILD_AUTOMATION_ID,
+        observedCadence: "every 60 minutes",
         observedRRule: "FREQ=HOURLY;INTERVAL=1",
       })
     );

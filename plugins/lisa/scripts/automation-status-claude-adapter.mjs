@@ -175,6 +175,14 @@ export function deriveClaudeObservedCommand(command) {
   return undefined;
 }
 
+/**
+ * Extract the cadence argument from a Claude `/schedule` command string.
+ * Supports quoted (double-quote, single-quote, backtick) and unquoted cadence
+ * values, returning the first matched capture group via {@link firstString}.
+ *
+ * @param {string | undefined} command - The command string to parse
+ * @returns {string | undefined} The extracted cadence, or undefined if not found
+ */
 function extractClaudeScheduleCadence(command) {
   if (!command) {
     return undefined;
