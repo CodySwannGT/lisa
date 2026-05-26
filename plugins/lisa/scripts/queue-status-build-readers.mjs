@@ -93,7 +93,8 @@ export function readGithubBuildQueueSnapshot(input = {}) {
 export function createBuildQueueSnapshot(input = {}) {
   const tracker = normalizeTracker(input.tracker);
   const unsupportedReaderError = resolveUnsupportedReaderError(input, tracker);
-  const roles = normalizeRoles(input.roles);
+  const rawRoles = input.roles ?? {};
+  const roles = normalizeRoles(rawRoles);
   const items = normalizeItems(input.items);
   const counts = buildLifecycleCounts(items);
   const repairSignals = buildRepairSignals(items, input.queueArgument);
@@ -108,7 +109,7 @@ export function createBuildQueueSnapshot(input = {}) {
       ? false
       : typeof input.resolutionError !== "string");
   const namespaceAdopted =
-    input.namespaceAdopted ?? inferNamespaceAdopted(items, roles);
+    input.namespaceAdopted ?? inferNamespaceAdopted(items, rawRoles);
   const resolutionError =
     unsupportedReaderError ?? input.resolutionError ?? null;
 
@@ -430,7 +431,25 @@ function inferNamespaceAdopted(items, roles) {
   return (
     ["ready", "claimed", "review", "blocked"].some(
       role => typeof roles[role] === "string" && roles[role].trim().length > 0
-    ) || resolveDoneRoleNames(roles).length > 0
+    ) || hasConfiguredDoneRole(roles?.done)
+  );
+}
+
+/**
+ * @param {unknown} done
+ * @returns {boolean}
+ */
+function hasConfiguredDoneRole(done) {
+  if (typeof done === "string") {
+    return done.trim().length > 0;
+  }
+
+  if (!done || typeof done !== "object") {
+    return false;
+  }
+
+  return Object.values(done).some(
+    value => typeof value === "string" && value.trim().length > 0
   );
 }
 

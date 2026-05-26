@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.105.0](https://github.com/CodySwannGT/lisa/compare/vv2.104.7...v2.105.0) (2026-05-26)
+
+
+### Features
+
+* **usage-accounting:** dedupe child work rollups ([ba8db51](https://github.com/CodySwannGT/lisa/commit/ba8db513074e5fbcce08bbe9f4e964327af11393)), closes [#734](https://github.com/CodySwannGT/lisa/issues/734)
+
+
+### Bug Fixes
+
+* gate claude workflow by author association ([fffcfa0](https://github.com/CodySwannGT/lisa/commit/fffcfa0bc7440c2c2c28ed4addf444ffa712874b))
+* **usage-accounting:** treat explicit childArtifacts: [] as recompute not fallback ([2f3f900](https://github.com/CodySwannGT/lisa/commit/2f3f9008d25c5aa6a318457755b38bf7302967e3))
+
 ### [2.104.7](https://github.com/CodySwannGT/lisa/compare/vv2.104.6...v2.104.7) (2026-05-26)
 
 

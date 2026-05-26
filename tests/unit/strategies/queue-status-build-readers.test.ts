@@ -22,6 +22,7 @@ const GITHUB_READY_LABEL = "status:ready";
 const GITHUB_CLAIMED_LABEL = "status:in-progress";
 const GITHUB_BLOCKED_LABEL = "status:blocked";
 const GITHUB_DONE_LABEL = "status:done";
+const GITHUB_BUILD_QUEUE_ARGUMENT = "github intake_mode=build";
 const GITHUB_DONE_ROLES = {
   dev: "status:on-dev",
   staging: "status:on-stg",
@@ -45,7 +46,7 @@ describe("queue-status build readers (#825)", () => {
   it("parses GitHub build lifecycle labels into counts, highlights, and repair signals", () => {
     const snapshot = readGithubBuildQueueSnapshot({
       namespaceAdopted: true,
-      queueArgument: "github intake_mode=build",
+      queueArgument: GITHUB_BUILD_QUEUE_ARGUMENT,
       roles: {
         ready: GITHUB_READY_LABEL,
         claimed: GITHUB_CLAIMED_LABEL,
@@ -130,10 +131,24 @@ describe("queue-status build readers (#825)", () => {
     const snapshot = createBuildQueueSnapshot({
       tracker: "github",
       namespaceAdopted: false,
-      queueArgument: "github intake_mode=build",
+      queueArgument: GITHUB_BUILD_QUEUE_ARGUMENT,
       items: [],
     });
 
+    expect(snapshot.health).toMatchObject({
+      verdict: "MISCONFIGURED",
+      reasons: ["lifecycle-namespace-absent"],
+    });
+  });
+
+  it("does not infer namespace adoption from normalized fallback roles", () => {
+    const snapshot = createBuildQueueSnapshot({
+      tracker: "github",
+      queueArgument: GITHUB_BUILD_QUEUE_ARGUMENT,
+      items: [],
+    });
+
+    expect(snapshot.namespaceAdopted).toBe(false);
     expect(snapshot.health).toMatchObject({
       verdict: "MISCONFIGURED",
       reasons: ["lifecycle-namespace-absent"],
