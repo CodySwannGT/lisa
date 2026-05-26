@@ -8,6 +8,7 @@ import {
 import {
   normalizeCouncilContext,
   resolveCouncilRuntimes,
+  resolveCouncilExecutionPolicy,
 } from "./council-shared.mjs";
 import {
   buildSecondRoundInvocation,
@@ -48,6 +49,46 @@ const RISKY_SUGGESTION_PATTERNS = Object.freeze([
 
 const RISKY_SUGGESTION_PREFIX =
   "[unsafe-runtime-suggestion: maintainer review required] ";
+
+const UNSAFE_READ_ONLY_ARGS = Object.freeze([
+  /--force\b/u,
+  /--danger(?:ously)?(?:-\w+)?\b/u,
+  /--yolo\b/u,
+  /--sandbox(?:=|\s+)(?:workspace-write|danger-full-access)\b/u,
+  /--ask-for-approval(?:=|\s+)never\b/u,
+]);
+
+/**
+ * Reject adapter invocations that would violate the council execution policy.
+ *
+ * @param {{
+ *   runtime: string;
+ *   safeInvocation: { args: string[] };
+ * }} invocation Runtime invocation metadata.
+ * @param {{
+ *   mode: "read-only" | "guarded-write";
+ * }} executionPolicy Resolved council policy for this run.
+ */
+export function assertInvocationMatchesCouncilPolicy(
+  invocation,
+  executionPolicy
+) {
+  if (executionPolicy.mode !== "read-only") {
+    return;
+  }
+
+  const serializedArgs = invocation.safeInvocation.args.join(" ");
+  const unsafePattern = UNSAFE_READ_ONLY_ARGS.find(pattern =>
+    pattern.test(serializedArgs)
+  );
+  if (!unsafePattern) {
+    return;
+  }
+
+  throw new Error(
+    `Unsafe read-only invocation for ${invocation.runtime}: ${serializedArgs}`
+  );
+}
 
 /**
  * Build the structured first-round advisory prompt for one runtime.
@@ -361,6 +402,7 @@ export function parseCouncilCliArgs(argv) {
  *   topic: string;
  *   runtimeFilter: string | null;
  *   writeMode: string | null;
+ *   executionPolicy: ReturnType<typeof resolveCouncilExecutionPolicy>;
  *   firstRound: ReturnType<typeof buildFirstRoundInvocation>[];
  *   secondRound: null | {
  *     sanitizedSummary: string;
@@ -377,6 +419,7 @@ export function buildCouncilDryRunPlan({
   writeMode = null,
   env,
 }) {
+  const executionPolicy = resolveCouncilExecutionPolicy({ writeMode }, env);
   const runtimes = resolveCouncilRuntimes(runtime);
   const firstRound = runtimes.map(selectedRuntime =>
     buildFirstRoundInvocation({
@@ -386,19 +429,22 @@ export function buildCouncilDryRunPlan({
       env,
     })
   );
-
   const secondRoundSummary =
     secondRound && sanitizedSummary
       ? sanitizedSummary
       : secondRound
         ? "TODO: Claude sanitized synthesis goes here before round two."
         : null;
+  firstRound.forEach(invocation =>
+    assertInvocationMatchesCouncilPolicy(invocation, executionPolicy)
+  );
 
   return {
     mode: "dry-run",
     topic: topic.trim(),
     runtimeFilter: runtime,
     writeMode,
+    executionPolicy,
     firstRound,
     secondRound: secondRound
       ? {
@@ -537,6 +583,7 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
  *     targetEnvironment?: string;
  *   };
  *   runtimes?: (keyof typeof RUNTIME_ADAPTERS)[];
+ *   writeMode?: string | null;
  *   env?: NodeJS.ProcessEnv;
  *   probeRuntime?: typeof probeRuntimeAdapter;
  *   executor?: (invocation: ReturnType<typeof buildFirstRoundInvocation>) => Promise<{
@@ -561,10 +608,12 @@ export async function collectFirstRoundResponses({
   topic,
   context = {},
   runtimes = Object.keys(RUNTIME_ADAPTERS),
+  writeMode = null,
   env,
   probeRuntime = probeRuntimeAdapter,
   executor,
 }) {
+  const executionPolicy = resolveCouncilExecutionPolicy({ writeMode }, env);
   const captures = [];
 
   for (const runtime of runtimes) {
@@ -574,6 +623,7 @@ export async function collectFirstRoundResponses({
       context,
       env,
     });
+    assertInvocationMatchesCouncilPolicy(invocation, executionPolicy);
     const probe = probeRuntime(runtime, env);
     const result =
       probe.available && typeof executor === "function"
@@ -677,6 +727,10 @@ export function buildFirstRoundSynthesisInput({
  */
 async function main() {
   const parsed = parseCouncilCliArgs(process.argv.slice(2));
+  const executionPolicy = resolveCouncilExecutionPolicy(
+    { writeMode: parsed.writeMode },
+    globalThis.process?.env ?? {}
+  );
 
   if (parsed.dryRun) {
     const plan = buildCouncilDryRunPlan(parsed);
@@ -688,9 +742,11 @@ async function main() {
   const firstRound = await collectFirstRoundResponses({
     topic: parsed.topic,
     runtimes,
+    writeMode: parsed.writeMode,
   });
   const payload = {
     mode: "first-round",
+    executionPolicy,
     ...firstRound,
     secondRound: parsed.secondRound
       ? buildSecondRoundSynthesisInput({
