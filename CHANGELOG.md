@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.101.0](https://github.com/CodySwannGT/lisa/compare/vv2.100.2...v2.101.0) (2026-05-26)
+
+
+### Features
+
+* **intake-explain:** document prd repair gates ([ef6f9a3](https://github.com/CodySwannGT/lisa/commit/ef6f9a36729ad3fd7952a44b5270dd0f389bd8cf))
+
+
+### Bug Fixes
+
+* count empty doctor groups as skips ([1554af5](https://github.com/CodySwannGT/lisa/commit/1554af5bd5da7aba1b039475098e669beeb839b6))
+* **doctor:** normalize direct aggregator statuses ([f3f2ed7](https://github.com/CodySwannGT/lisa/commit/f3f2ed70e10542df8c140867b86d84199b51722b))
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([4c7312d](https://github.com/CodySwannGT/lisa/commit/4c7312d33904bfe63b31dfb96c4beed703f02e2c))
+
 ### [2.100.2](https://github.com/CodySwannGT/lisa/compare/vv2.100.1...v2.100.2) (2026-05-26)
 
 
