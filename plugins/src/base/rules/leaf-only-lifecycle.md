@@ -109,7 +109,12 @@ Skills that enforce this invariant or perform rollup cite this rule by slug (the
 - **Decomposition / write** (`*-to-tracker`, `*-write-*`) — apply the `ready` role to leaves only; never to containers.
 - **Validate** (`*-validate-*`) — FAIL a container carrying the build-ready role; FAIL a childless Epic/Story/Spike marked build-ready.
 - **Build intake** (`*-build-intake`, `tracker-build-intake`) — dispatch leaves only; move or safe-block containers with stale build-ready roles according to vendor lifecycle semantics.
-- **Rollup** — derive parent state from children per the state machine above.
-- **Terminal native closure** (`*-build-intake`, terminal helpers) — after a leaf reaches the true terminal `done` role, finalize it through the provider's native close / complete / resolve mechanism where available; never do this for intermediate env states.
+- **Rollup** — derive parent state from children per the state machine above. `repair-intake`
+  also uses this rule to close out parent/container rollups that were left open after every
+  required child became terminal.
+- **Terminal native closure** (`*-build-intake`, `repair-intake`, terminal helpers) — after a leaf
+  or all-terminal rollup parent reaches the true terminal `done` role, finalize it through the
+  provider's native close / complete / resolve mechanism where available; never do this for
+  intermediate env states.
 
 This is the inverse-direction companion to `repo-scope-split` (which governs a leaf's *repo* scope); together they define what a build-ready leaf work unit is: directly implementable, single-repo, childless-or-leaf-typed.
