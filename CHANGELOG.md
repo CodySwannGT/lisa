@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.104.4](https://github.com/CodySwannGT/lisa/compare/vv2.104.3...v2.104.4) (2026-05-26)
+
+
+### Bug Fixes
+
+* add observedCadence assertion for hourly case and JSDoc for extractClaudeScheduleCadence ([11e7742](https://github.com/CodySwannGT/lisa/commit/11e77426269c84b9ee9accb864be1821f9f382b5)), closes [#896](https://github.com/CodySwannGT/lisa/issues/896)
+* **council:** mark unexecuted first-round captures ([0d1ee1d](https://github.com/CodySwannGT/lisa/commit/0d1ee1dfe4bbde9a504e45ecd065fc96b0d06cb8))
+* normalize claude schedule cadence ([a7ada49](https://github.com/CodySwannGT/lisa/commit/a7ada498d7c535dde7e70d44e044b1f5219fa661))
+* parse latest Codex automation memory run ([e1c8265](https://github.com/CodySwannGT/lisa/commit/e1c826588297e5707da41e864b83ddcb45072606))
+* **queue-status:** apply default github reader labels ([8c92544](https://github.com/CodySwannGT/lisa/commit/8c92544a5aac8dd275904d46467364876ee8e67d))
+* repair automation-status fleet matching ([88d8854](https://github.com/CodySwannGT/lisa/commit/88d8854b7a7277d5f69c71fa548096836c174af4))
+
 ### [2.104.3](https://github.com/CodySwannGT/lisa/compare/vv2.104.2...v2.104.3) (2026-05-26)
 
 
