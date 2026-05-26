@@ -47,6 +47,7 @@ function makeEntry(overrides: Partial<LisaUsageEntry> = {}): LisaUsageEntry {
 function makeRollup(overrides: Partial<LisaUsageRollup> = {}): LisaUsageRollup {
   return {
     childCost: 0,
+    childCurrency: "USD",
     childEntryIds: [],
     childRefs: [],
     childTokens: 0,
