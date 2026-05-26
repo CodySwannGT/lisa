@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.89.0](https://github.com/CodySwannGT/lisa/compare/vv2.88.0...v2.89.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** detect contract drift ([922de56](https://github.com/CodySwannGT/lisa/commit/922de5667e9891c870e94e0410b91f3f50e323d7))
+
 ## [2.88.0](https://github.com/CodySwannGT/lisa/compare/vv2.87.0...v2.88.0) (2026-05-26)
 
 
