@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.94.0](https://github.com/CodySwannGT/lisa/compare/vv2.93.0...v2.94.0) (2026-05-26)
+
+
+### Features
+
+* share queue contract resolution ([#822](https://github.com/CodySwannGT/lisa/issues/822)) ([af1a338](https://github.com/CodySwannGT/lisa/commit/af1a3382777fd93d2231b1f37ec0826376d086a2))
+
 ## [2.93.0](https://github.com/CodySwannGT/lisa/compare/vv2.92.0...v2.93.0) (2026-05-26)
 
 
