@@ -50,6 +50,10 @@ Each direct usage entry records one logical Lisa run or sub-run on one artifact.
 
 The absence of data is never treated as zero. `null` means unknown; `0` means explicitly observed or derived zero.
 
+For example, an unavailable Verify run still records a direct entry with `source = unavailable`,
+`pricing_status = unavailable`, and `null` token/cost fields so downstream readers can distinguish
+"missing telemetry" from "zero usage."
+
 ## Pricing semantics
 
 `pricing_status` describes how trustworthy the money fields are:
@@ -69,7 +73,7 @@ Every visible direct entry row ends with exactly one machine-readable token:
 <!-- lisa:usage-entry entry_id=<id> flow=<flow> run_id=<run-id> provider=<provider> model=<model> source=<source> input_tokens=<n|null> cached_input_tokens=<n|null> output_tokens=<n|null> reasoning_tokens=<n|null> total_tokens=<n|null> cost=<decimal|null> currency=<code|null> pricing_status=<status> pricing_source=<ref|null> artifact_ref=<ref> parent_artifact_ref=<ref-or-empty> -->
 ```
 
-Field order is fixed. A reader parses the usage ledger by matching `<!-- lisa:usage-entry ` lines only; it never needs to scrape prose or table cell positions.
+Field order is fixed. A reader parses the usage ledger by matching `<!-- lisa:usage-entry ` lines only; it never needs to scrape prose or table cell positions. String fields are percent-encoded before rendering and decoded after parsing, so whitespace, commas, and HTML comment terminators inside source values cannot split or truncate the token.
 
 Every managed section also ends with exactly one rollup token:
 
@@ -82,7 +86,7 @@ Every managed section also ends with exactly one rollup token:
 - `child_refs` enumerates the child artifacts consulted for the rollup.
 - `total_*` fields equal direct plus child totals over the deduped entry set.
 
-The rollup token is the machine-readable summary. The visible rollup table mirrors it for humans.
+The rollup token is the machine-readable summary. The visible rollup table mirrors it for humans. List fields are comma-delimited after encoding each item independently; commas inside an item are encoded as data, not treated as separators.
 
 ## Visible rendering contract
 
@@ -120,6 +124,11 @@ Rollups aggregate descendant usage from native tracker hierarchy, documented gen
 - Count each `entry_id` at most once even if the same descendant is discoverable through more than one path.
 - Preserve direct totals separately from child totals.
 - Exclude descendant entries whose `entry_id` is already present in the artifact's direct-entry set.
+
+Concrete example: if child artifact A and child artifact B both surface descendant entry
+`verify-123`, the parent rollup lists `verify-123` once in `child_entry_ids`. If the parent also
+records `verify-123` directly, exclude that descendant copy from child totals and keep the entry in
+the direct half only.
 
 The rollup contract is additive across the hierarchy: PRDs may roll up Epics/Stories/leaves, and leaves may roll up evidence or verification artifacts, without double counting shared descendants.
 

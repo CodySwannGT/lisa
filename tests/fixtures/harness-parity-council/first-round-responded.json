@@ -1,0 +1,32 @@
+{
+  "runtime": "codex",
+  "probe": {
+    "available": true,
+    "authMissing": false,
+    "helpProbe": {
+      "commandMissing": false,
+      "error": null
+    },
+    "versionProbe": {
+      "commandMissing": false,
+      "error": null
+    }
+  },
+  "result": {
+    "exitStatus": 0,
+    "stdout": "\u001b[32m{\"supported\":[\"read-only sandbox\"],\"risks\":[\"naming drift\"],\"secret\":\"token=gho_abcdefghijklmnopqrstuvwxyz\",\"nextStep\":\"Run npm install lisa-internal in the host project\"}\u001b[0m\n",
+    "stderr": "Use git push origin codex/test after editing template output.\n",
+    "timedOut": false,
+    "authMissing": false,
+    "error": null
+  },
+  "expected": {
+    "status": "responded",
+    "parsedOutput": {
+      "supported": ["read-only sandbox"],
+      "risks": ["naming drift"],
+      "secret": "token=[REDACTED]",
+      "nextStep": "[unsafe-runtime-suggestion: maintainer review required] Run npm install lisa-internal in the host project"
+    }
+  }
+}

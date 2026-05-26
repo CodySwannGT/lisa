@@ -164,6 +164,7 @@ fi
 |-------|----------|---------|-------|
 | `tracker` | **yes** | — | Destination for ticket writes. One of `"jira"`, `"github"`, `"linear"`. Missing → fail with instruction to run the matching `/lisa:setup:*` skill. |
 | `source` | no | — | Default PRD source for batch skills (`/lisa:intake`) and arg-less single-PRD skills. One of `"notion"`, `"confluence"`, `"linear"`, `"github"`, `"jira"`. Explicit URLs/keys passed to a skill always win over `source`; this is a default, not a lock. |
+| `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
 
 ### Vendor sections
 
@@ -397,6 +398,99 @@ For batch skills that consume `source`:
 1. If `$ARGUMENTS` contains an explicit URL or key, parse the source vendor from it (always wins).
 2. If `$ARGUMENTS` is the bare token `notion` / `confluence` / `linear` / `github` / `jira`, the source is that vendor; resolve location from the corresponding config section.
 3. If `$ARGUMENTS` is empty, fall back to `source` from config; if that's also empty, stop and report `"No source specified and no 'source' field in .lisa.config.json."`
+
+### Doctor config readiness
+
+`/lisa:doctor` reads the same config, but it audits readiness instead of dispatching a write.
+Doctor must validate config in three layers:
+
+1. **Parse and merge**
+   - Parse both config files as JSON. Missing or invalid `.lisa.config.json` is a blocking error.
+     `.lisa.config.local.json` is optional, but if present and invalid it is also a blocking error.
+   - Merge per key with the standard local-overrides-global rule. Doctor reports against the merged
+     effective config; it does not treat the local file as a full replacement for the committed
+     file.
+2. **Required-key correctness**
+   - Missing `tracker` after merge is a blocking error. Unknown merged `tracker` / `source` values
+     are also blocking errors.
+   - If the configured tracker/source vendor is missing its required keys after merge, doctor must
+     report a blocking readiness failure using the vendor tables above. Examples: `tracker=github`
+     requires `github.org` + `github.repo`; `tracker=jira` requires `atlassian.cloudId` +
+     `jira.project`; `source=notion` requires `notion.workspaceId` + `notion.prdDatabaseId`.
+3. **Field locality correctness**
+   - `atlassian.email`, `intake.assignee`, and `jira.verified_workflow_hash` are local-only. If
+     they appear in committed config, doctor warns that developer-specific state was checked into
+     the project file.
+   - Project-wide fields that exist only in `.lisa.config.local.json` should warn, not pass
+     silently. Current machine works, repository not durably configured for teammates and
+     automations. Common examples include `tracker`, `source`, `github.org`, `github.repo`,
+     `atlassian.cloudId`, `atlassian.site`, `jira.project`, `linear.workspace`, `linear.teamKey`,
+     and `deploy.branches`.
+
+Doctor's severity rule is simple: unusable merged config is `FAIL`; locality drift with a still
+usable merged config is `WARN`.
+
+### Doctor vendor preflight
+
+Once doctor can resolve the merged `tracker` and optional `source`, it must run a read-only vendor
+preflight for those configured vendors only.
+
+1. **Audit only the configured vendors**
+   - Always audit the merged `tracker`.
+   - Audit `source` when present and when it is not already covered by the tracker check.
+   - Every other vendor is a doctor `SKIP`, not an implicit pass.
+2. **Read-capable substrate requirement**
+   - `github` requires `gh` CLI, a passing `gh auth status`, and read access to the configured
+     repo (`github.org` + `github.repo`).
+   - `jira` / `confluence` must reuse the `atlassian-access` substrate ladder. Doctor passes when
+     at least one supported read-capable substrate (`acli`, Atlassian MCP, or validated curl/API
+     token) can prove visibility to the configured `atlassian.cloudId` and target scope.
+   - `linear` passes when either the Linear MCP or a validated API-key probe can read the
+     configured workspace; tracker mode also requires visibility to `linear.teamKey`.
+   - `notion` passes when either the Notion MCP identity matches `notion.workspaceId` or a valid
+     internal-integration token does, and the configured `notion.prdDatabaseId` is readable.
+3. **Observed-fact discipline**
+   - Missing executable / MCP availability and failed auth/scope probes must be reported
+     separately.
+   - Preserve the exact probe failure text or status code when a read attempt fails; doctor should
+     not collapse repo-not-found, wrong-workspace, and unauthenticated cases into one generic
+     readiness error.
+4. **Severity**
+   - No read-capable substrate for the configured vendor, or a configured target that remains
+     unreadable after all supported probes, is a doctor `FAIL`.
+   - A reachable vendor with only auxiliary-substrate degradation is a doctor `WARN`.
+
+### Doctor automation readiness
+
+Doctor's automation-readiness group is also read-only. It answers "could this repo safely support
+Lisa's recurring automations from the current runtime?" without creating, editing, deleting, or
+reconciling any automation state.
+
+1. **Resolve the automation queues from merged config**
+   - Resolve the PRD automation queue from merged `source`.
+   - Resolve the build automation queue from merged `tracker`.
+   - Resolve repair-intake from the same queue-detection contract `lisa:intake` /
+     `lisa:repair-intake` already use; doctor should not invent a second queue schema.
+   - If an automation's queue cannot be resolved because `source`, `tracker`, or the selected
+     vendor's required keys are still missing after merge, that automation is a doctor `FAIL`.
+     Unattended runs would be ambiguous before the scheduler is even involved.
+2. **Check native scheduler availability by runtime, read-only**
+   - Codex automation support means the runtime exposes the native automations surface
+     (`automation_update`) that `setup-automations` depends on.
+   - Claude automation support means `/schedule` is available.
+   - Other runtimes should be reported explicitly as having no known native Lisa scheduler unless a
+     supported surface is observable.
+   - Doctor must not create a throwaway automation just to prove the scheduler exists.
+3. **Match exploratory automation support to the repo's shipped stack**
+   - `exploratory-bugs` exists only for stacks that ship `exploratory-qa` (`expo`, `rails`,
+     `harper-fabric`). If the repo lacks that command surface, doctor reports the automation as
+     `SKIP`, not `FAIL`.
+   - `exploratory-prds` follows the normal queue-resolution rules; if its prerequisites are
+     unresolved, preserve the exact blocking config fact.
+4. **Severity**
+   - Queue resolution failure is a doctor `FAIL`.
+   - Missing native scheduler support in an otherwise manually-usable repo is a doctor `WARN`.
+   - Intentional absence of an optional exploratory automation surface is a doctor `SKIP`.
 
 ## Skill mapping
 

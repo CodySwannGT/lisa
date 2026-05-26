@@ -1,9 +1,12 @@
+/* eslint-disable max-lines -- Usage accounting regression coverage exercises direct, child, pricing, and nullable rollups together. */
+
 import {
   createLisaUsageRollup,
   LISA_USAGE_HEADING,
   parseLisaUsageSection,
   type LisaUsageChildArtifact,
   type LisaUsageEntry,
+  type LisaUsageRollup,
   upsertLisaUsageSection,
 } from "../../../src/utils/usage-accounting.js";
 
@@ -15,6 +18,8 @@ const CHILD_REF_ONE = "github:issue:900";
 const CHILD_REF_TWO = "github:issue:901";
 const CHILD_ENTRY_SHARED = "shared-child";
 const CHILD_ENTRY_UNIQUE = "unique-child";
+const PRICING_SOURCE = "config:openai-api-pricing@2026-05-25";
+const PRICED_ENTRY_ID = "entry-priced";
 
 /**
  * Create a deterministic direct usage entry for unit tests.
@@ -43,6 +48,28 @@ function makeEntry(
     runId: overrides.runId,
     source: "prompt",
     totalTokens: 120,
+    ...overrides,
+  };
+}
+
+/**
+ * Create a deterministic rollup payload for unit tests.
+ *
+ * @param overrides Test-specific rollup overrides.
+ * @returns A complete rollup payload.
+ */
+function makeRollup(overrides: Partial<LisaUsageRollup> = {}): LisaUsageRollup {
+  return {
+    childCost: 0,
+    childEntryIds: [],
+    childRefs: [],
+    childTokens: 0,
+    currency: "USD",
+    directCost: 0,
+    directEntryIds: [],
+    directTokens: 0,
+    totalCost: 0,
+    totalTokens: 0,
     ...overrides,
   };
 }
@@ -178,15 +205,13 @@ describe("usage-accounting utilities", () => {
         totalTokens: 1119,
       };
 
-    // Passing childArtifacts: [] explicitly means "no children now" —
-    // stale previous rollup child totals must be cleared, not preserved.
+    // Passing childArtifacts: [] explicitly means "no children now"; stale
+    // previous rollup child totals must be cleared, not preserved.
     const rollup = createLisaUsageRollup([directEntry], previousRollup, []);
 
     expect(rollup.childEntryIds).toEqual([]);
     expect(rollup.childRefs).toEqual([]);
-    // sumNullable([]) → null (no child data, not inherited stale value of 999)
     expect(rollup.childTokens).toBeNull();
-    // sumNullable([]) → null (no child data, not inherited stale value of 0.99)
     expect(rollup.childCost).toBeNull();
   });
 
@@ -249,4 +274,162 @@ describe("usage-accounting utilities", () => {
     expect(parsed.rollup?.totalTokens).toBe(240);
     expect(parsed.rollup?.totalCost).toBeCloseTo(0.24);
   });
+
+  it("aggregates decimal cost totals without binary floating-point artifacts", () => {
+    const firstEntry = makeEntry({
+      entryId: "entry-cost-a",
+      runId: "run-cost-a",
+      cost: 0.1,
+    });
+    const secondEntry = makeEntry({
+      entryId: "entry-cost-b",
+      runId: "run-cost-b",
+      cost: 0.2,
+    });
+
+    const rollup = createLisaUsageRollup([firstEntry, secondEntry]);
+    const updated = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [firstEntry, secondEntry],
+      rollup,
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(rollup.directCost).toBe(0.3);
+    expect(rollup.totalCost).toBe(0.3);
+    expect(updated).toContain("direct_cost=0.3");
+    expect(updated).toContain("total_cost=0.3");
+    expect(updated).not.toContain("0.30000000000000004");
+    expect(parsed.rollup?.directCost).toBe(0.3);
+    expect(parsed.rollup?.totalCost).toBe(0.3);
+  });
+
+  it("aggregates refreshed direct and child costs with decimal precision", () => {
+    const entry = makeEntry({
+      entryId: "entry-parent",
+      runId: "run-parent",
+      cost: 0.1,
+    });
+    const rollup = createLisaUsageRollup(
+      [entry],
+      makeRollup({ childCost: 0.2 })
+    );
+
+    expect(rollup.directCost).toBe(0.1);
+    expect(rollup.childCost).toBe(0.2);
+    expect(rollup.totalCost).toBe(0.3);
+  });
+
+  it("round-trips explicit unavailable usage entries with nullable fields", () => {
+    const unavailableEntry = makeEntry({
+      entryId: "entry-unavailable",
+      runId: "run-unavailable",
+      cachedInputTokens: null,
+      cost: null,
+      currency: null,
+      inputTokens: null,
+      outputTokens: null,
+      pricingSource: null,
+      pricingStatus: "unavailable",
+      reasoningTokens: null,
+      source: "unavailable",
+      totalTokens: null,
+    });
+
+    const updated = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [unavailableEntry],
+      rollup: createLisaUsageRollup([unavailableEntry]),
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(updated).toContain("source=unavailable");
+    expect(updated).toContain("pricing_status=unavailable");
+    expect(updated).toContain("total_tokens=null");
+    expect(updated).toContain("cost=null");
+    expect(parsed.entries[0]).toMatchObject({
+      cachedInputTokens: null,
+      cost: null,
+      currency: null,
+      inputTokens: null,
+      outputTokens: null,
+      pricingSource: null,
+      pricingStatus: "unavailable",
+      reasoningTokens: null,
+      source: "unavailable",
+      totalTokens: null,
+    });
+    expect(parsed.rollup?.directTokens).toBeNull();
+    expect(parsed.rollup?.totalCost).toBeNull();
+  });
+
+  it("rejects corrupted numeric tokens instead of rewriting them as null", () => {
+    const existingSection = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [makeEntry({ entryId: "entry-corrupt", runId: "run-corrupt" })],
+    }).replace("cost=0.12", "cost=bad");
+
+    expect(() =>
+      upsertLisaUsageSection(existingSection, {
+        entries: [makeEntry({ entryId: "entry-next", runId: "run-next" })],
+      })
+    ).toThrow("Invalid Lisa usage numeric token: bad");
+    expect(existingSection).toContain("cost=bad");
+  });
+
+  it("preserves pricing metadata and prior child rollups during direct-entry refreshes", () => {
+    const existingEntry = makeEntry({
+      entryId: PRICED_ENTRY_ID,
+      pricingSource: PRICING_SOURCE,
+      pricingStatus: "estimated",
+    });
+    const existingSection = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [existingEntry],
+      rollup: makeRollup({
+        childCost: 0.21,
+        childEntryIds: ["child-a", "shared-descendant"],
+        childRefs: [CHILD_REF_ONE, CHILD_REF_TWO],
+        childTokens: 210,
+        currency: "USD",
+        directCost: 0.12,
+        directEntryIds: [PRICED_ENTRY_ID],
+        directTokens: 120,
+        totalCost: 0.33,
+        totalTokens: 330,
+      }),
+    });
+    const refreshedEntry = makeEntry({
+      entryId: PRICED_ENTRY_ID,
+      runId: "run-priced-refresh",
+      cost: 0.18,
+      pricingSource: PRICING_SOURCE,
+      pricingStatus: "estimated",
+      totalTokens: 180,
+    });
+
+    const updated = upsertLisaUsageSection(existingSection, {
+      entries: [refreshedEntry],
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(parsed.entries).toHaveLength(1);
+    expect(parsed.entries[0]).toMatchObject({
+      cost: 0.18,
+      entryId: PRICED_ENTRY_ID,
+      pricingSource: PRICING_SOURCE,
+      pricingStatus: "estimated",
+      runId: "run-priced-refresh",
+      totalTokens: 180,
+    });
+    expect(parsed.rollup).toMatchObject({
+      childCost: 0.21,
+      childEntryIds: ["child-a", "shared-descendant"],
+      childRefs: [CHILD_REF_ONE, CHILD_REF_TWO],
+      childTokens: 210,
+      directCost: 0.18,
+      directEntryIds: [PRICED_ENTRY_ID],
+      directTokens: 180,
+      totalCost: 0.39,
+      totalTokens: 390,
+    });
+  });
 });
+
+/* eslint-enable max-lines -- End usage accounting regression coverage. */
