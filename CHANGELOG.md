@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.104.7](https://github.com/CodySwannGT/lisa/compare/vv2.104.6...v2.104.7) (2026-05-26)
+
+
+### Bug Fixes
+
+* close PRDs only after verification ([131500e](https://github.com/CodySwannGT/lisa/commit/131500e85da9d853540097141169079509cb2965))
+
 ### [2.104.6](https://github.com/CodySwannGT/lisa/compare/vv2.104.5...v2.104.6) (2026-05-26)
 
 
