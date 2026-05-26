@@ -1,0 +1,21 @@
+{
+  "runtime": "codex",
+  "env": {
+    "LISA_CODEX_CLI": "codex-fixture"
+  },
+  "helpResult": {
+    "status": 0,
+    "stdout": "usage: codex exec [options]\n",
+    "stderr": ""
+  },
+  "versionResult": {
+    "status": 0,
+    "stdout": "codex 1.2.3\n",
+    "stderr": ""
+  },
+  "expected": {
+    "available": true,
+    "authMissing": false,
+    "command": "codex-fixture"
+  }
+}

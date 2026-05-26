@@ -76,6 +76,20 @@ Each run should produce a concise synthesis with:
 - testing and documentation implications
 - open questions Claude should resolve before implementation
 
+## Maintainer Smoke Checks
+
+Use these checks when changing the council scaffolding, adapter metadata, or first-round capture logic. They are internal Lisa maintainer checks only; do not ship them into host-project artifacts.
+
+1. Probe metadata smoke:
+   `node .agents/skills/harness-parity-council/runtime-adapters.mjs codex cursor`
+   Expect JSON output with the resolved command slot, read-only-safe args, timeout budget, and help/version probe captures for each requested runtime.
+2. First-round synthesis smoke:
+   `node .agents/skills/harness-parity-council/first-round.mjs "Codex parity for install-time hooks"`
+   Expect JSON output with `availableRuntimes`, `unavailableRuntimes`, `responseEvidence`, and the Claude synthesis template. Missing or unauthenticated CLIs should be recorded as unavailable instead of crashing the entire run.
+3. Fixture contract smoke:
+   `bun x vitest run tests/unit/strategies/harness-parity-council-*.test.ts`
+   Expect deterministic coverage for successful, missing, failing, and hanging runtime fixtures plus the Lisa-only placement/documentation guards.
+
 ## Notes For Maintainers
 
 - This skill intentionally lives only in `.agents/skills/`.
