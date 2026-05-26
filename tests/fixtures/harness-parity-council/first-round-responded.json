@@ -1,0 +1,30 @@
+{
+  "runtime": "codex",
+  "probe": {
+    "available": true,
+    "authMissing": false,
+    "helpProbe": {
+      "commandMissing": false,
+      "error": null
+    },
+    "versionProbe": {
+      "commandMissing": false,
+      "error": null
+    }
+  },
+  "result": {
+    "exitStatus": 0,
+    "stdout": "{\"supported\":[\"read-only sandbox\"],\"risks\":[\"naming drift\"]}\n",
+    "stderr": "",
+    "timedOut": false,
+    "authMissing": false,
+    "error": null
+  },
+  "expected": {
+    "status": "responded",
+    "parsedOutput": {
+      "supported": ["read-only sandbox"],
+      "risks": ["naming drift"]
+    }
+  }
+}
