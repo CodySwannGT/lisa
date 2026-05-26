@@ -28,6 +28,8 @@ describe("harness-parity-council internal skill contract", () => {
     expect(skill).toContain("LISA_CODEX_CLI");
     expect(skill).toContain("LISA_COPILOT_CLI");
     expect(skill).toContain("LISA_ANTIGRAVITY_CLI");
+    expect(skill).toContain("LISA_COUNCIL_GUARDED_WORKSPACE");
+    expect(skill).toContain("LISA_COUNCIL_ALLOW_WRITE");
     expect(skill).toContain("first-round.mjs");
   });
 
@@ -50,6 +52,7 @@ describe("harness-parity-council internal skill contract", () => {
   it("locks the default mode to read-only advisory behavior", () => {
     expect(skill).toMatch(/Default to read-only advisory execution/i);
     expect(skill).toMatch(/Do not let external CLIs edit files/i);
+    expect(skill).toMatch(/LISA_COUNCIL_ALLOW_WRITE=1/i);
     expect(skill).toMatch(/record them as unavailable and continue/i);
   });
 });
