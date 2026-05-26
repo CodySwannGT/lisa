@@ -68,7 +68,11 @@ function parseNullableNumber(value: string): number | null {
   }
 
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid Lisa usage numeric token: ${value}`);
+  }
+
+  return parsed;
 }
 
 /**
