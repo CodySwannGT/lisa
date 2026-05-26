@@ -91,6 +91,7 @@ describe("harness parity council guardrails", () => {
       topic: "Review Codex parity for install-time hooks",
       runtime: "codex",
       env: {},
+      cwd: REGULAR_WORKSPACE_CWD,
     });
 
     expect(plan.executionPolicy).toEqual({
