@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.90.0](https://github.com/CodySwannGT/lisa/compare/vv2.89.0...v2.90.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** inspect codex automation metadata ([d514c0e](https://github.com/CodySwannGT/lisa/commit/d514c0ef6f89496fa15dbebeb9a1994247b578e5))
+
 ## [2.89.0](https://github.com/CodySwannGT/lisa/compare/vv2.88.0...v2.89.0) (2026-05-26)
 
 
