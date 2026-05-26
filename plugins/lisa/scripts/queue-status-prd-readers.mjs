@@ -9,6 +9,7 @@
  */
 
 import { classifyQueueHealth } from "./queue-health-classification.mjs";
+import { resolvePrdLifecycleRoles } from "./queue-contract-resolution.mjs";
 
 export const PRD_LIFECYCLE_ORDER = [
   "draft",
@@ -67,7 +68,7 @@ const HIGHLIGHT_COPY = {
  * }} input
  */
 export function readGithubPrdQueueSnapshot(input = {}) {
-  const roles = input.roles ?? {};
+  const roles = input.roles ?? resolvePrdLifecycleRoles({}, "github").roles;
   const normalizedItems = (input.issues ?? [])
     .map(issue => normalizeGithubPrdIssue(issue, roles))
     .filter(Boolean);
