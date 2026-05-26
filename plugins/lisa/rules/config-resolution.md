@@ -58,8 +58,7 @@ fi
       "verified":  "<page-id>"
     },
     "dashboardPageId": "<page-id>",
-    "feedbackPageId":  "<page-id>",
-    "rollup": { "closeOnShipped": false }
+    "feedbackPageId":  "<page-id>"
   },
   "github": {
     "org": "<org-or-user>",
@@ -86,8 +85,7 @@ fi
         "ready": "prd-ready", "in_review": "prd-in-review",
         "blocked": "prd-blocked", "ticketed": "prd-ticketed",
         "shipped": "prd-shipped", "verified": "prd-verified",
-        "sentinel": "prd-intake-feedback",
-        "rollup": { "closeOnShipped": false }
+        "sentinel": "prd-intake-feedback"
       }
     }
   },
@@ -99,8 +97,7 @@ fi
       "draft": "Draft", "ready": "Ready", "in_review": "In Review",
       "blocked": "Blocked", "ticketed": "Ticketed", "shipped": "Shipped",
       "verified": "Verified"
-    },
-    "rollup": { "closeOnShipped": false }
+    }
   },
   "linear": {
     "workspace": "<workspace-slug>",
@@ -118,8 +115,7 @@ fi
         "ready": "prd-ready", "in_review": "prd-in-review",
         "blocked": "prd-blocked", "ticketed": "prd-ticketed",
         "shipped": "prd-shipped", "verified": "prd-verified",
-        "sentinel": "prd-intake-feedback",
-        "rollup": { "closeOnShipped": false }
+        "sentinel": "prd-intake-feedback"
       }
     }
   },
@@ -291,17 +287,9 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 | `verified` | Shipped product empirically checked against the PRD | `Verified` (status) | `prd-verified` (label); parent-page lookup (Confluence) |
 | `sentinel` | (PRD-intake feedback issue marker, GitHub/Linear self-host only) | — | `prd-intake-feedback` |
 
-### PRD rollup config (`prd.rollup`)
+### PRD rollup behavior
 
-PRD lifecycle completion is **derived** from the PRD's generated top-level work, not set independently — see the `prd-lifecycle-rollup` rule for the full contract (generated-top-level-work definition, per-vendor terminal-state predicate, the `shipped` transition, and the child-ref idempotency key). When all required generated top-level children are terminal, rollup transitions the PRD to its `shipped` role; the `prd.rollup` block configures the optional close/archive step that follows.
-
-The `rollup` object lives in each PRD-source vendor section (`github.labels.prd.rollup`, `linear.labels.prd.rollup`, `notion.rollup`, `confluence.rollup`):
-
-| Key | Required | Default | Notes |
-|-----|----------|---------|-------|
-| `closeOnShipped` | no | `false` | When `true`, rollup closes/archives the PRD after the `shipped` transition (GitHub: close the issue; Linear: move to a closed/archived state; JIRA: transition to Done; Confluence/Notion: archive where supported). When `false` (the default), the PRD is set to `shipped` but left open for a human to close. Closure never happens before all generated top-level work is terminal. |
-
-Like every other vocabulary key, `prd.rollup` is **optional** — a missing block inherits `closeOnShipped: false`. The `shipped` transition itself is unconditional on the all-terminal condition; only the close/archive step is gated by this flag.
+PRD lifecycle completion is **derived** from the PRD's generated top-level work, not set independently — see the `prd-lifecycle-rollup` rule for the full contract (generated-top-level-work definition, per-vendor terminal-state predicate, the `shipped` transition, verified native closure, and the child-ref idempotency key). When all required generated top-level children are terminal, rollup transitions the PRD to its `shipped` role and leaves it open/active for `/lisa:verify-prd`. There is no project-configurable close-on-shipped flag: provider-native closure/archive/completion happens only after `/lisa:verify-prd` passes and moves the PRD to `verified`.
 
 ### Repair intake config (`intake.repair`)
 
@@ -370,7 +358,7 @@ The true terminal `done` value is also the only value that triggers provider-nat
 ### What's configurable, what's not
 
 - **Status / label NAMES** are configurable per project — that's the point of the vocabulary maps.
-- **Role SEMANTICS and TRANSITIONS** are not. The build lifecycle is always `ready → claimed → done` (with optional `review` for label-driven systems). The PRD lifecycle is always `ready → in_review → (blocked | ticketed) → shipped`, then verification may move `shipped → verified` on a pass or `shipped → blocked` on a failed verification. `verified` is terminal and product-owned like `draft` and `shipped`; Lisa does not add `prd-verifying` or `prd-verification-failed` states. Skills hardcode these transitions because they encode the design intent of the framework, not the project's preferences.
+- **Role SEMANTICS and TRANSITIONS** are not. The build lifecycle is always `ready → claimed → done` (with optional `review` for label-driven systems). The PRD lifecycle is always `ready → in_review → (blocked | ticketed) → shipped`, then verification may move `shipped → verified` on a pass or `shipped → ticketed` on a failed verification. `verified` is terminal and product-owned like `draft` and `shipped`; Lisa does not add `prd-verifying` or `prd-verification-failed` states. Skills hardcode these transitions because they encode the design intent of the framework, not the project's preferences.
 - **Extra statuses/labels** the project uses outside these roles are fine — lisa never touches them.
 
 ### Defaults vs. requirements

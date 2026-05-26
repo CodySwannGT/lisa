@@ -515,12 +515,13 @@ export function buildCouncilDryRunPlan({
  *     stderr?: string;
  *     timedOut?: boolean;
  *     authMissing?: boolean | null;
+ *     notExecuted?: boolean;
  *     error?: { code?: string | null; message?: string } | null;
  *   };
  * }} input Runtime capture inputs.
  * @returns {{
  *   runtime: string;
- *   status: "responded" | "empty" | "failed" | "timed_out" | "unavailable";
+ *   status: "responded" | "not_executed" | "empty" | "failed" | "timed_out" | "unavailable";
  *   command: string;
  *   args: string[];
  *   timeoutMs: number;
@@ -581,13 +582,16 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
     typeof result.exitStatus === "number" ? result.exitStatus : null;
   const hasExecutionError = result.error != null;
 
-  const status = timedOut
-    ? "timed_out"
-    : hasExecutionError || (exitStatus ?? 0) !== 0
-      ? "failed"
-      : !combinedText
-        ? "empty"
-        : "responded";
+  const status =
+    result.notExecuted === true
+      ? "not_executed"
+      : timedOut
+        ? "timed_out"
+        : hasExecutionError || (exitStatus ?? 0) !== 0
+          ? "failed"
+          : !combinedText
+            ? "empty"
+            : "responded";
 
   return {
     runtime: invocation.runtime,
@@ -661,8 +665,21 @@ function normalizeExecutorException(error) {
  * @returns {Promise<Parameters<typeof normalizeFirstRoundCapture>[0]["result"] | undefined>} Executor result.
  */
 async function executeFirstRoundInvocation(invocation, probe, executor) {
-  if (!probe.available || typeof executor !== "function") {
+  if (!probe.available) {
     return undefined;
+  }
+
+  if (typeof executor !== "function") {
+    return {
+      exitStatus: 0,
+      stdout:
+        "No executor was provided for this non-dry first-round council run; runtime consultation was not executed.",
+      stderr: "",
+      timedOut: false,
+      authMissing: probe.authMissing ?? false,
+      notExecuted: true,
+      error: null,
+    };
   }
 
   try {
@@ -694,6 +711,7 @@ async function executeFirstRoundInvocation(invocation, probe, executor) {
  *     stderr?: string;
  *     timedOut?: boolean;
  *     authMissing?: boolean | null;
+ *     notExecuted?: boolean;
  *     error?: { code?: string | null; message?: string } | null;
  *   } | {
  *     exitStatus?: number | null;
@@ -701,6 +719,7 @@ async function executeFirstRoundInvocation(invocation, probe, executor) {
  *     stderr?: string;
  *     timedOut?: boolean;
  *     authMissing?: boolean | null;
+ *     notExecuted?: boolean;
  *     error?: { code?: string | null; message?: string } | null;
  *   }>;
  * }} input Consultation inputs.
@@ -771,6 +790,7 @@ export async function collectFirstRoundResponses({
  *     parsedOutput: unknown | null;
  *     readOnlyReason: string;
  *     docsEvidence: string;
+ *     error: { code: string | null; message: string } | null;
  *   }>;
  *   claudeSynthesisTemplate: {
  *     agreements: string[];
@@ -815,6 +835,7 @@ export function buildFirstRoundSynthesisInput({
         parsedOutput: capture.parsedOutput,
         readOnlyReason: capture.readOnlyReason,
         docsEvidence: capture.docsEvidence,
+        error: capture.error,
       };
     }),
     claudeSynthesisTemplate: {

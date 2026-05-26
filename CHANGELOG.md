@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.105.0](https://github.com/CodySwannGT/lisa/compare/vv2.104.7...v2.105.0) (2026-05-26)
+
+
+### Features
+
+* **usage-accounting:** dedupe child work rollups ([ba8db51](https://github.com/CodySwannGT/lisa/commit/ba8db513074e5fbcce08bbe9f4e964327af11393)), closes [#734](https://github.com/CodySwannGT/lisa/issues/734)
+
+
+### Bug Fixes
+
+* gate claude workflow by author association ([fffcfa0](https://github.com/CodySwannGT/lisa/commit/fffcfa0bc7440c2c2c28ed4addf444ffa712874b))
+* **usage-accounting:** treat explicit childArtifacts: [] as recompute not fallback ([2f3f900](https://github.com/CodySwannGT/lisa/commit/2f3f9008d25c5aa6a318457755b38bf7302967e3))
+
+### [2.104.7](https://github.com/CodySwannGT/lisa/compare/vv2.104.6...v2.104.7) (2026-05-26)
+
+
+### Bug Fixes
+
+* close PRDs only after verification ([131500e](https://github.com/CodySwannGT/lisa/commit/131500e85da9d853540097141169079509cb2965))
+
+### [2.104.6](https://github.com/CodySwannGT/lisa/compare/vv2.104.5...v2.104.6) (2026-05-26)
+
+
+### Bug Fixes
+
+* **queue-status:** ignore invalid prd role overrides ([9d91ae5](https://github.com/CodySwannGT/lisa/commit/9d91ae5e1fd6306897531dc712fefd3443e3cf54))
+
+### [2.104.5](https://github.com/CodySwannGT/lisa/compare/vv2.104.4...v2.104.5) (2026-05-26)
+
+
+### Bug Fixes
+
+* **ci:** don't file a 'Claude auto-fix failed' issue when loop-guard intentionally skipped ([98332e8](https://github.com/CodySwannGT/lisa/commit/98332e85eb3c554b0c9476c3c28054f6e43b3e46)), closes [#960](https://github.com/CodySwannGT/lisa/issues/960)
+
+### [2.104.4](https://github.com/CodySwannGT/lisa/compare/vv2.104.3...v2.104.4) (2026-05-26)
+
+
+### Bug Fixes
+
+* add observedCadence assertion for hourly case and JSDoc for extractClaudeScheduleCadence ([11e7742](https://github.com/CodySwannGT/lisa/commit/11e77426269c84b9ee9accb864be1821f9f382b5)), closes [#896](https://github.com/CodySwannGT/lisa/issues/896)
+* **council:** mark unexecuted first-round captures ([0d1ee1d](https://github.com/CodySwannGT/lisa/commit/0d1ee1dfe4bbde9a504e45ecd065fc96b0d06cb8))
+* normalize claude schedule cadence ([a7ada49](https://github.com/CodySwannGT/lisa/commit/a7ada498d7c535dde7e70d44e044b1f5219fa661))
+* parse latest Codex automation memory run ([e1c8265](https://github.com/CodySwannGT/lisa/commit/e1c826588297e5707da41e864b83ddcb45072606))
+* **queue-status:** apply default github reader labels ([8c92544](https://github.com/CodySwannGT/lisa/commit/8c92544a5aac8dd275904d46467364876ee8e67d))
+* repair automation-status fleet matching ([88d8854](https://github.com/CodySwannGT/lisa/commit/88d8854b7a7277d5f69c71fa548096836c174af4))
+
 ### [2.104.3](https://github.com/CodySwannGT/lisa/compare/vv2.104.2...v2.104.3) (2026-05-26)
 
 

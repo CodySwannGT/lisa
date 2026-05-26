@@ -52,6 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       fixed: ${{ steps.check-fix.outputs.fixed }}
+      skipped_loop: ${{ steps.loop-guard.outputs.skip }}
     permissions:
       contents: write
       pull-requests: write
@@ -223,6 +224,7 @@ jobs:
     if: |
       always() &&
       needs.auto-fix.result != 'skipped' &&
+      needs.auto-fix.outputs.skipped_loop != 'true' &&
       needs.auto-fix.outputs.fixed != 'true'
     uses: CodySwannGT/lisa/.github/workflows/create-issue-on-failure.yml@main
     with:
