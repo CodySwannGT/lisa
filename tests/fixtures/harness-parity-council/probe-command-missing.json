@@ -1,0 +1,27 @@
+{
+  "runtime": "cursor",
+  "env": {},
+  "helpResult": {
+    "status": null,
+    "stdout": "",
+    "stderr": "cursor-agent: command not found\n",
+    "error": {
+      "code": "ENOENT",
+      "message": "spawnSync cursor-agent ENOENT"
+    }
+  },
+  "versionResult": {
+    "status": null,
+    "stdout": "",
+    "stderr": "cursor-agent: command not found\n",
+    "error": {
+      "code": "ENOENT",
+      "message": "spawnSync cursor-agent ENOENT"
+    }
+  },
+  "expected": {
+    "available": false,
+    "authMissing": null,
+    "command": "cursor-agent"
+  }
+}

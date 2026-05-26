@@ -2,6 +2,376 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.98.1](https://github.com/CodySwannGT/lisa/compare/vv2.98.0...v2.98.1) (2026-05-26)
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([810cc55](https://github.com/CodySwannGT/lisa/commit/810cc5590c22bb214234d8748db02d9d6251d2ef))
+
+## [2.98.0](https://github.com/CodySwannGT/lisa/compare/vv2.97.1...v2.98.0) (2026-05-26)
+
+
+### Features
+
+* **repair-intake:** batch close out stuck work ([62439d5](https://github.com/CodySwannGT/lisa/commit/62439d5128ab2062cd6e7e59bad57492e81baa60))
+
+### [2.97.1](https://github.com/CodySwannGT/lisa/compare/vv2.97.0...v2.97.1) (2026-05-26)
+
+
+### Documentation
+
+* **queue-status:** add operator guidance ([8e143c9](https://github.com/CodySwannGT/lisa/commit/8e143c94dc3810c413c4d4b602d0dec0200daf76))
+
+## [2.97.0](https://github.com/CodySwannGT/lisa/compare/vv2.96.0...v2.97.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** add PRD queue readers ([ec926ac](https://github.com/CodySwannGT/lisa/commit/ec926acf982dd830d02cc8b250a9fa306d2b5068))
+
+
+### Bug Fixes
+
+* **queue-status:** pass raw roles to inferNamespaceAdopted to avoid false-positive ([2af8527](https://github.com/CodySwannGT/lisa/commit/2af8527624f2b4102207d6eb3ceaf3cb1ec4879b))
+
+## [2.96.0](https://github.com/CodySwannGT/lisa/compare/vv2.95.0...v2.96.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** add build queue readers ([ab9ce33](https://github.com/CodySwannGT/lisa/commit/ab9ce336ac7edf53df8d10b2971a66fafa3d50b9))
+
+## [2.95.0](https://github.com/CodySwannGT/lisa/compare/vv2.94.0...v2.95.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** classify queue health ([be8d807](https://github.com/CodySwannGT/lisa/commit/be8d807e0a8a848e3edf36a6e664f8fad27ebbf7))
+
+## [2.94.0](https://github.com/CodySwannGT/lisa/compare/vv2.93.0...v2.94.0) (2026-05-26)
+
+
+### Features
+
+* share queue contract resolution ([#822](https://github.com/CodySwannGT/lisa/issues/822)) ([af1a338](https://github.com/CodySwannGT/lisa/commit/af1a3382777fd93d2231b1f37ec0826376d086a2))
+
+## [2.93.0](https://github.com/CodySwannGT/lisa/compare/vv2.92.0...v2.93.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** define grouped output contract ([7e7c016](https://github.com/CodySwannGT/lisa/commit/7e7c016d37f5ce78adcb12e28cc24b047c0ec6e6))
+
+## [2.92.0](https://github.com/CodySwannGT/lisa/compare/vv2.91.4...v2.92.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** scaffold command and skill surfaces ([6f3e467](https://github.com/CodySwannGT/lisa/commit/6f3e4679c601c6d4c8d0858b046f7a21cc441fff))
+
+### [2.91.4](https://github.com/CodySwannGT/lisa/compare/vv2.91.3...v2.91.4) (2026-05-26)
+
+
+### Documentation
+
+* **github:** add project coordination rollout coverage ([c0076ab](https://github.com/CodySwannGT/lisa/commit/c0076ab07cebf6ebc722979a88572b478c2db99a))
+
+### [2.91.3](https://github.com/CodySwannGT/lisa/compare/vv2.91.2...v2.91.3) (2026-05-26)
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([ea01a84](https://github.com/CodySwannGT/lisa/commit/ea01a847d7e729c758ccfb62d8a92b6c6583a956))
+
+### [2.91.2](https://github.com/CodySwannGT/lisa/compare/vv2.91.1...v2.91.2) (2026-05-26)
+
+
+### Documentation
+
+* add automation-status operator guidance ([8ddb5f0](https://github.com/CodySwannGT/lisa/commit/8ddb5f013e68072905d092778150b4ea70a9862a))
+
+### [2.91.1](https://github.com/CodySwannGT/lisa/compare/vv2.91.0...v2.91.1) (2026-05-26)
+
+## [2.91.0](https://github.com/CodySwannGT/lisa/compare/vv2.90.0...v2.91.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** add Claude schedule adapter ([#802](https://github.com/CodySwannGT/lisa/issues/802)) ([dd12767](https://github.com/CodySwannGT/lisa/commit/dd12767835a33366d31e2e41f47cd23e3188ac16))
+
+## [2.90.0](https://github.com/CodySwannGT/lisa/compare/vv2.89.0...v2.90.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** inspect codex automation metadata ([d514c0e](https://github.com/CodySwannGT/lisa/commit/d514c0ef6f89496fa15dbebeb9a1994247b578e5))
+
+## [2.89.0](https://github.com/CodySwannGT/lisa/compare/vv2.88.0...v2.89.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** detect contract drift ([922de56](https://github.com/CodySwannGT/lisa/commit/922de5667e9891c870e94e0410b91f3f50e323d7))
+
+## [2.88.0](https://github.com/CodySwannGT/lisa/compare/vv2.87.0...v2.88.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** resolve expected fleet contract ([3199732](https://github.com/CodySwannGT/lisa/commit/31997323f76cea35cf33e06cecf409c88696cc48))
+
+## [2.87.0](https://github.com/CodySwannGT/lisa/compare/vv2.86.0...v2.87.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** add grouped fleet report renderer ([e3bc4d7](https://github.com/CodySwannGT/lisa/commit/e3bc4d74658f3bdc11b809398fd79769c65093d3))
+
+## [2.86.0](https://github.com/CodySwannGT/lisa/compare/vv2.85.2...v2.86.0) (2026-05-26)
+
+
+### Features
+
+* **lisa:** scaffold automation-status surfaces ([1d004dc](https://github.com/CodySwannGT/lisa/commit/1d004dcd6e67b90966d396681795fc32908bd96a))
+
+### [2.85.2](https://github.com/CodySwannGT/lisa/compare/vv2.85.1...v2.85.2) (2026-05-26)
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([da1af52](https://github.com/CodySwannGT/lisa/commit/da1af5295aa0e19668660ec188709db11f9fac57))
+
+### [2.85.1](https://github.com/CodySwannGT/lisa/compare/vv2.85.0...v2.85.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **codex:** block internal skill distribution ([ccb0e3b](https://github.com/CodySwannGT/lisa/commit/ccb0e3bb520bc2c060253558d7a4b0cb022f8ba3))
+
+## [2.85.0](https://github.com/CodySwannGT/lisa/compare/vv2.84.1...v2.85.0) (2026-05-26)
+
+
+### Features
+
+* **skills:** guard council write mode ([931c4c4](https://github.com/CodySwannGT/lisa/commit/931c4c4f1d3c9a9b4ac2b7f6085e2cfdef5ea997))
+
+
+### Bug Fixes
+
+* **council:** propagate runtime to workspace guard detection ([96f0142](https://github.com/CodySwannGT/lisa/commit/96f0142e469216f3394169dce348aa0cdaa08982))
+
+### [2.84.1](https://github.com/CodySwannGT/lisa/compare/vv2.84.0...v2.84.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **council:** sanitize runtime captures ([4f83acd](https://github.com/CodySwannGT/lisa/commit/4f83acd5a831908fe93c5f1919c68e710f43e765))
+
+## [2.84.0](https://github.com/CodySwannGT/lisa/compare/vv2.83.0...v2.84.0) (2026-05-26)
+
+
+### Features
+
+* **council:** add runtime-filtered dry-run critique planning ([3d142f9](https://github.com/CodySwannGT/lisa/commit/3d142f9ac22f91345167a907967597da7f346252))
+
+
+### Bug Fixes
+
+* address CodeRabbit review on PR [#784](https://github.com/CodySwannGT/lisa/issues/784) ([e2c055e](https://github.com/CodySwannGT/lisa/commit/e2c055e0007800d1e2ac9adb0cdf552bb230e380))
+
+## [2.83.0](https://github.com/CodySwannGT/lisa/compare/vv2.82.0...v2.83.0) (2026-05-25)
+
+
+### Features
+
+* **skills:** add first-round council consultation flow ([ca3693e](https://github.com/CodySwannGT/lisa/commit/ca3693ef0391ee011148e10cf2456111370860fe))
+
+## [2.82.0](https://github.com/CodySwannGT/lisa/compare/vv2.81.0...v2.82.0) (2026-05-25)
+
+
+### Features
+
+* **skills:** add council runtime adapter planning ([478cff7](https://github.com/CodySwannGT/lisa/commit/478cff7b79a53d4f9e255a828bab808db7fb6e18))
+
+## [2.81.0](https://github.com/CodySwannGT/lisa/compare/vv2.80.1...v2.81.0) (2026-05-25)
+
+
+### Features
+
+* **skills:** add harness parity council scaffold ([dfa595a](https://github.com/CodySwannGT/lisa/commit/dfa595ae5fbfb5e7740c56d1d2082304bb507920))
+
+### [2.80.1](https://github.com/CodySwannGT/lisa/compare/vv2.80.0...v2.80.1) (2026-05-25)
+
+## [2.80.0](https://github.com/CodySwannGT/lisa/compare/vv2.79.0...v2.80.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** define wiki delegation contract ([f38b197](https://github.com/CodySwannGT/lisa/commit/f38b197698b691dba232846d0994995b18c85da6))
+
+## [2.79.0](https://github.com/CodySwannGT/lisa/compare/vv2.78.0...v2.79.0) (2026-05-25)
+
+
+### Features
+
+* document doctor automation readiness ([46a11ce](https://github.com/CodySwannGT/lisa/commit/46a11ce4c47201ee8e01b51d2f4581fffedf72cc))
+
+## [2.78.0](https://github.com/CodySwannGT/lisa/compare/vv2.77.2...v2.78.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** validate github project readiness ([6ba4362](https://github.com/CodySwannGT/lisa/commit/6ba43628a863ba8e1b63b6a24f6a0ae62ce88f5d))
+
+### [2.77.2](https://github.com/CodySwannGT/lisa/compare/vv2.77.1...v2.77.2) (2026-05-25)
+
+
+### Documentation
+
+* **doctor:** define vendor preflight readiness contract ([03b9375](https://github.com/CodySwannGT/lisa/commit/03b93756c2ea133689ad0dc85f74086137be25db))
+
+### [2.77.1](https://github.com/CodySwannGT/lisa/compare/vv2.77.0...v2.77.1) (2026-05-25)
+
+
+### Documentation
+
+* lock doctor config readiness contract ([cc3fd99](https://github.com/CodySwannGT/lisa/commit/cc3fd9923fb301b2ec93ac7a1d42ac4c01dbc691))
+
+## [2.77.0](https://github.com/CodySwannGT/lisa/compare/vv2.76.0...v2.77.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** add grouped report renderer ([1572c1e](https://github.com/CodySwannGT/lisa/commit/1572c1e6e9a3680513ae6f7197d0f0ef8ec3463e))
+
+## [2.76.0](https://github.com/CodySwannGT/lisa/compare/vv2.75.1...v2.76.0) (2026-05-25)
+
+
+### Features
+
+* **doctor:** add doctor command scaffold ([27b2cea](https://github.com/CodySwannGT/lisa/commit/27b2ceafd2e93be9e7737599dc3e7681e98ed099))
+
+### [2.75.1](https://github.com/CodySwannGT/lisa/compare/vv2.75.0...v2.75.1) (2026-05-25)
+
+## [2.75.0](https://github.com/CodySwannGT/lisa/compare/vv2.74.1...v2.75.0) (2026-05-25)
+
+
+### Features
+
+* **config-resolution:** add usage pricing contract ([5983ed4](https://github.com/CodySwannGT/lisa/commit/5983ed4f49802393ea7a71528da1a1018b107271))
+
+### [2.74.1](https://github.com/CodySwannGT/lisa/compare/vv2.74.0...v2.74.1) (2026-05-25)
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([651f1fa](https://github.com/CodySwannGT/lisa/commit/651f1fae0135aaed67a51777d9affd43b9f001eb))
+* wire usage accounting into delivery flows ([8958987](https://github.com/CodySwannGT/lisa/commit/8958987c831d4c077590c405e755f237e076d77b))
+
+## [2.74.0](https://github.com/CodySwannGT/lisa/compare/vv2.73.0...v2.74.0) (2026-05-25)
+
+
+### Features
+
+* record lifecycle usage on research plan and debrief artifacts ([4625f23](https://github.com/CodySwannGT/lisa/commit/4625f23190c9205ed6afc440c6e7cfa9fc0a5fb8))
+
+## [2.73.0](https://github.com/CodySwannGT/lisa/compare/vv2.72.0...v2.73.0) (2026-05-25)
+
+
+### Features
+
+* preserve usage ledgers in writers ([22cee0c](https://github.com/CodySwannGT/lisa/commit/22cee0c42297b9c31e34b7c1b25baa930d8c91f3))
+
+
+### Bug Fixes
+
+* align writer preservation tests ([6465537](https://github.com/CodySwannGT/lisa/commit/64655375fcce0cee3b09520856633ec390e70614))
+
+## [2.72.0](https://github.com/CodySwannGT/lisa/compare/vv2.71.0...v2.72.0) (2026-05-25)
+
+
+### Features
+
+* add usage-accounting skill contract ([eaa6906](https://github.com/CodySwannGT/lisa/commit/eaa6906814fcb52f7f661817edfffee90b5f9fe6))
+
+## [2.71.0](https://github.com/CodySwannGT/lisa/compare/vv2.70.0...v2.71.0) (2026-05-25)
+
+
+### Features
+
+* **utils:** add idempotent Lisa usage section utility ([070bc05](https://github.com/CodySwannGT/lisa/commit/070bc05bb296faefe9f7585cdff07b42e23a3558))
+
+## [2.70.0](https://github.com/CodySwannGT/lisa/compare/vv2.69.2...v2.70.0) (2026-05-25)
+
+
+### Features
+
+* add usage accounting contract ([5e07aa7](https://github.com/CodySwannGT/lisa/commit/5e07aa700ce88c1b7fc4f64a476ca5707e7218e8))
+
+### [2.69.2](https://github.com/CodySwannGT/lisa/compare/vv2.69.1...v2.69.2) (2026-05-25)
+
+
+### Documentation
+
+* **setup-github:** validate project coordination setup ([caa3130](https://github.com/CodySwannGT/lisa/commit/caa3130856fec382d8570efc42b6169bc11cf604))
+
+### [2.69.1](https://github.com/CodySwannGT/lisa/compare/vv2.69.0...v2.69.1) (2026-05-25)
+
+
+### Documentation
+
+* **github:** preserve multi-repo containers ([d7150e5](https://github.com/CodySwannGT/lisa/commit/d7150e5a2a0822db24ff86948ad51abb78fa1cd9))
+
+## [2.69.0](https://github.com/CodySwannGT/lisa/compare/vv2.68.0...v2.69.0) (2026-05-25)
+
+
+### Features
+
+* **github:** coordinate linked PR project membership ([aa4d556](https://github.com/CodySwannGT/lisa/commit/aa4d556384c38dcb034721f97a89064fdeaa9c64))
+
+## [2.68.0](https://github.com/CodySwannGT/lisa/compare/vv2.67.0...v2.68.0) (2026-05-25)
+
+
+### Features
+
+* **github:** coordinate writer project membership ([ce4a5d2](https://github.com/CodySwannGT/lisa/commit/ce4a5d2f7f46b42ee2b0ee6b51f30a924dd476e3))
+
+## [2.67.0](https://github.com/CodySwannGT/lisa/compare/vv2.66.0...v2.67.0) (2026-05-25)
+
+
+### Features
+
+* **github:** add project v2 utility contract ([d5525f7](https://github.com/CodySwannGT/lisa/commit/d5525f72d164e426cc69e85469108bc954b2f9e3))
+
+## [2.66.0](https://github.com/CodySwannGT/lisa/compare/vv2.65.0...v2.66.0) (2026-05-25)
+
+
+### Features
+
+* **github:** document project validation modes ([4a5cedd](https://github.com/CodySwannGT/lisa/commit/4a5cedd9c0ebc49595033645089ec7e6853ea723))
+
+## [2.65.0](https://github.com/CodySwannGT/lisa/compare/vv2.64.0...v2.65.0) (2026-05-25)
+
+
+### Features
+
+* **config:** add GitHub ProjectV2 coordination docs ([5606de0](https://github.com/CodySwannGT/lisa/commit/5606de0c7670c0a9b7b1d279c6b21b3bb2a3a0e5))
+
+## [2.64.0](https://github.com/CodySwannGT/lisa/compare/vv2.63.2...v2.64.0) (2026-05-25)
+
+
+### Features
+
+* **intake:** add local assignee queue filter ([c32e3f3](https://github.com/CodySwannGT/lisa/commit/c32e3f3136b4ab8ea4d995649fab4701f4606459))
+
+### [2.63.2](https://github.com/CodySwannGT/lisa/compare/vv2.63.1...v2.63.2) (2026-05-25)
+
+
+### Documentation
+
+* **wiki:** ingest git and roles connectors ([40a1a1d](https://github.com/CodySwannGT/lisa/commit/40a1a1d9ec58cdf477779b0181a1cf903542696c))
+
 ### [2.63.1](https://github.com/CodySwannGT/lisa/compare/vv2.63.0...v2.63.1) (2026-05-25)
 
 ## [2.63.0](https://github.com/CodySwannGT/lisa/compare/vv2.62.2...v2.63.0) (2026-05-25)

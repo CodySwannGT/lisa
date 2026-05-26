@@ -1,0 +1,53 @@
+{
+  "source": "github",
+  "items": [
+    {
+      "id": "824",
+      "ref": "#824",
+      "title": "Ready PRD waiting for intake",
+      "url": "https://github.com/CodySwannGT/lisa/issues/824",
+      "role": "ready",
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "825",
+      "ref": "#825",
+      "title": "PRD still in review",
+      "url": "https://github.com/CodySwannGT/lisa/issues/825",
+      "role": "in_review",
+      "createdAt": "2026-05-24T10:00:00Z"
+    },
+    {
+      "id": "826",
+      "ref": "#826",
+      "title": "Blocked PRD needs clarification",
+      "url": "https://github.com/CodySwannGT/lisa/issues/826",
+      "role": "blocked",
+      "createdAt": "2026-05-23T10:00:00Z"
+    },
+    {
+      "id": "827",
+      "ref": "#827",
+      "title": "Ticketed PRD waiting on build work",
+      "url": "https://github.com/CodySwannGT/lisa/issues/827",
+      "role": "ticketed",
+      "createdAt": "2026-05-22T10:00:00Z"
+    },
+    {
+      "id": "828",
+      "ref": "#828",
+      "title": "Shipped PRD awaiting verify-prd",
+      "url": "https://github.com/CodySwannGT/lisa/issues/828",
+      "role": "shipped",
+      "createdAt": "2026-05-21T10:00:00Z"
+    },
+    {
+      "id": "829",
+      "ref": "#829",
+      "title": "Verified PRD",
+      "url": "https://github.com/CodySwannGT/lisa/issues/829",
+      "role": "verified",
+      "createdAt": "2026-05-20T10:00:00Z"
+    }
+  ]
+}

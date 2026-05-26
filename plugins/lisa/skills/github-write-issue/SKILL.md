@@ -1,6 +1,6 @@
 ---
 name: github-write-issue
-description: "Creates or updates a GitHub Issue following the same organizational best practices as lisa:jira-write-ticket — three-audience description, Gherkin acceptance criteria, parent sub-issue (Epic/Story hierarchy), explicit relationship discovery, remote links, labels for status/components/priority/story-points, and Validation Journey. Uses the `gh` CLI exclusively (no MCP). Rejects thin issues. The GitHub counterpart of lisa:jira-write-ticket."
+description: "Creates or updates a GitHub Issue following the same organizational best practices as lisa:jira-write-ticket — three-audience description, Gherkin acceptance criteria, parent sub-issue (Epic/Story hierarchy), explicit relationship discovery, remote links, labels for status/components/priority/story-points, Validation Journey, and optional GitHub ProjectV2 coordination through lisa:github-project-v2 while keeping the Issue as the lifecycle source of truth. Uses the `gh` CLI exclusively (no MCP). Rejects thin issues. The GitHub counterpart of lisa:jira-write-ticket."
 allowed-tools: ["Bash", "Skill", "Read"]
 ---
 
@@ -268,16 +268,22 @@ If the validator reports `FAIL`, do NOT proceed to Phase 6. Fix the spec and re-
    If the GraphQL mutation isn't available on the repo (older GHES, sub-issues feature off), fall back to text linkage in the body (`Parent: #<parent>`) and surface a warning to the caller. Do NOT silently proceed without recording the parent.
 4. Phase 4b relationship lines (`Blocks #...`, `Blocked by #...`, etc.) are already in the body. No separate API call is needed — `lisa:github-read-issue` parses them on read.
 5. If the issue changes runtime behavior, invoke the `lisa:github-add-journey` skill to append the Validation Journey section.
+6. If `github.projects.v2` is enabled, resolve the created issue's node id and invoke `lisa:github-project-v2` with `operation: ensure-item` and `content_node_id: <issue-node-id>`. This is membership coordination only — the GitHub Issue remains the lifecycle source of truth for labels, body, comments, and parentage.
+   - `outcome: disabled` → continue normally; no shared Project is configured.
+   - `outcome: reused` or `added` → continue normally; the issue is now present in the Project.
+   - `outcome: warning` (`required: false`) → preserve the exact warning and continue the issue write as success.
+   - `outcome: blocked` (`required: true`) → surface the exact failure and stop returning success; do not claim Project coordination succeeded silently.
 
 ### UPDATE
 
-1. Re-read the current body via `gh issue view <number> --repo <org>/<repo> --json body --jq '.body'`. Edit only the sections being changed; preserve everything else verbatim.
+1. Re-read the current body via `gh issue view <number> --repo <org>/<repo> --json body --jq '.body'`. Edit only the sections being changed; preserve everything else verbatim, including any existing canonical managed `## Lisa Usage` section unless the caller intentionally supplied an updated canonical section. Use the shared `usage-accounting` serializer/merge path rather than freehand edits to ledger rows.
 2. Apply the edit:
    ```bash
    gh issue edit <number> --repo <org>/<repo> --body-file /tmp/updated-body.md
    ```
 3. Add labels: `gh issue edit <number> --add-label "<new-label>"`. Remove labels: `--remove-label`.
 4. Add new relationship lines to `## Links` if needed. Existing links are not touched unless explicitly removed.
+5. Re-resolve the live issue node id and invoke `lisa:github-project-v2` with `operation: ensure-item` so updates keep the issue present in the configured shared Project without duplicating membership writes. Branch on `disabled` / `added` / `reused` / `warning` / `blocked` exactly as in CREATE.
 
 ## Phase 7 — Verify
 
@@ -325,6 +331,9 @@ The mapping below is the single source of truth for how JIRA concepts translate 
 - Never create a Bug, Task, or Sub-task whose AC references work in a different repo. GitHub Issues already live in one repo; reject AC bullets that span others — split into per-repo issues under a shared Epic.
 - Never include a runtime-behavior issue without a target backend environment, and never include an authenticated-surface issue without sign-in credentials.
 - Never overwrite an issue body without reading the current version first.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - All writes go through this skill (or the `tracker-write` shim). Other vendor-neutral skills must NEVER call `gh issue create` directly.
 - The gate logic lives in `lisa:github-validate-issue`, NOT here. This skill calls the validator at Phase 5.5 and Phase 7. When a gate needs to change, change it in `lisa:github-validate-issue`.
 - Never bypass the sub-issue mutation by encoding the parent only in the body. The native sub-issue link is what `lisa:github-read-issue` and the GitHub UI use to render the hierarchy.
+- When GitHub Project coordination is enabled, always delegate membership to `lisa:github-project-v2`; never inline separate ProjectV2 GraphQL from this skill.

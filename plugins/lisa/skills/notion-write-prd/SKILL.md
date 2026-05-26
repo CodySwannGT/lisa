@@ -60,8 +60,8 @@ exceeds 100 blocks, create the page with the first ≤100 blocks then add the re
 accept the markdown content directly (it performs this conversion) — prefer that; the explicit block
 conversion is the curl-substrate path.
 
-**Marker normalization (both paths).** The page must always carry **exactly one** marker. On CREATE
-the marker is the first body block; on UPDATE never remove it. Never write a markerless page.
+**Marker + usage-ledger preservation (both paths).** The page must always carry **exactly one**
+marker. On CREATE the marker is the first body block; on UPDATE never remove it. Never write a markerless body. Never write a markerless page. If the existing page content already contains the canonical managed `## Lisa Usage` section, preserve that section when regenerating the page body unless the caller intentionally supplied an updated canonical section; use the shared `usage-accounting` serializer/merge path rather than freehand block edits to ledger rows.
 
 **CREATE:**
 
@@ -86,7 +86,7 @@ the marker is the first body block; on UPDATE never remove it. Never write a mar
    (`operation: archive-page` is page-level, so for blocks delete via the blocks API through
    `notion-access` or, where block deletion isn't available, replace their text in place) and
    `operation: append-blocks` the regenerated blocks. Do not duplicate the whole spec as a dated
-   note, and never drop the marker.
+   note, and never drop the marker or an existing managed `## Lisa Usage` section.
 
 ## Phase 4 — Return
 
@@ -102,6 +102,8 @@ outcome: created | reused
 
 - All access via `lisa:notion-access`; never touch the Notion API/MCP directly.
 - Match dedupe by marker, never by title.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - Never down-rank a PRD whose Status is already past `ready`.
 - Resolve the Status vocabulary from config (`notion.statusProperty`, `notion.values.*`) — never
   hardcode value names.

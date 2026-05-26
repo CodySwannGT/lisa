@@ -1,0 +1,13 @@
+{
+  "connector": "roles",
+  "profile": "project",
+  "ingested_at": "2026-05-26T09:30:43.141Z",
+  "cursor": {
+    "roles": 0,
+    "pages": 0,
+    "lastIngest": "2026-05-26"
+  },
+  "source_notes": [
+    "wiki/sources/roles/2026-05-26-roles.md"
+  ]
+}
