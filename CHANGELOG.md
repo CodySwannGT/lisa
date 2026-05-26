@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.100.2](https://github.com/CodySwannGT/lisa/compare/vv2.100.1...v2.100.2) (2026-05-26)
+
+
+### Bug Fixes
+
+* align council execution policy inputs ([d6a99fd](https://github.com/CodySwannGT/lisa/commit/d6a99fd235c74a2ef40f09bf413542fd1905ed88))
+* **council:** classify executor errors as failed ([c1bc307](https://github.com/CodySwannGT/lisa/commit/c1bc3073b1ead016f2cf31efacdce256859b1235))
+* handle negated automation-status failures ([f91e07c](https://github.com/CodySwannGT/lisa/commit/f91e07ccb2e449be0c2aa5b8f3e8d4f068fcf4e8))
+* make usage tokens reversible ([54019ea](https://github.com/CodySwannGT/lisa/commit/54019eaf389caf576c8bed97febb121b81d93d84))
+* preserve decimal usage cost totals ([a4d6b84](https://github.com/CodySwannGT/lisa/commit/a4d6b84257e069874db905db3d4378e838dda771))
+* recompute merged usage rollups ([2bdf9e3](https://github.com/CodySwannGT/lisa/commit/2bdf9e316c5e12e710a6ff71c6a8b555d02d4102))
+* reject invalid usage numeric tokens ([93f5be0](https://github.com/CodySwannGT/lisa/commit/93f5be0fe81d7d513714d36508bec994e4983c12))
+* reject missing council flag values ([9eb34a2](https://github.com/CodySwannGT/lisa/commit/9eb34a27edba8259ad4241a9916316abaaf534ca))
+
+
+### Documentation
+
+* explain intake build gates ([2ab8975](https://github.com/CodySwannGT/lisa/commit/2ab8975b7ca7ac44857a140b3f4b3228527eab8e))
+* **intake-explain:** publish operator guidance ([1a1ea50](https://github.com/CodySwannGT/lisa/commit/1a1ea509300cddf1ed5724ad914a84688e09d12b))
+
 ### [2.100.1](https://github.com/CodySwannGT/lisa/compare/vv2.100.0...v2.100.1) (2026-05-26)
 
 
