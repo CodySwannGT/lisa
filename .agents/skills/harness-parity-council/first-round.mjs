@@ -419,7 +419,10 @@ export function buildCouncilDryRunPlan({
   writeMode = null,
   env,
 }) {
-  const executionPolicy = resolveCouncilExecutionPolicy({ writeMode }, env);
+  const executionPolicy = resolveCouncilExecutionPolicy(
+    { writeMode, runtime },
+    env
+  );
   const runtimes = resolveCouncilRuntimes(runtime);
   const firstRound = runtimes.map(selectedRuntime =>
     buildFirstRoundInvocation({
