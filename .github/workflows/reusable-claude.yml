@@ -10,6 +10,11 @@ on:
         description: 'The event that triggered the workflow'
         required: true
         type: string
+      author_association:
+        description: 'Author association of the event actor'
+        required: false
+        type: string
+        default: ''
       comment_body:
         description: 'Body of the comment (for issue_comment and PR review comment events)'
         required: false
@@ -37,10 +42,13 @@ on:
 jobs:
   claude:
     if: |
-      (inputs.event_name == 'issue_comment' && contains(inputs.comment_body, '@claude')) ||
-      (inputs.event_name == 'pull_request_review_comment' && contains(inputs.comment_body, '@claude')) ||
-      (inputs.event_name == 'pull_request_review' && contains(inputs.review_body, '@claude')) ||
-      (inputs.event_name == 'issues' && (contains(inputs.issue_body, '@claude') || contains(inputs.issue_title, '@claude')))
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), inputs.author_association) &&
+      (
+        (inputs.event_name == 'issue_comment' && contains(inputs.comment_body, '@claude')) ||
+        (inputs.event_name == 'pull_request_review_comment' && contains(inputs.comment_body, '@claude')) ||
+        (inputs.event_name == 'pull_request_review' && contains(inputs.review_body, '@claude')) ||
+        (inputs.event_name == 'issues' && (contains(inputs.issue_body, '@claude') || contains(inputs.issue_title, '@claude')))
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: write
