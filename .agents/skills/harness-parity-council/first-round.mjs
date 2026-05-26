@@ -1,8 +1,20 @@
+/* eslint-disable max-lines -- Keep the public first-round council entrypoint in one Lisa-local module. */
+
 import {
-  RUNTIME_ADAPTERS,
   describeRuntimePlan,
   probeRuntimeAdapter,
+  RUNTIME_ADAPTERS,
 } from "./runtime-adapters.mjs";
+import {
+  normalizeCouncilContext,
+  resolveCouncilRuntimes,
+} from "./council-shared.mjs";
+import {
+  buildSecondRoundInvocation,
+  buildSecondRoundSynthesisInput,
+} from "./second-round.mjs";
+
+export { resolveCouncilRuntimes, buildSecondRoundSynthesisInput };
 
 export const FIRST_ROUND_REQUIRED_SECTIONS = Object.freeze([
   "Supported native surfaces for this feature",
@@ -15,42 +27,9 @@ export const FIRST_ROUND_REQUIRED_SECTIONS = Object.freeze([
   "Questions Claude should resolve before implementation",
 ]);
 
-export const DEFAULT_COUNCIL_CONTEXT = Object.freeze({
-  repository: "lisa",
-  sourceArtifacts: [],
-  targetEnvironment: "main",
-});
-
 const ANSI_ESCAPE_PATTERN =
   // Strip common SGR color/style escape sequences without touching regular text.
   /\u001B\[[0-9;]*m/gu;
-
-/**
- * Normalize free-form context into a stable council input shape.
- *
- * @param {{
- *   repository?: string;
- *   sourceArtifacts?: string[];
- *   targetEnvironment?: string;
- * }} [context] Optional council context overrides.
- * @returns {{
- *   repository: string;
- *   sourceArtifacts: string[];
- *   targetEnvironment: string;
- * }} Normalized council context.
- */
-export function normalizeCouncilContext(context = {}) {
-  return {
-    repository:
-      context.repository?.trim() || DEFAULT_COUNCIL_CONTEXT.repository,
-    sourceArtifacts: Array.isArray(context.sourceArtifacts)
-      ? context.sourceArtifacts.map(value => `${value}`.trim()).filter(Boolean)
-      : [...DEFAULT_COUNCIL_CONTEXT.sourceArtifacts],
-    targetEnvironment:
-      context.targetEnvironment?.trim() ||
-      DEFAULT_COUNCIL_CONTEXT.targetEnvironment,
-  };
-}
 
 /**
  * Build the structured first-round advisory prompt for one runtime.
@@ -170,6 +149,171 @@ export function buildFirstRoundInvocation({
   return {
     ...describeRuntimePlan(runtime, env),
     prompt: buildFirstRoundPrompt({ topic, runtime, context }),
+  };
+}
+
+/**
+ * Parse the documented council CLI flags into a normalized argument object.
+ * @param {string[]} argv CLI args excluding `node` and script path.
+ * @returns {{
+ *   topic: string;
+ *   runtime: string | null;
+ *   secondRound: boolean;
+ *   dryRun: boolean;
+ *   writeMode: string | null;
+ *   sanitizedSummary: string | null;
+ * }} Parsed council args.
+ */
+export function parseCouncilCliArgs(argv) {
+  const parsed = argv.reduce(
+    (state, current, index, values) => {
+      if (state.skipIndices.has(index)) {
+        return state;
+      }
+
+      const nextValue = values[index + 1] ?? "";
+      if (current === "--runtime") {
+        state.skipIndices.add(index + 1);
+        return { ...state, runtime: nextValue };
+      }
+
+      if (current === "--write-mode") {
+        state.skipIndices.add(index + 1);
+        return { ...state, writeMode: nextValue };
+      }
+
+      if (current === "--summary") {
+        state.skipIndices.add(index + 1);
+        return { ...state, sanitizedSummary: nextValue };
+      }
+
+      if (current === "--second-round") {
+        return { ...state, secondRound: true };
+      }
+
+      if (current === "--dry-run") {
+        return { ...state, dryRun: true };
+      }
+
+      return {
+        ...state,
+        topicParts: [...state.topicParts, current],
+      };
+    },
+    {
+      topicParts: [],
+      runtime: null,
+      writeMode: null,
+      sanitizedSummary: null,
+      secondRound: false,
+      dryRun: false,
+      skipIndices: new Set(),
+    }
+  );
+
+  const topic = parsed.topicParts.join(" ").trim();
+  if (!topic) {
+    throw new Error(
+      "Usage: node first-round.mjs <topic> [--runtime <name>] [--second-round] [--dry-run] [--write-mode <mode>] [--summary <text>]"
+    );
+  }
+
+  if (parsed.runtime !== null && !parsed.runtime.trim()) {
+    throw new Error("The --runtime flag requires a runtime name.");
+  }
+
+  if (parsed.writeMode !== null && !parsed.writeMode.trim()) {
+    throw new Error("The --write-mode flag requires a mode value.");
+  }
+
+  if (parsed.sanitizedSummary !== null && !parsed.sanitizedSummary.trim()) {
+    throw new Error("The --summary flag requires sanitized summary text.");
+  }
+
+  return {
+    topic,
+    runtime: parsed.runtime?.trim().toLowerCase() ?? null,
+    secondRound: parsed.secondRound,
+    dryRun: parsed.dryRun,
+    writeMode: parsed.writeMode?.trim() ?? null,
+    sanitizedSummary: parsed.sanitizedSummary?.trim() ?? null,
+  };
+}
+
+/**
+ * Build the non-mutating dry-run planning payload for a council invocation.
+ *
+ * @param {{
+ *   topic: string;
+ *   context?: {
+ *     repository?: string;
+ *     sourceArtifacts?: string[];
+ *     targetEnvironment?: string;
+ *   };
+ *   runtime?: string | null;
+ *   secondRound?: boolean;
+ *   sanitizedSummary?: string | null;
+ *   writeMode?: string | null;
+ *   env?: NodeJS.ProcessEnv;
+ * }} input Planning inputs.
+ * @returns {{
+ *   mode: "dry-run";
+ *   topic: string;
+ *   runtimeFilter: string | null;
+ *   writeMode: string | null;
+ *   firstRound: ReturnType<typeof buildFirstRoundInvocation>[];
+ *   secondRound: null | {
+ *     sanitizedSummary: string;
+ *     invocations: ReturnType<typeof buildSecondRoundInvocation>[];
+ *   };
+ * }} Dry-run planning payload.
+ */
+export function buildCouncilDryRunPlan({
+  topic,
+  context = {},
+  runtime = null,
+  secondRound = false,
+  sanitizedSummary = null,
+  writeMode = null,
+  env,
+}) {
+  const runtimes = resolveCouncilRuntimes(runtime);
+  const firstRound = runtimes.map(selectedRuntime =>
+    buildFirstRoundInvocation({
+      topic,
+      runtime: selectedRuntime,
+      context,
+      env,
+    })
+  );
+
+  const secondRoundSummary =
+    secondRound && sanitizedSummary
+      ? sanitizedSummary
+      : secondRound
+        ? "TODO: Claude sanitized synthesis goes here before round two."
+        : null;
+
+  return {
+    mode: "dry-run",
+    topic: topic.trim(),
+    runtimeFilter: runtime,
+    writeMode,
+    firstRound,
+    secondRound: secondRound
+      ? {
+          sanitizedSummary: secondRoundSummary,
+          invocations: runtimes.map(selectedRuntime =>
+            buildSecondRoundInvocation({
+              topic,
+              runtime: selectedRuntime,
+              sanitizedSummary: secondRoundSummary,
+              context,
+              env,
+            })
+          ),
+        }
+      : null,
   };
 }
 
@@ -424,13 +568,34 @@ export function buildFirstRoundSynthesisInput({
  * CLI entrypoint for printing first-round council synthesis inputs.
  */
 async function main() {
-  const topic = process.argv.slice(2).join(" ").trim();
-  if (!topic) {
-    throw new Error("Usage: node first-round.mjs <topic>");
+  const parsed = parseCouncilCliArgs(process.argv.slice(2));
+
+  if (parsed.dryRun) {
+    const plan = buildCouncilDryRunPlan(parsed);
+    process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
+    return;
   }
 
-  const synthesisInput = await collectFirstRoundResponses({ topic });
-  process.stdout.write(`${JSON.stringify(synthesisInput, null, 2)}\n`);
+  const runtimes = resolveCouncilRuntimes(parsed.runtime);
+  const firstRound = await collectFirstRoundResponses({
+    topic: parsed.topic,
+    runtimes,
+  });
+  const payload = {
+    mode: "first-round",
+    ...firstRound,
+    secondRound: parsed.secondRound
+      ? buildSecondRoundSynthesisInput({
+          topic: parsed.topic,
+          sanitizedSummary:
+            parsed.sanitizedSummary ??
+            "TODO: Claude sanitized synthesis goes here before round two.",
+          runtimes: firstRound.availableRuntimes,
+        })
+      : null,
+  };
+
+  process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
 }
 
 const isEntrypoint = import.meta.url === `file://${process.argv[1]}`;
@@ -438,3 +603,4 @@ const isEntrypoint = import.meta.url === `file://${process.argv[1]}`;
 if (isEntrypoint) {
   await main();
 }
+/* eslint-enable max-lines -- End of the first-round entrypoint exception. */
