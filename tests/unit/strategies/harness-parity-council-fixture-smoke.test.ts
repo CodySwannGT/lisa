@@ -172,7 +172,7 @@ describe("harness parity council first-round fixtures (#775)", () => {
           fixture.expected.unavailableReason
         );
       }
-      if (fixture.expected.parsedOutput) {
+      if ("parsedOutput" in fixture.expected) {
         expect(capture.parsedOutput).toEqual(fixture.expected.parsedOutput);
       }
     });

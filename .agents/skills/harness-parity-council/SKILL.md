@@ -87,7 +87,7 @@ Use these checks when changing the council scaffolding, adapter metadata, or fir
    `node .agents/skills/harness-parity-council/first-round.mjs "Codex parity for install-time hooks"`
    Expect JSON output with `availableRuntimes`, `unavailableRuntimes`, `responseEvidence`, and the Claude synthesis template. Missing or unauthenticated CLIs should be recorded as unavailable instead of crashing the entire run.
 3. Fixture contract smoke:
-   `bun vitest run tests/unit/strategies/harness-parity-council-*.test.ts`
+   `bun x vitest run tests/unit/strategies/harness-parity-council-*.test.ts`
    Expect deterministic coverage for successful, missing, failing, and hanging runtime fixtures plus the Lisa-only placement/documentation guards.
 
 ## Notes For Maintainers
