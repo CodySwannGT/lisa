@@ -515,12 +515,13 @@ export function buildCouncilDryRunPlan({
  *     stderr?: string;
  *     timedOut?: boolean;
  *     authMissing?: boolean | null;
+ *     notExecuted?: boolean;
  *     error?: { code?: string | null; message?: string } | null;
  *   };
  * }} input Runtime capture inputs.
  * @returns {{
  *   runtime: string;
- *   status: "responded" | "empty" | "failed" | "timed_out" | "unavailable";
+ *   status: "responded" | "not_executed" | "empty" | "failed" | "timed_out" | "unavailable";
  *   command: string;
  *   args: string[];
  *   timeoutMs: number;
@@ -581,13 +582,16 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
     typeof result.exitStatus === "number" ? result.exitStatus : null;
   const hasExecutionError = result.error != null;
 
-  const status = timedOut
-    ? "timed_out"
-    : hasExecutionError || (exitStatus ?? 0) !== 0
-      ? "failed"
-      : !combinedText
-        ? "empty"
-        : "responded";
+  const status =
+    result.notExecuted === true
+      ? "not_executed"
+      : timedOut
+        ? "timed_out"
+        : hasExecutionError || (exitStatus ?? 0) !== 0
+          ? "failed"
+          : !combinedText
+            ? "empty"
+            : "responded";
 
   return {
     runtime: invocation.runtime,
@@ -635,6 +639,7 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
  *     stderr?: string;
  *     timedOut?: boolean;
  *     authMissing?: boolean | null;
+ *     notExecuted?: boolean;
  *     error?: { code?: string | null; message?: string } | null;
  *   } | {
  *     exitStatus?: number | null;
@@ -642,6 +647,7 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
  *     stderr?: string;
  *     timedOut?: boolean;
  *     authMissing?: boolean | null;
+ *     notExecuted?: boolean;
  *     error?: { code?: string | null; message?: string } | null;
  *   }>;
  * }} input Consultation inputs.
@@ -675,10 +681,20 @@ export async function collectFirstRoundResponses({
     });
     assertInvocationMatchesCouncilPolicy(invocation, executionPolicy);
     const probe = probeRuntime(runtime, env);
-    const result =
-      probe.available && typeof executor === "function"
+    const result = !probe.available
+      ? undefined
+      : typeof executor === "function"
         ? await executor(invocation)
-        : undefined;
+        : {
+            exitStatus: 0,
+            stdout:
+              "No executor was provided for this non-dry first-round council run; runtime consultation was not executed.",
+            stderr: "",
+            timedOut: false,
+            authMissing: probe.authMissing ?? false,
+            notExecuted: true,
+            error: null,
+          };
 
     captures.push(normalizeFirstRoundCapture({ invocation, probe, result }));
   }
