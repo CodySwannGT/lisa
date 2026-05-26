@@ -13,6 +13,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { resolveExpectedAutomationFleet } from "../../../plugins/src/base/scripts/automation-status-expected-fleet.mjs";
+import { compareAutomationContract } from "../../../plugins/src/base/scripts/automation-status-contract-drift.mjs";
 import {
   deriveCodexObservedCommand,
   inspectCodexAutomationFleet,
@@ -21,6 +22,8 @@ import {
 
 const BUILD_INTAKE_PROMPT =
   "Run one cron-safe Lisa build-intake cycle. Use the Lisa intake skill with arguments `github intake_mode=build`.";
+const BUILD_INTAKE_CADENCE = "every 10 minutes";
+const BUILD_INTAKE_COMMAND = "/lisa:intake github intake_mode=build";
 const BUILD_INTAKE_RRULE = "FREQ=MINUTELY;INTERVAL=10";
 const BUILD_INTAKE_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-tickets";
 
@@ -127,7 +130,7 @@ describe("automation-status Codex adapter (#801)", () => {
 
   it("derives normalized Lisa slash commands from Codex automation prompts", () => {
     expect(deriveCodexObservedCommand(BUILD_INTAKE_PROMPT)).toBe(
-      "/lisa:intake github intake_mode=build"
+      BUILD_INTAKE_COMMAND
     );
 
     expect(
@@ -140,7 +143,31 @@ describe("automation-status Codex adapter (#801)", () => {
       deriveCodexObservedCommand(
         "Run one Playwright-backed exploratory QA pass. Use the `$lisa-exploratory-qa` skill with arguments `ready=true`."
       )
-    ).toBe("/lisa-exploratory-qa ready=true");
+    ).toBe("/lisa:exploratory-qa ready=true");
+  });
+
+  it("canonicalizes Codex $lisa-* aliases to Lisa slash-colon commands (#880)", () => {
+    const observedCommand = deriveCodexObservedCommand(
+      "Run one cron-safe Lisa build-intake cycle. Use the `$lisa-intake` skill with arguments `github intake_mode=build`."
+    );
+
+    expect(observedCommand).toBe(BUILD_INTAKE_COMMAND);
+    expect(
+      compareAutomationContract({
+        expected: {
+          automationId: BUILD_INTAKE_AUTOMATION_ID,
+          expectedCadence: BUILD_INTAKE_CADENCE,
+          expectedRRule: BUILD_INTAKE_RRULE,
+          expectedCommand: BUILD_INTAKE_COMMAND,
+        },
+        observedAutomation: {
+          automationId: BUILD_INTAKE_AUTOMATION_ID,
+          observedCadence: BUILD_INTAKE_CADENCE,
+          observedRRule: BUILD_INTAKE_RRULE,
+          observedCommand,
+        },
+      }).status
+    ).toBe("HEALTHY");
   });
 
   it("does not classify negated error or exception summaries as failures (#885)", () => {
