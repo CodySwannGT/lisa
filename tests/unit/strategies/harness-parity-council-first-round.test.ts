@@ -133,4 +133,60 @@ describe("harness parity council first-round flow", () => {
       "cursor: explain unavailable"
     );
   });
+
+  it("supports the documented runtime filter and dry-run planning output", () => {
+    const parsed = council.parseCouncilCliArgs([
+      COUNCIL_TOPIC,
+      "--runtime",
+      "codex",
+      "--dry-run",
+      "--second-round",
+    ]);
+
+    expect(parsed).toEqual({
+      topic: COUNCIL_TOPIC,
+      runtime: "codex",
+      secondRound: true,
+      dryRun: true,
+      writeMode: null,
+      sanitizedSummary: null,
+    });
+
+    const dryRun = council.buildCouncilDryRunPlan(parsed);
+    expect(dryRun.mode).toBe("dry-run");
+    expect(dryRun.runtimeFilter).toBe("codex");
+    expect(dryRun.firstRound).toHaveLength(1);
+    expect(dryRun.firstRound[0]).toEqual(
+      expect.objectContaining({
+        runtime: "codex",
+        command: "codex",
+      })
+    );
+    expect(dryRun.secondRound?.invocations).toHaveLength(1);
+    expect(dryRun.secondRound?.sanitizedSummary).toContain("TODO");
+  });
+
+  it("builds second-round critique prompts from Claude's sanitized summary", () => {
+    const critique = council.buildSecondRoundSynthesisInput({
+      topic: COUNCIL_TOPIC,
+      sanitizedSummary:
+        "Codex and Cursor both support read-only advisory mode, but naming may drift.",
+      runtimes: ["codex"],
+    });
+
+    expect(critique.availableRuntimes).toEqual(["codex"]);
+    expect(critique.requiredSections).toContain(
+      "Incorrect assumptions in Claude's summary"
+    );
+    expect(critique.critiquePrompts[0].prompt).toContain(
+      "## Claude's Sanitized Summary"
+    );
+    expect(critique.critiquePrompts[0].prompt).toContain("naming may drift");
+  });
+
+  it("rejects unsupported runtime filters", () => {
+    expect(() => council.resolveCouncilRuntimes("claude")).toThrow(
+      /Unsupported council runtime/
+    );
+  });
 });
