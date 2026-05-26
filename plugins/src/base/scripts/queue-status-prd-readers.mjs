@@ -27,6 +27,7 @@ const ACTIONABLE_ROLE_ORDER = [
   "ready",
   "ticketed",
 ];
+const RAW_PRD_READER_SOURCES = new Set(["github"]);
 
 const HIGHLIGHT_COPY = {
   blocked: {
@@ -96,15 +97,22 @@ export function readGithubPrdQueueSnapshot(input = {}) {
  * }} input
  */
 export function createPrdQueueSnapshot(input = {}) {
+  const source = normalizeSource(input.source);
+  const unsupportedReaderError = resolveUnsupportedReaderError(input, source);
   const rawRoles = input.roles ?? {};
   const roles = normalizeRoles(rawRoles);
   const items = normalizeItems(input.items);
   const counts = buildLifecycleCounts(items);
   const highlights = buildActionableHighlights(items, input.queueArgument);
   const queueResolved =
-    input.queueResolved ?? typeof input.resolutionError !== "string";
+    input.queueResolved ??
+    (unsupportedReaderError
+      ? false
+      : typeof input.resolutionError !== "string");
   const namespaceAdopted =
     input.namespaceAdopted ?? inferNamespaceAdopted(items, rawRoles);
+  const resolutionError =
+    unsupportedReaderError ?? input.resolutionError ?? null;
 
   const health = classifyQueueHealth({
     queueResolved,
@@ -113,18 +121,18 @@ export function createPrdQueueSnapshot(input = {}) {
     activeCount: counts.in_review + counts.ticketed,
     blockedCount: counts.blocked,
     stalledCount: counts.shipped,
-    resolutionError: input.resolutionError ?? null,
+    resolutionError,
   });
 
   return {
-    source: input.source ?? "unknown",
+    source,
     queueResolved,
     namespaceAdopted,
     roles,
     counts,
     highlights,
     health,
-    resolutionError: input.resolutionError ?? null,
+    resolutionError,
   };
 }
 
@@ -201,6 +209,33 @@ function normalizeRoles(roles) {
   }
 
   return normalized;
+}
+
+/**
+ * @param {string | undefined} source
+ * @returns {string}
+ */
+function normalizeSource(source) {
+  return typeof source === "string" && source.trim().length > 0
+    ? source.trim().toLowerCase()
+    : "unknown";
+}
+
+/**
+ * @param {Record<string, any>} input
+ * @param {string} source
+ * @returns {string | null}
+ */
+function resolveUnsupportedReaderError(input, source) {
+  if (
+    source === "unknown" ||
+    RAW_PRD_READER_SOURCES.has(source) ||
+    Object.hasOwn(input, "items")
+  ) {
+    return null;
+  }
+
+  return `vendor reader not implemented for PRD source '${source}'`;
 }
 
 /**
