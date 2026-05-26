@@ -14,7 +14,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { compareAutomationContract } from "./automation-status-contract-drift.mjs";
+import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
 
 const CODEx_RUNTIME_LABEL = "Codex automations";
 const RUN_TIMESTAMP_PATTERN = /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/;
@@ -83,11 +83,13 @@ export async function inspectCodexAutomationFleet(input) {
     ["exploratory", []],
   ]);
 
-  for (const expected of expectedFleet.expected) {
-    const comparison = compareAutomationContract({
-      expected,
-      observedAutomations,
-    });
+  const comparisons = compareAutomationFleet({
+    expectedAutomations: expectedFleet.expected,
+    observedAutomations,
+  });
+
+  for (const [index, expected] of expectedFleet.expected.entries()) {
+    const comparison = comparisons[index];
     expectedGroups.get(expected.group)?.push(
       createObservedStatusItem({
         expected,
