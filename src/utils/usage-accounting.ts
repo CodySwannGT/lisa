@@ -54,6 +54,8 @@ const ENTRY_PATTERN =
 const ROLLUP_PATTERN =
   /<!-- lisa:usage-rollup direct_entry_ids=(\S*) child_entry_ids=(\S*) child_refs=(\S*) direct_tokens=(\S+) child_tokens=(\S+) total_tokens=(\S+) direct_cost=(\S+) child_cost=(\S+) total_cost=(\S+) currency=(\S+) -->/;
 
+const MIXED_CURRENCY = "mixed";
+
 /**
  * Parse a nullable numeric token field.
  *
@@ -120,6 +122,26 @@ function sumNullable(values: readonly (number | null)[]): number | null {
   }
 
   return present.reduce((total, value) => total + value, 0);
+}
+
+/**
+ * Resolve the only currency represented by present cost values.
+ *
+ * @param entries Usage entries to inspect.
+ * @returns The single currency, mixed sentinel, or null when no priced currency exists.
+ */
+function resolveDirectCostCurrency(
+  entries: readonly LisaUsageEntry[]
+): string | null {
+  const currencies = new Set(
+    entries.filter(entry => entry.cost !== null).map(entry => entry.currency)
+  );
+
+  if (currencies.size > 1) {
+    return MIXED_CURRENCY;
+  }
+
+  return currencies.values().next().value ?? null;
 }
 
 /**
@@ -239,23 +261,33 @@ export function createLisaUsageRollup(
 ): LisaUsageRollup {
   const directEntryIds = entries.map(entry => entry.entryId);
   const directTokens = sumNullable(entries.map(entry => entry.totalTokens));
-  const directCost = sumNullable(entries.map(entry => entry.cost));
   const childEntryIds = previousRollup?.childEntryIds ?? [];
   const childRefs = previousRollup?.childRefs ?? [];
   const childTokens = previousRollup ? previousRollup.childTokens : null;
   const childCost = previousRollup ? previousRollup.childCost : null;
+  const directCurrency = resolveDirectCostCurrency(entries);
+  const childCurrency =
+    childCost === null ? null : (previousRollup?.currency ?? null);
+  const directCost =
+    directCurrency === MIXED_CURRENCY
+      ? null
+      : sumNullable(entries.map(entry => entry.cost));
   const totalTokens =
     directTokens === null && childTokens === null
       ? null
       : (directTokens ?? 0) + (childTokens ?? 0);
+  const currency =
+    directCurrency === MIXED_CURRENCY ||
+    childCurrency === MIXED_CURRENCY ||
+    (directCost !== null &&
+      childCost !== null &&
+      directCurrency !== childCurrency)
+      ? MIXED_CURRENCY
+      : (directCurrency ?? childCurrency ?? null);
   const totalCost =
-    directCost === null && childCost === null
+    currency === MIXED_CURRENCY || (directCost === null && childCost === null)
       ? null
       : (directCost ?? 0) + (childCost ?? 0);
-  const currency =
-    entries.find(entry => entry.currency !== null)?.currency ??
-    previousRollup?.currency ??
-    null;
 
   return {
     directEntryIds,

@@ -280,4 +280,21 @@ describe("usage-accounting utilities", () => {
       totalTokens: 390,
     });
   });
+
+  it("surfaces currency mismatches instead of summing costs", () => {
+    const directMixed = createLisaUsageRollup([
+      makeEntry({ entryId: "entry-usd", runId: "run-usd", currency: "USD" }),
+      makeEntry({ entryId: "entry-eur", runId: "run-eur", currency: "EUR" }),
+    ]);
+    const childMixed = createLisaUsageRollup(
+      [makeEntry({ entryId: "entry-usd", runId: "run-usd", currency: "USD" })],
+      makeRollup({ childCost: 0.21, childTokens: 210, currency: "EUR" })
+    );
+
+    expect(directMixed.currency).toBe("mixed");
+    expect(directMixed.directCost).toBeNull();
+    expect(directMixed.totalCost).toBeNull();
+    expect(childMixed.currency).toBe("mixed");
+    expect(childMixed.totalCost).toBeNull();
+  });
 });
