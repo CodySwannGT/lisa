@@ -1,0 +1,54 @@
+{
+  "tracker": "github",
+  "items": [
+    {
+      "id": "825",
+      "ref": "#825",
+      "title": "Ready build item waiting for intake",
+      "url": "https://github.com/CodySwannGT/lisa/issues/825",
+      "role": "ready",
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "826",
+      "ref": "#826",
+      "title": "Claimed build item still in flight",
+      "url": "https://github.com/CodySwannGT/lisa/issues/826",
+      "role": "claimed",
+      "createdAt": "2026-05-24T10:00:00Z"
+    },
+    {
+      "id": "827",
+      "ref": "#827",
+      "title": "Blocked build item needs clarification",
+      "url": "https://github.com/CodySwannGT/lisa/issues/827",
+      "role": "blocked",
+      "createdAt": "2026-05-23T10:00:00Z"
+    },
+    {
+      "id": "828",
+      "ref": "#828",
+      "title": "Stalled claimed build item",
+      "url": "https://github.com/CodySwannGT/lisa/issues/828",
+      "role": "claimed",
+      "createdAt": "2026-05-22T10:00:00Z",
+      "stalled": true
+    },
+    {
+      "id": "829",
+      "ref": "#829",
+      "title": "Reviewing build item",
+      "url": "https://github.com/CodySwannGT/lisa/issues/829",
+      "role": "review",
+      "createdAt": "2026-05-21T10:00:00Z"
+    },
+    {
+      "id": "830",
+      "ref": "#830",
+      "title": "Done build item on production",
+      "url": "https://github.com/CodySwannGT/lisa/issues/830",
+      "role": "done",
+      "createdAt": "2026-05-20T10:00:00Z"
+    }
+  ]
+}
