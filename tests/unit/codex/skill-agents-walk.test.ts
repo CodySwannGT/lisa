@@ -18,6 +18,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   deriveSkillInterface,
+  pruneInternalCodexSkills,
   writeSkillAgents,
 } from "../../../scripts/generate-codex-plugin-artifacts.mjs";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
@@ -26,6 +27,10 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const OPENAI_YAML = "openai.yaml";
 /** A representative skill name used by the derivation tests. */
 const EXPLORATORY_QA = "exploratory-qa";
+/** Internal maintainer-only skill that must never ship in Codex artifacts. */
+const HARNESS_PARITY_COUNCIL = "harness-parity-council";
+/** Public skill used to prove non-denylisted artifacts still emit normally. */
+const PUBLIC_SKILL = "public-skill";
 
 describe("codex/skill-agents-walk", () => {
   let tempDir: string;
@@ -147,6 +152,23 @@ describe("codex/skill-agents-walk", () => {
     writeSkillAgents(tempDir);
 
     expect(await fs.pathExists(openaiYamlPath("not-a-skill"))).toBe(false);
+  });
+
+  it("prunes denylisted internal skills before Codex artifacts are emitted", async () => {
+    await writeSkill(
+      HARNESS_PARITY_COUNCIL,
+      frontmatter(HARNESS_PARITY_COUNCIL, "Maintainer-only workflow")
+    );
+    await writeSkill(PUBLIC_SKILL, frontmatter(PUBLIC_SKILL, "Ships"));
+
+    const removed = pruneInternalCodexSkills(tempDir);
+    writeSkillAgents(tempDir);
+
+    expect(removed).toEqual([HARNESS_PARITY_COUNCIL]);
+    expect(
+      await fs.pathExists(path.join(tempDir, "skills", HARNESS_PARITY_COUNCIL))
+    ).toBe(false);
+    expect(await fs.pathExists(openaiYamlPath(PUBLIC_SKILL))).toBe(true);
   });
 
   describe("deriveSkillInterface", () => {
