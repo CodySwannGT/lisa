@@ -20,6 +20,21 @@ import {
 const FIXTURE_ROOT = path.resolve("tests/fixtures/queue-status-prd-readers");
 
 /**
+ * Canonical label names used by the GitHub PRD lifecycle namespace in tests.
+ * Centralised here so each string literal appears exactly once, satisfying the
+ * sonarjs/no-duplicate-string rule while keeping tests readable.
+ */
+const GITHUB_PRD_ROLES = {
+  draft: "prd-draft",
+  ready: "prd-ready",
+  in_review: "prd-in-review",
+  blocked: "prd-blocked",
+  ticketed: "prd-ticketed",
+  shipped: "prd-shipped",
+  verified: "prd-verified",
+} as const;
+
+/**
  *
  */
 type QueueFixture = {
@@ -37,57 +52,49 @@ describe("queue-status PRD readers (#824)", () => {
     const snapshot = readGithubPrdQueueSnapshot({
       namespaceAdopted: true,
       queueArgument: "github intake_mode=prd",
-      roles: {
-        draft: "prd-draft",
-        ready: "prd-ready",
-        in_review: "prd-in-review",
-        blocked: "prd-blocked",
-        ticketed: "prd-ticketed",
-        shipped: "prd-shipped",
-        verified: "prd-verified",
-      },
+      roles: GITHUB_PRD_ROLES,
       issues: [
         {
           number: 824,
           title: "Ready PRD waiting for intake",
           url: "https://github.com/CodySwannGT/lisa/issues/824",
           createdAt: "2026-05-25T10:00:00Z",
-          labels: [{ name: "prd-ready" }],
+          labels: [{ name: GITHUB_PRD_ROLES.ready }],
         },
         {
           number: 825,
           title: "PRD still in review",
           url: "https://github.com/CodySwannGT/lisa/issues/825",
           createdAt: "2026-05-24T10:00:00Z",
-          labels: [{ name: "prd-in-review" }],
+          labels: [{ name: GITHUB_PRD_ROLES.in_review }],
         },
         {
           number: 826,
           title: "Blocked PRD needs clarification",
           url: "https://github.com/CodySwannGT/lisa/issues/826",
           createdAt: "2026-05-23T10:00:00Z",
-          labels: [{ name: "prd-blocked" }],
+          labels: [{ name: GITHUB_PRD_ROLES.blocked }],
         },
         {
           number: 827,
           title: "Ticketed PRD waiting on build work",
           url: "https://github.com/CodySwannGT/lisa/issues/827",
           createdAt: "2026-05-22T10:00:00Z",
-          labels: [{ name: "prd-ticketed" }],
+          labels: [{ name: GITHUB_PRD_ROLES.ticketed }],
         },
         {
           number: 828,
           title: "Shipped PRD awaiting verify-prd",
           url: "https://github.com/CodySwannGT/lisa/issues/828",
           createdAt: "2026-05-21T10:00:00Z",
-          labels: [{ name: "prd-shipped" }],
+          labels: [{ name: GITHUB_PRD_ROLES.shipped }],
         },
         {
           number: 829,
           title: "Verified PRD",
           url: "https://github.com/CodySwannGT/lisa/issues/829",
           createdAt: "2026-05-20T10:00:00Z",
-          labels: [{ name: "prd-verified" }],
+          labels: [{ name: GITHUB_PRD_ROLES.verified }],
         },
       ],
     });
@@ -137,6 +144,36 @@ describe("queue-status PRD readers (#824)", () => {
       verdict: "MISCONFIGURED",
       reasons: ["lifecycle-namespace-absent"],
     });
+  });
+
+  it("infers namespaceAdopted=false when no roles are configured and no items have roles", () => {
+    // When neither namespaceAdopted nor roles is supplied, the inference must
+    // detect that the lifecycle namespace is absent and return false — not true,
+    // which would be the (buggy) result of comparing already-normalized roles
+    // against a "non-empty string" check.
+    const snapshot = createPrdQueueSnapshot({
+      source: "github",
+      items: [],
+    });
+
+    expect(snapshot.namespaceAdopted).toBe(false);
+    expect(snapshot.health).toMatchObject({
+      verdict: "MISCONFIGURED",
+      reasons: ["lifecycle-namespace-absent"],
+    });
+  });
+
+  it("infers namespaceAdopted=true when roles are explicitly configured", () => {
+    const snapshot = createPrdQueueSnapshot({
+      source: "github",
+      roles: {
+        ready: GITHUB_PRD_ROLES.ready,
+        in_review: GITHUB_PRD_ROLES.in_review,
+      },
+      items: [],
+    });
+
+    expect(snapshot.namespaceAdopted).toBe(true);
   });
 
   it("keeps fixture-backed vendor parity for counts, highlights, and verdicts", () => {

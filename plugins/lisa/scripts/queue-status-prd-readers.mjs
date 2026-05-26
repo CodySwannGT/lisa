@@ -96,14 +96,15 @@ export function readGithubPrdQueueSnapshot(input = {}) {
  * }} input
  */
 export function createPrdQueueSnapshot(input = {}) {
-  const roles = normalizeRoles(input.roles);
+  const rawRoles = input.roles ?? {};
+  const roles = normalizeRoles(rawRoles);
   const items = normalizeItems(input.items);
   const counts = buildLifecycleCounts(items);
   const highlights = buildActionableHighlights(items, input.queueArgument);
   const queueResolved =
     input.queueResolved ?? typeof input.resolutionError !== "string";
   const namespaceAdopted =
-    input.namespaceAdopted ?? inferNamespaceAdopted(items, roles);
+    input.namespaceAdopted ?? inferNamespaceAdopted(items, rawRoles);
 
   const health = classifyQueueHealth({
     queueResolved,
