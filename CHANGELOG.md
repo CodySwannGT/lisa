@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.104.6](https://github.com/CodySwannGT/lisa/compare/vv2.104.5...v2.104.6) (2026-05-26)
+
+
+### Bug Fixes
+
+* **queue-status:** ignore invalid prd role overrides ([9d91ae5](https://github.com/CodySwannGT/lisa/commit/9d91ae5e1fd6306897531dc712fefd3443e3cf54))
+
+### [2.104.5](https://github.com/CodySwannGT/lisa/compare/vv2.104.4...v2.104.5) (2026-05-26)
+
+
+### Bug Fixes
+
+* **ci:** don't file a 'Claude auto-fix failed' issue when loop-guard intentionally skipped ([98332e8](https://github.com/CodySwannGT/lisa/commit/98332e85eb3c554b0c9476c3c28054f6e43b3e46)), closes [#960](https://github.com/CodySwannGT/lisa/issues/960)
+
 ### [2.104.4](https://github.com/CodySwannGT/lisa/compare/vv2.104.3...v2.104.4) (2026-05-26)
 
 
