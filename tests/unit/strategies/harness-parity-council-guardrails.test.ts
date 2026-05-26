@@ -13,6 +13,9 @@ const firstRoundModuleUrl = pathToFileURL(
 const shared = await import(sharedModuleUrl);
 const firstRound = await import(firstRoundModuleUrl);
 const WORKSPACE_WRITE_MODE = "workspace-write";
+const GUARDED_WORKSPACE_ERROR =
+  /requires an isolated worktree or LISA_COUNCIL_GUARDED_WORKSPACE=1/;
+const UNGUARDED_WORKSPACE = "/Users/dev/workspace/lisa";
 
 describe("harness parity council guardrails", () => {
   it("defaults to explicit read-only policy even inside a worktree", () => {
@@ -39,13 +42,34 @@ describe("harness parity council guardrails", () => {
       shared.resolveCouncilExecutionPolicy(
         {
           writeMode: WORKSPACE_WRITE_MODE,
-          cwd: "/Users/dev/workspace/lisa",
+          cwd: UNGUARDED_WORKSPACE,
         },
         {}
       )
-    ).toThrow(
-      /requires an isolated worktree or LISA_COUNCIL_GUARDED_WORKSPACE=1/
-    );
+    ).toThrow(GUARDED_WORKSPACE_ERROR);
+  });
+
+  it("does not treat a selected runtime as a guarded workspace", () => {
+    expect(() =>
+      shared.resolveCouncilExecutionPolicy(
+        {
+          writeMode: WORKSPACE_WRITE_MODE,
+          runtime: "codex",
+          cwd: UNGUARDED_WORKSPACE,
+        },
+        {}
+      )
+    ).toThrow(GUARDED_WORKSPACE_ERROR);
+
+    expect(() =>
+      shared.resolveCouncilExecutionPolicy(
+        {
+          writeMode: WORKSPACE_WRITE_MODE,
+          cwd: UNGUARDED_WORKSPACE,
+        },
+        {}
+      )
+    ).toThrow(GUARDED_WORKSPACE_ERROR);
   });
 
   it("rejects write mode without an explicit mutation acknowledgement", () => {
@@ -65,7 +89,7 @@ describe("harness parity council guardrails", () => {
       shared.resolveCouncilExecutionPolicy(
         {
           writeMode: WORKSPACE_WRITE_MODE,
-          cwd: "/Users/dev/workspace/lisa",
+          cwd: UNGUARDED_WORKSPACE,
         },
         {
           LISA_COUNCIL_GUARDED_WORKSPACE: "1",
