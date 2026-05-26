@@ -24,6 +24,11 @@ function relToCwd(filePath) {
   return path.relative(process.cwd(), filePath).replaceAll(path.sep, "/");
 }
 
+function relToWikiParent(filePath, wikiRoot) {
+  const wikiParent = path.dirname(wikiRoot);
+  return normalizeWikiPath(path.relative(wikiParent, filePath));
+}
+
 function normalizeWikiPath(filePath) {
   return filePath.replaceAll("\\", "/").replace(/^\.?\//, "");
 }
@@ -156,7 +161,7 @@ function stateFacts(wikiRoot, connectorName) {
   }
 
   return {
-    stateFiles: files.map(filePath => relToCwd(filePath)),
+    stateFiles: files.map(filePath => relToWikiParent(filePath, wikiRoot)),
     latestObservedAt: latest?.date?.toISOString() ?? latest?.data?.ingested_at,
     sourceNotes: [...sourceNotes],
   };
@@ -164,7 +169,7 @@ function stateFacts(wikiRoot, connectorName) {
 
 function sourceFacts(wikiRoot, connectorName, configuredSourceNotes) {
   const sourceDir = path.join(wikiRoot, "sources", connectorName);
-  const markdownFiles = walkFiles(sourceDir, { ext: ".md" }).map(relToCwd);
+  const markdownFiles = walkFiles(sourceDir, { ext: ".md" });
   const wikiParent = path.dirname(wikiRoot);
   const sourceNoteExists = note =>
     fs.existsSync(path.resolve(note)) ||
@@ -177,7 +182,7 @@ function sourceFacts(wikiRoot, connectorName, configuredSourceNotes) {
     sourceNotes:
       existingConfigured.length > 0
         ? existingConfigured
-        : markdownFiles.map(normalizeWikiPath),
+        : markdownFiles.map(filePath => relToWikiParent(filePath, wikiRoot)),
   };
 }
 
@@ -200,6 +205,35 @@ export function createWikiFreshnessReport({
   now = new Date(),
   staleAfterDays = DEFAULT_STALE_AFTER_DAYS,
 } = {}) {
+  const parsed = parseWikiSourceFreshness({
+    configPath,
+    wikiRoot,
+    now,
+    staleAfterDays,
+  });
+
+  return {
+    generatedAt: now.toISOString(),
+    configPath: relToCwd(parsed.configPath),
+    wikiRoot: relToCwd(parsed.wikiRoot),
+    items: parsed.connectors.map(connector => ({
+      connector: connector.connector,
+      sideEffects: connector.sideEffects,
+      verdict: connector.verdict,
+      evidence: connector.evidencePaths,
+      lastObserved: connector.lastObservedDate ?? "unknown",
+      reason: connector.reason,
+      nextAction: connector.nextAction,
+    })),
+  };
+}
+
+export function parseWikiSourceFreshness({
+  configPath = "wiki/lisa-wiki.config.json",
+  wikiRoot,
+  now = new Date(),
+  staleAfterDays = DEFAULT_STALE_AFTER_DAYS,
+} = {}) {
   const { config, configPath: resolvedConfigPath } = loadConfig(configPath);
   const resolvedWikiRoot = path.resolve(wikiRoot ?? config?.wikiRoot ?? "wiki");
   const logPath = path.join(resolvedWikiRoot, "log.md");
@@ -207,7 +241,7 @@ export function createWikiFreshnessReport({
   const connectors = enabledConnectors(config);
   const staleAfterMs = staleAfterDays * DAY_MS;
 
-  const items = connectors.map(connector => {
+  const connectorRecords = connectors.map(connector => {
     const state = stateFacts(resolvedWikiRoot, connector.name);
     const sources = sourceFacts(
       resolvedWikiRoot,
@@ -239,25 +273,26 @@ export function createWikiFreshnessReport({
     const evidence = [
       ...sources.sourceNotes,
       ...state.stateFiles,
-      fs.existsSync(logPath) ? relToCwd(logPath) : undefined,
+      fs.existsSync(logPath)
+        ? relToWikiParent(logPath, resolvedWikiRoot)
+        : undefined,
     ].filter(Boolean);
 
     return {
       connector: connector.name,
       sideEffects: connector.sideEffects,
       verdict,
-      evidence,
-      lastObserved: observedDate?.toISOString().slice(0, 10) ?? "unknown",
+      evidencePaths: evidence,
+      lastObservedDate: observedDate?.toISOString().slice(0, 10),
       reason: verdict === "fresh" ? "" : (log?.reason ?? ""),
       nextAction: nextActionFor(verdict, connector.name, log?.reason),
     };
   });
 
   return {
-    generatedAt: now.toISOString(),
-    configPath: relToCwd(resolvedConfigPath),
-    wikiRoot: relToCwd(resolvedWikiRoot),
-    items,
+    configPath: resolvedConfigPath,
+    wikiRoot: resolvedWikiRoot,
+    connectors: connectorRecords,
   };
 }
 

@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createWikiFreshnessReport,
+  parseWikiSourceFreshness,
   renderWikiFreshnessReport,
 } from "../../../plugins/src/wiki/scripts/wiki-status.mjs";
 
@@ -27,6 +28,12 @@ const SOURCE_PLUGIN_ROOT = path.resolve("plugins/src/wiki");
 const GENERATED_PLUGIN_ROOT = path.resolve("plugins/lisa-wiki");
 const READ_ONLY_INGEST = "read-only-ingest";
 const FIXTURE_NOW = "2026-05-26T12:00:00.000Z";
+const FIXTURE_DATE = "2026-05-25";
+const GIT_SOURCE_NOTE = "wiki/sources/git/2026-05-25-lisa-monorepo-git.md";
+const ROLES_SOURCE_NOTE = "wiki/sources/roles/2026-05-25-roles.md";
+const NO_PROJECT_MEMORY_REASON = "no provably project-scoped memory directory";
+const NO_ACTION_NEEDED = "No action needed.";
+const WIKI_LOG_PATH = "wiki/log.md";
 
 const tempRoots: string[] = [];
 
@@ -86,29 +93,23 @@ function makeWikiFixture(): {
     path.join(wikiRoot, "log.md"),
     `# Lisa Wiki Log
 
-## 2026-05-25 - Full connector ingest
+## ${FIXTURE_DATE} - Full connector ingest
 
-- Ingested \`git\` into \`wiki/sources/git/2026-05-25-lisa-monorepo-git.md\` and \`roles\` into \`wiki/sources/roles/2026-05-25-roles.md\`.
-- Skipped \`memory\` because no provably project-scoped memory directory was available for this repository in the current runtime.
+- Ingested \`git\` into \`${GIT_SOURCE_NOTE}\` and \`roles\` into \`${ROLES_SOURCE_NOTE}\`.
+- Skipped \`memory\` because ${NO_PROJECT_MEMORY_REASON} was available for this repository in the current runtime.
 `
   );
-  writeText(
-    path.join(wikiRoot, "sources/git/2026-05-25-lisa-monorepo-git.md"),
-    "# Git source\n"
-  );
-  writeText(
-    path.join(wikiRoot, "sources/roles/2026-05-25-roles.md"),
-    "# Roles source\n"
-  );
+  writeText(path.join(wikiRoot, GIT_SOURCE_NOTE), "# Git source\n");
+  writeText(path.join(wikiRoot, ROLES_SOURCE_NOTE), "# Roles source\n");
   writeJson(path.join(wikiRoot, "state/git/latest.json"), {
     connector: "git",
-    ingested_at: "2026-05-25T12:00:00.000Z",
-    source_notes: ["wiki/sources/git/2026-05-25-lisa-monorepo-git.md"],
+    ingested_at: `${FIXTURE_DATE}T12:00:00.000Z`,
+    source_notes: [GIT_SOURCE_NOTE],
   });
   writeJson(path.join(wikiRoot, "state/roles/latest.json"), {
     connector: "roles",
-    ingested_at: "2026-05-25T12:00:00.000Z",
-    source_notes: ["wiki/sources/roles/2026-05-25-roles.md"],
+    ingested_at: `${FIXTURE_DATE}T12:00:00.000Z`,
+    source_notes: [ROLES_SOURCE_NOTE],
   });
 
   return { root, wikiRoot, configPath };
@@ -142,6 +143,45 @@ afterEach(() => {
 });
 
 describe("wiki-status report rendering (#930)", () => {
+  it("parses structured connector freshness records without mutating wiki files", () => {
+    const fixture = makeWikiFixture();
+    const before = listFiles(fixture.root);
+
+    const parsed = parseWikiSourceFreshness({
+      configPath: fixture.configPath,
+      wikiRoot: fixture.wikiRoot,
+      now: new Date(FIXTURE_NOW),
+    });
+
+    expect(parsed.configPath).toBe(fixture.configPath);
+    expect(parsed.wikiRoot).toBe(fixture.wikiRoot);
+    expect(parsed.connectors).toContainEqual(
+      expect.objectContaining({
+        connector: "git",
+        sideEffects: READ_ONLY_INGEST,
+        verdict: "fresh",
+        evidencePaths: expect.arrayContaining([
+          GIT_SOURCE_NOTE,
+          "wiki/state/git/latest.json",
+          WIKI_LOG_PATH,
+        ]),
+        lastObservedDate: FIXTURE_DATE,
+        reason: "",
+        nextAction: NO_ACTION_NEEDED,
+      })
+    );
+    expect(parsed.connectors).toContainEqual(
+      expect.objectContaining({
+        connector: "memory",
+        verdict: "skipped",
+        evidencePaths: [WIKI_LOG_PATH],
+        lastObservedDate: FIXTURE_DATE,
+        reason: expect.stringContaining(NO_PROJECT_MEMORY_REASON),
+      })
+    );
+    expect(listFiles(fixture.root)).toEqual(before);
+  });
+
   it("reports fresh and skipped connectors with evidence paths and targeted actions", () => {
     const fixture = makeWikiFixture();
     const before = listFiles(fixture.root);
@@ -158,12 +198,12 @@ describe("wiki-status report rendering (#930)", () => {
         expect.objectContaining({
           connector: "git",
           verdict: "fresh",
-          nextAction: "No action needed.",
+          nextAction: NO_ACTION_NEEDED,
         }),
         expect.objectContaining({
           connector: "roles",
           verdict: "fresh",
-          nextAction: "No action needed.",
+          nextAction: NO_ACTION_NEEDED,
         }),
         expect.objectContaining({
           connector: "memory",
@@ -173,9 +213,9 @@ describe("wiki-status report rendering (#930)", () => {
         }),
       ])
     );
-    expect(text).toContain("| git | fresh | 2026-05-25 |");
-    expect(text).toContain("wiki/sources/git/2026-05-25-lisa-monorepo-git.md");
-    expect(text).toContain("no provably project-scoped memory directory");
+    expect(text).toContain(`| git | fresh | ${FIXTURE_DATE} |`);
+    expect(text).toContain(GIT_SOURCE_NOTE);
+    expect(text).toContain(NO_PROJECT_MEMORY_REASON);
     expect(text).toContain(
       "Integrity follow-up: run /lisa-wiki:lint separately"
     );
@@ -252,9 +292,7 @@ describe("wiki-status report rendering (#930)", () => {
         expect.objectContaining({
           connector: "memory",
           verdict: "skipped",
-          reason: expect.stringContaining(
-            "no provably project-scoped memory directory"
-          ),
+          reason: expect.stringContaining(NO_PROJECT_MEMORY_REASON),
           nextAction:
             "Provide project-scoped memory for this repo, or accept the expected skip.",
         }),
