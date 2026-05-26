@@ -178,6 +178,56 @@ describe("harness parity council first-round flow", () => {
     );
   });
 
+  it("records executor exceptions as failed captures and continues", async () => {
+    const synthesis = await council.collectFirstRoundResponses({
+      topic: COUNCIL_TOPIC,
+      runtimes: ["codex", "cursor"],
+      probeRuntime(runtime: string) {
+        return {
+          ...council.buildFirstRoundInvocation({
+            topic: COUNCIL_TOPIC,
+            runtime,
+          }),
+          available: true,
+          authMissing: false,
+          helpProbe: { commandMissing: false, error: null },
+          versionProbe: { commandMissing: false, error: null },
+        };
+      },
+      async executor(invocation: { runtime: string }) {
+        if (invocation.runtime === "codex") {
+          throw new Error("codex executor failed");
+        }
+
+        return {
+          exitStatus: 0,
+          stdout: "cursor answered",
+          stderr: "",
+          timedOut: false,
+          authMissing: false,
+          error: null,
+        };
+      },
+    });
+
+    expect(synthesis.availableRuntimes).toEqual(["codex", "cursor"]);
+    expect(synthesis.responseEvidence).toEqual([
+      expect.objectContaining({
+        runtime: "codex",
+        status: "failed",
+        outputText: "",
+      }),
+      expect.objectContaining({
+        runtime: "cursor",
+        status: "responded",
+        outputText: "cursor answered",
+      }),
+    ]);
+    expect(synthesis.claudeSynthesisTemplate.openQuestions).toContain(
+      "codex: explain failed"
+    );
+  });
+
   it("supports the documented runtime filter and dry-run planning output", () => {
     const parsed = council.parseCouncilCliArgs([
       COUNCIL_TOPIC,

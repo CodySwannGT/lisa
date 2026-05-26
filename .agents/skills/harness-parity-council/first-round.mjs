@@ -576,6 +576,65 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
 }
 
 /**
+ * Convert an executor throw into the same shape as a failed runtime result.
+ * @param {unknown} error Thrown executor error.
+ * @returns {{
+ *   exitStatus: number;
+ *   stdout: string;
+ *   stderr: string;
+ *   timedOut: boolean;
+ *   authMissing: null;
+ *   error: { code: string; message: string };
+ * }} Failed executor result.
+ */
+function normalizeExecutorException(error) {
+  if (error instanceof Error) {
+    return {
+      exitStatus: 1,
+      stdout: "",
+      stderr: "",
+      timedOut: false,
+      authMissing: null,
+      error: {
+        code: "EXECUTOR_EXCEPTION",
+        message: error.message,
+      },
+    };
+  }
+
+  return {
+    exitStatus: 1,
+    stdout: "",
+    stderr: "",
+    timedOut: false,
+    authMissing: null,
+    error: {
+      code: "EXECUTOR_EXCEPTION",
+      message: String(error),
+    },
+  };
+}
+
+/**
+ * Execute a probed runtime and preserve loop progress when the executor throws.
+ * @param {ReturnType<typeof buildFirstRoundInvocation>} invocation Runtime invocation payload.
+ * @param {ReturnType<typeof probeRuntimeAdapter>} probe Runtime availability probe.
+ * @param {NonNullable<Parameters<typeof collectFirstRoundResponses>[0]["executor"]> | undefined} executor Optional runtime executor.
+ * @returns {Promise<Parameters<typeof normalizeFirstRoundCapture>[0]["result"] | undefined>} Executor result.
+ */
+async function executeFirstRoundInvocation(invocation, probe, executor) {
+  if (!probe.available || typeof executor !== "function") {
+    return undefined;
+  }
+
+  try {
+    return await executor(invocation);
+  } catch (error) {
+    return normalizeExecutorException(error);
+  }
+}
+
+/**
  * Run the first-round consultation loop with an injected executor.
  *
  * @param {{
@@ -628,10 +687,11 @@ export async function collectFirstRoundResponses({
     });
     assertInvocationMatchesCouncilPolicy(invocation, executionPolicy);
     const probe = probeRuntime(runtime, env);
-    const result =
-      probe.available && typeof executor === "function"
-        ? await executor(invocation)
-        : undefined;
+    const result = await executeFirstRoundInvocation(
+      invocation,
+      probe,
+      executor
+    );
 
     captures.push(normalizeFirstRoundCapture({ invocation, probe, result }));
   }
