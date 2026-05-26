@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.96.0](https://github.com/CodySwannGT/lisa/compare/vv2.95.0...v2.96.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** add build queue readers ([ab9ce33](https://github.com/CodySwannGT/lisa/commit/ab9ce336ac7edf53df8d10b2971a66fafa3d50b9))
+
 ## [2.95.0](https://github.com/CodySwannGT/lisa/compare/vv2.94.0...v2.95.0) (2026-05-26)
 
 
