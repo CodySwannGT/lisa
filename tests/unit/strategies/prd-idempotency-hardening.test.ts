@@ -111,9 +111,9 @@ describe("PRD idempotency hardening (#585, LPC-1.4)", () => {
       expect(intake).toMatch(/idempotency guard/i);
       expect(intake).toMatch(/already shipped/i);
       expect(intake).toMatch(/no-op/i);
-      // No duplicate transition, no duplicate close, no duplicate comment.
+      // No duplicate transition, no shipped-time close, no duplicate comment.
       expect(intake).toMatch(/do not re-transition/i);
-      expect(intake).toMatch(/do not re-close/i);
+      expect(intake).toMatch(/do not close/i);
       expect(intake).toMatch(/do not re-comment/i);
       // The all-terminal condition is a pure function of child state (safe to re-run).
       expect(intake).toMatch(/pure function/i);
