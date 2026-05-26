@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.84.1](https://github.com/CodySwannGT/lisa/compare/vv2.84.0...v2.84.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **council:** sanitize runtime captures ([4f83acd](https://github.com/CodySwannGT/lisa/commit/4f83acd5a831908fe93c5f1919c68e710f43e765))
+
 ## [2.84.0](https://github.com/CodySwannGT/lisa/compare/vv2.83.0...v2.84.0) (2026-05-26)
 
 

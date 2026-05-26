@@ -40,7 +40,9 @@ Examples:
 - `--runtime <name>`: Optional. Narrow to one runtime. Supported names: `cursor`, `codex`, `copilot`, `antigravity`.
 - `--second-round`: Optional. After the first advisory round, share Claude's sanitized synthesis back to available runtimes for critique.
 - `--dry-run`: Optional. Print planned adapter invocations and safety settings without calling external CLIs.
-- `--write-mode <mode>`: Optional and opt-in only. Reserved for guarded future use. Default behavior is read-only advisory mode.
+- `--write-mode <mode>`: Optional and opt-in only. Default behavior is still read-only advisory mode. Any write-enabled mode now hard-fails unless both of these are true:
+  - the run is inside an isolated worktree path (`.codex/worktrees/` or `.claude/worktrees/`) or the maintainer explicitly sets `LISA_COUNCIL_GUARDED_WORKSPACE=1` for a comparable guarded workspace
+  - the maintainer explicitly acknowledges mutation intent with `LISA_COUNCIL_ALLOW_WRITE=1`
 
 ## Runtime Adapters
 
@@ -50,6 +52,8 @@ The skill is designed around these configurable CLI command slots:
 - `codex` via `LISA_CODEX_CLI`, default candidate `codex`
 - `copilot` via `LISA_COPILOT_CLI`, default candidate `copilot`
 - `antigravity` via `LISA_ANTIGRAVITY_CLI`, default candidate `agy`
+- guarded workspace override via `LISA_COUNCIL_GUARDED_WORKSPACE=1`
+- explicit write acknowledgement via `LISA_COUNCIL_ALLOW_WRITE=1`
 
 Adapter implementation details, safe flags, timeout handling, auth detection, and output capture are handled by follow-on council tickets. This scaffold defines the contract they must satisfy.
 
@@ -61,6 +65,7 @@ The first-round consultation source of truth lives in `./first-round.mjs`. Run `
 
 - Default to read-only advisory execution.
 - Do not let external CLIs edit files, install dependencies, commit, push, or open PRs unless the user explicitly requests a guarded write mode.
+- Reject any explicit write mode unless the run is isolated in a worktree or comparable guarded workspace and the maintainer has acknowledged mutation intent via `LISA_COUNCIL_ALLOW_WRITE=1`.
 - Do not send secrets, token files, `.env` contents, private keys, or MCP auth artifacts to external CLIs.
 - Treat missing or unauthenticated CLIs as non-fatal. Record them as unavailable and continue.
 - Keep Claude's final synthesis separate from raw runtime responses.
