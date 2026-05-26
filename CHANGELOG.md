@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.101.1](https://github.com/CodySwannGT/lisa/compare/vv2.101.0...v2.101.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* fail unsupported queue-status vendor readers ([9d73597](https://github.com/CodySwannGT/lisa/commit/9d73597872a94a08f069d48c01b5538be4557418))
+
 ## [2.101.0](https://github.com/CodySwannGT/lisa/compare/vv2.100.2...v2.101.0) (2026-05-26)
 
 
