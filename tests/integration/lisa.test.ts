@@ -337,17 +337,30 @@ describe("Lisa Integration Tests", () => {
         },
       });
 
-      const result = await createLisa().apply();
+      // Stub the `claude` CLI so plugin registration doesn't hit network/real
+      // marketplace and the test stays fast under full-suite contention.
+      const stubBin = path.join(tempDir, "stub-bin");
+      await fs.ensureDir(stubBin);
+      const stubClaude = path.join(stubBin, "claude");
+      await fs.writeFile(stubClaude, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+      const originalPath = process.env.PATH;
+      process.env.PATH = `${stubBin}:${originalPath ?? ""}`;
 
-      expect(result.success).toBe(true);
-      const settings = await fs.readJson(
-        path.join(destDir, ".claude", SETTINGS_JSON)
-      );
-      expect(settings.enabledPlugins["test-plugin@test-marketplace"]).toBe(
-        true
-      );
-      // Existing project keys preserved
-      expect(settings.env.SOME_VAR).toBe("1");
+      try {
+        const result = await createLisa().apply();
+
+        expect(result.success).toBe(true);
+        const settings = await fs.readJson(
+          path.join(destDir, ".claude", SETTINGS_JSON)
+        );
+        expect(settings.enabledPlugins["test-plugin@test-marketplace"]).toBe(
+          true
+        );
+        // Existing project keys preserved
+        expect(settings.env.SOME_VAR).toBe("1");
+      } finally {
+        process.env.PATH = originalPath;
+      }
     }, 15_000);
 
     it("applies all/ configs to project with no detected types", async () => {
