@@ -49,6 +49,23 @@ For each expected automation, report:
 
 Emit an overall grouped fleet verdict such as `HEALTHY`, `ATTENTION_NEEDED`, or `PARTIAL_SUPPORT`, plus the runtime surface inspected.
 
+Render the report in grouped sections using the shared `scripts/automation-status-report.mjs` contract:
+
+```text
+Overall verdict: <VERDICT>
+Counts: <n HEALTHY>, <n MISSING>, <n UNSUPPORTED>, <n DRIFTED>, <n STALE>, <n FAILING>
+Runtime inspected: <runtime surface>
+Generated at: <ISO timestamp>
+
+1. <group title>
+- <STATUS> <automation-id>: <summary>
+  Expected: <cadence> -> <command>
+  Observed: <what the runtime exposed>
+  Remediation: <next step when attention is needed>
+```
+
+Keep observable runtime facts separate from remediation guidance so operators can distinguish drift, unsupported jobs, and actual failures quickly.
+
 ## Rules
 
 - Stay **read-only**. Never create, update, delete, enable, disable, or rerun automations from this skill.

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.86.0](https://github.com/CodySwannGT/lisa/compare/vv2.85.2...v2.86.0) (2026-05-26)
+
+
+### Features
+
+* **lisa:** scaffold automation-status surfaces ([1d004dc](https://github.com/CodySwannGT/lisa/commit/1d004dcd6e67b90966d396681795fc32908bd96a))
+
 ### [2.85.2](https://github.com/CodySwannGT/lisa/compare/vv2.85.1...v2.85.2) (2026-05-26)
 
 
