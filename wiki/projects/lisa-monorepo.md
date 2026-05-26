@@ -20,18 +20,19 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-26-053019` from `origin/main`
-- HEAD at 2026-05-26 incremental ingest: `c4879d40b123baf4f38d4c5530090b9003d4217a`
-- Current package version: `2.98.0`
-- Total commits on HEAD: 2020
-- Latest merged PR captured in the incremental git snapshot: `#837`
-- New commits since the previous incremental git cursor: `36`
+- Ingest branch: `wiki/ingest-2026-05-26-093056` from `origin/main`
+- HEAD at 2026-05-26 incremental ingest: `fd8db85fb79d5ea18628fdf071bbe761885d793f`
+- Current package version: `2.100.1`
+- Total commits on HEAD: 2080
+- Latest merged PR captured in the incremental git snapshot: `#905`
+- New commits since the previous incremental git cursor: `60`
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Queue-status coverage expanded across shared contract resolution, grouped output, queue readers for PRD and build modes, health classification, and smoke coverage.
-- Repair-intake now closes out stuck work in batch, extending the operational remediation path beyond status reporting alone.
-- Release automation continued its rapid cadence, advancing the monorepo from `2.91.3` through `2.98.0` during this incremental window.
+- Intake-explain guidance expanded across scaffold, output contract, ownership readiness, contract resolution, build gates, and operator documentation.
+- Council and automation-status handling hardened around policy inputs, executor failures, missing flag values, and negated failure classification.
+- Usage accounting now preserves decimal cost totals, rejects invalid numeric tokens, keeps token serialization reversible, and recomputes merged usage rollups.
+- Release automation continued its rapid cadence, advancing the monorepo from `2.98.1` through `2.100.1` during this incremental window.
 
 ## Workspace Packages
 

@@ -143,6 +143,33 @@ The explanation must stay aligned with existing Lisa rules:
 - If a claimed, in-review, or blocked item is not yet repairable, explain the relevant staleness or backoff condition at a human-readable level.
 - If the source lane, tracker lane, repo/project scope, or lifecycle namespace is unresolved, report `MISCONFIGURED` instead of pretending the item is idle or actionable.
 
+## PRD item role and repair diagnosis
+
+For PRD lifecycle items, run the same read-side checks that PRD intake and repair-intake use before they would claim, validate, roll up, or retry a PRD. This is still a read-only explanation: if execution intake would transition `ready -> in_review`, route a `ticketed` PRD through rollup, move a `blocked` PRD after new answers, or suppress repair because a `[lisa-repair-intake]` marker is still inside its backoff window, intake-explain reports that decision and does not mutate the PRD, comments, labels, parent page, project labels, or generated work.
+
+Resolve the source lane from `.lisa.config.json` `source` and the PRD lifecycle roles from the same vendor-specific config keys PRD intake and repair-intake use (`github.labels.prd.*`, `linear.labels.prd.*`, `notion.values.*`, or `confluence.parents.*`) with the usual defaults (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`, and `verified` equivalents). If the current item carries conflicting PRD lifecycle roles, lacks an adopted PRD namespace, or cannot be tied to the configured source lane, return `MISCONFIGURED` rather than guessing.
+
+For GitHub-backed PRDs, collect these reader signals before choosing a verdict:
+
+- current PRD lifecycle role label and any conflicting `prd-*` labels
+- source-lane role ownership: `draft`, `shipped`, and `verified` are product-owned or verification-owned; `ready`, `in_review`, `blocked`, and `ticketed` are Lisa-owned for intake, repair, or rollup purposes
+- provider-native timestamps (`updatedAt`) plus latest PRD comments, with special attention to comments after the most recent blocked or in-review marker
+- `[lisa-repair-intake]` marker comments, including state fingerprint, repair verdict, retry count, and backoff window when present
+- generated top-level work from native sub-issues first, then the `## Tickets` / `## Generated Work` section used by `prd-lifecycle-rollup`
+- generated child terminal status so `ticketed` PRDs can explain whether rollup is waiting on downstream work or ready for `/lisa:repair-intake`
+- clarifying-answer signals on `blocked` PRDs: new product comments, changed body text, changed blocker refs, or cleared dependencies compared with the last blocked/repair fingerprint
+
+Apply PRD verdicts in the same order as PRD intake and repair-intake:
+
+1. **Product-owned or verification-owned roles.** A PRD in `draft` returns `PRODUCT_OWNED_STATE`; the next action is manual product clarification or promotion to the configured `ready` role. A PRD in `shipped` returns `PRODUCT_OWNED_STATE` with `/lisa:verify-prd <item-ref>` as the next Lisa workflow because shipped-to-verified acceptance is outside PRD intake. A PRD in `verified` returns `PRODUCT_OWNED_STATE` or a terminal no-op explanation; normal intake and repair must not mutate it.
+2. **Ready PRD.** A PRD in the configured `ready` role returns `ELIGIBLE_FOR_INTAKE` when the source lane and lifecycle namespace resolve cleanly. The `Why:` line should say PRD intake would claim it into the configured `in_review` role and run the source-to-tracker dry-run validate-to-route pipeline.
+3. **In-review PRD.** A PRD in `in_review` is already Lisa-owned. Compare the newest activity signal against the resolved repair `stale_after` threshold (`$ARGUMENTS` override if present, `.lisa.config.json` `intake.repair.staleAfterHours`, then the 24h default). If provider activity, a progress comment, or a source edit is newer than `now - stale_after`, return `WAITING_ON_STALENESS` and name the activity timestamp. If no reliable timestamp exists, return `WAITING_ON_STALENESS` unless the caller explicitly uses the repair flow with `stale_after=0`; intake-explain should not imply automatic recovery from unknown freshness. If the item is stale and no repair-backoff marker suppresses retry, return `ELIGIBLE_FOR_REPAIR`.
+4. **Blocked PRD.** A PRD in `blocked` is Lisa-owned but repairable only when the next validate-to-route pass can materially differ. Treat new human answers after the blocking comment, body edits after the blocking marker, cleared blockers, changed blocker refs, or changed validator fingerprint as repair-enabling signals. If none are present, return `HELD_BY_BLOCKERS` or `WAITING_ON_STALENESS` depending on whether the decisive fact is an active blocker/unchanged clarification need or a still-fresh blocked marker. If the blocker/answer state changed and repair backoff is clear, return `ELIGIBLE_FOR_REPAIR`.
+5. **Ticketed PRD.** A PRD in `ticketed` is not ready for first intake. Read generated top-level work using the same `prd-lifecycle-rollup` boundary as PRD intake: top-level Epics and top-level Stories count; nested Stories and Sub-tasks do not. If any generated top-level child is non-terminal, return `PRODUCT_OWNED_STATE` or a waiting explanation that downstream build work is still in progress. If all generated top-level work is terminal but the PRD has not rolled up to `shipped`, return `ELIGIBLE_FOR_REPAIR` and recommend `/lisa:repair-intake <queue>` to reconcile rollup drift.
+6. **Repair backoff suppression.** Before returning `ELIGIBLE_FOR_REPAIR` for `in_review`, `blocked`, or `ticketed` PRDs, inspect `[lisa-repair-intake]` markers. If the latest marker's state fingerprint matches the current reader signals and its backoff window has not expired, return `WAITING_ON_STALENESS` with a `Why:` line that says repair-intake would suppress an unchanged retry to avoid a loop. If the fingerprint changed, the backoff expired, or a human uses repair-intake `force=true`, the item may be repair-eligible.
+
+Relevant `Signals:` should include the decisive context, not every field: for example `prd-blocked; new product comment after blocker`, `prd-in-review; last activity 2h ago; stale_after=24h`, `prd-ticketed; generated top-level work #12/#13 terminal`, or `[lisa-repair-intake] fingerprint unchanged; backoff until 2026-05-27T12:00:00Z`.
+
 ## Build item gate diagnosis
 
 For build lifecycle items, run the same read-side checks that build intake runs before it would claim an issue. This is still a read-only explanation: if execution intake would stamp repo labels, split a cross-repo leaf, move a stale container from `ready` to `claimed`, or post a dependency-hold comment, intake-explain reports what intake would do but does not stamp, does not split, does not move labels, and does not comment.
@@ -187,6 +214,34 @@ The `Next action:` line should stay small and specific. Prefer one actionable fo
 - "decompose into leaf tickets" when the issue is a non-leaf container
 - "manual product clarification" when Lisa is not the current owner
 - "fix `.lisa.config.json` or lifecycle labels" when the problem is misconfiguration
+
+## Smoke fixtures and read-only assertions
+
+Intake-explain must keep representative smoke fixtures for both PRD and build lifecycles. These fixtures are contract examples for implementers and tests: they prove that lifecycle classification, dependency holds, staleness windows, and repair backoff map to the same verdict language operators see in real diagnosis output.
+
+Minimum PRD smoke fixtures:
+
+| Fixture | Decisive signals | Expected verdict |
+|---|---|---|
+| `prd-draft-product-owned` | PRD role `draft`; source lane resolved; no Lisa claim marker | `PRODUCT_OWNED_STATE` |
+| `prd-ready-actionable` | PRD role `ready`; source lane resolved; validation-ready content present | `ELIGIBLE_FOR_INTAKE` |
+| `prd-in-review-fresh` | PRD role `in_review`; newest Lisa or tracker activity is inside `stale_after` | `WAITING_ON_STALENESS` |
+| `prd-blocked-backoff` | PRD role `blocked`; latest `[lisa-repair-intake]` fingerprint is unchanged and inside the backoff window | `WAITING_ON_STALENESS` |
+| `prd-blocked-new-signal` | PRD role `blocked`; clarifying answer or blocker fingerprint changed after the last repair marker | `ELIGIBLE_FOR_REPAIR` |
+
+Minimum build smoke fixtures:
+
+| Fixture | Decisive signals | Expected verdict |
+|---|---|---|
+| `build-ready-leaf` | `status:ready`; `repo:<current>`; leaf type; no open children; no active blockers | `ELIGIBLE_FOR_INTAKE` |
+| `build-active-dependency` | otherwise actionable ready leaf; `Blocked by:` points at an open blocker without a cleared status | `HELD_BY_BLOCKERS` |
+| `build-cleared-dependency` | otherwise actionable ready leaf; blockers are closed or carry cleared build status | `ELIGIBLE_FOR_INTAKE` |
+| `build-open-children` | build lifecycle role present; native sub-issues or body parentage include open child work | `NON_LEAF_CONTAINER` |
+| `build-claimed-fresh` | `status:in-progress`; newest claim, PR, check, or issue activity is inside `stale_after` | `WAITING_ON_STALENESS` |
+| `build-blocked-backoff` | `status:blocked`; blocker fingerprint unchanged and repair-backoff marker still suppresses retries | `WAITING_ON_STALENESS` |
+| `build-blocked-cleared` | `status:blocked`; parsed blockers are now cleared or the blocker fingerprint changed | `ELIGIBLE_FOR_REPAIR` |
+
+Every smoke fixture must assert read-only behavior. A diagnosis may call vendor read APIs, inspect config, and render a verdict, but it must not call write APIs such as `gh issue edit`, `gh issue comment`, label creation, issue creation, transition endpoints, PR mutation, or tracker comment/update calls. If execution intake would stamp repo labels, split a multi-repo leaf, repair a stale container label, add a dependency-hold comment, or retry stuck work, the smoke fixture should assert that intake-explain only reports that action as the next step.
 
 ## Output shape
 
