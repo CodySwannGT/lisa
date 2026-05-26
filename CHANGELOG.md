@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.100.1](https://github.com/CodySwannGT/lisa/compare/vv2.100.0...v2.100.1) (2026-05-26)
+
+
+### Documentation
+
+* explain intake ownership readiness ([7cc7df8](https://github.com/CodySwannGT/lisa/commit/7cc7df83031ad16f8e48201e7c8c0d5613d6c030))
+
 ## [2.100.0](https://github.com/CodySwannGT/lisa/compare/vv2.99.1...v2.100.0) (2026-05-26)
 
 
