@@ -31,6 +31,24 @@ const ANSI_ESCAPE_PATTERN =
   // Strip common SGR color/style escape sequences without touching regular text.
   /\u001B\[[0-9;]*m/gu;
 
+const SECRET_PATTERNS = Object.freeze([
+  /github_pat_\w{20,}/gu,
+  /\bgh[opusr]_\w{20,}\b/gu,
+  /\bsk-[\w-]{20,}\b/gu,
+  /\bBearer\s+[\w.-]{12,}\b/giu,
+  /\b((?:api|access|auth|refresh|secret)[-_ ]?key|token|password)\b\s*[:=]\s*([^\s,;]+)/giu,
+]);
+
+const RISKY_SUGGESTION_PATTERNS = Object.freeze([
+  /\b(?:npm|pnpm|yarn|bun)\s+(?:install|add|dlx|x)\b/i,
+  /\b(?:git|gh)\s+(?:commit|push|merge|checkout|switch|reset|clean|pr\s+create|issue\s+edit)\b/i,
+  /\b(?:apply_patch|write|edit|modify|delete|create)\b.*\b(?:file|files|repo|repository|host project|downstream|template|plugin)\b/i,
+  /\b(?:host project|downstream install|generated artifact|plugin bundle|template output)\b/i,
+]);
+
+const RISKY_SUGGESTION_PREFIX =
+  "[unsafe-runtime-suggestion: maintainer review required] ";
+
 /**
  * Build the structured first-round advisory prompt for one runtime.
  *
@@ -97,6 +115,88 @@ export function normalizeCouncilOutput(value) {
     .join("\n")
     .replace(/\n{3,}/gu, "\n\n")
     .trim();
+}
+
+/**
+ * Redact obvious secret-like substrings from runtime output before synthesis.
+ *
+ * @param {string} value Normalized CLI output.
+ * @returns {string} Output with token-like material replaced.
+ */
+export function redactSensitiveCouncilText(value) {
+  return SECRET_PATTERNS.reduce((redacted, pattern) => {
+    return redacted.replace(pattern, (...matches) => {
+      if (matches.length >= 3 && typeof matches[1] === "string") {
+        return `${matches[1]}=[REDACTED]`;
+      }
+      return "[REDACTED]";
+    });
+  }, value);
+}
+
+/**
+ * Prefix risky or out-of-scope mutation suggestions so maintainers do not treat
+ * them as safe instructions.
+ *
+ * @param {string} value Redacted runtime output.
+ * @returns {string} Output with risky lines annotated.
+ */
+export function annotateRiskyCouncilText(value) {
+  return value
+    .split("\n")
+    .map(line => {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
+        return line;
+      }
+
+      const isRisky = RISKY_SUGGESTION_PATTERNS.some(pattern =>
+        pattern.test(trimmedLine)
+      );
+      if (!isRisky || trimmedLine.startsWith(RISKY_SUGGESTION_PREFIX)) {
+        return line;
+      }
+
+      return `${RISKY_SUGGESTION_PREFIX}${line}`;
+    })
+    .join("\n");
+}
+
+/**
+ * Sanitize normalized runtime output for maintainer-facing synthesis.
+ *
+ * @param {string} value Normalized CLI output.
+ * @returns {string} Redacted and annotated output text.
+ */
+export function sanitizeCouncilText(value) {
+  return annotateRiskyCouncilText(redactSensitiveCouncilText(value));
+}
+
+/**
+ * Recursively sanitize structured runtime output values.
+ *
+ * @param {unknown} value Parsed runtime payload.
+ * @returns {unknown} Payload with sensitive strings redacted and risky strings annotated.
+ */
+export function sanitizeCouncilData(value) {
+  if (typeof value === "string") {
+    return sanitizeCouncilText(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(entry => sanitizeCouncilData(entry));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        sanitizeCouncilData(entry),
+      ])
+    );
+  }
+
+  return value;
 }
 
 /**
@@ -379,8 +479,16 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
     };
   }
 
-  const outputText = normalizeCouncilOutput(result.stdout ?? "");
-  const stderrText = normalizeCouncilOutput(result.stderr ?? "");
+  const normalizedStdout = normalizeCouncilOutput(result.stdout ?? "");
+  const normalizedStderr = normalizeCouncilOutput(result.stderr ?? "");
+  const parsedStdout = parseCouncilOutput(normalizedStdout);
+  const parsedOutput =
+    parsedStdout === null ? null : sanitizeCouncilData(parsedStdout);
+  const outputText =
+    parsedOutput === null
+      ? sanitizeCouncilText(normalizedStdout)
+      : JSON.stringify(parsedOutput);
+  const stderrText = sanitizeCouncilText(normalizedStderr);
   const combinedText = [outputText, stderrText].filter(Boolean).join("\n\n");
   const timedOut = result.timedOut === true;
   const exitStatus =
@@ -402,7 +510,7 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
     timeoutMs: invocation.timeoutMs,
     authMissing: result.authMissing ?? probe.authMissing ?? false,
     outputText: combinedText,
-    parsedOutput: parseCouncilOutput(outputText),
+    parsedOutput,
     stderrText,
     exitStatus,
     timedOut,
