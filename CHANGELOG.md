@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.92.0](https://github.com/CodySwannGT/lisa/compare/vv2.91.4...v2.92.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** scaffold command and skill surfaces ([6f3e467](https://github.com/CodySwannGT/lisa/commit/6f3e4679c601c6d4c8d0858b046f7a21cc441fff))
+
 ### [2.91.4](https://github.com/CodySwannGT/lisa/compare/vv2.91.3...v2.91.4) (2026-05-26)
 
 
