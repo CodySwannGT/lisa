@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.93.0](https://github.com/CodySwannGT/lisa/compare/vv2.92.0...v2.93.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** define grouped output contract ([7e7c016](https://github.com/CodySwannGT/lisa/commit/7e7c016d37f5ce78adcb12e28cc24b047c0ec6e6))
+
 ## [2.92.0](https://github.com/CodySwannGT/lisa/compare/vv2.91.4...v2.92.0) (2026-05-26)
 
 

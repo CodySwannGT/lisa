@@ -8,6 +8,13 @@
  * truth.
  */
 
+import {
+  resolveBuildQueueArgument,
+  resolveGithubRepoRef,
+  resolvePrdQueueArgument,
+  resolvePrdSource,
+} from "./queue-contract-resolution.mjs";
+
 export const AUTOMATION_EXPECTED_CADENCES = {
   "intake-repair": {
     human: "every 60 minutes",
@@ -32,11 +39,6 @@ export const AUTOMATION_EXPECTED_CADENCES = {
 };
 
 export const EXPLORATORY_QA_STACK_PRIORITY = ["expo", "rails", "harper-fabric"];
-
-const GITHUB_REMOTE_PATTERNS = [
-  /github\.com[:/](?<owner>[^/]+)\/(?<repo>[^/.]+?)(?:\.git)?$/,
-  /^git@github\.com:(?<owner>[^/]+)\/(?<repo>[^/.]+?)(?:\.git)?$/,
-];
 
 /**
  * @typedef {{
@@ -232,83 +234,6 @@ function createUnsupportedEntry(identity, id, reason) {
 /**
  * @param {Record<string, any>} config
  * @param {string | undefined} source
- * @returns {string}
- */
-function resolvePrdQueueArgument(config, source) {
-  switch (source) {
-    case "github":
-      requireGithubRepo(config);
-      return "github intake_mode=prd";
-    case "linear":
-      requireLinearWorkspace(config);
-      return "linear";
-    case "notion": {
-      const databaseId = config.notion?.prdDatabaseId;
-      if (!databaseId) {
-        throw new Error(
-          "Unable to resolve the PRD queue: notion.prdDatabaseId is required when source=notion."
-        );
-      }
-      return databaseId;
-    }
-    case "confluence": {
-      const parentPageId = config.confluence?.parentPageId;
-      const spaceKey = config.confluence?.spaceKey;
-      if (!parentPageId && !spaceKey) {
-        throw new Error(
-          "Unable to resolve the PRD queue: confluence.parentPageId or confluence.spaceKey is required when source=confluence."
-        );
-      }
-      return parentPageId ?? spaceKey;
-    }
-    case "jira": {
-      const project = config.jira?.project;
-      if (!project) {
-        throw new Error(
-          "Unable to resolve the PRD queue: jira.project is required when source=jira."
-        );
-      }
-      return project;
-    }
-    default:
-      throw new Error(
-        "Unable to resolve the PRD queue from config. Set source or use tracker=github self-host with github.org/github.repo."
-      );
-  }
-}
-
-/**
- * @param {Record<string, any>} config
- * @param {string | undefined} tracker
- * @returns {string}
- */
-function resolveBuildQueueArgument(config, tracker) {
-  switch (tracker) {
-    case "github":
-      requireGithubRepo(config);
-      return "github intake_mode=build";
-    case "linear":
-      requireLinearWorkspace(config);
-      return "linear";
-    case "jira": {
-      const project = config.jira?.project;
-      if (!project) {
-        throw new Error(
-          "Unable to resolve the build queue: jira.project is required when tracker=jira."
-        );
-      }
-      return project;
-    }
-    default:
-      throw new Error(
-        "Unable to resolve the build queue from config. tracker must be github, linear, or jira."
-      );
-  }
-}
-
-/**
- * @param {Record<string, any>} config
- * @param {string | undefined} source
  * @param {string | undefined} tracker
  * @returns {string}
  */
@@ -341,56 +266,6 @@ function resolveRepairQueueArgument(config, source, tracker) {
   throw new Error(
     `Unable to resolve a single repair-intake queue for tracker=${String(tracker)} and source=${String(source)} without guessing.`
   );
-}
-
-/**
- * @param {Record<string, any>} config
- * @returns {string | undefined}
- */
-function resolvePrdSource(config) {
-  if (typeof config.source === "string" && config.source.length > 0) {
-    return config.source;
-  }
-
-  if (
-    config.tracker === "github" &&
-    config.github?.org &&
-    config.github?.repo
-  ) {
-    return "github";
-  }
-
-  return undefined;
-}
-
-/**
- * @param {Record<string, any>} config
- * @param {string | undefined} gitRemoteUrl
- * @returns {{ readonly owner: string, readonly repo: string } | null}
- */
-function resolveGithubRepoRef(config, gitRemoteUrl) {
-  const owner = config.github?.org;
-  const repo = config.github?.repo;
-
-  if (owner && repo) {
-    return { owner, repo };
-  }
-
-  if (!gitRemoteUrl) {
-    return null;
-  }
-
-  for (const pattern of GITHUB_REMOTE_PATTERNS) {
-    const match = gitRemoteUrl.match(pattern);
-    if (match?.groups?.owner && match.groups.repo) {
-      return {
-        owner: match.groups.owner,
-        repo: match.groups.repo,
-      };
-    }
-  }
-
-  return null;
 }
 
 /**
