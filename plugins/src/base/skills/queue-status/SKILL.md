@@ -29,6 +29,24 @@ Support a repo-scoped queue selector when requested:
 - `queue=prd`: inspect only the PRD queue
 - `queue=build`: inspect only the build queue
 
+## Operator usage
+
+Typical entrypoints:
+
+```text
+/lisa:queue-status
+/lisa:queue-status queue=prd
+/lisa:queue-status queue=build
+```
+
+Use this command when an operator needs to answer one of these questions for the current repo:
+
+- "Is this queue truly idle, or is it misconfigured?"
+- "Which item is the most actionable next?"
+- "Should I run `/lisa:intake`, `/lisa:repair-intake`, `/lisa:automation-status`, or `/lisa:verify-prd` next?"
+
+Keep the report terminal-first and immediately actionable: observable queue facts first, then the smallest useful next command.
+
 ## What to report
 
 Render the report in **grouped sections** so operators can scan it top-down without reading raw tracker dumps:
@@ -47,6 +65,19 @@ For each inspected queue, report:
 6. A concise remediation hint when attention is needed.
 
 The report should stay terminal-first and immediately actionable: observable queue facts first, then the smallest useful next step.
+
+## Highlight semantics
+
+Each queue section may include one or more highlighted items. A highlight is not a raw dump of every issue in that role; it is the single oldest or otherwise most actionable item Lisa can justify surfacing without mutating work.
+
+Interpret highlights by role:
+
+- `ready`: work is waiting to be claimed. The usual next step is `/lisa:intake <queue>`.
+- `blocked`: work is stuck behind an explicit blocker or failed pre-flight. The usual next step is `/lisa:repair-intake <queue>` after validating the blocker context.
+- `claimed` or in-review/review states: work is in motion but may be aging. The usual next step is to inspect the active implementation or review path before escalating to `/lisa:repair-intake <queue>`.
+- `shipped`: PRD work looks ready for initiative-level acceptance. The usual next step is `/lisa:verify-prd <prd-ref>`.
+
+If both queues look unexpectedly quiet or stale, mention `/lisa:automation-status` as the scheduler-health follow-up before implying the queues themselves are empty or broken.
 
 ## Output shape
 
@@ -85,6 +116,13 @@ Status-specific remediation guidance:
 - `HEALTHY`: point operators to `/lisa:intake` or `/lisa:repair-intake` when they want Lisa to act on the reported state.
 - `ATTENTION_NEEDED`: identify the most actionable blocked or stalled items and suggest the next Lisa or tracker-native command to investigate.
 - `MISCONFIGURED`: show which queue contract is missing or unresolved and recommend fixing `.lisa.config.json`, adopting the lifecycle namespace, or rerunning the relevant setup flow.
+
+Command handoff expectations:
+
+- Prefer `/lisa:intake <queue>` when the actionable highlight is `ready` work.
+- Prefer `/lisa:repair-intake <queue>` when the actionable highlight is blocked, stalled, or suspiciously old claimed/review work.
+- Prefer `/lisa:verify-prd <prd-ref>` when the PRD side surfaces shipped work that appears ready for initiative-level verification.
+- Prefer `/lisa:automation-status` when queue output suggests scheduler drift, stale unattended execution, or a mismatch between expected and observed queue activity.
 
 ## Rules
 
