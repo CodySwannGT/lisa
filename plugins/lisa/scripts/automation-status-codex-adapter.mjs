@@ -20,7 +20,7 @@ const CODEx_RUNTIME_LABEL = "Codex automations";
 const RUN_FAILURE_PATTERN =
   /\b(failed|failure|errored|error|exception|crash(?:ed)?)\b/i;
 const NEGATED_FAILURE_PATTERN =
-  /\b(no|without)\s+(?:recent\s+)?fail(?:ure|ed)\b/i;
+  /\b(no|without)\s+(?:recent\s+)?(?:fail(?:ure|ed)|errors?|exceptions?)\b/i;
 
 /**
  * @typedef {import("./automation-status-expected-fleet.mjs").resolveExpectedAutomationFleet extends (...args: any[]) => infer T ? T : never} ExpectedFleet
@@ -179,10 +179,17 @@ export function deriveCodexObservedCommand(prompt) {
     /Use the `\$([a-z0-9:-]+)` skill with arguments `([^`]+)`/i
   );
   if (aliasSkillMatch?.[1] && aliasSkillMatch[2]) {
-    return `/${aliasSkillMatch[1]} ${aliasSkillMatch[2]}`.trim();
+    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2]}`.trim();
   }
 
   return undefined;
+}
+
+function canonicalizeCodexSkillAlias(alias) {
+  if (alias.startsWith("lisa-")) {
+    return `/lisa:${alias.slice("lisa-".length)}`;
+  }
+  return `/${alias}`;
 }
 
 /**
