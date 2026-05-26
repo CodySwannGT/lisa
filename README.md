@@ -79,6 +79,7 @@ Most users only ever call `/lisa:research`, `/lisa:plan`, and `/lisa:implement`.
 | Command | What it does |
 | --- | --- |
 | `/lisa:intake <queue-url>` | Scans a Ready queue (Notion PRD database, JIRA project, GitHub repo, Linear team, Confluence space) and dispatches each item through the right lifecycle command. Designed as the cron target for unattended runs. |
+| `/lisa:intake-explain <item-ref>` | Read-only per-item diagnosis for PRD or build work. Reports the lifecycle role, verdict, decisive intake or repair gate, and smallest next action before an operator chooses `/lisa:intake`, `/lisa:repair-intake`, blocker cleanup, decomposition, or product follow-up. |
 | `/lisa:queue-status [queue=prd|queue=build]` | Read-only queue inspection for the current repo. Distinguishes idle vs misconfigured queues, highlights the most actionable item, and points operators to `/lisa:intake`, `/lisa:repair-intake`, `/lisa:automation-status`, or `/lisa:verify-prd`. |
 | `/lisa:repair-intake <queue-url>` | Read/write recovery scan for blocked, stale, or inconsistent queue state when normal intake is not the right next move. |
 | `/lisa:automation-status` | Read-only inspection of the repo's expected Lisa automation fleet so operators can distinguish empty queues from stale, drifted, or failing scheduler jobs. |
