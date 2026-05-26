@@ -306,24 +306,49 @@ export function buildFirstRoundInvocation({
  * }} Parsed council args.
  */
 export function parseCouncilCliArgs(argv) {
+  const readFlagValue = (flag, values, index, description) => {
+    const value = values[index + 1] ?? "";
+    if (!value.trim() || value.trim().startsWith("--")) {
+      throw new Error(`The ${flag} flag requires ${description}.`);
+    }
+    return value;
+  };
+
   const parsed = argv.reduce(
     (state, current, index, values) => {
       if (state.skipIndices.has(index)) {
         return state;
       }
 
-      const nextValue = values[index + 1] ?? "";
       if (current === "--runtime") {
+        const nextValue = readFlagValue(
+          "--runtime",
+          values,
+          index,
+          "a runtime name"
+        );
         state.skipIndices.add(index + 1);
         return { ...state, runtime: nextValue };
       }
 
       if (current === "--write-mode") {
+        const nextValue = readFlagValue(
+          "--write-mode",
+          values,
+          index,
+          "a mode value"
+        );
         state.skipIndices.add(index + 1);
         return { ...state, writeMode: nextValue };
       }
 
       if (current === "--summary") {
+        const nextValue = readFlagValue(
+          "--summary",
+          values,
+          index,
+          "sanitized summary text"
+        );
         state.skipIndices.add(index + 1);
         return { ...state, sanitizedSummary: nextValue };
       }
@@ -359,18 +384,6 @@ export function parseCouncilCliArgs(argv) {
     );
   }
 
-  if (parsed.runtime !== null && !parsed.runtime.trim()) {
-    throw new Error("The --runtime flag requires a runtime name.");
-  }
-
-  if (parsed.writeMode !== null && !parsed.writeMode.trim()) {
-    throw new Error("The --write-mode flag requires a mode value.");
-  }
-
-  if (parsed.sanitizedSummary !== null && !parsed.sanitizedSummary.trim()) {
-    throw new Error("The --summary flag requires sanitized summary text.");
-  }
-
   return {
     topic,
     runtime: parsed.runtime?.trim().toLowerCase() ?? null,
@@ -379,6 +392,26 @@ export function parseCouncilCliArgs(argv) {
     writeMode: parsed.writeMode?.trim() ?? null,
     sanitizedSummary: parsed.sanitizedSummary?.trim() ?? null,
   };
+}
+
+/**
+ * Resolve first-round council execution policy from the same normalized input
+ * shape for dry-run planning, collection, and CLI execution.
+ * @param {{
+ *   writeMode?: string | null;
+ *   runtime?: string | null;
+ *   cwd?: string;
+ *   env?: NodeJS.ProcessEnv;
+ * }} [input] Execution policy inputs.
+ * @returns {ReturnType<typeof resolveCouncilExecutionPolicy>} Normalized execution policy.
+ */
+export function resolveCouncilFirstRoundExecutionPolicy({
+  writeMode = null,
+  runtime = null,
+  cwd = process.cwd(),
+  env,
+} = {}) {
+  return resolveCouncilExecutionPolicy({ writeMode, runtime, cwd }, env);
 }
 
 /**
@@ -395,8 +428,8 @@ export function parseCouncilCliArgs(argv) {
  *   secondRound?: boolean;
  *   sanitizedSummary?: string | null;
  *   writeMode?: string | null;
- *   env?: NodeJS.ProcessEnv;
  *   cwd?: string;
+ *   env?: NodeJS.ProcessEnv;
  * }} input Planning inputs.
  * @returns {{
  *   mode: "dry-run";
@@ -418,13 +451,15 @@ export function buildCouncilDryRunPlan({
   secondRound = false,
   sanitizedSummary = null,
   writeMode = null,
-  env,
   cwd,
+  env,
 }) {
-  const executionPolicy = resolveCouncilExecutionPolicy(
-    { writeMode, runtime, cwd },
-    env
-  );
+  const executionPolicy = resolveCouncilFirstRoundExecutionPolicy({
+    writeMode,
+    runtime,
+    cwd,
+    env,
+  });
   const runtimes = resolveCouncilRuntimes(runtime);
   const firstRound = runtimes.map(selectedRuntime =>
     buildFirstRoundInvocation({
@@ -544,10 +579,11 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
   const timedOut = result.timedOut === true;
   const exitStatus =
     typeof result.exitStatus === "number" ? result.exitStatus : null;
+  const hasExecutionError = result.error != null;
 
   const status = timedOut
     ? "timed_out"
-    : (exitStatus ?? 0) !== 0
+    : hasExecutionError || (exitStatus ?? 0) !== 0
       ? "failed"
       : !combinedText
         ? "empty"
@@ -588,7 +624,9 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
  *     targetEnvironment?: string;
  *   };
  *   runtimes?: (keyof typeof RUNTIME_ADAPTERS)[];
+ *   runtime?: string | null;
  *   writeMode?: string | null;
+ *   cwd?: string;
  *   env?: NodeJS.ProcessEnv;
  *   probeRuntime?: typeof probeRuntimeAdapter;
  *   executor?: (invocation: ReturnType<typeof buildFirstRoundInvocation>) => Promise<{
@@ -613,12 +651,19 @@ export async function collectFirstRoundResponses({
   topic,
   context = {},
   runtimes = Object.keys(RUNTIME_ADAPTERS),
+  runtime = null,
   writeMode = null,
+  cwd,
   env,
   probeRuntime = probeRuntimeAdapter,
   executor,
 }) {
-  const executionPolicy = resolveCouncilExecutionPolicy({ writeMode }, env);
+  const executionPolicy = resolveCouncilFirstRoundExecutionPolicy({
+    writeMode,
+    runtime,
+    cwd,
+    env,
+  });
   const captures = [];
 
   for (const runtime of runtimes) {
@@ -732,10 +777,11 @@ export function buildFirstRoundSynthesisInput({
  */
 async function main() {
   const parsed = parseCouncilCliArgs(process.argv.slice(2));
-  const executionPolicy = resolveCouncilExecutionPolicy(
-    { writeMode: parsed.writeMode },
-    globalThis.process?.env ?? {}
-  );
+  const executionPolicy = resolveCouncilFirstRoundExecutionPolicy({
+    writeMode: parsed.writeMode,
+    runtime: parsed.runtime,
+    env: globalThis.process?.env ?? {},
+  });
 
   if (parsed.dryRun) {
     const plan = buildCouncilDryRunPlan(parsed);
@@ -747,6 +793,7 @@ async function main() {
   const firstRound = await collectFirstRoundResponses({
     topic: parsed.topic,
     runtimes,
+    runtime: parsed.runtime,
     writeMode: parsed.writeMode,
   });
   const payload = {

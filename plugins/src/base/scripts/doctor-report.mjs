@@ -39,7 +39,7 @@ export const DOCTOR_VERDICTS = ["READY", "READY_WITH_WARNINGS", "NOT_READY"];
  * @returns {DoctorVerdict}
  */
 export function computeDoctorVerdict(groups) {
-  const checks = groups.flatMap(group => group.checks);
+  const checks = groups.flatMap(group => group.checks.map(normalizeCheck));
   if (checks.some(check => check.status === "FAIL")) {
     return "NOT_READY";
   }
@@ -55,7 +55,7 @@ export function computeDoctorVerdict(groups) {
  */
 export function countDoctorStatuses(groups) {
   return groups
-    .flatMap(group => group.checks)
+    .flatMap(group => group.checks.map(normalizeCheck))
     .reduce(
       (counts, check) => ({
         ...counts,
@@ -111,9 +111,20 @@ export function renderDoctorReport(input) {
  * @returns {DoctorGroup}
  */
 function normalizeGroup(group) {
+  const checks =
+    group.checks.length === 0
+      ? [
+          {
+            id: "empty-group",
+            status: "SKIP",
+            summary: "no checks registered yet",
+          },
+        ]
+      : group.checks.map(normalizeCheck);
+
   return {
     ...group,
-    checks: group.checks.map(normalizeCheck),
+    checks,
   };
 }
 
