@@ -9,7 +9,7 @@
  * Claude does not expose last-run or failure metadata.
  */
 
-import { compareAutomationContract } from "./automation-status-contract-drift.mjs";
+import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
 
 const CLAUDE_RUNTIME_LABEL = "Claude /schedule";
 const CLAUDE_ACTIVE_STATUSES = new Set([
@@ -80,11 +80,13 @@ export function inspectClaudeAutomationFleet(input) {
     ["exploratory", []],
   ]);
 
-  for (const expected of expectedFleet.expected) {
-    const comparison = compareAutomationContract({
-      expected,
-      observedAutomations,
-    });
+  const comparisons = compareAutomationFleet({
+    expectedAutomations: expectedFleet.expected,
+    observedAutomations,
+  });
+
+  for (const [index, expected] of expectedFleet.expected.entries()) {
+    const comparison = comparisons[index];
     expectedGroups.get(expected.group)?.push(
       createObservedStatusItem({
         expected,
