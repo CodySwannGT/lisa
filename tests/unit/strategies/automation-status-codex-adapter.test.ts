@@ -26,6 +26,7 @@ const BUILD_INTAKE_CADENCE = "every 10 minutes";
 const BUILD_INTAKE_COMMAND = "/lisa:intake github intake_mode=build";
 const BUILD_INTAKE_RRULE = "FREQ=MINUTELY;INTERVAL=10";
 const BUILD_INTAKE_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-tickets";
+const RECENT_RUN_AT = "2026-05-26T12:00:00Z";
 
 describe("automation-status Codex adapter (#801)", () => {
   const tempDirs = [];
@@ -86,7 +87,7 @@ describe("automation-status Codex adapter (#801)", () => {
     const report = await inspectCodexAutomationFleet({
       expectedFleet,
       automationsDir,
-      now: "2026-05-26T12:00:00Z",
+      now: RECENT_RUN_AT,
     });
 
     expect(report.runtime).toContain("Codex automations");
@@ -173,21 +174,37 @@ describe("automation-status Codex adapter (#801)", () => {
   it("does not classify negated error or exception summaries as failures (#885)", () => {
     expect(
       parseCodexAutomationMemory(
-        "2026-05-26T12:00:00Z\n\n- completed with no errors\n"
+        `${RECENT_RUN_AT}\n\n- completed with no errors\n`
       ).lastRunFailed
     ).toBe(false);
 
     expect(
       parseCodexAutomationMemory(
-        "2026-05-26T12:00:00Z\n\n- ran without exceptions\n"
+        `${RECENT_RUN_AT}\n\n- ran without exceptions\n`
       ).lastRunFailed
     ).toBe(false);
 
     expect(
       parseCodexAutomationMemory(
-        "2026-05-26T12:00:00Z\n\n- encountered an exception\n"
+        `${RECENT_RUN_AT}\n\n- encountered an exception\n`
       ).lastRunFailed
     ).toBe(true);
+  });
+
+  it("uses the newest append-only memory run for timestamps and failure state (#881)", () => {
+    const memory = [
+      "# Lisa Build Intake Automation Memory",
+      "",
+      "- 2025-01-01T00:00:00Z: Completed successfully with no errors.",
+      `- ${RECENT_RUN_AT}: Latest run failed because GitHub auth crashed.`,
+      "",
+    ].join("\n");
+
+    expect(parseCodexAutomationMemory(memory)).toEqual({
+      lastRunAt: RECENT_RUN_AT,
+      lastRunSummary: `${RECENT_RUN_AT}: Latest run failed because GitHub auth crashed.`,
+      lastRunFailed: true,
+    });
   });
 
   it("inspects automation files read-only", async () => {
