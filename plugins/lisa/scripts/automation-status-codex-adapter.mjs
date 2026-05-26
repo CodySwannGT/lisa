@@ -1,0 +1,510 @@
+#!/usr/bin/env node
+/**
+ * Shared Codex runtime adapter for `/lisa:automation-status`.
+ *
+ * This adapter inspects the local Codex automation backing store read-only:
+ * the per-automation `automation.toml` contract plus the automation memory file
+ * used by recurring runs. It scopes the scan to the current repo's expected
+ * Lisa automation prefix, derives normalized command/cadence metadata, and
+ * overlays available recency/failure signals onto the shared fleet report
+ * contract.
+ */
+
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
+import { compareAutomationContract } from "./automation-status-contract-drift.mjs";
+
+const CODEx_RUNTIME_LABEL = "Codex automations";
+const RUN_FAILURE_PATTERN =
+  /\b(failed|failure|errored|error|exception|crash(?:ed)?)\b/i;
+const NEGATED_FAILURE_PATTERN =
+  /\b(no|without)\s+(?:recent\s+)?fail(?:ure|ed)\b/i;
+
+/**
+ * @typedef {import("./automation-status-expected-fleet.mjs").resolveExpectedAutomationFleet extends (...args: any[]) => infer T ? T : never} ExpectedFleet
+ *
+ * @typedef {{
+ *   readonly automationId: string
+ *   readonly status?: string
+ *   readonly prompt?: string
+ *   readonly observedCadence?: string
+ *   readonly observedRRule?: string
+ *   readonly observedCommand?: string
+ *   readonly cwd?: string | null
+ *   readonly createdAt?: number | null
+ *   readonly updatedAt?: number | null
+ *   readonly lastRunAt?: string | null
+ *   readonly lastRunSummary?: string | null
+ *   readonly lastRunFailed?: boolean
+ * }} ObservedCodexAutomation
+ */
+
+/**
+ * Inspect the current repo's Codex automation fleet and map it to the shared
+ * automation-status report contract.
+ *
+ * @param {{
+ *   readonly expectedFleet: ExpectedFleet
+ *   readonly automationsDir?: string
+ *   readonly now?: string | Date
+ * }} input
+ * @returns {Promise<{
+ *   readonly runtime: string
+ *   readonly generatedAt: string
+ *   readonly groups: readonly {
+ *     readonly id: string
+ *     readonly title: string
+ *     readonly items: readonly {
+ *       readonly id: string
+ *       readonly status: "HEALTHY" | "MISSING" | "UNSUPPORTED" | "DRIFTED" | "STALE" | "FAILING"
+ *       readonly summary: string
+ *       readonly expectedCadence?: string
+ *       readonly expectedCommand?: string
+ *       readonly observed?: string
+ *       readonly remediation?: string
+ *     }[]
+ *   }[]
+ *   readonly observedAutomations: readonly ObservedCodexAutomation[]
+ * }>}
+ */
+export async function inspectCodexAutomationFleet(input) {
+  const expectedFleet = input.expectedFleet;
+  const now = normalizeDate(input.now);
+  const observedAutomations = await listCodexAutomations({
+    automationsDir: input.automationsDir,
+    automationPrefix: expectedFleet.automationPrefix,
+  });
+
+  const expectedGroups = new Map([
+    ["core", []],
+    ["exploratory", []],
+  ]);
+
+  for (const expected of expectedFleet.expected) {
+    const comparison = compareAutomationContract({
+      expected,
+      observedAutomations,
+    });
+    expectedGroups.get(expected.group)?.push(
+      createObservedStatusItem({
+        expected,
+        comparison,
+        now,
+      })
+    );
+  }
+
+  for (const unsupported of expectedFleet.unsupported) {
+    expectedGroups.get(unsupported.group)?.push({
+      id: unsupported.automationId,
+      status: "UNSUPPORTED",
+      summary: unsupported.reason,
+      expectedCadence: unsupported.expectedCadence,
+      observed: "No automation is expected for this repo/runtime combination.",
+    });
+  }
+
+  return {
+    runtime: `${CODEx_RUNTIME_LABEL} (backing-store metadata)`,
+    generatedAt: now.toISOString(),
+    groups: [
+      {
+        id: "1",
+        title: "Core automations",
+        items: expectedGroups.get("core") ?? [],
+      },
+      {
+        id: "2",
+        title: "Exploratory automations",
+        items: expectedGroups.get("exploratory") ?? [],
+      },
+    ],
+    observedAutomations,
+  };
+}
+
+/**
+ * Read every Codex automation whose id matches the current repo's Lisa prefix.
+ *
+ * @param {{
+ *   readonly automationsDir?: string
+ *   readonly automationPrefix: string
+ * }} input
+ * @returns {Promise<readonly ObservedCodexAutomation[]>}
+ */
+export async function listCodexAutomations(input) {
+  const automationsDir =
+    input.automationsDir ?? resolveDefaultCodexAutomationsDir();
+  const dirEntries = await fs.readdir(automationsDir, {
+    withFileTypes: true,
+  });
+
+  const automationDirs = dirEntries
+    .filter(
+      entry =>
+        entry.isDirectory() && entry.name.startsWith(input.automationPrefix)
+    )
+    .map(entry => path.join(automationsDir, entry.name))
+    .sort((left, right) => left.localeCompare(right));
+
+  const automations = await Promise.all(
+    automationDirs.map(dir => readCodexAutomation(dir))
+  );
+
+  return automations.filter(Boolean);
+}
+
+/**
+ * Normalize a Lisa Codex automation prompt back into the slash-command surface
+ * expected by the shared drift classifier.
+ *
+ * @param {string | undefined} prompt
+ * @returns {string | undefined}
+ */
+export function deriveCodexObservedCommand(prompt) {
+  if (!prompt) {
+    return undefined;
+  }
+
+  const lisaSkillMatch = prompt.match(
+    /Use the Lisa ([a-z0-9:-]+) skill with arguments `([^`]+)`/i
+  );
+  if (lisaSkillMatch?.[1] && lisaSkillMatch[2]) {
+    return `/lisa:${lisaSkillMatch[1]} ${lisaSkillMatch[2]}`.trim();
+  }
+
+  const aliasSkillMatch = prompt.match(
+    /Use the `\$([a-z0-9:-]+)` skill with arguments `([^`]+)`/i
+  );
+  if (aliasSkillMatch?.[1] && aliasSkillMatch[2]) {
+    return `/${aliasSkillMatch[1]} ${aliasSkillMatch[2]}`.trim();
+  }
+
+  return undefined;
+}
+
+/**
+ * Parse the latest run metadata from an automation memory file.
+ *
+ * @param {string | undefined} memoryContent
+ * @returns {{
+ *   readonly lastRunAt: string | null
+ *   readonly lastRunSummary: string | null
+ *   readonly lastRunFailed: boolean
+ * }}
+ */
+export function parseCodexAutomationMemory(memoryContent) {
+  if (!memoryContent) {
+    return {
+      lastRunAt: null,
+      lastRunSummary: null,
+      lastRunFailed: false,
+    };
+  }
+
+  const timestampMatch = memoryContent.match(
+    /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/
+  );
+  const lines = memoryContent.split(/\r?\n/);
+  const summaryLine =
+    lines
+      .find(line => line.startsWith("- "))
+      ?.replace(/^- /, "")
+      .trim() ?? null;
+
+  const latestBlock = lines.slice(0, 20).join("\n");
+  const lastRunFailed =
+    RUN_FAILURE_PATTERN.test(latestBlock) &&
+    !NEGATED_FAILURE_PATTERN.test(latestBlock);
+
+  return {
+    lastRunAt: timestampMatch?.[0] ?? null,
+    lastRunSummary: summaryLine,
+    lastRunFailed,
+  };
+}
+
+async function readCodexAutomation(automationDir) {
+  const tomlPath = path.join(automationDir, "automation.toml");
+  const memoryPath = path.join(automationDir, "memory.md");
+  const tomlContent = await fs.readFile(tomlPath, "utf8");
+  const automation = parseAutomationToml(tomlContent);
+  const memoryContent = await fs.readFile(memoryPath, "utf8").catch(() => "");
+  const memory = parseCodexAutomationMemory(memoryContent);
+  const cwd = Array.isArray(automation.cwds) ? automation.cwds[0] : null;
+
+  return {
+    automationId:
+      stringOrUndefined(automation.id) ?? path.basename(automationDir),
+    status: stringOrUndefined(automation.status),
+    prompt: stringOrUndefined(automation.prompt),
+    observedCadence: humanizeAutomationCadence(
+      stringOrUndefined(automation.rrule)
+    ),
+    observedRRule: stringOrUndefined(automation.rrule),
+    observedCommand: deriveCodexObservedCommand(
+      stringOrUndefined(automation.prompt)
+    ),
+    cwd: typeof cwd === "string" ? cwd : null,
+    createdAt: numberOrNull(automation.created_at),
+    updatedAt: numberOrNull(automation.updated_at),
+    ...memory,
+  };
+}
+
+function createObservedStatusItem(input) {
+  const expected = input.expected;
+  const comparison = input.comparison;
+  const observed = comparison.observedAutomation;
+  const runSignal = classifyAutomationRunSignal({
+    expected,
+    observedAutomation: observed,
+    now: input.now,
+  });
+
+  const observedDetails = [comparison.observed];
+  if (observed?.status) {
+    observedDetails.push(`Scheduler status: ${observed.status}`);
+  }
+  if (observed?.lastRunAt) {
+    observedDetails.push(`Last run: ${observed.lastRunAt}`);
+  } else if (observed) {
+    observedDetails.push("Last run metadata unavailable.");
+  }
+  if (observed?.lastRunSummary) {
+    observedDetails.push(`Latest summary: ${observed.lastRunSummary}`);
+  }
+
+  const status =
+    runSignal?.status ??
+    /** @type {"HEALTHY" | "MISSING" | "DRIFTED"} */ (comparison.status);
+
+  return {
+    id: expected.automationId,
+    status,
+    summary: composeAutomationSummary({
+      comparison,
+      runSignal,
+    }),
+    expectedCadence: expected.expectedCadence,
+    expectedCommand: expected.expectedCommand,
+    observed: observedDetails.join(" "),
+    remediation: runSignal?.remediation ?? comparison.remediation,
+  };
+}
+
+function composeAutomationSummary(input) {
+  const comparisonSummary = input.comparison.summary;
+  if (!input.runSignal) {
+    return comparisonSummary;
+  }
+  if (input.comparison.status === "HEALTHY") {
+    return input.runSignal.summary;
+  }
+  return `${input.runSignal.summary}; ${comparisonSummary}`;
+}
+
+function classifyAutomationRunSignal(input) {
+  const observed = input.observedAutomation;
+  if (!observed) {
+    return null;
+  }
+
+  if (observed.status && observed.status !== "ACTIVE") {
+    return {
+      status: "FAILING",
+      summary: `scheduler entry is ${observed.status.toLowerCase()}`,
+      remediation: "Resume or re-enable the automation in Codex.",
+    };
+  }
+
+  if (observed.lastRunFailed) {
+    return {
+      status: "FAILING",
+      summary: "latest recorded run failed",
+      remediation:
+        "Inspect the latest automation run output and fix the failing job before re-running setup.",
+    };
+  }
+
+  if (!observed.lastRunAt) {
+    return null;
+  }
+
+  const cadenceMs =
+    rruleToIntervalMs(observed.observedRRule) ??
+    cadenceLabelToIntervalMs(input.expected.expectedCadence);
+  if (!cadenceMs) {
+    return null;
+  }
+
+  const lastRunAt = Date.parse(observed.lastRunAt);
+  if (Number.isNaN(lastRunAt)) {
+    return null;
+  }
+
+  const staleAfterMs = cadenceMs * 3;
+  if (input.now.getTime() - lastRunAt > staleAfterMs) {
+    return {
+      status: "STALE",
+      summary: `last recorded run is stale for the expected cadence`,
+      remediation:
+        "Inspect why the automation has not run recently, then resume normal scheduling or recreate it with `/lisa:setup-automations`.",
+    };
+  }
+
+  return null;
+}
+
+function resolveDefaultCodexAutomationsDir() {
+  return path.join(
+    process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex"),
+    "automations"
+  );
+}
+
+function humanizeAutomationCadence(rrule) {
+  if (!rrule) {
+    return undefined;
+  }
+  if (rrule === "FREQ=HOURLY;INTERVAL=1") {
+    return "every 60 minutes";
+  }
+  if (rrule === "FREQ=MINUTELY;INTERVAL=10") {
+    return "every 10 minutes";
+  }
+  if (rrule === "FREQ=DAILY;INTERVAL=1") {
+    return "once a day";
+  }
+
+  const everyMinutes = rrule.match(/^FREQ=MINUTELY;INTERVAL=(\d+)$/);
+  if (everyMinutes?.[1]) {
+    return `every ${everyMinutes[1]} minutes`;
+  }
+
+  const everyHours = rrule.match(/^FREQ=HOURLY;INTERVAL=(\d+)$/);
+  if (everyHours?.[1]) {
+    return `every ${Number(everyHours[1]) * 60} minutes`;
+  }
+
+  const everyDays = rrule.match(/^FREQ=DAILY;INTERVAL=(\d+)$/);
+  if (everyDays?.[1]) {
+    return Number(everyDays[1]) === 1
+      ? "once a day"
+      : `every ${everyDays[1]} days`;
+  }
+
+  return rrule;
+}
+
+function rruleToIntervalMs(rrule) {
+  if (!rrule) {
+    return null;
+  }
+
+  const minutely = rrule.match(/^FREQ=MINUTELY;INTERVAL=(\d+)$/);
+  if (minutely?.[1]) {
+    return Number(minutely[1]) * 60_000;
+  }
+
+  const hourly = rrule.match(/^FREQ=HOURLY;INTERVAL=(\d+)$/);
+  if (hourly?.[1]) {
+    return Number(hourly[1]) * 60 * 60_000;
+  }
+
+  const daily = rrule.match(/^FREQ=DAILY;INTERVAL=(\d+)$/);
+  if (daily?.[1]) {
+    return Number(daily[1]) * 24 * 60 * 60_000;
+  }
+
+  return null;
+}
+
+function cadenceLabelToIntervalMs(label) {
+  if (!label) {
+    return null;
+  }
+
+  const everyMinutes = label.match(/^every (\d+) minutes$/);
+  if (everyMinutes?.[1]) {
+    return Number(everyMinutes[1]) * 60_000;
+  }
+
+  if (label === "once a day") {
+    return 24 * 60 * 60_000;
+  }
+
+  return null;
+}
+
+function normalizeDate(value) {
+  if (value instanceof Date) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return new Date(value);
+  }
+  return new Date();
+}
+
+function stringOrUndefined(value) {
+  return typeof value === "string" ? value : undefined;
+}
+
+function numberOrNull(value) {
+  return typeof value === "number" ? value : null;
+}
+
+function parseAutomationToml(tomlContent) {
+  return tomlContent
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith("#"))
+    .reduce((parsed, line) => {
+      const separatorIndex = line.indexOf("=");
+      if (separatorIndex === -1) {
+        return parsed;
+      }
+
+      const key = line.slice(0, separatorIndex).trim();
+      const rawValue = line.slice(separatorIndex + 1).trim();
+
+      return {
+        ...parsed,
+        [key]: parseTomlValue(rawValue),
+      };
+    }, {});
+}
+
+function parseTomlValue(rawValue) {
+  if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+    return rawValue.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  }
+
+  if (rawValue.startsWith("[") && rawValue.endsWith("]")) {
+    const inner = rawValue.slice(1, -1).trim();
+    if (!inner) {
+      return [];
+    }
+    return inner
+      .split(",")
+      .map(value => parseTomlValue(value.trim()))
+      .filter(value => value !== undefined);
+  }
+
+  if (/^-?\d+$/.test(rawValue)) {
+    return Number(rawValue);
+  }
+
+  if (rawValue === "true") {
+    return true;
+  }
+
+  if (rawValue === "false") {
+    return false;
+  }
+
+  return rawValue;
+}
