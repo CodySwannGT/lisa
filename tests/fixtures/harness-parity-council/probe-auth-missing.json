@@ -1,0 +1,19 @@
+{
+  "runtime": "copilot",
+  "env": {},
+  "helpResult": {
+    "status": 1,
+    "stdout": "",
+    "stderr": "Authentication required. Please log in.\n"
+  },
+  "versionResult": {
+    "status": 0,
+    "stdout": "copilot-cli 0.9.0\n",
+    "stderr": ""
+  },
+  "expected": {
+    "available": true,
+    "authMissing": true,
+    "command": "copilot"
+  }
+}

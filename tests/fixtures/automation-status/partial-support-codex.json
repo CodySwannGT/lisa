@@ -1,0 +1,24 @@
+{
+  "runtime": "Codex automations (backing-store metadata)",
+  "generatedAt": "2026-05-26T12:00:00.000Z",
+  "groups": [
+    {
+      "id": "1",
+      "title": "Core automations",
+      "items": []
+    },
+    {
+      "id": "2",
+      "title": "Exploratory automations",
+      "items": [
+        {
+          "id": "lisa-auto-codyswanngt-mobile-exploratory-bugs",
+          "status": "UNSUPPORTED",
+          "summary": "This repository does not ship an exploratory-qa command surface.",
+          "expectedCadence": "once a day",
+          "observed": "No automation is expected for this repo/runtime combination."
+        }
+      ]
+    }
+  ]
+}

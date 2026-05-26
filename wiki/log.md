@@ -34,3 +34,31 @@
 - Refreshed the `git` source note with 47 new commits through `362e4bf1248d47e406b19d56f2d3d8b27e7740c9` and confirmed that `roles` still had no roster pages to ingest.
 - Skipped `memory` again because no provably project-scoped memory directory was available for this repository in the current runtime.
 - Updated the monorepo snapshot synthesis for the latest GitHub project-coordination, usage-accounting, intake-filtering, and release-history changes.
+
+## 2026-05-25 - Incremental connector ingest
+
+- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-25-3844`, and ran another full no-argument ingest against every enabled non-external-write connector that was available.
+- Refreshed the `git` source note with 65 new commits through `7a56fd065774adb22bcb7ff7857e1d89170f5f75`, advanced the merged-PR cursor to `#789`, and confirmed that `roles` still had no roster pages to ingest.
+- Skipped `memory` again because the only Codex memory store available in this runtime was the global `/Users/cody/.codex/memories`, which the project-scoped memory connector correctly refuses to ingest.
+- Updated the monorepo snapshot synthesis for the latest council-planning, doctor-surface, GitHub build-intake, and release-history changes.
+
+## 2026-05-26 - Incremental connector ingest
+
+- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-26-0130`, and ran another full no-argument ingest against every enabled non-external-write connector that was available.
+- Refreshed the `git` source note with 31 new commits through `ea144c8b5ffbc29d5f42f35ec6daa2d3bdcbaaeb`, advanced the merged-PR cursor to `#812`, and confirmed that `roles` still had no roster pages to ingest.
+- Skipped `memory` again because no provably project-scoped memory directory was available for this repository in the current runtime; the isolated worktree path had no matching project memory, and global Codex memory remains out of scope.
+- Updated the monorepo snapshot synthesis for the latest automation-status delivery, smoke coverage, operator documentation, and release-history changes.
+
+## 2026-05-26 - Incremental connector ingest
+
+- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-26-053019`, and ran another full no-argument ingest against every enabled non-external-write connector that was available.
+- Refreshed the `git` source note with 36 new commits through `c4879d40b123baf4f38d4c5530090b9003d4217a`, advanced the merged-PR cursor to `#837`, and confirmed that `roles` still had no roster pages to ingest.
+- Skipped `memory` again because no provably project-scoped memory directory was available for this repository in the current runtime; the isolated worktree path had no matching project memory, and global Codex memory remains out of scope.
+- Updated the monorepo snapshot synthesis for the latest queue-status delivery, repair-intake remediation, and release-history changes.
+
+## 2026-05-26 - Incremental connector ingest
+
+- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-26-093056`, and ran another full no-argument ingest against every enabled non-external-write connector that was available.
+- Refreshed the `git` source note with 60 new commits through `fd8db85fb79d5ea18628fdf071bbe761885d793f`, advanced the merged-PR cursor to `#905`, and confirmed that `roles` still had no roster pages to ingest.
+- Skipped `memory` again because only global Codex memory was available, and the connector refuses non-project-scoped memory.
+- Updated the monorepo snapshot synthesis for the latest intake-explain guidance, council and automation-status hardening, usage accounting fixes, and release-history changes.

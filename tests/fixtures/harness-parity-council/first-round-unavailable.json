@@ -1,0 +1,26 @@
+{
+  "runtime": "cursor",
+  "probe": {
+    "available": false,
+    "authMissing": null,
+    "helpProbe": {
+      "commandMissing": true,
+      "error": {
+        "code": "ENOENT",
+        "message": "cursor-agent not found"
+      }
+    },
+    "versionProbe": {
+      "commandMissing": true,
+      "error": {
+        "code": "ENOENT",
+        "message": "cursor-agent not found"
+      }
+    }
+  },
+  "result": null,
+  "expected": {
+    "status": "unavailable",
+    "unavailableReason": "command-missing"
+  }
+}

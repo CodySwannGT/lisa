@@ -146,6 +146,9 @@ Skills that link generated work to a PRD or roll a PRD up cite this rule by slug
 - **PRD coverage** (`prd-ticket-coverage`) — read the generated top-level child set deterministically from the recorded relationship, not from free-form comments.
 - **GitHub PRD closure rollup** (`github-prd-intake`) — detect terminal/incomplete/blocked child sets, transition to `prd-shipped`, and close the PRD issue when `prd.rollup.closeOnShipped` is configured. *(LPC-1.3 #583)*
 - **Linear / Confluence / Notion PRD rollup** (`linear-prd-intake`, `confluence-prd-intake`, `notion-prd-intake`) — mirror the GitHub closure rollup with each vendor's terminal predicate and close/archive support. *(LPC-1.3 #584)*
+- **Repair close-out** (`repair-intake`) — re-run the same generated-top-level-work terminal
+  predicate to close out PRDs that were left open after all associated child work became terminal,
+  without setting the product-owned `verified` role.
 - **Idempotency** (all of the above) — dedupe-by-ref linking and no-op already-shipped rollup. *(LPC-1.4 #585)*
 - **Vendor matrix documentation** — describe native-hierarchy vs documented-link fallback per supported vendor against this contract. *(LPC-1.5 #586)*
 

@@ -1,4 +1,7 @@
+/* eslint-disable max-lines -- Usage ledger parsing, rendering, and rollup helpers share one public utility surface. */
+
 import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
+import { sumNullableDecimals } from "./decimal-sum.js";
 
 export const LISA_USAGE_HEADING = "## Lisa Usage";
 
@@ -76,7 +79,11 @@ function parseNullableNumber(value: string): number | null {
   }
 
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid Lisa usage numeric token: ${value}`);
+  }
+
+  return parsed;
 }
 
 /**
@@ -90,7 +97,32 @@ function parseNullableString(value: string): string | null {
     return null;
   }
 
-  return value;
+  return decodeTokenValue(value);
+}
+
+/**
+ * Decode a percent-encoded token field.
+ *
+ * @param value Serialized token field.
+ * @returns The decoded token value, or the original value for legacy tokens.
+ */
+function decodeTokenValue(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Serialize a token field so whitespace, delimiters, and HTML comment endings
+ * cannot corrupt the machine-readable comment on the next parse.
+ *
+ * @param value String token value to render.
+ * @returns The percent-encoded token value.
+ */
+function encodeTokenValue(value: string): string {
+  return encodeURIComponent(value);
 }
 
 /**
@@ -100,7 +132,11 @@ function parseNullableString(value: string): string | null {
  * @returns The canonical string form used inside usage tokens.
  */
 function renderNullable(value: number | string | null): string {
-  return value === null ? "null" : String(value);
+  if (value === null) {
+    return "null";
+  }
+
+  return typeof value === "number" ? String(value) : encodeTokenValue(value);
 }
 
 /**
@@ -114,7 +150,18 @@ function parseCsv(value: string): readonly string[] {
     return [];
   }
 
-  return value.split(",");
+  return value.split(",").map(decodeTokenValue);
+}
+
+/**
+ * Serialize a list as a comma-delimited token field with each item encoded
+ * independently, so commas inside item values are preserved.
+ *
+ * @param values String values to serialize.
+ * @returns Encoded comma-delimited list.
+ */
+function renderCsv(values: readonly string[]): string {
+  return values.map(encodeTokenValue).join(",");
 }
 
 /**
@@ -251,7 +298,7 @@ export function createLisaUsageRollup(
 ): LisaUsageRollup {
   const directEntryIds = entries.map(entry => entry.entryId);
   const directTokens = sumNullable(entries.map(entry => entry.totalTokens));
-  const directCost = sumNullable(entries.map(entry => entry.cost));
+  const directCost = sumNullableDecimals(entries.map(entry => entry.cost));
   const hasChildArtifacts = childArtifacts !== undefined;
   const collectedChildArtifacts = collectLisaUsageChildArtifacts(
     childArtifacts ?? [],
@@ -267,10 +314,10 @@ export function createLisaUsageRollup(
     : (previousRollup?.childRefs ?? []);
   const childTokens = hasChildArtifacts
     ? sumNullable(dedupedChildEntries.map(entry => entry.totalTokens))
-    : (previousRollup?.childTokens ?? 0);
+    : (previousRollup?.childTokens ?? null);
   const childCost = hasChildArtifacts
-    ? sumNullable(dedupedChildEntries.map(entry => entry.cost))
-    : (previousRollup?.childCost ?? 0);
+    ? sumNullableDecimals(dedupedChildEntries.map(entry => entry.cost))
+    : (previousRollup?.childCost ?? null);
   const totalTokens =
     directTokens === null && childTokens === null
       ? null
@@ -278,7 +325,7 @@ export function createLisaUsageRollup(
   const totalCost =
     directCost === null && childCost === null
       ? null
-      : (directCost ?? 0) + (childCost ?? 0);
+      : sumNullableDecimals([directCost, childCost]);
   const currency =
     entries.find(entry => entry.currency !== null)?.currency ??
     dedupedChildEntries.find(entry => entry.currency !== null)?.currency ??
@@ -306,7 +353,7 @@ export function createLisaUsageRollup(
  * @returns The canonical `lisa:usage-entry` token line.
  */
 export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
-  return `<!-- lisa:usage-entry entry_id=${entry.entryId} flow=${entry.flow} run_id=${entry.runId} provider=${entry.provider} model=${entry.model} source=${entry.source} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${entry.pricingStatus} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${entry.artifactRef} parent_artifact_ref=${entry.parentArtifactRef ?? ""} -->`;
+  return `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
 }
 
 /**
@@ -316,7 +363,7 @@ export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
  * @returns The canonical `lisa:usage-rollup` token line.
  */
 export function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
-  return `<!-- lisa:usage-rollup direct_entry_ids=${rollup.directEntryIds.join(",")} child_entry_ids=${rollup.childEntryIds.join(",")} child_refs=${rollup.childRefs.join(",")} direct_tokens=${renderNullable(rollup.directTokens)} child_tokens=${renderNullable(rollup.childTokens)} total_tokens=${renderNullable(rollup.totalTokens)} direct_cost=${renderNullable(rollup.directCost)} child_cost=${renderNullable(rollup.childCost)} total_cost=${renderNullable(rollup.totalCost)} currency=${renderNullable(rollup.currency)} -->`;
+  return `<!-- lisa:usage-rollup direct_entry_ids=${renderCsv(rollup.directEntryIds)} child_entry_ids=${renderCsv(rollup.childEntryIds)} child_refs=${renderCsv(rollup.childRefs)} direct_tokens=${renderNullable(rollup.directTokens)} child_tokens=${renderNullable(rollup.childTokens)} total_tokens=${renderNullable(rollup.totalTokens)} direct_cost=${renderNullable(rollup.directCost)} child_cost=${renderNullable(rollup.childCost)} total_cost=${renderNullable(rollup.totalCost)} currency=${renderNullable(rollup.currency)} -->`;
 }
 
 /**
@@ -367,12 +414,12 @@ export function parseLisaUsageSection(
   const range = findUsageSectionRange(document);
   const section = range ? document.slice(range.start, range.end) : "";
   const entries = Array.from(section.matchAll(ENTRY_PATTERN), match => ({
-    entryId: match[1] ?? "",
-    flow: match[2] ?? "",
-    runId: match[3] ?? "",
-    provider: match[4] ?? "",
-    model: match[5] ?? "",
-    source: match[6] ?? "",
+    entryId: decodeTokenValue(match[1] ?? ""),
+    flow: decodeTokenValue(match[2] ?? ""),
+    runId: decodeTokenValue(match[3] ?? ""),
+    provider: decodeTokenValue(match[4] ?? ""),
+    model: decodeTokenValue(match[5] ?? ""),
+    source: decodeTokenValue(match[6] ?? ""),
     inputTokens: parseNullableNumber(match[7] ?? ""),
     cachedInputTokens: parseNullableNumber(match[8] ?? ""),
     outputTokens: parseNullableNumber(match[9] ?? ""),
@@ -380,9 +427,9 @@ export function parseLisaUsageSection(
     totalTokens: parseNullableNumber(match[11] ?? ""),
     cost: parseNullableNumber(match[12] ?? ""),
     currency: parseNullableString(match[13] ?? ""),
-    pricingStatus: match[14] ?? "",
+    pricingStatus: decodeTokenValue(match[14] ?? ""),
     pricingSource: parseNullableString(match[15] ?? ""),
-    artifactRef: match[16] ?? "",
+    artifactRef: decodeTokenValue(match[16] ?? ""),
     parentArtifactRef: parseNullableString(match[17] ?? ""),
   }));
 
@@ -427,8 +474,13 @@ export function upsertLisaUsageSection(
   const parsed = parseLisaUsageSection(document);
   const mergedEntries = mergeLisaUsageEntries(parsed.entries, input.entries);
   const rollup =
-    input.rollup ??
-    createLisaUsageRollup(mergedEntries, parsed.rollup, input.childArtifacts);
+    mergedEntries.length === 0 && input.rollup
+      ? input.rollup
+      : createLisaUsageRollup(
+          mergedEntries,
+          input.rollup ?? parsed.rollup,
+          input.childArtifacts
+        );
   const usageSection = renderLisaUsageSection({
     entries: mergedEntries,
     rollup,
@@ -445,3 +497,5 @@ export function upsertLisaUsageSection(
 
   return `${before}\n\n${usageSection}\n\n${after}\n`;
 }
+
+/* eslint-enable max-lines -- End usage accounting public utility surface. */

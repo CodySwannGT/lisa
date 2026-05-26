@@ -81,10 +81,17 @@ const readRule = (root: string): string =>
   readFileSync(path.resolve(root, RULE_NAME), "utf8");
 
 const renderValue = (value: number | string | null): string =>
-  value === null ? "null" : String(value);
+  value === null
+    ? "null"
+    : typeof value === "number"
+      ? String(value)
+      : encodeURIComponent(value);
+
+const renderCsv = (values: readonly string[]): string =>
+  values.map(value => encodeURIComponent(value)).join(",");
 
 const renderEntryToken = (entry: UsageEntry): string =>
-  `<!-- lisa:usage-entry entry_id=${entry.entryId} flow=${entry.flow} run_id=${entry.runId} provider=${entry.provider} model=${entry.model} source=${entry.source} input_tokens=${renderValue(entry.inputTokens)} cached_input_tokens=${renderValue(entry.cachedInputTokens)} output_tokens=${renderValue(entry.outputTokens)} reasoning_tokens=${renderValue(entry.reasoningTokens)} total_tokens=${renderValue(entry.totalTokens)} cost=${renderValue(entry.cost)} currency=${renderValue(entry.currency)} pricing_status=${entry.pricingStatus} pricing_source=${renderValue(entry.pricingSource)} artifact_ref=${entry.artifactRef} parent_artifact_ref=${entry.parentArtifactRef ?? ""} -->`;
+  `<!-- lisa:usage-entry entry_id=${encodeURIComponent(entry.entryId)} flow=${encodeURIComponent(entry.flow)} run_id=${encodeURIComponent(entry.runId)} provider=${encodeURIComponent(entry.provider)} model=${encodeURIComponent(entry.model)} source=${encodeURIComponent(entry.source)} input_tokens=${renderValue(entry.inputTokens)} cached_input_tokens=${renderValue(entry.cachedInputTokens)} output_tokens=${renderValue(entry.outputTokens)} reasoning_tokens=${renderValue(entry.reasoningTokens)} total_tokens=${renderValue(entry.totalTokens)} cost=${renderValue(entry.cost)} currency=${renderValue(entry.currency)} pricing_status=${encodeURIComponent(entry.pricingStatus)} pricing_source=${renderValue(entry.pricingSource)} artifact_ref=${encodeURIComponent(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeURIComponent(entry.parentArtifactRef)} -->`;
 
 const renderRollupToken = (
   directEntryIds: readonly string[],
@@ -93,7 +100,7 @@ const renderRollupToken = (
   totalTokens: number | null,
   totalCost: string | null
 ): string =>
-  `<!-- lisa:usage-rollup direct_entry_ids=${directEntryIds.join(",")} child_entry_ids=${childEntryIds.join(",")} child_refs=${childRefs.join(",")} direct_tokens=${DIRECT_TOKENS} child_tokens=${CHILD_TOKENS} total_tokens=${renderValue(totalTokens)} direct_cost=${DIRECT_COST} child_cost=${CHILD_COST} total_cost=${renderValue(totalCost)} currency=USD -->`;
+  `<!-- lisa:usage-rollup direct_entry_ids=${renderCsv(directEntryIds)} child_entry_ids=${renderCsv(childEntryIds)} child_refs=${renderCsv(childRefs)} direct_tokens=${DIRECT_TOKENS} child_tokens=${CHILD_TOKENS} total_tokens=${renderValue(totalTokens)} direct_cost=${DIRECT_COST} child_cost=${CHILD_COST} total_cost=${renderValue(totalCost)} currency=USD -->`;
 
 const renderSection = (entries: readonly UsageEntry[]): string => {
   const sorted = [...entries].sort((a, b) =>
@@ -144,9 +151,9 @@ const parseEntries = (section: string): readonly ParsedEntry[] => {
   let match = tokenPattern.exec(section);
   while (match !== null) {
     entries.push({
-      entryId: match[1] ?? "",
-      flow: match[2] ?? "",
-      source: match[3] ?? "",
+      entryId: decodeURIComponent(match[1] ?? ""),
+      flow: decodeURIComponent(match[2] ?? ""),
+      source: decodeURIComponent(match[3] ?? ""),
       totalTokens: match[4] ?? "",
     });
     match = tokenPattern.exec(section);
@@ -193,6 +200,7 @@ describe("usage-accounting contract docs", () => {
       expect(content).toMatch(/observed/i);
       expect(content).toMatch(/estimated/i);
       expect(content).toMatch(/unavailable/i);
+      expect(content).toMatch(/missing telemetry/i);
     });
 
     it("documents fixed-order usage-entry and usage-rollup tokens", () => {
@@ -200,12 +208,18 @@ describe("usage-accounting contract docs", () => {
       expect(content).toContain("<!-- lisa:usage-rollup");
       expect(content).toMatch(/Field order is fixed/i);
       expect(content).toMatch(/machine-readable summary/i);
+      expect(content).toMatch(/percent-encoded/i);
+      expect(content).toMatch(/commas inside an item are encoded/i);
     });
 
     it("documents rollup dedupe by stable entry_id", () => {
       expect(content).toMatch(/Dedupe strictly by stable `entry_id`/i);
       expect(content).toMatch(/Count each `entry_id` at most once/i);
       expect(content).toMatch(/Exclude descendant entries/i);
+      expect(content).toMatch(/child artifact A and child artifact B/i);
+      expect(content).toMatch(
+        /exclude that descendant copy from child totals/i
+      );
     });
 
     it("documents deterministic rewrite rules with no timestamps", () => {

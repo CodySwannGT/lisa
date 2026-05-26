@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-05-25T23:30:00.000Z",
+  "groups": [
+    {
+      "id": "1",
+      "title": "Project detection and runtime basics",
+      "checks": [
+        {
+          "id": "repo-root",
+          "status": "PASS",
+          "summary": "repository root resolved",
+          "observed": "package.json and .git are present at the working root."
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Lisa config readiness",
+      "checks": [
+        {
+          "id": "config-json",
+          "status": "FAIL",
+          "summary": ".lisa.config.json is missing",
+          "observed": "No committed Lisa config file was found in the repository root.",
+          "remediation": "Create .lisa.config.json with at least tracker and vendor keys before running Lisa workflows."
+        },
+        {
+          "id": "locality",
+          "status": "WARN",
+          "summary": "developer-local overrides cannot be merged without committed config",
+          "observed": ".lisa.config.local.json exists, but the shared project config is absent.",
+          "remediation": "Move shared fields into .lisa.config.json and keep only developer-specific keys in .lisa.config.local.json."
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Automation readiness",
+      "checks": [
+        {
+          "id": "intake-queue",
+          "status": "FAIL",
+          "summary": "build queue cannot be resolved",
+          "observed": "tracker is missing from merged config, so /lisa:intake build mode is ambiguous.",
+          "remediation": "Set tracker in .lisa.config.json before scheduling unattended intake."
+        }
+      ]
+    }
+  ]
+}

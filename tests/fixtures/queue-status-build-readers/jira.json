@@ -1,0 +1,54 @@
+{
+  "tracker": "jira",
+  "items": [
+    {
+      "id": "LAS-825",
+      "ref": "LAS-825",
+      "title": "Ready build item waiting for intake",
+      "url": "https://acme.atlassian.net/browse/LAS-825",
+      "role": "ready",
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "LAS-826",
+      "ref": "LAS-826",
+      "title": "Claimed build item still in flight",
+      "url": "https://acme.atlassian.net/browse/LAS-826",
+      "role": "claimed",
+      "createdAt": "2026-05-24T10:00:00Z"
+    },
+    {
+      "id": "LAS-827",
+      "ref": "LAS-827",
+      "title": "Blocked build item needs clarification",
+      "url": "https://acme.atlassian.net/browse/LAS-827",
+      "role": "blocked",
+      "createdAt": "2026-05-23T10:00:00Z"
+    },
+    {
+      "id": "LAS-828",
+      "ref": "LAS-828",
+      "title": "Stalled claimed build item",
+      "url": "https://acme.atlassian.net/browse/LAS-828",
+      "role": "claimed",
+      "createdAt": "2026-05-22T10:00:00Z",
+      "stalled": true
+    },
+    {
+      "id": "LAS-829",
+      "ref": "LAS-829",
+      "title": "Reviewing build item",
+      "url": "https://acme.atlassian.net/browse/LAS-829",
+      "role": "review",
+      "createdAt": "2026-05-21T10:00:00Z"
+    },
+    {
+      "id": "LAS-830",
+      "ref": "LAS-830",
+      "title": "Done build item on production",
+      "url": "https://acme.atlassian.net/browse/LAS-830",
+      "role": "done",
+      "createdAt": "2026-05-20T10:00:00Z"
+    }
+  ]
+}

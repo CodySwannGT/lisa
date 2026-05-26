@@ -1,14 +1,14 @@
 ---
 name: repair-intake
-description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck: items left in `blocked`, or stalled in an in-progress role (build `claimed`, PRD `in_review`) after a processing cycle died and nobody picked it back up. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates stuck candidates, and repairs the first materially actionable one per cycle: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline), re-validates blocked PRDs when new clarifying answers exist, and re-dispatches blocked build items whose `is blocked by` dependencies have since closed. One actionable repair per invocation, idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `shipped`, `verified`) and never closes PRDs. Designed as a /schedule cron target running alongside lisa:intake."
+description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck or was left half-closed: items left in `blocked`, stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items that are still natively open, and rollup/container items whose children are all terminal but whose parent is not closed out. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates candidates up to `max_candidates`, and repairs every materially actionable one in that bounded set: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline), re-validates blocked PRDs when new clarifying answers exist, re-dispatches blocked build items whose `is blocked by` dependencies have since closed, performs terminal native closure for terminal-labeled items, and closes rollups whose associated child work is fully terminal. Idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `verified`) and never touches `ready` items. Designed as a /schedule cron target running alongside lisa:intake."
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "mcp__linear-server__list_teams", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label"]
 ---
 
 # Repair Intake: $ARGUMENTS
 
 Run one batch-**repair** cycle against the queue identified by `$ARGUMENTS`. Where `lisa:intake`
-scans the `ready` role and moves work *forward*, repair-intake scans the **stuck** roles and
-moves work *unstuck*:
+scans the `ready` role and moves work *forward*, repair-intake scans the **stuck and
+close-out** roles and moves work *unstuck* or *fully closed*:
 
 - **Stalled in-progress** — an item left in an in-progress role (build `claimed`, PRD
   `in_review`) whose processing cycle died. It is technically "being worked" but nothing is
@@ -18,12 +18,19 @@ moves work *unstuck*:
 - **Recoverable blocked** — an item in `blocked` whose blocker may now be gone: an
   `is blocked by` dependency has since closed, clarifying questions have been answered, or
   research/waiting resolves the ambiguity that stopped it.
+- **Terminal-open drift** — an item already carrying its true terminal lifecycle role (for
+  example GitHub `status:done`) but still open/active in the provider's native state.
+- **Completed rollup drift** — a parent/container item (Epic, Story, PRD, Linear Project, or
+  equivalent) whose associated child set is fully terminal but whose own lifecycle/native state has
+  not been closed out.
 
 This skill is the symmetric counterpart to `lisa:intake`. It reuses the same queue-detection,
 the same agent-team orchestration, the same "don't ask, just run" confirmation policy, and the
 same per-item surfaces the vendor intakes use (`lisa:<source>-to-tracker` dry-run for PRDs;
-`lisa:<tracker>-agent` + the scanner's lifecycle transitions for build) — it differs only in
-*which roles it scans* and *that it skips the claim step* (the item is already claimed/blocked).
+`lisa:<tracker>-agent` + the scanner's lifecycle transitions for build) — it differs in *which
+roles it scans* and, for stalled/blocked work, *that it skips the claim step* (the item is already
+claimed/blocked). Close-out candidates do not dispatch agents; they only reconcile terminal
+lifecycle state with provider-native closure and rollup state.
 
 ## Public contract
 
@@ -34,9 +41,9 @@ same per-item surfaces the vendor intakes use (`lisa:<source>-to-tracker` dry-ru
 | Token | Meaning | Default |
 |-------|---------|---------|
 | `<queue>` | Same queue identifier `lisa:intake` accepts (see Source dispatch). Required. | — |
-| `intake_mode` | `prd` \| `build` \| `both`. Only meaningful for a GitHub `org/repo` (or bare `github`) that hosts both PRD and build label namespaces. `both` is unique to repair — a repair sweep usefully covers both lifecycles in one schedule. Absent → prefer PRD when both namespaces exist, else whichever exists (matches `lisa:intake`). | (infer) |
+| `intake_mode` | `prd` \| `build` \| `both`. Only meaningful for a GitHub `org/repo` (or bare `github`) that hosts both PRD and build label namespaces. `both` is unique to repair — a repair sweep usefully covers both lifecycles in one schedule. Absent → `both` when both namespaces exist, else whichever lifecycle exists. | `both` for dual GitHub queues; otherwise infer |
 | `stale_after` | How long with no observable activity before an in-progress item counts as stalled. Accepts `24h`, `90m`, `2d`, or `0` (treat any in-progress item as stalled — manual recovery, also the only way to resume work on a provider that exposes no reliable timestamp). Overrides config. | `24h` |
-| `max_candidates` | Cap on how many stuck items to enumerate while looking for the first actionable one. Bounds scan cost. Overrides config. | `100` |
+| `max_candidates` | Cap on how many stuck/close-out candidates to enumerate and evaluate. Repair every materially actionable candidate within this bounded set, then stop. Overrides config. | `100` |
 | `force` | `true` bypasses the loop-prevention backoff window (so a manual re-run re-attempts items even if their fingerprint is unchanged). It does **not** change the staleness rule — use `stale_after=0` for that. | `false` |
 
 ## Confirmation policy
@@ -54,8 +61,9 @@ Specifically forbidden:
 - Pausing because many items are stuck, an item looks complex, or a repair is likely to land
   the item back in `blocked`. Returning an item to `blocked` with a current, accurate note is a
   valid outcome of the repair lifecycle, not a failure.
-- Pausing because a re-dispatch looks expensive. The cost of one cycle is bounded (one
-  actionable repair); the cost of stalling a scheduled cron waiting on a human is unbounded.
+- Pausing because a re-dispatch looks expensive. The cost of one cycle is bounded by
+  `max_candidates` and the actionable subset inside that cap; the cost of stalling a scheduled
+  cron waiting on a human is unbounded.
 
 The only legitimate reasons to stop early:
 
@@ -63,7 +71,8 @@ The only legitimate reasons to stop early:
   missing value and exit.
 - The queue itself is misconfigured (Status property missing expected values, JIRA workflow
   can't reach required transitions). Surface and exit.
-- No stuck items, or none actionable this cycle. Exit cleanly with the idle-case summary.
+- No stuck/close-out candidates, or none actionable this cycle. Exit cleanly with the idle-case
+  summary.
 
 ## Orchestration: agent team
 
@@ -107,16 +116,16 @@ rules as `lisa:intake`** — read that skill's "Source dispatch" section for the
 table; the detection is identical and only the per-item action changes (repair instead of
 claim-and-advance). The essentials, inlined here so this skill is self-complete:
 
-| If `$ARGUMENTS` is... | Queue / lifecycle | Source/tracker key | Stuck roles repaired |
+| If `$ARGUMENTS` is... | Queue / lifecycle | Source/tracker key | Candidates repaired |
 |------------------------|-------------------|--------------------|----------------------|
-| Notion **database** URL/ID | PRD (Notion) | source=notion | `in_review`, `blocked` |
-| Confluence **space** URL/key | PRD (Confluence) | source=confluence | `in_review`, `blocked` (parent-page roles) |
-| Confluence **parent page** URL/ID | PRD (Confluence, narrowed) | source=confluence | `in_review`, `blocked` |
-| Linear **workspace** URL, **team** URL/key, or literal `linear` | PRD (Linear) | source=linear | `in_review`, `blocked` (project labels) |
-| GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked` (PRD labels) |
-| GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked` (build labels) |
+| Notion **database** URL/ID | PRD (Notion) | source=notion | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| Confluence **space** URL/key | PRD (Confluence) | source=confluence | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| Confluence **parent page** URL/ID | PRD (Confluence, narrowed) | source=confluence | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| Linear **workspace** URL, **team** URL/key, or literal `linear` | PRD (Linear) | source=linear | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked`, terminal/open issues, all-terminal parent rollups |
 | Literal `github` | GitHub; route by `intake_mode` (`prd` / `build` / `both`) | per lifecycle | per lifecycle above |
-| JIRA project key or full JQL | Build (JIRA) | tracker=jira | `claimed`, `blocked` (statuses) |
+| JIRA project key or full JQL | Build (JIRA) | tracker=jira | `claimed`, `blocked`, terminal/closure verification, all-terminal parent rollups |
 
 Disambiguation (same as `lisa:intake`): a `notion.so`/`notion.site` URL → Notion; an Atlassian
 `/wiki/spaces/<KEY>` URL → Confluence (with `/pages/<id>` → parent-page narrowing); a
@@ -127,17 +136,17 @@ URL is out of scope** — this skill is batch-only; repair one item by hand via 
 (build) or by re-running `lisa:<source>-to-tracker` (PRD).
 
 Role names for every vendor are resolved from `.lisa.config.json` per the `config-resolution`
-rule — never hardcode status/label strings. The relevant stuck roles:
+rule — never hardcode status/label strings. The relevant repair roles:
 
-| Lifecycle | Vendor | In-progress role key | Blocked role key |
-|-----------|--------|----------------------|------------------|
-| Build | JIRA | `jira.workflow.claimed` (`In Progress`) | `jira.workflow.blocked` (`Blocked`) |
-| Build | GitHub | `github.labels.build.claimed` (`status:in-progress`) | `github.labels.build.blocked` (`status:blocked`) |
-| Build | Linear | `linear.labels.build.claimed` (`status:in-progress`) | `linear.labels.build.blocked` (`status:blocked`) |
-| PRD | Notion | `notion.values.in_review` (`In Review`) | `notion.values.blocked` (`Blocked`) |
-| PRD | GitHub | `github.labels.prd.in_review` (`prd-in-review`) | `github.labels.prd.blocked` (`prd-blocked`) |
-| PRD | Linear | `linear.labels.prd.in_review` (`prd-in-review`) | `linear.labels.prd.blocked` (`prd-blocked`) |
-| PRD | Confluence | `confluence.parents.in_review` (page id) | `confluence.parents.blocked` (page id) |
+| Lifecycle | Vendor | In-progress role key | Blocked role key | Terminal / rollup role key |
+|-----------|--------|----------------------|------------------|----------------------------|
+| Build | JIRA | `jira.workflow.claimed` (`In Progress`) | `jira.workflow.blocked` (`Blocked`) | env-resolved `jira.workflow.done` |
+| Build | GitHub | `github.labels.build.claimed` (`status:in-progress`) | `github.labels.build.blocked` (`status:blocked`) | env-resolved `github.labels.build.done` (`status:done`) |
+| Build | Linear | `linear.labels.build.claimed` (`status:in-progress`) | `linear.labels.build.blocked` (`status:blocked`) | env-resolved `linear.labels.build.done` (`status:done`) |
+| PRD | Notion | `notion.values.in_review` (`In Review`) | `notion.values.blocked` (`Blocked`) | `notion.values.shipped` (`Shipped`) |
+| PRD | GitHub | `github.labels.prd.in_review` (`prd-in-review`) | `github.labels.prd.blocked` (`prd-blocked`) | `github.labels.prd.shipped` (`prd-shipped`) |
+| PRD | Linear | `linear.labels.prd.in_review` (`prd-in-review`) | `linear.labels.prd.blocked` (`prd-blocked`) | `linear.labels.prd.shipped` (`prd-shipped`) |
+| PRD | Confluence | `confluence.parents.in_review` (page id) | `confluence.parents.blocked` (page id) | `confluence.parents.shipped` (page id) |
 
 Resolve with the standard role-read pattern (local overrides global, default fallback):
 
@@ -159,13 +168,13 @@ BLOCKED=$(read_role '.github.labels.build.blocked' 'status:blocked')
 repair-intake stays vendor-neutral; concrete reads/writes go through the same layers the vendor
 intakes use. Never call Atlassian MCP or `acli` directly — go through `lisa:atlassian-access`.
 
-| Vendor | Reads (scan / comments / links) | Writes (transition / comment) | Re-dispatch / re-validate |
+| Vendor | Reads (scan / comments / links) | Writes (transition / comment / close-out) | Re-dispatch / re-validate |
 |--------|---------------------------------|-------------------------------|---------------------------|
 | JIRA (build) | `lisa:atlassian-access` `search-issues` / `lisa:jira-read-ticket` | `lisa:atlassian-access` `transition` / `comment` | `lisa:jira-agent` |
-| GitHub (build) | `gh issue list` / `gh issue view --json` / `gh pr list` | `gh issue edit` (labels) / `gh issue comment` | `lisa:github-agent` |
+| GitHub (build) | `gh issue list` / `gh issue view --json` / `gh pr list` / GraphQL sub-issues | `gh issue edit` (labels) / `gh issue comment` / `gh issue close --reason completed` | `lisa:github-agent` |
 | Linear (build) | Linear MCP `list_issues` / `get_issue` / `list_comments` | Linear MCP `save_issue` (labels) / `save_comment` | `lisa:linear-agent` |
 | Notion (PRD) | `lisa:notion-access` (`query`, page comments) | `lisa:notion-access` `write-page` (status) / page comment | `lisa:notion-to-tracker` (dry-run) |
-| GitHub (PRD) | `gh issue list/view` (PRD labels) | `gh issue edit` / `gh issue comment` | `lisa:github-to-tracker` (dry-run) |
+| GitHub (PRD) | `gh issue list/view` (PRD labels) / GraphQL sub-issues / generated-work section | `gh issue edit` / `gh issue comment` / `gh issue close --reason completed` | `lisa:github-to-tracker` (dry-run) |
 | Linear (PRD) | Linear MCP `list_projects` / `get_project` (+ sentinel feedback issue) | Linear MCP `save_project` (labels) / `save_comment` | `lisa:linear-to-tracker` (dry-run) |
 | Confluence (PRD) | `lisa:atlassian-access` CQL | `lisa:atlassian-access` page `parentId` update / comment | `lisa:confluence-to-tracker` (dry-run) |
 
@@ -207,9 +216,10 @@ proceeds — it is judged on blocker state, not time.)
 
 ## Repair decision tree
 
-Apply per candidate. Stop the cycle after the **first** candidate that triggers a write
-(lifecycle transition, re-dispatch, or refreshed note). Everything examined before it is
-recorded read-only.
+Apply per candidate. Continue through the ordered list until every candidate inside the
+`max_candidates` cap has been evaluated. Each candidate may trigger a write (lifecycle transition,
+native close/archive/complete, re-dispatch, or refreshed note), be recorded read-only, or be
+recorded under Errors. Do not stop after the first write; the cap is the batch boundary.
 
 ### Build `claimed` (stalled in-progress) → resume in place
 
@@ -244,6 +254,45 @@ skipping the claim transition (the item is already `claimed`):
 4. Else → still blocked. Refresh the note with the current reason (Loop prevention) and leave it
    `blocked`.
 
+### Build terminal-open → native close / complete / resolve
+
+For each build item that already carries the env-resolved true terminal `done` role but is still
+native-open / active / unresolved:
+
+1. Verify the item is a **leaf** or a **rollup parent whose all required children are terminal**.
+   If it is a parent with incomplete children, do not close it; refresh a `[lisa-repair-intake]`
+   note naming the incomplete child set.
+2. Verify the terminal `done` role is the true final value per `leaf-only-lifecycle` and
+   `config-resolution` env-keyed `done`. Intermediate env labels (for example `status:on-dev` or
+   `status:on-stg`) are not terminal and must stay open.
+3. Perform the provider-native terminal action idempotently:
+   - GitHub: `gh issue close <number> --repo <org>/<repo> --reason completed`.
+   - Linear: move the issue to the configured Done / Completed native workflow state if available;
+     otherwise record the missing native state as a setup error.
+   - JIRA: verify it is resolved / closed (`statusCategory = Done`, resolution set if required);
+     if not, transition through the configured terminal workflow path or report the missing setup.
+4. Post a compact `[lisa-repair-intake]` note only when the native close-out changed state or when
+   an actionable setup error must be surfaced. Do not spam already-closed terminal items.
+
+### Build rollup with all children terminal → close out parent/container
+
+For each parent/container item (Epic, Story, Spike, Project, or any item with child work) whose
+required child set is fully terminal:
+
+1. Read the child set using the vendor-native hierarchy first (GitHub sub-issues, JIRA
+   Epic/parent/sub-task hierarchy, Linear project/parent/sub-issues), with the same fallbacks the
+   vendor read/sync skills document.
+2. Evaluate bottom-up per `leaf-only-lifecycle`: every required child must already be terminal.
+   Optional / won't-do / not-planned children are terminal-but-dropped and do not hold the parent
+   open.
+3. Apply the configured terminal rollup role to the parent/container, removing any stale build
+   lifecycle role that conflicts.
+4. Immediately perform terminal native closure where the provider supports it (GitHub close,
+   Linear complete, JIRA resolved/closed). A completed rollup parent should not remain open in
+   GitHub merely because no leaf agent touched it.
+5. If any required child is incomplete, active, blocked, or inaccessible, leave the parent open and
+   record it as `still_blocked` or `active` with the current child tally.
+
 ### PRD `in_review` (stalled in-progress) → re-run validate→route
 
 After the staleness gate passes, run the **same dry-run validate→route pipeline the vendor PRD
@@ -275,6 +324,40 @@ intake runs per item**, targeted at this single PRD and **skipping the claim** (
    `blocked`.
 3. If no new answers and no dependency change → leave `blocked` untouched (subject to the
    backoff window — do not re-post an identical note).
+
+### PRD terminal-open → close / archive source artifact
+
+For each PRD source artifact that already carries the configured terminal source role (`shipped`
+for generated-work completion, or a source-specific terminal role that the configured PRD source
+declares closed-out) but is still native-open / active:
+
+1. Verify the PRD's generated top-level work is terminal per `prd-lifecycle-rollup`, unless the
+   source artifact is already in a stronger product-owned terminal role that explicitly permits
+   closure. Do not move a PRD out of `draft` or `verified`.
+2. Close or archive through the source vendor's native mechanism where one exists:
+   - GitHub: close the PRD issue with `--reason completed`.
+   - Linear: archive/close the PRD project through Linear MCP when supported by the workspace.
+   - Confluence/Notion: archive the page only when the access layer exposes a supported archival
+     action; otherwise record a capability-aware no-op.
+3. Never set `verified`; `/lisa:verify-prd` remains the only automated writer of the verified
+   role. This path only reconciles an already-terminal PRD with native closure.
+
+### PRD rollup with all generated work terminal → ship and close out
+
+For each PRD in `ticketed` or another non-product-owned open PRD role whose generated top-level
+work is fully terminal:
+
+1. Read the generated top-level child set exactly as `prd-ticket-coverage` / the vendor PRD intake
+   does: native PRD children where supported, plus the durable generated-work section fallback.
+2. Evaluate terminal state using `prd-lifecycle-rollup`'s vendor predicate. A generated Epic or
+   Story is terminal only when it has itself rolled up and closed out; do not re-derive its leaf
+   descendants directly when its own state is still open.
+3. Transition the PRD to the configured `shipped` role.
+4. Close/archive the PRD source artifact through the vendor-native close-out mechanism where
+   supported. This repair path is the explicit close-out sweep for PRDs whose child work is done;
+   it does not set `verified` and does not run `/lisa:verify-prd`.
+5. If generated work is missing, ambiguous, or partially incomplete, leave the PRD open and report
+   the incomplete child set. Never close a PRD on partial completion.
 
 ## Dependency clearing (conservative, vendor-specific extraction)
 
@@ -308,7 +391,7 @@ cron tick.
 
 - Every note this skill writes is prefixed `[lisa-repair-intake]` and carries a compact **state
   fingerprint**: the lifecycle role, the set of blocker refs + their observed states, the
-  validation verdict (PASS/FAIL), and a timestamp.
+  validation verdict (PASS/FAIL), terminal/open state, rollup child tally, and a timestamp.
 - Before writing a note or re-attempting a `blocked` item, compute the current fingerprint. If
   an identical fingerprint was already posted within the **backoff window**, skip the item
   silently (record as `still_blocked` / `active`, no write).
@@ -318,18 +401,24 @@ cron tick.
 
 ## Lifecycle ownership guard
 
-repair-intake owns ONLY the four stuck roles: build `claimed` / `blocked` and PRD `in_review` /
-`blocked`, plus the transitions a stuck item legitimately moves through during recovery. It MAY:
+repair-intake owns the repair surfaces needed to recover stuck work and close-out drift:
+build `claimed` / `blocked`, PRD `in_review` / `blocked`, terminal-labeled native-open items, and
+parent/container rollups whose child sets are already terminal. It MAY:
 
 - Apply the build scanner's post-agent `claimed → done` on a successful resume (it is finishing
   the scanner's interrupted job), and move a dependency-cleared build item `blocked → claimed`.
 - Move a re-validated PRD `in_review`/`blocked → ticketed` (PASS) or `→ blocked` (FAIL), exactly
   as the PRD intake does.
+- Close / complete / resolve build items that already carry the true terminal `done` role but are
+  still natively open, per `leaf-only-lifecycle`.
+- Roll up a parent/container to the configured terminal state and close/complete/resolve it when
+  all required children are terminal.
+- Move a PRD with fully terminal generated work to `shipped` and close/archive the source artifact
+  where the source vendor supports native close-out, per `prd-lifecycle-rollup`.
 
 It MUST NOT:
 
-- Move a PRD out of `draft`, `shipped`, or `verified`, or close/archive any PRD (those are
-  product- and rollup-owned — see `prd-lifecycle-rollup`).
+- Move a PRD out of `draft` or `verified` (those are product-owned), or set `verified` itself.
 - Apply a build `done` value other than via the env-resolution rules, or close a native item at
   any value other than the true terminal `done` (see `leaf-only-lifecycle`).
 - Touch `ready` items (that is `lisa:intake`'s lane).
@@ -338,23 +427,27 @@ It MUST NOT:
 
 1. **Resolve the queue** — detect vendor/lifecycle (Source dispatch); resolve stuck role names
    from config. For JIRA, confirm the needed transitions are reachable; stop on misconfig.
-2. **Enumerate stuck candidates** — query the in-progress role(s) and the `blocked` role for the
-   detected lifecycle(s), up to `max_candidates`, via the Access layer reads.
+2. **Enumerate repair candidates** — query in-progress role(s), `blocked` role(s), terminal/open
+   items, and rollup parents/PRDs with child work for the detected lifecycle(s), up to
+   `max_candidates`, via the Access layer reads.
 3. **Order deterministically**, highest repair-confidence first:
-   1. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
-   2. `blocked` items with **new clarifying answers**,
-   3. **stalled** in-progress items, oldest activity first.
-4. **Walk the ordered list**, evaluating each read-only (staleness, dependency, answer checks),
-   and **repair the first candidate that is actionable** per the decision tree. Stop after that
-   one write-producing repair.
+   1. terminal-labeled items that only need native close / complete / resolve,
+   2. rollup parents/PRDs whose child sets are all terminal,
+   3. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
+   4. `blocked` items with **new clarifying answers**,
+   5. **stalled** in-progress items, oldest activity first.
+4. **Walk the ordered list**, evaluating each candidate (terminal close-out, rollup child tally,
+   staleness, dependency, answer checks), and repair **every** candidate that is actionable inside
+   the `max_candidates` cap. Continue after successful writes and after per-item errors.
 5. **Empty / nothing actionable** → exit cleanly:
    `"No stuck items actionable this cycle (examined N, all active or in backoff)."`
 6. **Failure isolation** — if evaluating one candidate errors, record it under Errors and
    continue to the next; one bad item never aborts the cycle.
 
-Process **at most one materially actionable repair per invocation** — scan many, repair one,
-exit. This matches `lisa:intake`'s one-item-per-cycle contract: bounded cost, low race risk, no
-surprise burst of PRs. Throughput is the scheduler's job, not one invocation's.
+Process **all materially actionable repairs among the enumerated candidates** — scan up to
+`max_candidates`, repair the actionable subset, then exit. This intentionally differs from
+`lisa:intake`'s one-ready-item claim contract because repair work is bounded by an explicit cap and
+often consists of cheap close-out reconciliation that should drain in one cron pass.
 
 ## Summary report
 
@@ -363,11 +456,16 @@ Report outcomes in these buckets:
 - `resumed` — stalled in-progress work re-dispatched in place.
 - `unblocked` — blocker cleared (or answers resolved); re-dispatched or transitioned to
   `ticketed`.
+- `closed_out` — terminal-labeled items whose native open/active state was closed, completed,
+  resolved, or archived.
+- `rolled_up` — parent/container/PRD rollups advanced because all associated children were
+  terminal.
 - `still_blocked` — examined and intentionally left `blocked`, with the active reason.
 - `active` — skipped because current work is not stale (or within backoff).
 - `errors` — items that failed evaluation, with the error.
 
-State the single item repaired this cycle (if any) and what action was taken.
+State every item repaired this cycle and the action taken. If the output would be long, group by
+bucket and show compact refs plus counts.
 
 ## Schedule examples
 
@@ -388,13 +486,15 @@ stuck work accumulates), or interleaved on a longer cadence.
 
 - Never run a cycle without an explicit queue. Side effects too high to default.
 - Never reset stalled in-progress items to `ready` — resume in place (decision tree).
-- Never mutate product-owned states (`draft`, `shipped`, `verified`) or close PRDs (Lifecycle
-  ownership guard).
+- Never mutate product-owned states (`draft`, `verified`) or set `verified`; PRD rollup close-out
+  may move open generated-work PRDs to `shipped` and close/archive them only after all associated
+  child work is terminal.
 - Apply build `done` ONLY via the env-resolution rules, and trigger native closure only at the
   true terminal `done` value (`leaf-only-lifecycle`).
 - Never re-dispatch a `blocked` build item unless every parsed blocker is cleared (conservative
   dependency clearing).
-- One materially actionable repair per cycle. Stop after the first write-producing repair.
+- Repair every materially actionable candidate inside the `max_candidates` cap; default cap is 100.
+- Default GitHub `intake_mode` is `both` when both PRD and build namespaces exist.
 - Honor the backoff window — never re-post an identical `[lisa-repair-intake]` note within it
   (unless `force=true`).
 - Never run two repair cycles concurrently against overlapping queues, and never run

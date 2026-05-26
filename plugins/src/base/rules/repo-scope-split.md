@@ -47,7 +47,7 @@ Resolve the current repo per the `config-resolution` "Repo scoping" section (con
 
 **Cost.** Only **unlabeled** candidates need content determination; once stamped, wrong-repo candidates are skipped by label alone. Prefer candidates already labeled `repo:<current>` first (cheap claim), falling through to unlabeled candidates (determine + stamp) only when no pre-labeled current-repo leaf is ready.
 
-A container (Epic/Story/Spike) is handled by the leaf-only gate, not here — containers may span repos and are never claimed/built directly.
+A container (Epic/Story/Spike) is handled by the leaf-only gate, not here — containers may span repos, may keep multiple `repo:<name>` labels for visibility, and are never claimed/built directly. Only a leaf work unit is split or skipped by repo scope.
 
 ## Vendor mechanics
 

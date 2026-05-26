@@ -20,19 +20,19 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-25-2` from `origin/main`
-- HEAD at 2026-05-25 incremental ingest: `362e4bf1248d47e406b19d56f2d3d8b27e7740c9`
-- Current package version: `2.74.0`
-- Total commits on HEAD: 1888
-- Latest merged PR captured in the incremental git snapshot: `#740`
-- New commits since the previous incremental git cursor: `47`
+- Ingest branch: `wiki/ingest-2026-05-26-093056` from `origin/main`
+- HEAD at 2026-05-26 incremental ingest: `fd8db85fb79d5ea18628fdf071bbe761885d793f`
+- Current package version: `2.100.1`
+- Total commits on HEAD: 2080
+- Latest merged PR captured in the incremental git snapshot: `#905`
+- New commits since the previous incremental git cursor: `60`
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Wiki operations now include native automation setup and teardown flows, and the first wiki ingest PR has merged back to `main` as part of the standing branch-sync and auto-merge workflow.
-- GitHub project coordination coverage expanded across project configuration, validation modes, project-v2 utility contracts, writer coordination, linked-PR membership, and multi-repo container preservation.
-- Usage accounting coverage landed across shared contract docs, idempotent utilities, writer preservation, and research-plan plus debrief usage ledgers.
-- Intake behavior added repo-local assignee queue filtering while release automation continued to publish rapid follow-on versions through `2.74.0`.
+- Intake-explain guidance expanded across scaffold, output contract, ownership readiness, contract resolution, build gates, and operator documentation.
+- Council and automation-status handling hardened around policy inputs, executor failures, missing flag values, and negated failure classification.
+- Usage accounting now preserves decimal cost totals, rejects invalid numeric tokens, keeps token serialization reversible, and recomputes merged usage rollups.
+- Release automation continued its rapid cadence, advancing the monorepo from `2.98.1` through `2.100.1` during this incremental window.
 
 ## Workspace Packages
 
@@ -47,4 +47,6 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/repository/2026-05-14-monorepo-baseline.md`
 - `wiki/sources/github/2026-05-14-git-and-pr-history.md`
 - `wiki/sources/git/2026-05-25-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-26-lisa-monorepo-git.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
+- `wiki/sources/roles/2026-05-26-roles.md`

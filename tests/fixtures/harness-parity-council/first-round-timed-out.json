@@ -1,0 +1,29 @@
+{
+  "runtime": "antigravity",
+  "probe": {
+    "available": true,
+    "authMissing": false,
+    "helpProbe": {
+      "commandMissing": false,
+      "error": null
+    },
+    "versionProbe": {
+      "commandMissing": false,
+      "error": null
+    }
+  },
+  "result": {
+    "exitStatus": null,
+    "stdout": "",
+    "stderr": "probe timed out\n",
+    "timedOut": true,
+    "authMissing": false,
+    "error": {
+      "code": "ETIMEDOUT",
+      "message": "runtime probe timed out"
+    }
+  },
+  "expected": {
+    "status": "timed_out"
+  }
+}
