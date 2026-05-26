@@ -1,0 +1,53 @@
+{
+  "source": "linear",
+  "items": [
+    {
+      "id": "LISA-824",
+      "ref": "LISA-824",
+      "title": "Ready PRD waiting for intake",
+      "url": "https://linear.app/acme/issue/LISA-824",
+      "role": "ready",
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "LISA-825",
+      "ref": "LISA-825",
+      "title": "PRD still in review",
+      "url": "https://linear.app/acme/issue/LISA-825",
+      "role": "in_review",
+      "createdAt": "2026-05-24T10:00:00Z"
+    },
+    {
+      "id": "LISA-826",
+      "ref": "LISA-826",
+      "title": "Blocked PRD needs clarification",
+      "url": "https://linear.app/acme/issue/LISA-826",
+      "role": "blocked",
+      "createdAt": "2026-05-23T10:00:00Z"
+    },
+    {
+      "id": "LISA-827",
+      "ref": "LISA-827",
+      "title": "Ticketed PRD waiting on build work",
+      "url": "https://linear.app/acme/issue/LISA-827",
+      "role": "ticketed",
+      "createdAt": "2026-05-22T10:00:00Z"
+    },
+    {
+      "id": "LISA-828",
+      "ref": "LISA-828",
+      "title": "Shipped PRD awaiting verify-prd",
+      "url": "https://linear.app/acme/issue/LISA-828",
+      "role": "shipped",
+      "createdAt": "2026-05-21T10:00:00Z"
+    },
+    {
+      "id": "LISA-829",
+      "ref": "LISA-829",
+      "title": "Verified PRD",
+      "url": "https://linear.app/acme/issue/LISA-829",
+      "role": "verified",
+      "createdAt": "2026-05-20T10:00:00Z"
+    }
+  ]
+}
