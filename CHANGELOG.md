@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.85.0](https://github.com/CodySwannGT/lisa/compare/vv2.84.1...v2.85.0) (2026-05-26)
+
+
+### Features
+
+* **skills:** guard council write mode ([931c4c4](https://github.com/CodySwannGT/lisa/commit/931c4c4f1d3c9a9b4ac2b7f6085e2cfdef5ea997))
+
+
+### Bug Fixes
+
+* **council:** propagate runtime to workspace guard detection ([96f0142](https://github.com/CodySwannGT/lisa/commit/96f0142e469216f3394169dce348aa0cdaa08982))
+
 ### [2.84.1](https://github.com/CodySwannGT/lisa/compare/vv2.84.0...v2.84.1) (2026-05-26)
 
 
