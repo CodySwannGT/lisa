@@ -146,6 +146,24 @@ describe("queue-status PRD readers (#824)", () => {
     });
   });
 
+  it("fails loudly when a non-GitHub source has no raw reader input", () => {
+    const snapshot = createPrdQueueSnapshot({
+      source: "confluence",
+      queueArgument: "confluence intake_mode=prd",
+    });
+
+    expect(snapshot).toMatchObject({
+      source: "confluence",
+      queueResolved: false,
+      resolutionError:
+        "vendor reader not implemented for PRD source 'confluence'",
+    });
+    expect(snapshot.health).toMatchObject({
+      verdict: "MISCONFIGURED",
+      reasons: ["queue-unresolved"],
+    });
+  });
+
   it("infers namespaceAdopted=false when no roles are configured and no items have roles", () => {
     // When neither namespaceAdopted nor roles is supplied, the inference must
     // detect that the lifecycle namespace is absent and return false — not true,
