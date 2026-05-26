@@ -90,6 +90,46 @@ describe("harness parity council first-round flow", () => {
     );
   });
 
+  it("classifies executor error payloads without exit status as failed", () => {
+    const invocation = council.buildFirstRoundInvocation({
+      topic: REVIEW_TOPIC,
+      runtime: "codex",
+    });
+    const probe = {
+      ...invocation,
+      available: true,
+      authMissing: false,
+      helpProbe: { commandMissing: false, error: null },
+      versionProbe: { commandMissing: false, error: null },
+    };
+
+    const capture = council.normalizeFirstRoundCapture({
+      invocation,
+      probe,
+      result: {
+        stdout: "",
+        stderr: "",
+        timedOut: false,
+        authMissing: false,
+        error: { code: "ENOENT", message: "no such file" },
+      },
+    });
+
+    expect(capture.status).toBe("failed");
+    expect(capture.error).toEqual({
+      code: "ENOENT",
+      message: "no such file",
+    });
+
+    const synthesis = council.buildFirstRoundSynthesisInput({
+      topic: REVIEW_TOPIC,
+      captures: [capture],
+    });
+    expect(synthesis.claudeSynthesisTemplate.openQuestions).toContain(
+      "codex: explain failed"
+    );
+  });
+
   it("collects stable synthesis inputs across available and unavailable runtimes", async () => {
     const synthesis = await council.collectFirstRoundResponses({
       topic: COUNCIL_TOPIC,
