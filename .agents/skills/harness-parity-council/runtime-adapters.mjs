@@ -3,6 +3,21 @@ import { fileURLToPath } from "node:url";
 
 export const DEFAULT_TIMEOUT_MS = 45_000;
 
+/**
+ * SpawnSync-compatible runner used for runtime probes.
+ * @callback SpawnRunner
+ * @param {string} command
+ * @param {string[]} args
+ * @param {{ encoding: string; timeout: number }} options
+ * @returns {{
+ *   status?: number | null;
+ *   stdout?: string;
+ *   stderr?: string;
+ *   signal?: NodeJS.Signals | null;
+ *   error?: NodeJS.ErrnoException | null;
+ * }}
+ */
+
 const AUTH_MISSING_PATTERNS = [
   /auth(?:entication)? (?:required|failed|missing)/i,
   /not authenticated/i,
@@ -104,7 +119,6 @@ export const RUNTIME_ADAPTERS = Object.freeze(runtimeSpecs);
 
 /**
  * Return a safe environment mapping without assuming a Node global exists.
- *
  * @returns {NodeJS.ProcessEnv} Process environment values when available.
  */
 function defaultEnv() {
@@ -113,7 +127,6 @@ function defaultEnv() {
 
 /**
  * Return the canonical council runtime spec for a supported runtime id.
- *
  * @param {keyof typeof runtimeSpecs} runtimeId Supported council runtime id.
  * @returns {(typeof runtimeSpecs)[keyof typeof runtimeSpecs]} Normalized runtime spec.
  */
@@ -127,7 +140,6 @@ export function getRuntimeSpec(runtimeId) {
 
 /**
  * Resolve the executable name for one runtime, honoring its environment override.
- *
  * @param {keyof typeof runtimeSpecs} runtimeId Supported council runtime id.
  * @param {NodeJS.ProcessEnv} [env] Optional environment override map.
  * @returns {string} Executable name to invoke for this runtime.
@@ -140,7 +152,6 @@ export function resolveRuntimeCommand(runtimeId, env = defaultEnv()) {
 
 /**
  * Heuristically classify output as an authentication-missing failure.
- *
  * @param {string} output Combined stdout/stderr capture to inspect.
  * @returns {boolean} True when the output looks like a missing-auth failure.
  */
@@ -153,7 +164,6 @@ export function detectAuthMissing(output) {
 
 /**
  * Build the normalized planning metadata for one runtime adapter.
- *
  * @param {keyof typeof runtimeSpecs} runtimeId Supported council runtime id.
  * @param {NodeJS.ProcessEnv} [env] Optional environment override map.
  * @returns {{
@@ -186,10 +196,10 @@ export function describeRuntimePlan(runtimeId, env = defaultEnv()) {
 
 /**
  * Execute one probe command and normalize the capture payload.
- *
  * @param {string} command Executable to run.
  * @param {string[]} args Arguments for the probe.
  * @param {number} timeoutMs Timeout budget in milliseconds.
+ * @param {SpawnRunner} [runner] Optional injected runner for fixture-backed probes.
  * @returns {{
  *   args: string[];
  *   exitStatus: number | null;
@@ -202,8 +212,8 @@ export function describeRuntimePlan(runtimeId, env = defaultEnv()) {
  *   error: { code: string | null; message: string } | null;
  * }} Structured probe capture.
  */
-function capture(command, args, timeoutMs) {
-  const result = spawnSync(command, args, {
+function capture(command, args, timeoutMs, runner = spawnSync) {
+  const result = runner(command, args, {
     encoding: "utf8",
     timeout: timeoutMs,
   });
@@ -235,9 +245,9 @@ function capture(command, args, timeoutMs) {
 
 /**
  * Probe help/version surfaces for one runtime and return structured capture metadata.
- *
  * @param {keyof typeof runtimeSpecs} runtimeId Supported council runtime id.
  * @param {NodeJS.ProcessEnv} [env] Optional environment override map.
+ * @param {SpawnRunner} [runner] Optional injected runner for fixture-backed probes.
  * @returns {ReturnType<typeof describeRuntimePlan> & {
  *   available: boolean;
  *   authMissing: boolean | null;
@@ -245,10 +255,24 @@ function capture(command, args, timeoutMs) {
  *   versionProbe: ReturnType<typeof capture>;
  * }} Runtime probe result.
  */
-export function probeRuntimeAdapter(runtimeId, env = defaultEnv()) {
+export function probeRuntimeAdapter(
+  runtimeId,
+  env = defaultEnv(),
+  runner = spawnSync
+) {
   const plan = describeRuntimePlan(runtimeId, env);
-  const helpProbe = capture(plan.command, plan.helpArgs, plan.timeoutMs);
-  const versionProbe = capture(plan.command, plan.versionArgs, plan.timeoutMs);
+  const helpProbe = capture(
+    plan.command,
+    plan.helpArgs,
+    plan.timeoutMs,
+    runner
+  );
+  const versionProbe = capture(
+    plan.command,
+    plan.versionArgs,
+    plan.timeoutMs,
+    runner
+  );
   const available = !helpProbe.commandMissing && !versionProbe.commandMissing;
 
   return {
@@ -267,13 +291,16 @@ export function probeRuntimeAdapter(runtimeId, env = defaultEnv()) {
 
 /**
  * Probe every supported council runtime adapter.
- *
  * @param {NodeJS.ProcessEnv} [env] Optional environment override map.
+ * @param {SpawnRunner} [runner] Optional injected runner for fixture-backed probes.
  * @returns {ReturnType<typeof probeRuntimeAdapter>[]} Probe results for every runtime.
  */
-export function probeAllRuntimeAdapters(env = defaultEnv()) {
+export function probeAllRuntimeAdapters(
+  env = defaultEnv(),
+  runner = spawnSync
+) {
   return Object.keys(runtimeSpecs).map(runtimeId =>
-    probeRuntimeAdapter(runtimeId, env)
+    probeRuntimeAdapter(runtimeId, env, runner)
   );
 }
 
