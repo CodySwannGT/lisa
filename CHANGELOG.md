@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.99.0](https://github.com/CodySwannGT/lisa/compare/vv2.98.1...v2.99.0) (2026-05-26)
+
+
+### Features
+
+* add intake-explain scaffold ([54098a3](https://github.com/CodySwannGT/lisa/commit/54098a3ed91cb95d6ed48735610153feff7232ca))
+
 ### [2.98.1](https://github.com/CodySwannGT/lisa/compare/vv2.98.0...v2.98.1) (2026-05-26)
 
 
