@@ -104,6 +104,35 @@ Each verdict must carry a concrete next action:
 - Prefer manual product clarification or the upstream product workflow for `PRODUCT_OWNED_STATE`.
 - Prefer fixing config, lifecycle adoption, or repo scoping for `MISCONFIGURED`.
 
+## Ownership and repair readiness
+
+Classify ownership before recommending any command. Intake-explain should make clear whether the item is waiting for a human/product promotion, already belongs to Lisa automation, or is terminal enough that normal intake should leave it alone.
+
+Product-owned roles are roles that Lisa must not mutate from this read-only diagnosis and that normal intake/repair should not "fix" just because the item exists:
+
+- PRD `draft`: still being authored; next action is manual product clarification or promotion to `ready`.
+- PRD `shipped`: generated work is complete and the next automated owner is `/lisa:verify-prd`, not PRD intake or repair.
+- PRD `verified`: empirically checked terminal state; no intake or repair action is required unless a human reopens scope.
+- Build items with no build lifecycle role or without the configured current-repo scope: outside the build pickup lane until a human adopts the lifecycle label or fixes repo scoping.
+
+Lisa-owned roles are roles where the framework has accepted responsibility for moving the item forward or surfacing a precise blocker:
+
+- PRD `ready`: actionable for `/lisa:intake`.
+- PRD `in_review`: already claimed by PRD intake; repairable only when the item is stale beyond `stale_after` and not suppressed by repair backoff.
+- PRD `blocked`: Lisa asked for clarification or failed validation; repairable only when new answers, dependency changes, or other current signals make another validate-to-route pass materially different.
+- PRD `ticketed`: generated work exists; normal PRD intake owns rollup toward `shipped`, while repair-intake may reconcile rollup drift when all generated top-level work is terminal.
+- Build `ready`: actionable for `/lisa:intake` if repo-scope, leaf-only, and dependency gates pass.
+- Build `claimed`: already claimed by build intake; repairable only when stale beyond `stale_after` and not protected by recent PR/check/comment activity.
+- Build `blocked`: Lisa surfaced an implementation blocker; repairable only when every parsed blocker is cleared or the blocker fingerprint changed enough to justify a new attempt.
+- Build `done`: terminal build role; repair-intake may only reconcile provider-native close-out drift, not re-run implementation.
+
+Report repair readiness in this order:
+
+1. If the role is product-owned, return `PRODUCT_OWNED_STATE` and name the product or verification workflow that owns the next move.
+2. If the item is Lisa-owned but in an in-progress role, compare the newest activity signal with the configured staleness threshold. Fresh activity returns `WAITING_ON_STALENESS`; stale activity can return `ELIGIBLE_FOR_REPAIR`.
+3. If the item is Lisa-owned but blocked, evaluate current blockers, clarifying answers, and the `[lisa-repair-intake]` fingerprint/backoff window. Active blockers or unchanged fingerprints stay held; cleared blockers or new answers can return `ELIGIBLE_FOR_REPAIR`.
+4. If the item is ready for first pickup, run the same repo-scope, leaf-only, and dependency checks used by intake before returning `ELIGIBLE_FOR_INTAKE`.
+
 ## Gate and ownership expectations
 
 The explanation must stay aligned with existing Lisa rules:
