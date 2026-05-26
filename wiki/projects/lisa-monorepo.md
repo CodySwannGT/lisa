@@ -20,19 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-25-3844` from `origin/main`
-- HEAD at 2026-05-25 incremental ingest: `7a56fd065774adb22bcb7ff7857e1d89170f5f75`
-- Current package version: `2.85.1`
-- Total commits on HEAD: 1953
-- Latest merged PR captured in the incremental git snapshot: `#789`
-- New commits since the previous incremental git cursor: `65`
+- Ingest branch: `wiki/ingest-2026-05-26-0130` from `origin/main`
+- HEAD at 2026-05-26 incremental ingest: `ea144c8b5ffbc29d5f42f35ec6daa2d3bdcbaaeb`
+- Current package version: `2.91.2`
+- Total commits on HEAD: 1984
+- Latest merged PR captured in the incremental git snapshot: `#812`
+- New commits since the previous incremental git cursor: `31`
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Council planning and runtime-guard coverage expanded across dry-run critique, second-round planning, workspace/runtime detection, and sanitized runtime capture handling.
-- The wiki plugin's doctor surface added command scaffolding, grouped report rendering, GitHub-readiness validation, and vendor/config readiness contracts.
-- GitHub build-intake work continued landing through the `codex/issue-*` queue, including usage-pricing delivery wiring and tighter internal Codex skill distribution guards.
-- Release automation continued its rapid cadence, advancing the monorepo from `2.74.0` through `2.85.1` during this incremental window.
+- Automation-status now spans the full operator workflow: scaffolded command and skill surfaces, grouped output rendering, expected-fleet resolution, drift detection, Codex metadata inspection, and Claude schedule support.
+- Verification and operator guidance expanded with read-only smoke coverage plus remediation-focused documentation for automation-status users.
+- Release automation continued its rapid cadence, advancing the monorepo from `2.85.2` through `2.91.2` during this incremental window.
 
 ## Workspace Packages
 

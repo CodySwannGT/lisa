@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.91.2](https://github.com/CodySwannGT/lisa/compare/vv2.91.1...v2.91.2) (2026-05-26)
+
+
+### Documentation
+
+* add automation-status operator guidance ([8ddb5f0](https://github.com/CodySwannGT/lisa/commit/8ddb5f013e68072905d092778150b4ea70a9862a))
+
 ### [2.91.1](https://github.com/CodySwannGT/lisa/compare/vv2.91.0...v2.91.1) (2026-05-26)
 
 ## [2.91.0](https://github.com/CodySwannGT/lisa/compare/vv2.90.0...v2.91.0) (2026-05-26)
