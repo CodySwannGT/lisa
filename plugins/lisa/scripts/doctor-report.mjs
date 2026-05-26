@@ -111,9 +111,20 @@ export function renderDoctorReport(input) {
  * @returns {DoctorGroup}
  */
 function normalizeGroup(group) {
+  const checks =
+    group.checks.length === 0
+      ? [
+          {
+            id: "empty-group",
+            status: "SKIP",
+            summary: "no checks registered yet",
+          },
+        ]
+      : group.checks.map(normalizeCheck);
+
   return {
     ...group,
-    checks: group.checks.map(normalizeCheck),
+    checks,
   };
 }
 
