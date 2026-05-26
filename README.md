@@ -163,3 +163,7 @@ Useful ingestion requests:
 - Ingest this design plan into the Lisa wiki.
 - Ingest these meeting notes.
 - Update the architecture overview from recent source changes.
+
+### Adding a wiki to a downstream project
+
+The wiki kernel ships as a separate plugin (`lisa-wiki`) that is `AVAILABLE` but not enabled by default. To bootstrap it in a project that already has Lisa installed, run `/lisa:wiki:install` (Claude) or `$lisa-wiki-install` (Codex). This shipped-with-base command flips `lisa-wiki@lisa` to enabled in `.claude/settings.json` and verifies the Codex skill overlay is current — but does not scaffold the wiki itself. After reload, follow up with `/setup:wiki` (Claude) or `$lisa-wiki-setup` (Codex) to create `wiki/` from `wiki/lisa-wiki.config.json`.
