@@ -443,7 +443,9 @@ export function upsertLisaUsageSection(
   const parsed = parseLisaUsageSection(document);
   const mergedEntries = mergeLisaUsageEntries(parsed.entries, input.entries);
   const rollup =
-    input.rollup ?? createLisaUsageRollup(mergedEntries, parsed.rollup);
+    mergedEntries.length === 0 && input.rollup
+      ? input.rollup
+      : createLisaUsageRollup(mergedEntries, input.rollup ?? parsed.rollup);
   const usageSection = renderLisaUsageSection({
     entries: mergedEntries,
     rollup,
