@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.104.6](https://github.com/CodySwannGT/lisa/compare/vv2.104.5...v2.104.6) (2026-05-26)
+
+
+### Bug Fixes
+
+* **queue-status:** ignore invalid prd role overrides ([9d91ae5](https://github.com/CodySwannGT/lisa/commit/9d91ae5e1fd6306897531dc712fefd3443e3cf54))
+
 ### [2.104.5](https://github.com/CodySwannGT/lisa/compare/vv2.104.4...v2.104.5) (2026-05-26)
 
 
