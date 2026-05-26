@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.105.1](https://github.com/CodySwannGT/lisa/compare/vv2.105.0...v2.105.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* detect missing build lifecycle namespace ([f43b3ea](https://github.com/CodySwannGT/lisa/commit/f43b3ea1b7a06725bcdba9e67a03cd7145dd852b))
+
 ## [2.105.0](https://github.com/CodySwannGT/lisa/compare/vv2.104.7...v2.105.0) (2026-05-26)
 
 
