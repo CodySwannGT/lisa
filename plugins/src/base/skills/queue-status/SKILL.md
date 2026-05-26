@@ -31,6 +31,12 @@ Support a repo-scoped queue selector when requested:
 
 ## What to report
 
+Render the report in **grouped sections** so operators can scan it top-down without reading raw tracker dumps:
+
+1. An optional overall queue-health summary when inspecting both queues.
+2. One PRD queue section when the PRD queue is in scope.
+3. One build queue section when the build queue is in scope.
+
 For each inspected queue, report:
 
 1. The queue source or tracker Lisa resolved.
@@ -41,6 +47,16 @@ For each inspected queue, report:
 6. A concise remediation hint when attention is needed.
 
 The report should stay terminal-first and immediately actionable: observable queue facts first, then the smallest useful next step.
+
+## Output shape
+
+Use a stable terminal-friendly shape:
+
+1. `Overall verdict` line when both queues are shown.
+2. `PRD queue` heading with resolved source, verdict, lifecycle counts, actionable highlights, and remediation.
+3. `Build queue` heading with resolved tracker, verdict, lifecycle counts, actionable highlights, and remediation.
+
+Queue sections should stay visually grouped. Do not interleave PRD and build facts item-by-item.
 
 ## Runtime and vendor expectations
 
@@ -55,6 +71,13 @@ The report should stay terminal-first and immediately actionable: observable que
 - `HEALTHY`: the queue resolved successfully and the current backlog/state appears normal.
 - `ATTENTION_NEEDED`: the queue resolved, but blocked, stalled, or accumulating work needs operator follow-up.
 - `MISCONFIGURED`: Lisa could not resolve the queue, could not find the expected lifecycle namespace, or detected another setup/adoption problem.
+
+When both queues are in scope, derive the **overall verdict** from the queue sections:
+
+- `MISCONFIGURED` if any inspected queue is misconfigured.
+- Otherwise `ATTENTION_NEEDED` if any inspected queue needs operator follow-up.
+- Otherwise `HEALTHY` if any inspected queue has normal actionable work in motion.
+- Otherwise `IDLE`.
 
 Status-specific remediation guidance:
 

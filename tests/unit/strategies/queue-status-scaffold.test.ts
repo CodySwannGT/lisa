@@ -13,7 +13,9 @@
  *   (2) the skill is read-only and repo-scoped;
  *   (3) the skill reuses intake and repair-intake contract semantics rather than
  *       inventing a second source of truth;
- *   (4) the skill names the expected queue verdicts and vendor families.
+ *   (4) the skill names the expected queue verdicts and vendor families;
+ *   (5) the skill defines a grouped PRD/build output shape with an overall
+ *       verdict and concise remediation guidance.
  *
  * Both plugin roots are asserted so a missed `bun run build:plugins` fails the
  * suite.
@@ -103,6 +105,27 @@ describe("queue-status scaffold (#820)", () => {
       expect(skill).toMatch(/claimed/i);
       expect(skill).toMatch(/shipped/i);
       expect(skill).toMatch(/remediation/i);
+    });
+
+    it("defines grouped queue sections and overall-verdict mapping", () => {
+      const skill = read(root, SKILL_REL);
+
+      expect(skill).toMatch(/grouped sections/i);
+      expect(skill).toMatch(/overall queue-health summary|overall verdict/i);
+      expect(skill).toMatch(/PRD queue section|PRD queue heading/i);
+      expect(skill).toMatch(/Build queue section|Build queue heading/i);
+      expect(skill).toMatch(/Do not interleave PRD and build facts/i);
+      expect(skill).toMatch(
+        /derive the \*\*overall verdict\*\*|derive the overall verdict/i
+      );
+      expect(skill).toMatch(
+        /`MISCONFIGURED` if any inspected queue is misconfigured/i
+      );
+      expect(skill).toMatch(
+        /`ATTENTION_NEEDED` if any inspected queue needs operator follow-up/i
+      );
+      expect(skill).toMatch(/Otherwise `HEALTHY`|Otherwise HEALTHY/i);
+      expect(skill).toMatch(/Otherwise `IDLE`|Otherwise IDLE/i);
     });
   });
 });
