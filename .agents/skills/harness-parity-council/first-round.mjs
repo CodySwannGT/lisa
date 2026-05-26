@@ -396,6 +396,7 @@ export function parseCouncilCliArgs(argv) {
  *   sanitizedSummary?: string | null;
  *   writeMode?: string | null;
  *   env?: NodeJS.ProcessEnv;
+ *   cwd?: string;
  * }} input Planning inputs.
  * @returns {{
  *   mode: "dry-run";
@@ -418,9 +419,10 @@ export function buildCouncilDryRunPlan({
   sanitizedSummary = null,
   writeMode = null,
   env,
+  cwd,
 }) {
   const executionPolicy = resolveCouncilExecutionPolicy(
-    { writeMode, runtime },
+    { writeMode, runtime, cwd },
     env
   );
   const runtimes = resolveCouncilRuntimes(runtime);

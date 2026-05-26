@@ -13,6 +13,7 @@ const firstRoundModuleUrl = pathToFileURL(
 const shared = await import(sharedModuleUrl);
 const firstRound = await import(firstRoundModuleUrl);
 const WORKSPACE_WRITE_MODE = "workspace-write";
+const CLEAN_PROJECT_CWD = "/Users/dev/workspace/lisa";
 
 describe("harness parity council guardrails", () => {
   it("defaults to explicit read-only policy even inside a worktree", () => {
@@ -39,7 +40,7 @@ describe("harness parity council guardrails", () => {
       shared.resolveCouncilExecutionPolicy(
         {
           writeMode: WORKSPACE_WRITE_MODE,
-          cwd: "/Users/dev/workspace/lisa",
+          cwd: CLEAN_PROJECT_CWD,
         },
         {}
       )
@@ -65,7 +66,7 @@ describe("harness parity council guardrails", () => {
       shared.resolveCouncilExecutionPolicy(
         {
           writeMode: WORKSPACE_WRITE_MODE,
-          cwd: "/Users/dev/workspace/lisa",
+          cwd: CLEAN_PROJECT_CWD,
         },
         {
           LISA_COUNCIL_GUARDED_WORKSPACE: "1",
@@ -88,6 +89,7 @@ describe("harness parity council guardrails", () => {
       topic: "Review Codex parity for install-time hooks",
       runtime: "codex",
       env: {},
+      cwd: CLEAN_PROJECT_CWD,
     });
 
     expect(plan.executionPolicy).toEqual({
