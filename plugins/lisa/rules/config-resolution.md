@@ -154,22 +154,6 @@ fi
       "staleAfterHours": 24,
       "maxCandidates": 100
     }
-  },
-
-  "usage": {
-    "currency": "USD",
-    "pricing": {
-      "source": "https://vendor.example/pricing",
-      "snapshot": "2026-05-25",
-      "models": {
-        "provider/model-name": {
-          "input_per_million": 0,
-          "cached_input_per_million": 0,
-          "output_per_million": 0,
-          "reasoning_per_million": 0
-        }
-      }
-    }
   }
 }
 ```
@@ -354,28 +338,6 @@ Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.confi
 `.lisa.config.json` → built-in default. The role SEMANTICS repair-intake operates on (which
 roles count as "stuck", what each repair does) are fixed like every other lifecycle transition;
 only these thresholds are tunable.
-
-### Usage accounting config (`usage`)
-
-`usage-accounting` attaches token and estimated-cost ledgers to PRDs, tickets, evidence, debrief documents, and rollups. The ledger schema and rollup semantics live in the `usage-accounting` rule; config only supplies non-secret pricing metadata for cost estimates.
-
-| Key | Required | Default | Notes |
-|-----|----------|---------|-------|
-| `usage.currency` | no | `USD` when cost is present | Currency code used when Lisa calculates estimated cost from configured pricing. |
-| `usage.pricing.source` | no | — | Human-readable pricing source URL or note. Do not store secrets here. |
-| `usage.pricing.snapshot` | no | — | Date or version of the pricing table. Because model prices change, keep this explicit and update it when pricing changes. |
-| `usage.pricing.models.<provider/model>.input_per_million` | no | — | Input-token price per 1M tokens for that model. |
-| `usage.pricing.models.<provider/model>.cached_input_per_million` | no | — | Cached-input-token price per 1M tokens when the provider exposes a separate cached-input rate. |
-| `usage.pricing.models.<provider/model>.output_per_million` | no | — | Output-token price per 1M tokens for that model. |
-| `usage.pricing.models.<provider/model>.reasoning_per_million` | no | — | Reasoning-token price per 1M tokens when billed separately. |
-
-Resolution order for cost:
-
-1. Runtime-observed cost from the model runtime, API response, CLI transcript, or billing export.
-2. Configured `usage.pricing.models` entry, resolved `.lisa.config.local.json` first and then `.lisa.config.json`.
-3. `estimated_cost: null` with `pricing_status=missing`.
-
-Lisa must never hard-code provider prices in templates or skills. If token counts are known but pricing is absent, attach the token ledger anyway and leave cost null.
 
 ### Env-keyed `done`
 
