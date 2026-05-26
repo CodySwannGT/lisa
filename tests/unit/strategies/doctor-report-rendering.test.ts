@@ -159,6 +159,30 @@ describe("doctor report rendering (#750)", () => {
     ).toEqual({ PASS: 1, WARN: 1, FAIL: 1, SKIP: 1 });
   });
 
+  it("normalizes invalid statuses before direct aggregation", () => {
+    const groups = [
+      {
+        id: "1",
+        title: "Invalid status handling",
+        checks: [
+          {
+            id: "bad-status",
+            status: "BANANA",
+            summary: "invalid status from an external caller",
+          },
+        ],
+      },
+    ];
+
+    expect(computeDoctorVerdict(groups)).toBe("NOT_READY");
+    expect(countDoctorStatuses(groups)).toEqual({
+      PASS: 0,
+      WARN: 0,
+      FAIL: 1,
+      SKIP: 0,
+    });
+  });
+
   it("renders empty groups as grouped skips instead of omitting them", () => {
     const report = renderDoctorReport({
       groups: [{ id: "7", title: "Optional wiki delegation", checks: [] }],
