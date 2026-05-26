@@ -49,6 +49,42 @@ For each expected automation, report:
 
 Emit an overall grouped fleet verdict such as `HEALTHY`, `ATTENTION_NEEDED`, or `PARTIAL_SUPPORT`, plus the runtime surface inspected.
 
+## Operator usage
+
+Typical entrypoint:
+
+```text
+/lisa:automation-status
+```
+
+Use this command when an operator needs to answer one of these questions for the current repo:
+
+- "Did Lisa set up every automation this project expects?"
+- "Is the scheduler still pointing at the right cadence and queue arguments?"
+- "Is the queue idle because there is no work, or because the automation is stale or failing?"
+
+The report should be terminal-first and immediately actionable: observable scheduler facts first, then the smallest useful remediation step.
+
+## Runtime differences
+
+- **Codex**: prefer native automation metadata and use backing-store files only to fill gaps such as timestamps or failure recency. When Codex exposes health/memory signals, include them as observed facts rather than assumptions.
+- **Claude**: use the `/schedule` listing as the primary runtime surface. Compare the live schedule name, cadence, and command shape against the Lisa contract, but degrade gracefully when `/schedule` does not expose equivalent recency or failure fields.
+- **Other runtimes**: report automation-status as unsupported for that runtime instead of guessing from unrelated files or naming patterns.
+
+## Verdicts and remediation
+
+- `HEALTHY`: every expected automation exists and the inspected runtime metadata shows no actionable drift, staleness, or failure.
+- `PARTIAL_SUPPORT`: the fleet is otherwise healthy, but at least one exploratory job is intentionally unsupported for this stack or runtime.
+- `ATTENTION_NEEDED`: at least one automation is missing, drifted, stale, or failing.
+
+Status-specific remediation guidance:
+
+- `MISSING`: tell the operator which job is absent and recommend rerunning `/lisa:setup-automations` or recreating the missing job with the expected cadence and command.
+- `DRIFTED`: show the expected versus observed cadence/command mismatch and recommend aligning the scheduler entry with Lisa's current setup contract, usually by rerunning `/lisa:setup-automations`.
+- `STALE`: explain that the job exists but has not run recently enough for its cadence. Recommend inspecting the runtime's recent-run history or failure logs before changing queue state.
+- `FAILING`: surface the failure signal directly and recommend checking the latest runtime error plus the affected queue command (`/lisa:intake`, `/lisa:repair-intake`, or exploratory job) after the scheduler issue is resolved.
+- `UNSUPPORTED`: explain why the job is intentionally absent and say that no remediation is required unless the project stack or runtime support changed.
+
 Render the report in grouped sections using the shared `scripts/automation-status-report.mjs` contract:
 
 ```text
