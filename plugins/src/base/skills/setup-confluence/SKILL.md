@@ -35,7 +35,7 @@ If neither arg is supplied, ask which mode (or both). Setting only `parentPageId
 
 ### Step 3 — Create lifecycle parent pages
 
-Confluence PRD lifecycle is **parent-page-based**, not label-based (see the `config-resolution` rule for why — Atlassian's scoped API tokens cannot write labels). Each lifecycle role gets its own parent page; a PRD's state = which parent it's a child of. The full PRD lifecycle is `draft → ready → in_review → (blocked | ticketed) → shipped → verified` (the `prd-lifecycle-rollup` rule, slug `prd-lifecycle-rollup`): rollup performs the `ticketed → shipped` hop, then `/lisa:verify-prd` performs the terminal `shipped → verified` (pass) / `shipped → blocked` (fail) hop. `verified` is the terminal lifecycle state after `shipped` (the `verified` role from the `config-resolution` rule, #591).
+Confluence PRD lifecycle is **parent-page-based**, not label-based (see the `config-resolution` rule for why — Atlassian's scoped API tokens cannot write labels). Each lifecycle role gets its own parent page; a PRD's state = which parent it's a child of. The full PRD lifecycle is `draft → ready → in_review → (blocked | ticketed) → shipped → verified` (the `prd-lifecycle-rollup` rule, slug `prd-lifecycle-rollup`): rollup performs the `ticketed → shipped` hop, then `/lisa:verify-prd` performs the terminal `shipped → verified` (pass) / `shipped → ticketed` (fail) hop. `verified` is the terminal lifecycle state after `shipped` (the `verified` role from the `config-resolution` rule, #591).
 
 #### 3a. Decide where the parents live
 

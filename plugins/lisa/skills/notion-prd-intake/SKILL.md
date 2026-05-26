@@ -37,22 +37,11 @@ BLOCKED=$(read_role blocked "Blocked")
 TICKETED=$(read_role ticketed "Ticketed")
 SHIPPED=$(read_role shipped "Shipped")
 STATUS_PROP=$(jq -r '.notion.statusProperty // "Status"' .lisa.config.json 2>/dev/null)
-
-# Resolve a boolean rollup flag. Local overrides global per-key; default when unset.
-read_rollup_flag() {
-  local key="$1" default="$2"
-  local local_v global_v
-  local_v=$(jq -r ".notion.rollup.${key} // empty" .lisa.config.local.json 2>/dev/null)
-  global_v=$(jq -r ".notion.rollup.${key} // empty" .lisa.config.json 2>/dev/null)
-  echo "${local_v:-${global_v:-$default}}"
-}
-
-CLOSE_ON_SHIPPED=$(read_rollup_flag closeOnShipped false)
 ```
 
 In prose below, the role names refer to the resolved values: e.g. "the `ready` status" means whatever `notion.values.ready` resolves to (default: `Ready`).
 
-This skill shares its PRD closure rollup phase (3f) with `lisa:github-prd-intake`, `lisa:linear-prd-intake`, and `lisa:confluence-prd-intake`. The phases, gates, comment templates, and rollup behavior are identical across all four intake skills — only the vendor surface differs. Keep all four behaviorally aligned: when changing intake logic — including the rollup phase — change them together. The **PRD closure rollup phase (3f)** transitions a `$TICKETED` PRD to `$SHIPPED` (and optionally archives it) once all its generated top-level work is terminal, per the `prd-lifecycle-rollup` rule; this is the Notion leg of the same vendor-neutral rollup (LPC-1.3 #584), using the documented generated-work section since Notion has no native ticket hierarchy.
+This skill shares its PRD shipped rollup phase (3f) with `lisa:github-prd-intake`, `lisa:linear-prd-intake`, and `lisa:confluence-prd-intake`. The phases, gates, comment templates, and rollup behavior are identical across all four intake skills — only the vendor surface differs. Keep all four behaviorally aligned: when changing intake logic — including the rollup phase — change them together. The **PRD shipped rollup phase (3f)** transitions a `$TICKETED` PRD to `$SHIPPED` once all its generated top-level work is terminal, per the `prd-lifecycle-rollup` rule; this is the Notion leg of the same vendor-neutral rollup (LPC-1.3 #584), using the documented generated-work section since Notion has no native ticket hierarchy.
 
 ## Confirmation policy
 
@@ -84,7 +73,7 @@ draft → ready → in_review → blocked | ticketed → shipped → verified
 
 `verified` is the terminal status after `shipped`: it means the shipped product has been empirically checked against the PRD (set by `/lisa:verify-prd`, not by this intake skill). A failed post-ship verification does **not** use `blocked`; `/lisa:verify-prd` re-opens the PRD `shipped → ticketed` and creates build-ready fix tickets that auto-build and trigger a re-verify (the self-healing loop), introducing no `verifying` / `verification-failed` status. Like `draft` and `shipped`, `verified` is **product-owned** — this intake skill never sets, clears, or otherwise touches it. See the "PRD-level verification vs ticket verification" section of the `prd-lifecycle-rollup` rule.
 
-This skill transitions `ready → in_review`, then `in_review → blocked` or `in_review → ticketed`, then (via the rollup phase 3f) `ticketed → shipped`. It never touches `draft` or `verified` — those statuses are owned by product (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` status is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD page unless `notion.rollup.closeOnShipped` is configured `true` (default `false` → set `$SHIPPED`, leave the page active).
+This skill transitions `ready → in_review`, then `in_review → blocked` or `in_review → ticketed`, then (via the rollup phase 3f) `ticketed → shipped`. It never touches `draft` or `verified` — those statuses are owned by product (`verified` is set by `/lisa:verify-prd` after empirical PRD-level acceptance). The `shipped` status is set by this skill's **rollup phase (3f)** when, and only when, the PRD's generated top-level work is all terminal — per the `prd-lifecycle-rollup` rule; product may also set it by hand. Rollup never advances a PRD to `shipped` on partial completion, and never archives a PRD page at shipped. `/lisa:verify-prd` archives the page only after a verified PASS.
 
 ## Phases
 
@@ -243,25 +232,19 @@ The access skill resolves a `prd_anchor` substring to the matching block ID by p
 
 Stop immediately after the claimed PRD is ticketed, blocked, or recorded as an error.
 
-#### 3f. PRD closure rollup (config-gated)
+#### 3f. PRD shipped rollup
 
 A PRD's lifecycle terminal state (`shipped`) is **derived** from whether the work it generated is done — it is never set by hand here on its own authority. This phase implements the Notion leg of that derivation, per the `prd-lifecycle-rollup` rule (cite it by slug; do not restate its taxonomy or terminal-state semantics here). It is behaviorally identical to `lisa:github-prd-intake`'s Phase 3f — only the vendor surface (a Notion status property via `lisa:notion-access` + the documented generated-work section) differs from GitHub's (issue close + labels via `gh`).
 
 Rollup runs over PRD pages that are already `$TICKETED` (the only state from which a PRD can ship): the freshly-ticketed PRD from Phase 3c, and — because rollup also catches PRDs whose children finished in a *later* cycle — every page currently in `$STATUS_PROP = $TICKETED` (re-query the database with operation `query-database` filtered on the ticketed status). Process each independently; one PRD never blocks another's rollup.
 
-##### 3f.0 Resolve closure config
+##### 3f.0 Shipped remains active for verification
 
-Closure is gated on `notion.rollup.closeOnShipped` (default `false`), resolved via `read_rollup_flag` (defined in the Workflow resolution block, same local-overrides-global precedence the status values use):
-
-```bash
-CLOSE_ON_SHIPPED=$(read_rollup_flag closeOnShipped false)
-```
-
-When `false` (the default), rollup sets `$STATUS_PROP = $SHIPPED` but leaves the page **active** for a human to archive. When `true`, rollup also archives the page (where Notion supports archival) after the `shipped` transition. Closure NEVER happens before all generated top-level work is terminal (`prd-lifecycle-rollup` rule; PRD #525 non-goal).
+There is no archive configuration at the shipped hop. Rollup sets `$STATUS_PROP = $SHIPPED` and leaves the PRD page **active** so Phase 3g can dispatch `/lisa:verify-prd`. Provider-native archival is owned by `/lisa:verify-prd` after it transitions `$SHIPPED → verified` on a PASS.
 
 ##### 3f.1 Idempotency guard (no-op if already shipped)
 
-Rollup is keyed by the PRD's current state. If the PRD already has `$STATUS_PROP = $SHIPPED` (and is already archived, when `$CLOSE_ON_SHIPPED` is `true`), it is a **no-op** — do not re-transition, do not re-archive, do not re-comment. Record it as `already shipped (no-op)` in the cycle summary and move on. This is what makes re-running intake safe.
+Rollup is keyed by the PRD's current state. If the PRD already has `$STATUS_PROP = $SHIPPED`, it is a **no-op** — do not re-transition, do not archive, do not re-comment. Record it as `already shipped (no-op)` in the cycle summary and move on. This is what makes re-running intake safe.
 
 ##### 3f.2 Read the generated top-level child set
 
@@ -286,7 +269,7 @@ The set of **required** children for the all-terminal check is the top-level chi
 **All required children terminal** (every required top-level child is terminal; at least one required child exists):
 
 1. Set `$STATUS_PROP = $SHIPPED` by invoking `lisa:notion-access` operation `write-page` with payload `{ "id": "<PRD-page-id>", "properties": { "<STATUS_PROP>": { "status": { "name": "<SHIPPED>" } } } }` (use `"select"` instead of `"status"` if the property is a select).
-2. **If `$CLOSE_ON_SHIPPED` is `true`**, archive the PRD page via `lisa:notion-access` (set `archived: true` where supported). When `false`, leave it active.
+2. Leave the PRD active for `/lisa:verify-prd`; do not archive at the shipped hop.
 3. Post a short rollup Notion comment naming the terminal child set and (when dropped children exist) the dropped set, so the audit trail records *why* the PRD shipped. Lead with `"Shipped by Claude — all generated top-level work is complete."`
 
 **Any required child incomplete / blocked**:
@@ -296,7 +279,7 @@ The set of **required** children for the all-terminal check is the top-level chi
 
 ##### 3f.5 Rollup cites the rule
 
-This phase implements exactly one PRD-lifecycle hop — `$TICKETED → $SHIPPED` — and the optional config-gated archive that follows it. All terminal-state semantics, the generated-top-level-work boundary, and the dedupe-by-child-ref idempotency come from the `prd-lifecycle-rollup` rule; this skill is its Notion implementation, not a second source of truth.
+This phase implements exactly one PRD-lifecycle hop — `$TICKETED → $SHIPPED` — and deliberately leaves native archival to `/lisa:verify-prd` after `$SHIPPED → verified`. All terminal-state semantics, the generated-top-level-work boundary, and the dedupe-by-child-ref idempotency come from the `prd-lifecycle-rollup` rule; this skill is its Notion implementation, not a second source of truth.
 
 #### 3g. PRD verification dispatch (close the loop on shipped PRDs)
 
@@ -306,7 +289,7 @@ Re-query the PRDs currently in the `$SHIPPED` status via `lisa:notion-access` `o
 
 **Per-cycle combined bound:** each scheduler cycle dispatches at most one ready PRD (the Phase 3 single-ready-PRD claim) **and** at most one shipped PRD for verification (this Phase 3g dispatch), for a maximum of two PRD operations per cycle. Ready intake runs first (Phase 3), then shipped verify (Phase 3g).
 
-`lisa:verify-prd` owns the outcome: on a CONFORMS verdict with all empirical checks passing it transitions `$SHIPPED → verified` and posts evidence; on a conformance miss or a failing/unavailable check it **re-opens the PRD `$SHIPPED → ticketed`** (never `blocked`) and creates **build-ready** fix tickets registered as the PRD's generated work, then posts a failure report — the fix tickets auto-build, rollup (3f) re-ships the PRD once they are terminal, and a later cycle re-verifies (the self-healing loop). Either branch moves the PRD out of `$SHIPPED`, so it is not re-picked this cycle; a PRD whose generated work is not actually terminal is guard-stopped by `lisa:verify-prd` (left `$SHIPPED`) — that is verify-prd's gate, not this skill's. A PRD archived on ship (`notion.rollup.closeOnShipped = true`) is out of the open verification queue. This phase, like 3f, is **behaviorally identical across all four intake skills** (`github-prd-intake`, `linear-prd-intake`, `notion-prd-intake`, `confluence-prd-intake`) — only the `$SHIPPED` query surface differs; keep them aligned. Record the dispatched PRD + verify-prd's verdict in the summary.
+`lisa:verify-prd` owns the outcome: on a CONFORMS verdict with all empirical checks passing it transitions `$SHIPPED → verified` and posts evidence; on a conformance miss or a failing/unavailable check it **re-opens the PRD `$SHIPPED → ticketed`** (never `blocked`) and creates **build-ready** fix tickets registered as the PRD's generated work, then posts a failure report — the fix tickets auto-build, rollup (3f) re-ships the PRD once they are terminal, and a later cycle re-verifies (the self-healing loop). Either branch moves the PRD out of `$SHIPPED`, so it is not re-picked this cycle; a PRD whose generated work is not actually terminal is guard-stopped by `lisa:verify-prd` (left `$SHIPPED`) — that is verify-prd's gate, not this skill's. This phase, like 3f, is **behaviorally identical across all four intake skills** (`github-prd-intake`, `linear-prd-intake`, `notion-prd-intake`, `confluence-prd-intake`) — only the `$SHIPPED` query surface differs; keep them aligned. Record the dispatched PRD + verify-prd's verdict in the summary.
 
 ### Phase 4 — Summary report
 
@@ -336,10 +319,10 @@ Print to the agent's output. Do not write this summary to Notion or the destinat
 ## Idempotency & safety
 
 - **One item per cycle**: this skill processes the first eligible ready PRD from Phase 2, then exits. New or remaining ready PRDs are picked up by later scheduler invocations.
-- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:notion-to-tracker` (which delegates to `lisa:tracker-write`), and only ever changes the Notion status property to `$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, or `$SHIPPED` (the last via the rollup phase 3f only). It never edits PRD content, never touches `$DRAFT`, never deletes pages. It sets `$SHIPPED` and may archive the PRD page **only** through the config-gated rollup phase (3f).
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa:notion-to-tracker` (which delegates to `lisa:tracker-write`), and only ever changes the Notion status property to `$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, or `$SHIPPED` (the last via the rollup phase 3f only). It never edits PRD content, never touches `$DRAFT`, never archives pages at the shipped hop, and never deletes pages.
 - **Claim-first ordering**: the status flip to `$IN_REVIEW` is set BEFORE validation runs, so a re-entrant call won't double-process.
 - **Failure handling**: an exception processing the selected PRD is caught and recorded under "Errors" in the summary, then the cycle exits. The PRD that errored is left in `$IN_REVIEW` — the human investigates from there.
-- **Rollup idempotency**: rollup (Phase 3f) is a no-op on a PRD already in `$STATUS_PROP = $SHIPPED` (and already archived when `closeOnShipped` is `true`) — no duplicate transition, no duplicate archive, no duplicate comment. The all-terminal condition is a pure function of the children's current states (deduped by child-ref identity), so recomputing it is safe to re-run. Archival NEVER precedes the all-terminal condition.
+- **Rollup idempotency**: rollup (Phase 3f) is a no-op on a PRD already in `$STATUS_PROP = $SHIPPED` — no duplicate transition, no shipped-time archive, no duplicate comment. The all-terminal condition is a pure function of the children's current states (deduped by child-ref identity), so recomputing it is safe to re-run. Native archival only follows verified PASS in `/lisa:verify-prd`.
 
 ## Configuration
 
@@ -357,8 +340,6 @@ This skill reads project configuration from `.lisa.config.json` (with `.lisa.con
 | `notion.values.blocked` | `Blocked` | Value the agent sets on validation failure |
 | `notion.values.ticketed` | `Ticketed` | Value the agent sets on success |
 | `notion.values.shipped` | `Shipped` | Value the rollup phase (3f) sets when all generated top-level work is terminal; product may also set it by hand |
-| `notion.rollup.closeOnShipped` | `false` | When `true`, rollup archives the PRD page after the `$SHIPPED` transition; when `false`, sets `$SHIPPED` and leaves the page active |
-
 ### From environment variables
 
 | Variable | Purpose |
@@ -371,7 +352,7 @@ This skill reads project configuration from `.lisa.config.json` (with `.lisa.con
 
 - Never write to the destination tracker outside of `lisa:notion-to-tracker` → `lisa:tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
 - Never set the Notion status to a value this skill doesn't own (`$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, and `$SHIPPED` via the rollup phase only). Product owns `$DRAFT` and `$READY`; product and the rollup phase (3f) both set `$SHIPPED`.
-- Set `$SHIPPED` (and archive the PRD page when `closeOnShipped` is configured) only from the rollup phase, and only when all generated top-level children are terminal per the `prd-lifecycle-rollup` rule. Never ship or archive on partial completion.
+- Set `$SHIPPED` only from the rollup phase, and only when all generated top-level children are terminal per the `prd-lifecycle-rollup` rule. Never ship on partial completion and never archive at shipped.
 - Never edit the PRD's body. Communication with product happens only through Notion comments.
 - Never post a single page-level dump of all gate failures. One comment per `prd_anchor` group (or one page-level summary for unanchored failures only). The audience is product, not engineers — comments must be block-anchored, categorized, plain-language, and contain a concrete recommendation. See Phase 3c.3 for the required template and Phase 3c.5 for forbidden language.
 - Never include a gate ID, internal skill name, or engineering shorthand in a Notion comment body. If the validator's `what` or `recommendation` field uses one, paraphrase before posting.

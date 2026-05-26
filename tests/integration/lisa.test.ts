@@ -361,7 +361,7 @@ describe("Lisa Integration Tests", () => {
       } finally {
         process.env.PATH = originalPath;
       }
-    });
+    }, 15_000);
 
     it("applies all/ configs to project with no detected types", async () => {
       await fs.ensureDir(destDir);

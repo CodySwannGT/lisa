@@ -1,18 +1,17 @@
 /**
- * Regression tests for the GitHub PRD closure rollup phase in github-prd-intake.
+ * Regression tests for the GitHub PRD shipped rollup phase in github-prd-intake.
  *
- * Issue #583 (LPC-1.3): add a PRD closure rollup phase to `github-prd-intake`.
+ * Issue #583 (LPC-1.3): add a PRD shipped rollup phase to `github-prd-intake`.
  * After/within an intake cycle, for a ticketed GitHub PRD, read its generated
  * TOP-LEVEL child set (native `subIssues` GraphQL first; else parse the
  * machine-readable `## Tickets` generated-work section from #582) and apply the
  * GitHub terminal-state predicate to each required child:
  *   - ALL required children terminal → transition `prd-ticketed` → `prd-shipped`
- *     and `gh issue close` the PRD only when `prd.rollup.closeOnShipped` is
- *     configured `true` (default `false` → set shipped, leave open).
+ *     and leave the PRD issue open for `lisa:verify-prd`.
  *   - ANY required child incomplete/blocked → leave the PRD OPEN, do not add
  *     `prd-shipped`, and report the incomplete child set.
- *   - Idempotent: a PRD already `prd-shipped` (and closed, when closure is
- *     configured) is a no-op — no duplicate transition / close / comment.
+ *   - Idempotent: a PRD already `prd-shipped` is a no-op — no duplicate
+ *     transition / shipped-time close / comment.
  * The phase cites the `prd-lifecycle-rollup` rule (#579) by slug and is
  * GitHub-only (Linear/Confluence/Notion rollup is sibling sub-task #584).
  *
@@ -44,7 +43,7 @@ const ROOT_TITLE = "%s/github-prd-intake/SKILL.md";
 const readSkill = (root: string): string =>
   readFileSync(path.resolve(root, SKILL_SLUG, "SKILL.md"), "utf8");
 
-describe("github-prd-intake PRD closure rollup phase (#583)", () => {
+describe("github-prd-intake PRD shipped rollup phase (#583)", () => {
   describe.each(SKILL_ROOTS)(ROOT_TITLE, root => {
     const skillPath = path.resolve(root, SKILL_SLUG, "SKILL.md");
 
@@ -54,8 +53,8 @@ describe("github-prd-intake PRD closure rollup phase (#583)", () => {
 
     const content = readSkill(root);
 
-    it("adds a dedicated PRD closure rollup phase", () => {
-      expect(content).toMatch(/PRD closure rollup/i);
+    it("adds a dedicated PRD shipped rollup phase", () => {
+      expect(content).toMatch(/PRD shipped rollup/i);
       // Implemented as a sub-phase of per-PRD processing.
       expect(content).toMatch(/3f/);
     });
@@ -85,7 +84,7 @@ describe("github-prd-intake PRD closure rollup phase (#583)", () => {
       expect(content).toMatch(/terminal-but-dropped|dropped/i);
     });
 
-    it("ships and (config-gated) closes when all required children are terminal", () => {
+    it("ships and leaves the PRD open for verification when all required children are terminal", () => {
       // The single PRD-lifecycle hop performed by rollup.
       expect(content).toMatch(/TICKETED.*SHIPPED|ticketed.*shipped/i);
       expect(content).toMatch(/add-label "\$SHIPPED"|\$SHIPPED/);
@@ -93,10 +92,9 @@ describe("github-prd-intake PRD closure rollup phase (#583)", () => {
       expect(content).toMatch(
         /all required.*terminal|all.*generated top-level.*terminal/i
       );
-      // Close is gated on the closeOnShipped config (default false).
-      expect(content).toMatch(/closeOnShipped/);
-      expect(content).toMatch(/gh issue close/);
-      expect(content).toMatch(/default `false`|default.*false/i);
+      expect(content).toMatch(/left open for verify-prd|open.*verify-prd/i);
+      expect(content).toMatch(/do not close at the shipped hop/i);
+      expect(content).not.toMatch(/closeOnShipped|read_rollup_flag/);
     });
 
     it("leaves the PRD open and reports incomplete children on partial completion", () => {
@@ -117,11 +115,12 @@ describe("github-prd-intake PRD closure rollup phase (#583)", () => {
       expect(content).toMatch(/owner\/repo#number/);
     });
 
-    it("resolves closeOnShipped from github.labels.prd.rollup with a default", () => {
-      expect(content).toMatch(/github\.labels\.prd\.rollup\.closeOnShipped/);
-      // Local-overrides-global precedence like the lifecycle-label resolver.
-      expect(content).toMatch(/\.lisa\.config\.local\.json/);
-      expect(content).toMatch(/\.lisa\.config\.json/);
+    it("does not resolve shipped-time closure config", () => {
+      expect(content).toMatch(
+        /There is no close\/archive configuration at the shipped hop/
+      );
+      expect(content).not.toMatch(/github\.labels\.prd\.rollup/);
+      expect(content).not.toMatch(/VERIFIED_CLOSURE/);
     });
 
     it("scopes the rollup to GitHub and defers Linear/Confluence/Notion to #584", () => {
@@ -129,7 +128,7 @@ describe("github-prd-intake PRD closure rollup phase (#583)", () => {
       expect(content).toMatch(/#584/);
     });
 
-    it("narrows the lifecycle/safety/rules invariants to allow config-gated rollup", () => {
+    it("narrows the lifecycle/safety/rules invariants to allow shipped rollup", () => {
       // Lifecycle now includes the ticketed → shipped hop.
       expect(content).toMatch(/`\$TICKETED` → `\$SHIPPED`/);
       // The old absolute 'never touches shipped / never closes' claims are gone.
@@ -137,8 +136,9 @@ describe("github-prd-intake PRD closure rollup phase (#583)", () => {
         /never adds, removes, or touches the `draft` or `shipped` labels/
       );
       expect(content).not.toMatch(/never closes or deletes PRD issues/);
-      // Rollup is the only path that sets shipped / closes.
+      // Rollup is the only path that sets shipped.
       expect(content).toMatch(/rollup phase \(3f\)|rollup phase|Phase 3f/);
+      expect(content).toMatch(/never closes PRD issues at the shipped hop/);
     });
 
     it("delegates terminal semantics to leaf-only-lifecycle for child Epics", () => {
