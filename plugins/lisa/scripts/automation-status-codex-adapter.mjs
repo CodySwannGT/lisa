@@ -14,13 +14,14 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { compareAutomationContract } from "./automation-status-contract-drift.mjs";
+import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
 
 const CODEx_RUNTIME_LABEL = "Codex automations";
+const RUN_TIMESTAMP_PATTERN = /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/;
 const RUN_FAILURE_PATTERN =
   /\b(failed|failure|errored|error|exception|crash(?:ed)?)\b/i;
 const NEGATED_FAILURE_PATTERN =
-  /\b(no|without)\s+(?:recent\s+)?fail(?:ure|ed)\b/i;
+  /\b(no|without)\s+(?:recent\s+)?(?:fail(?:ure|ed)|errors?|exceptions?)\b/i;
 
 /**
  * @typedef {import("./automation-status-expected-fleet.mjs").resolveExpectedAutomationFleet extends (...args: any[]) => infer T ? T : never} ExpectedFleet
@@ -82,11 +83,13 @@ export async function inspectCodexAutomationFleet(input) {
     ["exploratory", []],
   ]);
 
-  for (const expected of expectedFleet.expected) {
-    const comparison = compareAutomationContract({
-      expected,
-      observedAutomations,
-    });
+  const comparisons = compareAutomationFleet({
+    expectedAutomations: expectedFleet.expected,
+    observedAutomations,
+  });
+
+  for (const [index, expected] of expectedFleet.expected.entries()) {
+    const comparison = comparisons[index];
     expectedGroups.get(expected.group)?.push(
       createObservedStatusItem({
         expected,
@@ -179,10 +182,17 @@ export function deriveCodexObservedCommand(prompt) {
     /Use the `\$([a-z0-9:-]+)` skill with arguments `([^`]+)`/i
   );
   if (aliasSkillMatch?.[1] && aliasSkillMatch[2]) {
-    return `/${aliasSkillMatch[1]} ${aliasSkillMatch[2]}`.trim();
+    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2]}`.trim();
   }
 
   return undefined;
+}
+
+function canonicalizeCodexSkillAlias(alias) {
+  if (alias.startsWith("lisa-")) {
+    return `/lisa:${alias.slice("lisa-".length)}`;
+  }
+  return `/${alias}`;
 }
 
 /**
@@ -204,25 +214,47 @@ export function parseCodexAutomationMemory(memoryContent) {
     };
   }
 
-  const timestampMatch = memoryContent.match(
-    /20\d{2}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/
-  );
   const lines = memoryContent.split(/\r?\n/);
+  const latestBlock = findLatestAutomationMemoryBlock(lines);
   const summaryLine =
-    lines
+    latestBlock.lines
       .find(line => line.startsWith("- "))
       ?.replace(/^- /, "")
       .trim() ?? null;
 
-  const latestBlock = lines.slice(0, 20).join("\n");
+  const latestBlockText = latestBlock.lines.join("\n");
   const lastRunFailed =
-    RUN_FAILURE_PATTERN.test(latestBlock) &&
-    !NEGATED_FAILURE_PATTERN.test(latestBlock);
+    RUN_FAILURE_PATTERN.test(latestBlockText) &&
+    !NEGATED_FAILURE_PATTERN.test(latestBlockText);
 
   return {
-    lastRunAt: timestampMatch?.[0] ?? null,
+    lastRunAt: latestBlock.timestamp,
     lastRunSummary: summaryLine,
     lastRunFailed,
+  };
+}
+
+function findLatestAutomationMemoryBlock(lines) {
+  const timestampLines = lines
+    .map((line, index) => ({
+      index,
+      timestamp: line.match(RUN_TIMESTAMP_PATTERN)?.[0] ?? null,
+    }))
+    .filter(entry => entry.timestamp);
+
+  if (timestampLines.length === 0) {
+    return {
+      timestamp: null,
+      lines,
+    };
+  }
+
+  const latest = timestampLines.at(-1);
+  const next = timestampLines.find(entry => entry.index > latest.index);
+
+  return {
+    timestamp: latest.timestamp,
+    lines: lines.slice(latest.index, next?.index),
   };
 }
 

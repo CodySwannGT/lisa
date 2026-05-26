@@ -170,6 +170,7 @@ GitHub Issues live in one repo by definition, so the scanned repo's issues are u
 3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
    - Carries `repo:<other>` → **skip** (leave it `ready` for that repo's own intake); next candidate.
    - **Unlabeled** → determine the target repo(s) from the issue + code surfaces, then **stamp** `repo:<name>` via `gh issue edit <n> --add-label "repo:<name>"` (create the label lazily) so later cycles filter cheaply; re-apply with the now-known repo. (An issue whose work is entirely in the scanned repo is simply labeled `repo:<current>`.)
+   - **Container visibility is allowed.** A multi-repo Epic / Story / Spike may legitimately carry multiple `repo:<name>` labels for operator visibility. Do not split or claim it here; leave the repo markers intact and fall through to the leaf-only gate, which repairs the stale build-ready label instead of dispatching the container.
    - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
    - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
 4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the ready set is exhausted — exit cleanly with `"No ready issues for repo <current>. Nothing to do."`.

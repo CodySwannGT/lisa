@@ -2,6 +2,143 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.105.0](https://github.com/CodySwannGT/lisa/compare/vv2.104.7...v2.105.0) (2026-05-26)
+
+
+### Features
+
+* **usage-accounting:** dedupe child work rollups ([ba8db51](https://github.com/CodySwannGT/lisa/commit/ba8db513074e5fbcce08bbe9f4e964327af11393)), closes [#734](https://github.com/CodySwannGT/lisa/issues/734)
+
+
+### Bug Fixes
+
+* gate claude workflow by author association ([fffcfa0](https://github.com/CodySwannGT/lisa/commit/fffcfa0bc7440c2c2c28ed4addf444ffa712874b))
+* **usage-accounting:** treat explicit childArtifacts: [] as recompute not fallback ([2f3f900](https://github.com/CodySwannGT/lisa/commit/2f3f9008d25c5aa6a318457755b38bf7302967e3))
+
+### [2.104.7](https://github.com/CodySwannGT/lisa/compare/vv2.104.6...v2.104.7) (2026-05-26)
+
+
+### Bug Fixes
+
+* close PRDs only after verification ([131500e](https://github.com/CodySwannGT/lisa/commit/131500e85da9d853540097141169079509cb2965))
+
+### [2.104.6](https://github.com/CodySwannGT/lisa/compare/vv2.104.5...v2.104.6) (2026-05-26)
+
+
+### Bug Fixes
+
+* **queue-status:** ignore invalid prd role overrides ([9d91ae5](https://github.com/CodySwannGT/lisa/commit/9d91ae5e1fd6306897531dc712fefd3443e3cf54))
+
+### [2.104.5](https://github.com/CodySwannGT/lisa/compare/vv2.104.4...v2.104.5) (2026-05-26)
+
+
+### Bug Fixes
+
+* **ci:** don't file a 'Claude auto-fix failed' issue when loop-guard intentionally skipped ([98332e8](https://github.com/CodySwannGT/lisa/commit/98332e85eb3c554b0c9476c3c28054f6e43b3e46)), closes [#960](https://github.com/CodySwannGT/lisa/issues/960)
+
+### [2.104.4](https://github.com/CodySwannGT/lisa/compare/vv2.104.3...v2.104.4) (2026-05-26)
+
+
+### Bug Fixes
+
+* add observedCadence assertion for hourly case and JSDoc for extractClaudeScheduleCadence ([11e7742](https://github.com/CodySwannGT/lisa/commit/11e77426269c84b9ee9accb864be1821f9f382b5)), closes [#896](https://github.com/CodySwannGT/lisa/issues/896)
+* **council:** mark unexecuted first-round captures ([0d1ee1d](https://github.com/CodySwannGT/lisa/commit/0d1ee1dfe4bbde9a504e45ecd065fc96b0d06cb8))
+* normalize claude schedule cadence ([a7ada49](https://github.com/CodySwannGT/lisa/commit/a7ada498d7c535dde7e70d44e044b1f5219fa661))
+* parse latest Codex automation memory run ([e1c8265](https://github.com/CodySwannGT/lisa/commit/e1c826588297e5707da41e864b83ddcb45072606))
+* **queue-status:** apply default github reader labels ([8c92544](https://github.com/CodySwannGT/lisa/commit/8c92544a5aac8dd275904d46467364876ee8e67d))
+* repair automation-status fleet matching ([88d8854](https://github.com/CodySwannGT/lisa/commit/88d8854b7a7277d5f69c71fa548096836c174af4))
+
+### [2.104.3](https://github.com/CodySwannGT/lisa/compare/vv2.104.2...v2.104.3) (2026-05-26)
+
+
+### Documentation
+
+* **github-build-intake:** preserve multi-repo containers ([c9bfdab](https://github.com/CodySwannGT/lisa/commit/c9bfdab1460f266dd18db82b5ba622cc7f803c68))
+
+### [2.104.2](https://github.com/CodySwannGT/lisa/compare/vv2.104.1...v2.104.2) (2026-05-26)
+
+### [2.104.1](https://github.com/CodySwannGT/lisa/compare/vv2.104.0...v2.104.1) (2026-05-26)
+
+## [2.104.0](https://github.com/CodySwannGT/lisa/compare/vv2.103.1...v2.104.0) (2026-05-26)
+
+
+### Features
+
+* **wiki:** add status command surface ([9194c8e](https://github.com/CodySwannGT/lisa/commit/9194c8e419a3a66419c96b16ad315461283c1022))
+
+### [2.103.1](https://github.com/CodySwannGT/lisa/compare/vv2.103.0...v2.103.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* canonicalize codex lisa automation aliases ([4f1236b](https://github.com/CodySwannGT/lisa/commit/4f1236bc55413dc3a9e0ef2e36981d0a4b93f5b3))
+
+## [2.103.0](https://github.com/CodySwannGT/lisa/compare/vv2.102.0...v2.103.0) (2026-05-26)
+
+
+### Features
+
+* **wiki:** render source freshness status ([210020b](https://github.com/CodySwannGT/lisa/commit/210020be7010f2173cc7c1b7d59686afb02ea034))
+
+## [2.102.0](https://github.com/CodySwannGT/lisa/compare/vv2.101.1...v2.102.0) (2026-05-26)
+
+
+### Features
+
+* **base:** add /lisa:wiki:install bootstrap for the lisa-wiki plugin ([915d7b2](https://github.com/CodySwannGT/lisa/commit/915d7b20639d8e83714a1aa3301d639438935c79))
+
+
+### Bug Fixes
+
+* **config-resolution:** dedupe conflicting `usage` JSON example and stray docs ([90ea817](https://github.com/CodySwannGT/lisa/commit/90ea817e3c86a14920d91ddddf9be603364e922b)), closes [#2](https://github.com/CodySwannGT/lisa/issues/2) [#4](https://github.com/CodySwannGT/lisa/issues/4)
+* **council:** pass cwd through buildCouncilDryRunPlan so worktree tests stay deterministic ([e0b8c3a](https://github.com/CodySwannGT/lisa/commit/e0b8c3a75c30df35a0e275cd165f7402ba37a2f7))
+* **trampoline:** opt out of postinstall reconciliation under vitest/jest ([0ba447e](https://github.com/CodySwannGT/lisa/commit/0ba447ebf6781a02eb53d33c57b188baf4b485d2))
+
+### [2.101.1](https://github.com/CodySwannGT/lisa/compare/vv2.101.0...v2.101.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* fail unsupported queue-status vendor readers ([9d73597](https://github.com/CodySwannGT/lisa/commit/9d73597872a94a08f069d48c01b5538be4557418))
+
+## [2.101.0](https://github.com/CodySwannGT/lisa/compare/vv2.100.2...v2.101.0) (2026-05-26)
+
+
+### Features
+
+* **intake-explain:** document prd repair gates ([ef6f9a3](https://github.com/CodySwannGT/lisa/commit/ef6f9a36729ad3fd7952a44b5270dd0f389bd8cf))
+
+
+### Bug Fixes
+
+* count empty doctor groups as skips ([1554af5](https://github.com/CodySwannGT/lisa/commit/1554af5bd5da7aba1b039475098e669beeb839b6))
+* **doctor:** normalize direct aggregator statuses ([f3f2ed7](https://github.com/CodySwannGT/lisa/commit/f3f2ed70e10542df8c140867b86d84199b51722b))
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([4c7312d](https://github.com/CodySwannGT/lisa/commit/4c7312d33904bfe63b31dfb96c4beed703f02e2c))
+
+### [2.100.2](https://github.com/CodySwannGT/lisa/compare/vv2.100.1...v2.100.2) (2026-05-26)
+
+
+### Bug Fixes
+
+* align council execution policy inputs ([d6a99fd](https://github.com/CodySwannGT/lisa/commit/d6a99fd235c74a2ef40f09bf413542fd1905ed88))
+* **council:** classify executor errors as failed ([c1bc307](https://github.com/CodySwannGT/lisa/commit/c1bc3073b1ead016f2cf31efacdce256859b1235))
+* handle negated automation-status failures ([f91e07c](https://github.com/CodySwannGT/lisa/commit/f91e07ccb2e449be0c2aa5b8f3e8d4f068fcf4e8))
+* make usage tokens reversible ([54019ea](https://github.com/CodySwannGT/lisa/commit/54019eaf389caf576c8bed97febb121b81d93d84))
+* preserve decimal usage cost totals ([a4d6b84](https://github.com/CodySwannGT/lisa/commit/a4d6b84257e069874db905db3d4378e838dda771))
+* recompute merged usage rollups ([2bdf9e3](https://github.com/CodySwannGT/lisa/commit/2bdf9e316c5e12e710a6ff71c6a8b555d02d4102))
+* reject invalid usage numeric tokens ([93f5be0](https://github.com/CodySwannGT/lisa/commit/93f5be0fe81d7d513714d36508bec994e4983c12))
+* reject missing council flag values ([9eb34a2](https://github.com/CodySwannGT/lisa/commit/9eb34a27edba8259ad4241a9916316abaaf534ca))
+
+
+### Documentation
+
+* explain intake build gates ([2ab8975](https://github.com/CodySwannGT/lisa/commit/2ab8975b7ca7ac44857a140b3f4b3228527eab8e))
+* **intake-explain:** publish operator guidance ([1a1ea50](https://github.com/CodySwannGT/lisa/commit/1a1ea509300cddf1ed5724ad914a84688e09d12b))
+
 ### [2.100.1](https://github.com/CodySwannGT/lisa/compare/vv2.100.0...v2.100.1) (2026-05-26)
 
 

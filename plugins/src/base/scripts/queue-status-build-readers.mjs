@@ -9,6 +9,7 @@
  */
 
 import { classifyQueueHealth } from "./queue-health-classification.mjs";
+import { resolveBuildLifecycleRoles } from "./queue-contract-resolution.mjs";
 
 export const BUILD_LIFECYCLE_ORDER = [
   "ready",
@@ -19,6 +20,7 @@ export const BUILD_LIFECYCLE_ORDER = [
 ];
 
 const ACTIONABLE_ROLE_ORDER = ["blocked", "ready", "claimed", "review"];
+const RAW_BUILD_READER_TRACKERS = new Set(["github"]);
 
 const HIGHLIGHT_COPY = {
   blocked: {
@@ -59,7 +61,7 @@ const HIGHLIGHT_COPY = {
  * }} input
  */
 export function readGithubBuildQueueSnapshot(input = {}) {
-  const roles = input.roles ?? {};
+  const roles = input.roles ?? resolveBuildLifecycleRoles({}, "github").roles;
   const normalizedItems = (input.issues ?? [])
     .map(issue => normalizeGithubBuildIssue(issue, roles))
     .filter(Boolean);
@@ -89,6 +91,8 @@ export function readGithubBuildQueueSnapshot(input = {}) {
  * }} input
  */
 export function createBuildQueueSnapshot(input = {}) {
+  const tracker = normalizeTracker(input.tracker);
+  const unsupportedReaderError = resolveUnsupportedReaderError(input, tracker);
   const roles = normalizeRoles(input.roles);
   const items = normalizeItems(input.items);
   const counts = buildLifecycleCounts(items);
@@ -99,9 +103,14 @@ export function createBuildQueueSnapshot(input = {}) {
     input.queueArgument
   );
   const queueResolved =
-    input.queueResolved ?? typeof input.resolutionError !== "string";
+    input.queueResolved ??
+    (unsupportedReaderError
+      ? false
+      : typeof input.resolutionError !== "string");
   const namespaceAdopted =
     input.namespaceAdopted ?? inferNamespaceAdopted(items, roles);
+  const resolutionError =
+    unsupportedReaderError ?? input.resolutionError ?? null;
 
   const health = classifyQueueHealth({
     queueResolved,
@@ -110,11 +119,11 @@ export function createBuildQueueSnapshot(input = {}) {
     activeCount: counts.claimed + counts.review,
     blockedCount: counts.blocked,
     stalledCount: repairSignals.stalled.length,
-    resolutionError: input.resolutionError ?? null,
+    resolutionError,
   });
 
   return {
-    tracker: input.tracker ?? "unknown",
+    tracker,
     queueResolved,
     namespaceAdopted,
     roles,
@@ -122,7 +131,7 @@ export function createBuildQueueSnapshot(input = {}) {
     highlights,
     repairSignals,
     health,
-    resolutionError: input.resolutionError ?? null,
+    resolutionError,
   };
 }
 
@@ -216,6 +225,33 @@ function normalizeRoles(roles) {
         : "blocked",
     done: normalizeDoneRoles(roles?.done),
   };
+}
+
+/**
+ * @param {string | undefined} tracker
+ * @returns {string}
+ */
+function normalizeTracker(tracker) {
+  return typeof tracker === "string" && tracker.trim().length > 0
+    ? tracker.trim().toLowerCase()
+    : "unknown";
+}
+
+/**
+ * @param {Record<string, any>} input
+ * @param {string} tracker
+ * @returns {string | null}
+ */
+function resolveUnsupportedReaderError(input, tracker) {
+  if (
+    tracker === "unknown" ||
+    RAW_BUILD_READER_TRACKERS.has(tracker) ||
+    Object.hasOwn(input, "items")
+  ) {
+    return null;
+  }
+
+  return `vendor reader not implemented for build tracker '${tracker}'`;
 }
 
 /**
