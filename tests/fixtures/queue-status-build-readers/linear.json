@@ -1,0 +1,54 @@
+{
+  "tracker": "linear",
+  "items": [
+    {
+      "id": "L-825",
+      "ref": "L-825",
+      "title": "Ready build item waiting for intake",
+      "url": "https://linear.app/acme/issue/L-825",
+      "role": "ready",
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "L-826",
+      "ref": "L-826",
+      "title": "Claimed build item still in flight",
+      "url": "https://linear.app/acme/issue/L-826",
+      "role": "claimed",
+      "createdAt": "2026-05-24T10:00:00Z"
+    },
+    {
+      "id": "L-827",
+      "ref": "L-827",
+      "title": "Blocked build item needs clarification",
+      "url": "https://linear.app/acme/issue/L-827",
+      "role": "blocked",
+      "createdAt": "2026-05-23T10:00:00Z"
+    },
+    {
+      "id": "L-828",
+      "ref": "L-828",
+      "title": "Stalled claimed build item",
+      "url": "https://linear.app/acme/issue/L-828",
+      "role": "claimed",
+      "createdAt": "2026-05-22T10:00:00Z",
+      "stalled": true
+    },
+    {
+      "id": "L-829",
+      "ref": "L-829",
+      "title": "Reviewing build item",
+      "url": "https://linear.app/acme/issue/L-829",
+      "role": "review",
+      "createdAt": "2026-05-21T10:00:00Z"
+    },
+    {
+      "id": "L-830",
+      "ref": "L-830",
+      "title": "Done build item on production",
+      "url": "https://linear.app/acme/issue/L-830",
+      "role": "done",
+      "createdAt": "2026-05-20T10:00:00Z"
+    }
+  ]
+}
