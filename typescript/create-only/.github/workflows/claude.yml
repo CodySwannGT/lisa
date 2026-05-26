@@ -22,9 +22,12 @@ permissions:
 
 jobs:
   claude:
+    if: |
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association || github.event.review.author_association || github.event.issue.author_association || '')
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude.yml@main
     with:
       event_name: ${{ github.event_name }}
+      author_association: ${{ github.event.comment.author_association || github.event.review.author_association || github.event.issue.author_association || '' }}
       comment_body: ${{ github.event.comment.body || '' }}
       review_body: ${{ github.event.review.body || '' }}
       issue_body: ${{ github.event.issue.body || '' }}

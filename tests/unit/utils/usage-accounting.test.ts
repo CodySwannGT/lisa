@@ -1,7 +1,10 @@
+/* eslint-disable max-lines -- Usage accounting regression coverage exercises direct, child, pricing, and nullable rollups together. */
+
 import {
   createLisaUsageRollup,
   LISA_USAGE_HEADING,
   parseLisaUsageSection,
+  type LisaUsageChildArtifact,
   type LisaUsageEntry,
   type LisaUsageRollup,
   upsertLisaUsageSection,
@@ -11,6 +14,10 @@ const USAGE_HEADING_COUNT = 1;
 const USAGE_HEADING_MATCHER = /## Lisa Usage/g;
 const ARTIFACT_HEADING = "# Artifact";
 const ARTIFACT_DOCUMENT = `${ARTIFACT_HEADING}\n`;
+const CHILD_REF_ONE = "github:issue:900";
+const CHILD_REF_TWO = "github:issue:901";
+const CHILD_ENTRY_SHARED = "shared-child";
+const CHILD_ENTRY_UNIQUE = "unique-child";
 const PRICING_SOURCE = "config:openai-api-pricing@2026-05-25";
 const PRICED_ENTRY_ID = "entry-priced";
 
@@ -182,6 +189,92 @@ describe("usage-accounting utilities", () => {
     expect(parsed.rollup?.totalCost).toBeCloseTo(0.2);
   });
 
+  it("clears stale child rollup fields when childArtifacts: [] is explicitly supplied", () => {
+    const directEntry = makeEntry({ entryId: "entry-1", runId: "run-1" });
+    const previousRollup: import("../../../src/utils/usage-accounting.js").LisaUsageRollup =
+      {
+        childCost: 0.99,
+        childEntryIds: ["stale-child"],
+        childRefs: ["github:issue:stale"],
+        childTokens: 999,
+        currency: "USD",
+        directCost: 0.12,
+        directEntryIds: ["entry-0"],
+        directTokens: 120,
+        totalCost: 1.11,
+        totalTokens: 1119,
+      };
+
+    // Passing childArtifacts: [] explicitly means "no children now"; stale
+    // previous rollup child totals must be cleared, not preserved.
+    const rollup = createLisaUsageRollup([directEntry], previousRollup, []);
+
+    expect(rollup.childEntryIds).toEqual([]);
+    expect(rollup.childRefs).toEqual([]);
+    expect(rollup.childTokens).toBeNull();
+    expect(rollup.childCost).toBeNull();
+  });
+
+  it("dedupes child usage entries by stable entry id across child work", () => {
+    const directEntry = makeEntry({ entryId: "entry-1", runId: "run-1" });
+    const sharedChild = makeEntry({
+      artifactRef: CHILD_REF_ONE,
+      cost: 0.08,
+      entryId: CHILD_ENTRY_SHARED,
+      flow: "verify",
+      runId: "run-verify-1",
+      totalTokens: 80,
+    });
+    const uniqueChild = makeEntry({
+      artifactRef: CHILD_REF_TWO,
+      cost: 0.04,
+      entryId: CHILD_ENTRY_UNIQUE,
+      flow: "verify",
+      runId: "run-verify-2",
+      totalTokens: 40,
+    });
+    const directDuplicate = makeEntry({
+      artifactRef: "github:issue:902",
+      cost: 0.5,
+      entryId: "entry-1",
+      flow: "verify",
+      runId: "run-verify-duplicate",
+      totalTokens: 500,
+    });
+    const childArtifacts: readonly LisaUsageChildArtifact[] = [
+      {
+        artifactRef: CHILD_REF_ONE,
+        entries: [sharedChild, uniqueChild],
+      },
+      {
+        artifactRef: CHILD_REF_TWO,
+        entries: [sharedChild, directDuplicate],
+      },
+    ];
+
+    const rollup = createLisaUsageRollup([directEntry], null, childArtifacts);
+    const updated = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [directEntry],
+      childArtifacts,
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(rollup.childEntryIds).toEqual([
+      CHILD_ENTRY_SHARED,
+      CHILD_ENTRY_UNIQUE,
+    ]);
+    expect(rollup.childRefs).toEqual([CHILD_REF_ONE, CHILD_REF_TWO]);
+    expect(parsed.rollup?.childEntryIds).toEqual([
+      CHILD_ENTRY_SHARED,
+      CHILD_ENTRY_UNIQUE,
+    ]);
+    expect(parsed.rollup?.childRefs).toEqual([CHILD_REF_ONE, CHILD_REF_TWO]);
+    expect(parsed.rollup?.childTokens).toBe(120);
+    expect(parsed.rollup?.childCost).toBeCloseTo(0.12);
+    expect(parsed.rollup?.totalTokens).toBe(240);
+    expect(parsed.rollup?.totalCost).toBeCloseTo(0.24);
+  });
+
   it("aggregates decimal cost totals without binary floating-point artifacts", () => {
     const firstEntry = makeEntry({
       entryId: "entry-cost-a",
@@ -292,7 +385,7 @@ describe("usage-accounting utilities", () => {
       rollup: makeRollup({
         childCost: 0.21,
         childEntryIds: ["child-a", "shared-descendant"],
-        childRefs: ["github:issue:900", "github:issue:901"],
+        childRefs: [CHILD_REF_ONE, CHILD_REF_TWO],
         childTokens: 210,
         currency: "USD",
         directCost: 0.12,
@@ -328,7 +421,7 @@ describe("usage-accounting utilities", () => {
     expect(parsed.rollup).toMatchObject({
       childCost: 0.21,
       childEntryIds: ["child-a", "shared-descendant"],
-      childRefs: ["github:issue:900", "github:issue:901"],
+      childRefs: [CHILD_REF_ONE, CHILD_REF_TWO],
       childTokens: 210,
       directCost: 0.18,
       directEntryIds: [PRICED_ENTRY_ID],
@@ -338,3 +431,5 @@ describe("usage-accounting utilities", () => {
     });
   });
 });
+
+/* eslint-enable max-lines -- End usage accounting regression coverage. */
