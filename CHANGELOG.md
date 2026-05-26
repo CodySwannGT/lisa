@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.104.3](https://github.com/CodySwannGT/lisa/compare/vv2.104.2...v2.104.3) (2026-05-26)
+
+
+### Documentation
+
+* **github-build-intake:** preserve multi-repo containers ([c9bfdab](https://github.com/CodySwannGT/lisa/commit/c9bfdab1460f266dd18db82b5ba622cc7f803c68))
+
 ### [2.104.2](https://github.com/CodySwannGT/lisa/compare/vv2.104.1...v2.104.2) (2026-05-26)
 
 ### [2.104.1](https://github.com/CodySwannGT/lisa/compare/vv2.104.0...v2.104.1) (2026-05-26)
