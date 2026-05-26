@@ -140,6 +140,24 @@ describe("queue-status build readers (#825)", () => {
     });
   });
 
+  it("fails loudly when a non-GitHub tracker has no raw reader input", () => {
+    const snapshot = createBuildQueueSnapshot({
+      tracker: "linear",
+      queueArgument: "linear intake_mode=build",
+    });
+
+    expect(snapshot).toMatchObject({
+      tracker: "linear",
+      queueResolved: false,
+      resolutionError:
+        "vendor reader not implemented for build tracker 'linear'",
+    });
+    expect(snapshot.health).toMatchObject({
+      verdict: "MISCONFIGURED",
+      reasons: ["queue-unresolved"],
+    });
+  });
+
   it("keeps fixture-backed vendor parity for counts, highlights, and repair signals", () => {
     const fixtureNames = ["github", "linear", "jira"];
     const snapshots = fixtureNames.map(name => {
