@@ -13,6 +13,9 @@ const firstRoundModuleUrl = pathToFileURL(
 const shared = await import(sharedModuleUrl);
 const firstRound = await import(firstRoundModuleUrl);
 const WORKSPACE_WRITE_MODE = "workspace-write";
+const GUARDED_WORKSPACE_ENV = "LISA_COUNCIL_GUARDED_WORKSPACE";
+const WRITE_ACK_ENV = "LISA_COUNCIL_ALLOW_WRITE";
+const REGULAR_WORKSPACE_CWD = "/Users/dev/workspace/lisa";
 
 describe("harness parity council guardrails", () => {
   it("defaults to explicit read-only policy even inside a worktree", () => {
@@ -39,7 +42,7 @@ describe("harness parity council guardrails", () => {
       shared.resolveCouncilExecutionPolicy(
         {
           writeMode: WORKSPACE_WRITE_MODE,
-          cwd: "/Users/dev/workspace/lisa",
+          cwd: REGULAR_WORKSPACE_CWD,
         },
         {}
       )
@@ -65,11 +68,11 @@ describe("harness parity council guardrails", () => {
       shared.resolveCouncilExecutionPolicy(
         {
           writeMode: WORKSPACE_WRITE_MODE,
-          cwd: "/Users/dev/workspace/lisa",
+          cwd: REGULAR_WORKSPACE_CWD,
         },
         {
-          LISA_COUNCIL_GUARDED_WORKSPACE: "1",
-          LISA_COUNCIL_ALLOW_WRITE: "true",
+          [GUARDED_WORKSPACE_ENV]: "1",
+          [WRITE_ACK_ENV]: "true",
         }
       )
     ).toEqual({
@@ -98,6 +101,44 @@ describe("harness parity council guardrails", () => {
       guardedWorkspaceReason: "codex-worktree",
       requiresExplicitWriteAck: false,
       writeAck: false,
+    });
+  });
+
+  it("uses one execution policy input shape for dry-run and real collection", async () => {
+    const policyInput = {
+      topic: "Review council policy parity",
+      runtime: "codex",
+      writeMode: WORKSPACE_WRITE_MODE,
+      cwd: REGULAR_WORKSPACE_CWD,
+      env: {
+        [GUARDED_WORKSPACE_ENV]: "1",
+        [WRITE_ACK_ENV]: "true",
+      },
+    };
+    const dryRun = firstRound.buildCouncilDryRunPlan(policyInput);
+
+    expect(
+      firstRound.resolveCouncilFirstRoundExecutionPolicy(policyInput)
+    ).toEqual(dryRun.executionPolicy);
+
+    await expect(
+      firstRound.collectFirstRoundResponses({
+        topic: policyInput.topic,
+        runtimes: ["codex"],
+        runtime: policyInput.runtime,
+        writeMode: policyInput.writeMode,
+        cwd: policyInput.cwd,
+        env: policyInput.env,
+        probeRuntime: runtime => ({
+          runtime,
+          available: false,
+          authMissing: false,
+          helpProbe: {},
+          versionProbe: {},
+        }),
+      })
+    ).resolves.toMatchObject({
+      unavailableRuntimes: [{ runtime: "codex" }],
     });
   });
 
