@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.97.0](https://github.com/CodySwannGT/lisa/compare/vv2.96.0...v2.97.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** add PRD queue readers ([ec926ac](https://github.com/CodySwannGT/lisa/commit/ec926acf982dd830d02cc8b250a9fa306d2b5068))
+
+
+### Bug Fixes
+
+* **queue-status:** pass raw roles to inferNamespaceAdopted to avoid false-positive ([2af8527](https://github.com/CodySwannGT/lisa/commit/2af8527624f2b4102207d6eb3ceaf3cb1ec4879b))
+
 ## [2.96.0](https://github.com/CodySwannGT/lisa/compare/vv2.95.0...v2.96.0) (2026-05-26)
 
 
