@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.87.0](https://github.com/CodySwannGT/lisa/compare/vv2.86.0...v2.87.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** add grouped fleet report renderer ([e3bc4d7](https://github.com/CodySwannGT/lisa/commit/e3bc4d74658f3bdc11b809398fd79769c65093d3))
+
 ## [2.86.0](https://github.com/CodySwannGT/lisa/compare/vv2.85.2...v2.86.0) (2026-05-26)
 
 
