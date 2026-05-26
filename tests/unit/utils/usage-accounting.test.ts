@@ -61,6 +61,7 @@ function makeEntry(
 function makeRollup(overrides: Partial<LisaUsageRollup> = {}): LisaUsageRollup {
   return {
     childCost: 0,
+    childCurrency: "USD",
     childEntryIds: [],
     childRefs: [],
     childTokens: 0,
@@ -429,6 +430,52 @@ describe("usage-accounting utilities", () => {
       totalCost: 0.39,
       totalTokens: 390,
     });
+  });
+
+  // Test hardened to kill mutant M001 (Risk Factor: Data security / compliance)
+  it("surfaces currency mismatches instead of summing costs", () => {
+    const directMixed = createLisaUsageRollup([
+      makeEntry({ entryId: "entry-usd", runId: "run-usd", currency: "USD" }),
+      makeEntry({ entryId: "entry-eur", runId: "run-eur", currency: "EUR" }),
+    ]);
+    const childMixed = createLisaUsageRollup(
+      [makeEntry({ entryId: "entry-usd", runId: "run-usd", currency: "USD" })],
+      makeRollup({
+        childCost: 0.21,
+        childCurrency: "EUR",
+        childTokens: 210,
+        currency: "EUR",
+      })
+    );
+
+    expect(directMixed.currency).toBe("mixed");
+    expect(directMixed.directCost).toBeNull();
+    expect(directMixed.totalCost).toBeNull();
+    expect(childMixed.currency).toBe("mixed");
+    expect(childMixed.directCost).toBeCloseTo(0.12);
+    expect(childMixed.childCost).toBeCloseTo(0.21);
+    expect(childMixed.directTokens).toBe(120);
+    expect(childMixed.childTokens).toBe(210);
+    expect(childMixed.totalCost).toBeNull();
+  });
+
+  it("recovers from a sticky mixed state when subsequent entries align", () => {
+    const stickyRollup = makeRollup({
+      childCost: 0.21,
+      childCurrency: "EUR",
+      childTokens: 210,
+      currency: "mixed",
+    });
+    const reconciled = createLisaUsageRollup(
+      [makeEntry({ entryId: "entry-eur", runId: "run-eur", currency: "EUR" })],
+      stickyRollup
+    );
+
+    expect(reconciled.currency).toBe("EUR");
+    expect(reconciled.childCurrency).toBe("EUR");
+    expect(reconciled.directCost).toBeCloseTo(0.12);
+    expect(reconciled.childCost).toBeCloseTo(0.21);
+    expect(reconciled.totalCost).toBeCloseTo(0.33);
   });
 });
 
