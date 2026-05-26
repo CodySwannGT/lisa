@@ -23,13 +23,20 @@ const REPO_CONFIG = {
 };
 const REPAIR_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-repair";
 const BUILD_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-tickets";
+const PRD_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-prd";
 const REPAIR_SCHEDULE_COMMAND =
   '/schedule "every 60 minutes" /lisa:repair-intake github intake_mode=both';
 const BUILD_SCHEDULE_COMMAND =
   '/schedule "every 10 minutes" /lisa:intake github intake_mode=build';
+const PRD_SCHEDULE_COMMAND =
+  '/schedule "every 60 minutes" /lisa:intake github intake_mode=prd';
 const CLAUDE_RUNTIME_LABEL = "Claude /schedule";
+const ACTIVE_STATUS = "ACTIVE";
 const DETECTED_TYPES = ["typescript"];
 const FIXTURE_NOW = "2026-05-26T12:00:00Z";
+const RECENT_RUN_AT = "2026-05-26T11:55:00Z";
+const HOURLY_SCHEDULE = "hourly";
+const TEN_MINUTE_SCHEDULE = "every 10 minutes";
 
 describe("automation-status Claude adapter (#802)", () => {
   it("maps structured Claude schedule metadata into shared health states", () => {
@@ -45,35 +52,34 @@ describe("automation-status Claude adapter (#802)", () => {
         routines: [
           {
             name: REPAIR_AUTOMATION_ID,
-            schedule: "hourly",
+            schedule: HOURLY_SCHEDULE,
             command: REPAIR_SCHEDULE_COMMAND,
-            status: "ACTIVE",
+            status: ACTIVE_STATUS,
             lastRunAt: "2026-05-26T11:10:00Z",
             lastResult: "Completed successfully.",
           },
           {
-            name: "lisa-auto-codyswanngt-lisa-intake-prd",
+            name: PRD_AUTOMATION_ID,
             schedule: "FREQ=HOURLY;INTERVAL=1",
-            command:
-              '/schedule "every 60 minutes" /lisa:intake github intake_mode=prd',
-            status: "ACTIVE",
+            command: PRD_SCHEDULE_COMMAND,
+            status: ACTIVE_STATUS,
             lastRunAt: "2026-05-26T06:00:00Z",
             lastResult: "No ready PRDs.",
           },
           {
             name: BUILD_AUTOMATION_ID,
-            cadence: "every 10 minutes",
+            cadence: TEN_MINUTE_SCHEDULE,
             command: BUILD_SCHEDULE_COMMAND,
             status: "FAILED",
-            lastRunAt: "2026-05-26T11:55:00Z",
+            lastRunAt: RECENT_RUN_AT,
             lastResult: "Failed: GitHub auth expired.",
           },
           {
             name: "lisa-auto-unrelated-other-repo-intake-tickets",
-            cadence: "every 10 minutes",
+            cadence: TEN_MINUTE_SCHEDULE,
             command:
               '/schedule "every 10 minutes" /lisa:intake github intake_mode=build',
-            status: "ACTIVE",
+            status: ACTIVE_STATUS,
           },
         ],
       },
@@ -153,6 +159,56 @@ Last result: No recent failures reported.
     expect(repairItem?.observed).toContain(
       "Failure metadata unavailable from Claude /schedule."
     );
+  });
+
+  it("does not classify negated error or exception summaries as failures (#885)", () => {
+    const expectedFleet = resolveExpectedAutomationFleet({
+      config: REPO_CONFIG,
+      detectedTypes: DETECTED_TYPES,
+    });
+
+    const report = inspectClaudeAutomationFleet({
+      expectedFleet,
+      scheduleListing: {
+        routines: [
+          {
+            name: BUILD_AUTOMATION_ID,
+            schedule: TEN_MINUTE_SCHEDULE,
+            command: BUILD_SCHEDULE_COMMAND,
+            status: ACTIVE_STATUS,
+            lastRunAt: RECENT_RUN_AT,
+            lastResult: "completed with no errors",
+          },
+          {
+            name: PRD_AUTOMATION_ID,
+            schedule: HOURLY_SCHEDULE,
+            command: PRD_SCHEDULE_COMMAND,
+            status: ACTIVE_STATUS,
+            lastRunAt: RECENT_RUN_AT,
+            lastResult: "ran without exceptions",
+          },
+          {
+            name: REPAIR_AUTOMATION_ID,
+            schedule: HOURLY_SCHEDULE,
+            command: REPAIR_SCHEDULE_COMMAND,
+            status: ACTIVE_STATUS,
+            lastRunAt: RECENT_RUN_AT,
+            lastResult: "encountered an exception",
+          },
+        ],
+      },
+      now: FIXTURE_NOW,
+    });
+
+    const itemsById = new Map(
+      report.groups
+        .flatMap(group => group.items)
+        .map(item => [item.id, item.status])
+    );
+
+    expect(itemsById.get(BUILD_AUTOMATION_ID)).toBe("HEALTHY");
+    expect(itemsById.get(PRD_AUTOMATION_ID)).toBe("HEALTHY");
+    expect(itemsById.get(REPAIR_AUTOMATION_ID)).toBe("FAILING");
   });
 
   it("derives normalized Lisa slash commands from Claude schedule entries", () => {

@@ -182,6 +182,50 @@ describe("usage-accounting utilities", () => {
     expect(parsed.rollup?.totalCost).toBeCloseTo(0.2);
   });
 
+  it("aggregates decimal cost totals without binary floating-point artifacts", () => {
+    const firstEntry = makeEntry({
+      entryId: "entry-cost-a",
+      runId: "run-cost-a",
+      cost: 0.1,
+    });
+    const secondEntry = makeEntry({
+      entryId: "entry-cost-b",
+      runId: "run-cost-b",
+      cost: 0.2,
+    });
+
+    const rollup = createLisaUsageRollup([firstEntry, secondEntry]);
+    const updated = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [firstEntry, secondEntry],
+      rollup,
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(rollup.directCost).toBe(0.3);
+    expect(rollup.totalCost).toBe(0.3);
+    expect(updated).toContain("direct_cost=0.3");
+    expect(updated).toContain("total_cost=0.3");
+    expect(updated).not.toContain("0.30000000000000004");
+    expect(parsed.rollup?.directCost).toBe(0.3);
+    expect(parsed.rollup?.totalCost).toBe(0.3);
+  });
+
+  it("aggregates refreshed direct and child costs with decimal precision", () => {
+    const entry = makeEntry({
+      entryId: "entry-parent",
+      runId: "run-parent",
+      cost: 0.1,
+    });
+    const rollup = createLisaUsageRollup(
+      [entry],
+      makeRollup({ childCost: 0.2 })
+    );
+
+    expect(rollup.directCost).toBe(0.1);
+    expect(rollup.childCost).toBe(0.2);
+    expect(rollup.totalCost).toBe(0.3);
+  });
+
   it("round-trips explicit unavailable usage entries with nullable fields", () => {
     const unavailableEntry = makeEntry({
       entryId: "entry-unavailable",
@@ -222,6 +266,19 @@ describe("usage-accounting utilities", () => {
     });
     expect(parsed.rollup?.directTokens).toBeNull();
     expect(parsed.rollup?.totalCost).toBeNull();
+  });
+
+  it("rejects corrupted numeric tokens instead of rewriting them as null", () => {
+    const existingSection = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [makeEntry({ entryId: "entry-corrupt", runId: "run-corrupt" })],
+    }).replace("cost=0.12", "cost=bad");
+
+    expect(() =>
+      upsertLisaUsageSection(existingSection, {
+        entries: [makeEntry({ entryId: "entry-next", runId: "run-next" })],
+      })
+    ).toThrow("Invalid Lisa usage numeric token: bad");
+    expect(existingSection).toContain("cost=bad");
   });
 
   it("preserves pricing metadata and prior child rollups during direct-entry refreshes", () => {

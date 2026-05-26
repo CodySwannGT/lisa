@@ -16,6 +16,7 @@ import { resolveExpectedAutomationFleet } from "../../../plugins/src/base/script
 import {
   deriveCodexObservedCommand,
   inspectCodexAutomationFleet,
+  parseCodexAutomationMemory,
 } from "../../../plugins/src/base/scripts/automation-status-codex-adapter.mjs";
 
 const BUILD_INTAKE_PROMPT =
@@ -140,6 +141,26 @@ describe("automation-status Codex adapter (#801)", () => {
         "Run one Playwright-backed exploratory QA pass. Use the `$lisa-exploratory-qa` skill with arguments `ready=true`."
       )
     ).toBe("/lisa-exploratory-qa ready=true");
+  });
+
+  it("does not classify negated error or exception summaries as failures (#885)", () => {
+    expect(
+      parseCodexAutomationMemory(
+        "2026-05-26T12:00:00Z\n\n- completed with no errors\n"
+      ).lastRunFailed
+    ).toBe(false);
+
+    expect(
+      parseCodexAutomationMemory(
+        "2026-05-26T12:00:00Z\n\n- ran without exceptions\n"
+      ).lastRunFailed
+    ).toBe(false);
+
+    expect(
+      parseCodexAutomationMemory(
+        "2026-05-26T12:00:00Z\n\n- encountered an exception\n"
+      ).lastRunFailed
+    ).toBe(true);
   });
 
   it("inspects automation files read-only", async () => {
