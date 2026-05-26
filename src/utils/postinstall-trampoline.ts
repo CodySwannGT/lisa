@@ -174,6 +174,14 @@ export function shouldSchedulePostinstallReconciliation(
 ): boolean {
   if (dryRun) return false;
   if (isRunningAsTrampoline()) return false;
+  // Test runners (vitest, jest) frequently invoke `bun run` / `npm test` which
+  // sets `npm_package_json`, making `isRunningAsLifecycleScript()` true. The
+  // detached trampoline child then races against the test's temp-dir cleanup
+  // and dies with ENOENT when its cwd vanishes. Same principle as
+  // isRunningInCI's vitest/jest opt-out above — test runners are not real
+  // package-manager processes and the trampoline must not spawn from them.
+  if (readEnv("VITEST") !== undefined) return false;
+  if (readEnv("JEST_WORKER_ID") !== undefined) return false;
   return isRunningAsLifecycleScript();
 }
 
