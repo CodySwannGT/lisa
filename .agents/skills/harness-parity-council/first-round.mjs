@@ -382,6 +382,26 @@ export function parseCouncilCliArgs(argv) {
 }
 
 /**
+ * Resolve first-round council execution policy from the same normalized input
+ * shape for dry-run planning, collection, and CLI execution.
+ * @param {{
+ *   writeMode?: string | null;
+ *   runtime?: string | null;
+ *   cwd?: string;
+ *   env?: NodeJS.ProcessEnv;
+ * }} [input] Execution policy inputs.
+ * @returns {ReturnType<typeof resolveCouncilExecutionPolicy>} Normalized execution policy.
+ */
+export function resolveCouncilFirstRoundExecutionPolicy({
+  writeMode = null,
+  runtime = null,
+  cwd = process.cwd(),
+  env,
+} = {}) {
+  return resolveCouncilExecutionPolicy({ writeMode, runtime, cwd }, env);
+}
+
+/**
  * Build the non-mutating dry-run planning payload for a council invocation.
  *
  * @param {{
@@ -395,6 +415,7 @@ export function parseCouncilCliArgs(argv) {
  *   secondRound?: boolean;
  *   sanitizedSummary?: string | null;
  *   writeMode?: string | null;
+ *   cwd?: string;
  *   env?: NodeJS.ProcessEnv;
  * }} input Planning inputs.
  * @returns {{
@@ -417,12 +438,15 @@ export function buildCouncilDryRunPlan({
   secondRound = false,
   sanitizedSummary = null,
   writeMode = null,
+  cwd,
   env,
 }) {
-  const executionPolicy = resolveCouncilExecutionPolicy(
-    { writeMode, runtime },
-    env
-  );
+  const executionPolicy = resolveCouncilFirstRoundExecutionPolicy({
+    writeMode,
+    runtime,
+    cwd,
+    env,
+  });
   const runtimes = resolveCouncilRuntimes(runtime);
   const firstRound = runtimes.map(selectedRuntime =>
     buildFirstRoundInvocation({
@@ -586,7 +610,9 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
  *     targetEnvironment?: string;
  *   };
  *   runtimes?: (keyof typeof RUNTIME_ADAPTERS)[];
+ *   runtime?: string | null;
  *   writeMode?: string | null;
+ *   cwd?: string;
  *   env?: NodeJS.ProcessEnv;
  *   probeRuntime?: typeof probeRuntimeAdapter;
  *   executor?: (invocation: ReturnType<typeof buildFirstRoundInvocation>) => Promise<{
@@ -611,12 +637,19 @@ export async function collectFirstRoundResponses({
   topic,
   context = {},
   runtimes = Object.keys(RUNTIME_ADAPTERS),
+  runtime = null,
   writeMode = null,
+  cwd,
   env,
   probeRuntime = probeRuntimeAdapter,
   executor,
 }) {
-  const executionPolicy = resolveCouncilExecutionPolicy({ writeMode }, env);
+  const executionPolicy = resolveCouncilFirstRoundExecutionPolicy({
+    writeMode,
+    runtime,
+    cwd,
+    env,
+  });
   const captures = [];
 
   for (const runtime of runtimes) {
@@ -730,10 +763,11 @@ export function buildFirstRoundSynthesisInput({
  */
 async function main() {
   const parsed = parseCouncilCliArgs(process.argv.slice(2));
-  const executionPolicy = resolveCouncilExecutionPolicy(
-    { writeMode: parsed.writeMode },
-    globalThis.process?.env ?? {}
-  );
+  const executionPolicy = resolveCouncilFirstRoundExecutionPolicy({
+    writeMode: parsed.writeMode,
+    runtime: parsed.runtime,
+    env: globalThis.process?.env ?? {},
+  });
 
   if (parsed.dryRun) {
     const plan = buildCouncilDryRunPlan(parsed);
@@ -745,6 +779,7 @@ async function main() {
   const firstRound = await collectFirstRoundResponses({
     topic: parsed.topic,
     runtimes,
+    runtime: parsed.runtime,
     writeMode: parsed.writeMode,
   });
   const payload = {
