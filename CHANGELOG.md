@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.100.0](https://github.com/CodySwannGT/lisa/compare/vv2.99.1...v2.100.0) (2026-05-26)
+
+
+### Features
+
+* **intake-explain:** resolve one-item contract routing ([e8c8825](https://github.com/CodySwannGT/lisa/commit/e8c8825c3407ed39c73ba7ca24c575aab94d12d4))
+
 ### [2.99.1](https://github.com/CodySwannGT/lisa/compare/vv2.99.0...v2.99.1) (2026-05-26)
 
 
