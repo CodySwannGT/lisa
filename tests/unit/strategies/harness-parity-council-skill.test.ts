@@ -40,7 +40,7 @@ describe("harness-parity-council internal skill contract", () => {
       'node .agents/skills/harness-parity-council/first-round.mjs "Codex parity for install-time hooks"'
     );
     expect(skill).toContain(
-      "bun vitest run tests/unit/strategies/harness-parity-council-*.test.ts"
+      "bun x vitest run tests/unit/strategies/harness-parity-council-*.test.ts"
     );
     expect(skill).toMatch(
       /successful, missing, failing, and hanging runtime fixtures/i
