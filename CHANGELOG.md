@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.88.0](https://github.com/CodySwannGT/lisa/compare/vv2.87.0...v2.88.0) (2026-05-26)
+
+
+### Features
+
+* **automation-status:** resolve expected fleet contract ([3199732](https://github.com/CodySwannGT/lisa/commit/31997323f76cea35cf33e06cecf409c88696cc48))
+
 ## [2.87.0](https://github.com/CodySwannGT/lisa/compare/vv2.86.0...v2.87.0) (2026-05-26)
 
 
