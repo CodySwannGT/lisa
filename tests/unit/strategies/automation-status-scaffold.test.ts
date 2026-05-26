@@ -26,6 +26,7 @@ import { describe, expect, it } from "vitest";
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 const COMMAND_REL = "commands/automation-status.md";
 const SKILL_REL = "skills/automation-status/SKILL.md";
+const SCRIPT_REL = "scripts/automation-status-report.mjs";
 
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
@@ -34,10 +35,12 @@ describe("automation-status scaffold (#797)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     const commandPath = path.resolve(root, COMMAND_REL);
     const skillPath = path.resolve(root, SKILL_REL);
+    const scriptPath = path.resolve(root, SCRIPT_REL);
 
-    it("ships both the command and the skill in this plugin root", () => {
+    it("ships the command, skill, and shared report script in this plugin root", () => {
       expect(existsSync(commandPath)).toBe(true);
       expect(existsSync(skillPath)).toBe(true);
+      expect(existsSync(scriptPath)).toBe(true);
     });
 
     it("uses a pass-through command that delegates to /lisa:automation-status", () => {
@@ -93,6 +96,28 @@ describe("automation-status scaffold (#797)", () => {
       expect(skill).toMatch(/HEALTHY/);
       expect(skill).toMatch(/ATTENTION_NEEDED/);
       expect(skill).toMatch(/PARTIAL_SUPPORT/);
+    });
+
+    it("documents the shared grouped report rendering contract", () => {
+      const skill = read(root, SKILL_REL);
+
+      expect(skill).toContain("scripts/automation-status-report.mjs");
+      expect(skill).toMatch(/Overall verdict: <VERDICT>/);
+      expect(skill).toMatch(/Counts:/);
+      expect(skill).toMatch(/Runtime inspected:/);
+      expect(skill).toMatch(/Expected:/);
+      expect(skill).toMatch(/Observed:/);
+      expect(skill).toMatch(/Remediation:/);
+    });
+
+    it("ships report helper exports for later runtime adapters", () => {
+      const script = read(root, SCRIPT_REL);
+
+      expect(script).toContain("computeAutomationFleetVerdict");
+      expect(script).toContain("countAutomationHealthStatuses");
+      expect(script).toContain("renderAutomationStatusReport");
+      expect(script).toMatch(/Overall verdict:/);
+      expect(script).toMatch(/Remediation:/);
     });
   });
 });
