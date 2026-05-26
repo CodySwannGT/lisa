@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.103.1](https://github.com/CodySwannGT/lisa/compare/vv2.103.0...v2.103.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* canonicalize codex lisa automation aliases ([4f1236b](https://github.com/CodySwannGT/lisa/commit/4f1236bc55413dc3a9e0ef2e36981d0a4b93f5b3))
+
 ## [2.103.0](https://github.com/CodySwannGT/lisa/compare/vv2.102.0...v2.103.0) (2026-05-26)
 
 
