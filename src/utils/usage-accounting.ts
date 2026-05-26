@@ -82,7 +82,32 @@ function parseNullableString(value: string): string | null {
     return null;
   }
 
-  return value;
+  return decodeTokenValue(value);
+}
+
+/**
+ * Decode a percent-encoded token field.
+ *
+ * @param value Serialized token field.
+ * @returns The decoded token value, or the original value for legacy tokens.
+ */
+function decodeTokenValue(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Serialize a token field so whitespace, delimiters, and HTML comment endings
+ * cannot corrupt the machine-readable comment on the next parse.
+ *
+ * @param value String token value to render.
+ * @returns The percent-encoded token value.
+ */
+function encodeTokenValue(value: string): string {
+  return encodeURIComponent(value);
 }
 
 /**
@@ -92,7 +117,11 @@ function parseNullableString(value: string): string | null {
  * @returns The canonical string form used inside usage tokens.
  */
 function renderNullable(value: number | string | null): string {
-  return value === null ? "null" : String(value);
+  if (value === null) {
+    return "null";
+  }
+
+  return typeof value === "number" ? String(value) : encodeTokenValue(value);
 }
 
 /**
@@ -106,7 +135,18 @@ function parseCsv(value: string): readonly string[] {
     return [];
   }
 
-  return value.split(",");
+  return value.split(",").map(decodeTokenValue);
+}
+
+/**
+ * Serialize a list as a comma-delimited token field with each item encoded
+ * independently, so commas inside item values are preserved.
+ *
+ * @param values String values to serialize.
+ * @returns Encoded comma-delimited list.
+ */
+function renderCsv(values: readonly string[]): string {
+  return values.map(encodeTokenValue).join(",");
 }
 
 /**
@@ -280,7 +320,7 @@ export function createLisaUsageRollup(
  * @returns The canonical `lisa:usage-entry` token line.
  */
 export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
-  return `<!-- lisa:usage-entry entry_id=${entry.entryId} flow=${entry.flow} run_id=${entry.runId} provider=${entry.provider} model=${entry.model} source=${entry.source} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${entry.pricingStatus} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${entry.artifactRef} parent_artifact_ref=${entry.parentArtifactRef ?? ""} -->`;
+  return `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
 }
 
 /**
@@ -290,7 +330,7 @@ export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
  * @returns The canonical `lisa:usage-rollup` token line.
  */
 export function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
-  return `<!-- lisa:usage-rollup direct_entry_ids=${rollup.directEntryIds.join(",")} child_entry_ids=${rollup.childEntryIds.join(",")} child_refs=${rollup.childRefs.join(",")} direct_tokens=${renderNullable(rollup.directTokens)} child_tokens=${renderNullable(rollup.childTokens)} total_tokens=${renderNullable(rollup.totalTokens)} direct_cost=${renderNullable(rollup.directCost)} child_cost=${renderNullable(rollup.childCost)} total_cost=${renderNullable(rollup.totalCost)} currency=${renderNullable(rollup.currency)} -->`;
+  return `<!-- lisa:usage-rollup direct_entry_ids=${renderCsv(rollup.directEntryIds)} child_entry_ids=${renderCsv(rollup.childEntryIds)} child_refs=${renderCsv(rollup.childRefs)} direct_tokens=${renderNullable(rollup.directTokens)} child_tokens=${renderNullable(rollup.childTokens)} total_tokens=${renderNullable(rollup.totalTokens)} direct_cost=${renderNullable(rollup.directCost)} child_cost=${renderNullable(rollup.childCost)} total_cost=${renderNullable(rollup.totalCost)} currency=${renderNullable(rollup.currency)} -->`;
 }
 
 /**
@@ -341,12 +381,12 @@ export function parseLisaUsageSection(
   const range = findUsageSectionRange(document);
   const section = range ? document.slice(range.start, range.end) : "";
   const entries = Array.from(section.matchAll(ENTRY_PATTERN), match => ({
-    entryId: match[1] ?? "",
-    flow: match[2] ?? "",
-    runId: match[3] ?? "",
-    provider: match[4] ?? "",
-    model: match[5] ?? "",
-    source: match[6] ?? "",
+    entryId: decodeTokenValue(match[1] ?? ""),
+    flow: decodeTokenValue(match[2] ?? ""),
+    runId: decodeTokenValue(match[3] ?? ""),
+    provider: decodeTokenValue(match[4] ?? ""),
+    model: decodeTokenValue(match[5] ?? ""),
+    source: decodeTokenValue(match[6] ?? ""),
     inputTokens: parseNullableNumber(match[7] ?? ""),
     cachedInputTokens: parseNullableNumber(match[8] ?? ""),
     outputTokens: parseNullableNumber(match[9] ?? ""),
@@ -354,9 +394,9 @@ export function parseLisaUsageSection(
     totalTokens: parseNullableNumber(match[11] ?? ""),
     cost: parseNullableNumber(match[12] ?? ""),
     currency: parseNullableString(match[13] ?? ""),
-    pricingStatus: match[14] ?? "",
+    pricingStatus: decodeTokenValue(match[14] ?? ""),
     pricingSource: parseNullableString(match[15] ?? ""),
-    artifactRef: match[16] ?? "",
+    artifactRef: decodeTokenValue(match[16] ?? ""),
     parentArtifactRef: parseNullableString(match[17] ?? ""),
   }));
 
