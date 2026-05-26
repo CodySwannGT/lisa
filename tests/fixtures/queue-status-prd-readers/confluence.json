@@ -1,0 +1,53 @@
+{
+  "source": "confluence",
+  "items": [
+    {
+      "id": "2001",
+      "ref": "PRD-Ready",
+      "title": "Ready PRD waiting for intake",
+      "url": "https://acme.atlassian.net/wiki/spaces/PRD/pages/2001",
+      "role": "ready",
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "2002",
+      "ref": "PRD-Review",
+      "title": "PRD still in review",
+      "url": "https://acme.atlassian.net/wiki/spaces/PRD/pages/2002",
+      "role": "in_review",
+      "createdAt": "2026-05-24T10:00:00Z"
+    },
+    {
+      "id": "2003",
+      "ref": "PRD-Blocked",
+      "title": "Blocked PRD needs clarification",
+      "url": "https://acme.atlassian.net/wiki/spaces/PRD/pages/2003",
+      "role": "blocked",
+      "createdAt": "2026-05-23T10:00:00Z"
+    },
+    {
+      "id": "2004",
+      "ref": "PRD-Ticketed",
+      "title": "Ticketed PRD waiting on build work",
+      "url": "https://acme.atlassian.net/wiki/spaces/PRD/pages/2004",
+      "role": "ticketed",
+      "createdAt": "2026-05-22T10:00:00Z"
+    },
+    {
+      "id": "2005",
+      "ref": "PRD-Shipped",
+      "title": "Shipped PRD awaiting verify-prd",
+      "url": "https://acme.atlassian.net/wiki/spaces/PRD/pages/2005",
+      "role": "shipped",
+      "createdAt": "2026-05-21T10:00:00Z"
+    },
+    {
+      "id": "2006",
+      "ref": "PRD-Verified",
+      "title": "Verified PRD",
+      "url": "https://acme.atlassian.net/wiki/spaces/PRD/pages/2006",
+      "role": "verified",
+      "createdAt": "2026-05-20T10:00:00Z"
+    }
+  ]
+}
