@@ -102,6 +102,8 @@ describe("postinstall-trampoline", () => {
     it("returns true inside a lifecycle script when not a trampoline and not dry-run", () => {
       process.env.npm_package_json = FAKE_PACKAGE_JSON_PATH;
       delete process.env.LISA_POSTINSTALL_TRAMPOLINE;
+      delete process.env.VITEST;
+      delete process.env.JEST_WORKER_ID;
       expect(shouldSchedulePostinstallReconciliation(false)).toBe(true);
     });
 
@@ -119,6 +121,25 @@ describe("postinstall-trampoline", () => {
 
     it("returns false outside a lifecycle script", () => {
       delete process.env.npm_package_json;
+      delete process.env.LISA_POSTINSTALL_TRAMPOLINE;
+      expect(shouldSchedulePostinstallReconciliation(false)).toBe(false);
+    });
+
+    it("returns false under vitest even when npm_package_json is set", () => {
+      // bun-driven test runners propagate npm_package_json into the worker
+      // env, so the lifecycle-script check would falsely fire and the detached
+      // trampoline child would race against test temp-dir cleanup.
+      process.env.npm_package_json = FAKE_PACKAGE_JSON_PATH;
+      process.env.VITEST = "true";
+      delete process.env.JEST_WORKER_ID;
+      delete process.env.LISA_POSTINSTALL_TRAMPOLINE;
+      expect(shouldSchedulePostinstallReconciliation(false)).toBe(false);
+    });
+
+    it("returns false under jest even when npm_package_json is set", () => {
+      process.env.npm_package_json = FAKE_PACKAGE_JSON_PATH;
+      process.env.JEST_WORKER_ID = "1";
+      delete process.env.VITEST;
       delete process.env.LISA_POSTINSTALL_TRAMPOLINE;
       expect(shouldSchedulePostinstallReconciliation(false)).toBe(false);
     });

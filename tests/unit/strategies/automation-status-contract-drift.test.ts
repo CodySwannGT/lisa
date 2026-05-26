@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareAutomationContract,
+  compareAutomationFleet,
   findObservedAutomationMatch,
 } from "../../../plugins/src/base/scripts/automation-status-contract-drift.mjs";
 
@@ -18,6 +19,8 @@ describe("automation-status contract drift (#800)", () => {
   const EXPECTED_CADENCE = "every 10 minutes";
   const EXPECTED_RRULE = "FREQ=MINUTELY;INTERVAL=10";
   const EXPECTED_COMMAND = "/lisa:intake github intake_mode=build";
+  const HOURLY_CADENCE = "every 60 minutes";
+  const HOURLY_RRULE = "FREQ=HOURLY;INTERVAL=1";
 
   const expected = {
     automationId: EXPECTED_AUTOMATION_ID,
@@ -94,15 +97,15 @@ describe("automation-status contract drift (#800)", () => {
     const comparison = compareAutomationContract({
       expected: {
         automationId: "lisa-auto-acme-repair",
-        expectedCadence: "every 60 minutes",
-        expectedRRule: "FREQ=HOURLY;INTERVAL=1",
+        expectedCadence: HOURLY_CADENCE,
+        expectedRRule: HOURLY_RRULE,
         expectedCommand:
           "/lisa:repair-intake github intake_mode=both assignee=codyswanngt",
       },
       observedAutomation: {
         automationId: "lisa-auto-acme-repair",
-        observedCadence: "every 60 minutes",
-        observedRRule: "FREQ=HOURLY;INTERVAL=1",
+        observedCadence: HOURLY_CADENCE,
+        observedRRule: HOURLY_RRULE,
         observedCommand:
           "/lisa:repair-intake github assignee=codyswanngt intake_mode=both",
       },
@@ -139,6 +142,47 @@ describe("automation-status contract drift (#800)", () => {
         status: "MISSING",
         summary: "expected automation is missing",
         observedAutomation: null,
+      })
+    );
+  });
+
+  it("does not let one observed intake job satisfy multiple expected contracts", () => {
+    const prdExpected = {
+      automationId: "lisa-auto-codyswanngt-lisa-intake-prd",
+      expectedCadence: HOURLY_CADENCE,
+      expectedRRule: HOURLY_RRULE,
+      expectedCommand: "/lisa:intake github intake_mode=prd",
+    };
+    const buildExpected = {
+      automationId: EXPECTED_AUTOMATION_ID,
+      expectedCadence: EXPECTED_CADENCE,
+      expectedRRule: EXPECTED_RRULE,
+      expectedCommand: EXPECTED_COMMAND,
+    };
+
+    const comparisons = compareAutomationFleet({
+      expectedAutomations: [prdExpected, buildExpected],
+      observedAutomations: [
+        {
+          automationId: EXPECTED_AUTOMATION_ID,
+          observedCadence: EXPECTED_CADENCE,
+          observedRRule: EXPECTED_RRULE,
+          observedCommand: EXPECTED_COMMAND,
+        },
+      ],
+    });
+
+    expect(comparisons).toHaveLength(2);
+    expect(comparisons[0]).toEqual(
+      expect.objectContaining({
+        status: "MISSING",
+        observedAutomation: null,
+      })
+    );
+    expect(comparisons[1]).toEqual(
+      expect.objectContaining({
+        status: "HEALTHY",
+        driftKinds: [],
       })
     );
   });
