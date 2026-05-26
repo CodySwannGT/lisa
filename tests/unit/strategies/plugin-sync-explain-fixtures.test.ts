@@ -96,7 +96,10 @@ describe("plugin-sync-explain fixture classifications (#990)", () => {
         counterpart: MARKETPLACE,
       })
     );
-    expect(report.text).toContain("Add the built plugin source");
+    expect(report.text).toContain(
+      'Add marketplace source "./plugins/lisa-extra"'
+    );
+    expect(report.text).toContain(MARKETPLACE);
     expect(gitStatus(root)).toBe(before);
   });
 
