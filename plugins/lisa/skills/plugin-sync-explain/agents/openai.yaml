@@ -1,0 +1,4 @@
+display_name: "Plugin Sync Explain"
+short_description: "Read-only diagnostic for Lisa plugin source/generated drift"
+default_prompt:
+  - "Use $plugin-sync-explain: Read-only diagnostic for Lisa plugin source/generated drift."
