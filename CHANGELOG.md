@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.106.0](https://github.com/CodySwannGT/lisa/compare/vv2.105.1...v2.106.0) (2026-05-26)
+
+
+### Features
+
+* **wiki:** expose source freshness parser ([8f11cd1](https://github.com/CodySwannGT/lisa/commit/8f11cd134aa9cedebdbb043622399917771f2229))
+
+
+### Bug Fixes
+
+* handle council executor exceptions ([0f13fb1](https://github.com/CodySwannGT/lisa/commit/0f13fb1fb985d5ab89776b71cf9c889293feff9c))
+* prevent mixed currency usage rollups ([bb2fb06](https://github.com/CodySwannGT/lisa/commit/bb2fb06c7e6a42a7a9c4433ff0e9177ccdd5ff4a))
+* prevent runtime-only council guarded writes ([ae35494](https://github.com/CodySwannGT/lisa/commit/ae3549464e16f1e108b3b47aa5909d4cc4eb7add))
+
 ### [2.105.1](https://github.com/CodySwannGT/lisa/compare/vv2.105.0...v2.105.1) (2026-05-26)
 
 
