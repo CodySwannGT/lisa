@@ -50,9 +50,18 @@ Keep the diagnosis terminal-first and human-readable: observable item facts firs
 
 Resolve item family, queue source/tracker, and lifecycle role names from `.lisa.config.json` plus the same defaults the active intake and repair flows already consume.
 
+Route one-item diagnosis through the same contract surfaces the write-side flows already trust:
+
+- determine whether the item belongs to the configured PRD **source** lane or build **tracker** lane using the same `source` / `tracker` settings that `/lisa:intake` and `/lisa:repair-intake` already resolve
+- read vendor lifecycle role names from the same config keys and fallback defaults documented in the `config-resolution` rule rather than inventing hardcoded status names
+- keep repo/project scoping aligned with the same current-repo detection and queue-target rules the active intake scanners use
+
+When the runtime can identify the item but cannot confidently resolve its source lane, tracker lane, lifecycle namespace, or current repo/project scope from that contract, report `MISCONFIGURED` instead of guessing.
+
 Reuse the existing execution-side semantics instead of recreating them by hand:
 
 - queue/source detection and lifecycle naming from intake + repair-intake
+- one-item routing helpers for resolving the item's queue family against the correct source/tracker contract
 - product-owned versus Lisa-owned lifecycle roles
 - leaf-only and repo-scope build eligibility
 - active dependency holds
@@ -103,7 +112,7 @@ The explanation must stay aligned with existing Lisa rules:
 - If a build item has active blockers, list the blocker refs and explain that intake would hold or skip it until they clear.
 - If a PRD is in a product-owned role such as `draft`, `shipped`, or `verified`, explain why intake or repair will not mutate it.
 - If a claimed, in-review, or blocked item is not yet repairable, explain the relevant staleness or backoff condition at a human-readable level.
-- If the repo or lifecycle namespace is unresolved, report `MISCONFIGURED` instead of pretending the item is idle or actionable.
+- If the source lane, tracker lane, repo/project scope, or lifecycle namespace is unresolved, report `MISCONFIGURED` instead of pretending the item is idle or actionable.
 
 ## Rule explanation expectations
 
