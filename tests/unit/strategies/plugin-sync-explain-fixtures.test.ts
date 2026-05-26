@@ -78,6 +78,21 @@ describe("plugin-sync-explain fixture classifications (#990)", () => {
     expect(gitStatus(root)).toBe(before);
   });
 
+  it("does not flag changed generated artifacts that match a scratch build", async () => {
+    const replacement =
+      "---\nname: example\ndescription: Updated fixture source.\n---\n\n# Example\n";
+    await fs.writeFile(path.join(root, SOURCE_SKILL), replacement);
+    await fs.writeFile(path.join(root, GENERATED_SKILL), replacement);
+    const before = gitStatus(root);
+
+    const report = explainPluginSync(root);
+
+    expect(report.readOnly).toBe(true);
+    expect(report.findings).toHaveLength(0);
+    expect(report.text).toContain("Verdict: IN_SYNC");
+    expect(gitStatus(root)).toBe(before);
+  });
+
   it("reports marketplace registration drift for built plugins missing a source entry", async () => {
     await fs.ensureDir(path.join(root, "plugins/lisa-extra/.claude-plugin"));
     await fs.writeJson(
@@ -130,6 +145,19 @@ async function seedPluginRepo(root: string): Promise<void> {
   await fs.writeFile(
     path.join(root, GENERATED_SKILL),
     "---\nname: example\ndescription: Fixture source.\n---\n\n# Example\n"
+  );
+  await fs.ensureDir(path.join(root, "scripts"));
+  await fs.writeFile(
+    path.join(root, "scripts/build-plugins.sh"),
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      'ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"',
+      'rm -rf "$ROOT_DIR/plugins/lisa"',
+      'mkdir -p "$ROOT_DIR/plugins/lisa"',
+      'cp -R "$ROOT_DIR/plugins/src/base/." "$ROOT_DIR/plugins/lisa/"',
+      "",
+    ].join("\n")
   );
   git(root, "init");
   git(root, "config", "user.email", "lisa-fixture@example.com");
