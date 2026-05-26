@@ -18,6 +18,12 @@ const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
 
 describe("intake-explain smoke fixtures (#852)", () => {
+  it("keeps source and generated intake-explain skill docs in lockstep", () => {
+    const source = read("plugins/src/base", SKILL_REL);
+    const generated = read("plugins/lisa", SKILL_REL);
+    expect(generated).toBe(source);
+  });
+
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("defines representative PRD fixtures for lifecycle, staleness, and backoff verdicts", () => {
       const skill = read(root, SKILL_REL);
