@@ -328,7 +328,7 @@ describe("verify-prd FAIL path (#599)", () => {
       // The FAIL path AND idempotency are both implemented HERE (#599 + #600) —
       // neither is deferred to a sibling any longer.
       it("implements the FAIL path and idempotency here, deferring nothing", () => {
-        // FAIL path is in scope (Phase 7 exists with the shipped → blocked hop).
+        // FAIL path is in scope (Phase 7 exists with the shipped → ticketed hop).
         expect(skill).toMatch(/Phase 7[^]*FAIL/i);
         // Idempotency is in scope (Phase 8 exists), not deferred to a sibling.
         expect(skill).toMatch(/Phase 8[^]*Idempotency/i);

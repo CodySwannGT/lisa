@@ -1,3 +1,6 @@
+/* eslint-disable max-lines -- Usage ledger parsing, rendering, and rollup helpers share one public utility surface. */
+
+import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
 import { sumNullableDecimals } from "./decimal-sum.js";
 
 export const LISA_USAGE_HEADING = "## Lisa Usage";
@@ -39,6 +42,14 @@ export interface LisaUsageRollup {
   directTokens: number | null;
   totalCost: number | null;
   totalTokens: number | null;
+}
+
+/**
+ *
+ */
+export interface LisaUsageChildArtifact {
+  artifactRef: string;
+  entries: readonly LisaUsageEntry[];
 }
 
 /**
@@ -277,19 +288,36 @@ export function mergeLisaUsageEntries(
  *
  * @param entries Direct usage entries that should appear in the section.
  * @param previousRollup Existing rollup token parsed from the artifact, if any.
+ * @param childArtifacts Optional child ledgers to recompute descendant totals from current work.
  * @returns A deterministic rollup token payload for the managed section.
  */
 export function createLisaUsageRollup(
   entries: readonly LisaUsageEntry[],
-  previousRollup?: LisaUsageRollup | null
+  previousRollup?: LisaUsageRollup | null,
+  childArtifacts?: readonly LisaUsageChildArtifact[]
 ): LisaUsageRollup {
   const directEntryIds = entries.map(entry => entry.entryId);
   const directTokens = sumNullable(entries.map(entry => entry.totalTokens));
   const directCost = sumNullableDecimals(entries.map(entry => entry.cost));
-  const childEntryIds = previousRollup?.childEntryIds ?? [];
-  const childRefs = previousRollup?.childRefs ?? [];
-  const childTokens = previousRollup ? previousRollup.childTokens : null;
-  const childCost = previousRollup ? previousRollup.childCost : null;
+  const hasChildArtifacts = childArtifacts !== undefined;
+  const collectedChildArtifacts = collectLisaUsageChildArtifacts(
+    childArtifacts ?? [],
+    directEntryIds
+  );
+  const dedupedChildEntries = collectedChildArtifacts.childEntries;
+
+  const childEntryIds = hasChildArtifacts
+    ? dedupedChildEntries.map(entry => entry.entryId)
+    : (previousRollup?.childEntryIds ?? []);
+  const childRefs = hasChildArtifacts
+    ? collectedChildArtifacts.childRefs
+    : (previousRollup?.childRefs ?? []);
+  const childTokens = hasChildArtifacts
+    ? sumNullable(dedupedChildEntries.map(entry => entry.totalTokens))
+    : (previousRollup?.childTokens ?? null);
+  const childCost = hasChildArtifacts
+    ? sumNullableDecimals(dedupedChildEntries.map(entry => entry.cost))
+    : (previousRollup?.childCost ?? null);
   const totalTokens =
     directTokens === null && childTokens === null
       ? null
@@ -300,6 +328,7 @@ export function createLisaUsageRollup(
       : sumNullableDecimals([directCost, childCost]);
   const currency =
     entries.find(entry => entry.currency !== null)?.currency ??
+    dedupedChildEntries.find(entry => entry.currency !== null)?.currency ??
     previousRollup?.currency ??
     null;
 
@@ -429,6 +458,7 @@ export function parseLisaUsageSection(
  *
  * @param document Existing artifact markdown or comment body.
  * @param input New usage content to merge into the managed section.
+ * @param input.childArtifacts Optional child ledgers to recompute descendant totals from current work.
  * @param input.entries Newly observed direct usage entries.
  * @param input.rollup Optional explicit rollup payload to serialize.
  * @returns The updated artifact markdown with exactly one managed usage block.
@@ -436,6 +466,7 @@ export function parseLisaUsageSection(
 export function upsertLisaUsageSection(
   document: string,
   input: {
+    childArtifacts?: readonly LisaUsageChildArtifact[];
     entries: readonly LisaUsageEntry[];
     rollup?: LisaUsageRollup | null;
   }
@@ -445,7 +476,11 @@ export function upsertLisaUsageSection(
   const rollup =
     mergedEntries.length === 0 && input.rollup
       ? input.rollup
-      : createLisaUsageRollup(mergedEntries, input.rollup ?? parsed.rollup);
+      : createLisaUsageRollup(
+          mergedEntries,
+          input.rollup ?? parsed.rollup,
+          input.childArtifacts
+        );
   const usageSection = renderLisaUsageSection({
     entries: mergedEntries,
     rollup,
@@ -462,3 +497,5 @@ export function upsertLisaUsageSection(
 
   return `${before}\n\n${usageSection}\n\n${after}\n`;
 }
+
+/* eslint-enable max-lines -- End usage accounting public utility surface. */
