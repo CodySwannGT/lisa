@@ -143,6 +143,31 @@ The explanation must stay aligned with existing Lisa rules:
 - If a claimed, in-review, or blocked item is not yet repairable, explain the relevant staleness or backoff condition at a human-readable level.
 - If the source lane, tracker lane, repo/project scope, or lifecycle namespace is unresolved, report `MISCONFIGURED` instead of pretending the item is idle or actionable.
 
+## Build item gate diagnosis
+
+For build lifecycle items, run the same read-side checks that build intake runs before it would claim an issue. This is still a read-only explanation: if execution intake would stamp repo labels, split a cross-repo leaf, move a stale container from `ready` to `claimed`, or post a dependency-hold comment, intake-explain reports what intake would do but does not stamp, does not split, does not move labels, and does not comment.
+
+Resolve the current repo using the same repo-scope contract as build intake: local config `repo`, then `.lisa.config.json` `github.repo`, then the git remote basename. Resolve the build lifecycle roles from `.lisa.config.json` `github.labels.build.*` with the usual defaults (`status:ready`, `status:in-progress`, `status:blocked`, `status:done`, plus any configured env-specific done labels). If those signals cannot be resolved, return `MISCONFIGURED`.
+
+For GitHub build items, collect these reader signals before choosing a verdict:
+
+- current build lifecycle role label and any conflicting `status:*` labels
+- `repo:<current>` / `repo:<other>` labels, including whether the item is unlabeled for repo scope
+- type labels such as `type:Epic`, `type:Story`, `type:Spike`, `type:Bug`, `type:Task`, `type:Sub-task`, and `type:Improvement`
+- native GitHub sub-issues and their open/closed state
+- body parentage used by `github-read-issue`, including task-list child references and `Parent: #123` style references
+- explicit dependency holds from `Blocked by: #123`, comma-separated refs, `owner/repo#123`, and GitHub issue URLs
+- blocker issue state and blocker status labels
+
+Apply gate verdicts in the same order as build intake:
+
+1. **Repo-scope gate.** A build item carrying `repo:<other>` and not `repo:<current>` is outside this repo's pickup lane. Return `MISCONFIGURED` when repo scope is absent or contradictory enough that the current repo cannot be determined confidently; otherwise explain the repo-scope mismatch and recommend running intake in the target repo or fixing the `repo:<name>` label. For an unlabeled item whose target repo is obvious from the item body, report the inferred repo signal but stay read-only: execution intake would stamp `repo:<name>`, while intake-explain only says it would do so. A multi-repo leaf is not directly buildable; explain that execution intake would split it per `repo-scope-split`, but this read-only diagnosis does not split.
+2. **Leaf-only gate.** If the item has open child work from native GitHub sub-issues or body parentage, return `NON_LEAF_CONTAINER` and explain that direct build pickup is leaf-only per `leaf-only-lifecycle`. If it has no open children but carries a container type (`type:Epic`, `type:Story`, or `type:Spike`), also return `NON_LEAF_CONTAINER` because a childless container type still needs decomposition or reclassification. The next action is decomposition, moving `status:ready` to leaf children, or correcting the issue type. Execution build intake would move such a stale ready container out of the pickup queue; this read-only diagnosis must not perform that repair.
+3. **Dependency hold gate.** If a single-repo leaf for the current repo has explicit blockers, read each blocker. Closed blockers are clear. Open blockers are clear only when they carry a cleared build status such as `status:code-review`, `status:on-dev`, `status:on-stg`, `status:done`, or the configured done-equivalent labels. Open blockers with `status:ready`, `status:in-progress`, no cleared status label, or inaccessible state are active. Return `HELD_BY_BLOCKERS`, list the active blocker refs, and make the next action blocker resolution rather than `/lisa:intake`.
+4. **Ready leaf.** A build item in the configured ready role, scoped to the current repo, with no open child work and no active blockers returns `ELIGIBLE_FOR_INTAKE`. The `Why:` line should say it is a single-repo leaf for the current repo and that leaf-only, repo-scope, and dependency gates all pass.
+
+Relevant `Signals:` should include the decisive context, not every field: for example `repo:lisa; type:Sub-task; no open children`, `open children #12/#13`, `repo:api but current repo is web`, or `active blockers CodySwannGT/lisa#123`.
+
 ## Rule explanation expectations
 
 The `Why:` line should name the decisive Lisa contract in plain English rather than only echoing a raw status label. Good explanations usually mention one of:
