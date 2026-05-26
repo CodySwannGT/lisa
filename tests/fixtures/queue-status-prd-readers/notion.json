@@ -1,0 +1,53 @@
+{
+  "source": "notion",
+  "items": [
+    {
+      "id": "page-ready",
+      "ref": "Ready page",
+      "title": "Ready PRD waiting for intake",
+      "url": "https://www.notion.so/acme/ready-page",
+      "role": "ready",
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "page-review",
+      "ref": "Review page",
+      "title": "PRD still in review",
+      "url": "https://www.notion.so/acme/review-page",
+      "role": "in_review",
+      "createdAt": "2026-05-24T10:00:00Z"
+    },
+    {
+      "id": "page-blocked",
+      "ref": "Blocked page",
+      "title": "Blocked PRD needs clarification",
+      "url": "https://www.notion.so/acme/blocked-page",
+      "role": "blocked",
+      "createdAt": "2026-05-23T10:00:00Z"
+    },
+    {
+      "id": "page-ticketed",
+      "ref": "Ticketed page",
+      "title": "Ticketed PRD waiting on build work",
+      "url": "https://www.notion.so/acme/ticketed-page",
+      "role": "ticketed",
+      "createdAt": "2026-05-22T10:00:00Z"
+    },
+    {
+      "id": "page-shipped",
+      "ref": "Shipped page",
+      "title": "Shipped PRD awaiting verify-prd",
+      "url": "https://www.notion.so/acme/shipped-page",
+      "role": "shipped",
+      "createdAt": "2026-05-21T10:00:00Z"
+    },
+    {
+      "id": "page-verified",
+      "ref": "Verified page",
+      "title": "Verified PRD",
+      "url": "https://www.notion.so/acme/verified-page",
+      "role": "verified",
+      "createdAt": "2026-05-20T10:00:00Z"
+    }
+  ]
+}

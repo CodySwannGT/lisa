@@ -154,6 +154,26 @@ if [ -n "$LABEL_OVERRIDES_JSON" ] && [ "$LABEL_OVERRIDES_JSON" != "{}" ]; then
 fi
 ```
 
+If this project later enables shared GitHub Project coordination, store it under the same `github` block as:
+
+```json
+"github": {
+  "org": "<tracked-repo-owner>",
+  "repo": "<tracked-repo>",
+  "projects": {
+    "v2": {
+      "owner": { "kind": "organization", "slug": "<tracked-repo-owner>" },
+      "number": 7,
+      "required": false
+    }
+  }
+}
+```
+
+That block is optional and coordination-only: real issues and pull requests stay the durable source of truth. In v1, `github.projects.v2.owner.slug` MUST match the tracked repository namespace (`github.org`) — user-owned repos use a user-owned Project, org-owned repos use an org-owned Project, and cross-namespace Project ownership is rejected. `required` defaults to `false`, meaning Project membership is best-effort unless a later setup/doctor flow explicitly opts into strict mode.
+
+When that block is present, later setup/doctor and runtime validation must read the shared Project's owner + access before membership writes depend on it. Best-effort mode (`required: false`) reports warning-level validation failures and continues repository-local writes without Project membership; strict mode (`required: true`) reports the same failures as blocking errors and stops the write.
+
 No secrets go in config — the GitHub token lives in `gh`'s own store (`~/.config/gh/`) or the `GH_TOKEN` env var, never in `.lisa.config.json`.
 
 ### Step 5 — Offer to set top-level `tracker` / `source`
@@ -180,6 +200,55 @@ Both are project-wide switches that change every downstream skill's default — 
 jq -e '.github.org and .github.repo' .lisa.config.json >/dev/null
 gh label list --repo "$ORG/$REPO" --limit 200 --json name --jq '.[].name' \
   | grep -E 'status:|prd-' || true   # show the scaffolded namespaces
+```
+
+If `github.projects.v2` is configured, setup verification MUST also run the shared Project utility in
+read-only resolution mode before declaring success:
+
+```text
+operation: resolve-project
+```
+
+This is the setup/doctor chokepoint for GitHub Project coordination. Do not inline ad-hoc GraphQL
+here; delegate to `lisa:github-project-v2` so setup, doctor, writers, and linked-PR flows all read
+the same owner/access contract and surface the same exact failure text.
+
+Verification contract when `github.projects.v2` is present:
+
+- First enforce the v1 namespace rule locally: `github.projects.v2.owner.slug` MUST equal
+  `github.org`. If not, report the exact configuration failure and remediation:
+
+  ```yaml
+  code: project_namespace_mismatch
+  message: "github.projects.v2.owner.slug must match github.org in v1"
+  remediation: "Use a Project owned by <github.org> or remove github.projects.v2."
+  ```
+
+- Then resolve the configured Project owner + number through `lisa:github-project-v2`.
+- Preserve the exact GitHub / GraphQL failure text for inaccessible or unsupported Project
+  configurations. Examples: missing Project, `Resource not accessible by integration`, unsupported
+  owner kind, or any other Project read failure.
+- Report the exact remediation path. At minimum, say whether the operator must:
+  1. choose a Project owned by the tracked repo namespace,
+  2. grant the token Project read/write access,
+  3. correct the configured Project number/owner, or
+  4. remove `github.projects.v2` if coordination is not required.
+- Branch severity on `required` exactly the same way the shared utility does:
+  `required: false` => warning-level validation failure, continue repository-local setup success;
+  `required: true` => blocking verification failure, stop setup/doctor before claiming coordination
+  is usable.
+
+The verify output should make the operator's next step obvious. Good examples:
+
+```text
+WARNING github.projects.v2: Resource not accessible by integration
+Remediation: grant the token Project read/write access or remove github.projects.v2.required.
+Repository-local GitHub issue/PR flows remain usable; Project coordination is disabled.
+```
+
+```text
+ERROR github.projects.v2: github.projects.v2.owner.slug must match github.org in v1
+Remediation: use a Project owned by CodySwannGT or remove github.projects.v2.
 ```
 
 Report success with the resolved `org/repo`, which label namespaces were scaffolded (and which labels already existed vs. were created), any non-default label overrides written, and whether `tracker` / `source` were set. Direct the user to `/lisa:intake` to test.

@@ -20,6 +20,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  ".."
+);
+const INTERNAL_CODEX_SKILL_POLICY_PATH = path.join(
+  REPO_ROOT,
+  "scripts",
+  "internal-codex-skill-policy.json"
+);
+
 /**
  * Parse the leading YAML frontmatter block of a SKILL.md file.
  *
@@ -288,6 +298,69 @@ export function deriveSkillInterface(frontmatter, skillName) {
 }
 
 /**
+ * Read the denylisted-skill policy that keeps Lisa maintainer-only skills out
+ * of distributed Codex plugin artifacts.
+ *
+ * Missing or malformed policy files fail open to an empty set so the artifact
+ * builder stays usable in isolated tests that seed only a minimal plugin tree.
+ *
+ * @param {string} [policyPath] Optional override for tests.
+ * @returns {ReadonlySet<string>} Skill directory names that must not ship.
+ */
+export function loadInternalCodexSkillPolicy(
+  policyPath = INTERNAL_CODEX_SKILL_POLICY_PATH
+) {
+  if (!fs.existsSync(policyPath)) {
+    return new Set();
+  }
+  try {
+    const parsed = JSON.parse(fs.readFileSync(policyPath, "utf8"));
+    if (!Array.isArray(parsed.denylistedSkills)) {
+      return new Set();
+    }
+    return new Set(
+      parsed.denylistedSkills.filter(name => typeof name === "string")
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Remove denylisted internal skills from a built plugin directory before any
+ * Codex-facing artifacts are derived from it.
+ *
+ * This keeps maintainer-only skills out of committed built-plugin skill
+ * directories,
+ * generated per-skill `agents/openai.yaml` files, and downstream host-project
+ * installations that consume those built plugin directories.
+ *
+ * @param {string} pluginDir Absolute path to a built plugin directory.
+ * @param {ReadonlySet<string>} [denylistedSkills] Optional override for tests.
+ * @returns {readonly string[]} Sorted list of removed skill names.
+ */
+export function pruneInternalCodexSkills(
+  pluginDir,
+  denylistedSkills = loadInternalCodexSkillPolicy()
+) {
+  const skillsDir = path.join(pluginDir, "skills");
+  if (!fs.existsSync(skillsDir) || denylistedSkills.size === 0) {
+    return [];
+  }
+
+  const removed = [];
+  for (const skillName of [...denylistedSkills].sort()) {
+    const skillDir = path.join(skillsDir, skillName);
+    if (!fs.existsSync(skillDir)) {
+      continue;
+    }
+    fs.rmSync(skillDir, { recursive: true, force: true });
+    removed.push(skillName);
+  }
+  return removed;
+}
+
+/**
  * Walk every `skills/<name>/SKILL.md` in a built plugin and emit a per-skill
  * `skills/<name>/agents/openai.yaml` (issue #547).
  *
@@ -362,6 +435,7 @@ function main() {
   );
   const pluginName = claudeManifest.name;
 
+  pruneInternalCodexSkills(pluginDir);
   writeCodexManifest(pluginDir, claudeManifest, pluginName, versionArg);
   writeSkillAgents(pluginDir);
 }

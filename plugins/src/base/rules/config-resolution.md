@@ -64,6 +64,16 @@ fi
   "github": {
     "org": "<org-or-user>",
     "repo": "<repo>",
+    "projects": {
+      "v2": {
+        "owner": {
+          "kind": "organization",
+          "slug": "<org-or-user>"
+        },
+        "number": 7,
+        "required": false
+      }
+    },
     "labels": {
       "build": {
         "ready":   "status:ready",
@@ -122,7 +132,24 @@ fi
     }
   },
 
+  "usage": {
+    "pricing": {
+      "currency": "USD",
+      "source": "openai-api-pricing",
+      "snapshot": "2026-05-25",
+      "models": {
+        "openai/gpt-5": {
+          "inputPer1M": 1.25,
+          "cachedInputPer1M": 0.125,
+          "outputPer1M": 10.0,
+          "reasoningPer1M": 10.0
+        }
+      }
+    }
+  },
+
   "intake": {
+    "assignee": "<vendor-user-id-or-login>",
     "repair": {
       "staleAfterHours": 24,
       "maxCandidates": 100
@@ -186,8 +213,22 @@ Each vendor section is **conditionally required**: required only when that vendo
 |-------|---------------|-------|
 | `github.org` | `tracker = "github"` or `source = "github"` or any `github-*` skill is invoked | GitHub organization or user name. |
 | `github.repo` | same as above | GitHub repository name. |
+| `github.projects.v2.owner.kind` | GitHub Project coordination is enabled | Owner type for the shared ProjectV2. Supported values are `organization` and `user`. |
+| `github.projects.v2.owner.slug` | GitHub Project coordination is enabled | Owner login for the shared ProjectV2. In v1 it MUST match the tracked repository namespace (`github.org`); cross-namespace coordination is rejected. |
+| `github.projects.v2.number` | GitHub Project coordination is enabled | Human-facing ProjectV2 number from the GitHub UI / URL. Later utilities resolve the opaque node id from this owner + number pair. |
+| `github.projects.v2.required` | no | Coordination strictness flag. Default `false` keeps Project membership best-effort; `true` makes Project membership failures block the write. Setup/doctor/runtime validation reads Project ownership + access and branches on this flag: best-effort failures warn, required-mode failures stop the write. |
 
 When `tracker = "github"` AND `source = "github"` (self-host), both reads and writes hit the same GitHub repo. Label namespaces are kept separate so the two flows don't collide — see "Self-host edge case" below.
+
+`github.projects.v2` is optional. When absent, GitHub issue / PR writes remain repository-local exactly as they work today. When present, the shared Project is a coordination view layered on top of real issues and pull requests; it does not replace lifecycle labels, comments, dependencies, or native issue / PR state as Lisa's durable source of truth.
+
+When `github.projects.v2` is present, later setup/doctor and writer preflight validation MUST read the referenced Project's owner + access level before any membership write depends on it. The validation contract is:
+
+- Resolve the Project from `owner.kind`, `owner.slug`, and `number`.
+- Confirm the owner namespace still matches `github.org`; cross-namespace Project ownership is a configuration error.
+- Confirm the authenticated identity can read the Project and has sufficient access for membership coordination.
+- If `required = false`, surface Project-validation failures as warnings and continue repository-local issue / PR writes without Project membership.
+- If `required = true`, surface the same failures as blocking errors and stop the write before mutating issue / PR membership.
 
 #### `notion`
 
@@ -204,6 +245,34 @@ When `tracker = "github"` AND `source = "github"` (self-host), both reads and wr
 |-------|---------------|-------|
 | `linear.workspace` | `tracker = "linear"`, `source = "linear"`, or any `linear-*` skill is invoked | Linear workspace slug (e.g. `acme`). |
 | `linear.teamKey` | `tracker = "linear"` | Linear team key (e.g. `ENG`). The team owns the destination Issues. For source mode, projects are workspace-scoped or team-scoped per the URL passed. |
+
+#### `usage`
+
+`usage` is optional. It carries non-secret pricing metadata Lisa may use when runtime token counts are trustworthy but runtime monetary cost is absent.
+
+| Field | Required when | Where it lives | Notes |
+|-------|---------------|----------------|-------|
+| `usage.pricing.currency` | estimating cost from config | **committed** | ISO currency code paired with the configured rates (for example `USD`). |
+| `usage.pricing.source` | estimating cost from config | **committed** | Human-readable source label for the configured pricing schedule (for example `openai-api-pricing`). This is metadata, not a URL requirement. |
+| `usage.pricing.snapshot` | no | **committed** | Version/date/hash describing when the pricing schedule was captured. Use it to make estimated-cost provenance durable across later vendor price changes. |
+| `usage.pricing.models` | estimating cost from config | **committed** | Map of `<provider>/<model>` to per-million-token rates. Lisa has **no built-in provider rates**; every estimated-cost model must be declared here explicitly. |
+
+Each `usage.pricing.models["<provider>/<model>"]` value supports these numeric keys:
+
+| Key | Required | Notes |
+|-----|----------|-------|
+| `inputPer1M` | yes | Price per 1M non-cached input tokens. |
+| `cachedInputPer1M` | no | Price per 1M cached input tokens when the runtime exposes them separately. If absent, cached tokens cannot be priced and the entry falls back to `pricing_status=missing` unless the runtime already supplied cost. |
+| `outputPer1M` | yes | Price per 1M output/completion tokens. |
+| `reasoningPer1M` | no | Price per 1M reasoning/internal tokens when the provider bills them separately. If absent, treat reasoning tokens as unpriceable rather than folding them into another bucket. |
+
+Resolution rules for estimated pricing:
+
+- Resolve `usage.pricing.*` with the same per-key local-overrides-global precedence as every other config section.
+- Estimates are allowed only when trustworthy token counts exist and a matching `usage.pricing.models["<provider>/<model>"]` entry supplies every rate needed for the exposed token buckets.
+- Missing model entries or missing required bucket rates do **not** trigger built-in defaults. Preserve the token counts, leave `cost = null`, and emit `pricing_status = missing`.
+- When an estimate is produced from config, write `pricing_source` as `config:<source>@<snapshot>` when both fields exist, `config:<source>` when only `source` exists, or `config` when neither metadata field is available.
+- Runtime-observed monetary cost always wins over config estimates; config pricing is fallback-only.
 
 ## Workflow & vocabulary roles
 
@@ -260,6 +329,26 @@ documented defaults, so existing projects need no config change.
 |-----|----------|---------|-------|
 | `intake.repair.staleAfterHours` | no | `24` | How long an in-progress item (build `claimed`, PRD `in_review`) may show no observable activity before repair-intake treats it as stalled and resumes it. `blocked` items are judged on blocker/answer state, not this threshold. Overridable per-run via `stale_after=<dur>` in `$ARGUMENTS` (which always wins). The same value is the default backoff window for loop-prevention notes. |
 | `intake.repair.maxCandidates` | no | `100` | Upper bound on how many stuck items repair-intake enumerates while searching for the first actionable one. Bounds scan cost. Overridable per-run via `max_candidates=<n>`. |
+
+### Intake assignee filter (`intake.assignee`)
+
+The optional intake assignee filter narrows **ready-item selection only**. It never assigns or
+reassigns tickets; it simply tells build-intake to consider only ready items that are already
+assigned to the resolved person for this local run.
+
+Resolution order:
+
+1. `$ARGUMENTS` `assignee=<vendor-user-id-or-login>`
+2. `.lisa.config.local.json` `intake.assignee`
+3. empty default (no filtering)
+
+The setting is intentionally **local-only**: personal or machine-specific intake lanes belong in
+`.lisa.config.local.json`, not the committed project config. An empty resolved value disables the
+filter and preserves the shared ready-queue behavior.
+
+| Field | Required | Default | Notes |
+|-------|----------|---------|-------|
+| `intake.assignee` | no | empty | Local ready-queue filter for build intake. When non-empty, vendor build-intake skills query only ready items already assigned to that vendor-specific user id or login. When empty, no assignee filter is applied. Runtime `$ARGUMENTS` `assignee=<...>` always wins over config for that invocation. |
 
 Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.config.local.json` →
 `.lisa.config.json` → built-in default. The role SEMANTICS repair-intake operates on (which
@@ -347,6 +436,99 @@ For batch skills that consume `source`:
 1. If `$ARGUMENTS` contains an explicit URL or key, parse the source vendor from it (always wins).
 2. If `$ARGUMENTS` is the bare token `notion` / `confluence` / `linear` / `github` / `jira`, the source is that vendor; resolve location from the corresponding config section.
 3. If `$ARGUMENTS` is empty, fall back to `source` from config; if that's also empty, stop and report `"No source specified and no 'source' field in .lisa.config.json."`
+
+### Doctor config readiness
+
+`/lisa:doctor` reads the same config, but it audits readiness instead of dispatching a write.
+Doctor must validate config in three layers:
+
+1. **Parse and merge**
+   - Parse both config files as JSON. Missing or invalid `.lisa.config.json` is a blocking error.
+     `.lisa.config.local.json` is optional, but if present and invalid it is also a blocking error.
+   - Merge per key with the standard local-overrides-global rule. Doctor reports against the merged
+     effective config; it does not treat the local file as a full replacement for the committed
+     file.
+2. **Required-key correctness**
+   - Missing `tracker` after merge is a blocking error. Unknown merged `tracker` / `source` values
+     are also blocking errors.
+   - If the configured tracker/source vendor is missing its required keys after merge, doctor must
+     report a blocking readiness failure using the vendor tables above. Examples: `tracker=github`
+     requires `github.org` + `github.repo`; `tracker=jira` requires `atlassian.cloudId` +
+     `jira.project`; `source=notion` requires `notion.workspaceId` + `notion.prdDatabaseId`.
+3. **Field locality correctness**
+   - `atlassian.email`, `intake.assignee`, and `jira.verified_workflow_hash` are local-only. If
+     they appear in committed config, doctor warns that developer-specific state was checked into
+     the project file.
+   - Project-wide fields that exist only in `.lisa.config.local.json` should warn, not pass
+     silently. Current machine works, repository not durably configured for teammates and
+     automations. Common examples include `tracker`, `source`, `github.org`, `github.repo`,
+     `atlassian.cloudId`, `atlassian.site`, `jira.project`, `linear.workspace`, `linear.teamKey`,
+     and `deploy.branches`.
+
+Doctor's severity rule is simple: unusable merged config is `FAIL`; locality drift with a still
+usable merged config is `WARN`.
+
+### Doctor vendor preflight
+
+Once doctor can resolve the merged `tracker` and optional `source`, it must run a read-only vendor
+preflight for those configured vendors only.
+
+1. **Audit only the configured vendors**
+   - Always audit the merged `tracker`.
+   - Audit `source` when present and when it is not already covered by the tracker check.
+   - Every other vendor is a doctor `SKIP`, not an implicit pass.
+2. **Read-capable substrate requirement**
+   - `github` requires `gh` CLI, a passing `gh auth status`, and read access to the configured
+     repo (`github.org` + `github.repo`).
+   - `jira` / `confluence` must reuse the `atlassian-access` substrate ladder. Doctor passes when
+     at least one supported read-capable substrate (`acli`, Atlassian MCP, or validated curl/API
+     token) can prove visibility to the configured `atlassian.cloudId` and target scope.
+   - `linear` passes when either the Linear MCP or a validated API-key probe can read the
+     configured workspace; tracker mode also requires visibility to `linear.teamKey`.
+   - `notion` passes when either the Notion MCP identity matches `notion.workspaceId` or a valid
+     internal-integration token does, and the configured `notion.prdDatabaseId` is readable.
+3. **Observed-fact discipline**
+   - Missing executable / MCP availability and failed auth/scope probes must be reported
+     separately.
+   - Preserve the exact probe failure text or status code when a read attempt fails; doctor should
+     not collapse repo-not-found, wrong-workspace, and unauthenticated cases into one generic
+     readiness error.
+4. **Severity**
+   - No read-capable substrate for the configured vendor, or a configured target that remains
+     unreadable after all supported probes, is a doctor `FAIL`.
+   - A reachable vendor with only auxiliary-substrate degradation is a doctor `WARN`.
+
+### Doctor automation readiness
+
+Doctor's automation-readiness group is also read-only. It answers "could this repo safely support
+Lisa's recurring automations from the current runtime?" without creating, editing, deleting, or
+reconciling any automation state.
+
+1. **Resolve the automation queues from merged config**
+   - Resolve the PRD automation queue from merged `source`.
+   - Resolve the build automation queue from merged `tracker`.
+   - Resolve repair-intake from the same queue-detection contract `lisa:intake` /
+     `lisa:repair-intake` already use; doctor should not invent a second queue schema.
+   - If an automation's queue cannot be resolved because `source`, `tracker`, or the selected
+     vendor's required keys are still missing after merge, that automation is a doctor `FAIL`.
+     Unattended runs would be ambiguous before the scheduler is even involved.
+2. **Check native scheduler availability by runtime, read-only**
+   - Codex automation support means the runtime exposes the native automations surface
+     (`automation_update`) that `setup-automations` depends on.
+   - Claude automation support means `/schedule` is available.
+   - Other runtimes should be reported explicitly as having no known native Lisa scheduler unless a
+     supported surface is observable.
+   - Doctor must not create a throwaway automation just to prove the scheduler exists.
+3. **Match exploratory automation support to the repo's shipped stack**
+   - `exploratory-bugs` exists only for stacks that ship `exploratory-qa` (`expo`, `rails`,
+     `harper-fabric`). If the repo lacks that command surface, doctor reports the automation as
+     `SKIP`, not `FAIL`.
+   - `exploratory-prds` follows the normal queue-resolution rules; if its prerequisites are
+     unresolved, preserve the exact blocking config fact.
+4. **Severity**
+   - Queue resolution failure is a doctor `FAIL`.
+   - Missing native scheduler support in an otherwise manually-usable repo is a doctor `WARN`.
+   - Intentional absence of an optional exploratory automation surface is a doctor `SKIP`.
 
 ## Skill mapping
 

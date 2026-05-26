@@ -260,7 +260,7 @@ If the validator reports `PASS`, continue to Phase 6.
 ### UPDATE
 
 1. Call `mcp__linear-server__save_project` or `mcp__linear-server__save_issue` with **only the fields being changed**. Do NOT resend fields that weren't in the change set — Linear treats the call as a full overwrite of the listed fields.
-2. Preserve description sections you are not editing — re-read via `/linear-read-issue` first.
+2. Preserve description sections you are not editing — re-read via `/linear-read-issue` first, including any existing canonical managed `## Lisa Usage` section unless the caller intentionally supplied an updated canonical section. Use the shared `usage-accounting` serializer/merge path rather than freehand edits to ledger rows.
 
 ## Phase 7 — Verify
 
@@ -285,6 +285,8 @@ Skip this step only on UPDATE when no material change was made.
 - Never include a runtime-behavior item without a target backend environment, and never include an authenticated-surface item without sign-in credentials in the description.
 - Never invent custom field values. If the team requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - All Linear writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `lisa:linear-create`) should delegate here rather than calling the MCP write tools directly.
 - The gate logic (what makes a valid item) lives in `lisa:linear-validate-issue`, NOT in this skill. This skill calls the validator at Phase 5.5 (pre-write) and Phase 7 (via `lisa:linear-verify` post-write). When a gate needs to change, change it in `lisa:linear-validate-issue` — every caller picks it up automatically.
 - This skill is the destination of the `lisa:tracker-write` shim when `tracker = "linear"`. Vendor-neutral callers (`notion-to-tracker`, `confluence-to-tracker`, `linear-to-tracker`, `github-to-tracker`) MUST go through `lisa:tracker-write`, not call this skill directly.

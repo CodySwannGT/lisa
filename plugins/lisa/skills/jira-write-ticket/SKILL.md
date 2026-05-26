@@ -235,7 +235,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 1. Invoke `lisa:atlassian-access` with `operation: write-ticket payload: {key: <K>, ...fields-being-changed}`. Do NOT resend fields that weren't in the change set — it blows away history.
 2. Add new relationships via `lisa:atlassian-access` `operation: link from: <K1> to: <K2> type: "<link-type>"`. Existing links are not touched unless explicitly removed.
-3. If description changes, preserve sections you are not editing. Re-read via `/jira-read-ticket` first.
+3. If description changes, preserve sections you are not editing. Re-read via `/jira-read-ticket` first, including any existing canonical managed `## Lisa Usage` section unless the caller intentionally supplied an updated canonical section. Use the shared `usage-accounting` serializer/merge path rather than freehand edits to ledger rows.
 
 ## Phase 7 — Verify
 
@@ -259,5 +259,7 @@ Skip this step only on UPDATE when no material change was made.
 - Never include a runtime-behavior ticket without a target backend environment, and never include an authenticated-surface ticket without sign-in credentials in the description.
 - Never invent custom field values. If the project requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - All writes go through this skill so best practices are enforced uniformly. Downstream skills (e.g. `lisa:jira-create`) should delegate here rather than invoking `lisa:atlassian-access` write operations directly.
 - The gate logic (what makes a valid ticket) lives in `lisa:jira-validate-ticket`, NOT in this skill. This skill calls the validator at Phase 5.5 (pre-write) and Phase 7 (via `lisa:jira-verify` post-write). When a gate needs to change, change it in `lisa:jira-validate-ticket` — every caller (write path, dry-run path, post-write verify) picks it up automatically.

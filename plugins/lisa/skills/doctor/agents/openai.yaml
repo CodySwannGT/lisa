@@ -1,0 +1,4 @@
+display_name: "Doctor"
+short_description: "Audit whether the current repository is ready to use Lisa"
+default_prompt:
+  - "Use $doctor: Audit whether the current repository is ready to use Lisa."

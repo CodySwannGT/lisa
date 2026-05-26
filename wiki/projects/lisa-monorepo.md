@@ -18,6 +18,21 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - CLI binary: `lisa`
 - Package manager: Bun
 
+## Current Snapshot
+
+- Ingest branch: `wiki/ingest-2026-05-26-053019` from `origin/main`
+- HEAD at 2026-05-26 incremental ingest: `c4879d40b123baf4f38d4c5530090b9003d4217a`
+- Current package version: `2.98.0`
+- Total commits on HEAD: 2020
+- Latest merged PR captured in the incremental git snapshot: `#837`
+- New commits since the previous incremental git cursor: `36`
+
+## Recent Changes Since The 2026-05-14 Baseline
+
+- Queue-status coverage expanded across shared contract resolution, grouped output, queue readers for PRD and build modes, health classification, and smoke coverage.
+- Repair-intake now closes out stuck work in batch, extending the operational remediation path beyond status reporting alone.
+- Release automation continued its rapid cadence, advancing the monorepo from `2.91.3` through `2.98.0` during this incremental window.
+
 ## Workspace Packages
 
 | Path | Package |
@@ -30,3 +45,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 - `wiki/sources/repository/2026-05-14-monorepo-baseline.md`
 - `wiki/sources/github/2026-05-14-git-and-pr-history.md`
+- `wiki/sources/git/2026-05-25-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-26-lisa-monorepo-git.md`
+- `wiki/sources/roles/2026-05-25-roles.md`
+- `wiki/sources/roles/2026-05-26-roles.md`

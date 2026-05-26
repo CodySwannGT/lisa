@@ -1,6 +1,6 @@
 ---
 name: github-write-prd
-description: "Creates or idempotently updates a PRD as a GitHub Issue in the configured source repo, carrying exactly one PRD lifecycle label (`prd-draft` by default, or `prd-ready` when initial_role is ready so lisa:github-prd-intake auto-claims it). The GitHub PRD-source writer behind lisa:prd-source-write — the source-side counterpart of lisa:github-write-issue. Dedupes by a stable marker embedded in the issue body (matched by marker, never by title) so re-running ideation references the existing PRD instead of opening a duplicate. Uses the `gh` CLI exclusively."
+description: "Creates or idempotently updates a PRD as a GitHub Issue in the configured source repo, carrying exactly one PRD lifecycle label (`prd-draft` by default, or `prd-ready` when initial_role is ready so lisa:github-prd-intake auto-claims it). The GitHub PRD-source writer behind lisa:prd-source-write — the source-side counterpart of lisa:github-write-issue. Dedupes by a stable marker embedded in the issue body (matched by marker, never by title) so re-running ideation references the existing PRD instead of opening a duplicate, and when `github.projects.v2` is enabled it coordinates PRD issue membership through `lisa:github-project-v2` without replacing the issue as the lifecycle source of truth. Uses the `gh` CLI exclusively."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -55,10 +55,13 @@ EXISTING=$(gh issue list --repo "$ORG/$REPO" --state open --search "\"$MARKER\" 
 
 ## Phase 3 — Create or update
 
-**Marker normalization (both paths).** Before writing any body, ensure it contains **exactly one**
-marker line — inject `<!-- $MARKER -->` if the caller's synthesized body doesn't already carry it.
-**Never write a markerless body** (including on UPDATE or when `source_ref` is passed): a body without
-the marker breaks future dedupe. If the body already has the marker, leave the single instance.
+**Marker + usage-ledger preservation (both paths).** Before writing any body, ensure it contains
+**exactly one** marker line — inject `<!-- $MARKER -->` if the caller's synthesized body doesn't
+already carry it. **Never write a markerless body** (including on UPDATE or when `source_ref` is
+passed): a body without the marker breaks future dedupe. If the body already has the marker, leave
+the single instance. If the live issue body already contains the canonical managed `## Lisa Usage`
+section, preserve it verbatim unless the caller intentionally supplied an updated canonical section;
+use the shared `usage-accounting` serializer/merge path rather than hand-editing ledger rows.
 
 **CREATE** (no existing issue):
 
@@ -67,16 +70,26 @@ the marker breaks future dedupe. If the body already has the marker, leave the s
    gh issue create --repo "$ORG/$REPO" --title "$TITLE" --body-file /tmp/prd-body.md --label "$ROLE_LABEL"
    ```
 3. Capture the returned issue number/URL.
+4. If `github.projects.v2` is enabled, resolve the created PRD issue node id and invoke
+   `lisa:github-project-v2` with `operation: ensure-item` and `content_node_id: <issue-node-id>`.
+   - `outcome: disabled` → continue normally.
+   - `outcome: added` or `reused` → continue normally; membership is now present.
+   - `outcome: warning` (`required: false`) → preserve the exact warning and keep the PRD issue write as the durable success.
+   - `outcome: blocked` (`required: true`) → surface the exact failure and stop returning success; do not report Project coordination as completed.
 
 **UPDATE** (existing issue or `source_ref`):
 
 1. `gh issue edit <n> --repo "$ORG/$REPO" --body-file /tmp/prd-body.md` with the **marker-normalized**
-   body (regenerate in place; never drop the marker).
+   body (regenerate in place; never drop the marker or an existing managed `## Lisa Usage` section).
 2. Reconcile the lifecycle label to **exactly one**: add `$ROLE_LABEL`, remove every other label in
    the resolved `${ALL_PRD_LABELS[@]}` set (the config-resolved names — not a hard-coded list) via
    `gh issue edit <n> --add-label / --remove-label`. Never leave a PRD carrying two lifecycle labels.
    - Exception: do **not** down-rank a PRD whose current label is in the resolved `${PROGRESSED[@]}`
      set (already past `ready`). If so, leave it and report `reused (already past ready)`.
+3. Re-resolve the live PRD issue node id and invoke `lisa:github-project-v2` with
+   `operation: ensure-item` so updates keep the PRD present in the configured shared Project without
+   duplicating membership writes. Branch on `disabled` / `added` / `reused` / `warning` / `blocked`
+   exactly as in CREATE.
 
 ## Phase 4 — Return
 
@@ -94,7 +107,10 @@ outcome: created | reused
 
 - Exactly one PRD lifecycle label at all times (leaf-only does not apply — PRDs are not build leaves).
 - Match dedupe by marker, never by title.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
 - Never down-rank a PRD already past `ready`.
 - A *closed* prior PRD does not suppress a new one — a recurrence after closure is a genuine new PRD.
 - This is a source-side writer (`prd-*` labels). It never touches build labels (`status:*`) — that is
   `lisa:github-write-issue`'s lane. See `config-resolution` "Self-host edge case".
+- When GitHub Project coordination is enabled, always delegate membership to `lisa:github-project-v2`; never inline separate ProjectV2 GraphQL from this skill.

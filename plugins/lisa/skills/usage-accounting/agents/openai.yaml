@@ -1,0 +1,4 @@
+display_name: "Usage Accounting"
+short_description: "Shared usage-ledger utility for Lisa lifecycle flows and artifact writers"
+default_prompt:
+  - "Use $usage-accounting: Shared usage-ledger utility for Lisa lifecycle flows and artifact writers."
