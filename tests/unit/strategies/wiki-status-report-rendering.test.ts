@@ -5,6 +5,7 @@
  * skill surfaces can call without mutating the wiki.
  * @module tests/unit/strategies/wiki-status-report-rendering
  */
+import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -25,6 +26,15 @@ import {
 
 const SOURCE_PLUGIN_ROOT = path.resolve("plugins/src/wiki");
 const GENERATED_PLUGIN_ROOT = path.resolve("plugins/lisa-wiki");
+const SOURCE_STATUS_SCRIPT = path.resolve(
+  SOURCE_PLUGIN_ROOT,
+  "scripts/wiki-status.mjs"
+);
+const GIT_BIN = "/usr/bin/git";
+const CLEAN_GIT_ENV: NodeJS.ProcessEnv = { ...process.env };
+for (const key of Object.keys(CLEAN_GIT_ENV)) {
+  if (key.startsWith("GIT_")) delete CLEAN_GIT_ENV[key];
+}
 const READ_ONLY_INGEST = "read-only-ingest";
 const FIXTURE_NOW = "2026-05-26T12:00:00.000Z";
 
@@ -180,6 +190,41 @@ describe("wiki-status report rendering (#930)", () => {
       "Integrity follow-up: run /lisa-wiki:lint separately"
     );
     expect(listFiles(fixture.root)).toEqual(before);
+  });
+
+  it("renders from a git worktree without changing git status porcelain output (#932)", () => {
+    const fixture = makeWikiFixture();
+    execFileSync(GIT_BIN, ["-C", fixture.root, "init"], {
+      env: CLEAN_GIT_ENV,
+      stdio: "ignore",
+    });
+    const beforeStatus = execFileSync(
+      GIT_BIN,
+      ["-C", fixture.root, "status", "--porcelain"],
+      { encoding: "utf8", env: CLEAN_GIT_ENV }
+    );
+    const beforeFiles = listFiles(fixture.root);
+
+    const output = execFileSync(
+      process.execPath,
+      [
+        SOURCE_STATUS_SCRIPT,
+        "--config",
+        fixture.configPath,
+        "--wiki",
+        fixture.wikiRoot,
+      ],
+      { cwd: fixture.root, encoding: "utf8" }
+    );
+
+    const afterStatus = execFileSync(
+      GIT_BIN,
+      ["-C", fixture.root, "status", "--porcelain"],
+      { encoding: "utf8", env: CLEAN_GIT_ENV }
+    );
+    expect(output).toContain("# Lisa wiki source freshness");
+    expect(afterStatus).toBe(beforeStatus);
+    expect(listFiles(fixture.root)).toEqual(beforeFiles);
   });
 
   it("recommends targeted ingest when enabled connector state or source evidence is absent", () => {
