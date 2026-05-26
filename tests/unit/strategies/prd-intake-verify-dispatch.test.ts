@@ -4,7 +4,7 @@
  * rollup (Phase 3f, `ticketed → shipped`), dispatches `/lisa:verify-prd` for one
  * shipped PRD per cycle so a shipped PRD does not sit unverified. The scanner
  * only DISPATCHES — `/lisa:verify-prd` (not the scanner) performs the
- * `shipped → verified` / `shipped → blocked` transition, preserving the
+ * `shipped → verified` / `shipped → ticketed` transition, preserving the
  * "intake never sets verified" invariant.
  *
  * The dispatch is documented as the single source of truth in the

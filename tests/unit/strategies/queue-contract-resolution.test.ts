@@ -45,9 +45,6 @@ describe("queue contract resolution (#822)", () => {
         shipped: "prd-shipped",
         verified: "prd-verified",
       },
-      rollup: {
-        closeOnShipped: false,
-      },
     });
     expect(contract.buildQueue).toMatchObject({
       vendor: "github",
