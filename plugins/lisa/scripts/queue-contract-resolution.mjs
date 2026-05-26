@@ -216,7 +216,8 @@ export function resolvePrdLifecycleRoles(
         kind: "labels",
         roles: resolveObjectRoles(
           config.github?.labels?.prd,
-          DEFAULT_GITHUB_LINEAR_PRD_ROLES
+          DEFAULT_GITHUB_LINEAR_PRD_ROLES,
+          { allowNull: false }
         ),
         rollup: {
           closeOnShipped: Boolean(
@@ -230,7 +231,8 @@ export function resolvePrdLifecycleRoles(
         kind: "labels",
         roles: resolveObjectRoles(
           config.linear?.labels?.prd,
-          DEFAULT_GITHUB_LINEAR_PRD_ROLES
+          DEFAULT_GITHUB_LINEAR_PRD_ROLES,
+          { allowNull: false }
         ),
         rollup: {
           closeOnShipped: Boolean(
@@ -245,7 +247,8 @@ export function resolvePrdLifecycleRoles(
         statusProperty: config.notion?.statusProperty || "Status",
         roles: resolveObjectRoles(
           config.notion?.values,
-          DEFAULT_NOTION_PRD_ROLES
+          DEFAULT_NOTION_PRD_ROLES,
+          { allowNull: false }
         ),
         rollup: {
           closeOnShipped: Boolean(
@@ -259,7 +262,8 @@ export function resolvePrdLifecycleRoles(
         kind: "parent-pages",
         roles: resolveObjectRoles(
           config.confluence?.parents,
-          DEFAULT_CONFLUENCE_PARENT_ROLES
+          DEFAULT_CONFLUENCE_PARENT_ROLES,
+          { allowNull: true }
         ),
         rollup: {
           closeOnShipped: Boolean(
@@ -374,13 +378,24 @@ export function resolveQueueContract(input = {}) {
 /**
  * @param {Record<string, any> | undefined} values
  * @param {Record<string, any>} defaults
+ * @param {{ readonly allowNull?: boolean }} [options]
  * @returns {Record<string, any>}
  */
-function resolveObjectRoles(values, defaults) {
-  return {
-    ...defaults,
-    ...(values ?? {}),
-  };
+function resolveObjectRoles(values, defaults, options = {}) {
+  const resolved = { ...defaults };
+
+  for (const [key, value] of Object.entries(values ?? {})) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      resolved[key] = value;
+      continue;
+    }
+
+    if (options.allowNull === true && value === null) {
+      resolved[key] = value;
+    }
+  }
+
+  return resolved;
 }
 
 /**
