@@ -268,6 +268,19 @@ describe("usage-accounting utilities", () => {
     expect(parsed.rollup?.totalCost).toBeNull();
   });
 
+  it("rejects corrupted numeric tokens instead of rewriting them as null", () => {
+    const existingSection = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [makeEntry({ entryId: "entry-corrupt", runId: "run-corrupt" })],
+    }).replace("cost=0.12", "cost=bad");
+
+    expect(() =>
+      upsertLisaUsageSection(existingSection, {
+        entries: [makeEntry({ entryId: "entry-next", runId: "run-next" })],
+      })
+    ).toThrow("Invalid Lisa usage numeric token: bad");
+    expect(existingSection).toContain("cost=bad");
+  });
+
   it("preserves pricing metadata and prior child rollups during direct-entry refreshes", () => {
     const existingEntry = makeEntry({
       entryId: PRICED_ENTRY_ID,
