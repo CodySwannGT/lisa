@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.103.0](https://github.com/CodySwannGT/lisa/compare/vv2.102.0...v2.103.0) (2026-05-26)
+
+
+### Features
+
+* **wiki:** render source freshness status ([210020b](https://github.com/CodySwannGT/lisa/commit/210020be7010f2173cc7c1b7d59686afb02ea034))
+
 ## [2.102.0](https://github.com/CodySwannGT/lisa/compare/vv2.101.1...v2.102.0) (2026-05-26)
 
 
