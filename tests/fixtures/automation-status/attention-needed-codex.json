@@ -1,0 +1,60 @@
+{
+  "runtime": "Codex automations (backing-store metadata)",
+  "generatedAt": "2026-05-26T12:00:00.000Z",
+  "groups": [
+    {
+      "id": "1",
+      "title": "Core automations",
+      "items": [
+        {
+          "id": "lisa-auto-codyswanngt-lisa-intake-repair",
+          "status": "HEALTHY",
+          "summary": "latest recorded run is within cadence",
+          "expectedCadence": "every 60 minutes",
+          "expectedCommand": "/lisa:repair-intake github intake_mode=both",
+          "observed": "lisa-auto-codyswanngt-lisa-intake-repair runs every 60 minutes -> /lisa:repair-intake github intake_mode=both Scheduler status: ACTIVE Last run: 2026-05-26T11:10:00Z Latest summary: Repaired one blocked build issue cleanly."
+        },
+        {
+          "id": "lisa-auto-codyswanngt-lisa-intake-prd",
+          "status": "STALE",
+          "summary": "last recorded run is stale for the expected cadence",
+          "expectedCadence": "every 60 minutes",
+          "expectedCommand": "/lisa:intake github intake_mode=prd",
+          "observed": "lisa-auto-codyswanngt-lisa-intake-prd runs every 60 minutes -> /lisa:intake github intake_mode=prd Scheduler status: ACTIVE Last run: 2026-05-26T06:00:00Z Latest summary: Found no ready PRDs.",
+          "remediation": "Inspect why the automation has not run recently, then resume normal scheduling or recreate it with `/lisa:setup-automations`."
+        },
+        {
+          "id": "lisa-auto-codyswanngt-lisa-intake-tickets",
+          "status": "FAILING",
+          "summary": "latest recorded run failed",
+          "expectedCadence": "every 10 minutes",
+          "expectedCommand": "/lisa:intake github intake_mode=build",
+          "observed": "lisa-auto-codyswanngt-lisa-intake-tickets runs every 10 minutes -> /lisa:intake github intake_mode=build Scheduler status: ACTIVE Last run: 2026-05-26T11:55:00Z Latest summary: Latest run failed because GitHub auth was unavailable.",
+          "remediation": "Inspect the latest automation run output and fix the failing job before re-running setup."
+        },
+        {
+          "id": "lisa-auto-codyswanngt-lisa-exploratory-prds",
+          "status": "MISSING",
+          "summary": "expected automation is missing",
+          "expectedCadence": "once a day",
+          "expectedCommand": "/lisa:project-ideation prd_ready=true",
+          "observed": "No live automation matched the expected Lisa contract.",
+          "remediation": "Re-run `/lisa:setup-automations` or recreate the missing scheduler entry."
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Exploratory automations",
+      "items": [
+        {
+          "id": "lisa-auto-codyswanngt-lisa-exploratory-bugs",
+          "status": "UNSUPPORTED",
+          "summary": "This repository does not ship an exploratory-qa command surface.",
+          "expectedCadence": "once a day",
+          "observed": "No automation is expected for this repo/runtime combination."
+        }
+      ]
+    }
+  ]
+}
