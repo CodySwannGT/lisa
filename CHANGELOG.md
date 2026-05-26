@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.84.0](https://github.com/CodySwannGT/lisa/compare/vv2.83.0...v2.84.0) (2026-05-26)
+
+
+### Features
+
+* **council:** add runtime-filtered dry-run critique planning ([3d142f9](https://github.com/CodySwannGT/lisa/commit/3d142f9ac22f91345167a907967597da7f346252))
+
+
+### Bug Fixes
+
+* address CodeRabbit review on PR [#784](https://github.com/CodySwannGT/lisa/issues/784) ([e2c055e](https://github.com/CodySwannGT/lisa/commit/e2c055e0007800d1e2ac9adb0cdf552bb230e380))
+
 ## [2.83.0](https://github.com/CodySwannGT/lisa/compare/vv2.82.0...v2.83.0) (2026-05-25)
 
 
