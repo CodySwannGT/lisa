@@ -198,8 +198,7 @@ function classifyMarketplaceDrift(root) {
         classification: "MARKETPLACE_REGISTRATION_DRIFT",
         path: source.replace(/^\.\//, ""),
         counterpart: MARKETPLACE,
-        nextAction:
-          "Add the built plugin source to `.claude-plugin/marketplace.json`, then run `bun run check:plugins`.",
+        nextAction: `Add marketplace source "${source}" to \`${MARKETPLACE}\`, then run \`bun run check:plugins\`.`,
       });
     }
   }
