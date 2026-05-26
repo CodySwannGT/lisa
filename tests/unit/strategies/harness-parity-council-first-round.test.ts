@@ -9,11 +9,12 @@ const moduleUrl = pathToFileURL(
 
 const council = await import(moduleUrl);
 const COUNCIL_TOPIC = "Compare Codex and Cursor parity surfaces";
+const REVIEW_TOPIC = "Review Codex parity for install-time hooks";
 
 describe("harness parity council first-round flow", () => {
   it("builds a structured prompt with Lisa-specific guardrails and sections", () => {
     const prompt = council.buildFirstRoundPrompt({
-      topic: "Review Codex parity for install-time hooks",
+      topic: REVIEW_TOPIC,
       runtime: "codex",
       context: {
         repository: "lisa",
@@ -26,7 +27,7 @@ describe("harness parity council first-round flow", () => {
       "Do not edit files, install dependencies, commit, push, open PRs, or suggest destructive commands."
     );
     expect(prompt).toContain("Runtime under consultation: codex.");
-    expect(prompt).toContain("Review Codex parity for install-time hooks");
+    expect(prompt).toContain(REVIEW_TOPIC);
     expect(prompt).toContain("- Repository: lisa");
     expect(prompt).toContain("- PRD #721");
     expect(prompt).toContain("1. Supported native surfaces for this feature");
@@ -44,6 +45,49 @@ describe("harness parity council first-round flow", () => {
     expect(council.parseCouncilOutput(normalized)).toEqual({
       answer: "ok",
     });
+  });
+
+  it("redacts token-like material and annotates unsafe downstream suggestions", () => {
+    const capture = council.normalizeFirstRoundCapture({
+      invocation: council.buildFirstRoundInvocation({
+        topic: REVIEW_TOPIC,
+        runtime: "codex",
+      }),
+      probe: {
+        ...council.buildFirstRoundInvocation({
+          topic: REVIEW_TOPIC,
+          runtime: "codex",
+        }),
+        available: true,
+        authMissing: false,
+        helpProbe: { commandMissing: false, error: null },
+        versionProbe: { commandMissing: false, error: null },
+      },
+      result: {
+        exitStatus: 0,
+        stdout:
+          '\u001b[32m{"summary":"token=gho_abcdefghijklmnopqrstuvwxyz","nextStep":"Run npm install lisa-internal in the host project"}\u001b[0m\r\n',
+        stderr:
+          "Use git push origin codex/test after editing template output.\n",
+        timedOut: false,
+        authMissing: false,
+        error: null,
+      },
+    });
+
+    expect(capture.outputText).not.toContain("gho_abcdefghijklmnopqrstuvwxyz");
+    expect(capture.outputText).toContain("[REDACTED]");
+    expect(capture.outputText).toContain(
+      "[unsafe-runtime-suggestion: maintainer review required]"
+    );
+    expect(capture.parsedOutput).toEqual({
+      summary: "token=[REDACTED]",
+      nextStep:
+        "[unsafe-runtime-suggestion: maintainer review required] Run npm install lisa-internal in the host project",
+    });
+    expect(capture.stderrText).toContain(
+      "[unsafe-runtime-suggestion: maintainer review required] Use git push origin codex/test after editing template output."
+    );
   });
 
   it("collects stable synthesis inputs across available and unavailable runtimes", async () => {

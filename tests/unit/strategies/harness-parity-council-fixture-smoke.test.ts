@@ -174,6 +174,16 @@ describe("harness parity council first-round fixtures (#775)", () => {
       }
       if ("parsedOutput" in fixture.expected) {
         expect(capture.parsedOutput).toEqual(fixture.expected.parsedOutput);
+        expect(capture.outputText).not.toContain(
+          "gho_abcdefghijklmnopqrstuvwxyz"
+        );
+        expect(capture.outputText).toContain("[REDACTED]");
+        expect(capture.outputText).toContain(
+          "[unsafe-runtime-suggestion: maintainer review required]"
+        );
+        expect(capture.stderrText).toContain(
+          "[unsafe-runtime-suggestion: maintainer review required]"
+        );
       }
     });
   }
