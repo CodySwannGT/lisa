@@ -9,6 +9,7 @@
  */
 
 import { classifyQueueHealth } from "./queue-health-classification.mjs";
+import { resolveBuildLifecycleRoles } from "./queue-contract-resolution.mjs";
 
 export const BUILD_LIFECYCLE_ORDER = [
   "ready",
@@ -60,7 +61,7 @@ const HIGHLIGHT_COPY = {
  * }} input
  */
 export function readGithubBuildQueueSnapshot(input = {}) {
-  const roles = input.roles ?? {};
+  const roles = input.roles ?? resolveBuildLifecycleRoles({}, "github").roles;
   const normalizedItems = (input.issues ?? [])
     .map(issue => normalizeGithubBuildIssue(issue, roles))
     .filter(Boolean);
