@@ -189,6 +189,7 @@ describe("doctor report rendering (#750)", () => {
     });
 
     expect(report.verdict).toBe("READY");
+    expect(report.counts).toEqual({ PASS: 0, WARN: 0, FAIL: 0, SKIP: 1 });
     expect(report.text).toContain("7. Optional wiki delegation");
     expect(report.text).toContain(
       "- SKIP empty-group: no checks registered yet"
