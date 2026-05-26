@@ -1,25 +1,25 @@
 /**
- * Regression tests for the PRD closure rollup phase propagated to the Linear,
+ * Regression tests for the PRD shipped rollup phase propagated to the Linear,
  * Confluence, and Notion PRD-intake skills.
  *
- * Issue #584 (LPC-1.3): mirror #583's GitHub PRD closure rollup (Phase 3f) into
+ * Issue #584 (LPC-1.3): mirror #583's GitHub PRD shipped rollup (Phase 3f) into
  * the OTHER three PRD-intake skills so all four roll a `ticketed` PRD up to
- * `shipped` (and config-gated close/archive) once all generated TOP-LEVEL
+ * `shipped` while leaving PRDs active for verification once all generated TOP-LEVEL
  * children are terminal — partial completion leaves the PRD open + reports the
  * incomplete child set; already-shipped is an idempotent no-op. Each skill cites
  * the `prd-lifecycle-rollup` rule (#579) by slug and swaps in its own vendor
  * surface:
  *   - Linear     → native parent/project relationships; terminal = completed
  *                  workflow state, canceled = terminal-but-dropped; project label
- *                  `$TICKETED` → `$SHIPPED`; close = archive when
- *                  `linear.labels.prd.rollup.closeOnShipped`.
+ *                  `$TICKETED` → `$SHIPPED`; native archive/complete is owned
+ *                  by `/lisa:verify-prd` after verified PASS.
  *   - Confluence → documented `## Tickets` generated-work section (no native
  *                  hierarchy); terminal = entry marked done; re-parent
- *                  `ticketed` → `shipped`; close = archive when
- *                  `confluence.rollup.closeOnShipped`.
+ *                  `ticketed` → `shipped`; native archive is owned by
+ *                  `/lisa:verify-prd` after verified PASS.
  *   - Notion     → documented `## Tickets` generated-work section; terminal =
- *                  entry marked done; status `$TICKETED` → `$SHIPPED`; close =
- *                  archive when `notion.rollup.closeOnShipped`.
+ *                  entry marked done; status `$TICKETED` → `$SHIPPED`; native
+ *                  archive is owned by `/lisa:verify-prd` after verified PASS.
  *
  * Both the source (`plugins/src/base/skills`) and the generated artifact
  * (`plugins/lisa/skills`) are asserted for every skill, so an artifact-only edit
@@ -47,44 +47,39 @@ const LEAF_RULE_SLUG = "leaf-only-lifecycle";
 interface VendorSpec {
   /** Skill directory / slug. */
   readonly slug: string;
-  /** Config key path (regex-escaped) for the `closeOnShipped` flag. */
-  readonly closeOnShippedKey: RegExp;
   /** Vendor-native source the child set is read from. */
   readonly childSource: RegExp;
   /** Vendor terminal-state predicate marker(s). */
   readonly terminalPredicate: readonly RegExp[];
-  /** The config-gated close/archive verb for the vendor. */
-  readonly closeVerb: RegExp;
+  /** How shipped remains available for PRD-level verification. */
+  readonly verificationAvailability: RegExp;
 }
 
 const VENDORS: readonly VendorSpec[] = [
   {
     slug: "linear-prd-intake",
-    closeOnShippedKey: /linear\.labels\.prd\.rollup\.closeOnShipped/,
     childSource: /native parent|parentId|project/i,
     terminalPredicate: [/completed/i, /canceled|cancelled/i, /workflow state/i],
-    closeVerb: /archiv/i,
+    verificationAvailability: /leaves the PRD project \*\*active\*\*/i,
   },
   {
     slug: "confluence-prd-intake",
-    closeOnShippedKey: /confluence\.rollup\.closeOnShipped/,
     childSource: /## Tickets|## Generated Work/,
     terminalPredicate: [/marked \*\*done\*\*|marked done/i, /no native/i],
-    closeVerb: /archiv/i,
+    verificationAvailability: /leaves the page \*\*active\*\*/i,
   },
   {
     slug: "notion-prd-intake",
-    closeOnShippedKey: /notion\.rollup\.closeOnShipped/,
     childSource: /## Tickets|## Generated Work/,
     terminalPredicate: [/marked \*\*done\*\*|marked done/i, /no native/i],
-    closeVerb: /archiv/i,
+    verificationAvailability: /leaves the PRD page \*\*active\*\*/i,
   },
 ];
 
 const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
 
-describe("PRD closure rollup propagated to Linear/Confluence/Notion intake (#584)", () => {
+describe("PRD shipped rollup propagated to Linear/Confluence/Notion intake (#584)", () => {
   describe.each(VENDORS)("$slug", vendor => {
     describe.each(SKILL_ROOTS)(`%s/${vendor.slug}/SKILL.md`, root => {
       const skillPath = path.resolve(root, vendor.slug, "SKILL.md");
@@ -95,8 +90,8 @@ describe("PRD closure rollup propagated to Linear/Confluence/Notion intake (#584
 
       const content = readSkill(root, vendor.slug);
 
-      it("adds a dedicated PRD closure rollup phase (3f)", () => {
-        expect(content).toMatch(/PRD closure rollup/i);
+      it("adds a dedicated PRD shipped rollup phase (3f)", () => {
+        expect(content).toMatch(/PRD shipped rollup/i);
         expect(content).toMatch(/3f/);
       });
 
@@ -125,7 +120,7 @@ describe("PRD closure rollup propagated to Linear/Confluence/Notion intake (#584
         expect(content).toMatch(/terminal-but-dropped|dropped/i);
       });
 
-      it("ships and (config-gated) closes when all required children are terminal", () => {
+      it("ships and leaves the PRD active for verification when all required children are terminal", () => {
         // The single PRD-lifecycle hop performed by rollup.
         expect(content).toMatch(/TICKETED.*SHIPPED|ticketed.*shipped/i);
         expect(content).toMatch(/\$SHIPPED|shipped/i);
@@ -133,10 +128,13 @@ describe("PRD closure rollup propagated to Linear/Confluence/Notion intake (#584
         expect(content).toMatch(
           /all required.*terminal|all.*generated top-level.*terminal/i
         );
-        // Close is gated on the closeOnShipped config (default false).
-        expect(content).toMatch(/closeOnShipped/);
-        expect(content).toMatch(vendor.closeVerb);
-        expect(content).toMatch(/default `false`|default.*false/i);
+        expect(content).toMatch(vendor.verificationAvailability);
+        expect(content).toMatch(
+          /do not archive at the shipped hop|active.*verify-prd/i
+        );
+        expect(content).not.toMatch(
+          /closeOnShipped|read_rollup_flag|VERIFIED_CLOSURE/
+        );
       });
 
       it("leaves the PRD open and reports incomplete children on partial completion", () => {
@@ -159,12 +157,13 @@ describe("PRD closure rollup propagated to Linear/Confluence/Notion intake (#584
         expect(content).toMatch(/child-ref/i);
       });
 
-      it("resolves the closeOnShipped flag with a default + local-overrides-global", () => {
-        expect(content).toMatch(vendor.closeOnShippedKey);
-        expect(content).toMatch(/\.lisa\.config\.local\.json/);
-        expect(content).toMatch(/\.lisa\.config\.json/);
-        // Mirrors the lifecycle resolver helper.
-        expect(content).toMatch(/read_rollup_flag/);
+      it("does not resolve shipped-time closure configuration", () => {
+        expect(content).toMatch(
+          /There is no (close\/)?archive configuration at the shipped hop/
+        );
+        expect(content).not.toMatch(
+          /rollup\..*closure|verified native closure/
+        );
       });
 
       it("delegates terminal semantics to leaf-only-lifecycle for child Epics", () => {

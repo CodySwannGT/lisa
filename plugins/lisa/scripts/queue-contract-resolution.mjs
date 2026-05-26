@@ -218,11 +218,6 @@ export function resolvePrdLifecycleRoles(
           config.github?.labels?.prd,
           DEFAULT_GITHUB_LINEAR_PRD_ROLES
         ),
-        rollup: {
-          closeOnShipped: Boolean(
-            config.github?.labels?.prd?.rollup?.closeOnShipped ?? false
-          ),
-        },
       };
     case "linear":
       return {
@@ -232,11 +227,6 @@ export function resolvePrdLifecycleRoles(
           config.linear?.labels?.prd,
           DEFAULT_GITHUB_LINEAR_PRD_ROLES
         ),
-        rollup: {
-          closeOnShipped: Boolean(
-            config.linear?.labels?.prd?.rollup?.closeOnShipped ?? false
-          ),
-        },
       };
     case "notion":
       return {
@@ -247,11 +237,6 @@ export function resolvePrdLifecycleRoles(
           config.notion?.values,
           DEFAULT_NOTION_PRD_ROLES
         ),
-        rollup: {
-          closeOnShipped: Boolean(
-            config.notion?.rollup?.closeOnShipped ?? false
-          ),
-        },
       };
     case "confluence":
       return {
@@ -261,11 +246,6 @@ export function resolvePrdLifecycleRoles(
           config.confluence?.parents,
           DEFAULT_CONFLUENCE_PARENT_ROLES
         ),
-        rollup: {
-          closeOnShipped: Boolean(
-            config.confluence?.rollup?.closeOnShipped ?? false
-          ),
-        },
       };
     default:
       throw new Error(

@@ -6,7 +6,7 @@
  * and rolls up to `shipped` from that child set, and wire the `prd.rollup.*`
  * config schema into `config-resolution`. This is the foundation leaf of PRD
  * #525; siblings #580–#586 (prd-backlink native linking, generated-work
- * fallback, github/linear/confluence/notion PRD closure rollup, idempotency
+ * fallback, github/linear/confluence/notion PRD shipped rollup, idempotency
  * hardening, vendor matrix) cite the rule added here by slug.
  *
  * The rule must define four coupled things:
@@ -15,8 +15,8 @@
  *   (b) the per-vendor terminal-state predicate (GitHub closed/status:done;
  *       Linear completed/canceled; JIRA Done-category; Confluence/Notion
  *       documented done);
- *   (c) the prd-shipped transition + config-gated close/archive
- *       (`prd.rollup.closeOnShipped`);
+ *   (c) the prd-shipped transition, shipped-open verification queue, and
+ *       mandatory verified native closure;
  *   (d) the idempotency dedupe key (child-ref identity).
  * It must cross-reference `leaf-only-lifecycle` by slug and document the
  * single-environment collapse while staying multi-env capable.
@@ -89,17 +89,15 @@ describe("prd-lifecycle-rollup rule (#579)", () => {
       expect(content).toMatch(/documented.*done|done.*documented/i);
     });
 
-    // (c) prd-shipped transition + config-gated close/archive.
-    it("defines the prd-shipped transition and config-gated close/archive", () => {
+    // (c) prd-shipped transition + verified native closure.
+    it("defines the prd-shipped transition and verified native closure", () => {
       expect(content).toMatch(/prd-shipped|`shipped`/);
       expect(content).toMatch(/ticketed.*shipped|shipped/i);
       expect(content).toMatch(/close\/archive|close\b|archive/i);
-      // Closure is gated on configuration via prd.rollup.closeOnShipped.
-      expect(content).toMatch(/closeOnShipped/);
-      // Never close before all top-level work is terminal.
-      expect(content).toMatch(
-        /[Nn]ever close.*before|before all generated top-level work is terminal/
-      );
+      expect(content).toMatch(/Leave `shipped` open for verification/);
+      expect(content).toMatch(/Verified closes natively/);
+      expect(content).toMatch(/mandatory and idempotent/);
+      expect(content).not.toMatch(/closeOnShipped/);
       // Only advances when ALL required children are terminal.
       expect(content).toMatch(/all.*required.*terminal|all required/i);
     });
@@ -149,8 +147,8 @@ describe("prd-lifecycle-rollup rule (#579)", () => {
   });
 });
 
-// config-resolution must wire the prd.rollup.* schema and reference the rule.
-describe("config-resolution wires prd.rollup (#579)", () => {
+// config-resolution must document shipped rollup without a close-on-shipped flag.
+describe("config-resolution documents PRD rollup (#579)", () => {
   describe.each(["plugins/src/base/rules", "plugins/lisa/rules"] as const)(
     "%s/config-resolution",
     root => {
@@ -160,21 +158,13 @@ describe("config-resolution wires prd.rollup (#579)", () => {
         expect(content).toContain(RULE_SLUG);
       });
 
-      it("documents the prd.rollup.closeOnShipped config key", () => {
-        expect(content).toMatch(/prd\.rollup/);
-        expect(content).toContain("closeOnShipped");
-        // Default is false (set shipped, leave open for a human to close).
-        expect(content).toMatch(/`false`/);
-      });
-
-      it("adds the rollup block to the github and linear prd schema", () => {
-        // The JSON schema blocks for github + linear prd carry the rollup object.
-        const matches = content.match(
-          /"rollup":\s*\{\s*"closeOnShipped":\s*false\s*\}/g
+      it("removes close-on-shipped configuration from the schema", () => {
+        expect(content).toMatch(/PRD rollup behavior/);
+        expect(content).toMatch(
+          /no project-configurable close-on-shipped flag/i
         );
-        expect(matches).not.toBeNull();
-        // github.labels.prd + linear.labels.prd + notion + confluence = 4.
-        expect((matches ?? []).length).toBeGreaterThanOrEqual(2);
+        expect(content).not.toMatch(/closeOnShipped/);
+        expect(content).not.toMatch(/"rollup":/);
       });
     }
   );
