@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.95.0](https://github.com/CodySwannGT/lisa/compare/vv2.94.0...v2.95.0) (2026-05-26)
+
+
+### Features
+
+* **queue-status:** classify queue health ([be8d807](https://github.com/CodySwannGT/lisa/commit/be8d807e0a8a848e3edf36a6e664f8fad27ebbf7))
+
 ## [2.94.0](https://github.com/CodySwannGT/lisa/compare/vv2.93.0...v2.94.0) (2026-05-26)
 
 
