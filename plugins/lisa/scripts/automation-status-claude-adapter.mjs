@@ -177,6 +177,31 @@ export function deriveClaudeObservedCommand(command) {
   return undefined;
 }
 
+/**
+ * Extract the cadence argument from a Claude `/schedule` command string.
+ * Supports quoted (double-quote, single-quote, backtick) and unquoted cadence
+ * values, returning the first matched capture group via {@link firstString}.
+ *
+ * @param {string | undefined} command - The command string to parse
+ * @returns {string | undefined} The extracted cadence, or undefined if not found
+ */
+function extractClaudeScheduleCadence(command) {
+  if (!command) {
+    return undefined;
+  }
+
+  const scheduleLine = command
+    .trim()
+    .match(/^\/schedule\s+(?:"([^"]+)"|'([^']+)'|`([^`]+)`|(\S+))/m);
+
+  return firstString(
+    scheduleLine?.[1],
+    scheduleLine?.[2],
+    scheduleLine?.[3],
+    scheduleLine?.[4]
+  );
+}
+
 function createObservedStatusItem(input) {
   const expected = input.expected;
   const comparison = input.comparison;
@@ -407,7 +432,7 @@ function normalizeClaudeScheduleTextEntry(block) {
 
   const cadenceSource =
     extractField(block, /^(?:Cadence|Schedule):\s*(.+)$/im) ??
-    block.match(/^\/schedule\s+(?:"[^"]+"|'[^']+'|`[^`]+`|\S+)/m)?.[0];
+    extractClaudeScheduleCadence(block);
   const commandSource =
     extractField(block, /^(?:Command|Prompt):\s*(.+)$/im) ??
     extractField(
