@@ -250,6 +250,20 @@ describe("harness parity council first-round flow", () => {
     expect(dryRun.secondRound?.sanitizedSummary).toContain("TODO");
   });
 
+  it("rejects value-taking flags when the next token is another flag", () => {
+    expect(() =>
+      council.parseCouncilCliArgs([COUNCIL_TOPIC, "--runtime", "--dry-run"])
+    ).toThrow("--runtime flag requires a runtime name");
+
+    expect(() =>
+      council.parseCouncilCliArgs([COUNCIL_TOPIC, "--write-mode", "--dry-run"])
+    ).toThrow("--write-mode flag requires a mode value");
+
+    expect(() =>
+      council.parseCouncilCliArgs([COUNCIL_TOPIC, "--summary", "--dry-run"])
+    ).toThrow("--summary flag requires sanitized summary text");
+  });
+
   it("builds second-round critique prompts from Claude's sanitized summary", () => {
     const critique = council.buildSecondRoundSynthesisInput({
       topic: COUNCIL_TOPIC,
