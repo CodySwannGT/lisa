@@ -179,10 +179,17 @@ export function deriveCodexObservedCommand(prompt) {
     /Use the `\$([a-z0-9:-]+)` skill with arguments `([^`]+)`/i
   );
   if (aliasSkillMatch?.[1] && aliasSkillMatch[2]) {
-    return `/${aliasSkillMatch[1]} ${aliasSkillMatch[2]}`.trim();
+    return `${canonicalizeCodexSkillAlias(aliasSkillMatch[1])} ${aliasSkillMatch[2]}`.trim();
   }
 
   return undefined;
+}
+
+function canonicalizeCodexSkillAlias(alias) {
+  if (alias.startsWith("lisa-")) {
+    return `/lisa:${alias.slice("lisa-".length)}`;
+  }
+  return `/${alias}`;
 }
 
 /**
