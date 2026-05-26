@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.100.1](https://github.com/CodySwannGT/lisa/compare/vv2.100.0...v2.100.1) (2026-05-26)
+
+
+### Documentation
+
+* explain intake ownership readiness ([7cc7df8](https://github.com/CodySwannGT/lisa/commit/7cc7df83031ad16f8e48201e7c8c0d5613d6c030))
+
+## [2.100.0](https://github.com/CodySwannGT/lisa/compare/vv2.99.1...v2.100.0) (2026-05-26)
+
+
+### Features
+
+* **intake-explain:** resolve one-item contract routing ([e8c8825](https://github.com/CodySwannGT/lisa/commit/e8c8825c3407ed39c73ba7ca24c575aab94d12d4))
+
+### [2.99.1](https://github.com/CodySwannGT/lisa/compare/vv2.99.0...v2.99.1) (2026-05-26)
+
+
+### Documentation
+
+* harden intake-explain operator contract ([0909b4c](https://github.com/CodySwannGT/lisa/commit/0909b4cac091046f36902935fb050f6faa229c51))
+
+## [2.99.0](https://github.com/CodySwannGT/lisa/compare/vv2.98.1...v2.99.0) (2026-05-26)
+
+
+### Features
+
+* add intake-explain scaffold ([54098a3](https://github.com/CodySwannGT/lisa/commit/54098a3ed91cb95d6ed48735610153feff7232ca))
+
 ### [2.98.1](https://github.com/CodySwannGT/lisa/compare/vv2.98.0...v2.98.1) (2026-05-26)
 
 
