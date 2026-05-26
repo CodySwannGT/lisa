@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.99.1](https://github.com/CodySwannGT/lisa/compare/vv2.99.0...v2.99.1) (2026-05-26)
+
+
+### Documentation
+
+* harden intake-explain operator contract ([0909b4c](https://github.com/CodySwannGT/lisa/commit/0909b4cac091046f36902935fb050f6faa229c51))
+
 ## [2.99.0](https://github.com/CodySwannGT/lisa/compare/vv2.98.1...v2.99.0) (2026-05-26)
 
 
