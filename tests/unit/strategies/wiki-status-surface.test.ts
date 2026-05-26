@@ -10,7 +10,9 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const PLUGIN_ROOTS = ["plugins/src/wiki", "plugins/lisa-wiki"] as const;
+const SOURCE_PLUGIN_ROOT = "plugins/src/wiki";
+const GENERATED_PLUGIN_ROOT = "plugins/lisa-wiki";
+const PLUGIN_ROOTS = [SOURCE_PLUGIN_ROOT, GENERATED_PLUGIN_ROOT] as const;
 const COMMAND_REL = "commands/status.md";
 const SKILL_REL = "skills/lisa-wiki-status/SKILL.md";
 const SCRIPT_REL = "scripts/wiki-status.mjs";
@@ -62,5 +64,19 @@ describe("wiki status command and skill surfaces (#929)", () => {
       expect(skill).toMatch(/lisa-wiki-lint/);
       expect(skill).toMatch(/Do not conflate freshness/i);
     });
+  });
+});
+
+describe("wiki status source/generated parity (#931)", () => {
+  it("keeps the distributed status command in lockstep with the source command", () => {
+    expect(read(GENERATED_PLUGIN_ROOT, COMMAND_REL)).toBe(
+      read(SOURCE_PLUGIN_ROOT, COMMAND_REL)
+    );
+  });
+
+  it("keeps the distributed status skill in lockstep with the source skill", () => {
+    expect(read(GENERATED_PLUGIN_ROOT, SKILL_REL)).toBe(
+      read(SOURCE_PLUGIN_ROOT, SKILL_REL)
+    );
   });
 });
