@@ -26,6 +26,26 @@ Inspect exactly one repo-scoped item reference:
 
 The skill must determine whether the item belongs to the PRD lifecycle or the build lifecycle, then explain the item's status using the **same contract** Lisa already uses for `/lisa:intake` and `/lisa:repair-intake`. Do **not** invent a second source of truth for queue detection, lifecycle role naming, repo scoping, or repair eligibility.
 
+## Operator usage
+
+Typical entrypoints:
+
+```text
+/lisa:intake-explain https://github.com/acme/repo/issues/123
+/lisa:intake-explain owner/repo#123
+/lisa:intake-explain ENG-123
+/lisa:intake-explain https://linear.app/acme/issue/ENG-123/example
+```
+
+Use this command when an operator needs one deterministic answer to questions like:
+
+- "Would Lisa intake this item right now, or skip it?"
+- "Is this state still product-owned, or has it crossed into a Lisa-owned lane?"
+- "Is repair eligible yet, or am I still waiting on staleness or backoff?"
+- "Is the real next step `/lisa:intake`, `/lisa:repair-intake`, blocker cleanup, decomposition, or manual product clarification?"
+
+Keep the diagnosis terminal-first and human-readable: observable item facts first, then the smallest useful next command or manual action.
+
 ## Contract reuse
 
 Resolve item family, queue source/tracker, and lifecycle role names from `.lisa.config.json` plus the same defaults the active intake and repair flows already consume.
@@ -53,6 +73,28 @@ Render a stable terminal-first diagnosis for one item:
 
 Keep observable item facts separate from the recommended next step so operators can tell what Lisa knows versus what Lisa suggests.
 
+## Verdicts and next actions
+
+Use verdicts as stable operator language, not as an excuse to dump raw tracker state:
+
+- `ELIGIBLE_FOR_INTAKE`: the item is in the correct actionable lane and Lisa could pick it up with `/lisa:intake`.
+- `ELIGIBLE_FOR_REPAIR`: the item is Lisa-owned, stale or stuck enough to qualify for `/lisa:repair-intake`, and repair suppression rules are not currently preventing action.
+- `WAITING_ON_STALENESS`: the item is Lisa-owned but too fresh to repair yet; explain which activity signal or freshness window is still protecting it from a repair loop.
+- `HELD_BY_BLOCKERS`: the item is otherwise actionable, but explicit blockers or dependency holds mean Lisa would wait rather than claim it.
+- `NON_LEAF_CONTAINER`: the item is structurally a container, childless Epic/Story/Spike, or otherwise not directly buildable; explain that direct build pickup is disallowed until decomposition or reclassification happens.
+- `PRODUCT_OWNED_STATE`: the item is currently in a product-owned role or pre-intake lane, so Lisa should not mutate it yet.
+- `MISCONFIGURED`: Lisa could not resolve the item's queue, lifecycle namespace, repo scope, or another required contract signal confidently enough to explain actionability.
+
+Each verdict must carry a concrete next action:
+
+- Prefer `/lisa:intake` for `ELIGIBLE_FOR_INTAKE`.
+- Prefer `/lisa:repair-intake` for `ELIGIBLE_FOR_REPAIR`.
+- Prefer "wait and re-check later" for `WAITING_ON_STALENESS`.
+- Prefer blocker resolution for `HELD_BY_BLOCKERS`.
+- Prefer decomposition or type correction for `NON_LEAF_CONTAINER`.
+- Prefer manual product clarification or the upstream product workflow for `PRODUCT_OWNED_STATE`.
+- Prefer fixing config, lifecycle adoption, or repo scoping for `MISCONFIGURED`.
+
 ## Gate and ownership expectations
 
 The explanation must stay aligned with existing Lisa rules:
@@ -62,6 +104,26 @@ The explanation must stay aligned with existing Lisa rules:
 - If a PRD is in a product-owned role such as `draft`, `shipped`, or `verified`, explain why intake or repair will not mutate it.
 - If a claimed, in-review, or blocked item is not yet repairable, explain the relevant staleness or backoff condition at a human-readable level.
 - If the repo or lifecycle namespace is unresolved, report `MISCONFIGURED` instead of pretending the item is idle or actionable.
+
+## Rule explanation expectations
+
+The `Why:` line should name the decisive Lisa contract in plain English rather than only echoing a raw status label. Good explanations usually mention one of:
+
+- the lifecycle role boundary (`product-owned` versus `Lisa-owned`)
+- the leaf-only gate
+- the repo-scope gate
+- an active blocker or dependency hold
+- staleness or repair-backoff suppression
+- an unresolved config or lifecycle-adoption contract
+
+The `Next action:` line should stay small and specific. Prefer one actionable follow-up over a menu:
+
+- `/lisa:intake <queue>` when the item is ready for normal pickup
+- `/lisa:repair-intake <queue>` when Lisa-owned stuck work is now repairable
+- "resolve blocker `#123`" when a dependency hold is decisive
+- "decompose into leaf tickets" when the issue is a non-leaf container
+- "manual product clarification" when Lisa is not the current owner
+- "fix `.lisa.config.json` or lifecycle labels" when the problem is misconfiguration
 
 ## Output shape
 
@@ -77,6 +139,18 @@ Next action: <smallest useful follow-up>
 ```
 
 When helpful, include one short `Signals:` or `Relevant refs:` line for the exact blockers, staleness timestamps, parent/child classification, or repair markers that justify the verdict.
+
+One acceptable rendering pattern is:
+
+```text
+Item: CodySwannGT/lisa#123
+Lifecycle: BUILD
+Role: status:blocked (Lisa-owned)
+Verdict: ELIGIBLE_FOR_REPAIR
+Why: The issue is already in a Lisa-owned blocked lane, its last meaningful activity is stale, and no repair-backoff marker is suppressing a new repair pass.
+Next action: /lisa:repair-intake github
+Signals: blocker cleared; last activity 6d ago; repo:lisa
+```
 
 ## Rules
 
