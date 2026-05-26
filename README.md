@@ -82,6 +82,14 @@ Most users only ever call `/lisa:research`, `/lisa:plan`, and `/lisa:implement`.
 
 PRD intake records generated work with native hierarchy where the source and tracker support it, and with a durable generated-work fallback everywhere else. The vendor matrix for GitHub, Linear, JIRA/Atlassian, Confluence, Notion, and cross-vendor queues lives in `plugins/src/base/rules/prd-lifecycle-rollup.md`.
 
+### Optional GitHub Project Coordination
+
+GitHub Projects are an optional coordination layer for GitHub-backed Lisa flows, not the lifecycle source of truth. Real GitHub Issues and Pull Requests still carry the durable labels, comments, hierarchy, dependencies, and review state; Project membership just gives you a cross-repo view over that work.
+
+Use `/lisa:setup-github` to scaffold `github.projects.v2` in `.lisa.config.json`, then `/lisa:doctor` to verify namespace and access before operators rely on it. In v1, `github.projects.v2.owner.slug` must match `github.org`. `required: false` is the default best-effort mode: repository-local issue and PR writes still succeed if Project membership cannot be added. `required: true` upgrades the same failure into a blocking readiness error.
+
+This does not relax Lisa's single-repo leaf rule. PRDs, Epics, Stories, and Spikes may coordinate work across repositories, but every build-ready Task, Bug, Sub-task, or Improvement must still target exactly one repository, carry exactly one `repo:<name>` marker, and be claimed only by that repository's intake lane.
+
 ### Maintenance and Operations
 
 | Command | What it does |
