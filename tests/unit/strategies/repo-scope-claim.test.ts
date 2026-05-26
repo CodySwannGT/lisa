@@ -26,6 +26,8 @@ const GATE = "3a.0 Repo-scope gate";
 const LEAF_GATE = "#### 3a. Leaf-only claim gate";
 /** The rule the gate cites as its single source of truth. */
 const RULE_SLUG = "repo-scope-split";
+/** GitHub build-intake skill slug used by the GitHub-only container assertions. */
+const GITHUB_BUILD_INTAKE = "github-build-intake";
 
 const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
@@ -33,7 +35,7 @@ const readSkill = (root: string, slug: string): string =>
 describe("claim-time repo scoping (Phase 3a.0)", () => {
   const SCANNERS = [
     "jira-build-intake",
-    "github-build-intake",
+    GITHUB_BUILD_INTAKE,
     "linear-build-intake",
   ] as const;
 
@@ -82,6 +84,21 @@ describe("claim-time repo scoping (Phase 3a.0)", () => {
       });
     });
   });
+
+  describe.each(ROOTS)("%s", root => {
+    const content = readSkill(root, GITHUB_BUILD_INTAKE);
+    const section = (): string => {
+      const c = readSkill(root, GITHUB_BUILD_INTAKE);
+      return c.slice(c.indexOf(GATE), c.indexOf(LEAF_GATE));
+    };
+
+    it("keeps multi-repo containers visible without splitting or claiming them in GitHub intake", () => {
+      expect(content).toContain("github-build-intake");
+      expect(section()).toMatch(/multiple `repo:<name>` labels/i);
+      expect(section()).toMatch(/Do not split or claim it here/i);
+      expect(section()).toMatch(/leaf-only gate/i);
+    });
+  });
 });
 
 describe("repo-scope-split rule documents claim-time scoping", () => {
@@ -99,6 +116,12 @@ describe("repo-scope-split rule documents claim-time scoping", () => {
     expect(content).toMatch(/stamp/i);
     expect(content).toMatch(/build_ready: true/);
     expect(content).toMatch(/repo:<name>/);
+  });
+
+  it("documents that containers may keep multiple repo labels for visibility", () => {
+    expect(content).toMatch(/containers may span repos/i);
+    expect(content).toMatch(/multiple `repo:<name>` labels for visibility/i);
+    expect(content).toMatch(/never claimed\/built directly/i);
   });
 });
 
