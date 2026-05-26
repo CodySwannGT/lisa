@@ -1,3 +1,5 @@
+import { sumNullableDecimals } from "./decimal-sum.js";
+
 export const LISA_USAGE_HEADING = "## Lisa Usage";
 
 /**
@@ -239,7 +241,7 @@ export function createLisaUsageRollup(
 ): LisaUsageRollup {
   const directEntryIds = entries.map(entry => entry.entryId);
   const directTokens = sumNullable(entries.map(entry => entry.totalTokens));
-  const directCost = sumNullable(entries.map(entry => entry.cost));
+  const directCost = sumNullableDecimals(entries.map(entry => entry.cost));
   const childEntryIds = previousRollup?.childEntryIds ?? [];
   const childRefs = previousRollup?.childRefs ?? [];
   const childTokens = previousRollup ? previousRollup.childTokens : null;
@@ -251,7 +253,7 @@ export function createLisaUsageRollup(
   const totalCost =
     directCost === null && childCost === null
       ? null
-      : (directCost ?? 0) + (childCost ?? 0);
+      : sumNullableDecimals([directCost, childCost]);
   const currency =
     entries.find(entry => entry.currency !== null)?.currency ??
     previousRollup?.currency ??
