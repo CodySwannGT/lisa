@@ -555,10 +555,11 @@ export function normalizeFirstRoundCapture({ invocation, probe, result = {} }) {
   const timedOut = result.timedOut === true;
   const exitStatus =
     typeof result.exitStatus === "number" ? result.exitStatus : null;
+  const hasExecutionError = result.error != null;
 
   const status = timedOut
     ? "timed_out"
-    : (exitStatus ?? 0) !== 0
+    : hasExecutionError || (exitStatus ?? 0) !== 0
       ? "failed"
       : !combinedText
         ? "empty"
