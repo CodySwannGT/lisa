@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.102.0](https://github.com/CodySwannGT/lisa/compare/vv2.101.1...v2.102.0) (2026-05-26)
+
+
+### Features
+
+* **base:** add /lisa:wiki:install bootstrap for the lisa-wiki plugin ([915d7b2](https://github.com/CodySwannGT/lisa/commit/915d7b20639d8e83714a1aa3301d639438935c79))
+
+
+### Bug Fixes
+
+* **config-resolution:** dedupe conflicting `usage` JSON example and stray docs ([90ea817](https://github.com/CodySwannGT/lisa/commit/90ea817e3c86a14920d91ddddf9be603364e922b)), closes [#2](https://github.com/CodySwannGT/lisa/issues/2) [#4](https://github.com/CodySwannGT/lisa/issues/4)
+* **council:** pass cwd through buildCouncilDryRunPlan so worktree tests stay deterministic ([e0b8c3a](https://github.com/CodySwannGT/lisa/commit/e0b8c3a75c30df35a0e275cd165f7402ba37a2f7))
+* **trampoline:** opt out of postinstall reconciliation under vitest/jest ([0ba447e](https://github.com/CodySwannGT/lisa/commit/0ba447ebf6781a02eb53d33c57b188baf4b485d2))
+
 ### [2.101.1](https://github.com/CodySwannGT/lisa/compare/vv2.101.0...v2.101.1) (2026-05-26)
 
 
