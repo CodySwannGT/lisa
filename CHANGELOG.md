@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.98.0](https://github.com/CodySwannGT/lisa/compare/vv2.97.1...v2.98.0) (2026-05-26)
+
+
+### Features
+
+* **repair-intake:** batch close out stuck work ([62439d5](https://github.com/CodySwannGT/lisa/commit/62439d5128ab2062cd6e7e59bad57492e81baa60))
+
 ### [2.97.1](https://github.com/CodySwannGT/lisa/compare/vv2.97.0...v2.97.1) (2026-05-26)
 
 
