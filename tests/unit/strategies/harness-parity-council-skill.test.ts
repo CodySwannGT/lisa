@@ -31,6 +31,22 @@ describe("harness-parity-council internal skill contract", () => {
     expect(skill).toContain("first-round.mjs");
   });
 
+  it("includes maintainer smoke checks for internal-only council validation", () => {
+    expect(skill).toContain("## Maintainer Smoke Checks");
+    expect(skill).toContain(
+      "node .agents/skills/harness-parity-council/runtime-adapters.mjs codex cursor"
+    );
+    expect(skill).toContain(
+      'node .agents/skills/harness-parity-council/first-round.mjs "Codex parity for install-time hooks"'
+    );
+    expect(skill).toContain(
+      "bun x vitest run tests/unit/strategies/harness-parity-council-*.test.ts"
+    );
+    expect(skill).toMatch(
+      /successful, missing, failing, and hanging runtime fixtures/i
+    );
+  });
+
   it("locks the default mode to read-only advisory behavior", () => {
     expect(skill).toMatch(/Default to read-only advisory execution/i);
     expect(skill).toMatch(/Do not let external CLIs edit files/i);
