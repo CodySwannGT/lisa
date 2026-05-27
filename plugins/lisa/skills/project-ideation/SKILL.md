@@ -20,7 +20,8 @@ cannot verify yourself is noise — demote it honestly.
 - **`prd_ready=true|false`** (default **false**) — the PRD-lifecycle state for the PRDs this run
   creates. `false` → created in the source's **draft** state for human review. `true` → created
   **prd-ready** so the PRD side of `lisa:intake` auto-claims them. Passed straight through to
-  `lisa:research` (which maps it to `lisa:prd-source-write`'s `initial_role`).
+  `lisa:research` (which maps it to `lisa:prd-source-write`'s `initial_role`) only after the PRD queue
+  pressure gate allows auto-ready writes.
 - **`max_prds=<n>|all`** (default **1**) — how many build-ready ideas become PRDs this run. Default
   creates **one** PRD (the single top-ranked idea), because `lisa:research` is a heavy full flow.
   `max_prds=3` creates the top three; `max_prds=all` creates one per build-ready idea. Discovery
@@ -159,9 +160,15 @@ the same PRD reader contract used by `/lisa:queue-status` and evaluate it with
 the same way `lisa:intake` resolves the PRD side, and pass the matching queue argument in the
 blocked outcome (for example, `github intake_mode=prd`).
 
+Queue pressure is any unresolved PRD lifecycle work that would make another auto-ready PRD compete
+with existing intake work. Treat at least these roles as pressure when the helper reports them:
+`prd-ready`, `prd-in-review`, `prd-blocked`, unresolved `prd-ticketed`, and source-reader failures or
+misconfiguration snapshots. `prd-shipped` / `prd-verified` terminal history is not pressure unless the
+reader helper explicitly reports it as unresolved.
+
 If the helper returns `allowed: false`, stop before any `lisa:research`, `lisa:prd-source-write`, or
-vendor PRD writer invocation. Emit **PRDs Created** as a blocked outcome, not as an empty success.
-The blocked outcome must include:
+vendor PRD writer invocation. Emit **PRDs Created** as a blocked outcome, not as an empty success or a
+silent idle run. The blocked outcome must include:
 
 - `source` and `tracker` from `.lisa.config.json`;
 - the decisive PRD lifecycle `role`;
@@ -169,6 +176,21 @@ The blocked outcome must include:
 - the smallest next action, preferring the helper's `nextStep` and otherwise using
   `/lisa:intake <PRD queue>`;
 - a clear statement that no research or PRD source write was invoked.
+
+Use this output shape so recurring automations can surface a useful next step without digging through
+debug logs:
+
+```text
+## PRDs Created
+
+Blocked: PRD queue pressure prevents auto-ready creation.
+- source: <source>
+- tracker: <tracker>
+- role: <decisive role>
+- item: <ref or "unavailable"> <url when available>
+- next action: <helper nextStep or /lisa:intake <PRD queue>>
+- write invoked: no
+```
 
 If the helper returns `allowed: true`, continue to Step 6 normally and keep the existing draft/ready
 creation behavior unchanged.
