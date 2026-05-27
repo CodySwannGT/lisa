@@ -20,20 +20,26 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-27-133229` from `origin/main`
-- HEAD at 2026-05-27 incremental ingest: `c536c7a196ff811ce92403acd90493baad86ebd0`
-- Current package version: `2.106.8`
-- Total commits on HEAD: 2397
-- Latest merged PR captured in the incremental git snapshot: `#997`
-- New commits since the previous incremental git cursor: `6`
-- Project-scoped memory files captured: `21`
+- Ingest branch: `wiki/ingest-2026-05-27-173325` from `origin/main`
+- HEAD at 2026-05-27 incremental ingest: `9e52f0d12bc01a85754f30b5ec70c97e6204bfab`
+- Current package version: `2.113.0`
+- Total commits on HEAD: 2441
+- Latest merged PR captured in the incremental git snapshot: `#1017`
+- New commits since the previous incremental git cursor: `44`
+- Project-scoped memory files captured: `21` from the last successful memory ingest; this run skipped memory because the connector could not prove the available memory directory matched this worktree path.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#996`.
-- Release automation advanced the monorepo to `2.106.8`.
-- Codex automation setup guidance now requires durable, synced project automation checkouts instead of transient or broken scratch worktrees.
-- Lisa project-scoped Claude memory added the Codex HTTP MCP plugin-shape note while continuing to capture operational guidance for Codex automation, Lisa merge method, CI verification, and project-specific workflow expectations.
+- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#999`.
+- Release automation advanced the monorepo to `2.113.0`.
+- Lisa added Expo-specific skills and an Expo MCP server to the shipped plugin surface.
+- Wiki query is now the primary rule-backed way for agents to answer project questions from durable wiki knowledge.
+- Exploratory QA split into a human-experience pass and an e2e-coverage-gaps pass so product-facing findings and automation backlog gaps stay distinct.
+- Repair intake now uses a two-hour stuck threshold and records PR/deploy blocker diagnosis for stale work.
+- Project ideation automation now records durable run ledgers, including PRD and thread ideation metadata plus an idempotency harness.
+- Nested team orchestration now adds specialists instead of collapsing nested flows to a single agent.
+- TypeScript template rules block error-suppression directives on edit across Claude and Codex surfaces.
+- Postinstall local installs re-enabled crash-safe template apply behavior.
 
 ## Workspace Packages
 
