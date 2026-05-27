@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.109.0](https://github.com/CodySwannGT/lisa/compare/vv2.108.0...v2.109.0) (2026-05-27)
+
+
+### Features
+
+* **project-ideation:** record automation memory contract ([e8c7626](https://github.com/CodySwannGT/lisa/commit/e8c7626eb77ee52b85140c64803be254cb9cd510))
+
 ## [2.108.0](https://github.com/CodySwannGT/lisa/compare/vv2.107.2...v2.108.0) (2026-05-27)
 
 
