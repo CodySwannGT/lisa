@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.112.0](https://github.com/CodySwannGT/lisa/compare/vv2.111.0...v2.112.0) (2026-05-27)
+
+
+### Features
+
+* **expo:** adopt official Expo skills + Expo MCP server ([2691cad](https://github.com/CodySwannGT/lisa/commit/2691cad709e0c7fd1347ca7123d9c788dce54883))
+
 ## [2.111.0](https://github.com/CodySwannGT/lisa/compare/vv2.110.1...v2.111.0) (2026-05-27)
 
 
