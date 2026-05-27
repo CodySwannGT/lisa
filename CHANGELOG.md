@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.110.1](https://github.com/CodySwannGT/lisa/compare/vv2.110.0...v2.110.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* thread ideation ledger payload ([13f66f3](https://github.com/CodySwannGT/lisa/commit/13f66f37094a5d5196770db629a44e068c917d6d))
+
 ## [2.110.0](https://github.com/CodySwannGT/lisa/compare/vv2.109.0...v2.110.0) (2026-05-27)
 
 
