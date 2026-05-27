@@ -27,6 +27,77 @@ const NEGATED_FAILURE_PATTERN =
 const execFileAsync = promisify(execFile);
 
 /**
+ * Git location env vars that, when inherited, override the `-C <dir>` flag and
+ * cwd. When this adapter runs inside a Git hook (e.g. pre-push) these are
+ * exported by Git, so a `git -C <cwd> rev-parse` would answer about the hook's
+ * repository instead of the inspected automation cwd — misreporting every
+ * healthy automation as FAILING. They must be scrubbed so `-C`/cwd governs.
+ */
+const GIT_LOCATION_ENV_VARS = [
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_INDEX_FILE",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+  "GIT_COMMON_DIR",
+  "GIT_NAMESPACE",
+  "GIT_PREFIX",
+];
+
+/**
+ * Process-spawn failures that are transient under heavy fork load (the OS could
+ * not start the child, not git reporting a result). Retrying these avoids
+ * misclassifying a healthy cwd as a `git_error` when the machine is saturated.
+ */
+const TRANSIENT_SPAWN_ERROR_CODES = new Set([
+  "EAGAIN",
+  "ENOMEM",
+  "EMFILE",
+  "ENFILE",
+  "ETXTBSY",
+]);
+
+/**
+ * Build a git-safe environment: the ambient process env minus the location
+ * overrides so a `-C <dir>` invocation targets the intended directory.
+ *
+ * @returns {NodeJS.ProcessEnv}
+ */
+function gitEnvWithoutLocationOverrides() {
+  const env = { ...process.env };
+  for (const key of GIT_LOCATION_ENV_VARS) {
+    delete env[key];
+  }
+  return env;
+}
+
+/**
+ * Run `git` against an explicit directory, immune to inherited Git location env
+ * vars, with a bounded retry on transient process-spawn failures. A git process
+ * that actually ran — success or non-zero exit — is surfaced unchanged on the
+ * first attempt; only failures to launch the child at all are retried.
+ *
+ * @param {readonly string[]} args git arguments
+ * @param {import("node:child_process").ExecFileOptions} [options]
+ * @param {number} [attempts] maximum attempts (default 4)
+ * @returns {Promise<{ stdout: string, stderr: string }>}
+ */
+async function execGitWithRetry(args, options, attempts = 4) {
+  const mergedOptions = { ...options, env: gitEnvWithoutLocationOverrides() };
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await execFileAsync("git", args, mergedOptions);
+    } catch (error) {
+      const transient = TRANSIENT_SPAWN_ERROR_CODES.has(error?.code);
+      if (!transient || attempt >= attempts) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, 2 ** attempt * 25));
+    }
+  }
+}
+
+/**
  * @typedef {import("./automation-status-expected-fleet.mjs").resolveExpectedAutomationFleet extends (...args: any[]) => infer T ? T : never} ExpectedFleet
  *
  * @typedef {{
@@ -442,8 +513,7 @@ async function inspectAutomationCwd(cwd) {
   }
 
   try {
-    const { stdout } = await execFileAsync(
-      "git",
+    const { stdout } = await execGitWithRetry(
       ["-C", cwd, "rev-parse", "--is-inside-work-tree", "--is-bare-repository"],
       { timeout: 5000 }
     );
