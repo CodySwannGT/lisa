@@ -18,6 +18,7 @@
       "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true"
     },
     "devDependencies": {
+      "@codyswann/lisa": "^2.106.0",
       "eslint-plugin-oxlint": "^1.62.0",
       "oxlint": "^1.62.0",
       "oxlint-tsgolint": "^0.22.1"
@@ -36,6 +37,7 @@
   "defaults": {
     "scripts": {
       "build": "tsc",
+      "postinstall": "[ -n \"$CI\" ] || node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true",
       "test:integration": "vitest run tests/integration --passWithNoTests"
     },
     "engines": {

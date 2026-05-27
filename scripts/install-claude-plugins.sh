@@ -16,13 +16,29 @@ if [ "$PACKAGE_NAME" = "@codyswann/lisa" ]; then exit 0; fi
 
 cd "$PROJECT_ROOT"
 
-# NOTE: Template application is intentionally NOT run during postinstall.
-# Running the full apply here caused child-stack template conflicts in CI:
-# the TypeScript templates would overwrite Expo/CDK-specific configs (tsconfig.json,
-# eslint.config.ts), and if the process failed mid-way, the child stack's templates
-# never restored the correct versions. Template application should only happen via
-# explicit `lisa:update` (npx @codyswann/lisa@latest .) or the project's own
-# postinstall script (defaults.scripts.postinstall in package.lisa.json).
+# Apply Lisa templates non-interactively (init when missing, update when present),
+# EXCEPT in CI. --skip-git-check bypasses the dirty working directory check since
+# package.json and the lockfile are always uncommitted during postinstall.
+#
+# CI skip: matches the established Lisa philosophy (see ensure-lisa-postinstall
+# migration and tests/unit/config/postinstall-ci-guard.test.ts) — in CI the
+# committed tree is the source of truth and the PR diff is the drift detector, so
+# silently re-applying templates during `bun install --frozen-lockfile` would
+# churn package.json/lockfile and mask drift. Local installs self-heal; CI does not.
+#
+# Crash safety (local path): pre-#318 this could leave a half-applied tree — the
+# TypeScript phase wrote tsconfig.json/eslint.config.ts and a child stack
+# (expo/cdk/nestjs) phase was expected to overwrite them; if the package manager
+# killed the lifecycle process between those phases, the child stack was left with
+# the TypeScript versions. The apply now pre-resolves copy-overwrite ownership so
+# each path is written exactly once by its most-specific stack — there is no
+# intermediate clobbered state to be interrupted in. See src/core/lisa.ts
+# loadCopyOverwriteOwnership.
+if [ -z "${CI:-}" ]; then
+  if ! node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
+    echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
+  fi
+fi
 
 # Strip only hook entries that reference deleted .claude/hooks/*.sh scripts
 # (hooks moved to plugin.json; file-path hooks would produce "No such file or directory" errors).
