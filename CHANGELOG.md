@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.115.0](https://github.com/CodySwannGT/lisa/compare/vv2.114.0...v2.115.0) (2026-05-27)
+
+
+### Features
+
+* **queue-status:** add PRD pressure helper ([b8b8987](https://github.com/CodySwannGT/lisa/commit/b8b89878d13ccab8e754655d85453145313ede84))
+
 ## [2.114.0](https://github.com/CodySwannGT/lisa/compare/vv2.113.1...v2.114.0) (2026-05-27)
 
 
