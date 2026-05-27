@@ -318,6 +318,55 @@ describe("Lisa Integration Tests", () => {
       expect(finalConfig).toBe(HARPER_CONFIG);
     });
 
+    it("writes an overlapping copy-overwrite path exactly once (no parent-then-child clobber window)", async () => {
+      // Crash-safety regression for the postinstall half-apply bug (#318):
+      // when a parent (typescript) and child (harper-fabric) stack both ship
+      // the same copy-overwrite path, the apply must NOT write the parent
+      // version and then overwrite it with the child's — that intermediate
+      // write is the window in which a killed lifecycle process left projects
+      // with TypeScript configs clobbering the child stack's. The
+      // copyOverwriteOwnership map makes the most-specific stack the sole
+      // writer, so on a fresh destination the path is "copied" once and never
+      // "overwritten". If ownership regresses, the parent writes first and the
+      // child's write becomes an overwrite — exactly what this asserts against.
+      const SHARED_CONFIG = "shared-stack-config.txt";
+      const TS_CONFIG = "typescript parent\n";
+      const HARPER_CONFIG = "harper child\n";
+
+      await createHarperFabricProject(destDir);
+
+      const tsCopyOverwrite = path.join(lisaDir, "typescript", COPY_OVERWRITE);
+      await fs.ensureDir(tsCopyOverwrite);
+      await fs.writeFile(path.join(tsCopyOverwrite, SHARED_CONFIG), TS_CONFIG);
+
+      const harperCopyOverwrite = path.join(
+        lisaDir,
+        HARPER_FABRIC_TYPE,
+        COPY_OVERWRITE
+      );
+      await fs.ensureDir(harperCopyOverwrite);
+      await fs.writeFile(
+        path.join(harperCopyOverwrite, SHARED_CONFIG),
+        HARPER_CONFIG
+      );
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      // The child version still wins (final-state correctness).
+      const finalConfig = await fs.readFile(
+        path.join(destDir, SHARED_CONFIG),
+        "utf-8"
+      );
+      expect(finalConfig).toBe(HARPER_CONFIG);
+      // Load-bearing crash-safety assertion: nothing was overwritten in place.
+      // The mock lisaDir ships no cross-type copy-overwrite collisions, so on a
+      // fresh destination the only candidate for an overwrite is SHARED_CONFIG.
+      // Zero overwrites proves the typescript source was skipped, not written
+      // first and clobbered.
+      expect(result.counters.overwritten).toBe(0);
+    });
+
     it("registers plugins at project scope when settings.json has enabledPlugins", async () => {
       await createTypeScriptProject(destDir);
 
