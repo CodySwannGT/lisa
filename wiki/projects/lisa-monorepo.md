@@ -20,18 +20,19 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-26-213256` from `origin/main`
-- HEAD at 2026-05-27 incremental ingest: `65043e915a23a992904badaf708fd5a849cd54e5`
-- Current package version: `2.106.5`
-- Total commits on HEAD: 2388
-- Latest merged PR captured in the incremental git snapshot: `#994`
-- New commits since the previous incremental git cursor: `7`
+- Ingest branch: `wiki/ingest-2026-05-27-053204` from `origin/main`
+- HEAD at 2026-05-27 incremental ingest: `73072b8e5b839dede4bf50985232d1d6bddfe9f4`
+- Current package version: `2.106.6`
+- Total commits on HEAD: 2391
+- Latest merged PR captured in the incremental git snapshot: `#995`
+- New commits since the previous incremental git cursor: `3`
+- Project-scoped memory files captured: `20`
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Plugin synchronization now compares generated drift in a scratch workspace, covering marketplace source-drift classification without mutating tracked generated files.
-- The previous wiki ingest PR merged, advancing the wiki cursor into this release window.
-- Release automation continued its rapid cadence, advancing the monorepo from `2.106.3` through `2.106.5` during this incremental window.
+- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#995`.
+- Release automation advanced the monorepo to `2.106.6`.
+- Lisa project-scoped Claude memory is now captured as a sanitized internal source note, including operational guidance for Codex automation, Lisa merge method, CI verification, and project-specific workflow expectations.
 
 ## Workspace Packages
 
@@ -48,6 +49,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-25-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-26-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-27-lisa-monorepo-git.md`
+- `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
 - `wiki/sources/roles/2026-05-26-roles.md`
 - `wiki/sources/roles/2026-05-27-roles.md`
