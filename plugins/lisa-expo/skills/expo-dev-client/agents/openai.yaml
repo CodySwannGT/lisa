@@ -1,0 +1,4 @@
+display_name: "Expo Dev Client"
+short_description: "Build and distribute Expo development clients locally or via TestFlight"
+default_prompt:
+  - "Use $expo-dev-client: Build and distribute Expo development clients locally or via TestFlight."

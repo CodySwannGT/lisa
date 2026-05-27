@@ -1,0 +1,4 @@
+display_name: "Use Dom"
+short_description: "Use Expo DOM components to run web code in a webview on native and as-is on web"
+default_prompt:
+  - "Use $use-dom: Use Expo DOM components to run web code in a webview on native and as-is on web."
