@@ -30,7 +30,10 @@ create them; invoke the runtime's automation tool with the spec below.
 
 - `auto-start-prds` (default **false**) — passed as `prd_ready` to the **exploratory-prds**
   automation. `true` → ideated PRDs are created `prd-ready` (auto-picked-up by PRD intake); `false` →
-  created as drafts for human review.
+  created as drafts for human review. When `true`, `/lisa:project-ideation` still checks the configured
+  PRD queue before writing: existing `prd-ready`, `prd-in-review`, `prd-blocked`, unresolved
+  `prd-ticketed`, or unresolved source-reader pressure can intentionally turn the automation cycle into
+  a blocked/idle outcome instead of creating another ready PRD.
 - `auto-start-tickets` (default **false**) — passed as `ready` to the **exploratory-bugs**
   automation. `true` → filed bug/usability tickets are created build-ready (auto-picked-up by ticket
   intake); `false` → created in the backlog for human triage.
@@ -58,6 +61,12 @@ the rebase, leave queue state unchanged, and report the blocker instead of runni
 
 For a Codex `rrule`: every 60 min → `FREQ=HOURLY;INTERVAL=1`; every 10 min →
 `FREQ=MINUTELY;INTERVAL=10`; once a day → `FREQ=DAILY;INTERVAL=1`.
+
+**Exploratory PRD pressure gate.** `auto-start-prds=true` means "create PRDs in the ready PRD
+lifecycle when the PRD queue has capacity," not "always create a new ready PRD." The
+`exploratory-prds` automation uses the same PRD source queue and pressure roles reported by
+`/lisa:queue-status`; if pressure exists, the cycle should report the blocking role/ref and the
+smallest next action, usually `/lisa:intake <PRD queue>`, without invoking research or writing a PRD.
 
 **Queue resolution.** Resolve the intake/repair queue from `.lisa.config.json` — `source` for the
 PRD queue, `tracker` for the build queue (for the common GitHub case these are `github
