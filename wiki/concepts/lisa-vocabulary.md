@@ -40,6 +40,14 @@ Query-first means project questions should be answered through the maintained Li
 
 An ideation ledger is durable automation run metadata for project, PRD, or thread ideation work. It records enough context to make repeated runs idempotent and auditable.
 
+## PRD Pressure
+
+PRD pressure is the queue condition where project ideation should not mark new PRDs ready automatically because existing ready or in-progress build work already needs attention. Lisa's queue-status helper exposes this pressure signal so ideation can document a PRD without overloading the build queue.
+
+## Digital Staff Roster
+
+A digital staff roster is the wiki-owned set of role pages and runtime subagents that represent domain experts for a project. Lisa wiki setup now seeds the standard roster by default when a project has not declared a custom `config.staff[]`.
+
 ## E2E Coverage Gap
 
 An e2e coverage gap is behavior found during exploratory QA that should be represented by an end-to-end regression test rather than only a human-facing bug report.
