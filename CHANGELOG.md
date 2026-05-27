@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.107.1](https://github.com/CodySwannGT/lisa/compare/vv2.107.0...v2.107.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* **orchestration:** make nested team flows add specialists instead of collapsing to single-agent ([18740ec](https://github.com/CodySwannGT/lisa/commit/18740ec3c8c35256f5d81b63e5633d54c69e9bb0))
+
 ## [2.107.0](https://github.com/CodySwannGT/lisa/compare/vv2.106.9...v2.107.0) (2026-05-27)
 
 
