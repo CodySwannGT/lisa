@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.107.0](https://github.com/CodySwannGT/lisa/compare/vv2.106.9...v2.107.0) (2026-05-27)
+
+
+### Features
+
+* **typescript:** block error-suppression directives on edit ([10b6afd](https://github.com/CodySwannGT/lisa/commit/10b6afd4c4e51818fca76c0937a91f81877065dc))
+
+
+### Bug Fixes
+
+* **automation-status:** isolate codex cwd git check from inherited GIT_DIR ([5354f98](https://github.com/CodySwannGT/lisa/commit/5354f9823ca99029609fc658101ad8f801fcc9fa))
+
 ### [2.106.9](https://github.com/CodySwannGT/lisa/compare/vv2.106.8...v2.106.9) (2026-05-27)
 
 
