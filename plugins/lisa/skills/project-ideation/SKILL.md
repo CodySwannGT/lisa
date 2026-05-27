@@ -25,6 +25,10 @@ cannot verify yourself is noise — demote it honestly.
   creates **one** PRD (the single top-ranked idea), because `lisa:research` is a heavy full flow.
   `max_prds=3` creates the top three; `max_prds=all` creates one per build-ready idea. Discovery
   Spikes and Rejected ideas are never turned into PRDs regardless of `max_prds`.
+- **`fixture=<path>`** (optional, verification-only) — a deterministic host-project fixture used
+  for idempotency verification. When present, read the fixture before ranking and honor its declared
+  single persona, single idea, existing-fit anchor, and expected dedupe marker. Do not use this
+  parameter for normal ideation runs.
 
 ## When to use
 
@@ -232,3 +236,6 @@ Use the markdown examples in `examples/` as shape references for the idea report
   requirements.
 - `unavailable-data-rejection.md` — naming missing private/paid/unavailable sources when demoting.
 - `evidence-card-format.md` — the required evidence fields every Practical Idea card must carry.
+- `idempotency-verification-harness.md` — deterministic fixture and script procedure proving that
+  repeated `prd_ready=true` ideation keeps the open GitHub marker count at one, including the
+  missing-memory rerun variant.
