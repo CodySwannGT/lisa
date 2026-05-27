@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.106.9](https://github.com/CodySwannGT/lisa/compare/vv2.106.8...v2.106.9) (2026-05-27)
+
+
+### Documentation
+
+* **wiki:** ingest durable automation checkout guidance ([b4c74bd](https://github.com/CodySwannGT/lisa/commit/b4c74bd59d7a7408389c040b96621c6ab27bb469))
+
 ### [2.106.8](https://github.com/CodySwannGT/lisa/compare/vv2.106.7...v2.106.8) (2026-05-27)
 
 

@@ -10,13 +10,16 @@ project: lisa-monorepo
 
 # git history — lisa-monorepo (2026-05-27)
 
-- Repo: `/Users/cody/.codex/worktrees/wiki-ingest-2026-05-27-053204`
-- HEAD: `73072b8e5b839dede4bf50985232d1d6bddfe9f4`
-- Total commits on HEAD: 2391
-- New commits since last ingest (`65043e915a23a992904badaf708fd5a849cd54e5`): 3
-- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #995 "docs(wiki): ingest incremental git history"
+- Repo: `/Users/cody/.codex/worktrees/lisa-automation-main`
+- HEAD: `c536c7a196ff811ce92403acd90493baad86ebd0`
+- Total commits on HEAD: 2397
+- New commits since last ingest (`73072b8e5b839dede4bf50985232d1d6bddfe9f4`): 6
+- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #997 "Fix durable synced Lisa automation checkouts"
 
 ## New commits
-- 73072b8e · 2026-05-27 · chore(release): 2.106.6 [skip ci]
-- ac893822 · 2026-05-26 · Merge pull request #995 from CodySwannGT/wiki/ingest-2026-05-26-213256
-- 0d7f4e48 · 2026-05-26 · docs(wiki): ingest incremental git history
+- c536c7a1 · 2026-05-27 · chore(release): 2.106.8 [skip ci]
+- f2c99cc8 · 2026-05-27 · Merge pull request #997 from CodySwannGT/codex/durable-lisa-automation-checkouts
+- ea4881c8 · 2026-05-27 · fix(automations): use durable synced Lisa checkouts
+- 1a77d456 · 2026-05-27 · chore(release): 2.106.7 [skip ci]
+- e395b77a · 2026-05-27 · Merge pull request #996 from CodySwannGT/wiki/ingest-2026-05-27-053204
+- 296785ee · 2026-05-27 · docs(wiki): ingest incremental Lisa knowledge
