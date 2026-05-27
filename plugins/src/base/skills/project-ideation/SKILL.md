@@ -155,7 +155,13 @@ For each idea in the creation set, invoke `/lisa:research` with:
   grounding and the empirical verification plan),
 - `prd_ready` (this run's flag — `lisa:research` maps it to draft vs prd-ready),
 - a stable **dedupe marker** (see below) so a re-run references the existing PRD instead of creating
-  a duplicate.
+  a duplicate,
+- a structured `ideation_ledger_payload` handoff containing the selected marker, automation id and
+  memory path when available, persona names, persona evidence references, rejected overlap
+  candidates, repo identity, `prd_ready`, selected idea title/key, and the expected empirical
+  verification artifact. This payload is the only ideation-run metadata channel between
+  `project-ideation`, `research`, `prd-source-write`, and the vendor writer; keep GitHub-specific
+  rendering out of this skill.
 
 `lisa:research` synthesizes the PRD and creates it in the configured source via
 `lisa:prd-source-write`. `project-ideation` never writes to the source directly — it delegates, so
