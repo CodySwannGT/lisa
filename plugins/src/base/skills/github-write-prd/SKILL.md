@@ -10,7 +10,8 @@ Create (or update) a PRD issue in the configured source repo. Invoked by `lisa:p
 when `source = github`; do not call directly from a vendor-neutral caller.
 
 `$ARGUMENTS` carries the `lisa:prd-source-write` spec: `title`, `body` (full PRD markdown),
-`initial_role` (`draft` | `ready`, default `draft`), `dedupe_key`, `marker`, optional `source_ref`.
+`initial_role` (`draft` | `ready`, default `draft`), `dedupe_key`, `marker`, optional `source_ref`,
+and optional `ideation_ledger_payload` from `lisa:project-ideation` via `lisa:research`.
 
 ## Phase 1 — Resolve repo and PRD lifecycle labels
 
@@ -64,10 +65,13 @@ section, preserve it verbatim unless the caller intentionally supplied an update
 use the shared `usage-accounting` serializer/merge path rather than hand-editing ledger rows.
 
 **Exploratory ideation run ledger (both paths).** When the write was initiated by
-`lisa:project-ideation` or carries a project-ideation marker, persist a managed `## Exploratory
-Ideation Run Ledger` section in the PRD body. Prefer the managed section over a comment so the PRD
-itself remains the operator's source of truth; use a managed comment only if the body cannot be
-updated. Keep one managed section by replacing the content between stable markers:
+`lisa:project-ideation`, carries a project-ideation marker, or includes
+`ideation_ledger_payload`, persist a managed `## Exploratory Ideation Run Ledger` section in the PRD
+body. Prefer the managed section over a comment so the PRD itself remains the operator's source of
+truth; use a managed comment only if the body cannot be updated. Populate the fields from
+`ideation_ledger_payload` when present, falling back to `marker`, `initial_role`, repo config, and
+runtime metadata only for missing fields. Keep one managed section by replacing the content between
+stable markers:
 
 ```markdown
 ## Exploratory Ideation Run Ledger
