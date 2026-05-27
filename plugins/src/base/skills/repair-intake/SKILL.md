@@ -1,6 +1,6 @@
 ---
 name: repair-intake
-description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck or was left half-closed: items left in `blocked`, stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items that are still natively open, and rollup/container items whose children are all terminal but whose parent is not closed out. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates candidates up to `max_candidates`, and repairs every materially actionable one in that bounded set: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline), re-validates blocked PRDs when new clarifying answers exist, re-dispatches blocked build items whose `is blocked by` dependencies have since closed, performs terminal native closure for terminal-labeled items, and closes rollups whose associated child work is fully terminal. Idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `verified`) and never touches `ready` items. Designed as a /schedule cron target running alongside lisa:intake."
+description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck or was left half-closed: items left in `blocked`, stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items that are still natively open, and rollup/container items whose children are all terminal but whose parent is not closed out. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates candidates up to `max_candidates`, and repairs every materially actionable one in that bounded set: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline) — but for a stalled build it first diagnoses the PR/deploy state and, if the PR cannot merge (conflict, rebase-required, failing checks, unaddressed CodeRabbit/changes-requested) or a deploy failed, files a build-ready leaf fix ticket and moves the item to `blocked` (blocked by that ticket) rather than re-dispatching, re-validates blocked PRDs when new clarifying answers exist, re-dispatches blocked build items whose `is blocked by` dependencies have since closed, performs terminal native closure for terminal-labeled items, and closes rollups whose associated child work is fully terminal. Idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `verified`) and never touches `ready` items. Designed as a /schedule cron target running alongside lisa:intake."
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "mcp__linear-server__list_teams", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label"]
 ---
 
@@ -14,7 +14,11 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   `in_review`) whose processing cycle died. It is technically "being worked" but nothing is
   happening, so it sits ignored forever. (The vendor PRD intakes explicitly leave an errored PRD
   in `in_review` "for the human to investigate from there" — that orphan is exactly what this
-  skill recovers.)
+  skill recovers.) For a stalled **build**, repair-intake first diagnoses *why* it stalled by
+  inspecting its PRs and deploys: if the PR cannot merge (conflict / rebase-required / failing
+  checks / unaddressed CodeRabbit or `CHANGES_REQUESTED` review) or a deploy failed, it files a
+  build-ready leaf fix ticket and moves the item to `blocked` (blocked by that ticket) instead of
+  blindly re-dispatching the agent — which would just churn against an unmergeable PR.
 - **Recoverable blocked** — an item in `blocked` whose blocker may now be gone: an
   `is blocked by` dependency has since closed, clarifying questions have been answered, or
   research/waiting resolves the ambiguity that stopped it.
@@ -35,14 +39,14 @@ lifecycle state with provider-native closure and rollup state.
 ## Public contract
 
 ```text
-/lisa:repair-intake <queue> [intake_mode=prd|build|both] [stale_after=24h] [max_candidates=100] [force=true]
+/lisa:repair-intake <queue> [intake_mode=prd|build|both] [stale_after=2h] [max_candidates=100] [force=true]
 ```
 
 | Token | Meaning | Default |
 |-------|---------|---------|
 | `<queue>` | Same queue identifier `lisa:intake` accepts (see Source dispatch). Required. | — |
 | `intake_mode` | `prd` \| `build` \| `both`. Only meaningful for a GitHub `org/repo` (or bare `github`) that hosts both PRD and build label namespaces. `both` is unique to repair — a repair sweep usefully covers both lifecycles in one schedule. Absent → `both` when both namespaces exist, else whichever lifecycle exists. | `both` for dual GitHub queues; otherwise infer |
-| `stale_after` | How long with no observable activity before an in-progress item counts as stalled. Accepts `24h`, `90m`, `2d`, or `0` (treat any in-progress item as stalled — manual recovery, also the only way to resume work on a provider that exposes no reliable timestamp). Overrides config. | `24h` |
+| `stale_after` | How long with no observable activity before an in-progress item counts as stalled. Accepts `24h`, `90m`, `2d`, or `0` (treat any in-progress item as stalled — manual recovery, also the only way to resume work on a provider that exposes no reliable timestamp). Overrides config. | `2h` |
 | `max_candidates` | Cap on how many stuck/close-out candidates to enumerate and evaluate. Repair every materially actionable candidate within this bounded set, then stop. Overrides config. | `100` |
 | `force` | `true` bypasses the loop-prevention backoff window (so a manual re-run re-attempts items even if their fingerprint is unchanged). It does **not** change the staleness rule — use `stale_after=0` for that. | `false` |
 
@@ -193,7 +197,7 @@ staleness — their repairability is judged on current blocker/answer state, not
 1. `$ARGUMENTS` `stale_after=<dur>` (one-off override) — always wins. Parse `Nh` / `Nm` / `Nd` /
    `0` into hours.
 2. `.lisa.config.json` `intake.repair.staleAfterHours` (durable project default).
-3. Built-in default: **24 hours**.
+3. Built-in default: **2 hours**.
 
 `stale_after=0` means "treat any in-progress item as stalled" — a manual full-recovery lever,
 and the only way to resume work on a provider that exposes no reliable activity timestamp.
@@ -214,6 +218,14 @@ If ANY of these is newer than the threshold, the item is **active** → record i
 skip it (read-only). For build `claimed`, an open PR with recent commits/checks is active. For
 PRD `in_review`, a recent comment or page edit is active.
 
+Count only **forward-progress** signals as keep-alive: new commits, a review that was just
+requested or posted, an in-progress/queued check run, a fresh progress comment. A **settled
+blocker state** — a failing/errored check run, `CONFLICTING` mergeability, a `CHANGES_REQUESTED`
+review, an unaddressed CodeRabbit/reviewer change request, or a failed deployment — is NOT
+keep-alive activity: it does not reset the staleness clock. The clock runs from the last genuine
+progress event, so a PR that has been sitting failed/conflicted/awaiting-changes for longer than
+`stale_after` counts as stalled and is diagnosed below.
+
 If a provider cannot expose any reliable timestamp, do **not** auto-resume its in-progress
 items unless the caller passed `stale_after=0`. (Dependency-cleared `blocked` repair still
 proceeds — it is judged on blocker state, not time.)
@@ -225,10 +237,22 @@ Apply per candidate. Continue through the ordered list until every candidate ins
 native close/archive/complete, re-dispatch, or refreshed note), be recorded read-only, or be
 recorded under Errors. Do not stop after the first write; the cap is the batch boundary.
 
-### Build `claimed` (stalled in-progress) → resume in place
+### Build `claimed` (stalled in-progress) → diagnose blocker, else resume in place
 
-After the staleness gate passes, run the **same per-item sequence the vendor build-intake runs**,
-skipping the claim transition (the item is already `claimed`):
+After the staleness gate passes, **first diagnose why it stalled** by inspecting the item's PRs and
+deploys (see "Stuck-cause diagnosis" below). A stalled build usually stalled for a concrete external
+reason, and re-dispatching the agent at it will not fix a PR that cannot merge or a deploy that
+failed — it just churns.
+
+0. **Diagnose PR & deploy blockers.** If a real external blocker is found (PR cannot merge — merge
+   conflict / rebase-required / failing checks / `CHANGES_REQUESTED` / unaddressed CodeRabbit; or a
+   failed deploy), **do not dispatch the agent**. Instead file a build-ready leaf fix ticket for the
+   blocker, move this item `claimed → blocked` with an `is blocked by` link to that ticket, and
+   record it. The existing "Build `blocked` → unblock if cleared" path resumes this item on a later
+   cycle once the fix ticket is terminal — a self-healing loop. Skip the resume steps below.
+
+If no external blocker is found, the work simply died mid-flight — run the **same per-item sequence
+the vendor build-intake runs**, skipping the claim transition (the item is already `claimed`):
 
 1. Dispatch the item to the vendor agent — `lisa:jira-agent` / `lisa:github-agent` /
    `lisa:linear-agent` (matching the queue's tracker) — with the item ref. This resumes the work
@@ -245,6 +269,59 @@ skipping the claim transition (the item is already `claimed`):
 > Do **not** reset stalled in-progress items to `ready`. Reset throws away state, makes a
 > partially-built item look freshly human-approved to the next `lisa:intake` claim, and forces a
 > two-cycle recovery. Resume in place.
+
+#### Stuck-cause diagnosis: PR & deploy blockers
+
+Run this for every stalled `claimed` build item **before** considering an agent re-dispatch. The
+goal is to distinguish "work died mid-flight, just resume it" from "work is blocked on a concrete
+external state that resuming the agent cannot fix."
+
+**1. Find the associated PR(s) and deploy(s).** From the item's linked PRs (GitHub: remote/dev
+links and `gh pr list --search <issue-ref>`; JIRA: dev-status / remote links; Linear: attachments
+and git-branch links) and the deploy(s) for the resulting merge (the env-keyed `deploy.branches`
+mapping from `config-resolution`). Read each PR with the vendor's native state, e.g. GitHub
+`gh pr view <n> --json mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,comments,reviews`.
+
+**2. Classify as a blocker.** Treat any of these as a real external blocker:
+
+- **Merge conflict / rebase required** — `mergeable = CONFLICTING`, or `mergeStateStatus` in
+  `DIRTY` / `BEHIND`.
+- **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
+  or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
+- **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
+  (or other reviewer) comments that request changes and have not been addressed by a newer commit.
+- **Branch-protection / approvals blocked** — `mergeStateStatus = BLOCKED` for a reason other than
+  a transient check still running.
+- **Failed deploy** — the deployment for the item's merge/branch reports a failed/errored status
+  (failed deploy workflow run, failed deployment status, or the project's deploy check is red).
+
+A check that is still **queued/in progress**, or a `CLEAN`/`HAS_HOOKS` mergeable PR with no
+outstanding change request, is **not** a blocker — that is normal in-flight state. (Such a PR with
+recent check/commit activity would already have been caught as `active` by the staleness gate.)
+
+**3. On a blocker found → file a leaf fix ticket + block the item.**
+
+1. **File one build-ready leaf fix ticket** per distinct blocker via `lisa:tracker-write` (the
+   vendor-neutral leaf writer + validation gate; never a vendor `*-write-*` skill directly),
+   `issue_type: Bug` for a failing-check/conflict/failed-deploy, `Task` for review-feedback
+   follow-up, `build_ready: true` so it auto-builds. The ticket MUST name: the blocked item + its
+   PR/deploy URL, the exact blocker (conflict / which checks failed with their logs link / which
+   change requests / which deploy run), three-audience description, and Gherkin acceptance criteria
+   for "PR is mergeable / deploy is green."
+2. **Transition the stalled item `claimed → blocked`** and add an **`is blocked by`** link to the
+   new fix ticket (vendor-native: JIRA issue link `is blocked by`; GitHub/Linear `Blocked by:` line
+   + label). Post a `[lisa-repair-intake]` note naming what it is blocked by and why.
+3. **Record it** as a repair write. Do **not** dispatch the vendor agent for this item this cycle.
+
+The item now sits in `blocked`; once the fix ticket reaches a terminal state, the **Build
+`blocked` → unblock if cleared** path (next section) detects the cleared `is blocked by`
+dependency and resumes the original in place — a self-healing loop.
+
+**Idempotency.** Before filing, check for an **open** fix ticket already carrying the marker
+`[lisa-repair-intake] blocker:<item-ref>/<blocker-key>` (blocker-key is a stable slug of the
+blocker, e.g. `pr-1234/merge-conflict` or `pr-1234/checks-failing`). If one exists, reference it
+and ensure the `is blocked by` link is present rather than creating a duplicate. Honor the backoff
+window and state fingerprint (Loop prevention) so re-runs over the same unchanged blocker are no-ops.
 
 ### Build `blocked` → re-evaluate, unblock if cleared
 
@@ -399,7 +476,7 @@ cron tick.
 - Before writing a note or re-attempting a `blocked` item, compute the current fingerprint. If
   an identical fingerprint was already posted within the **backoff window**, skip the item
   silently (record as `still_blocked` / `active`, no write).
-- Backoff window default = `stale_after` (24h). `force=true` bypasses backoff for a manual run.
+- Backoff window default = `stale_after` (2h). `force=true` bypasses backoff for a manual run.
 - A *changed* fingerprint (new blocker state, new answers, new verdict) always warrants a fresh
   note + re-attempt — backoff suppresses only no-op repeats.
 
