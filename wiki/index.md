@@ -1,5 +1,7 @@
 # Lisa Wiki Index
 
+Last updated by incremental ingest on 2026-05-27 through Lisa release `2.113.0` and merged PR `#1017`.
+
 ## Orientation
 
 - [Start Here](start-here.md)
