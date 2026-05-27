@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.110.1](https://github.com/CodySwannGT/lisa/compare/vv2.110.0...v2.110.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* thread ideation ledger payload ([13f66f3](https://github.com/CodySwannGT/lisa/commit/13f66f37094a5d5196770db629a44e068c917d6d))
+
+## [2.110.0](https://github.com/CodySwannGT/lisa/compare/vv2.109.0...v2.110.0) (2026-05-27)
+
+
+### Features
+
+* record github prd ideation ledger ([5b8040e](https://github.com/CodySwannGT/lisa/commit/5b8040ef88d8a585ecc19d3a41d9146eb7a063d8))
+
+
+### Bug Fixes
+
+* **wiki:** flush lint-wiki --json output before exit ([789c399](https://github.com/CodySwannGT/lisa/commit/789c399bc33a6925daebdb48bbff093cfc5c82b6))
+
+## [2.109.0](https://github.com/CodySwannGT/lisa/compare/vv2.108.0...v2.109.0) (2026-05-27)
+
+
+### Features
+
+* **project-ideation:** record automation memory contract ([e8c7626](https://github.com/CodySwannGT/lisa/commit/e8c7626eb77ee52b85140c64803be254cb9cd510))
+
+## [2.108.0](https://github.com/CodySwannGT/lisa/compare/vv2.107.2...v2.108.0) (2026-05-27)
+
+
+### Features
+
+* add project ideation idempotency harness ([81c6061](https://github.com/CodySwannGT/lisa/commit/81c6061bb739b86fad44ffe3d08dab01145821e3))
+
 ### [2.107.2](https://github.com/CodySwannGT/lisa/compare/vv2.107.1...v2.107.2) (2026-05-27)
 
 ### [2.107.1](https://github.com/CodySwannGT/lisa/compare/vv2.107.0...v2.107.1) (2026-05-27)
