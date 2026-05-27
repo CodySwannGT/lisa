@@ -317,4 +317,8 @@ if (asJson) {
   );
 }
 
-process.exit(blocking === 0 ? 0 : 1);
+// Set exitCode instead of calling process.exit() so a large `--json` payload
+// written to a pipe (e.g. captured via spawnSync by verify-migration) is fully
+// flushed before the process exits. process.exit() can truncate async stdout
+// writes at the OS pipe buffer (~64KB), corrupting the JSON for the reader.
+process.exitCode = blocking === 0 ? 0 : 1;
