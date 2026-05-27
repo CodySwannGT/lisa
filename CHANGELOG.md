@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.112.0](https://github.com/CodySwannGT/lisa/compare/vv2.111.0...v2.112.0) (2026-05-27)
+
+
+### Features
+
+* **expo:** adopt official Expo skills + Expo MCP server ([2691cad](https://github.com/CodySwannGT/lisa/commit/2691cad709e0c7fd1347ca7123d9c788dce54883))
+
+## [2.111.0](https://github.com/CodySwannGT/lisa/compare/vv2.110.1...v2.111.0) (2026-05-27)
+
+
+### Features
+
+* **qa:** split exploratory-qa into human-experience pass + e2e-coverage-gaps ([ffd43fa](https://github.com/CodySwannGT/lisa/commit/ffd43fa52412c30fe9ba927fb463e376ce4605eb))
+* **repair-intake:** 2h stuck threshold + PR/deploy blocker diagnosis ([7ef908d](https://github.com/CodySwannGT/lisa/commit/7ef908df0f68acd8b3d73184a2d0e50a4eafd167))
+* **wiki:** make /query the primary way agents answer project questions ([7826528](https://github.com/CodySwannGT/lisa/commit/78265287b0ac76bdda4acc75076d5300288fc4ad))
+
+### [2.110.1](https://github.com/CodySwannGT/lisa/compare/vv2.110.0...v2.110.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* thread ideation ledger payload ([13f66f3](https://github.com/CodySwannGT/lisa/commit/13f66f37094a5d5196770db629a44e068c917d6d))
+
+## [2.110.0](https://github.com/CodySwannGT/lisa/compare/vv2.109.0...v2.110.0) (2026-05-27)
+
+
+### Features
+
+* record github prd ideation ledger ([5b8040e](https://github.com/CodySwannGT/lisa/commit/5b8040ef88d8a585ecc19d3a41d9146eb7a063d8))
+
+
+### Bug Fixes
+
+* **wiki:** flush lint-wiki --json output before exit ([789c399](https://github.com/CodySwannGT/lisa/commit/789c399bc33a6925daebdb48bbff093cfc5c82b6))
+
+## [2.109.0](https://github.com/CodySwannGT/lisa/compare/vv2.108.0...v2.109.0) (2026-05-27)
+
+
+### Features
+
+* **project-ideation:** record automation memory contract ([e8c7626](https://github.com/CodySwannGT/lisa/commit/e8c7626eb77ee52b85140c64803be254cb9cd510))
+
+## [2.108.0](https://github.com/CodySwannGT/lisa/compare/vv2.107.2...v2.108.0) (2026-05-27)
+
+
+### Features
+
+* add project ideation idempotency harness ([81c6061](https://github.com/CodySwannGT/lisa/commit/81c6061bb739b86fad44ffe3d08dab01145821e3))
+
 ### [2.107.2](https://github.com/CodySwannGT/lisa/compare/vv2.107.1...v2.107.2) (2026-05-27)
 
 ### [2.107.1](https://github.com/CodySwannGT/lisa/compare/vv2.107.0...v2.107.1) (2026-05-27)

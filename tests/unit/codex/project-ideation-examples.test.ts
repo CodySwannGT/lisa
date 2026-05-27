@@ -14,11 +14,14 @@ const EXAMPLE_ROOTS = [
   "plugins/lisa/skills/project-ideation/examples",
 ] as const;
 
+const IDEMPOTENCY_HARNESS_EXAMPLE = "idempotency-verification-harness.md";
+
 const EXAMPLE_FILES = [
   "host-project-only.md",
   "public-external-inspiration.md",
   "unavailable-data-rejection.md",
   "evidence-card-format.md",
+  IDEMPOTENCY_HARNESS_EXAMPLE,
 ] as const;
 
 /**
@@ -38,6 +41,12 @@ describe("codex/project-ideation-examples (#669)", () => {
       for (const file of EXAMPLE_FILES) {
         const content = readExample(root, file);
 
+        if (file === IDEMPOTENCY_HARNESS_EXAMPLE) {
+          expect(content).toContain("## Deterministic fixture");
+          expect(content).toContain("## Scripted verification");
+          continue;
+        }
+
         expect(content).toContain("## What Already Exists");
         expect(content).toContain("## Practical Ideas");
         expect(content).toContain("## Discovery Spikes");
@@ -51,6 +60,12 @@ describe("codex/project-ideation-examples (#669)", () => {
     root => {
       for (const file of EXAMPLE_FILES) {
         const content = readExample(root, file);
+
+        if (file === IDEMPOTENCY_HARNESS_EXAMPLE) {
+          expect(content).toContain("[EVIDENCE: marker-count-one]");
+          expect(content).toContain("[EVIDENCE: memory-recreated-after-rerun]");
+          continue;
+        }
 
         expect(content).toMatch(/- Empirical verification: .+/);
         expect(content).toMatch(/- Evidence: .+/);
@@ -68,4 +83,13 @@ describe("codex/project-ideation-examples (#669)", () => {
       expect(content).toContain("licensed data feed");
     }
   );
+
+  it.each(EXAMPLE_ROOTS)("%s documents the idempotency harness", root => {
+    const content = readExample(root, IDEMPOTENCY_HARNESS_EXAMPLE);
+
+    expect(content).toContain("project-ideation-idempotency-harness.mjs");
+    expect(content).toContain("prd_ready=true");
+    expect(content).toContain("max_prds=1");
+    expect(content).toContain("memoryRecreated");
+  });
 });

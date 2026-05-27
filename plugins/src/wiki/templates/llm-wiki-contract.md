@@ -23,6 +23,18 @@ Repository mode: **{{mode}}**.
 - `{{wikiRoot}}/staff/` — digital-staff role pages (optional).
 - Synthesis categories: {{categories}}.
 
+## Answering questions (query-first)
+When you need to answer a question about this project — its code, architecture, decisions, domain
+concepts, conventions, or documentation — reach for the wiki **first**: run `/query "<question>"`
+(Codex: `$lisa-wiki-query`) before ad-hoc code search, grep, or a web lookup. The wiki is the
+curated, cited source of truth for this project, so a query is usually faster and more accurate than
+re-deriving the answer from raw files.
+
+This is the **primary** method, not the only one. If `/query` returns nothing relevant, the answer
+is not in the wiki yet, or the question is about live/uncommitted state, fall back to reading the
+code, browsing `{{wikiRoot}}/index.md`, or other tools — and consider `/ingest` to capture any
+durable knowledge you had to reconstruct so the next query succeeds.
+
 ## Ordered ingestion pipeline (never reorder)
 `source note → synthesis → index → log → verify → state → commit/PR`.
 State advances **only** after source notes + synthesis + index + log + verification all pass.

@@ -25,6 +25,10 @@ cannot verify yourself is noise — demote it honestly.
   creates **one** PRD (the single top-ranked idea), because `lisa:research` is a heavy full flow.
   `max_prds=3` creates the top three; `max_prds=all` creates one per build-ready idea. Discovery
   Spikes and Rejected ideas are never turned into PRDs regardless of `max_prds`.
+- **`fixture=<path>`** (optional, verification-only) — a deterministic host-project fixture used
+  for idempotency verification. When present, read the fixture before ranking and honor its declared
+  single persona, single idea, existing-fit anchor, and expected dedupe marker. Do not use this
+  parameter for normal ideation runs.
 
 ## When to use
 
@@ -151,11 +155,37 @@ For each idea in the creation set, invoke `/lisa:research` with:
   grounding and the empirical verification plan),
 - `prd_ready` (this run's flag — `lisa:research` maps it to draft vs prd-ready),
 - a stable **dedupe marker** (see below) so a re-run references the existing PRD instead of creating
-  a duplicate.
+  a duplicate,
+- a structured `ideation_ledger_payload` handoff containing the selected marker, automation id and
+  memory path when available, persona names, persona evidence references, rejected overlap
+  candidates, repo identity, `prd_ready`, selected idea title/key, and the expected empirical
+  verification artifact. This payload is the only ideation-run metadata channel between
+  `project-ideation`, `research`, `prd-source-write`, and the vendor writer; keep GitHub-specific
+  rendering out of this skill.
 
 `lisa:research` synthesizes the PRD and creates it in the configured source via
 `lisa:prd-source-write`. `project-ideation` never writes to the source directly — it delegates, so
 the PRD source stays switchable per project. Capture each returned PRD ref / URL / role / outcome.
+
+### Optional Codex automation memory
+
+When the run has a Codex automation id or memory path, maintain a concise local advisory ledger after
+the PRD source write returns. Resolve the memory path in this order:
+
+1. explicit `memory_file=<path>` or `automation_memory=<path>` argument, when supplied;
+2. `$CODEX_AUTOMATION_MEMORY`, when set;
+3. `$CODEX_HOME/automations/<automation_id>/memory.md`, when `automation_id=<id>` or
+   `$CODEX_AUTOMATION_ID` is available.
+
+Create the parent directory and `memory.md` if missing. Write one concise run entry keyed by the
+dedupe marker and run timestamp. The entry must include the marker, PRD URL/ref, outcome
+(`created | reused | updated | blocked`), lifecycle role (`draft | ready | blocked` or the returned
+source role), and `source_agreement` (`github-source-wins`, `memory-created`, `memory-updated`, or
+`memory-missing-runtime`). If memory says one thing but the PRD source search finds a matching open
+PRD, GitHub/source truth wins: reuse the source PRD and update memory rather than creating a
+duplicate. Keep memory advisory only; never use it to override lifecycle labels, source marker
+matches, or the PRD source writer's returned role. Do not store secrets, tokens, full PRD bodies, or
+private source excerpts in memory.
 
 ### Dedupe marker (stable, never title-based)
 
@@ -232,3 +262,6 @@ Use the markdown examples in `examples/` as shape references for the idea report
   requirements.
 - `unavailable-data-rejection.md` — naming missing private/paid/unavailable sources when demoting.
 - `evidence-card-format.md` — the required evidence fields every Practical Idea card must carry.
+- `idempotency-verification-harness.md` — deterministic fixture and script procedure proving that
+  repeated `prd_ready=true` ideation keeps the open GitHub marker count at one, including the
+  missing-memory rerun variant.

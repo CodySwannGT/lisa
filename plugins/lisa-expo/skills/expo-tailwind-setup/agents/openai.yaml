@@ -1,0 +1,4 @@
+display_name: "Expo Tailwind Setup"
+short_description: "Set up Tailwind CSS v4 in Expo with react-native-css and NativeWind v5 for universal styling"
+default_prompt:
+  - "Use $expo-tailwind-setup: Set up Tailwind CSS v4 in Expo with react-native-css and NativeWind v5 for universal styling."
