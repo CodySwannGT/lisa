@@ -42,7 +42,20 @@
     "constructs",
     "aws-cdk-github-oidc"
   ],
-  "ignoreBinaries": ["expo", "playwright", "audit", "docker", "eval"],
+  "ignoreBinaries": [
+    "expo",
+    "playwright",
+    "audit",
+    "docker",
+    "eval",
+    "ast-grep",
+    "eslint",
+    "husky",
+    "knip",
+    "prettier",
+    "tsc",
+    "vitest"
+  ],
   "ignoreExportsUsedInFile": true,
   "rules": {
     "devDependencies": "off"
