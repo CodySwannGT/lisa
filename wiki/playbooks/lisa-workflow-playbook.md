@@ -22,6 +22,14 @@ Codex-hosted Lisa automations should run from durable project automation checkou
 
 Agents should use the Lisa wiki query flow as the primary way to answer project questions from durable repository knowledge. This keeps operational answers grounded in maintained wiki pages and source notes instead of stale session context.
 
+## Project Ideation Pressure Gate
+
+Project ideation may document new PRD candidates while the build queue is busy, but it should not auto-mark them ready when queue-status reports PRD pressure. The pressure helper keeps ideation throughput from bypassing the one-item build-intake discipline.
+
+## Hook Delivery
+
+Claude receives Lisa plugin hooks through the GitHub marketplace copy of the plugin, which tracks committed generated plugin artifacts on `main`. Codex receives hooks when `lisa apply` installs them into a project's `.codex/hooks.json`; a package update alone is not the delivery mechanism for Codex hooks.
+
 ## Exploratory QA
 
 Exploratory QA now separates human-experience findings from e2e coverage gaps. Use the human-experience pass for product-facing behavior, friction, and visible issues; use the e2e-coverage-gaps pass for regression coverage opportunities that should become tests or backlog work.

@@ -20,26 +20,22 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-27-173325` from `origin/main`
-- HEAD at 2026-05-27 incremental ingest: `9e52f0d12bc01a85754f30b5ec70c97e6204bfab`
-- Current package version: `2.113.0`
-- Total commits on HEAD: 2441
-- Latest merged PR captured in the incremental git snapshot: `#1017`
-- New commits since the previous incremental git cursor: `44`
-- Project-scoped memory files captured: `21` from the last successful memory ingest; this run skipped memory because the connector could not prove the available memory directory matched this worktree path.
+- Ingest branch: `wiki/ingest-2026-05-27-213503` from `origin/main`
+- HEAD at 2026-05-27 incremental ingest: `6dbfeb7ec507cfbb56bc905db47ea14f5bce9762`
+- Current package version: `2.115.3`
+- Total commits on HEAD: 2460
+- Latest merged PR captured in the incremental git snapshot: `#1033`
+- New commits since the previous incremental git cursor: `19`
+- Project-scoped memory files captured: `22` from the Lisa Claude project memory directory; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#999`.
-- Release automation advanced the monorepo to `2.113.0`.
-- Lisa added Expo-specific skills and an Expo MCP server to the shipped plugin surface.
-- Wiki query is now the primary rule-backed way for agents to answer project questions from durable wiki knowledge.
-- Exploratory QA split into a human-experience pass and an e2e-coverage-gaps pass so product-facing findings and automation backlog gaps stay distinct.
-- Repair intake now uses a two-hour stuck threshold and records PR/deploy blocker diagnosis for stale work.
-- Project ideation automation now records durable run ledgers, including PRD and thread ideation metadata plus an idempotency harness.
-- Nested team orchestration now adds specialists instead of collapsing nested flows to a single agent.
-- TypeScript template rules block error-suppression directives on edit across Claude and Codex surfaces.
-- Postinstall local installs re-enabled crash-safe template apply behavior.
+- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#1018`.
+- Release automation advanced the monorepo to `2.115.3`.
+- Wiki setup now treats the standard digital-staff roster as the default seed for new wiki setup flows.
+- Queue-status and project ideation added a PRD pressure helper so auto-ready PRDs are blocked when the build queue is already under pressure.
+- PRD pressure edge cases are covered by fixtures and the pressure gate is documented for ideation operators.
+- Project-scoped memory now records Lisa hook-delivery semantics: Claude plugin hooks track the GitHub marketplace on `main`, while Codex hooks arrive through `lisa apply`.
 
 ## Workspace Packages
 
