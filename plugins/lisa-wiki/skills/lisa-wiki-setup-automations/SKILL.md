@@ -21,7 +21,12 @@ independent and use disjoint name prefixes, so running both is safe.
 - **Codex** → create a Codex **automation** via the native automations mechanism (prefer the
   `automation_update` tool over hand-writing `~/.codex/automations/<id>/automation.toml`; the TOML is
   only its backing store). Set the execution environment to **local** so it runs on this
-  workstation, scoped to this project's working directory.
+  workstation. Scope it to a durable project automation checkout, not a transient task worktree: use
+  `${CODEX_HOME:-~/.codex}/worktrees/<project>-automation-main` when available, create or refresh
+  that checkout from the project's `origin` remote if needed, and verify `git -C <cwd> rev-parse
+  --is-inside-work-tree --is-bare-repository` reports `true` then `false` before saving the
+  automation. Do not point recurring automations at hashed scratch worktrees or a checkout whose Git
+  metadata is broken.
 - **Claude** → use **`/schedule`** to create a local recurring routine.
 - **Other runtimes** → use the runtime's native recurring-task mechanism. If the runtime has none,
   state that scheduling is unavailable and stop.
@@ -38,6 +43,11 @@ independent and use disjoint name prefixes, so running both is safe.
 The automation runs **one cycle** of the full wiki ingest and respects that command's own confirmation
 and commit/PR policy (never ask before running; run a full ingest across every enabled
 non-external-write source; commit/PR per the ingest skill's bookends; report the cycle summary).
+Before running the ingest, the automation must sync its checkout: fetch the default remote branch and
+rebase the current automation branch onto it (for the common GitHub case, `origin/main`). If the
+checkout is already on the default branch, fast-forward/rebase it to the remote default. If the
+rebase has conflicts or the working tree is dirty in a way the automation did not create, abort the
+rebase and report the blocker instead of ingesting from stale code.
 
 | Automation | Command it runs | Cadence |
 |---|---|---|
@@ -45,11 +55,12 @@ non-external-write source; commit/PR per the ingest skill's bookends; report the
 
 **Naming + scope (so teardown is precise).** Name the automation with the stable prefix
 `lisa-wiki-auto-<project>-` (i.e. `lisa-wiki-auto-<project>-ingest`), where `<project>` identifies
-this repo, and scope it to this project's working directory. This prefix is deliberately distinct
-from the base `lisa-auto-<project>-` set so `/lisa-wiki:tear-down-automations` removes exactly this
-automation and never touches the base automations or any other project's. Use a project identifier
-stable across runs and distinct from other repos (qualify it, e.g. with the owner — don't rely on a
-bare repo basename that could collide).
+this repo, and scope each Codex automation to the durable project automation checkout described
+above. This prefix is deliberately distinct from the base `lisa-auto-<project>-` set so
+`/lisa-wiki:tear-down-automations` removes exactly this automation and never touches the base
+automations or any other project's. Use a project identifier stable across runs and distinct from
+other repos (qualify it, e.g. with the owner — don't rely on a bare repo basename that could
+collide).
 
 **Idempotent.** Re-running this skill updates the existing `lisa-wiki-auto-<project>-ingest`
 automation in place (same name) rather than creating a duplicate.
@@ -60,6 +71,8 @@ automation in place (same name) rather than creating a duplicate.
   `wiki/lisa-wiki.config.json`. If there is no configured wiki, **stop and report** that the wiki
   must be set up first (run `/lisa-wiki:setup`); do not schedule ingest against a non-existent wiki.
 - If the runtime has no native scheduler, stop and report what's missing rather than guessing.
+- For Codex, if the durable checkout cannot be created, fetched, or verified as a non-bare Git work
+  tree, stop and report the checkout problem instead of creating an automation that will fail later.
 
 ## Report
 

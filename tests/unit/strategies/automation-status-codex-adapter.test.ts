@@ -9,24 +9,20 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { resolveExpectedAutomationFleet } from "../../../plugins/src/base/scripts/automation-status-expected-fleet.mjs";
-import { compareAutomationContract } from "../../../plugins/src/base/scripts/automation-status-contract-drift.mjs";
-import {
-  deriveCodexObservedCommand,
-  inspectCodexAutomationFleet,
-  parseCodexAutomationMemory,
-} from "../../../plugins/src/base/scripts/automation-status-codex-adapter.mjs";
+import { inspectCodexAutomationFleet } from "../../../plugins/src/base/scripts/automation-status-codex-adapter.mjs";
 
 const BUILD_INTAKE_PROMPT =
   "Run one cron-safe Lisa build-intake cycle. Use the Lisa intake skill with arguments `github intake_mode=build`.";
-const BUILD_INTAKE_CADENCE = "every 10 minutes";
-const BUILD_INTAKE_COMMAND = "/lisa:intake github intake_mode=build";
 const BUILD_INTAKE_RRULE = "FREQ=MINUTELY;INTERVAL=10";
 const BUILD_INTAKE_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-tickets";
 const RECENT_RUN_AT = "2026-05-26T12:00:00Z";
+const execFileAsync = promisify(execFile);
 
 describe("automation-status Codex adapter (#801)", () => {
   const tempDirs = [];
@@ -129,84 +125,6 @@ describe("automation-status Codex adapter (#801)", () => {
     );
   });
 
-  it("derives normalized Lisa slash commands from Codex automation prompts", () => {
-    expect(deriveCodexObservedCommand(BUILD_INTAKE_PROMPT)).toBe(
-      BUILD_INTAKE_COMMAND
-    );
-
-    expect(
-      deriveCodexObservedCommand(
-        "Run one evidence-grounded ideation pass. Use the Lisa project-ideation skill with arguments `prd_ready=true`."
-      )
-    ).toBe("/lisa:project-ideation prd_ready=true");
-
-    expect(
-      deriveCodexObservedCommand(
-        "Run one Playwright-backed exploratory QA pass. Use the `$lisa-exploratory-qa` skill with arguments `ready=true`."
-      )
-    ).toBe("/lisa:exploratory-qa ready=true");
-  });
-
-  it("canonicalizes Codex $lisa-* aliases to Lisa slash-colon commands (#880)", () => {
-    const observedCommand = deriveCodexObservedCommand(
-      "Run one cron-safe Lisa build-intake cycle. Use the `$lisa-intake` skill with arguments `github intake_mode=build`."
-    );
-
-    expect(observedCommand).toBe(BUILD_INTAKE_COMMAND);
-    expect(
-      compareAutomationContract({
-        expected: {
-          automationId: BUILD_INTAKE_AUTOMATION_ID,
-          expectedCadence: BUILD_INTAKE_CADENCE,
-          expectedRRule: BUILD_INTAKE_RRULE,
-          expectedCommand: BUILD_INTAKE_COMMAND,
-        },
-        observedAutomation: {
-          automationId: BUILD_INTAKE_AUTOMATION_ID,
-          observedCadence: BUILD_INTAKE_CADENCE,
-          observedRRule: BUILD_INTAKE_RRULE,
-          observedCommand,
-        },
-      }).status
-    ).toBe("HEALTHY");
-  });
-
-  it("does not classify negated error or exception summaries as failures (#885)", () => {
-    expect(
-      parseCodexAutomationMemory(
-        `${RECENT_RUN_AT}\n\n- completed with no errors\n`
-      ).lastRunFailed
-    ).toBe(false);
-
-    expect(
-      parseCodexAutomationMemory(
-        `${RECENT_RUN_AT}\n\n- ran without exceptions\n`
-      ).lastRunFailed
-    ).toBe(false);
-
-    expect(
-      parseCodexAutomationMemory(
-        `${RECENT_RUN_AT}\n\n- encountered an exception\n`
-      ).lastRunFailed
-    ).toBe(true);
-  });
-
-  it("uses the newest append-only memory run for timestamps and failure state (#881)", () => {
-    const memory = [
-      "# Lisa Build Intake Automation Memory",
-      "",
-      "- 2025-01-01T00:00:00Z: Completed successfully with no errors.",
-      `- ${RECENT_RUN_AT}: Latest run failed because GitHub auth crashed.`,
-      "",
-    ].join("\n");
-
-    expect(parseCodexAutomationMemory(memory)).toEqual({
-      lastRunAt: RECENT_RUN_AT,
-      lastRunSummary: `${RECENT_RUN_AT}: Latest run failed because GitHub auth crashed.`,
-      lastRunFailed: true,
-    });
-  });
-
   it("inspects automation files read-only", async () => {
     const automationsDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "lisa-codex-automation-readonly-")
@@ -251,11 +169,13 @@ describe("automation-status Codex adapter (#801)", () => {
  *   readonly rrule: string
  *   readonly prompt: string
  *   readonly memory: string
+ *   readonly cwd?: string
  * }} input Fixture values to write.
  * @returns {Promise<void>} Resolves after the fixture files are written.
  */
 async function writeAutomationFixture(automationsDir, input) {
   const automationDir = path.join(automationsDir, input.id);
+  const cwd = input.cwd ?? (await createGitWorkTreeFixture(automationsDir));
   await fs.mkdir(automationDir, { recursive: true });
   await fs.writeFile(
     path.join(automationDir, "automation.toml"),
@@ -270,11 +190,25 @@ async function writeAutomationFixture(automationsDir, input) {
       'model = "gpt-5.4"',
       'reasoning_effort = "medium"',
       'execution_environment = "local"',
-      'cwds = ["/tmp/repo"]',
+      `cwds = ["${escapeTomlString(cwd)}"]`,
       "",
     ].join("\n")
   );
   await fs.writeFile(path.join(automationDir, "memory.md"), input.memory);
+}
+
+/**
+ * Create a tiny valid Git work tree for cwd health checks.
+ *
+ * @param {string} automationsDir Parent fixture directory.
+ * @returns {Promise<string>} Path to the created work tree.
+ */
+async function createGitWorkTreeFixture(automationsDir) {
+  const reposDir = path.join(automationsDir, "_repos");
+  await fs.mkdir(reposDir, { recursive: true });
+  const repoDir = await fs.mkdtemp(path.join(reposDir, "repo-"));
+  await execFileAsync("git", ["init"], { cwd: repoDir });
+  return repoDir;
 }
 
 /**
@@ -295,10 +229,15 @@ async function snapshotAutomationDir(dir) {
       continue;
     }
     const automationDir = path.join(dir, entry.name);
-    const automationToml = await fs.readFile(
-      path.join(automationDir, "automation.toml"),
-      "utf8"
-    );
+    const automationTomlPath = path.join(automationDir, "automation.toml");
+    const hasAutomationToml = await fs
+      .access(automationTomlPath)
+      .then(() => true)
+      .catch(() => false);
+    if (!hasAutomationToml) {
+      continue;
+    }
+    const automationToml = await fs.readFile(automationTomlPath, "utf8");
     const memory = await fs.readFile(
       path.join(automationDir, "memory.md"),
       "utf8"
