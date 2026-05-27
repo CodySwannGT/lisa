@@ -56,6 +56,41 @@ const HIGHLIGHT_COPY = {
 };
 
 /**
+ * Decide whether a PRD queue snapshot has open lifecycle pressure that should
+ * pause automatic PRD promotion or ideation work.
+ *
+ * @param {{
+ *   readonly counts?: Record<string, number>
+ *   readonly highlights?: readonly Record<string, any>[]
+ * }} snapshot
+ */
+export function evaluatePrdQueuePressure(snapshot = {}) {
+  const decisiveRole = ACTIONABLE_ROLE_ORDER.find(
+    role => normalizeCount(snapshot.counts?.[role]) > 0
+  );
+
+  if (!decisiveRole) {
+    return {
+      allowed: true,
+      decisiveRole: null,
+      blockerItem: null,
+      nextStep: null,
+    };
+  }
+
+  const blockerItem =
+    snapshot.highlights?.find(highlight => highlight.role === decisiveRole) ??
+    null;
+
+  return {
+    allowed: false,
+    decisiveRole,
+    blockerItem,
+    nextStep: blockerItem?.nextStep ?? HIGHLIGHT_COPY[decisiveRole].nextStep,
+  };
+}
+
+/**
  * Read a GitHub-backed PRD queue snapshot from issue payloads.
  *
  * @param {{
@@ -392,4 +427,12 @@ function normalizeTimestamp(value) {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {number}
+ */
+function normalizeCount(value) {
+  return Number.isFinite(value) && value > 0 ? value : 0;
 }
