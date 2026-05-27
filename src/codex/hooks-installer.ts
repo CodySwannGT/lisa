@@ -182,6 +182,14 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     forProjectTypes: ["nestjs"],
     needsEditPathLib: true,
   },
+  {
+    id: "block-suppress-directives",
+    event: "PreToolUse",
+    matcher: WRITE_MATCHER,
+    scriptFilename: "block-suppress-directives.sh",
+    forProjectTypes: ["typescript"],
+    statusMessage: "Checking for error-suppression directives",
+  },
 ];
 
 /** Result of the hooks install pass */

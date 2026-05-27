@@ -111,7 +111,7 @@ NEVER:
 - Update CHANGELOG.
 
 ASK FIRST:
-- Before adding a lint suppression comment (e.g. eslint-disable, noqa, #[allow(...)], @SuppressWarnings). These should be a last resort.
+- Before adding a lint or formatter suppression comment (e.g. eslint-disable, biome-ignore, prettier-ignore, noqa, #[allow(...)], @SuppressWarnings). These should be a last resort.
 - Before adding a type-checking suppression comment (e.g. ts-ignore, ts-expect-error, ts-nocheck, type: ignore).
 - Lint suppression in test files is acceptable without asking only when comprehensive test coverage requires it (e.g. file length limits) or when intentional duplication improves test isolation. Include matching re-enable comments where applicable.
 
