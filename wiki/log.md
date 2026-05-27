@@ -104,3 +104,10 @@
 - Refreshed the `git` source note with 44 new commits through `9e52f0d12bc01a85754f30b5ec70c97e6204bfab`, advanced the merged-PR cursor to `#1017`, and confirmed that `roles` still had no roster pages to ingest.
 - Skipped `memory` because the available Claude memory directory was not provably project-scoped for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot, workflow playbook, vocabulary, and index for Expo skills, query-first project answers, split exploratory QA coverage, repair-intake blocker diagnosis, ideation run ledgers, nested team orchestration, TypeScript error-suppression blocking, and crash-safe postinstall apply behavior.
+
+## 2026-05-27 - Incremental connector ingest
+
+- Synced the durable checkout to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-27-213503`, and ran another full no-argument ingest against every enabled non-external-write connector.
+- Refreshed the `git` source note with 19 new commits through `6dbfeb7ec507cfbb56bc905db47ea14f5bce9762`, advanced the merged-PR cursor to `#1033`, and confirmed that `roles` still had no roster pages to ingest.
+- Ingested the Lisa project-scoped Claude memory directory into `wiki/sources/memory/2026-05-27-memory.md`; global Codex memory remained out of scope.
+- Updated the monorepo snapshot, workflow playbook, vocabulary, and index for standard wiki staff roster defaults, PRD pressure gating, hook-delivery guidance, and release-history changes through `2.115.3`.

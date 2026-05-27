@@ -1,9 +1,9 @@
 {
   "connector": "memory",
   "profile": "project",
-  "ingested_at": "2026-05-27T13:35:10.065Z",
+  "ingested_at": "2026-05-27T21:35:17.044Z",
   "cursor": {
-    "files": 21,
+    "files": 22,
     "lastIngest": "2026-05-27"
   },
   "source_notes": [
