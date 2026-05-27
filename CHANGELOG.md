@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.111.0](https://github.com/CodySwannGT/lisa/compare/vv2.110.1...v2.111.0) (2026-05-27)
+
+
+### Features
+
+* **qa:** split exploratory-qa into human-experience pass + e2e-coverage-gaps ([ffd43fa](https://github.com/CodySwannGT/lisa/commit/ffd43fa52412c30fe9ba927fb463e376ce4605eb))
+* **repair-intake:** 2h stuck threshold + PR/deploy blocker diagnosis ([7ef908d](https://github.com/CodySwannGT/lisa/commit/7ef908df0f68acd8b3d73184a2d0e50a4eafd167))
+* **wiki:** make /query the primary way agents answer project questions ([7826528](https://github.com/CodySwannGT/lisa/commit/78265287b0ac76bdda4acc75076d5300288fc4ad))
+
 ### [2.110.1](https://github.com/CodySwannGT/lisa/compare/vv2.110.0...v2.110.1) (2026-05-27)
 
 
