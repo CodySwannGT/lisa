@@ -13,9 +13,11 @@
  *
  * `exploratory-qa` (shipped in the expo / rails / harper-fabric stacks) stops
  * writing a report file and instead files every finding as a tracked work item
- * via `lisa:tracker-write`. A `ready` flag controls the build-ready state of bug
- * and usability-suggestion tickets (default: backlog/triage); missing-Playwright
- * -test tickets are always created build-ready.
+ * via `lisa:tracker-write`. It is a pure first-time-user experience pass: a
+ * `ready` flag controls the build-ready state of bug and usability-suggestion
+ * tickets (default: backlog/triage). Automated-coverage gaps are NOT its job —
+ * they are delegated to the sibling `e2e-coverage-gaps` skill, which inventories
+ * routes + the Playwright suite and files build-ready missing-test tickets.
  *
  * Both the source (`plugins/src/...`) and the generated artifact
  * (`plugins/lisa*`) are asserted, so an artifact-only edit or a missed
@@ -161,14 +163,53 @@ describe("exploratory-qa feeds the lifecycle (no report file)", () => {
       expect(content).toMatch(/Improvement/);
     });
 
-    it("always files missing Playwright tests as build-ready", () => {
-      // The table row and the prose must both force tests to ready.
-      expect(content).toMatch(/Missing Playwright test/);
-      expect(content).toMatch(/ALWAYS created build-ready|`true` \(always\)/);
+    it("delegates automated-coverage gaps to the e2e-coverage-gaps skill", () => {
+      // The Playwright-coverage concern moved out of exploratory-qa.
+      expect(content).toContain("e2e-coverage-gaps");
+      // The old report-file deliverable for gaps must be gone.
+      expect(content).not.toMatch(/Missing Playwright test/);
     });
 
     it("is idempotent via a stable lisa-exploratory-qa marker", () => {
       expect(content).toContain("[lisa-exploratory-qa]");
+      expect(content).toMatch(/never by title|match by the marker/i);
+    });
+  });
+});
+
+describe("e2e-coverage-gaps files missing-test gaps as build-ready work", () => {
+  /** Source + generated root pairs for each stack that ships e2e-coverage-gaps. */
+  const GAP_ROOTS = [
+    "plugins/src/expo/skills",
+    "plugins/src/rails/skills",
+    "plugins/src/harper-fabric/skills",
+    "plugins/lisa-expo/skills",
+    "plugins/lisa-rails/skills",
+    "plugins/lisa-harper-fabric/skills",
+  ] as const;
+
+  describe.each(GAP_ROOTS)("%s/e2e-coverage-gaps", root => {
+    const content = readSkill(root, "e2e-coverage-gaps");
+
+    it("files findings via the vendor-neutral lisa:tracker-write", () => {
+      expect(content).toContain("lisa:tracker-write");
+    });
+
+    it("files missing-test tickets build-ready by default", () => {
+      expect(content).toContain("build_ready");
+      expect(content).toMatch(/missing-test/i);
+      expect(content).toMatch(/build-ready/i);
+      // ready flag defaults to true (coverage is safe to queue).
+      expect(content).toContain("ready=true|false");
+      expect(content).toMatch(/default.*`true`/i);
+    });
+
+    it("delegates human usability findings back to exploratory-qa", () => {
+      expect(content).toContain("exploratory-qa");
+    });
+
+    it("is idempotent via a stable lisa-e2e-coverage-gaps marker", () => {
+      expect(content).toContain("[lisa-e2e-coverage-gaps]");
       expect(content).toMatch(/never by title|match by the marker/i);
     });
   });
