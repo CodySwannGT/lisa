@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.106.8](https://github.com/CodySwannGT/lisa/compare/vv2.106.7...v2.106.8) (2026-05-27)
+
+
+### Bug Fixes
+
+* **automations:** use durable synced Lisa checkouts ([ea4881c](https://github.com/CodySwannGT/lisa/commit/ea4881c839f290092843fd06199d73da8491d18c))
+
 ### [2.106.7](https://github.com/CodySwannGT/lisa/compare/vv2.106.6...v2.106.7) (2026-05-27)
 
 
