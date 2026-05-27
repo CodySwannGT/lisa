@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.115.1](https://github.com/CodySwannGT/lisa/compare/vv2.115.0...v2.115.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* **project-ideation:** block auto-ready prds under queue pressure ([964ae08](https://github.com/CodySwannGT/lisa/commit/964ae0812d959fccaf6782452666b9fe65793404))
+
 ## [2.115.0](https://github.com/CodySwannGT/lisa/compare/vv2.114.0...v2.115.0) (2026-05-27)
 
 
