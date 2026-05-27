@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.113.0](https://github.com/CodySwannGT/lisa/compare/vv2.112.0...v2.113.0) (2026-05-27)
+
+
+### Features
+
+* **postinstall:** re-enable crash-safe template apply on local install ([4b8f113](https://github.com/CodySwannGT/lisa/commit/4b8f1136bb27413b7534e645ae8a639a6d958175)), closes [#318](https://github.com/CodySwannGT/lisa/issues/318) [#318](https://github.com/CodySwannGT/lisa/issues/318)
+
 ## [2.112.0](https://github.com/CodySwannGT/lisa/compare/vv2.111.0...v2.112.0) (2026-05-27)
 
 
