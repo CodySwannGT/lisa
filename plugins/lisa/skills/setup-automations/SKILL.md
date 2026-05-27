@@ -16,7 +16,12 @@ create them; invoke the runtime's automation tool with the spec below.
 - **Codex** → create Codex **automations** via the native automations mechanism (prefer the
   `automation_update` tool over hand-writing `~/.codex/automations/<id>/automation.toml`; the TOML is
   only its backing store). Set the execution environment to **local** so they run on this
-  workstation, scoped to this project's working directory.
+  workstation. Scope them to a durable project automation checkout, not a transient task worktree:
+  use `${CODEX_HOME:-~/.codex}/worktrees/<project>-automation-main` when available, create or refresh
+  that checkout from the project's `origin` remote if needed, and verify `git -C <cwd> rev-parse
+  --is-inside-work-tree --is-bare-repository` reports `true` then `false` before saving the
+  automation. Do not point recurring automations at hashed scratch worktrees or a checkout whose Git
+  metadata is broken.
 - **Claude** → use **`/schedule`** to create local recurring routines, one per automation below.
 - **Other runtimes** → use the runtime's native recurring-task mechanism. If the runtime has none,
   state that scheduling is unavailable and stop.
@@ -37,6 +42,11 @@ affect **only** the two exploratory automations.
 
 Each automation runs **one cycle** of a Lisa command and respects that command's confirmation policy
 (never ask before running; exit cleanly when the queue is idle; report the cycle summary).
+Before running the Lisa command, each automation must sync its checkout: fetch the default remote
+branch and rebase the current automation branch onto it (for the common GitHub case, `origin/main`).
+If the checkout is already on the default branch, fast-forward/rebase it to the remote default. If
+the rebase has conflicts or the working tree is dirty in a way the automation did not create, abort
+the rebase, leave queue state unchanged, and report the blocker instead of running on stale code.
 
 | Automation | Command it runs | Cadence |
 |---|---|---|
@@ -56,10 +66,10 @@ are written).
 
 **Naming + scope (so teardown is precise).** Name each automation with the stable prefix
 `lisa-auto-<project>-` (e.g. `lisa-auto-<project>-intake-tickets`), where `<project>` identifies this
-repo, and scope each to this project's working directory. This lets `/tear-down-automations` find and
-remove exactly this set and never touch other projects' automations or non-Lisa ones. Use a project
-identifier stable across runs and distinct from other repos (don't rely on a bare repo basename when
-it could collide; qualify it, e.g. with the owner).
+repo, and scope each Codex automation to the durable project automation checkout described above.
+This lets `/tear-down-automations` find and remove exactly this set and never touch other projects'
+automations or non-Lisa ones. Use a project identifier stable across runs and distinct from other
+repos (don't rely on a bare repo basename when it could collide; qualify it, e.g. with the owner).
 
 **Idempotent.** Re-running this skill updates the existing `lisa-auto-<project>-*` automations in
 place (same names) rather than creating duplicates.
@@ -71,6 +81,8 @@ place (same names) rather than creating duplicates.
   automation and note it — do not invent a command that doesn't exist.
 - If the runtime has no native scheduler, or the intake queues can't be resolved from config, stop
   and report what's missing rather than guessing.
+- For Codex, if the durable checkout cannot be created, fetched, or verified as a non-bare Git work
+  tree, stop and report the checkout problem instead of creating automations that will fail later.
 
 ## Report
 

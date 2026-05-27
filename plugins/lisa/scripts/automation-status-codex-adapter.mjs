@@ -13,6 +13,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { compareAutomationFleet } from "./automation-status-contract-drift.mjs";
 
@@ -22,6 +24,7 @@ const RUN_FAILURE_PATTERN =
   /\b(failed|failure|errored|error|exception|crash(?:ed)?)\b/i;
 const NEGATED_FAILURE_PATTERN =
   /\b(no|without)\s+(?:recent\s+)?(?:fail(?:ure|ed)|errors?|exceptions?)\b/i;
+const execFileAsync = promisify(execFile);
 
 /**
  * @typedef {import("./automation-status-expected-fleet.mjs").resolveExpectedAutomationFleet extends (...args: any[]) => infer T ? T : never} ExpectedFleet
@@ -34,6 +37,10 @@ const NEGATED_FAILURE_PATTERN =
  *   readonly observedRRule?: string
  *   readonly observedCommand?: string
  *   readonly cwd?: string | null
+ *   readonly cwdHealth?: {
+ *     readonly status: "ok" | "missing" | "not_directory" | "not_git_work_tree" | "bare_git_repository" | "git_error"
+ *     readonly summary: string
+ *   }
  *   readonly createdAt?: number | null
  *   readonly updatedAt?: number | null
  *   readonly lastRunAt?: string | null
@@ -266,6 +273,8 @@ async function readCodexAutomation(automationDir) {
   const memoryContent = await fs.readFile(memoryPath, "utf8").catch(() => "");
   const memory = parseCodexAutomationMemory(memoryContent);
   const cwd = Array.isArray(automation.cwds) ? automation.cwds[0] : null;
+  const normalizedCwd = typeof cwd === "string" ? cwd : null;
+  const cwdHealth = await inspectAutomationCwd(normalizedCwd);
 
   return {
     automationId:
@@ -279,7 +288,8 @@ async function readCodexAutomation(automationDir) {
     observedCommand: deriveCodexObservedCommand(
       stringOrUndefined(automation.prompt)
     ),
-    cwd: typeof cwd === "string" ? cwd : null,
+    cwd: normalizedCwd,
+    cwdHealth,
     createdAt: numberOrNull(automation.created_at),
     updatedAt: numberOrNull(automation.updated_at),
     ...memory,
@@ -299,6 +309,9 @@ function createObservedStatusItem(input) {
   const observedDetails = [comparison.observed];
   if (observed?.status) {
     observedDetails.push(`Scheduler status: ${observed.status}`);
+  }
+  if (observed?.cwdHealth) {
+    observedDetails.push(`Cwd: ${observed.cwdHealth.summary}`);
   }
   if (observed?.lastRunAt) {
     observedDetails.push(`Last run: ${observed.lastRunAt}`);
@@ -352,6 +365,15 @@ function classifyAutomationRunSignal(input) {
     };
   }
 
+  if (observed.cwdHealth && observed.cwdHealth.status !== "ok") {
+    return {
+      status: "FAILING",
+      summary: `scheduler cwd is invalid: ${observed.cwdHealth.summary}`,
+      remediation:
+        "Recreate the automation with `/lisa:setup-automations` so it uses a durable non-bare project checkout, then verify the cwd before the next run.",
+    };
+  }
+
   if (observed.lastRunFailed) {
     return {
       status: "FAILING",
@@ -388,6 +410,69 @@ function classifyAutomationRunSignal(input) {
   }
 
   return null;
+}
+
+async function inspectAutomationCwd(cwd) {
+  if (!cwd) {
+    return {
+      status: "missing",
+      summary: "no cwd configured",
+    };
+  }
+
+  const stat = await fs.stat(cwd).catch(error => {
+    if (error?.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  });
+
+  if (!stat) {
+    return {
+      status: "missing",
+      summary: `${cwd} does not exist`,
+    };
+  }
+
+  if (!stat.isDirectory()) {
+    return {
+      status: "not_directory",
+      summary: `${cwd} is not a directory`,
+    };
+  }
+
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", cwd, "rev-parse", "--is-inside-work-tree", "--is-bare-repository"],
+      { timeout: 5000 }
+    );
+    const [insideWorkTree, bareRepository] = stdout.trim().split(/\r?\n/);
+
+    if (insideWorkTree !== "true") {
+      return {
+        status: "not_git_work_tree",
+        summary: `${cwd} is not inside a Git work tree`,
+      };
+    }
+
+    if (bareRepository === "true") {
+      return {
+        status: "bare_git_repository",
+        summary: `${cwd} is configured as a bare Git repository`,
+      };
+    }
+
+    return {
+      status: "ok",
+      summary: `${cwd} is a valid Git work tree`,
+    };
+  } catch (error) {
+    return {
+      status: "git_error",
+      summary: `git could not inspect ${cwd}: ${String(error?.message ?? error)}`,
+    };
+  }
 }
 
 function resolveDefaultCodexAutomationsDir() {
