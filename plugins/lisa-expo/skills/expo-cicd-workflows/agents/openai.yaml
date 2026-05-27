@@ -1,0 +1,4 @@
+display_name: "Expo Cicd Workflows"
+short_description: "Helps understand and write EAS workflow YAML files for Expo projects"
+default_prompt:
+  - "Use $expo-cicd-workflows: Helps understand and write EAS workflow YAML files for Expo projects."

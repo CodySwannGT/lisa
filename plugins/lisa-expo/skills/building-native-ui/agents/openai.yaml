@@ -1,0 +1,4 @@
+display_name: "Building Native UI"
+short_description: "Complete guide for building beautiful apps with Expo Router"
+default_prompt:
+  - "Use $building-native-ui: Complete guide for building beautiful apps with Expo Router."
