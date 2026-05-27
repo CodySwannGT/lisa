@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.108.0](https://github.com/CodySwannGT/lisa/compare/vv2.107.2...v2.108.0) (2026-05-27)
+
+
+### Features
+
+* add project ideation idempotency harness ([81c6061](https://github.com/CodySwannGT/lisa/commit/81c6061bb739b86fad44ffe3d08dab01145821e3))
+
 ### [2.107.2](https://github.com/CodySwannGT/lisa/compare/vv2.107.1...v2.107.2) (2026-05-27)
 
 ### [2.107.1](https://github.com/CodySwannGT/lisa/compare/vv2.107.0...v2.107.1) (2026-05-27)
