@@ -72,6 +72,13 @@ describe("setup-automations is a runtime-branched declarative spec", () => {
       expect(content).toMatch(/idempotent/i);
     });
 
+    it("requires a durable verified Codex checkout and pre-run rebase", () => {
+      expect(content).toContain("<project>-automation-main");
+      expect(content).toMatch(/non-bare Git work tree|--is-bare-repository/);
+      expect(content).toMatch(/fetch the default remote\s+branch/i);
+      expect(content).toMatch(/rebase.*origin\/main/i);
+    });
+
     it("only creates exploratory-bugs when the stack ships exploratory-qa", () => {
       // Names the three exploratory-qa stacks (markdown may wrap each in backticks).
       expect(content).toMatch(/expo[^]{0,12}rails[^]{0,16}harper-fabric/);
