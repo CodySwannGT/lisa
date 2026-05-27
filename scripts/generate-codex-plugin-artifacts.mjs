@@ -284,12 +284,17 @@ function summarizeDescription(description) {
  */
 export function deriveSkillInterface(frontmatter, skillName) {
   const name = frontmatter?.name?.trim() || skillName;
+  // Codex invokes skills by their canonical kebab `$<slug>` token, which is the
+  // skill directory name — NOT the (possibly humanized) frontmatter `name`. Some
+  // vendored skills (e.g. Expo's) set `name:` to a Title Cased label, which would
+  // otherwise yield an invalid handle like `$Expo UI Jetpack Compose`.
+  const token = skillName;
   const description = frontmatter?.description?.trim() || "";
   const shortDescription = summarizeDescription(description);
   const starter =
     shortDescription === ""
-      ? `Use $${name}`
-      : `Use $${name}: ${shortDescription}.`;
+      ? `Use $${token}`
+      : `Use $${token}: ${shortDescription}.`;
   return {
     display_name: humanizeName(name),
     short_description: shortDescription,
