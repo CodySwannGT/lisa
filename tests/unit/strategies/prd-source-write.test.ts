@@ -69,6 +69,14 @@ describe("prd-source-write shim", () => {
       expect(content).toMatch(/marker/i);
       expect(content).toMatch(/dedupe/i);
     });
+
+    it("forwards the ideation ledger payload without vendor-specific rendering", () => {
+      expect(content).toContain("ideation_ledger_payload");
+      expect(content).toMatch(
+        /Forward\s+the object verbatim|pass-through payload/i
+      );
+      expect(content).toMatch(/Never drop, rename, or vendor-render/i);
+    });
   });
 });
 
@@ -135,6 +143,30 @@ describe("per-vendor PRD writers", () => {
       expect(content).toMatch(/prd-draft/);
       expect(content).toMatch(/prd-ready/);
       expect(content).toMatch(/exactly one/i);
+    });
+
+    it("persists an exploratory ideation run ledger on create and reuse", () => {
+      expect(content).toContain("## Exploratory Ideation Run Ledger");
+      expect(content).toContain("lisa:exploratory-ideation-run-ledger:start");
+      for (const field of [
+        "timestamp",
+        "automation_id",
+        "repo",
+        "prd_ready",
+        "persona_evidence_refs",
+        "selected_idea",
+        "dedupe_marker",
+        "prd_url",
+        "outcome",
+        "lifecycle_role_after_write",
+        "rejected_overlap_candidates",
+        "expected_empirical_verification_artifact",
+      ]) {
+        expect(content).toContain(field);
+      }
+      expect(content).toMatch(/outcome: created/);
+      expect(content).toMatch(/outcome: reused/);
+      expect(content).toMatch(/do not downgrade/i);
     });
   });
 
@@ -237,6 +269,22 @@ describe("project-ideation is persona-driven and chains into research", () => {
       expect(content).toContain("prd_ready");
     });
 
+    it("threads structured ideation ledger metadata into research", () => {
+      expect(content).toContain("ideation_ledger_payload");
+      for (const field of [
+        "selected marker",
+        "automation id",
+        "memory path",
+        "persona names",
+        "persona evidence references",
+        "rejected overlap",
+        "repo identity",
+        "expected empirical",
+      ]) {
+        expect(content).toMatch(new RegExp(field, "i"));
+      }
+    });
+
     it("defaults to creating one PRD via max_prds", () => {
       expect(content).toContain("max_prds");
       expect(content).toMatch(
@@ -257,6 +305,18 @@ describe("project-ideation is persona-driven and chains into research", () => {
       expect(content).toMatch(
         /never write.*PRD.*directly|do not write PRDs to the source directly/i
       );
+    });
+  });
+});
+
+describe("research forwards ideation ledger metadata to prd-source-write", () => {
+  describe.each(ROOTS)("%s", root => {
+    const content = readSkill(root, "research");
+
+    it("accepts and preserves ideation_ledger_payload", () => {
+      expect(content).toContain("ideation_ledger_payload");
+      expect(content).toMatch(/pass.*through.*unchanged|forward unchanged/i);
+      expect(content).toContain("lisa:prd-source-write");
     });
   });
 });
