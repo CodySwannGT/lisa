@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.106.6](https://github.com/CodySwannGT/lisa/compare/vv2.106.5...v2.106.6) (2026-05-27)
+
+
+### Documentation
+
+* **wiki:** ingest incremental git history ([0d7f4e4](https://github.com/CodySwannGT/lisa/commit/0d7f4e481e33463b5206a2e541099feeea115e48))
+
 ### [2.106.5](https://github.com/CodySwannGT/lisa/compare/vv2.106.4...v2.106.5) (2026-05-26)
 
 
