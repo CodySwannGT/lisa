@@ -136,6 +136,30 @@ describe("per-vendor PRD writers", () => {
       expect(content).toMatch(/prd-ready/);
       expect(content).toMatch(/exactly one/i);
     });
+
+    it("persists an exploratory ideation run ledger on create and reuse", () => {
+      expect(content).toContain("## Exploratory Ideation Run Ledger");
+      expect(content).toContain("lisa:exploratory-ideation-run-ledger:start");
+      for (const field of [
+        "timestamp",
+        "automation_id",
+        "repo",
+        "prd_ready",
+        "persona_evidence_refs",
+        "selected_idea",
+        "dedupe_marker",
+        "prd_url",
+        "outcome",
+        "lifecycle_role_after_write",
+        "rejected_overlap_candidates",
+        "expected_empirical_verification_artifact",
+      ]) {
+        expect(content).toContain(field);
+      }
+      expect(content).toMatch(/outcome: created/);
+      expect(content).toMatch(/outcome: reused/);
+      expect(content).toMatch(/do not downgrade/i);
+    });
   });
 
   describe.each(ROOTS)("linear-write-prd specifics (%s)", root => {
