@@ -43,7 +43,8 @@ The harness performs the acceptance check in three phases:
    require exactly one match.
 2. Run the same command again, then require the open marker count to remain one.
 3. Move the automation memory file aside, run the command again, require the marker count to remain
-   one, and require the memory file to be recreated. The original memory file is restored at the end.
+   one, and require the memory file to be recreated with marker, PRD URL, outcome, lifecycle role,
+   and source agreement fields. The original memory file is restored at the end.
 
 ## Expected evidence
 
@@ -53,4 +54,4 @@ Capture the harness JSON output as:
 - `[EVIDENCE: memory-recreated-after-rerun]` from the missing-memory variant.
 
 The run passes only when all reported counts are `1`, the issue URL is the same across phases, and
-`memoryRecreated` is `true` when `--memory-file` is supplied.
+`memoryRecreated` and `memoryFieldsRecorded` are `true` when `--memory-file` is supplied.
