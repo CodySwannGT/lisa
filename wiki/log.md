@@ -83,3 +83,10 @@
 - Refreshed the `git` source note with 7 new commits through `65043e915a23a992904badaf708fd5a849cd54e5`, advanced the merged-PR cursor to `#994`, and confirmed that `roles` still had no roster pages to ingest.
 - Skipped `memory` again because no provably project-scoped memory directory was available for this repository in the current runtime; the only known Codex memory store is global and remains out of scope.
 - Updated the monorepo snapshot synthesis for the prior wiki ingest merge, plugin-sync scratch drift comparison, and release-history changes through `2.106.5`.
+
+## 2026-05-27 - Incremental connector ingest
+
+- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-27-053204`, and ran another full no-argument ingest against every enabled non-external-write connector.
+- Refreshed the `git` source note with 3 new commits through `73072b8e5b839dede4bf50985232d1d6bddfe9f4`, advanced the merged-PR cursor to `#995`, and confirmed that `roles` still had no roster pages to ingest.
+- Ingested the Lisa project-scoped Claude memory directory into `wiki/sources/memory/2026-05-27-memory.md`; global Codex memory remained out of scope.
+- Updated the monorepo snapshot synthesis for the prior wiki ingest merge, release-history changes through `2.106.6`, and newly captured project-scoped memory guidance.
