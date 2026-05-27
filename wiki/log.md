@@ -76,3 +76,10 @@
 - Refreshed the `git` source note with 9 new commits through `6e98950d496260faad821f90e5f4f6e2b059c3fb`, advanced the merged-PR cursor to `#992`, and confirmed that `roles` still had no roster pages to ingest.
 - Skipped `memory` again because no provably project-scoped memory directory was available for this repository in the current runtime; `CODEX_HOME` was unset and global Codex memory remains out of scope.
 - Updated the monorepo snapshot synthesis for the latest plugin-sync marketplace drift fixes, fixture coverage, prior wiki ingest merge, and release-history changes.
+
+## 2026-05-27 - Incremental connector ingest
+
+- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-26-213256`, and ran another full no-argument ingest against every enabled non-external-write connector that was available.
+- Refreshed the `git` source note with 7 new commits through `65043e915a23a992904badaf708fd5a849cd54e5`, advanced the merged-PR cursor to `#994`, and confirmed that `roles` still had no roster pages to ingest.
+- Skipped `memory` again because no provably project-scoped memory directory was available for this repository in the current runtime; the only known Codex memory store is global and remains out of scope.
+- Updated the monorepo snapshot synthesis for the prior wiki ingest merge, plugin-sync scratch drift comparison, and release-history changes through `2.106.5`.
