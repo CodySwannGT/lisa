@@ -35,6 +35,8 @@ describe("project-ideation idempotency harness (#1010)", () => {
     expect(content).toContain("--memory-file");
     expect(content).toContain('`"${marker}" in:body`');
     expect(content).toContain("memoryRecreated");
+    expect(content).toContain("memoryFieldsRecorded");
+    expect(content).toContain("source_agreement:");
   });
 
   it.each(SKILL_ROOTS)("%s documents fixture-driven verification", root => {
@@ -43,5 +45,7 @@ describe("project-ideation idempotency harness (#1010)", () => {
     expect(content).toContain("fixture=<path>");
     expect(content).toContain("idempotency-verification-harness.md");
     expect(content).toMatch(/marker count at one/i);
+    expect(content).toContain("Optional Codex automation memory");
+    expect(content).toContain("source_agreement");
   });
 });
