@@ -1,0 +1,4 @@
+display_name: "Expo UI Jetpack Compose"
+short_description: "`@expo/ui/jetpack-compose` package lets you use Jetpack Compose Views and modifiers in your app"
+default_prompt:
+  - "Use $expo-ui-jetpack-compose: `@expo/ui/jetpack-compose` package lets you use Jetpack Compose Views and modifiers in your app."
