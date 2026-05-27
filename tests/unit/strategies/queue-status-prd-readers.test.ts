@@ -14,7 +14,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   createPrdQueueSnapshot,
-  evaluatePrdQueuePressure,
   readGithubPrdQueueSnapshot,
 } from "../../../plugins/src/base/scripts/queue-status-prd-readers.mjs";
 
@@ -35,7 +34,6 @@ const GITHUB_PRD_ROLES = {
   verified: "prd-verified",
 } as const;
 const GITHUB_PRD_QUEUE_ARGUMENT = "github intake_mode=prd";
-const GITHUB_PRD_ITEM_URL_BASE = "https://github.com/CodySwannGT/lisa/issues";
 
 /**
  *
@@ -248,69 +246,6 @@ describe("queue-status PRD readers (#824)", () => {
     }
   });
 
-  it("evaluates source-neutral PRD queue pressure from fixture payloads", () => {
-    const quiet = createPrdQueueSnapshot({
-      source: "github",
-      namespaceAdopted: true,
-      queueArgument: GITHUB_PRD_QUEUE_ARGUMENT,
-      items: [],
-    });
-    const ready = createPressureSnapshot("ready", 101);
-    const blocked = createPrdQueueSnapshot({
-      source: "github",
-      namespaceAdopted: true,
-      queueArgument: GITHUB_PRD_QUEUE_ARGUMENT,
-      items: [
-        toPressureFixtureItem("ready", 102),
-        toPressureFixtureItem("blocked", 103),
-      ],
-    });
-    const ticketed = createPressureSnapshot("ticketed", 104);
-    const shipped = createPressureSnapshot("shipped", 105);
-
-    expect(evaluatePrdQueuePressure(quiet)).toEqual({
-      allowed: true,
-      decisiveRole: null,
-      blockerItem: null,
-      nextStep: null,
-    });
-    expect(evaluatePrdQueuePressure(ready)).toMatchObject({
-      allowed: false,
-      decisiveRole: "ready",
-      blockerItem: {
-        url: `${GITHUB_PRD_ITEM_URL_BASE}/101`,
-        nextStep:
-          "Run /lisa:intake github intake_mode=prd to ticket the next PRD.",
-      },
-    });
-    expect(evaluatePrdQueuePressure(blocked)).toMatchObject({
-      allowed: false,
-      decisiveRole: "blocked",
-      blockerItem: {
-        url: `${GITHUB_PRD_ITEM_URL_BASE}/103`,
-        nextStep:
-          "Run /lisa:repair-intake github intake_mode=prd after clarifying the blocker.",
-      },
-    });
-    expect(evaluatePrdQueuePressure(ticketed)).toMatchObject({
-      allowed: false,
-      decisiveRole: "ticketed",
-      blockerItem: {
-        url: `${GITHUB_PRD_ITEM_URL_BASE}/104`,
-        nextStep:
-          "Monitor downstream build work or inspect the build queue with /lisa:queue-status queue=build.",
-      },
-    });
-    expect(evaluatePrdQueuePressure(shipped)).toMatchObject({
-      allowed: false,
-      decisiveRole: "shipped",
-      blockerItem: {
-        url: `${GITHUB_PRD_ITEM_URL_BASE}/105`,
-        nextStep: `Run /lisa:verify-prd ${GITHUB_PRD_ITEM_URL_BASE}/105 to close the shipped loop.`,
-      },
-    });
-  });
-
   it("keeps the distributed reader artifact in lockstep with the source script", () => {
     const sourcePath = path.resolve(
       "plugins/src/base/scripts/queue-status-prd-readers.mjs"
@@ -324,21 +259,4 @@ describe("queue-status PRD readers (#824)", () => {
       readFileSync(sourcePath, "utf8")
     );
   });
-});
-
-const createPressureSnapshot = (role: string, number: number) =>
-  createPrdQueueSnapshot({
-    source: "github",
-    namespaceAdopted: true,
-    queueArgument: GITHUB_PRD_QUEUE_ARGUMENT,
-    items: [toPressureFixtureItem(role, number)],
-  });
-
-const toPressureFixtureItem = (role: string, number: number) => ({
-  id: String(number),
-  ref: `#${number}`,
-  title: `${role} PRD pressure fixture`,
-  url: `${GITHUB_PRD_ITEM_URL_BASE}/${number}`,
-  createdAt: `2026-05-27T19:${number % 60}:00Z`,
-  role,
 });

@@ -65,6 +65,20 @@ const HIGHLIGHT_COPY = {
  * }} snapshot
  */
 export function evaluatePrdQueuePressure(snapshot = {}) {
+  if (
+    snapshot.queueResolved === false ||
+    snapshot.health?.verdict === "MISCONFIGURED"
+  ) {
+    return {
+      allowed: false,
+      decisiveRole: "misconfigured",
+      blockerItem: null,
+      nextStep: snapshot.resolutionError
+        ? `Fix PRD source queue configuration: ${snapshot.resolutionError}`
+        : "Fix PRD source queue configuration before creating auto-ready PRDs.",
+    };
+  }
+
   const decisiveRole = ACTIONABLE_ROLE_ORDER.find(
     role => normalizeCount(snapshot.counts?.[role]) > 0
   );
