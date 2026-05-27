@@ -5,10 +5,17 @@
  * The harness runs a caller-supplied deterministic project-ideation command
  * twice, checks that exactly one open GitHub PRD contains the expected marker,
  * then optionally removes the automation memory file and verifies a third run
- * recreates memory without creating a duplicate PRD.
+ * recreates memory without creating a duplicate PRD. The recreated memory entry
+ * must include the advisory run fields project-ideation promises to write.
  */
 
-import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -190,7 +197,7 @@ function queryOpenIssuesByMarker(repo, marker) {
  * @param {string} marker
  * @param {string} command
  * @param {string} memoryFile
- * @returns {{ readonly count: number, readonly issue: Record<string, any>, readonly memoryRecreated: boolean }}
+ * @returns {{ readonly count: number, readonly issue: Record<string, any>, readonly memoryRecreated: boolean, readonly memoryFieldsRecorded: boolean }}
  */
 function runMissingMemoryVariant(repo, marker, command, memoryFile) {
   const backup = `${memoryFile}.project-ideation-idempotency-backup`;
@@ -208,9 +215,27 @@ function runMissingMemoryVariant(repo, marker, command, memoryFile) {
       marker,
       "after missing-memory run"
     );
+    const memoryRecreated = existsSync(memoryFile);
+    const memoryFieldsRecorded =
+      memoryRecreated &&
+      memoryContainsRunEntry(memoryFile, {
+        marker,
+        prdUrl: String(result.issue.url),
+      });
+
+    if (!memoryRecreated) {
+      fail(`Expected missing-memory run to recreate ${memoryFile}`);
+    }
+    if (!memoryFieldsRecorded) {
+      fail(
+        `Expected recreated memory to record marker, PRD URL, outcome, lifecycle_role, and source_agreement`
+      );
+    }
+
     return {
       ...result,
-      memoryRecreated: existsSync(memoryFile),
+      memoryRecreated,
+      memoryFieldsRecorded,
     };
   } finally {
     if (existsSync(backup)) {
@@ -219,6 +244,24 @@ function runMissingMemoryVariant(repo, marker, command, memoryFile) {
       renameSync(backup, memoryFile);
     }
   }
+}
+
+/**
+ * @param {string} memoryFile
+ * @param {{ readonly marker: string, readonly prdUrl: string }} expected
+ * @returns {boolean}
+ */
+function memoryContainsRunEntry(memoryFile, expected) {
+  const memory = readFileSync(memoryFile, "utf8");
+  const requiredFragments = [
+    expected.marker,
+    expected.prdUrl,
+    "outcome:",
+    "lifecycle_role:",
+    "source_agreement:",
+  ];
+
+  return requiredFragments.every(fragment => memory.includes(fragment));
 }
 
 /**

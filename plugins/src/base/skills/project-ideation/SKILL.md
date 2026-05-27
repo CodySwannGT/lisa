@@ -161,6 +161,26 @@ For each idea in the creation set, invoke `/lisa:research` with:
 `lisa:prd-source-write`. `project-ideation` never writes to the source directly — it delegates, so
 the PRD source stays switchable per project. Capture each returned PRD ref / URL / role / outcome.
 
+### Optional Codex automation memory
+
+When the run has a Codex automation id or memory path, maintain a concise local advisory ledger after
+the PRD source write returns. Resolve the memory path in this order:
+
+1. explicit `memory_file=<path>` or `automation_memory=<path>` argument, when supplied;
+2. `$CODEX_AUTOMATION_MEMORY`, when set;
+3. `$CODEX_HOME/automations/<automation_id>/memory.md`, when `automation_id=<id>` or
+   `$CODEX_AUTOMATION_ID` is available.
+
+Create the parent directory and `memory.md` if missing. Write one concise run entry keyed by the
+dedupe marker and run timestamp. The entry must include the marker, PRD URL/ref, outcome
+(`created | reused | updated | blocked`), lifecycle role (`draft | ready | blocked` or the returned
+source role), and `source_agreement` (`github-source-wins`, `memory-created`, `memory-updated`, or
+`memory-missing-runtime`). If memory says one thing but the PRD source search finds a matching open
+PRD, GitHub/source truth wins: reuse the source PRD and update memory rather than creating a
+duplicate. Keep memory advisory only; never use it to override lifecycle labels, source marker
+matches, or the PRD source writer's returned role. Do not store secrets, tokens, full PRD bodies, or
+private source excerpts in memory.
+
 ### Dedupe marker (stable, never title-based)
 
 Each created PRD carries the marker `[lisa-project-ideation] idea=<stable-key>`. Compute
