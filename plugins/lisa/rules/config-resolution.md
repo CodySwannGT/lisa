@@ -147,7 +147,7 @@ fi
   "intake": {
     "assignee": "<vendor-user-id-or-login>",
     "repair": {
-      "staleAfterHours": 24,
+      "staleAfterHours": 2,
       "maxCandidates": 100
     }
   }
@@ -299,7 +299,7 @@ documented defaults, so existing projects need no config change.
 
 | Key | Required | Default | Notes |
 |-----|----------|---------|-------|
-| `intake.repair.staleAfterHours` | no | `24` | How long an in-progress item (build `claimed`, PRD `in_review`) may show no observable activity before repair-intake treats it as stalled and resumes it. `blocked` items are judged on blocker/answer state, not this threshold. Overridable per-run via `stale_after=<dur>` in `$ARGUMENTS` (which always wins). The same value is the default backoff window for loop-prevention notes. |
+| `intake.repair.staleAfterHours` | no | `2` | How long an in-progress item (build `claimed`, PRD `in_review`) may show no observable activity before repair-intake treats it as stalled and resumes it. `blocked` items are judged on blocker/answer state, not this threshold. Overridable per-run via `stale_after=<dur>` in `$ARGUMENTS` (which always wins). The same value is the default backoff window for loop-prevention notes. |
 | `intake.repair.maxCandidates` | no | `100` | Upper bound on how many stuck items repair-intake enumerates while searching for the first actionable one. Bounds scan cost. Overridable per-run via `max_candidates=<n>`. |
 
 ### Intake assignee filter (`intake.assignee`)
