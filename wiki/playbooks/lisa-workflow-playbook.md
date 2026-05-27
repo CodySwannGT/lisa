@@ -14,6 +14,10 @@ Lisa exposes lifecycle commands and quality workflows that route work through re
 
 Lisa also supports local review, PR review handling, test coverage improvement, test hardening, code-complexity reduction, max-lines reduction, linter-error cleanup, branch pruning, and security scans.
 
+## Recurring Automations
+
+Codex-hosted Lisa automations should run from durable project automation checkouts, not transient task worktrees. Setup flows create or refresh a stable checkout under the Codex worktree area, verify it is a normal non-bare Git work tree, and require each automation cycle to fetch and rebase or fast-forward against the default remote branch before queue or wiki work begins. If the checkout is dirty, conflicted, stale, or has broken Git metadata, the automation reports the blocker instead of mutating queue or wiki state.
+
 ## Quality Gate Habit
 
 Before shipping Lisa changes, expect local hooks and CI to run typecheck, formatting, linting, slow lint, dead-code detection, tests, coverage, security audit, and integration checks depending on the action.

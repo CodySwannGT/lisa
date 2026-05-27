@@ -207,8 +207,73 @@ async function createGitWorkTreeFixture(automationsDir) {
   const reposDir = path.join(automationsDir, "_repos");
   await fs.mkdir(reposDir, { recursive: true });
   const repoDir = await fs.mkdtemp(path.join(reposDir, "repo-"));
-  await execFileAsync("git", ["init"], { cwd: repoDir });
+  // Retry transient process-spawn failures (e.g. EAGAIN under the heavy fork
+  // load of the full pre-push suite) so the fixture repo is reliably created;
+  // otherwise the adapter's cwd-health check sees a non-repo and flips the
+  // automation to FAILING, flaking the HEALTHY assertions.
+  await initGitRepoWithRetry(repoDir);
   return repoDir;
+}
+
+const TRANSIENT_SPAWN_ERROR_CODES = new Set([
+  "EAGAIN",
+  "ENOMEM",
+  "EMFILE",
+  "ENFILE",
+  "ETXTBSY",
+]);
+
+/**
+ * Git location env vars that override `cwd`/`-C`. They are exported when the
+ * suite runs inside a Git hook (e.g. pre-push), so scrub them to ensure
+ * `git init` targets the fixture directory and the adapter inspects it.
+ */
+const GIT_LOCATION_ENV_VARS = [
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_INDEX_FILE",
+  "GIT_OBJECT_DIRECTORY",
+  "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+  "GIT_COMMON_DIR",
+  "GIT_NAMESPACE",
+  "GIT_PREFIX",
+];
+
+/**
+ * Build the ambient env minus Git location overrides.
+ *
+ * @returns {NodeJS.ProcessEnv} A copy of process.env with Git location vars removed.
+ */
+function gitEnvWithoutLocationOverrides() {
+  const env = { ...process.env };
+  for (const key of GIT_LOCATION_ENV_VARS) {
+    delete env[key];
+  }
+  return env;
+}
+
+/**
+ * Initialize a Git repo, retrying transient process-spawn failures so the
+ * fixture survives the heavy fork load of the full pre-push suite.
+ *
+ * @param {string} repoDir Directory to run `git init` in.
+ * @param {number} [attempts] Maximum attempts before surfacing the failure.
+ * @returns {Promise<void>}
+ */
+async function initGitRepoWithRetry(repoDir, attempts = 4) {
+  const env = gitEnvWithoutLocationOverrides();
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await execFileAsync("git", ["init"], { cwd: repoDir, env });
+      return;
+    } catch (error) {
+      const transient = TRANSIENT_SPAWN_ERROR_CODES.has(error?.code);
+      if (!transient || attempt >= attempts) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, 2 ** attempt * 25));
+    }
+  }
 }
 
 /**

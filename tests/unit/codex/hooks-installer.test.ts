@@ -37,6 +37,8 @@ const FORMAT_ON_EDIT_ID = "format-on-edit";
 const RUBOCOP_ON_EDIT_ID = "rubocop-on-edit";
 /** Hook id for the NestJS-stack migration-block hook */
 const BLOCK_MIGRATION_EDITS_ID = "block-migration-edits";
+/** Hook id for the TypeScript-stack suppression-directive block hook */
+const BLOCK_SUPPRESS_DIRECTIVES_ID = "block-suppress-directives";
 /** Universal Bash policy hook id */
 const BLOCK_NO_VERIFY_ID = "block-no-verify";
 /** Universal dependency bootstrap hook id */
@@ -267,6 +269,7 @@ describe("codex/hooks-installer", () => {
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
+      expect(ids).not.toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
       expect(result.hookEntries).toBe(5);
     });
 
@@ -276,13 +279,14 @@ describe("codex/hooks-installer", () => {
       expect(ids).toContain(FORMAT_ON_EDIT_ID);
       expect(ids).toContain("lint-on-edit");
       expect(ids).toContain("sg-scan-on-edit");
+      expect(ids).toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
       // Plus universal
       expect(ids).toContain(INJECT_RULES_ID);
       expect(ids).toContain(NOTIFY_NTFY_ID);
       // NOT rails or nestjs
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
-      expect(result.hookEntries).toBe(8);
+      expect(result.hookEntries).toBe(9);
     });
 
     it("ships Rails hooks when rails is detected", async () => {
@@ -306,7 +310,9 @@ describe("codex/hooks-installer", () => {
       const ids = await readLisaHookIds(destDir);
       expect(ids).toContain(BLOCK_MIGRATION_EDITS_ID);
       expect(ids).toContain(FORMAT_ON_EDIT_ID);
-      expect(result.hookEntries).toBe(9);
+      // typescript also brings the suppression-directive block
+      expect(ids).toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
+      expect(result.hookEntries).toBe(10);
     });
 
     it("copies only the script files for applicable hooks", async () => {
