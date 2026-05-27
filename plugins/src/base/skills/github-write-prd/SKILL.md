@@ -10,7 +10,8 @@ Create (or update) a PRD issue in the configured source repo. Invoked by `lisa:p
 when `source = github`; do not call directly from a vendor-neutral caller.
 
 `$ARGUMENTS` carries the `lisa:prd-source-write` spec: `title`, `body` (full PRD markdown),
-`initial_role` (`draft` | `ready`, default `draft`), `dedupe_key`, `marker`, optional `source_ref`.
+`initial_role` (`draft` | `ready`, default `draft`), `dedupe_key`, `marker`, optional `source_ref`,
+and optional `ideation_ledger_payload` from `lisa:project-ideation` via `lisa:research`.
 
 ## Phase 1 — Resolve repo and PRD lifecycle labels
 
@@ -63,6 +64,40 @@ the single instance. If the live issue body already contains the canonical manag
 section, preserve it verbatim unless the caller intentionally supplied an updated canonical section;
 use the shared `usage-accounting` serializer/merge path rather than hand-editing ledger rows.
 
+**Exploratory ideation run ledger (both paths).** When the write was initiated by
+`lisa:project-ideation`, carries a project-ideation marker, or includes
+`ideation_ledger_payload`, persist a managed `## Exploratory Ideation Run Ledger` section in the PRD
+body. Prefer the managed section over a comment so the PRD itself remains the operator's source of
+truth; use a managed comment only if the body cannot be updated. Populate the fields from
+`ideation_ledger_payload` when present, falling back to `marker`, `initial_role`, repo config, and
+runtime metadata only for missing fields. Keep one managed section by replacing the content between
+stable markers:
+
+```markdown
+## Exploratory Ideation Run Ledger
+<!-- lisa:exploratory-ideation-run-ledger:start -->
+- timestamp: <ISO-8601 run timestamp>
+- automation_id: <Codex/Claude automation id or unavailable>
+- repo: <org>/<repo>
+- prd_ready: true|false
+- persona_evidence_refs: <comma-separated source refs or unavailable>
+- selected_idea: <selected idea title/key>
+- dedupe_marker: <MARKER>
+- prd_url: <created or reused PRD URL>
+- outcome: created|reused
+- lifecycle_role_after_write: draft|ready|in_review|blocked|ticketed|shipped|verified
+- rejected_overlap_candidates: <issue refs/titles considered and rejected, or none>
+- expected_empirical_verification_artifact: <artifact ref or unavailable>
+<!-- lisa:exploratory-ideation-run-ledger:end -->
+```
+
+On CREATE, write a ledger entry with `outcome: created`, the selected marker, the created PRD URL,
+and the lifecycle role applied by this write. On UPDATE/reuse, write `outcome: reused`, preserve the
+same dedupe marker, record the reused PRD URL, and report the lifecycle role that remains after
+reconciliation. If the live PRD has progressed past ready, do not downgrade it while recording the
+reuse ledger; the `lifecycle_role_after_write` value must be the existing progressed role. Preserve
+exactly one PRD lifecycle label in the same pass as the ledger write.
+
 **CREATE** (no existing issue):
 
 1. Write the marker-normalized PRD body to a temp file.
@@ -70,7 +105,11 @@ use the shared `usage-accounting` serializer/merge path rather than hand-editing
    gh issue create --repo "$ORG/$REPO" --title "$TITLE" --body-file /tmp/prd-body.md --label "$ROLE_LABEL"
    ```
 3. Capture the returned issue number/URL.
-4. If `github.projects.v2` is enabled, resolve the created PRD issue node id and invoke
+4. Rewrite the PRD body with the managed `## Exploratory Ideation Run Ledger` section populated for
+   `outcome: created` when the caller supplied project-ideation ledger inputs, then
+   `gh issue edit <n> --body-file /tmp/prd-body.md`. This second write is allowed because the URL is
+   not known until after creation.
+5. If `github.projects.v2` is enabled, resolve the created PRD issue node id and invoke
    `lisa:github-project-v2` with `operation: ensure-item` and `content_node_id: <issue-node-id>`.
    - `outcome: disabled` → continue normally.
    - `outcome: added` or `reused` → continue normally; membership is now present.
@@ -80,7 +119,9 @@ use the shared `usage-accounting` serializer/merge path rather than hand-editing
 **UPDATE** (existing issue or `source_ref`):
 
 1. `gh issue edit <n> --repo "$ORG/$REPO" --body-file /tmp/prd-body.md` with the **marker-normalized**
-   body (regenerate in place; never drop the marker or an existing managed `## Lisa Usage` section).
+   body (regenerate in place; never drop the marker, the managed `## Exploratory Ideation Run Ledger`
+   section, or an existing managed `## Lisa Usage` section). When the caller supplied
+   project-ideation ledger inputs, replace the managed ledger content with an `outcome: reused` entry.
 2. Reconcile the lifecycle label to **exactly one**: add `$ROLE_LABEL`, remove every other label in
    the resolved `${ALL_PRD_LABELS[@]}` set (the config-resolved names — not a hard-coded list) via
    `gh issue edit <n> --add-label / --remove-label`. Never leave a PRD carrying two lifecycle labels.

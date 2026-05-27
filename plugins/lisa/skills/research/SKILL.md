@@ -16,6 +16,12 @@ Produce a PRD for the problem in `$ARGUMENTS`, then create it in the configured 
 - `dedupe_key` / `marker` (optional) — a stable dedupe marker (e.g. supplied by
   `lisa:project-ideation`) embedded in the created PRD so re-runs reference the existing PRD rather
   than creating a duplicate.
+- `ideation_ledger_payload` (optional, required when invoked by `lisa:project-ideation`) — a
+  structured metadata object to forward unchanged to `lisa:prd-source-write`. It carries the
+  selected marker, automation id/path when available, persona names, persona evidence references,
+  rejected overlap candidates, repo identity, `prd_ready`, selected idea title/key, and expected
+  empirical verification artifact. `research` may use these fields to inform the PRD body, but must
+  not discard, rename, or vendor-render them.
 
 ## Orchestration: agent team
 
@@ -55,5 +61,8 @@ source — there is no loose document artifact.** Before handing the synthesized
 `lisa:usage-accounting` so the PRD body carries the canonical `## Lisa Usage` ledger from creation
 time onward. If the runtime does not expose trustworthy usage, the direct entry must still be
 written with `source: unavailable` and nullable token/cost fields rather than silently omitting the
-Research row. A `source` must be configured; if it is not, stop and report it rather than emitting
-a document. The Plan flow consumes the created PRD next.
+Research row. If the call includes `ideation_ledger_payload`, pass that object through in the
+`lisa:prd-source-write` spec unchanged alongside `marker`, `dedupe_key`, and `initial_role`; this is
+the vendor-neutral handoff that lets the configured writer render an auditable run ledger without
+`research` bypassing source selection. A `source` must be configured; if it is not, stop and report
+it rather than emitting a document. The Plan flow consumes the created PRD next.

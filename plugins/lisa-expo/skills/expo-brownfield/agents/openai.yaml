@@ -1,0 +1,4 @@
+display_name: "Expo Brownfield"
+short_description: "Integrate Expo and React Native into an existing native iOS or Android app"
+default_prompt:
+  - "Use $expo-brownfield: Integrate Expo and React Native into an existing native iOS or Android app."

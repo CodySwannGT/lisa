@@ -1,0 +1,4 @@
+display_name: "Upgrading Expo"
+short_description: "Guidelines for upgrading Expo SDK versions and fixing dependency issues"
+default_prompt:
+  - "Use $upgrading-expo: Guidelines for upgrading Expo SDK versions and fixing dependency issues."

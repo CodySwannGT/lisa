@@ -210,7 +210,8 @@ async function createGitWorkTreeFixture(automationsDir) {
   // Retry transient process-spawn failures (e.g. EAGAIN under the heavy fork
   // load of the full pre-push suite) so the fixture repo is reliably created;
   // otherwise the adapter's cwd-health check sees a non-repo and flips the
-  // automation to FAILING, flaking the HEALTHY assertions.
+  // automation to FAILING, flaking the HEALTHY assertions. initGitRepoWithRetry
+  // also strips ambient Git location vars so `git init` targets repoDir.
   await initGitRepoWithRetry(repoDir);
   return repoDir;
 }
