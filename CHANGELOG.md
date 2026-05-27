@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.110.0](https://github.com/CodySwannGT/lisa/compare/vv2.109.0...v2.110.0) (2026-05-27)
+
+
+### Features
+
+* record github prd ideation ledger ([5b8040e](https://github.com/CodySwannGT/lisa/commit/5b8040ef88d8a585ecc19d3a41d9146eb7a063d8))
+
+
+### Bug Fixes
+
+* **wiki:** flush lint-wiki --json output before exit ([789c399](https://github.com/CodySwannGT/lisa/commit/789c399bc33a6925daebdb48bbff093cfc5c82b6))
+
 ## [2.109.0](https://github.com/CodySwannGT/lisa/compare/vv2.108.0...v2.109.0) (2026-05-27)
 
 
