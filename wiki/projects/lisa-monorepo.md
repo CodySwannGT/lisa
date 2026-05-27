@@ -20,18 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-26-213208` from `origin/main`
-- HEAD at 2026-05-26 incremental ingest: `6e98950d496260faad821f90e5f4f6e2b059c3fb`
-- Current package version: `2.106.3`
-- Total commits on HEAD: 2381
-- Latest merged PR captured in the incremental git snapshot: `#992`
-- New commits since the previous incremental git cursor: `9`
+- Ingest branch: `wiki/ingest-2026-05-26-213256` from `origin/main`
+- HEAD at 2026-05-27 incremental ingest: `65043e915a23a992904badaf708fd5a849cd54e5`
+- Current package version: `2.106.5`
+- Total commits on HEAD: 2388
+- Latest merged PR captured in the incremental git snapshot: `#994`
+- New commits since the previous incremental git cursor: `7`
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Plugin synchronization gained marketplace source-drift fixture coverage and a fix for naming marketplace source drift.
+- Plugin synchronization now compares generated drift in a scratch workspace, covering marketplace source-drift classification without mutating tracked generated files.
 - The previous wiki ingest PR merged, advancing the wiki cursor into this release window.
-- Release automation continued its rapid cadence, advancing the monorepo from `2.106.1` through `2.106.3` during this incremental window.
+- Release automation continued its rapid cadence, advancing the monorepo from `2.106.3` through `2.106.5` during this incremental window.
 
 ## Workspace Packages
 
@@ -47,5 +47,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/github/2026-05-14-git-and-pr-history.md`
 - `wiki/sources/git/2026-05-25-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-26-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-27-lisa-monorepo-git.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
 - `wiki/sources/roles/2026-05-26-roles.md`
+- `wiki/sources/roles/2026-05-27-roles.md`
