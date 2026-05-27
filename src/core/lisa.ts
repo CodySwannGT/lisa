@@ -99,6 +99,32 @@ export class Lisa {
    * have `engines.bun = "please-use-npm"` and only a `package-lock.json`.
    */
   private createOnlyOwnership: Map<string, string> = new Map();
+  /**
+   * Maps each relative path shipped by any type's `copy-overwrite/` tree to the
+   * single type that "owns" it (most-specific wins). Computed once before
+   * strategies run; consulted while processing `copy-overwrite` to suppress
+   * parent-type sources for paths that a child type also ships.
+   *
+   * Why this exists — crash safety: `copy-overwrite` always overwrites, so the
+   * per-type outer loop in `processConfigurations` naturally lets the child win
+   * by writing the parent's version first and then overwriting it. But that
+   * leaves a window in which the destination holds the parent (typescript)
+   * version of an overlapping path (e.g. `tsconfig.json`, `eslint.config.ts`)
+   * before the child (expo/cdk/nestjs) phase overwrites it. If the process is
+   * killed in that window — which is exactly what bun's lifecycle-script
+   * handling did during postinstall — the project is left with TypeScript
+   * configs clobbering the child stack's (Expo getting the typescript
+   * `include` glob in tsconfig.json instead of its own).
+   * That was the bug fixed by removing the postinstall apply in #318.
+   *
+   * Resolving ownership up front and writing each path exactly once (by its
+   * most-specific type) eliminates the intermediate write entirely: a kill at
+   * any point leaves either the pre-existing file or the correct final file,
+   * never the parent-clobbered intermediate. This is the symmetric counterpart
+   * to `createOnlyOwnership` (which exists for the opposite reason — create-only
+   * skips existing files, so without help the parent would win).
+   */
+  private copyOverwriteOwnership: Map<string, string> = new Map();
   private readonly separator = "========================================";
   private readonly lisaignoreSuffix = "(.lisaignore)";
 
@@ -229,6 +255,39 @@ export class Lisa {
       }
     }
     this.createOnlyOwnership = ownership;
+  }
+
+  /**
+   * Pre-compute, for every relative path shipped by any type's `copy-overwrite/`
+   * directory, which single type "owns" it — the most-specific detected type
+   * (last entry in [all, ...detectedTypes], already ordered parent-before-child).
+   *
+   * Consumed by `shouldProcessFile` to skip non-owning sources so each path is
+   * written exactly once, by its winning stack. See the `copyOverwriteOwnership`
+   * field doc for the crash-safety rationale (eliminating the parent-then-child
+   * overwrite window that left half-applied configs when the process was killed
+   * mid-apply during postinstall — the bug behind #318).
+   * @returns Promise that resolves once ownership has been resolved
+   */
+  private async loadCopyOverwriteOwnership(): Promise<void> {
+    const ownership = new Map<string, string>();
+    for (const type of ["all", ...this.detectedTypes]) {
+      const copyOverwriteDir = path.join(
+        this.config.lisaDir,
+        type,
+        "copy-overwrite"
+      );
+      if (!(await fse.pathExists(copyOverwriteDir))) {
+        continue;
+      }
+      const files = await listFilesRecursive(copyOverwriteDir);
+      for (const file of files) {
+        const relativePath = path.relative(copyOverwriteDir, file);
+        // Later types overwrite earlier ones, so child wins over parent.
+        ownership.set(relativePath, type);
+      }
+    }
+    this.copyOverwriteOwnership = ownership;
   }
 
   /**
@@ -586,6 +645,7 @@ export class Lisa {
       await this.detectTypes();
       await this.loadPendingDeletions();
       await this.loadCreateOnlyOwnership();
+      await this.loadCopyOverwriteOwnership();
       await this.runMigrationsBeforeStrategies();
       const prePackageJsonHash = hashFile(
         path.join(this.config.destDir, "package.json")
@@ -846,6 +906,9 @@ export class Lisa {
    *    (avoids the create-then-delete ENOENT race)
    * 3. Create-only ownership conflicts (parent stack ships a path that a
    *    child stack also ships under create-only — child wins)
+   * 4. Copy-overwrite ownership conflicts (parent and child both ship a path
+   *    under copy-overwrite — only the most-specific stack writes it, so there
+   *    is no parent-then-child overwrite window; see copyOverwriteOwnership)
    * @param relativePath - Path relative to the strategy's source directory
    * @param strategyName - Name of the strategy that would apply the file
    * @param currentType - Project type currently being processed
@@ -875,6 +938,15 @@ export class Lisa {
       if (owner !== undefined && owner !== currentType) {
         this.counters.skipped++;
         const reason = `overridden by ${owner}/create-only`;
+        this.logSkip(reason, relativePath, `Skipped (${reason})`);
+        return false;
+      }
+    }
+    if (strategyName === "copy-overwrite") {
+      const owner = this.copyOverwriteOwnership.get(relativePath);
+      if (owner !== undefined && owner !== currentType) {
+        this.counters.skipped++;
+        const reason = `overridden by ${owner}/copy-overwrite`;
         this.logSkip(reason, relativePath, `Skipped (${reason})`);
         return false;
       }

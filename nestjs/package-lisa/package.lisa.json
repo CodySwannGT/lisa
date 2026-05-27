@@ -72,6 +72,7 @@
       "typeorm-naming-strategies": "^4.1.0"
     },
     "devDependencies": {
+      "@codyswann/lisa": "^2.106.0",
       "@graphql-codegen/cli": "^6.1.0",
       "@graphql-codegen/typescript": "^4.1.6",
       "@graphql-codegen/typescript-operations": "^4.4.2",
