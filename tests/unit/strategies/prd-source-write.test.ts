@@ -269,6 +269,15 @@ describe("project-ideation is persona-driven and chains into research", () => {
       expect(content).toContain("prd_ready");
     });
 
+    it("blocks auto-ready PRD writes while the PRD queue has pressure", () => {
+      expect(content).toContain("evaluatePrdQueuePressure");
+      expect(content).toMatch(/prd_ready=true/);
+      expect(content).toMatch(/prd_ready=false[^]*skips this gate/i);
+      expect(content).toMatch(/stop before any `lisa:research`/i);
+      expect(content).toMatch(/no research or PRD source write was invoked/i);
+      expect(content).toMatch(/\/lisa:intake <PRD queue>/);
+    });
+
     it("threads structured ideation ledger metadata into research", () => {
       expect(content).toContain("ideation_ledger_payload");
       for (const field of [
