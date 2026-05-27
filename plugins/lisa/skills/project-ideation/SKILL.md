@@ -147,6 +147,32 @@ Rank Practical Ideas by **persona value, feasibility, verification clarity, and 
 select the creation set by `max_prds` (default **1** → the single top-ranked idea; `<n>` → top n;
 `all` → every Practical Idea). Spikes and Rejected ideas are reported but never selected.
 
+## Step 5.5 — Block auto-ready writes when the PRD queue has pressure
+
+This step runs **only** when `prd_ready=true`. A draft run (`prd_ready=false`) skips this gate and
+continues to Step 6, because draft PRDs do not create immediate PRD-intake pickup pressure.
+
+Before invoking `lisa:research` for any selected idea, inspect the configured PRD source queue with
+the same PRD reader contract used by `/lisa:queue-status` and evaluate it with
+`evaluatePrdQueuePressure` from `plugins/lisa/scripts/queue-status-prd-readers.mjs` (source:
+`plugins/src/base/scripts/queue-status-prd-readers.mjs`). Resolve the queue from `.lisa.config.json`
+the same way `lisa:intake` resolves the PRD side, and pass the matching queue argument in the
+blocked outcome (for example, `github intake_mode=prd`).
+
+If the helper returns `allowed: false`, stop before any `lisa:research`, `lisa:prd-source-write`, or
+vendor PRD writer invocation. Emit **PRDs Created** as a blocked outcome, not as an empty success.
+The blocked outcome must include:
+
+- `source` and `tracker` from `.lisa.config.json`;
+- the decisive PRD lifecycle `role`;
+- the blocking PRD item `ref` and `url`, when the snapshot supplies them;
+- the smallest next action, preferring the helper's `nextStep` and otherwise using
+  `/lisa:intake <PRD queue>`;
+- a clear statement that no research or PRD source write was invoked.
+
+If the helper returns `allowed: true`, continue to Step 6 normally and keep the existing draft/ready
+creation behavior unchanged.
+
 ## Step 6 — Create a PRD per selected idea (via lisa:research)
 
 For each idea in the creation set, invoke `/lisa:research` with:
