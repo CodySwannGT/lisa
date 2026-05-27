@@ -27,3 +27,7 @@ A strategy defines how Lisa applies a file to a downstream project: overwrite, c
 ## Quality Gate
 
 A quality gate is an automated check that must pass before a change can progress.
+
+## Automation Checkout
+
+An automation checkout is the durable local Git work tree used by recurring Codex automations for a project. It should be synced to the default remote branch at the start of each run and verified as a non-bare Git work tree before the automation is saved or executed.
