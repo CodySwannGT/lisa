@@ -20,19 +20,20 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-27-053204` from `origin/main`
-- HEAD at 2026-05-27 incremental ingest: `73072b8e5b839dede4bf50985232d1d6bddfe9f4`
-- Current package version: `2.106.6`
-- Total commits on HEAD: 2391
-- Latest merged PR captured in the incremental git snapshot: `#995`
-- New commits since the previous incremental git cursor: `3`
-- Project-scoped memory files captured: `20`
+- Ingest branch: `wiki/ingest-2026-05-27-133229` from `origin/main`
+- HEAD at 2026-05-27 incremental ingest: `c536c7a196ff811ce92403acd90493baad86ebd0`
+- Current package version: `2.106.8`
+- Total commits on HEAD: 2397
+- Latest merged PR captured in the incremental git snapshot: `#997`
+- New commits since the previous incremental git cursor: `6`
+- Project-scoped memory files captured: `21`
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#995`.
-- Release automation advanced the monorepo to `2.106.6`.
-- Lisa project-scoped Claude memory is now captured as a sanitized internal source note, including operational guidance for Codex automation, Lisa merge method, CI verification, and project-specific workflow expectations.
+- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#996`.
+- Release automation advanced the monorepo to `2.106.8`.
+- Codex automation setup guidance now requires durable, synced project automation checkouts instead of transient or broken scratch worktrees.
+- Lisa project-scoped Claude memory added the Codex HTTP MCP plugin-shape note while continuing to capture operational guidance for Codex automation, Lisa merge method, CI verification, and project-specific workflow expectations.
 
 ## Workspace Packages
 

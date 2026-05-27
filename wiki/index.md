@@ -9,7 +9,7 @@
 ## Project
 
 - [Project Registry](projects/registry.md)
-- [lisa-monorepo](projects/lisa-monorepo.md)
+- [Lisa Monorepo Snapshot](projects/lisa-monorepo.md)
 
 ## Documentation
 
