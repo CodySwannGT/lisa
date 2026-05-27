@@ -27,6 +27,17 @@ dedupe_key: "<stable-key>"           # e.g. project-ideation's idea key
 marker: "[lisa-project-ideation] idea=<stable-key>"   # embedded in the PRD body for dedupe
 origin: { tool: project-ideation | research | manual }
 source_ref: "<optional existing PRD ref to force an update>"
+ideation_ledger_payload:              # optional; forwarded unchanged to the vendor writer
+  selected_marker: "<same value as marker>"
+  automation_id: "<Codex/Claude automation id or unavailable>"
+  automation_memory_path: "<path or unavailable>"
+  repo: "<org>/<repo or detected repo identity>"
+  prd_ready: true|false
+  persona_names: ["<derived persona name>"]
+  persona_evidence_refs: ["<file/doc/table/release ref>"]
+  selected_idea: "<selected idea title/key>"
+  rejected_overlap_candidates: ["<issue refs/titles considered and rejected>"]
+  expected_empirical_verification_artifact: "<artifact ref or unavailable>"
 ```
 
 `initial_role` semantics are uniform across vendors (the role STRINGS resolve per vendor from
@@ -72,6 +83,10 @@ prior PRD-source-write behavior to preserve, so omitted means `draft`.
    the applied role (`draft`/`ready`), the dedupe marker, and whether it was created or reused.
    Downstream callers (research, project-ideation) parse this — do not paraphrase.
 
+When `ideation_ledger_payload` is present, this shim still does not render or interpret it. Forward
+the object verbatim to the selected vendor writer so source-specific rendering remains behind the
+configured writer and the dispatch layer never bypasses source selection.
+
 ## Rules
 
 - Never bypass dispatch — a vendor-neutral caller calling a `*-write-prd` skill directly defeats the
@@ -80,5 +95,7 @@ prior PRD-source-write behavior to preserve, so omitted means `draft`.
   and fallback behavior belongs in the vendor writers and follows the `usage-accounting` contract.
 - Never accept a source outside `{notion, confluence, github, linear}`. `jira` and `file` fail loudly.
 - Never mutate the spec between layers. The vendor writers define their own create/dedupe contract.
+- Never drop, rename, or vendor-render `ideation_ledger_payload`; it is a pass-through payload for
+  the configured writer.
 - Never invent a PRD lifecycle role string — resolve every role from `config-resolution` per vendor.
 - Idempotency is the vendor writer's job (marker search before create); this shim only routes.
