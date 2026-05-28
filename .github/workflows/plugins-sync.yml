@@ -17,6 +17,7 @@ on:
       - 'scripts/build-plugins.sh'
       - 'scripts/generate-codex-plugin-artifacts.mjs'
       - 'scripts/check-plugins-sync.sh'
+      - 'scripts/check-rules-pairing.sh'
       - '.github/workflows/plugins-sync.yml'
   workflow_dispatch:
 
@@ -34,3 +35,5 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Check plugin artifacts are in sync with plugins/src
         run: bun run check:plugins
+      - name: Check rules eager/reference pairing
+        run: bun run check:rules-pairing

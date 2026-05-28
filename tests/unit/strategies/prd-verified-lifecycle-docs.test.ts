@@ -95,7 +95,7 @@ describe("verified PRD lifecycle state in docs (#592)", () => {
     });
 
     describe("prd-lifecycle-rollup rule", () => {
-      const content = read(root, "rules/prd-lifecycle-rollup.md");
+      const content = read(root, "rules/reference/prd-lifecycle-rollup.md");
 
       it("extends the canonical lifecycle to shipped → verified", () => {
         expect(content).toMatch(

@@ -1,7 +1,7 @@
 /**
  * Regression tests for the vendor-neutral PRD lifecycle rollup rule.
  *
- * Issue #579: add `plugins/src/base/rules/prd-lifecycle-rollup.md` — the single
+ * Issue #579: add `plugins/src/base/rules/reference/prd-lifecycle-rollup.md` — the single
  * vendor-neutral source of truth for how a PRD owns its generated top-level work
  * and rolls up to `shipped` from that child set, and wire the `prd.rollup.*`
  * config schema into `config-resolution`. This is the foundation leaf of PRD
@@ -32,7 +32,10 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /** Both plugin roots: source of truth and generated artifact. */
-const RULE_ROOTS = ["plugins/src/base/rules", "plugins/lisa/rules"] as const;
+const RULE_ROOTS = [
+  "plugins/src/base/rules/reference",
+  "plugins/lisa/rules/reference",
+] as const;
 
 /** The new rule's slug / filename stem. */
 const RULE_SLUG = "prd-lifecycle-rollup";
@@ -149,23 +152,21 @@ describe("prd-lifecycle-rollup rule (#579)", () => {
 
 // config-resolution must document shipped rollup without a close-on-shipped flag.
 describe("config-resolution documents PRD rollup (#579)", () => {
-  describe.each(["plugins/src/base/rules", "plugins/lisa/rules"] as const)(
-    "%s/config-resolution",
-    root => {
-      const content = readRule(root, "config-resolution");
+  describe.each([
+    "plugins/src/base/rules/reference",
+    "plugins/lisa/rules/reference",
+  ] as const)("%s/config-resolution", root => {
+    const content = readRule(root, "config-resolution");
 
-      it("references the prd-lifecycle-rollup rule by slug", () => {
-        expect(content).toContain(RULE_SLUG);
-      });
+    it("references the prd-lifecycle-rollup rule by slug", () => {
+      expect(content).toContain(RULE_SLUG);
+    });
 
-      it("removes close-on-shipped configuration from the schema", () => {
-        expect(content).toMatch(/PRD rollup behavior/);
-        expect(content).toMatch(
-          /no project-configurable close-on-shipped flag/i
-        );
-        expect(content).not.toMatch(/closeOnShipped/);
-        expect(content).not.toMatch(/"rollup":/);
-      });
-    }
-  );
+    it("removes close-on-shipped configuration from the schema", () => {
+      expect(content).toMatch(/PRD rollup behavior/);
+      expect(content).toMatch(/no project-configurable close-on-shipped flag/i);
+      expect(content).not.toMatch(/closeOnShipped/);
+      expect(content).not.toMatch(/"rollup":/);
+    });
+  });
 });

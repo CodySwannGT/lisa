@@ -82,7 +82,7 @@ describe("PRD verification dispatch — Phase 3g closes the shipped loop", () =>
 
 describe("prd-lifecycle-rollup documents the loop-closing dispatch", () => {
   const content = readFileSync(
-    path.resolve("plugins/src/base/rules/prd-lifecycle-rollup.md"),
+    path.resolve("plugins/src/base/rules/reference/prd-lifecycle-rollup.md"),
     "utf8"
   );
   it("has a Closing the loop section dispatching verify-prd, one per cycle", () => {
