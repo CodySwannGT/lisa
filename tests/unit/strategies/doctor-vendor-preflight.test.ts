@@ -16,7 +16,10 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
-const RULE_ROOTS = ["plugins/src/base/rules", "plugins/lisa/rules"] as const;
+const RULE_ROOTS = [
+  "plugins/src/base/rules/reference",
+  "plugins/lisa/rules/reference",
+] as const;
 
 const readDoctorSkill = (root: string): string =>
   readFileSync(path.resolve(root, "doctor", "SKILL.md"), "utf8");

@@ -76,7 +76,7 @@ describe("lisa:implement resolves the base branch from the ticket environment", 
 
 describe("config-resolution documents the forward env → base branch direction", () => {
   const content = readFileSync(
-    path.resolve("plugins/src/base/rules/config-resolution.md"),
+    path.resolve("plugins/src/base/rules/reference/config-resolution.md"),
     "utf8"
   );
   it("has an Env → base branch (forward) section", () => {

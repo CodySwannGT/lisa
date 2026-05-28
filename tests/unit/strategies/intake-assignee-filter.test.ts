@@ -60,7 +60,10 @@ describe("intake assignee filter", () => {
   });
 });
 
-const RULES_ROOTS = ["plugins/src/base/rules", "plugins/lisa/rules"] as const;
+const RULES_ROOTS = [
+  "plugins/src/base/rules/reference",
+  "plugins/lisa/rules/reference",
+] as const;
 
 describe.each(RULES_ROOTS)(
   "config-resolution intake.assignee docs (%s)",

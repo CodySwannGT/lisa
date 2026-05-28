@@ -27,8 +27,6 @@ const INJECT_RULES_SH = `${INJECT_RULES_ID}.sh`;
 const BASE_RULES_MD = "base-rules.md";
 /** Second rule .md file shipped from the lisa-plugin */
 const CODING_PHILOSOPHY_MD = "coding-philosophy.md";
-/** Rule .md file shipped from the Harper/Fabric stack plugin */
-const HARPER_FABRIC_MD = "harper-fabric.md";
 /** Hook id for the universal Stop-event ntfy notifier */
 const NOTIFY_NTFY_ID = "notify-ntfy";
 /** Hook id for the format-on-edit hook (TypeScript stack) */
@@ -61,17 +59,31 @@ describe("codex/hooks-installer", () => {
     destDir = path.join(tempDir, "project");
     await fs.ensureDir(destDir);
 
-    // Seed Lisa rules directory
+    // Seed Lisa rules directory with the eager/reference split layout
+    // (current shape since the rules-eager-reference-split refactor).
     const rulesDir = path.join(lisaDir, "plugins", "lisa", "rules");
-    await fs.ensureDir(rulesDir);
+    const eagerDir = path.join(rulesDir, "eager");
+    const referenceDir = path.join(rulesDir, "reference");
+    await fs.ensureDir(eagerDir);
+    await fs.ensureDir(referenceDir);
     await fs.writeFile(
-      path.join(rulesDir, BASE_RULES_MD),
-      "# Base Rules\n\nFollow these.\n",
+      path.join(eagerDir, BASE_RULES_MD),
+      "# Base Rules (load-bearing)\n\nFollow these.\n",
       "utf8"
     );
     await fs.writeFile(
-      path.join(rulesDir, CODING_PHILOSOPHY_MD),
-      "# Coding Philosophy\n",
+      path.join(referenceDir, BASE_RULES_MD),
+      "# Base Rules — full reference\n",
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(eagerDir, CODING_PHILOSOPHY_MD),
+      "# Coding Philosophy (load-bearing)\n",
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(referenceDir, CODING_PHILOSOPHY_MD),
+      "# Coding Philosophy — full reference\n",
       "utf8"
     );
   });
@@ -110,63 +122,9 @@ describe("codex/hooks-installer", () => {
     expect(stat.mode & 0o100).toBe(0o100);
   });
 
-  it("mirrors Lisa rules into .codex/lisa-rules/", async () => {
-    await installHooks(lisaDir, destDir, []);
-    const rulesDir = path.join(destDir, ".codex", LISA_RULES_SUBDIR);
-    expect(await fs.pathExists(path.join(rulesDir, BASE_RULES_MD))).toBe(true);
-    expect(await fs.pathExists(path.join(rulesDir, CODING_PHILOSOPHY_MD))).toBe(
-      true
-    );
-    const baseRules = await fs.readFile(
-      path.join(rulesDir, BASE_RULES_MD),
-      "utf8"
-    );
-    expect(baseRules).toContain("# Base Rules");
-  });
-
-  it("mirrors detected stack plugin rules into .codex/lisa-rules/", async () => {
-    const harperRulesDir = path.join(
-      lisaDir,
-      "plugins",
-      "lisa-harper-fabric",
-      "rules"
-    );
-    await fs.ensureDir(harperRulesDir);
-    await fs.writeFile(
-      path.join(harperRulesDir, HARPER_FABRIC_MD),
-      "# Harper/Fabric Project Rules\n",
-      "utf8"
-    );
-
-    await installHooks(lisaDir, destDir, ["typescript", "harper-fabric"]);
-
-    const rulesDir = path.join(destDir, ".codex", LISA_RULES_SUBDIR);
-    expect(await fs.pathExists(path.join(rulesDir, BASE_RULES_MD))).toBe(true);
-    expect(await fs.pathExists(path.join(rulesDir, HARPER_FABRIC_MD))).toBe(
-      true
-    );
-  });
-
-  it("throws when two plugins have rules with the same filename", async () => {
-    // Create a lisa-harper-fabric plugin with a rule file whose name collides
-    // with an existing lisa base rule (base-rules.md already seeded in beforeEach)
-    const harperRulesDir = path.join(
-      lisaDir,
-      "plugins",
-      "lisa-harper-fabric",
-      "rules"
-    );
-    await fs.ensureDir(harperRulesDir);
-    await fs.writeFile(
-      path.join(harperRulesDir, BASE_RULES_MD),
-      "# Duplicate Rule\n",
-      "utf8"
-    );
-
-    await expect(
-      installHooks(lisaDir, destDir, ["harper-fabric"])
-    ).rejects.toThrow(`Duplicate Lisa rule filename "${BASE_RULES_MD}"`);
-  });
+  // Rules-mirror tests (eager/reference split, stack plugins, legacy flat
+  // fallback, path collisions) live in hooks-installer-rules-mirror.test.ts
+  // to keep this file under the project's max-lines rule.
 
   it("creates .codex/hooks.json with Lisa SessionStart entries", async () => {
     await installHooks(lisaDir, destDir, []);
@@ -239,9 +197,14 @@ describe("codex/hooks-installer", () => {
       path.join(LISA_HOOKS_SUBDIR, INJECT_RULES_SH)
     );
     expect(sortedFiles).toContain(path.join(LISA_HOOKS_SUBDIR, NOTIFY_NTFY_SH));
-    expect(sortedFiles).toContain(path.join(LISA_RULES_SUBDIR, BASE_RULES_MD));
     expect(sortedFiles).toContain(
-      path.join(LISA_RULES_SUBDIR, CODING_PHILOSOPHY_MD)
+      path.join(LISA_RULES_SUBDIR, "eager", BASE_RULES_MD)
+    );
+    expect(sortedFiles).toContain(
+      path.join(LISA_RULES_SUBDIR, "reference", BASE_RULES_MD)
+    );
+    expect(sortedFiles).toContain(
+      path.join(LISA_RULES_SUBDIR, "eager", CODING_PHILOSOPHY_MD)
     );
     expect(sortedFiles).toContain(HOOKS_FILENAME);
   });
