@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.119.1](https://github.com/CodySwannGT/lisa/compare/vv2.119.0...v2.119.1) (2026-05-28)
+
+
+### Documentation
+
+* **wiki:** fix Codex installer module count from nine to ten ([b37f07c](https://github.com/CodySwannGT/lisa/commit/b37f07c90e2ce4dafa8ec45d4cde6a58d9f30b9d))
+* **wiki:** ingest coding-agent parity research artifact ([066f4b5](https://github.com/CodySwannGT/lisa/commit/066f4b563fad078e6a347260053ebefe1536c11e))
+
 ## [2.119.0](https://github.com/CodySwannGT/lisa/compare/vv2.118.0...v2.119.0) (2026-05-28)
 
 
