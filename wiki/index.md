@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by incremental ingest on 2026-05-28 through Lisa release `2.116.0` and merged PR `#1035`.
+Last updated by coding-agent parity research ingest on 2026-05-28. Latest connector-ingest baseline is Lisa release `2.116.0` and merged PR `#1035`.
 
 ## Orientation
 
@@ -27,22 +27,34 @@ Last updated by incremental ingest on 2026-05-28 through Lisa release `2.116.0` 
 
 - [Lisa Architecture](architecture/lisa-architecture.md)
 - [Template Governance](architecture/template-governance.md)
+- [Coding-Agent Parity Architecture](architecture/coding-agent-parity.md)
 
 ## Requirements
 
 - [Lisa Governance Requirements](requirements/lisa-governance-requirements.md)
 
+## Decisions
+
+- [2026-05-28 — Pattern B Per-Agent Plugin Variants](decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md)
+
 ## Playbooks
 
 - [Lisa Workflow Playbook](playbooks/lisa-workflow-playbook.md)
+- [Coding-Agent Parity Research Playbook](playbooks/coding-agent-parity-research.md)
 
 ## Concepts
 
 - [Lisa Vocabulary](concepts/lisa-vocabulary.md)
+- [Coding-Agent Feature Taxonomy](concepts/coding-agent-feature-taxonomy.md)
+
+## Entities
+
+- [Coding Agents Lisa Installs Into](entities/coding-agents.md)
 
 ## Open Questions
 
 - [Lisa Open Questions](open-questions/lisa-open-questions.md)
+- [Coding-Agent Parity Open Questions](open-questions/coding-agent-parity.md)
 
 ## Categories
 
