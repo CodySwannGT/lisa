@@ -15,6 +15,7 @@
     "lisa-typescript"
   ],
   "skills": "./skills/",
+  "hooks": "./hooks.json",
   "interface": {
     "displayName": "Lisa Harper/Fabric",
     "shortDescription": "Harper/Fabric workflow guidance",
