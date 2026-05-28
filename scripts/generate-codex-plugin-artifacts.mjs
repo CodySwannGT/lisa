@@ -3,18 +3,29 @@
  * Generate Codex plugin artifacts from the built Claude plugin directories.
  *
  * Claude remains Lisa's production path; this script derives the .codex-plugin
- * metadata (skills + MCP pointers) every time plugins are rebuilt.
+ * metadata (skills + MCP pointers + hooks) every time plugins are rebuilt.
  *
- * NOTE ON HOOKS: this script does NOT emit Codex hooks. Codex (codex-cli
- * 0.125.0) does not execute plugin-bundled hooks — its plugin manifest parser
- * only honors `skills`, `mcpServers`, `apps`, and interface fields, and a
- * runtime test confirmed a bundled `hooks/hooks.json` never fires. Lisa's
- * Codex hooks are instead installed into the project's `.codex/hooks.json`
- * by `src/codex/hooks-installer.ts` (run during `lisa` apply). Hooks with no
- * Codex equivalent are intentionally not ported: `enforce-team-first.sh`
- * (Claude-team-specific), `inject-flow-context.sh` and any SubagentStart hook
- * (Codex has no SubagentStart event), and the SessionEnd `entire` hook (Codex
- * has no SessionEnd event).
+ * HOOKS: as of Codex 0.125.0 (verified via codex features list showing
+ * codex_hooks as `stable`), the plugin manifest accepts a `hooks` field
+ * pointing at a sibling `hooks.json`. `emitCodexHooks` below derives the
+ * Codex-shape hooks block from the Claude manifest by applying the Wave 1
+ * per-agent ship-list audit
+ * (wiki/architecture/lisa-hook-per-agent-ship-list.md):
+ *   - Drop every `entire hooks claude-code *` command (Claude-only analytics).
+ *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
+ *   - Drop `inject-flow-context.sh` ONLY when targeting an agent without
+ *     SubagentStart (Codex 0.125.0 has SubagentStart, so we ship it).
+ *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh to ./hooks/<n>.sh so the
+ *     hooks.json sibling can resolve the script path relative to itself.
+ *   - Copy the surviving scripts into .codex-plugin/hooks/.
+ *
+ * SessionEnd is documented as unsupported by Codex; the `entire hooks
+ * claude-code session-end` hook is stripped per the Claude-only rule above
+ * regardless of event support.
+ *
+ * src/codex/hooks-installer.ts remains as the documented fallback for users
+ * who install Lisa via `lisa apply` without enabling the marketplace plugin —
+ * src/codex/lisa-plugin-detection.ts is the helper that gates that fallback.
  */
 import fs from "node:fs";
 import path from "node:path";
