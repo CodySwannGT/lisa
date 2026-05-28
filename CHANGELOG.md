@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.119.0](https://github.com/CodySwannGT/lisa/compare/vv2.118.0...v2.119.0) (2026-05-28)
+
+
+### Features
+
+* **cli:** add package version update check ([f1d424e](https://github.com/CodySwannGT/lisa/commit/f1d424eb5742164cd7e33d6feefb73bd044ea2c3))
+
+
+### Bug Fixes
+
+* **cli:** validate semver in readCachedLatest and swallow writeCache errors ([0da89db](https://github.com/CodySwannGT/lisa/commit/0da89db83a2ba6ff74d402a936b8e2e5119f3c86)), closes [#1040](https://github.com/CodySwannGT/lisa/issues/1040)
+
 ## [2.118.0](https://github.com/CodySwannGT/lisa/compare/vv2.117.0...v2.118.0) (2026-05-28)
 
 
