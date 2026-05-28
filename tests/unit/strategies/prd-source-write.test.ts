@@ -237,7 +237,7 @@ describe("research creates the PRD in the source", () => {
 
 describe("intent-routing Research flow writes the PRD to the source", () => {
   const content = readFileSync(
-    path.resolve("plugins/src/base/rules/intent-routing.md"),
+    path.resolve("plugins/src/base/rules/reference/intent-routing.md"),
     "utf8"
   );
   it("adds a create-the-PRD-in-the-source step invoking prd-source-write", () => {

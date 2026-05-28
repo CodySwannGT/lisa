@@ -13,7 +13,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const RULE_ROOTS = ["plugins/src/base/rules", "plugins/lisa/rules"] as const;
+const RULE_ROOTS = [
+  "plugins/src/base/rules/reference",
+  "plugins/lisa/rules/reference",
+] as const;
 const RULE_NAME = "usage-accounting.md";
 const ARTIFACT_REF = "CodySwannGT/lisa#727";
 const MODEL_NAME = "gpt-5";

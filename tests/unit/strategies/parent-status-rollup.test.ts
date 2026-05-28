@@ -248,28 +248,28 @@ describe("parent status rollup (#544)", () => {
 // The rule itself remains the single source of truth and documents both the
 // generic env-keyed terminal and the single-environment collapse.
 describe("leaf-only-lifecycle rule: rollup section (#544)", () => {
-  describe.each(["plugins/src/base/rules", "plugins/lisa/rules"] as const)(
-    "%s/leaf-only-lifecycle",
-    root => {
-      const content = readFileSync(
-        path.resolve(root, "leaf-only-lifecycle.md"),
-        "utf8"
-      );
+  describe.each([
+    "plugins/src/base/rules/reference",
+    "plugins/lisa/rules/reference",
+  ] as const)("%s/leaf-only-lifecycle", root => {
+    const content = readFileSync(
+      path.resolve(root, "leaf-only-lifecycle.md"),
+      "utf8"
+    );
 
-      it("defines the parent status rollup state machine", () => {
-        expect(content).toContain(STATE_MACHINE);
-      });
+    it("defines the parent status rollup state machine", () => {
+      expect(content).toContain(STATE_MACHINE);
+    });
 
-      it("documents the env-keyed terminal AND the single-environment collapse", () => {
-        expect(content).toMatch(/env-keyed/i);
-        expect(content).toMatch(/[Ss]ingle-environment collapse/);
-        expect(content).toMatch(/ready.*claimed.*review.*done|ready → claimed/);
-      });
+    it("documents the env-keyed terminal AND the single-environment collapse", () => {
+      expect(content).toMatch(/env-keyed/i);
+      expect(content).toMatch(/[Ss]ingle-environment collapse/);
+      expect(content).toMatch(/ready.*claimed.*review.*done|ready → claimed/);
+    });
 
-      it("states blocked dominates and the parent never carries ready", () => {
-        expect(content).toMatch(/[Bb]locked dominates/);
-        expect(content).toMatch(/parent never carries.*ready/i);
-      });
-    }
-  );
+    it("states blocked dominates and the parent never carries ready", () => {
+      expect(content).toMatch(/[Bb]locked dominates/);
+      expect(content).toMatch(/parent never carries.*ready/i);
+    });
+  });
 });

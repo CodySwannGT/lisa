@@ -103,7 +103,7 @@ describe("claim-time repo scoping (Phase 3a.0)", () => {
 
 describe("repo-scope-split rule documents claim-time scoping", () => {
   const content = readFileSync(
-    path.resolve("plugins/src/base/rules/repo-scope-split.md"),
+    path.resolve("plugins/src/base/rules/reference/repo-scope-split.md"),
     "utf8"
   );
   it("enforces the invariant at four points incl. claim-time", () => {
@@ -127,7 +127,7 @@ describe("repo-scope-split rule documents claim-time scoping", () => {
 
 describe("config-resolution documents repo scoping", () => {
   const content = readFileSync(
-    path.resolve("plugins/src/base/rules/config-resolution.md"),
+    path.resolve("plugins/src/base/rules/reference/config-resolution.md"),
     "utf8"
   );
   it("has a Repo scoping section with the repo:<name> marker and current-repo resolution", () => {

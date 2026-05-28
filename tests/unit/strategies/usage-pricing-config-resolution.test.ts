@@ -11,7 +11,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const RULE_ROOTS = ["plugins/src/base/rules", "plugins/lisa/rules"] as const;
+const RULE_ROOTS = [
+  "plugins/src/base/rules/reference",
+  "plugins/lisa/rules/reference",
+] as const;
 
 describe.each(RULE_ROOTS)(
   "config-resolution usage pricing docs (%s)",

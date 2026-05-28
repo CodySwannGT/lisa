@@ -23,8 +23,8 @@ const LIFECYCLE_SKILLS = [
 const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 const RULE_FILES = [
-  "plugins/src/base/rules/base-rules.md",
-  "plugins/lisa/rules/base-rules.md",
+  "plugins/src/base/rules/reference/base-rules.md",
+  "plugins/lisa/rules/reference/base-rules.md",
 ] as const;
 
 describe("Codex lifecycle skill orchestration", () => {
