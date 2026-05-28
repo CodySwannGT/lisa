@@ -1,0 +1,32 @@
+{
+  "source": "coding-agent-parity-research",
+  "tenant": null,
+  "ingested_at": "2026-05-28",
+  "mode": "research-artifact-ingest",
+  "artifact_path": "/tmp/parity-research.md",
+  "source_note": "wiki/sources/docs/2026-05-28-coding-agent-parity-research.md",
+  "produced_by_skill": "lisa-coding-agent-parity",
+  "consuming_skill": "lisa-coding-agent-parity-implement",
+  "agents_in_fleet": [
+    "claude",
+    "codex",
+    "cursor-agent",
+    "agy",
+    "copilot"
+  ],
+  "cli_versions_probed": {
+    "claude": "2.1.156",
+    "codex": "0.125.0",
+    "cursor-agent": "2026.05.28-418efe5",
+    "agy": "1.0.3",
+    "copilot": "1.0.55"
+  },
+  "synthesis_pages": [
+    "wiki/concepts/coding-agent-feature-taxonomy.md",
+    "wiki/entities/coding-agents.md",
+    "wiki/playbooks/coding-agent-parity-research.md",
+    "wiki/architecture/coding-agent-parity.md",
+    "wiki/decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md",
+    "wiki/open-questions/coding-agent-parity.md"
+  ]
+}
