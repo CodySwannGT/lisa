@@ -71,16 +71,26 @@ const tailwind = require("eslint-plugin-tailwindcss");
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
  * @param {string[]} [options.ignorePatterns] - Patterns to ignore
  * @param {object} [options.thresholds] - Threshold overrides
+ * @param {string} [options.sourceRoot] - Prefix for source-relative file globs (e.g. `"src/"` for the SDK 55+/56 `/src` convention; defaults to `""`)
  * @returns {import("eslint").Linter.Config[]} ESLint flat config array
  */
 export function getExpoConfig({
   tsconfigRootDir,
   ignorePatterns = defaultIgnores,
   thresholds = defaultThresholds,
+  sourceRoot = "",
 }: {
   tsconfigRootDir: string;
   ignorePatterns?: string[];
   thresholds?: typeof defaultThresholds;
+  /**
+   * Prefix applied to source-relative file globs (component-structure,
+   * ui-standards, view-memo overrides). Defaults to `""` (source at the project
+   * root). Set to `"src/"` for projects adopting the Expo SDK 55+/56 `/src`
+   * directory convention so these overrides target `src/components`,
+   * `src/features`, etc. Globs anchored with a leading globstar are unaffected.
+   */
+  sourceRoot?: string;
 }): import("eslint").Linter.Config[] {
   return [
     // Global ignores
@@ -219,10 +229,10 @@ export function getExpoConfig({
     // UI components
     {
       files: [
-        "components/ui/**/*.tsx",
-        "components/ui/**/*.jsx",
-        "components/custom/ui/**/*.tsx",
-        "components/custom/ui/**/*.jsx",
+        `${sourceRoot}components/ui/**/*.tsx`,
+        `${sourceRoot}components/ui/**/*.jsx`,
+        `${sourceRoot}components/custom/ui/**/*.tsx`,
+        `${sourceRoot}components/custom/ui/**/*.jsx`,
       ],
       rules: {
         "ui-standards/no-classname-outside-ui": "off",
@@ -265,20 +275,20 @@ export function getExpoConfig({
     // Component structure rules
     {
       files: [
-        "features/**/components/**/*.ts",
-        "features/**/components/**/*.tsx",
-        "features/**/components/**/*.jsx",
-        "features/**/screens/**/*.ts",
-        "features/**/screens/**/*.tsx",
-        "features/**/screens/**/*.jsx",
-        "components/**/*.ts",
-        "components/**/*.tsx",
-        "components/**/*.jsx",
+        `${sourceRoot}features/**/components/**/*.ts`,
+        `${sourceRoot}features/**/components/**/*.tsx`,
+        `${sourceRoot}features/**/components/**/*.jsx`,
+        `${sourceRoot}features/**/screens/**/*.ts`,
+        `${sourceRoot}features/**/screens/**/*.tsx`,
+        `${sourceRoot}features/**/screens/**/*.jsx`,
+        `${sourceRoot}components/**/*.ts`,
+        `${sourceRoot}components/**/*.tsx`,
+        `${sourceRoot}components/**/*.jsx`,
       ],
       ignores: [
-        "components/ui/**",
-        "components/shared/**",
-        "components/icons/**",
+        `${sourceRoot}components/ui/**`,
+        `${sourceRoot}components/shared/**`,
+        `${sourceRoot}components/icons/**`,
       ],
       rules: {
         "component-structure/enforce-component-structure": "error",
@@ -297,7 +307,7 @@ export function getExpoConfig({
     // View memo requirement (excluding UI components)
     {
       files: ["**/*View.tsx", "**/*View.jsx"],
-      ignores: ["components/ui/**"],
+      ignores: [`${sourceRoot}components/ui/**`],
       rules: {
         "component-structure/require-memo-in-view": "error",
       },
