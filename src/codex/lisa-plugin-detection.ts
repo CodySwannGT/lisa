@@ -21,8 +21,41 @@ import { existsSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-/** Default Lisa marketplace plugin reference inside `~/.codex/config.toml`. */
+/**
+ * Default Lisa marketplace plugin reference inside `~/.codex/config.toml`.
+ *
+ * ⚠ The exact slug Codex stores depends on how Codex normalizes the
+ * marketplace name passed to `codex plugin install lisa@CodySwannGT/lisa`.
+ * The dash form (`CodySwannGT-lisa`) matches Codex's plugin cache directory
+ * naming convention (`~/.codex/plugins/cache/CodySwannGT-lisa/...`) but the
+ * slash form (`CodySwannGT/lisa`) is what users type. Until empirically
+ * verified by running the canonical install and reading the resulting TOML
+ * key, callers can pass either shape via the `pluginKey` parameter.
+ *
+ * The {@link isLisaInstalledAsCodexPlugin} helper tries the dash form by
+ * default; downstream wiring (when this helper is consumed) should call it
+ * with both shapes via {@link isLisaInstalledUnderAnyCanonicalKey} once that
+ * variant is added.
+ */
 export const DEFAULT_LISA_PLUGIN_KEY = "lisa@CodySwannGT-lisa";
+
+/** Alternative canonical key shape using slash separator. */
+export const SLASH_LISA_PLUGIN_KEY = "lisa@CodySwannGT/lisa";
+
+/**
+ * Detect whether either canonical Lisa plugin key shape is enabled.
+ *
+ * Until the exact Codex storage key shape is empirically pinned, callers
+ * that need a definitive yes/no answer should use this helper rather than
+ * the single-key {@link isLisaInstalledAsCodexPlugin}.
+ *
+ * @returns True when either dash-form or slash-form key is enabled.
+ */
+export async function isLisaInstalledUnderAnyCanonicalKey(): Promise<boolean> {
+  if (await isLisaInstalledAsCodexPlugin(DEFAULT_LISA_PLUGIN_KEY)) return true;
+  if (await isLisaInstalledAsCodexPlugin(SLASH_LISA_PLUGIN_KEY)) return true;
+  return false;
+}
 
 /**
  * Resolve the path to `~/.codex/config.toml`.
@@ -59,16 +92,25 @@ export function tomlHasEnabledPlugin(
 ): boolean {
   // Line-by-line scan instead of multiline regex — keeps the matcher trivially
   // linear in input length and avoids sonarjs/slow-regex warnings.
-  const header = `[plugins."${pluginKey}"]`;
+  const expectedHeader = `[plugins."${pluginKey}"]`;
   const lines = tomlBody.split("\n");
-  const headerIndex = lines.findIndex(line => line.trimStart() === header);
+  const stripTrailingComment = (line: string): string => {
+    const hashIdx = line.indexOf("#");
+    return (hashIdx === -1 ? line : line.slice(0, hashIdx)).trim();
+  };
+  const headerIndex = lines.findIndex(
+    line => stripTrailingComment(line) === expectedHeader
+  );
   if (headerIndex === -1) return false;
   // Walk forward until the next section header (a line starting with "[") or EOF.
+  // Tolerate whitespace around `enabled = true`, tabs, and trailing comments
+  // (canonical Codex emitter uses `enabled = true` but TOML accepts variants).
   const tail = lines.slice(headerIndex + 1);
+  const enabledTruePattern = /^enabled\s{0,4}=\s{0,4}true$/;
   for (const raw of tail) {
-    const line = raw.trimStart();
+    const line = stripTrailingComment(raw);
     if (line.startsWith("[")) return false; // next section reached without enabled
-    if (line.replaceAll(" ", "") === "enabled=true") return true;
+    if (enabledTruePattern.test(line)) return true;
   }
   return false;
 }
