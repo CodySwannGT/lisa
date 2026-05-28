@@ -1,0 +1,95 @@
+---
+name: jira-sync
+description: "Syncs plan progress to a linked JIRA ticket. Posts plan contents, progress updates, branch links, and PR links at key milestones. Use this skill throughout the plan lifecycle to keep tickets in sync."
+allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
+---
+
+# JIRA Ticket Sync
+
+All Atlassian operations in this skill go through `lisa:atlassian-access`. Do not call MCP tools or `acli` directly.
+
+Sync current plan progress to JIRA ticket: $ARGUMENTS
+
+If no argument provided, search for a ticket URL in the active plan file (most recently modified `.md` in `plans/`).
+
+## Workflow
+
+### Step 1: Identify Ticket and Context
+
+1. **Parse ticket ID** from `$ARGUMENTS` or extract from the active plan file
+2. **Fetch current ticket state** by invoking `lisa:atlassian-access` via the Skill tool with `operation: read-ticket key: <TICKET-ID>`
+3. **Determine current milestone** by checking:
+   - Does a plan file exist? → Plan created
+   - Is there a working branch? → Implementation started
+   - Are tasks in progress? → Active implementation
+   - Is there an open PR? → PR ready for review
+   - Is the PR merged? → Complete
+
+### Step 2: Gather Update Content
+
+Based on the current milestone:
+
+| Milestone | Content to Post |
+|-----------|-----------------|
+| **Plan created** | Plan summary, branch name, link to PR (if draft exists) |
+| **Implementation in progress** | Task completion summary (X of Y tasks done), any blockers |
+| **PR ready** | PR link, summary of changes, test results |
+| **PR merged** | Final summary, suggest moving ticket to "Done" |
+
+### Step 3: Post Update
+
+Before adding a comment, check for an existing milestone comment to avoid duplicates (idempotency):
+
+1. **Fetch existing comments** by invoking `lisa:atlassian-access` with `operation: search-issues jql: "..."` or by reading the ticket's comments. Look for a comment whose body contains a stable milestone marker (e.g., the heading `## Plan Created`, `## Implementation in Progress`, `## PR Ready`, or `## PR Merged`) that matches the current milestone.
+2. **If a matching comment already exists**, skip posting and proceed to field updates — idempotent re-runs must not create duplicates.
+3. **If no matching comment exists**, add a new comment by invoking `lisa:atlassian-access` with `operation: comment key: <TICKET-ID> body: "..."`.
+4. **Update ticket fields** if applicable:
+   - Add branch name to a custom field or comment
+   - Add PR link to a custom field or comment
+5. **Report** what was synced to the user
+
+### Step 4: Suggest Status Transition
+
+Based on the milestone, suggest (but don't automatically perform) a status transition:
+
+| Milestone | Suggested Status |
+|-----------|-----------------|
+| Plan created | "In Progress" |
+| PR ready | "In Review" |
+| PR merged | "Done" |
+
+### Step 5: Parent Status Rollup (`--rollup`)
+
+When invoked with `--rollup`, this skill **derives a parent/container ticket's status from the roll-up of its children** (Stories under an Epic; Sub-tasks under a Story/Task) instead of posting a milestone update on a leaf. This implements the JIRA child/subtask-status arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy.
+
+**Resolve the child set the same way `lisa:jira-read-ticket` does** — the native Epic → Story → Sub-task hierarchy (Epic link / parent field for Stories, the subtask relationship for Sub-tasks), each with its current status. Fetch via `lisa:atlassian-access` (`operation: read-ticket` / `search-issues` with the parent's `"Epic Link" = <KEY>` or `parent = <KEY>` JQL). If the ticket has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
+
+**Evaluate the required children in priority order and take the first match** (canonical roles from `config-resolution`; the JIRA status map defaults to `Blocked`, `In Progress`, `Code Review`, env-keyed `done`):
+
+| If among the required child leaves… | Derived parent role | JIRA status |
+|---|---|---|
+| any child is **blocked** | `blocked` | `Blocked` |
+| else any child is **in progress** (`In Progress` or `Code Review`) | `claimed` | `In Progress` |
+| else **all** required children are terminal (`Done`) | `done` | the configured terminal `done` status |
+| else (children exist, none started) | — | unchanged — parent keeps its non-ready container status |
+
+- **Blocked dominates** — a single blocked child surfaces `Blocked` on the parent even while siblings progress.
+- **"Required" children only** — won't-do / optional children do not hold the parent open.
+- **Recursive** — an Epic reaches `Done` only when its Stories have themselves rolled up to `Done`; a Story reaches `Done` only when its Sub-tasks are all terminal. Evaluate bottom-up.
+- **Never set the parent to the build-ready status** — `ready` is leaf-only. Rollup only moves the parent between non-ready container statuses.
+- **`review` is optional for JIRA** (`config-resolution`) — a project that omits `Code Review` keeps the parent in `In Progress` until terminal; skip the intermediate rollup hop rather than forcing a non-existent status (a `leaf-only-lifecycle` "vendor support varies" note).
+
+**Single-environment collapse (this repo).** The terminal `done` resolves via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to a single status and the lifecycle is `Ready → In Progress → Code Review → Done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map.
+
+**Apply the derived status** (only when it differs from the parent's current status) via `lisa:atlassian-access` `operation: transition`, and post an idempotent rollup comment naming the derived state and the child tally. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's status untouched.
+
+## Important Notes
+
+- **Never auto-transition ticket status** — always suggest and let the user confirm. The one exception is the explicit `--rollup` parent derivation (Step 5), which transitions a *parent's* status per the `leaf-only-lifecycle` rule — never a leaf's, and never to the build-ready status.
+- **Idempotent updates** — running sync multiple times at the same milestone should not create duplicate comments
+- **Comment format** — use JIRA markdown with clear headers and bullet points
+- **Rollup cites the rule by slug** — parent state derivation follows the `leaf-only-lifecycle` rule's state machine; this skill does not restate the policy.
+
+## Execution
+
+Sync the ticket now.
