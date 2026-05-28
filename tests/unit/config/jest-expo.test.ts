@@ -21,7 +21,9 @@ describe("jest.expo", () => {
     });
 
     it("uses React Native resolver", () => {
-      expect(config.resolver).toBe("react-native/jest/resolver.js");
+      expect(config.resolver).toBe(
+        "@react-native/jest-preset/jest/resolver.js"
+      );
     });
 
     it("registers base pre-setup file in setupFiles", () => {
