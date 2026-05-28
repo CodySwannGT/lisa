@@ -1,12 +1,12 @@
 {
   "connector": "memory",
   "profile": "project",
-  "ingested_at": "2026-05-27T21:35:17.044Z",
+  "ingested_at": "2026-05-28T01:34:28.273Z",
   "cursor": {
     "files": 22,
-    "lastIngest": "2026-05-27"
+    "lastIngest": "2026-05-28"
   },
   "source_notes": [
-    "wiki/sources/memory/2026-05-27-memory.md"
+    "wiki/sources/memory/2026-05-28-memory.md"
   ]
 }
