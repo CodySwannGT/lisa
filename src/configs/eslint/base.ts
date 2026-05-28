@@ -76,6 +76,7 @@ export const defaultIgnores = [
   "scripts/**",
   "lib/**/*.js",
   "cdk.out/**",
+  "wiki/**",
 ];
 
 /**
