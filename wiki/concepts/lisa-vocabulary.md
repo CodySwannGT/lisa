@@ -40,6 +40,14 @@ Query-first means project questions should be answered through the maintained Li
 
 The wiki knowledge source rule means Lisa wiki pages are the durable home for project knowledge, while non-wiki folders may remain valid ingestion inputs or evidence locations when their contents are synthesized back into `wiki/`.
 
+## Eager Rule
+
+An eager rule is the concise, always-on head of a Lisa rule. It gives agents the immediate operating contract and links to the matching reference rule for full detail.
+
+## Reference Rule
+
+A reference rule is the expanded rule body that holds procedure, examples, and edge-case guidance. Reference rules are paired with eager rules so runtime surfaces can stay concise without dropping detail.
+
 ## Ideation Ledger
 
 An ideation ledger is durable automation run metadata for project, PRD, or thread ideation work. It records enough context to make repeated runs idempotent and auditable.
@@ -51,6 +59,10 @@ PRD pressure is the queue condition where project ideation should not mark new P
 ## Digital Staff Roster
 
 A digital staff roster is the wiki-owned set of role pages and runtime subagents that represent domain experts for a project. Lisa wiki setup now seeds the standard roster by default when a project has not declared a custom `config.staff[]`.
+
+## Managed Wiki Ignore Block
+
+A managed wiki ignore block is the Lisa wiki-owned section inserted into a project's `.gitignore` during setup or repair. It is merged by marker so wiki-local artifacts can be ignored without overwriting project-owned entries.
 
 ## E2E Coverage Gap
 

@@ -20,20 +20,22 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-28-013419` from `origin/main`
-- HEAD at 2026-05-28 incremental ingest: `3e99859c0c73e29c341c441f2c34976f4fab2806`
-- Current package version: `2.116.0`
-- Total commits on HEAD: 2466
-- Latest merged PR captured in the incremental git snapshot: `#1035`
-- New commits since the previous incremental git cursor: `6`
-- Project-scoped memory files captured: `22` from the Lisa Claude project memory directory; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-2026-05-28-133543` from `origin/main`
+- HEAD at 2026-05-28 incremental ingest: `13d703327a00a157f1c9e8d546ec1c30df62c797`
+- Current package version: `2.119.0`
+- Total commits on HEAD: 2483
+- Latest merged PR captured in the incremental git snapshot: `#1040`
+- New commits since the previous incremental git cursor: `17`
+- Project-scoped memory skipped this cycle because no memory directory was provably scoped to `/Users/cody/.codex/worktrees/lisa-automation-main`; unrelated Claude project memory and global Codex memory remain out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#1034`.
-- Release automation advanced the monorepo to `2.116.0`.
-- Lisa added a base rule that makes `wiki/` the durable knowledge source for wiki work while preserving `docs/`, `research/`, `docs/wiki-inbox/`, and `transcripts/` as possible ingestion inputs or evidence locations.
-- The new documentation-source-path guidance reinforces that successful ingestions preserve reader-safe evidence under `wiki/sources/` and record runs in `wiki/log.md`.
+- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#1036`.
+- Release automation advanced the monorepo to `2.119.0`.
+- Lisa added a CLI package-version update check and hardened its cached-version handling by validating semver and swallowing cache-write failures.
+- Lisa wiki setup now merges a managed `.gitignore` block so wiki-local ignored files can be installed or repaired without clobbering project-owned ignore rules.
+- Base rules were split into eager heads and reference bodies, with Codex and CI surfaces kept paired so agents can load concise always-on guidance while retaining full reference material.
+- ESLint default ignores now include `wiki/**`, keeping the in-repository knowledge base out of normal code lint scope while the wiki keeps its own lint path.
 
 ## Workspace Packages
 
