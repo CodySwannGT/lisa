@@ -6,6 +6,9 @@ import { printUpdateWarning } from "../../../src/cli/print-update-warning.js";
 import { runUpdateCheck } from "../../../src/cli/update-check.js";
 import { getPackageVersion } from "../../../src/cli/version.js";
 
+const NOW_ISO = "2026-05-28T12:00:00.000Z";
+const CACHE_FETCHED_AT = "2026-05-28T11:00:00.000Z";
+
 let tempDir: string | undefined;
 
 /**
@@ -85,7 +88,7 @@ describe("runUpdateCheck", () => {
         currentVersion: "2.63.2",
         env: {},
         fetchImpl,
-        now: () => new Date("2026-05-28T12:00:00.000Z"),
+        now: () => new Date(NOW_ISO),
       })
     ).resolves.toMatchObject({
       current: "2.63.2",
@@ -104,7 +107,7 @@ describe("runUpdateCheck", () => {
       cachePath,
       JSON.stringify({
         latest: "2.64.0",
-        fetchedAt: "2026-05-28T11:00:00.000Z",
+        fetchedAt: CACHE_FETCHED_AT,
       }),
       "utf8"
     );
@@ -116,7 +119,7 @@ describe("runUpdateCheck", () => {
         currentVersion: "2.63.2",
         env: {},
         fetchImpl,
-        now: () => new Date("2026-05-28T12:00:00.000Z"),
+        now: () => new Date(NOW_ISO),
       })
     ).resolves.toMatchObject({
       latest: "2.64.0",
@@ -124,6 +127,78 @@ describe("runUpdateCheck", () => {
       reason: "cached",
     });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("ignores a cached entry with a non-semver latest and fetches live", async () => {
+    const cachePath = await getCachePath();
+    await writeFile(
+      cachePath,
+      JSON.stringify({
+        latest: "not-a-semver",
+        fetchedAt: CACHE_FETCHED_AT,
+      }),
+      "utf8"
+    );
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: async () => ({ version: "2.64.0" }),
+    } as Response);
+
+    await expect(
+      runUpdateCheck({
+        cachePath,
+        currentVersion: "2.63.2",
+        env: {},
+        fetchImpl,
+        now: () => new Date(NOW_ISO),
+      })
+    ).resolves.toMatchObject({
+      latest: "2.64.0",
+      isOutdated: true,
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("returns the valid version even when writeCache fails on success", async () => {
+    const cachePath = "/dev/null/nonexistent-dir/update-check.json";
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      json: async () => ({ version: "2.64.0" }),
+    } as Response);
+
+    await expect(
+      runUpdateCheck({
+        cachePath,
+        currentVersion: "2.63.2",
+        env: {},
+        fetchImpl,
+        now: () => new Date(NOW_ISO),
+      })
+    ).resolves.toMatchObject({
+      latest: "2.64.0",
+      isOutdated: true,
+    });
+  });
+
+  it("returns a non-fatal http reason even when writeCache fails on http error", async () => {
+    const cachePath = "/dev/null/nonexistent-dir/update-check.json";
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: false,
+      status: 503,
+    } as Response);
+
+    await expect(
+      runUpdateCheck({
+        cachePath,
+        currentVersion: "2.63.2",
+        env: {},
+        fetchImpl,
+        now: () => new Date(NOW_ISO),
+      })
+    ).resolves.toMatchObject({
+      latest: null,
+      reason: "http-503",
+    });
   });
 
   it("returns a non-fatal reason when the registry is unreachable", async () => {

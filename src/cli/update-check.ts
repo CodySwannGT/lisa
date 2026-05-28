@@ -103,6 +103,10 @@ function readCachedLatest(
     return null;
   }
 
+  if (valid(parsed.latest) === null) {
+    return null;
+  }
+
   const fetchedAt = Date.parse(parsed.fetchedAt);
   if (!Number.isFinite(fetchedAt)) {
     return null;
@@ -215,17 +219,21 @@ export async function runUpdateCheck(
       signal: controller.signal,
     });
     if (!response.ok) {
-      await writeCache(cachePath, null, now(), `http-${response.status}`);
+      await writeCache(cachePath, null, now(), `http-${response.status}`).catch(
+        () => undefined
+      );
       return toResult(current, null, `http-${response.status}`);
     }
 
     const body = (await response.json()) as { version?: unknown };
     if (typeof body.version !== "string" || valid(body.version) === null) {
-      await writeCache(cachePath, null, now(), "invalid-response");
+      await writeCache(cachePath, null, now(), "invalid-response").catch(
+        () => undefined
+      );
       return toResult(current, null, "invalid-response");
     }
 
-    await writeCache(cachePath, body.version, now());
+    await writeCache(cachePath, body.version, now()).catch(() => undefined);
     return toResult(current, body.version);
   } catch (error) {
     const reason =
