@@ -36,6 +36,10 @@ An automation checkout is the durable local Git work tree used by recurring Code
 
 Query-first means project questions should be answered through the maintained Lisa wiki query path before relying on ad hoc session memory.
 
+## Wiki Knowledge Source
+
+The wiki knowledge source rule means Lisa wiki pages are the durable home for project knowledge, while non-wiki folders may remain valid ingestion inputs or evidence locations when their contents are synthesized back into `wiki/`.
+
 ## Ideation Ledger
 
 An ideation ledger is durable automation run metadata for project, PRD, or thread ideation work. It records enough context to make repeated runs idempotent and auditable.

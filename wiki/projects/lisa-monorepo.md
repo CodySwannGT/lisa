@@ -20,22 +20,20 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-27-213503` from `origin/main`
-- HEAD at 2026-05-27 incremental ingest: `6dbfeb7ec507cfbb56bc905db47ea14f5bce9762`
-- Current package version: `2.115.3`
-- Total commits on HEAD: 2460
-- Latest merged PR captured in the incremental git snapshot: `#1033`
-- New commits since the previous incremental git cursor: `19`
+- Ingest branch: `wiki/ingest-2026-05-28-013419` from `origin/main`
+- HEAD at 2026-05-28 incremental ingest: `3e99859c0c73e29c341c441f2c34976f4fab2806`
+- Current package version: `2.116.0`
+- Total commits on HEAD: 2466
+- Latest merged PR captured in the incremental git snapshot: `#1035`
+- New commits since the previous incremental git cursor: `6`
 - Project-scoped memory files captured: `22` from the Lisa Claude project memory directory; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#1018`.
-- Release automation advanced the monorepo to `2.115.3`.
-- Wiki setup now treats the standard digital-staff roster as the default seed for new wiki setup flows.
-- Queue-status and project ideation added a PRD pressure helper so auto-ready PRDs are blocked when the build queue is already under pressure.
-- PRD pressure edge cases are covered by fixtures and the pressure gate is documented for ideation operators.
-- Project-scoped memory now records Lisa hook-delivery semantics: Claude plugin hooks track the GitHub marketplace on `main`, while Codex hooks arrive through `lisa apply`.
+- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#1034`.
+- Release automation advanced the monorepo to `2.116.0`.
+- Lisa added a base rule that makes `wiki/` the durable knowledge source for wiki work while preserving `docs/`, `research/`, `docs/wiki-inbox/`, and `transcripts/` as possible ingestion inputs or evidence locations.
+- The new documentation-source-path guidance reinforces that successful ingestions preserve reader-safe evidence under `wiki/sources/` and record runs in `wiki/log.md`.
 
 ## Workspace Packages
 
@@ -52,7 +50,10 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-25-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-26-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-27-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-28-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
+- `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
 - `wiki/sources/roles/2026-05-26-roles.md`
 - `wiki/sources/roles/2026-05-27-roles.md`
+- `wiki/sources/roles/2026-05-28-roles.md`
