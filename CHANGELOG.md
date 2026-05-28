@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.120.0](https://github.com/CodySwannGT/lisa/compare/vv2.119.1...v2.120.0) (2026-05-28)
+
+
+### Features
+
+* **parity:** wave 3 part 1 — Pattern B per-agent plugin variant build pipeline ([d02c887](https://github.com/CodySwannGT/lisa/commit/d02c8877afc215a90eaa84a2060a536556539fb7)), closes [#17](https://github.com/CodySwannGT/lisa/issues/17) [#17](https://github.com/CodySwannGT/lisa/issues/17)
+* **parity:** wave 3 part 2 — agy per-project installers ([3524c1b](https://github.com/CodySwannGT/lisa/commit/3524c1b8164bc7b9a7fe46b8fd72765480b9b3aa))
+* **parity:** wave 3 part 3 — Copilot per-project installers ([8dac2a2](https://github.com/CodySwannGT/lisa/commit/8dac2a22df3a734000cdae18e4cfb98a3180c5be))
+* **parity:** wave 3 part 4 — Claude memory installer ([21ccd89](https://github.com/CodySwannGT/lisa/commit/21ccd891af5f1c9fae20cc100f2ee8e35965231a))
+* **parity:** wave 3 part 5 — Codex plugin-install detection ([93773d1](https://github.com/CodySwannGT/lisa/commit/93773d1d7a6c9ccac65e8a9476239946ca1ef092))
+* **parity:** wave 3 part 7 — wire installers into lisa apply + unit tests ([5a9a8b8](https://github.com/CodySwannGT/lisa/commit/5a9a8b8ebf42702336e686182a6f5391f37c955b))
+
+
+### Bug Fixes
+
+* **parity:** wave 3 part 5b — TOML detection tolerance + dual-key ([c80c03a](https://github.com/CodySwannGT/lisa/commit/c80c03a7c2f3b40767c6f681ca1cb58d3b2f129c))
+
 ### [2.119.1](https://github.com/CodySwannGT/lisa/compare/vv2.119.0...v2.119.1) (2026-05-28)
 
 
