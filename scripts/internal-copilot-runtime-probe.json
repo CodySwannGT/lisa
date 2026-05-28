@@ -1,0 +1,7 @@
+{
+  "_comment": "Cached Copilot runtime probe results. Updated by Wave 3 verification probes (Task #17) and consumed by scripts/generate-copilot-plugin-artifacts.mjs. Missing values fall through to conservative defaults.",
+  "cliVersion": null,
+  "pluginRootEnvVar": null,
+  "rulesAutoLoads": null,
+  "agentPathOverrideAccepted": null
+}

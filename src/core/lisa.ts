@@ -14,6 +14,11 @@ import { installAgentsMd } from "../codex/agents-md-installer.js";
 import { installSettings } from "../codex/settings-installer.js";
 import { installSkills } from "../codex/skills-installer.js";
 import { installCodexMarketplace } from "../codex/plugin-marketplace-installer.js";
+import { installAgyPlugin } from "../agy/plugin-installer.js";
+import { installAgyAgentsMd } from "../agy/agents-md-installer.js";
+import { installCopilotPlugin } from "../copilot/plugin-installer.js";
+import { installCopilotInstructions } from "../copilot/copilot-instructions-installer.js";
+import { installClaudeMd } from "../claude/claude-md-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
   DestinationNotDirectoryError,
@@ -654,6 +659,9 @@ export class Lisa {
       await this.processDeletions();
       await this.processMigrations();
       await this.processCodexEmit();
+      await this.processClaudeEmit();
+      await this.processAgyEmit();
+      await this.processCopilotEmit();
       await this.registerPlugins();
       await this.finalize();
       this.printSummary();
@@ -775,6 +783,122 @@ export class Lisa {
             ? ` (${agentResult.deleted.length} stale agents, ${skillsResult.deleted.length} stale skills removed)`
             : ""
         }, marketplace ${marketplaceResult.created ? "created" : "merged"}`
+      )
+    );
+  }
+
+  /**
+   * Emit Claude-Code-targeted artifacts when the harness includes Claude.
+   *
+   * Claude's primary distribution is the GitHub marketplace; the only
+   * per-project artifact Lisa writes is a starter CLAUDE.md template the
+   * host owns from creation onward. Skipped in dry-run mode and on harness
+   * modes that don't include Claude.
+   */
+  private async processClaudeEmit(): Promise<void> {
+    const { harness } = this.config;
+    if (harness !== "claude" && harness !== "both" && harness !== "fleet") {
+      return;
+    }
+    if (this.config.dryRun) {
+      this.deps.logger.info(pc.gray("Claude emit: skipped (dry-run mode)"));
+      return;
+    }
+    const result = await installClaudeMd(this.config.destDir);
+    this.deps.logger.info(
+      pc.cyan(
+        `Claude emit: CLAUDE.md ${result.created ? "created" : "already present (host-owned)"}`
+      )
+    );
+  }
+
+  /**
+   * Emit Antigravity-targeted artifacts when the harness includes agy.
+   *
+   * Three per-project actions:
+   *   1. `agy plugin install` Lisa's Pattern B variant from
+   *      `plugins/lisa-agy/` (when agy is on PATH).
+   *   2. Bake Lisa's eager rules into AGENTS.md (Bake polyfill — agy plugin
+   *      hooks don't fire in -p mode so SessionStart-hook injection isn't
+   *      available).
+   *
+   * MCP install is intentionally NOT dispatched here — Lisa's base plugin
+   * does not currently bundle MCP servers, so there is nothing to translate.
+   * When Lisa ships MCP servers in the future, wire `installAgyMcpConfig`
+   * here with the source MCP server map.
+   */
+  private async processAgyEmit(): Promise<void> {
+    const { harness } = this.config;
+    if (harness !== "agy" && harness !== "fleet") {
+      return;
+    }
+    if (this.config.dryRun) {
+      this.deps.logger.info(pc.gray("agy emit: skipped (dry-run mode)"));
+      return;
+    }
+
+    const pluginRoot = path.join(this.config.lisaDir, "plugins");
+    const pluginResult = await installAgyPlugin(pluginRoot);
+
+    const rulesEagerDir = path.join(pluginRoot, "lisa-agy", "rules", "eager");
+    const agentsMdResult = await installAgyAgentsMd(
+      this.config.destDir,
+      rulesEagerDir
+    );
+
+    const pluginMessage = pluginResult.attempted
+      ? pluginResult.installed
+        ? "installed"
+        : `install failed: ${pluginResult.error ?? "unknown"}`
+      : "skipped (agy not on PATH)";
+
+    this.deps.logger.info(
+      pc.cyan(
+        `agy emit: plugin ${pluginMessage}, AGENTS.md ${
+          agentsMdResult.created ? "created" : "refreshed"
+        } with ${agentsMdResult.rulesBaked} rules baked`
+      )
+    );
+  }
+
+  /**
+   * Emit GitHub-Copilot-targeted artifacts when the harness includes copilot.
+   *
+   * Two per-project actions:
+   *   1. `copilot plugin install lisa@CodySwannGT/lisa` (with local-path
+   *      fallback when the marketplace path fails — currently does, pending
+   *      the marketplace.json pluginRoot fix gated on Wave 2 spec step 8).
+   *   2. Create-only write of `.github/copilot-instructions.md`.
+   */
+  private async processCopilotEmit(): Promise<void> {
+    const { harness } = this.config;
+    if (harness !== "copilot" && harness !== "fleet") {
+      return;
+    }
+    if (this.config.dryRun) {
+      this.deps.logger.info(pc.gray("Copilot emit: skipped (dry-run mode)"));
+      return;
+    }
+
+    const pluginRoot = path.join(this.config.lisaDir, "plugins");
+    const pluginResult = await installCopilotPlugin(pluginRoot);
+    const instructionsResult = await installCopilotInstructions(
+      this.config.destDir
+    );
+
+    const pluginMessage = pluginResult.attempted
+      ? pluginResult.installed
+        ? `installed via ${pluginResult.via ?? "marketplace"}`
+        : `install failed: ${pluginResult.error ?? "unknown"}`
+      : "skipped (copilot not on PATH)";
+
+    this.deps.logger.info(
+      pc.cyan(
+        `Copilot emit: plugin ${pluginMessage}, copilot-instructions ${
+          instructionsResult.created
+            ? "created"
+            : "already present (host-owned)"
+        }`
       )
     );
   }

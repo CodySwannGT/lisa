@@ -1,0 +1,22 @@
+# Empirical Inquiry — Test, Don't Guess (load-bearing)
+
+When a decision depends on a fact you are not certain of — how a tool, API, harness, runtime, or dependency actually behaves — **find out empirically before you act.** Run the smallest experiment that settles the question, observe the real result, and proceed from what you observed.
+
+Do not reason your way to a confident-sounding answer from documentation, prior assumption, or training knowledge when the real system is right there and a quick probe would tell you the truth.
+
+## How to apply
+
+1. **State the uncertain fact** explicitly, so you know what the experiment must resolve.
+2. **Run the cheapest probe** that produces real evidence — a single command, a one-shot subagent, a tiny script, a direct API call against a scratch input.
+3. **Report the raw result** (verbatim output or error), then your conclusion. Distinguish observation from inference.
+4. **Encode the verified fact**, and when non-obvious or contradicting docs, record WHY so the next agent inherits the finding.
+
+## Forbidden
+
+- Presenting a guess, recollection, or doc summary as established fact when it was cheap to verify and you did not.
+- "Should work" / "probably" / "the docs say" as the basis for a load-bearing decision an experiment could have settled.
+- Skipping the probe because the answer "seems obvious" — those are exactly the ones that quietly drift from reality.
+
+This is the inquiry counterpart to the `verification` rule (which proves completed work behaves correctly). Both reject "it looks correct" as evidence.
+
+Full prose: [reference/empirical-inquiry.md](../reference/empirical-inquiry.md).
