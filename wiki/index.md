@@ -18,7 +18,7 @@ Last updated by coding-agent parity research ingest on 2026-05-28. Latest connec
 - [Documentation Index](documentation/index.md)
 - [Overview](documentation/overview.md)
 - [Contributing](documentation/contributing.md)
-- [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/prd-lifecycle-rollup.md)
+- [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/reference/prd-lifecycle-rollup.md)
 - [Testing Documentation](documentation/testing/)
 - [Workflow Documentation](documentation/workflows/)
 - [Specifications](documentation/specs/)

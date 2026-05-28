@@ -119,6 +119,13 @@
 - Ingested the Lisa project-scoped Claude memory directory into `wiki/sources/memory/2026-05-28-memory.md`; global Codex memory remained out of scope.
 - Updated the monorepo snapshot, workflow playbook, vocabulary, and index for the wiki-as-knowledge-source rule and release-history changes through `2.116.0`.
 
+## 2026-05-28 - Incremental connector ingest
+
+- Synced the durable checkout to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-28-133543`, and ran another full no-argument ingest against every enabled non-external-write connector.
+- Refreshed the `git` source note with 17 new commits through `13d703327a00a157f1c9e8d546ec1c30df62c797`, advanced the merged-PR cursor to `#1040`, and confirmed that `roles` still had no roster pages to ingest.
+- Skipped `memory` because the available Claude memory directory was not provably project-scoped for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot, template-governance notes, workflow playbook, vocabulary, and index for the CLI package-version update check, managed wiki `.gitignore` setup, eager/reference rule split, wiki ESLint ignore behavior, and release-history changes through `2.119.0`.
+
 ## 2026-05-28 - Coding-agent parity research ingest
 
 - Ingested the `lisa-coding-agent-parity` research artifact produced on the `worktree-coding-agent-parity` worktree at `/tmp/parity-research.md`. The artifact contains the universal feature catalog (170 features across 12 categories) for Claude Code, Codex, Cursor (`cursor-agent`), Antigravity (`agy`), and GitHub Copilot, plus the per-agent support matrix, plugin-distributability matrix, and Lisa polyfill designs across 16 gap-cell clusters.

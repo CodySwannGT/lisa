@@ -24,6 +24,12 @@ Agents should use the Lisa wiki query flow as the primary way to answer project 
 
 For Lisa wiki work specifically, `wiki/` is the durable knowledge source. Other repository folders such as `docs/`, `research/`, `docs/wiki-inbox/`, and `transcripts/` can still provide ingestion inputs, source evidence, fixtures, or scratch material, but successful ingestions preserve reader-safe evidence under `wiki/sources/` and record the run in `wiki/log.md`.
 
+Wiki setup owns its local ignore hygiene through a managed `.gitignore` block. Setup and repair should merge that block instead of replacing the file, so project-owned ignore rules remain intact.
+
+## Rule Loading
+
+Lisa rules are now organized into eager heads and full reference bodies. Agents should treat the eager heads as the immediate operating contract and use the linked reference body when they need detailed procedure, examples, or edge-case policy.
+
 ## Project Ideation Pressure Gate
 
 Project ideation may document new PRD candidates while the build queue is busy, but it should not auto-mark them ready when queue-status reports PRD pressure. The pressure helper keeps ideation throughput from bypassing the one-item build-intake discipline.
@@ -43,3 +49,5 @@ Repair intake treats work as stuck after a two-hour threshold and records PR or 
 ## Quality Gate Habit
 
 Before shipping Lisa changes, expect local hooks and CI to run typecheck, formatting, linting, slow lint, dead-code detection, tests, coverage, security audit, and integration checks depending on the action.
+
+The wiki has a separate lint path. Normal ESLint defaults ignore `wiki/**`, while wiki integrity continues to be checked through the Lisa wiki lint scripts.
