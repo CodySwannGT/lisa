@@ -64,11 +64,22 @@ export const COPY_STRATEGIES: readonly CopyStrategy[] = [
 /**
  * Target harness(es) for emitted artifacts.
  *
- * - "claude": emit Claude Code artifacts (.claude/, .claude-plugin/, etc.)
- * - "codex":  emit OpenAI Codex CLI artifacts (.codex/, .codex-plugin/, .agents/, AGENTS.md)
- * - "both":   emit both, so a project can use either harness
+ * - "claude":  emit Claude Code artifacts (.claude/, .claude-plugin/, CLAUDE.md)
+ * - "codex":   emit OpenAI Codex CLI artifacts (.codex/, .codex-plugin/, .agents/, AGENTS.md)
+ * - "cursor":  emit Cursor artifacts (Cursor reads .claude-plugin/ natively; no per-project files)
+ * - "agy":     emit Antigravity artifacts (~/.gemini/config/mcp_config.json + AGENTS.md with baked rules)
+ * - "copilot": emit GitHub Copilot artifacts (.github/copilot-instructions.md + plugin install)
+ * - "both":    emit both Claude and Codex (back-compat — predates the per-agent expansion)
+ * - "fleet":   emit for every supported agent (Claude + Codex + Cursor + agy + Copilot)
  */
-export type Harness = "claude" | "codex" | "both";
+export type Harness =
+  | "claude"
+  | "codex"
+  | "cursor"
+  | "agy"
+  | "copilot"
+  | "both"
+  | "fleet";
 
 /**
  * All valid harness values, in canonical order
@@ -76,7 +87,11 @@ export type Harness = "claude" | "codex" | "both";
 export const HARNESS_VALUES: readonly Harness[] = [
   "claude",
   "codex",
+  "cursor",
+  "agy",
+  "copilot",
   "both",
+  "fleet",
 ] as const;
 
 /**

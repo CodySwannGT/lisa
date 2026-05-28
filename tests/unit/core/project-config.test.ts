@@ -77,7 +77,7 @@ describe("project-config", () => {
     it("throws on invalid harness value", async () => {
       await fs.writeFile(
         path.join(tempDir, PROJECT_CONFIG_FILENAME),
-        JSON.stringify({ harness: "cursor" }),
+        JSON.stringify({ harness: "windsurf" }),
         "utf8"
       );
       await expect(readProjectConfig(tempDir)).rejects.toThrow(
@@ -190,7 +190,7 @@ describe("project-config", () => {
     );
 
     it.each([
-      ["cursor"],
+      ["windsurf"],
       ["Claude"],
       [""],
       [42],

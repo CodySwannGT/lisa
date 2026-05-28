@@ -1,0 +1,170 @@
+---
+name: prd-ticket-coverage
+description: "Verifies that every requirement in a PRD (Notion, Confluence, Linear, or GitHub Issues) is covered by at least one created destination ticket (JIRA, GitHub Issues, or Linear) — no silent drops. Parses the PRD into atomic items (goals, user stories, functional/non-functional requirements, acceptance criteria, important notes), maps each to the created tickets, and produces a coverage matrix and verdict (COMPLETE / COMPLETE_WITH_SCOPE_CREEP / GAPS_FOUND / NO_TICKETS_FOUND). Used by notion-prd-intake / confluence-prd-intake / linear-prd-intake / github-prd-intake post-write to gate the Ticketed transition; can also be invoked standalone for after-the-fact audits."
+allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__claude_ai_Notion__notion-get-comments", "mcp__atlassian__getConfluencePage", "mcp__atlassian__getConfluencePageDescendants", "mcp__atlassian__getConfluencePageFooterComments", "mcp__atlassian__getConfluencePageInlineComments", "mcp__atlassian__getConfluenceCommentChildren", "mcp__atlassian__getJiraIssue", "mcp__atlassian__searchJiraIssuesUsingJql", "mcp__atlassian__getAccessibleAtlassianResources", "mcp__linear-server__get_project", "mcp__linear-server__list_documents", "mcp__linear-server__get_document", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__list_comments"]
+---
+
+# PRD Ticket Coverage Audit: $ARGUMENTS
+
+`$ARGUMENTS` is one of:
+
+1. A PRD URL alone — auto-discover created tickets via the PRD's epic remote link.
+2. A PRD URL plus an explicit list of ticket keys — `<PRD URL> tickets=[KEY-1,KEY-2,...]`. Use this when called from `lisa:notion-prd-intake` or `lisa:confluence-prd-intake` (which know the keys they just created).
+
+The PRD URL can be a **Notion page URL**, a **Confluence page URL**, a **Linear project URL**, or a **GitHub issue URL**. Detect the vendor from the host:
+
+- `notion.so` / `notion.site` → Notion. Fetch with `mcp__claude_ai_Notion__notion-fetch` (`include_discussions: true`) and `mcp__claude_ai_Notion__notion-get-comments`.
+- Atlassian Confluence host (e.g. `*.atlassian.net/wiki/...`) → Confluence. Fetch with `mcp__atlassian__getConfluencePage`, `mcp__atlassian__getConfluencePageDescendants` (for child epic pages), `mcp__atlassian__getConfluencePageFooterComments`, `mcp__atlassian__getConfluencePageInlineComments`, and `mcp__atlassian__getConfluenceCommentChildren` for nested replies.
+- `linear.app` host → Linear. Fetch with `mcp__linear-server__get_project` (capture description, labels, state, attached resources), `mcp__linear-server__list_documents({projectId})` + `mcp__linear-server__get_document` per attached document, `mcp__linear-server__list_issues({project})` for sub-issues that act as child epics / user stories, and `mcp__linear-server__list_comments({issueId})` per sub-issue for decisions and engineering notes. Comments do not exist on the project itself in the MCP surface — sub-issue comments are the substitute.
+- `github.com` host → GitHub Issues. Fetch with the `gh` CLI (no GitHub MCP — Lisa uses the CLI exclusively for GitHub):
+  - `gh issue view <number> --repo <org>/<repo> --json number,title,body,labels,milestone,assignees,author,createdAt,comments,url` for the PRD body and comments.
+  - `gh api graphql` with the `subIssues` field for native sub-issue children (these stand in for child epic pages — see `lisa:github-read-issue` Phase 3 for the exact query).
+  - `gh issue view <child-num> --repo <org>/<repo> --json body,comments` per child sub-issue, recursively to depth 3.
+
+All four vendors produce the same downstream artifact-extraction and coverage-matrix logic — only the fetch surface differs. The rest of this skill is vendor-agnostic.
+
+Verify that every atomic item in the PRD is covered by at least one of the listed/discovered destination tickets. The output gates whether the PRD's lifecycle should remain at `Ticketed` (Notion `Status = Ticketed`, Confluence / Linear / GitHub `prd-ticketed` label) or revert to `Blocked`.
+
+The destination tickets are read via `lisa:tracker-read` (which dispatches to `lisa:jira-read-ticket` or `lisa:github-read-issue` per `.lisa.config.json` `tracker`) so this skill itself stays agnostic of which tracker hosts the work.
+
+## Why this exists
+
+Per-ticket gates (`lisa:jira-validate-ticket`) prove each created ticket is well-formed in isolation. They do NOT prove the *set* of created tickets is complete relative to the source PRD. Silent drops happen — an agent generates 8 tickets when the PRD called for 9, and nothing notices. This skill is the catch.
+
+## Phases
+
+### Phase 1 — Resolve inputs
+
+1. Parse `$ARGUMENTS`:
+   - PRD URL → detect vendor from host, extract page ID.
+   - Optional `tickets=[...]` → list of explicit ticket keys.
+2. Fetch the PRD using the vendor-appropriate tool surface:
+   - **Notion**: `notion-fetch` with `include_discussions: true`. Capture: title, body, child Epic pages, all comment threads.
+   - **Confluence**: `getConfluencePage` (capture title, body, labels), `getConfluencePageFooterComments` + `getConfluencePageInlineComments` (capture all comments; walk replies via `getConfluenceCommentChildren` for any thread with children).
+   - **Linear**: `get_project` (capture name, description, labels, state, attached resources). Capture sub-issues via `list_issues({project})` and per-issue comments via `list_comments({issueId})`.
+   - **GitHub**: `gh issue view --json` for the source PRD issue (title, body, labels, comments). Capture sub-issues via the GraphQL `subIssues` traversal.
+3. If the PRD has child Epic sub-pages / sub-issues (a multi-epic PRD), fetch each in parallel:
+   - **Notion**: `notion-fetch` per child page with `include_discussions: true`.
+   - **Confluence**: enumerate descendants via `getConfluencePageDescendants`, then `getConfluencePage` per child plus its comment streams.
+   - **Linear**: enumerate attached documents via `list_documents({projectId})` and fetch each via `get_document`. Treat each document as an extra body source. Sub-issues themselves stand in for "child epic pages" — their descriptions and comments are already captured in step 2.
+   - **GitHub**: enumerate native sub-issues via `gh api graphql` (`subIssues` field), then `gh issue view <child-num> --json body,comments` per child. Recurse to depth 3.
+   The audit walks the full PRD tree.
+4. If `tickets=[...]` not provided, locate the destination Epic by:
+   - Looking for a destination URL in the PRD body, comments, or the PRD's most recent "Ticketed by Claude" comment posted by `lisa:notion-prd-intake` / `lisa:confluence-prd-intake` / `lisa:linear-prd-intake` / `lisa:github-prd-intake` (for Linear, this comment lives on the project's sentinel feedback issue; for the others, it lives on the PRD page / issue itself).
+   - Searching the destination tracker via `lisa:tracker-read` (or directly via `searchJiraIssuesUsingJql` / `gh issue list --search`) for an epic whose summary or description references the PRD title or project ID.
+   - If no epic found, return verdict `NO_TICKETS_FOUND` with a clear remediation — coverage cannot be assessed without the ticket set.
+5. Once the epic is known, fetch all child stories and sub-tasks:
+   - **JIRA destination**: JQL `"Epic Link" = <EPIC-KEY>` and recursively for sub-tasks.
+   - **GitHub destination**: `gh api graphql` `subIssues` traversal of the Epic, recursively for sub-tasks.
+
+### Phase 2 — Extract atomic PRD items
+
+Walk the PRD content and produce a list of **atomic items** — testable, ticketable units of work. Each item gets a stable identifier so the matrix is auditable.
+
+The item types to extract:
+
+| Type | Where it appears in the PRD | Example identifier |
+|------|----------------------------|--------------------|
+| `goal` | `## Goals` section bullets | `goal:1`, `goal:2`, ... |
+| `non-goal` | `## Non-goals` (for scope-creep detection) | `non-goal:1` |
+| `user-story` | Per-Epic page, "User Story" sub-headings | `epic-1.story-1.1` |
+| `functional-req` | "Functional Requirements" sub-section | `epic-1.story-1.1.fr-1` |
+| `non-functional-req` | "Non-functional Requirements" sub-section | `epic-1.story-1.1.nfr-1` |
+| `acceptance-criterion` | Inline AC under a user story | `epic-1.story-1.1.ac-1` |
+| `important-note` | Bold "Important note:" callouts | `note:1` |
+| `mobile-spec` | Mobile-specific behavior callouts | `epic-1.story-1.1.mobile-1` |
+| `state` | Empty / error / loading state notes | `epic-2.story-2.1.state:empty` |
+| `permission` | Role-scoped permission notes | `epic-2.story-2.1.perm:admin` |
+| `decision` | Confirmed decisions in comments (e.g. "Engineering: ...") | `comment:42` |
+
+**Items NOT to extract** (these are not coverage gaps if missing):
+- Open Questions / `[Needs validation]` items — these are PRD-side blockers, not ticket scope.
+- Original concept thesis or annex/historical content — context, not requirements.
+- "Out of scope" items in the PRD — explicitly excluded by product.
+
+For each extracted item, capture: `{ id, type, source (PRD section / line), text (concise summary), keywords (3-5 terms for matching) }`.
+
+### Phase 3 — Map items to tickets
+
+For each created ticket (epic + each story + each sub-task), capture: `{ key, summary, description, acceptance_criteria, scope_signals (keywords from summary + AC) }`.
+
+Build a coverage matrix:
+
+```text
+PRD item id  →  [ticket keys that cover it]
+```
+
+Matching rules (in priority order):
+
+1. **Direct quote / strong keyword overlap**: the ticket's summary or AC explicitly names the PRD item's keywords. High confidence.
+2. **Domain match**: PRD item describes a UI affordance ("Tasks widget") and a ticket scopes that affordance (`[CU-2.1] Tasks widget — empty state`). Medium-high confidence.
+3. **Scope inheritance**: PRD item is a sub-detail of a parent (e.g. an AC under a user story); the ticket covers the parent user story. Medium confidence — flag for review if no more specific ticket exists.
+4. **Cross-ticket coverage**: PRD item spans multiple tickets (e.g. a permission rule that applies to several widgets). Each contributing ticket is recorded.
+
+Items with **zero** matching tickets are coverage gaps.
+
+### Phase 4 — Detect scope creep (informational)
+
+For each created ticket, identify any tickets whose scope_signals do NOT trace back to a PRD item, AND are not justifiable as standard infrastructure tasks (e.g. `X.0 Setup` stories for data model / migrations are typically infrastructure scaffolding, not scope creep).
+
+Scope creep is informational, not blocking — but worth surfacing because it usually indicates the agent invented work.
+
+### Phase 5 — Determine verdict
+
+| Condition | Verdict |
+|-----------|---------|
+| All extracted PRD items have ≥1 matching ticket; no scope creep | `COMPLETE` |
+| All extracted PRD items have ≥1 matching ticket; one or more scope-creep tickets | `COMPLETE_WITH_SCOPE_CREEP` |
+| One or more PRD items have zero matching tickets | `GAPS_FOUND` |
+| The created-tickets list is empty or unfetchable | `NO_TICKETS_FOUND` |
+
+`GAPS_FOUND` is the only verdict that should gate the PRD's `Status`. Scope creep is advisory — surface it, but do not block.
+
+### Phase 6 — Emit report
+
+Output a single fenced text block. Callers parse it; do not add free-form prose around it.
+
+```text
+## prd-ticket-coverage: <PRD title>
+
+PRD page: <URL>
+Tickets audited: <epic-key> + <story-count> stories + <subtask-count> sub-tasks
+Atomic PRD items extracted: <n>
+
+### Coverage matrix
+| PRD item | Tickets |
+|----------|---------|
+| <id> (<type>) — <text> | <ticket-key>, <ticket-key> |
+| <id> (<type>) — <text> | <ticket-key> |
+| <id> (<type>) — <text> | **(none)** |
+| ... | ... |
+
+### Gaps  (PRD items with zero ticket coverage — blocks Ticketed status)
+- item: <item-id> (<type>)
+  text: <text>
+  prd_section: "<heading text from the PRD>"
+  prd_anchor: "<first ~10 chars>...<last ~10 chars>"   # for selection_with_ellipsis; null if no specific section
+  category: <product-clarity|acceptance-criteria|design-ux|scope|dependency|data|technical|structural>
+  what: <plain-language description of the gap, no JIRA jargon — written for the product team>
+  recommendation: <1–3 candidate resolutions: add a ticket scoped to X / extend ticket Y to cover this / mark out-of-scope explicitly. Never "clarify this".>
+
+### Scope creep  (tickets without PRD trace — informational, does not block)
+- <ticket-key> — <summary>
+  - *Why flagged:* <reason — e.g. "no matching item in PRD; not an infra task">
+
+### Verdict: COMPLETE | COMPLETE_WITH_SCOPE_CREEP | GAPS_FOUND | NO_TICKETS_FOUND
+### Gap count: <n>
+### Scope-creep count: <n>
+```
+
+`prd_anchor` and `prd_section` are built the same way as in `lisa:notion-to-tracker` / `lisa:confluence-to-tracker` / `lisa:linear-to-tracker` / `lisa:github-to-tracker`. For Notion, `prd_anchor` is the `selection_with_ellipsis` start/end snippet; for Confluence, it's the inline-comment selection text accepted by `createConfluenceInlineComment`; for Linear, it's a sub-issue identifier (e.g. `LIN-123`) when the gap maps to a specific issue, otherwise `null` (the caller posts unanchored Linear gaps on the project's sentinel feedback issue); for GitHub, it's the section heading from the PRD issue body when the gap traces to a specific section, otherwise `null` (the caller approximates inline anchoring by quoting a body excerpt at the top of the comment). The downstream caller knows which vendor it's writing to and uses the right API; this skill just emits the anchor that vendor expects.
+
+`category` is drawn from the same fixed taxonomy used by `lisa:jira-validate-ticket` so downstream callers can apply one consistent comment-formatting policy. Most coverage gaps map to `scope` (item not represented in any ticket) or `product-clarity` (item too vague to map). Use `acceptance-criteria` for missing pass/fail conditions and `design-ux` for missing visuals.
+
+## Rules
+
+- Read-only — never write to JIRA, never write to Notion (callers do that based on the verdict).
+- Never silently drop a PRD item from extraction. If an item is ambiguous about whether it's scope, include it in extraction with type `ambiguous` and let the matching phase resolve it. The point of the audit is to catch silent drops; the audit can't have its own.
+- Be explicit about confidence in matches — the matrix is for humans to skim; vague matches help no one. If a match is rule-3 ("scope inheritance"), say so.
+- Scope creep is INFORMATIONAL. It is normal for an agent to add infra tickets (`X.0 Setup`) the PRD doesn't explicitly enumerate. Only flag scope creep when the ticket genuinely doesn't trace to PRD content AND isn't standard scaffolding.
+- The `GAPS_FOUND` verdict is the gate. The caller (e.g. `lisa:notion-prd-intake`, `lisa:confluence-prd-intake`, `lisa:linear-prd-intake`, `lisa:github-prd-intake`) uses it to decide whether to revert the lifecycle from `Ticketed` to `Blocked`.
