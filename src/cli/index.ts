@@ -17,6 +17,7 @@ import { MigrationRegistry } from "../migrations/index.js";
 import { StrategyRegistry } from "../strategies/index.js";
 import { BackupService, DryRunBackupService } from "../transaction/index.js";
 import { toAbsolutePath } from "../utils/path-utils.js";
+import { getPackageVersion } from "./version.js";
 import { createPrompter } from "./prompts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -59,8 +60,9 @@ export function createProgram(): Command {
     .description(
       "Claude Code / Codex CLI governance framework - apply guardrails and guidance to projects"
     )
-    .version("1.0.0")
+    .version(getPackageVersion())
     .argument("[destination]", "Path to the project directory")
+    .option("--no-update-check", "Skip the npm latest-version check")
     .option("-n, --dry-run", "Show what would be done without making changes")
     .option(
       "-y, --yes",
@@ -94,6 +96,7 @@ interface CLIOptions {
   yes?: boolean;
   validate?: boolean;
   skipGitCheck?: boolean;
+  updateCheck?: boolean;
   harness?: Harness;
 }
 
@@ -118,6 +121,7 @@ function printUsageAndExit(): never {
   console.log(
     "  --skip-git-check  Skip dirty git working directory check (for postinstall use)"
   );
+  console.log("  --no-update-check Skip the npm latest-version check");
   console.log(
     `  --harness <h>     Target harness for emitted artifacts: ${HARNESS_VALUES.join(" | ")} (persisted in .lisa.config.json)`
   );
