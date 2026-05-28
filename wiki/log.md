@@ -111,3 +111,10 @@
 - Refreshed the `git` source note with 19 new commits through `6dbfeb7ec507cfbb56bc905db47ea14f5bce9762`, advanced the merged-PR cursor to `#1033`, and confirmed that `roles` still had no roster pages to ingest.
 - Ingested the Lisa project-scoped Claude memory directory into `wiki/sources/memory/2026-05-27-memory.md`; global Codex memory remained out of scope.
 - Updated the monorepo snapshot, workflow playbook, vocabulary, and index for standard wiki staff roster defaults, PRD pressure gating, hook-delivery guidance, and release-history changes through `2.115.3`.
+
+## 2026-05-28 - Incremental connector ingest
+
+- Synced the durable checkout to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-28-013419`, and ran another full no-argument ingest against every enabled non-external-write connector.
+- Refreshed the `git` source note with 6 new commits through `3e99859c0c73e29c341c441f2c34976f4fab2806`, advanced the merged-PR cursor to `#1035`, and confirmed that `roles` still had no roster pages to ingest.
+- Ingested the Lisa project-scoped Claude memory directory into `wiki/sources/memory/2026-05-28-memory.md`; global Codex memory remained out of scope.
+- Updated the monorepo snapshot, workflow playbook, vocabulary, and index for the wiki-as-knowledge-source rule and release-history changes through `2.116.0`.

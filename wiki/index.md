@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by incremental ingest on 2026-05-27 through Lisa release `2.115.3` and merged PR `#1033`.
+Last updated by incremental ingest on 2026-05-28 through Lisa release `2.116.0` and merged PR `#1035`.
 
 ## Orientation
 

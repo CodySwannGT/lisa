@@ -22,6 +22,8 @@ Codex-hosted Lisa automations should run from durable project automation checkou
 
 Agents should use the Lisa wiki query flow as the primary way to answer project questions from durable repository knowledge. This keeps operational answers grounded in maintained wiki pages and source notes instead of stale session context.
 
+For Lisa wiki work specifically, `wiki/` is the durable knowledge source. Other repository folders such as `docs/`, `research/`, `docs/wiki-inbox/`, and `transcripts/` can still provide ingestion inputs, source evidence, fixtures, or scratch material, but successful ingestions preserve reader-safe evidence under `wiki/sources/` and record the run in `wiki/log.md`.
+
 ## Project Ideation Pressure Gate
 
 Project ideation may document new PRD candidates while the build queue is busy, but it should not auto-mark them ready when queue-status reports PRD pressure. The pressure helper keeps ideation throughput from bypassing the one-item build-intake discipline.
