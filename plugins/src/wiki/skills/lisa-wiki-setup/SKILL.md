@@ -30,13 +30,22 @@ never overwrites human-authored content.
 3. **Contract.** Render `wiki/schema/llm-wiki-contract.md` from the plugin templates + config via
    `scripts/render-contract.mjs`, stamping the `kernelVersion`. This snapshot keeps the wiki
    self-describing without the plugin installed.
-4. **Pointers.** Ensure `AGENTS.md` / `CLAUDE.md` point at the contract + plugin (thin pointers only).
-5. **Staff.** For each `config.staff[]` entry (the standard roster by default), generate the role's
+4. **Gitignore.** Merge the lisa-wiki gitignore block into the project's `.gitignore` via
+   `scripts/ensure-gitignore.mjs`. The block (delimited by `# BEGIN: AI GUARDRAILS WIKI` /
+   `# END: AI GUARDRAILS WIKI`) covers transient per-session worktrees and Lisa backup snapshots
+   (`.claude/worktrees/`, `.codex/worktrees/`, `.lisabak/`). Idempotent: re-running produces no
+   diff once the block is present. The block coexists with the base lisa plugin's
+   `# BEGIN: AI GUARDRAILS` block — both can be installed without overwriting each other because
+   the copy-contents strategy keys on the marker suffix. Wiki-wrapper repos (mode `wrapper` /
+   `standalone`) typically don't enable the base lisa plugin, so this step is the only path by
+   which they get the worktree-ignore patterns.
+5. **Pointers.** Ensure `AGENTS.md` / `CLAUDE.md` point at the contract + plugin (thin pointers only).
+6. **Staff.** For each `config.staff[]` entry (the standard roster by default), generate the role's
    `wiki/staff/<role>.md` page and its dual-runtime subagents by delegating to `lisa-wiki-add-role`
    (running the subagents is out of scope).
-6. **README.** Apply the chosen README mode (ingest the old README first; `rich` keeps install/usage +
+7. **README.** Apply the chosen README mode (ingest the old README first; `rich` keeps install/usage +
    adds the onboarding line; `stub` is the minimal pointer; `preserve` leaves it).
-7. **Verify.** Run `lisa-wiki-doctor` and report the verdict + any blocking items.
+8. **Verify.** Run `lisa-wiki-doctor` and report the verdict + any blocking items.
 
 ## Standard roster
 The default operating team seeded into `config.staff[]` for every new wiki (Chief of Staff plus six
