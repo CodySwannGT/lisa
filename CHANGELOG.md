@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.118.0](https://github.com/CodySwannGT/lisa/compare/vv2.117.0...v2.118.0) (2026-05-28)
+
+
+### Features
+
+* **wiki:** merge a managed .gitignore block during /setup ([5a0d76d](https://github.com/CodySwannGT/lisa/commit/5a0d76dcb67da8c0eadf25840cd4e8e709433bb1))
+
 ## [2.117.0](https://github.com/CodySwannGT/lisa/compare/vv2.116.2...v2.117.0) (2026-05-28)
 
 
