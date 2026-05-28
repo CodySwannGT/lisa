@@ -45,8 +45,11 @@ import { describe, expect, it } from "vitest";
 
 /** Both plugin roots: source of truth and generated artifact. */
 const PLUGIN_ROOTS = [
-  { rules: "plugins/src/base/rules", skills: "plugins/src/base/skills" },
-  { rules: "plugins/lisa/rules", skills: "plugins/lisa/skills" },
+  {
+    rules: "plugins/src/base/rules/reference",
+    skills: "plugins/src/base/skills",
+  },
+  { rules: "plugins/lisa/rules/reference", skills: "plugins/lisa/skills" },
 ] as const;
 
 /** The vendor-neutral rule that owns the dedupe key (#579). */

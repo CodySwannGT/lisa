@@ -13,8 +13,8 @@ import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 const RULES = [
-  "plugins/src/base/rules/intent-routing.md",
-  "plugins/lisa/rules/intent-routing.md",
+  "plugins/src/base/rules/reference/intent-routing.md",
+  "plugins/lisa/rules/reference/intent-routing.md",
 ] as const;
 const USAGE_SKILL = "lisa:usage-accounting";
 const USAGE_SECTION = "## Lisa Usage";
