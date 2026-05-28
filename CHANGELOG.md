@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.117.0](https://github.com/CodySwannGT/lisa/compare/vv2.116.2...v2.117.0) (2026-05-28)
+
+
+### Features
+
+* **codex,ci:** mirror eager/reference subdirs and add pairing check ([80ca00b](https://github.com/CodySwannGT/lisa/commit/80ca00b992434801d3ba01bde419202ca8e0b6dc))
+* **rules:** split rules into eager heads and reference bodies ([040acf5](https://github.com/CodySwannGT/lisa/commit/040acf54ae64c1e3ae996fd1395bf79c0a3c925d))
+
 ### [2.116.2](https://github.com/CodySwannGT/lisa/compare/vv2.116.1...v2.116.2) (2026-05-28)
 
 ### [2.116.1](https://github.com/CodySwannGT/lisa/compare/vv2.116.0...v2.116.1) (2026-05-28)
