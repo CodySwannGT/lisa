@@ -43,6 +43,20 @@ build_plugin() {
   echo "Built plugins/$out_name (v$VERSION)"
 }
 
+# Generate a Pattern B per-agent variant for the base plugin only.
+# Variants are derived from the built Claude artifact at plugins/lisa/
+# and land at plugins/lisa-<agent>/.
+build_per_agent_variant() {
+  local agent="$1"
+  local src="$PLUGINS_DIR/lisa"
+  if [ ! -d "$src" ]; then
+    echo "Skipping per-agent variant lisa-$agent (no plugins/lisa source)"
+    return 0
+  fi
+  local out="$PLUGINS_DIR/lisa-$agent"
+  node "$ROOT_DIR/scripts/generate-${agent}-plugin-artifacts.mjs" "$src" "$out" "$VERSION"
+}
+
 # Base plugin
 build_plugin base lisa
 
@@ -56,4 +70,14 @@ done
 STANDALONE=(wiki openclaw)
 for name in "${STANDALONE[@]}"; do
   build_plugin "$name" "lisa-$name"
+done
+
+# Pattern B per-agent variants of the base Lisa plugin.
+# Codex is NOT generated as a separate plugins/lisa-codex/ artifact — Codex
+# reads .codex-plugin/plugin.json from plugins/lisa/ directly (the existing
+# dual-pointer pattern, preserved per
+# wiki/architecture/pattern-b-fan-out-spec.md).
+PER_AGENT_VARIANTS=(cursor agy copilot)
+for agent in "${PER_AGENT_VARIANTS[@]}"; do
+  build_per_agent_variant "$agent"
 done
