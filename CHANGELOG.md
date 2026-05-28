@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.116.0](https://github.com/CodySwannGT/lisa/compare/vv2.115.4...v2.116.0) (2026-05-28)
+
+
+### Features
+
+* **rules:** add wiki-as-knowledge-source rule to base plugin ([dbf21ed](https://github.com/CodySwannGT/lisa/commit/dbf21edb69195102682daa008f4ca9d950f9b336))
+
 ### [2.115.4](https://github.com/CodySwannGT/lisa/compare/vv2.115.3...v2.115.4) (2026-05-27)
 
 
