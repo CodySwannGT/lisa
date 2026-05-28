@@ -13,7 +13,7 @@ Each per-agent installer owns one or more of:
 - Tagged-merge logic when a file Lisa writes is also user-authored (Codex `.codex/hooks.json`, Cursor `enabledPlugins` map).
 - Stale-cleanup tracking through a managed-files manifest (`.codex/.lisa-managed.json` for Codex; mirrored convention for other agents).
 
-The Codex installer suite is the canonical reference and includes nine TypeScript modules covering agents, AGENTS.md, command-to-skill transformation, hooks, hook merging, marketplace registration, settings, skills, and the managed-files manifest.
+The Codex installer suite is the canonical reference and includes ten TypeScript modules: `agent-installer.ts`, `agent-transformer.ts`, `agents-md-installer.ts`, `command-skill-transformer.ts`, `hooks-installer.ts`, `hooks-merger.ts`, `manifest.ts`, `plugin-marketplace-installer.ts`, `settings-installer.ts`, and `skills-installer.ts`.
 
 ## Plugin Payload Versus Per-Project Installer
 
