@@ -79,6 +79,150 @@
       "source": "./plugins/lisa-copilot",
       "description": "GitHub Copilot variant — agents emitted as <name>.agent.md with camelCase hook events",
       "category": "productivity"
+    },
+    {
+      "name": "lisa-cdk-agy",
+      "source": "./plugins/lisa-cdk-agy",
+      "description": "Antigravity (agy) variant — AWS CDK plugin",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-cdk-copilot",
+      "source": "./plugins/lisa-cdk-copilot",
+      "description": "GitHub Copilot variant — AWS CDK plugin",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-cdk-cursor",
+      "source": "./plugins/lisa-cdk-cursor",
+      "description": "Cursor variant — AWS CDK plugin",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-expo-agy",
+      "source": "./plugins/lisa-expo-agy",
+      "description": "Antigravity (agy) variant — Expo/React Native skills, agents, rules",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-expo-copilot",
+      "source": "./plugins/lisa-expo-copilot",
+      "description": "GitHub Copilot variant — Expo/React Native skills, agents, rules",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-expo-cursor",
+      "source": "./plugins/lisa-expo-cursor",
+      "description": "Cursor variant — Expo/React Native skills, agents, rules",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-harper-fabric-agy",
+      "source": "./plugins/lisa-harper-fabric-agy",
+      "description": "Antigravity (agy) variant — Harper/Fabric rules for TS component apps",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-harper-fabric-copilot",
+      "source": "./plugins/lisa-harper-fabric-copilot",
+      "description": "GitHub Copilot variant — Harper/Fabric rules for TS component apps",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-harper-fabric-cursor",
+      "source": "./plugins/lisa-harper-fabric-cursor",
+      "description": "Cursor variant — Harper/Fabric rules for TS component apps",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-nestjs-agy",
+      "source": "./plugins/lisa-nestjs-agy",
+      "description": "Antigravity (agy) variant — NestJS skills (GraphQL, TypeORM)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-nestjs-copilot",
+      "source": "./plugins/lisa-nestjs-copilot",
+      "description": "GitHub Copilot variant — NestJS skills (GraphQL, TypeORM)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-nestjs-cursor",
+      "source": "./plugins/lisa-nestjs-cursor",
+      "description": "Cursor variant — NestJS skills (GraphQL, TypeORM)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-openclaw-agy",
+      "source": "./plugins/lisa-openclaw-agy",
+      "description": "Antigravity (agy) variant — OpenClaw Telegram/Slack routing",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-openclaw-copilot",
+      "source": "./plugins/lisa-openclaw-copilot",
+      "description": "GitHub Copilot variant — OpenClaw Telegram/Slack routing",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-openclaw-cursor",
+      "source": "./plugins/lisa-openclaw-cursor",
+      "description": "Cursor variant — OpenClaw Telegram/Slack routing",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-rails-agy",
+      "source": "./plugins/lisa-rails-agy",
+      "description": "Antigravity (agy) variant — Ruby on Rails skills, rules, conventions",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-rails-copilot",
+      "source": "./plugins/lisa-rails-copilot",
+      "description": "GitHub Copilot variant — Ruby on Rails skills, rules, conventions",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-rails-cursor",
+      "source": "./plugins/lisa-rails-cursor",
+      "description": "Cursor variant — Ruby on Rails skills, rules, conventions",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-typescript-agy",
+      "source": "./plugins/lisa-typescript-agy",
+      "description": "Antigravity (agy) variant — TypeScript hooks (format/lint/ast-grep on edit)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-typescript-copilot",
+      "source": "./plugins/lisa-typescript-copilot",
+      "description": "GitHub Copilot variant — TypeScript hooks (format/lint/ast-grep on edit)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-typescript-cursor",
+      "source": "./plugins/lisa-typescript-cursor",
+      "description": "Cursor variant — TypeScript hooks (format/lint/ast-grep on edit)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-wiki-agy",
+      "source": "./plugins/lisa-wiki-agy",
+      "description": "Antigravity (agy) variant — LLM Wiki knowledge base",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-wiki-copilot",
+      "source": "./plugins/lisa-wiki-copilot",
+      "description": "GitHub Copilot variant — LLM Wiki knowledge base",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-wiki-cursor",
+      "source": "./plugins/lisa-wiki-cursor",
+      "description": "Cursor variant — LLM Wiki knowledge base",
+      "category": "productivity"
     }
   ]
 }

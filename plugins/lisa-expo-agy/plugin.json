@@ -1,0 +1,11 @@
+{
+  "name": "lisa-expo",
+  "version": "2.121.0",
+  "description": "Expo/React Native-specific skills, agents, rules, and MCP servers",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "dependencies": [
+    "lisa-typescript"
+  ]
+}
