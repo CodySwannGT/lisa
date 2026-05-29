@@ -1,12 +1,24 @@
-# Lisa Changes Required for Expo SDK 55 Upgrade
+# Lisa Changes Required for Expo SDK 56 Upgrade
 
-This document outlines all changes needed in Lisa to support Expo SDK 55 across managed projects.
+This document outlines all changes needed in Lisa to support Expo SDK 56 across managed projects.
+
+> **Status (SDK 56):** IMPLEMENTED on branch `expo-sdk-56-support`. frontend-v2
+> upgraded **directly from SDK 54 → 56** (skipping 55). See the
+> "## SDK 56 — Implemented changes" section at the end for exactly what landed,
+> including breaking changes that only exist in 56 and gotchas discovered during
+> the real upgrade.
 
 ## Context
 
-Expo SDK 55 upgrades to React Native 0.83 and React 19.2, removes legacy architecture config flags, changes EAS CLI requirements, and introduces a new `/src` directory convention. Lisa must be updated **before** downstream projects can upgrade.
+Expo SDK 56 upgrades to **React Native 0.85** and **React 19.2**, makes Hermes v1
+and bytecode diffing the defaults, **decouples `expo-router` from
+`@react-navigation/*`** (codemod required), drops `@expo/vector-icons` from the
+`expo` package, makes `expo/fetch` the global `fetch`, and (continuing from SDK
+55) removes the legacy-architecture config flags and adopts the `/src` directory
+convention. Lisa must be updated **before** downstream projects can upgrade.
 
-Changelog: <https://expo.dev/changelog/sdk-55>
+Changelog: <https://expo.dev/changelog/sdk-56>
+SDK 55 → 56 router migration: <https://docs.expo.dev/router/migrate/sdk-55-to-56>
 
 ---
 
@@ -14,83 +26,83 @@ Changelog: <https://expo.dev/changelog/sdk-55>
 
 ### Dependencies (force section)
 
-| Package | Current | SDK 55 Target |
+| Package | Current | SDK 56 Target |
 |---|---|---|
-| `expo` | `~54.0.31` | `~55.0.0` |
-| `expo-application` | `~7.0.8` | `~55.0.0` |
-| `expo-battery` | `~10.0.8` | `~55.0.0` |
-| `expo-build-properties` | `~1.0.10` | `~55.0.0` |
-| `expo-clipboard` | `~8.0.8` | `~55.0.0` |
-| `expo-constants` | `~18.0.13` | `~55.0.0` |
-| `expo-crypto` | `^15.0.8` | `~55.0.0` |
-| `expo-dev-client` | `~6.0.20` | `~55.0.0` |
-| `expo-device` | `~8.0.10` | `~55.0.0` |
-| `expo-font` | `~14.0.10` | `~55.0.0` |
-| `expo-linear-gradient` | `~15.0.8` | `~55.0.0` |
-| `expo-linking` | `~8.0.11` | `~55.0.0` |
-| `expo-localization` | `^17.0.8` | `~55.0.0` |
-| `expo-network` | `~8.0.8` | `~55.0.0` |
-| `expo-notifications` | `~0.32.16` | `~55.0.0` |
-| `expo-router` | `~6.0.21` | `~55.0.0` |
-| `expo-secure-store` | `~15.0.8` | `~55.0.0` |
-| `expo-splash-screen` | `~31.0.13` | `~55.0.0` |
-| `expo-status-bar` | `~3.0.9` | `~55.0.0` |
-| `expo-system-ui` | `~6.0.9` | `~55.0.0` |
-| `expo-updates` | `~29.0.16` | `~55.0.0` |
-| `@expo/metro-runtime` | `~6.1.2` | Check SDK 55 compatible version |
-| `@expo/html-elements` | `^0.12.5` | Check SDK 55 compatible version |
+| `expo` | `~54.0.31` | `~56.0.0` |
+| `expo-application` | `~7.0.8` | `~56.0.0` |
+| `expo-battery` | `~10.0.8` | `~56.0.0` |
+| `expo-build-properties` | `~1.0.10` | `~56.0.0` |
+| `expo-clipboard` | `~8.0.8` | `~56.0.0` |
+| `expo-constants` | `~18.0.13` | `~56.0.0` |
+| `expo-crypto` | `^15.0.8` | `~56.0.0` |
+| `expo-dev-client` | `~6.0.20` | `~56.0.0` |
+| `expo-device` | `~8.0.10` | `~56.0.0` |
+| `expo-font` | `~14.0.10` | `~56.0.0` |
+| `expo-linear-gradient` | `~15.0.8` | `~56.0.0` |
+| `expo-linking` | `~8.0.11` | `~56.0.0` |
+| `expo-localization` | `^17.0.8` | `~56.0.0` |
+| `expo-network` | `~8.0.8` | `~56.0.0` |
+| `expo-notifications` | `~0.32.16` | `~56.0.0` |
+| `expo-router` | `~6.0.21` | `~56.0.0` |
+| `expo-secure-store` | `~15.0.8` | `~56.0.0` |
+| `expo-splash-screen` | `~31.0.13` | `~56.0.0` |
+| `expo-status-bar` | `~3.0.9` | `~56.0.0` |
+| `expo-system-ui` | `~6.0.9` | `~56.0.0` |
+| `expo-updates` | `~29.0.16` | `~56.0.0` |
+| `@expo/metro-runtime` | `~6.1.2` | Check SDK 56 compatible version |
+| `@expo/html-elements` | `^0.12.5` | Check SDK 56 compatible version |
 | `react` | `19.1.0` | `19.2.0` |
 | `react-dom` | `19.1.0` | `19.2.0` |
-| `react-native` | `0.81.4` | `0.83.x` |
-| `react-native-gesture-handler` | `~2.30.0` | Check SDK 55 compatible version |
-| `react-native-reanimated` | `~4.2.1` | Check SDK 55 compatible version |
-| `react-native-screens` | `~4.19.0` | Check SDK 55 compatible version |
-| `react-native-safe-area-context` | `^5.6.2` | Check SDK 55 compatible version |
-| `react-native-keyboard-controller` | `1.20.4` | Check SDK 55 compatible version |
-| `react-native-web` | `^0.21.2` | Check SDK 55 compatible version |
-| `react-native-svg` | `^15.15.1` | Check SDK 55 compatible version |
-| `@react-native-async-storage/async-storage` | `2.2.0` | Check SDK 55 compatible version |
-| `@sentry/react-native` | `7.2.0` | Check RN 0.83 compatible version |
-| `@shopify/flash-list` | `2.0.2` | Check SDK 55 compatible version |
-| `@shopify/react-native-skia` | `2.2.12` | Check SDK 55 compatible version |
-| `nativewind` | `^4.2.1` | Check SDK 55 compatible version |
-| `tailwindcss` | `^3.4.7` | Check SDK 55 compatible version |
+| `react-native` | `0.81.4` | `0.85.x` |
+| `react-native-gesture-handler` | `~2.30.0` | Check SDK 56 compatible version |
+| `react-native-reanimated` | `~4.2.1` | Check SDK 56 compatible version |
+| `react-native-screens` | `~4.19.0` | Check SDK 56 compatible version |
+| `react-native-safe-area-context` | `^5.6.2` | Check SDK 56 compatible version |
+| `react-native-keyboard-controller` | `1.20.4` | Check SDK 56 compatible version |
+| `react-native-web` | `^0.21.2` | Check SDK 56 compatible version |
+| `react-native-svg` | `^15.15.1` | Check SDK 56 compatible version |
+| `@react-native-async-storage/async-storage` | `2.2.0` | Check SDK 56 compatible version |
+| `@sentry/react-native` | `7.2.0` | Check RN 0.85 compatible version |
+| `@shopify/flash-list` | `2.0.2` | Check SDK 56 compatible version |
+| `@shopify/react-native-skia` | `2.2.12` | Check SDK 56 compatible version |
+| `nativewind` | `^4.2.1` | Check SDK 56 compatible version |
+| `tailwindcss` | `^3.4.7` | Check SDK 56 compatible version |
 
 ### DevDependencies (force section)
 
-| Package | Current | SDK 55 Target |
+| Package | Current | SDK 56 Target |
 |---|---|---|
-| `jest-expo` | `^54.0.12` | `^55.0.0` |
-| `@react-native-community/cli` | `^20.0.2` | Check SDK 55 compatible version |
-| `@react-native-community/cli-platform-android` | `^20.0.2` | Check SDK 55 compatible version |
-| `@react-native-community/cli-platform-ios` | `^20.0.2` | Check SDK 55 compatible version |
-| `@testing-library/react-native` | `^13.0.0` | Check SDK 55 compatible version |
+| `jest-expo` | `^54.0.12` | `^56.0.0` |
+| `@react-native-community/cli` | `^20.0.2` | Check SDK 56 compatible version |
+| `@react-native-community/cli-platform-android` | `^20.0.2` | Check SDK 56 compatible version |
+| `@react-native-community/cli-platform-ios` | `^20.0.2` | Check SDK 56 compatible version |
+| `@testing-library/react-native` | `^13.0.0` | Check SDK 56 compatible version |
 | `@types/react` | `~19.1.10` | Match React 19.2 types |
 | `@types/react-dom` | `^19.1.7` | Match React 19.2 types |
 
-> **Action**: Run `npx expo install expo@^55.0.0 --fix` in a test project to get the exact compatible versions for all packages, then update the manifest.
+> **Action**: Run `npx expo install expo@^56.0.0 --fix` in a test project to get the exact compatible versions for all packages, then update the manifest.
 
 ---
 
 ## 2. Update EAS Publish Scripts
 
-The `eas update` command now **requires** the `--environment` flag. Update all `eas:publish` scripts in the force section:
+The `eas update` command now **requires** the `--environment` flag (SDK 55+). Both `--channel` and `--environment` are used together: `--channel` selects which update channel to publish to, while `--environment` selects the EAS environment variable set. Update all `eas:publish` scripts in the force section:
 
 ```json
 {
-  "eas:publish:dev": "eas update --environment dev --non-interactive",
-  "eas:publish:staging": "eas update --environment staging --non-interactive",
-  "eas:publish:production": "eas update --environment production --non-interactive"
+  "eas:publish:dev": "eas update --channel dev --environment development --non-interactive",
+  "eas:publish:staging": "eas update --channel staging --environment preview --non-interactive",
+  "eas:publish:production": "eas update --channel production --environment production --non-interactive"
 }
 ```
 
-The `--channel` flag may be deprecated or may need to be used alongside `--environment`. Verify with `eas update --help` after upgrading EAS CLI.
+> **Important:** The `--environment` value must exactly match the EAS environment name configured in your project (not the channel name). The standard EAS environment names are `development`, `preview`, and `production` — note that `development` maps to the `dev` channel, and `preview` maps to the `staging` channel.
 
 ---
 
 ## 3. Support `/src` Directory Convention
 
-SDK 55's default template puts all application source code in `/src/`. Downstream projects (e.g., frontend-v2) will adopt this convention by moving **all** source directories into `src/`:
+SDK 56's default template puts all application source code in `/src/`. Downstream projects (e.g., frontend-v2) will adopt this convention by moving **all** source directories into `src/`:
 
 ```
 src/app/          (Expo Router routes)
@@ -158,7 +170,7 @@ Current setup has workarounds for:
 - React 19 null-throw during cleanup (GitHub: expo/expo#38046)
 - Jest 30 compatibility with expo-router (GitHub: expo/expo#40184)
 
-**Action**: Check if these issues are resolved in SDK 55 / jest-expo 55. If so, remove the workarounds. If not, verify they still work with the new versions.
+**Action**: Check if these issues are resolved in SDK 56 / jest-expo 56. If so, remove the workarounds. If not, verify they still work with the new versions.
 
 ---
 
@@ -166,24 +178,24 @@ Current setup has workarounds for:
 
 The frontend-v2 project has a workaround in `metro.config.js` for Symbol serialization when `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH` is enabled (expo/expo#39431).
 
-**Action**: Check if this is fixed in SDK 55's Metro bundler. If so, the workaround can be removed from downstream projects.
+**Action**: Check if this is fixed in SDK 56's Metro bundler. If so, the workaround can be removed from downstream projects.
 
 ---
 
 ## 6. Node.js Version
 
-SDK 55 supports: `^20.19.4`, `^22.13.0`, `^24.3.0`, `^25.0.0`
+SDK 56 supports: `^20.19.4`, `^22.13.0`, `^24.3.0`, `^25.0.0`
 
 Current EAS build node version: `22.21.1` (compatible).
 Current `.nvmrc`: managed by Lisa.
 
-**Action**: Verify the `.nvmrc` version Lisa manages is within SDK 55's supported range. Update if needed.
+**Action**: Verify the `.nvmrc` version Lisa manages is within SDK 56's supported range. Update if needed.
 
 ---
 
 ## 7. Xcode Version
 
-SDK 55 requires Xcode 26 minimum. EAS Build defaults to Xcode 26.2.
+SDK 56 requires Xcode 26.4 minimum. EAS Build defaults to a compatible Xcode 26.x image.
 
 **Action**: Check if `eas.json` templates or build profiles reference a specific Xcode/image version. If so, ensure they target Xcode 26+.
 
@@ -202,4 +214,92 @@ SDK 55 requires Xcode 26 minimum. EAS Build defaults to Xcode 26.2.
 - [ ] Verify Xcode version in EAS build profiles
 - [ ] Run `lisa .` on a test project (both with and without `/src` convention) and verify all managed files are correct
 - [ ] Run full test suite on updated test project
-- [ ] Publish new Lisa version with SDK 55 support
+- [ ] Publish new Lisa version with SDK 56 support
+
+---
+
+## SDK 56 — Implemented changes
+
+What actually landed in Lisa (branch `expo-sdk-56-support`) when frontend-v2 went
+SDK 54 → 56. Resolved versions came from `npx expo install expo@^56.0.0 --fix`.
+
+### 1. `expo/package-lisa/package.lisa.json`
+
+- `expo ~56.0.0`, `react`/`react-dom` `19.2.3`, `react-native 0.85.3`, and every
+  `expo-*` package repinned to its `~56.x` line (router `~56.2.7`,
+  updates `~56.0.17`, constants `~56.0.16`, etc.).
+- Third-party RN libs: `@shopify/react-native-skia 2.6.2`,
+  `@sentry/react-native ~7.11.0`, `react-native-reanimated 4.3.1`,
+  `react-native-screens 4.25.2`, `react-native-gesture-handler ~2.31.1`,
+  `react-native-keyboard-controller 1.21.6`.
+- Dev: `jest-expo ~56.0.4`, `@types/react ~19.2.15`, `@types/react-dom ~19.2.3`,
+  and a **new** `react-test-renderer 19.2.3` pin (see gotcha #2).
+- `eas:publish:*` scripts now pass `--environment` (development/preview/production)
+  **in addition to** `--channel` — `--environment` is required for SDK 55+, but
+  `--channel` still selects the update channel, so both are needed.
+
+### 2. `src/configs/jest/expo.ts` (base jest config)
+
+- **Resolver moved:** `react-native/jest/resolver.js` →
+  `@react-native/jest-preset/jest/resolver.js` (RN 0.85 relocated it). Without
+  this Jest cannot even load (`Resolver module not found`) and platform-extension
+  files (`.ios`/`.native`/`.web`) don't resolve.
+- Added a `sourceRoot` option (default `""`). Projects on `/src` pass
+  `sourceRoot: "src/"` so `collectCoverageFrom` collects from `src/components`,
+  `src/features`, … instead of silently collecting nothing.
+
+### 3. `src/configs/eslint/expo.ts` (base eslint config)
+
+- Added a `sourceRoot` option that prefixes the component-structure,
+  ui-standards, and view-memo file globs, so those guardrails actually target
+  `src/...` under the `/src` convention (previously root-anchored → silently
+  unenforced).
+
+### 4. `expo/create-only/jest.config.react-native-mock.js`
+
+- Added an `AccessibilityManager` TurboModule mock (gotcha #3).
+
+### 5. `plugins/lisa-expo/skills/directory-structure`
+
+- `validate_structure.py` now auto-detects a `src/` directory and validates
+  source there (it previously scanned the empty root → a false 0-error pass).
+- `SKILL.md` documents the `/src` layout and which directories stay at root.
+
+### Gotchas discovered during the real upgrade (SDK-56-specific)
+
+1. **`expo-router` no longer depends on `@react-navigation/*`.** All direct
+   `@react-navigation/native` / `@react-navigation/elements` imports must move to
+   `expo-router/react-navigation` (codemod:
+   `npx expo-codemod sdk-56-expo-router-react-navigation-replace src`). Remove
+   now-unused `@react-navigation/*` deps. `HeaderBackButton` dropped the
+   `labelVisible` prop — use `displayMode="minimal"` to hide the label.
+2. **`react-test-renderer` must equal the React version.** `@testing-library/
+   react-native` 13.3 hard-errors if `react-test-renderer` (a stale transitive)
+   doesn't match React (`19.2.3`). Pin it explicitly.
+3. **`AccessibilityManager` TurboModule mock.** RN 0.85's `AccessibilityInfo`
+   eagerly reads the `AccessibilityManager` TurboModule; unmocked it rejects with
+   `NativeAccessibilityManagerIOS is not available`, which the `unhandledRejection`
+   handler turns into a Jest worker crash across every suite touching
+   accessibility.
+4. **RN 0.85 style props.** `style` reaches host nodes as an array (and `Text`
+   adds a default `overflow: "hidden"`); tests asserting a flattened style object
+   must use `StyleSheet.flatten(...)` + `objectContaining`.
+5. **Reanimated 4.3 `useAnimatedStyle`** returns an `AnimatedStyleHandle`; pass it
+   straight to `Animated.View` (sole `style`), or cast at the boundary when it
+   flows into a `StyleProp<ViewStyle>`-typed prop or a mixed `style={[...]}` array.
+6. **`expo install --fix` does not bump** `jest-expo`, `eslint-config-expo`,
+   `@types/react`, or `react-test-renderer` — set those by hand. Keep jest 30 (Lisa
+   standard) and add `jest`/`@types/jest` to `expo.install.exclude`.
+7. **expo-doctor `PackageJsonCheck`** flags any npm script whose name equals a
+   `node_modules/.bin` entry (e.g. `"knip": "knip"`) with no config escape; rename
+   the script (e.g. `knip:check`).
+
+**Sources.** Each gotcha above was verified empirically during the SE-4125
+frontend-v2 upgrade (expo-doctor output, CI/Jest logs, and a pre/post coverage
+baseline), cross-referenced with: the [Expo SDK 56 changelog](https://expo.dev/changelog/sdk-56),
+the [SDK 55→56 router migration guide](https://docs.expo.dev/router/migrate/sdk-55-to-56)
+(#1, react-navigation decoupling), React Native 0.85 release notes (#3
+AccessibilityManager spec, #4 style props), the `react-native-reanimated` v4
+types (#5 `AnimatedStyleHandle`), `@testing-library/react-native` v13 peer-dep
+enforcement (#2 `react-test-renderer`), and `npx expo install --check` /
+`expo-doctor@latest` behavior (#6, #7).

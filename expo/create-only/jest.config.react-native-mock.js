@@ -77,6 +77,28 @@ module.exports = {
     addListener: () => ({ remove: () => {} }),
     removeListeners: () => {},
   },
+  // SDK 56 / RN 0.85: AccessibilityInfo eagerly reads the AccessibilityManager
+  // TurboModule. Without a mock the module resolves to null and AccessibilityInfo
+  // methods reject with "NativeAccessibilityManagerIOS is not available", which
+  // the unhandledRejection handler escalates into a Jest worker crash that takes
+  // down every suite touching accessibility.
+  AccessibilityManager: {
+    getCurrentBoldTextState: onSuccess => onSuccess(false),
+    getCurrentGrayscaleState: onSuccess => onSuccess(false),
+    getCurrentInvertColorsState: onSuccess => onSuccess(false),
+    getCurrentReduceMotionState: onSuccess => onSuccess(false),
+    getCurrentDarkerSystemColorsState: onSuccess => onSuccess(false),
+    getCurrentPrefersCrossFadeTransitionsState: onSuccess => onSuccess(false),
+    getCurrentReduceTransparencyState: onSuccess => onSuccess(false),
+    getCurrentVoiceOverState: onSuccess => onSuccess(false),
+    setAccessibilityContentSizeMultipliers: () => {},
+    setAccessibilityFocus: () => {},
+    announceForAccessibility: () => {},
+    announceForAccessibilityWithOptions: () => {},
+    addListener: () => {},
+    removeListeners: () => {},
+    getConstants: () => ({}),
+  },
   DeviceInfo: {
     getConstants: () => ({
       Dimensions: {

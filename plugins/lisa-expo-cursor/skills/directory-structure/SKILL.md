@@ -20,28 +20,40 @@ This skill ensures all new code follows the documented directory structure stand
 
 ## Root Directory Structure
 
+Expo SDK 55+/56 adopts the `/src` convention: all **application source** lives
+under `src/`, while config, assets, tests, and tooling stay at the project root.
+Older projects keep source at the root. The structure below shows the `/src`
+layout; for a root-layout project, read `src/<dir>` as `<dir>`. The `@/*`
+TypeScript path alias points at `./src/*` (or `./*` for root layout), so imports
+are identical either way. The validator and lint/coverage configs auto-detect a
+`src/` directory.
+
 ```
 <project-root>/
-├── app/                    # Expo Router - THIN WRAPPERS ONLY
-├── features/               # Feature modules - PRIMARY CODE LOCATION
-├── components/             # Shared components
-│   ├── ui/                 # GlueStack UI primitives
-│   ├── icons/              # Icon components
-│   ├── custom/             # Custom UI components
-│   └── [ComponentName]/    # Feature-agnostic components
-├── hooks/                  # Global hooks (with __tests__/)
-├── providers/              # Global React context providers (with __tests__/)
-├── stores/                 # Global state - Apollo reactive variables (with __tests__/)
-├── utils/                  # Utility functions (with __tests__/)
-├── types/                  # Global TypeScript types
-├── generated/              # Auto-generated GraphQL types (DO NOT EDIT)
-├── config/                 # Configuration files
-├── constants/              # Global constants
-├── assets/                 # Static assets (fonts/, icons/, css/)
-├── e2e/                    # End-to-end tests (fixtures/, pages/, tests/, utils/)
-├── scripts/                # Build and development scripts
-├── docs/                   # Documentation
-└── projects/               # Project-specific files (archive/)
+├── src/                    # APPLICATION SOURCE (SDK 55+/56 /src convention)
+│   ├── app/                # Expo Router - THIN WRAPPERS ONLY
+│   ├── features/           # Feature modules - PRIMARY CODE LOCATION
+│   ├── components/         # Shared components
+│   │   ├── ui/             # GlueStack UI primitives
+│   │   ├── icons/          # Icon components
+│   │   ├── custom/         # Custom UI components
+│   │   └── [ComponentName]/ # Feature-agnostic components
+│   ├── hooks/              # Global hooks (with __tests__/)
+│   ├── providers/          # Global React context providers (with __tests__/)
+│   ├── stores/             # Global state - Apollo reactive variables (with __tests__/)
+│   ├── utils/              # Utility functions (with __tests__/)
+│   ├── lib/                # Utility libraries / integrations
+│   ├── types/              # Global TypeScript types
+│   ├── generated/          # Auto-generated GraphQL types (DO NOT EDIT)
+│   ├── config/             # Configuration files
+│   └── constants/          # Global constants
+├── assets/                 # Static assets (fonts/, icons/, css/) — STAYS AT ROOT
+├── e2e/                    # End-to-end tests (fixtures/, pages/, tests/, utils/) — STAYS AT ROOT
+├── scripts/                # Build and development scripts — STAYS AT ROOT
+├── public/                 # Public web assets — STAYS AT ROOT
+├── __mocks__/              # Jest manual mocks — STAYS AT ROOT
+├── docs/                   # Documentation — STAYS AT ROOT
+└── projects/               # Project-specific files (archive/) — STAYS AT ROOT
 ```
 
 ## Feature Module Structure
