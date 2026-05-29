@@ -1,0 +1,57 @@
+# Third-Party Notices
+
+## Official Expo skills (vendored)
+
+The following skills under `skills/` are vendored verbatim from Expo's official
+plugin and are **not** Lisa-authored. Do not hand-edit them; re-vendor from
+upstream to update.
+
+- **Source:** https://github.com/expo/skills (`plugins/expo/skills/`)
+- **Upstream commit:** `510373b50956ef4dc84c20bb4c9cce70b618aa06`
+- **License:** MIT — Copyright (c) 2025-present 650 Industries, Inc. (aka Expo)
+
+Vendored skills:
+
+```
+add-app-clip            expo-cicd-workflows     expo-ui-jetpack-compose
+building-native-ui      expo-deployment         expo-ui-swift-ui
+eas-update-insights     expo-dev-client         native-data-fetching
+expo-api-routes         expo-module             upgrading-expo
+expo-brownfield         expo-tailwind-setup     use-dom
+```
+
+These ship alongside Lisa's own opinionated Expo/React Native skills
+(`apollo-client`, `gluestack-nativewind`, `container-view-pattern`, etc.), which
+they complement rather than replace. Notably both `expo-tailwind-setup`
+(Tailwind v4 / NativeWind v5) and Lisa's `gluestack-nativewind` (Gluestack v3 /
+NativeWind v4) are kept intentionally; choose per project.
+
+The accompanying `expo` MCP server in `.mcp.json` points at Expo's official
+remote server (`https://mcp.expo.dev/mcp`), replacing the previously bundled
+third-party `expo-local-docs-mcp` stdio server.
+
+### MIT License
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2025-present 650 Industries, Inc. (aka Expo)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
