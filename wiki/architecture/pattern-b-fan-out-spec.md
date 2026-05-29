@@ -18,9 +18,9 @@ plugins/
     hooks/
     scripts/
 
-  lisa-typescript/               # TypeScript stack add-on (existing pattern)
-  lisa-expo/                     # ... etc. — existing per-stack add-ons unchanged
-  lisa-nestjs/
+  lisa-typescript/               # TypeScript stack add-on (Claude/Codex shape)
+  lisa-expo/                     # ... per-stack add-ons (each ALSO fanned out,
+  lisa-nestjs/                   #     see "Stack fan-out" below)
   lisa-cdk/
   lisa-rails/
   lisa-harper-fabric/
@@ -56,6 +56,40 @@ plugins/
     rules/                       # passthrough or shipped via hooks (TBD per probe)
     hooks/                       # STRIPPED of SubagentStart hooks (event missing)
     scripts/
+
+## Stack fan-out (2026-05-28 follow-up — supersedes "stacks unchanged")
+
+The original spec fanned out only the BASE plugin, leaving cursor/agy/copilot
+without the stack add-ons (lisa-typescript, lisa-expo, …) that Claude and Codex
+receive. That was a real parity gap: agy and copilot cannot consume the
+Claude-shaped stack plugins at all (agy needs a bare root manifest; copilot
+needs `.agent.md` agents + camelCase hooks).
+
+`build-plugins.sh` now runs the SAME per-agent generators over every built
+Claude plugin (base + 6 stacks + 2 standalones), producing `<plugin>-<agent>`
+variants (e.g. `lisa-typescript-cursor`, `lisa-rails-agy`,
+`lisa-expo-copilot`). All variants are registered in
+`.claude-plugin/marketplace.json`.
+
+`lisa apply` selects per-agent stack variants by detected project type:
+`processAgyEmit`/`processCopilotEmit` install the base variant plus
+`lisa-<detected-type>-<agent>` for each detected stack that has a built variant
+(filtered by on-disk existence, so `npm-package` — which has no plugin — is
+skipped). Cursor needs no installer: its stack variants are published to the
+marketplace for native `.claude-plugin` consumption.
+
+Verified by run: a TypeScript project installs `lisa-typescript-{agy,copilot}`
+alongside the base; a Rails project installs `lisa-rails-{agy,copilot}`. Per-stack
+double-injection is prevented exactly as for the base — e.g. `lisa-rails-cursor`
+strips `inject-rules.sh` (cursor auto-loads `rules/`) while `lisa-rails-copilot`
+keeps it (copilot does not auto-load plugin `rules/`).
+
+**Rule-delivery nuance:** agy bakes and copilot injects only EAGER rules
+(`rules/eager/*.md`). Non-eager plugin rules at `rules/<name>.md`
+(e.g. `lisa-rails/rules/rails-conventions.md`) reach **cursor** (native `rules/`
+load) and Claude/Codex (native rules mechanisms) but NOT agy/copilot — the same
+limitation the base plugin's `rules/reference` already has. To make a stack rule
+always-on for every agent, place it under `rules/eager/`.
 ```
 
 The Codex variant intentionally reuses `plugins/lisa/` since Codex reads Claude-format manifests via its own `.codex-plugin/plugin.json` pointer file co-located in the same directory. No separate `plugins/lisa-codex/` is generated; the existing dual-pointer pattern (`.claude-plugin/plugin.json` for Claude + `.codex-plugin/plugin.json` for Codex) continues to work and is extended by `scripts/generate-codex-plugin-artifacts.mjs` to emit the migrated hooks block per the Wave 1 audit (see `wiki/architecture/lisa-hook-per-agent-ship-list.md`).
