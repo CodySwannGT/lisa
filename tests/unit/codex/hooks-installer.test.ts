@@ -27,8 +27,6 @@ const INJECT_RULES_SH = `${INJECT_RULES_ID}.sh`;
 const BASE_RULES_MD = "base-rules.md";
 /** Second rule .md file shipped from the lisa-plugin */
 const CODING_PHILOSOPHY_MD = "coding-philosophy.md";
-/** Hook id for the universal Stop-event ntfy notifier */
-const NOTIFY_NTFY_ID = "notify-ntfy";
 /** Hook id for the format-on-edit hook (TypeScript stack) */
 const FORMAT_ON_EDIT_ID = "format-on-edit";
 /** Hook id for the Rails-stack rubocop-on-edit hook */
@@ -43,8 +41,6 @@ const BLOCK_NO_VERIFY_ID = "block-no-verify";
 const INSTALL_PKGS_ID = "install-pkgs";
 /** Universal Jira configuration hook id */
 const SETUP_JIRA_CLI_ID = "setup-jira-cli";
-/** Filename of the notify-ntfy hook script */
-const NOTIFY_NTFY_SH = `${NOTIFY_NTFY_ID}.sh`;
 /** Filename of the rubocop-on-edit hook script */
 const RUBOCOP_ON_EDIT_SH = `${RUBOCOP_ON_EDIT_ID}.sh`;
 
@@ -188,15 +184,14 @@ describe("codex/hooks-installer", () => {
   it("returns managedFiles list including script + rules + hooks.json", async () => {
     const result = await installHooks(lisaDir, destDir, []);
     // Universal hooks: inject-rules + install-pkgs + setup-jira-cli +
-    // block-no-verify + notify-ntfy = 5 entries
-    expect(result.hookEntries).toBe(5);
+    // block-no-verify = 4 entries
+    expect(result.hookEntries).toBe(4);
     const sortedFiles = [...result.managedFiles].sort((a, b) =>
       a.localeCompare(b)
     );
     expect(sortedFiles).toContain(
       path.join(LISA_HOOKS_SUBDIR, INJECT_RULES_SH)
     );
-    expect(sortedFiles).toContain(path.join(LISA_HOOKS_SUBDIR, NOTIFY_NTFY_SH));
     expect(sortedFiles).toContain(
       path.join(LISA_RULES_SUBDIR, "eager", BASE_RULES_MD)
     );
@@ -228,12 +223,11 @@ describe("codex/hooks-installer", () => {
       expect(ids).toContain(INSTALL_PKGS_ID);
       expect(ids).toContain(SETUP_JIRA_CLI_ID);
       expect(ids).toContain(BLOCK_NO_VERIFY_ID);
-      expect(ids).toContain(NOTIFY_NTFY_ID);
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
       expect(ids).not.toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
-      expect(result.hookEntries).toBe(5);
+      expect(result.hookEntries).toBe(4);
     });
 
     it("ships TypeScript hooks when typescript is detected", async () => {
@@ -245,11 +239,10 @@ describe("codex/hooks-installer", () => {
       expect(ids).toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
       // Plus universal
       expect(ids).toContain(INJECT_RULES_ID);
-      expect(ids).toContain(NOTIFY_NTFY_ID);
       // NOT rails or nestjs
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
-      expect(result.hookEntries).toBe(9);
+      expect(result.hookEntries).toBe(8);
     });
 
     it("ships Rails hooks when rails is detected", async () => {
@@ -259,8 +252,8 @@ describe("codex/hooks-installer", () => {
       // ast-grep scanning applies to Rails too (Ruby files)
       expect(ids).toContain("sg-scan-on-edit");
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
-      // rubocop + sg-scan + 5 universal
-      expect(result.hookEntries).toBe(7);
+      // rubocop + sg-scan + 4 universal
+      expect(result.hookEntries).toBe(6);
     });
 
     it("ships NestJS migration block when nestjs is detected", async () => {
@@ -275,7 +268,7 @@ describe("codex/hooks-installer", () => {
       expect(ids).toContain(FORMAT_ON_EDIT_ID);
       // typescript also brings the suppression-directive block
       expect(ids).toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
-      expect(result.hookEntries).toBe(10);
+      expect(result.hookEntries).toBe(9);
     });
 
     it("copies only the script files for applicable hooks", async () => {
@@ -291,7 +284,6 @@ describe("codex/hooks-installer", () => {
         "block-no-verify.sh",
         INJECT_RULES_SH,
         "install-pkgs.sh",
-        NOTIFY_NTFY_SH,
         RUBOCOP_ON_EDIT_SH,
         "setup-jira-cli.sh",
         "sg-scan-on-edit.sh",

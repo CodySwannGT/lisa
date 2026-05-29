@@ -15,7 +15,15 @@
  *     generate-codex-plugin-artifacts.mjs path)
  *   - Cursor: strip inject-rules.sh (Cursor auto-loads rules/ natively), strip
  *     Claude-team-specific scripts and `entire hooks claude-code *` calls
- *   - agy: ship NOTHING (agy plugin hooks do not fire in -p mode per verified-by-run)
+ *   - agy: this filter is NOT consumed for agy. agy hooks ship as a
+ *     plugin-bundled ROOT hooks.json emitted by
+ *     generate-agy-plugin-artifacts.mjs (its own AGY_PLUGIN_HOOKS map is the
+ *     source of truth), and only `block-no-verify` (PreToolUse) is portable —
+ *     agy doesn't support SessionStart, so install-pkgs / setup-jira-cli can't
+ *     ship as agy hooks. The agy column below is retained only as conceptual
+ *     ship-list documentation (block-no-verify.sh, install-pkgs.sh,
+ *     setup-jira-cli.sh; strips inject-rules.sh — rules-once via AGENTS.md bake
+ *     — enforce-team-first.sh, inject-flow-context.sh, and `entire ...` calls).
  *   - Copilot: strip SubagentStart hooks (event missing), strip Claude-team-specific
  *     scripts, conditionally strip inject-rules.sh if the rules-auto-load probe is
  *     positive (caller passes copilotRulesAutoLoads via options)
@@ -29,7 +37,7 @@ const SCRIPT_RULES = {
     claude: true,
     codex: true,
     cursor: true,
-    agy: false,
+    agy: true,
     copilot: true,
   },
   "enforce-team-first.sh": {
@@ -43,35 +51,28 @@ const SCRIPT_RULES = {
     claude: true,
     codex: true,
     cursor: false, // collision: Cursor auto-loads rules/ natively
-    agy: false, // hooks don't fire in -p
+    agy: false, // rules delivered via AGENTS.md bake, not a hook (rules-once invariant)
     copilot: true, // conservative default; conditionally stripped if rules-auto-load probe positive
   },
   "inject-flow-context.sh": {
     claude: true,
     codex: true,
     cursor: false, // SubagentStart unverified on Cursor; conservative default
-    agy: false,
+    agy: false, // SubagentStart-only; not in agy's universal ship-list
     copilot: false, // Copilot lacks SubagentStart event
   },
   "install-pkgs.sh": {
     claude: true,
     codex: true,
     cursor: true,
-    agy: false,
-    copilot: true,
-  },
-  "notify-ntfy.sh": {
-    claude: true,
-    codex: true,
-    cursor: true,
-    agy: false,
+    agy: true,
     copilot: true,
   },
   "setup-jira-cli.sh": {
     claude: true,
     codex: true,
     cursor: true,
-    agy: false,
+    agy: true,
     copilot: true,
   },
   // Unregistered scripts — exclude by default until classified.
@@ -92,7 +93,11 @@ const SCRIPT_RULES = {
 };
 
 /** Universal exclude pattern: development helpers. */
-const SCRIPT_EXCLUDE_PATTERNS = [/debug/i];
+// `.agy.sh` scripts are agy-protocol variants emitted into the agy plugin
+// artifact by generate-agy-plugin-artifacts.mjs (not via this filter); exclude
+// them from every other agent's ship-list so they never leak into cursor /
+// copilot / codex variants.
+const SCRIPT_EXCLUDE_PATTERNS = [/debug/i, /\.agy\.sh$/];
 
 /** Hook command shape: { type: "command", command: "..." } */
 const isEntireClaudeCodeCommand = cmd =>
@@ -178,6 +183,10 @@ export function shouldShipHook(hook, _eventName, agent, opts = {}) {
     // Cursor collision rule for rules + Copilot conditional rules strip
     if (scriptName === "inject-rules.sh") {
       if (agent === "cursor") return false;
+      // Belt-and-suspenders rules-once guard: agy gets rules via the AGENTS.md
+      // bake, not a hook (rules-once invariant). The SCRIPT_RULES table already
+      // sets agy:false, but keep this explicit so the invariant survives a
+      // future table edit.
       if (agent === "agy") return false;
       if (agent === "copilot" && opts.copilotRulesAutoLoads === true)
         return false;
@@ -195,8 +204,12 @@ export function shouldShipHook(hook, _eventName, agent, opts = {}) {
  * Returns the new hook block (or undefined when the block ends up empty after
  * filtering, which means the manifest should omit the hooks field entirely).
  *
- * For agy this function returns undefined regardless of input because agy
- * variants ship no hooks.
+ * This function is invoked only for cursor/copilot. The "agy" branch still
+ * works (3 universal scripts survive, PascalCase events) and is exercised by
+ * unit tests as conceptual ship-list documentation, but agy hooks are NOT
+ * emitted through this path — they ship as a plugin-bundled root hooks.json
+ * built by generate-agy-plugin-artifacts.mjs (only block-no-verify is portable;
+ * agy lacks SessionStart).
  *
  * @param {Record<string, Array<{ matcher?: string, hooks: Array<object> }>>} hookBlock
  *   The Claude-format hook block from .claude-plugin/plugin.json.
@@ -205,7 +218,6 @@ export function shouldShipHook(hook, _eventName, agent, opts = {}) {
  * @returns {Record<string, Array<{ matcher?: string, hooks: Array<object> }>> | undefined}
  */
 export function filterHooksForAgent(hookBlock, agent, opts = {}) {
-  if (agent === "agy") return undefined;
   if (!hookBlock || typeof hookBlock !== "object") return undefined;
 
   /** @type {Record<string, Array<{ matcher?: string, hooks: Array<object> }>>} */
@@ -244,6 +256,5 @@ export function filterHooksForAgent(hookBlock, agent, opts = {}) {
  * @returns {string[]}
  */
 export function filterScriptsForAgent(scriptFilenames, agent) {
-  if (agent === "agy") return [];
   return scriptFilenames.filter(name => shouldShipScript(name, agent));
 }
