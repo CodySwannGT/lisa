@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/inject-rules.sh"
+            "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/inject-rules.sh"
+            "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
           }
         ]
       }
