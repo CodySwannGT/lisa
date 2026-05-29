@@ -61,6 +61,24 @@
       "source": "./plugins/lisa-openclaw",
       "description": "Connect staff to Telegram or Slack via OpenClaw — facilitator/specialist routing and repo-coding topics (Claude + Codex)",
       "category": "productivity"
+    },
+    {
+      "name": "lisa-cursor",
+      "source": "./plugins/lisa-cursor",
+      "description": "Cursor (cursor-agent) variant — skills and agents consumed via Cursor's native .claude-plugin loader",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-agy",
+      "source": "./plugins/lisa-agy",
+      "description": "Antigravity (agy) variant — bare-manifest plugin with skills and agents; rules baked into AGENTS.md since agy plugin hooks don't fire",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-copilot",
+      "source": "./plugins/lisa-copilot",
+      "description": "GitHub Copilot variant — agents emitted as <name>.agent.md with camelCase hook events",
+      "category": "productivity"
     }
   ]
 }
