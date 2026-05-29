@@ -9,9 +9,11 @@
 # Read the JSON input from stdin
 JSON_INPUT=$(cat)
 
-# Extract the file path from the tool_input
-# The Edit tool input contains a "file_path" field in the tool_input object
-FILE_PATH=$(echo "$JSON_INPUT" | grep -o '"tool_input":{[^}]*"file_path":"[^"]*"' | grep -o '"file_path":"[^"]*"' | cut -d'"' -f4)
+# Extract the file path from the tool_input. Use jq for robust JSON parsing
+# (never grep/sed/cut — a JSON shape change silently skips formatting). Fail
+# open without jq so we never hard-block an edit.
+command -v jq >/dev/null 2>&1 || exit 0
+FILE_PATH=$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')
 
 # Check if we successfully extracted a file path
 if [ -z "$FILE_PATH" ]; then
