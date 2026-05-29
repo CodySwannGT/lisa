@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LISA_PLUGIN_KEY,
+  LEGACY_LISA_PLUGIN_KEYS,
   SLASH_LISA_PLUGIN_KEY,
   tomlHasEnabledPlugin,
 } from "../../../src/codex/lisa-plugin-detection.js";
@@ -16,6 +17,20 @@ const HEADER = `[plugins."${DEFAULT_LISA_PLUGIN_KEY}"]`;
 
 describe("codex/lisa-plugin-detection", () => {
   describe("tomlHasEnabledPlugin", () => {
+    it("uses the verified 0.125.0 marketplace key lisa@lisa", () => {
+      expect(DEFAULT_LISA_PLUGIN_KEY).toBe("lisa@lisa");
+    });
+
+    it("retains the legacy repo-slug key shapes as fallbacks", () => {
+      expect(LEGACY_LISA_PLUGIN_KEYS).toContain("lisa@CodySwannGT-lisa");
+      expect(LEGACY_LISA_PLUGIN_KEYS).toContain("lisa@CodySwannGT/lisa");
+    });
+
+    it("detects an enabled legacy-key table when the verified key is absent", () => {
+      const body = `[plugins."lisa@CodySwannGT-lisa"]\nenabled = true\n`;
+      expect(tomlHasEnabledPlugin(body, "lisa@CodySwannGT-lisa")).toBe(true);
+    });
+
     it("returns true on canonical Codex emitter shape", () => {
       const body = `${HEADER}\nenabled = true\n`;
       expect(tomlHasEnabledPlugin(body)).toBe(true);
