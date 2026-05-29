@@ -468,15 +468,37 @@ function main() {
  * @param {object} claudeManifest Parsed contents of .claude-plugin/plugin.json.
  */
 function emitCodexHooks(pluginDir, claudeManifest) {
-  const filtered = filterCodexHooks(claudeManifest.hooks);
-  if (filtered === null) return;
   const codexPluginDir = path.join(pluginDir, ".codex-plugin");
+  const hooksJsonPath = path.join(codexPluginDir, "hooks.json");
+  const hooksScriptsDir = path.join(codexPluginDir, "hooks");
+  const filtered = filterCodexHooks(claudeManifest.hooks);
+  if (filtered === null) {
+    // Nothing survived the filter. Remove any stale hooks artifacts from a
+    // prior build so componentPointers() doesn't keep advertising removed
+    // hooks via the ./hooks.json pointer.
+    fs.rmSync(hooksJsonPath, { force: true });
+    fs.rmSync(hooksScriptsDir, { force: true, recursive: true });
+    return;
+  }
   fs.mkdirSync(codexPluginDir, { recursive: true });
   fs.writeFileSync(
-    path.join(codexPluginDir, "hooks.json"),
-    `${JSON.stringify(filtered, null, 2)}\n`
+    hooksJsonPath,
+    `${JSON.stringify(buildCodexHooksDocument(filtered), null, 2)}\n`
   );
   copyCodexHookScripts(pluginDir, filtered);
+}
+
+/**
+ * Wrap a filtered events block in the document shape Codex's hooks.json parser
+ * expects: events nested under a top-level "hooks" key (see the HooksFile
+ * contract in src/codex/hooks-merger.ts). Writing the events block at the root
+ * would not be recognized as hooks.
+ *
+ * @param {object} filtered Codex-shaped events block from filterCodexHooks.
+ * @returns {{ hooks: object }} The hooks.json document root.
+ */
+export function buildCodexHooksDocument(filtered) {
+  return { hooks: filtered };
 }
 
 function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
@@ -539,7 +561,7 @@ function componentPointers(pluginDir) {
  * @param {object} hooksBlock The hooks field from the Claude plugin manifest.
  * @returns {object | null} A Codex-shape hooks block or null when empty.
  */
-function filterCodexHooks(hooksBlock) {
+export function filterCodexHooks(hooksBlock) {
   if (!hooksBlock || typeof hooksBlock !== "object") return null;
   const codexStrip = new Set(["enforce-team-first.sh"]);
   const isEntire = cmd =>

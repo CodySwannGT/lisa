@@ -1,13 +1,15 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "./hooks/block-migration-edits.sh"
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./hooks/block-migration-edits.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
