@@ -1,0 +1,28 @@
+{
+  "name": "lisa-rails",
+  "version": "2.121.0",
+  "description": "Ruby on Rails-specific hooks — RuboCop linting/formatting and ast-grep scanning on edit",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "dependencies": [
+    "lisa"
+  ],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rubocop-on-edit.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
