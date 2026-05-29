@@ -14,6 +14,9 @@
  * @see https://jestjs.io/docs/configuration
  * @module jest.config
  */
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   defaultThresholds,
   getExpoJestConfig,
@@ -24,9 +27,16 @@ import {
 import localConfig from "./jest.config.local.ts";
 import thresholdsOverrides from "./jest.thresholds.json" with { type: "json" };
 
+// Auto-detect the Expo SDK 55+/56 `/src` convention. When source lives under
+// `src/`, pass `sourceRoot: "src/"` so the factory anchors `collectCoverageFrom`
+// at `src/...` in a single correctly-ordered array — avoiding the glob-ordering
+// trap that arises if a project instead re-anchors coverage via a local override.
+const sourceRoot = existsSync(join(process.cwd(), "src", "app")) ? "src/" : "";
+
 export default mergeConfigs(
   getExpoJestConfig({
     thresholds: mergeThresholds(defaultThresholds, thresholdsOverrides),
+    sourceRoot,
   }),
   localConfig
 );

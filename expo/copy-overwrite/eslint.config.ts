@@ -12,6 +12,7 @@
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.config
  */
+import { existsSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -28,11 +29,16 @@ import localConfig from "./eslint.config.local";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Auto-detect the Expo SDK 55+/56 `/src` convention so the component-structure,
+// ui-standards, and view-memo overrides target `src/...` instead of the root.
+const sourceRoot = existsSync(path.join(__dirname, "src", "app")) ? "src/" : "";
+
 export default [
   ...getExpoConfig({
     tsconfigRootDir: __dirname,
     ignorePatterns: ignoreConfig.ignores || defaultIgnores,
     thresholds: { ...defaultThresholds, ...thresholdsConfig },
+    sourceRoot,
   }),
   ...localConfig,
 ];
