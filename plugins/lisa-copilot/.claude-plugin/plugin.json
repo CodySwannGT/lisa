@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "2.124.0",
+  "version": "2.124.1",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -13,17 +13,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh"
-          }
-        ]
-      }
-    ],
-    "agentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh"
           }
         ]
       }

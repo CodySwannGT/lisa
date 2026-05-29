@@ -39,12 +39,17 @@ plugins/
     scripts/
 
   lisa-agy/                      # Antigravity variant
-    plugin.json                  # BARE manifest at root (not .claude-plugin/)
+    plugin.json                  # BARE manifest at root (not .claude-plugin/); no hooks/mcpServers fields
+    hooks.json                   # ROOT-level, agy schema (base variant only) — agy loads plugin hooks from here
+    hooks/
+      block-no-verify.agy.sh     # agy-protocol script referenced by hooks.json ($HOME-absolute, run_command)
     skills/                      # passthrough
     agents/                      # passthrough (agy reads Claude-format .md)
     commands/                    # passthrough (agy auto-converts to skills)
-    # NO hooks/ — agy plugin hooks don't fire in -p mode
-    # NO rules/ — agy has no plugin-rules concept; rules baked into AGENTS.md
+    # NO mcp_config.json — agy ignores plugin-bundled MCP; delivered by the runtime MCP installer (user-global)
+    # NO hooks/hooks.json subdir — agy loads the ROOT hooks.json, not a subdir one
+    # NO .mcp.json — untranslated Claude file dropped (inert on agy)
+    # NO rules/ — rules baked into AGENTS.md (rules-once invariant)
     scripts/
 
   lisa-copilot/                  # GitHub Copilot variant
@@ -124,11 +129,11 @@ Each generator follows the same shape:
 1. **Copy** the filtered `plugins/lisa/` (post step 0) to `plugins/lisa-<agent>/` as the starting point.
 2. **Manifest reshape**:
    - Cursor: keep `.claude-plugin/plugin.json` (Cursor's dual loader reads it).
-   - agy: move `.claude-plugin/plugin.json` → bare `plugin.json` at the artifact root. Remove `.claude-plugin/` directory. Drop the `hooks` field from the manifest entirely.
+   - agy: move `.claude-plugin/plugin.json` → bare `plugin.json` at the artifact root. Remove `.claude-plugin/` directory. Drop both the `hooks` and `mcpServers` fields from the manifest — agy ignores plugin-bundled hooks/MCP, so they are delivered by runtime installers (not as plugin components).
    - Copilot: keep `.claude-plugin/plugin.json` (Copilot's fallback lookup reads it). Optionally also emit `plugin.json` at the root so Copilot's primary lookup finds it without the fallback.
 3. **Hook filter** (per the per-agent ship-list table in the audit):
    - Cursor: drop `inject-rules.sh` and the corresponding manifest entries on `SessionStart`/`SubagentStart`. Drop `enforce-team-first.sh` and `entire hooks claude-code *` entries.
-   - agy: drop the entire `hooks/` directory and the `hooks` manifest field.
+   - agy: the generator emits a PLUGIN-BUNDLED root `hooks.json` (agy schema; matcher `run_command`; base variant only) and ships the agy-protocol script under `hooks/`. Only `block-no-verify` (PreToolUse) is portable — agy doesn't support SessionStart, so `install-pkgs.sh`/`setup-jira-cli.sh` can't ship as agy hooks; `notify-ntfy.sh` was retired in ticket-1054. The command points at `$HOME/.gemini/config/plugins/<variant>/hooks/<script>` (the installed location). See step 5 / `emitAgyPluginHooks`.
    - Copilot: drop `inject-flow-context.sh` and `enforce-team-first.sh` SubagentStart entries (event missing on Copilot). Drop `enforce-team-first.sh` entries on all events. Drop `entire hooks claude-code *` entries. **If the pre-flight Copilot-rules-auto-load probe (step 8.b below) returns positive, ALSO drop the SessionStart `inject-rules.sh` entry and the script itself** — this is the collision-strip rule, same logic Cursor uses, applied conditionally on Copilot based on runtime evidence.
 4. **Script filter** in `hooks/`:
    - Always exclude `*debug*.sh` (development-only).
@@ -137,12 +142,12 @@ Each generator follows the same shape:
 5. **Event-name translation**:
    - Cursor / Codex: keep Claude PascalCase (Cursor auto-normalizes; Codex uses PascalCase natively).
    - Copilot: rewrite manifest hook event names to Copilot's camelCase (`preToolUse`, `postToolUse`, `sessionStart`, `sessionEnd`, `userPromptSubmitted`, `agentStop`).
-   - agy: not applicable (no hooks shipped).
+   - agy: the root `hooks.json` keeps Claude/agy PascalCase event names (PreToolUse), emitted directly by the generator's `AGY_PLUGIN_HOOKS` map.
 6. **Plugin-root env var rewriting**:
    - Claude / Cursor: keep `${CLAUDE_PLUGIN_ROOT}` (Cursor inherits Claude's name).
    - Codex: not handled here — Codex hooks ship via the Codex-specific generator (`generate-codex-plugin-artifacts.mjs`) which writes absolute paths or uses the Codex per-project hooks installer fallback.
    - Copilot: rewrite to `${COPILOT_PLUGIN_ROOT}` if a probe confirms Copilot exposes that env var; otherwise rewrite to absolute paths resolved against the install location. The probe lives in the generator's pre-flight check.
-   - agy: not applicable (no hooks shipped).
+   - agy: agy exposes no plugin-root env var (`${CLAUDE_PLUGIN_ROOT}` resolves empty — verified ticket-1054), so the root `hooks.json` command uses a `$HOME`-absolute path (`$HOME/.gemini/config/plugins/<variant>/hooks/<script>`), which agy's ExpandEnv resolves.
 7. **Agent file rename for Copilot only**:
    - Copilot expects `agents/<n>.agent.md` filenames. Either rename `agents/<n>.md` → `agents/<n>.agent.md` OR override via manifest `agents: "agents/"` field. The generator's first implementation tries the manifest override; if Copilot rejects (probed at generator time), fall back to filename rename.
 8. **Marketplace.json fix for Copilot install path bug**:
@@ -198,10 +203,11 @@ No installers required. Cursor consumes `plugins/lisa-cursor/` via its dual-name
 
 ### `src/agy/` (NEW directory)
 
-Three installers:
+Three runtime installers (+ build-time plugin-bundled hooks, below):
 
 - `src/agy/plugin-installer.ts` — detects `agy` in `$PATH` during `lisa apply`. Runs `agy plugin install $(lisa --path)/plugins/lisa-agy`. Public exports: `installAgyPlugin(destDir, lisaPluginRoot)`. Idempotent — re-running is a no-op once installed. No tagged-merge required.
-- `src/agy/mcp-installer.ts` — writes `~/.gemini/config/mcp_config.json` (user-shared) and/or `.agents/mcp_config.json` (project) with Lisa's MCP servers translated from Claude's `{type:"http",url}` shape to agy's `{serverUrl,headers}` shape. Tagged-merge marker `_lisaManaged: true` per server entry; host-authored entries (without the marker) are preserved. Public exports: `installAgyMcpConfig(destDir, lisaMcpServers)`.
+- `src/agy/mcp-installer.ts` — writes the user-global `~/.gemini/config/mcp_config.json` with Lisa's MCP servers translated from Claude's `{type:"http",url}` shape to agy's `{serverUrl,headers}` shape. Tagged-merge marker `_lisaManaged: true` per server entry; host-authored entries (without the marker) are preserved. Public exports: `installAgyMcpConfig(lisaMcpServers, targetPath)`, `resolveAgyMcpConfigPath`, `collectLisaMcpServers(pluginRoot, detectedTypes)`, `translateMcpEntryToAgy`. **As of ticket-1054 this is the PRIMARY (and only) agy MCP delivery path** — a runtime probe proved agy ignores plugin-bundled MCP AND only reads the user-global file (the project-scope `.agents/mcp_config.json` is never read). `processAgyEmit` calls `collectLisaMcpServers` (reads the built plugin `.mcp.json` files for base + detected stacks, shallow-merged) then `installAgyMcpConfig` into the user-global path. Cross-project caveat: last `lisa apply` carrying MCP wins globally; tagged-merge preserves host entries. Translation lives solely in this installer now — the interim `scripts/lib/agy-mcp-translate.mjs` build helper + its parity test were deleted (their only consumer was the removed generator emission).
+- agy hooks: NO runtime installer. Hooks ship as a PLUGIN-BUNDLED root `hooks.json` emitted at build time by `scripts/generate-agy-plugin-artifacts.mjs` (`emitAgyPluginHooks` + the `AGY_PLUGIN_HOOKS` map) and ride along with `agy plugin install`. agy loads a plugin's hooks from the installed plugin ROOT (`~/.gemini/config/plugins/<variant>/hooks.json`); the command references the `$HOME`-absolute agy-protocol script (`hooks/block-no-verify.agy.sh`). Only `block-no-verify` (PreToolUse) is portable — agy lacks SessionStart. The agy-protocol script source lives at `plugins/src/base/hooks/block-no-verify.agy.sh` (agy stdin/stdout decision protocol; distinct from the Claude `block-no-verify.sh`). Interactive-only firing (never `agy -p`).
 - `src/agy/rules-bake.ts` — extends the existing `src/codex/agents-md-installer.ts` (or wraps it) to concatenate `plugins/src/base/rules/eager/*.md` content into the AGENTS.md template Lisa writes at the host project root when `agy` is the active runtime. This is the Bake polyfill replacing the hook-based rules injection (per Cluster 4-agy / Option α). Public exports: `bakeAgyRulesIntoAgentsMd(destDir, lisaRulesDir)`.
 
 ### `src/copilot/` (NEW directory)
@@ -224,7 +230,7 @@ Two installers:
 Extend the existing Codex installers per the decisions made in Wave 2:
 
 - `scripts/generate-codex-plugin-artifacts.mjs` — extended in THREE ways:
-  1. **Emit hooks block**: derive a `hooks` block in `.codex-plugin/plugin.json` from the Claude `plugin.json` hooks per the per-agent ship-list audit's Codex column (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `notify-ntfy.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Apply the absolute-path translation that `src/codex/hooks-installer.ts` already implements — import the translation helper from `src/codex/hooks-installer.ts` rather than duplicating it.
+  1. **Emit hooks block**: derive a `hooks` block in `.codex-plugin/plugin.json` from the Claude `plugin.json` hooks per the per-agent ship-list audit's Codex column (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Apply the absolute-path translation that `src/codex/hooks-installer.ts` already implements — import the translation helper from `src/codex/hooks-installer.ts` rather than duplicating it.
   2. **Migrate skills surface** (per `wiki/decisions/2026-05-28-codex-skills-canonical-path.md`): the generator now copies `plugins/lisa/skills/<n>/` into the published plugin artifact AND applies the commands-to-skills transformation by importing `src/codex/command-skill-transformer.ts`. The same `lisa-<cmd>` prefix convention is preserved. The plugin manifest's `skills: "./skills/"` pointer continues to point at this directory.
   3. **Respect the Codex skill policy denylist** at `scripts/internal-codex-skill-policy.json` during the copy step (same denylist behavior `src/codex/skills-installer.ts` honors today).
 - `src/codex/hooks-installer.ts` — marked deprecated as primary path. Kept as fallback for users who have NOT installed Lisa as a Codex plugin via marketplace. The fallback detection lives inside `hooks-installer.ts` (early return when `~/.codex/config.toml` contains `[plugins."lisa@CodySwannGT-lisa"]` enabled). Its absolute-path translation helper is exported for the generator to reuse.
@@ -252,6 +258,6 @@ Per-variant verification probes:
 | Variant | Probe |
 | --- | --- |
 | `lisa-cursor/` | `cursor-agent -p --plugin-dir plugins/lisa-cursor "list Lisa skills"` returns the full skill set; `cursor-agent -p --plugin-dir plugins/lisa-cursor "what rules are in context?"` returns rule content EXACTLY ONCE (no double-inject collision). |
-| `lisa-agy/` | `agy plugin validate plugins/lisa-agy` returns [ok] for skills, agents, commands; "skipped" or absent for hooks. `agy plugin install plugins/lisa-agy && agy plugin list` shows the install. `agy -p "what skills are available"` lists the Lisa skills. AGENTS.md in a test project contains baked rules content. |
+| `lisa-agy/` | `agy plugin validate plugins/lisa-agy` returns [ok] for skills, agents, commands. `agy plugin install plugins/lisa-agy && agy plugin list` shows the install. `agy -p "what skills are available"` lists the Lisa skills. The base artifact ships a ROOT `hooks.json` (agy schema, `run_command`, `block-no-verify` only) + `hooks/block-no-verify.agy.sh`; stack variants ship none. NO `mcp_config.json`, NO `.mcp.json`, NO `rules/`, NO `hooks/hooks.json` subdir. Out-of-band: the user-global `~/.gemini/config/mcp_config.json` carries Lisa's MCP servers (`serverUrl` shape); AGENTS.md in a test project contains baked rules content. (Hook firing pending real-IDE confirmation — headless quota-blocked.) |
 | `lisa-copilot/` | `copilot -p --plugin-dir plugins/lisa-copilot "list Lisa skills and agents"` returns the full set (agents prefixed `lisa:`). After marketplace fix: `copilot plugin install lisa-copilot@CodySwannGT/lisa` succeeds. |
 | Codex hooks migration | `codex plugin marketplace add CodySwannGT/lisa && codex plugin install lisa@CodySwannGT-lisa` succeeds. `codex` interactive session in a project that does NOT have `lisa apply` run: Lisa skills work and the SessionStart hook fires (inject-rules content visible in context). |
