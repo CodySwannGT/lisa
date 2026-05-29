@@ -132,13 +132,17 @@ async function tryLocalInstall(
  * install against `plugins/lisa-copilot/` from the Lisa package.
  *
  * @param lisaPluginRoot - Absolute path to Lisa's `plugins/` directory.
- * @param marketplaceRef - Marketplace install ref, defaulting to
- *   "lisa@CodySwannGT/lisa".
+ * @param variantName - Variant directory name under `lisaPluginRoot` to install
+ *   (default `lisa-copilot`, the base variant). Stack variants are
+ *   `lisa-<stack>-copilot` (e.g. `lisa-typescript-copilot`).
+ * @param marketplaceRef - Marketplace install ref. Defaults to
+ *   `<variantName>@CodySwannGT/lisa`.
  * @returns Install result.
  */
 export async function installCopilotPlugin(
   lisaPluginRoot: string,
-  marketplaceRef: string = "lisa@CodySwannGT/lisa"
+  variantName: string = "lisa-copilot",
+  marketplaceRef: string = `${variantName}@CodySwannGT/lisa`
 ): Promise<CopilotPluginInstallResult> {
   if (!(await detectCopilot())) {
     return {
@@ -153,7 +157,7 @@ export async function installCopilotPlugin(
   const marketplaceResult = await tryMarketplaceInstall(marketplaceRef);
   if (marketplaceResult.installed) return marketplaceResult;
 
-  const localPath = path.join(lisaPluginRoot, "lisa-copilot");
+  const localPath = path.join(lisaPluginRoot, variantName);
   if (!existsSync(path.join(localPath, ".claude-plugin", "plugin.json"))) {
     return {
       attempted: true,
