@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.123.0](https://github.com/CodySwannGT/lisa/compare/vv2.122.0...v2.123.0) (2026-05-29)
+
+
+### Features
+
+* **expo:** support Expo SDK 56 + /src directory convention ([b262f39](https://github.com/CodySwannGT/lisa/commit/b262f3985b85c17adc22c8eff507e618d469ef1e))
+
+
+### Bug Fixes
+
+* **expo:** apply directory-structure /src edits to plugin source ([c91536b](https://github.com/CodySwannGT/lisa/commit/c91536b5b1a6741dc82d14b730934507a985a341))
+* **expo:** make knip/prettier/eslint-ignore templates /src-aware ([2684755](https://github.com/CodySwannGT/lisa/commit/26847556bbe8dc092a39c4f63b5c6206adbdd91a))
+* **expo:** wire sourceRoot into jest/eslint entry templates (auto-detect /src) ([546fc79](https://github.com/CodySwannGT/lisa/commit/546fc795a724eefe5db60c13ede74fdb0fa4b8a9))
+
+
+### Documentation
+
+* **expo:** address CodeRabbit — SDK 56 doc consistency + validator path reporting ([9f7f836](https://github.com/CodySwannGT/lisa/commit/9f7f836d6f4cb4a13fb96da3a7cac29a0c2202d0))
+* **expo:** fix eas:publish script examples in upgrade guide ([3f0214d](https://github.com/CodySwannGT/lisa/commit/3f0214deffb40254f940961fab1e602e9588cc31))
+
 ## [2.122.0](https://github.com/CodySwannGT/lisa/compare/vv2.121.1...v2.122.0) (2026-05-29)
 
 
