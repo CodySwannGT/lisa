@@ -1,6 +1,6 @@
 {
   "name": "lisa-harper-fabric",
-  "version": "2.124.2",
+  "version": "2.124.3",
   "description": "Harper/Fabric-specific Lisa rules for TypeScript component apps.",
   "author": {
     "name": "Cody Swann"
@@ -15,7 +15,7 @@
     "lisa-typescript"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
+  "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "Lisa Harper/Fabric",
     "shortDescription": "Harper/Fabric workflow guidance",
