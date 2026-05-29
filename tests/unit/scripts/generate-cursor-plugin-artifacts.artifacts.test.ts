@@ -118,7 +118,13 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
           expect(typeof entry.command).toBe("string");
           expect("type" in entry).toBe(false);
           expect("hooks" in entry).toBe(false);
-          expect(String(entry.command).startsWith("./hooks/")).toBe(true);
+          // Plugin hooks run with the project root as cwd, so commands use the
+          // ${CURSOR_PLUGIN_ROOT} token (not a bare ./, which would not resolve
+          // and could be shadowed by a repo-local ./hooks/*).
+          expect(
+            String(entry.command).startsWith("${CURSOR_PLUGIN_ROOT}/hooks/")
+          ).toBe(true);
+          expect(String(entry.command)).not.toContain("CLAUDE_PLUGIN_ROOT");
         }
       }
       const manifest = fs.readJsonSync(

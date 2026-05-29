@@ -136,7 +136,11 @@ describe("generate-cursor-plugin-artifacts (Cursor-native shape — issue #1055)
             expect(typeof entry.command).toBe("string");
             expect("type" in entry).toBe(false);
             expect("hooks" in entry).toBe(false);
+            // Commands use the ${CURSOR_PLUGIN_ROOT} token (plugin hooks run with
+            // the project root as cwd; a bare ./ would not resolve to the bundled
+            // script and could be shadowed by a repo-local ./hooks/*).
             expect(String(entry.command)).not.toContain("CLAUDE_PLUGIN_ROOT");
+            expect(String(entry.command)).toContain("${CURSOR_PLUGIN_ROOT}/");
           }
         }
       });
