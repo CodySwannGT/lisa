@@ -265,3 +265,15 @@ This sequence is necessary because:
 - Pre-commit hooks (lint/typecheck) run on every commit and will fail if barrel exports reference missing files
 
 Deviating from this sequence (e.g., deleting source without removing barrel export, or adding barrel export before implementation exists) causes pre-commit hook failures.
+
+## Verify Auto-Merge Actually Shipped Your Fix (Ancestry Check)
+
+Enabling auto-merge and pushing a fix commit does NOT guarantee the fix ships. GitHub auto-merge can merge the PRIOR head the instant required checks go green — before your new commit becomes the PR head. This shipped a real bug: release 2.124.5 shipped the `./hooks/` Cursor bug because a CodeRabbit fix commit raced past PR #1069's merge; it had to be fixed forward in 2.124.6 (issue #1055).
+
+Before declaring any auto-merge PR done — do NOT rely on "pushed + thread resolved + checks green" as proof:
+
+1. `git fetch origin`
+2. Confirm the fix commit is an ancestor of the merged base: `git merge-base --is-ancestor <fix-sha> origin/main` (exit 0 = shipped).
+3. Confirm the merge commit's parent is your fixed commit, not a stale head.
+
+If CI or CodeRabbit forces another commit after auto-merge is enabled, re-confirm the merged head includes it.
