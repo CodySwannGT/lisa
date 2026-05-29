@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.124.7](https://github.com/CodySwannGT/lisa/compare/vv2.124.6...v2.124.7) (2026-05-29)
+
+
+### Documentation
+
+* **rules:** add auto-merge ancestry-check rule ([#1055](https://github.com/CodySwannGT/lisa/issues/1055)) ([aa06224](https://github.com/CodySwannGT/lisa/commit/aa06224170ca6840601b53730a509e109590dde4)), closes [#1069](https://github.com/CodySwannGT/lisa/issues/1069)
+
 ### [2.124.6](https://github.com/CodySwannGT/lisa/compare/vv2.124.5...v2.124.6) (2026-05-29)
 
 
