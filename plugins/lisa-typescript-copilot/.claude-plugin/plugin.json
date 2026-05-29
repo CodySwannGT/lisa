@@ -1,0 +1,43 @@
+{
+  "name": "lisa-typescript",
+  "version": "2.121.0",
+  "description": "TypeScript-specific hooks — Prettier formatting, ESLint linting, ast-grep scanning, and error-suppression blocking on edit",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "dependencies": [
+    "lisa"
+  ],
+  "hooks": {
+    "preToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-suppress-directives.sh"
+          }
+        ]
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/format-on-edit.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/lint-on-edit.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

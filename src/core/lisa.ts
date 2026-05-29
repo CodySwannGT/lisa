@@ -1,5 +1,6 @@
 /* eslint-disable max-lines -- Main orchestrator class with apply/validate operations */
 import * as fse from "fs-extra";
+import { existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
@@ -842,31 +843,66 @@ export class Lisa {
     }
 
     const pluginRoot = path.join(this.config.lisaDir, "plugins");
-    const pluginResult = await installAgyPlugin(pluginRoot);
+    // Install the base variant plus the matching variant for each detected
+    // stack so agy reaches parity with Claude/Codex on stack-specific plugins.
+    const variantNames = [
+      "lisa-agy",
+      ...this.perAgentStackVariants(pluginRoot, "agy"),
+    ];
+    const pluginResults = [];
+    for (const variant of variantNames) {
+      pluginResults.push(await installAgyPlugin(pluginRoot, variant));
+    }
 
-    // Bake source is the BASE plugin's eager rules, not the agy variant's: the
-    // agy generator strips rules/ from the variant (agy doesn't auto-load plugin
-    // rules), so lisa-agy/rules/eager is empty. The canonical rule content lives
-    // in lisa/rules/eager and is what gets baked into AGENTS.md.
-    const rulesEagerDir = path.join(pluginRoot, "lisa", "rules", "eager");
+    // Bake source is the BASE plugin's eager rules plus each detected stack's
+    // eager rules (NOT the agy variants' — the agy generator strips rules/ from
+    // each variant, so their rules/eager is empty). The canonical content lives
+    // in lisa/rules/eager and lisa-<stack>/rules/eager.
+    const rulesEagerDirs = this.eagerRuleDirs(pluginRoot);
     const agentsMdResult = await installAgyAgentsMd(
       this.config.destDir,
-      rulesEagerDir
+      rulesEagerDirs
     );
 
-    const pluginMessage = pluginResult.attempted
-      ? pluginResult.installed
-        ? "installed"
-        : `install failed: ${pluginResult.error ?? "unknown"}`
+    const attempted = pluginResults.some(r => r.attempted);
+    const installedCount = pluginResults.filter(r => r.installed).length;
+    const pluginMessage = attempted
+      ? `${installedCount}/${variantNames.length} variants installed`
       : "skipped (agy not on PATH)";
 
     this.deps.logger.info(
       pc.cyan(
-        `agy emit: plugin ${pluginMessage}, AGENTS.md ${
+        `agy emit: ${pluginMessage}, AGENTS.md ${
           agentsMdResult.created ? "created" : "refreshed"
         } with ${agentsMdResult.rulesBaked} rules baked`
       )
     );
+  }
+
+  /**
+   * Per-agent stack variant directory names for the detected project types
+   * that have a built variant. Filters by on-disk existence so a detected type
+   * without a stack plugin (e.g. `npm-package`) is naturally skipped.
+   * @param pluginRoot - Absolute path to the `plugins/` directory.
+   * @param agent - Per-agent variant suffix (`agy` | `copilot` | `cursor`).
+   * @returns Variant directory names like `lisa-typescript-agy`.
+   */
+  private perAgentStackVariants(pluginRoot: string, agent: string): string[] {
+    return this.detectedTypes
+      .map(type => `lisa-${type}-${agent}`)
+      .filter(name => existsSync(path.join(pluginRoot, name)));
+  }
+
+  /**
+   * Eager-rule source directories to bake into agy's AGENTS.md: the base
+   * plugin plus each detected stack plugin that ships eager rules.
+   * @param pluginRoot - Absolute path to the `plugins/` directory.
+   * @returns Existing `rules/eager` directory paths, base first.
+   */
+  private eagerRuleDirs(pluginRoot: string): string[] {
+    return ["lisa", ...this.detectedTypes.map(type => `lisa-${type}`)]
+      .map(name => path.join(pluginRoot, name, "rules", "eager"))
+      .filter(dir => existsSync(dir));
   }
 
   /**
@@ -889,20 +925,29 @@ export class Lisa {
     }
 
     const pluginRoot = path.join(this.config.lisaDir, "plugins");
-    const pluginResult = await installCopilotPlugin(pluginRoot);
+    // Base variant plus the matching variant for each detected stack.
+    const variantNames = [
+      "lisa-copilot",
+      ...this.perAgentStackVariants(pluginRoot, "copilot"),
+    ];
+    const pluginResults = [];
+    for (const variant of variantNames) {
+      pluginResults.push(await installCopilotPlugin(pluginRoot, variant));
+    }
     const instructionsResult = await installCopilotInstructions(
       this.config.destDir
     );
 
-    const pluginMessage = pluginResult.attempted
-      ? pluginResult.installed
-        ? `installed via ${pluginResult.via ?? "marketplace"}`
-        : `install failed: ${pluginResult.error ?? "unknown"}`
+    const attempted = pluginResults.some(r => r.attempted);
+    const installedCount = pluginResults.filter(r => r.installed).length;
+    const via = pluginResults.find(r => r.installed)?.via ?? "local";
+    const pluginMessage = attempted
+      ? `${installedCount}/${variantNames.length} variants installed via ${via}`
       : "skipped (copilot not on PATH)";
 
     this.deps.logger.info(
       pc.cyan(
-        `Copilot emit: plugin ${pluginMessage}, copilot-instructions ${
+        `Copilot emit: ${pluginMessage}, copilot-instructions ${
           instructionsResult.created
             ? "created"
             : "already present (host-owned)"
