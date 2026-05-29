@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.124.6](https://github.com/CodySwannGT/lisa/compare/vv2.124.5...v2.124.6) (2026-05-29)
+
+
+### Bug Fixes
+
+* **cursor:** use ${CURSOR_PLUGIN_ROOT} for hook command paths ([#1055](https://github.com/CodySwannGT/lisa/issues/1055)) ([a2942a6](https://github.com/CodySwannGT/lisa/commit/a2942a68c3dc1b81f28465c034b747fa9ed143cf))
+
 ### [2.124.5](https://github.com/CodySwannGT/lisa/compare/vv2.124.4...v2.124.5) (2026-05-29)
 
 
