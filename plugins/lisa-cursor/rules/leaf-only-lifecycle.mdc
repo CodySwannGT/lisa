@@ -1,0 +1,44 @@
+---
+description: "Leaf-Only Build-Ready Invariant (load-bearing)"
+alwaysApply: true
+---
+
+# Leaf-Only Build-Ready Invariant (load-bearing)
+
+**Build-ready means a directly implementable leaf work unit.** Containers never carry build-ready.
+
+A leaf is structurally defined: **no child work** AND a leaf-typed item (Bug, Task, Sub-task, Improvement). A container is a parent with children — Epic, Story, Spike, or any item that has acquired sub-items.
+
+## Invariant
+
+- **At decomposition/write time** — only leaves receive the `ready` role. Parent containers are created in their non-ready state.
+- **At validate time** — `*-validate-*` FAILs any container carrying the build-ready role.
+- **At claim time** — build-intake claims leaves only. A container with a stale build-ready role is rolled up or safe-blocked, NEVER implemented.
+
+## Childless-parent exception
+
+A container *type* with no children is structurally a leaf — and may be build-ready iff its type is itself a leaf type:
+
+- **Task or Bug with no children** → leaf → may be build-ready.
+- **Epic, Story, or Spike with no children** → still NOT build-ready. These are coordination containers by design; an empty one is incomplete decomposition. Repair: decompose into leaves, or reclassify to a leaf type.
+
+## Parent state rollup (priority order, first match wins)
+
+1. Any leaf is **blocked** → parent rolls up to **blocked / attention-needed**.
+2. Else any leaf is **claimed or in review** → parent is **in-progress**.
+3. Else all required leaves are **terminal (`done`)** → parent reaches the configured rollup terminal (env-keyed `done`).
+4. Else (leaves exist but none started) → parent unchanged.
+
+**Blocked dominates.** Optional/won't-do children do not hold a parent open. Rollup is recursive — bottom-up. The parent never carries `ready`.
+
+## Terminal native closure
+
+When a leaf reaches the true terminal `done` (the production / final-env value), also finalize via the tracker's native completion mechanism:
+
+- **GitHub** — `gh issue close <n> --reason completed` after the terminal label.
+- **Linear** — move workflow `state` to the team's Done.
+- **JIRA** — transition to terminal Done/Resolved/Closed; verify `statusCategory = Done`.
+
+Intermediate env-keyed states (`status:on-dev`, `On Stg`, etc.) remain open. Idempotent — if already closed, report and continue.
+
+Full vendor mechanics + the state machine in prose: [reference/leaf-only-lifecycle.md](leaf-only-lifecycle-reference.mdc).

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "./hooks/block-suppress-directives.sh",
+        "matcher": "Write|Edit"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "./hooks/format-on-edit.sh",
+        "matcher": "Write|Edit"
+      },
+      {
+        "command": "./hooks/sg-scan-on-edit.sh",
+        "matcher": "Write|Edit"
+      },
+      {
+        "command": "./hooks/lint-on-edit.sh",
+        "matcher": "Write|Edit"
+      }
+    ]
+  }
+}

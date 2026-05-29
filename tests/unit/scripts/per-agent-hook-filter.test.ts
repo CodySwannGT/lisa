@@ -69,7 +69,7 @@ describe("per-agent-hook-filter", () => {
       expect(shouldShipScript(ENFORCE_TEAM_FIRST, "copilot")).toBe(false);
     });
 
-    it("strips inject-rules.sh from cursor (auto-loads rules/) and agy (hooks don't fire)", () => {
+    it("strips inject-rules.sh from cursor (rules ship as native .mdc; issue #1055) and agy (hooks don't fire)", () => {
       expect(shouldShipScript(INJECT_RULES, "claude")).toBe(true);
       expect(shouldShipScript(INJECT_RULES, "codex")).toBe(true);
       expect(shouldShipScript(INJECT_RULES, "cursor")).toBe(false);
@@ -101,8 +101,14 @@ describe("per-agent-hook-filter", () => {
       );
     });
 
-    it("keeps PascalCase for cursor (auto-normalized at load)", () => {
-      expect(translateEventName("PreToolUse", "cursor")).toBe("PreToolUse");
+    it("rewrites PascalCase to Cursor camelCase (issue #1055)", () => {
+      expect(translateEventName("PreToolUse", "cursor")).toBe("preToolUse");
+      expect(translateEventName("PostToolUse", "cursor")).toBe("postToolUse");
+      expect(translateEventName("SessionStart", "cursor")).toBe("sessionStart");
+      expect(translateEventName("Stop", "cursor")).toBe("stop");
+      expect(translateEventName("UserPromptSubmit", "cursor")).toBe(
+        "beforeSubmitPrompt"
+      );
     });
   });
 
@@ -220,12 +226,16 @@ describe("per-agent-hook-filter", () => {
       expect(allCmds.some(c => c.includes(INJECT_FLOW))).toBe(false);
     });
 
-    it("strips SessionStart inject-rules from cursor, keeps PreToolUse block-no-verify", () => {
+    it("strips SessionStart inject-rules from cursor, keeps PreToolUse block-no-verify (camelCase, issue #1055)", () => {
       const out = filterHooksForAgent(sampleBlock, "cursor");
       expect(out).toBeDefined();
       const result = out as Record<string, unknown>;
+      // inject-rules.sh was the only SessionStart handler → event dropped.
+      expect("sessionStart" in result).toBe(false);
       expect("SessionStart" in result).toBe(false);
-      expect("PreToolUse" in result).toBe(true);
+      // PreToolUse block-no-verify survives, translated to Cursor camelCase.
+      expect("preToolUse" in result).toBe(true);
+      expect("PreToolUse" in result).toBe(false);
     });
 
     it("translates event names for copilot", () => {
