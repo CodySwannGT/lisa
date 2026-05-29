@@ -20,6 +20,7 @@
     "graphql-generated/**",
     "generated/**",
     "components/ui/**",
+    "src/components/ui/**",
 
     "**/k6/**/*.js",
 
@@ -72,6 +73,7 @@
     "scripts/**",
 
     "lib/**/*.js",
+    "src/lib/**/*.js",
     "cdk.out/**",
 
     "audit.ignore.config.json",

@@ -13,6 +13,7 @@ graphql
 generated
 public
 components/ui/
+src/components/ui/
 playwright-report/
 AGENTS.md
 CHANGELOG.md
