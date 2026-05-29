@@ -120,3 +120,66 @@ The Pattern B generator scripts (`scripts/generate-cursor-plugin-artifacts.mjs`,
 7. **Emit** the agent-appropriate `hooks` block in the variant's manifest plus the surviving `hooks/` directory.
 
 For agy specifically the generator skips steps 2-7 entirely and emits no `hooks/` directory plus no `hooks` field in the manifest.
+
+## Verified by run — 2026-05-28 follow-up (Codex 0.125.0 + Copilot 1.0.55)
+
+The Wave 1 claims above were tagged `[VERIFIED-DOC]`. A follow-up pass
+empirically tested them and corrected several. Backing evidence is recorded in
+the `reference_codex_plugin_hooks_shape_and_firing` session memory.
+
+**Codex plugin-bundled hooks (corrects the Action-3 assumptions):**
+
+- Plugin-bundled hooks **do** fire in Codex 0.125.0 (official docs:
+  developers.openai.com/codex/plugins/build) — but only after the plugin is
+  installed AND the hooks are trusted via the interactive `/hooks` flow.
+  **There is no non-interactive trust bypass in 0.125.0** (the documented
+  `--dangerously-bypass-hook-trust` flag is not present), so end-to-end hook
+  *firing* cannot be verified in `codex exec` or scripted CI — it is verified by
+  authoritative docs + artifact structure, not by an automated run.
+- **Discovery path (was wrong in the first Wave 3b cut):** Codex auto-discovers
+  `<plugin-root>/hooks/hooks.json` and resolves the manifest `hooks` pointer
+  relative to the **plugin root**. The first cut wrote `.codex-plugin/hooks.json`
+  with a `./hooks.json` pointer that resolved to a non-existent
+  `<root>/hooks.json`; Codex never found it. Fixed: write
+  `hooks/hooks.json`, point `./hooks/hooks.json`.
+- **Plugin-root env var (corrects step 6):** Codex exposes `${PLUGIN_ROOT}` to
+  hook commands. The generator rewrites `${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh`
+  → `${PLUGIN_ROOT}/hooks/<n>.sh` (not the cwd-relative `./hooks/` the first cut
+  emitted, nor an absolute path).
+- **hooks.json root shape:** events nest under a top-level `hooks` key
+  (`{ "hooks": { … } }`) per the `HooksFile` contract in
+  `src/codex/hooks-merger.ts`.
+- **Marketplace key:** `codex plugin marketplace add CodySwannGT/lisa` registers
+  `[marketplaces.lisa]` (name from the manifest), so the enabled-plugin key is
+  `lisa@lisa` — not the repo-slug forms previously assumed. `marketplace add`
+  reads `.claude-plugin/marketplace.json` (no install policy there) and does NOT
+  auto-install; install + trust are interactive. The per-project installer
+  (`src/codex/hooks-installer.ts`) remains the verified-working delivery path.
+
+**Copilot (corrects step 6 + agent-path assumptions):**
+
+- Copilot does **not** auto-load a plugin's bundled `rules/` directory
+  (`--plugin-dir` probe returned UNKNOWN for a sentinel rule), so `inject-rules.sh`
+  must ship for Copilot. It *does* auto-load the project's
+  `.github/copilot-instructions.md`, but Lisa's template there is only a pointer.
+- Copilot aliases the `CLAUDE_*` plugin env vars (its CLI reference documents
+  `${COPILOT_PLUGIN_DATA}` is also `${CLAUDE_PLUGIN_DATA}`), so the
+  `${CLAUDE_PLUGIN_ROOT}` form the generator emits in Copilot hook commands is
+  supported.
+- With an explicit manifest `agents: "./agents/"` pointer, Copilot loads
+  non-`.agent.md` agent files via `--plugin-dir`; the generator keeps the
+  universally-safe `<n>.agent.md` rename because the marketplace-install path is
+  unverified.
+
+**`lisa apply --harness fleet` end-to-end (two dispatch bugs found + fixed):**
+
+- `processCodexEmit` was missing `"fleet"` in its guard, so fleet installs
+  silently skipped all Codex artifacts. Fixed; centralized in
+  `harnessIncludesAgent(harness, agent)` so the four emit guards can't drift.
+- agy's AGENTS.md bake read rules from the stripped `lisa-agy/rules/eager`
+  (empty); it now bakes the base plugin's `lisa/rules/eager` (13 rules).
+- Verified: a fleet apply emits all four paths (Codex 55 agents / 5 hooks /
+  253 skills, Claude `CLAUDE.md`, agy 13 rules baked, Copilot instructions),
+  registers the plugin as `lisa@lisa`, and a single-agent harness emits only its
+  own agent. No rule double-injection: cursor auto-loads `rules/` (no
+  inject-rules hook), copilot/codex/claude inject once via hooks, agy bakes once.

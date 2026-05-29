@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/block-migration-edits.sh"
+            "command": "${PLUGIN_ROOT}/hooks/block-migration-edits.sh"
           }
         ]
       }
