@@ -164,3 +164,12 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot, workflow playbook, vocabulary, and index for the new Claude Remote routine readiness audit and setup-script generator commands.
+
+## 2026-05-29 - Incremental connector ingest
+
+- Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the existing wiki branch without conflicts, then ran another full no-argument ingest against every enabled non-external-write connector in `wiki/lisa-wiki.config.json`.
+- Preserved the prior same-day git source note as `wiki/sources/git/2026-05-29-133933-lisa-monorepo-git.md` before refreshing the current `2026-05-29` connector note.
+- Refreshed the `git` source note with 9 new commits through `f9999af37312b136cd52edd169564a04d85a7a42`, advanced the merged-PR cursor to `#1066`, and captured the release line through Lisa `2.124.2`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for agy native MCP and root-hook delivery hardening, missing optional artifact handling, installed-plugin hook path resolution, and release-history changes through `2.124.2`.

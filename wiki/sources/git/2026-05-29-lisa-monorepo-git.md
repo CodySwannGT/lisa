@@ -11,15 +11,18 @@ project: lisa-monorepo
 # git history — lisa-monorepo (2026-05-29)
 
 - Repo: `/Users/cody/.codex/worktrees/lisa-automation-main`
-- HEAD: `a4c5901d607157b097ba4338d4695da5c7ce2902`
-- Total commits on HEAD: 2560
-- New commits since last ingest (`ecb6a093d767203add54de4d0d703783c80abda0`): 6
-- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #1060 "feat(base): add claude-remote readiness skills"
+- HEAD: `f9999af37312b136cd52edd169564a04d85a7a42`
+- Total commits on HEAD: 2569
+- New commits since last ingest (`a4c5901d607157b097ba4338d4695da5c7ce2902`): 9
+- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #1066 "fix(agy): emit native plugin MCP + hooks via runtime-correct mechanisms (resolve rules bake)"
 
 ## New commits
-- a4c5901d · 2026-05-29 · chore(release): 2.124.0 [skip ci]
-- fd52a4de · 2026-05-29 · Merge pull request #1060 from CodySwannGT/claude/upbeat-chatelet-8d6b67
-- 997ee130 · 2026-05-29 · feat(base): add claude-remote readiness skills
-- f7395114 · 2026-05-29 · chore(release): 2.123.3 [skip ci]
-- 1c21f123 · 2026-05-29 · Merge pull request #1057 from CodySwannGT/wiki/ingest-2026-05-28-133543
-- be868bfb · 2026-05-29 · docs(wiki): ingest Lisa history through 2.123.2
+- f9999af3 · 2026-05-29 · chore(release): 2.124.2 [skip ci]
+- 773a5e18 · 2026-05-29 · Merge pull request #1066 from CodySwannGT/worktree-ticket-1054
+- 60cdab13 · 2026-05-29 · fix(agy): resolve agy hook command path to the install-dir name (CodeRabbit #1)
+- a2ceb70e · 2026-05-29 · fix(agy): harden plugin generation and MCP cleanup for missing scripts and stale entries
+- 946e24b6 · 2026-05-29 · Merge branch 'main' into worktree-ticket-1054
+- 3f02d932 · 2026-05-29 · fix(agy): deliver native MCP + hooks via runtime-correct mechanisms
+- 1a3e162a · 2026-05-29 · chore(release): 2.124.1 [skip ci]
+- bb0610ca · 2026-05-29 · Merge pull request #1061 from CodySwannGT/wiki/ingest-2026-05-29-093858
+- 3d70be00 · 2026-05-29 · docs(wiki): ingest Lisa history through 2.124.0
