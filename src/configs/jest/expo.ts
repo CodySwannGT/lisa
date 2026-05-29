@@ -56,12 +56,21 @@ export {
 interface ExpoJestOptions {
   /** Coverage thresholds (merged defaults + project overrides) */
   readonly thresholds?: Config["coverageThreshold"];
+  /**
+   * Prefix applied to the positive `collectCoverageFrom` globs. Defaults to
+   * `""` (source at the project root). Set to `"src/"` for projects that adopt
+   * the Expo SDK 55+/56 `/src` directory convention so coverage is collected
+   * from `src/components`, `src/features`, etc. The negative (exclusion) globs
+   * are anchored with a leading globstar and are unaffected by this prefix.
+   */
+  readonly sourceRoot?: string;
 }
 
 /**
  * Creates a Jest configuration for Expo/React Native projects.
  * @param options - Configuration options for threshold overrides
  * @param options.thresholds - Coverage thresholds (merged defaults + project overrides)
+ * @param options.sourceRoot - Prefix for coverage globs (e.g. `"src/"` for the SDK 55+/56 `/src` convention; defaults to `""`)
  * @returns Jest config object with jsdom environment, babel-jest transform, and React Native resolver
  * @remarks Avoids `jest-expo` preset to prevent jsdom + `react-native/jest/setup.js`
  * incompatibility. Manually configures haste, resolver, and transform to match the
@@ -69,13 +78,18 @@ interface ExpoJestOptions {
  */
 export const getExpoJestConfig = ({
   thresholds = defaultThresholds,
+  sourceRoot = "",
 }: ExpoJestOptions = {}): Config => ({
   testEnvironment: "jsdom",
   haste: {
     defaultPlatform: "ios",
     platforms: ["android", "ios", "native"],
   },
-  resolver: "react-native/jest/resolver.js",
+  // SDK 56 / RN 0.85 relocated the React Native Jest resolver out of
+  // `react-native/jest/resolver.js` and into `@react-native/jest-preset`.
+  // This resolver is what teaches Jest to resolve platform-extension files
+  // (`.ios`/`.native`/`.web`); without it those variants do not resolve.
+  resolver: "@react-native/jest-preset/jest/resolver.js",
   setupFiles: ["<rootDir>/jest.setup.pre.js"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   transform: {
@@ -104,17 +118,17 @@ export const getExpoJestConfig = ({
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   collectCoverageFrom: [
-    "components/**/*.{ts,tsx}",
-    "config/**/*.{ts,tsx}",
-    "constants/**/*.{ts,tsx}",
-    "features/**/*.{ts,tsx}",
-    "hooks/**/*.{ts,tsx}",
-    "lib/**/*.{ts,tsx}",
-    "providers/**/*.{ts,tsx}",
-    "shared/**/*.{ts,tsx}",
-    "stores/**/*.{ts,tsx}",
-    "types/**/*.{ts,tsx}",
-    "utils/**/*.{ts,tsx}",
+    `${sourceRoot}components/**/*.{ts,tsx}`,
+    `${sourceRoot}config/**/*.{ts,tsx}`,
+    `${sourceRoot}constants/**/*.{ts,tsx}`,
+    `${sourceRoot}features/**/*.{ts,tsx}`,
+    `${sourceRoot}hooks/**/*.{ts,tsx}`,
+    `${sourceRoot}lib/**/*.{ts,tsx}`,
+    `${sourceRoot}providers/**/*.{ts,tsx}`,
+    `${sourceRoot}shared/**/*.{ts,tsx}`,
+    `${sourceRoot}stores/**/*.{ts,tsx}`,
+    `${sourceRoot}types/**/*.{ts,tsx}`,
+    `${sourceRoot}utils/**/*.{ts,tsx}`,
     "!**/*View.{ts,tsx}",
     ...defaultCoverageExclusions,
   ],
