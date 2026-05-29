@@ -67,3 +67,11 @@ A managed wiki ignore block is the Lisa wiki-owned section inserted into a proje
 ## E2E Coverage Gap
 
 An e2e coverage gap is behavior found during exploratory QA that should be represented by an end-to-end regression test rather than only a human-facing bug report.
+
+## Per-Agent Plugin Variant
+
+A per-agent plugin variant is a generated Lisa plugin artifact tailored to one coding agent's plugin shape, hook model, and rule-loading behavior. Pattern B variants are built from shared `plugins/src/` source rather than hand-edited generated directories.
+
+## Eager-Or-Flat Rule Resolution
+
+Eager-or-flat rule resolution means Lisa first loads `rules/eager/` when present and otherwise falls back to flat markdown files directly under `rules/`. `rules/reference/` stays out of startup injection and is loaded only when needed.

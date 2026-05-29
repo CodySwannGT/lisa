@@ -147,3 +147,11 @@
 
 - Closed the parity gap where per-agent variants existed only for the base plugin (PRs #1050, #1052). build-plugins.sh now fans out every built Claude plugin (base + 6 stacks + 2 standalones) to cursor/agy/copilot via the generic generators (27 variant dirs total); all registered in `.claude-plugin/marketplace.json`. `lisa apply` installs the base variant plus `lisa-<detected-type>-<agent>` for each detected stack (existence-filtered). Spec section "Stack fan-out" added to `wiki/architecture/pattern-b-fan-out-spec.md`.
 - Fixed an agy-only rule-delivery gap (#1052): the AGENTS.md bake read only `rules/eager/`, dropping legacy flat-layout stack rules (e.g. `lisa-rails/rules/rails-conventions.md`) that inject-rules.sh delivers to Claude/Codex/Copilot via its eager-or-flat fallback and cursor via native rules load. agy's bake (`eagerRuleDirs`) now mirrors that resolution. Verified: a Rails project bakes 14 rules into agy's AGENTS.md (base 13 + rails-conventions) instead of 13. Only `rules/reference/` remains on-demand on all agents.
+
+## 2026-05-29 - Incremental connector ingest
+
+- Resolved the prior local connector-ingest rebase conflict by preserving the 2026-05-28 connector log entry alongside newer wiki parity entries, then ran a full no-argument ingest against every enabled non-external-write connector available in `wiki/lisa-wiki.config.json`.
+- Refreshed the `git` source note with 71 new commits through `ecb6a093d767203add54de4d0d703783c80abda0`, advanced the merged-PR cursor to `#1053`, and captured the release line through Lisa `2.123.2`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because the only available Claude memory directory was scoped to `/Users/cody/workspace/lisa`, not `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot, template-governance notes, workflow playbook, vocabulary, and index for per-agent stack variant fan-out, Codex/Copilot hook verification fixes, agy eager-or-flat rule delivery, Expo SDK 56 `/src` support, and release-history changes through `2.123.2`.

@@ -38,6 +38,14 @@ Project ideation may document new PRD candidates while the build queue is busy, 
 
 Claude receives Lisa plugin hooks through the GitHub marketplace copy of the plugin, which tracks committed generated plugin artifacts on `main`. Codex receives hooks when `lisa apply` installs them into a project's `.codex/hooks.json`; a package update alone is not the delivery mechanism for Codex hooks.
 
+Codex plugin-bundled hooks now use the plugin root and hook manifest shape Codex discovers in current releases. Fleet apply paths must include Codex explicitly so `lisa apply --harness fleet` does not silently skip the Codex emitter.
+
+## Per-Agent Stack Variants
+
+Lisa's plugin build now fans out stack and standalone plugins to Cursor, Antigravity, and Copilot variants in addition to the base plugin. `lisa apply` should install the base per-agent variant plus each detected stack variant that exists for the target agent, while Cursor consumes the published variants through its native plugin loader.
+
+Rule delivery should use the same eager-or-flat resolution across agents: prefer `rules/eager/`, fall back to flat `rules/`, and keep `rules/reference/` on demand.
+
 ## Exploratory QA
 
 Exploratory QA now separates human-experience findings from e2e coverage gaps. Use the human-experience pass for product-facing behavior, friction, and visible issues; use the e2e-coverage-gaps pass for regression coverage opportunities that should become tests or backlog work.
