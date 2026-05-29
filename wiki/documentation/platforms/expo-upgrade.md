@@ -86,17 +86,17 @@ SDK 55 → 56 router migration: <https://docs.expo.dev/router/migrate/sdk-55-to-
 
 ## 2. Update EAS Publish Scripts
 
-The `eas update` command now **requires** the `--environment` flag. Update all `eas:publish` scripts in the force section:
+The `eas update` command now **requires** the `--environment` flag (SDK 55+). Both `--channel` and `--environment` are used together: `--channel` selects which update channel to publish to, while `--environment` selects the EAS environment variable set. Update all `eas:publish` scripts in the force section:
 
 ```json
 {
-  "eas:publish:dev": "eas update --environment dev --non-interactive",
-  "eas:publish:staging": "eas update --environment staging --non-interactive",
-  "eas:publish:production": "eas update --environment production --non-interactive"
+  "eas:publish:dev": "eas update --channel dev --environment development --non-interactive",
+  "eas:publish:staging": "eas update --channel staging --environment preview --non-interactive",
+  "eas:publish:production": "eas update --channel production --environment production --non-interactive"
 }
 ```
 
-The `--channel` flag may be deprecated or may need to be used alongside `--environment`. Verify with `eas update --help` after upgrading EAS CLI.
+> **Important:** The `--environment` value must exactly match the EAS environment name configured in your project (not the channel name). The standard EAS environment names are `development`, `preview`, and `production` — note that `development` maps to the `dev` channel, and `preview` maps to the `staging` channel.
 
 ---
 
