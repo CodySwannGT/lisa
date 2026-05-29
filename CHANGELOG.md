@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.122.0](https://github.com/CodySwannGT/lisa/compare/vv2.121.1...v2.122.0) (2026-05-29)
+
+
+### Features
+
+* **parity:** fan out every Lisa plugin to cursor/agy/copilot variants ([e3ed805](https://github.com/CodySwannGT/lisa/commit/e3ed805c00d8738f62e623248775486fd340666c))
+* **parity:** install matching stack variant per detected type on agy/copilot ([d1eb064](https://github.com/CodySwannGT/lisa/commit/d1eb0648b99bae6898041cc7d259a94984fce98d))
+
 ### [2.121.1](https://github.com/CodySwannGT/lisa/compare/vv2.121.0...v2.121.1) (2026-05-29)
 
 
