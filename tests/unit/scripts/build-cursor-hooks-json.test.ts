@@ -15,9 +15,11 @@ const PLUGIN_ROOT = "${CLAUDE_PLUGIN_ROOT}/hooks/";
 const BLOCK_NO_VERIFY = "block-no-verify.sh";
 const INSTALL_PKGS = "install-pkgs.sh";
 const INJECT_RULES = "inject-rules.sh";
-// Expected Cursor-relative command paths (post toCursorCommandPath rewrite).
-const BLOCK_CMD = "./hooks/block-no-verify.sh";
-const INSTALL_CMD = "./hooks/install-pkgs.sh";
+// Expected Cursor plugin-root command paths (post toCursorCommandPath rewrite —
+// plugin hooks run with the project root as cwd, so the ${CURSOR_PLUGIN_ROOT}
+// token is required; a bare ./ would not resolve / could be shadowed).
+const BLOCK_CMD = "${CURSOR_PLUGIN_ROOT}/hooks/block-no-verify.sh";
+const INSTALL_CMD = "${CURSOR_PLUGIN_ROOT}/hooks/install-pkgs.sh";
 
 /**
  *
@@ -89,11 +91,12 @@ describe("buildCursorHooksJson", () => {
     ).toBeUndefined();
   });
 
-  it("rewrites the ${CLAUDE_PLUGIN_ROOT}/ command prefix to ./ (toCursorCommandPath)", () => {
+  it("rewrites the ${CLAUDE_PLUGIN_ROOT}/ prefix to ${CURSOR_PLUGIN_ROOT}/ (toCursorCommandPath)", () => {
     const out = buildCursorHooksJson({
       PreToolUse: [group("Bash", BLOCK_NO_VERIFY)],
     }) as { hooks: Record<string, Array<{ command: string }>> };
     expect(out.hooks.preToolUse[0].command).toBe(BLOCK_CMD);
     expect(out.hooks.preToolUse[0].command).not.toContain("CLAUDE_PLUGIN_ROOT");
+    expect(out.hooks.preToolUse[0].command).toContain("${CURSOR_PLUGIN_ROOT}/");
   });
 });
