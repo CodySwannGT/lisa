@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codyswann.github.io/lisa/schema/wiki-structure.schema.json",
+  "title": "lisa-wiki canonical structure manifest",
+  "description": "The canonical folder structure of a lisa-wiki. This manifest is the intended single source of truth for structure conformance, consumed by lint-wiki and validate-config as of M1 (structure enforcement) and by render-contract; in M0 it is the published spec. All paths are relative to config.wikiRoot unless noted. It is a descriptive manifest (not a JSON-Schema validation of a document); validators interpret these fields.",
+  "manifestVersion": "1.0.0",
+  "requiredFiles": [
+    "lisa-wiki.config.json",
+    "index.md",
+    "log.md",
+    "start-here.md",
+    "schema/llm-wiki-contract.md"
+  ],
+  "requiredDirs": ["schema", "sources", "state"],
+  "optionalDirs": ["staff", "documentation"],
+  "categoryDirs": {
+    "default": [
+      "concepts",
+      "entities",
+      "decisions",
+      "architecture",
+      "requirements",
+      "playbooks",
+      "open-questions",
+      "projects"
+    ],
+    "note": "A project may declare additional categories in config.categories (e.g. claims, comparisons, finance, sales)."
+  },
+  "sourcesLayout": {
+    "by-system": "sources/<system>/   (e.g. sources/jira/, sources/git/, sources/slack/)",
+    "by-category": "sources/<bucket>/  (e.g. sources/primary/, sources/secondary/)"
+  },
+  "stateLayout": "state/<system>/*.json",
+  "reportPath": "state/migration/doctor-report.json",
+  "generatedArtifacts": {
+    "claudeRoleAgents": ".claude/agents/<id>.md   (repo root, not under wikiRoot)",
+    "codexRoleAgents": ".codex/agents/<id>.toml   (repo root, not under wikiRoot)",
+    "frontDoorSkills": ".claude|.agents/skills/lisa-wiki-local-*"
+  },
+  "keepInPlaceDefault": [
+    "LICENSE*",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "NOTICE*",
+    "SUPPORT.md",
+    "GOVERNANCE.md",
+    ".github/**"
+  ]
+}
