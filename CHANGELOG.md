@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.123.1](https://github.com/CodySwannGT/lisa/compare/vv2.123.0...v2.123.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* **parity:** agy bake resolves rules like inject-rules.sh (eager OR flat) ([8a7bd43](https://github.com/CodySwannGT/lisa/commit/8a7bd43682a8c7242bb7a967409350832487a9f1))
+
 ## [2.123.0](https://github.com/CodySwannGT/lisa/compare/vv2.122.0...v2.123.0) (2026-05-29)
 
 
