@@ -85,6 +85,34 @@ describe("jest.expo", () => {
       expect(patterns).toContain("!**/*View.{ts,tsx}");
     });
 
+    describe("sourceRoot option (Expo SDK 55+/56 /src convention)", () => {
+      const srcPatterns = getExpoJestConfig({ sourceRoot: "src/" })
+        .collectCoverageFrom as string[];
+
+      it("prefixes positive coverage globs with the source root", () => {
+        const inclusions = srcPatterns.filter(p => !p.startsWith("!"));
+        expect(inclusions.length).toBeGreaterThan(0);
+        inclusions.forEach(pattern => expect(pattern).toMatch(/^src\//));
+      });
+
+      it("keeps the View exclusion AFTER the positives (so they are not re-included)", () => {
+        const lastPositive = srcPatterns.reduce(
+          (acc, p, i) => (p.startsWith("!") ? acc : i),
+          -1
+        );
+        expect(srcPatterns.indexOf("!**/*View.{ts,tsx}")).toBeGreaterThan(
+          lastPositive
+        );
+      });
+
+      it("defaults to root-anchored globs when sourceRoot is omitted", () => {
+        const inclusions = (
+          getExpoJestConfig().collectCoverageFrom as string[]
+        ).filter(p => !p.startsWith("!"));
+        expect(inclusions.some(p => p.startsWith("src/"))).toBe(false);
+      });
+    });
+
     it("does not include catch-all coverage glob", () => {
       const patterns = config.collectCoverageFrom as string[];
 
