@@ -37,8 +37,17 @@ afterEach(async () => {
 });
 
 describe("getPackageVersion", () => {
-  it("reads the package.json version", () => {
-    expect(getPackageVersion()).toBe("2.120.0");
+  it("reads the live package.json version (semver, matches the file)", async () => {
+    // Assert against package.json read independently rather than a hardcoded
+    // literal — the literal broke this test on every release-please bump.
+    const pkgRaw = await readFile(
+      path.join(process.cwd(), "package.json"),
+      "utf8"
+    );
+    const expectedVersion = (JSON.parse(pkgRaw) as { version: string }).version;
+    const version = getPackageVersion();
+    expect(version).toBe(expectedVersion);
+    expect(version).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
 
