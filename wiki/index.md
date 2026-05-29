@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by coding-agent parity research ingest on 2026-05-28. Latest connector-ingest baseline is Lisa release `2.116.0` and merged PR `#1035`.
+Last updated by incremental connector ingest on 2026-05-29 through Lisa release `2.123.2` and merged PR `#1053`.
 
 ## Orientation
 
@@ -18,7 +18,7 @@ Last updated by coding-agent parity research ingest on 2026-05-28. Latest connec
 - [Documentation Index](documentation/index.md)
 - [Overview](documentation/overview.md)
 - [Contributing](documentation/contributing.md)
-- [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/prd-lifecycle-rollup.md)
+- [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/reference/prd-lifecycle-rollup.md)
 - [Testing Documentation](documentation/testing/)
 - [Workflow Documentation](documentation/workflows/)
 - [Specifications](documentation/specs/)
@@ -28,6 +28,8 @@ Last updated by coding-agent parity research ingest on 2026-05-28. Latest connec
 - [Lisa Architecture](architecture/lisa-architecture.md)
 - [Template Governance](architecture/template-governance.md)
 - [Coding-Agent Parity Architecture](architecture/coding-agent-parity.md)
+- [Lisa Hook Per-Agent Ship List](architecture/lisa-hook-per-agent-ship-list.md)
+- [Pattern B Per-Agent Plugin Fan-Out Specification](architecture/pattern-b-fan-out-spec.md)
 
 ## Requirements
 
@@ -35,6 +37,7 @@ Last updated by coding-agent parity research ingest on 2026-05-28. Latest connec
 
 ## Decisions
 
+- [2026-05-28 — Codex Skills Canonical Path](decisions/2026-05-28-codex-skills-canonical-path.md)
 - [2026-05-28 — Pattern B Per-Agent Plugin Variants](decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md)
 
 ## Playbooks
