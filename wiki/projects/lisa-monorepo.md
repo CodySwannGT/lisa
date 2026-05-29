@@ -20,19 +20,24 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-29-093858` created from synced `origin/main`
-- HEAD at 2026-05-29 incremental ingest: `f9999af37312b136cd52edd169564a04d85a7a42`
-- Current package version: `2.124.2`
-- Total commits on HEAD: 2569
-- Latest merged PR captured in the incremental git snapshot: `#1066`
-- New commits since the previous incremental git cursor: `9`
+- Ingest branch: `wiki/ingest-2026-05-29-213947` created from synced `origin/main`
+- HEAD at 2026-05-29 incremental ingest: `d989e2435dad59c56568e0204241b50a0baa6093`
+- Current package version: `2.124.7`
+- Total commits on HEAD: 2587
+- Latest merged PR captured in the incremental git snapshot: `#1071`
+- New commits since the previous incremental git cursor: `18`
 - Project-scoped memory skipped this cycle because no Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Release automation advanced the monorepo to `2.124.2`.
+- Release automation advanced the monorepo to `2.124.7`.
 - The automation checkout fetched `origin` and rebased the existing wiki branch onto `origin/main` without conflicts before this 2026-05-29 ingest.
-- The previous same-day git source note was preserved as `wiki/sources/git/2026-05-29-133933-lisa-monorepo-git.md` before refreshing the current `2026-05-29` connector note.
+- The previous same-day git and roles source notes were preserved under timestamped `2026-05-29-213947-previous-*` filenames before refreshing the current `2026-05-29` connector notes.
+- PR `#1068` merged the prior wiki ingestion through Lisa `2.124.2`.
+- PR `#1069` completed the Cursor plugin-shape correction for issue `#1055`, including flat `.mdc` rules, Cursor hook artifact regression coverage, and the dedicated Cursor plugin artifact tests.
+- PR `#1070` corrected Cursor hook command paths to use `${CURSOR_PLUGIN_ROOT}` instead of cwd-relative paths.
+- PR `#1071` documented the auto-merge ancestry rule used to avoid enabling auto-merge on PRs whose head is no longer based on the current target branch.
+- PR `#1067` fixed Codex hook emission so Codex-specific hook metadata lives under `.codex-plugin/`, preventing Claude startup from reading Codex-shaped hook files.
 - Agy parity hardening delivered runtime-correct native MCP and hook behavior: agy MCP now installs through the user-global `~/.gemini/config/mcp_config.json` path, plugin-bundled hooks use root-level `hooks.json`, and stale plugin-bundled MCP / subdirectory hook shapes were removed from generated artifacts.
 - The agy plugin generator now tolerates missing optional source material and cleanup paths, and the agy hook command resolves against the installed plugin directory name.
 - Claude Remote routine readiness work added `/lisa:analyze-claude-remote` and `/lisa:generate-claude-remote-build-script` from `plugins/src/base`, with generated `lisa`, Cursor, agy, and Copilot variants. The audit inventories cloud-session requirements such as CLIs, environment variable names, startup hooks, MCP scope and auth, user-scoped config gaps, and network constraints; the generator writes an idempotent setup script, env-var template, and domain allowlist for Claude Code remote routine environments.
@@ -59,6 +64,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-28-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-29-094151-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-29-133933-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-29-213947-previous-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-29-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -67,4 +73,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-27-roles.md`
 - `wiki/sources/roles/2026-05-28-roles.md`
 - `wiki/sources/roles/2026-05-29-094151-roles.md`
+- `wiki/sources/roles/2026-05-29-213947-previous-roles.md`
 - `wiki/sources/roles/2026-05-29-roles.md`
