@@ -880,13 +880,15 @@ export class Lisa {
       pluginRoot,
       this.detectedTypes
     );
-    const mcpServerCount = Object.keys(lisaMcpServers).length;
-    if (mcpServerCount > 0) {
-      await installAgyMcpConfig(
-        lisaMcpServers,
-        resolveAgyMcpConfigPath({ scope: "user" })
-      );
-    }
+    // Always call installAgyMcpConfig — even when lisaMcpServers is empty —
+    // so the tagged-merge logic strips any previously-written _lisaManaged
+    // entries. Skipping on empty would leave stale managed entries behind
+    // from a previous `lisa apply` for a project that had MCP servers.
+    const mcpResult = await installAgyMcpConfig(
+      lisaMcpServers,
+      resolveAgyMcpConfigPath({ scope: "user" })
+    );
+    const mcpServerCount = mcpResult.lisaEntryCount;
 
     // Hooks: delivered as a plugin-bundled root hooks.json inside the installed
     // agy variant (emitted at build time by generate-agy-plugin-artifacts.mjs,

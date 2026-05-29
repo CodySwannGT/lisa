@@ -155,4 +155,44 @@ describe("generate-agy-plugin-artifacts (plugin-bundled root hooks.json)", () =>
       expect(fs.existsSync(path.join(outDir, "rules"))).toBe(false);
     });
   });
+
+  describe("error handling: missing agy hook script", () => {
+    it("throws when a mapped agy script is referenced in source hooks but absent from srcDir/hooks/", async () => {
+      // Scaffold a source that references block-no-verify in its hooks, but
+      // does NOT include block-no-verify.agy.sh in hooks/ — simulating a
+      // corrupted or incomplete build artifact.
+      await fs.ensureDir(path.join(srcDir, CLAUDE_PLUGIN_DIR));
+      await fs.writeJson(path.join(srcDir, CLAUDE_PLUGIN_DIR, PLUGIN_JSON), {
+        name: "lisa-test",
+        version: "0.0.0",
+        hooks: BASE_HOOK_BLOCK,
+        mcpServers: {},
+      });
+      await fs.ensureDir(path.join(srcDir, "hooks"));
+      // Intentionally do NOT write block-no-verify.agy.sh.
+
+      expect(() => generateAgyVariant(srcDir, outDir, "1.2.3")).toThrow(
+        /Missing agy hook script/
+      );
+    });
+
+    it("does NOT emit a hooks.json when the mapped script is missing (no broken artifact)", async () => {
+      await fs.ensureDir(path.join(srcDir, CLAUDE_PLUGIN_DIR));
+      await fs.writeJson(path.join(srcDir, CLAUDE_PLUGIN_DIR, PLUGIN_JSON), {
+        name: "lisa-test",
+        version: "0.0.0",
+        hooks: BASE_HOOK_BLOCK,
+        mcpServers: {},
+      });
+      await fs.ensureDir(path.join(srcDir, "hooks"));
+      // No agy script present.
+
+      try {
+        generateAgyVariant(srcDir, outDir, "1.2.3");
+      } catch {
+        // Expected throw — assert no partial artifact was written.
+      }
+      expect(fs.existsSync(path.join(outDir, HOOKS_JSON))).toBe(false);
+    });
+  });
 });

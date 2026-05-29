@@ -239,9 +239,16 @@ function sourceReferencesScript(sourceHooks, scriptName) {
  * @returns {void}
  */
 function emitAgyPluginHooks(srcDir, outDir, sourceHooks, variantName) {
-  const applicable = AGY_PLUGIN_HOOKS.filter(h =>
-    sourceReferencesScript(sourceHooks, h.sourceScript)
-  );
+  const applicable = AGY_PLUGIN_HOOKS.filter(h => {
+    if (!sourceReferencesScript(sourceHooks, h.sourceScript)) return false;
+    const scriptSource = path.join(srcDir, "hooks", h.agyScript);
+    if (!fs.existsSync(scriptSource)) {
+      throw new Error(
+        `Missing agy hook script for ${h.sourceScript}: ${scriptSource}`
+      );
+    }
+    return true;
+  });
   if (applicable.length === 0) return;
 
   const hooksConfig = Object.fromEntries(
@@ -272,11 +279,9 @@ function emitAgyPluginHooks(srcDir, outDir, sourceHooks, variantName) {
   fs.mkdirSync(hooksDir, { recursive: true });
   for (const h of applicable) {
     const scriptSource = path.join(srcDir, "hooks", h.agyScript);
-    if (fs.existsSync(scriptSource)) {
-      const scriptDest = path.join(hooksDir, h.agyScript);
-      fs.copyFileSync(scriptSource, scriptDest);
-      fs.chmodSync(scriptDest, 0o755);
-    }
+    const scriptDest = path.join(hooksDir, h.agyScript);
+    fs.copyFileSync(scriptSource, scriptDest);
+    fs.chmodSync(scriptDest, 0o755);
   }
 }
 

@@ -189,5 +189,36 @@ describe("agy/mcp-installer", () => {
       const svc = servers["svc"] as Record<string, unknown>;
       expect(svc["args"]).toEqual(["new.js"]);
     });
+
+    it("removes stale _lisaManaged entries when called with an empty map", async () => {
+      const targetPath = path.join(tempDir, MCP_CONFIG_FILENAME);
+      // Pre-existing config with a Lisa-managed entry and a host entry.
+      await fs.writeFile(
+        targetPath,
+        JSON.stringify({
+          mcpServers: {
+            hostServer: { command: "python", args: ["host.py"] },
+            staleServer: {
+              serverUrl: "https://old.example.com/mcp",
+              [LISA_MANAGED_MARKER]: true,
+            },
+          },
+        }),
+        "utf8"
+      );
+
+      // Calling with an empty map should remove the stale managed entry.
+      const result = await installAgyMcpConfig({}, targetPath);
+
+      expect(result.lisaEntryCount).toBe(0);
+      expect(result.hostEntryCount).toBe(1);
+
+      const written = JSON.parse(
+        await fs.readFile(targetPath, "utf8")
+      ) as Record<string, unknown>;
+      const servers = written[MCP_SERVERS_KEY] as Record<string, unknown>;
+      expect(Object.keys(servers)).not.toContain("staleServer");
+      expect(Object.keys(servers)).toContain("hostServer");
+    });
   });
 });
