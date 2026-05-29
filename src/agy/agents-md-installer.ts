@@ -125,17 +125,23 @@ function stripExistingLisaBlock(body: string): string {
 /**
  * Install (or refresh) Lisa's AGENTS.md at the host project root for agy.
  * @param destDir - Absolute path to the host project root.
- * @param rulesEagerDir - Absolute path to the plugin's `rules/eager/` directory
- *   containing the rule bodies to bake in.
+ * @param rulesEagerDirs - One or more absolute paths to `rules/eager/`
+ *   directories whose `.md` bodies are baked in, in order. Pass the base
+ *   plugin's dir plus each detected stack plugin's dir so agy gets the same
+ *   eager rules Claude/Codex load via hooks. A bare string is accepted for
+ *   backward compatibility.
  * @returns Install result describing path, creation, and rules baked.
  */
 export async function installAgyAgentsMd(
   destDir: string,
-  rulesEagerDir: string
+  rulesEagerDirs: readonly string[] | string
 ): Promise<AgyAgentsMdInstallResult> {
   await mkdir(destDir, { recursive: true });
   const filePath = path.join(destDir, AGENTS_MD_FILENAME);
-  const rules = await readEagerRules(rulesEagerDir);
+  const dirs =
+    typeof rulesEagerDirs === "string" ? [rulesEagerDirs] : rulesEagerDirs;
+  const ruleGroups = await Promise.all(dirs.map(dir => readEagerRules(dir)));
+  const rules = ruleGroups.flat();
   const lisaBlock = buildLisaBlock(rules);
 
   if (!existsSync(filePath)) {

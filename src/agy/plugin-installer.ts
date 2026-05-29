@@ -50,15 +50,18 @@ async function detectAgy(): Promise<boolean> {
 }
 
 /**
- * Install Lisa's agy plugin variant via `agy plugin install <local-path>`.
+ * Install a Lisa agy plugin variant via `agy plugin install <local-path>`.
  * @param lisaPluginRoot - Absolute path to Lisa's plugins directory (typically
- *   the `plugins/` directory inside the @codyswann/lisa package). The agy
- *   variant lives at `<lisaPluginRoot>/lisa-agy/`.
+ *   the `plugins/` directory inside the @codyswann/lisa package).
+ * @param variantName - Variant directory name under `lisaPluginRoot` to install
+ *   (default `lisa-agy`, the base variant). Stack variants are
+ *   `lisa-<stack>-agy` (e.g. `lisa-typescript-agy`).
  * @returns Install result describing whether the install was attempted, whether
  *   it succeeded, and any error message captured.
  */
 export async function installAgyPlugin(
-  lisaPluginRoot: string
+  lisaPluginRoot: string,
+  variantName: string = "lisa-agy"
 ): Promise<AgyPluginInstallResult> {
   if (!(await detectAgy())) {
     return {
@@ -69,7 +72,7 @@ export async function installAgyPlugin(
     };
   }
 
-  const agyVariant = path.join(lisaPluginRoot, "lisa-agy");
+  const agyVariant = path.join(lisaPluginRoot, variantName);
   if (!existsSync(path.join(agyVariant, "plugin.json"))) {
     return {
       attempted: true,

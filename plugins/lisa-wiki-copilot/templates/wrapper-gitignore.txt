@@ -1,0 +1,19 @@
+# BEGIN: AI GUARDRAILS WIKI
+# Managed by the lisa-wiki kernel. Do not edit between these markers — re-run
+# /lisa-wiki:setup (or the equivalent script) to update. Patterns outside the
+# block are preserved untouched. The "WIKI" suffix lets this block coexist
+# with the base lisa plugin's "# BEGIN: AI GUARDRAILS" block when both are
+# installed (the copy-contents strategy keys on the marker suffix).
+
+# Claude Code per-session git worktrees. Each Claude session that needs an
+# isolated working copy spawns one under .claude/worktrees/ (via
+# `git worktree add`). They are transient, large (often hundreds of MB each),
+# and per-developer; they must never be committed.
+/.claude/worktrees/
+
+# Codex CLI per-session worktrees (Codex equivalent of the above).
+/.codex/worktrees/
+
+# Lisa backup snapshots (created by `lisa` runs).
+/.lisabak/
+# END: AI GUARDRAILS WIKI

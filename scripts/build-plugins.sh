@@ -43,17 +43,19 @@ build_plugin() {
   echo "Built plugins/$out_name (v$VERSION)"
 }
 
-# Generate a Pattern B per-agent variant for the base plugin only.
-# Variants are derived from the built Claude artifact at plugins/lisa/
-# and land at plugins/lisa-<agent>/.
+# Generate a Pattern B per-agent variant for a built plugin.
+# Variants are derived from a built Claude artifact at plugins/<src_name>/
+# and land at plugins/<out_name>/.
 build_per_agent_variant() {
   local agent="$1"
-  local src="$PLUGINS_DIR/lisa"
+  local src_name="$2"
+  local out_name="$3"
+  local src="$PLUGINS_DIR/$src_name"
   if [ ! -d "$src" ]; then
-    echo "Skipping per-agent variant lisa-$agent (no plugins/lisa source)"
+    echo "Skipping per-agent variant $out_name (no plugins/$src_name source)"
     return 0
   fi
-  local out="$PLUGINS_DIR/lisa-$agent"
+  local out="$PLUGINS_DIR/$out_name"
   node "$ROOT_DIR/scripts/generate-${agent}-plugin-artifacts.mjs" "$src" "$out" "$VERSION"
 }
 
@@ -72,12 +74,27 @@ for name in "${STANDALONE[@]}"; do
   build_plugin "$name" "lisa-$name"
 done
 
-# Pattern B per-agent variants of the base Lisa plugin.
-# Codex is NOT generated as a separate plugins/lisa-codex/ artifact — Codex
-# reads .codex-plugin/plugin.json from plugins/lisa/ directly (the existing
-# dual-pointer pattern, preserved per
+# Pattern B per-agent variants. Codex is NOT generated as a separate
+# plugins/lisa-codex/ artifact — Codex reads .codex-plugin/plugin.json from the
+# Claude artifact directly (the existing dual-pointer pattern, preserved per
 # wiki/architecture/pattern-b-fan-out-spec.md).
+#
+# Fan out EVERY built Claude plugin (base + every stack + standalones) to each
+# per-agent runtime so cursor/agy/copilot reach parity with Claude/Codex on
+# stack-specific functionality, not just the base governance plugin. The base
+# keeps its short name `lisa-<agent>`; every other plugin becomes
+# `<plugin>-<agent>` (e.g. lisa-typescript-cursor).
 PER_AGENT_VARIANTS=(cursor agy copilot)
+FANOUT_SOURCES=(lisa)
+for stack in "${STACKS[@]}"; do FANOUT_SOURCES+=("lisa-$stack"); done
+for name in "${STANDALONE[@]}"; do FANOUT_SOURCES+=("lisa-$name"); done
 for agent in "${PER_AGENT_VARIANTS[@]}"; do
-  build_per_agent_variant "$agent"
+  for src_name in "${FANOUT_SOURCES[@]}"; do
+    if [ "$src_name" = "lisa" ]; then
+      out_name="lisa-$agent"
+    else
+      out_name="$src_name-$agent"
+    fi
+    build_per_agent_variant "$agent" "$src_name" "$out_name"
+  done
 done
