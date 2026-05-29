@@ -3,11 +3,11 @@
   "hooks": {
     "postToolUse": [
       {
-        "command": "./hooks/rubocop-on-edit.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/rubocop-on-edit.sh",
         "matcher": "Write|Edit"
       },
       {
-        "command": "./hooks/sg-scan-on-edit.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh",
         "matcher": "Write|Edit"
       }
     ]

@@ -21,8 +21,10 @@
  *     `-reference` suffix avoids a same-path collision: eager and reference share
  *     all base names.
  *   - Hooks: emitted as a Cursor-native `hooks/hooks.json` (flattened schema,
- *     camelCase event names, relative `./hooks/` command paths) — NOT inline in
- *     the manifest. `inject-rules.sh` is dropped because rules now ship as native
+ *     camelCase event names, `${CURSOR_PLUGIN_ROOT}/hooks/` command paths —
+ *     plugin hooks run with the project root as cwd, so the plugin-root token is
+ *     required, not a bare `./`) — NOT inline in the manifest. `inject-rules.sh`
+ *     is dropped because rules now ship as native
  *     `.mdc` (the single delivery path; injecting would double-deliver);
  *     `enforce-team-first.sh` (Claude-team-specific) and the
  *     `entire hooks claude-code *` analytics calls (Claude-only) are dropped too.
