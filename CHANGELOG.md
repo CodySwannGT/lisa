@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.124.2](https://github.com/CodySwannGT/lisa/compare/vv2.124.1...v2.124.2) (2026-05-29)
+
+
+### Bug Fixes
+
+* **agy:** deliver native MCP + hooks via runtime-correct mechanisms ([3f02d93](https://github.com/CodySwannGT/lisa/commit/3f02d93291237fefbc1663a701b2f7e203a67bbf)), closes [#1054](https://github.com/CodySwannGT/lisa/issues/1054)
+* **agy:** harden plugin generation and MCP cleanup for missing scripts and stale entries ([a2ceb70](https://github.com/CodySwannGT/lisa/commit/a2ceb70e7774a292415b7c4ca11f9e3ad64bbb46))
+* **agy:** resolve agy hook command path to the install-dir name (CodeRabbit [#1](https://github.com/CodySwannGT/lisa/issues/1)) ([60cdab1](https://github.com/CodySwannGT/lisa/commit/60cdab13de380b2c0a4f02190450ea02b6609655))
+
 ### [2.124.1](https://github.com/CodySwannGT/lisa/compare/vv2.124.0...v2.124.1) (2026-05-29)
 
 
