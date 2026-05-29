@@ -30,12 +30,17 @@ plugins/
   # NEW Pattern B per-agent variants:
   lisa-cursor/                   # Cursor variant
     .claude-plugin/
-      plugin.json                # Claude-format manifest (Cursor's dual loader)
+      plugin.json                # Claude-format manifest; `hooks` field REMOVED (relocated to hooks/hooks.json)
     skills/                      # passthrough from base
     agents/                      # passthrough from base
     commands/                    # passthrough — Cursor reads but may deprecate
-    rules/                       # passthrough — Cursor auto-loads natively
-    hooks/                       # STRIPPED of inject-rules.sh (collision)
+    rules/                       # FLAT *.mdc (issue #1055): eager <name>.mdc (alwaysApply:true),
+                                 #   reference <name>-reference.mdc (alwaysApply:false + description).
+                                 #   Cursor does NOT auto-load nested rules/eager|reference/*.md.
+    hooks/
+      hooks.json                 # Cursor schema: {version:1,hooks:{<camelCaseEvent>:[{command,matcher}]}}
+      *.sh                       # surviving scripts (inject-rules.sh STRIPPED — .mdc is the rules path)
+    mcp.json                     # (MCP-defining variants only) renamed from .mcp.json — no leading dot
     scripts/
 
   lisa-agy/                      # Antigravity variant
@@ -87,8 +92,8 @@ Cursor needs no installer: its stack variants are published for native
 Verified by run: a TypeScript project installs `lisa-typescript-{agy,copilot}`
 alongside the base; a Rails project installs `lisa-rails-{agy,copilot}`. Per-stack
 double-injection is prevented exactly as for the base — e.g. `lisa-rails-cursor`
-strips `inject-rules.sh` (cursor auto-loads `rules/`) while `lisa-rails-copilot`
-keeps it (copilot does not auto-load plugin `rules/`).
+strips `inject-rules.sh` (rules ship as native `.mdc`; issue #1055) while
+`lisa-rails-copilot` keeps it (copilot does not auto-load plugin `rules/`).
 
 ### Rule delivery across agents
 
@@ -99,8 +104,28 @@ injected on any agent). Some stacks use a legacy FLAT layout
 subdir). The canonical resolution is **prefer `rules/eager/`, else fall back to
 flat `rules/`** — used by `inject-rules.sh` (Claude/Codex/Copilot) and, since
 PR #1052, by agy's AGENTS.md bake (`eagerRuleDirs` in `src/core/lisa.ts`).
-Cursor reads the whole `rules/` tree natively. Net result: **every agent gets
-eager + flat-layout rules; only `rules/reference/` is on-demand.** (Before #1052,
+
+**Cursor (corrected, issue #1055): Cursor does NOT read the nested `rules/` tree
+natively.** Cursor's native rule loader only applies `.mdc` files (with YAML
+frontmatter) discovered under `rules/`; it ignores plain `.md` files in
+`rules/eager/` and `rules/reference/`. The earlier claim that "Cursor auto-loads
+the whole `rules/` tree natively" was empirically false — a probe with the old
+layout returned UNKNOWN (rule not applied), identical to shipping no rule at all
+(see `evidence/cursor-rule-probe-1055.md`). The Cursor generator therefore
+TRANSFORMS rules into Cursor's native shape: each eager rule →
+`rules/<name>.mdc` with frontmatter `alwaysApply: true`; each reference rule →
+`rules/<name>-reference.mdc` with `alwaysApply: false` + a `description`
+(on-demand). Bodies' `../reference/<name>.md` cross-links are rewritten to the
+`<name>-reference.mdc` twin. This flat suffix scheme avoids the same-name
+collision (all 13 eager basenames also exist under `rules/reference/`).
+`inject-rules.sh` stays stripped on Cursor: the native `.mdc` files are the single
+delivery path (rules-once invariant), not a double-inject collision as previously
+documented.
+
+Net result: **every agent gets eager + flat-layout rules; only
+`rules/reference/` content is on-demand.** On Claude/Codex/Copilot via
+`inject-rules.sh`; on agy via the AGENTS.md bake; on Cursor via native `.mdc`
+files (eager `alwaysApply:true`, reference `alwaysApply:false`). (Before #1052,
 agy's bake read only `rules/eager/` with no flat fallback, so it silently dropped
 flat-layout stack rules like rails-conventions — an agy-only gap, now fixed.)
 
@@ -128,11 +153,11 @@ Each generator follows the same shape:
 0. **Skill policy filter**: filter `skills/` against `scripts/internal-<agent>-skill-policy.json` (one file per variant, paralleling the existing `scripts/internal-codex-skill-policy.json`). Skills on the per-agent denylist are excluded before copy. The policy file may be empty/absent for variants that have no internal-only skills; the generator handles missing-policy as "ship all skills."
 1. **Copy** the filtered `plugins/lisa/` (post step 0) to `plugins/lisa-<agent>/` as the starting point.
 2. **Manifest reshape**:
-   - Cursor: keep `.claude-plugin/plugin.json` (Cursor's dual loader reads it).
+   - Cursor: keep `.claude-plugin/plugin.json` (Cursor's CLI reads it), but **remove the `hooks` field from the manifest** — Cursor hooks are relocated to a standalone `hooks/hooks.json` (step 3). Also (issue #1055) **transform rules** (each `rules/eager/<name>.md` → flat `rules/<name>.mdc` with `alwaysApply: true`; each `rules/reference/<name>.md` → `rules/<name>-reference.mdc` with `alwaysApply: false` + `description`; rewrite body cross-links to the `<name>-reference.mdc` twin; drop the now-empty `rules/eager` and `rules/reference` subdirs) and **rename `.mcp.json` → `mcp.json`** (Cursor reads the no-dot filename).
    - agy: move `.claude-plugin/plugin.json` → bare `plugin.json` at the artifact root. Remove `.claude-plugin/` directory. Drop both the `hooks` and `mcpServers` fields from the manifest — agy ignores plugin-bundled hooks/MCP, so they are delivered by runtime installers (not as plugin components).
    - Copilot: keep `.claude-plugin/plugin.json` (Copilot's fallback lookup reads it). Optionally also emit `plugin.json` at the root so Copilot's primary lookup finds it without the fallback.
 3. **Hook filter** (per the per-agent ship-list table in the audit):
-   - Cursor: drop `inject-rules.sh` and the corresponding manifest entries on `SessionStart`/`SubagentStart`. Drop `enforce-team-first.sh` and `entire hooks claude-code *` entries.
+   - Cursor: drop `inject-rules.sh` and its `SessionStart`/`SubagentStart` entries (rules ship as native `.mdc`, step 2). Drop `enforce-team-first.sh` and `entire hooks claude-code *` entries. Write the surviving hooks to a standalone **`hooks/hooks.json`** in Cursor's schema — `{ "version": 1, "hooks": { "<camelCaseEvent>": [ { "command": "./hooks/<script>.sh", "matcher"?: "..." } ] } }` — a FLAT array of `{command,matcher}` per event (NOT Claude's nested `[{matcher,hooks:[{type,command}]}]`), and delete the manifest `hooks` field. NOTE: plugin-bundled hook FIRING is not verifiable via the `cursor-agent` CLI (only project-level `.cursor/hooks.json` fires headless) — the contract is the file SHAPE.
    - agy: the generator emits a PLUGIN-BUNDLED root `hooks.json` (agy schema; matcher `run_command`; base variant only) and ships the agy-protocol script under `hooks/`. Only `block-no-verify` (PreToolUse) is portable — agy doesn't support SessionStart, so `install-pkgs.sh`/`setup-jira-cli.sh` can't ship as agy hooks; `notify-ntfy.sh` was retired in ticket-1054. The command points at `$HOME/.gemini/config/plugins/<variant>/hooks/<script>` (the installed location). See step 5 / `emitAgyPluginHooks`.
    - Copilot: drop `inject-flow-context.sh` and `enforce-team-first.sh` SubagentStart entries (event missing on Copilot). Drop `enforce-team-first.sh` entries on all events. Drop `entire hooks claude-code *` entries. **If the pre-flight Copilot-rules-auto-load probe (step 8.b below) returns positive, ALSO drop the SessionStart `inject-rules.sh` entry and the script itself** — this is the collision-strip rule, same logic Cursor uses, applied conditionally on Copilot based on runtime evidence.
 4. **Script filter** in `hooks/`:
@@ -140,11 +165,13 @@ Each generator follows the same shape:
    - Always exclude unregistered scripts (`ticket-sync-reminder.sh`, `track-plan-sessions.sh` per the audit — pending classification).
    - Drop scripts that no surviving manifest entry references.
 5. **Event-name translation**:
-   - Cursor / Codex: keep Claude PascalCase (Cursor auto-normalizes; Codex uses PascalCase natively).
+   - Cursor: **rewrite to Cursor's camelCase** (issue #1055) — `PreToolUse`→`preToolUse`, `PostToolUse`→`postToolUse`, `SessionStart`→`sessionStart`, `Stop`→`stop`, `UserPromptSubmit`→`beforeSubmitPrompt`, `SubagentStart`→`subagentStart`, `SubagentStop`→`subagentStop`, `SessionEnd`→`sessionEnd`. (The earlier "Cursor auto-normalizes PascalCase" claim was false — emit camelCase explicitly.)
+   - Codex: keep Claude PascalCase (Codex uses PascalCase natively).
    - Copilot: rewrite manifest hook event names to Copilot's camelCase (`preToolUse`, `postToolUse`, `sessionStart`, `sessionEnd`, `userPromptSubmitted`, `agentStop`).
    - agy: the root `hooks.json` keeps Claude/agy PascalCase event names (PreToolUse), emitted directly by the generator's `AGY_PLUGIN_HOOKS` map.
 6. **Plugin-root env var rewriting**:
-   - Claude / Cursor: keep `${CLAUDE_PLUGIN_ROOT}` (Cursor inherits Claude's name).
+   - Claude: keep `${CLAUDE_PLUGIN_ROOT}`.
+   - Cursor: **use plugin-relative paths** in `hooks/hooks.json` commands — `./hooks/<script>.sh` (resolved against the plugin root), NOT `${CLAUDE_PLUGIN_ROOT}` (issue #1055).
    - Codex: not handled here — Codex hooks ship via the Codex-specific generator (`generate-codex-plugin-artifacts.mjs`) which writes absolute paths or uses the Codex per-project hooks installer fallback.
    - Copilot: rewrite to `${COPILOT_PLUGIN_ROOT}` if a probe confirms Copilot exposes that env var; otherwise rewrite to absolute paths resolved against the install location. The probe lives in the generator's pre-flight check.
    - agy: agy exposes no plugin-root env var (`${CLAUDE_PLUGIN_ROOT}` resolves empty — verified ticket-1054), so the root `hooks.json` command uses a `$HOME`-absolute path (`$HOME/.gemini/config/plugins/<variant>/hooks/<script>`), which agy's ExpandEnv resolves.
@@ -199,7 +226,7 @@ The generators above produce plugin payloads. Per-project installers handle the 
 
 ### `src/cursor/` (NEW directory)
 
-No installers required. Cursor consumes `plugins/lisa-cursor/` via its dual-namespace loader at install time and via `--plugin-dir` for session-only use. Lisa's `lisa apply` detects `cursor-agent` in `$PATH` and emits a documentation note pointing the user at marketplace install. No per-project file writes.
+No installers required. Cursor consumes `plugins/lisa-cursor/` (reading its `.claude-plugin/plugin.json` manifest, native `rules/*.mdc`, and `hooks/hooks.json`) at install time and via `--plugin-dir` for session-only use. Lisa's `lisa apply` detects `cursor-agent` in `$PATH` and emits a documentation note pointing the user at marketplace install. No per-project file writes.
 
 ### `src/agy/` (NEW directory)
 
@@ -257,7 +284,7 @@ Per-variant verification probes:
 
 | Variant | Probe |
 | --- | --- |
-| `lisa-cursor/` | `cursor-agent -p --plugin-dir plugins/lisa-cursor "list Lisa skills"` returns the full skill set; `cursor-agent -p --plugin-dir plugins/lisa-cursor "what rules are in context?"` returns rule content EXACTLY ONCE (no double-inject collision). |
+| `lisa-cursor/` | `cursor-agent -p --plugin-dir plugins/lisa-cursor "list Lisa skills"` returns the full skill set. RULES (issue #1055): `cursor-agent --plugin-dir plugins/lisa-cursor --force -p "<quote an eager rule's codeword>"` returns the rule content (eager `.mdc` applied) — the old nested `.md` layout returned UNKNOWN (see `evidence/cursor-rule-probe-1055.md`). FILE-SHAPE regression is locked by `tests/unit/scripts/generate-cursor-plugin-artifacts*.test.ts`: 26 flat `rules/*.mdc` (13 eager `alwaysApply:true` + 13 `-reference.mdc` `alwaysApply:false`), `hooks/hooks.json` (camelCase, flat `{command,matcher}`), no manifest `hooks`, `mcp.json` on MCP variants. HOOK FIRING is NOT CLI-verifiable for plugin-bundled hooks (only project `.cursor/hooks.json` fires headless) — shape only. |
 | `lisa-agy/` | `agy plugin validate plugins/lisa-agy` returns [ok] for skills, agents, commands. `agy plugin install plugins/lisa-agy && agy plugin list` shows the install. `agy -p "what skills are available"` lists the Lisa skills. The base artifact ships a ROOT `hooks.json` (agy schema, `run_command`, `block-no-verify` only) + `hooks/block-no-verify.agy.sh`; stack variants ship none. NO `mcp_config.json`, NO `.mcp.json`, NO `rules/`, NO `hooks/hooks.json` subdir. Out-of-band: the user-global `~/.gemini/config/mcp_config.json` carries Lisa's MCP servers (`serverUrl` shape); AGENTS.md in a test project contains baked rules content. (Hook firing pending real-IDE confirmation — headless quota-blocked.) |
 | `lisa-copilot/` | `copilot -p --plugin-dir plugins/lisa-copilot "list Lisa skills and agents"` returns the full set (agents prefixed `lisa:`). After marketplace fix: `copilot plugin install lisa-copilot@CodySwannGT/lisa` succeeds. |
 | Codex hooks migration | `codex plugin marketplace add CodySwannGT/lisa && codex plugin install lisa@CodySwannGT-lisa` succeeds. `codex` interactive session in a project that does NOT have `lisa apply` run: Lisa skills work and the SessionStart hook fires (inject-rules content visible in context). |

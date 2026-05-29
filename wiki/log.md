@@ -173,3 +173,10 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot and index for agy native MCP and root-hook delivery hardening, missing optional artifact handling, installed-plugin hook path resolution, and release-history changes through `2.124.2`.
+
+## 2026-05-29 - Cursor plugin-shape correction (issue #1055)
+
+- Corrected `wiki/architecture/pattern-b-fan-out-spec.md` and `wiki/architecture/lisa-hook-per-agent-ship-list.md` for the Cursor variant: the prior claim that "Cursor auto-loads the `rules/` tree natively" was empirically false (a `cursor-agent` probe with the nested `rules/eager/*.md` layout returned UNKNOWN — no rule applied — identical to shipping no rule; a top-level `.mdc` + `alwaysApply:true` returned the codeword). Evidence in `evidence/cursor-rule-probe-1055.md`.
+- Documented the real Cursor-native shape the generator now emits: rules as flat `rules/<name>.mdc` (eager, `alwaysApply:true`) + `rules/<name>-reference.mdc` (reference, `alwaysApply:false` + `description`), 26 total, body cross-links rewritten to the `-reference.mdc` twin; hooks relocated from the manifest to `hooks/hooks.json` (`{version:1,hooks:{<camelCaseEvent>:[{command:"./hooks/…",matcher?}]}}`, flat per-event arrays, relative commands); `.mcp.json` renamed to `mcp.json`; `inject-rules.sh` stays stripped (native `.mdc` is the single rules-once path, not a double-inject collision).
+- Noted that plugin-bundled hook FIRING is not verifiable through the `cursor-agent` CLI (only project `.cursor/hooks.json` fires headless); the regression suite asserts file SHAPE only.
+- Locked the behavior with `tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts` (fixture-based, MCP + no-MCP variants) and `generate-cursor-plugin-artifacts.artifacts.test.ts` (committed-artifact regression), sharing `cursor-artifact-helpers.ts`.
