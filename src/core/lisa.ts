@@ -895,14 +895,29 @@ export class Lisa {
 
   /**
    * Eager-rule source directories to bake into agy's AGENTS.md: the base
-   * plugin plus each detected stack plugin that ships eager rules.
+   * plugin plus each detected stack plugin.
+   *
+   * Resolution mirrors the `inject-rules.sh` hook that delivers rules on
+   * Claude/Codex/Copilot: prefer `<plugin>/rules/eager/`, but when a plugin has
+   * no `eager/` subdir fall back to its flat `<plugin>/rules/` directory (the
+   * legacy layout some stacks use, e.g. `lisa-rails/rules/rails-conventions.md`).
+   * Without this fallback agy would silently miss flat-layout stack rules that
+   * every other agent receives.
    * @param pluginRoot - Absolute path to the `plugins/` directory.
-   * @returns Existing `rules/eager` directory paths, base first.
+   * @returns Existing rule-source directory paths, base first.
    */
   private eagerRuleDirs(pluginRoot: string): string[] {
-    return ["lisa", ...this.detectedTypes.map(type => `lisa-${type}`)]
-      .map(name => path.join(pluginRoot, name, "rules", "eager"))
-      .filter(dir => existsSync(dir));
+    const resolved: string[] = [];
+    for (const name of ["lisa", ...this.detectedTypes.map(t => `lisa-${t}`)]) {
+      const eager = path.join(pluginRoot, name, "rules", "eager");
+      if (existsSync(eager)) {
+        resolved.push(eager);
+        continue;
+      }
+      const flat = path.join(pluginRoot, name, "rules");
+      if (existsSync(flat)) resolved.push(flat);
+    }
+    return resolved;
   }
 
   /**
