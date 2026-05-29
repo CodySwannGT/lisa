@@ -14,7 +14,7 @@
   "dependencies": [
     "lisa"
   ],
-  "hooks": "./hooks/hooks.json",
+  "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "Lisa TypeScript",
     "shortDescription": "TypeScript lifecycle checks",

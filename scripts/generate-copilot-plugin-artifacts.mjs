@@ -139,10 +139,11 @@ export function generateCopilotVariant(srcDir, outDir, version) {
   copyDir(srcDir, outDir, relPath => {
     if (relPath.startsWith(".codex-plugin/") || relPath === ".codex-plugin")
       return false;
-    // Drop the Codex hooks manifest the base build emits at hooks/hooks.json —
-    // Copilot reads its (camelCase) hooks from .claude-plugin/plugin.json, not
-    // this Codex-shaped (PascalCase, ${PLUGIN_ROOT}) file. Keeping it would ship
-    // a spurious, wrong-shaped hooks manifest in the Copilot variant.
+    // Defensively drop any hooks/hooks.json. The base build now emits the Codex
+    // hooks manifest under .codex-plugin/ (stripped above), not here (issue
+    // #1058), but guard against a regression reintroducing it: Copilot reads its
+    // (camelCase) hooks from .claude-plugin/plugin.json, not a Codex-shaped
+    // (PascalCase, ${PLUGIN_ROOT}) file.
     if (relPath === path.join("hooks", "hooks.json")) return false;
     // Drop Codex-specific per-skill openai.yaml artifacts — Copilot does not use them.
     if (/^skills\/[^/]+\/agents\/openai\.ya?ml$/.test(relPath)) return false;
