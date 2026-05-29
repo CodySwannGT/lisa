@@ -1,6 +1,11 @@
+---
+description: "Base Rules (load-bearing)"
+alwaysApply: true
+---
+
 # Base Rules (load-bearing)
 
-These are mandatory disciplines that apply to every session. Full prose, JIRA dev-status query, ADF templates, etc. live in [reference/base-rules.md](../reference/base-rules.md).
+These are mandatory disciplines that apply to every session. Full prose, JIRA dev-status query, ADF templates, etc. live in [reference/base-rules.md](base-rules-reference.mdc).
 
 ## Requirement Verification
 

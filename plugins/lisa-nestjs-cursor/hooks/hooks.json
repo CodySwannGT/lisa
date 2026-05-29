@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "./hooks/block-migration-edits.sh",
+        "matcher": "Write|Edit"
+      }
+    ]
+  }
+}

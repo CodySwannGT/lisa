@@ -7,18 +7,5 @@
   },
   "dependencies": [
     "lisa-typescript"
-  ],
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-migration-edits.sh"
-          }
-        ]
-      }
-    ]
-  }
+  ]
 }

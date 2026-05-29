@@ -1,3 +1,8 @@
+---
+description: "Intent Routing"
+alwaysApply: false
+---
+
 # Intent Routing
 
 MANDATORY: On the **first user message of a session**, classify the request using the Flow Classification Protocol below and state the chosen flow before doing any other work. Do not respond to the substance of the request, do not start work, do not ask questions until you have stated which flow applies. Once a flow is established, treat it as fixed for the remainder of the session — **do not re-classify on subsequent messages**, even if a follow-up looks vague or conversational ("wait, what did you just do?", "now run the tests", "thanks"). Subsequent messages operate within the established flow unless the user explicitly changes scope. Skipping classification leads to unstructured responses that bypass readiness gates.

@@ -1,3 +1,8 @@
+---
+description: "Config Resolution (load-bearing)"
+alwaysApply: true
+---
+
 # Config Resolution (load-bearing)
 
 Lisa configuration lives in `.lisa.config.json` (committed) and `.lisa.config.local.json` (gitignored, per-developer). The local file wins where they overlap. Developer-specific identity (`atlassian.email`, etc.) MUST live in the local file, never committed.
@@ -25,4 +30,4 @@ Project tracker (`jira` / `github` / `linear`) is read from `.lisa.config.json` 
 
 `repo:<name>` is the canonical label for which repo a work item belongs to. Resolve current-repo identity in this priority order: `.lisa.config.local.json` `repo` → `.lisa.config.json` `repo` → `.lisa.config.json` `github.repo` → `basename -s .git "$(git remote get-url origin)"`. If none resolve, stop with a clear error.
 
-Full reference: [reference/config-resolution.md](../reference/config-resolution.md).
+Full reference: [reference/config-resolution.md](config-resolution-reference.mdc).

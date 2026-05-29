@@ -1,3 +1,8 @@
+---
+description: "PRD Lifecycle Rollup & Generated-Top-Level-Work Contract"
+alwaysApply: false
+---
+
 # PRD Lifecycle Rollup & Generated-Top-Level-Work Contract
 
 This is the single vendor-neutral source of truth for how a PRD owns the work it generates and how its lifecycle rolls up to `shipped` from that work. Every PRD-source and PRD-intake skill (`prd-backlink`, `prd-ticket-coverage`, `*-prd-intake`, `*-to-tracker`) cites this rule by slug rather than restating it, so PRD→child linking and PRD closure rollup behave identically across GitHub, Linear, JIRA/Atlassian, Confluence, and Notion instead of drifting per vendor.

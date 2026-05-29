@@ -1,3 +1,8 @@
+---
+description: "Repo Scope & Work-Time Splitting"
+alwaysApply: false
+---
+
 # Repo Scope & Work-Time Splitting
 
 Leaf work units are single-repo. A **leaf work unit** is an individually implementable ticket with no child tickets — issue types **Bug, Task, Sub-task, Improvement**. Each must name exactly one repository. **Epic, Story, Spike** are coordination containers and may span repos.

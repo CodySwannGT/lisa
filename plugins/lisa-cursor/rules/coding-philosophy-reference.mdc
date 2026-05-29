@@ -1,3 +1,8 @@
+---
+description: "Coding Philosophy"
+alwaysApply: false
+---
+
 # Coding Philosophy
 
 This rule enforces the core coding philosophy: **immutability**, **predictable structure**, **functional transformations**, **test-driven development**, **clean deletion**, and **simplicity**.

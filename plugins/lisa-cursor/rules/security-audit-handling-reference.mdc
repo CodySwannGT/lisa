@@ -1,3 +1,8 @@
+---
+description: "Security Audit Handling"
+alwaysApply: false
+---
+
 # Security Audit Handling
 
 If `git push` fails because the pre-push hook reports security vulnerabilities, follow these steps. Never use `--no-verify` to bypass the security audit.

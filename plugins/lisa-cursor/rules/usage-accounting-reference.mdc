@@ -1,3 +1,8 @@
+---
+description: "Usage Accounting"
+alwaysApply: false
+---
+
 # Usage Accounting
 
 Lisa usage accounting is a vendor-neutral contract for attaching AI usage and cost telemetry to the artifacts Lisa creates or updates. It governs the section shape, machine-readable tokens, source/pricing semantics, rollup behavior, and idempotent rewrite rules. Writer skills and lifecycle skills attach telemetry by following this contract; they do not invent artifact-local formats.

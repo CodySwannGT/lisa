@@ -1,3 +1,8 @@
+---
+description: "Documentation Source Paths (load-bearing)"
+alwaysApply: true
+---
+
 # Documentation Source Paths (load-bearing)
 
 Do not treat `docs/`, `research/`, `transcripts/`, or other source-material directories as disposable duplicates just because a project also has a `wiki/`. They may be ingestion inputs, executable fixtures, runtime inputs, or historical evidence.
@@ -10,4 +15,4 @@ Before moving, absorbing, or deleting documentation-like paths:
 4. When absorbing into `wiki/`, update source notes, indexes, logs, README links, rule references, and runtime defaults that pointed at the old path.
 5. Delete a path only AFTER references are updated and verification proves the project no longer reads it.
 
-Full context (Lisa-wiki specifics, `wiki/sources/` evidence layout): [reference/documentation-source-paths.md](../reference/documentation-source-paths.md).
+Full context (Lisa-wiki specifics, `wiki/sources/` evidence layout): [reference/documentation-source-paths.md](documentation-source-paths-reference.mdc).

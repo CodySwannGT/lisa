@@ -1,3 +1,8 @@
+---
+description: "Intent Routing (load-bearing)"
+alwaysApply: true
+---
+
 # Intent Routing (load-bearing)
 
 **On the first user message of a session**, before responding to the substance of the request, before running any tool, before asking any clarifying question:
@@ -15,4 +20,4 @@ Once a flow is established, **do not re-classify** on later messages, even if a 
 
 Skipping classification or orchestration echo leads to unstructured responses that bypass readiness gates.
 
-Full reference (flow definitions, readiness gates, orchestration matrix, sub-flows): [reference/intent-routing.md](../reference/intent-routing.md).
+Full reference (flow definitions, readiness gates, orchestration matrix, sub-flows): [reference/intent-routing.md](intent-routing-reference.mdc).

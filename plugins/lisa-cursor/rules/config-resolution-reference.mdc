@@ -1,3 +1,8 @@
+---
+description: "Config Resolution"
+alwaysApply: false
+---
+
 # Config Resolution
 
 Lisa is vendor-agnostic. PRDs can be sourced from Notion, Confluence, Linear, GitHub Issues, or JIRA. Tickets can be written to JIRA, GitHub Issues, or Linear. Per-project configuration lives in `.lisa.config.json` at the repo root, with optional `.lisa.config.local.json` overriding on a per-key basis.

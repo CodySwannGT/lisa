@@ -2,13 +2,32 @@
 /**
  * Generate the Cursor variant of a Lisa plugin from the built Claude artifact.
  *
- * Cursor reads `.claude-plugin/plugin.json` natively via its dual-namespace
- * loader (also accepts `.cursor-plugin/plugin.json`). The Cursor variant
- * therefore keeps the `.claude-plugin/` manifest but filters the hooks block
- * to drop `inject-rules.sh` (Cursor auto-loads `rules/` from plugins natively,
- * so shipping the polyfill would double-inject), `enforce-team-first.sh`
- * (Claude-team-specific), and the `entire hooks claude-code *` analytics calls
- * (Claude-only).
+ * The variant is reshaped to match the official Cursor plugin spec (issue
+ * #1055). Rule application was verified empirically by loading the generated
+ * `.mdc` at Cursor's canonical `.cursor/rules/` location (NEW `.mdc` = applied,
+ * OLD nested `.md` = UNKNOWN, both with 0 tool calls). Note: the
+ * `cursor-agent --plugin-dir` headless flag loads a plugin's skills/agents/
+ * commands but does NOT inject its `rules/*.mdc` into model context, so it
+ * cannot be used to prove rule application — see evidence/cursor-rule-probe-1055.md:
+ *
+ *   - Manifest: keep `.claude-plugin/plugin.json` — `cursor-agent --plugin-dir`
+ *     loads it (CLI scope). The IDE marketplace's `.cursor-plugin/` + a Cursor
+ *     `marketplace.json` is a separate, untested follow-up and is NOT emitted here.
+ *   - Rules: Cursor discovers `rules/*.mdc` files carrying YAML frontmatter and
+ *     ignores plain `.md`. The built Claude artifact ships a nested
+ *     `rules/eager/*.md` + `rules/reference/*.md` tree, so the variant flattens it
+ *     to top-level `rules/<name>.mdc` (eager → `alwaysApply: true`) and
+ *     `rules/<name>-reference.mdc` (reference → `alwaysApply: false`). The
+ *     `-reference` suffix avoids a same-path collision: eager and reference share
+ *     all base names.
+ *   - Hooks: emitted as a Cursor-native `hooks/hooks.json` (flattened schema,
+ *     camelCase event names, relative `./hooks/` command paths) — NOT inline in
+ *     the manifest. `inject-rules.sh` is dropped because rules now ship as native
+ *     `.mdc` (the single delivery path; injecting would double-deliver);
+ *     `enforce-team-first.sh` (Claude-team-specific) and the
+ *     `entire hooks claude-code *` analytics calls (Claude-only) are dropped too.
+ *   - MCP: renamed from `.mcp.json` to `mcp.json` — Cursor auto-discovers the
+ *     un-dotted filename.
  *
  * The variant's `hooks/` directory mirrors the surviving script ship-list.
  *
@@ -25,7 +44,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  filterHooksForAgent,
+  buildCursorHooksJson,
   filterScriptsForAgent,
 } from "./lib/per-agent-hook-filter.mjs";
 
@@ -83,6 +102,167 @@ function copyDir(src, dst, keep = () => true) {
 }
 
 /**
+ * Titleize a rule slug for a fallback frontmatter description.
+ *
+ * @param {string} name e.g. "base-rules"
+ * @returns {string} e.g. "Base Rules"
+ */
+function titleizeRuleName(name) {
+  return name
+    .split("-")
+    .map(part => (part ? part[0].toUpperCase() + part.slice(1) : part))
+    .join(" ")
+    .trim();
+}
+
+/**
+ * Derive a single-line frontmatter description from a rule body.
+ *
+ * Prefers the first markdown H1 heading; falls back to the titleized slug. The
+ * result is always a non-empty single line (Cursor frontmatter `description`).
+ *
+ * @param {string} body Rule markdown content.
+ * @param {string} name Rule slug.
+ * @returns {string}
+ */
+function deriveRuleDescription(body, name) {
+  // Strip fenced code blocks first so a `#`-prefixed line inside one (a shell
+  // comment, a Markdown example, etc.) is not mistaken for the rule's H1.
+  const withoutFences = body.replace(/^(```|~~~).*$[\s\S]*?^\1.*$/gm, "");
+  const h1 = /^#\s+(.+?)\s*$/m.exec(withoutFences);
+  const text = (h1 ? h1[1] : "").replace(/\s+/g, " ").trim();
+  return text || titleizeRuleName(name);
+}
+
+/**
+ * YAML-quote a description value for `.mdc` frontmatter.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+function yamlQuote(value) {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Rewrite intra-rule cross-link URLs from the nested `.md` layout to the flat
+ * `.mdc` layout so links in flattened rules still resolve.
+ *
+ * Only the URL inside a Markdown `](...)` link is rewritten — the link TEXT is
+ * left untouched (so `[reference/base-rules.md](../reference/base-rules.md)`
+ * keeps its readable label while the target becomes `base-rules-reference.mdc`).
+ * Two URL shapes are handled:
+ *   - tier-prefixed: `(../)?eager/<slug>.md` → `<slug>.mdc`;
+ *     `(../)?reference/<slug>.md` → `<slug>-reference.mdc`
+ *   - bare same-dir: `<slug>.md` (no slash) → `<slug>.mdc`
+ * Optional `#fragment` suffixes are preserved. Constraint: a bare same-dir link
+ * is assumed to target the eager / top-level rule of that slug — the real eager
+ * bodies always use an explicit `../reference/<name>.md` URL for the reference
+ * tier, so bare links never need the `-reference` suffix. URLs with any other
+ * shape (deeper paths, external `.md`, http links) are left as-is.
+ *
+ * @param {string} body Rule markdown content.
+ * @returns {string}
+ */
+function rewriteRuleLinks(body) {
+  return body.replace(/\]\(([^)]+)\)/g, (match, url) => {
+    const tiered =
+      /^(?:\.\.\/)?(eager|reference)\/([A-Za-z0-9._-]+)\.md(#[^)]*)?$/.exec(
+        url
+      );
+    if (tiered) {
+      const [, tier, slug, fragment = ""] = tiered;
+      const base = tier === "reference" ? `${slug}-reference` : slug;
+      return `](${base}.mdc${fragment})`;
+    }
+    const bare = /^([A-Za-z0-9._-]+)\.md(#[^)]*)?$/.exec(url);
+    if (bare) {
+      const [, slug, fragment = ""] = bare;
+      return `](${slug}.mdc${fragment})`;
+    }
+    return match;
+  });
+}
+
+/**
+ * Transform the copied nested `rules/` tree into flat Cursor-native
+ * `rules/<name>.mdc` files with YAML frontmatter.
+ *
+ * The base plugin splits rules into `rules/eager/*.md` (always-on) and
+ * `rules/reference/*.md` (on-request); stack plugins instead ship a single
+ * always-on `rules/<name>.md` at the top level. Both layouts are normalized:
+ *   - eager rule → `rules/<name>.mdc` with `alwaysApply: true`
+ *   - reference rule → `rules/<name>-reference.mdc` with `alwaysApply: false`
+ *     (the `-reference` suffix prevents a same-path collision, since eager and
+ *     reference share base names)
+ *   - top-level stack rule → `rules/<name>.mdc` with `alwaysApply: true`
+ * Plain top-level `.md` rules are rewritten in place to `.mdc`; the nested
+ * `rules/eager/` and `rules/reference/` subdirs are removed afterward.
+ *
+ * @param {string} outDir Cursor variant output directory.
+ */
+function transformRules(outDir) {
+  const rulesDir = path.join(outDir, "rules");
+  if (!fs.existsSync(rulesDir)) return;
+
+  /**
+   * Write one `.mdc` rule with frontmatter, rewriting intra-rule links.
+   *
+   * @param {string} srcFile Absolute path of the source `.md` rule.
+   * @param {string} slug Output rule slug (filename without extension).
+   * @param {boolean} alwaysApply Frontmatter `alwaysApply` value.
+   */
+  const writeMdc = (srcFile, slug, alwaysApply) => {
+    const body = fs.readFileSync(srcFile, "utf8");
+    const frontmatter = `---\ndescription: ${yamlQuote(
+      deriveRuleDescription(body, slug)
+    )}\nalwaysApply: ${alwaysApply}\n---\n\n`;
+    fs.writeFileSync(
+      path.join(rulesDir, `${slug}.mdc`),
+      frontmatter + rewriteRuleLinks(body)
+    );
+  };
+
+  // Eager / reference subdir layout (base plugin).
+  const tiers = [
+    { sub: "eager", alwaysApply: true, suffix: "" },
+    { sub: "reference", alwaysApply: false, suffix: "-reference" },
+  ];
+  for (const { sub, alwaysApply, suffix } of tiers) {
+    const subDir = path.join(rulesDir, sub);
+    if (!fs.existsSync(subDir)) continue;
+    for (const entry of fs.readdirSync(subDir)) {
+      if (!entry.endsWith(".md")) continue;
+      const slug = entry.slice(0, -".md".length);
+      writeMdc(path.join(subDir, entry), `${slug}${suffix}`, alwaysApply);
+    }
+    fs.rmSync(subDir, { recursive: true, force: true });
+  }
+
+  // Top-level stack rules (e.g. lisa-rails, lisa-harper-fabric): single
+  // always-on `.md` → `.mdc` with alwaysApply:true.
+  for (const entry of fs.readdirSync(rulesDir)) {
+    if (!entry.endsWith(".md")) continue;
+    const srcFile = path.join(rulesDir, entry);
+    if (!fs.statSync(srcFile).isFile()) continue;
+    writeMdc(srcFile, entry.slice(0, -".md".length), true);
+    fs.rmSync(srcFile);
+  }
+}
+
+/**
+ * Rename a copied `.mcp.json` to Cursor's auto-discovered `mcp.json`.
+ *
+ * @param {string} outDir Cursor variant output directory.
+ */
+function renameMcpFile(outDir) {
+  const dotMcp = path.join(outDir, ".mcp.json");
+  if (fs.existsSync(dotMcp)) {
+    fs.renameSync(dotMcp, path.join(outDir, "mcp.json"));
+  }
+}
+
+/**
  * Generate the Cursor variant.
  *
  * @param {string} srcDir Built Claude plugin directory (input).
@@ -105,11 +285,10 @@ export function generateCursorVariant(srcDir, outDir, version) {
     // Drop the `.codex-plugin/` directory — Cursor does not consume it.
     if (relPath.startsWith(".codex-plugin/") || relPath === ".codex-plugin")
       return false;
-    // Defensively drop any hooks/hooks.json. The base build now emits the Codex
-    // hooks manifest under .codex-plugin/ (stripped above), not here (issue
-    // #1058), but guard against a regression reintroducing it: Cursor reads its
-    // (filtered) hooks from .claude-plugin/plugin.json, not a Codex-shaped file.
-    // The surviving .sh scripts in hooks/ are kept below.
+    // Drop any source-provided hooks/hooks.json (e.g. a Codex-shaped leak from a
+    // regression; the base build emits Codex hooks under .codex-plugin/, stripped
+    // above). We emit our OWN Cursor-shaped hooks/hooks.json below from the
+    // manifest's hook block, so any copied one would be wrong.
     if (relPath === path.join("hooks", "hooks.json")) return false;
     // Drop Codex-specific per-skill openai.yaml artifacts — Cursor does not use them.
     // These live at skills/<n>/agents/openai.yaml and are generated by the Codex
@@ -135,17 +314,30 @@ export function generateCursorVariant(srcDir, outDir, version) {
     }
   }
 
-  // 2. Read + filter the manifest.
+  // 1b. Flatten the nested rules/ tree into Cursor-native rules/*.mdc files.
+  transformRules(outDir);
+
+  // 1c. Rename .mcp.json → mcp.json (Cursor auto-discovers the un-dotted name).
+  renameMcpFile(outDir);
+
+  // 2. Read the manifest, stamp the version, and strip the inline hook block.
+  // Cursor reads hooks from hooks/hooks.json (emitted in 2a), never inline.
   const manifestPath = path.join(outDir, ".claude-plugin", "plugin.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   manifest.version = version;
-  const filteredHooks = filterHooksForAgent(manifest.hooks ?? {}, "cursor");
-  if (filteredHooks) {
-    manifest.hooks = filteredHooks;
-  } else {
-    delete manifest.hooks;
-  }
+  const cursorHooks = buildCursorHooksJson(manifest.hooks ?? {});
+  delete manifest.hooks;
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+
+  // 2a. Emit hooks/hooks.json in Cursor's native shape when any hooks survive.
+  if (cursorHooks) {
+    const cursorHooksDir = path.join(outDir, "hooks");
+    fs.mkdirSync(cursorHooksDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(cursorHooksDir, "hooks.json"),
+      JSON.stringify(cursorHooks, null, 2) + "\n"
+    );
+  }
 
   // 3. Filter the hooks/ directory to match the script ship-list.
   const hooksDir = path.join(outDir, "hooks");

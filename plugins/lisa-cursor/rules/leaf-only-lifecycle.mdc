@@ -1,3 +1,8 @@
+---
+description: "Leaf-Only Build-Ready Invariant (load-bearing)"
+alwaysApply: true
+---
+
 # Leaf-Only Build-Ready Invariant (load-bearing)
 
 **Build-ready means a directly implementable leaf work unit.** Containers never carry build-ready.
@@ -36,4 +41,4 @@ When a leaf reaches the true terminal `done` (the production / final-env value),
 
 Intermediate env-keyed states (`status:on-dev`, `On Stg`, etc.) remain open. Idempotent — if already closed, report and continue.
 
-Full vendor mechanics + the state machine in prose: [reference/leaf-only-lifecycle.md](../reference/leaf-only-lifecycle.md).
+Full vendor mechanics + the state machine in prose: [reference/leaf-only-lifecycle.md](leaf-only-lifecycle-reference.mdc).

@@ -1,3 +1,8 @@
+---
+description: "Usage Accounting (load-bearing)"
+alwaysApply: true
+---
+
 # Usage Accounting (load-bearing)
 
 Lisa attaches AI usage and cost telemetry to every artifact it creates/updates. The format is a single canonical managed section.
@@ -25,4 +30,4 @@ Each direct entry records ONE logical Lisa run on ONE artifact. `entry_id` is th
 
 Container artifacts (Epic, PRD, etc.) roll up usage from their direct children. Roll-up is recursive — a parent's `## Lisa Usage` aggregates its descendants' direct entries. Re-writes are idempotent: re-running an intake or lifecycle skill must not duplicate entries.
 
-Full schema (all 17 fields, pricing semantics, rollup math, idempotent-rewrite rules): [reference/usage-accounting.md](../reference/usage-accounting.md).
+Full schema (all 17 fields, pricing semantics, rollup math, idempotent-rewrite rules): [reference/usage-accounting.md](usage-accounting-reference.mdc).
