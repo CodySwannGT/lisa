@@ -4,12 +4,33 @@
  * Claude artifact.
  *
  * agy's plugin manifest is a bare `plugin.json` at the plugin root (NOT
- * `.claude-plugin/plugin.json`). The Wave 1 audit also established that agy
- * plugin-bundled hooks DO NOT FIRE in `-p` headless mode, so the agy variant
- * ships no hooks at all — the manifest's `hooks` field is dropped and the
- * `hooks/` directory is omitted. Rules-injection for agy uses the AGENTS.md
- * bake-in alternative implemented in `src/agy/rules-bake.ts` (per the parity
- * research artifact's Cluster 4-agy / Option α).
+ * `.claude-plugin/plugin.json`). This generator copies + reshapes the artifact
+ * AND emits a plugin-bundled hooks config.
+ *
+ * HOOKS (plugin-bundled, ROOT-level): a runtime probe of agy 1.0.3 (ticket-1054)
+ * proved agy loads a plugin's hooks ONLY from a `hooks.json` at the plugin ROOT
+ * of an installed global plugin (`~/.gemini/config/plugins/<variant>/hooks.json`)
+ * — a `hooks/` SUBDIR hooks.json (the earlier attempt) is NOT scanned. Lisa
+ * already `agy plugin install`s these variants there, so this generator emits a
+ * root `hooks.json` in agy's schema (top-level HOOK NAME → event → handlers),
+ * matcher `run_command` (agy's shell tool), and ships the agy-protocol script
+ * into the variant's `hooks/` subdir (scripts in a subdir are fine — only
+ * hooks.json must be at root; the command points at the absolute installed path
+ * via `$HOME`). Only events agy supports map: PreToolUse / PostToolUse /
+ * PreInvocation / PostInvocation / Stop. SessionStart is NOT supported, so
+ * install-pkgs / setup-jira-cli CANNOT ship as agy hooks — only block-no-verify
+ * (PreToolUse) maps. Only the BASE plugin manifest carries the universal hooks,
+ * so only `lisa-agy` gets a hooks.json; stack variants emit none.
+ *
+ * MCP (user-global, NOT plugin-bundled): agy ignores plugin-bundled MCP and only
+ * reads the user-global `~/.gemini/config/mcp_config.json`, so MCP is delivered
+ * by the runtime installer (`src/agy/mcp-installer.ts`), and this generator
+ * drops `.mcp.json`. Rules use the AGENTS.md bake (rules-once invariant).
+ *
+ * Net: the agy variant ships a root `hooks.json` (base only) + its agy-protocol
+ * script under `hooks/`, but NO `mcp_config.json`, NO `.mcp.json`, NO `rules/`,
+ * and NO `hooks/hooks.json` subdir. The manifest carries neither `hooks` nor
+ * `mcpServers`.
  *
  * Usage: node scripts/generate-agy-plugin-artifacts.mjs <source-plugin-dir> <out-dir> <version>
  *
@@ -74,12 +95,16 @@ function copyDir(src, dst, keep = () => true) {
 /**
  * Generate the agy variant.
  *
- * Transformation steps (from Wave 2 pattern-b-fan-out-spec.md):
+ * Transformation steps:
  *   0. Filter skills/ against scripts/internal-agy-skill-policy.json.
- *   1. Copy source to outDir minus filtered skills, .codex-plugin/, hooks/, and rules/.
+ *   1. Copy source to outDir minus filtered skills, .codex-plugin/, hooks/,
+ *      rules/, and the untranslated .mcp.json.
  *   2. Move .claude-plugin/plugin.json to bare plugin.json at root; drop .claude-plugin/.
- *   3. Drop the hooks field from the manifest (agy plugin hooks don't fire in -p).
+ *   3. Drop the hooks + mcpServers fields from the manifest (delivered by the
+ *      root hooks.json / runtime MCP installer, not as manifest components).
  *   4. Inject the version.
+ *   5. Emit the plugin-bundled root hooks.json (base variant only) + copy the
+ *      agy-protocol script(s) into the variant's hooks/ subdir.
  *
  * @param {string} srcDir Built Claude plugin directory (input).
  * @param {string} outDir agy variant output directory.
@@ -101,8 +126,14 @@ export function generateAgyVariant(srcDir, outDir, version) {
     if (relPath.startsWith(".codex-plugin/") || relPath === ".codex-plugin") {
       return false;
     }
-    if (relPath.startsWith("hooks/") || relPath === "hooks") return false; // hooks don't fire on agy
-    if (relPath.startsWith("rules/") || relPath === "rules") return false; // rules not a plugin component on agy
+    // Drop the source hooks/ (Claude scripts + stale codex hooks.json). The agy
+    // hooks.json (root) + the agy-protocol script are re-emitted by
+    // emitAgyPluginHooks below.
+    if (relPath.startsWith("hooks/") || relPath === "hooks") return false;
+    if (relPath.startsWith("rules/") || relPath === "rules") return false; // rules delivered via AGENTS.md bake
+    // Drop the untranslated Claude .mcp.json — agy ignores it (and the agy
+    // MCP shape differs); MCP is delivered by the user-global runtime MCP installer.
+    if (relPath === ".mcp.json") return false;
     // Drop Codex-specific per-skill openai.yaml artifacts.
     if (/^skills\/[^/]+\/agents\/openai\.ya?ml$/.test(relPath)) return false;
     // Apply skill denylist.
@@ -132,25 +163,133 @@ export function generateAgyVariant(srcDir, outDir, version) {
     }
   }
 
-  // 2. Read the Claude manifest, drop hooks, rename to bare plugin.json.
+  // 2. Read the Claude manifest, drop hooks + mcpServers, write bare plugin.json.
+  // agy reads hooks from a root hooks.json (emitted below), not the manifest;
+  // MCP is user-global. So the bare manifest carries neither field.
   const manifest = JSON.parse(fs.readFileSync(claudeManifest, "utf8"));
   manifest.version = version;
+  const sourceHooks = manifest.hooks ?? {};
   delete manifest.hooks;
-
-  // 3. Drop any pointer fields that agy doesn't understand.
-  // agy reads bare plugin.json with components: skills, agents, commands,
-  // mcpServers, hooks. We omit hooks above. MCP is not a plugin component on
-  // agy, so drop any `mcpServers` if present (Lisa's base today does not
-  // emit one, but be defensive).
   delete manifest.mcpServers;
 
   const bareManifestPath = path.join(outDir, "plugin.json");
   fs.writeFileSync(bareManifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
-  // 4. Ensure no .claude-plugin/ directory survives.
+  // 3. Ensure no .claude-plugin/ directory survives.
   const ghostDir = path.join(outDir, ".claude-plugin");
   if (fs.existsSync(ghostDir)) {
     fs.rmSync(ghostDir, { recursive: true, force: true });
+  }
+
+  // 4. Emit the plugin-bundled root hooks.json + agy-protocol script (base only).
+  // `agy plugin install` names the install dir by the manifest `name`
+  // (`~/.gemini/config/plugins/<name>/`, verified-by-run per
+  // reference_agy_plugin_capabilities), NOT the source dir basename — so the
+  // hook command path must use manifest.name (e.g. "lisa"), falling back to the
+  // dir basename only if a manifest somehow omits name.
+  const installDirName = manifest.name ?? path.basename(outDir);
+  emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName);
+}
+
+/**
+ * agy-portable hook map. Only events agy supports + scripts whose protocol has
+ * an agy variant. Each entry emits one top-level hook-name key in the root
+ * hooks.json. `sourceScript` is what the BASE Claude manifest references (used
+ * to detect whether this variant should carry the hook); `agyScript` is the
+ * agy-protocol script copied into the variant's hooks/ and referenced by the
+ * command. NOTE: install-pkgs / setup-jira-cli are SessionStart-only, which agy
+ * hooks don't support, so they are intentionally absent. inject-rules is absent
+ * too (rules-once via the AGENTS.md bake).
+ */
+const AGY_PLUGIN_HOOKS = [
+  {
+    sourceScript: "block-no-verify.sh",
+    hookName: "lisa-block-no-verify",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "block-no-verify.agy.sh",
+  },
+];
+
+/**
+ * Whether the source manifest hook block references `scriptName` anywhere. Used
+ * to ship a hook only for the variant whose manifest carries it (the base
+ * plugin); stack variants have empty manifest hooks and emit no hooks.json.
+ * @param {Record<string, Array<{ hooks?: Array<{ command?: string }> }>>} sourceHooks
+ * @param {string} scriptName
+ * @returns {boolean}
+ */
+function sourceReferencesScript(sourceHooks, scriptName) {
+  return Object.values(sourceHooks ?? {}).some(
+    entries =>
+      Array.isArray(entries) &&
+      entries.some(
+        e =>
+          Array.isArray(e?.hooks) &&
+          e.hooks.some(
+            h =>
+              typeof h?.command === "string" && h.command.includes(scriptName)
+          )
+      )
+  );
+}
+
+/**
+ * Emit the plugin-bundled root `hooks.json` (agy schema) and copy the
+ * agy-protocol script(s) into the variant's `hooks/` subdir. No-op for variants
+ * whose source manifest carries none of the mapped hooks (e.g. stack variants).
+ * @param {string} srcDir Built Claude plugin directory (input).
+ * @param {string} outDir agy variant output directory.
+ * @param {Record<string, unknown>} sourceHooks Source manifest hook block.
+ * @param {string} installDirName Name agy installs the plugin under in
+ *   `~/.gemini/config/plugins/<installDirName>/` (the manifest `name`); baked
+ *   into the hook command path so it resolves to the installed script.
+ * @returns {void}
+ */
+function emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName) {
+  const applicable = AGY_PLUGIN_HOOKS.filter(h => {
+    if (!sourceReferencesScript(sourceHooks, h.sourceScript)) return false;
+    const scriptSource = path.join(srcDir, "hooks", h.agyScript);
+    if (!fs.existsSync(scriptSource)) {
+      throw new Error(
+        `Missing agy hook script for ${h.sourceScript}: ${scriptSource}`
+      );
+    }
+    return true;
+  });
+  if (applicable.length === 0) return;
+
+  const hooksConfig = Object.fromEntries(
+    applicable.map(h => [
+      h.hookName,
+      {
+        [h.event]: [
+          {
+            matcher: h.matcher,
+            hooks: [
+              {
+                type: "command",
+                command: `bash "$HOME/.gemini/config/plugins/${installDirName}/hooks/${h.agyScript}"`,
+              },
+            ],
+          },
+        ],
+      },
+    ])
+  );
+  fs.writeFileSync(
+    path.join(outDir, "hooks.json"),
+    JSON.stringify(hooksConfig, null, 2) + "\n"
+  );
+
+  // Copy the agy-protocol scripts into the variant's hooks/ subdir.
+  const hooksDir = path.join(outDir, "hooks");
+  fs.mkdirSync(hooksDir, { recursive: true });
+  for (const h of applicable) {
+    const scriptSource = path.join(srcDir, "hooks", h.agyScript);
+    const scriptDest = path.join(hooksDir, h.agyScript);
+    fs.copyFileSync(scriptSource, scriptDest);
+    fs.chmodSync(scriptDest, 0o755);
   }
 }
 

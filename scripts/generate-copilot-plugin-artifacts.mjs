@@ -12,7 +12,7 @@
  *
  * Per the Wave 1 audit, Copilot ships:
  *   block-no-verify.sh, inject-rules.sh (conservative default — conditional on
- *   the rules-auto-load probe), notify-ntfy.sh, install-pkgs.sh, setup-jira-cli.sh.
+ *   the rules-auto-load probe), install-pkgs.sh, setup-jira-cli.sh.
  *
  * Per the Wave 2 pattern-b-fan-out-spec.md, this generator runs four pre-flight
  * probes when `copilot` is on PATH and caches the results. When `copilot` is
