@@ -1,3 +1,8 @@
+---
+description: "Rails Coding Conventions"
+alwaysApply: true
+---
+
 # Rails Coding Conventions
 
 This rule enforces Rails-specific coding standards for consistency, maintainability, and performance.

@@ -1,3 +1,8 @@
+---
+description: "Empirical Verification (load-bearing)"
+alwaysApply: true
+---
+
 # Empirical Verification (load-bearing)
 
 **Verification is not linting, typechecking, or testing.** Those are *quality checks* — necessary prerequisites, but NOT verification.
@@ -18,4 +23,4 @@
 - **Verifier agent** — acts as the end user / API client / operator. Independent from Builder when possible.
 - **Human overseer** — approves risky operations and anything agents cannot fully verify.
 
-Full operational contract (verification types, evidence formats, escalation protocol): [reference/verification.md](../reference/verification.md).
+Full operational contract (verification types, evidence formats, escalation protocol): [reference/verification.md](verification-reference.mdc).

@@ -1,6 +1,11 @@
+---
+description: "Coding Philosophy (load-bearing)"
+alwaysApply: true
+---
+
 # Coding Philosophy (load-bearing)
 
-When writing or modifying code, follow these principles. Examples, hook structure templates, and anti-pattern catalogs live in [reference/coding-philosophy.md](../reference/coding-philosophy.md).
+When writing or modifying code, follow these principles. Examples, hook structure templates, and anti-pattern catalogs live in [reference/coding-philosophy.md](coding-philosophy-reference.mdc).
 
 ## Principle priority
 

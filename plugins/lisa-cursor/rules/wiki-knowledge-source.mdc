@@ -1,3 +1,8 @@
+---
+description: "Wiki as Knowledge Source (load-bearing)"
+alwaysApply: true
+---
+
 # Wiki as Knowledge Source (load-bearing)
 
 If the project has an LLM Wiki (a `wiki/` directory with `index.md`), treat it as the canonical source of durable project knowledge.
@@ -13,4 +18,4 @@ The wiki documents knowledge; it does NOT override executable behavior. When wik
 
 If the project has no `wiki/`, this rule does not apply.
 
-Full prose: [reference/wiki-knowledge-source.md](../reference/wiki-knowledge-source.md).
+Full prose: [reference/wiki-knowledge-source.md](wiki-knowledge-source-reference.mdc).

@@ -1,3 +1,8 @@
+---
+description: "Security Audit Handling (load-bearing)"
+alwaysApply: true
+---
+
 # Security Audit Handling (load-bearing)
 
 If `git push` fails because the pre-push hook reports security vulnerabilities, follow the rules below. **Never use `--no-verify`** to bypass the security audit.
@@ -26,4 +31,4 @@ Before adding any override, verify:
 3. If transitive with patch: `bundle update <gem>` to bump the lockfile only, commit, retry.
 4. If no patch but safe: document the exception, retry.
 
-Full procedure with examples: [reference/security-audit-handling.md](../reference/security-audit-handling.md).
+Full procedure with examples: [reference/security-audit-handling.md](security-audit-handling-reference.mdc).

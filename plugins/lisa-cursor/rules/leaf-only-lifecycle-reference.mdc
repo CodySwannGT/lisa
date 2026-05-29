@@ -1,3 +1,8 @@
+---
+description: "Leaf-Only Build-Ready Invariant, Parent Status Rollup & Terminal Native Closure"
+alwaysApply: false
+---
+
 # Leaf-Only Build-Ready Invariant, Parent Status Rollup & Terminal Native Closure
 
 This is the single vendor-neutral source of truth for three coupled lifecycle rules. Every `*-to-tracker`, `*-write-*`, `*-validate-*`, and `*-build-intake` skill cites this rule rather than restating it, so per-vendor logic does not drift.

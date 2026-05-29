@@ -1,3 +1,8 @@
+---
+description: "Documentation Source Paths"
+alwaysApply: false
+---
+
 # Documentation Source Paths
 
 Do not treat `docs/`, `research/`, `transcripts/`, or other source-material directories as disposable duplicates just because a project also has a `wiki/`.

@@ -1,3 +1,8 @@
+---
+description: "Repo Scope & Work-Time Splitting (load-bearing)"
+alwaysApply: true
+---
+
 # Repo Scope & Work-Time Splitting (load-bearing)
 
 **Leaf work units are single-repo.** A leaf is an individually implementable ticket with no children — types **Bug, Task, Sub-task, Improvement**. Each names exactly one repo. **Epic, Story, Spike** are coordination containers and may span repos.
@@ -36,4 +41,4 @@ A tracker can oversee multiple repos. Build-intake claims only current-repo tick
 2. **Multi-repo leaf → split, never claim.** Each split sibling is created build-ready and stamped with its own `repo:<name>`.
 3. **Wrong-repo single-repo leaf → skip** (label keeps it cheap next cycle).
 
-Vendor mechanics (JIRA/GitHub/Linear) and full procedure: [reference/repo-scope-split.md](../reference/repo-scope-split.md).
+Vendor mechanics (JIRA/GitHub/Linear) and full procedure: [reference/repo-scope-split.md](repo-scope-split-reference.mdc).

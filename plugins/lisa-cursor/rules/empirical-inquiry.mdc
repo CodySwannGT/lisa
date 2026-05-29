@@ -1,3 +1,8 @@
+---
+description: "Empirical Inquiry — Test, Don't Guess (load-bearing)"
+alwaysApply: true
+---
+
 # Empirical Inquiry — Test, Don't Guess (load-bearing)
 
 When a decision depends on a fact you are not certain of — how a tool, API, harness, runtime, or dependency actually behaves — **find out empirically before you act.** Run the smallest experiment that settles the question, observe the real result, and proceed from what you observed.
@@ -19,4 +24,4 @@ Do not reason your way to a confident-sounding answer from documentation, prior 
 
 This is the inquiry counterpart to the `verification` rule (which proves completed work behaves correctly). Both reject "it looks correct" as evidence.
 
-Full prose: [reference/empirical-inquiry.md](../reference/empirical-inquiry.md).
+Full prose: [reference/empirical-inquiry.md](empirical-inquiry-reference.mdc).

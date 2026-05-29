@@ -1,3 +1,8 @@
+---
+description: "PRD Lifecycle Rollup & Generated-Top-Level-Work Contract (load-bearing)"
+alwaysApply: true
+---
+
 # PRD Lifecycle Rollup & Generated-Top-Level-Work Contract (load-bearing)
 
 The vendor-neutral source of truth for how a PRD owns the work it generated and how its lifecycle rolls up to `shipped`. Companion to `leaf-only-lifecycle` (which governs build-lifecycle of leaves); this rule governs PRD lifecycle and rollup from generated top-level children.
@@ -28,4 +33,4 @@ PRD rolls from `ticketed` to `shipped` when every required generated top-level c
 
 Re-runs of intake/backlink must dedupe by child-ref identity (e.g. `owner/repo#number` for GitHub, Linear issue UUID, JIRA key) — never by URL string, which varies by formatting.
 
-Full vendor matrix, predicate definitions, non-goals: [reference/prd-lifecycle-rollup.md](../reference/prd-lifecycle-rollup.md).
+Full vendor matrix, predicate definitions, non-goals: [reference/prd-lifecycle-rollup.md](prd-lifecycle-rollup-reference.mdc).

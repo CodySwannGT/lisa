@@ -1,3 +1,8 @@
+---
+description: "Empirical Inquiry — Test, Don't Guess"
+alwaysApply: false
+---
+
 # Empirical Inquiry — Test, Don't Guess
 
 When a decision depends on a fact you are not certain of — how a tool, API, harness, runtime, environment, or dependency actually behaves — **find out empirically before you act on it.** Run the smallest experiment that settles the question, observe the real result, and then proceed from what you observed. Do not reason your way to a confident-sounding answer from documentation, prior assumption, or training knowledge when the real system is right there and a quick probe would tell you the truth.
