@@ -468,24 +468,33 @@ function main() {
  * @param {object} claudeManifest Parsed contents of .claude-plugin/plugin.json.
  */
 function emitCodexHooks(pluginDir, claudeManifest) {
-  const codexPluginDir = path.join(pluginDir, ".codex-plugin");
-  const hooksJsonPath = path.join(codexPluginDir, "hooks.json");
-  const hooksScriptsDir = path.join(codexPluginDir, "hooks");
+  // Codex auto-discovers a plugin's hooks at <plugin-root>/hooks/hooks.json and
+  // resolves the manifest hooks pointer + ${PLUGIN_ROOT} relative to the plugin
+  // root (developers.openai.com/codex/plugins/build). The hook scripts already
+  // ship at <plugin-root>/hooks/ (copied from plugins/src by the Claude build),
+  // so the Codex hooks.json lives alongside them and no script copy is needed.
+  const hooksDir = path.join(pluginDir, "hooks");
+  const hooksJsonPath = path.join(hooksDir, "hooks.json");
+  // Clean up the pre-2.121 layout (hooks.json + copied scripts under
+  // .codex-plugin/) so a rebuilt plugin never ships both.
+  const legacyCodexPluginDir = path.join(pluginDir, ".codex-plugin");
+  fs.rmSync(path.join(legacyCodexPluginDir, "hooks.json"), { force: true });
+  fs.rmSync(path.join(legacyCodexPluginDir, "hooks"), {
+    force: true,
+    recursive: true,
+  });
   const filtered = filterCodexHooks(claudeManifest.hooks);
   if (filtered === null) {
-    // Nothing survived the filter. Remove any stale hooks artifacts from a
-    // prior build so componentPointers() doesn't keep advertising removed
-    // hooks via the ./hooks.json pointer.
+    // Nothing survived the filter. Remove any stale hooks.json so
+    // componentPointers() doesn't keep advertising removed hooks.
     fs.rmSync(hooksJsonPath, { force: true });
-    fs.rmSync(hooksScriptsDir, { force: true, recursive: true });
     return;
   }
-  fs.mkdirSync(codexPluginDir, { recursive: true });
+  fs.mkdirSync(hooksDir, { recursive: true });
   fs.writeFileSync(
     hooksJsonPath,
     `${JSON.stringify(buildCodexHooksDocument(filtered), null, 2)}\n`
   );
-  copyCodexHookScripts(pluginDir, filtered);
 }
 
 /**
@@ -540,8 +549,8 @@ function componentPointers(pluginDir) {
     ...(fs.existsSync(path.join(pluginDir, ".mcp.json"))
       ? { mcpServers: "./.mcp.json" }
       : {}),
-    ...(fs.existsSync(path.join(pluginDir, ".codex-plugin", "hooks.json"))
-      ? { hooks: "./hooks.json" }
+    ...(fs.existsSync(path.join(pluginDir, "hooks", "hooks.json"))
+      ? { hooks: "./hooks/hooks.json" }
       : {}),
   };
 }
@@ -551,8 +560,9 @@ function componentPointers(pluginDir) {
  * Claude plugin.json hooks block:
  *   - Drop every `entire hooks claude-code *` command (Claude-only).
  *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
- *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh to ./hooks/<script>.sh
- *     (Codex resolves plugin paths relative to .codex-plugin/plugin.json).
+ *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh to
+ *     ${PLUGIN_ROOT}/hooks/<script>.sh (Codex exposes the installed plugin
+ *     root to hook commands as ${PLUGIN_ROOT}).
  *   - Drop matchers that produce no surviving handlers.
  *
  * When the resulting block is empty, no hooks.json is written and the
@@ -590,11 +600,13 @@ export function filterCodexHooks(hooksBlock) {
           return [
             {
               ...h,
-              // Codex hook commands resolve relative to .codex-plugin/plugin.json;
-              // rewrite to a path the hooks.json sibling will find.
+              // Codex exposes the installed plugin root as ${PLUGIN_ROOT} to hook
+              // commands (developers.openai.com/codex/plugins/build). A bare
+              // ./hooks/ path would resolve against the session cwd, not the
+              // plugin, so rewrite to the plugin-root env var.
               command: h.command.replaceAll(
                 "${CLAUDE_PLUGIN_ROOT}/hooks/",
-                "./hooks/"
+                "${PLUGIN_ROOT}/hooks/"
               ),
             },
           ];
@@ -611,38 +623,6 @@ export function filterCodexHooks(hooksBlock) {
     }
   }
   return Object.keys(out).length > 0 ? out : null;
-}
-
-/**
- * Copy hook scripts that survived filterCodexHooks into the Codex artifact.
- *
- * Scripts land at <pluginDir>/.codex-plugin/hooks/ so the hooks.json pointer
- * "./hooks/<n>.sh" resolves correctly when Codex loads the plugin.
- *
- * @param {string} pluginDir Built Claude plugin directory.
- * @param {object} hooks Codex-shaped hooks block from filterCodexHooks.
- */
-function copyCodexHookScripts(pluginDir, hooks) {
-  const srcHooksDir = path.join(pluginDir, "hooks");
-  if (!fs.existsSync(srcHooksDir)) return;
-  const referenced = new Set();
-  for (const entries of Object.values(hooks)) {
-    for (const entry of entries) {
-      for (const h of entry.hooks ?? []) {
-        if (typeof h.command !== "string") continue;
-        const m = /^\.\/hooks\/([^/\s]+\.sh)/.exec(h.command);
-        if (m) referenced.add(m[1]);
-      }
-    }
-  }
-  if (referenced.size === 0) return;
-  const dstHooksDir = path.join(pluginDir, ".codex-plugin", "hooks");
-  fs.mkdirSync(dstHooksDir, { recursive: true });
-  for (const name of referenced) {
-    const src = path.join(srcHooksDir, name);
-    if (!fs.existsSync(src)) continue;
-    fs.copyFileSync(src, path.join(dstHooksDir, name));
-  }
 }
 
 function metadataFor(pluginName, claudeManifest) {

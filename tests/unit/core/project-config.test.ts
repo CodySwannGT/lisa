@@ -5,7 +5,11 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_HARNESS } from "../../../src/core/config.js";
+import {
+  DEFAULT_HARNESS,
+  HARNESS_VALUES,
+  harnessIncludesAgent,
+} from "../../../src/core/config.js";
 import {
   PROJECT_CONFIG_FILENAME,
   isHarness,
@@ -43,7 +47,7 @@ describe("project-config", () => {
     });
 
     it("parses each canonical harness value", async () => {
-      for (const harness of ["claude", "codex", "both"] as const) {
+      for (const harness of HARNESS_VALUES) {
         await fs.writeFile(
           path.join(tempDir, PROJECT_CONFIG_FILENAME),
           JSON.stringify({ harness }),
@@ -200,6 +204,29 @@ describe("project-config", () => {
       [{ harness: "claude" }],
     ])("rejects %p", value => {
       expect(isHarness(value)).toBe(false);
+    });
+  });
+
+  describe("harnessIncludesAgent", () => {
+    it("fleet includes every emit agent (regression: Codex was once excluded)", () => {
+      for (const agent of ["claude", "codex", "agy", "copilot"] as const) {
+        expect(harnessIncludesAgent("fleet", agent)).toBe(true);
+      }
+    });
+
+    it("both includes only Claude and Codex", () => {
+      expect(harnessIncludesAgent("both", "claude")).toBe(true);
+      expect(harnessIncludesAgent("both", "codex")).toBe(true);
+      expect(harnessIncludesAgent("both", "agy")).toBe(false);
+      expect(harnessIncludesAgent("both", "copilot")).toBe(false);
+    });
+
+    it("a single-agent harness matches only itself", () => {
+      expect(harnessIncludesAgent("codex", "codex")).toBe(true);
+      expect(harnessIncludesAgent("codex", "claude")).toBe(false);
+      expect(harnessIncludesAgent("agy", "agy")).toBe(true);
+      expect(harnessIncludesAgent("copilot", "copilot")).toBe(true);
+      expect(harnessIncludesAgent("claude", "copilot")).toBe(false);
     });
   });
 });
