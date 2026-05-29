@@ -38,7 +38,7 @@ afterEach(async () => {
 
 describe("getPackageVersion", () => {
   it("reads the package.json version", () => {
-    expect(getPackageVersion()).toBe("2.119.1");
+    expect(getPackageVersion()).toBe("2.120.0");
   });
 });
 
