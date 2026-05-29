@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.124.5](https://github.com/CodySwannGT/lisa/compare/vv2.124.4...v2.124.5) (2026-05-29)
+
+
+### Bug Fixes
+
+* **cursor:** reshape plugin variant to match Cursor plugin spec ([#1055](https://github.com/CodySwannGT/lisa/issues/1055)) ([4615771](https://github.com/CodySwannGT/lisa/commit/4615771c198f1e0f4045bfc8e24f11c18a18ac1d))
+
+
+### Documentation
+
+* **wiki:** correct Cursor plugin-shape guidance + add probe evidence ([#1055](https://github.com/CodySwannGT/lisa/issues/1055)) ([c99ead9](https://github.com/CodySwannGT/lisa/commit/c99ead929b437924227ad8f442c753621b4c7412))
+
 ### [2.124.4](https://github.com/CodySwannGT/lisa/compare/vv2.124.3...v2.124.4) (2026-05-29)
 
 
