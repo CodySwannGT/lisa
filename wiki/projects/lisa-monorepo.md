@@ -20,20 +20,22 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-28-013419` from `origin/main`
-- HEAD at 2026-05-28 incremental ingest: `3e99859c0c73e29c341c441f2c34976f4fab2806`
-- Current package version: `2.116.0`
-- Total commits on HEAD: 2466
-- Latest merged PR captured in the incremental git snapshot: `#1035`
-- New commits since the previous incremental git cursor: `6`
-- Project-scoped memory files captured: `22` from the Lisa Claude project memory directory; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-2026-05-28-133543` rebased onto `origin/main`
+- HEAD at 2026-05-29 incremental ingest: `ecb6a093d767203add54de4d0d703783c80abda0`
+- Current package version: `2.123.2`
+- Total commits on HEAD: 2554
+- Latest merged PR captured in the incremental git snapshot: `#1053`
+- New commits since the previous incremental git cursor: `71`
+- Project-scoped memory skipped this cycle because the only available Claude memory directory was scoped to `/Users/cody/workspace/lisa`, not this automation checkout; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- The previous wiki ingest PR merged, advancing the wiki cursor through PR `#1034`.
-- Release automation advanced the monorepo to `2.116.0`.
-- Lisa added a base rule that makes `wiki/` the durable knowledge source for wiki work while preserving `docs/`, `research/`, `docs/wiki-inbox/`, and `transcripts/` as possible ingestion inputs or evidence locations.
-- The new documentation-source-path guidance reinforces that successful ingestions preserve reader-safe evidence under `wiki/sources/` and record runs in `wiki/log.md`.
+- Release automation advanced the monorepo to `2.123.2`.
+- The prior local connector-ingest commit was rebased onto current `origin/main`, preserving the 2026-05-28 connector cursor before this 2026-05-29 ingest advanced it again.
+- Coding-agent parity work shipped per-agent plugin variant generation, Codex plugin-bundled hook corrections, Copilot probe cache evidence, and `lisa apply --harness fleet` dispatch fixes.
+- The Pattern B fan-out now covers every built Claude plugin, producing cursor, agy, and copilot variants for the base plugin plus stack and standalone plugins.
+- Agy rule delivery now resolves rules the same way as `inject-rules.sh`: prefer `rules/eager/`, then fall back to flat `rules/`, leaving only `rules/reference/` on-demand.
+- Expo support advanced to SDK 56 and `/src` directory conventions, including Jest, ESLint, prettier, knip, and documentation updates.
 
 ## Workspace Packages
 
@@ -51,9 +53,11 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-26-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-27-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-28-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-29-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
 - `wiki/sources/roles/2026-05-26-roles.md`
 - `wiki/sources/roles/2026-05-27-roles.md`
 - `wiki/sources/roles/2026-05-28-roles.md`
+- `wiki/sources/roles/2026-05-29-roles.md`

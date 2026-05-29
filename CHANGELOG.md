@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.123.2](https://github.com/CodySwannGT/lisa/compare/vv2.123.1...v2.123.2) (2026-05-29)
+
+
+### Documentation
+
+* **wiki:** document stack fan-out + correct rule-delivery model ([af9595b](https://github.com/CodySwannGT/lisa/commit/af9595bb9547b186fdb865ab0df25adc60ccd05c)), closes [#1050](https://github.com/CodySwannGT/lisa/issues/1050) [#1052](https://github.com/CodySwannGT/lisa/issues/1052)
+
 ### [2.123.1](https://github.com/CodySwannGT/lisa/compare/vv2.123.0...v2.123.1) (2026-05-29)
 
 
