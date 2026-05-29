@@ -1,0 +1,15 @@
+{
+  "lisa-block-no-verify": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.gemini/config/plugins/lisa-agy/hooks/block-no-verify.agy.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

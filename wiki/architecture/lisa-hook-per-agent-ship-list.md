@@ -29,7 +29,11 @@ Parenthesized name = the agent's native event-name spelling when it differs from
 | `SessionEnd` | ✅ | ❌ | ✅ (`sessionEnd`) | ⚠ schema unverified | ✅ (`sessionEnd`) |
 | `SubagentStart` | ✅ | ✅ (new in 0.125.0) [VERIFIED-DOC: `codex features list` shows `multi_agent` and `multi_agent_v2`; refreshed `reference-codex-hooks-capabilities` memory documents the full ten-event list including SubagentStart] — supersedes the older "no SubagentStart on Codex" claim in the pre-2026-05-28 version of that memory | ⚠ unverified | ⚠ unverified | ❌ (Copilot has `subagentStop` only) [VERIFIED-DOC] |
 
-The agy column carries a blanket `✅* doesn't fire in -p` caveat: agy plugin-bundled hooks pass schema validation and install correctly but DO NOT execute during real `agy -p` sessions (verified-by-run across two probe sessions). Pattern B's agy variant therefore SHOULD NOT ship any hooks — they would only bloat the install. agy rules-injection uses the AGENTS.md bake-in alternative instead.
+> **Update (ticket-1054, agy 1.0.3 — runtime-verified):** runtime probes established how agy actually consumes each surface (after two earlier dead ends):
+> - **Hooks: plugin-bundled, ROOT-level.** agy DOES load a plugin's hooks from a `hooks.json` at the installed plugin ROOT (`~/.gemini/config/plugins/<variant>/hooks.json`). The earlier failure was a `hooks/` SUBDIR hooks.json, which agy does NOT scan. So `generate-agy-plugin-artifacts.mjs` emits a root `hooks.json` in agy's schema (top-level hook-name → event → handlers), matcher `run_command` (agy's shell tool), and ships the agy-protocol script into the variant's `hooks/` subdir; the command points at the `$HOME`-absolute installed script path (agy exposes no plugin-root env var, so `$HOME` is used). Only events agy supports map (PreToolUse/PostToolUse/PreInvocation/PostInvocation/Stop) — SessionStart is unsupported, so `install-pkgs.sh`/`setup-jira-cli.sh` CANNOT ship as agy hooks; only `block-no-verify` (PreToolUse) maps. Only the BASE plugin manifest carries the universal hooks, so only `lisa-agy` gets a hooks.json (stack variants get none).
+> - **MCP: user-global only.** agy ignores plugin-bundled MCP and only auto-loads `~/.gemini/config/mcp_config.json` (the per-project `.agents/mcp_config.json` is NOT read by the CLI), so MCP is delivered by the runtime installer `installAgyMcpConfig`.
+>
+> The agy column's `✅*` marks below are historical Wave-1 annotations; ignore the earlier "fires from subdir" wording. The agy ship-list below is documentation; the generator's `AGY_PLUGIN_HOOKS` map is the source of truth for what actually ships (only `block-no-verify` is agy-portable). `notify-ntfy.sh` was retired entirely in ticket-1054 (see the catalog note below), dropping every agent's universal set from 4 to 3. Rules still use the AGENTS.md bake (rules-once invariant), so `inject-rules.sh` is stripped on agy.
 
 ## Hook script catalog
 
@@ -39,10 +43,10 @@ Each script under `plugins/src/base/hooks/`:
 | --- | --- | --- |
 | `block-no-verify.sh` | PreToolUse(Bash) gate that blocks `git commit --no-verify` and similar | universal — every agent that runs Bash via PreToolUse |
 | `enforce-team-first.sh` | Enforces Lisa's "team-first" governance pattern (one agent team per project) | Claude-only (the pattern is Claude-team-specific to Lisa's Anthropic governance flow; not meaningful on other agents) |
-| `inject-rules.sh` | SessionStart + SubagentStart polyfill injecting `${CLAUDE_PLUGIN_ROOT}/rules/eager/*.md` content via `additionalContext` | Claude, Codex, Copilot — **STRIP on Cursor** (Cursor auto-loads `rules/` natively, double-inject collision). **STRIP on agy** (hooks don't fire in `-p`; agy uses AGENTS.md bake-in instead). ⚠ Copilot ship is the conservative default since Copilot's plugin-level instruction-source field is undocumented (per `reference-copilot-plugin-capabilities`); empirical probe required before Wave 3 to confirm no double-inject collision against Copilot's instruction system. |
-| `inject-flow-context.sh` | SubagentStart polyfill injecting flow context into sub-agents | Claude + Codex (Codex 0.125.0 now supports SubagentStart per refreshed `reference-codex-hooks-capabilities` memory). **STRIP on Cursor / agy / Copilot** (Copilot has no SubagentStart; Cursor unverified; agy hooks don't fire). |
+| `inject-rules.sh` | SessionStart + SubagentStart polyfill injecting `${CLAUDE_PLUGIN_ROOT}/rules/eager/*.md` content via `additionalContext` | Claude, Codex, Copilot — **STRIP on Cursor** (Cursor auto-loads `rules/` natively, double-inject collision). **STRIP on agy** (rules delivered exactly once via the AGENTS.md bake — the rules-once invariant — not a hook; the agy artifact ships no `rules/`). ⚠ Copilot ship is the conservative default since Copilot's plugin-level instruction-source field is undocumented (per `reference-copilot-plugin-capabilities`); empirical probe required before Wave 3 to confirm no double-inject collision against Copilot's instruction system. |
+| `inject-flow-context.sh` | SubagentStart polyfill injecting flow context into sub-agents | Claude + Codex (Codex 0.125.0 now supports SubagentStart per refreshed `reference-codex-hooks-capabilities` memory). **STRIP on Cursor / agy / Copilot** (Copilot has no SubagentStart; Cursor unverified; SubagentStart is not in agy's universal ship-list). |
 | `install-pkgs.sh` | SessionStart(startup) installer ensuring required CLIs are present | universal — every agent's first session |
-| `notify-ntfy.sh` | Stop notification via ntfy.sh | universal (it's a notification, not Claude-specific) |
+| ~~`notify-ntfy.sh`~~ | ~~Stop notification via ntfy.sh~~ | **RETIRED (ticket-1054)** — removed from Lisa's source entirely (the script, the base `Stop` hook entry, the Codex hook def, and every per-agent ship-list). It was emitting a `No such file or directory` Stop-hook error and is no longer used. |
 | `setup-jira-cli.sh` | SessionStart sets up `acli` JIRA CLI auth from settings | universal |
 | `debug-hook.sh` | Debug helper | **exclude from every per-agent variant by default** (it is a development helper, not a production hook). Wave 3 contract: generator scripts skip any `*debug*.sh`. |
 | `ticket-sync-reminder.sh` | Reminder hook (event TBD — used in some flows) | **unregistered in `plugin.json`** — verify whether the file is intentionally idle or invoked by a non-plugin code path before classifying. Wave 3 contract: generator scripts skip it until classification is resolved. |
@@ -65,13 +69,13 @@ The `plugin.json` also registers calls to the external `entire` CLI on multiple 
 | `entire hooks claude-code post-todo` (matcher=TodoWrite) | PostToolUse | ship | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh` (matcher=TeamCreate) | PostToolUse | ship | strip | strip | strip | strip |
 | `entire hooks claude-code pre-task` (matcher=Task) | PreToolUse | ship | strip | strip | strip | strip |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh` (matcher=Bash) | PreToolUse | ship | ship | ship | strip | ship |
+| `${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh` (matcher=Bash) | PreToolUse | ship | ship | ship | ship | ship |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh` (PreToolUse) | PreToolUse | ship | strip | strip | strip | strip |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh` | Stop | ship | ship | ship | strip | ship |
+| ~~`${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh`~~ | ~~Stop~~ | **RETIRED (ticket-1054)** — entry removed from `plugins/src/base/.claude-plugin/plugin.json` | — | — | — | — |
 | `entire hooks claude-code stop` | Stop | ship | strip | strip | strip | strip |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh` (matcher=startup) | SessionStart | ship | ship | ship | strip | ship |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` | SessionStart | ship | ship | **STRIP** (Cursor auto-loads rules) | strip | ship |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh` | SessionStart | ship | ship | ship | strip | ship |
+| `${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh` (matcher=startup) | SessionStart | ship | ship | ship | ship | ship |
+| `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` | SessionStart | ship | ship | **STRIP** (Cursor auto-loads rules) | **STRIP** (AGENTS.md bake) | ship |
+| `${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh` | SessionStart | ship | ship | ship | ship | ship |
 | `entire hooks claude-code session-start` | SessionStart | ship | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` (SubagentStart) | SubagentStart | ship | ship | strip | strip | strip (Copilot has no SubagentStart) |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/inject-flow-context.sh` | SubagentStart | ship | ship | strip | strip | strip |
@@ -81,10 +85,10 @@ The `plugin.json` also registers calls to the external `entire` CLI on multiple 
 ## Net by per-agent variant
 
 - **Claude (`plugins/lisa/`)** — ships every hook. Status quo, no change.
-- **Codex (`plugins/lisa/` via `.codex-plugin` pointer)** — ships universally-applicable + SubagentStart hooks (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `notify-ntfy.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Strips all `entire hooks claude-code *` calls and `enforce-team-first.sh`. Codex 0.125.0 now supports plugin-bundled hooks — migrating the Codex hooks installer from per-project `.codex/hooks.json` to plugin-bundled is Wave 3 Action 3 in the research artifact.
-- **Cursor (`plugins/lisa-cursor/`)** — ships `block-no-verify.sh`, `notify-ntfy.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`. **STRIPS `inject-rules.sh`** entirely (Cursor auto-loads `rules/` natively — preventing the double-injection collision is Pattern B's whole point). Strips Claude-specific entire calls and enforce-team-first. Strips inject-flow-context (Cursor SubagentStart unverified — defer until research refresh).
-- **agy (`plugins/lisa-agy/`)** — **SHIPS NO HOOKS AT ALL**. agy plugin hooks don't fire in `-p` mode. Rules injection on agy uses AGENTS.md bake-in instead (Cluster 4-agy / Option α from the research artifact's Step 4).
-- **Copilot (`plugins/lisa-copilot/`)** — ships `block-no-verify.sh`, `inject-rules.sh` (Copilot doesn't auto-load rules from plugin), `notify-ntfy.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`. Strips all SubagentStart hooks (Copilot doesn't have that event). Strips entire calls and enforce-team-first. The Copilot variant's `inject-rules.sh` may need its `${CLAUDE_PLUGIN_ROOT}` path reference adapted if Copilot exposes a different plugin-root env var name (e.g. `${COPILOT_PLUGIN_ROOT}` — unverified; Pattern B generator should probe and document).
+- **Codex (`plugins/lisa/` via `.codex-plugin` pointer)** — ships universally-applicable + SubagentStart hooks (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Strips all `entire hooks claude-code *` calls and `enforce-team-first.sh`. Codex 0.125.0 now supports plugin-bundled hooks — migrating the Codex hooks installer from per-project `.codex/hooks.json` to plugin-bundled is Wave 3 Action 3 in the research artifact.
+- **Cursor (`plugins/lisa-cursor/`)** — ships `block-no-verify.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`. **STRIPS `inject-rules.sh`** entirely (Cursor auto-loads `rules/` natively — preventing the double-injection collision is Pattern B's whole point). Strips Claude-specific entire calls and enforce-team-first. Strips inject-flow-context (Cursor SubagentStart unverified — defer until research refresh).
+- **agy (`plugins/lisa-agy/`)** — only `block-no-verify` is agy-portable (PreToolUse). `install-pkgs`/`setup-jira-cli` are SessionStart, which agy hooks don't support; `inject-rules`/`enforce-team-first`/`inject-flow-context`/the `entire` calls are stripped as on Cursor. Delivery: a PLUGIN-BUNDLED root `hooks.json` (agy schema, matcher `run_command`, command → `$HOME/.gemini/config/plugins/lisa-agy/hooks/block-no-verify.agy.sh`) emitted by `generate-agy-plugin-artifacts.mjs`, plus the agy-protocol script under the variant's `hooks/`. It rides along with `agy plugin install`. The generated `plugins/lisa-agy/` artifact ships the root `hooks.json` + `hooks/block-no-verify.agy.sh` but **no `mcp_config.json`, no `.mcp.json`, no `rules/`, no `hooks/hooks.json` subdir** — MCP goes through the runtime installer (`installAgyMcpConfig` → user-global `~/.gemini/config/mcp_config.json`) and rules through the AGENTS.md bake. Stack variants carry no manifest hooks, so they emit no `hooks.json`. _(ticket-1054: superseded both the original "ships no hooks" finding and the interim "subdir hooks"/"runtime installer" approaches — agy loads a ROOT-level plugin hooks.json.)_
+- **Copilot (`plugins/lisa-copilot/`)** — ships `block-no-verify.sh`, `inject-rules.sh` (Copilot doesn't auto-load rules from plugin), `install-pkgs.sh`, `setup-jira-cli.sh`. Strips all SubagentStart hooks (Copilot doesn't have that event). Strips entire calls and enforce-team-first. The Copilot variant's `inject-rules.sh` may need its `${CLAUDE_PLUGIN_ROOT}` path reference adapted if Copilot exposes a different plugin-root env var name (e.g. `${COPILOT_PLUGIN_ROOT}` — unverified; Pattern B generator should probe and document).
 
 ## Open questions surfaced by the audit
 
@@ -96,7 +100,7 @@ Blocking for Wave 3:
 
 Deferred / non-blocking:
 
-4. **agy `${CLAUDE_PLUGIN_ROOT}` env var** — agy ships no hooks under Pattern B, so this question is moot for the implementation. Re-evaluate if agy plugin hooks ever fire in interactive mode (currently verified-by-run-not-firing in `-p`).
+4. **agy `${CLAUDE_PLUGIN_ROOT}` env var** — _resolved (ticket-1054)._ Runtime probe: agy exposes **no plugin-root env var** (`${CLAUDE_PLUGIN_ROOT}` resolves empty). The plugin-bundled root `hooks.json` therefore references the installed script via a `$HOME`-absolute path (`$HOME/.gemini/config/plugins/<variant>/hooks/<script>`), which agy's ExpandEnv resolves.
 
 ## Wave 3 consumption
 
@@ -115,11 +119,11 @@ The Pattern B generator scripts (`scripts/generate-cursor-plugin-artifacts.mjs`,
 6. **Rewrite plugin-root env var** in `command` strings AND in shipped script bodies per the target agent:
    - Claude / Cursor: `${CLAUDE_PLUGIN_ROOT}` (Cursor inherits Claude's env var name per the dual-namespace loader).
    - Codex: prior research found `CLAUDE_PLUGIN_ROOT` / `CODEX_PLUGIN_ROOT` are NOT set for hook commands (per `reference-codex-hooks-capabilities`). Wave 3 generator MUST translate `${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh` to an absolute path the Codex installer resolves at install time (analogous to how `src/codex/hooks-installer.ts` currently writes absolute paths into project `.codex/hooks.json`).
-   - agy: not applicable (variant ships no hooks).
+   - agy: the plugin-bundled root `hooks.json` references the installed script via a `$HOME`-absolute path (`$HOME/.gemini/config/plugins/<variant>/hooks/<script>`); agy exposes no plugin-root env var, and ExpandEnv resolves `$HOME`.
    - Copilot: ⚠ env var name unverified. Community examples literally use `${CLAUDE_PLUGIN_ROOT}` for Antigravity-targeted hooks but Copilot's actual convention is undocumented. Wave 3 generator MUST probe Copilot's runtime env (`${COPILOT_PLUGIN_ROOT}` is the natural guess) before final emit; fall back to absolute paths if no env var is exposed.
 7. **Emit** the agent-appropriate `hooks` block in the variant's manifest plus the surviving `hooks/` directory.
 
-For agy specifically the generator skips steps 2-7 entirely and emits no `hooks/` directory plus no `hooks` field in the manifest.
+For agy the generator emits a PLUGIN-BUNDLED root `hooks.json` (agy schema; only `block-no-verify`/PreToolUse is portable, base variant only) + the agy-protocol script under `hooks/`, and drops `rules/`, `.mcp.json`, the stale `hooks/hooks.json` subdir, and the manifest's `hooks`/`mcpServers` fields. MCP is delivered separately by `installAgyMcpConfig` into the user-global `~/.gemini/config/mcp_config.json` (agy ignores plugin-bundled MCP). See `pattern-b-fan-out-spec.md`.
 
 ## Verified by run — 2026-05-28 follow-up (Codex 0.125.0 + Copilot 1.0.55)
 
