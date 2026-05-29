@@ -136,13 +136,6 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     statusMessage: "Checking shell command policy",
   },
   {
-    id: "notify-ntfy",
-    event: "Stop",
-    matcher: "",
-    scriptFilename: "notify-ntfy.sh",
-    forProjectTypes: ["*"],
-  },
-  {
     id: "format-on-edit",
     event: "PostToolUse",
     matcher: WRITE_MATCHER,

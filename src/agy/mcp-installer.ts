@@ -1,12 +1,18 @@
 /**
  * Install Lisa's MCP server config into agy's user-level mcp_config.json.
  *
- * agy reads MCP server configs from `~/.gemini/config/mcp_config.json` (user
- * scope, shared with Antigravity 2.0 desktop) or `<project>/.agents/mcp_config.json`
- * (project scope). MCP is NOT a plugin component on agy — the file lives
- * outside any plugin and is consumed independently per
- * `wiki/architecture/coding-agent-parity.md` and
- * `reference_agy_plugin_capabilities` memory.
+ * The agy CLI (1.0.3) auto-loads MCP servers ONLY from the user-global
+ * `~/.gemini/config/mcp_config.json` (shared with the Antigravity 2.0 desktop
+ * app). A project-scope `<project>/.agents/mcp_config.json` is NOT read by the
+ * agy CLI — verified-by-run (ticket-1054); the project path is retained here
+ * only as a non-default option for callers/tools that target it directly. MCP
+ * is NOT a plugin component on agy (plugin-bundled MCP is ignored) — the config
+ * lives outside any plugin and is consumed independently.
+ *
+ * Cross-project caveat: because delivery is user-global, the most recent
+ * `lisa apply` carrying MCP servers wins for every project on the machine. The
+ * tagged-merge below preserves host-authored entries, but Lisa-managed entries
+ * reflect whichever project last applied.
  *
  * Schema differences from Claude/Codex:
  *   - agy uses `serverUrl` for HTTP transport (NOT `url` or `httpUrl`).
@@ -19,7 +25,7 @@
  * @module agy/mcp-installer
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -35,7 +41,9 @@ export function defaultUserMcpConfigPath(): string {
 }
 
 /**
- * Where agy reads project-scope MCP config (per-workspace override).
+ * Project-scope MCP config path. NOTE: the agy CLI does NOT auto-load this path
+ * (only the user-global file is read — ticket-1054); kept for callers/tools
+ * that target a per-workspace file directly. `lisa apply` uses user scope.
  * @param destDir - Absolute path to the host project root.
  * @returns Absolute path to `<destDir>/.agents/mcp_config.json`.
  */
@@ -49,10 +57,12 @@ export type AgyMcpScope = "project" | "user";
 /**
  * Resolve the agy MCP config path for a given scope.
  *
- * `lisa apply` operates on a single project, so the default scope is
- * `"project"` — it writes `<destDir>/.agents/mcp_config.json` rather than
- * polluting the user's global `~/.gemini/config/mcp_config.json` (shared with
- * the Antigravity desktop app). Pass `scope: "user"` to target the shared file.
+ * `lisa apply` uses `scope: "user"` because the agy CLI only auto-loads the
+ * user-global `~/.gemini/config/mcp_config.json` (the project-scope file is
+ * never read — ticket-1054). The `"project"` scope remains available for
+ * callers that explicitly want a per-workspace file, but it is NOT what the agy
+ * CLI consumes. The default stays `"project"` for backward compatibility of
+ * this pure resolver; `processAgyEmit` passes `"user"` explicitly.
  * @param opts - Scope selector and (for project scope) the host project root.
  * @param opts.scope - `"project"` (default) or `"user"`.
  * @param opts.destDir - Host project root; required for project scope.
@@ -135,6 +145,47 @@ export function translateMcpEntryToAgy(
   }
   // Empty / unknown shape — return as-is minus the type field.
   return {};
+}
+
+/**
+ * Collect Lisa's MCP servers from the built plugin `.mcp.json` files (base plus
+ * each detected stack), returning the merged Claude/Codex-shape server map.
+ *
+ * agy ignores plugin-bundled MCP, so `processAgyEmit` reads these files and
+ * installs the result into agy's aggregate `mcp_config.json` via
+ * `installAgyMcpConfig` (which translates `url` → `serverUrl`). Shallow-merged
+ * base-first, so a later stack overrides the base on a name collision.
+ * @param pluginRoot - Absolute path to the `plugins/` directory.
+ * @param detectedTypes - Detected project types (e.g. `["expo"]`).
+ * @returns Merged map of server name → Claude/Codex-shape entry (`{}` if none).
+ */
+export function collectLisaMcpServers(
+  pluginRoot: string,
+  detectedTypes: readonly string[]
+): Record<string, ClaudeMcpServerEntry> {
+  const pluginNames = ["lisa", ...detectedTypes.map(t => `lisa-${t}`)];
+  return pluginNames.reduce<Record<string, ClaudeMcpServerEntry>>(
+    (acc, name) => {
+      const mcpPath = path.join(pluginRoot, name, ".mcp.json");
+      if (!existsSync(mcpPath)) return acc;
+      try {
+        const parsed = JSON.parse(readFileSync(mcpPath, "utf8")) as {
+          readonly mcpServers?: Readonly<Record<string, ClaudeMcpServerEntry>>;
+        };
+        return parsed.mcpServers ? { ...acc, ...parsed.mcpServers } : acc;
+      } catch (err) {
+        // Malformed .mcp.json: skip it but surface why, so a typo is debuggable
+        // instead of silently dropping the plugin's MCP servers.
+        console.warn(
+          `[lisa] Skipping unreadable MCP config ${mcpPath}: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+        return acc;
+      }
+    },
+    {}
+  );
 }
 
 /** Result of the agy MCP install pass. */
