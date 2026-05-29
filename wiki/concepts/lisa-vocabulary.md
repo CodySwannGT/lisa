@@ -75,3 +75,7 @@ A per-agent plugin variant is a generated Lisa plugin artifact tailored to one c
 ## Eager-Or-Flat Rule Resolution
 
 Eager-or-flat rule resolution means Lisa first loads `rules/eager/` when present and otherwise falls back to flat markdown files directly under `rules/`. `rules/reference/` stays out of startup injection and is loaded only when needed.
+
+## Claude Remote Routine Readiness
+
+Claude Remote routine readiness is the local-vs-cloud audit Lisa runs before a repository is expected to execute inside a Claude Code remote routine. It inventories required CLIs, package managers, environment variable names, startup hook safety, MCP transport/auth boundaries, user-scoped config gaps, and network allowlist needs without collecting secret values.

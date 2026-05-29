@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by incremental connector ingest on 2026-05-29 through Lisa release `2.123.2` and merged PR `#1053`.
+Last updated by incremental connector ingest on 2026-05-29 through Lisa release `2.124.0` and merged PR `#1060`.
 
 ## Orientation
 
