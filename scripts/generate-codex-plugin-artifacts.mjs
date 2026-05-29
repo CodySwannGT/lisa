@@ -7,17 +7,31 @@
  *
  * HOOKS: as of Codex 0.125.0 (verified via codex features list showing
  * codex_hooks as `stable`), the plugin manifest accepts a `hooks` field
- * pointing at a sibling `hooks.json`. `emitCodexHooks` below derives the
- * Codex-shape hooks block from the Claude manifest by applying the Wave 1
- * per-agent ship-list audit
+ * pointing at a `hooks.json`. Per the official docs + the structural analogy to
+ * the working `skills`/`mcpServers` pointers, that pointer resolves RELATIVE TO
+ * THE PLUGIN ROOT — but end-to-end firing is trust-gated (interactive `/hooks`,
+ * no headless bypass in 0.125.0), so this is verified by docs + structure, not
+ * by an automated run; the per-project installer (src/codex/hooks-installer.ts)
+ * remains the verified-working Codex delivery path. `emitCodexHooks` below
+ * derives the Codex-shape hooks block from the Claude manifest by applying the
+ * Wave 1 per-agent ship-list audit
  * (wiki/architecture/lisa-hook-per-agent-ship-list.md):
  *   - Drop every `entire hooks claude-code *` command (Claude-only analytics).
  *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
  *   - Drop `inject-flow-context.sh` ONLY when targeting an agent without
  *     SubagentStart (Codex 0.125.0 has SubagentStart, so we ship it).
- *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh to ./hooks/<n>.sh so the
- *     hooks.json sibling can resolve the script path relative to itself.
- *   - Copy the surviving scripts into .codex-plugin/hooks/.
+ *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh to ${PLUGIN_ROOT}/hooks/<n>.sh
+ *     (the env var Codex exposes to hook commands), which still resolves to the
+ *     shared scripts at <plugin-root>/hooks/*.sh.
+ *
+ * The derived hooks.json is written to <plugin-root>/.codex-plugin/hooks.json,
+ * NOT <plugin-root>/hooks/hooks.json. The latter is where Claude Code (and the
+ * cursor/copilot Claude-protocol variants) AUTO-DISCOVER plugin hooks, so a
+ * Codex-shaped file there gets run by Claude too — and because it uses
+ * ${PLUGIN_ROOT} (undefined in Claude), the path expands to an empty prefix
+ * (`/hooks/<n>.sh: No such file`). Keeping the Codex file under .codex-plugin/
+ * (which Claude never scans) is what lets Claude, Codex, cursor, copilot, and
+ * agy each load exactly their own hooks. See issue #1058.
  *
  * SessionEnd is documented as unsupported by Codex; the `entire hooks
  * claude-code session-end` hook is stripped per the Claude-only rule above
@@ -459,27 +473,33 @@ function main() {
 
 /**
  * Per Wave 1 audit + Codex 0.125.0 supporting plugin-bundled hooks: derive
- * a Codex-shaped hooks.json from the Claude manifest's hooks block and copy
- * the surviving scripts into .codex-plugin/hooks/.
+ * a Codex-shaped hooks.json from the Claude manifest's hooks block and write it
+ * to <plugin-root>/.codex-plugin/hooks.json (advertised via the manifest `hooks`
+ * pointer in componentPointers).
+ *
+ * The file deliberately does NOT go to <plugin-root>/hooks/hooks.json: Claude
+ * Code and the cursor/copilot Claude-protocol variants auto-discover hooks
+ * there, and the Codex file's ${PLUGIN_ROOT} (undefined in Claude) would expand
+ * to an empty prefix and fail at startup (issue #1058). The hook SCRIPTS stay
+ * at <plugin-root>/hooks/*.sh — shared, copied from plugins/src by the Claude
+ * build — and ${PLUGIN_ROOT}/hooks/<n>.sh resolves to them regardless of where
+ * hooks.json itself lives.
  *
  * No-op when the input has no hooks block or every entry is stripped.
  *
  * @param {string} pluginDir Built Claude plugin directory.
  * @param {object} claudeManifest Parsed contents of .claude-plugin/plugin.json.
  */
-function emitCodexHooks(pluginDir, claudeManifest) {
-  // Codex auto-discovers a plugin's hooks at <plugin-root>/hooks/hooks.json and
-  // resolves the manifest hooks pointer + ${PLUGIN_ROOT} relative to the plugin
-  // root (developers.openai.com/codex/plugins/build). The hook scripts already
-  // ship at <plugin-root>/hooks/ (copied from plugins/src by the Claude build),
-  // so the Codex hooks.json lives alongside them and no script copy is needed.
-  const hooksDir = path.join(pluginDir, "hooks");
-  const hooksJsonPath = path.join(hooksDir, "hooks.json");
-  // Clean up the pre-2.121 layout (hooks.json + copied scripts under
-  // .codex-plugin/) so a rebuilt plugin never ships both.
-  const legacyCodexPluginDir = path.join(pluginDir, ".codex-plugin");
-  fs.rmSync(path.join(legacyCodexPluginDir, "hooks.json"), { force: true });
-  fs.rmSync(path.join(legacyCodexPluginDir, "hooks"), {
+export function emitCodexHooks(pluginDir, claudeManifest) {
+  const codexPluginDir = path.join(pluginDir, ".codex-plugin");
+  const hooksJsonPath = path.join(codexPluginDir, "hooks.json");
+  // Purge the older layouts so a rebuilt plugin never ships a stale/duplicate
+  // file:
+  //   - <plugin-root>/hooks/hooks.json     (2.121–2.124; broke Claude startup)
+  //   - <plugin-root>/.codex-plugin/hooks/ (pre-2.121 copied-scripts dir)
+  // The shared .sh scripts at <plugin-root>/hooks/ are left untouched.
+  fs.rmSync(path.join(pluginDir, "hooks", "hooks.json"), { force: true });
+  fs.rmSync(path.join(codexPluginDir, "hooks"), {
     force: true,
     recursive: true,
   });
@@ -490,7 +510,7 @@ function emitCodexHooks(pluginDir, claudeManifest) {
     fs.rmSync(hooksJsonPath, { force: true });
     return;
   }
-  fs.mkdirSync(hooksDir, { recursive: true });
+  fs.mkdirSync(codexPluginDir, { recursive: true });
   fs.writeFileSync(
     hooksJsonPath,
     `${JSON.stringify(buildCodexHooksDocument(filtered), null, 2)}\n`
@@ -541,7 +561,7 @@ function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
   );
 }
 
-function componentPointers(pluginDir) {
+export function componentPointers(pluginDir) {
   return {
     ...(fs.existsSync(path.join(pluginDir, "skills"))
       ? { skills: "./skills/" }
@@ -549,8 +569,8 @@ function componentPointers(pluginDir) {
     ...(fs.existsSync(path.join(pluginDir, ".mcp.json"))
       ? { mcpServers: "./.mcp.json" }
       : {}),
-    ...(fs.existsSync(path.join(pluginDir, "hooks", "hooks.json"))
-      ? { hooks: "./hooks/hooks.json" }
+    ...(fs.existsSync(path.join(pluginDir, ".codex-plugin", "hooks.json"))
+      ? { hooks: "./.codex-plugin/hooks.json" }
       : {}),
   };
 }
