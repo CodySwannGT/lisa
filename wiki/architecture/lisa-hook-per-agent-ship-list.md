@@ -140,12 +140,23 @@ the `reference_codex_plugin_hooks_shape_and_firing` session memory.
   `--dangerously-bypass-hook-trust` flag is not present), so end-to-end hook
   *firing* cannot be verified in `codex exec` or scripted CI — it is verified by
   authoritative docs + artifact structure, not by an automated run.
-- **Discovery path (was wrong in the first Wave 3b cut):** Codex auto-discovers
-  `<plugin-root>/hooks/hooks.json` and resolves the manifest `hooks` pointer
-  relative to the **plugin root**. The first cut wrote `.codex-plugin/hooks.json`
-  with a `./hooks.json` pointer that resolved to a non-existent
-  `<root>/hooks.json`; Codex never found it. Fixed: write
-  `hooks/hooks.json`, point `./hooks/hooks.json`.
+- **Discovery path (corrected again in #1058):** Codex resolves the manifest
+  `hooks` pointer relative to the **plugin root** (same as the `skills`/
+  `mcpServers` pointers). An early cut wrote `.codex-plugin/hooks.json` with a
+  `./hooks.json` pointer that resolved to a non-existent `<root>/hooks.json`, so
+  Codex never found it; the interim fix (Wave 3b, #1049) "corrected" this by
+  writing `<plugin-root>/hooks/hooks.json` + pointer `./hooks/hooks.json`. That
+  **broke Claude**: Lisa ships ONE plugin dir consumed by both runtimes, and
+  `<plugin-root>/hooks/hooks.json` is exactly where Claude Code (and the cursor/
+  copilot variants) auto-discover plugin hooks — Claude ran the Codex-shaped
+  `${PLUGIN_ROOT}` file, where `${PLUGIN_ROOT}` is undefined, so the path
+  expanded to an empty prefix (`/hooks/<n>.sh: No such file`) at startup.
+  **Final fix (#1058):** the generator emits the Codex hooks.json to
+  `.codex-plugin/hooks.json` (a dir Claude never scans) with the matching
+  plugin-root-relative pointer `./.codex-plugin/hooks.json`, and purges any
+  stale `<plugin-root>/hooks/hooks.json`. The hook *scripts* stay shared at
+  `<plugin-root>/hooks/*.sh`; `${PLUGIN_ROOT}/hooks/<n>.sh` resolves to them
+  regardless of where hooks.json itself lives.
 - **Plugin-root env var (corrects step 6):** Codex exposes `${PLUGIN_ROOT}` to
   hook commands. The generator rewrites `${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh`
   → `${PLUGIN_ROOT}/hooks/<n>.sh` (not the cwd-relative `./hooks/` the first cut

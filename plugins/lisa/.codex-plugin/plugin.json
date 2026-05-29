@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "2.124.1",
+  "version": "2.124.2",
   "description": "Universal governance: agents, skills, commands, hooks, and rules for all projects.",
   "author": {
     "name": "Cody Swann"
@@ -12,7 +12,7 @@
     "workflow"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
+  "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "Lisa",
     "shortDescription": "Universal project governance workflows",
