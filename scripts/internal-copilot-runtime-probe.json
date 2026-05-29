@@ -1,7 +1,13 @@
 {
-  "_comment": "Cached Copilot runtime probe results. Updated by Wave 3 verification probes (Task #17) and consumed by scripts/generate-copilot-plugin-artifacts.mjs. Missing values fall through to conservative defaults.",
-  "cliVersion": null,
+  "_comment": "Cached Copilot runtime probe results consumed by scripts/generate-copilot-plugin-artifacts.mjs. Populated 2026-05-28 by empirical probes against GitHub Copilot CLI 1.0.55 (see _evidence). Missing/null values fall through to conservative generator defaults.",
+  "cliVersion": "1.0.55",
   "pluginRootEnvVar": null,
-  "rulesAutoLoads": null,
-  "agentPathOverrideAccepted": null
+  "rulesAutoLoads": false,
+  "agentPathOverrideAccepted": false,
+  "_evidence": {
+    "cliVersion": "[VERIFIED-BY-RUN] `copilot --version` => 'GitHub Copilot CLI 1.0.55.'",
+    "rulesAutoLoads": "[VERIFIED-BY-RUN] A plugin's bundled rules/ directory is NOT auto-loaded. Probe: `copilot --plugin-dir <pkg> -p 'plugin codeword?'` with a sentinel rule in <pkg>/rules/sentinel.md and no .github/copilot-instructions.md returned 'UNKNOWN'. (Copilot DOES auto-load .github/copilot-instructions.md — a separate project file — but that template only points at the plugin, so inject-rules.sh must still ship. Hence false: do NOT strip inject-rules.sh.)",
+    "agentPathOverrideAccepted": "[PARTIAL] With an explicit manifest 'agents: ./agents/' pointer, `copilot --plugin-dir <pkg> --agent <ns>:<name>` loaded a non-.agent.md file (agents/probeagent.md) and it responded. However that is session-only --plugin-dir loading; the marketplace-install auto-discovery path is unverified and .agent.md loads in every observed context. Kept false so the generator retains the universally-safe rename to <name>.agent.md.",
+    "pluginRootEnvVar": "[VERIFIED-DOC] GitHub Copilot CLI plugin reference documents ${COPILOT_PLUGIN_DATA} is also exposed as ${CLAUDE_PLUGIN_DATA}; Copilot aliases the CLAUDE_* plugin env vars, so the ${CLAUDE_PLUGIN_ROOT} form the generator emits in hook commands is supported. null => generator keeps ${CLAUDE_PLUGIN_ROOT}. Direct hook-fire env capture was not achievable via --plugin-dir in -p mode (hook did not fire; firing likely requires a real `copilot plugin install` and/or interactive trust — unverified)."
+  }
 }

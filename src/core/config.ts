@@ -95,6 +95,35 @@ export const HARNESS_VALUES: readonly Harness[] = [
 ] as const;
 
 /**
+ * Per-project emit agents that have a dispatch path in `lisa apply`.
+ * (Cursor is intentionally absent — it needs no per-project writes; it consumes
+ * the `lisa-cursor` plugin variant directly via its marketplace/loader.)
+ */
+export type EmitAgent = "claude" | "codex" | "agy" | "copilot";
+
+/**
+ * Whether a configured harness should emit artifacts for a given agent.
+ *
+ * Centralizes the dispatch-inclusion rule so the four `process<Agent>Emit`
+ * guards stay consistent: a `"fleet"` harness includes every agent, `"both"`
+ * is the Claude+Codex back-compat pair, and any single-agent harness matches
+ * only itself. (A prior copy-paste left `"fleet"` out of the Codex guard, so
+ * fleet installs silently skipped Codex — this predicate prevents that class
+ * of bug.)
+ * @param harness - The configured/CLI-resolved harness value.
+ * @param agent - The emit agent whose dispatch is being gated.
+ * @returns True when the harness should run that agent's emit path.
+ */
+export function harnessIncludesAgent(
+  harness: Harness,
+  agent: EmitAgent
+): boolean {
+  if (harness === "fleet") return true;
+  if (harness === "both") return agent === "claude" || agent === "codex";
+  return harness === agent;
+}
+
+/**
  * Default harness when none is configured (backward compatibility — existing
  * host projects predate Codex support and have always emitted .claude/ artifacts)
  */

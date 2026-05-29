@@ -1,6 +1,6 @@
 {
   "name": "lisa-typescript",
-  "version": "2.121.0",
+  "version": "2.121.1",
   "description": "TypeScript-specific hooks for formatting, linting, and ast-grep scanning on edit.",
   "author": {
     "name": "Cody Swann"
@@ -14,7 +14,7 @@
   "dependencies": [
     "lisa"
   ],
-  "hooks": "./hooks.json",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Lisa TypeScript",
     "shortDescription": "TypeScript lifecycle checks",

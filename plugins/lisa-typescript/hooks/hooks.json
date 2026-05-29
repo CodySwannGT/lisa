@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/block-suppress-directives.sh"
+            "command": "${PLUGIN_ROOT}/hooks/block-suppress-directives.sh"
           }
         ]
       }
@@ -17,15 +17,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/format-on-edit.sh"
+            "command": "${PLUGIN_ROOT}/hooks/format-on-edit.sh"
           },
           {
             "type": "command",
-            "command": "./hooks/sg-scan-on-edit.sh"
+            "command": "${PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh"
           },
           {
             "type": "command",
-            "command": "./hooks/lint-on-edit.sh"
+            "command": "${PLUGIN_ROOT}/hooks/lint-on-edit.sh"
           }
         ]
       }

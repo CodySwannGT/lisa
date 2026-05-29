@@ -55,7 +55,11 @@ import type {
   OperationCounters,
   ProjectType,
 } from "./config.js";
-import { COPY_STRATEGIES, createInitialCounters } from "./config.js";
+import {
+  COPY_STRATEGIES,
+  createInitialCounters,
+  harnessIncludesAgent,
+} from "./config.js";
 import type { IGitService } from "./git-service.js";
 
 /**
@@ -728,7 +732,7 @@ export class Lisa {
    */
   private async processCodexEmit(): Promise<void> {
     const { harness } = this.config;
-    if (harness !== "codex" && harness !== "both") {
+    if (!harnessIncludesAgent(harness, "codex")) {
       return;
     }
     if (this.config.dryRun) {
@@ -797,7 +801,7 @@ export class Lisa {
    */
   private async processClaudeEmit(): Promise<void> {
     const { harness } = this.config;
-    if (harness !== "claude" && harness !== "both" && harness !== "fleet") {
+    if (!harnessIncludesAgent(harness, "claude")) {
       return;
     }
     if (this.config.dryRun) {
@@ -829,7 +833,7 @@ export class Lisa {
    */
   private async processAgyEmit(): Promise<void> {
     const { harness } = this.config;
-    if (harness !== "agy" && harness !== "fleet") {
+    if (!harnessIncludesAgent(harness, "agy")) {
       return;
     }
     if (this.config.dryRun) {
@@ -840,7 +844,11 @@ export class Lisa {
     const pluginRoot = path.join(this.config.lisaDir, "plugins");
     const pluginResult = await installAgyPlugin(pluginRoot);
 
-    const rulesEagerDir = path.join(pluginRoot, "lisa-agy", "rules", "eager");
+    // Bake source is the BASE plugin's eager rules, not the agy variant's: the
+    // agy generator strips rules/ from the variant (agy doesn't auto-load plugin
+    // rules), so lisa-agy/rules/eager is empty. The canonical rule content lives
+    // in lisa/rules/eager and is what gets baked into AGENTS.md.
+    const rulesEagerDir = path.join(pluginRoot, "lisa", "rules", "eager");
     const agentsMdResult = await installAgyAgentsMd(
       this.config.destDir,
       rulesEagerDir
@@ -872,7 +880,7 @@ export class Lisa {
    */
   private async processCopilotEmit(): Promise<void> {
     const { harness } = this.config;
-    if (harness !== "copilot" && harness !== "fleet") {
+    if (!harnessIncludesAgent(harness, "copilot")) {
       return;
     }
     if (this.config.dryRun) {
