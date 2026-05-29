@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.124.0](https://github.com/CodySwannGT/lisa/compare/vv2.123.3...v2.124.0) (2026-05-29)
+
+
+### Features
+
+* **base:** add claude-remote readiness skills ([997ee13](https://github.com/CodySwannGT/lisa/commit/997ee1304068284c788824531bb81155a8d209f5))
+
 ### [2.123.3](https://github.com/CodySwannGT/lisa/compare/vv2.123.2...v2.123.3) (2026-05-29)
 
 
