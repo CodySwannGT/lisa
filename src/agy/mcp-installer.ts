@@ -43,6 +43,35 @@ export function defaultProjectMcpConfigPath(destDir: string): string {
   return path.join(destDir, ".agents", "mcp_config.json");
 }
 
+/** MCP config scope: per-project workspace file or the shared user file. */
+export type AgyMcpScope = "project" | "user";
+
+/**
+ * Resolve the agy MCP config path for a given scope.
+ *
+ * `lisa apply` operates on a single project, so the default scope is
+ * `"project"` — it writes `<destDir>/.agents/mcp_config.json` rather than
+ * polluting the user's global `~/.gemini/config/mcp_config.json` (shared with
+ * the Antigravity desktop app). Pass `scope: "user"` to target the shared file.
+ * @param opts - Scope selector and (for project scope) the host project root.
+ * @param opts.scope - `"project"` (default) or `"user"`.
+ * @param opts.destDir - Host project root; required for project scope.
+ * @returns Absolute path to the mcp_config.json for the requested scope.
+ */
+export function resolveAgyMcpConfigPath(opts: {
+  readonly scope?: AgyMcpScope;
+  readonly destDir?: string;
+}): string {
+  const scope = opts.scope ?? "project";
+  if (scope === "user") return defaultUserMcpConfigPath();
+  if (opts.destDir === undefined || opts.destDir === "") {
+    throw new Error(
+      "resolveAgyMcpConfigPath: project scope requires a destDir (host project root)"
+    );
+  }
+  return defaultProjectMcpConfigPath(opts.destDir);
+}
+
 /** A single MCP server entry in agy's mcp_config.json schema. */
 export interface AgyMcpServerEntry {
   /** stdio: command to launch. Mutually exclusive with serverUrl. */
