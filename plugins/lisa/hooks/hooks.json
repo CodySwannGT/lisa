@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/block-no-verify.sh"
+            "command": "${PLUGIN_ROOT}/hooks/block-no-verify.sh"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/notify-ntfy.sh"
+            "command": "${PLUGIN_ROOT}/hooks/notify-ntfy.sh"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/install-pkgs.sh"
+            "command": "${PLUGIN_ROOT}/hooks/install-pkgs.sh"
           }
         ]
       },
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/inject-rules.sh"
+            "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
           }
         ]
       },
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/setup-jira-cli.sh"
+            "command": "${PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
           }
         ]
       }
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/inject-rules.sh"
+            "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
           }
         ]
       },
@@ -66,7 +66,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/inject-flow-context.sh"
+            "command": "${PLUGIN_ROOT}/hooks/inject-flow-context.sh"
           }
         ]
       }
