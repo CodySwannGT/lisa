@@ -73,9 +73,9 @@ The `plugin.json` also registers calls to the external `entire` CLI on multiple 
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh` (PreToolUse) | PreToolUse | ship | strip | strip | strip | strip |
 | ~~`${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh`~~ | ~~Stop~~ | **RETIRED (ticket-1054)** — entry removed from `plugins/src/base/.claude-plugin/plugin.json` | — | — | — | — |
 | `entire hooks claude-code stop` | Stop | ship | strip | strip | strip | strip |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh` (matcher=startup) | SessionStart | ship | ship | ship | ship | ship |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` | SessionStart | ship | ship | **STRIP** (Cursor auto-loads rules) | **STRIP** (AGENTS.md bake) | ship |
-| `${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh` | SessionStart | ship | ship | ship | ship | ship |
+| `${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh` (matcher=startup) | SessionStart | ship | ship | ship | **STRIP** (agy has no SessionStart event) | ship |
+| `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` | SessionStart | ship | ship | **STRIP** (Cursor auto-loads rules) | **STRIP** (AGENTS.md bake; agy has no SessionStart event) | ship |
+| `${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh` | SessionStart | ship | ship | ship | **STRIP** (agy has no SessionStart event) | ship |
 | `entire hooks claude-code session-start` | SessionStart | ship | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` (SubagentStart) | SubagentStart | ship | ship | strip | strip | strip (Copilot has no SubagentStart) |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/inject-flow-context.sh` | SubagentStart | ship | ship | strip | strip | strip |
