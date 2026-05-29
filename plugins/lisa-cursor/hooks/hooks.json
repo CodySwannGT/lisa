@@ -3,17 +3,17 @@
   "hooks": {
     "preToolUse": [
       {
-        "command": "./hooks/block-no-verify.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-no-verify.sh",
         "matcher": "Bash"
       }
     ],
     "sessionStart": [
       {
-        "command": "./hooks/install-pkgs.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/install-pkgs.sh",
         "matcher": "startup"
       },
       {
-        "command": "./hooks/setup-jira-cli.sh"
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
       }
     ]
   }

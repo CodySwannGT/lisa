@@ -14,8 +14,8 @@
  *     ship list — this module is not invoked for Codex; Codex uses the existing
  *     generate-codex-plugin-artifacts.mjs path)
  *   - Cursor: emit hooks to a Cursor-native hooks/hooks.json (camelCase events,
- *     flattened {command, matcher} entries, relative ./hooks/ command paths) via
- *     buildCursorHooksJson; strip inject-rules.sh (rules ship as native
+ *     flattened {command, matcher} entries, ${CURSOR_PLUGIN_ROOT}/hooks/ command
+ *     paths) via buildCursorHooksJson; strip inject-rules.sh (rules ship as native
  *     rules/*.mdc — the single delivery path; injecting would double-deliver),
  *     Claude-team-specific scripts, and `entire hooks claude-code *` calls
  *   - agy: this filter is NOT consumed for agy. agy hooks ship as a
@@ -114,27 +114,30 @@ const scriptNameFromCommand = cmd => {
 };
 
 /**
- * Rewrite a Claude hook command to the Cursor plugin-relative form: the
- * `${CLAUDE_PLUGIN_ROOT}/` prefix becomes `./` (e.g.
- * `${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh` → `./hooks/block-no-verify.sh`).
+ * Rewrite a Claude hook command to the Cursor plugin-root form: the
+ * `${CLAUDE_PLUGIN_ROOT}/` (or `${CURSOR_PLUGIN_ROOT}/`) prefix is normalized to
+ * `${CURSOR_PLUGIN_ROOT}/` (e.g. `${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh`
+ * → `${CURSOR_PLUGIN_ROOT}/hooks/block-no-verify.sh`).
  *
- * Path-resolution caveat (issue #1055 security review): Cursor exposes NO
- * plugin-root token for hook commands — its hooks reference documents only
- * `CURSOR_PROJECT_DIR` / `CLAUDE_PROJECT_DIR` (workspace root), and is silent on
- * how plugin-bundled `hooks/hooks.json` commands resolve. `./` is therefore the
- * only plugin-relative form available, and is what the Cursor plugin structure
- * implies for a plugin-bundled file. Plugin-hook FIRING (and thus the exact CWD
- * these resolve against) is not verifiable via `cursor-agent --plugin-dir` — it
- * is an IDE/marketplace concern tracked as a PR follow-up. If a future Cursor
- * release resolves plugin-hook `./` against the project root rather than the
- * plugin root, a malicious repo could shadow a guard hook; revisit this then.
+ * Why the token, not a bare `./` (issue #1055, CodeRabbit security review):
+ * Cursor plugin hook commands execute with the OPENED PROJECT ROOT as their cwd
+ * — NOT the plugin directory (confirmed by a Cursor maintainer on the forum:
+ * https://forum.cursor.com/t/inconsistent-working-directory-for-plugin-hook-commands/153236).
+ * A bare `./hooks/<script>.sh` would therefore (a) fail to resolve to the
+ * plugin's bundled script and (b) let a malicious repo shadow a guard hook with
+ * its own project-root `./hooks/*`. `${CURSOR_PLUGIN_ROOT}` is the maintainer-
+ * endorsed placeholder for the plugin install dir (`${CLAUDE_PLUGIN_ROOT}` also
+ * works in Cursor, but we normalize to the Cursor-native name).
  *
  * @param {string} command
  * @returns {string}
  */
 const toCursorCommandPath = command =>
   typeof command === "string"
-    ? command.replace(/\$\{CLAUDE_PLUGIN_ROOT\}\//g, "./")
+    ? command.replace(
+        /\$\{(?:CLAUDE|CURSOR)_PLUGIN_ROOT\}\//g,
+        "${CURSOR_PLUGIN_ROOT}/"
+      )
     : command;
 
 /** Claude PascalCase → Copilot event-name map (per Copilot's docs). */
@@ -327,7 +330,9 @@ export function filterScriptsForAgent(scriptFilenames, agent) {
  *   3. Flattens each matcher-group into one `{ command, matcher? }` per surviving
  *      handler (unwrapping Claude's `{ type: "command", command }`).
  *   4. Rewrites `${CLAUDE_PLUGIN_ROOT}/hooks/<x>` command paths to the
- *      Cursor-relative `./hooks/<x>`.
+ *      Cursor plugin-root form `${CURSOR_PLUGIN_ROOT}/hooks/<x>` (plugin hooks
+ *      run with the project root as cwd, so a bare `./` would not resolve to the
+ *      bundled script and could be shadowed by a repo-local `./hooks/*`).
  *
  * Note: this intentionally re-walks the hook block rather than sharing a
  * skeleton with `filterHooksForAgent`. The DRY extraction was deferred (issue
