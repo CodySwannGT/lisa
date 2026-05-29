@@ -17,6 +17,11 @@ import { installSkills } from "../codex/skills-installer.js";
 import { installCodexMarketplace } from "../codex/plugin-marketplace-installer.js";
 import { installAgyPlugin } from "../agy/plugin-installer.js";
 import { installAgyAgentsMd } from "../agy/agents-md-installer.js";
+import {
+  collectLisaMcpServers,
+  installAgyMcpConfig,
+  resolveAgyMcpConfigPath,
+} from "../agy/mcp-installer.js";
 import { installCopilotPlugin } from "../copilot/plugin-installer.js";
 import { installCopilotInstructions } from "../copilot/copilot-instructions-installer.js";
 import { installClaudeMd } from "../claude/claude-md-installer.js";
@@ -820,17 +825,25 @@ export class Lisa {
   /**
    * Emit Antigravity-targeted artifacts when the harness includes agy.
    *
-   * Three per-project actions:
-   *   1. `agy plugin install` Lisa's Pattern B variant from
-   *      `plugins/lisa-agy/` (when agy is on PATH).
-   *   2. Bake Lisa's eager rules into AGENTS.md (Bake polyfill — agy plugin
-   *      hooks don't fire in -p mode so SessionStart-hook injection isn't
-   *      available).
-   *
-   * MCP install is intentionally NOT dispatched here — Lisa's base plugin
-   * does not currently bundle MCP servers, so there is nothing to translate.
-   * When Lisa ships MCP servers in the future, wire `installAgyMcpConfig`
-   * here with the source MCP server map.
+   * Runtime probes of agy 1.0.3 (ticket-1054) established how agy consumes each
+   * surface, so each is delivered the way agy actually reads it:
+   *   1. `agy plugin install` Lisa's variant from `plugins/lisa-agy/` (when agy
+   *      is on PATH). This installs the variant into
+   *      `~/.gemini/config/plugins/<variant>/`.
+   *   2. Hooks → PLUGIN-BUNDLED. agy loads a plugin's hooks from a `hooks.json`
+   *      at the installed plugin ROOT, so the hooks config + agy-protocol script
+   *      are emitted into the variant at BUILD time by
+   *      generate-agy-plugin-artifacts.mjs and ride along with the plugin
+   *      install above — nothing is written here. Only `block-no-verify`
+   *      (PreToolUse) maps; SessionStart hooks aren't supported by agy.
+   *   3. MCP → USER-GLOBAL. agy ignores plugin-bundled MCP and only auto-loads
+   *      `~/.gemini/config/mcp_config.json`, so `installAgyMcpConfig` writes
+   *      there (servers collected from the built plugin `.mcp.json` files via
+   *      `collectLisaMcpServers`, translated to agy's `serverUrl` shape,
+   *      tagged-merge preserving host entries). Cross-project caveat: the most
+   *      recent `lisa apply` carrying MCP wins globally.
+   *   4. Rules → baked into AGENTS.md exactly once (the rules-once invariant;
+   *      the artifact ships no `rules/` and `inject-rules.sh` is not a hook).
    */
   private async processAgyEmit(): Promise<void> {
     const { harness } = this.config;
@@ -854,6 +867,31 @@ export class Lisa {
       pluginResults.push(await installAgyPlugin(pluginRoot, variant));
     }
 
+    // MCP: agy ignores plugin-bundled MCP AND only auto-loads the USER-GLOBAL
+    // config (~/.gemini/config/mcp_config.json) — the project-scope
+    // `.agents/mcp_config.json` is never read by the agy CLI (verified-by-run,
+    // ticket-1054). So collect Lisa's servers from the built plugin .mcp.json
+    // files (base + detected stacks) and install them into the user-scope
+    // aggregate (translated to agy's serverUrl shape, tagged-merge preserving
+    // host entries). Caveat: this is shared across projects — the most recent
+    // `lisa apply` carrying MCP servers wins globally; host-authored entries are
+    // preserved by the _lisaManaged tagged-merge. Skip when no stack ships MCP.
+    const lisaMcpServers = collectLisaMcpServers(
+      pluginRoot,
+      this.detectedTypes
+    );
+    const mcpServerCount = Object.keys(lisaMcpServers).length;
+    if (mcpServerCount > 0) {
+      await installAgyMcpConfig(
+        lisaMcpServers,
+        resolveAgyMcpConfigPath({ scope: "user" })
+      );
+    }
+
+    // Hooks: delivered as a plugin-bundled root hooks.json inside the installed
+    // agy variant (emitted at build time by generate-agy-plugin-artifacts.mjs,
+    // installed via `agy plugin install` above) — NOT written here at apply time.
+
     // Bake source is the BASE plugin's eager rules plus each detected stack's
     // eager rules (NOT the agy variants' — the agy generator strips rules/ from
     // each variant, so their rules/eager is empty). The canonical content lives
@@ -869,12 +907,17 @@ export class Lisa {
     const pluginMessage = attempted
       ? `${installedCount}/${variantNames.length} variants installed`
       : "skipped (agy not on PATH)";
+    // Only mention MCP when servers were actually written.
+    const mcpMessage =
+      mcpServerCount > 0
+        ? `, ${mcpServerCount} MCP server(s) → ~/.gemini/config/mcp_config.json`
+        : "";
 
     this.deps.logger.info(
       pc.cyan(
         `agy emit: ${pluginMessage}, AGENTS.md ${
           agentsMdResult.created ? "created" : "refreshed"
-        } with ${agentsMdResult.rulesBaked} rules baked`
+        } with ${agentsMdResult.rulesBaked} rules baked${mcpMessage}`
       )
     );
   }

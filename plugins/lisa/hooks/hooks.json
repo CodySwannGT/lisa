@@ -11,17 +11,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${PLUGIN_ROOT}/hooks/notify-ntfy.sh"
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "matcher": "startup",

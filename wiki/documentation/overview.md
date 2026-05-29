@@ -327,7 +327,6 @@ When Claude writes code, hooks automatically enforce quality:
 | `lint-on-edit.sh` | After Write/Edit | Run ESLint on changed files (exists but not currently in PostToolUse config) |
 | `sg-scan-on-edit.sh` | After Write/Edit | Run ast-grep pattern scan |
 | `install-pkgs.sh` | Session start | Ensure dependencies installed |
-| `notify-ntfy.sh` | Notification events | Send push notifications |
 | `sync-tasks.sh` | Task synchronization | Sync tasks between sessions and project directories |
 | `check-tired-boss.sh` | User prompt submit | Enforce "I'm tired boss" greeting |
 | `debug-hook.sh` | All events | Debug logging (when CLAUDE_DEBUG=1) |
@@ -701,21 +700,14 @@ Lisa enables several official and marketplace plugins:
 | **code-review** | AI-powered code review |
 | **playwright** | Browser automation for E2E testing |
 
-### Push Notifications (ntfy.sh)
+### Push Notifications (ntfy.sh) — retired
 
-**What it is:** Integration with [ntfy.sh](https://ntfy.sh) for push notifications.
-
-**Why it matters:** Enables async workflows with Claude Code Web—fire off tasks and get notified when they complete or need attention.
-
-**Notification triggers:**
-- Permission prompts (when Claude needs approval)
-- Idle prompts (when Claude is waiting for input)
-- Stop events (when Claude finishes or encounters errors)
-
-**Setup:**
-1. Create a topic at ntfy.sh
-2. Set `NTFY_TOPIC` environment variable
-3. Install the ntfy app on your phone
+**Retired (ticket-1054).** Lisa's built-in ntfy Stop-hook notifier
+(`notify-ntfy.sh`) was removed — it emitted a `No such file or directory` error
+and was no longer used. Lisa no longer ships or installs any ntfy notification
+hook. If you want push notifications, configure your own `Stop` hook against
+[ntfy.sh](https://ntfy.sh) in your project's `.claude/settings.json` (host-owned,
+outside Lisa's governance).
 
 ---
 
@@ -860,7 +852,6 @@ Connect to your tools:
 | **Snyk** | CI/CD workflow | Dependency scanning |
 | **GitGuardian** | CI/CD workflow | Secret detection |
 | **FOSSA** | CI/CD workflow | License compliance |
-| **ntfy.sh** | Notification hooks | Push notifications |
 
 ---
 

@@ -17,17 +17,6 @@
         ]
       }
     ],
-    "agentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh"
-          }
-        ]
-      }
-    ],
     "sessionStart": [
       {
         "matcher": "startup",

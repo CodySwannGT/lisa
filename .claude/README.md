@@ -30,8 +30,6 @@ This directory contains Claude Code configuration files that customize AI-assist
 |-------|------|---------|
 | `SessionStart` | `install-pkgs.sh` | Install dependencies when session starts |
 | `PostToolUse` | `format-on-edit.sh` | Auto-format files after Write/Edit operations |
-| `Notification` | `notify-ntfy.sh` | Send notifications via ntfy.sh |
-| `Stop` | `notify-ntfy.sh` | Notify when session ends |
 
 ## Plugins
 
