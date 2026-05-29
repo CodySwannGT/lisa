@@ -13,12 +13,13 @@
  * per its `installed_plugins.json` format).
  * @module agy/plugin-installer
  */
-import { exec } from "node:child_process";
+import { exec, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /** Result of the agy plugin install pass. */
 export interface AgyPluginInstallResult {
@@ -81,7 +82,10 @@ export async function installAgyPlugin(
   try {
     // agy plugin install handles its own idempotence — re-installing the same
     // source updates the entry in installed_plugins.json without erroring.
-    await execAsync(`agy plugin install ${JSON.stringify(agyVariant)}`);
+    // Use execFile (no shell) so a plugin path containing shell metacharacters
+    // cannot be interpreted — `${JSON.stringify(path)}` under a shell still
+    // expands $(...), backticks, etc. inside double quotes.
+    await execFileAsync("agy", ["plugin", "install", agyVariant]);
     return {
       attempted: true,
       installed: true,

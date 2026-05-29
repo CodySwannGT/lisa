@@ -23,12 +23,13 @@
  * against the same source updates the installed-plugins entry without erroring.
  * @module copilot/plugin-installer
  */
-import { exec } from "node:child_process";
+import { exec, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /** Result of the Copilot plugin install pass. */
 export interface CopilotPluginInstallResult {
@@ -68,7 +69,10 @@ async function tryMarketplaceInstall(
   marketplaceRef: string
 ): Promise<CopilotPluginInstallResult> {
   try {
-    await execAsync(`copilot plugin install ${JSON.stringify(marketplaceRef)}`);
+    // execFile (no shell): the ref is passed as an argv entry, so it is never
+    // subject to shell quoting/expansion. This also makes Windows paths with
+    // backslashes safe in the local-install path below.
+    await execFileAsync("copilot", ["plugin", "install", marketplaceRef]);
     return {
       attempted: true,
       installed: true,
@@ -98,7 +102,7 @@ async function tryLocalInstall(
   localPath: string
 ): Promise<CopilotPluginInstallResult> {
   try {
-    await execAsync(`copilot plugin install ${JSON.stringify(localPath)}`);
+    await execFileAsync("copilot", ["plugin", "install", localPath]);
     return {
       attempted: true,
       installed: true,

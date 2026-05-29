@@ -10,8 +10,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  defaultProjectMcpConfigPath,
+  defaultUserMcpConfigPath,
   installAgyMcpConfig,
   LISA_MANAGED_MARKER,
+  resolveAgyMcpConfigPath,
   translateMcpEntryToAgy,
 } from "../../../src/agy/mcp-installer.js";
 
@@ -20,6 +23,37 @@ const NODE_CMD = "node";
 const MCP_CONFIG_FILENAME = "mcp_config.json";
 
 describe("agy/mcp-installer", () => {
+  describe("resolveAgyMcpConfigPath", () => {
+    // Pure path-resolution tests — nothing is written, so use a non-tmp
+    // absolute root to keep the publicly-writable-directories rule satisfied.
+    const PROJ = path.join(path.sep, "srv", "lisa-proj");
+
+    it("defaults to project scope for lisa apply", () => {
+      const out = resolveAgyMcpConfigPath({ destDir: PROJ });
+      expect(out).toBe(defaultProjectMcpConfigPath(PROJ));
+    });
+
+    it("resolves user scope to the shared ~/.gemini config", () => {
+      expect(resolveAgyMcpConfigPath({ scope: "user" })).toBe(
+        defaultUserMcpConfigPath()
+      );
+    });
+
+    it("resolves explicit project scope with destDir", () => {
+      const out = resolveAgyMcpConfigPath({
+        scope: "project",
+        destDir: PROJ,
+      });
+      expect(out).toBe(defaultProjectMcpConfigPath(PROJ));
+    });
+
+    it("throws when project scope is requested without a destDir", () => {
+      expect(() => resolveAgyMcpConfigPath({ scope: "project" })).toThrow(
+        /project scope requires a destDir/
+      );
+    });
+  });
+
   describe("translateMcpEntryToAgy", () => {
     it("passes stdio entries through unchanged", () => {
       const out = translateMcpEntryToAgy({

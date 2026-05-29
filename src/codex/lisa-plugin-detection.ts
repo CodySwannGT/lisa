@@ -9,7 +9,7 @@
  * delivery path.
  *
  * Detection: read `~/.codex/config.toml` (honoring `$CODEX_HOME` if set) and
- * check for a `[plugins."lisa@CodySwannGT-lisa"]` table with `enabled = true`.
+ * check for a `[plugins."lisa@lisa"]` table with `enabled = true`.
  *
  * This is a best-effort detection. If the config file is missing, malformed,
  * or unreadable, the function returns `false` (fall through to per-project
@@ -24,36 +24,41 @@ import * as path from "node:path";
 /**
  * Default Lisa marketplace plugin reference inside `~/.codex/config.toml`.
  *
- * ⚠ The exact slug Codex stores depends on how Codex normalizes the
- * marketplace name passed to `codex plugin install lisa@CodySwannGT/lisa`.
- * The dash form (`CodySwannGT-lisa`) matches Codex's plugin cache directory
- * naming convention (`~/.codex/plugins/cache/CodySwannGT-lisa/...`) but the
- * slash form (`CodySwannGT/lisa`) is what users type. Until empirically
- * verified by running the canonical install and reading the resulting TOML
- * key, callers can pass either shape via the `pluginKey` parameter.
- *
- * The {@link isLisaInstalledAsCodexPlugin} helper tries the dash form by
- * default; downstream wiring (when this helper is consumed) should call it
- * with both shapes via {@link isLisaInstalledUnderAnyCanonicalKey} once that
- * variant is added.
+ * [VERIFIED-BY-RUN 2026-05-28, Codex 0.125.0] `codex plugin marketplace add
+ * CodySwannGT/lisa` registers the marketplace under the `name` field of the
+ * repo's `.claude-plugin/marketplace.json` (which is `"lisa"`), producing a
+ * `[marketplaces.lisa]` table. Codex composes plugin keys as
+ * `<plugin-name>@<marketplace-name>`, so the enabled-plugin table is
+ * `[plugins."lisa@lisa"]` — NOT the repo-slug form. The older
+ * `CodySwannGT-lisa` / `CodySwannGT/lisa` shapes are retained as legacy
+ * fallbacks ({@link LEGACY_LISA_PLUGIN_KEYS}) in case an earlier Codex derived
+ * the marketplace name from the repo slug.
  */
-export const DEFAULT_LISA_PLUGIN_KEY = "lisa@CodySwannGT-lisa";
+export const DEFAULT_LISA_PLUGIN_KEY = "lisa@lisa";
 
-/** Alternative canonical key shape using slash separator. */
+/** Legacy/alternative key shapes tried as fallbacks (pre-0.125.0 guesses). */
+export const LEGACY_LISA_PLUGIN_KEYS = [
+  "lisa@CodySwannGT-lisa",
+  "lisa@CodySwannGT/lisa",
+] as const;
+
+/** Legacy slash-separator key shape (one of {@link LEGACY_LISA_PLUGIN_KEYS}). */
 export const SLASH_LISA_PLUGIN_KEY = "lisa@CodySwannGT/lisa";
 
 /**
- * Detect whether either canonical Lisa plugin key shape is enabled.
+ * Detect whether any known Lisa plugin key shape is enabled.
  *
- * Until the exact Codex storage key shape is empirically pinned, callers
- * that need a definitive yes/no answer should use this helper rather than
- * the single-key {@link isLisaInstalledAsCodexPlugin}.
+ * Tries the verified 0.125.0 key (`lisa@lisa`) first, then the legacy shapes.
+ * Callers that need a definitive yes/no answer should use this helper rather
+ * than the single-key {@link isLisaInstalledAsCodexPlugin}.
  *
- * @returns True when either dash-form or slash-form key is enabled.
+ * @returns True when the verified key or any legacy key is enabled.
  */
 export async function isLisaInstalledUnderAnyCanonicalKey(): Promise<boolean> {
   if (await isLisaInstalledAsCodexPlugin(DEFAULT_LISA_PLUGIN_KEY)) return true;
-  if (await isLisaInstalledAsCodexPlugin(SLASH_LISA_PLUGIN_KEY)) return true;
+  for (const key of LEGACY_LISA_PLUGIN_KEYS) {
+    if (await isLisaInstalledAsCodexPlugin(key)) return true;
+  }
   return false;
 }
 

@@ -48,12 +48,12 @@ describe("generate-codex-plugin-artifacts: filterCodexHooks", () => {
     expect(filterCodexHooks("nope" as unknown as object)).toBeNull();
   });
 
-  it("rewrites ${CLAUDE_PLUGIN_ROOT}/hooks/ to the Codex-relative ./hooks/ form", () => {
+  it("rewrites ${CLAUDE_PLUGIN_ROOT}/hooks/ to Codex's ${PLUGIN_ROOT}/hooks/ form", () => {
     const out = filterCodexHooks(
       blockWith("PreToolUse", "Bash", PLUGIN_ROOT_CMD("block-no-verify.sh"))
     ) as Record<string, { hooks: { command: string }[] }[]>;
     expect(out["PreToolUse"][0].hooks[0].command).toBe(
-      "./hooks/block-no-verify.sh"
+      "${PLUGIN_ROOT}/hooks/block-no-verify.sh"
     );
   });
 
