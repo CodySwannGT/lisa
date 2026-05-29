@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.121.1](https://github.com/CodySwannGT/lisa/compare/vv2.121.0...v2.121.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* **parity:** emit Codex hooks where Codex actually discovers them ([eaae96e](https://github.com/CodySwannGT/lisa/commit/eaae96effc5149de26bceabfbe5d9e53f876a8ae))
+* **parity:** execFile for plugin installs + agy MCP scope resolver ([9903d4c](https://github.com/CodySwannGT/lisa/commit/9903d4c4dfc0b3b531cfc2c7ea5023d4838d3e9d))
+* **parity:** include Codex in fleet emit + bake agy rules from base plugin ([c767b02](https://github.com/CodySwannGT/lisa/commit/c767b02414a9134150e135f6c12fefb68f02f99f))
+* **parity:** pin Codex plugin key to lisa@lisa + populate Copilot probe cache ([a45dce2](https://github.com/CodySwannGT/lisa/commit/a45dce25c78cb57446ab3bac0d2ac75668a9ab7e))
+
+
+### Documentation
+
+* **wiki:** record Codex/Copilot parity findings verified by run ([517b475](https://github.com/CodySwannGT/lisa/commit/517b475fd86a1322383bfc6687d7453389f3bd86))
+
 ## [2.121.0](https://github.com/CodySwannGT/lisa/compare/vv2.119.1...v2.121.0) (2026-05-29)
 
 
