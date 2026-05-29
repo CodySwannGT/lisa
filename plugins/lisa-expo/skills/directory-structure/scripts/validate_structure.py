@@ -312,7 +312,7 @@ def validate_naming_conventions(root: Path) -> List[ValidationResult]:
                     results.append(ValidationResult(
                         passed=False,
                         message=f"Feature directory not in kebab-case",
-                        file_path=f"features/{item.name}",
+                        file_path=str(item.relative_to(root)),
                         suggestion=f"Rename to kebab-case (e.g., 'my-feature')"
                     ))
 
