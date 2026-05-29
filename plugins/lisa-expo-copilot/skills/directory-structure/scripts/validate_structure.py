@@ -298,8 +298,12 @@ def validate_naming_conventions(root: Path) -> List[ValidationResult]:
     """Validate file and directory naming conventions."""
     results = []
 
+    # Source lives under src/ for projects on the Expo SDK 55+/56 /src
+    # convention; fall back to the project root otherwise.
+    source_root = root / 'src' if (root / 'src').is_dir() else root
+
     # Feature directory names should be kebab-case
-    features_dir = root / 'features'
+    features_dir = source_root / 'features'
     if features_dir.exists():
         kebab_pattern = re.compile(r'^[a-z][a-z0-9]*(-[a-z0-9]+)*$')
         for item in features_dir.iterdir():
@@ -308,7 +312,7 @@ def validate_naming_conventions(root: Path) -> List[ValidationResult]:
                     results.append(ValidationResult(
                         passed=False,
                         message=f"Feature directory not in kebab-case",
-                        file_path=f"features/{item.name}",
+                        file_path=str(item.relative_to(root)),
                         suggestion=f"Rename to kebab-case (e.g., 'my-feature')"
                     ))
 
@@ -330,7 +334,7 @@ def validate_naming_conventions(root: Path) -> List[ValidationResult]:
                     ))
 
     # Check components directory (skip special subdirectories)
-    components_dir = root / 'components'
+    components_dir = source_root / 'components'
     if components_dir.exists():
         for item in components_dir.iterdir():
             # Skip special directories that are allowed to be lowercase
@@ -361,22 +365,27 @@ def run_validation(path: Path) -> ValidationReport:
     report = ValidationReport()
     root = find_project_root(path)
 
+    # Source lives under src/ for projects on the Expo SDK 55+/56 /src
+    # convention; fall back to the project root otherwise. relative_to(root)
+    # is still used for display so reported paths read as src/...
+    source_root = root / 'src' if (root / 'src').is_dir() else root
+
     print(f"Validating directory structure from: {root}\n")
 
     # Run all validations
     report.errors.extend(validate_test_file_placement(root))
     report.errors.extend(validate_naming_conventions(root))
-    report.errors.extend(validate_app_directory(root / 'app', root))
+    report.errors.extend(validate_app_directory(source_root / 'app', root))
 
     # Validate features
-    features_dir = root / 'features'
+    features_dir = source_root / 'features'
     if features_dir.exists():
         for feature in features_dir.iterdir():
             if feature.is_dir() and not feature.name.startswith('.'):
                 report.errors.extend(validate_feature_structure(feature, root))
 
     # Validate global components
-    components_dir = root / 'components'
+    components_dir = source_root / 'components'
     if components_dir.exists():
         for item in components_dir.iterdir():
             # Skip ui/, icons/, custom/ as they have different structure
