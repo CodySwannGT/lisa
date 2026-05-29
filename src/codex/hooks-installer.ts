@@ -21,10 +21,18 @@
  * inject-rules also fires on SubagentStart under Claude; on Codex only its
  * SessionStart variant applies (Codex has no per-subagent start event).
  *
- * Codex does NOT execute plugin-bundled hooks (a `.codex-plugin` `hooks`
- * pointer / `hooks/hooks.json` never fires), so this installer writes hooks
- * into the project's own `.codex/hooks.json` instead. See
- * scripts/generate-codex-plugin-artifacts.mjs for the build-side counterpart.
+ * Codex DOES support plugin-bundled hooks (issue #1058) — they are non-managed
+ * and fire only after the user trusts them via an interactive `/hooks` review
+ * (Codex 0.125.0 has no headless trust bypass). The build-side counterpart
+ * (scripts/generate-codex-plugin-artifacts.mjs) emits those plugin hooks to
+ * `.codex-plugin/hooks.json` with a manifest `hooks` pointer — deliberately NOT
+ * `<plugin-root>/hooks/hooks.json`, which is also where Claude Code (and the
+ * cursor/copilot variants) auto-discover plugin hooks; a Codex-shaped
+ * `${PLUGIN_ROOT}` file there is run by Claude too, where `${PLUGIN_ROOT}` is
+ * undefined and expands to an empty prefix, breaking startup (issue #1058).
+ * This per-project installer is retained as the no-trust-prompt fallback and
+ * for users who run Lisa via `lisa apply` without enabling the marketplace
+ * plugin; it writes hooks into the project's own `.codex/hooks.json` instead.
  * @module codex/hooks-installer
  */
 import * as fse from "fs-extra";
