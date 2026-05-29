@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$HOME/.gemini/config/plugins/lisa-agy/hooks/block-no-verify.agy.sh\""
+            "command": "bash \"$HOME/.gemini/config/plugins/lisa/hooks/block-no-verify.agy.sh\""
           }
         ]
       }

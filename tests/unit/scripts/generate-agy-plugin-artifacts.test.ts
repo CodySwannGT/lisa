@@ -104,12 +104,20 @@ describe("generate-agy-plugin-artifacts (plugin-bundled root hooks.json)", () =>
       expect(Object.keys(cfg)).toEqual(["lisa-block-no-verify"]);
       const group = cfg["lisa-block-no-verify"].PreToolUse[0];
       expect(group.matcher).toBe("run_command");
-      const command = group.hooks[0].command;
       expect(group.hooks[0].type).toBe("command");
-      // $HOME-absolute path into the installed plugin, with the variant baked in.
-      expect(command).toContain(
-        `$HOME/.gemini/config/plugins/lisa-agy/hooks/${BLOCK_NO_VERIFY_AGY}`
+    });
+
+    it("command path uses the manifest NAME (the agy install-dir), not the source dir basename", () => {
+      // agy installs to ~/.gemini/config/plugins/<manifest.name>/, NOT the
+      // source dir basename. Fixture: manifest name "lisa-test", outDir basename
+      // "lisa-agy" — the command must resolve to the install dir ("lisa-test").
+      const cfg = fs.readJsonSync(path.join(outDir, HOOKS_JSON));
+      const command =
+        cfg["lisa-block-no-verify"].PreToolUse[0].hooks[0].command;
+      expect(command).toBe(
+        `bash "$HOME/.gemini/config/plugins/lisa-test/hooks/${BLOCK_NO_VERIFY_AGY}"`
       );
+      expect(command).not.toContain("lisa-agy");
     });
 
     it("does NOT include SessionStart scripts (agy lacks SessionStart)", () => {

@@ -182,7 +182,13 @@ export function generateAgyVariant(srcDir, outDir, version) {
   }
 
   // 4. Emit the plugin-bundled root hooks.json + agy-protocol script (base only).
-  emitAgyPluginHooks(srcDir, outDir, sourceHooks, path.basename(outDir));
+  // `agy plugin install` names the install dir by the manifest `name`
+  // (`~/.gemini/config/plugins/<name>/`, verified-by-run per
+  // reference_agy_plugin_capabilities), NOT the source dir basename — so the
+  // hook command path must use manifest.name (e.g. "lisa"), falling back to the
+  // dir basename only if a manifest somehow omits name.
+  const installDirName = manifest.name ?? path.basename(outDir);
+  emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName);
 }
 
 /**
@@ -235,10 +241,12 @@ function sourceReferencesScript(sourceHooks, scriptName) {
  * @param {string} srcDir Built Claude plugin directory (input).
  * @param {string} outDir agy variant output directory.
  * @param {Record<string, unknown>} sourceHooks Source manifest hook block.
- * @param {string} variantName Variant dir name (e.g. "lisa-agy"); baked into the command path.
+ * @param {string} installDirName Name agy installs the plugin under in
+ *   `~/.gemini/config/plugins/<installDirName>/` (the manifest `name`); baked
+ *   into the hook command path so it resolves to the installed script.
  * @returns {void}
  */
-function emitAgyPluginHooks(srcDir, outDir, sourceHooks, variantName) {
+function emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName) {
   const applicable = AGY_PLUGIN_HOOKS.filter(h => {
     if (!sourceReferencesScript(sourceHooks, h.sourceScript)) return false;
     const scriptSource = path.join(srcDir, "hooks", h.agyScript);
@@ -261,7 +269,7 @@ function emitAgyPluginHooks(srcDir, outDir, sourceHooks, variantName) {
             hooks: [
               {
                 type: "command",
-                command: `bash "$HOME/.gemini/config/plugins/${variantName}/hooks/${h.agyScript}"`,
+                command: `bash "$HOME/.gemini/config/plugins/${installDirName}/hooks/${h.agyScript}"`,
               },
             ],
           },
