@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.124.3](https://github.com/CodySwannGT/lisa/compare/vv2.124.2...v2.124.3) (2026-05-29)
+
+
+### Bug Fixes
+
+* **codex:** emit plugin hooks to .codex-plugin/ to stop breaking Claude startup ([0a5ae3b](https://github.com/CodySwannGT/lisa/commit/0a5ae3b36e19965a91819520456ef7043cff1c82)), closes [#1058](https://github.com/CodySwannGT/lisa/issues/1058) [#1](https://github.com/CodySwannGT/lisa/issues/1) [#1058](https://github.com/CodySwannGT/lisa/issues/1058) [#2](https://github.com/CodySwannGT/lisa/issues/2) [#1058](https://github.com/CodySwannGT/lisa/issues/1058)
+
 ### [2.124.2](https://github.com/CodySwannGT/lisa/compare/vv2.124.1...v2.124.2) (2026-05-29)
 
 
