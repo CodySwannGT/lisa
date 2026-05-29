@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/inject-rules.sh"
+            "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/inject-rules.sh"
+            "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
           }
         ]
       }
@@ -28,11 +28,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./hooks/rubocop-on-edit.sh"
+            "command": "${PLUGIN_ROOT}/hooks/rubocop-on-edit.sh"
           },
           {
             "type": "command",
-            "command": "./hooks/sg-scan-on-edit.sh"
+            "command": "${PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh"
           }
         ]
       }

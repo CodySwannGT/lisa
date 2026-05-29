@@ -139,6 +139,11 @@ export function generateCopilotVariant(srcDir, outDir, version) {
   copyDir(srcDir, outDir, relPath => {
     if (relPath.startsWith(".codex-plugin/") || relPath === ".codex-plugin")
       return false;
+    // Drop the Codex hooks manifest the base build emits at hooks/hooks.json —
+    // Copilot reads its (camelCase) hooks from .claude-plugin/plugin.json, not
+    // this Codex-shaped (PascalCase, ${PLUGIN_ROOT}) file. Keeping it would ship
+    // a spurious, wrong-shaped hooks manifest in the Copilot variant.
+    if (relPath === path.join("hooks", "hooks.json")) return false;
     // Drop Codex-specific per-skill openai.yaml artifacts — Copilot does not use them.
     if (/^skills\/[^/]+\/agents\/openai\.ya?ml$/.test(relPath)) return false;
     const skillsPrefix = path.join("skills") + path.sep;
