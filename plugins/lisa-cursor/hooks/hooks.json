@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "./hooks/block-no-verify.sh",
+        "matcher": "Bash"
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "./hooks/install-pkgs.sh",
+        "matcher": "startup"
+      },
+      {
+        "command": "./hooks/setup-jira-cli.sh"
+      }
+    ]
+  }
+}

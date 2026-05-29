@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "command": "./hooks/rubocop-on-edit.sh",
+        "matcher": "Write|Edit"
+      },
+      {
+        "command": "./hooks/sg-scan-on-edit.sh",
+        "matcher": "Write|Edit"
+      }
+    ]
+  }
+}

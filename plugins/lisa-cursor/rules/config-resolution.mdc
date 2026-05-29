@@ -1,0 +1,33 @@
+---
+description: "Config Resolution (load-bearing)"
+alwaysApply: true
+---
+
+# Config Resolution (load-bearing)
+
+Lisa configuration lives in `.lisa.config.json` (committed) and `.lisa.config.local.json` (gitignored, per-developer). The local file wins where they overlap. Developer-specific identity (`atlassian.email`, etc.) MUST live in the local file, never committed.
+
+## Atlassian access — assistant-level rule
+
+When the user asks about Atlassian (Jira / Confluence) connection state, or you are about to run a Jira/Confluence operation, and `acli` is installed:
+
+1. Run `acli auth status` and read the active `Site:`.
+2. Read `atlassian.site` from `.lisa.config.json` (and `atlassian.email` from `.lisa.config.local.json` if present).
+3. **If the active site does not match config, do NOT report "not connected." Run:**
+   ```sh
+   acli auth switch --site "$ATLASSIAN_SITE" --email "$ATLASSIAN_EMAIL"
+   ```
+   acli supports multiple authenticated profiles; the switch is fast and non-interactive when a profile already exists.
+4. Only after the switch fails (no matching profile) should you report not-connected and suggest `/lisa:setup:atlassian` to add one.
+
+This applies before declaring connection state, before running any `acli jira *` / `acli confluence *` command, and before falling back to the Atlassian MCP or curl substrates. Identity mismatch is treated as silent-misroute risk, not as a hard not-connected.
+
+## Tracker selection
+
+Project tracker (`jira` / `github` / `linear`) is read from `.lisa.config.json` `tracker`. Vendor-neutral skills MUST dispatch through the configured tracker, never infer it from arguments. Missing `tracker` → stop and instruct the user to run the matching `/lisa:setup:*` skill.
+
+## Repo identity
+
+`repo:<name>` is the canonical label for which repo a work item belongs to. Resolve current-repo identity in this priority order: `.lisa.config.local.json` `repo` → `.lisa.config.json` `repo` → `.lisa.config.json` `github.repo` → `basename -s .git "$(git remote get-url origin)"`. If none resolve, stop with a clear error.
+
+Full reference: [reference/config-resolution.md](config-resolution-reference.mdc).

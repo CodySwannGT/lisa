@@ -1,0 +1,44 @@
+---
+description: "Repo Scope & Work-Time Splitting (load-bearing)"
+alwaysApply: true
+---
+
+# Repo Scope & Work-Time Splitting (load-bearing)
+
+**Leaf work units are single-repo.** A leaf is an individually implementable ticket with no children — types **Bug, Task, Sub-task, Improvement**. Each names exactly one repo. **Epic, Story, Spike** are coordination containers and may span repos.
+
+Enforced at four points: gate **S10** (`*-validate-*`, write time), `task-decomposition` step 1.5 (PRD-decomposition time), claim-time repo scoping (`*-build-intake`), and the work-time split procedure (an existing ticket about to be implemented).
+
+## Choose the right strategy
+
+- **Decomposition-time (no tickets exist yet):** use `task-decomposition` step 1.5 — one work unit per repo under a parent Story.
+- **Work-time (a ticket already exists):** narrow the original to one repo, spin off a sibling per additional repo, link by dependency. Do NOT invent a new parent — siblings inherit the original's existing parent.
+
+## Work-time split (pre-flight gate, agent-performed)
+
+1. **Detect repos.** Parse description + AC + approach, confirm against actual code surfaces. If single-repo, no split.
+2. **Pick the keeper.** Default: the original keeps the consumer / user-facing repo.
+3. **Create one sibling per extra repo**, cloning metadata (re-prefix summary, scope AC, carry parent, env, sign-in).
+4. **Link by dependency.** Producer **blocks** consumer (`is blocked by` on consumer / `blocks` on producer). No clear direction → `relates to`.
+5. **Narrow the original.** Edit summary prefix, Repository section, AC; remove cross-repo references.
+6. **Comment** on the original noting the split, linking each sibling.
+7. **Re-validate.** Run `tracker-verify` (S10) on the original and every sibling. All must PASS single-repo.
+8. **Proceed in dependency order.** Producer siblings first.
+
+## When to BLOCK instead of split
+
+Fall back to the standard BLOCK + reassign-to-Reporter path when:
+
+- Repos cannot be determined confidently from ticket + code.
+- Splitting would strand stakeholder context only the reporter can re-scope.
+- Required clone metadata (parent, env, credentials) is itself missing.
+
+## Claim-time repo scoping (build-intake)
+
+A tracker can oversee multiple repos. Build-intake claims only current-repo tickets. Resolve current repo per `config-resolution` (config `repo` → `github.repo` → git remote basename). For each ready candidate:
+
+1. **Read `repo:<name>` label.** Wrong repo → skip. Current repo → leaf-only gate + claim. Unlabeled → determine + stamp + re-apply.
+2. **Multi-repo leaf → split, never claim.** Each split sibling is created build-ready and stamped with its own `repo:<name>`.
+3. **Wrong-repo single-repo leaf → skip** (label keeps it cheap next cycle).
+
+Vendor mechanics (JIRA/GitHub/Linear) and full procedure: [reference/repo-scope-split.md](repo-scope-split-reference.mdc).

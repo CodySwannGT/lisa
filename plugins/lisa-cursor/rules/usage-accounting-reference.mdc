@@ -1,0 +1,149 @@
+---
+description: "Usage Accounting"
+alwaysApply: false
+---
+
+# Usage Accounting
+
+Lisa usage accounting is a vendor-neutral contract for attaching AI usage and cost telemetry to the artifacts Lisa creates or updates. It governs the section shape, machine-readable tokens, source/pricing semantics, rollup behavior, and idempotent rewrite rules. Writer skills and lifecycle skills attach telemetry by following this contract; they do not invent artifact-local formats.
+
+## Managed section
+
+Artifacts that support inline body/description content use a single managed section:
+
+```markdown
+## Lisa Usage
+```
+
+The section is canonical. Rewrite it in place; never append a second usage section under a different heading. If an artifact host cannot safely edit the body, write the same section format in a comment instead and treat that comment body as the managed usage artifact for future rewrites.
+
+The visible body is for humans; the hidden tokens are for machines. Both are required.
+
+## Direct-entry schema
+
+Each direct usage entry records one logical Lisa run or sub-run on one artifact. The required semantic fields are:
+
+| Field | Meaning |
+|---|---|
+| `entry_id` | Stable dedupe key for this logical usage entry. Unique within the artifact graph. |
+| `flow` | `research`, `plan`, `implement`, `verify`, `debrief`, `intake`, `repair-intake`, `monitor`, or a command slug. |
+| `run_id` | Runtime/session identifier when available; empty only when the runtime exposes no stable run id. |
+| `provider` | Model provider name. |
+| `model` | Model identifier. |
+| `source` | `observed`, `estimated`, or `unavailable`. |
+| `input_tokens` | Prompt/input tokens, or `null` when unavailable. |
+| `cached_input_tokens` | Cached/reused input tokens, or `null` when unavailable/not exposed. |
+| `output_tokens` | Output/completion tokens, or `null` when unavailable. |
+| `reasoning_tokens` | Reasoning/internal tokens, or `null` when unavailable/not exposed. |
+| `total_tokens` | Total trustworthy tokens for the entry, or `null`. |
+| `cost` | Observed or estimated cost for this entry, or `null`. |
+| `currency` | ISO currency code when `cost` is known, otherwise `null`. |
+| `pricing_status` | `observed`, `estimated`, `missing`, or `unavailable`. |
+| `pricing_source` | Runtime billing source, config/pricing snapshot ref, or `null`. |
+| `artifact_ref` | Canonical ref of the artifact carrying the entry. |
+| `parent_artifact_ref` | Canonical parent artifact ref when the entry is attached below a parent, otherwise empty. |
+
+`entry_id` must be stable across rewrites of the same logical run. Rewriting an existing entry with the same `entry_id` updates it in place. A different run gets a different `entry_id` and is appended as a new direct entry.
+
+## Source semantics
+
+`source` describes how trustworthy the token counts are:
+
+- `observed`: the runtime supplied the usage directly. Do not replace observed counts with estimates.
+- `estimated`: Lisa derived counts or cost from trustworthy runtime metadata plus an explicit pricing contract. Estimates are allowed only when the derivation inputs are real and attributable to the run.
+- `unavailable`: Lisa could not obtain trustworthy usage data. Write the entry anyway with `null` token/cost fields rather than silently omitting the row.
+
+The absence of data is never treated as zero. `null` means unknown; `0` means explicitly observed or derived zero.
+
+For example, an unavailable Verify run still records a direct entry with `source = unavailable`,
+`pricing_status = unavailable`, and `null` token/cost fields so downstream readers can distinguish
+"missing telemetry" from "zero usage."
+
+## Pricing semantics
+
+`pricing_status` describes how trustworthy the money fields are:
+
+- `observed`: runtime supplied a trustworthy monetary cost.
+- `estimated`: Lisa calculated cost from trustworthy token counts plus explicit pricing metadata.
+- `missing`: token counts are known but no trustworthy price source exists yet.
+- `unavailable`: the runtime exposed neither trustworthy cost nor enough trustworthy token data to estimate cost.
+
+Runtime-observed cost always wins over estimates. Estimated cost never overwrites an observed value. Missing pricing preserves token counts and a `null` cost.
+
+## Machine-readable tokens
+
+Every visible direct entry row ends with exactly one machine-readable token:
+
+```text
+<!-- lisa:usage-entry entry_id=<id> flow=<flow> run_id=<run-id> provider=<provider> model=<model> source=<source> input_tokens=<n|null> cached_input_tokens=<n|null> output_tokens=<n|null> reasoning_tokens=<n|null> total_tokens=<n|null> cost=<decimal|null> currency=<code|null> pricing_status=<status> pricing_source=<ref|null> artifact_ref=<ref> parent_artifact_ref=<ref-or-empty> -->
+```
+
+Field order is fixed. A reader parses the usage ledger by matching `<!-- lisa:usage-entry ` lines only; it never needs to scrape prose or table cell positions. String fields are percent-encoded before rendering and decoded after parsing, so whitespace, commas, and HTML comment terminators inside source values cannot split or truncate the token.
+
+Every managed section also ends with exactly one rollup token:
+
+```text
+<!-- lisa:usage-rollup direct_entry_ids=<csv> child_entry_ids=<csv> child_refs=<csv> direct_tokens=<n|null> child_tokens=<n|null> total_tokens=<n|null> direct_cost=<decimal|null> child_cost=<decimal|null> total_cost=<decimal|null> currency=<code|null> -->
+```
+
+- `direct_entry_ids` enumerates the entries attached directly to the current artifact.
+- `child_entry_ids` enumerates deduped descendant entry ids included in the rollup.
+- `child_refs` enumerates the child artifacts consulted for the rollup.
+- `total_*` fields equal direct plus child totals over the deduped entry set.
+
+The rollup token is the machine-readable summary. The visible rollup table mirrors it for humans. List fields are comma-delimited after encoding each item independently; commas inside an item are encoded as data, not treated as separators.
+
+## Visible rendering contract
+
+The canonical body layout is:
+
+```markdown
+## Lisa Usage
+
+_Managed by Lisa. Regenerated on each usage update; do not edit by hand._
+
+### Direct Usage
+
+| Flow | Model | Source | Tokens | Cost |
+|---|---|---|---:|---:|
+| ...human-readable rows ending with `lisa:usage-entry` tokens... |
+
+### Rollup
+
+| Scope | Tokens | Cost |
+|---|---:|---:|
+| Direct | ... | ... |
+| Child | ... | ... |
+| Total | ... | ... |
+
+<!-- lisa:usage-rollup ... -->
+```
+
+Writers may add host-specific surrounding prose, but they must preserve the heading, the managed-note line, the direct-entry tokens, and the single rollup token.
+
+## Rollup and dedupe behavior
+
+Rollups aggregate descendant usage from native tracker hierarchy, documented generated-work references, and explicit `parent_artifact_ref` links. Within one artifact rollup:
+
+- Dedupe strictly by stable `entry_id`.
+- Count each `entry_id` at most once even if the same descendant is discoverable through more than one path.
+- Preserve direct totals separately from child totals.
+- Exclude descendant entries whose `entry_id` is already present in the artifact's direct-entry set.
+
+Concrete example: if child artifact A and child artifact B both surface descendant entry
+`verify-123`, the parent rollup lists `verify-123` once in `child_entry_ids`. If the parent also
+records `verify-123` directly, exclude that descendant copy from child totals and keep the entry in
+the direct half only.
+
+The rollup contract is additive across the hierarchy: PRDs may roll up Epics/Stories/leaves, and leaves may roll up evidence or verification artifacts, without double counting shared descendants.
+
+## Idempotent rewrite rules
+
+- There is exactly one managed `## Lisa Usage` section per artifact body/comment.
+- Recompute the entire section on every write; never append ad hoc rows.
+- Sort direct entries deterministically by `(flow, run_id, entry_id)`.
+- Preserve existing entries with unchanged `entry_id` and refreshed field values.
+- Re-running with the same logical entry set must produce byte-identical output.
+- Do not include timestamps in the section preamble or token lines.
+
+Idempotency is enforced by `entry_id` for direct entries and by the fixed rollup token field order for totals.

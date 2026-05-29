@@ -1,0 +1,36 @@
+---
+description: "PRD Lifecycle Rollup & Generated-Top-Level-Work Contract (load-bearing)"
+alwaysApply: true
+---
+
+# PRD Lifecycle Rollup & Generated-Top-Level-Work Contract (load-bearing)
+
+The vendor-neutral source of truth for how a PRD owns the work it generated and how its lifecycle rolls up to `shipped`. Companion to `leaf-only-lifecycle` (which governs build-lifecycle of leaves); this rule governs PRD lifecycle and rollup from generated top-level children.
+
+## Generated top-level work (the contract)
+
+A PRD owns the work units it created **at the top of the hierarchy** — the Epic(s) and any top-level Story it created directly. It does NOT own descendants (Sub-tasks, Stories under an Epic, leaves under a top-level unit) — those are owned by their top-level parent and roll up via `leaf-only-lifecycle`.
+
+Leaf Sub-tasks are **never** direct children of a PRD when a top-level Epic/Story hierarchy exists.
+
+## How each vendor records the PRD→child link
+
+**Native hierarchy first**, machine-readable fallback section always written:
+
+- **GitHub Issues** — native sub-issues when source and tracker are the same repo + supports sub-issues.
+- **Linear** — `parentId` or generated Project grouping where the PRD also lives in Linear.
+- **JIRA** — Epic link / parent field, or documented issue-link type.
+- **Confluence / Notion** — no native issue hierarchy; the documented `## Tickets` / `## Generated Work` section IS the source of truth.
+- **Cross-vendor** (e.g. Notion PRD → JIRA tracker) — always documented section in the PRD source.
+
+The documented `## Tickets` section is ALWAYS written (additive to native links) so the generated set is readable without parsing comments.
+
+## Rollup transition
+
+PRD rolls from `ticketed` to `shipped` when every required generated top-level child is terminal. The PRD remains open for `/lisa:verify-prd` after `shipped` — verified PASS performs native closure (archive/close/transition), verified FAIL re-opens to `ticketed` with build-ready fix tickets (never `blocked`).
+
+## Idempotency dedupe key
+
+Re-runs of intake/backlink must dedupe by child-ref identity (e.g. `owner/repo#number` for GitHub, Linear issue UUID, JIRA key) — never by URL string, which varies by formatting.
+
+Full vendor matrix, predicate definitions, non-goals: [reference/prd-lifecycle-rollup.md](prd-lifecycle-rollup-reference.mdc).

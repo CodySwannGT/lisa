@@ -13,8 +13,11 @@
  *   - Codex: ship universal + SubagentStart (handled by the Codex generator's own
  *     ship list — this module is not invoked for Codex; Codex uses the existing
  *     generate-codex-plugin-artifacts.mjs path)
- *   - Cursor: strip inject-rules.sh (Cursor auto-loads rules/ natively), strip
- *     Claude-team-specific scripts and `entire hooks claude-code *` calls
+ *   - Cursor: emit hooks to a Cursor-native hooks/hooks.json (camelCase events,
+ *     flattened {command, matcher} entries, relative ./hooks/ command paths) via
+ *     buildCursorHooksJson; strip inject-rules.sh (rules ship as native
+ *     rules/*.mdc — the single delivery path; injecting would double-deliver),
+ *     Claude-team-specific scripts, and `entire hooks claude-code *` calls
  *   - agy: this filter is NOT consumed for agy. agy hooks ship as a
  *     plugin-bundled ROOT hooks.json emitted by
  *     generate-agy-plugin-artifacts.mjs (its own AGY_PLUGIN_HOOKS map is the
@@ -50,7 +53,7 @@ const SCRIPT_RULES = {
   "inject-rules.sh": {
     claude: true,
     codex: true,
-    cursor: false, // collision: Cursor auto-loads rules/ natively
+    cursor: false, // rules ship as native rules/*.mdc (single delivery path); injecting would double-deliver
     agy: false, // rules delivered via AGENTS.md bake, not a hook (rules-once invariant)
     copilot: true, // conservative default; conditionally stripped if rules-auto-load probe positive
   },
@@ -111,11 +114,65 @@ const scriptNameFromCommand = cmd => {
 };
 
 /**
+ * Rewrite a Claude hook command to the Cursor plugin-relative form: the
+ * `${CLAUDE_PLUGIN_ROOT}/` prefix becomes `./` (e.g.
+ * `${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh` → `./hooks/block-no-verify.sh`).
+ *
+ * Path-resolution caveat (issue #1055 security review): Cursor exposes NO
+ * plugin-root token for hook commands — its hooks reference documents only
+ * `CURSOR_PROJECT_DIR` / `CLAUDE_PROJECT_DIR` (workspace root), and is silent on
+ * how plugin-bundled `hooks/hooks.json` commands resolve. `./` is therefore the
+ * only plugin-relative form available, and is what the Cursor plugin structure
+ * implies for a plugin-bundled file. Plugin-hook FIRING (and thus the exact CWD
+ * these resolve against) is not verifiable via `cursor-agent --plugin-dir` — it
+ * is an IDE/marketplace concern tracked as a PR follow-up. If a future Cursor
+ * release resolves plugin-hook `./` against the project root rather than the
+ * plugin root, a malicious repo could shadow a guard hook; revisit this then.
+ *
+ * @param {string} command
+ * @returns {string}
+ */
+const toCursorCommandPath = command =>
+  typeof command === "string"
+    ? command.replace(/\$\{CLAUDE_PLUGIN_ROOT\}\//g, "./")
+    : command;
+
+/** Claude PascalCase → Copilot event-name map (per Copilot's docs). */
+const COPILOT_EVENTS = {
+  PreToolUse: "preToolUse",
+  PostToolUse: "postToolUse",
+  SessionStart: "sessionStart",
+  SessionEnd: "sessionEnd",
+  UserPromptSubmit: "userPromptSubmitted",
+  Stop: "agentStop",
+  SubagentStart: "subagentStart", // not supported but include for symmetry
+  SubagentStop: "subagentStop",
+};
+
+/**
+ * Claude PascalCase → Cursor event-name map. Verified against the official
+ * Cursor hooks reference (issue #1055; the prior "keep PascalCase, loader
+ * auto-normalizes" assumption was wrong).
+ */
+const CURSOR_EVENTS = {
+  PreToolUse: "preToolUse",
+  PostToolUse: "postToolUse",
+  SessionStart: "sessionStart",
+  SessionEnd: "sessionEnd",
+  UserPromptSubmit: "beforeSubmitPrompt",
+  Stop: "stop",
+  SubagentStart: "subagentStart",
+  SubagentStop: "subagentStop",
+  PreCompact: "preCompact",
+};
+
+/**
  * Translate Claude PascalCase event names to a target agent's native casing.
  *
  * Per the Wave 1 audit's Wave 3 contract step 4 + step 6:
- *   - Cursor: keep PascalCase (loader auto-normalizes)
- *   - Codex: keep PascalCase
+ *   - Cursor: rewrite to Cursor camelCase event names (preToolUse, postToolUse,
+ *     sessionStart, beforeSubmitPrompt, stop, …)
+ *   - Codex / agy: keep PascalCase
  *   - Copilot: rewrite to lowercase / camelCase per Copilot's docs
  *
  * @param {string} eventName Claude event name (e.g. "PreToolUse")
@@ -123,18 +180,9 @@ const scriptNameFromCommand = cmd => {
  * @returns {string} Translated event name
  */
 export function translateEventName(eventName, agent) {
-  if (agent !== "copilot") return eventName;
-  const COPILOT_EVENTS = {
-    PreToolUse: "preToolUse",
-    PostToolUse: "postToolUse",
-    SessionStart: "sessionStart",
-    SessionEnd: "sessionEnd",
-    UserPromptSubmit: "userPromptSubmitted",
-    Stop: "agentStop",
-    SubagentStart: "subagentStart", // not supported but include for symmetry
-    SubagentStop: "subagentStop",
-  };
-  return COPILOT_EVENTS[eventName] ?? eventName;
+  if (agent === "copilot") return COPILOT_EVENTS[eventName] ?? eventName;
+  if (agent === "cursor") return CURSOR_EVENTS[eventName] ?? eventName;
+  return eventName;
 }
 
 /**
@@ -204,12 +252,15 @@ export function shouldShipHook(hook, _eventName, agent, opts = {}) {
  * Returns the new hook block (or undefined when the block ends up empty after
  * filtering, which means the manifest should omit the hooks field entirely).
  *
- * This function is invoked only for cursor/copilot. The "agy" branch still
- * works (3 universal scripts survive, PascalCase events) and is exercised by
- * unit tests as conceptual ship-list documentation, but agy hooks are NOT
- * emitted through this path — they ship as a plugin-bundled root hooks.json
- * built by generate-agy-plugin-artifacts.mjs (only block-no-verify is portable;
- * agy lacks SessionStart).
+ * This function returns the Claude-NESTED block shape (with translated event
+ * keys) and is used by the Copilot generator. Cursor does NOT use it — Cursor
+ * needs the flattened hooks/hooks.json schema and goes through
+ * buildCursorHooksJson instead. The "agy" branch still works (3 universal
+ * scripts survive, PascalCase events) and is exercised by unit tests as
+ * conceptual ship-list documentation, but agy hooks are NOT emitted through this
+ * path — they ship as a plugin-bundled root hooks.json built by
+ * generate-agy-plugin-artifacts.mjs (only block-no-verify is portable; agy lacks
+ * SessionStart).
  *
  * @param {Record<string, Array<{ matcher?: string, hooks: Array<object> }>>} hookBlock
  *   The Claude-format hook block from .claude-plugin/plugin.json.
@@ -257,4 +308,63 @@ export function filterHooksForAgent(hookBlock, agent, opts = {}) {
  */
 export function filterScriptsForAgent(scriptFilenames, agent) {
   return scriptFilenames.filter(name => shouldShipScript(name, agent));
+}
+
+/**
+ * Build the Cursor-native `hooks/hooks.json` structure from a Claude-format hook
+ * block.
+ *
+ * Cursor's hooks file uses a flattened schema that differs from Claude's nested
+ * `.claude-plugin/plugin.json` block:
+ *
+ *   Claude: { "<ClaudeEvent>": [ { matcher, hooks: [ { type: "command", command } ] } ] }
+ *   Cursor: { version: 1, hooks: { "<cursorEvent>": [ { command, matcher? } ] } }
+ *
+ * The transformation:
+ *   1. Filters each handler for the cursor agent (drops inject-rules.sh,
+ *      enforce-team-first.sh, and `entire hooks claude-code *` calls).
+ *   2. Translates Claude PascalCase event names to Cursor camelCase.
+ *   3. Flattens each matcher-group into one `{ command, matcher? }` per surviving
+ *      handler (unwrapping Claude's `{ type: "command", command }`).
+ *   4. Rewrites `${CLAUDE_PLUGIN_ROOT}/hooks/<x>` command paths to the
+ *      Cursor-relative `./hooks/<x>`.
+ *
+ * Note: this intentionally re-walks the hook block rather than sharing a
+ * skeleton with `filterHooksForAgent`. The DRY extraction was deferred (issue
+ * #1055 review): `filterHooksForAgent` is on the Copilot path and emits the
+ * Claude-NESTED shape, whereas this emits Cursor's FLAT shape — unifying the
+ * walk would risk a sibling-generator regression for marginal gain.
+ *
+ * @param {Record<string, Array<{ matcher?: string, hooks: Array<{ type?: string, command: string }> }>>} hookBlock
+ *   The Claude-format hook block from `.claude-plugin/plugin.json`.
+ * @returns {{ version: number, hooks: Record<string, Array<{ command: string, matcher?: string }>> } | undefined}
+ *   The Cursor hooks structure, or undefined when no hooks survive (the caller
+ *   then omits `hooks/hooks.json` entirely).
+ */
+export function buildCursorHooksJson(hookBlock) {
+  if (!hookBlock || typeof hookBlock !== "object") return undefined;
+
+  /** @type {Record<string, Array<{ command: string, matcher?: string }>>} */
+  const hooks = {};
+
+  for (const [claudeEventName, entries] of Object.entries(hookBlock)) {
+    if (!Array.isArray(entries)) continue;
+    const flattened = [];
+    for (const entry of entries) {
+      const handlerArray = entry?.hooks;
+      if (!Array.isArray(handlerArray)) continue;
+      for (const handler of handlerArray) {
+        if (!shouldShipHook(handler, claudeEventName, "cursor")) continue;
+        const command = toCursorCommandPath(handler.command);
+        flattened.push(
+          entry.matcher ? { command, matcher: entry.matcher } : { command }
+        );
+      }
+    }
+    if (flattened.length > 0) {
+      hooks[translateEventName(claudeEventName, "cursor")] = flattened;
+    }
+  }
+
+  return Object.keys(hooks).length > 0 ? { version: 1, hooks } : undefined;
 }
