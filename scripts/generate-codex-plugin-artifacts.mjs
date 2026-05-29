@@ -3,18 +3,29 @@
  * Generate Codex plugin artifacts from the built Claude plugin directories.
  *
  * Claude remains Lisa's production path; this script derives the .codex-plugin
- * metadata (skills + MCP pointers) every time plugins are rebuilt.
+ * metadata (skills + MCP pointers + hooks) every time plugins are rebuilt.
  *
- * NOTE ON HOOKS: this script does NOT emit Codex hooks. Codex (codex-cli
- * 0.125.0) does not execute plugin-bundled hooks — its plugin manifest parser
- * only honors `skills`, `mcpServers`, `apps`, and interface fields, and a
- * runtime test confirmed a bundled `hooks/hooks.json` never fires. Lisa's
- * Codex hooks are instead installed into the project's `.codex/hooks.json`
- * by `src/codex/hooks-installer.ts` (run during `lisa` apply). Hooks with no
- * Codex equivalent are intentionally not ported: `enforce-team-first.sh`
- * (Claude-team-specific), `inject-flow-context.sh` and any SubagentStart hook
- * (Codex has no SubagentStart event), and the SessionEnd `entire` hook (Codex
- * has no SessionEnd event).
+ * HOOKS: as of Codex 0.125.0 (verified via codex features list showing
+ * codex_hooks as `stable`), the plugin manifest accepts a `hooks` field
+ * pointing at a sibling `hooks.json`. `emitCodexHooks` below derives the
+ * Codex-shape hooks block from the Claude manifest by applying the Wave 1
+ * per-agent ship-list audit
+ * (wiki/architecture/lisa-hook-per-agent-ship-list.md):
+ *   - Drop every `entire hooks claude-code *` command (Claude-only analytics).
+ *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
+ *   - Drop `inject-flow-context.sh` ONLY when targeting an agent without
+ *     SubagentStart (Codex 0.125.0 has SubagentStart, so we ship it).
+ *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh to ./hooks/<n>.sh so the
+ *     hooks.json sibling can resolve the script path relative to itself.
+ *   - Copy the surviving scripts into .codex-plugin/hooks/.
+ *
+ * SessionEnd is documented as unsupported by Codex; the `entire hooks
+ * claude-code session-end` hook is stripped per the Claude-only rule above
+ * regardless of event support.
+ *
+ * src/codex/hooks-installer.ts remains as the documented fallback for users
+ * who install Lisa via `lisa apply` without enabling the marketplace plugin —
+ * src/codex/lisa-plugin-detection.ts is the helper that gates that fallback.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -441,8 +452,53 @@ function main() {
   const pluginName = claudeManifest.name;
 
   pruneInternalCodexSkills(pluginDir);
+  emitCodexHooks(pluginDir, claudeManifest);
   writeCodexManifest(pluginDir, claudeManifest, pluginName, versionArg);
   writeSkillAgents(pluginDir);
+}
+
+/**
+ * Per Wave 1 audit + Codex 0.125.0 supporting plugin-bundled hooks: derive
+ * a Codex-shaped hooks.json from the Claude manifest's hooks block and copy
+ * the surviving scripts into .codex-plugin/hooks/.
+ *
+ * No-op when the input has no hooks block or every entry is stripped.
+ *
+ * @param {string} pluginDir Built Claude plugin directory.
+ * @param {object} claudeManifest Parsed contents of .claude-plugin/plugin.json.
+ */
+function emitCodexHooks(pluginDir, claudeManifest) {
+  const codexPluginDir = path.join(pluginDir, ".codex-plugin");
+  const hooksJsonPath = path.join(codexPluginDir, "hooks.json");
+  const hooksScriptsDir = path.join(codexPluginDir, "hooks");
+  const filtered = filterCodexHooks(claudeManifest.hooks);
+  if (filtered === null) {
+    // Nothing survived the filter. Remove any stale hooks artifacts from a
+    // prior build so componentPointers() doesn't keep advertising removed
+    // hooks via the ./hooks.json pointer.
+    fs.rmSync(hooksJsonPath, { force: true });
+    fs.rmSync(hooksScriptsDir, { force: true, recursive: true });
+    return;
+  }
+  fs.mkdirSync(codexPluginDir, { recursive: true });
+  fs.writeFileSync(
+    hooksJsonPath,
+    `${JSON.stringify(buildCodexHooksDocument(filtered), null, 2)}\n`
+  );
+  copyCodexHookScripts(pluginDir, filtered);
+}
+
+/**
+ * Wrap a filtered events block in the document shape Codex's hooks.json parser
+ * expects: events nested under a top-level "hooks" key (see the HooksFile
+ * contract in src/codex/hooks-merger.ts). Writing the events block at the root
+ * would not be recognized as hooks.
+ *
+ * @param {object} filtered Codex-shaped events block from filterCodexHooks.
+ * @returns {{ hooks: object }} The hooks.json document root.
+ */
+export function buildCodexHooksDocument(filtered) {
+  return { hooks: filtered };
 }
 
 function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
@@ -484,7 +540,109 @@ function componentPointers(pluginDir) {
     ...(fs.existsSync(path.join(pluginDir, ".mcp.json"))
       ? { mcpServers: "./.mcp.json" }
       : {}),
+    ...(fs.existsSync(path.join(pluginDir, ".codex-plugin", "hooks.json"))
+      ? { hooks: "./hooks.json" }
+      : {}),
   };
+}
+
+/**
+ * Per the Wave 1 hook audit, derive Codex-shaped hooks.json from the
+ * Claude plugin.json hooks block:
+ *   - Drop every `entire hooks claude-code *` command (Claude-only).
+ *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
+ *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh to ./hooks/<script>.sh
+ *     (Codex resolves plugin paths relative to .codex-plugin/plugin.json).
+ *   - Drop matchers that produce no surviving handlers.
+ *
+ * When the resulting block is empty, no hooks.json is written and the
+ * manifest pointer omits the hooks field.
+ *
+ * @param {object} hooksBlock The hooks field from the Claude plugin manifest.
+ * @returns {object | null} A Codex-shape hooks block or null when empty.
+ */
+export function filterCodexHooks(hooksBlock) {
+  if (!hooksBlock || typeof hooksBlock !== "object") return null;
+  const codexStrip = new Set(["enforce-team-first.sh"]);
+  const isEntire = cmd =>
+    typeof cmd === "string" &&
+    /command -v entire >\/dev\/null 2>&1 && entire hooks claude-code /.test(
+      cmd
+    );
+  const scriptName = cmd => {
+    if (typeof cmd !== "string") return null;
+    const m = /\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/([^/\s]+\.sh)/.exec(cmd);
+    return m ? m[1] : null;
+  };
+  const out = {};
+  for (const [event, entries] of Object.entries(hooksBlock)) {
+    if (!Array.isArray(entries)) continue;
+    const keptEntries = [];
+    for (const entry of entries) {
+      const handlers = entry?.hooks;
+      if (!Array.isArray(handlers)) continue;
+      const keptHandlers = handlers.flatMap(h => {
+        if (!h || typeof h.command !== "string") return [];
+        if (isEntire(h.command)) return [];
+        const script = scriptName(h.command);
+        if (script !== null) {
+          if (codexStrip.has(script)) return [];
+          return [
+            {
+              ...h,
+              // Codex hook commands resolve relative to .codex-plugin/plugin.json;
+              // rewrite to a path the hooks.json sibling will find.
+              command: h.command.replaceAll(
+                "${CLAUDE_PLUGIN_ROOT}/hooks/",
+                "./hooks/"
+              ),
+            },
+          ];
+        }
+        // Unknown command shape — ship verbatim.
+        return [h];
+      });
+      if (keptHandlers.length > 0) {
+        keptEntries.push({ ...entry, hooks: keptHandlers });
+      }
+    }
+    if (keptEntries.length > 0) {
+      out[event] = keptEntries;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
+ * Copy hook scripts that survived filterCodexHooks into the Codex artifact.
+ *
+ * Scripts land at <pluginDir>/.codex-plugin/hooks/ so the hooks.json pointer
+ * "./hooks/<n>.sh" resolves correctly when Codex loads the plugin.
+ *
+ * @param {string} pluginDir Built Claude plugin directory.
+ * @param {object} hooks Codex-shaped hooks block from filterCodexHooks.
+ */
+function copyCodexHookScripts(pluginDir, hooks) {
+  const srcHooksDir = path.join(pluginDir, "hooks");
+  if (!fs.existsSync(srcHooksDir)) return;
+  const referenced = new Set();
+  for (const entries of Object.values(hooks)) {
+    for (const entry of entries) {
+      for (const h of entry.hooks ?? []) {
+        if (typeof h.command !== "string") continue;
+        const m = /^\.\/hooks\/([^/\s]+\.sh)/.exec(h.command);
+        if (m) referenced.add(m[1]);
+      }
+    }
+  }
+  if (referenced.size === 0) return;
+  const dstHooksDir = path.join(pluginDir, ".codex-plugin", "hooks");
+  fs.mkdirSync(dstHooksDir, { recursive: true });
+  for (const name of referenced) {
+    const src = path.join(srcHooksDir, name);
+    if (!fs.existsSync(src)) continue;
+    fs.copyFileSync(src, path.join(dstHooksDir, name));
+  }
 }
 
 function metadataFor(pluginName, claudeManifest) {

@@ -19,8 +19,11 @@
 # @see .claude/rules/verfication.md "Self-Correction Loop" section
 # =============================================================================
 
-# Extract file path from JSON input
-FILE_PATH=$(cat | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
+# Extract file path from JSON input. Use jq for robust JSON parsing (never
+# grep/sed/cut — a shape change would silently skip the blocking lint gate).
+# Fail open without jq so we never hard-block an edit.
+command -v jq >/dev/null 2>&1 || exit 0
+FILE_PATH=$(cat | jq -r '.tool_input.file_path // empty')
 
 if [ -z "$FILE_PATH" ] || [ ! -f "$FILE_PATH" ]; then
     exit 0
