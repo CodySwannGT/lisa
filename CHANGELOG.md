@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.126.2](https://github.com/CodySwannGT/lisa/compare/vv2.126.1...v2.126.2) (2026-05-30)
+
+
+### Bug Fixes
+
+* **lifecycle:** roll parents up to intermediate env states + reconcile stranded containers ([19d88ac](https://github.com/CodySwannGT/lisa/commit/19d88ac11209fc11627074322efc18fdeadc6d2a))
+
 ### [2.126.1](https://github.com/CodySwannGT/lisa/compare/vv2.126.0...v2.126.1) (2026-05-30)
 
 
