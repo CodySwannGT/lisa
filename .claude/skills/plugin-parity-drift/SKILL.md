@@ -19,8 +19,9 @@ to run in CI. The sibling skills are `analyze-plugin` (plans parity work) and
 
 ## The `synced-from` pin grammar
 
-A Lisa-native skill that reimplements an upstream plugin carries exactly one
-frontmatter key:
+A Lisa-native skill that reimplements an upstream plugin carries a `synced-from`
+pin **in addition to** the frontmatter every skill requires (`name`,
+`description`, `allowed-tools`; note `$ARGUMENTS` is not substituted in skills):
 
 ```yaml
 synced-from: <name>@<marketplace>@<version>
