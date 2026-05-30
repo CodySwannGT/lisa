@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.125.0](https://github.com/CodySwannGT/lisa/compare/vv2.124.12...v2.125.0) (2026-05-30)
+
+
+### Features
+
+* **parity:** add 3rd-party plugin parity subsystem (analyze/implement/drift) ([#1059](https://github.com/CodySwannGT/lisa/issues/1059)) ([ebfd8b8](https://github.com/CodySwannGT/lisa/commit/ebfd8b8d988847837a763821aa986cb4fb7b0f0c)), closes [#1054](https://github.com/CodySwannGT/lisa/issues/1054) [-#1058](https://github.com/CodySwannGT/-/issues/1058)
+
+
+### Bug Fixes
+
+* **parity:** stabilize drift result ordering + clarify synced-from frontmatter (CodeRabbit [#1077](https://github.com/CodySwannGT/lisa/issues/1077)) ([8af0aa3](https://github.com/CodySwannGT/lisa/commit/8af0aa3d64d66ac93f31474752e49ff0099dd054))
+
 ### [2.124.12](https://github.com/CodySwannGT/lisa/compare/vv2.124.11...v2.124.12) (2026-05-30)
 
 
