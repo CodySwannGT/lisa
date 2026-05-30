@@ -64,22 +64,23 @@ When invoked with `--rollup`, this skill **derives a parent/container ticket's s
 
 **Resolve the child set the same way `lisa:jira-read-ticket` does** — the native Epic → Story → Sub-task hierarchy (Epic link / parent field for Stories, the subtask relationship for Sub-tasks), each with its current status. Fetch via `lisa:atlassian-access` (`operation: read-ticket` / `search-issues` with the parent's `"Epic Link" = <KEY>` or `parent = <KEY>` JQL). If the ticket has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
 
-**Evaluate the required children in priority order and take the first match** (canonical roles from `config-resolution`; the JIRA status map defaults to `Blocked`, `In Progress`, `Code Review`, env-keyed `done`):
+**Evaluate the required children over the env ladder `in-progress < dev < staging < production` (the ordered keys of the JIRA env-keyed `done` map, e.g. `On Dev < On Stg < Done`) and take the first match** (canonical roles from `config-resolution`; the JIRA status map defaults to `Blocked`, `In Progress`, `Code Review`, env-keyed `done`):
 
 | If among the required child leaves… | Derived parent role | JIRA status |
 |---|---|---|
 | any child is **blocked** | `blocked` | `Blocked` |
-| else any child is **in progress** (`In Progress` or `Code Review`) | `claimed` | `In Progress` |
-| else **all** required children are terminal (`Done`) | `done` | the configured terminal `done` status |
+| else **every** required child has shipped to some env (each at a `done`-map value, e.g. `On Dev`/`On Stg`/`Done`) | `done[min-env]` | the **least-advanced** env status among them (all `On Stg` → `On Stg`; mixed `On Dev`+`On Stg` → `On Dev`; all production → `Done`) |
+| else any child has **started** (`In Progress` / `Code Review`, or shipped to an env while a sibling has not) | `claimed` | `In Progress` |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container status |
 
 - **Blocked dominates** — a single blocked child surfaces `Blocked` on the parent even while siblings progress.
+- **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Apply native terminal resolution (the `leaf-only-lifecycle` Terminal native closure) only when the resolved env is the production `Done`, never at `On Dev`/`On Stg`.
 - **"Required" children only** — won't-do / optional children do not hold the parent open.
-- **Recursive** — an Epic reaches `Done` only when its Stories have themselves rolled up to `Done`; a Story reaches `Done` only when its Sub-tasks are all terminal. Evaluate bottom-up.
+- **Recursive** — an Epic reaches an env only when its Stories have themselves rolled up to at least that env; a Story reaches it only when its Sub-tasks have. Evaluate bottom-up.
 - **Never set the parent to the build-ready status** — `ready` is leaf-only. Rollup only moves the parent between non-ready container statuses.
-- **`review` is optional for JIRA** (`config-resolution`) — a project that omits `Code Review` keeps the parent in `In Progress` until terminal; skip the intermediate rollup hop rather than forcing a non-existent status (a `leaf-only-lifecycle` "vendor support varies" note).
+- **`review` is optional for JIRA** (`config-resolution`) — a project that omits `Code Review` keeps the parent in `In Progress` until it shifts to an env; skip the intermediate review hop rather than forcing a non-existent status (a `leaf-only-lifecycle` "vendor support varies" note).
 
-**Single-environment collapse (this repo).** The terminal `done` resolves via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to a single status and the lifecycle is `Ready → In Progress → Code Review → Done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map.
+**Single-environment collapse (this repo).** The env rungs resolve via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to a single status, the only env rung is production, and the lifecycle is `Ready → In Progress → Code Review → Done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map and roll a parent up to intermediate env statuses (`On Dev`/`On Stg`).
 
 **Apply the derived status** (only when it differs from the parent's current status) via `lisa:atlassian-access` `operation: transition`, and post an idempotent rollup comment naming the derived state and the child tally. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's status untouched.
 

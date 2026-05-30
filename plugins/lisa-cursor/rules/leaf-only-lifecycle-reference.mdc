@@ -65,26 +65,31 @@ So the exception is narrow: childlessness *enables* build-ready only for types t
 
 A parent/container never sets its own lifecycle state; it **derives** it from the roll-up of its children's states. Rollup is evaluated whenever a child transitions (or when intake observes the child set). Using the canonical build-lifecycle roles from `config-resolution` (`ready`, `claimed`, `review`, `blocked`, `done`):
 
-Evaluate the children in priority order and take the **first** match:
+Evaluate over the **env ladder** `in-progress < dev < staging < production` — the ordered keys of the project's env-keyed `done` map, with `claimed`/`review` as the rung below the first env (a single-environment project has only the `production` rung). Take the **first** match:
 
 | If among the required leaves… | …the parent rolls up to | Role |
 |---|---|---|
 | any leaf is **blocked** | blocked / attention-needed | `blocked` |
-| else any leaf is **in progress** (claimed or in review) | active / in-progress | `claimed` |
-| else **all** required leaves are **terminal** (`done`) | the configured rollup terminal state | `done` (or `review` where supported — see below) |
+| else **every** required leaf has shipped to some env (each is at a `done`-map value) | the **least-advanced** env among them on the ladder | env-keyed `done[min-env]` (terminal `done` when that env is production) |
+| else any leaf has **started** (claimed / in review, or shipped to some env while a sibling has not) | active / in-progress | `claimed` (or `review` where supported — see below) |
 | else (leaves exist but none started) | unchanged (parent stays in its non-ready container state) | — |
+
+The middle two rungs are the same idea seen at two resolutions: a parent reaches an env only once **all** its required leaves have reached **at least** that env. So all leaves at `On Stg` → parent `On Stg`; a mix of `On Dev` and `On Stg` → parent `On Dev` (the set as a whole has only fully reached dev); any leaf still `claimed`/`review` (not yet shipped anywhere) holds the parent at `claimed`. In a single-environment project the only env rung is production, so this collapses to the familiar "all leaves `done` → parent `done`, else `claimed`."
 
 Notes:
 
 - **Blocked dominates.** A single blocked leaf surfaces blocked/attention on the parent even if other leaves are progressing, so a human sees the parent needs attention.
-- **"Required" leaves.** Optional or won't-do children do not hold a parent open; only the leaves that must ship for the parent to be complete are counted toward the all-terminal check.
-- **Rollup is recursive.** An Epic rolls up from its Stories, each of which rolls up from its own leaves. Evaluate bottom-up: a Story reaches `done` only when its leaves are all terminal; an Epic reaches `done` only when its Stories are all `done`.
+- **"Required" leaves.** Optional or won't-do children do not hold a parent open; only the leaves that must ship for the parent to be complete are counted toward the env-rollup check.
+- **Least-advanced env wins.** The parent reflects the env the whole required set has collectively reached — never an env ahead of its laggard leaf. Native closure (below) fires only when the resolved env is the production/terminal value, never at an intermediate env (`On Dev`/`On Stg`).
+- **Rollup is recursive.** An Epic rolls up from its Stories, each of which rolls up from its own leaves. Evaluate bottom-up: a Story reaches an env only when its leaves have all reached at least that env; an Epic reaches it only when its Stories have.
 - **Vendor support varies.** Apply the rollup state the vendor can express. Where a vendor has no native intermediate state, use the nearest configured role or a metadata/comment signal rather than forcing a non-existent status (PRD #522 non-goal: vendors need not expose identical states).
-- **The parent never carries `ready`.** `ready` is a *human* "this is buildable, claim it" signal and only ever lives on leaves. Rollup moves a parent between non-ready container states (in-progress / blocked / terminal); it never sets the parent to `ready`.
+- **The parent never carries `ready`.** `ready` is a *human* "this is buildable, claim it" signal and only ever lives on leaves. Rollup moves a parent between non-ready container states (in-progress / per-env / blocked / terminal); it never sets the parent to `ready`. A container found carrying `ready` is a leaf-only-invariant violation — recompute its rolled state from its children and apply that (see `repair-intake`).
 
-### The rollup terminal state is the configured "done" — multi-env capable
+### The rollup env states are the configured "done" map — multi-env capable
 
-The terminal rollup state is whatever the project configures for `done` — which is **env-keyed** (`config-resolution` "Env-keyed `done`"): a `done` map keyed by environment (`dev`, `staging`, `production`), resolved from the merged PR's base branch. This rule does **not** hardcode a `dev → staging → prod` promotion chain as required — that is a project-specific deploy topology. A downstream project with dev/staging/prod environments rolls a parent up to whichever terminal `done` value matches the environment its leaves shipped to. The rule stays generic and multi-env capable.
+The env rungs are whatever the project configures for `done` — which is **env-keyed** (`config-resolution` "Env-keyed `done`"): a `done` map keyed by environment (`dev`, `staging`, `production`), each leaf's env resolved from its merged PR's base branch. This rule does **not** hardcode a `dev → staging → prod` promotion chain as required — that is a project-specific deploy topology; the ladder is simply the ordered keys of the project's `done` map. A downstream project with dev/staging/prod environments rolls a parent up to the least-advanced env value its required leaves have collectively reached (an intermediate-env parent state, e.g. `On Stg`), and only to the production `done` value once every required leaf is at production. The rule stays generic and multi-env capable.
+
+Intermediate-env rollup and terminal native closure are distinct: a parent **rolls up to** an intermediate env (`On Dev`/`On Stg`) as its required leaves reach it, but native closure (next section) fires **only** at the production/terminal `done` value. A parent sitting at `On Stg` is correctly rolled up *and* still open.
 
 **Single-environment collapse (this repo).** Lisa's own deploy has only `main`/`production` (no dev/staging), so `done` is a single value, not a map. For GitHub, the build lifecycle collapses to one chain: `ready → claimed (in-progress) → done`. The rollup terminal state is simply `done`. This is the *collapsed* case of the generic rule, not a different rule — projects with more environments keep the env-keyed map.
 

@@ -1,6 +1,6 @@
 ---
 name: repair-intake
-description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck or was left half-closed: items left in `blocked`, stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items that are still natively open, and rollup/container items whose children are all terminal but whose parent is not closed out. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates candidates up to `max_candidates`, and repairs every materially actionable one in that bounded set: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline) — but for a stalled build it first diagnoses the PR/deploy state and, if the PR cannot merge (conflict, rebase-required, failing checks, unaddressed CodeRabbit/changes-requested) or a deploy failed, files a build-ready leaf fix ticket and moves the item to `blocked` (blocked by that ticket) rather than re-dispatching, re-validates blocked PRDs when new clarifying answers exist, re-dispatches blocked build items whose `is blocked by` dependencies have since closed, performs terminal native closure for terminal-labeled items, and closes rollups whose associated child work is fully terminal. Idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `verified`) and never touches `ready` items. Designed as a /schedule cron target running alongside lisa:intake."
+description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck or was left half-closed: items left in `blocked`, stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items that are still natively open, and rollup/container items whose children are all terminal but whose parent is not closed out. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates candidates up to `max_candidates`, and repairs every materially actionable one in that bounded set: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline) — but for a stalled build it first diagnoses the PR/deploy state and, if the PR cannot merge (conflict, rebase-required, failing checks, unaddressed CodeRabbit/changes-requested) or a deploy failed, files a build-ready leaf fix ticket and moves the item to `blocked` (blocked by that ticket) rather than re-dispatching, re-validates blocked PRDs when new clarifying answers exist, re-dispatches blocked build items whose `is blocked by` dependencies have since closed, performs terminal native closure for terminal-labeled items, reconciles parent rollups to their derived state per leaf-only-lifecycle — including the intermediate-env case (e.g. all children at `On Stg` → parent `On Stg`) and a container wrongly stuck in `ready` — and closes out rollups whose associated child work is fully terminal. Idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `verified`) and never touches `ready` leaves (a container wrongly carrying `ready` is the one exception — it is rolled up from its children, since `ready` on a parent is an invariant violation, not intake's claim signal). Designed as a /schedule cron target running alongside lisa:intake."
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "mcp__linear-server__list_teams", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label"]
 ---
 
@@ -24,9 +24,16 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   research/waiting resolves the ambiguity that stopped it.
 - **Terminal-open drift** — an item already carrying its true terminal lifecycle role (for
   example GitHub `status:done`) but still open/active in the provider's native state.
-- **Completed rollup drift** — a parent/container item (Epic, Story, PRD, Linear Project, or
-  equivalent) whose associated child set is fully terminal but whose own lifecycle/native state has
-  not been closed out.
+- **Rollup drift** — a parent/container item (Epic, Story, PRD, Linear Project, or equivalent)
+  whose own lifecycle state does not match the roll-up of its children's states per
+  `leaf-only-lifecycle`. This covers the *completed* case (all children terminal → close the parent
+  out) **and** the *intermediate-env* case (all children shipped to an env like `On Stg`, but the
+  parent never advanced — including a parent left stranded in a status it should never carry).
+- **Stale-`ready` container** — a parent/container (open child work, or a childless
+  Epic/Story/Spike) wrongly carrying the build-ready role. This is a leaf-only-invariant violation
+  the build-intake claim gate deliberately leaves for a human; repair-intake reconciles it by
+  rolling the parent up from its children (with an audit note), so a container never sits in `ready`
+  indefinitely.
 
 This skill is the symmetric counterpart to `lisa:intake`. It reuses the same queue-detection,
 the same agent-team orchestration, the same "don't ask, just run" confirmation policy, and the
@@ -131,9 +138,9 @@ claim-and-advance). The essentials, inlined here so this skill is self-complete:
 | Confluence **parent page** URL/ID | PRD (Confluence, narrowed) | source=confluence | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
 | Linear **workspace** URL, **team** URL/key, or literal `linear` | PRD (Linear) | source=linear | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
 | GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
-| GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked`, terminal/open issues, all-terminal parent rollups |
+| GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked`, terminal/open issues, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
 | Literal `github` | GitHub; route by `intake_mode` (`prd` / `build` / `both`) | per lifecycle | per lifecycle above |
-| JIRA project key or full JQL | Build (JIRA) | tracker=jira | `claimed`, `blocked`, terminal/closure verification, all-terminal parent rollups |
+| JIRA project key or full JQL | Build (JIRA) | tracker=jira | `claimed`, `blocked`, terminal/closure verification, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
 
 Disambiguation (same as `lisa:intake`): a `notion.so`/`notion.site` URL → Notion; an Atlassian
 `/wiki/spaces/<KEY>` URL → Confluence (with `/pages/<id>` → parent-page narrowing); a
@@ -355,24 +362,37 @@ native-open / active / unresolved:
 4. Post a compact `[lisa-repair-intake]` note only when the native close-out changed state or when
    an actionable setup error must be surfaced. Do not spam already-closed terminal items.
 
-### Build rollup with all children terminal → close out parent/container
+### Build parent rollup reconciliation (intermediate-env or terminal close-out)
 
-For each parent/container item (Epic, Story, Spike, Project, or any item with child work) whose
-required child set is fully terminal:
+For each parent/container item (Epic, Story, Spike, Project, or any item with child work),
+reconcile its lifecycle state with the roll-up of its children — **including the intermediate-env
+case**, not only fully-terminal close-out. This is the recovery-side complement to the forward
+rollup the `*-sync --rollup` skills perform; it catches a parent that was never rolled up (or was
+left in a status it should not carry, including a stale build-ready `ready`).
 
 1. Read the child set using the vendor-native hierarchy first (GitHub sub-issues, JIRA
    Epic/parent/sub-task hierarchy, Linear project/parent/sub-issues), with the same fallbacks the
    vendor read/sync skills document.
-2. Evaluate bottom-up per `leaf-only-lifecycle`: every required child must already be terminal.
+2. **Compute the derived parent state** bottom-up per the `leaf-only-lifecycle` **Parent status
+   rollup** state machine, evaluated over the env ladder `in-progress < dev < staging <
+   production` (the ordered keys of the env-keyed `done` map): any required child blocked →
+   `blocked`; else every required child shipped to some env → the **least-advanced** env among
+   them (e.g. all `On Stg` → `On Stg`); else any child started → `claimed`; else unchanged.
    Optional / won't-do / not-planned children are terminal-but-dropped and do not hold the parent
    open.
-3. Apply the configured terminal rollup role to the parent/container, removing any stale build
-   lifecycle role that conflicts.
-4. Immediately perform terminal native closure where the provider supports it (GitHub close,
-   Linear complete, JIRA resolved/closed). A completed rollup parent should not remain open in
-   GitHub merely because no leaf agent touched it.
-5. If any required child is incomplete, active, blocked, or inaccessible, leave the parent open and
-   record it as `still_blocked` or `active` with the current child tally.
+3. **If the derived state differs from the parent's current state, apply it** via the vendor's
+   lifecycle write (JIRA transition, GitHub/Linear label swap keeping exactly one `status:*`),
+   removing any conflicting stale build lifecycle role — **including a stale `ready`** the parent
+   should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
+   state and the child tally (honor the backoff window + fingerprint).
+4. **Perform native closure only at the true terminal `done`.** When — and only when — the derived
+   env is the production/terminal value, finalize through the provider-native mechanism (GitHub
+   `gh issue close --reason completed`, Linear move to Done state, JIRA resolved/closed verified at
+   `statusCategory = Done`). An intermediate-env rollup (`On Dev`/`On Stg`) advances the parent's
+   status but **must not** close it — it is still open per `leaf-only-lifecycle`.
+5. If the derived state is `unchanged` (children exist but none started) or the required set is
+   ambiguous / inaccessible, leave the parent as-is and record it as `active` or `still_blocked`
+   with the current child tally; never guess a transition.
 
 ### PRD `in_review` (stalled in-progress) → re-run validate→route
 
@@ -483,8 +503,9 @@ cron tick.
 ## Lifecycle ownership guard
 
 repair-intake owns the repair surfaces needed to recover stuck work and close-out drift:
-build `claimed` / `blocked`, PRD `in_review` / `blocked`, terminal-labeled native-open items, and
-parent/container rollups whose child sets are already terminal. It MAY:
+build `claimed` / `blocked`, PRD `in_review` / `blocked`, terminal-labeled native-open items,
+parent/container rollups (intermediate-env *and* fully-terminal), and stale-`ready` containers.
+It MAY:
 
 - Apply the build scanner's post-agent `claimed → done` on a successful resume (it is finishing
   the scanner's interrupted job), and move a dependency-cleared build item `blocked → claimed`.
@@ -492,8 +513,14 @@ parent/container rollups whose child sets are already terminal. It MAY:
   as the PRD intake does.
 - Close / complete / resolve build items that already carry the true terminal `done` role but are
   still natively open, per `leaf-only-lifecycle`.
-- Roll up a parent/container to the configured terminal state and close/complete/resolve it when
-  all required children are terminal.
+- Roll up a parent/container to its derived state per the `leaf-only-lifecycle` state machine —
+  **including an intermediate env value** (`On Dev`/`On Stg`) when all required children have
+  reached that env — and close/complete/resolve it **only** when the derived env is the true
+  terminal `done`.
+- Reconcile a **container** wrongly carrying the build-ready `ready` role (a leaf-only-invariant
+  violation) by rolling it up from its children and removing the `ready`, with a
+  `[lisa-repair-intake]` audit note. This is the one `ready`-touching exception (see MUST NOT) and
+  applies only to containers, never to leaves.
 - Move a PRD with fully terminal generated work to `shipped` and close/archive the source artifact
   where the source vendor supports native close-out, per `prd-lifecycle-rollup`.
 
@@ -502,21 +529,27 @@ It MUST NOT:
 - Move a PRD out of `draft` or `verified` (those are product-owned), or set `verified` itself.
 - Apply a build `done` value other than via the env-resolution rules, or close a native item at
   any value other than the true terminal `done` (see `leaf-only-lifecycle`).
-- Touch `ready` items (that is `lisa:intake`'s lane).
+- Touch `ready` **leaves** (that is `lisa:intake`'s lane). A container carrying `ready` is the
+  documented exception above — repair-intake reconciles it because `ready` on a parent is an
+  invariant violation, not the human "claim this leaf" signal intake owns.
 
 ## Cycle behavior
 
 1. **Resolve the queue** — detect vendor/lifecycle (Source dispatch); resolve stuck role names
    from config. For JIRA, confirm the needed transitions are reachable; stop on misconfig.
 2. **Enumerate repair candidates** — query in-progress role(s), `blocked` role(s), terminal/open
-   items, and rollup parents/PRDs with child work for the detected lifecycle(s), up to
+   items, rollup parents/PRDs with child work, and **containers carrying the `ready` role** (a
+   leaf-only-invariant violation to reconcile), for the detected lifecycle(s), up to
    `max_candidates`, via the Access layer reads.
 3. **Order deterministically**, highest repair-confidence first:
    1. terminal-labeled items that only need native close / complete / resolve,
-   2. rollup parents/PRDs whose child sets are all terminal,
-   3. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
-   4. `blocked` items with **new clarifying answers**,
-   5. **stalled** in-progress items, oldest activity first.
+   2. rollup parents/PRDs whose child sets are all terminal (close-out),
+   3. rollup parents whose children have advanced to an intermediate env, or stale-`ready`
+      containers, that need their derived state applied (status-only reconciliation, no native
+      close),
+   4. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
+   5. `blocked` items with **new clarifying answers**,
+   6. **stalled** in-progress items, oldest activity first.
 4. **Walk the ordered list**, evaluating each candidate (terminal close-out, rollup child tally,
    staleness, dependency, answer checks), and repair **every** candidate that is actionable inside
    the `max_candidates` cap. Continue after successful writes and after per-item errors.
@@ -539,8 +572,9 @@ Report outcomes in these buckets:
   `ticketed`.
 - `closed_out` — terminal-labeled items whose native open/active state was closed, completed,
   resolved, or archived.
-- `rolled_up` — parent/container/PRD rollups advanced because all associated children were
-  terminal.
+- `rolled_up` — parent/container/PRD rollups advanced to their derived state: an intermediate env
+  (e.g. all children at `On Stg` → parent `On Stg`), a fully-terminal close-out, or a stale-`ready`
+  container reconciled from its children.
 - `still_blocked` — examined and intentionally left `blocked`, with the active reason.
 - `active` — skipped because current work is not stale (or within backoff).
 - `errors` — items that failed evaluation, with the error.
