@@ -28,19 +28,20 @@ If `$ARGUMENTS` is empty, all vendor skills auto-detect a ticket reference from 
 
 When the caller passes `--rollup` after the milestone, the dispatch target additionally **derives the parent/container's lifecycle state from its children** instead of acting on the work item directly. This is the vendor-neutral implementation of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy here. The shim is dispatch only; the rollup mechanics live in the vendor sync skill (`lisa:github-sync`, `lisa:jira-sync`, `lisa:linear-sync`), which resolves child membership via its `*-read-*` skill and evaluates the state machine below.
 
-The state machine (first match wins, evaluated over the **required** leaves only):
+The state machine (first match wins, evaluated over the **required** leaves only, on the env ladder `in-progress < dev < staging < production` — the ordered keys of the project's env-keyed `done` map):
 
 | If among the required leaves… | …the parent rolls up to | Role |
 |---|---|---|
 | any leaf is **blocked** | blocked / attention-needed | `blocked` |
-| else any leaf is **in progress** (claimed or in review) | active / in-progress | `claimed` |
-| else **all** required leaves are **terminal** | the configured rollup terminal | `done` (or `review` where supported) |
+| else **every** required leaf has shipped to some env (each at a `done`-map value) | the **least-advanced** env among them | `done[min-env]` (terminal `done` at production) |
+| else any leaf has **started** (claimed or in review, or shipped while a sibling has not) | active / in-progress | `claimed` (or `review` where supported) |
 | else (leaves exist, none started) | unchanged | — |
 
 - **Blocked dominates** — one blocked leaf surfaces blocked on the parent even while others progress.
+- **Least-advanced env wins** — a parent reaches an env only once all required leaves have reached at least that env (all `On Stg` → `On Stg`; mixed dev/staging → the dev value). Native terminal closure fires only at the production `done`, never at an intermediate env.
 - **The parent never carries `ready`** — `ready` is a human "claim this leaf" signal; rollup only moves a parent between non-ready container states.
 - **Rollup is recursive** — an Epic rolls up from its Stories, each of which rolls up from its own leaves. Evaluate bottom-up.
-- **The terminal is the configured env-keyed `done`** — multi-env projects roll up to whichever `done` value matches the env their leaves shipped to (see `config-resolution` "Env-keyed `done`"). **Single-environment collapse (this repo):** `deploy.branches` declares only `production: main`, so `done` is a single value and the GitHub build lifecycle collapses to `ready → claimed (in-progress) → done`; the rollup terminal is simply `done` (or the PRD-side `ticketed` for PRD containers), with **no** dev/staging promotion hops and **no** env-keyed multi-entry chain to resolve.
+- **The env rungs are the configured env-keyed `done`** — multi-env projects roll up to whichever `done` value (including intermediate `On Dev`/`On Stg`) their leaves have collectively reached (see `config-resolution` "Env-keyed `done`"). **Single-environment collapse (this repo):** `deploy.branches` declares only `production: main`, so `done` is a single value, the only env rung is production, and the GitHub build lifecycle collapses to `ready → claimed (in-progress) → done`; the rollup terminal is simply `done` (or the PRD-side `ticketed` for PRD containers), with **no** dev/staging promotion hops and **no** env-keyed multi-entry chain to resolve.
 
 **Safe-by-default when not yet supported.** A vendor sync path that has not implemented native rollup MUST be a documented no-op that surfaces the derived state as a suggestion/comment rather than guessing a transition — never an unsafe default. Without `--rollup`, the sync skills behave exactly as before (milestone comment on the work item; no parent derivation).
 
