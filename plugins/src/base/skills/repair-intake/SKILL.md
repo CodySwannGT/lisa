@@ -30,7 +30,7 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   out) **and** the *intermediate-env* case (all children shipped to an env like `On Stg`, but the
   parent never advanced — including a parent left stranded in a status it should never carry).
 - **Stale-`ready` container** — a parent/container (open child work, or a childless
-  Epic/Story/Spike) wrongly carrying the build-ready role. This is a leaf-only-invariant violation
+  **Epic**) wrongly carrying the build-ready role. This is a leaf-only-invariant violation
   the build-intake claim gate deliberately leaves for a human; repair-intake reconciles it by
   rolling the parent up from its children (with an audit note), so a container never sits in `ready`
   indefinitely.
@@ -364,7 +364,7 @@ native-open / active / unresolved:
 
 ### Build parent rollup reconciliation (intermediate-env or terminal close-out)
 
-For each parent/container item (Epic, Story, Spike, Project, or any item with child work),
+For each parent/container item (an Epic, a Linear Project, or any item — of any type — with open child work),
 reconcile its lifecycle state with the roll-up of its children — **including the intermediate-env
 case**, not only fully-terminal close-out. This is the recovery-side complement to the forward
 rollup the `*-sync --rollup` skills perform; it catches a parent that was never rolled up (or was
