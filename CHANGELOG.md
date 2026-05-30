@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.126.1](https://github.com/CodySwannGT/lisa/compare/vv2.126.0...v2.126.1) (2026-05-30)
+
+
+### Bug Fixes
+
+* **parity:** enforce per-agent component coverage in routing validator (CodeRabbit [#1079](https://github.com/CodySwannGT/lisa/issues/1079)) ([afb3b03](https://github.com/CodySwannGT/lisa/commit/afb3b03e995d8722c6bcc78bae91abc9bf959f3a))
+
 ## [2.126.0](https://github.com/CodySwannGT/lisa/compare/vv2.125.1...v2.126.0) (2026-05-30)
 
 
