@@ -154,9 +154,56 @@ export function baseArtifact(): Artifact {
       agy: reimplement(),
       copilot: {
         outcome: "enable-vendor-equivalent",
-        actions: ["enable the vendor equivalent"],
+        actions: [
+          `enable the vendor's native agent equivalent for ${PLUGIN_NAME}`,
+        ],
         rationale: "vendor ships a comparable capability",
       },
+    },
+  };
+}
+
+/**
+ * Build a multi-kind (mcp + command) artifact for the coverage gate. codex + agy
+ * cover both groups via the kind keywords; cursor stays claude-only (exempt);
+ * copilot's actions are caller-supplied to exercise coverage. upstream is
+ * "unknown" so no `synced-from` stamp is owed.
+ *
+ * @param copilotActions - copilot's action list.
+ * @returns A multi-kind artifact.
+ */
+export function multiKind(copilotActions: readonly string[]): Artifact {
+  const rePoint = (actions: readonly string[]): RoutingEntry => ({
+    outcome: "re-point-mcp-lsp",
+    actions: [...actions],
+    rationale: "coverage fixture",
+  });
+  const coverBoth = ["re-point the mcp server and emit the command"];
+  const base = baseArtifact();
+  return {
+    ...base,
+    upstreamVersion: "unknown",
+    components: [
+      {
+        kind: "mcp",
+        id: "demo-mcp",
+        path: ".mcp.json",
+        classification: "mcp-server",
+        notes: "",
+      },
+      {
+        kind: "command",
+        id: "demo-cmd",
+        path: "commands/demo.md",
+        classification: "claude-command",
+        notes: "",
+      },
+    ],
+    routing: {
+      ...base.routing,
+      codex: rePoint(coverBoth),
+      agy: rePoint(coverBoth),
+      copilot: rePoint(copilotActions),
     },
   };
 }

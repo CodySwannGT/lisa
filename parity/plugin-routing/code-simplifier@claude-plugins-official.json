@@ -38,7 +38,7 @@
     "copilot": {
       "outcome": "enable-vendor-equivalent",
       "actions": [
-        "enable Copilot's native code-simplification/refactor capability in the project-scoped marketplace"
+        "enable Copilot's native code-simplification/refactor capability for the code-simplifier agent in the project-scoped marketplace"
       ],
       "rationale": "Code simplification is a generic capability Copilot ships natively; prefer enabling over reimplementing."
     }

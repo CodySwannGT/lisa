@@ -25,6 +25,7 @@ import {
   DEMO_MKT,
   FIXTURE_CACHE,
   INVALID_DIR,
+  multiKind,
   PLUGIN_NAME,
   ROUTING_DIR_FLAG,
   runValidate,
@@ -323,5 +324,35 @@ describe("cacheMaxVersion", () => {
 
   it("returns null for a path-traversal name (defense-in-depth)", () => {
     expect(cacheMaxVersion(FIXTURE_CACHE, "..", DEMO_MKT)).toBeNull();
+  });
+});
+
+describe("validateArtifact coverage gate (drop nothing)", () => {
+  const ctx = { cacheMax: null, filename: undefined, mdExists: true };
+
+  it("flags an agent whose actions omit a component group (codex/agy cover both via keyword)", () => {
+    const errors = validateArtifact(multiKind(["handle the mcp only"]), ctx);
+    expect(errors).toContain(
+      "routing.copilot: no action covers component group command"
+    );
+    expect(has(errors, "no action covers component group mcp")).toBe(false);
+  });
+
+  it("passes when actions cover every group (copilot references by component id)", () => {
+    expect(
+      validateArtifact(multiKind(["wire up demo-mcp and demo-cmd"]), ctx)
+    ).toEqual([]);
+  });
+
+  it("exempts already-native and claude-only agents from coverage", () => {
+    const a = multiKind([]);
+    a.routing.copilot = {
+      outcome: "already-native",
+      actions: [],
+      rationale: "covered by the existing fan-out",
+    };
+    expect(has(validateArtifact(a, ctx), "routing.copilot: no action")).toBe(
+      false
+    );
   });
 });
