@@ -1,0 +1,5 @@
+{
+  "name": "unresolved-plugin",
+  "version": "unknown",
+  "description": "Fixture manifest — installed but its only version subdir carries a NON-semver version, so resolveCurrentVersion must report `unresolved`."
+}
