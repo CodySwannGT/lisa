@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "plugin": "typescript-lsp@claude-plugins-official",
+  "pluginName": "typescript-lsp",
+  "marketplace": "claude-plugins-official",
+  "upstreamVersion": "1.0.0",
+  "analyzedAt": "2026-05-30",
+  "status": "proposed",
+  "components": [
+    {
+      "kind": "lsp",
+      "id": "typescript-lsp",
+      "path": "README.md",
+      "classification": "lsp-server",
+      "notes": "TypeScript/JavaScript language server (typescript-language-server). Inferred from README; no machine-readable manifest. Version from cache dir name; no plugin.json."
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "re-point-mcp-lsp",
+      "actions": [
+        "emit the TypeScript LSP into Codex's .codex-plugin pointer (lspServers) — flagged follow-up: confirm the Codex pointer generator handles lspServers"
+      ],
+      "rationale": "An LSP-bearing plugin is re-pointed into Codex's .codex-plugin pointer rather than reimplemented."
+    },
+    "cursor": {
+      "outcome": "already-native",
+      "actions": [
+        "Cursor ships a native TypeScript language server; no emission needed"
+      ],
+      "rationale": "Cursor provides TypeScript/JavaScript language intelligence natively, so the LSP is already covered."
+    },
+    "agy": {
+      "outcome": "re-point-mcp-lsp",
+      "actions": [
+        "emit the TypeScript LSP via agy's user-global installer (lspServers) — flagged follow-up: confirm the agy installer handles LSP servers"
+      ],
+      "rationale": "An LSP-bearing plugin is re-pointed via agy's installer rather than reimplemented."
+    },
+    "copilot": {
+      "outcome": "re-point-mcp-lsp",
+      "actions": [
+        "emit the TypeScript LSP as an inline lspServers entry on Copilot's manifest — first LSP routed to Copilot lspServers; flagged follow-up: verify the Copilot manifest generator emits lspServers"
+      ],
+      "rationale": "An LSP-bearing plugin is re-pointed into Copilot's lspServers manifest rather than reimplemented."
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "plugin": "has-manifest@demo-marketplace",
+  "pluginName": "has-manifest",
+  "marketplace": "demo-marketplace",
+  "upstreamVersion": "1.2.3",
+  "analyzedAt": "2026-05-30",
+  "status": "proposed",
+  "components": [
+    {
+      "kind": "agent",
+      "id": "has-manifest",
+      "path": "agents/has-manifest.md",
+      "classification": "claude-agent",
+      "notes": "Routing-validate fixture — a single valid subagent."
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill stamped synced-from: has-manifest@demo-marketplace@1.2.3"
+      ],
+      "rationale": "Codex has no plugin subagent surface; reimplement as a Lisa skill."
+    },
+    "cursor": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Cursor reads .claude-plugin/ natively; the agent loads unchanged."
+    },
+    "agy": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill stamped synced-from: has-manifest@demo-marketplace@1.2.3"
+      ],
+      "rationale": "agy has no equivalent subagent plugin surface; reimplement as a Lisa skill."
+    },
+    "copilot": {
+      "outcome": "enable-vendor-equivalent",
+      "actions": ["enable Copilot's native equivalent in the project-scoped marketplace"],
+      "rationale": "Vendor ships a comparable capability; prefer enabling over reimplementing."
+    }
+  }
+}
