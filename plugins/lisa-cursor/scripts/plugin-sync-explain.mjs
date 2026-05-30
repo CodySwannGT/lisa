@@ -50,6 +50,25 @@ const GIT_BIN = "/usr/bin/git";
  *   readonly readOnly: boolean
  *   readonly text: string
  * }} PluginSyncReport
+ *
+ * @typedef {{
+ *   readonly path: string
+ *   readonly counterpart?: string
+ *   readonly classification: string
+ *   readonly nextAction: string
+ * }} PluginSyncRemediation
+ *
+ * @typedef {{
+ *   readonly root: string
+ *   readonly verdict: "PASS" | "WARN"
+ *   readonly driftClass: string
+ *   readonly affectedPaths: readonly string[]
+ *   readonly remediations: readonly PluginSyncRemediation[]
+ *   readonly findings: readonly PluginSyncFinding[]
+ *   readonly statusBefore: string
+ *   readonly statusAfter: string
+ *   readonly readOnly: boolean
+ * }} PluginSyncResult
  */
 
 /**
@@ -57,6 +76,25 @@ const GIT_BIN = "/usr/bin/git";
  * @returns {PluginSyncReport}
  */
 export function explainPluginSync(root = process.cwd()) {
+  const result = getPluginSyncResult(root);
+
+  return {
+    root: result.root,
+    findings: result.findings,
+    statusBefore: result.statusBefore,
+    statusAfter: result.statusAfter,
+    readOnly: result.readOnly,
+    text: renderPluginSyncReport(result),
+  };
+}
+
+/**
+ * Return a structured, read-only plugin sync result for readiness surfaces such
+ * as doctor. CLI callers should still render this through renderPluginSyncReport.
+ * @param {string} root
+ * @returns {PluginSyncResult}
+ */
+export function getPluginSyncResult(root = process.cwd()) {
   const repoRoot = path.resolve(root);
   const statusBefore = gitStatus(repoRoot);
   const statusEntries = parseGitStatus(statusBefore);
@@ -71,20 +109,23 @@ export function explainPluginSync(root = process.cwd()) {
   ];
   const statusAfter = gitStatus(repoRoot);
   const readOnly = statusAfter === statusBefore;
+  const driftClass = highestClassification(findings);
 
   return {
     root: repoRoot,
+    verdict: findings.length === 0 ? "PASS" : "WARN",
+    driftClass,
+    affectedPaths: affectedPaths(findings),
+    remediations: findings.map(finding => ({
+      path: finding.path,
+      counterpart: finding.counterpart,
+      classification: finding.classification,
+      nextAction: finding.nextAction,
+    })),
     findings,
     statusBefore,
     statusAfter,
     readOnly,
-    text: renderPluginSyncReport({
-      root: repoRoot,
-      findings,
-      statusBefore,
-      statusAfter,
-      readOnly,
-    }),
   };
 }
 
@@ -140,6 +181,22 @@ function highestClassification(findings) {
     return "SOURCE_NOT_BUILT";
   }
   return "IN_SYNC";
+}
+
+/**
+ * @param {readonly PluginSyncFinding[]} findings
+ * @returns {string[]}
+ */
+function affectedPaths(findings) {
+  return [
+    ...new Set(
+      findings.flatMap(finding =>
+        [finding.path, finding.counterpart].filter(
+          pathValue => typeof pathValue === "string" && pathValue.length > 0
+        )
+      )
+    ),
+  ];
 }
 
 /**
