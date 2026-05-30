@@ -56,11 +56,11 @@ Lisa is distributed for multiple coding agents. Each agent has its own CLI, plug
 - CLI: `copilot` (current probed version 1.0.55).
 - Configuration home: `~/.copilot/`.
 - Plugin manifest lookup order: `plugin.json` then `.plugin/plugin.json` then `.github/plugin/plugin.json` then `.claude-plugin/plugin.json` — Copilot reads Claude-format plugins natively.
-- Plugin components: `agents/<n>.agent.md` (note `.agent.md` extension), `skills/<n>/SKILL.md`, `commands/`, manifest `hooks`, manifest `mcpServers`, manifest `lspServers`.
+- Plugin components: `agents/<n>.agent.md` (note `.agent.md` extension), `skills/<n>/SKILL.md`, `commands/`, manifest `hooks`, manifest inline `mcpServers`, manifest `lspServers`. Copilot does not auto-discover a plugin-bundled `.mcp.json` file or a path-string pointer.
 - Installed plugin location: `~/.copilot/installed-plugins/<marketplace>/<plugin>/` or `~/.copilot/installed-plugins/_direct/`.
 - Marketplace: `CodySwannGT/lisa` is already a registered marketplace on this machine; `copilot plugin install lisa@CodySwannGT/lisa` is the documented install path.
 - MCP layers: User `~/.copilot/mcp-config.json`, Workspace `.mcp.json`, Plugin — three layers, the most of any agent.
 - Hook events: `sessionStart`, `sessionEnd`, `preToolUse`, `postToolUse`, `userPromptSubmitted`, `agentStop`, `subagentStop`, `errorOccurred`.
 - Default sub-agents: `explore`, `task`, `general-purpose`, `code-review`, `research`.
 - Unique features: ACP server mode (`--acp`), enterprise-managed plugins (public preview since 2026-05-06), BASH_ENV support, `--no-ask-user` autonomous mode, secret-env-var redaction, screen-reader mode, autopilot mode with `--max-autopilot-continues`, session share to gist, named-session lookup, BYOK custom model providers, LSP servers as a plugin component, OpenTelemetry monitoring.
-- Lisa distribution today: no installer yet. Adapter required for sub-agents: Copilot expects `<n>.agent.md` filenames while Lisa ships `<n>.md`.
+- Lisa distribution today: generated `plugins/*-copilot/` variants strip unsupported `subagentStart` hooks, keep `sessionStart` rule injection, rename sub-agent files to `<n>.agent.md`, and inline valid non-empty `mcpServers` objects when a source `.mcp.json` exists.
