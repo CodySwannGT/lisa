@@ -49,6 +49,18 @@ The build pipeline:
 
 Plugin artifacts are generated build output. The source of truth is `plugins/src/`. Editing a generated artifact directly is overwritten on the next build.
 
+## 3rd-Party Plugin Parity Subsystem
+
+Lisa now has a Lisa-internal workflow for curated 3rd-party Claude plugins. It does not distribute downstream through `plugins/src/`; it lives under root `.claude/` and is used to decide how Lisa should make an approved plugin capability available across Codex, Cursor, agy, and Copilot without porting plugin code.
+
+The workflow has three commands:
+
+- `/analyze-plugin` inventories a curated plugin, classifies every component, records the upstream version, and emits one routing decision per agent. It is plan-only and stops for human approval.
+- `/implement-plugin-parity` consumes an approved routing artifact and makes deterministic changes only. It reuses existing per-agent generators and installers, and creates `synced-from`-stamped skill reimplementations only when reimplementation is the approved last resort.
+- `/plugin-parity-drift` runs `scripts/plugin-parity-drift.mjs` to scan reimplemented skills with `synced-from: <plugin>@<marketplace>@<version>`, compare them to the current installed upstream plugin version, and report stale reimplementations without auto-bumping them.
+
+Routing prefers first-applicable reuse: already native, re-point MCP or LSP, enable a vendor equivalent, Claude-only, then reimplement. Version pins and drift checks apply only to reimplementations; MCP/LSP re-points and vendor equivalents do not carry pins. Claude continues to use native plugins directly.
+
 ## Polyfill Collision Discipline
 
 Every place Lisa polyfills a feature, that polyfill must not run on an agent that natively supports the same feature in the same plugin. The canonical collision is rules: Claude does not auto-load `rules/` from a plugin, so Lisa polyfills with a SessionStart hook; Cursor does auto-load `rules/` from a plugin, so the same hook running on Cursor would double-inject the rules content.

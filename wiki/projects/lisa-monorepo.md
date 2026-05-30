@@ -20,20 +20,22 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-30-094116` created from synced `origin/main`
-- HEAD at 2026-05-30 incremental ingest: `efa8998a14363f90f139f76a412b964a0b8f4d68`
-- Current package version: `2.124.11`
-- Total commits on HEAD: 2601
-- Latest merged PR captured in the incremental git snapshot: `#1075`
-- New commits since the previous incremental git cursor: `3`
+- Ingest branch: `wiki/ingest-2026-05-30-134237` created from synced `origin/main`
+- HEAD at 2026-05-30 incremental ingest: `c162e448b8589392b572843a641147ebddaf2e53`
+- Current package version: `2.125.0`
+- Total commits on HEAD: 2608
+- Latest merged PR captured in the incremental git snapshot: `#1077`
+- New commits since the previous incremental git cursor: `7`
 - Project-scoped memory skipped this cycle because no Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Release automation advanced the monorepo to `2.124.11`.
-- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-094116` before this 2026-05-30 ingest.
-- PR `#1075` merged the prior wiki ingestion through Lisa `2.124.10`.
-- PR `#1074` merged the earlier wiki ingestion through Lisa `2.124.8`.
+- Release automation advanced the monorepo to `2.125.0`.
+- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-134237` before this 2026-05-30 ingest.
+- PR `#1077` introduced the Lisa-internal 3rd-party plugin parity subsystem for classifying curated Claude plugins across Codex, Cursor, agy, and Copilot, using approved routing artifacts, deterministic implementation, and drift detection for reimplemented skills.
+- PR `#1076` merged the prior wiki ingestion through Lisa `2.124.11`.
+- PR `#1075` merged the earlier wiki ingestion through Lisa `2.124.10`.
+- PR `#1074` merged the wiki ingestion through Lisa `2.124.8`.
 - PR `#1073` fixed the Copilot plugin variant for issue `#1056`: unsupported `subagentStart` hook entries are stripped so Copilot does not reject the entire inline hook config, bundled `.mcp.json` content is emitted as an inline `mcpServers` object, and the generator now skips invalid or empty `mcpServers` shapes.
 - PR `#1072` merged the prior wiki ingestion through Lisa `2.124.7`.
 - PR `#1068` merged the prior wiki ingestion through Lisa `2.124.2`.
@@ -70,6 +72,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-29-213947-previous-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-29-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-30-094116-previous-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-2026-05-30-134245.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -80,4 +83,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-29-094151-roles.md`
 - `wiki/sources/roles/2026-05-29-213947-previous-roles.md`
 - `wiki/sources/roles/2026-05-29-roles.md`
+- `wiki/sources/roles/2026-05-30-roles-previous-2026-05-30-134245.md`
 - `wiki/sources/roles/2026-05-30-roles.md`
