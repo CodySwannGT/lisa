@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.127.1](https://github.com/CodySwannGT/lisa/compare/vv2.127.0...v2.127.1) (2026-05-30)
+
+
+### Bug Fixes
+
+* **leaf-only:** treat childless Story/Spike as buildable leaves ([f107334](https://github.com/CodySwannGT/lisa/commit/f107334d4e9c3d9c82e8915861f831f680f666ea))
+
+
+### Documentation
+
+* **wiki:** ingest Lisa history through 2.127.0 ([80be8c9](https://github.com/CodySwannGT/lisa/commit/80be8c986e85b97e0d38bd7dc8c597d3cc5a9971))
+
 ## [2.127.0](https://github.com/CodySwannGT/lisa/compare/vv2.126.2...v2.127.0) (2026-05-30)
 
 
