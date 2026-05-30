@@ -20,18 +20,21 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-30-174402` created from synced `origin/main`
-- HEAD at 2026-05-30 incremental ingest: `efdfd5bc7497986eb47198b12757261020383ad3`
-- Current package version: `2.127.0`
-- Total commits on HEAD: 2631
-- Latest merged PR captured in the incremental git snapshot: `#1082`
-- New commits since the previous incremental git cursor: `23`
+- Ingest branch: `wiki/ingest-2026-05-30-174429` created from synced `origin/main`
+- HEAD at 2026-05-30 incremental ingest: `2181c4f37f18e30bc65c51ea4685ae7215127ff3`
+- Current package version: `2.128.0`
+- Total commits on HEAD: 2639
+- Latest merged PR captured in the incremental git snapshot: `#1085`
+- New commits since the previous incremental git cursor: `8`
 - Project-scoped memory skipped this cycle because no Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Release automation advanced the monorepo to `2.127.0`.
-- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-174402` before this 2026-05-30 ingest.
+- Release automation advanced the monorepo to `2.128.0`.
+- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-174429` before this 2026-05-30 ingest.
+- PR `#1085` replaced the seven curated-plugin parity placeholder skills with real cross-agent implementations, keeping the approved routing model while making the reimplemented skill surfaces usable.
+- PR `#1084` merged the prior wiki ingestion through Lisa `2.127.0`.
+- PR `#1083` fixed leaf-only intake semantics so childless Story and Spike issues can be treated as buildable leaves instead of being forced into container-only behavior.
 - PR `#1082` implemented all seven approved 3rd-party plugin parity plans, including Sentry MCP re-pointing for Codex, agy, Copilot, and Cursor, `synced-from` pinned placeholder reimplementation skills, and deferred-work documentation for LSP and vendor-equivalent routing.
 - PR `#1081` fixed Lisa lifecycle rollups so parent containers advance through intermediate environment states and stranded containers are reconciled instead of remaining inconsistent with child work.
 - PR `#1080` hardened plugin parity routing validation to enforce per-agent component coverage, closing the review gap from PR `#1079`.
@@ -79,6 +82,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-30-094116-previous-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-2026-05-30-134245.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-2026-05-30-174402.md`
+- `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-20260530T214456Z.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -91,4 +95,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-29-roles.md`
 - `wiki/sources/roles/2026-05-30-roles-previous-2026-05-30-134245.md`
 - `wiki/sources/roles/2026-05-30-roles-previous-2026-05-30-174402.md`
+- `wiki/sources/roles/2026-05-30-roles-previous-20260530T214456Z.md`
 - `wiki/sources/roles/2026-05-30-roles.md`
