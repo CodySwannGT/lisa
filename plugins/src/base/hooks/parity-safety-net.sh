@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# PreToolUse hook for Bash: a safety net that blocks destructive shell commands
+# before they run. Lisa-native reimplementation of the upstream
+# `safety-net@cc-marketplace` plugin's PreToolUse Bash-guard (parity work, issue
+# #1059). It does NOT port upstream code — it re-expresses the behavior in Lisa's
+# hook conventions, modeled on block-no-verify.sh.
+#
+# It reads the hook stdin JSON, inspects the proposed Bash command, and EXITS
+# NON-ZERO (2) to BLOCK when a known-destructive pattern matches:
+#   - `rm -rf /` (recursive forced delete of a root / home / wildcard path)
+#   - force-pushing a protected branch (main/master/production/release)
+#   - `git reset --hard` while the working tree is dirty (would discard work)
+#   - dropping or truncating a database/schema/table
+# Otherwise it exits 0 and the command proceeds.
+#
+# Operators extend the built-in rules with a project-local rule file — one
+# extended-regex (ERE) per line, blank lines and `#` comments ignored — managed
+# by the parity-safety-net-rules skill. Default location (overridable via
+# SAFETY_NET_RULES_FILE):
+#   ${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-net-rules.txt
+set -euo pipefail
+
+input="$(cat)"
+
+tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
+if [ "$tool_name" != "Bash" ]; then
+  exit 0
+fi
+
+command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty')"
+if [ -z "$command_str" ]; then
+  exit 0
+fi
+
+# block() prints the reason to stderr (surfaced to the model) and exits 2 so the
+# Bash tool call is denied. $1 = human-readable reason for the block.
+block() {
+  cat >&2 <<EOF
+Blocked by safety-net: $1
+
+This command matched a destructive-operation guard. If it is genuinely safe and
+intentional, ask the user to confirm, then run it manually outside the agent, or
+narrow the command so it no longer matches the guard.
+EOF
+  exit 2
+}
+
+# 1. Recursive forced delete (`rm -rf`) of a filesystem root, home, or top-level
+#    wildcard. Two gates ANDed: the command must invoke `rm` with BOTH a
+#    recursive and a force flag, AND name a catastrophic target. Splitting the
+#    flag check from the target check keeps each regex legible and testable.
+if printf '%s' "$command_str" \
+  | grep -Eiq '(^|[^[:alnum:]_./-])rm([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)([[:space:]]|$)' \
+  || printf '%s' "$command_str" \
+  | grep -Eiq '(^|[^[:alnum:]_./-])rm[[:space:]].*(-r\b.*[[:space:]]-f\b|-f\b.*[[:space:]]-r\b|--recursive\b.*--force\b|--force\b.*--recursive\b)'; then
+  if printf '%s' "$command_str" \
+    | grep -Eq '([[:space:]]|=)(/|/\*|/\.\*?|~|~/\*?|\$HOME\b|\$\{HOME\}|\*)([[:space:]]|/?\*?$)'; then
+    block "recursive forced delete of a root, home, or wildcard path (rm -rf)"
+  fi
+fi
+
+# 2. Force-pushing a protected branch. `--force-with-lease` is the safe,
+#    non-clobbering alternative and is intentionally NOT blocked.
+if printf '%s' "$command_str" | grep -Eiq '(^|[^[:alnum:]_-])git[[:space:]]+push\b'; then
+  if printf '%s' "$command_str" | grep -Eiq '(--force([[:space:]]|=|$)|[[:space:]]-f([[:space:]]|$))' \
+    && ! printf '%s' "$command_str" | grep -Eiq -- '--force-with-lease'; then
+    if printf '%s' "$command_str" | grep -Eiq '(^|[^[:alnum:]_/-])(main|master|production|prod|release)([^[:alnum:]_/-]|$)'; then
+      block "force-pushing a protected branch (use --force-with-lease, or push a feature branch)"
+    fi
+  fi
+fi
+
+# 3. `git reset --hard` while the working tree has uncommitted changes — this
+#    silently discards them. Only blocks when the tree is actually dirty, so a
+#    clean-tree reset (a legitimate workflow) still passes.
+if printf '%s' "$command_str" | grep -Eiq '(^|[^[:alnum:]_-])git[[:space:]]+reset\b.*--hard\b'; then
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+    && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    block "git reset --hard on a dirty working tree would discard uncommitted changes (stash or commit first)"
+  fi
+fi
+
+# 4. Dropping or truncating a database / schema / table.
+if printf '%s' "$command_str" \
+  | grep -Eiq '\b(drop[[:space:]]+(database|schema|table)|truncate[[:space:]]+(table[[:space:]]+)?[[:alnum:]_."`]+)\b'; then
+  block "destructive SQL (DROP/TRUNCATE) detected"
+fi
+
+# 5. Project-local custom rules. Each non-comment line is an ERE; a match blocks.
+rules_file="${SAFETY_NET_RULES_FILE:-${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-net-rules.txt}"
+if [ -f "$rules_file" ]; then
+  while IFS= read -r rule || [ -n "$rule" ]; do
+    case "$rule" in
+      '' | '#'*) continue ;;
+    esac
+    if printf '%s' "$command_str" | grep -Eiq -- "$rule"; then
+      block "matched a project custom safety rule (${rules_file##*/}): $rule"
+    fi
+  done <"$rules_file"
+fi
+
+exit 0
