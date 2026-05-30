@@ -82,21 +82,22 @@ gh api graphql -f query='
 
 If the `subIssues` field is unavailable (older GHES), fall back to body parentage exactly as `lisa:github-read-issue` does. If the issue has **no** children it is a leaf, not a parent — rollup is N/A; behave as a normal milestone sync.
 
-**Evaluate the required children in priority order and take the first match** (canonical roles from `config-resolution`; the GitHub label map is `status:blocked`, `status:in-progress`, `status:done`):
+**Evaluate the required children over the env ladder `in-progress < dev < staging < production` (the ordered keys of the GitHub env-keyed `done` map, e.g. `status:on-dev < status:on-stg < status:done`) and take the first match** (canonical roles from `config-resolution`; the GitHub label map is `status:blocked`, `status:in-progress`, env-keyed `done`):
 
 | If among the required child leaves… | Derived parent role | GitHub label |
 |---|---|---|
 | any child carries `status:blocked` (or is otherwise blocked) | `blocked` | `status:blocked` |
-| else any child carries `status:in-progress` | `claimed` | `status:in-progress` |
-| else **all** required children are terminal (closed / `status:done`) | `done` | the configured terminal `done` label |
+| else **every** required child has shipped to some env (each at a `done`-map label, e.g. `status:on-dev`/`status:on-stg`/`status:done`) | `done[min-env]` | the **least-advanced** env label among them (all `status:on-stg` → `status:on-stg`; mixed dev+staging → `status:on-dev`; all production → `status:done`) |
+| else any child has **started** (`status:in-progress`, or shipped to an env while a sibling has not) | `claimed` | `status:in-progress` |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container label |
 
 - **Blocked dominates** — a single blocked child surfaces `status:blocked` on the parent even while siblings progress, so a human sees the parent needs attention.
-- **"Required" children only** — a child labelled won't-do / optional does not hold the parent open; only leaves that must ship count toward the all-terminal check.
-- **Recursive** — a parent reaches `done` only when its children are all terminal; an Epic reaches `done` only when its Stories have themselves rolled up to `done`. Evaluate bottom-up.
+- **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Native closure (`gh issue close --reason completed`) fires only when the resolved env is the production `status:done`, never at `status:on-dev`/`status:on-stg`.
+- **"Required" children only** — a child labelled won't-do / optional does not hold the parent open; only leaves that must ship count toward the env-rollup check.
+- **Recursive** — a parent reaches an env only when its children have all reached at least that env; an Epic reaches it only when its Stories have themselves rolled up to it. Evaluate bottom-up.
 - **Never set the parent to `status:ready`** — `ready` is leaf-only (the human "claim this" signal). Rollup only moves the parent between non-ready container labels.
 
-**Single-environment collapse (this repo).** `.lisa.config.json` `deploy.branches` declares only `production: main`, so the terminal `done` resolves to the single label `status:done` — there is no `status:on-dev` / `status:on-stg` and **no dev → staging → prod promotion chain**. Resolve the terminal via the env-keyed `done` logic in `config-resolution`, but in the single-environment case it collapses to the one `status:done` value; the rollup never attempts to resolve a dev or staging `done`. Projects that DO have multiple environments keep the env-keyed map and roll the parent up to whichever `done` matches the environment its leaves shipped to.
+**Single-environment collapse (this repo).** `.lisa.config.json` `deploy.branches` declares only `production: main`, so the env-keyed `done` resolves to the single label `status:done` — there is no `status:on-dev` / `status:on-stg` and **no dev → staging → prod promotion chain**. Resolve the env rungs via the env-keyed `done` logic in `config-resolution`, but in the single-environment case the only rung is production and it collapses to the one `status:done` value; the rollup never attempts to resolve a dev or staging `done`. Projects that DO have multiple environments keep the env-keyed map and roll the parent up to whichever `done` (including intermediate `status:on-dev`/`status:on-stg`) its leaves have collectively reached.
 
 **Apply the derived label** (only when it differs from the parent's current `status:*`): remove the parent's existing `status:*` label and add the derived one, keeping exactly one `status:*` label so the build-queue invariant holds. Post an idempotent `[claude-sync] rollup` comment naming the derived state and the child tally (e.g. `3/4 leaves terminal, 1 blocked → status:blocked`); skip the comment if an identical one is already the most recent rollup comment.
 
