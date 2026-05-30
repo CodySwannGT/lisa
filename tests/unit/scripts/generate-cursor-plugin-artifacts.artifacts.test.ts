@@ -159,9 +159,15 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
       expect(typeof mcp.mcpServers).toBe("object");
     });
 
-    it("base variant WITHOUT MCP ships neither mcp.json nor .mcp.json", () => {
-      expect(fs.existsSync(path.join(CURSOR_BASE, MCP_JSON))).toBe(false);
+    it("base variant WITH MCP (sentry, universal) ships mcp.json, not .mcp.json", () => {
+      // Base carries the universal sentry MCP server (plugins/src/base/.mcp.json),
+      // so the Cursor base variant ships the renamed mcp.json (auto-discovered) and
+      // never the dotted Claude name.
+      expect(fs.existsSync(path.join(CURSOR_BASE, MCP_JSON))).toBe(true);
       expect(fs.existsSync(path.join(CURSOR_BASE, DOT_MCP_JSON))).toBe(false);
+      const mcp = fs.readJsonSync(path.join(CURSOR_BASE, MCP_JSON));
+      expect(typeof mcp.mcpServers).toBe("object");
+      expect(typeof mcp.mcpServers.sentry).toBe("object");
     });
   });
 
