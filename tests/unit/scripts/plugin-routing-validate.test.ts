@@ -79,6 +79,16 @@ describe("plugin-routing-validate end-to-end", () => {
       runValidate([ROUTING_DIR_FLAG, CACHE_FLAG, FIXTURE_CACHE]).code
     ).toBe(2);
   });
+
+  it("returns a well-formed empty report when stdout is empty (exit 2 path)", () => {
+    // When the script exits with code 2, it writes nothing to stdout.
+    // runValidate must return a RoutingReport-shaped object, not bare {}.
+    const { code, report } = runValidate(["--bogus"]);
+    expect(code).toBe(2);
+    expect(report.schemaVersion).toBe(1);
+    expect(report.summary).toEqual({ scanned: 0, valid: 0, invalid: 0 });
+    expect(report.results).toEqual([]);
+  });
 });
 
 describe("validateArtifact schema gates", () => {
