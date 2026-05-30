@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.127.0](https://github.com/CodySwannGT/lisa/compare/vv2.126.2...v2.127.0) (2026-05-30)
+
+
+### Features
+
+* **parity:** re-point sentry MCP to codex/agy/copilot/cursor via base .mcp.json ([c6c931e](https://github.com/CodySwannGT/lisa/commit/c6c931e7f9e0e2ed4dbf4b1d93296f2475b990d6))
+* **parity:** scaffold 7 reimplement placeholder skills (synced-from pins) ([cecf931](https://github.com/CodySwannGT/lisa/commit/cecf931cdd6a8f01e3921bbc1b9f9ab64dfd990c)), closes [#1050](https://github.com/CodySwannGT/lisa/issues/1050) [#1059](https://github.com/CodySwannGT/lisa/issues/1059)
+
+
+### Documentation
+
+* **parity:** record deferred parity work (LSP subsystem, vendor-equivalents) ([7f05ade](https://github.com/CodySwannGT/lisa/commit/7f05adeedd9797d742221eb0ddc72217a503cf3c))
+
 ### [2.126.2](https://github.com/CodySwannGT/lisa/compare/vv2.126.1...v2.126.2) (2026-05-30)
 
 
