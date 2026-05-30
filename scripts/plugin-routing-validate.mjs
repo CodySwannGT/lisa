@@ -293,6 +293,73 @@ function validateRouting(routing, plugin, upstreamVersion) {
 }
 
 /**
+ * True iff at least one of `lowerActions` references `kind` — either by the kind
+ * keyword itself (case-insensitive) or by the id of any component of that kind.
+ *
+ * @param {string} kind - the component kind (e.g. "mcp", "agent").
+ * @param {ReadonlyArray<Record<string, unknown>>} typedComponents - components with a string kind.
+ * @param {readonly string[]} lowerActions - the agent's actions, lowercased.
+ * @returns {boolean} whether the kind group is referenced.
+ */
+function isKindCovered(kind, typedComponents, lowerActions) {
+  const kindLower = kind.toLowerCase();
+  const ids = typedComponents
+    .filter(c => c.kind === kind)
+    .map(c => c.id)
+    .filter(id => typeof id === "string" && id !== "")
+    .map(id => id.toLowerCase());
+  return lowerActions.some(
+    action => action.includes(kindLower) || ids.some(id => action.includes(id))
+  );
+}
+
+/**
+ * Positively enforce the "drop nothing" rule: every distinct component kind must
+ * be covered by each agent that actually has to act on it. Agents whose outcome
+ * is `already-native` (covered by the existing fan-out) or `claude-only`
+ * (intentionally nothing) are exempt; every other outcome must reference every
+ * component group in its actions.
+ *
+ * @param {unknown} components - the artifact's `components` array.
+ * @param {unknown} routing - the artifact's `routing` object.
+ * @returns {string[]} validation error messages (empty when valid).
+ */
+function validateCoverage(components, routing) {
+  if (
+    !Array.isArray(components) ||
+    routing === null ||
+    typeof routing !== "object"
+  ) {
+    return [];
+  }
+  const typed = components.filter(
+    c => c !== null && typeof c === "object" && typeof c.kind === "string"
+  );
+  const distinctKinds = [...new Set(typed.map(c => c.kind))];
+  const errors = [];
+  for (const agent of AGENTS) {
+    const entry = routing[agent];
+    if (entry === null || entry === undefined || typeof entry !== "object") {
+      continue;
+    }
+    if (entry.outcome === "already-native" || entry.outcome === "claude-only") {
+      continue;
+    }
+    const lowerActions = (
+      Array.isArray(entry.actions) ? entry.actions : []
+    ).map(action => String(action).toLowerCase());
+    for (const kind of distinctKinds) {
+      if (!isKindCovered(kind, typed, lowerActions)) {
+        errors.push(
+          `routing.${agent}: no action covers component group ${kind}`
+        );
+      }
+    }
+  }
+  return errors;
+}
+
+/**
  * Validate a parsed routing artifact against the analyze-plugin schema + the
  * version contract + anti-pattern gates. Pure — all filesystem facts are passed
  * in via `context`, so it is directly unit-testable.
@@ -339,6 +406,7 @@ export function validateArtifact(artifact, context) {
       artifact.upstreamVersion
     )
   );
+  errors.push(...validateCoverage(artifact.components, artifact.routing));
   if (mdExists === false) {
     errors.push("paired .md companion file is missing");
   }
