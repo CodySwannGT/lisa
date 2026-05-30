@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.126.0](https://github.com/CodySwannGT/lisa/compare/vv2.125.1...v2.126.0) (2026-05-30)
+
+
+### Features
+
+* **parity:** harden analyze-plugin from dogfooding + add committed routing validator ([12cf0d8](https://github.com/CodySwannGT/lisa/commit/12cf0d8aa7a77063ebfaca70295dbc2c060b4228))
+
+
+### Bug Fixes
+
+* **tests:** return well-formed RoutingReport when stdout is empty ([39aa29c](https://github.com/CodySwannGT/lisa/commit/39aa29cf507752a712b9beb58ead09761603f30e))
+
+
+### Documentation
+
+* **parity:** add proposed routing plans for the 7 curated plugins (analyze output) ([281d76d](https://github.com/CodySwannGT/lisa/commit/281d76d19aef2a2892c608dff0420ae7e5d3b849))
+
 ### [2.125.1](https://github.com/CodySwannGT/lisa/compare/vv2.125.0...v2.125.1) (2026-05-30)
 
 
