@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.124.10](https://github.com/CodySwannGT/lisa/compare/vv2.124.9...v2.124.10) (2026-05-30)
+
+
+### Bug Fixes
+
+* **copilot:** drop invalid subagentStart event + inline MCP pointer ([#1056](https://github.com/CodySwannGT/lisa/issues/1056)) ([62b1572](https://github.com/CodySwannGT/lisa/commit/62b15720c229e42d20af1974d39bdb031edf233c))
+* **copilot:** validate mcpServers is a non-empty plain object ([#1056](https://github.com/CodySwannGT/lisa/issues/1056)) ([0c3abe1](https://github.com/CodySwannGT/lisa/commit/0c3abe1de1d8006d6428eb172d22af63bead4e5f)), closes [#1073](https://github.com/CodySwannGT/lisa/issues/1073)
+
 ### [2.124.9](https://github.com/CodySwannGT/lisa/compare/vv2.124.8...v2.124.9) (2026-05-30)
 
 
