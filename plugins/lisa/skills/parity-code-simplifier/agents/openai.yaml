@@ -1,0 +1,4 @@
+display_name: "Parity Code Simplifier"
+short_description: "Lisa-native, behavior-preserving simplification of recently-changed code"
+default_prompt:
+  - "Use $parity-code-simplifier: Lisa-native, behavior-preserving simplification of recently-changed code."

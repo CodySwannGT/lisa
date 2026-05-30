@@ -496,10 +496,18 @@ export function parseArgs(argv) {
     cacheRoot ??
     process.env.CLAUDE_PLUGIN_CACHE ??
     path.join(os.homedir(), ".claude", "plugins", "cache");
+  // Default roots: both the root-level Lisa skills AND the distributed base
+  // plugin skills (plugins/src/base/skills), where the real cross-agent parity
+  // reimplementations carrying `synced-from` pins now live. The generated
+  // plugins/lisa*/skills artifacts are deliberately NOT included — they are
+  // copies of plugins/src/base and would double-count every pin.
   const resolvedSkills =
     skillsRoots.length > 0
       ? skillsRoots
-      : [path.join(REPO_ROOT, ".claude", "skills")];
+      : [
+          path.join(REPO_ROOT, ".claude", "skills"),
+          path.join(REPO_ROOT, "plugins", "src", "base", "skills"),
+        ];
   return {
     cacheRoot: path.resolve(resolvedCache),
     json,

@@ -1,0 +1,4 @@
+display_name: "Parity Skill Creator"
+short_description: "Author a new Lisa skill end-to-end — scaffold the SKILL.md frontmatter (name/description/allowed-tools), write the pass-through command…"
+default_prompt:
+  - "Use $parity-skill-creator: Author a new Lisa skill end-to-end — scaffold the SKILL.md frontmatter (name/description/allowed-tools), write the pass-through command…."

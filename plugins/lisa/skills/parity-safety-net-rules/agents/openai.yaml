@@ -1,0 +1,4 @@
+display_name: "Parity Safety Net Rules"
+short_description: "View, set, and verify the custom guard rules enforced by Lisa's safety-net PreToolUse Bash hook (parity-safety-net.sh)"
+default_prompt:
+  - "Use $parity-safety-net-rules: View, set, and verify the custom guard rules enforced by Lisa's safety-net PreToolUse Bash hook (parity-safety-net.sh)."

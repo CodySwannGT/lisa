@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/block-no-verify.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/parity-safety-net.sh"
           }
         ]
       }
