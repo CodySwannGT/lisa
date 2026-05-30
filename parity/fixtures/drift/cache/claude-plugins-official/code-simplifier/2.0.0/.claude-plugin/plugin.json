@@ -1,0 +1,5 @@
+{
+  "name": "code-simplifier",
+  "version": "2.0.0",
+  "description": "Fixture manifest — newer installed version; resolver must pick this over the 1.0.0 sibling."
+}
