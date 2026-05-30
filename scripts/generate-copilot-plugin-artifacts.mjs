@@ -215,8 +215,20 @@ export function generateCopilotVariant(srcDir, outDir, version) {
     try {
       const mcpDoc = JSON.parse(fs.readFileSync(mcpJsonPath, "utf8"));
       const servers = mcpDoc?.mcpServers;
-      if (servers && Object.keys(servers).length > 0) {
+      if (
+        servers &&
+        typeof servers === "object" &&
+        !Array.isArray(servers) &&
+        Object.keys(servers).length > 0
+      ) {
         manifest.mcpServers = servers;
+      } else if (mcpDoc && "mcpServers" in mcpDoc) {
+        // Present but not a non-empty plain object (e.g. `[]`, a string) — a
+        // parseable-but-invalid file. Skip the pointer rather than emit a broken
+        // one, and surface why.
+        console.warn(
+          `[copilot] skipping mcpServers pointer: invalid mcpServers shape in ${mcpJsonPath}`
+        );
       }
     } catch (err) {
       // Malformed `.mcp.json` — leave the manifest without an mcpServers pointer
