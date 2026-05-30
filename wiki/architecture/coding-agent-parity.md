@@ -63,6 +63,8 @@ Routing prefers first-applicable reuse: already native, re-point MCP or LSP, ena
 
 The first approved parity implementation pass landed in PR `#1082`. It approved all seven curated routing artifacts, re-pointed Sentry MCP for Codex, agy, Copilot, and Cursor through the base `.mcp.json`, and scaffolded seven `synced-from` pinned reimplementation placeholder skills for components whose approved route is reimplementation. Deferred parity work for LSP subsystem support and vendor-equivalent routing is now tracked explicitly instead of being silently implied.
 
+PR `#1085` replaced those placeholders with real cross-agent implementations for the curated-plugin parity set. The operating model stays the same: Claude uses native curated plugins directly, while non-Claude agents receive approved reimplementations only where the routing artifact chose that strategy and drift tracking can compare the reimplementation against the pinned upstream plugin version.
+
 ## Polyfill Collision Discipline
 
 Every place Lisa polyfills a feature, that polyfill must not run on an agent that natively supports the same feature in the same plugin. The canonical collision is rules: Claude does not auto-load `rules/` from a plugin, so Lisa polyfills with a SessionStart hook; Cursor does auto-load `rules/` from a plugin, so the same hook running on Cursor would double-inject the rules content.
