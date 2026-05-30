@@ -37,7 +37,7 @@
     },
     "copilot": {
       "outcome": "enable-vendor-equivalent",
-      "actions": ["enable Copilot's native equivalent in the project-scoped marketplace"],
+      "actions": ["enable Copilot's native agent equivalent for has-manifest in the project-scoped marketplace"],
       "rationale": "Vendor ships a comparable capability; prefer enabling over reimplementing."
     }
   }
