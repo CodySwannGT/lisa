@@ -19,12 +19,14 @@ A container *type* with no children is structurally a leaf — and may be build-
 
 ## Parent state rollup (priority order, first match wins)
 
+Evaluate over the env ladder `in-progress < dev < staging < production` (the ordered keys of the project's env-keyed `done` map; single-env projects have only the production rung):
+
 1. Any leaf is **blocked** → parent rolls up to **blocked / attention-needed**.
-2. Else any leaf is **claimed or in review** → parent is **in-progress**.
-3. Else all required leaves are **terminal (`done`)** → parent reaches the configured rollup terminal (env-keyed `done`).
+2. Else **every** required leaf has shipped to some env → parent rolls up to the **least-advanced** env among them (all `On Stg` → `On Stg`; mixed `On Dev`+`On Stg` → `On Dev`; all production → terminal `done`).
+3. Else any leaf has **started** (claimed/in review, or shipped while a sibling has not) → parent is **in-progress** (`claimed`).
 4. Else (leaves exist but none started) → parent unchanged.
 
-**Blocked dominates.** Optional/won't-do children do not hold a parent open. Rollup is recursive — bottom-up. The parent never carries `ready`.
+**Blocked dominates.** A parent reaches an env only once all required leaves have reached at least that env. Intermediate-env rollup (`On Dev`/`On Stg`) happens, but native closure fires only at production `done`. Optional/won't-do children do not hold a parent open. Rollup is recursive — bottom-up. The parent never carries `ready`; a container found in `ready` is reconciled by rolling it up from its children.
 
 ## Terminal native closure
 
