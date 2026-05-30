@@ -119,5 +119,12 @@ describe("generate-copilot-plugin-artifacts (issue #1056)", () => {
       ).not.toThrow();
       expect("mcpServers" in readManifest(outDir)).toBe(false);
     });
+
+    it("emits no pointer when mcpServers is a parseable-but-invalid shape (array)", async () => {
+      await scaffoldSource(srcDir, { hooks: {}, withMcp: true });
+      await fs.writeJson(path.join(srcDir, ".mcp.json"), { mcpServers: [] });
+      generateCopilotVariant(srcDir, outDir, "1.2.3");
+      expect("mcpServers" in readManifest(outDir)).toBe(false);
+    });
   });
 });
