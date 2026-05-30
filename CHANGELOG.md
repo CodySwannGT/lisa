@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.128.0](https://github.com/CodySwannGT/lisa/compare/vv2.127.1...v2.128.0) (2026-05-30)
+
+
+### Features
+
+* **parity:** real cross-agent implementations of the curated plugins (replace scaffolds) ([ea6ad4f](https://github.com/CodySwannGT/lisa/commit/ea6ad4faf0f04e9fe37d6eec80ba36b92ffc1b96)), closes [#1059](https://github.com/CodySwannGT/lisa/issues/1059)
+
 ### [2.127.1](https://github.com/CodySwannGT/lisa/compare/vv2.127.0...v2.127.1) (2026-05-30)
 
 
