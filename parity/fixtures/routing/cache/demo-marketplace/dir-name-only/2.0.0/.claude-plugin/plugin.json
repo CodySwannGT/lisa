@@ -1,0 +1,4 @@
+{
+  "name": "dir-name-only",
+  "description": "Routing-validate fixture — NO version field; cacheMaxVersion must fall back to the semver dir name (2.0.0)."
+}

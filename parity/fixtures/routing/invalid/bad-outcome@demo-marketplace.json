@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "plugin": "bad-outcome@demo-marketplace",
+  "pluginName": "bad-outcome",
+  "marketplace": "demo-marketplace",
+  "upstreamVersion": "unknown",
+  "analyzedAt": "2026-05-30",
+  "status": "proposed",
+  "components": [
+    {
+      "kind": "agent",
+      "id": "bad-outcome",
+      "path": "agents/bad-outcome.md",
+      "classification": "claude-agent",
+      "notes": "Routing-validate fixture — trips the outcome-enum gate."
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "frobnicate",
+      "actions": [],
+      "rationale": "Intentionally invalid outcome to prove the enum gate fails (exit 1)."
+    },
+    "cursor": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Cursor reads .claude-plugin/ natively."
+    },
+    "agy": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "No equivalent; documented only."
+    },
+    "copilot": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "No equivalent; documented only."
+    }
+  }
+}
