@@ -43,7 +43,7 @@ Do not begin work if there are blockers, ambiguities, access requirements, or un
 - Read **all** comments on a ticket, not just the description.
 - When clarifying, comment via ADF and @mention the Reporter.
 - Establish issue link relationships (`blocks`, `is blocked by`, `relates to`) — search git history AND Jira before declaring "no related work."
-- Single-repo invariant: Bug/Task/Sub-task MUST be single-repo. Epic/Story/Spike MAY span repos. Cross-repo leaves are split per the `repo-scope-split` rule.
+- Single-repo invariant: Bug/Task/Sub-task/Improvement (and any childless Story/Spike — a leaf per `leaf-only-lifecycle`) MUST be single-repo. An Epic, or any Story/Spike that still holds child work, MAY span repos. Cross-repo leaves are split per the `repo-scope-split` rule.
 - Pre-flight gate: BLOCK + reassign-to-Reporter if a ticket is missing target backend env, sign-in credentials, Gherkin acceptance criteria, epic parent (non-bug/non-epic), or relationship discovery evidence.
 
 ## Pace

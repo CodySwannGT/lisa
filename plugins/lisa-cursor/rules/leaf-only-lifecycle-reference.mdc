@@ -21,16 +21,16 @@ The fix is not vendor-specific. It belongs here, in a cross-vendor rule, and eve
 
 ## Container vs. leaf taxonomy
 
-A **leaf work unit** is an individually implementable item with **no child work** — issue types **Bug, Task, Sub-task, Improvement**. These are what an agent claims and implements. This is the same definition used by the `repo-scope-split` rule (a leaf work unit is also single-repo).
+A **leaf work unit** is an individually implementable item with **no open child work**. Structurally, that is *any work item with no open children except an Epic*: the by-design leaf types **Bug, Task, Sub-task, Improvement**, plus a **childless Story or Spike** (a Story is a directly shippable increment and a Spike is itself the investigation unit — neither needs sub-items to be implementable). These are what an agent claims and implements. A leaf work unit is also single-repo (the `repo-scope-split` rule).
 
 A **container** organizes other work and is never directly implemented:
 
 | Class | Examples by type | May carry build-ready? |
 |---|---|---|
-| **Leaf work unit** | Bug, Task, Sub-task, Improvement — with no children | **Yes** |
-| **Container** | Epic, Story, Spike, or *any* item that has child work | **No** — state rolls up from children |
+| **Leaf work unit** | Bug, Task, Sub-task, Improvement, or a childless Story / Spike — anything with no open children **except an Epic** | **Yes** |
+| **Container** | An **Epic**, or *any* item (of any type) that has open child work | **No** — state rolls up from children |
 
-The classification is **structural, not nominal**: an item is a container if it has child work, regardless of its declared type. A "Task" that has acquired sub-tasks is a container for rollup purposes. The type label is a strong default (Epic/Story/Spike are containers by design), but the presence of children is decisive. See the childless-parent exception below for the converse case.
+The classification is **structural, not nominal**: an item is a container if it has open child work, regardless of its declared type. A "Task" that has acquired sub-tasks is a container for rollup purposes. The single nominal exception is the **Epic**, which is a pure rollup container by design and is treated as a container even when childless; for every other type the presence of children is decisive. See the childless-parent exception below for the converse case.
 
 ### How each vendor encodes hierarchy
 
@@ -54,12 +54,12 @@ The permission boundary is the maintainer-applied build-ready role, not authorsh
 
 ## Childless-parent exception
 
-A container *type* with **no child work** is, structurally, a leaf — and may be build-ready **iff its issue type is itself a valid leaf work unit**.
+A childless item is, structurally, a leaf — and may be build-ready **unless its issue type is Epic**.
 
-- A **Task** or **Bug** with no children → leaf → may be build-ready. (Many real tickets are flat Tasks with no sub-tasks; this rule must not strand them.)
-- An **Epic, Story, or Spike** with no children → still **not** build-ready. These types are coordination containers by design; an empty one is an incomplete decomposition, not an implementable unit. The correct repair is to decompose it (add leaf children) or reclassify it to a leaf type — not to claim it.
+- A **Task, Bug, Story, Spike,** or **Improvement** with no children → leaf → may be build-ready. Many real tickets are flat Tasks with no sub-tasks; just as common, a **Story** is implemented directly as a single shippable increment and a **Spike** *is* the investigation work unit. None of these need to be decomposed to be claimable, and this rule must not strand them. (A childless Story/Spike promoted to a leaf this way is single-repo like any other leaf — see `repo-scope-split`.)
+- An **Epic** with no children → still **not** build-ready. An Epic is a pure rollup container by design: its body is a high-level summary, never a directly implementable unit, so a childless Epic carrying the build-ready role is an incomplete decomposition or a mis-applied role — not work. The correct repair is to decompose it (add leaf children) or reclassify it to a leaf type — not to claim it.
 
-So the exception is narrow: childlessness *enables* build-ready only for types that are leaf work units to begin with. It never promotes an Epic/Story/Spike to directly implementable.
+So the exception is narrow only at the top: childlessness promotes every type **except Epic** to a build-ready leaf. A childless Epic is never directly implementable; everything else, when childless, is.
 
 ## Parent status rollup (the state machine)
 
@@ -117,7 +117,7 @@ This action is **terminal-only**:
 Skills that enforce this invariant or perform rollup cite this rule by slug (the `leaf-only-lifecycle` rule) instead of restating it:
 
 - **Decomposition / write** (`*-to-tracker`, `*-write-*`) — apply the `ready` role to leaves only; never to containers.
-- **Validate** (`*-validate-*`) — FAIL a container carrying the build-ready role; FAIL a childless Epic/Story/Spike marked build-ready.
+- **Validate** (`*-validate-*`) — FAIL a container carrying the build-ready role; FAIL a childless **Epic** marked build-ready (a childless Story/Spike is a valid leaf and passes).
 - **Build intake** (`*-build-intake`, `tracker-build-intake`) — dispatch leaves only; move or safe-block containers with stale build-ready roles according to vendor lifecycle semantics.
 - **Rollup** — derive parent state from children per the state machine above. `repair-intake`
   also uses this rule to close out parent/container rollups that were left open after every
