@@ -148,7 +148,9 @@ const COPILOT_EVENTS = {
   SessionEnd: "sessionEnd",
   UserPromptSubmit: "userPromptSubmitted",
   Stop: "agentStop",
-  SubagentStart: "subagentStart", // not supported but include for symmetry
+  // No `SubagentStart`: Copilot has no such event. It is dropped wholesale by
+  // AGENT_UNSUPPORTED_EVENTS before translation ever runs (see
+  // filterHooksForAgent), so it never needs a mapping here.
   SubagentStop: "subagentStop",
 };
 
@@ -168,6 +170,40 @@ const CURSOR_EVENTS = {
   SubagentStop: "subagentStop",
   PreCompact: "preCompact",
 };
+
+/**
+ * Events a target agent's hook runner does NOT recognize. A hook block under one
+ * of these events is dropped wholesale for that agent — even when an individual
+ * handler script would otherwise ship — because emitting the event yields a
+ * manifest the agent rejects.
+ *
+ * Copilot has no `SubagentStart` event. Worse, the emitted `subagentStart` entry
+ * carries an empty `matcher`, and GitHub Copilot CLI (verified against 1.0.55)
+ * rejects the ENTIRE inline hooks config on it — `Invalid inline hooks config
+ * ...: hooks.subagentStart[0].matcher: matcher cannot be empty` — so NONE of the
+ * plugin's hooks fire, not just the subagent one. Dropping the event restores
+ * Copilot hook firing; `inject-rules.sh` still ships under `SessionStart`, so no
+ * rule delivery is lost. (Issue #1056, verified by run: with `subagentStart`
+ * present zero hooks fired; with it removed the `SessionStart` hooks fired and
+ * `${CLAUDE_PLUGIN_ROOT}` resolved.)
+ *
+ * @type {Record<string, Set<string>>}
+ */
+const AGENT_UNSUPPORTED_EVENTS = {
+  copilot: new Set(["SubagentStart"]),
+};
+
+/**
+ * Whether a Claude event name is unsupported by the target agent and must be
+ * dropped wholesale (not translated, not partially filtered).
+ *
+ * @param {string} claudeEventName Claude event name (e.g. "SubagentStart")
+ * @param {"cursor"|"agy"|"copilot"|"codex"} agent Target agent slug
+ * @returns {boolean}
+ */
+export function isUnsupportedEvent(claudeEventName, agent) {
+  return Boolean(AGENT_UNSUPPORTED_EVENTS[agent]?.has(claudeEventName));
+}
 
 /**
  * Translate Claude PascalCase event names to a target agent's native casing.
@@ -278,6 +314,7 @@ export function filterHooksForAgent(hookBlock, agent, opts = {}) {
   const out = {};
 
   for (const [claudeEventName, entries] of Object.entries(hookBlock)) {
+    if (isUnsupportedEvent(claudeEventName, agent)) continue;
     if (!Array.isArray(entries)) continue;
     const filteredEntries = [];
     for (const entry of entries) {

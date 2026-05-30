@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   filterHooksForAgent,
   filterScriptsForAgent,
+  isUnsupportedEvent,
   shouldShipHook,
   shouldShipScript,
   translateEventName,
@@ -298,6 +299,53 @@ describe("per-agent-hook-filter", () => {
       expect(cursorKeep).toContain(INSTALL_PKGS);
       expect(cursorKeep).not.toContain(INJECT_RULES);
       expect(cursorKeep).not.toContain(ENFORCE_TEAM_FIRST);
+    });
+  });
+
+  describe("isUnsupportedEvent (issue #1056)", () => {
+    it("marks SubagentStart unsupported for copilot only", () => {
+      expect(isUnsupportedEvent("SubagentStart", "copilot")).toBe(true);
+      expect(isUnsupportedEvent("SubagentStart", "cursor")).toBe(false);
+      expect(isUnsupportedEvent("SubagentStart", "codex")).toBe(false);
+      expect(isUnsupportedEvent("SessionStart", "copilot")).toBe(false);
+    });
+  });
+
+  describe("filterHooksForAgent — Copilot subagentStart drop (issue #1056)", () => {
+    // The base SubagentStart group carries inject-rules.sh, which ships to
+    // Copilot — so without the guard the group survives and emits `subagentStart`
+    // (empty matcher), which makes Copilot reject the ENTIRE hooks config (no
+    // hooks fire). The event must be dropped wholesale; inject-rules still
+    // reaches Copilot via SessionStart so no rule delivery is lost.
+    const block = {
+      SessionStart: [scriptEntry(INJECT_RULES)],
+      SubagentStart: [scriptEntry(INJECT_RULES)],
+      PreToolUse: [scriptEntry(BLOCK_NO_VERIFY)],
+    };
+
+    it("drops subagentStart but keeps inject-rules under sessionStart", () => {
+      const out = filterHooksForAgent(block, "copilot", {
+        copilotRulesAutoLoads: false,
+      }) as Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+      expect(out).toBeDefined();
+      expect("subagentStart" in out).toBe(false);
+      expect("SubagentStart" in out).toBe(false);
+      expect("sessionStart" in out).toBe(true);
+      expect("preToolUse" in out).toBe(true);
+      const sessionCmds = out.sessionStart.flatMap(e =>
+        e.hooks.map(h => h.command)
+      );
+      expect(sessionCmds.some(c => c.includes(INJECT_RULES))).toBe(true);
+    });
+
+    it("does NOT drop SubagentStart for cursor (cursor supports it)", () => {
+      const cursorBlock = { SubagentStart: [scriptEntry(BLOCK_NO_VERIFY)] };
+      const out = filterHooksForAgent(cursorBlock, "cursor") as Record<
+        string,
+        unknown
+      >;
+      expect(out).toBeDefined();
+      expect("subagentStart" in out).toBe(true);
     });
   });
 });

@@ -7,5 +7,11 @@
   },
   "dependencies": [
     "lisa-typescript"
-  ]
+  ],
+  "mcpServers": {
+    "expo": {
+      "type": "http",
+      "url": "https://mcp.expo.dev/mcp"
+    }
+  }
 }
