@@ -7,13 +7,21 @@
  * separate from remediation text, and computes the overall verdict ladder.
  * @module tests/unit/strategies/doctor-report-rendering
  */
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   computeDoctorVerdict,
   countDoctorStatuses,
+  createPluginSyncDoctorGroup,
   renderDoctorReport,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
+
+const SOURCE_SKILL = "plugins/src/base/skills/example/SKILL.md";
+const GENERATED_SKILL = "plugins/lisa/skills/example/SKILL.md";
 
 describe("doctor report rendering (#750)", () => {
   it("renders grouped sections with PASS, WARN, FAIL, and SKIP checks", () => {
@@ -195,4 +203,104 @@ describe("doctor report rendering (#750)", () => {
       "- SKIP empty-group: no checks registered yet"
     );
   });
+
+  it("renders healthy plugin sync as a PASS readiness group", () => {
+    const root = seedPluginRepo();
+    try {
+      const group = createPluginSyncDoctorGroup(root);
+      const report = renderDoctorReport({ groups: [group] });
+
+      expect(group.title).toBe("Plugin source/generated sync");
+      expect(group.checks[0]).toMatchObject({
+        id: "plugin-sync",
+        status: "PASS",
+        summary: "plugin source and generated artifacts are in sync",
+      });
+      expect(report.verdict).toBe("READY");
+      expect(report.text).toContain("Drift class IN_SYNC");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  it("renders plugin sync drift with affected paths and next action", () => {
+    const root = seedPluginRepo();
+    try {
+      writeFileSync(
+        path.join(root, SOURCE_SKILL),
+        "\nSource-only doctor drift.\n",
+        { flag: "a" }
+      );
+
+      const group = createPluginSyncDoctorGroup(root);
+      const report = renderDoctorReport({ groups: [group] });
+
+      expect(group.checks[0]).toMatchObject({
+        id: "plugin-sync",
+        status: "WARN",
+        summary: "plugin sync drift detected: SOURCE_NOT_BUILT",
+      });
+      expect(report.verdict).toBe("READY_WITH_WARNINGS");
+      expect(report.text).toContain(SOURCE_SKILL);
+      expect(report.text).toContain("Run `bun run build:plugins`");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
 });
+
+/**
+ * Seed a minimal committed plugin tree for doctor plugin-sync checks.
+ * @returns Fixture repository root.
+ */
+function seedPluginRepo(): string {
+  const root = mkdtempSync(path.join(tmpdir(), "lisa-doctor-plugin-sync-"));
+  const skill =
+    "---\nname: example\ndescription: Fixture source.\n---\n\n# Example\n";
+  mkdirSync(path.join(root, ".claude-plugin"), { recursive: true });
+  writeFileSync(
+    path.join(root, ".claude-plugin/marketplace.json"),
+    JSON.stringify({ plugins: [{ name: "lisa", source: "./plugins/lisa" }] })
+  );
+  mkdirSync(path.join(root, "plugins/src/base/skills/example"), {
+    recursive: true,
+  });
+  mkdirSync(path.join(root, "plugins/lisa/skills/example"), {
+    recursive: true,
+  });
+  writeFileSync(path.join(root, SOURCE_SKILL), skill);
+  writeFileSync(path.join(root, GENERATED_SKILL), skill);
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  writeFileSync(
+    path.join(root, "scripts/build-plugins.sh"),
+    [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      'ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"',
+      'rm -rf "$ROOT_DIR/plugins/lisa"',
+      'mkdir -p "$ROOT_DIR/plugins/lisa"',
+      'cp -R "$ROOT_DIR/plugins/src/base/." "$ROOT_DIR/plugins/lisa/"',
+      "",
+    ].join("\n")
+  );
+  git(root, "init");
+  git(root, "config", "user.email", "lisa-fixture@example.com");
+  git(root, "config", "user.name", "Lisa Fixture");
+  git(root, "add", ".");
+  git(root, "commit", "-m", "seed plugin fixture");
+  return root;
+}
+
+/**
+ * Run a git command in a fixture repository.
+ * @param cwd Fixture repository root.
+ * @param args Git command arguments.
+ * @returns Standard output from git.
+ */
+function git(cwd: string, ...args: string[]): string {
+  return execFileSync("/usr/bin/git", args, {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, GIT_CONFIG_NOSYSTEM: "1" },
+  });
+}
