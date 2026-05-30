@@ -5,7 +5,7 @@
   "marketplace": "cc-marketplace",
   "upstreamVersion": "0.9.0",
   "analyzedAt": "2026-05-30",
-  "status": "proposed",
+  "status": "approved",
   "components": [
     {
       "kind": "hook",

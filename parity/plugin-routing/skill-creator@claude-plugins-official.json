@@ -5,7 +5,7 @@
   "marketplace": "claude-plugins-official",
   "upstreamVersion": "unknown",
   "analyzedAt": "2026-05-30",
-  "status": "proposed",
+  "status": "approved",
   "components": [
     {
       "kind": "skill",
