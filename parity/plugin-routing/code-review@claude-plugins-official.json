@@ -19,7 +19,7 @@
     "codex": {
       "outcome": "reimplement",
       "actions": [
-        "scaffold Lisa-native skill (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
+        "scaffold Lisa-native skill reimplementing the code-review command (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
       ],
       "rationale": "Codex has no plugin command surface and is not in the fan-out; reimplement as a Lisa skill. Upstream publishes no semver, so the reimplementation is not drift-trackable — drift tracking is manual review."
     },
@@ -31,7 +31,7 @@
     "agy": {
       "outcome": "reimplement",
       "actions": [
-        "scaffold Lisa-native skill (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
+        "scaffold Lisa-native skill reimplementing the code-review command (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
       ],
       "rationale": "Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa skill. Upstream publishes no semver, so it is not drift-trackable — manual review."
     },
