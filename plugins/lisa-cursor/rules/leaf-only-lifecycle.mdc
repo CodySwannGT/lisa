@@ -7,7 +7,7 @@ alwaysApply: true
 
 **Build-ready means a directly implementable leaf work unit.** Containers never carry build-ready.
 
-A leaf is structurally defined: **no child work** AND a leaf-typed item (Bug, Task, Sub-task, Improvement). A container is a parent with children — Epic, Story, Spike, or any item that has acquired sub-items.
+A leaf is structurally defined: **no open children** AND not an Epic — the by-design leaf types (Bug, Task, Sub-task, Improvement) plus a childless Story or Spike. A container is an **Epic**, or any item of any type that has acquired open child work.
 
 ## Invariant
 
@@ -17,10 +17,10 @@ A leaf is structurally defined: **no child work** AND a leaf-typed item (Bug, Ta
 
 ## Childless-parent exception
 
-A container *type* with no children is structurally a leaf — and may be build-ready iff its type is itself a leaf type:
+A childless item is structurally a leaf — and may be build-ready **unless its type is Epic**:
 
-- **Task or Bug with no children** → leaf → may be build-ready.
-- **Epic, Story, or Spike with no children** → still NOT build-ready. These are coordination containers by design; an empty one is incomplete decomposition. Repair: decompose into leaves, or reclassify to a leaf type.
+- **Task, Bug, Story, Spike, or Improvement with no children** → leaf → may be build-ready. A Story ships directly as one increment and a Spike *is* the investigation unit; neither needs sub-items to be implementable, so a childless one must not be stranded.
+- **Epic with no children** → still NOT build-ready. An Epic is a pure rollup container by design — its body is a high-level summary, never directly implementable — so a childless build-ready Epic is an incomplete decomposition or a mis-applied role. Repair: decompose into leaves, or reclassify to a leaf type.
 
 ## Parent state rollup (priority order, first match wins)
 
