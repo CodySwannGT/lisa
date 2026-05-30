@@ -199,6 +199,47 @@ export function generateCopilotVariant(srcDir, outDir, version) {
   } else {
     delete manifest.hooks;
   }
+
+  // 3b. Surface a bundled `.mcp.json`'s servers as an INLINE `mcpServers` object
+  // in the manifest. Copilot does NOT auto-discover a plugin's bundled
+  // `.mcp.json` (it reads `.mcp.json` only at the WORKSPACE root), and a
+  // `".mcp.json"` path-string pointer is ignored; only an inline `mcpServers`
+  // OBJECT in the manifest is honored. Verified by run (GitHub Copilot CLI
+  // 1.0.55, issue #1056): after `copilot plugin install`, the inline object made
+  // Copilot load the bundled server (the expo server initiated its OAuth
+  // connect), whereas bare `.mcp.json` and the path-string form both left
+  // Copilot reporting "No MCP servers configured". The `.mcp.json` file is kept
+  // (it is the source of truth and harmless to Copilot) and mirrored inline.
+  const mcpJsonPath = path.join(outDir, ".mcp.json");
+  if (fs.existsSync(mcpJsonPath)) {
+    try {
+      const mcpDoc = JSON.parse(fs.readFileSync(mcpJsonPath, "utf8"));
+      const servers = mcpDoc?.mcpServers;
+      if (
+        servers &&
+        typeof servers === "object" &&
+        !Array.isArray(servers) &&
+        Object.keys(servers).length > 0
+      ) {
+        manifest.mcpServers = servers;
+      } else if (mcpDoc && "mcpServers" in mcpDoc) {
+        // Present but not a non-empty plain object (e.g. `[]`, a string) — a
+        // parseable-but-invalid file. Skip the pointer rather than emit a broken
+        // one, and surface why.
+        console.warn(
+          `[copilot] skipping mcpServers pointer: invalid mcpServers shape in ${mcpJsonPath}`
+        );
+      }
+    } catch (err) {
+      // Malformed `.mcp.json` — leave the manifest without an mcpServers pointer
+      // rather than emitting a broken one, but surface it so a broken MCP file
+      // doesn't ship silently without its servers.
+      console.warn(
+        `[copilot] skipping mcpServers pointer: could not parse ${mcpJsonPath}: ${err.message}`
+      );
+    }
+  }
+
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
   // 4. Filter the hooks/ directory.
