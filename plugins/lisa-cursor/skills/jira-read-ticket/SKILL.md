@@ -19,7 +19,7 @@ Repository name for scoped comments and logs: `basename $(git rev-parse --show-t
 
 ## Phase 2 — Fetch Primary Ticket
 
-Invoke `lisa:atlassian-access` via the Skill tool with `operation: read-ticket key: <TICKET-KEY>` for the target ticket. Extract and preserve:
+Invoke `lisa:atlassian-access` via the Skill tool with `operation: read-ticket key: <TICKET-KEY>` for the target ticket. The access layer MUST request an explicit full JIRA field set for this operation (`acli jira workitem view --fields '*all'`, REST `fields=*all`, or an equivalent substrate-specific field list). Do not accept or re-use a default `acli workitem view` payload; its default six-field response omits parent, components, labels, priority, and custom fields, which makes leaf-only, relationship-search, build-ready, and required-custom-field gates read false-empty data. Extract and preserve:
 
 ### Metadata
 
