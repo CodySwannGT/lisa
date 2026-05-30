@@ -1,6 +1,6 @@
 ---
 name: github-build-intake
-description: "GitHub counterpart to lisa:jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, processes the first eligible issue, runs leaf work via lisa:github-agent, relabels to the configured `done` label on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic/Story/Spike) that still carries a stale build-ready label is moved out of the ready pickup queue into the configured `claimed` label with a lifecycle-repair comment, never dispatched to lisa:github-agent. The `ready` label is the human-flipped signal that an issue is truly ready for direct development pickup — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "GitHub counterpart to lisa:jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, processes the first eligible issue, runs leaf work via lisa:github-agent, relabels to the configured `done` label on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still carries a stale build-ready label is moved out of the ready pickup queue into the configured `claimed` label with a lifecycle-repair comment, never dispatched to lisa:github-agent. The `ready` label is the human-flipped signal that an issue is truly ready for direct development pickup — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -209,16 +209,16 @@ Classify and act (first match wins). `type:` is read from the issue's labels (`t
 | Condition | Class | Action |
 |---|---|---|
 | `OPEN_CHILDREN > 0` (open child work, any type) | **Container** | **Move to `$CLAIMED` as lifecycle repair — do NOT dispatch** |
-| no open children AND `type ∈ {Epic, Story, Spike}` | **Childless container-type** | **Move to `$CLAIMED` as lifecycle repair — do NOT dispatch** |
-| no open children AND `type ∈ {Bug, Task, Sub-task, Improvement}` (or no `type:` label) | **Leaf work unit** | **Proceed to 3b claim** |
+| no open children AND `type = Epic` | **Childless Epic (pure rollup container)** | **Move to `$CLAIMED` as lifecycle repair — do NOT dispatch** |
+| no open children AND `type ≠ Epic` (Bug, Task, Sub-task, Improvement, Story, Spike, or no `type:` label) | **Leaf work unit** | **Proceed to 3b claim** |
 
-The childless-parent exception is narrow: childlessness enables direct build-agent dispatch **only** for types that are leaf work units to begin with. A childless Epic/Story/Spike is an incomplete decomposition, not an implementable unit — it is moved out of the ready pickup queue for repair/rollup and never dispatched.
+The childless-parent exception promotes every childless type **except Epic** to a dispatchable leaf: a childless Story is a directly shippable increment and a childless Spike *is* the investigation unit, so neither is stranded. Only a childless **Epic** is held back — an Epic is a pure rollup container by design, and a childless one is an incomplete decomposition or a mis-applied role, moved out of the ready pickup queue for repair/rollup and never dispatched.
 
 **Lifecycle repair (default action for a flagged container).** Move the issue out of the pickup queue by removing `$READY` and adding `$CLAIMED`, post a single lifecycle-repair comment, and record the issue under "Repaired (container)" in the summary. Do NOT invoke `lisa:github-agent`. Keep the comment idempotent — skip posting if an identical `[claude-build-intake]` lifecycle-repair comment already exists on the issue, so a re-entrant cycle doesn't spam it.
 
 ```bash
 gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$CLAIMED"
-gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Lifecycle repair: this issue carried the build-ready role ($READY) but is a parent/container with open child work (or a childless Epic/Story/Spike). I moved it to $CLAIMED without invoking the build agent. For parent/container issues, $CLAIMED means rollup/build-lane progress through child/leaf work; direct implementation must happen on leaf issues. Build-ready is leaf-only per leaf-only-lifecycle — move $READY onto its leaf children, or decompose/reclassify a childless Epic/Story/Spike."
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Lifecycle repair: this issue carried the build-ready role ($READY) but is a parent/container with open child work (or a childless Epic). I moved it to $CLAIMED without invoking the build agent. For parent/container issues, $CLAIMED means rollup/build-lane progress through child/leaf work; direct implementation must happen on leaf issues. Build-ready is leaf-only per leaf-only-lifecycle — move $READY onto its leaf children, or decompose/reclassify a childless Epic."
 ```
 
 This gate never blocks a legitimate flat Task/Bug: those have no open children and a leaf `type:`, so they fall straight through to the claim in 3b.
@@ -326,7 +326,7 @@ Total PRs opened: <n>
 
 ## Idempotency & safety
 
-- **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any leaf claim; a container with open child work (or a childless Epic/Story/Spike) is moved `$READY` → `$CLAIMED` as lifecycle repair and never dispatched. The lifecycle-repair comment is idempotent — a re-entrant cycle does not re-post it.
+- **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any leaf claim; a container with open child work (or a childless Epic) is moved `$READY` → `$CLAIMED` as lifecycle repair and never dispatched. The lifecycle-repair comment is idempotent — a re-entrant cycle does not re-post it.
 - **Dependency hold runs before leaf claim**: explicit `Blocked by:` relationships are resolved after container repair is ruled out but before `$READY → $CLAIMED`; active blockers leave the leaf candidate in `$READY` and are reported as skipped, not blocked.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:github-agent` invocation for leaves; containers are also moved to `$CLAIMED` to leave the ready pickup queue, but are not dispatched.
 - **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. For containers, `$READY → $CLAIMED` is a lifecycle repair, not a direct build claim. Every other label change is owned by `lisa:github-agent`.
@@ -351,7 +351,7 @@ If the repo has not adopted the `status:*` label namespace, this skill cannot ru
 
 ## Rules
 
-- **Dispatch leaves only.** Per the `leaf-only-lifecycle` rule, never dispatch a container — an issue with open child work, or a childless Epic/Story/Spike — even if it carries the build-ready role. Move it `$READY → $CLAIMED` as lifecycle repair (Phase 3a); never silently implement a container.
+- **Dispatch leaves only.** Per the `leaf-only-lifecycle` rule, never dispatch a container — an issue with open child work, or a childless Epic — even if it carries the build-ready role. Move it `$READY → $CLAIMED` as lifecycle repair (Phase 3a); never silently implement a container.
 - Never relabel an issue outside the cycle's allowed transitions. The `$CLAIMED` label is the signature of cycle ownership for leaves, and the parent/container progress state for lifecycle repairs.
 - Never bypass `lisa:github-agent` to do build work directly. `lisa:github-agent` owns the per-issue lifecycle.
 - Never auto-transition past `$DONE`. Downstream labels (terminal `status:done`, etc.) are owned by QA / PM / merge automation.

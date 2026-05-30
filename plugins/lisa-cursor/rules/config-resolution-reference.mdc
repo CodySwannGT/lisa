@@ -652,7 +652,7 @@ A ticketing system can oversee **multiple repos** — e.g. one JIRA project (or 
 
 ### The `repo:<name>` label (the repo marker)
 
-A work item's target repo is recorded as a **label** `repo:<name>`, where `<name>` is the repo's short name (e.g. `repo:frontend`). The convention is uniform across trackers (JIRA / GitHub / Linear), consistent with the other namespaced labels (`status:`, `type:`, `component:`). On JIRA a **component** equal to the repo name is accepted as an alias (matches the legacy `component = "frontend"` JQL pattern). A leaf work unit carries **exactly one** `repo:<name>` (leaves are single-repo per `repo-scope-split`); a container (Epic/Story/Spike) may carry several or none.
+A work item's target repo is recorded as a **label** `repo:<name>`, where `<name>` is the repo's short name (e.g. `repo:frontend`). The convention is uniform across trackers (JIRA / GitHub / Linear), consistent with the other namespaced labels (`status:`, `type:`, `component:`). On JIRA a **component** equal to the repo name is accepted as an alias (matches the legacy `component = "frontend"` JQL pattern). A leaf work unit carries **exactly one** `repo:<name>` (leaves are single-repo per `repo-scope-split`); a container (an Epic, or any item with open child work) may carry several or none.
 
 The label is not required to exist up front: build-intake **determines** the target repo from the ticket's content + code surfaces when the label is absent and **stamps** `repo:<name>` so later cycles filter cheaply (see `repo-scope-split` "claim-time repo scoping").
 

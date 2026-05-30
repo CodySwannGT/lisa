@@ -161,11 +161,11 @@ If the spec doesn't set `authenticated_surface`, infer it: scan the body and AC 
 
 #### S10 — Repository section, single-repo scope
 
-When `issue_type ∈ {Bug, Task, Sub-task, Improvement}`, body must contain `## Repository` naming exactly one repo. Multiple repos OR cross-repo references in AC: FAIL with recommendation `"Split into per-repo work units under a shared parent Story (see lisa:task-decomposition step 1.5)"`.
+When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` — or a **build-ready childless Story/Spike** (a claimable leaf per `leaf-only-lifecycle`) — body must contain `## Repository` naming exactly one repo. Multiple repos OR cross-repo references in AC: FAIL with recommendation `"Split into per-repo work units under a shared parent Story (see lisa:task-decomposition step 1.5)"`.
 
 (GitHub Issues live in one repo by definition, so the `## Repository` section is technically redundant — keep it for parity with the JIRA path so downstream tooling sees the same shape. Cross-repo references in AC are still possible and still fail this gate.)
 
-Story / Epic / Spike: skipped (may span repos — these are coordination containers, not work units).
+An **Epic**, or a **Story/Spike that still holds child work** (or is not build-ready): skipped (may span repos — coordination containers, not claimable leaf work units).
 
 This gate is `product_relevant: false` because cross-repo work units are not a product question — they are a decomposition error. Callers (`lisa:github-to-tracker`, `lisa:notion-to-tracker`, etc.) MUST pre-split cross-repo work into per-repo work units during the decomposition phase per `lisa:task-decomposition` step 1.5; an S10 failure here indicates the agent skipped that step and must auto-split + revalidate before writing, not surface a clarifying comment to product.
 
@@ -199,7 +199,7 @@ When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_c
 
 FAIL when the Validation Journey is present but declares zero `[EVIDENCE: name]` markers, or when any marker name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
 
-This gate depends on S11. It is `N/A` for Epic / Story / Spike (coordination containers, not work units) and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa:github-add-journey`.
+This gate depends on S11. It is `N/A` for containers — an **Epic**, or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa:github-add-journey`.
 
 #### S15 — Leaf-only build-ready
 
@@ -211,20 +211,19 @@ Enforces the build-side of the vendor-neutral `leaf-only-lifecycle` rule: **only
 
 Apply this decision and FAIL the two invariant-violating cases:
 
-1. **Container with child work + build-ready** — `issue_type ∈ {Epic, Story, Spike}` OR child work is present (any type that has children), AND build-ready. FAIL. A parent organizes work; it is never claimed and implemented directly. Its lifecycle state rolls up from its children.
-2. **Childless container-type + build-ready** — `issue_type ∈ {Epic, Story, Spike}` with **no** child work, AND build-ready. Still FAIL: these types are coordination containers by design, and an empty one is an incomplete decomposition, not an implementable unit (the childless-parent exception in `leaf-only-lifecycle` does **not** promote an Epic/Story/Spike to build-ready).
+1. **Container with child work + build-ready** — child work is present (any type that has open children), AND build-ready. FAIL. A parent organizes work; it is never claimed and implemented directly. Its lifecycle state rolls up from its children.
+2. **Childless Epic + build-ready** — `issue_type = Epic` with **no** child work, AND build-ready. Still FAIL: an Epic is a pure rollup container by design, and a childless one is an incomplete decomposition or a mis-applied role, not an implementable unit. (A childless Story or Spike is **not** failed here — the childless-parent exception in `leaf-only-lifecycle` promotes every childless non-Epic type to a build-ready leaf.)
 
-PASS (the childless-parent exception) when the issue is build-ready and is a **leaf work unit**: `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND has **no** child work. A flat Task or Bug with no sub-issues is a valid build-ready leaf and must not be stranded.
+PASS (the childless-parent exception) when the issue is build-ready and is a **leaf work unit**: it has **no** open child work and `issue_type ≠ Epic` (i.e. `Bug, Task, Sub-task, Improvement`, or a childless `Story` / `Spike`). A flat Task/Bug, or a childless Story/Spike with no sub-issues, is a valid build-ready leaf and must not be stranded.
 
 | issue_type | has child work | build-ready | S15 |
 |---|---|---|---|
-| Bug / Task / Sub-task / Improvement | no | yes | **PASS** (leaf) |
-| Bug / Task / Sub-task / Improvement | yes | yes | **FAIL** (structurally a container) |
-| Epic / Story / Spike | yes | yes | **FAIL** (container with children) |
-| Epic / Story / Spike | no | yes | **FAIL** (childless container-type, exception does not apply) |
+| Bug / Task / Sub-task / Improvement / Story / Spike | no | yes | **PASS** (leaf) |
+| any type | yes | yes | **FAIL** (structurally a container) |
+| Epic | no | yes | **FAIL** (childless Epic — pure rollup container, exception does not apply) |
 | any | any | no | **N/A** (not build-ready) |
 
-Remediation: `"Build-ready (status:ready) is leaf-only per leaf-only-lifecycle. Move status:ready off this container onto its leaf children (or, for a childless Epic/Story/Spike, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
+Remediation: `"Build-ready (status:ready) is leaf-only per leaf-only-lifecycle. Move status:ready off this container onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
 
 `product_relevant: false` — a build-ready container is a lifecycle/decomposition error for the caller to repair, not a product question.
 

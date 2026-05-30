@@ -13,7 +13,7 @@
  *
  * Issue #542/#649: `lisa:github-build-intake` adds the claim-time arm — Phase 3a
  * classifies each candidate before claiming and repairs any parent
- * with open child work (or a childless Epic/Story/Spike) carrying a stale
+ * with open child work (or a childless Epic) carrying a stale
  * build-ready label, while a childless leaf is claimed normally.
  *
  * Issue #543: mirrors the #542 claim-time gate into the JIRA and Linear build
@@ -41,6 +41,14 @@
  * Issue #644: `lisa:github-build-intake` must also hold an otherwise valid
  * ready leaf when explicit `Blocked by:` relationships still point at active
  * issues, without mutating lifecycle labels or invoking the build agent.
+ *
+ * Childless-parent refinement: the childless-parent exception now treats the
+ * Epic as the ONLY type that is a container regardless of children. A childless
+ * Story or Spike is a directly implementable leaf (a Story is a shippable
+ * increment; a Spike is itself the investigation unit) and is claimed / passes
+ * validation like any other leaf — only a childless Epic stays safe-blocked.
+ * These tests assert each enforcement path encodes that distinction so a
+ * childless Story/Spike is never stranded in the ready queue.
  *
  * Both the source (`plugins/src/base/skills`) and the generated artifact
  * (`plugins/lisa/skills`) are asserted, so an artifact-only edit or a missed
@@ -155,12 +163,18 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(section).toMatch(/FAIL/);
     });
 
-    it("FAILs a childless Epic/Story/Spike marked build-ready", () => {
+    it("FAILs a childless Epic but allows a childless Story/Spike marked build-ready", () => {
       const s15Index = content.indexOf(S15_HEADING);
       const section = content.slice(s15Index);
-      expect(section).toMatch(/Childless container-type \+ build-ready/);
-      // The childless-parent exception must NOT promote these types.
-      expect(section).toMatch(/does \*\*not\*\* promote an Epic\/Story\/Spike/);
+      // Only a childless Epic still FAILs; the exception now promotes every
+      // other childless type (including Story/Spike) to a build-ready leaf.
+      expect(section).toMatch(/Childless Epic \+ build-ready/);
+      expect(section).toMatch(
+        /promotes every childless non-Epic type to a build-ready leaf/
+      );
+      expect(section).toMatch(
+        /childless Story or Spike is \*\*not\*\* failed here/
+      );
     });
 
     it("PASSes a childless leaf work unit marked build-ready", () => {
@@ -187,7 +201,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
 
   // Issue #541: the JIRA and Linear validators must mirror the #540
   // github-validate-issue leaf-only gate — FAIL a build-ready container (or a
-  // childless Epic/Story/Spike) and PASS a build-ready leaf. The gate is
+  // childless Epic) and PASS a build-ready leaf. The gate is
   // documented as S15 in both jira-validate-ticket and linear-validate-issue,
   // keeping the three validators symmetric. Asserting both roots catches an
   // artifact-only edit or a missed `bun run build:plugins`.
@@ -230,13 +244,17 @@ describe("leaf-only build-ready invariant (#538)", () => {
         expect(section).toMatch(/FAIL/);
       });
 
-      it("FAILs a childless Epic/Story/Spike marked build-ready", () => {
+      it("FAILs a childless Epic but allows a childless Story/Spike marked build-ready", () => {
         const s15Index = content.indexOf(S15_HEADING);
         const section = content.slice(s15Index);
-        expect(section).toMatch(/Childless container-type \+ build-ready/);
-        // The childless-parent exception must NOT promote these types.
+        // Only a childless Epic (a Project on Linear) still FAILs; the exception
+        // now promotes every other childless type (incl. Story/Spike) to a leaf.
+        expect(section).toMatch(/Childless Epic(\/Project)? \+ build-ready/);
         expect(section).toMatch(
-          /does \*\*not\*\* promote an Epic\/Story\/Spike/
+          /promotes every childless non-Epic type to a build-ready leaf/
+        );
+        expect(section).toMatch(
+          /childless Story or Spike is \*\*not\*\* failed here/
         );
       });
 
@@ -322,15 +340,15 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(section).toMatch(/OPEN/);
     });
 
-    it("does not dispatch a childless Epic/Story/Spike", () => {
+    it("does not dispatch a childless Epic but dispatches a childless Story/Spike", () => {
       const gateIndex = content.indexOf(gateHeading);
       const section = content.slice(gateIndex);
+      // Only a childless Epic is held back; Story/Spike are dispatchable leaves.
+      expect(section).toMatch(/Childless Epic \(pure rollup container\)/);
+      expect(section).toMatch(/except Epic/i);
       expect(section).toMatch(
-        /childless container-type|childless Epic\/Story\/Spike/i
+        /childless Story is a directly shippable increment/
       );
-      expect(section).toMatch(/Epic/);
-      expect(section).toMatch(/Story/);
-      expect(section).toMatch(/Spike/);
       expect(section).toMatch(/never dispatched|do NOT dispatch/i);
     });
 
@@ -400,7 +418,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
   // Issue #543: jira-build-intake and linear-build-intake must mirror the #542
   // github-build-intake claim-time gate — a Phase 3a leaf-only claim gate ahead
   // of the claim step that skips / safe-blocks any parent with open child work
-  // (or a childless Epic/Story/Spike) carrying a stale build-ready role, while a
+  // (or a childless Epic) carrying a stale build-ready role, while a
   // childless leaf is claimed normally. Both vendor scanners keep the gate
   // symmetric with the GitHub one so behavior never drifts by tracker. Asserting
   // both roots catches an artifact-only edit or a missed `bun run build:plugins`.
@@ -455,15 +473,18 @@ describe("leaf-only build-ready invariant (#538)", () => {
         expect(section).toMatch(/not parentage|not.*children/i);
       });
 
-      it("does not claim a childless Epic/Story/Spike", () => {
+      it("does not claim a childless Epic but claims a childless Story/Spike", () => {
         const gateIndex = content.indexOf(gateHeading);
         const section = content.slice(gateIndex);
+        // Only a childless Epic (a Project on Linear) stays unclaimed; the
+        // exception promotes every other childless type, incl. Story/Spike.
         expect(section).toMatch(
-          /childless container-type|childless Epic\/Story\/Spike/i
+          /Childless Epic(\/Project)? \(pure rollup container\)/
         );
-        expect(section).toMatch(/Epic/);
-        expect(section).toMatch(/Story/);
-        expect(section).toMatch(/Spike/);
+        expect(section).toMatch(/except Epic/i);
+        expect(section).toMatch(
+          /childless Story is a directly shippable increment/
+        );
       });
 
       it("claims a childless leaf work unit", () => {

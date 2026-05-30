@@ -1,6 +1,6 @@
 # Repo Scope & Work-Time Splitting (load-bearing)
 
-**Leaf work units are single-repo.** A leaf is an individually implementable ticket with no children — types **Bug, Task, Sub-task, Improvement**. Each names exactly one repo. **Epic, Story, Spike** are coordination containers and may span repos.
+**Leaf work units are single-repo.** A leaf is an individually implementable ticket with no open children — the by-design leaf types **Bug, Task, Sub-task, Improvement**, plus a childless **Story** or **Spike** (structurally a leaf per `leaf-only-lifecycle`). Each names exactly one repo. An **Epic**, and any **Story/Spike that still holds child work**, are coordination containers and may span repos.
 
 Enforced at four points: gate **S10** (`*-validate-*`, write time), `task-decomposition` step 1.5 (PRD-decomposition time), claim-time repo scoping (`*-build-intake`), and the work-time split procedure (an existing ticket about to be implemented).
 

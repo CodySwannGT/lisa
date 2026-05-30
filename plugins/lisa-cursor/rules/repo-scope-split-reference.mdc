@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Repo Scope & Work-Time Splitting
 
-Leaf work units are single-repo. A **leaf work unit** is an individually implementable ticket with no child tickets — issue types **Bug, Task, Sub-task, Improvement**. Each must name exactly one repository. **Epic, Story, Spike** are coordination containers and may span repos.
+Leaf work units are single-repo. A **leaf work unit** is an individually implementable ticket with no open child tickets — the by-design leaf types **Bug, Task, Sub-task, Improvement**, plus a childless **Story** or **Spike** (a childless Story/Spike is structurally a leaf — see `leaf-only-lifecycle`). Each must name exactly one repository. An **Epic**, and any **Story or Spike that still holds child work**, are coordination containers and may span repos.
 
 This invariant is enforced at four points: gate **S10** in the `*-validate-*` skills (write time), `task-decomposition` step 1.5 (PRD-decomposition time), **claim-time repo scoping** in the build-intake skills (when intake decides whether to claim a ready ticket for the current repo — see below), and the work-time split procedure below (when an agent picks up an existing ticket to implement it).
 
@@ -52,7 +52,7 @@ Resolve the current repo per the `config-resolution` "Repo scoping" section (con
 
 **Cost.** Only **unlabeled** candidates need content determination; once stamped, wrong-repo candidates are skipped by label alone. Prefer candidates already labeled `repo:<current>` first (cheap claim), falling through to unlabeled candidates (determine + stamp) only when no pre-labeled current-repo leaf is ready.
 
-A container (Epic/Story/Spike) is handled by the leaf-only gate, not here — containers may span repos, may keep multiple `repo:<name>` labels for visibility, and are never claimed/built directly. Only a leaf work unit is split or skipped by repo scope.
+A container (an Epic, or any item with open child work) is handled by the leaf-only gate, not here — containers may span repos, may keep multiple `repo:<name>` labels for visibility, and are never claimed/built directly. Only a leaf work unit — including a now-childless Story/Spike that the leaf-only gate treats as a leaf — is split or skipped by repo scope.
 
 ## Vendor mechanics
 
