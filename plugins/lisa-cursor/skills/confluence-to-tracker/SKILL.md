@@ -252,10 +252,12 @@ Capture each returned story key — Phase 5 needs it as the parent for sub-tasks
 
 **Auto-split cross-repo work before delegation.** For each candidate sub-task, apply `lisa:task-decomposition` step 1.5: if the work touches more than one repo, split it into one sub-task per repo under the same parent Story (e.g., `[backend-api] Add field` + `[mobile-app] Display field`), and encode the producer-before-consumer ordering via dependencies. Work units that may span repos (Epic, Story, Spike) stay as planned; work units that must be single-repo (Bug, Task, Sub-task, Improvement) are split now. Splitting is this skill's responsibility — the validator's S10 gate is `product_relevant: false` because cross-repo failures are decomposition errors caught here, not product questions sent back to the PRD.
 
+**S10 hard gate repair loop.** Dry-run validation is not advisory. Before any Phase 5 write, every planned leaf spec MUST pass `lisa:tracker-validate --spec-only` for S10 Single-repo scope. If any Bug / Task / Sub-task / Improvement fails S10 (missing `Repository`, more than one repo, or cross-repo AC), stop the write path, auto-split or restamp the spec using `lisa:task-decomposition` step 1.5, add the repo bracket and `## Repository` / `h2. Repository` section, then re-run `lisa:tracker-validate --spec-only`. If S10 still fails after repair, abort the ticket write and record an internal Error in the dry-run report; do not create the ticket, do not bypass with direct vendor writes, and do not surface the `product_relevant: false` failure as a product clarification.
+
 Delegate sub-task creation to **parallel agents** (one per epic or batch of stories) for efficiency. **Every spawned agent must invoke `lisa:tracker-write` for each sub-task — no agent may invoke `lisa:atlassian-access` write operations directly.**
 
 Each sub-task MUST:
-1. **Be scoped to exactly ONE repo** — indicated in brackets in the summary: `[repo-name]`
+1. **Be scoped to exactly ONE repo** — indicated in brackets in the summary: `[repo-name]` and in the description's `## Repository` / `h2. Repository` section
 2. **Include an Empirical Verification Plan** — real user-like verification, NOT unit tests, linting, or typechecking
 
 **Leaf-only build-ready (`leaf-only-lifecycle`)**: Sub-tasks are the **leaf work units** of the decomposition — they are the ONLY items in the hierarchy that receive the build-ready label. `lisa:tracker-write` applies `status:ready` here so downstream build intake (`lisa:tracker-build-intake`) claims the leaves and never the Epic or Stories. Apply `status:ready` to each Sub-task; never to its parent Story or Epic (Phases 3–4). `lisa:tracker-write` enforces the same invariant on the write side, so a Sub-task split into per-repo children (the cross-repo case above) carries build-ready on the children, not on any intermediate parent that gains child work.
@@ -328,7 +330,7 @@ For each sub-task, invoke `lisa:tracker-write` with:
 - parent: the parent story key
 - project_key: [PROJECT]
 - summary: prefixed with the repo in brackets, e.g. "[backend-api] Add audit log table"
-- description_body: a 3-section draft (Context / Technical Approach / Acceptance Criteria)
+- description_body: a 3-section draft (Context / Technical Approach / Acceptance Criteria) plus `h2. Repository` naming exactly one repo
 - gherkin_acceptance_criteria: derived from the story's functional requirements
 - sign_in_account: [test user credentials from config — name + role + how to obtain]
 - target_environment: "dev"
@@ -337,7 +339,7 @@ For each sub-task, invoke `lisa:tracker-write` with:
   NOT unit tests, linting, or typechecking.
 
 Each sub-task must:
-1. Be scoped to ONE repo only — repo named in brackets in the summary
+1. Be scoped to ONE repo only — repo named in brackets in the summary and in `h2. Repository`
 2. Include the Empirical Verification Plan in the description
 3. Be created via `lisa:tracker-write`, not via direct `lisa:atlassian-access` write operations
 
