@@ -516,7 +516,10 @@ export function parseArgs(argv) {
  */
 function collectSyncedSkills(roots) {
   const skills = [];
-  for (const root of roots) {
+  // Sort roots and the final result by path so the report is deterministic:
+  // readdirSync() traversal order is filesystem-dependent, which would otherwise
+  // reshuffle rows across environments even for an unchanged skills set.
+  for (const root of [...roots].sort((a, b) => a.localeCompare(b))) {
     for (const file of walkSkillFiles(root)) {
       const frontmatter = parseFrontmatter(fs.readFileSync(file, "utf8"));
       const raw = frontmatter["synced-from"];
@@ -525,7 +528,7 @@ function collectSyncedSkills(roots) {
       }
     }
   }
-  return skills;
+  return skills.sort((a, b) => a.file.localeCompare(b.file));
 }
 
 /**
