@@ -13,6 +13,12 @@ its siblings.
 
 ## Hard approval gate (do this first)
 
+0. **Pre-flight validation gate.** Run
+   `node scripts/plugin-routing-validate.mjs` (optionally scoped with
+   `--routing-dir`/`--cache-root`). If it exits non-zero → **STOP**; the artifact
+   set is schema-invalid, version-stale, or trips an anti-pattern gate, and must
+   be re-run through `analyze-plugin` and re-approved before implementation. Do
+   not act on an artifact that fails this gate.
 1. Read `parity/plugin-routing/<plugin>@<marketplace>.json`.
 2. If the file is missing, malformed, or fails the routing-artifact schema
    (embedded below) → **STOP** with an error. Do nothing else.
@@ -20,7 +26,8 @@ its siblings.
    _"Artifact is `<status>`, not `approved`. A human must review the matrix and
    flip `status` to `approved` (visible in the git diff) before
    implement-plugin-parity will run."_ Make **no** changes.
-4. Only when `status === "approved"` do you perform the actions below.
+4. Only when `status === "approved"` (and the pre-flight gate passed) do you
+   perform the actions below.
 
 This gate is the whole point of separating analyze from implement: nothing
 deterministic happens to the source tree until a human has approved the routing

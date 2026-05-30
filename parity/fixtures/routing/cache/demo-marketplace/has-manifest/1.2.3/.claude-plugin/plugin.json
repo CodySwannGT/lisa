@@ -1,0 +1,5 @@
+{
+  "name": "has-manifest",
+  "version": "1.2.3",
+  "description": "Routing-validate fixture — newer manifest version; cacheMaxVersion must pick this."
+}
