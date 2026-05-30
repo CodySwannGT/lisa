@@ -1,0 +1,4 @@
+{
+  "name": "no-semver",
+  "description": "Routing-validate fixture — no version field and a non-semver dir name; cacheMaxVersion must return null."
+}

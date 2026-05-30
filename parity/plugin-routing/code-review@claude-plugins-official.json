@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "plugin": "code-review@claude-plugins-official",
+  "pluginName": "code-review",
+  "marketplace": "claude-plugins-official",
+  "upstreamVersion": "unknown",
+  "analyzedAt": "2026-05-30",
+  "status": "proposed",
+  "components": [
+    {
+      "kind": "command",
+      "id": "code-review",
+      "path": "commands/code-review.md",
+      "classification": "claude-command",
+      "notes": "Single slash command; no MCP/LSP/hooks. Cache dirs are a git hash and 'unknown' — no semver, so upstreamVersion is 'unknown' (not drift-trackable)."
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill reimplementing the code-review command (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
+      ],
+      "rationale": "Codex has no plugin command surface and is not in the fan-out; reimplement as a Lisa skill. Upstream publishes no semver, so the reimplementation is not drift-trackable — drift tracking is manual review."
+    },
+    "cursor": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Cursor reads .claude-plugin/ natively; the command loads unchanged."
+    },
+    "agy": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill reimplementing the code-review command (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
+      ],
+      "rationale": "Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa skill. Upstream publishes no semver, so it is not drift-trackable — manual review."
+    },
+    "copilot": {
+      "outcome": "enable-vendor-equivalent",
+      "actions": [
+        "enable Copilot's native pull-request/code-review capability in the project-scoped marketplace"
+      ],
+      "rationale": "Code review is a generic capability Copilot ships natively; prefer enabling over reimplementing."
+    }
+  }
+}
