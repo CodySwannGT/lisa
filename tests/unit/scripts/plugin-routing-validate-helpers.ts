@@ -67,7 +67,13 @@ export function runValidate(args: readonly string[]): {
     const stdout = e.stdout ?? "";
     return {
       code: typeof e.status === "number" ? e.status : -1,
-      report: (stdout.trim() === "" ? {} : JSON.parse(stdout)) as RoutingReport,
+      report: (stdout.trim() === ""
+        ? {
+            schemaVersion: 1,
+            summary: { scanned: 0, valid: 0, invalid: 0 },
+            results: [],
+          }
+        : JSON.parse(stdout)) as RoutingReport,
     };
   }
 }
