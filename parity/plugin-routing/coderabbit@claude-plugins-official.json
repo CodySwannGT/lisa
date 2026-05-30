@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "plugin": "coderabbit@claude-plugins-official",
+  "pluginName": "coderabbit",
+  "marketplace": "claude-plugins-official",
+  "upstreamVersion": "1.1.1",
+  "analyzedAt": "2026-05-30",
+  "status": "proposed",
+  "components": [
+    {
+      "kind": "agent",
+      "id": "code-reviewer",
+      "path": "agents/code-reviewer.md",
+      "classification": "claude-agent",
+      "notes": "Subagent wrapping the CodeRabbit CLI review."
+    },
+    {
+      "kind": "command",
+      "id": "coderabbit-review",
+      "path": "commands/coderabbit-review.md",
+      "classification": "claude-command",
+      "notes": "Slash command entry to a CodeRabbit review."
+    },
+    {
+      "kind": "skill",
+      "id": "autofix",
+      "path": "skills/autofix/SKILL.md",
+      "classification": "claude-skill",
+      "notes": "Applies CodeRabbit autofix suggestions."
+    },
+    {
+      "kind": "skill",
+      "id": "code-review",
+      "path": "skills/code-review/SKILL.md",
+      "classification": "claude-skill",
+      "notes": "Default code-review skill."
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "reimplement",
+      "actions": [
+        "reimplement the code-reviewer agent as a Lisa-native skill stamped synced-from: coderabbit@claude-plugins-official@1.1.1",
+        "reimplement the coderabbit-review command as a Lisa-native skill stamped synced-from: coderabbit@claude-plugins-official@1.1.1",
+        "reimplement the autofix and code-review skills as Lisa-native skills stamped synced-from: coderabbit@claude-plugins-official@1.1.1"
+      ],
+      "rationale": "Codex has no plugin agent/command surface and is not in the fan-out; reimplement every component group as Lisa skills. (The CodeRabbit CLI itself is agent-agnostic and can be invoked from the reimplemented skills.)"
+    },
+    "cursor": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Cursor reads .claude-plugin/ natively; the agent, command, and skills load unchanged."
+    },
+    "agy": {
+      "outcome": "reimplement",
+      "actions": [
+        "reimplement the code-reviewer agent as a Lisa-native skill stamped synced-from: coderabbit@claude-plugins-official@1.1.1",
+        "reimplement the coderabbit-review command as a Lisa-native skill stamped synced-from: coderabbit@claude-plugins-official@1.1.1",
+        "reimplement the autofix and code-review skills as Lisa-native skills stamped synced-from: coderabbit@claude-plugins-official@1.1.1"
+      ],
+      "rationale": "Curated third-party plugins are not in agy's fan-out; reimplement every component group as Lisa skills."
+    },
+    "copilot": {
+      "outcome": "enable-vendor-equivalent",
+      "actions": [
+        "enable Copilot's native code-review capability (covers the code-reviewer agent, coderabbit-review command, and code-review skill) in the project-scoped marketplace",
+        "the autofix skill has no generic Copilot equivalent — reimplement it as a Lisa-native skill stamped synced-from: coderabbit@claude-plugins-official@1.1.1"
+      ],
+      "rationale": "Code review is a generic capability Copilot ships natively (enable it for the review components); the CodeRabbit-specific autofix has no native equivalent so it is reimplemented."
+    }
+  }
+}

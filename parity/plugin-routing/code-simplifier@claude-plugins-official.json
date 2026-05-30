@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "plugin": "code-simplifier@claude-plugins-official",
+  "pluginName": "code-simplifier",
+  "marketplace": "claude-plugins-official",
+  "upstreamVersion": "1.0.0",
+  "analyzedAt": "2026-05-30",
+  "status": "proposed",
+  "components": [
+    {
+      "kind": "agent",
+      "id": "code-simplifier",
+      "path": "agents/code-simplifier.md",
+      "classification": "claude-agent",
+      "notes": "Single subagent; no MCP/LSP/hooks. Only other tree file is plugin.json."
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill stamped synced-from: code-simplifier@claude-plugins-official@1.0.0"
+      ],
+      "rationale": "Codex has no plugin subagent surface and curated third-party plugins are not in Codex's fan-out; reimplement the behavior as a Lisa skill."
+    },
+    "cursor": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Cursor reads .claude-plugin/ natively; the agent loads unchanged."
+    },
+    "agy": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill stamped synced-from: code-simplifier@claude-plugins-official@1.0.0"
+      ],
+      "rationale": "Curated third-party plugins are not in agy's fan-out, so agy receives nothing natively; reimplement as a Lisa skill."
+    },
+    "copilot": {
+      "outcome": "enable-vendor-equivalent",
+      "actions": [
+        "enable Copilot's native code-simplification/refactor capability in the project-scoped marketplace"
+      ],
+      "rationale": "Code simplification is a generic capability Copilot ships natively; prefer enabling over reimplementing."
+    }
+  }
+}

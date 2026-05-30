@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "plugin": "safety-net@cc-marketplace",
+  "pluginName": "safety-net",
+  "marketplace": "cc-marketplace",
+  "upstreamVersion": "0.9.0",
+  "analyzedAt": "2026-05-30",
+  "status": "proposed",
+  "components": [
+    {
+      "kind": "hook",
+      "id": "pretooluse-bash-guard",
+      "path": "hooks/hooks.json",
+      "classification": "hook",
+      "notes": "PreToolUse Bash guard that runs dist/bin/cc-safety-net.js --claude-code to block destructive git/filesystem commands."
+    },
+    {
+      "kind": "skill",
+      "id": "set-custom-rules",
+      "path": "skills/set-custom-rules/SKILL.md",
+      "classification": "claude-skill",
+      "notes": "Configures custom safety-net rules."
+    },
+    {
+      "kind": "skill",
+      "id": "verify-custom-rules",
+      "path": "skills/verify-custom-rules/SKILL.md",
+      "classification": "claude-skill",
+      "notes": "Validates custom safety-net rules."
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold a Lisa-native PreToolUse hook (fanned out via the per-agent hook generators from #1054–#1058) stamped synced-from: safety-net@cc-marketplace@0.9.0",
+        "reimplement the set-custom-rules and verify-custom-rules skills as Lisa-native skills stamped synced-from: safety-net@cc-marketplace@0.9.0"
+      ],
+      "rationale": "A hook-bearing plugin has no MCP/LSP re-point; reimplement as a Lisa-native hook (via the existing per-agent hook generators) plus reimplement the two rule-management skills so no component group is dropped."
+    },
+    "cursor": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Cursor reads .claude-plugin/ natively; the hook and both skills load unchanged."
+    },
+    "agy": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold a Lisa-native PreToolUse hook (fanned out via the per-agent hook generators from #1054–#1058) stamped synced-from: safety-net@cc-marketplace@0.9.0",
+        "reimplement the set-custom-rules and verify-custom-rules skills as Lisa-native skills stamped synced-from: safety-net@cc-marketplace@0.9.0"
+      ],
+      "rationale": "Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa-native hook plus the two rule-management skills."
+    },
+    "copilot": {
+      "outcome": "enable-vendor-equivalent",
+      "actions": [
+        "enable safety-net's native Copilot CLI hook runner (cc-safety-net --copilot-cli) in the project-scoped marketplace",
+        "the set-custom-rules and verify-custom-rules skills are covered by cc-safety-net's native built-in commands for the Copilot CLI runner"
+      ],
+      "rationale": "safety-net ships a concrete Copilot CLI hook runner (cc-safety-net --copilot-cli) plus built-in rule-management commands, so enable the vendor's native Copilot support rather than reimplementing."
+    }
+  }
+}
