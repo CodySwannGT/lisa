@@ -1,0 +1,5 @@
+{
+  "name": "code-simplifier",
+  "version": "1.0.0",
+  "description": "Fixture manifest — older sibling; resolver must NOT pick this (max-semver wins)."
+}
