@@ -20,18 +20,20 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-30-013939` created from synced `origin/main`
-- HEAD at 2026-05-30 incremental ingest: `0f1b1e9a08732b0534d614063d74a82167f3e933`
-- Current package version: `2.124.8`
-- Total commits on HEAD: 2590
-- Latest merged PR captured in the incremental git snapshot: `#1072`
-- New commits since the previous incremental git cursor: `3`
+- Ingest branch: `wiki/ingest-2026-05-30-054030` created from synced `origin/main`
+- HEAD at 2026-05-30 incremental ingest: `ddd3e4d4476942ea46b491476b134177d54c770c`
+- Current package version: `2.124.10`
+- Total commits on HEAD: 2598
+- Latest merged PR captured in the incremental git snapshot: `#1074`
+- New commits since the previous incremental git cursor: `8`
 - Project-scoped memory skipped this cycle because no Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Release automation advanced the monorepo to `2.124.8`.
-- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-013939` before this 2026-05-30 ingest.
+- Release automation advanced the monorepo to `2.124.10`.
+- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-054030` before this 2026-05-30 ingest.
+- PR `#1074` merged the prior wiki ingestion through Lisa `2.124.8`.
+- PR `#1073` fixed the Copilot plugin variant for issue `#1056`: unsupported `subagentStart` hook entries are stripped so Copilot does not reject the entire inline hook config, bundled `.mcp.json` content is emitted as an inline `mcpServers` object, and the generator now skips invalid or empty `mcpServers` shapes.
 - PR `#1072` merged the prior wiki ingestion through Lisa `2.124.7`.
 - PR `#1068` merged the prior wiki ingestion through Lisa `2.124.2`.
 - PR `#1069` completed the Cursor plugin-shape correction for issue `#1055`, including flat `.mdc` rules, Cursor hook artifact regression coverage, and the dedicated Cursor plugin artifact tests.

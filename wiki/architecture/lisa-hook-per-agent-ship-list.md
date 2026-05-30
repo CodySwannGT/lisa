@@ -186,6 +186,13 @@ the `reference_codex_plugin_hooks_shape_and_firing` session memory.
   non-`.agent.md` agent files via `--plugin-dir`; the generator keeps the
   universally-safe `<n>.agent.md` rename because the marketplace-install path is
   unverified.
+- Copilot rejects the entire inline hook config if an unsupported `subagentStart`
+  entry is present with an empty matcher. Issue `#1056` made the generator strip
+  the unsupported event wholesale for Copilot so SessionStart rule injection can
+  fire.
+- Copilot does not auto-discover plugin-bundled `.mcp.json` files and does not
+  honor a manifest path-string pointer. The Copilot generator now inlines a valid
+  non-empty `mcpServers` object from `.mcp.json` and skips invalid shapes.
 
 **`lisa apply --harness fleet` end-to-end (two dispatch bugs found + fixed):**
 
