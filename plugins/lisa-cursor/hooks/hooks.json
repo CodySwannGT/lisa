@@ -5,6 +5,10 @@
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-no-verify.sh",
         "matcher": "Bash"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/parity-safety-net.sh",
+        "matcher": "Bash"
       }
     ],
     "sessionStart": [

@@ -20,10 +20,12 @@
  */
 import * as fs from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
+import * as path from "node:path";
 import {
   classify,
   compareSemver,
   isValidSemver,
+  parseArgs,
   parseFrontmatter,
   parseSyncedFrom,
   resolveCurrentVersion,
@@ -37,6 +39,7 @@ import {
   makeTempSkill,
   NOT_INSTALLED,
   RC_VERSION,
+  REPO_ROOT,
   SIMPLIFIER,
   SIMPLIFIER_ID,
   SKILLS_FLAG,
@@ -173,6 +176,28 @@ describe("plugin-parity-drift exit-code contract", () => {
 
   it("exits 2 when a flag is given without a value", () => {
     expect(runDrift([CACHE_FLAG, SKILLS_FLAG, SKILLS_ROOT]).code).toBe(2);
+  });
+});
+
+describe("parseArgs default skills roots", () => {
+  it("defaults to the root .claude/skills AND plugins/src/base/skills (in that order)", () => {
+    expect(parseArgs([]).skillsRoots).toEqual([
+      path.join(REPO_ROOT, ".claude", "skills"),
+      path.join(REPO_ROOT, "plugins", "src", "base", "skills"),
+    ]);
+  });
+
+  it("does NOT include any generated plugins/lisa* skills root (no double-count)", () => {
+    expect(parseArgs([]).skillsRoots.some(r => /plugins\/lisa/u.test(r))).toBe(
+      false
+    );
+  });
+
+  it("uses explicit --skills-root values verbatim, ignoring the defaults", () => {
+    const explicit = path.join(REPO_ROOT, "some-explicit-root");
+    expect(parseArgs(["--skills-root", explicit]).skillsRoots).toEqual([
+      path.resolve(explicit),
+    ]);
   });
 });
 

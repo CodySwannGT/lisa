@@ -51,27 +51,30 @@ native Copilot equivalent, so it is reimplemented — see §3.)
 
 ---
 
-## 3. Reimplement scaffolds are PLACEHOLDERS
+## 3. Reimplement skills are REAL and distributed
 
-The 7 skills under `.claude/skills/parity-*` are **v1 shells only**. They carry a
-`synced-from` pin (where the upstream publishes semver) so `plugin-parity-drift` tracks
-them against upstream; the **actual behavior authoring is out of scope** per #1059
-("actual reimplementation is downstream work, each its own review"). Likewise, true
-downstream distribution — moving a finished skill into `plugins/src/base` so it fans out
-via the #1050 plugin pipeline — is deferred to that per-skill work.
+The v1 placeholder shells under `.claude/skills/parity-*` have been **replaced by real
+Lisa-native reimplementations relocated to `plugins/src/base/skills/parity-*`**, where
+they fan out via the #1050 plugin pipeline to every agent (Codex, agy, Copilot, Cursor,
+Claude). The 7 root `.claude/skills/parity-*` scaffolds were deleted. Each skill that
+maps to an upstream plugin publishing semver still carries its `synced-from` pin so
+`plugin-parity-drift` tracks it against upstream.
 
-| Scaffold (`.claude/skills/…`) | Pin status                                          |
-| ----------------------------- | --------------------------------------------------- |
-| `parity-code-simplifier`      | `code-simplifier@claude-plugins-official@1.0.0`     |
-| `parity-coderabbit`           | `coderabbit@claude-plugins-official@1.1.1`          |
-| `parity-safety-net`           | `safety-net@cc-marketplace@0.9.0`                   |
-| `parity-sentry-seer`          | `sentry@claude-plugins-official@1.0.0`              |
-| `parity-sentry-sdk-suite`     | `sentry@claude-plugins-official@1.0.0` (one marker for all 30 SDK skills) |
-| `parity-code-review`          | **no pin** — upstream has no semver → not drift-trackable (track manually) |
-| `parity-skill-creator`        | **no pin** — upstream has no semver → not drift-trackable (track manually) |
+| Skill (`plugins/src/base/skills/…`) | Pin status                                    |
+| ----------------------------------- | --------------------------------------------- |
+| `parity-code-simplifier`            | `code-simplifier@claude-plugins-official@1.0.0`     |
+| `parity-coderabbit`                 | `coderabbit@claude-plugins-official@1.1.1`          |
+| `parity-safety-net-rules`           | `safety-net@cc-marketplace@0.9.0`                   |
+| `parity-sentry-seer`                | `sentry@claude-plugins-official@1.0.0`              |
+| `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.0.0`              |
+| `parity-code-review`                | **no pin** — upstream has no semver → not drift-trackable (track manually) |
+| `parity-skill-creator`              | **no pin** — upstream has no semver → not drift-trackable (track manually) |
 
-The `parity-safety-net` hook component, when authored, ships via the per-agent hook
-generators (the #1054–#1058 fan-out), not bundled in the skill.
+The `safety-net` Bash-guard **hook is now authored** as
+`plugins/src/base/hooks/parity-safety-net.sh` and registered in
+`plugins/src/base/.claude-plugin/plugin.json` as a `PreToolUse` matcher on `Bash`. The
+companion `parity-safety-net-rules` skill views/sets/verifies the project-local custom
+guard rules the hook enforces.
 
 ---
 
@@ -81,8 +84,10 @@ generators (the #1054–#1058 fan-out), not bundled in the skill.
   from `plugins/src/base/.mcp.json`, which reaches **Codex, agy, Copilot, and Cursor**
   through their existing per-agent emission paths. This is the one component group with
   concrete, shipped cross-agent delivery.
-- **7 drift-tracked reimplement placeholders** under `.claude/skills/parity-*` (5 pinned,
-  2 intentionally unpinned), kept honest by `scripts/plugin-parity-drift.mjs`.
+- **7 real drift-tracked reimplement skills** under `plugins/src/base/skills/parity-*`
+  (5 pinned, 2 intentionally unpinned), kept honest by `scripts/plugin-parity-drift.mjs`
+  — whose default `--skills-root` now scans `plugins/src/base/skills` alongside
+  `.claude/skills`.
 - **All 7 routing artifacts approved** under `parity/plugin-routing/`:
   `code-review`, `code-simplifier`, `coderabbit`, `safety-net`, `sentry`,
   `skill-creator`, `typescript-lsp`.
