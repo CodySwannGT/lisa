@@ -44,6 +44,8 @@ const COLLAPSE_TEST =
 /** Shared test name reused for every skill asserting the state machine. */
 const STATE_MACHINE_TEST =
   "encodes the blocked-dominant priority state machine";
+/** Shared test name reused for every skill asserting the intermediate-env rung. */
+const INTERMEDIATE_ENV_TEST = "documents the intermediate-env rollup rung";
 
 const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
@@ -68,18 +70,21 @@ const assertSingleEnvCollapse = (content: string): void => {
 };
 
 /**
- * Assert a skill section encodes the four-row priority state machine
- * (blocked → claimed → done → unchanged).
+ * Assert a skill section encodes the env-ladder priority state machine
+ * (blocked → least-advanced-env → in-progress → unchanged), the generalization
+ * that closed the SE-318 intermediate-env gap (#544 follow-up).
  * @param section - The rollup section text to assert.
  */
 const assertStateMachine = (section: string): void => {
   // Blocked dominates.
   expect(section).toMatch(/blocked/i);
   expect(section).toMatch(/[Bb]locked dominates/);
-  // In-progress (claimed or in review) → active.
+  // In-progress (claimed or in review, or shipped while a sibling has not).
   expect(section).toMatch(/in progress|in-progress/i);
-  // All required leaves terminal → done.
-  expect(section).toMatch(/all.*required.*terminal|all.*required.*done/i);
+  // Env-rollup rung: every required leaf shipped to some env → least-advanced.
+  expect(section).toMatch(/shipped to some env/i);
+  expect(section).toMatch(/least-advanced/i);
+  // Terminal native closure still only at the production terminal.
   expect(section).toMatch(/terminal/i);
   // Required-only qualifier.
   expect(section).toMatch(/[Rr]equired/);
@@ -88,6 +93,27 @@ const assertStateMachine = (section: string): void => {
   expect(section).toMatch(/bottom-up/i);
   // The parent never carries the build-ready role.
   expect(section).toMatch(/never set the parent to.*ready|never.*ready/i);
+};
+
+/**
+ * Assert a section documents the intermediate-env rollup rung: a parent rolls
+ * up to a non-terminal env value (e.g. staging) once all its required children
+ * have reached it, while native closure stays gated on the production terminal.
+ * This is the rung whose absence stranded SE-318 in `Ready`.
+ * @param section - The rollup section text to assert.
+ * @param stagingToken - The vendor's staging `done` value (e.g. `On Stg`).
+ */
+const assertIntermediateEnvRollup = (
+  section: string,
+  stagingToken: string
+): void => {
+  expect(section).toContain(stagingToken);
+  // Rolls up to the least-advanced env, not ahead of the laggard child.
+  expect(section).toMatch(/least-advanced env/i);
+  // Native closure fires ONLY at production, never at an intermediate env.
+  expect(section).toMatch(
+    /only.*production|never at.*(on-stg|On Stg|intermediate env)/i
+  );
 };
 
 describe("parent status rollup (#544)", () => {
@@ -108,8 +134,12 @@ describe("parent status rollup (#544)", () => {
       expect(content).toMatch(/--rollup/);
     });
 
-    it("documents the four-row priority state machine", () => {
+    it("documents the env-ladder priority state machine", () => {
       assertStateMachine(content);
+    });
+
+    it(INTERMEDIATE_ENV_TEST, () => {
+      assertIntermediateEnvRollup(content, "On Stg");
     });
 
     it(COLLAPSE_TEST, () => {
@@ -169,6 +199,11 @@ describe("parent status rollup (#544)", () => {
       // No per-environment label hops.
       expect(section).toMatch(/status:on-dev|on-dev/);
     });
+
+    it(INTERMEDIATE_ENV_TEST, () => {
+      const section = content.slice(content.indexOf(heading));
+      assertIntermediateEnvRollup(section, "status:on-stg");
+    });
   });
 
   // JIRA child/subtask-status arm: Epic ← Stories ← Sub-tasks, native hierarchy.
@@ -204,6 +239,13 @@ describe("parent status rollup (#544)", () => {
 
     it(COLLAPSE_TEST, () => {
       assertSingleEnvCollapse(content.slice(content.indexOf(heading)));
+    });
+
+    it(INTERMEDIATE_ENV_TEST, () => {
+      assertIntermediateEnvRollup(
+        content.slice(content.indexOf(heading)),
+        "On Stg"
+      );
     });
   });
 
@@ -242,6 +284,13 @@ describe("parent status rollup (#544)", () => {
     it(COLLAPSE_TEST, () => {
       assertSingleEnvCollapse(content.slice(content.indexOf(heading)));
     });
+
+    it(INTERMEDIATE_ENV_TEST, () => {
+      assertIntermediateEnvRollup(
+        content.slice(content.indexOf(heading)),
+        "status:on-stg"
+      );
+    });
   });
 });
 
@@ -270,6 +319,14 @@ describe("leaf-only-lifecycle rule: rollup section (#544)", () => {
     it("states blocked dominates and the parent never carries ready", () => {
       expect(content).toMatch(/[Bb]locked dominates/);
       expect(content).toMatch(/parent never carries.*ready/i);
+    });
+
+    it("documents the intermediate-env rollup rung (the SE-318 gap)", () => {
+      assertIntermediateEnvRollup(content, "On Stg");
+      // A container found in `ready` is reconciled, not left stranded.
+      expect(content).toMatch(
+        /container found .*carrying `ready`|reconciled|roll/i
+      );
     });
   });
 });
