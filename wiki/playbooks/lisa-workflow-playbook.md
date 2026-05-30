@@ -56,6 +56,8 @@ Exploratory QA now separates human-experience findings from e2e coverage gaps. U
 
 Repair intake treats work as stuck after a two-hour threshold and records PR or deploy blocker diagnosis before moving stale queue items. This makes the smallest next action explicit when a PR, deployment, or status label prevents normal intake progress.
 
+Build intake distinguishes container issues from leaf issues by both type and child state. Epics and parent Stories remain rollup containers when they have child work, but a childless Story or Spike can be treated as a buildable leaf when it is otherwise ready for a single-repository implementation lane.
+
 ## Quality Gate Habit
 
 Before shipping Lisa changes, expect local hooks and CI to run typecheck, formatting, linting, slow lint, dead-code detection, tests, coverage, security audit, and integration checks depending on the action.
