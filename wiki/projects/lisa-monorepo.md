@@ -20,19 +20,19 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-29-213947` created from synced `origin/main`
-- HEAD at 2026-05-29 incremental ingest: `d989e2435dad59c56568e0204241b50a0baa6093`
-- Current package version: `2.124.7`
-- Total commits on HEAD: 2587
-- Latest merged PR captured in the incremental git snapshot: `#1071`
-- New commits since the previous incremental git cursor: `18`
+- Ingest branch: `wiki/ingest-2026-05-30-013939` created from synced `origin/main`
+- HEAD at 2026-05-30 incremental ingest: `0f1b1e9a08732b0534d614063d74a82167f3e933`
+- Current package version: `2.124.8`
+- Total commits on HEAD: 2590
+- Latest merged PR captured in the incremental git snapshot: `#1072`
+- New commits since the previous incremental git cursor: `3`
 - Project-scoped memory skipped this cycle because no Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Release automation advanced the monorepo to `2.124.7`.
-- The automation checkout fetched `origin` and rebased the existing wiki branch onto `origin/main` without conflicts before this 2026-05-29 ingest.
-- The previous same-day git and roles source notes were preserved under timestamped `2026-05-29-213947-previous-*` filenames before refreshing the current `2026-05-29` connector notes.
+- Release automation advanced the monorepo to `2.124.8`.
+- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-013939` before this 2026-05-30 ingest.
+- PR `#1072` merged the prior wiki ingestion through Lisa `2.124.7`.
 - PR `#1068` merged the prior wiki ingestion through Lisa `2.124.2`.
 - PR `#1069` completed the Cursor plugin-shape correction for issue `#1055`, including flat `.mdc` rules, Cursor hook artifact regression coverage, and the dedicated Cursor plugin artifact tests.
 - PR `#1070` corrected Cursor hook command paths to use `${CURSOR_PLUGIN_ROOT}` instead of cwd-relative paths.
@@ -66,6 +66,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-29-133933-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-29-213947-previous-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-29-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-30-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -75,3 +76,4 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-29-094151-roles.md`
 - `wiki/sources/roles/2026-05-29-213947-previous-roles.md`
 - `wiki/sources/roles/2026-05-29-roles.md`
+- `wiki/sources/roles/2026-05-30-roles.md`
