@@ -1,6 +1,6 @@
 ---
 name: exploratory-qa
-description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, machine-style labels, slow or unclear loads, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
+description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
 ---
 
 # Exploratory QA
@@ -55,6 +55,12 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
   "metadata", implementation identifiers such as slugs, unexplained domain jargon, unclear
   button/menu names, and icons with no discernible meaning. If a heading, label, or field would make a
   non-technical user ask "what does that mean?", file a usability/clarity ticket with plainer wording.
+- **Data usefulness & context:** extracted facts, metrics, summaries, and structured tables must help
+  a person understand the surface. Flag machine residue that only proves extraction happened, such as
+  repeated generic fields (`Money Mention`, `Entity`, `Record`) paired with values but no sentence,
+  source, category, or explanation of why the value matters. If a user cannot tell what a number,
+  fact, or field refers to without rereading the raw source, file a usability/clarity ticket to hide it
+  from the default UI or add context such as excerpts, labels, grouping, or provenance.
 - **Navigation clarity:** is it obvious how to get somewhere and back? Dead ends, hidden entry points,
   surprising redirects, broken links, no clear "home".
 - **Visual/layout quality:** cut-off or truncated text, overlap, cramped/crowded density, offscreen or
