@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.130.3](https://github.com/CodySwannGT/lisa/compare/vv2.130.1...v2.130.3) (2026-05-31)
+
+
+### Bug Fixes
+
+* **repair-intake:** clear is-blocked-by deps at any env-staged done, not just prod ([feed0b3](https://github.com/CodySwannGT/lisa/commit/feed0b3f71aad8f6edd3d12d8aacff09282584d4))
+
+
+### Documentation
+
+* **atlassian-access:** document acli link-create direction + flags ([adb4f00](https://github.com/CodySwannGT/lisa/commit/adb4f0091a345dc7882a5bffefcc7b8cf3b0b01d))
+* **wiki:** ingest Lisa history through 2.130.1 ([f91afba](https://github.com/CodySwannGT/lisa/commit/f91afba90783c6a6b7481ad0c95149ed85973b47))
+
 ### [2.130.2](https://github.com/CodySwannGT/lisa/compare/vv2.130.1...v2.130.2) (2026-05-31)
 
 
