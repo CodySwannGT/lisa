@@ -250,5 +250,6 @@ function gitEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env };
   delete env.GIT_DIR;
   delete env.GIT_WORK_TREE;
+  delete env.GIT_INDEX_FILE;
   return env;
 }
