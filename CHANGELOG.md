@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.130.0](https://github.com/CodySwannGT/lisa/compare/vv2.129.8...v2.130.0) (2026-05-31)
+
+
+### Features
+
+* **lifecycle:** add Human Needed marker label on agent-blocked work ([b87fe90](https://github.com/CodySwannGT/lisa/commit/b87fe907f38c7a227081af05601821a59c4c99fb))
+
+
+### Bug Fixes
+
+* **plugin-sync:** strip GIT_INDEX_FILE from nested git env (hermetic fixtures) ([6b27b89](https://github.com/CodySwannGT/lisa/commit/6b27b89c095848bd8deee8ea4a856a381858c305))
+
 ### [2.129.8](https://github.com/CodySwannGT/lisa/compare/vv2.129.7...v2.129.8) (2026-05-31)
 
 
