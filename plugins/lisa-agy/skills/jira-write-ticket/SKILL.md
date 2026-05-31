@@ -37,7 +37,7 @@ Required fields (stop and ask if missing — do not invent values):
 | Validation Journey | Runtime-behavior changes | Delegate to `/jira-add-journey` |
 | Target backend environment | Runtime-behavior changes | `dev` / `staging` / `prod`; recorded in description (Phase 3). Skip only for doc/config/type-only tickets. |
 | Sign-in account / credentials | Tickets that touch authenticated surfaces | Name the account (or source — 1Password item, env var, seeded fixture) and role; recorded in description (Phase 3). Omit when sign-in is not required. |
-| Single-repo scope | Bug, Task, Sub-task | These types MUST cover one repo only. If the work crosses repos, split it before creating. Epic / Spike / Story may span repos. |
+| Single-repo scope | Bug, Task, Sub-task, Improvement | These leaf work units MUST cover one repo only. If the work crosses repos, split it before creating. Epic / Spike / Story may span repos. |
 
 Optional but recommended: assignee, components, fix versions, labels, sprint, story points, reporter.
 
@@ -82,10 +82,10 @@ h2. Sign-in Required
  means "no sign-in needed for this ticket."]
 
 h2. Repository
-[Required for Bug / Task / Sub-task. Name the single repo this ticket covers.
- If the work spans repos, this ticket type is wrong — split into per-repo
- Tasks/Subtasks under a parent Story or Epic. Epic / Spike / Story may
- list multiple repos.]
+[Required for Bug / Task / Sub-task / Improvement. Name the single repo this ticket covers.
+If the work spans repos, this ticket type is wrong — split into per-repo
+Tasks/Subtasks under a parent Story or Epic. Epic / Spike / Story may
+list multiple repos.]
 
 h2. Validation Journey
 [Delegate to /jira-add-journey if the ticket changes runtime behavior.
@@ -222,6 +222,8 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ## Phase 6 — Create or Update
 
+Before calling `lisa:atlassian-access`, keep the description in Lisa's normal Markdown/wiki-heading authoring shape; the access layer owns conversion through `scripts/markdown-to-adf.mjs` and writes ADF to JIRA. This is required because acli stores raw Markdown/wiki text as one literal paragraph when no ADF object is provided. Post-write verification must confirm the live description contains ADF `heading` nodes for the required sections, not literal `##` / `h2.` text in a paragraph.
+
 ### CREATE
 
 1. Invoke `lisa:atlassian-access` via the Skill tool with `operation: write-ticket payload: {...}` containing all Phase 2/3/5 fields and the epic parent from Phase 4a (CREATE form — no existing key).
@@ -239,7 +241,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ## Phase 7 — Verify
 
-Call the `lisa:jira-verify` skill on the resulting ticket. `lisa:jira-verify` fetches the live ticket and runs `lisa:jira-validate-ticket` against it — same gates as Phase 5.5, but applied to what JIRA actually stored (catches anything dropped or reformatted on write). If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
+Call the `lisa:jira-verify` skill on the resulting ticket. `lisa:jira-verify` fetches the live ticket and runs `lisa:jira-validate-ticket` against it — same gates as Phase 5.5, but applied to what JIRA actually stored (catches anything dropped or reformatted on write, including Markdown/wiki descriptions that degraded into one literal text paragraph instead of ADF heading nodes). If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
 
 ## Phase 8 — Announce
 
@@ -255,7 +257,7 @@ Skip this step only on UPDATE when no material change was made.
 
 - Never create a non-bug ticket without an epic parent.
 - Never skip relationship discovery — both the git history search AND the JQL search must run, and their outcomes must be recorded on the ticket. "None found" is acceptable only when it's documented.
-- Never create a Bug, Task, or Sub-task that spans multiple repos. Split it before creating.
+- Never create a Bug, Task, Sub-task, or Improvement that spans multiple repos. Split it before creating.
 - Never include a runtime-behavior ticket without a target backend environment, and never include an authenticated-surface ticket without sign-in credentials in the description.
 - Never invent custom field values. If the project requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.

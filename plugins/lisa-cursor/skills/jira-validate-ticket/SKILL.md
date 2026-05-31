@@ -119,7 +119,7 @@ Category values are drawn from this fixed set:
 
 #### S3 — Description has all three audiences
 
-Description text must include all of these sections (case-insensitive `h2.` headings):
+Description text must include all of these sections. For proposed specs, detect case-insensitive Markdown/wiki headings (`##` or `h2.`). For live JIRA tickets, extract section headings from ADF `heading` nodes first and fail if the description is one literal Markdown/wiki paragraph instead of structured ADF heading nodes:
 - `Context / Business Value` — stakeholder-facing
 - `Technical Approach` — developer-facing
 - `Acceptance Criteria` — coding-assistant-facing
@@ -152,7 +152,7 @@ When `issue_type ∉ {Bug, Epic}`, `parent_key` must be set. (Validity of the ke
 
 #### S8 — Target Backend Environment
 
-When `runtime_behavior_change = true`, description must contain `h2. Target Backend Environment` with one of `dev`, `staging`, `prod`. Skipped for doc-only / config-only / type-only / Epic.
+When `runtime_behavior_change = true`, description must contain a `Target Backend Environment` section (`h2.` / `##` in proposed text, or an ADF heading in live JIRA) with one of `dev`, `staging`, `prod`. Skipped for doc-only / config-only / type-only / Epic.
 
 #### S9 — Sign-in Required
 
@@ -162,7 +162,7 @@ If the spec doesn't set `authenticated_surface`, infer it: scan the description 
 
 #### S10 — Repository section, single-repo scope
 
-When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` — or a **build-ready childless Story/Spike** (a claimable leaf per `leaf-only-lifecycle`) — description must contain `h2. Repository` naming exactly one repo. Multiple repos OR cross-repo references in AC: FAIL with recommendation `"Split into per-repo work units under a shared parent Story (see lisa:task-decomposition step 1.5)"`.
+When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` — or a **build-ready childless Story/Spike** (a claimable leaf per `leaf-only-lifecycle`) — description must contain a `Repository` section (`h2.` / `##` in proposed text, or an ADF heading in live JIRA) naming exactly one repo. Multiple repos OR cross-repo references in AC: FAIL with recommendation `"Split into per-repo work units under a shared parent Story (see lisa:task-decomposition step 1.5)"`.
 
 An **Epic**, or a **Story/Spike that still holds child work** (or is not build-ready): skipped (may span repos — coordination containers, not claimable leaf work units).
 
@@ -170,7 +170,7 @@ This gate is `product_relevant: false` because cross-repo work units are not a p
 
 #### S11 — Validation Journey present
 
-When `runtime_behavior_change = true`, description must contain `h2. Validation Journey`. Skipped for doc-only / config-only / type-only / Epic.
+When `runtime_behavior_change = true`, description must contain a `Validation Journey` section (`h2.` / `##` in proposed text, or an ADF heading in live JIRA). Skipped for doc-only / config-only / type-only / Epic.
 
 The caller controls the strictness by passing `journey_followup: "auto"` or `journey_followup: "none"` in the spec:
 - `auto` (default): if the section is absent, return `FAIL` with remediation `"Invoke lisa:jira-add-journey to append the section after create"`. Callers like `lisa:jira-write-ticket` know to chain `lisa:jira-add-journey` automatically, so this counts as a fixable failure they can resolve in-line — they re-run validation after appending.
@@ -248,7 +248,7 @@ Use the same project-issue-type-metadata lookup from F1 (via `lisa:atlassian-acc
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. If it's a ticket key, fetch the ticket via `lisa:atlassian-access` `operation: read-ticket` and derive the spec from the fetched fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa:jira-read-ticket`) so S15 can classify the ticket. Otherwise parse the YAML spec.
+1. Parse `$ARGUMENTS`. If it's a ticket key, fetch the ticket via `lisa:atlassian-access` `operation: read-ticket` and derive the spec from the fetched fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa:jira-read-ticket`) so S15 can classify the ticket. When the fetched description is ADF, walk the document tree and extract section headings from ADF `heading` nodes, then collect the text between heading nodes for section-specific gates. If the fetched description is a single paragraph containing literal Markdown/wiki heading markers, treat that as a formatting failure rather than accepting substring matches. Otherwise parse the YAML spec.
 2. If any feasibility gate will run, invoke `lisa:atlassian-access` `operation: list-sites` once to confirm the configured site is reachable (it enforces connection match against `.lisa.config.json`).
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only` (dry-run), run every Feasibility gate. Collect results.

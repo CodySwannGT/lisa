@@ -217,6 +217,36 @@ fi
 
 If validation fails, never silently proceed — abort and instruct the user to fix env.
 
+### Step 2.5 — JIRA description normalization
+
+For `write-ticket` create/edit operations, normalize any Lisa-authored JIRA description before dispatching to a substrate. JIRA Cloud stores descriptions as Atlassian Document Format (ADF). `acli` does not convert Markdown or JIRA wiki markup to ADF; if plain text is passed to `--description` / `--description-file`, JIRA stores one literal paragraph containing strings like `## Repository` or `h2. Repository`. That breaks `jira-validate-ticket` heading checks and renders poorly for humans.
+
+Use the shared converter at `scripts/markdown-to-adf.mjs` from this skill for every write path that carries a string description:
+
+```bash
+normalize_jira_description_payload() {
+  local payload_file="$1"
+  local converter="$(dirname "$0")/scripts/markdown-to-adf.mjs"
+
+  jq -e '.fields.description | type == "string"' "$payload_file" >/dev/null 2>&1 || return 0
+
+  local markdown_file adf_file
+  markdown_file=$(mktemp)
+  adf_file=$(mktemp)
+  jq -r '.fields.description' "$payload_file" > "$markdown_file"
+  node "$converter" < "$markdown_file" > "$adf_file"
+  jq --slurpfile adf "$adf_file" '.fields.description = $adf[0]' "$payload_file" > "$payload_file.tmp"
+  mv "$payload_file.tmp" "$payload_file"
+}
+```
+
+Rules:
+
+- Convert Markdown headings (`#` / `##` / `###`) and JIRA wiki headings (`h1.` / `h2.` / `h3.`) to ADF `heading` nodes.
+- Convert fenced code blocks, bullet lists, numbered lists, paragraphs, inline code, and bold text to their ADF equivalents.
+- Run this for acli, curl, and MCP writes unless the caller already supplied an ADF object (`description.type == "doc"`). Do not double-convert existing ADF.
+- For acli, pass the normalized JSON through `--from-json`; do not use `--description` or `--description-file` with raw Markdown/wiki text.
+
 ### Step 3 — Operation dispatch
 
 Substrate column meanings:
@@ -232,7 +262,7 @@ Substrate column meanings:
 | Operation | acli adapter | MCP adapter | curl adapter |
 |---|---|---|---|
 | **JIRA ops** | | | |
-| `read-ticket key:<K>` | `acli jira workitem view <K> --json` | `mcp__plugin_atlassian_atlassian__getJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>` |
+| `read-ticket key:<K>` | `acli jira workitem view <K> --fields '*all' --json` | `mcp__plugin_atlassian_atlassian__getJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>?fields=*all` |
 | `write-ticket payload:<P>` (create) | `acli jira workitem create --from-json <P>` | `mcp__plugin_atlassian_atlassian__createJiraIssue` | `POST https://<SITE>/rest/api/3/issue` body=`<P>` |
 | `write-ticket payload:<P>` (edit) | `acli jira workitem edit <K> --from-json <P>` | `mcp__plugin_atlassian_atlassian__editJiraIssue` | `PUT https://<SITE>/rest/api/3/issue/<K>` body=`<P>` |
 | `transition key:<K> to:<S>` | `acli jira workitem transition --key <K> --status "<S>" --yes` | `mcp__plugin_atlassian_atlassian__transitionJiraIssue` | resolve transition id then `POST .../issue/<K>/transitions` |
@@ -259,7 +289,7 @@ Substrate column meanings:
 
 **Confluence v1 vs v2:** every Confluence curl path above uses **v1** (`/wiki/rest/api/...`). v1 is deprecated by Atlassian but as of writing remains functional for API-token Basic auth. The v2 API (`/api/v2/...`) requires *granular* OAuth scopes that aren't issued to Basic-auth API tokens consistently — so v1 is the safer path for now. When Atlassian fully retires v1, this table must move to v2 (the dispatch is the only thing that changes; the substrate-selection logic is unaffected).
 
-**acli flag note:** acli's `--output` flag does not exist; the correct flag is `--json`. List commands require `--paginate` or `--limit` (no implicit fetch-all). Several documented adapters are nominal — verify against `acli <subcmd> --help` before relying on them. When acli's adapter is broken or missing for a specific op, fall through to MCP (if identity-matched) then curl per the tier ordering.
+**acli flag note:** acli's `--output` flag does not exist; the correct flag is `--json`. List commands require `--paginate` or `--limit` (no implicit fetch-all). `acli jira workitem view` defaults to a restricted field set (`key,issuetype,summary,status,assignee,description`), so `read-ticket` MUST pass `--fields '*all'` or an explicit equivalent that includes every downstream dependency: parent, subtasks, issue links, components, labels, priority, status, issue type, summary, description, fix versions, affected versions, attachments, comments, estimates, sprint/story-point fields, and project-required custom fields. Never rely on the default view fields; they hide parent/components/labels and corrupt leaf-only, relationship-search, build-ready, and required-custom-field gates. Several documented adapters are nominal — verify against `acli <subcmd> --help` before relying on them. When acli's adapter is broken or missing for a specific op, fall through to MCP (if identity-matched) then curl per the tier ordering.
 
 **JIRA terminal-resolution note:** when a caller marks a transition as terminal per `leaf-only-lifecycle`, the substrate must not treat a Done-named status as sufficient by name alone. After `transition key:<K> to:<S>`, re-read the issue and verify `statusCategory = Done`; if the workflow requires a resolution, verify `resolution` is set. If the transition screen requires a resolution value, pass the configured default resolution when available; otherwise return a setup error so the build-intake skill can report the workflow gap instead of silently leaving an unresolved ticket in a Done-looking status.
 
