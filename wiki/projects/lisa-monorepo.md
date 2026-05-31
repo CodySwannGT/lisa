@@ -20,18 +20,20 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260531T014514Z` created from synced `origin/main`
-- HEAD at 2026-05-31 incremental ingest: `5cc82e48bb2940172a148db34f69b1a46523b41d`
-- Current package version: `2.129.3`
-- Total commits on HEAD: 2657
-- Latest merged PR captured in the incremental git snapshot: `#1102`
-- New commits since the previous incremental git cursor: `18`
-- Project-scoped memory skipped this cycle because no eligible project-scoped Codex memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-20260531T1014Z` created from synced `origin/main`
+- HEAD at 2026-05-31 incremental ingest: `f7cbbc0a28767d84424c73f26774a41074c4d348`
+- Current package version: `2.129.4`
+- Total commits on HEAD: 2660
+- Latest merged PR captured in the incremental git snapshot: `#1104`
+- New commits since the previous incremental git cursor: `3`
+- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.129.4`.
+- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-20260531T1014Z` from synced `origin/main` before this 2026-05-31 ingest.
+- PR `#1104` merged the prior wiki ingestion through Lisa `2.129.3`.
 - Release automation advanced the monorepo to `2.129.3`.
-- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-20260531T014514Z` from synced `origin/main` before this 2026-05-31 ingest.
 - PR `#1102` hardened exploratory QA extraction so contextless extracted facts are flagged instead of being promoted as grounded findings.
 - PR `#1101` added doctor next-action guidance for plugin drift, making plugin drift readiness failures more operator-actionable.
 - PR `#1100` tightened exploratory QA reporting so human-facing jargon is flagged during the human-language pass.
@@ -89,6 +91,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-2026-05-30-174402.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-20260530T214456Z.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-31-lisa-monorepo-git-previous-20260531T101439Z.md`
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -103,4 +106,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-30-roles-previous-2026-05-30-174402.md`
 - `wiki/sources/roles/2026-05-30-roles-previous-20260530T214456Z.md`
 - `wiki/sources/roles/2026-05-30-roles.md`
+- `wiki/sources/roles/2026-05-31-roles-previous-20260531T101439Z.md`
 - `wiki/sources/roles/2026-05-31-roles.md`
