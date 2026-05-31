@@ -217,6 +217,36 @@ fi
 
 If validation fails, never silently proceed — abort and instruct the user to fix env.
 
+### Step 2.5 — JIRA description normalization
+
+For `write-ticket` create/edit operations, normalize any Lisa-authored JIRA description before dispatching to a substrate. JIRA Cloud stores descriptions as Atlassian Document Format (ADF). `acli` does not convert Markdown or JIRA wiki markup to ADF; if plain text is passed to `--description` / `--description-file`, JIRA stores one literal paragraph containing strings like `## Repository` or `h2. Repository`. That breaks `jira-validate-ticket` heading checks and renders poorly for humans.
+
+Use the shared converter at `scripts/markdown-to-adf.mjs` from this skill for every write path that carries a string description:
+
+```bash
+normalize_jira_description_payload() {
+  local payload_file="$1"
+  local converter="$(dirname "$0")/scripts/markdown-to-adf.mjs"
+
+  jq -e '.fields.description | type == "string"' "$payload_file" >/dev/null 2>&1 || return 0
+
+  local markdown_file adf_file
+  markdown_file=$(mktemp)
+  adf_file=$(mktemp)
+  jq -r '.fields.description' "$payload_file" > "$markdown_file"
+  node "$converter" < "$markdown_file" > "$adf_file"
+  jq --slurpfile adf "$adf_file" '.fields.description = $adf[0]' "$payload_file" > "$payload_file.tmp"
+  mv "$payload_file.tmp" "$payload_file"
+}
+```
+
+Rules:
+
+- Convert Markdown headings (`#` / `##` / `###`) and JIRA wiki headings (`h1.` / `h2.` / `h3.`) to ADF `heading` nodes.
+- Convert fenced code blocks, bullet lists, numbered lists, paragraphs, inline code, and bold text to their ADF equivalents.
+- Run this for acli, curl, and MCP writes unless the caller already supplied an ADF object (`description.type == "doc"`). Do not double-convert existing ADF.
+- For acli, pass the normalized JSON through `--from-json`; do not use `--description` or `--description-file` with raw Markdown/wiki text.
+
 ### Step 3 — Operation dispatch
 
 Substrate column meanings:
