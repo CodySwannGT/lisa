@@ -559,8 +559,19 @@ is no normalized `is blocked by` field. Read the bundle, then extract blockers p
 
 Then classify each blocker:
 
-- **Closed / Done** (its true terminal role) → **cleared**.
-- **Open** in any non-terminal role (`ready` / `claimed` / `review` / unknown) → **still
+- **Closed, or shipped to any environment** → **cleared**. A blocker is cleared at **any**
+  env-staged `done` role — not only the production terminal. The `done` role is configured
+  per-env as a `{dev, staging, production}` map (`config-resolution`), so `On Dev`, `On Stg`,
+  **and** production `Done` all mean the blocker's code is merged and deployed to ≥1 environment.
+  A post-build `review` role (e.g. `Code Review`) is likewise cleared — the change exists and is
+  in flight. An `is blocked by` link is a **development** dependency: it is satisfied once the
+  blocker's code is in trunk; it must NOT wait for the blocker to reach production. (This matches
+  the intake-path dependency-hold gate in `lisa:intake-explain`, which already treats
+  `code-review` / `on-dev` / `on-stg` / `done` as cleared — repair-intake must not be stricter.
+  In an env-staged workflow where `Done` means "in production", a strict production-terminal
+  check strands every dependent forever behind a blocker that is already merged and sitting at
+  `On Stg` / `On Dev`.)
+- **Open** in a pre-merge role (`ready` / `claimed` / unknown — code not yet in trunk) → **still
   blocking**.
 - **Inaccessible** (deleted, cross-org, permission denied) → **still blocking**, unless the item
   body or a newer human comment explicitly states the dependency is resolved.
