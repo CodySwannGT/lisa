@@ -222,6 +222,8 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ## Phase 6 — Create or Update
 
+Before calling `lisa:atlassian-access`, keep the description in Lisa's normal Markdown/wiki-heading authoring shape; the access layer owns conversion through `scripts/markdown-to-adf.mjs` and writes ADF to JIRA. This is required because acli stores raw Markdown/wiki text as one literal paragraph when no ADF object is provided. Post-write verification must confirm the live description contains ADF `heading` nodes for the required sections, not literal `##` / `h2.` text in a paragraph.
+
 ### CREATE
 
 1. Invoke `lisa:atlassian-access` via the Skill tool with `operation: write-ticket payload: {...}` containing all Phase 2/3/5 fields and the epic parent from Phase 4a (CREATE form — no existing key).
@@ -239,7 +241,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ## Phase 7 — Verify
 
-Call the `lisa:jira-verify` skill on the resulting ticket. `lisa:jira-verify` fetches the live ticket and runs `lisa:jira-validate-ticket` against it — same gates as Phase 5.5, but applied to what JIRA actually stored (catches anything dropped or reformatted on write). If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
+Call the `lisa:jira-verify` skill on the resulting ticket. `lisa:jira-verify` fetches the live ticket and runs `lisa:jira-validate-ticket` against it — same gates as Phase 5.5, but applied to what JIRA actually stored (catches anything dropped or reformatted on write, including Markdown/wiki descriptions that degraded into one literal text paragraph instead of ADF heading nodes). If it reports failures, fix them before returning. Do not report success on a ticket that fails verify.
 
 ## Phase 8 — Announce
 
