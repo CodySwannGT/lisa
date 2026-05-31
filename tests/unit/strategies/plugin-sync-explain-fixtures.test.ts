@@ -94,6 +94,33 @@ describe("plugin-sync-explain fixture classifications (#990)", () => {
     expect(gitStatus(root)).toBe(before);
   });
 
+  it("classifies out-of-sync drift when source and generated artifacts diverge", async () => {
+    await fs.writeFile(
+      path.join(root, SOURCE_SKILL),
+      "---\nname: example\ndescription: Updated fixture source.\n---\n\n# Example\n"
+    );
+    await fs.writeFile(
+      path.join(root, GENERATED_SKILL),
+      "---\nname: example\ndescription: Independently edited generated artifact.\n---\n\n# Example\n"
+    );
+    const before = gitStatus(root);
+
+    const report = explainPluginSync(root);
+
+    expect(report.readOnly).toBe(true);
+    expect(report.statusAfter).toBe(before);
+    expect(report.findings).toContainEqual(
+      expect.objectContaining({
+        classification: "OUT_OF_SYNC",
+        path: SOURCE_SKILL,
+        counterpart: GENERATED_SKILL,
+      })
+    );
+    expect(report.text).toContain("Verdict: OUT_OF_SYNC");
+    expect(report.text).toContain("Review both source and generated changes");
+    expect(gitStatus(root)).toBe(before);
+  });
+
   it("reports marketplace registration drift for built plugins missing a source entry", async () => {
     await fs.ensureDir(path.join(root, "plugins/lisa-extra/.claude-plugin"));
     await fs.writeJson(

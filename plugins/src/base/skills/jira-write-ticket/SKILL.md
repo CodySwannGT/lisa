@@ -37,7 +37,7 @@ Required fields (stop and ask if missing — do not invent values):
 | Validation Journey | Runtime-behavior changes | Delegate to `/jira-add-journey` |
 | Target backend environment | Runtime-behavior changes | `dev` / `staging` / `prod`; recorded in description (Phase 3). Skip only for doc/config/type-only tickets. |
 | Sign-in account / credentials | Tickets that touch authenticated surfaces | Name the account (or source — 1Password item, env var, seeded fixture) and role; recorded in description (Phase 3). Omit when sign-in is not required. |
-| Single-repo scope | Bug, Task, Sub-task | These types MUST cover one repo only. If the work crosses repos, split it before creating. Epic / Spike / Story may span repos. |
+| Single-repo scope | Bug, Task, Sub-task, Improvement | These leaf work units MUST cover one repo only. If the work crosses repos, split it before creating. Epic / Spike / Story may span repos. |
 
 Optional but recommended: assignee, components, fix versions, labels, sprint, story points, reporter.
 
@@ -82,10 +82,10 @@ h2. Sign-in Required
  means "no sign-in needed for this ticket."]
 
 h2. Repository
-[Required for Bug / Task / Sub-task. Name the single repo this ticket covers.
- If the work spans repos, this ticket type is wrong — split into per-repo
- Tasks/Subtasks under a parent Story or Epic. Epic / Spike / Story may
- list multiple repos.]
+[Required for Bug / Task / Sub-task / Improvement. Name the single repo this ticket covers.
+If the work spans repos, this ticket type is wrong — split into per-repo
+Tasks/Subtasks under a parent Story or Epic. Epic / Spike / Story may
+list multiple repos.]
 
 h2. Validation Journey
 [Delegate to /jira-add-journey if the ticket changes runtime behavior.
@@ -257,7 +257,7 @@ Skip this step only on UPDATE when no material change was made.
 
 - Never create a non-bug ticket without an epic parent.
 - Never skip relationship discovery — both the git history search AND the JQL search must run, and their outcomes must be recorded on the ticket. "None found" is acceptable only when it's documented.
-- Never create a Bug, Task, or Sub-task that spans multiple repos. Split it before creating.
+- Never create a Bug, Task, Sub-task, or Improvement that spans multiple repos. Split it before creating.
 - Never include a runtime-behavior ticket without a target backend environment, and never include an authenticated-surface ticket without sign-in credentials in the description.
 - Never invent custom field values. If the project requires a field you don't have, stop and ask.
 - Never overwrite a description without reading the current version first.
