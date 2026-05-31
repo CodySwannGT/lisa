@@ -143,6 +143,21 @@ function git(cwd: string, ...args: string[]): string {
   return execFileSync("/usr/bin/git", args, {
     cwd,
     encoding: "utf8",
-    env: { ...process.env, GIT_CONFIG_NOSYSTEM: "1" },
+    env: gitEnv(),
   });
+}
+
+/**
+ * Remove parent-hook Git environment so fixture commands use the temp repo.
+ * Git exports GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE into hook subprocesses
+ * (e.g. the pre-push hook that runs this suite); without stripping them the
+ * fixture's `git init` / `git add` operate on the outer repo and fail.
+ * @returns Process environment for nested git commands.
+ */
+function gitEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, GIT_CONFIG_NOSYSTEM: "1" };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  delete env.GIT_INDEX_FILE;
+  return env;
 }
