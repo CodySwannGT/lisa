@@ -122,26 +122,88 @@ describe("doctor plugin sync readiness (#1097)", () => {
     await cleanupTempDir(root);
   });
 
-  it("collects plugin sync evidence without mutating tracked plugin state", async () => {
-    await fs.appendFile(
-      path.join(root, SOURCE_SKILL),
-      "\nDoctor-visible source update.\n"
-    );
-    const before = gitStatus(root);
+  it.each([
+    {
+      driftClass: "IN_SYNC",
+      expectedStatus: "PASS",
+      expectedSummary: "plugin source and generated artifacts are in sync",
+      expectedObserved:
+        "Drift class IN_SYNC; plugin sync evidence was collected read-only.",
+      mutate: async () => {},
+    },
+    {
+      driftClass: "SOURCE_NOT_BUILT",
+      expectedStatus: "WARN",
+      expectedSummary: "plugin sync drift detected: SOURCE_NOT_BUILT",
+      expectedObserved:
+        "Drift class SOURCE_NOT_BUILT; affected paths: plugins/src/base/skills/example/SKILL.md, plugins/lisa/skills/example/SKILL.md.",
+      mutate: async () => {
+        await fs.appendFile(
+          path.join(root, SOURCE_SKILL),
+          "\nDoctor-visible source update.\n"
+        );
+      },
+    },
+    {
+      driftClass: "GENERATED_ONLY",
+      expectedStatus: "WARN",
+      expectedSummary: "plugin sync drift detected: GENERATED_ONLY",
+      expectedObserved:
+        "Drift class GENERATED_ONLY; affected paths: plugins/lisa/skills/example/SKILL.md, plugins/src/base/skills/example/SKILL.md.",
+      mutate: async () => {
+        await fs.appendFile(
+          path.join(root, GENERATED_SKILL),
+          "\nDoctor-visible generated update.\n"
+        );
+      },
+    },
+    {
+      driftClass: "OUT_OF_SYNC",
+      expectedStatus: "WARN",
+      expectedSummary: "plugin sync drift detected: OUT_OF_SYNC",
+      expectedObserved:
+        "Drift class OUT_OF_SYNC; affected paths: plugins/src/base/skills/example/SKILL.md, plugins/lisa/skills/example/SKILL.md.",
+      mutate: async () => {
+        await fs.writeFile(
+          path.join(root, SOURCE_SKILL),
+          "---\nname: example\ndescription: Updated fixture source.\n---\n\n# Example\n"
+        );
+        await fs.writeFile(
+          path.join(root, GENERATED_SKILL),
+          "---\nname: example\ndescription: Independently edited generated artifact.\n---\n\n# Example\n"
+        );
+      },
+    },
+    {
+      driftClass: "MARKETPLACE_REGISTRATION_DRIFT",
+      expectedStatus: "WARN",
+      expectedSummary:
+        "plugin sync drift detected: MARKETPLACE_REGISTRATION_DRIFT",
+      expectedObserved:
+        "Drift class MARKETPLACE_REGISTRATION_DRIFT; affected paths: plugins/lisa-extra, .claude-plugin/marketplace.json.",
+      mutate: async () => {
+        await fs.ensureDir(path.join(root, "plugins/lisa-extra"));
+      },
+    },
+  ])(
+    "collects $driftClass plugin sync evidence without mutating tracked plugin state",
+    async ({ expectedObserved, expectedStatus, expectedSummary, mutate }) => {
+      await mutate();
+      const before = gitStatus(root);
 
-    const group = createPluginSyncDoctorGroup(root);
+      const group = createPluginSyncDoctorGroup(root);
 
-    expect(group.checks).toContainEqual(
-      expect.objectContaining({
-        id: "plugin-sync",
-        status: "WARN",
-        summary: "plugin sync drift detected: SOURCE_NOT_BUILT",
-        observed:
-          "Drift class SOURCE_NOT_BUILT; affected paths: plugins/src/base/skills/example/SKILL.md, plugins/lisa/skills/example/SKILL.md.",
-      })
-    );
-    expect(gitStatus(root)).toBe(before);
-  });
+      expect(group.checks).toContainEqual(
+        expect.objectContaining({
+          id: "plugin-sync",
+          status: expectedStatus,
+          summary: expectedSummary,
+          observed: expectedObserved,
+        })
+      );
+      expect(gitStatus(root)).toBe(before);
+    }
+  );
 });
 
 describe("doctor source/generated parity (#756)", () => {
