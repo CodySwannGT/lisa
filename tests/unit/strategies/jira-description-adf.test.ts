@@ -13,7 +13,13 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { markdownToAdf } from "../../../plugins/src/base/skills/atlassian-access/scripts/markdown-to-adf.mjs";
 
-const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
+const SKILL_ROOTS = [
+  "plugins/src/base/skills",
+  "plugins/lisa/skills",
+  "plugins/lisa-agy/skills",
+  "plugins/lisa-copilot/skills",
+  "plugins/lisa-cursor/skills",
+] as const;
 
 const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
