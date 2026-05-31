@@ -259,3 +259,12 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot and index for the prior wiki ingest merge and release-history changes through `2.129.4`.
+
+## 2026-05-31 - Incremental connector ingest
+
+- Synced the checkout with `origin/main` by fetching `origin` and rebasing `codex/harper-knip-schema-ignore` onto `origin/main` without conflicts, then created `wiki/ingest-20260531T1415Z` from synced `origin/main` for this ingestion PR.
+- Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-05-31-lisa-monorepo-git-previous-20260531T141521Z.md` and `wiki/sources/roles/2026-05-31-roles-previous-20260531T141521Z.md` before refreshing the current `2026-05-31` connector notes.
+- Refreshed the `git` source note with 49 new commits through `1f0ac58380986b9f2edecc0c039f230f3b2da04d`, advanced the merged-PR cursor to `#1109`, and captured the release line through Lisa `2.130.1`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge, exploratory QA render-latency reporting, plugin-sync nested git environment isolation, Harper schema knip suppression, Human Needed lifecycle labeling, build/repair intake merge gating, and release-history changes through `2.130.1`.
