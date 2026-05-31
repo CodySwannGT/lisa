@@ -48,6 +48,9 @@ fi
       "review":  "Code Review",
       "blocked": "Blocked",
       "done":    { "dev": "On Dev", "staging": "On Stg", "production": "Done" }
+    },
+    "labels": {
+      "human_needed": "Human Needed"
     }
   },
   "confluence": {
@@ -83,6 +86,7 @@ fi
         "ready":   "status:ready",
         "claimed": "status:in-progress",
         "blocked": "status:blocked",
+        "human_needed": "human-needed",
         "done":    { "dev": "status:on-dev", "staging": "status:on-stg", "production": "status:done" }
       },
       "prd": {
@@ -113,6 +117,7 @@ fi
         "claimed": "status:in-progress",
         "review":  "status:code-review",
         "blocked": "status:blocked",
+        "human_needed": "human-needed",
         "done":    { "dev": "status:on-dev", "staging": "status:on-stg", "production": "status:done" }
       },
       "prd": {
@@ -278,6 +283,26 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 `review` is optional. GitHub build intake skips it by default and moves successful builds directly from `claimed` to the configured `done` label. Linear and JIRA projects that still use a post-build review hold can configure `review`; projects that keep the ticket in `claimed` until terminal can omit it and lifecycle skills will skip the intermediate transition.
 
 `blocked` is what every vendor agent flips to when triage finds unresolved ambiguities or the build path is blocked by something the agent can't resolve. Different from `claimed` because it explicitly signals "human attention required."
+
+#### Build markers (additive labels, not lifecycle roles)
+
+A **marker** is an additive label applied *alongside* a lifecycle role, not a state the item transitions *to*. Markers carry no rollup or transition semantics — they annotate an item that is already in some role. The build lifecycle defines one marker:
+
+| Marker | What it means | JIRA default | GitHub/Linear default |
+|---|---|---|---|
+| `human_needed` | Applied with `blocked` when the block genuinely requires something **no agent and no automated retry can supply** — credentials, access/permissions, a product or scoping decision, or required ticket quality only the human reporter can add. | `Human Needed` (label) | `human-needed` (label) |
+
+Resolution keys:
+
+- JIRA: `jira.labels.human_needed` (default `Human Needed`). Applied as a JIRA **label** — not a workflow status — because an item holds exactly one status but any number of labels. The `blocked` status still drives the lifecycle; `human_needed` is the additive marker on top of it.
+- GitHub: `github.labels.build.human_needed` (default `human-needed`). Added next to the `blocked` label.
+- Linear: `linear.labels.build.human_needed` (default `human-needed`). Added next to the `blocked` label.
+
+**When to apply it.** Apply `human_needed` only when a human must act before the item can move — the pre-flight gate failures that bounce a ticket back to its reporter (missing credentials, missing acceptance criteria / validation journey, missing parent/epic, an ambiguous product or scoping decision) are exactly this case.
+
+**When NOT to apply it.** Do **not** apply `human_needed` to a block that an automated cycle can clear on its own: a block whose `is blocked by` dependency is another tracked ticket that will build and close (for example a `repair-intake`-filed build-ready fix ticket for an unmergeable PR or a failed deploy), or any block waiting only on a retry. Those self-heal; flagging them for a human is noise. If such an item already carries a stale `human_needed` marker, clear it when the block becomes auto-recoverable.
+
+The marker is **best-effort and additive**: it never replaces the `blocked` role and never gates a transition. A project that does not define the label name inherits the defaults above; a project that does not want the marker at all can leave the label absent in its tracker, in which case the add is a no-op the agent records and moves on.
 
 **PRD lifecycle** (specifications):
 

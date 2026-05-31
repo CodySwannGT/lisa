@@ -49,15 +49,17 @@ Use the `github-verify` skill to check the issue against organizational standard
 
 **Gating behavior — this is the one place auto-relabeling is allowed:**
 
-Resolve build labels from `.lisa.config.json` `github.labels.build.*` (defaults: `status:ready` / `status:in-progress` / env-keyed `status:on-*`); resolve the `blocked` label from the same section (`github.labels.build.blocked`, default `status:blocked`).
+Resolve build labels from `.lisa.config.json` `github.labels.build.*` (defaults: `status:ready` / `status:in-progress` / env-keyed `status:on-*`); resolve the `blocked` label from the same section (`github.labels.build.blocked`, default `status:blocked`) and the `human_needed` marker label from the same section (`github.labels.build.human_needed`, default `human-needed`).
 
 If `github-verify` returns `FAIL` on any of the above, do NOT continue:
 
-1. Relabel: remove the `claimed` label, add the `blocked` label.
+1. Relabel: remove the `claimed` label, add the `blocked` label **and** the `human_needed` marker label. A pre-flight gate failure bounces the issue back to its author precisely because it needs something **no agent and no automated retry can supply** — credentials, access, a product/scoping decision, or required issue quality only the human can add — so the marker tells a human scanning the board which blocked issues are waiting on them. The marker is additive to `blocked`, not a replacement. (See the `config-resolution` rule's "Build markers" for when the marker applies and when it must NOT.)
    ```bash
    CLAIMED=$(jq -r '.github.labels.build.claimed // "status:in-progress"' .lisa.config.json)
    BLOCKED=$(jq -r '.github.labels.build.blocked // "status:blocked"' .lisa.config.json)
-   gh issue edit <num> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$BLOCKED"
+   HUMAN_NEEDED=$(jq -r '.github.labels.build.human_needed // "human-needed"' .lisa.config.json)
+   gh label create "$HUMAN_NEEDED" --color D93F0B --description "Blocked on human-only input (credentials / access / decision)" --repo <org>/<repo> 2>/dev/null || true
+   gh issue edit <num> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$BLOCKED" --add-label "$HUMAN_NEEDED"
    ```
 2. Reassign the issue back to its **author** (the original reporter — `author.login` from `gh issue view --json author`). Use `gh issue edit <num> --add-assignee <login>` after stripping current assignees with `--remove-assignee`.
 3. Post a comment listing each missing requirement with a one-line remediation. Prefix with `[<repo>]`:
@@ -141,7 +143,7 @@ Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`
 
 ## Rules
 
-- Never auto-relabel build labels, with one explicit exception: when `github-verify` returns FAIL for the pre-flight gate (Step 2), relabel to the configured `blocked` label and reassign to the original author. The build-intake owner transitions a successful issue from `claimed` directly to the configured `done` label after PR evidence is posted.
+- Never auto-relabel build labels, with one explicit exception: when `github-verify` returns FAIL for the pre-flight gate (Step 2), relabel to the configured `blocked` label, add the configured `human_needed` marker label (`github.labels.build.human_needed`, default `human-needed`), and reassign to the original author. The build-intake owner transitions a successful issue from `claimed` directly to the configured `done` label after PR evidence is posted.
 - Always read the full issue graph via `github-read-issue` before determining intent — don't rely on the `type:` label alone.
 - Never create or materially edit an issue by calling `gh issue create` / `gh issue edit` directly — always delegate to `github-write-issue` (or, from a vendor-neutral caller, `tracker-write`) so relationships, Gherkin criteria, and metadata gates are enforced.
 - If sign-in credentials are in the issue body, extract and pass them to the flow. If the issue touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.
