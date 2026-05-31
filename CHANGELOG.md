@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.130.1](https://github.com/CodySwannGT/lisa/compare/vv2.130.0...v2.130.1) (2026-05-31)
+
+
+### Bug Fixes
+
+* **exploratory-qa:** flag late meaningful content ([d76ea64](https://github.com/CodySwannGT/lisa/commit/d76ea646f572f3d65d6bbdce2ee09b0cc16a3a0d))
+
 ## [2.130.0](https://github.com/CodySwannGT/lisa/compare/vv2.129.8...v2.130.0) (2026-05-31)
 
 
