@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   explainPluginSync,
+  getPluginSyncResult,
   renderPluginSyncReport,
 } from "../../../plugins/src/base/scripts/plugin-sync-explain.mjs";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
@@ -124,6 +125,30 @@ describe("plugin-sync-explain fixture classifications (#990)", () => {
     expect(report.findings).toHaveLength(0);
     expect(report.readOnly).toBe(true);
     expect(renderPluginSyncReport(report)).toContain("Verdict: IN_SYNC");
+  });
+
+  it("exports structured readiness data for doctor consumers", async () => {
+    await fs.appendFile(
+      path.join(root, SOURCE_SKILL),
+      "\nDoctor-visible update.\n"
+    );
+    const before = gitStatus(root);
+
+    const result = getPluginSyncResult(root);
+
+    expect(result.verdict).toBe("WARN");
+    expect(result.driftClass).toBe("SOURCE_NOT_BUILT");
+    expect(result.affectedPaths).toEqual([SOURCE_SKILL, GENERATED_SKILL]);
+    expect(result.remediations).toContainEqual({
+      path: SOURCE_SKILL,
+      counterpart: GENERATED_SKILL,
+      classification: "SOURCE_NOT_BUILT",
+      nextAction:
+        "Run `bun run build:plugins`, then `bun run check:plugins`, and commit source plus regenerated artifacts.",
+    });
+    expect(result.readOnly).toBe(true);
+    expect(result.statusAfter).toBe(before);
+    expect(gitStatus(root)).toBe(before);
   });
 });
 

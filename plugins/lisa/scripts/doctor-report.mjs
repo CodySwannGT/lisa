@@ -6,6 +6,11 @@
  * repo adds real readiness probes. Keep this file dependency-free so future
  * doctor scripts can reuse it from plugin distributions and downstream repos.
  */
+import { existsSync } from "node:fs";
+import path from "node:path";
+import process from "node:process";
+
+import { getPluginSyncResult } from "./plugin-sync-explain.mjs";
 
 export const DOCTOR_STATUSES = ["PASS", "WARN", "FAIL", "SKIP"];
 export const DOCTOR_VERDICTS = ["READY", "READY_WITH_WARNINGS", "NOT_READY"];
@@ -33,6 +38,90 @@ export const DOCTOR_VERDICTS = ["READY", "READY_WITH_WARNINGS", "NOT_READY"];
  *   readonly groups: readonly DoctorGroup[]
  * }} DoctorReportInput
  */
+
+/**
+ * @param {string} root
+ * @returns {DoctorGroup}
+ */
+export function createPluginSyncDoctorGroup(root = process.cwd()) {
+  const repoRoot = path.resolve(root);
+  if (
+    !existsSync(path.join(repoRoot, "plugins", "src")) &&
+    !existsSync(path.join(repoRoot, "plugins"))
+  ) {
+    return {
+      id: "plugin-sync",
+      title: "Plugin source/generated sync",
+      checks: [
+        {
+          id: "plugin-sync",
+          status: "SKIP",
+          summary: "plugin sync check is not applicable",
+          observed:
+            "No plugins/ or plugins/src/ directory was found in this repository.",
+        },
+      ],
+    };
+  }
+
+  try {
+    const result = getPluginSyncResult(repoRoot);
+    if (!result.readOnly) {
+      return {
+        id: "plugin-sync",
+        title: "Plugin source/generated sync",
+        checks: [
+          {
+            id: "plugin-sync",
+            status: "FAIL",
+            summary: "plugin sync readiness check mutated the working tree",
+            observed:
+              "Git status changed while collecting plugin sync evidence.",
+            remediation:
+              "Run `git status --short`, inspect the unexpected changes, and fix plugin-sync-explain before trusting doctor output.",
+          },
+        ],
+      };
+    }
+
+    return {
+      id: "plugin-sync",
+      title: "Plugin source/generated sync",
+      checks: [
+        {
+          id: "plugin-sync",
+          status: result.verdict,
+          summary:
+            result.verdict === "PASS"
+              ? "plugin source and generated artifacts are in sync"
+              : `plugin sync drift detected: ${result.driftClass}`,
+          observed: renderPluginSyncObserved(result),
+          remediation:
+            result.remediations.length > 0
+              ? result.remediations
+                  .map(item => `${item.path}: ${item.nextAction}`)
+                  .join(" ")
+              : undefined,
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      id: "plugin-sync",
+      title: "Plugin source/generated sync",
+      checks: [
+        {
+          id: "plugin-sync",
+          status: "FAIL",
+          summary: "plugin sync readiness check failed",
+          observed: error instanceof Error ? error.message : String(error),
+          remediation:
+            "Run `/lisa:plugin-sync-explain` or `bun run check:plugins` to inspect plugin sync health directly.",
+        },
+      ],
+    };
+  }
+}
 
 /**
  * @param {readonly DoctorGroup[]} groups
@@ -140,4 +229,18 @@ function normalizeCheck(check) {
     ...check,
     status: normalizedStatus,
   };
+}
+
+/**
+ * @param {import("./plugin-sync-explain.mjs").PluginSyncResult} result
+ * @returns {string}
+ */
+function renderPluginSyncObserved(result) {
+  if (result.verdict === "PASS") {
+    return "Drift class IN_SYNC; plugin sync evidence was collected read-only.";
+  }
+  const paths = result.affectedPaths.length
+    ? result.affectedPaths.join(", ")
+    : "none";
+  return `Drift class ${result.driftClass}; affected paths: ${paths}.`;
 }
