@@ -20,18 +20,25 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260531T1014Z` created from synced `origin/main`
-- HEAD at 2026-05-31 incremental ingest: `f7cbbc0a28767d84424c73f26774a41074c4d348`
-- Current package version: `2.129.4`
-- Total commits on HEAD: 2660
-- Latest merged PR captured in the incremental git snapshot: `#1104`
-- New commits since the previous incremental git cursor: `3`
+- Ingest branch: `wiki/ingest-20260531T1415Z` created from synced `origin/main`
+- HEAD at 2026-05-31 incremental ingest: `1f0ac58380986b9f2edecc0c039f230f3b2da04d`
+- Current package version: `2.130.1`
+- Total commits on HEAD: 2709
+- Latest merged PR captured in the incremental git snapshot: `#1109`
+- New commits since the previous incremental git cursor: `49`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.130.1`.
+- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-20260531T1415Z` from synced `origin/main` before this 2026-05-31 ingest.
+- PR `#1109` hardened exploratory QA reporting so render-latency findings are flagged when meaningful content appears too late.
+- Release automation advanced the monorepo to `2.130.0`.
+- PR `#1108` stripped `GIT_INDEX_FILE` from nested git environments so plugin-sync hermetic fixtures run with the intended repository index.
+- PR `#1107` preserved Harper schema knip suppression and added the Human Needed marker label for agent-blocked lifecycle work.
+- PR `#1106` gated build/repair intake environment transitions on PR merge and auto-rebased stranded PRs.
+- PR `#1105` merged the prior wiki ingestion through Lisa `2.129.4`.
 - Release automation advanced the monorepo to `2.129.4`.
-- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-20260531T1014Z` from synced `origin/main` before this 2026-05-31 ingest.
 - PR `#1104` merged the prior wiki ingestion through Lisa `2.129.3`.
 - Release automation advanced the monorepo to `2.129.3`.
 - PR `#1102` hardened exploratory QA extraction so contextless extracted facts are flagged instead of being promoted as grounded findings.
@@ -92,6 +99,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-20260530T214456Z.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git-previous-20260531T101439Z.md`
+- `wiki/sources/git/2026-05-31-lisa-monorepo-git-previous-20260531T141521Z.md`
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -107,4 +115,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-30-roles-previous-20260530T214456Z.md`
 - `wiki/sources/roles/2026-05-30-roles.md`
 - `wiki/sources/roles/2026-05-31-roles-previous-20260531T101439Z.md`
+- `wiki/sources/roles/2026-05-31-roles-previous-20260531T141521Z.md`
 - `wiki/sources/roles/2026-05-31-roles.md`
