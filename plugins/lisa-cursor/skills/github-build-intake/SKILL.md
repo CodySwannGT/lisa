@@ -264,24 +264,30 @@ Invoke `lisa:github-agent` (the per-issue lifecycle agent) with the issue ref. `
 
 Wait for `lisa:github-agent` to return. Capture its outcome:
 
-- **Success** — PR is ready (open or merged); evidence posted; ready for next status.
+- **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the issue to a `done` env status.
 - **Blocked by github-verify pre-flight gate** — `lisa:github-agent` itself relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
 - **Blocked by ticket-triage ambiguities** — `lisa:github-agent` posts findings and stops. The issue stays in `$CLAIMED`. Surface to human; do not auto-relabel. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave the issue in `$CLAIMED` for human investigation. Record under "Errors".
 
-#### 3d. Transition to $DONE (only on Success)
+#### 3d. Transition to $DONE (only after the PR is merged)
+
+A `done` env state (`status:on-dev`, `status:on-stg`, or the terminal value) asserts that the code has actually reached that environment. Never set it for a PR that is merely open: auto-merge can be blocked indefinitely (a required rebase / `BEHIND` branch, failing checks, an unaddressed review), and the change may never land. Relabeling an issue `status:on-stg` on an open PR makes it *claim* a deploy that never happened. Transition only after confirming the PR merged.
 
 If `lisa:github-agent` returned Success:
 
-1. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
-2. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
+1. **Confirm the PR merged.** Read the live state of the issue's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
+   - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before relabeling; a still-running deploy is treated like an open PR (leave in `$CLAIMED`), a failed deploy is recorded as an Error.
+   - **Open / not yet merged** → do **not** transition. The build is sound but the change has reached no environment yet. Record the issue under **"PR open — awaiting merge"** in the summary (with the PR URL and its `mergeStateStatus`), leave it in `$CLAIMED`, and stop. A later `lisa:repair-intake` cycle drives the open PR to merge — re-syncing a `BEHIND` branch so the already-enabled auto-merge can land, or surfacing a real blocker — and, once merged, applies this same env transition. Do **not** comment "Build complete" or close anything.
+   - **Closed without merging** → record an Error (the PR was abandoned unmerged); leave the issue in `$CLAIMED`.
+2. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
+3. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
    - If `github.labels.build.done` is a string, that string is terminal.
    - If `github.labels.build.done` is an object, only the production/final environment value is terminal (default: `status:done`). Intermediate env values such as `status:on-dev` and `status:on-stg` are not terminal and must stay open.
    - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not close.
 
 ```bash
 gh issue edit <number> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$DONE"
-gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL>. Transitioned to $DONE."
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL> merged. Transitioned to $DONE."
 ```
 
 If `$DONE` is terminal, immediately close the native GitHub issue:
@@ -308,8 +314,10 @@ Cycle started: <ISO timestamp>
 Cycle completed: <ISO timestamp>
 
 Issues processed: <n>
-- $DONE (build complete, PR ready): <n>
+- $DONE (build complete, PR merged): <n>
   - <org>/<repo>#<number> <title> → PR <URL>
+- PR open — awaiting merge (left in $CLAIMED for repair-intake): <n>
+  - <org>/<repo>#<number> <title> → PR <URL> (mergeStateStatus: <state>)
 - Repaired (container — leaf-only-lifecycle): <n>
   - <org>/<repo>#<number> <title> — build-ready on a parent/container; moved $READY → $CLAIMED without invoking lisa:github-agent; lifecycle-repair comment posted
 - Skipped (active blockers): <n>
