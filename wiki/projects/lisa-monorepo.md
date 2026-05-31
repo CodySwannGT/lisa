@@ -20,18 +20,23 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-2026-05-30-174429` created from synced `origin/main`
-- HEAD at 2026-05-30 incremental ingest: `2181c4f37f18e30bc65c51ea4685ae7215127ff3`
-- Current package version: `2.128.0`
-- Total commits on HEAD: 2639
-- Latest merged PR captured in the incremental git snapshot: `#1085`
-- New commits since the previous incremental git cursor: `8`
-- Project-scoped memory skipped this cycle because no Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-20260531T014514Z` created from synced `origin/main`
+- HEAD at 2026-05-31 incremental ingest: `5cc82e48bb2940172a148db34f69b1a46523b41d`
+- Current package version: `2.129.3`
+- Total commits on HEAD: 2657
+- Latest merged PR captured in the incremental git snapshot: `#1102`
+- New commits since the previous incremental git cursor: `18`
+- Project-scoped memory skipped this cycle because no eligible project-scoped Codex memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
-- Release automation advanced the monorepo to `2.128.0`.
-- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-2026-05-30-174429` before this 2026-05-30 ingest.
+- Release automation advanced the monorepo to `2.129.3`.
+- The automation checkout fetched `origin`, rebased the current branch onto `origin/main` without conflicts, and created `wiki/ingest-20260531T014514Z` from synced `origin/main` before this 2026-05-31 ingest.
+- PR `#1102` hardened exploratory QA extraction so contextless extracted facts are flagged instead of being promoted as grounded findings.
+- PR `#1101` added doctor next-action guidance for plugin drift, making plugin drift readiness failures more operator-actionable.
+- PR `#1100` tightened exploratory QA reporting so human-facing jargon is flagged during the human-language pass.
+- PR `#1098` exposed plugin sync readiness in doctor output and proved the readiness path remains read-only.
+- PR `#1086` merged the prior wiki ingestion through Lisa `2.128.0`.
 - PR `#1085` replaced the seven curated-plugin parity placeholder skills with real cross-agent implementations, keeping the approved routing model while making the reimplemented skill surfaces usable.
 - PR `#1084` merged the prior wiki ingestion through Lisa `2.127.0`.
 - PR `#1083` fixed leaf-only intake semantics so childless Story and Spike issues can be treated as buildable leaves instead of being forced into container-only behavior.
@@ -84,6 +89,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-2026-05-30-174402.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git-previous-20260530T214456Z.md`
 - `wiki/sources/git/2026-05-30-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-05-31-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -97,3 +103,4 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-30-roles-previous-2026-05-30-174402.md`
 - `wiki/sources/roles/2026-05-30-roles-previous-20260530T214456Z.md`
 - `wiki/sources/roles/2026-05-30-roles.md`
+- `wiki/sources/roles/2026-05-31-roles.md`
