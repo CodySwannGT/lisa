@@ -52,6 +52,12 @@ Rule delivery should use the same eager-or-flat resolution across agents: prefer
 
 Exploratory QA now separates human-experience findings from e2e coverage gaps. Use the human-experience pass for product-facing behavior, friction, and visible issues; use the e2e-coverage-gaps pass for regression coverage opportunities that should become tests or backlog work.
 
+Exploratory QA evidence must stay grounded in observable page context. Human-language checks should flag human-facing jargon, and extracted facts that lack enough surrounding context should be treated as suspect rather than promoted directly into findings.
+
+## Doctor Readiness
+
+Doctor output includes plugin sync readiness and next-action guidance for plugin drift. Treat drift readiness as an operator-facing diagnostic: it should explain what needs to be synced without performing writes during the readiness check.
+
 ## Repair Intake
 
 Repair intake treats work as stuck after a two-hour threshold and records PR or deploy blocker diagnosis before moving stale queue items. This makes the smallest next action explicit when a PR, deployment, or status label prevents normal intake progress.

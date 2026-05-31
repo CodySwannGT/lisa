@@ -68,6 +68,14 @@ A managed wiki ignore block is the Lisa wiki-owned section inserted into a proje
 
 An e2e coverage gap is behavior found during exploratory QA that should be represented by an end-to-end regression test rather than only a human-facing bug report.
 
+## Contextless Extracted Data
+
+Contextless extracted data is information gathered during exploratory QA without enough page or workflow context to support a durable finding. Lisa should flag it for review instead of treating it as grounded evidence.
+
+## Plugin Sync Readiness
+
+Plugin sync readiness is the doctor-reported state that tells operators whether generated plugin artifacts are in sync and what drift action, if any, should happen next. The readiness check is read-only.
+
 ## Per-Agent Plugin Variant
 
 A per-agent plugin variant is a generated Lisa plugin artifact tailored to one coding agent's plugin shape, hook model, and rule-loading behavior. Pattern B variants are built from shared `plugins/src/` source rather than hand-edited generated directories.
