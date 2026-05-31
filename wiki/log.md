@@ -242,3 +242,11 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot, coding-agent parity architecture, workflow playbook, and index for real curated-plugin parity reimplementations, childless Story/Spike leaf intake semantics, the prior wiki ingest merge, and release-history changes through `2.128.0`.
+
+## 2026-05-31 - Incremental connector ingest
+
+- Synced the checkout with `origin/main` by fetching `origin` and rebasing `build/1064-jira-description-adf` onto `origin/main` without conflicts, then created `wiki/ingest-20260531T014514Z` from synced `origin/main` so the wiki PR would not include the branch's unrelated build commit.
+- Refreshed the `git` source note with 18 new commits through `5cc82e48bb2940172a148db34f69b1a46523b41d`, advanced the merged-PR cursor to `#1102`, and captured the release line through Lisa `2.129.3`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no eligible project-scoped Codex memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot, workflow playbook, vocabulary, and index for plugin sync readiness in doctor output, plugin drift next-action guidance, exploratory QA human-language and contextless-data flags, the prior wiki ingest merge, and release-history changes through `2.129.3`.
