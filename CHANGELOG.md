@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.129.7](https://github.com/CodySwannGT/lisa/compare/vv2.129.6...v2.129.7) (2026-05-31)
+
+
+### Bug Fixes
+
+* **build-intake,repair-intake:** gate env transition on PR merge + auto-rebase stranded PRs ([be3a108](https://github.com/CodySwannGT/lisa/commit/be3a108b19d9c8fe8ecd6df0be062e3e12003b3e)), closes [PropSwapLLC/frontend#701](https://github.com/PropSwapLLC/frontend/issues/701)
+
 ### [2.129.6](https://github.com/CodySwannGT/lisa/compare/vv2.129.5...v2.129.6) (2026-05-31)
 
 
