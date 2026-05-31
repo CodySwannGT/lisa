@@ -49,9 +49,10 @@ Use the `jira-verify` skill to check the ticket against organizational standards
 
 If `jira-verify` returns `FAIL` on any of the above, do NOT continue:
 1. Transition the ticket status to the configured `blocked` status (typically `Blocked` — read from `.lisa.config.json` `jira.workflow.blocked` if present, otherwise the project's standard blocked status). Use `mcp__atlassian__transitionJiraIssue` or equivalent.
-2. Reassign the ticket to the **Reporter** (the human who filed it — not the Creator field, which may be a bot/integration).
-3. Post a comment using `mcp__atlassian__addCommentToJiraIssue` listing each missing requirement with a one-line remediation. Prefix with `[{repo}]`.
-4. Stop. Do not run triage, do not delegate to a flow, do not start work.
+2. **Add the `human_needed` marker label.** A pre-flight gate failure bounces the ticket back to its reporter precisely because it needs something **no agent and no automated retry can supply** — credentials, access, a product/scoping decision, or required ticket quality only the human can add. Add the configured label (`jira.labels.human_needed`, default `Human Needed`) to the ticket's `labels` field via `mcp__atlassian__editJiraIssue` — a lightweight metadata update permitted under this same gate exception. This is additive to (not a replacement for) the `blocked` status, so a human scanning the board sees at a glance which blocked tickets are waiting on them. If the label does not exist in the project, record that and proceed — the marker is best-effort. (See the `config-resolution` rule's "Build markers" for when the marker applies and when it must NOT.)
+3. Reassign the ticket to the **Reporter** (the human who filed it — not the Creator field, which may be a bot/integration).
+4. Post a comment using `mcp__atlassian__addCommentToJiraIssue` listing each missing requirement with a one-line remediation. Prefix with `[{repo}]`.
+5. Stop. Do not run triage, do not delegate to a flow, do not start work.
 
 **Exception — single-repo scope is split, not blocked.** A single-repo-scope FAIL is the one gate failure the agent fixes rather than bounces to the reporter: a cross-repo work unit is a decomposition error the agent owns (S10 is `product_relevant: false`), not a product question. Instead of blocking, run the **work-time split procedure** in the `repo-scope-split` rule — narrow this ticket to one repo, create a sibling per additional repo cloning its metadata, link the producer→consumer dependency (`Blocks` / `is blocked by`), comment on the original, then re-run `jira-verify` on the original and every new sibling. Block (per the path above) only if the split is ambiguous (see "When to block instead of split"). If single-repo scope was the only FAIL and the split succeeded, proceed to Step 3 once every resulting ticket passes.
 
@@ -122,7 +123,7 @@ Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`
 
 ## Rules
 
-- Never auto-transition ticket status, with one explicit exception: when `jira-verify` returns `FAIL` for the pre-flight gate (Step 2), transition to the configured `blocked` status and reassign to the Reporter. Every other status change remains a suggestion the human confirms.
+- Never auto-transition ticket status, with one explicit exception: when `jira-verify` returns `FAIL` for the pre-flight gate (Step 2), transition to the configured `blocked` status, add the configured `human_needed` marker label (`jira.labels.human_needed`, default `Human Needed`), and reassign to the Reporter. Every other status change remains a suggestion the human confirms.
 - Always read the full ticket graph via `jira-read-ticket` before determining intent — don't rely on ticket type alone
 - Never create or materially edit a ticket by calling MCP write tools directly — always delegate to `jira-write-ticket` so relationships, Gherkin criteria, and metadata gates are enforced
 - If sign-in credentials are in the ticket, extract and pass them to the flow. If the ticket touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.
