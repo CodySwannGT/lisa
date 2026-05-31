@@ -1,6 +1,6 @@
 ---
 name: exploratory-qa
-description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (machine-style labels, slow or unclear loads, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
+description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, machine-style labels, slow or unclear loads, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
 ---
 
 # Exploratory QA
@@ -49,9 +49,12 @@ filed as a tracked work item so it enters the Lisa lifecycle — no static repor
 Click through the visible paths and actually attempt real tasks — a first-time user explores, makes
 mistakes, and tries the obvious thing. Cover at least these dimensions unless the user narrows scope:
 
-- **Comprehension & labeling:** machine-style or developer labels shown to users (raw IDs, enum keys,
-  `snake_case`, `null`/`undefined`, untranslated i18n keys), jargon, unclear button/menu names, icons
-  with no discernible meaning.
+- **Comprehension & labeling:** human-facing copy must sound like something a normal first-time user
+  would understand. Flag machine-style or developer labels shown to users (raw IDs, enum keys,
+  `snake_case`, `null`/`undefined`, untranslated i18n keys), admin/database terms such as
+  "metadata", implementation identifiers such as slugs, unexplained domain jargon, unclear
+  button/menu names, and icons with no discernible meaning. If a heading, label, or field would make a
+  non-technical user ask "what does that mean?", file a usability/clarity ticket with plainer wording.
 - **Navigation clarity:** is it obvious how to get somewhere and back? Dead ends, hidden entry points,
   surprising redirects, broken links, no clear "home".
 - **Visual/layout quality:** cut-off or truncated text, overlap, cramped/crowded density, offscreen or
