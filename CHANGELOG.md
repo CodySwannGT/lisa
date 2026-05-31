@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.129.0](https://github.com/CodySwannGT/lisa/compare/vv2.128.1...v2.129.0) (2026-05-31)
+
+
+### Features
+
+* expose plugin sync readiness result ([1ee307b](https://github.com/CodySwannGT/lisa/commit/1ee307bdfe67fd563a9e6f4826f4067645fa1a8d))
+* render plugin sync readiness in doctor ([fa3b4d9](https://github.com/CodySwannGT/lisa/commit/fa3b4d97b07e05ccb978851bdb7a0022a44d8f27))
+
 ### [2.128.1](https://github.com/CodySwannGT/lisa/compare/vv2.128.0...v2.128.1) (2026-05-30)
 
 
