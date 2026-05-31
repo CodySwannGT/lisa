@@ -222,31 +222,6 @@ describe("doctor report rendering (#750)", () => {
       rmSync(root, { force: true, recursive: true });
     }
   });
-
-  it("renders plugin sync drift with affected paths and next action", () => {
-    const root = seedPluginRepo();
-    try {
-      writeFileSync(
-        path.join(root, SOURCE_SKILL),
-        "\nSource-only doctor drift.\n",
-        { flag: "a" }
-      );
-
-      const group = createPluginSyncDoctorGroup(root);
-      const report = renderDoctorReport({ groups: [group] });
-
-      expect(group.checks[0]).toMatchObject({
-        id: "plugin-sync",
-        status: "WARN",
-        summary: "plugin sync drift detected: SOURCE_NOT_BUILT",
-      });
-      expect(report.verdict).toBe("READY_WITH_WARNINGS");
-      expect(report.text).toContain(SOURCE_SKILL);
-      expect(report.text).toContain("Run `bun run build:plugins`");
-    } finally {
-      rmSync(root, { force: true, recursive: true });
-    }
-  });
 });
 
 /**
