@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.129.2](https://github.com/CodySwannGT/lisa/compare/vv2.129.1...v2.129.2) (2026-05-31)
+
+
+### Bug Fixes
+
+* add doctor plugin drift guidance ([577bd07](https://github.com/CodySwannGT/lisa/commit/577bd0745d6cb8b8ed24e9846f0df6d3c888366c))
+
 ### [2.129.1](https://github.com/CodySwannGT/lisa/compare/vv2.129.0...v2.129.1) (2026-05-31)
 
 
