@@ -163,6 +163,11 @@ rule — never hardcode status/label strings. The relevant repair roles:
 | PRD | Linear | `linear.labels.prd.in_review` (`prd-in-review`) | `linear.labels.prd.blocked` (`prd-blocked`) | `linear.labels.prd.shipped` (`prd-shipped`) |
 | PRD | Confluence | `confluence.parents.in_review` (page id) | `confluence.parents.blocked` (page id) | `confluence.parents.shipped` (page id) |
 
+In addition to the lifecycle roles above, the build lifecycle defines the **`human_needed` marker** — an additive label (`jira.labels.human_needed` / `github.labels.build.human_needed` / `linear.labels.build.human_needed`, default `Human Needed` / `human-needed`) that rides alongside `blocked` when the block needs human-only input no agent or retry can supply (see `config-resolution` "Build markers"). repair-intake's interaction with the marker is asymmetric and is the whole point of the distinction below:
+
+- The blocks repair-intake **itself writes** are the auto-recoverable kind — it files a build-ready fix ticket and moves the item `blocked` *blocked by that ticket*, expecting the next cycle to self-heal. Those are **not** `human_needed`; if such an item arrives already carrying a stale `human_needed` marker, repair-intake **clears** it (the block is no longer waiting on a human).
+- The blocks the **vendor agent** writes when repair-intake re-dispatches it (its pre-flight gate) carry `human_needed` already — the agent owns that marker. repair-intake leaves it in place.
+
 Resolve with the standard role-read pattern (local overrides global, default fallback):
 
 ```bash
@@ -271,7 +276,12 @@ the vendor build-intake runs**, skipping the claim transition (the item is alrea
    unresolvable, fail loudly — never guess). repair-intake owns this transition because it is
    standing in for the scanner that never got to finish it.
 3. **On a surfaced blocker** (agent reports it cannot proceed), leave/move the item to `blocked`
-   with a `[lisa-repair-intake]` note (see Loop prevention).
+   with a `[lisa-repair-intake]` note (see Loop prevention). When the surfaced blocker is something
+   **only a human can supply** (credentials, access/permissions, a product or scoping decision), the
+   item also carries the `human_needed` marker — the vendor agent's pre-flight gate applies it; if
+   repair-intake makes the block transition itself for such a reason, it adds the marker too. (A
+   block that another tracked ticket or retry will clear is *not* human-needed — that is the
+   auto-recoverable fix-ticket path above.)
 
 > Do **not** reset stalled in-progress items to `ready`. Reset throws away state, makes a
 > partially-built item look freshly human-approved to the next `lisa:intake` claim, and forces a
@@ -317,7 +327,11 @@ recent check/commit activity would already have been caught as `active` by the s
    for "PR is mergeable / deploy is green."
 2. **Transition the stalled item `claimed → blocked`** and add an **`is blocked by`** link to the
    new fix ticket (vendor-native: JIRA issue link `is blocked by`; GitHub/Linear `Blocked by:` line
-   + label). Post a `[lisa-repair-intake]` note naming what it is blocked by and why.
+   + label). Post a `[lisa-repair-intake]` note naming what it is blocked by and why. This block is
+   **auto-recoverable** — the fix ticket will build and close on its own — so do **not** add the
+   `human_needed` marker, and if the item already carries a stale `human_needed` label, remove it
+   here (it is no longer waiting on a human). The `human_needed` marker is reserved for blocks a
+   human must clear; this one a later cycle clears automatically.
 3. **Record it** as a repair write. Do **not** dispatch the vendor agent for this item this cycle.
 
 The item now sits in `blocked`; once the fix ticket reaches a terminal state, the **Build
@@ -509,6 +523,10 @@ It MAY:
 
 - Apply the build scanner's post-agent `claimed → done` on a successful resume (it is finishing
   the scanner's interrupted job), and move a dependency-cleared build item `blocked → claimed`.
+- Manage the `human_needed` marker on build blocks: leave it where the vendor agent set it (a
+  human-only pre-flight block), and **clear** it from an item it moves to an auto-recoverable
+  `blocked` (blocked by a build-ready fix ticket) — that block self-heals and is not waiting on a
+  human.
 - Move a re-validated PRD `in_review`/`blocked → ticketed` (PASS) or `→ blocked` (FAIL), exactly
   as the PRD intake does.
 - Close / complete / resolve build items that already carry the true terminal `done` role but are
