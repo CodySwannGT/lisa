@@ -1,12 +1,12 @@
 {
   "connector": "git",
   "profile": "lisa-monorepo",
-  "ingested_at": "2026-05-31T10:14:54.604Z",
-  "cursor": {
+  "ranAt": "2026-05-31T10:14:54.604Z",
+  "proposedCursor": {
     "lastCommit": "f7cbbc0a28767d84424c73f26774a41074c4d348",
     "lastPr": 1104
   },
-  "source_notes": [
+  "sourceNotes": [
     "wiki/sources/git/2026-05-31-lisa-monorepo-git.md"
   ]
 }
