@@ -1,6 +1,6 @@
 ---
 name: repair-intake
-description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck or was left half-closed: items left in `blocked`, stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items that are still natively open, and rollup/container items whose children are all terminal but whose parent is not closed out. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates candidates up to `max_candidates`, and repairs every materially actionable one in that bounded set: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline) — but for a stalled build it first diagnoses the PR/deploy state and, if the PR cannot merge (conflict, rebase-required, failing checks, unaddressed CodeRabbit/changes-requested) or a deploy failed, files a build-ready leaf fix ticket and moves the item to `blocked` (blocked by that ticket) rather than re-dispatching, re-validates blocked PRDs when new clarifying answers exist, re-dispatches blocked build items whose `is blocked by` dependencies have since closed, performs terminal native closure for terminal-labeled items, reconciles parent rollups to their derived state per leaf-only-lifecycle — including the intermediate-env case (e.g. all children at `On Stg` → parent `On Stg`) and a container wrongly stuck in `ready` — and closes out rollups whose associated child work is fully terminal. Idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `verified`) and never touches `ready` leaves (a container wrongly carrying `ready` is the one exception — it is rolled up from its children, since `ready` on a parent is an invariant violation, not intake's claim signal). Designed as a /schedule cron target running alongside lisa:intake."
+description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake. Where intake claims `ready` work, repair-intake finds work that got stuck or was left half-closed: items left in `blocked`, stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items that are still natively open, and rollup/container items whose children are all terminal but whose parent is not closed out. Scans the same queues lisa:intake serves (Notion / Confluence / Linear / GitHub PRD databases; JIRA / GitHub / Linear build queues), enumerates candidates up to `max_candidates`, and repairs every materially actionable one in that bounded set: resumes stalled in-progress work IN PLACE (build → the vendor agent + the scanner's post-agent transition; PRD → the source `*-to-tracker` dry-run validate→route pipeline) — but for a stalled build it first diagnoses the PR/deploy state: a PR that already merged is recovered by applying the env transition build-intake never got to (no re-dispatch); a PR that is merely behind its base is re-synced in place via `gh pr update-branch` so the already-enabled auto-merge can land (a clean rebase needs no human); and only a PR that cannot merge for a non-mechanical reason (true conflict, failing checks, unaddressed CodeRabbit/changes-requested) or a failed deploy gets a build-ready leaf fix ticket with the item moved to `blocked` (blocked by that ticket) rather than re-dispatching, re-validates blocked PRDs when new clarifying answers exist, re-dispatches blocked build items whose `is blocked by` dependencies have since closed OR whose validation/quality-gate self-block now re-validates PASS (re-running `lisa:tracker-validate` against current content — the build mirror of PRD re-validation), performs terminal native closure for terminal-labeled items, reconciles parent rollups to their derived state per leaf-only-lifecycle — including the intermediate-env case (e.g. all children at `On Stg` → parent `On Stg`) and a container wrongly stuck in `ready` — and closes out rollups whose associated child work is fully terminal. Idempotent, loop-protected via a [lisa-repair-intake] marker + state fingerprint + backoff. Never mutates product-owned states (`draft`, `verified`) and never touches `ready` leaves (a container wrongly carrying `ready` is the one exception — it is rolled up from its children, since `ready` on a parent is an invariant violation, not intake's claim signal). Designed as a /schedule cron target running alongside lisa:intake."
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "mcp__linear-server__list_teams", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label"]
 ---
 
@@ -15,13 +15,24 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   happening, so it sits ignored forever. (The vendor PRD intakes explicitly leave an errored PRD
   in `in_review` "for the human to investigate from there" — that orphan is exactly what this
   skill recovers.) For a stalled **build**, repair-intake first diagnoses *why* it stalled by
-  inspecting its PRs and deploys: if the PR cannot merge (conflict / rebase-required / failing
-  checks / unaddressed CodeRabbit or `CHANGES_REQUESTED` review) or a deploy failed, it files a
-  build-ready leaf fix ticket and moves the item to `blocked` (blocked by that ticket) instead of
-  blindly re-dispatching the agent — which would just churn against an unmergeable PR.
-- **Recoverable blocked** — an item in `blocked` whose blocker may now be gone: an
-  `is blocked by` dependency has since closed, clarifying questions have been answered, or
-  research/waiting resolves the ambiguity that stopped it.
+  inspecting its PRs and deploys. A PR that **already merged** is recovered by applying the env
+  transition build-intake never got to (its merge gate left the item `claimed` when the merge landed
+  after its agent returned) — no re-dispatch. A PR that is merely **behind its base** (`BEHIND`, no
+  conflict) is **re-synced in place** with `gh pr update-branch` so the already-enabled auto-merge can
+  finally land — a clean rebase needs no human, and leaving it stranded is the exact gap that lets an
+  auto-merge PR sit unmerged forever. Only a PR that cannot merge for a non-mechanical reason (true
+  conflict / failing checks / unaddressed CodeRabbit or `CHANGES_REQUESTED` review) or a failed deploy
+  gets a build-ready leaf fix ticket with the item moved to `blocked` (blocked by that ticket) instead
+  of blindly re-dispatching the agent — which would just churn against an unmergeable PR.
+- **Recoverable blocked** — an item in `blocked` whose blocker may now be gone. The blocker is
+  one of three classes, and repair re-checks **all** of them, not just dependencies: (a) an
+  `is blocked by` **dependency** has since closed; (b) a **validation / quality-gate self-block** —
+  the item was bounced to `blocked` by its own pre-flight `verify`/`validate` gate (missing
+  Validation Journey, Sign-in Required, Acceptance Criteria, etc.) with **no dependency at all**,
+  and a human has since edited the item to add what the gate demanded; or (c) **clarifying
+  questions answered** / an **ambiguity** research can now settle. A self-block (b) is the common
+  one missed by dependency-only re-checks: nothing else is blocking it, so re-running the same gate
+  against its current content is the only way to know it is now passable.
 - **Terminal-open drift** — an item already carrying its true terminal lifecycle role (for
   example GitHub `status:done`) but still open/active in the provider's native state.
 - **Rollup drift** — a parent/container item (Epic, Story, PRD, Linear Project, or equivalent)
@@ -251,14 +262,24 @@ deploys (see "Stuck-cause diagnosis" below). A stalled build usually stalled for
 reason, and re-dispatching the agent at it will not fix a PR that cannot merge or a deploy that
 failed — it just churns.
 
-0. **Diagnose PR & deploy blockers.** If a real external blocker is found (PR cannot merge — merge
-   conflict / rebase-required / failing checks / `CHANGES_REQUESTED` / unaddressed CodeRabbit; or a
-   failed deploy), **do not dispatch the agent**. Instead file a build-ready leaf fix ticket for the
-   blocker, move this item `claimed → blocked` with an `is blocked by` link to that ticket, and
-   record it. The existing "Build `blocked` → unblock if cleared" path resumes this item on a later
-   cycle once the fix ticket is terminal — a self-healing loop. Skip the resume steps below.
+0. **Diagnose PR & deploy state.** Run "Stuck-cause diagnosis" below. It resolves, in order:
+   - **PR already merged** → the build effectively completed; the vendor build-intake's merge gate
+     left the item `claimed` because the merge landed after its agent returned. Do **not** re-dispatch
+     or file anything — apply the scanner's post-agent env-resolved `claimed → done` transition
+     directly (step 2 below, env-resolved), and record it. This is the recovery arm for build-intake
+     leaving merged-but-unadvanced items in `claimed`.
+   - **PR only behind its base (a needed rebase)** → mechanically resolvable, **not** a human blocker.
+     Re-sync the branch in place so the already-enabled auto-merge can land (see diagnosis step 3).
+     Keep the item `claimed`; a later cycle confirms the merge and transitions. Do **not** file a fix
+     ticket for a clean rebase.
+   - **A real external blocker** (PR cannot merge for a non-mechanical reason — true merge conflict /
+     failing checks / `CHANGES_REQUESTED` / unaddressed CodeRabbit; or a failed deploy) → **do not
+     dispatch the agent**. File a build-ready leaf fix ticket for the blocker, move this item
+     `claimed → blocked` with an `is blocked by` link to that ticket, and record it. The existing
+     "Build `blocked` → unblock if cleared" path resumes this item on a later cycle once the fix
+     ticket is terminal — a self-healing loop. Skip the resume steps below.
 
-If no external blocker is found, the work simply died mid-flight — run the **same per-item sequence
+If the PR is healthy in-flight and no blocker is found, the work simply died mid-flight — run the **same per-item sequence
 the vendor build-intake runs**, skipping the claim transition (the item is already `claimed`):
 
 1. Dispatch the item to the vendor agent — `lisa:jira-agent` / `lisa:github-agent` /
@@ -287,12 +308,38 @@ external state that resuming the agent cannot fix."
 links and `gh pr list --search <issue-ref>`; JIRA: dev-status / remote links; Linear: attachments
 and git-branch links) and the deploy(s) for the resulting merge (the env-keyed `deploy.branches`
 mapping from `config-resolution`). Read each PR with the vendor's native state, e.g. GitHub
-`gh pr view <n> --json mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,comments,reviews`.
+`gh pr view <n> --json state,mergedAt,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,comments,reviews`.
 
-**2. Classify as a blocker.** Treat any of these as a real external blocker:
+**2. PR already merged → recover, don't re-dispatch.** If `state == MERGED`, the build is effectively
+complete and the only thing missing is the env transition the build-intake never applied (its merge
+gate left the item `claimed` because the merge landed after its agent returned). Do **not** re-dispatch
+or file anything: apply the scanner's post-agent env-resolved `claimed → done` transition (the
+resume-sequence step 2, env-resolved from the merged PR's base branch) and record it as a repair
+write. Where the env deploy is observable, confirm it did not fail first; a failed post-merge deploy
+falls through to the blocker path (step 4).
 
-- **Merge conflict / rebase required** — `mergeable = CONFLICTING`, or `mergeStateStatus` in
-  `DIRTY` / `BEHIND`.
+**3. PR only behind its base → re-sync in place (mechanical, not a blocker).** If the PR is clean but
+behind its base — `mergeStateStatus == BEHIND` while `mergeable != CONFLICTING` and no required check
+is failing — it does **not** need a human. This is exactly the case that strands a PR forever: GitHub
+auto-merge will not advance a `BEHIND` branch on its own, so a PR opened with `--auto` sits unmerged
+until something rebases it. Re-sync it in place and let the existing auto-merge land it:
+
+```bash
+gh pr update-branch <n>          # rebase/merge the base into the PR head; reruns required checks
+```
+
+Record this as a repair write (`resynced`), keep the item `claimed`, and move on — a later cycle sees
+the now-`CLEAN` (or merged) PR and either lets auto-merge finish or applies the merged-PR recovery in
+step 2. Only if `gh pr update-branch` itself reports a conflict it cannot apply does the PR become a
+true conflict (step 4). Honor the backoff window so repeated cycles don't re-issue `update-branch` on
+an unchanged head (Loop prevention). For JIRA/Linear items the PR is still the GitHub PR backing the
+branch — operate on it the same way.
+
+**4. Classify as a blocker.** Treat any of these as a real external blocker:
+
+- **True merge conflict** — `mergeable = CONFLICTING` or `mergeStateStatus = DIRTY` (overlapping
+  changes a plain rebase cannot resolve), or `gh pr update-branch` (step 3) reported a conflict. A
+  merely `BEHIND` branch is **not** here — it was re-synced in step 3.
 - **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
   or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
 - **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
@@ -306,7 +353,7 @@ A check that is still **queued/in progress**, or a `CLEAN`/`HAS_HOOKS` mergeable
 outstanding change request, is **not** a blocker — that is normal in-flight state. (Such a PR with
 recent check/commit activity would already have been caught as `active` by the staleness gate.)
 
-**3. On a blocker found → file a leaf fix ticket + block the item.**
+**5. On a blocker found → file a leaf fix ticket + block the item.**
 
 1. **File one build-ready leaf fix ticket** per distinct blocker via `lisa:tracker-write` (the
    vendor-neutral leaf writer + validation gate; never a vendor `*-write-*` skill directly),
@@ -332,14 +379,31 @@ window and state fingerprint (Loop prevention) so re-runs over the same unchange
 
 ### Build `blocked` → re-evaluate, unblock if cleared
 
-1. Read the block reason and dependencies (see Dependency clearing).
-2. If every parsed blocker is **cleared** → move `blocked → claimed`, then run the same
-   agent-dispatch + post-agent `claimed → done` sequence as the stalled-`claimed` path above
-   (one-cycle recovery). If the agent re-blocks, move back to `blocked` — a valid outcome.
-3. If the block was an **ambiguity** research can settle and no dependency remains → run the
+1. Read the block reason and classify the blocker (see Blocker classification & clearing). An item
+   may be held by a **dependency**, by a **validation / quality-gate self-block**, by an
+   **ambiguity**, or by more than one at once. Re-check **every** class present — do not stop at
+   "no `is blocked by` links, therefore nothing to do." A self-block has zero dependencies by
+   definition, yet is fully re-checkable.
+2. **Dependency cleared** — if every parsed `is blocked by` dependency is **cleared** → move
+   `blocked → claimed`, then run the same agent-dispatch + post-agent `claimed → done` sequence as
+   the stalled-`claimed` path above (one-cycle recovery). If the agent re-blocks, move back to
+   `blocked` — a valid outcome.
+3. **Validation / quality-gate self-block re-check** — if the block reason is a pre-flight
+   `verify`/`validate` gate failure (its `[lisa-*]` block note carries a gate marker + a "Missing
+   requirements" list and there is **no** open `is blocked by` dependency), re-run the **same gate**
+   against the item's **current** content via `lisa:tracker-validate` (read-only; the vendor-neutral
+   gate `lisa:<tracker>-build-intake` and `lisa:<tracker>-write-*` already use). This is the build
+   mirror of the PRD `blocked → re-validate` path below.
+   - **PASS now** (the human added what was missing) → move `blocked → claimed` and resume exactly
+     as in (2): agent-dispatch + post-agent `claimed → done`.
+   - **Still FAIL** → stay `blocked`, but refresh the note with the **current** (usually smaller)
+     missing-requirement set so the human sees what remains. Because the fingerprint includes the
+     gate verdict + missing-requirement set (Loop prevention), a partial human fix changes the
+     fingerprint and re-checks next cycle, while a truly-unchanged gate result stays in backoff.
+4. If the block was an **ambiguity** research can settle and no dependency remains → run the
    research needed (`lisa:codebase-research` / `lisa:product-walkthrough`); if resolved, proceed
    as in (2).
-4. Else → still blocked. Refresh the note with the current reason (Loop prevention) and leave it
+5. Else → still blocked. Refresh the note with the current reason (Loop prevention) and leave it
    `blocked`.
 
 ### Build terminal-open → native close / complete / resolve
@@ -460,7 +524,13 @@ work is fully terminal:
 5. If generated work is missing, ambiguous, or partially incomplete, leave the PRD open and report
    the incomplete child set. Never close a PRD on partial completion.
 
-## Dependency clearing (conservative, vendor-specific extraction)
+## Blocker classification & clearing (conservative, vendor-specific extraction)
+
+A `blocked` build item is held by one or more of three blocker classes. Identify which are present
+from the item's block note(s) and links, then clear-check **each present class** — an item with no
+dependency is not automatically un-actionable; it may be a self-block that now passes.
+
+### Class A — dependency blockers
 
 `lisa:tracker-read` is a thin dispatcher that returns each vendor's bundle **verbatim** — there
 is no normalized `is blocked by` field. Read the bundle, then extract blockers per vendor:
@@ -485,6 +555,38 @@ Only re-dispatch when **every** parsed blocker is cleared. When in doubt, stay b
 false-negative (left blocked) is cheap; a false-positive (re-dispatched into a real blocker)
 wastes a build cycle.
 
+### Class B — validation / quality-gate self-block
+
+A self-block has **no** `is blocked by` dependency: the build-intake/agent flow claimed the item,
+its pre-flight `verify`/`validate` gate failed (missing Validation Journey, Sign-in Required,
+Target Backend Environment, Repository, Out of Scope, Evidence manifest, weak Acceptance Criteria,
+etc.), and the item was bounced to `blocked` carrying that gate's `[lisa-*]` note + "Missing
+requirements" list. Detect it by: (1) the block note bears a known gate marker (e.g.
+`Pre-flight verify gate: BLOCKED`, `jira-verify` / `*-validate-*`), **and** (2) there is no open
+`is blocked by` dependency. (If both a dependency and a self-block are present, clear the
+dependency via Class A first; the self-block re-check still gates the eventual re-dispatch.)
+
+Clear-check by **re-running the same gate against current content** — `lisa:tracker-validate`
+(read-only; never writes), which dispatches to `lisa:<tracker>-validate-*` exactly as the write
+path and build-intake do, so the bar cannot drift:
+
+- **PASS** → cleared. Proceed to re-dispatch (decision tree step 2).
+- **FAIL** → still self-blocked. Refresh the note with the current missing set (Loop prevention).
+
+Conservative, same as Class A: a still-failing gate is a real blocker — never re-dispatch a build
+whose own gate has not yet passed. This is intentionally symmetric with the PRD `blocked →
+re-validate` path: PRDs re-run their dry-run `validate→route` when source content changes; builds
+re-run `tracker-validate` when item content changes. The asymmetry where build `blocked` checked
+only dependencies — leaving verify-gate self-blocks stranded forever after a human filled in the
+missing sections — is the gap this class closes.
+
+### Class C — ambiguity / clarifying answers
+
+A block that research or a human answer can settle (no dependency, no failing gate). Re-check by
+running the needed research (`lisa:codebase-research` / `lisa:product-walkthrough`) or detecting a
+human comment/edit newer than the last `[lisa-repair-intake]` note. Resolved → proceed to
+re-dispatch; else stay blocked.
+
 ## Loop prevention
 
 A `blocked` item with a permanently unresolved problem must not be "repaired" and re-noted every
@@ -492,7 +594,10 @@ cron tick.
 
 - Every note this skill writes is prefixed `[lisa-repair-intake]` and carries a compact **state
   fingerprint**: the lifecycle role, the set of blocker refs + their observed states, the
-  validation verdict (PASS/FAIL), terminal/open state, rollup child tally, and a timestamp.
+  validation verdict (PASS/FAIL) **plus the current missing-requirement set for a Class-B
+  self-block** (so a human filling in one of several missing sections changes the fingerprint and
+  triggers a re-check next cycle, rather than being suppressed as a no-op), terminal/open state,
+  rollup child tally, and a timestamp.
 - Before writing a note or re-attempting a `blocked` item, compute the current fingerprint. If
   an identical fingerprint was already posted within the **backoff window**, skip the item
   silently (record as `still_blocked` / `active`, no write).
@@ -548,8 +653,10 @@ It MUST NOT:
       containers, that need their derived state applied (status-only reconciliation, no native
       close),
    4. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
-   5. `blocked` items with **new clarifying answers**,
-   6. **stalled** in-progress items, oldest activity first.
+   5. `blocked` items whose **validation / quality-gate self-block now re-validates PASS** —
+      a human filled in the missing sections (Class B; equally safe and high-value),
+   6. `blocked` items with **new clarifying answers**,
+   7. **stalled** in-progress items, oldest activity first.
 4. **Walk the ordered list**, evaluating each candidate (terminal close-out, rollup child tally,
    staleness, dependency, answer checks), and repair **every** candidate that is actionable inside
    the `max_candidates` cap. Continue after successful writes and after per-item errors.
@@ -568,6 +675,11 @@ often consists of cheap close-out reconciliation that should drain in one cron p
 Report outcomes in these buckets:
 
 - `resumed` — stalled in-progress work re-dispatched in place.
+- `resynced` — a stalled build whose PR was merely behind its base, re-synced via
+  `gh pr update-branch` so the already-enabled auto-merge can land; the item stays `claimed` for a
+  later cycle to confirm the merge and transition.
+- `recovered` — a stalled build whose PR had already merged, advanced by applying the env-resolved
+  `claimed → done` transition build-intake never got to (no re-dispatch).
 - `unblocked` — blocker cleared (or answers resolved); re-dispatched or transitioned to
   `ticketed`.
 - `closed_out` — terminal-labeled items whose native open/active state was closed, completed,
@@ -606,6 +718,10 @@ stuck work accumulates), or interleaved on a longer cadence.
   child work is terminal.
 - Apply build `done` ONLY via the env-resolution rules, and trigger native closure only at the
   true terminal `done` value (`leaf-only-lifecycle`).
+- A `blocked` build item's blocker may be a dependency, a validation/quality-gate self-block (no
+  dependency — re-check by re-running `lisa:tracker-validate` against current content), or an
+  ambiguity. Re-check every class present; do not treat "no `is blocked by` links" as "nothing to
+  do."
 - Never re-dispatch a `blocked` build item unless every parsed blocker is cleared (conservative
   dependency clearing).
 - Repair every materially actionable candidate inside the `max_candidates` cap; default cap is 100.

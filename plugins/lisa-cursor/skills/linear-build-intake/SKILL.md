@@ -203,22 +203,28 @@ Invoke `lisa:linear-agent` (per-Issue lifecycle agent) with the Issue identifier
 - Posting evidence via `lisa:linear-evidence`
 
 Wait for the agent to return. Capture its outcome:
-- **Success** — PR is ready (open or merged); evidence posted; ready for next status.
+- **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the Issue to a `done` env status.
 - **Blocked by linear-verify pre-flight gate** — `lisa:linear-agent` itself relabels to `status:blocked` and assigns to creator. Let it stand. Record and move on.
 - **Blocked by ticket-triage ambiguities** — agent posts findings and stops. The Issue stays at `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave at `$CLAIMED`. Record with exception summary.
 
-#### 3d. Relabel to $DONE (only on Success)
+#### 3d. Relabel to $DONE (only after the PR is merged)
+
+A `done` env state (`status:on-dev`, `status:on-stg`, or the terminal value) asserts that the code has actually reached that environment. Never set it for a PR that is merely open: auto-merge can be blocked indefinitely (a required rebase / `BEHIND` branch, failing checks, an unaddressed review), and the change may never land. Relabeling an Issue `status:on-stg` on an open PR makes it *claim* a deploy that never happened. Transition only after confirming the PR merged.
 
 If `lisa:linear-agent` returned Success:
-1. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
-2. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
+1. **Confirm the PR merged.** Read the live state of the Issue's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
+   - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before relabeling; a still-running deploy is treated like an open PR (leave at `$CLAIMED`), a failed deploy is recorded as an Error.
+   - **Open / not yet merged** → do **not** transition. The build is sound but the change has reached no environment yet. Record the Issue under **"PR open — awaiting merge"** in the summary (with the PR URL and its `mergeStateStatus`), leave it at `$CLAIMED`, and stop. A later `lisa:repair-intake` cycle drives the open PR to merge — re-syncing a `BEHIND` branch so the already-enabled auto-merge can land, or surfacing a real blocker — and, once merged, applies this same env transition. Do **not** comment "Build complete" or change the native state.
+   - **Closed without merging** → record an Error (the PR was abandoned unmerged); leave the Issue at `$CLAIMED`.
+2. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
+3. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
    - If `linear.labels.build.done` is a string, that string is terminal.
    - If `linear.labels.build.done` is an object, only the production/final environment value is terminal (default: `status:done`). Intermediate env values such as `status:on-dev` and `status:on-stg` are not terminal and must keep the native Issue open.
    - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not change the native state.
-3. Update labels via `mcp__linear-server__save_issue`: remove `$CLAIMED` (or `$REVIEW` if `lisa:linear-evidence` already moved it forward), add `$DONE`.
-4. If `$DONE` is terminal, move the native Linear Issue state to the configured Done / Completed state. Resolve that state from project configuration if present; otherwise inspect the team workflow for a terminal state with `state.type = "completed"` and a name such as `Done` or `Completed`. If no terminal state can be resolved, record an Error and leave the labels as the source of truth — do not invent a state name.
-5. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL>. Transitioned to $DONE."` Include whether native closure was applied, already satisfied, skipped for an intermediate env, or unavailable for setup reasons.
+4. Update labels via `mcp__linear-server__save_issue`: remove `$CLAIMED` (or `$REVIEW` if `lisa:linear-evidence` already moved it forward), add `$DONE`.
+5. If `$DONE` is terminal, move the native Linear Issue state to the configured Done / Completed state. Resolve that state from project configuration if present; otherwise inspect the team workflow for a terminal state with `state.type = "completed"` and a name such as `Done` or `Completed`. If no terminal state can be resolved, record an Error and leave the labels as the source of truth — do not invent a state name.
+6. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL> merged. Transitioned to $DONE."` Include whether native closure was applied, already satisfied, skipped for an intermediate env, or unavailable for setup reasons.
 
 For any non-Success outcome, do NOT transition. The Issue sits where the agent left it — humans take it from there.
 
@@ -236,8 +242,10 @@ Cycle started: <ISO timestamp>
 Cycle completed: <ISO timestamp>
 
 Issues processed: <n>
-- $DONE (build complete, PR ready): <n>
+- $DONE (build complete, PR merged): <n>
   - <ID> <title> → PR <URL>
+- PR open — awaiting merge (left at $CLAIMED for repair-intake): <n>
+  - <ID> <title> → PR <URL> (mergeStateStatus: <state>)
 - Skipped (container — leaf-only-lifecycle): <n>
   - <ID> <title> — build-ready on a parent with open child work; lifecycle-repair comment posted
 - status:blocked (pre-flight verify failed): <n>

@@ -193,22 +193,28 @@ Invoke the `lisa:jira-agent` (existing per-ticket lifecycle agent) with the tick
 - Posting evidence via `lisa:jira-evidence`
 
 Wait for `lisa:jira-agent` to return. Capture its outcome:
-- **Success** — PR is ready (open or merged); evidence posted; ready for next status.
+- **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the ticket to a `done` env status.
 - **Blocked by jira-verify pre-flight gate** — `lisa:jira-agent` itself transitions the ticket to `Blocked` and reassigns to Reporter. This is correct and expected — let it stand. Record the outcome and move on.
 - **Blocked by ticket-triage ambiguities** — `lisa:jira-agent` posts findings and stops. The ticket stays in `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors" with reason `"Triage found ambiguities — see comments on <ticket-key>"`.
 - **Errored** — exception, missing config, etc. Leave the ticket in `$CLAIMED` for human investigation. Record under "Errors" with the exception summary.
 
-#### 3d. Transition to $DONE (only on Success)
+#### 3d. Transition to $DONE (only after the PR is merged)
+
+A `done` env status (`On Dev`, `On Stg`, or the terminal value) asserts that the code has actually reached that environment. Never set it for a PR that is merely open: auto-merge can be blocked indefinitely (a required rebase / `BEHIND` branch, failing checks, an unaddressed review), and the change may never land. Setting `On Stg` on an open PR makes a ticket *claim* a deploy that never happened. Transition only after confirming the PR merged.
 
 If `lisa:jira-agent` returned Success:
-1. Resolve `$DONE` for this ticket's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
-2. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
+1. **Confirm the PR merged.** Read the live state of the ticket's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
+   - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before transitioning; a still-running deploy is treated like an open PR (leave in `$CLAIMED` for a later cycle), a failed deploy is recorded as an Error.
+   - **Open / not yet merged** → do **not** transition. The build is sound but the change has reached no environment yet. Record the ticket under **"PR open — awaiting merge"** in the summary (with the PR URL and its `mergeStateStatus`), leave it in `$CLAIMED`, and stop. A later `lisa:repair-intake` cycle drives the open PR to merge — re-syncing a `BEHIND` branch so the already-enabled auto-merge can land, or surfacing a real blocker — and, once it is merged, applies this same env transition. Do **not** comment "Build complete" or file anything: the work is in-flight, not done.
+   - **Closed without merging** → record an Error (the PR was abandoned unmerged); leave the ticket in `$CLAIMED` for human investigation.
+2. Resolve `$DONE` for this ticket's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
+3. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
    - If `jira.workflow.done` is a string, that status is terminal.
    - If `jira.workflow.done` is an object, only the production/final environment value is terminal (default: `Done`). Intermediate env statuses such as `On Dev` and `On Stg` are not terminal and must remain unresolved / open.
    - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not finalize native resolution.
-3. Invoke `lisa:atlassian-access` `operation: transition key: <TICKET> to: "$DONE"`.
-4. If `$DONE` is terminal, verify the resulting JIRA issue is natively closed/resolved: status category is `Done`, and resolution is set when the project's workflow requires one. If the transition screen requires an explicit resolution, use the configured default resolution if present; otherwise record an Error naming the missing workflow setup rather than silently landing in an unresolved Done-named status.
-5. Post a `[claude-build-intake]` comment via `lisa:atlassian-access` `operation: comment key: <TICKET> body: "Build complete. PR <URL>. Transitioned to $DONE."` Include whether terminal native resolution was verified, already satisfied, skipped for an intermediate env, or blocked by workflow setup.
+4. Invoke `lisa:atlassian-access` `operation: transition key: <TICKET> to: "$DONE"`.
+5. If `$DONE` is terminal, verify the resulting JIRA issue is natively closed/resolved: status category is `Done`, and resolution is set when the project's workflow requires one. If the transition screen requires an explicit resolution, use the configured default resolution if present; otherwise record an Error naming the missing workflow setup rather than silently landing in an unresolved Done-named status.
+6. Post a `[claude-build-intake]` comment via `lisa:atlassian-access` `operation: comment key: <TICKET> body: "Build complete. PR <URL> merged. Transitioned to $DONE."` Include whether terminal native resolution was verified, already satisfied, skipped for an intermediate env, or blocked by workflow setup.
 
 For any non-Success outcome, do NOT transition. The ticket sits in `$CLAIMED` (or wherever `lisa:jira-agent` left it for the Blocked case) — the cycle's job is done; humans take it from there.
 
@@ -226,8 +232,10 @@ Cycle started: <ISO timestamp>
 Cycle completed: <ISO timestamp>
 
 Tickets processed: <n>
-- $DONE (build complete, PR ready): <n>
+- $DONE (build complete, PR merged): <n>
   - <ticket-key> <summary> → PR <URL>
+- PR open — awaiting merge (left in $CLAIMED for repair-intake): <n>
+  - <ticket-key> <summary> → PR <URL> (mergeStateStatus: <state>)
 - Skipped (container — leaf-only-lifecycle): <n>
   - <ticket-key> <summary> — build-ready on a parent with open child work; lifecycle-repair comment posted
 - Blocked (pre-flight verify failed): <n>
