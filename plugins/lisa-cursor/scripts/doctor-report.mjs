@@ -96,12 +96,7 @@ export function createPluginSyncDoctorGroup(root = process.cwd()) {
               ? "plugin source and generated artifacts are in sync"
               : `plugin sync drift detected: ${result.driftClass}`,
           observed: renderPluginSyncObserved(result),
-          remediation:
-            result.remediations.length > 0
-              ? result.remediations
-                  .map(item => `${item.path}: ${item.nextAction}`)
-                  .join(" ")
-              : undefined,
+          remediation: renderPluginSyncRemediation(result),
         },
       ],
     };
@@ -243,4 +238,42 @@ function renderPluginSyncObserved(result) {
     ? result.affectedPaths.join(", ")
     : "none";
   return `Drift class ${result.driftClass}; affected paths: ${paths}.`;
+}
+
+/**
+ * @param {import("./plugin-sync-explain.mjs").PluginSyncResult} result
+ * @returns {string | undefined}
+ */
+function renderPluginSyncRemediation(result) {
+  if (result.verdict === "PASS") {
+    return undefined;
+  }
+
+  const nextAction = pluginSyncNextAction(result.driftClass);
+  const details = result.remediations
+    .map(item => `${item.path}: ${item.nextAction}`)
+    .join(" ");
+  const explain =
+    "Run `/lisa:plugin-sync-explain` or `bun run check:plugins` for the detailed drift report.";
+
+  return [nextAction, details, explain].filter(Boolean).join(" ");
+}
+
+/**
+ * @param {string} driftClass
+ * @returns {string}
+ */
+function pluginSyncNextAction(driftClass) {
+  switch (driftClass) {
+    case "SOURCE_NOT_BUILT":
+      return "Next action: run `bun run build:plugins && bun run check:plugins`, then commit source plus regenerated plugin artifacts.";
+    case "OUT_OF_SYNC":
+      return "Next action: review source and generated plugin changes, keep `plugins/src` authoritative, then run `bun run build:plugins && bun run check:plugins`.";
+    case "GENERATED_ONLY":
+      return "Next action: move generated-only edits upstream to `plugins/src`, or remove the generated artifact drift if it should not ship.";
+    case "MARKETPLACE_REGISTRATION_DRIFT":
+      return "Next action: align marketplace registration with the built plugin manifests, or remove stale marketplace entries.";
+    default:
+      return `Next action: inspect plugin sync drift class ${driftClass}.`;
+  }
 }
