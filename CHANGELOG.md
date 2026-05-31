@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.129.8](https://github.com/CodySwannGT/lisa/compare/vv2.129.7...v2.129.8) (2026-05-31)
+
+
+### Bug Fixes
+
+* preserve Harper schema knip suppression ([b8508e8](https://github.com/CodySwannGT/lisa/commit/b8508e8abf0746d8079cbe77bb92bbd53c0a5dd0))
+
 ### [2.129.7](https://github.com/CodySwannGT/lisa/compare/vv2.129.6...v2.129.7) (2026-05-31)
 
 
