@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.129.6](https://github.com/CodySwannGT/lisa/compare/vv2.129.5...v2.129.6) (2026-05-31)
+
+
+### Bug Fixes
+
+* convert jira descriptions to adf ([bd737b5](https://github.com/CodySwannGT/lisa/commit/bd737b56c2f3104326b9f52f765d9c5b26a4d17b))
+* enforce S10 repair before PRD ticket writes ([eb58c63](https://github.com/CodySwannGT/lisa/commit/eb58c639a4c0ba9f66a7c78f63639506c8c88799))
+* request full JIRA fields in Atlassian reads ([bafb156](https://github.com/CodySwannGT/lisa/commit/bafb1562a30dfc344dbff4da9a26847ffac06c44))
+
 ### [2.129.5](https://github.com/CodySwannGT/lisa/compare/vv2.129.4...v2.129.5) (2026-05-31)
 
 
