@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.129.3](https://github.com/CodySwannGT/lisa/compare/vv2.129.2...v2.129.3) (2026-05-31)
+
+
+### Bug Fixes
+
+* **exploratory-qa:** flag contextless extracted data ([c017cda](https://github.com/CodySwannGT/lisa/commit/c017cda7fb8e351175eeb3d42d53b7b4880930ad))
+
 ### [2.129.2](https://github.com/CodySwannGT/lisa/compare/vv2.129.1...v2.129.2) (2026-05-31)
 
 
