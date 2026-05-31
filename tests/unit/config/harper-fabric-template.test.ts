@@ -6,6 +6,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+const HARPER_FABRIC_KNIP_TEMPLATE = "harper-fabric/copy-overwrite/knip.json";
 
 /**
  * Read a JSON template from the Lisa repository.
@@ -37,12 +38,22 @@ describe("Harper/Fabric templates", () => {
   });
 
   it("ignore hook-invoked binaries in Knip", () => {
-    const knip = readJson("harper-fabric/copy-overwrite/knip.json") as {
+    const knip = readJson(HARPER_FABRIC_KNIP_TEMPLATE) as {
       readonly ignoreBinaries?: readonly string[];
     };
 
     expect(knip.ignoreBinaries).toEqual(
       expect.arrayContaining(["audit", "knip"])
+    );
+  });
+
+  it("suppresses generated Harper schema row types in Knip", () => {
+    const knip = readJson(HARPER_FABRIC_KNIP_TEMPLATE) as {
+      readonly ignoreIssues?: Readonly<Record<string, readonly string[]>>;
+    };
+
+    expect(knip.ignoreIssues?.["src/types/harper-schema.ts"]).toContain(
+      "types"
     );
   });
 
@@ -76,7 +87,7 @@ describe("Harper/Fabric templates", () => {
     const oxlintMerge = readJson("harper-fabric/merge/.oxlintrc.json") as {
       readonly ignorePatterns?: readonly string[];
     };
-    const knip = readJson("harper-fabric/copy-overwrite/knip.json") as {
+    const knip = readJson(HARPER_FABRIC_KNIP_TEMPLATE) as {
       readonly ignore?: readonly string[];
     };
     const tsconfigEslint = readJson(
