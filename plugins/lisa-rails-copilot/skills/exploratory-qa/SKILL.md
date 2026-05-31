@@ -1,6 +1,6 @@
 ---
 name: exploratory-qa
-description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
+description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
 ---
 
 # Exploratory QA
@@ -68,8 +68,12 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
 - **Consistency / standard UX:** components, spacing, button styles, terminology, and interaction
   patterns should be consistent across the app and follow common conventions. Flag anything
   non-standard or that differs screen-to-screen.
-- **Load & responsiveness:** long or unclear load times, blank screens, spinners / `Loading...` /
-  `Connecting...` with no progress, anything that feels slow or janky.
+- **Load & responsiveness:** long or unclear load times, blank screens, skeleton-only shells, spinners
+  / `Loading...` / `Connecting...` with no progress, anything that feels slow or janky. Flag pages
+  where the browser reports `loaded` / `complete` but meaningful content arrives much later, or where
+  the visible shell appears quickly while the real task content remains missing. Capture user-perceived
+  timings: shell visible, first meaningful content, and stable/complete content. If the delay is
+  noticeable, file a usability/performance ticket even if the eventual content is correct.
 - **Scroll behavior:** unexpected scroll position, scroll jumps, nested or locked scroll, sticky
   elements that cover content, content that cannot be reached.
 - **Behavior correctness:** does the obvious action do what a user expects? Confusing errors, silent
@@ -86,10 +90,15 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
 
 ### 5. Watch Load & Latency
 
-- Notice time to first meaningful content and time spent in blank/loading/spinner/connecting states.
-- A page can be technically interactive but still visually incomplete — note that.
-- Treat long waits without clear progress, error, retry, or cancellation as findings. Use practical
-  labels (noticeable, slow, unacceptable) and include observed durations when available.
+- Measure separate milestones: visible app shell, `document.readyState`, first meaningful
+  route-specific content, and visually stable/full route content.
+- Do not treat a visible shell, completed document, or technically clickable page as loaded if the
+  route is still blank, skeleton-only, placeholder-only, or waiting for primary data.
+- Treat skeleton-only/placeholder-only screens as loading states. If they persist for a noticeable
+  delay, they need clear progress/loading messaging that explains what is happening.
+- Treat long waits to meaningful content or stable/full content without clear progress, error, retry,
+  or cancellation as findings. Use practical labels (noticeable, slow, unacceptable) and include
+  observed durations when available.
 
 ## Mutation Discipline
 
