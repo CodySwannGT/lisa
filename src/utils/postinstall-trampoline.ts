@@ -3,6 +3,11 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  PM_PATH_ENV_NAMES,
+  PM_PATH_ENV_PREFIXES,
+  sanitizeEnvForReconciliation,
+} from "./pm-env.js";
 
 /**
  * Env var set by npm/bun/yarn/pnpm when running lifecycle scripts (postinstall, etc.).
@@ -293,14 +298,11 @@ export async function regenerateLockfilesInProcess(
  * trampoline child then detects the parent exiting and re-runs Lisa after the
  * package manager has finished writing package.json.
  *
- * A blocking (non-detached) CI variant was previously attempted so that the
- * parent would wait for reconciliation before the next CI step ran. However,
- * this created a circular deadlock: the package manager blocks waiting for Lisa
- * (postinstall), Lisa blocks waiting for the trampoline child, and the
- * trampoline child polls `parentPid` (the package manager) waiting for it to
- * exit — a wait that can never complete. After the 120 s `MAX_WAIT_MS` timeout
- * the child exits without running reconciliation at all. Always using the
- * detached pattern avoids this deadlock and ensures reconciliation actually runs.
+ * A blocking (non-detached) CI variant was previously attempted but created a
+ * circular deadlock (PM waits for Lisa, Lisa waits for the child, the child
+ * polls `parentPid` waiting for the PM) that only resolves after the 120 s
+ * `MAX_WAIT_MS` timeout — without running reconciliation. Always detaching
+ * avoids this deadlock and ensures reconciliation actually runs.
  * @param projectDir - Absolute path to the project directory Lisa will reconcile
  * @param lisaDistDir - Absolute path to Lisa's dist directory (where index.js lives)
  * @param parentPid - PID of the package-manager process to wait on (usually process.ppid)
@@ -338,7 +340,10 @@ export async function scheduleReconciliationChild(
     detached: true,
     stdio: "ignore",
     env: {
-      ...inheritedEnv(),
+      // Strip PM path/lifecycle vars before the child inherits the env: a stale
+      // npm_config_local_prefix / INIT_CWD from a SIBLING project's concurrent
+      // install would otherwise redirect the re-run to the wrong project. See pm-env.ts.
+      ...sanitizeEnvForReconciliation(inheritedEnv()),
       // Prevent the child from seeing package-manager lifecycle env vars that would
       // make it think it's a lifecycle script (breaks isRunningAsLifecycleScript).
       [LIFECYCLE_ENV_VAR]: "",
@@ -408,6 +413,8 @@ function buildTrampolineSource(params: TrampolineSourceParams): string {
     nodeBin: JSON.stringify(params.nodeBin),
     trampolineEnvVar: JSON.stringify(params.trampolineEnvVar),
     lockfilePlans: JSON.stringify(params.lockfileRegenPlans),
+    pmEnvPrefixes: JSON.stringify(PM_PATH_ENV_PREFIXES),
+    pmEnvNames: JSON.stringify(PM_PATH_ENV_NAMES),
   } as const;
 
   return [
@@ -423,10 +430,14 @@ function buildTrampolineSource(params: TrampolineSourceParams): string {
  * cap enforced by eslint.
  * @param literals - Inlined JSON-safe literals
  * @param literals.lockfilePlans - JSON-serialized lockfile plan table
+ * @param literals.pmEnvPrefixes - JSON-serialized package-manager env var prefixes to strip
+ * @param literals.pmEnvNames - JSON-serialized package-manager env var names to strip
  * @returns JS source fragment
  */
 function buildTrampolinePrelude(literals: {
   readonly lockfilePlans: string;
+  readonly pmEnvPrefixes: string;
+  readonly pmEnvNames: string;
 }): string {
   return `
     const { spawn } = require("node:child_process");
@@ -435,6 +446,13 @@ function buildTrampolinePrelude(literals: {
     const path = require("node:path");
 
     const LOCKFILE_PLANS = ${literals.lockfilePlans};
+    const PM_ENV_PREFIXES = ${literals.pmEnvPrefixes};
+    const PM_ENV_NAMES = ${literals.pmEnvNames};
+    // Strip PM path/lifecycle vars from spawned bun/Lisa env. Mirrors pm-env.ts.
+    function sanitizeEnv(env) {
+      const bad = (k) => PM_ENV_NAMES.indexOf(k) !== -1 || PM_ENV_PREFIXES.some((p) => k.startsWith(p));
+      return Object.fromEntries(Object.entries(env).filter(([k]) => !bad(k)));
+    }
   `;
 }
 
@@ -494,7 +512,7 @@ function buildTrampolineHelpers(literals: {
           const child = spawn(command, args, {
             cwd: ${literals.projectDir},
             stdio: "ignore",
-            env: Object.assign({}, process.env, { [${literals.trampolineEnvVar}]: "1" }),
+            env: Object.assign(sanitizeEnv(process.env), { [${literals.trampolineEnvVar}]: "1" }),
           });
           child.on("exit", (code) => resolve(code === 0));
           child.on("error", () => resolve(false));
