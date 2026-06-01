@@ -295,3 +295,13 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot and index for the prior wiki ingest merge, `/goal-style` verification gate, update-projects flow documentation, hook-bypass hardening, apply-subcommand split, and release-history changes through `2.132.0`.
+
+## 2026-06-01 - Incremental connector ingest
+
+- Synced the checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch onto `origin/main` without conflicts, then created `wiki/ingest-20260601T131638Z` from synced `origin/main` for this ingestion PR.
+- Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T131648Z.md` and `wiki/sources/roles/2026-06-01-roles-previous-20260601T131648Z.md` before refreshing the current `2026-06-01` connector notes.
+- Refreshed the `git` source note with 10 new commits through `051395c3030248688fca35be2145ccf36c8fac08`, advanced the merged-PR cursor to `#1121`, and captured the release line through Lisa `2.132.3`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Corrected an initial probe invocation of the git connector that ran without `--state`; the over-broad generated note was not committed, and the connector was rerun with `wiki/state/git/latest.json` before state advancement.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge, block-no-verify hook test de-flaking, self-update release activity, and release-history changes through `2.132.3`.
