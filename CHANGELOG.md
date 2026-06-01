@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.133.0](https://github.com/CodySwannGT/lisa/compare/vv2.132.7...v2.133.0) (2026-06-01)
+
+
+### Features
+
+* **cli:** add setup-project command ([6727f90](https://github.com/CodySwannGT/lisa/commit/6727f901c7afe23c76e58aedba5af520c97657b4))
+
 ### [2.132.7](https://github.com/CodySwannGT/lisa/compare/vv2.132.6...v2.132.7) (2026-06-01)
 
 
