@@ -822,6 +822,16 @@ describe("PackageLisaStrategy", () => {
       const template = readExpoTemplate();
       // Pure JS tooling stays forced (governance-critical).
       expect(template.force.dependencies["@apollo/client"]).toBeDefined();
+      // The forced apollo-link-sentry range must stay on the 3.x line so its
+      // `@apollo/client` peer (`^3.2.3`) is satisfiable by the forced
+      // `@apollo/client` major (v3). apollo-link-sentry 4.5.0 bumped that peer
+      // to `@apollo/client@^4.0.10`, so a `^4.0.0` pin let a fresh, lockfile-less
+      // Expo install resolve an apollo pair where SentryLink fails to typecheck
+      // against @apollo/client v3 (blocked expostarter).
+      expect(template.force.dependencies["@apollo/client"]).toMatch(/^\^?3\./);
+      expect(template.force.dependencies["apollo-link-sentry"]).toMatch(
+        /^\^?3\./
+      );
       expect(template.force.dependencies["zod"]).toBeDefined();
       expect(template.force.dependencies["tailwindcss"]).toBeDefined();
       expect(template.force.devDependencies["jest"]).toBeDefined();
