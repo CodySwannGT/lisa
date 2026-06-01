@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.132.5](https://github.com/CodySwannGT/lisa/compare/vv2.132.4...v2.132.5) (2026-06-01)
+
+
+### Bug Fixes
+
+* require two-way PR ticket links ([914f8bd](https://github.com/CodySwannGT/lisa/commit/914f8bd0c599e83189f1e2d16d6c414c941ffd19))
+
 ### [2.132.4](https://github.com/CodySwannGT/lisa/compare/vv2.132.3...v2.132.4) (2026-06-01)
 
 
