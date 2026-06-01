@@ -21,7 +21,6 @@
       "prepare": "husky install || true"
     },
     "dependencies": {
-      "cheerio": "^1.1.2",
       "harperdb": "^4.7.29"
     },
     "devDependencies": {
@@ -76,23 +75,8 @@
       "build": "tsc && node dist/build/build.js",
       "seed": "bun run build && node dist/scripts/seed.js",
       "verify": "bun run build && node dist/scripts/verify.js",
-      "seed:rest": "bun run build && node dist/scripts/seed_via_rest.js",
-      "verify:rest": "bun run build && node dist/scripts/verify_via_rest.js",
-      "preview": "bun run build && node dist/scripts/preview_feed.js",
       "dev:server": "bun run build && node dist/scripts/dev_server.js",
-      "deploy": "bun run build && node dist/scripts/deploy.js",
-      "smoke": "bun run build && bun tests/web_smoke.ts",
-      "smoke:brokercheck": "bun run build && bun tests/brokercheck_web_smoke.ts",
-      "token": "bun run build && node dist/scripts/get_token.js",
-      "crawl:wpjson": "bun run build && node dist/scripts/crawl_via_wpjson.js",
-      "crawl:html": "bun run build && node dist/scripts/crawl_html.js",
-      "crawl:playwright": "bun run build && node dist/scripts/crawl_playwright.js",
-      "extract:fields": "bun run build && node dist/scripts/extract_fields.js",
-      "extract:helper": "bun run build && node dist/scripts/extract_helper.js",
-      "ingest": "bun run build && node dist/scripts/ingest.js",
-      "load:extractions": "bun run build && node dist/scripts/load_extractions.js",
-      "brokercheck": "bun run build && node dist/scripts/fetch_brokercheck.js",
-      "brokercheck:crawl": "bun run build && node dist/scripts/brokercheck_crawl_all.js"
+      "deploy": "bun run build && node dist/scripts/deploy.js"
     }
   }
 }
