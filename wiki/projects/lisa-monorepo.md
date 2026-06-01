@@ -20,16 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260531T181521Z` created from synced `origin/main`
-- HEAD at 2026-05-31 incremental ingest: `e79fc5b8671c44326ac339b13012dab9300f6167`
-- Current package version: `2.130.3`
-- Total commits on HEAD: 2719
-- Latest merged PR captured in the incremental git snapshot: `#1112`
-- New commits since the previous incremental git cursor: `10`
+- Ingest branch: `wiki/ingest-20260601T021727Z` created from synced `origin/main`
+- HEAD at 2026-06-01 incremental ingest: `e22f996a4a35759f4f37c003ddb1dc7eeabcef72`
+- Current package version: `2.130.4`
+- Total commits on HEAD: 2722
+- Latest merged PR captured in the incremental git snapshot: `#1113`
+- New commits since the previous incremental git cursor: `3`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.130.4`.
+- PR `#1113` merged the prior wiki ingestion through Lisa `2.130.3`.
 - Release automation advanced the monorepo to `2.130.3`.
 - The automation checkout fetched `origin`, rebased the current wiki branch onto `origin/main` without conflicts, and created `wiki/ingest-20260531T181521Z` from synced `origin/main` before this 2026-05-31 ingest.
 - PR `#1112` fixed repair-intake blocker cleanup so `is-blocked-by` dependencies are cleared when any environment-staged work is done, not only production-staged work.
@@ -108,6 +110,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git-previous-20260531T141521Z.md`
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git-previous-20260531T181525Z.md`
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-01-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -125,3 +128,4 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-31-roles-previous-20260531T141521Z.md`
 - `wiki/sources/roles/2026-05-31-roles-previous-20260531T181525Z.md`
 - `wiki/sources/roles/2026-05-31-roles.md`
+- `wiki/sources/roles/2026-06-01-roles.md`
