@@ -801,12 +801,18 @@ describe("PackageLisaStrategy", () => {
           expect(template.force.dependencies[pkg]).toBeUndefined();
         }
       }
-      // SDK-coupled devDependencies (jest-expo, react-test-renderer) are defaults.
+      // SDK-coupled jest-expo stays a default (never forced).
       expect(template.defaults.devDependencies["jest-expo"]).toBeDefined();
       expect(template.force.devDependencies["jest-expo"]).toBeUndefined();
+      // react-test-renderer must NOT be pinned by Lisa at all. @testing-library/
+      // react-native v13 requires react-test-renderer to match the project's
+      // installed React exactly, and jest-expo already brings the matched version
+      // transitively (54 → 19.1.0, 56 → 19.2.3). A hardcoded default (e.g. 19.2.3)
+      // would override jest-expo's 19.1.0 on an SDK-54 project and break its test
+      // suite with "Expected 19.1.0, but found 19.2.3".
       expect(
         template.defaults.devDependencies["react-test-renderer"]
-      ).toBeDefined();
+      ).toBeUndefined();
       expect(
         template.force.devDependencies["react-test-renderer"]
       ).toBeUndefined();

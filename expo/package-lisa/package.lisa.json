@@ -167,8 +167,7 @@
       "@types/react": "~19.2.15",
       "@types/react-dom": "~19.2.3",
       "expo-atlas": "^0.4.0",
-      "jest-expo": "~56.0.4",
-      "react-test-renderer": "19.2.3"
+      "jest-expo": "~56.0.4"
     }
   }
 }

@@ -31,6 +31,8 @@
  * @see https://github.com/expo/expo/issues/40184
  * @module configs/jest/expo
  */
+import { createRequire } from "node:module";
+
 import type { Config } from "jest";
 
 import {
@@ -49,6 +51,49 @@ export {
   mergeThresholds,
   worktreeTestPathIgnorePatterns,
 };
+
+/**
+ * SDK 56 / RN 0.85 relocated the React Native Jest resolver. On SDK 56 it
+ * lives at `@react-native/jest-preset/jest/resolver.js`; on SDK 54 / RN 0.81
+ * `@react-native/jest-preset` is not installed and the resolver still lives at
+ * `react-native/jest/resolver.js`. Picking the wrong one aborts Jest with a
+ * "module not found" error, so the choice must be made against what the
+ * consuming project actually has installed.
+ */
+const SDK56_RESOLVER = "@react-native/jest-preset/jest/resolver.js";
+const LEGACY_RESOLVER = "react-native/jest/resolver.js";
+
+/**
+ * Predicate that reports whether a module specifier can be resolved from the
+ * consuming project. Mirrors the runtime auto-detection style this factory
+ * already uses (e.g. `existsSync` for the `/src` convention) and is injectable
+ * so the choice can be exercised in tests without an installed RN toolchain.
+ * @param specifier - The module specifier to attempt to resolve.
+ * @returns `true` when the specifier resolves from the project's `node_modules`.
+ */
+const canResolveFromProject = (specifier: string): boolean => {
+  // Resolve relative to the consuming project's CWD (where Jest runs) rather
+  // than Lisa's own `node_modules`, so hoisted/nested installs are honored.
+  const projectRequire = createRequire(`${process.cwd()}/noop.js`);
+  try {
+    projectRequire.resolve(specifier);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Selects the React Native Jest resolver path appropriate for the installed
+ * Expo SDK. Prefers the SDK 56 location when `@react-native/jest-preset` is
+ * present, otherwise falls back to the SDK 54 location.
+ * @param canResolve - Resolution predicate (defaults to a real project-scoped
+ * `require.resolve` check); injectable for testing both SDKs.
+ * @returns The resolver module path for the project's installed SDK.
+ */
+export const selectExpoJestResolver = (
+  canResolve: (specifier: string) => boolean = canResolveFromProject
+): string => (canResolve(SDK56_RESOLVER) ? SDK56_RESOLVER : LEGACY_RESOLVER);
 
 /**
  * Options for configuring the Expo Jest config factory.
@@ -85,11 +130,11 @@ export const getExpoJestConfig = ({
     defaultPlatform: "ios",
     platforms: ["android", "ios", "native"],
   },
-  // SDK 56 / RN 0.85 relocated the React Native Jest resolver out of
-  // `react-native/jest/resolver.js` and into `@react-native/jest-preset`.
-  // This resolver is what teaches Jest to resolve platform-extension files
+  // This resolver teaches Jest to resolve platform-extension files
   // (`.ios`/`.native`/`.web`); without it those variants do not resolve.
-  resolver: "@react-native/jest-preset/jest/resolver.js",
+  // Its location moved between SDK 54 and SDK 56, so the path is chosen at
+  // config-build time against what the consuming project has installed.
+  resolver: selectExpoJestResolver(),
   setupFiles: ["<rootDir>/jest.setup.pre.js"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   transform: {
