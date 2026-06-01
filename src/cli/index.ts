@@ -1,10 +1,13 @@
 import { Command } from "commander";
 import { runApply } from "./apply.js";
+import { runDoctor } from "./doctor.js";
 import { printUpdateWarning } from "./print-update-warning.js";
 import { runSetupProject } from "./setup-project.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
+import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
+import { runVersion } from "./version-cmd.js";
 import { getPackageVersion } from "./version.js";
 
 /**
@@ -17,6 +20,12 @@ export interface ProgramDependencies {
   runApply: typeof runApply;
   /** Creates a starter-backed project and applies Lisa overlays. */
   runSetupProject: typeof runSetupProject;
+  /** Prints Lisa CLI version metadata. */
+  runVersion: typeof runVersion;
+  /** Prints or runs the package-manager update command. */
+  runUpdate: typeof runUpdate;
+  /** Diagnoses Lisa project health. */
+  runDoctor: typeof runDoctor;
   /** Runs the non-fatal npm update check (defaults to {@link runUpdateCheck}). */
   runUpdateCheck: typeof runUpdateCheck;
   /** Prints the update warning (defaults to {@link printUpdateWarning}). */
@@ -26,9 +35,55 @@ export interface ProgramDependencies {
 const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runApply,
   runSetupProject,
+  runVersion,
+  runUpdate,
+  runDoctor,
   runUpdateCheck,
   printUpdateWarning,
 };
+
+/**
+ * Register CLI maintenance commands that do not run the root update warning.
+ * @param program - Commander program to mutate
+ * @param deps - Program dependencies
+ * @returns The same Commander program
+ */
+function addMaintenanceCommands(
+  program: Command,
+  deps: ProgramDependencies
+): Command {
+  program
+    .command("version")
+    .description("Print Lisa CLI version info")
+    .action(async () => {
+      await deps.runVersion();
+    });
+
+  program
+    .command("update")
+    .description(
+      "Print (or run with --yes) the recommended package-manager update command"
+    )
+    .option("--yes", "Execute the update command after printing it")
+    .action(async (options: { yes?: boolean }) => {
+      const code = await deps.runUpdate(options);
+      if (code !== 0) {
+        process.exitCode = code;
+      }
+    });
+
+  program
+    .command("doctor")
+    .description("Diagnose Lisa, project, starter, and wiki health")
+    .argument("[path]", "Project path to inspect")
+    .option("--json", "Emit JSON")
+    .option("--offline", "Skip network checks")
+    .action(async (targetPath: string | undefined, options) => {
+      await deps.runDoctor(targetPath, options);
+    });
+
+  return program;
+}
 
 /**
  * Create and configure the CLI program.
@@ -60,7 +115,10 @@ export function createProgram(
 
   // Run the npm update-check once per invocation, before the matched action.
   // It is non-fatal: a failed check never blocks the action from running.
-  program.hook("preAction", async () => {
+  program.hook("preAction", async (_thisCommand, actionCommand) => {
+    if (["doctor", "update", "version"].includes(actionCommand.name())) {
+      return;
+    }
     if (program.opts().updateCheck === false) {
       return;
     }
@@ -99,6 +157,8 @@ export function createProgram(
       await deps.runSetupProject(destination, options);
     }
   );
+
+  addMaintenanceCommands(program, deps);
 
   return program;
 }

@@ -21,16 +21,25 @@ function createTestProgram(): {
   program: ReturnType<typeof createProgram>;
   runApply: ReturnType<typeof vi.fn>;
   runSetupProject: ReturnType<typeof vi.fn>;
+  runVersion: ReturnType<typeof vi.fn>;
+  runUpdate: ReturnType<typeof vi.fn>;
+  runDoctor: ReturnType<typeof vi.fn>;
   runUpdateCheck: ReturnType<typeof vi.fn>;
   printUpdateWarning: ReturnType<typeof vi.fn>;
 } {
   const runApply = vi.fn(async () => undefined);
   const runSetupProject = vi.fn(async () => undefined);
+  const runVersion = vi.fn(async () => undefined);
+  const runUpdate = vi.fn(async () => 0);
+  const runDoctor = vi.fn(async () => ({ checks: [] }));
   const runUpdateCheck = vi.fn(async () => SKIPPED_RESULT);
   const printUpdateWarning = vi.fn();
   const program = createProgram({
     runApply,
     runSetupProject,
+    runVersion,
+    runUpdate,
+    runDoctor,
     runUpdateCheck,
     printUpdateWarning,
   }).exitOverride();
@@ -38,6 +47,9 @@ function createTestProgram(): {
     program,
     runApply,
     runSetupProject,
+    runVersion,
+    runUpdate,
+    runDoctor,
     runUpdateCheck,
     printUpdateWarning,
   };
@@ -61,6 +73,14 @@ describe("createProgram", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
     expect(subcommandNames).toContain("setup-project");
+  });
+
+  it("registers version, update, and doctor subcommands", () => {
+    const { program } = createTestProgram();
+    const subcommandNames = program.commands.map(command => command.name());
+    expect(subcommandNames).toEqual(
+      expect.arrayContaining(["version", "update", "doctor"])
+    );
   });
 
   it("exposes the root --no-update-check option", () => {
@@ -144,6 +164,14 @@ describe("update-check pre-action hook", () => {
 
     expect(runUpdateCheck).not.toHaveBeenCalled();
   });
+
+  it("does not run the root update warning for maintenance commands", async () => {
+    const { program, runUpdateCheck } = createTestProgram();
+
+    await program.parseAsync(["version"], { from: "user" });
+
+    expect(runUpdateCheck).not.toHaveBeenCalled();
+  });
 });
 
 describe("setup-project invocation", () => {
@@ -162,6 +190,39 @@ describe("setup-project invocation", () => {
         yes: true,
         harness: "codex",
       })
+    );
+  });
+});
+
+describe("maintenance command invocation", () => {
+  it("routes version to the version action", async () => {
+    const { program, runVersion } = createTestProgram();
+
+    await program.parseAsync(["version"], { from: "user" });
+
+    expect(runVersion).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes update --yes to the update action", async () => {
+    const { program, runUpdate } = createTestProgram();
+
+    await program.parseAsync(["update", "--yes"], { from: "user" });
+
+    expect(runUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ yes: true })
+    );
+  });
+
+  it("routes doctor options to the doctor action", async () => {
+    const { program, runDoctor } = createTestProgram();
+
+    await program.parseAsync(["doctor", DEST, "--json", "--offline"], {
+      from: "user",
+    });
+
+    expect(runDoctor).toHaveBeenCalledWith(
+      DEST,
+      expect.objectContaining({ json: true, offline: true })
     );
   });
 });

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { CommanderError } from "commander";
 import { createProgram } from "./cli/index.js";
 
 /**
@@ -12,7 +13,16 @@ import { createProgram } from "./cli/index.js";
  */
 async function main(): Promise<void> {
   const program = createProgram();
-  await program.parseAsync();
+  program.exitOverride();
+  try {
+    await program.parseAsync();
+  } catch (error) {
+    if (error instanceof CommanderError) {
+      process.exitCode = error.exitCode;
+      return;
+    }
+    throw error;
+  }
 }
 
 main().catch(error => {
