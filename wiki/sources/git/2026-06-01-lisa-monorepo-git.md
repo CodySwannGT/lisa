@@ -11,30 +11,19 @@ project: lisa-monorepo
 # git history — lisa-monorepo (2026-06-01)
 
 - Repo: `/Users/cody/.codex/worktrees/lisa-automation-main`
-- HEAD: `da197ad3f677bcb4c95ce1811c21f26330770bad`
-- Total commits on HEAD: 2743
-- New commits since last ingest (`e22f996a4a35759f4f37c003ddb1dc7eeabcef72`): 21
-- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #1118 "feat(hooks): block HUSKY=0 and core.hooksPath hook-bypass vectors"
+- HEAD: `051395c3030248688fca35be2145ccf36c8fac08`
+- Total commits on HEAD: 2753
+- New commits since last ingest (`da197ad3f677bcb4c95ce1811c21f26330770bad`): 10
+- Merged PRs: 20 recent merged PR(s) in CodySwannGT/lisa; latest #1121 "chore: upgrade @codyswann/lisa to 2.132.2 (self-update)"
 
 ## New commits
-- da197ad3 · 2026-06-01 · chore(release): 2.132.0 [skip ci]
-- 045fdeca · 2026-05-31 · Merge pull request #1118 from CodySwannGT/claude/suspicious-solomon-23e2f6
-- 577ed819 · 2026-06-01 · chore(release): 2.131.0 [skip ci]
-- c8bb95c6 · 2026-06-01 · Merge branch 'main' into claude/suspicious-solomon-23e2f6
-- f12b8bb1 · 2026-05-31 · feat(hooks): block HUSKY=0 and core.hooksPath hook-bypass vectors
-- 5f5a4db1 · 2026-05-31 · Merge pull request #1117 from CodySwannGT/claude/sleepy-moore-c1a7d9
-- 5439e51f · 2026-06-01 · chore(release): 2.130.7 [skip ci]
-- bbe01f58 · 2026-06-01 · Merge branch 'main' into claude/sleepy-moore-c1a7d9
-- 6da1ef79 · 2026-05-31 · Merge pull request #1116 from CodySwannGT/claude/great-bose-57be70
-- 7945eefb · 2026-06-01 · Merge branch 'main' into claude/sleepy-moore-c1a7d9
-- 4bfa0673 · 2026-05-31 · feat(implement): add /goal-style non-bypassable verification gate
-- 4e44175f · 2026-06-01 · Merge branch 'main' into claude/great-bose-57be70
-- 32efd248 · 2026-05-31 · docs(lisa-update-projects): use .lisa.workspaces.json and clarify worktree/PR flow
-- d6573d74 · 2026-06-01 · chore(release): 2.130.6 [skip ci]
-- 8ee2e3a2 · 2026-05-31 · Merge pull request #1114 from CodySwannGT/claude/pedantic-wright-21a442
-- 95d75358 · 2026-06-01 · chore(release): 2.130.5 [skip ci]
-- 637a7e0e · 2026-06-01 · Merge branch 'main' into claude/pedantic-wright-21a442
-- 1a564423 · 2026-05-31 · Merge pull request #1115 from CodySwannGT/wiki/ingest-20260601T021727Z
-- f907edfe · 2026-06-01 · Merge branch 'main' into claude/pedantic-wright-21a442
-- e3e8fcf9 · 2026-05-31 · docs(wiki): ingest Lisa history through 2.130.4
-- ef10caad · 2026-05-31 · refactor(cli): split runLisa into apply subcommand + positional default
+- 051395c3 · 2026-06-01 · chore(release): 2.132.3 [skip ci]
+- 347b6c03 · 2026-06-01 · Merge pull request #1121 from CodySwannGT/chore/lisa-update-2026-06-01
+- 53986398 · 2026-06-01 · chore: upgrade @codyswann/lisa to 2.132.2 (self-update)
+- d8155a0a · 2026-06-01 · chore(release): 2.132.2 [skip ci]
+- 0cbd8442 · 2026-06-01 · Merge pull request #1120 from CodySwannGT/claude/romantic-einstein-5c1d56
+- db96d173 · 2026-06-01 · Merge branch 'main' into claude/romantic-einstein-5c1d56
+- 7c65100c · 2026-06-01 · chore(release): 2.132.1 [skip ci]
+- bb313803 · 2026-06-01 · Merge pull request #1119 from CodySwannGT/wiki/ingest-20260601T061639Z
+- 8e9ed413 · 2026-05-31 · docs(wiki): ingest Lisa history through 2.132.0
+- 8e767d5d · 2026-05-31 · test(agy): de-flake block-no-verify hook test under parallel coverage load
