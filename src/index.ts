@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 
 import { createProgram } from "./cli/index.js";
-import { printUpdateWarning } from "./cli/print-update-warning.js";
-import { runUpdateCheck } from "./cli/update-check.js";
 
 /**
  * Run the Lisa CLI entrypoint.
+ *
+ * The npm update-check now runs inside the program's `preAction` hook (wired in
+ * {@link createProgram}) so it fires exactly once per invocation before the
+ * matched action, for every subcommand and the positional default alike.
  * @returns Promise that resolves after Commander completes
  */
 async function main(): Promise<void> {
-  const updateCheck = await runUpdateCheck();
   const program = createProgram();
-
-  printUpdateWarning(updateCheck);
   await program.parseAsync();
 }
 
