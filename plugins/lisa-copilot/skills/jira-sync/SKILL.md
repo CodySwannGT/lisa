@@ -12,6 +12,8 @@ Sync current plan progress to JIRA ticket: $ARGUMENTS
 
 If no argument provided, search for a ticket URL in the active plan file (most recently modified `.md` in `plans/`).
 
+Optional arguments include `pr_url=<url>` for the live pull request and `merge_sha=<sha>` once merged.
+
 ## Workflow
 
 ### Step 1: Identify Ticket and Context
@@ -47,6 +49,16 @@ Before adding a comment, check for an existing milestone comment to avoid duplic
    - Add branch name to a custom field or comment
    - Add PR link to a custom field or comment
 5. **Report** what was synced to the user
+
+### Step 3b: Ensure PR Backlink
+
+When `$ARGUMENTS` includes `pr_url=<url>` for `PR ready` or `PR merged`, ensure the JIRA ticket has a durable ticket -> PR link:
+
+1. Prefer the JIRA development-link surface when the site's GitHub/JIRA integration or remote-link API is available through `lisa:atlassian-access`; verify by re-reading the ticket's remote links / development metadata.
+2. If native linkage is unavailable, unconfigured, cross-system, or cannot be verified, create or update a single managed JIRA comment containing the PR URL. The comment must start with `[lisa-pr-link]` and include the milestone (`pr-ready` or `pr-merged`) and merge SHA when available.
+3. Keep the fallback idempotent: read existing comments, find the `[lisa-pr-link]` comment for the same PR URL, and update/skip it instead of appending duplicates. If the current access layer cannot update comments in place, skip when an identical managed comment already exists and otherwise add exactly one replacement comment with the stable marker.
+
+The PR body/branch issue key is the PR -> ticket side. This step is the required ticket -> PR side.
 
 ### Step 4: Suggest Status Transition
 

@@ -31,6 +31,7 @@ This skill **suggests** transitions but does not auto-transition the native Line
 
 - `<IDENTIFIER>` is the Linear Issue identifier (e.g. `ENG-123`). If not provided, the skill searches the active plan file for a linked Linear Issue.
 - `<milestone>` is one of `plan-created`, `implementation-in-progress`, `pr-ready`, `pr-merged`.
+- Optional tokens include `pr_url=<url>` for the live pull request and `merge_sha=<sha>` once merged.
 
 ## Phase 1 — Resolve Issue
 
@@ -65,6 +66,16 @@ Next: implementation begins. Suggested status: **Todo** (label: `status:ready`).
 ## Phase 3 — Post Comment
 
 Call `mcp__linear-server__save_comment({issueId: <id>, body: <comment>})`.
+
+## Phase 3b — Ensure PR Backlink
+
+When `$ARGUMENTS` includes `pr_url=<url>` for `pr-ready` or `pr-merged`, ensure the Linear Issue has a durable ticket -> PR link:
+
+1. Prefer Linear's native GitHub attachment / pull request link when the integration has attached the PR through the branch name, PR title, or PR body issue identifier. Verify by re-reading the Issue and its attachments / relations where the Linear access layer exposes them.
+2. If native linkage is unavailable, unconfigured, cross-system, or cannot be verified, create or update a single managed Linear comment containing the PR URL. The comment must start with `[lisa-pr-link]` and include the milestone (`pr-ready` or `pr-merged`) and merge SHA when available.
+3. Keep the fallback idempotent: read existing comments where the access layer exposes them, find the `[lisa-pr-link]` comment for the same PR URL, and update/skip it instead of appending duplicates. If comment update is unavailable, skip when an identical managed comment already exists and otherwise add exactly one replacement comment with the stable marker.
+
+The PR branch/title/body identifier is the PR -> Linear side. This phase is the required Linear -> PR side.
 
 ## Phase 4 — Update Status Label (when caller requests)
 
@@ -113,3 +124,4 @@ When the caller passes `--rollup`, this skill **derives a parent/container's `st
 - Never post empty or minimal comments — if a milestone has no meaningful content, skip the post.
 - Do not delete prior milestone comments. They are the audit trail.
 - If `save_comment` fails, retry once. If it fails again, surface the error.
+- Pull request backlinks are mandatory when `pr_url=<url>` is present: native first, managed-comment fallback, never silently dropped.
