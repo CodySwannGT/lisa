@@ -1,7 +1,9 @@
 import { Command } from "commander";
 import { runApply } from "./apply.js";
 import { printUpdateWarning } from "./print-update-warning.js";
+import { runSetupProject } from "./setup-project.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
+import { SETUP_TYPES } from "./starters.js";
 import { runUpdateCheck } from "./update-check.js";
 import { getPackageVersion } from "./version.js";
 
@@ -13,6 +15,8 @@ import { getPackageVersion } from "./version.js";
 export interface ProgramDependencies {
   /** Applies Lisa to a destination (defaults to the real {@link runApply}). */
   runApply: typeof runApply;
+  /** Creates a starter-backed project and applies Lisa overlays. */
+  runSetupProject: typeof runSetupProject;
   /** Runs the non-fatal npm update check (defaults to {@link runUpdateCheck}). */
   runUpdateCheck: typeof runUpdateCheck;
   /** Prints the update warning (defaults to {@link printUpdateWarning}). */
@@ -21,6 +25,7 @@ export interface ProgramDependencies {
 
 const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runApply,
+  runSetupProject,
   runUpdateCheck,
   printUpdateWarning,
 };
@@ -76,6 +81,24 @@ export function createProgram(
   ).action(async (destination: string | undefined, options: CLIOptions) => {
     await deps.runApply(destination, options);
   });
+
+  addSharedOptions(
+    program
+      .command("setup-project")
+      .description("Create a new Lisa-managed project from a starter repo")
+      .requiredOption(
+        "--type <type>",
+        `Project type: ${SETUP_TYPES.join(" | ")}`
+      )
+      .argument("[destination]", "Project name or path (default: ./<type>-app)")
+  ).action(
+    async (
+      destination: string | undefined,
+      options: CLIOptions & { type?: string }
+    ) => {
+      await deps.runSetupProject(destination, options);
+    }
+  );
 
   return program;
 }
