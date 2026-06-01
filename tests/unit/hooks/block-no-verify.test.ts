@@ -1,10 +1,12 @@
 /**
  * Tests for the block-no-verify.sh hook behavior.
  *
- * The hook blocks any Bash command containing --no-verify to prevent
- * bypassing pre-commit/pre-push hooks. It must match all syntactic
- * positions of --no-verify (standalone, in subshells, etc.) while
- * excluding longer flags like --no-verify-ssl.
+ * The hook blocks Bash commands that bypass pre-commit/pre-push hooks via the
+ * --no-verify long flag, HUSKY=0 / HUSKY_SKIP_HOOKS= (disables husky hooks), or
+ * core.hooksPath pointed at /dev/null or set empty (disables all git hooks). It
+ * must match all syntactic positions (standalone, in subshells, etc.) while
+ * excluding longer flags (--no-verify-ssl) and legit values (HUSKY=1,
+ * core.hooksPath=.husky). The short `-n` form is intentionally NOT matched.
  * @module tests/unit/hooks/block-no-verify
  */
 import { spawnSync } from "child_process";
@@ -79,9 +81,72 @@ describe("block-no-verify.sh", () => {
     });
   });
 
+  describe("blocks husky-disabling env bypasses", () => {
+    it("blocks HUSKY=0 prefix", () => {
+      const { status } = runHook("Bash", 'HUSKY=0 git commit -m "bypass"');
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("blocks HUSKY_SKIP_HOOKS=1 prefix", () => {
+      const { status } = runHook(
+        "Bash",
+        'HUSKY_SKIP_HOOKS=1 git commit -m "bypass"'
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+  });
+
+  describe("blocks core.hooksPath-disabling bypasses", () => {
+    it("blocks core.hooksPath pointed at /dev/null", () => {
+      const { status } = runHook(
+        "Bash",
+        'git -c core.hooksPath=/dev/null commit -m "bypass"'
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("blocks git config setting core.hooksPath to /dev/null", () => {
+      const { status } = runHook("Bash", "git config core.hooksPath /dev/null");
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("blocks core.hooksPath set empty", () => {
+      const { status } = runHook(
+        "Bash",
+        "git -c core.hooksPath= commit -m bypass"
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+  });
+
   describe("allows commands without --no-verify", () => {
     it("allows git commit without --no-verify", () => {
       const { status } = runHook("Bash", 'git commit -m "normal commit"');
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("allows the short -n flag (intentionally not guarded)", () => {
+      // Parity with .agy.sh: guarding -n false-positives on commit-message
+      // prose and unrelated piped commands, so only --no-verify is matched.
+      const { status } = runHook("Bash", 'git commit -n -m "wip"');
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("allows HUSKY=1 (enabling husky)", () => {
+      const { status } = runHook("Bash", 'HUSKY=1 git commit -m "normal"');
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("allows a legit custom core.hooksPath", () => {
+      const { status } = runHook(
+        "Bash",
+        'git -c core.hooksPath=.husky commit -m "normal"'
+      );
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("allows unsetting core.hooksPath", () => {
+      const { status } = runHook("Bash", "git config --unset core.hooksPath");
       expect(status).toBe(EXIT_ALLOWED);
     });
 
