@@ -34,6 +34,10 @@ describe("starter registry", () => {
   });
 
   it("resolves a starter by setup type", () => {
-    expect(resolveStarter("rails")).toEqual(STARTERS.rails);
+    expect(resolveStarter("rails")).toEqual({
+      owner: "CodySwannGT",
+      repo: "railsstarter",
+      template: true,
+    });
   });
 });
