@@ -30,6 +30,7 @@ import {
   scheduleReconciliationChild,
   shouldSchedulePostinstallReconciliation,
 } from "../../../src/utils/postinstall-trampoline.js";
+import { sanitizeEnvForReconciliation } from "../../../src/utils/pm-env.js";
 
 // Use project-local paths (not /tmp/*) to avoid sonarjs's publicly-writable-directory
 // warnings. These are never actually read/written — they are fixtures passed to
@@ -47,6 +48,11 @@ const YARN_LOCK = "yarn.lock";
 const IGNORE_SCRIPTS = "--ignore-scripts";
 const INSTALL_CMD = "install";
 const PACKAGE_JSON = "package.json";
+
+// A sibling project's directory, used to simulate the poisoned env a concurrent
+// install leaves behind (the cross-project corruption regression). Named so the
+// duplicate string does not trip sonarjs/no-duplicate-string.
+const SIBLING_PROJECT_DIR = "/Users/dev/workspace/advisory-rankings";
 
 /**
  * Type alias for the spawn DI seam used in scheduleReconciliationChild and
@@ -384,6 +390,50 @@ describe("postinstall-trampoline", () => {
     });
   });
 
+  describe("sanitizeEnvForReconciliation", () => {
+    it("removes all package-manager path/lifecycle vars while keeping the rest", () => {
+      const result = sanitizeEnvForReconciliation({
+        PATH: "/usr/bin",
+        HOME: "/Users/dev",
+        npm_config_local_prefix: SIBLING_PROJECT_DIR,
+        npm_config_registry: "https://registry.npmjs.org",
+        npm_package_name: "advisory-rankings",
+        npm_package_json: `${SIBLING_PROJECT_DIR}/package.json`,
+        npm_lifecycle_event: "postinstall",
+        INIT_CWD: SIBLING_PROJECT_DIR,
+        npm_execpath: "/opt/homebrew/bin/bun",
+        PROJECT_CWD: SIBLING_PROJECT_DIR,
+      });
+
+      // Non-PM vars survive.
+      expect(result.PATH).toBe("/usr/bin");
+      expect(result.HOME).toBe("/Users/dev");
+      // Every PM path/lifecycle var is stripped.
+      expect(result.npm_config_local_prefix).toBeUndefined();
+      expect(result.npm_config_registry).toBeUndefined();
+      expect(result.npm_package_name).toBeUndefined();
+      expect(result.npm_package_json).toBeUndefined();
+      expect(result.npm_lifecycle_event).toBeUndefined();
+      expect(result.INIT_CWD).toBeUndefined();
+      expect(result.npm_execpath).toBeUndefined();
+      expect(result.PROJECT_CWD).toBeUndefined();
+    });
+
+    it("does not mutate the source environment object", () => {
+      const source = {
+        PATH: "/usr/bin",
+        npm_config_local_prefix: SIBLING_PROJECT_DIR,
+      };
+      sanitizeEnvForReconciliation(source);
+      // Source untouched — sanitization returns a new object.
+      expect(source.npm_config_local_prefix).toBe(SIBLING_PROJECT_DIR);
+    });
+
+    it("returns an empty object when given an empty environment", () => {
+      expect(sanitizeEnvForReconciliation({})).toEqual({});
+    });
+  });
+
   describe("regenerateLockfilesInProcess", () => {
     /**
      * Minimal fake child for the spawn DI seam. We only need to fire `exit`
@@ -584,6 +634,57 @@ describe("postinstall-trampoline", () => {
       // Detached mode must not wait on the child process — never registers an
       // exit listener because the parent package manager needs to return.
       expect(child.on).not.toHaveBeenCalled();
+    });
+
+    it("strips package-manager path env vars so a stale sibling project cannot be targeted (cross-project corruption regression)", async () => {
+      // Regression: during a batched concurrent multi-project Lisa update, the
+      // detached reconciliation child inherited npm_config_local_prefix / INIT_CWD
+      // pointing at a SIBLING project. bun/npm honour npm_config_local_prefix (and
+      // Lisa's postinstall script reads it as PROJECT_ROOT) over cwd, so the
+      // re-run + its `bun install` resolved to the wrong project — writing one
+      // project's package.json into another (advisory-rankings content leaked into
+      // harperstarter). The child must derive its target strictly from projectDir.
+      delete process.env.CI;
+      // Simulate the poisoned environment a concurrent sibling install leaves behind.
+      process.env.npm_config_local_prefix = SIBLING_PROJECT_DIR;
+      process.env.INIT_CWD = SIBLING_PROJECT_DIR;
+      process.env.npm_package_name = "advisory-rankings";
+      process.env.npm_lifecycle_event = "postinstall";
+      process.env.npm_config_argv = "{}";
+      // A non-PM var must survive so the child can still find node/PATH.
+      process.env.PATH = process.env.PATH ?? "/usr/bin";
+
+      const child = makeFakeChild();
+      const spawnSpy = vi.fn().mockReturnValue(child);
+
+      await scheduleReconciliationChild(
+        FAKE_PROJECT_DIR,
+        FAKE_LISA_DIST,
+        4242,
+        spawnSpy as unknown as SpawnFn
+      );
+
+      const opts = spawnSpy.mock.calls[0]?.[2] as {
+        env?: Record<string, string>;
+      };
+      const env = opts.env ?? {};
+      // Every package-manager path/lifecycle var that could redirect the re-run
+      // to a sibling project must be gone.
+      expect(env.npm_config_local_prefix).toBeUndefined();
+      expect(env.INIT_CWD).toBeUndefined();
+      expect(env.npm_package_name).toBeUndefined();
+      expect(env.npm_lifecycle_event).toBeUndefined();
+      expect(env.npm_config_argv).toBeUndefined();
+      // Non-PM vars (PATH) survive so the detached child can locate node.
+      expect(env.PATH).toBeDefined();
+      // Sentinels are still applied after sanitization.
+      expect(env.LISA_POSTINSTALL_TRAMPOLINE).toBe("1");
+      // The inline trampoline source must also sanitize the env of the bun/Lisa
+      // processes it spawns (belt-and-suspenders for any re-introduced vars).
+      const inlineSource = spawnSpy.mock.calls[0]?.[1] as readonly string[];
+      expect(inlineSource[1]).toContain("sanitizeEnv");
+      expect(inlineSource[1]).toContain("npm_config_");
+      expect(inlineSource[1]).toContain("INIT_CWD");
     });
 
     it("spawns a detached process with unref in CI (avoids deadlock with package manager)", async () => {
