@@ -1,5 +1,11 @@
-import { getExpoJestConfig } from "../../../src/configs/jest/expo.js";
+import {
+  getExpoJestConfig,
+  selectExpoJestResolver,
+} from "../../../src/configs/jest/expo.js";
 import { defaultThresholds } from "../../../src/configs/jest/base.js";
+
+const SDK56_RESOLVER = "@react-native/jest-preset/jest/resolver.js";
+const LEGACY_RESOLVER = "react-native/jest/resolver.js";
 
 describe("jest.expo", () => {
   describe("getExpoJestConfig", () => {
@@ -20,10 +26,31 @@ describe("jest.expo", () => {
       });
     });
 
-    it("uses React Native resolver", () => {
-      expect(config.resolver).toBe(
-        "@react-native/jest-preset/jest/resolver.js"
-      );
+    it("uses a valid React Native resolver path for the installed SDK", () => {
+      expect([SDK56_RESOLVER, LEGACY_RESOLVER]).toContain(config.resolver);
+    });
+
+    describe("selectExpoJestResolver (SDK-aware resolver selection)", () => {
+      it("uses the SDK 56 resolver when @react-native/jest-preset is present", () => {
+        const resolver = selectExpoJestResolver(
+          specifier => specifier === SDK56_RESOLVER
+        );
+        expect(resolver).toBe(SDK56_RESOLVER);
+      });
+
+      it("falls back to the SDK 54 resolver when the preset is absent", () => {
+        const resolver = selectExpoJestResolver(() => false);
+        expect(resolver).toBe(LEGACY_RESOLVER);
+      });
+
+      it("only probes for the SDK 56 preset (not the legacy path)", () => {
+        const probed: string[] = [];
+        selectExpoJestResolver(specifier => {
+          probed.push(specifier);
+          return false;
+        });
+        expect(probed).toEqual([SDK56_RESOLVER]);
+      });
     });
 
     it("registers base pre-setup file in setupFiles", () => {
