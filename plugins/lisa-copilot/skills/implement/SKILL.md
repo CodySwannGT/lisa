@@ -96,7 +96,14 @@ IF it is a Fix (bug), execute the Reproduce sub-flow FIRST:
    1. Write a simple API client and call the offending API
    2. Start the server on localhost and use the Playwright CLI or Chrome DevTools
 
-Using the general-purpose agent in Team Lead session, determine how you will know that the task is fully complete
+Using the general-purpose agent in Team Lead session, determine how you will know that the task is fully complete. Write this as an **effective completion condition** — one an independent verifier could confirm from observed output alone, not from your assertion that it works. A strong condition has:
+
+- **One measurable end state** — a status code, an exit code, a row count, an observable UI state, an empty queue. Not "it looks right" or "the code is correct".
+- **A stated proof command that surfaces the evidence** — exactly how the running system is exercised so the result is observable (e.g. `curl … returns 200 with {…}`, "the Playwright run reaches the dashboard", "`SELECT … ` returns the new row"). Quality gates (test/typecheck/lint) do NOT count — they are prerequisites.
+- **Constraints that must hold** — anything that must not change on the way there (e.g. "no other endpoint's response changes", "no migration is dropped").
+
+This condition is the contract the Verify flow proves and records in the verification verdict (below); it is what the completion gate checks before the flow may stop.
+
 1. Examples
    1. Direct deploy the changes to dev and then Write a simple API client and call the offending API
    2. Start the server on localhost and then Use the Playwright CLI or Chrome DevTools
@@ -116,8 +123,8 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
   "learnings": ["..."],
   "verification": {
     "type": "ui-recording|api-test|cli-test|database-check|manual-check|documentation",
-    "command": "the proof command — must run the actual system (NOT test/typecheck/lint, those are quality gates)",
-    "expected": "what success looks like — observable system behavior"
+    "command": "the proof command — must run the actual system and surface its result in the transcript (NOT test/typecheck/lint, those are quality gates). Phrase it so an independent verifier sees the evidence, e.g. `curl -s localhost:3000/health` not `check that health works`",
+    "expected": "the single measurable end state that proves success — observable system behavior (status code, response body, row count, UI state), not a subjective judgement"
   }
 }
 ```
@@ -131,6 +138,22 @@ Before shutting down the team, execute the Verify flow:
 
 1. Run quality gates: lint, typecheck, tests — all must pass. These are prerequisites, NOT verification.
 2. `verification-specialist`: verify locally by running the actual system and observing results (empirical proof that the change works). This is the real verification step.
+2a. **Record the verification verdict** — the independent, machine-readable proof that gates completion. The `verification-specialist` writes `${CLAUDE_PROJECT_DIR:-.}/.lisa/verification-status.json` with one entry per acceptance criterion, each carrying the proof command's observed evidence:
+
+    ```json
+    {
+      "plan": "<plan-name>",
+      "status": "pass | fail | blocked | in_progress",
+      "criteria": [
+        { "task": "<task id or title>", "criterion": "<the completion condition>", "status": "pass | fail", "evidence": "<the proof command run and the observed result>" }
+      ],
+      "updated_at": "<ISO8601 UTC>"
+    }
+    ```
+
+    Set `status: "pass"` only when every criterion is `pass` with real evidence (output from running the system, not a claim). The verdict must be judged by an agent that did NOT implement the change (the `verification-specialist`), never self-certified by the implementer. This is runtime scratch — it is gitignored and MUST NOT be committed (treat it like the secrets exclusion in the commit step).
+
+    On Claude, the `enforce-verification-gate.sh` Stop hook reads this file and **will not let the flow stop** until it shows a terminal, all-`pass` verdict — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion (a readiness gate failed, a blocker was found, a dependency is unresolved), write the verdict with `status: "blocked"` and the reason: that records the outcome and releases the gate instead of leaving it to spin. Other harnesses fall back to this prose obligation.
 3. Write e2e test encoding the verification
 4. Record Implement usage on the originating work artifact via `lisa:usage-accounting` so the work item (or other implementation-owned artifact) gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the parent / child graph is already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if runtime usage is unavailable, use `source: unavailable` with nullable token/cost fields instead of skipping the row.
 5. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
@@ -140,6 +163,6 @@ Before shutting down the team, execute the Verify flow:
 9. Merge the PR
 10. Monitor the deploy action that triggers automatically from the successful merge
 11. If deploy fails, create a task for the agent team to fix the failure, open a new PR and then go back to step 7
-12. Remote verification: `verification-specialist` verifies in target environment (same checks as local verification, but on remote)
+12. Remote verification: `verification-specialist` verifies in target environment (same checks as local verification, but on remote), and refreshes the verdict (step 2a) to reflect the remote result.
 13. `ops-specialist`: post-deploy health check, monitor for errors in first minutes
-14. If remote verification fails, create a task for the agent team to find out why it failed, fix it and return to step 5 (repeat until you get all the way through)
+14. If remote verification fails, create a task for the agent team to find out why it failed, fix it and return to step 5. **Bound this loop**: after a small number of full fix→deploy→reverify cycles without reaching a passing remote verdict (treat ~3 as the ceiling unless the work item states otherwise), stop retrying — file a build-ready fix ticket, write the verdict with `status: "blocked"` and the diagnosis, and move the work item to blocked rather than looping indefinitely. The completion gate releases on a `blocked` verdict, so the flow ends with a recorded outcome instead of a silent spin or a self-declared success.
