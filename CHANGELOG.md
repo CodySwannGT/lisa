@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.134.0](https://github.com/CodySwannGT/lisa/compare/vv2.133.4...v2.134.0) (2026-06-01)
+
+
+### Features
+
+* **cli:** add maintenance commands ([c757253](https://github.com/CodySwannGT/lisa/commit/c757253d7a515d42d715415f10b667efc00d9693))
+
 ### [2.133.4](https://github.com/CodySwannGT/lisa/compare/vv2.133.3...v2.133.4) (2026-06-01)
 
 
