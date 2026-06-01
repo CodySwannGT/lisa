@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.132.6](https://github.com/CodySwannGT/lisa/compare/vv2.132.5...v2.132.6) (2026-06-01)
+
+
+### Bug Fixes
+
+* **eslint:** ignore .codex/** in eslint ignore template ([9abb665](https://github.com/CodySwannGT/lisa/commit/9abb665a9a6b8d4750366dc8461415d4474308d6))
+* **expo:** stop tsconfig.expo.json from clobbering src/-layout projects ([f63d2a7](https://github.com/CodySwannGT/lisa/commit/f63d2a7d638cebea3c05e3c3011c708c4f149c01))
+* **expo:** support both Expo SDK 54 and 56 (stop forcing the SDK major) ([0c9d92a](https://github.com/CodySwannGT/lisa/commit/0c9d92a91bf8541fa6f1a1b2e761f904c0a2721f))
+
 ### [2.132.5](https://github.com/CodySwannGT/lisa/compare/vv2.132.4...v2.132.5) (2026-06-01)
 
 
