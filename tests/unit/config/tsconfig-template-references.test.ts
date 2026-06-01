@@ -46,6 +46,9 @@ function asExtendsArray(value: unknown): readonly string[] {
  */
 interface TsconfigShape {
   readonly extends?: string | readonly string[];
+  readonly compilerOptions?: {
+    readonly paths?: Record<string, readonly string[]>;
+  };
 }
 
 describe("stack tsconfig templates extend resolvable references", () => {
@@ -68,6 +71,49 @@ describe("stack tsconfig templates extend resolvable references", () => {
     ) as TsconfigShape;
     const extendsList = asExtendsArray(tsconfig.extends);
     expect(extendsList).toContain("@codyswann/lisa/tsconfig/base");
+  });
+
+  it("expo/tsconfig.expo.json delegates path aliases to the project-owned tsconfig.local.json", () => {
+    // Regression: the copy-overwrite tsconfig.expo.json used to hardcode
+    // ROOT-layout path aliases (`@/*` -> `./*`, `@/graphql/*` -> `./generated/*`)
+    // and unconditionally overwrite them on every `lisa` run. That clobbered
+    // every src/-layout project (`@/*` -> `./src/*`), breaking ~1928 imports in
+    // geminisportsai/frontend-v2. The fix removes layout-specific `paths` from
+    // the overwritten file and delegates them to `./tsconfig.local.json`, which
+    // is create-only (project-owned) and therefore survives updates — so a
+    // src/-layout project keeps its `./src/*` mappings.
+    const tsconfig = readTemplateJson(
+      "expo/copy-overwrite/tsconfig.expo.json"
+    ) as TsconfigShape;
+    const extendsList = asExtendsArray(tsconfig.extends);
+    // It must inherit the project-owned local that carries the path aliases.
+    expect(extendsList).toContain("./tsconfig.local.json");
+    // It must NOT carry hardcoded path aliases that would clobber the project's
+    // layout-specific mappings on every overwrite.
+    expect(tsconfig.compilerOptions?.paths).toBeUndefined();
+  });
+
+  it("expo/tsconfig.local.json is create-only so layout-specific paths survive updates", () => {
+    // The path aliases live in tsconfig.local.json, which Lisa ships under
+    // create-only/ (written once, never overwritten). A project that has
+    // migrated to the src/ layout edits this file to `./src/*` and that change
+    // must persist across `lisa` updates.
+    const createOnly = path.join(
+      REPO_ROOT,
+      "expo",
+      "create-only",
+      "tsconfig.local.json"
+    );
+    expect(fs.existsSync(createOnly)).toBe(true);
+    // The overwritten tsconfig.expo.json must NOT also ship under copy-overwrite
+    // as a tsconfig.local.json (which would re-clobber the project's paths).
+    const copyOverwriteLocal = path.join(
+      REPO_ROOT,
+      "expo",
+      "copy-overwrite",
+      "tsconfig.local.json"
+    );
+    expect(fs.existsSync(copyOverwriteLocal)).toBe(false);
   });
 
   it("@codyswann/lisa/tsconfig/base is exported from package.json", () => {
