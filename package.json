@@ -201,7 +201,7 @@
     "vitest": "^4.1.0"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^2.98.0",
+    "@codyswann/lisa": "^2.132.2",
     "@types/js-yaml": "^4.0.9",
     "@types/semver": "^7.7.1",
     "eslint-plugin-oxlint": "^1.62.0",
