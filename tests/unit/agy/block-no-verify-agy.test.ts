@@ -6,12 +6,22 @@
  * (`{"decision":"deny"|"allow"}`) on stdout. Since headless firing is
  * quota-blocked, this script-logic test is the real verification. Payloads are
  * hardcoded (no coupling). Requires `jq` on PATH (used across the repo).
+ *
+ * The hook is invoked via a fixed interpreter (`/bin/bash <script>`), the same
+ * way the sibling block-no-verify.test.ts runs the Claude hook. Running the
+ * script directly by its absolute path relied on the `#!/usr/bin/env bash`
+ * shebang, which adds an extra `execve` of `/usr/bin/env`, a PATH lookup for
+ * `bash`, and a load-bearing executable bit. Under the fork/exec pressure of a
+ * full `--coverage` run that indirect spawn could transiently fail to start;
+ * because `cat` then never drained the stdin pipe, Node surfaced the failed
+ * write as an EPIPE/spawn error and the test errored intermittently (it always
+ * passed in isolation). Spawning a fixed interpreter removes the shebang, the
+ * PATH lookup, and the exec-bit dependency, so the spawn is deterministic.
  * @module tests/unit/agy/block-no-verify-agy
  */
-import { execFileSync } from "node:child_process";
-import { chmodSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import * as path from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const SCRIPT = path.join(
   process.cwd(),
@@ -22,15 +32,21 @@ const SCRIPT = path.join(
   "block-no-verify.agy.sh"
 );
 
+const BASH_PATH = "/bin/bash";
+
 // Run the hook with the given stdin and return the parsed `decision` field.
-// Invokes the script by absolute path (executable via its shebang) so no
-// command is resolved from PATH.
+// Invokes the script through a fixed bash interpreter (not the shebang) so the
+// spawn does not depend on the executable bit or a PATH lookup. A spawn failure
+// is surfaced explicitly rather than masquerading as a JSON parse error.
 const decide = (stdin: string): string => {
-  const out = execFileSync(SCRIPT, [], {
+  const result = spawnSync(BASH_PATH, [SCRIPT], {
     input: stdin,
     encoding: "utf8",
   });
-  return (JSON.parse(out) as { decision: string }).decision;
+  if (result.error) {
+    throw result.error;
+  }
+  return (JSON.parse(result.stdout) as { decision: string }).decision;
 };
 
 // Build an agy PreToolUse stdin payload for a run_command tool call.
@@ -40,12 +56,6 @@ const payload = (commandLine: string): string =>
   });
 
 describe("block-no-verify.agy.sh", () => {
-  // Ensure the script is executable regardless of checkout mode bits, so it can
-  // be invoked directly by its absolute path (no PATH lookup).
-  beforeAll(() => {
-    chmodSync(SCRIPT, 0o755);
-  });
-
   it("denies a git commit with --no-verify", () => {
     expect(decide(payload("git commit --no-verify -m wip"))).toBe("deny");
   });
