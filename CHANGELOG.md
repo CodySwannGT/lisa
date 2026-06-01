@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.133.2](https://github.com/CodySwannGT/lisa/compare/vv2.133.1...v2.133.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **expo,eslint:** ignore wiki/** and pin apollo-link-sentry compatible with apollo-client v3 ([f512527](https://github.com/CodySwannGT/lisa/commit/f512527617898082e6bb2f7bdbf892a7bcf3c4e1))
+
 ### [2.133.1](https://github.com/CodySwannGT/lisa/compare/vv2.133.0...v2.133.1) (2026-06-01)
 
 
