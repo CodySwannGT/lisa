@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.130.7](https://github.com/CodySwannGT/lisa/compare/vv2.130.6...v2.130.7) (2026-06-01)
+
+
+### Documentation
+
+* **lisa-update-projects:** use .lisa.workspaces.json and clarify worktree/PR flow ([32efd24](https://github.com/CodySwannGT/lisa/commit/32efd248186b1f9b8a62de1c0db6956e32f22f57))
+
 ### [2.130.6](https://github.com/CodySwannGT/lisa/compare/vv2.130.5...v2.130.6) (2026-06-01)
 
 

@@ -1,11 +1,22 @@
 {
   "name": "lisa",
-  "version": "2.130.6",
+  "version": "2.130.7",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
   },
   "hooks": {
+    "userPromptSubmitted": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      }
+    ],
     "preToolUse": [
       {
         "matcher": "Bash",
@@ -17,6 +28,26 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      }
+    ],
+    "agentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
           }
         ]
       }
