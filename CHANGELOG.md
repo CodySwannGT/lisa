@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.133.1](https://github.com/CodySwannGT/lisa/compare/vv2.133.0...v2.133.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* **postinstall:** prevent cross-project package.json corruption in lisa apply ([a24afd9](https://github.com/CodySwannGT/lisa/commit/a24afd9e80ea9f18f1c1c1f8b6bd9b0fa4133a48))
+
 ## [2.133.0](https://github.com/CodySwannGT/lisa/compare/vv2.132.7...v2.133.0) (2026-06-01)
 
 
