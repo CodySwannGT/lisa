@@ -13,6 +13,7 @@ Recognized optional hints:
 - `work_item_ref=<ref>` — source tracker item for native development linkage. Examples: `CodySwannGT/lisa#614`, `https://github.com/CodySwannGT/lisa/issues/614`, `ENG-123`, `PROJ-456`.
 - `target_branch=<branch>` or `base=<branch>` — intended PR base branch, used to decide whether a GitHub closing keyword is safe.
 - `tracker_provider=<github|linear|jira|none>` — explicit provider when the ref shape is ambiguous.
+- `pr_url=<url>` — live pull request URL, only needed when updating tracker backlinks from an existing PR context.
 
 ## Workflow
 
@@ -31,6 +32,7 @@ Recognized optional hints:
    - If exists: Update description with latest changes
    - If not: Create PR with comprehensive description (not a draft)
    - Include native development linkage for the source work item when `work_item_ref` can be inferred from `$ARGUMENTS`, the current branch name, an existing PR body, or the issue/ticket context passed by the caller.
+   - After the PR exists, ensure the source work item has a backlink to the PR: invoke `lisa:tracker-sync` with the work item, milestone `pr-ready`, the live `pr_url`, and `tracker_provider` when known. This makes ticket -> PR linkage mandatory, not just a best-effort milestone comment.
    - After the PR exists, re-resolve the live Pull Request node id and, when `github.projects.v2` is enabled, invoke `lisa:github-project-v2` with `operation: ensure-item` and `content_node_id: <pull-request-node-id>` so linked pull requests join the configured shared Project without replacing the PR as the durable review/merge surface.
 5. **Auto-merge**: Choose merge strategy by PR type:
    - **Promotion PRs** (env → env, e.g. `dev` → `staging`): use `gh pr merge --auto --merge` (never squash). Squashing flattens the constituent `chore(release): X.Y.Z [skip ci]` commits into one commit titled with the PR title, stripping the `[skip ci]` markers and breaking the release workflow's promotion-detection regex — the destination branch then double-bumps its version. `--merge` keeps each `chore(release)` commit (and its `[skip ci]` marker) intact under a clean merge commit subject the workflow can recognize.
@@ -61,6 +63,18 @@ Add provider-appropriate linkage to the PR title and/or body without changing th
 - **No supported provider**: Skip this section without error; do not invent references.
 
 When updating an existing PR, preserve any existing linkage line unless the new `work_item_ref` is more specific. Do not duplicate equivalent references.
+
+### Work Item Backlink
+
+After creating or updating the PR, always make the reverse link durable on the source work item when `work_item_ref` is available:
+
+1. Resolve the live PR URL with `gh pr view <pr-number> --json url --jq .url`.
+2. Invoke `lisa:tracker-sync` with the original work item ref, milestone `pr-ready`, `pr_url=<url>`, and `tracker_provider=<provider>` when known.
+3. The vendor sync skill must prefer the provider's native development-link primitive where one is available and verifiable.
+4. If native linkage is unavailable, unconfigured, or cannot be verified, the vendor sync skill must create or update a single managed `[lisa-pr-link]` comment on the work item containing the PR URL. The fallback comment is not optional; it is the ticket-side half of the two-way link.
+5. When the PR later merges, invoke `lisa:tracker-sync` again with milestone `pr-merged`, the same `pr_url`, and the merge SHA when available, so the managed backlink reflects the final state.
+
+Do not report PR submission as fully synced while the PR body references the ticket but the ticket has neither a verified native PR link nor the managed backlink comment.
 
 ### GitHub ProjectV2 Coordination
 

@@ -20,7 +20,7 @@ See the `config-resolution` rule for configuration and dispatch table.
    - Anything else → stop and report `"Unknown tracker '<value>' in .lisa.config.json. Expected 'jira', 'github', or 'linear'."`
 3. Pass through the output.
 
-`$ARGUMENTS` is forwarded verbatim, including the optional `--rollup` flag (see "Parent status rollup" below) and `--update-label`. The shim never interprets these — the vendor skill does.
+`$ARGUMENTS` is forwarded verbatim, including the optional `--rollup` flag (see "Parent status rollup" below), `--update-label`, `pr_url=<url>`, and `merge_sha=<sha>`. The shim never interprets these — the vendor skill does.
 
 If `$ARGUMENTS` is empty, all vendor skills auto-detect a ticket reference from the active plan file (most recently modified `.md` in `plans/`).
 
@@ -45,8 +45,20 @@ The state machine (first match wins, evaluated over the **required** leaves only
 
 **Safe-by-default when not yet supported.** A vendor sync path that has not implemented native rollup MUST be a documented no-op that surfaces the derived state as a suggestion/comment rather than guessing a transition — never an unsafe default. Without `--rollup`, the sync skills behave exactly as before (milestone comment on the work item; no parent derivation).
 
+## Pull request backlinking
+
+When `$ARGUMENTS` includes `pr_url=<url>` with milestone `pr-ready` or `pr-merged`, the dispatch target must ensure ticket -> PR linkage, not just post a generic progress note:
+
+1. Prefer the provider's native development-link primitive when Lisa can write and verify it for that provider.
+2. Verify the native link using the provider read surface when available.
+3. If the native link is unavailable, unconfigured, cross-system, or cannot be verified, create or update one managed backlink comment on the work item containing the PR URL and current milestone.
+4. Keep the comment idempotent by using a stable marker such as `[lisa-pr-link]`; reruns update or skip the existing managed comment rather than appending duplicates.
+
+This is the reverse half of `lisa:git-submit-pr`'s PR body linkage. A PR that mentions a ticket is not considered fully synced until the ticket also has either a verified native PR link or the managed fallback comment.
+
 ## Rules
 
 - Idempotent updates — running sync at the same milestone twice should not produce duplicate comments. Vendor skills enforce this.
 - Never auto-transition the underlying state. Linear's label-based transition (`status:*`) is the canonical signal and is updated only when the caller passes `--update-label`. Native states stay as suggestions.
 - Parent rollup derives state from children per the `leaf-only-lifecycle` rule; it never sets a parent to `ready` and never resolves a dev/staging `done` in this single-environment repo.
+- Pull request backlinks are mandatory when `pr_url=<url>` is present: native first, managed-comment fallback, never silently dropped.

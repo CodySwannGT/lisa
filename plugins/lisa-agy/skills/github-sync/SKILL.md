@@ -10,6 +10,8 @@ Sync current plan progress to a GitHub Issue: `$ARGUMENTS`
 
 If no argument is provided, search for an issue ref (`org/repo#<number>` or `https://github.com/<org>/<repo>/issues/<n>` URL) in the active plan file (most recently modified `.md` in `plans/`).
 
+Optional arguments include `pr_url=<url>` for the live pull request and `merge_sha=<sha>` once merged.
+
 ## Workflow
 
 ### Step 1: Identify Issue and Context
@@ -49,6 +51,16 @@ If no argument is provided, search for an issue ref (`org/repo#<number>` or `htt
    The body must start with `[claude-sync] <milestone>` so the next sync run can dedupe.
 
 3. **Report** to the user what was synced.
+
+### Step 3b: Ensure PR Backlink
+
+When `$ARGUMENTS` includes `pr_url=<url>` for `PR ready` or `PR merged`, ensure the GitHub Issue has a durable ticket -> PR link:
+
+1. Prefer GitHub's native development link by making sure the PR body contains `Refs #<n>` / `Closes #<n>` (or the fully qualified cross-repo form) and verify with `gh issue view <number> --json timelineItems` or an equivalent GitHub read that exposes the linked PR.
+2. If native linkage cannot be verified, post or update a single managed issue comment starting with `[lisa-pr-link]`. Include the PR URL, milestone (`pr-ready` or `pr-merged`), and merge SHA when available.
+3. Keep the fallback idempotent: search existing comments for `[lisa-pr-link]` and the PR URL; update/replace that managed comment where the provider allows updates, otherwise skip when the current body already matches. Do not append duplicate backlink comments on reruns.
+
+This fallback is required even though GitHub usually links PRs natively from PR body keywords; the issue must show the PR from at least one ticket-side surface.
 
 ### Step 4: Suggest Status Transition
 
