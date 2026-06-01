@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.131.0](https://github.com/CodySwannGT/lisa/compare/vv2.130.7...v2.131.0) (2026-06-01)
+
+
+### Features
+
+* **implement:** add /goal-style non-bypassable verification gate ([4bfa067](https://github.com/CodySwannGT/lisa/commit/4bfa067333be7decf5a82deb64d2090e7294ba38))
+
 ### [2.130.7](https://github.com/CodySwannGT/lisa/compare/vv2.130.6...v2.130.7) (2026-06-01)
 
 
