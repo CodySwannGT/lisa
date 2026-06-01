@@ -741,6 +741,175 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  describe("Expo real template: dual SDK 54/56 support", () => {
+    // Regression: the Expo package.lisa.json used to hard-pin the entire
+    // SDK-coupled dependency set (expo, react, react-native, every expo-*,
+    // jest-expo, the react-native-* runtime libs, @sentry/react-native, etc.)
+    // in `force`. Because force REPLACES project values, updating Lisa on an
+    // Expo SDK 54 app force-bundled a full SDK 54->56 + RN 0.81->0.85 major
+    // upgrade (blocked propswap/frontend, thumbwar/frontend, expostarter).
+    // The fix moves the SDK-version-coupled packages to `defaults` (project
+    // value wins; Lisa is only a fallback for fresh projects), while pure
+    // tooling stays in `force`. These tests load the REAL template
+    // (lisaDir = repo root) so the placement can never drift back.
+    const repoRoot = process.cwd();
+    const expoSource = path.join(
+      repoRoot,
+      "expo",
+      "package-lisa",
+      "package.lisa.json"
+    );
+
+    /**
+     * Read and parse the real shipped Expo package.lisa.json template.
+     * @returns The parsed template with force/defaults sections.
+     */
+    function readExpoTemplate(): {
+      force: {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+      defaults: {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+    } {
+      return fs.readJsonSync(expoSource);
+    }
+
+    it("keeps SDK-version-coupled packages in defaults, not force", () => {
+      const template = readExpoTemplate();
+      const sdkCoupled = [
+        "expo",
+        "react",
+        "react-dom",
+        "react-native",
+        "expo-router",
+        "expo-updates",
+        "react-native-reanimated",
+        "react-native-screens",
+        "@sentry/react-native",
+        "@shopify/react-native-skia",
+      ];
+      for (const pkg of sdkCoupled) {
+        expect(template.defaults.dependencies[pkg]).toBeDefined();
+        expect(template.force.dependencies[pkg]).toBeUndefined();
+      }
+      // Every expo-* runtime package must be a default, never forced.
+      for (const pkg of Object.keys(template.defaults.dependencies)) {
+        if (pkg.startsWith("expo")) {
+          expect(template.force.dependencies[pkg]).toBeUndefined();
+        }
+      }
+      // SDK-coupled devDependencies (jest-expo, react-test-renderer) are defaults.
+      expect(template.defaults.devDependencies["jest-expo"]).toBeDefined();
+      expect(template.force.devDependencies["jest-expo"]).toBeUndefined();
+      expect(
+        template.defaults.devDependencies["react-test-renderer"]
+      ).toBeDefined();
+      expect(
+        template.force.devDependencies["react-test-renderer"]
+      ).toBeUndefined();
+    });
+
+    it("keeps non-SDK-coupled tooling/governance in force", () => {
+      const template = readExpoTemplate();
+      // Pure JS tooling stays forced (governance-critical).
+      expect(template.force.dependencies["@apollo/client"]).toBeDefined();
+      expect(template.force.dependencies["zod"]).toBeDefined();
+      expect(template.force.dependencies["tailwindcss"]).toBeDefined();
+      expect(template.force.devDependencies["jest"]).toBeDefined();
+      expect(template.force.devDependencies["oxlint"]).toBeDefined();
+      expect(template.force.devDependencies["@playwright/test"]).toBeDefined();
+      // Lint/test config deps must never leak into defaults.
+      expect(template.defaults.dependencies["zod"]).toBeUndefined();
+      expect(template.defaults.devDependencies["oxlint"]).toBeUndefined();
+    });
+
+    it("preserves an existing SDK 54 project's installed Expo/RN versions on update", async () => {
+      await createExpoProject(projectDir);
+      const destPath = path.join(projectDir, "package.json");
+      // An app already on Expo SDK 54 / RN 0.81.
+      await fs.writeJson(destPath, {
+        dependencies: {
+          expo: "~54.0.0",
+          react: "19.1.0",
+          "react-native": "0.81.4",
+          "expo-router": "~54.0.0",
+          "react-native-reanimated": "~3.16.0",
+        },
+        devDependencies: {
+          "jest-expo": "~54.0.0",
+        },
+        scripts: {},
+      });
+
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      // The project stays on SDK 54 — Lisa must NOT force-bump it to 56.
+      expect(content.dependencies.expo).toBe("~54.0.0");
+      expect(content.dependencies.react).toBe("19.1.0");
+      expect(content.dependencies["react-native"]).toBe("0.81.4");
+      expect(content.dependencies["expo-router"]).toBe("~54.0.0");
+      expect(content.dependencies["react-native-reanimated"]).toBe("~3.16.0");
+      expect(content.devDependencies["jest-expo"]).toBe("~54.0.0");
+    });
+
+    it("gives a fresh project the default SDK 56 versions", async () => {
+      await createExpoProject(projectDir);
+      const destPath = path.join(projectDir, "package.json");
+      // A fresh project that does not yet pin the SDK-coupled packages.
+      await fs.writeJson(destPath, {
+        dependencies: {},
+        devDependencies: {},
+        scripts: {},
+      });
+
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      // Fresh projects get the sensible SDK 56 default.
+      expect(content.dependencies.expo).toBe("~56.0.0");
+      expect(content.dependencies.react).toBe("19.2.3");
+      expect(content.dependencies["react-native"]).toBe("0.85.3");
+      expect(content.devDependencies["jest-expo"]).toBe("~56.0.4");
+    });
+
+    it("still force-applies tooling versions even when the project pins older ones", async () => {
+      await createExpoProject(projectDir);
+      const destPath = path.join(projectDir, "package.json");
+      // Project tries to pin an older governance-critical tooling version.
+      await fs.writeJson(destPath, {
+        dependencies: { zod: "^3.0.0" },
+        devDependencies: { oxlint: "^1.0.0" },
+        scripts: {},
+      });
+
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      // Forced tooling wins over the project's pin.
+      expect(content.dependencies.zod).toBe("^4.3.5");
+      expect(content.devDependencies.oxlint).toBe("^1.62.0");
+    });
+  });
+
   describe("empty sections", () => {
     it("handles template with empty force section", async () => {
       await createPackageLisaTemplate("all", {
