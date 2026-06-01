@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.132.7](https://github.com/CodySwannGT/lisa/compare/vv2.132.6...v2.132.7) (2026-06-01)
+
+
+### Bug Fixes
+
+* **expo:** make jest resolver + react-test-renderer SDK-54/56 aware ([bc1c296](https://github.com/CodySwannGT/lisa/commit/bc1c296b7e1ec9f3ad0d412b8417dd714432df90))
+
 ### [2.132.6](https://github.com/CodySwannGT/lisa/compare/vv2.132.5...v2.132.6) (2026-06-01)
 
 
