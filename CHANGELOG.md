@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.130.6](https://github.com/CodySwannGT/lisa/compare/vv2.130.5...v2.130.6) (2026-06-01)
+
+
+### Code Refactoring
+
+* **cli:** split runLisa into apply subcommand + positional default ([ef10caa](https://github.com/CodySwannGT/lisa/commit/ef10caad272d0f277caf798092fdec4e3837647a)), closes [CodySwannGT/lisa#974](https://github.com/CodySwannGT/lisa/issues/974)
+
 ### [2.130.5](https://github.com/CodySwannGT/lisa/compare/vv2.130.4...v2.130.5) (2026-06-01)
 
 
