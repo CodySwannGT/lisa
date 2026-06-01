@@ -1,5 +1,11 @@
 # Lisa Wiki Log
 
+## 2026-06-01 - CLI command surface documentation update
+
+- Updated README and wiki overview documentation to make the global Lisa CLI command surface primary.
+- Documented `setup-project`, `setup-wiki`, `apply`, `doctor`, `version`, `update`, supported starter types, backwards compatibility, and update-check opt-outs.
+- Added built-artifact CLI smoke coverage and a CI bin smoke job so `bin.lisa -> dist/index.js` remains executable.
+
 ## 2026-05-14 - In-repository wiki setup
 
 - Created the initial Lisa LLM Wiki structure inside the existing monorepo.

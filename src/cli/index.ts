@@ -3,6 +3,7 @@ import { runApply } from "./apply.js";
 import { runDoctor } from "./doctor.js";
 import { printUpdateWarning } from "./print-update-warning.js";
 import { runSetupProject } from "./setup-project.js";
+import { runSetupWiki } from "./setup-wiki.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
 import { runUpdate } from "./update-cmd.js";
@@ -20,6 +21,8 @@ export interface ProgramDependencies {
   runApply: typeof runApply;
   /** Creates a starter-backed project and applies Lisa overlays. */
   runSetupProject: typeof runSetupProject;
+  /** Prepares an existing project for embedded wiki setup. */
+  runSetupWiki: typeof runSetupWiki;
   /** Prints Lisa CLI version metadata. */
   runVersion: typeof runVersion;
   /** Prints or runs the package-manager update command. */
@@ -35,6 +38,7 @@ export interface ProgramDependencies {
 const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runApply,
   runSetupProject,
+  runSetupWiki,
   runVersion,
   runUpdate,
   runDoctor,
@@ -157,6 +161,15 @@ export function createProgram(
       await deps.runSetupProject(destination, options);
     }
   );
+
+  addSharedOptions(
+    program
+      .command("setup-wiki")
+      .description("Prepare an existing project for embedded Lisa wiki setup")
+      .argument("[path]", "Project path (default: current directory)")
+  ).action(async (destination: string | undefined, options: CLIOptions) => {
+    await deps.runSetupWiki(destination, options);
+  });
 
   addMaintenanceCommands(program, deps);
 
