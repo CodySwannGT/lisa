@@ -20,16 +20,32 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260601T131638Z` created from synced `origin/main`
-- HEAD at 2026-06-01 incremental ingest: `051395c3030248688fca35be2145ccf36c8fac08`
-- Current package version: `2.132.3`
-- Total commits on HEAD: 2753
-- Latest merged PR captured in the incremental git snapshot: `#1121`
-- New commits since the previous incremental git cursor: `10`
+- Ingest branch: `wiki/ingest-20260601T201744Z` created from synced `origin/main`
+- HEAD at 2026-06-01 incremental ingest: `27af17b457c0062cbafb0fdcff74c216faf59771`
+- Current package version: `2.133.3`
+- Total commits on HEAD: 2781
+- Latest merged PR captured in the incremental git snapshot: `#1129`
+- New commits since the previous incremental git cursor: `28`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.133.3`.
+- PR `#1129` removed advisory-rankings app content from the shared Harper Fabric template so cross-project package.json merges do not pull sibling project state into generated installs.
+- Release automation advanced the monorepo to `2.133.2`.
+- PR `#1128` kept normal ESLint runs ignoring `wiki/**` and pinned `apollo-link-sentry` to an Apollo Client v3-compatible version for Expo templates.
+- Release automation advanced the monorepo to `2.133.1`.
+- PR `#1127` prevented `lisa apply` postinstall from corrupting package.json content with cross-project package data.
+- Release automation advanced the monorepo to `2.133.0`.
+- PR `#1126` added the `setup-project` CLI command and replaced the setup-project command test's starter assertion with a stable expected value.
+- Release automation advanced the monorepo to `2.132.7`.
+- PR `#1125` made the Expo Jest resolver and React test renderer dependencies compatible across SDK 54 and SDK 56.
+- Release automation advanced the monorepo to `2.132.6`.
+- PR `#1124` hardened Expo Codex templates for both SDK 54 and SDK 56, preserved `src/` layout projects, and added `.codex/**` to ESLint ignores.
+- Release automation advanced the monorepo to `2.132.5`.
+- PR `#1123` requires two-way PR ticket links so PR submission is not complete until both the PR and the work item are linked.
+- Release automation advanced the monorepo to `2.132.4`.
+- PR `#1122` merged the prior wiki ingestion through Lisa `2.132.3`.
 - Release automation advanced the monorepo to `2.132.3`.
 - PR `#1121` upgraded Lisa to `2.132.2` in the self-update pass.
 - Release automation advanced the monorepo to `2.132.2`.
@@ -128,6 +144,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T061639Z.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T131648Z.md`
+- `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T201744Z.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -148,4 +165,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-31-roles.md`
 - `wiki/sources/roles/2026-06-01-roles-previous-20260601T061639Z.md`
 - `wiki/sources/roles/2026-06-01-roles-previous-20260601T131648Z.md`
+- `wiki/sources/roles/2026-06-01-roles-previous-20260601T201744Z.md`
 - `wiki/sources/roles/2026-06-01-roles.md`

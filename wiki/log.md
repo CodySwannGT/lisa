@@ -305,3 +305,12 @@
 - Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Corrected an initial probe invocation of the git connector that ran without `--state`; the over-broad generated note was not committed, and the connector was rerun with `wiki/state/git/latest.json` before state advancement.
 - Updated the monorepo snapshot and index for the prior wiki ingest merge, block-no-verify hook test de-flaking, self-update release activity, and release-history changes through `2.132.3`.
+
+## 2026-06-01 - Incremental connector ingest
+
+- Synced the checkout with `origin/main` by fetching `origin` and rebasing the current branch onto `origin/main` without conflicts, then created `wiki/ingest-20260601T201744Z` from synced `origin/main` for this ingestion PR.
+- Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T201744Z.md` and `wiki/sources/roles/2026-06-01-roles-previous-20260601T201744Z.md` before refreshing the current `2026-06-01` connector notes.
+- Refreshed the `git` source note with 28 new commits through `27af17b457c0062cbafb0fdcff74c216faf59771`, advanced the merged-PR cursor to `#1129`, and captured the release line through Lisa `2.133.3`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge, two-way PR ticket links, the `setup-project` CLI command, Expo SDK 54/56 template compatibility, package.json corruption guards, Harper Fabric template cleanup, and release-history changes through `2.133.3`.
