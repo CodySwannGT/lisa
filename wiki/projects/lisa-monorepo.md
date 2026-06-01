@@ -20,16 +20,22 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260601T061639Z` created from synced `origin/main`
-- HEAD at 2026-06-01 incremental ingest: `da197ad3f677bcb4c95ce1811c21f26330770bad`
-- Current package version: `2.132.0`
-- Total commits on HEAD: 2743
-- Latest merged PR captured in the incremental git snapshot: `#1118`
-- New commits since the previous incremental git cursor: `21`
+- Ingest branch: `wiki/ingest-20260601T131638Z` created from synced `origin/main`
+- HEAD at 2026-06-01 incremental ingest: `051395c3030248688fca35be2145ccf36c8fac08`
+- Current package version: `2.132.3`
+- Total commits on HEAD: 2753
+- Latest merged PR captured in the incremental git snapshot: `#1121`
+- New commits since the previous incremental git cursor: `10`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.132.3`.
+- PR `#1121` upgraded Lisa to `2.132.2` in the self-update pass.
+- Release automation advanced the monorepo to `2.132.2`.
+- PR `#1120` fixed block-no-verify hook test flakiness under parallel coverage load.
+- Release automation advanced the monorepo to `2.132.1`.
+- PR `#1119` merged the prior wiki ingestion through Lisa `2.132.0`.
 - Release automation advanced the monorepo to `2.132.0`.
 - PR `#1118` blocked hook-bypass vectors including `HUSKY=0` and `core.hooksPath` changes.
 - Release automation advanced the monorepo to `2.131.0`.
@@ -121,6 +127,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git-previous-20260531T181525Z.md`
 - `wiki/sources/git/2026-05-31-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T061639Z.md`
+- `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T131648Z.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -140,4 +147,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-05-31-roles-previous-20260531T181525Z.md`
 - `wiki/sources/roles/2026-05-31-roles.md`
 - `wiki/sources/roles/2026-06-01-roles-previous-20260601T061639Z.md`
+- `wiki/sources/roles/2026-06-01-roles-previous-20260601T131648Z.md`
 - `wiki/sources/roles/2026-06-01-roles.md`
