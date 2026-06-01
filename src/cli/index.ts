@@ -1,58 +1,48 @@
-import { Command, InvalidArgumentError } from "commander";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-import type { Harness, LisaConfig } from "../core/config.js";
-import { HARNESS_VALUES } from "../core/config.js";
-import { GitService } from "../core/git-service.js";
-import { Lisa, type LisaDependencies } from "../core/lisa.js";
-import {
-  isHarness,
-  readProjectConfig,
-  resolveHarness,
-  writeProjectConfig,
-} from "../core/project-config.js";
-import { DetectorRegistry } from "../detection/index.js";
-import { ConsoleLogger } from "../logging/index.js";
-import { MigrationRegistry } from "../migrations/index.js";
-import { StrategyRegistry } from "../strategies/index.js";
-import { BackupService, DryRunBackupService } from "../transaction/index.js";
-import { toAbsolutePath } from "../utils/path-utils.js";
+import { Command } from "commander";
+import { runApply } from "./apply.js";
+import { printUpdateWarning } from "./print-update-warning.js";
+import { addSharedOptions, type CLIOptions } from "./shared-options.js";
+import { runUpdateCheck } from "./update-check.js";
 import { getPackageVersion } from "./version.js";
-import { createPrompter } from "./prompts.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Get Lisa directory (where configs are stored)
- * @returns Path to Lisa directory
+ * Injectable collaborators for {@link createProgram}. Defaults wire the real
+ * apply action and npm update-check; tests override them to observe the program
+ * wiring without touching the registry or the orchestrator.
  */
-function getLisaDir(): string {
-  // Go up from dist/cli to project root
-  return path.resolve(__dirname, "..", "..");
+export interface ProgramDependencies {
+  /** Applies Lisa to a destination (defaults to the real {@link runApply}). */
+  runApply: typeof runApply;
+  /** Runs the non-fatal npm update check (defaults to {@link runUpdateCheck}). */
+  runUpdateCheck: typeof runUpdateCheck;
+  /** Prints the update warning (defaults to {@link printUpdateWarning}). */
+  printUpdateWarning: typeof printUpdateWarning;
 }
 
-/**
- * Validate the --harness CLI argument. Commander invokes this with the raw
- * user-supplied string and expects either the parsed value or a thrown
- * InvalidArgumentError.
- * @param value - Raw argument value
- * @returns The validated harness
- */
-function parseHarnessArg(value: string): Harness {
-  if (!isHarness(value)) {
-    const allowed = HARNESS_VALUES.join(" | ");
-    throw new InvalidArgumentError(
-      `expected ${allowed}, got ${JSON.stringify(value)}`
-    );
-  }
-  return value;
-}
+const DEFAULT_DEPENDENCIES: ProgramDependencies = {
+  runApply,
+  runUpdateCheck,
+  printUpdateWarning,
+};
 
 /**
- * Create and configure the CLI program
+ * Create and configure the CLI program.
+ *
+ * The root program is subcommand-style: `apply` is the explicit subcommand and
+ * also the default command, so the historical positional `lisa <dest>`
+ * invocation keeps working. Both forms call the same apply action. A
+ * `preAction` hook runs the npm update-check exactly once per invocation before
+ * any action fires.
+ * @param dependencies - Optional collaborator overrides for testing
  * @returns Configured Commander program
  */
-export function createProgram(): Command {
+export function createProgram(
+  dependencies: Partial<ProgramDependencies> = {}
+): Command {
+  const deps: ProgramDependencies = {
+    ...DEFAULT_DEPENDENCIES,
+    ...dependencies,
+  };
   const program = new Command();
 
   program
@@ -61,174 +51,33 @@ export function createProgram(): Command {
       "Claude Code / Codex CLI governance framework - apply guardrails and guidance to projects"
     )
     .version(getPackageVersion())
-    .argument("[destination]", "Path to the project directory")
-    .option("--no-update-check", "Skip the npm latest-version check")
-    .option("-n, --dry-run", "Show what would be done without making changes")
-    .option(
-      "-y, --yes",
-      "Non-interactive mode (auto-accept defaults, overwrite on conflict)"
-    )
-    .option(
-      "-v, --validate",
-      "Validate project compatibility without applying changes"
-    )
-    .option(
-      "--skip-git-check",
-      "Skip dirty git working directory check (for postinstall use)"
-    )
-    .option(
-      "--harness <harness>",
-      `Target harness for emitted artifacts: ${HARNESS_VALUES.join(" | ")} (default: claude, or value from .lisa.config.json)`,
-      parseHarnessArg
-    )
-    .action(async (destination: string | undefined, options: CLIOptions) => {
-      await runLisa(destination, options);
-    });
+    .option("--no-update-check", "Skip the npm latest-version check");
+
+  // Run the npm update-check once per invocation, before the matched action.
+  // It is non-fatal: a failed check never blocks the action from running.
+  program.hook("preAction", async () => {
+    if (program.opts().updateCheck === false) {
+      return;
+    }
+    const result = await deps.runUpdateCheck();
+    deps.printUpdateWarning(result);
+  });
+
+  // `apply` is both the explicit subcommand and the default command, so the
+  // historical positional form `lisa <destination>` routes here unchanged and
+  // produces the same result as `lisa apply <destination>`. Commander rejects a
+  // root-level positional `argument` once subcommands exist, so the default
+  // command is the supported way to keep the bare-positional invocation.
+  addSharedOptions(
+    program
+      .command("apply", { isDefault: true })
+      .description("Apply Lisa to an existing project (backwards-compatible)")
+      .argument("[destination]", "Path to the project directory")
+  ).action(async (destination: string | undefined, options: CLIOptions) => {
+    await deps.runApply(destination, options);
+  });
 
   return program;
-}
-
-/**
- * CLI options parsed from command line arguments
- */
-interface CLIOptions {
-  dryRun?: boolean;
-  yes?: boolean;
-  validate?: boolean;
-  skipGitCheck?: boolean;
-  updateCheck?: boolean;
-  harness?: Harness;
-}
-
-/**
- * Print usage help and exit
- */
-function printUsageAndExit(): never {
-  console.error("Error: destination path is required");
-  console.log("");
-  console.log("Usage: lisa [options] <destination-path>");
-  console.log("");
-  console.log("Options:");
-  console.log(
-    "  -n, --dry-run     Show what would be done without making changes"
-  );
-  console.log(
-    "  -y, --yes         Non-interactive mode (auto-accept defaults, overwrite on conflict)"
-  );
-  console.log(
-    "  -v, --validate    Validate project compatibility without applying changes"
-  );
-  console.log(
-    "  --skip-git-check  Skip dirty git working directory check (for postinstall use)"
-  );
-  console.log("  --no-update-check Skip the npm latest-version check");
-  console.log(
-    `  --harness <h>     Target harness for emitted artifacts: ${HARNESS_VALUES.join(" | ")} (persisted in .lisa.config.json)`
-  );
-  console.log("  -h, --help        Show this help message");
-  console.log("");
-  console.log("Examples:");
-  console.log("  lisa /path/to/my-project");
-  console.log("  lisa --dry-run .");
-  console.log("  lisa --yes /path/to/project          # CI/CD pipeline usage");
-  console.log(
-    "  lisa --validate .                    # Check compatibility only"
-  );
-  console.log("  lisa --harness=codex .               # Emit Codex artifacts");
-  console.log(
-    "  lisa --harness=both .                # Emit both Claude and Codex artifacts"
-  );
-  process.exit(1);
-}
-
-/**
- * Create Lisa dependencies based on options
- * @param dryRun - Whether in dry run mode
- * @param yesMode - Whether in non-interactive mode
- * @param logger - Logger instance
- * @returns Dependencies for Lisa
- */
-function createDependencies(
-  dryRun: boolean,
-  yesMode: boolean,
-  logger: ConsoleLogger
-): LisaDependencies {
-  return {
-    logger,
-    prompter: createPrompter(yesMode),
-    backupService: dryRun
-      ? new DryRunBackupService()
-      : new BackupService(logger),
-    detectorRegistry: new DetectorRegistry(),
-    strategyRegistry: new StrategyRegistry(),
-    gitService: new GitService(),
-    migrationRegistry: new MigrationRegistry(),
-  };
-}
-
-/**
- * Run Lisa with the given options
- * @param destination - Path to destination directory
- * @param options - CLI options
- * @returns Promise that completes when Lisa finishes
- */
-async function runLisa(
-  destination: string | undefined,
-  options: CLIOptions
-): Promise<void> {
-  if (!destination) {
-    printUsageAndExit();
-  }
-
-  const dryRun = options.dryRun ?? options.validate ?? false;
-  const yesMode = options.yes ?? false;
-  const destDir = toAbsolutePath(destination);
-
-  // Resolve harness with precedence: CLI flag > .lisa.config.json > default
-  const projectConfig = await readProjectConfig(destDir);
-  const harness = resolveHarness(options.harness, projectConfig);
-
-  const config: LisaConfig = {
-    lisaDir: getLisaDir(),
-    destDir,
-    dryRun,
-    yesMode,
-    validateOnly: options.validate ?? false,
-    skipGitCheck: options.skipGitCheck ?? false,
-    harness,
-  };
-
-  const logger = new ConsoleLogger();
-  const deps = createDependencies(dryRun, yesMode, logger);
-  const lisa = new Lisa(config, deps);
-
-  try {
-    const result = options.validate
-      ? await lisa.validate()
-      : await lisa.apply();
-
-    if (!result.success) {
-      result.errors.forEach(error => logger.error(error));
-      process.exit(1);
-    }
-
-    // Persist resolved harness on apply (not validate, not dry-run) so the
-    // choice survives to the next run without requiring the flag every time.
-    // Only write when the user actually supplied --harness, so existing
-    // host projects don't gain a brand-new .lisa.config.json with the
-    // default value just by running `lisa` once.
-    if (
-      !options.validate &&
-      !dryRun &&
-      options.harness !== undefined &&
-      projectConfig.harness !== harness
-    ) {
-      await writeProjectConfig(destDir, { harness });
-    }
-  } catch (error) {
-    logger.error(error instanceof Error ? error.message : String(error));
-    process.exit(1);
-  }
 }
 
 export { createPrompter } from "./prompts.js";
