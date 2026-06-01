@@ -21,6 +21,7 @@ function createTestProgram(): {
   program: ReturnType<typeof createProgram>;
   runApply: ReturnType<typeof vi.fn>;
   runSetupProject: ReturnType<typeof vi.fn>;
+  runSetupWiki: ReturnType<typeof vi.fn>;
   runVersion: ReturnType<typeof vi.fn>;
   runUpdate: ReturnType<typeof vi.fn>;
   runDoctor: ReturnType<typeof vi.fn>;
@@ -29,6 +30,7 @@ function createTestProgram(): {
 } {
   const runApply = vi.fn(async () => undefined);
   const runSetupProject = vi.fn(async () => undefined);
+  const runSetupWiki = vi.fn(async () => undefined);
   const runVersion = vi.fn(async () => undefined);
   const runUpdate = vi.fn(async () => 0);
   const runDoctor = vi.fn(async () => ({ checks: [] }));
@@ -37,6 +39,7 @@ function createTestProgram(): {
   const program = createProgram({
     runApply,
     runSetupProject,
+    runSetupWiki,
     runVersion,
     runUpdate,
     runDoctor,
@@ -47,6 +50,7 @@ function createTestProgram(): {
     program,
     runApply,
     runSetupProject,
+    runSetupWiki,
     runVersion,
     runUpdate,
     runDoctor,
@@ -73,6 +77,12 @@ describe("createProgram", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
     expect(subcommandNames).toContain("setup-project");
+  });
+
+  it("registers the setup-wiki subcommand", () => {
+    const { program } = createTestProgram();
+    const subcommandNames = program.commands.map(command => command.name());
+    expect(subcommandNames).toContain("setup-wiki");
   });
 
   it("registers version, update, and doctor subcommands", () => {
@@ -190,6 +200,19 @@ describe("setup-project invocation", () => {
         yes: true,
         harness: "codex",
       })
+    );
+  });
+});
+
+describe("setup-wiki invocation", () => {
+  it("routes setup-wiki to the setup-wiki action with shared options", async () => {
+    const { program, runSetupWiki } = createTestProgram();
+
+    await program.parseAsync(["setup-wiki", DEST, "--yes"], { from: "user" });
+
+    expect(runSetupWiki).toHaveBeenCalledWith(
+      DEST,
+      expect.objectContaining({ yes: true })
     );
   });
 });

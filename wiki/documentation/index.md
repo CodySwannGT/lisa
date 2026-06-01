@@ -6,7 +6,7 @@ Root package landing content can remain in `README.md`, local ingestion inbox fi
 
 ## Core Documentation
 
-- [Overview](overview.md)
+- [Overview](overview.md) — includes global CLI setup, embedded/wiki-first setup, maintenance commands, and update-check behavior.
 - [Contributing](contributing.md)
 
 ## Claude Notes

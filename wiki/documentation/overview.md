@@ -60,9 +60,33 @@ Without Lisa, Claude Code can:
 # Install globally
 npm install -g @codyswann/lisa
 
-# Or use with npx (no install)
-npx @codyswann/lisa /path/to/project
+# Create a new starter-backed project
+lisa setup-project --type rails my-app
+
+# Add or repair an embedded wiki in the current project
+lisa setup-wiki
+
+# Apply Lisa to an existing project
+lisa apply /path/to/project
 ```
+
+The backwards-compatible positional invocation remains supported:
+
+```bash
+lisa /path/to/project
+```
+
+`setup-project` supports `rails`, `typescript`, `expo`, `nestjs`, `cdk`, `wiki`, and `harper-wiki`. The `wiki` and `harper-wiki` setup types create wiki-first repositories, while `setup-wiki` operates inside an existing repository.
+
+Lisa also ships small maintenance commands:
+
+```bash
+lisa doctor [path]
+lisa version
+lisa update
+```
+
+Every normal command performs a timeout-bound npm latest-version check before it runs. The check is non-fatal when offline and can be skipped with `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1`; `lisa update --yes` is the only command that executes an update.
 
 ### The Workflow
 
