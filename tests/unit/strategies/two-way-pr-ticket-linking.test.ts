@@ -15,7 +15,13 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
+const ROOTS = [
+  "plugins/src/base/skills",
+  "plugins/lisa/skills",
+  "plugins/lisa-agy/skills",
+  "plugins/lisa-copilot/skills",
+  "plugins/lisa-cursor/skills",
+] as const;
 const MARKER = "[lisa-pr-link]";
 
 const readSkill = (root: string, slug: string): string =>
