@@ -80,6 +80,8 @@
     "audit.ignore.config.json",
     "audit.ignore.local.json",
 
-    "amplify/**"
+    "amplify/**",
+
+    "wiki/**"
   ]
 }
