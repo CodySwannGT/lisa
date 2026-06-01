@@ -51,14 +51,53 @@ Templates follow governance rules: some files are overwritten on every update (e
 ## Quick Start
 
 ```bash
-curl -fsSL https://claude.ai/install.sh | bash
+npm install -g @codyswann/lisa
+lisa setup-project --type rails my-app
+cd my-app
 ```
 
-> Ask Claude: "I just cloned this repo. Walk me through setup."
+To add Lisa to an existing project instead, run:
+
+```bash
+lisa apply /path/to/project
+```
+
+The historical positional form still works for backwards compatibility:
+
+```bash
+lisa /path/to/project
+```
 
 ## Working With Lisa
 
-Lisa exposes a small set of top-level commands that map to the work lifecycle. Run them in Claude Code; everything underneath — agents, sub-flows, and the supporting libraries that power each step — happens automatically.
+Lisa exposes a small global CLI for project setup plus slash commands for the work lifecycle. Everything underneath — agents, sub-flows, and the supporting libraries that power each step — happens automatically.
+
+### Global CLI
+
+Install Lisa once and use the explicit setup commands for new or existing projects:
+
+```bash
+npm install -g @codyswann/lisa
+lisa setup-project --type rails my-app
+lisa setup-wiki
+lisa apply /path/to/project
+```
+
+Supported starter-backed setup types are `rails`, `typescript`, `expo`, `nestjs`, `cdk`, `wiki`, and `harper-wiki`. `setup-project --type wiki` creates a wiki-first repository; `setup-wiki` adds or repairs an embedded `wiki/` in the current project.
+
+Maintenance commands are intentionally small:
+
+```bash
+lisa doctor [path]
+lisa version
+lisa update
+```
+
+`lisa version` reports the installed package version, latest npm version, install path, and default harness. `lisa update` prints the package-manager update command and only runs it when `--yes` is supplied. Normal commands perform a non-fatal npm update check unless `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1` is set.
+
+### Lisa Workflow Commands
+
+Run these in Claude Code or the supported harness for the project.
 
 ### The Lifecycle
 

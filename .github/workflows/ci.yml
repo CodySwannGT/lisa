@@ -16,3 +16,28 @@ jobs:
       package_manager: 'bun'
       skip_jobs: ''
     secrets: inherit
+  bin_smoke:
+    name: Lisa CLI bin smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build package
+        run: bun run build
+      - name: Verify built Lisa CLI
+        env:
+          LISA_SKIP_UPDATE_CHECK: '1'
+        run: |
+          test "$(node -p "require('./package.json').bin.lisa")" = "dist/index.js"
+          node dist/index.js --version
+          node dist/index.js --help | grep -q "setup-project"
+          node dist/index.js --help | grep -q "setup-wiki"

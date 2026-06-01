@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by incremental connector ingest on 2026-06-01 through Lisa release `2.133.3` and merged PR `#1129`.
+Last updated by repair-intake documentation update on 2026-06-01 for the global Lisa CLI command surface.
 
 ## Orientation
 
@@ -17,6 +17,7 @@ Last updated by incremental connector ingest on 2026-06-01 through Lisa release 
 
 - [Documentation Index](documentation/index.md)
 - [Overview](documentation/overview.md)
+  - Global CLI setup commands: `setup-project`, `setup-wiki`, `apply`, `doctor`, `version`, and `update`.
 - [Contributing](documentation/contributing.md)
 - [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/reference/prd-lifecycle-rollup.md)
 - [Testing Documentation](documentation/testing/)
