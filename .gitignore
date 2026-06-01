@@ -201,6 +201,10 @@ expo-env.d.ts
 .lisa.config.local.json
 .lisa.workspaces.json
 
+# Verification verdict — runtime scratch written by /lisa:implement's Verify
+# flow and read by the enforce-verification-gate Stop hook. Never committed.
+.lisa/verification-status.json
+
 # Built Claude Code plugins are committed so the GitHub marketplace works.
 # Regenerate with: bun run build:plugins
 
