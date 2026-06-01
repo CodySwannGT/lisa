@@ -84,6 +84,38 @@ describe("block-no-verify.agy.sh", () => {
     );
   });
 
+  it("denies HUSKY=0 (disables husky hooks)", () => {
+    expect(decide(payload("HUSKY=0 git commit -m wip"))).toBe("deny");
+  });
+
+  it("denies HUSKY_SKIP_HOOKS=1 (disables husky hooks)", () => {
+    expect(decide(payload("HUSKY_SKIP_HOOKS=1 git commit -m wip"))).toBe(
+      "deny"
+    );
+  });
+
+  it("allows HUSKY=1 (enabling husky, not a bypass)", () => {
+    expect(decide(payload("HUSKY=1 git commit -m wip"))).toBe("allow");
+  });
+
+  it("denies core.hooksPath pointed at /dev/null", () => {
+    expect(
+      decide(payload("git -c core.hooksPath=/dev/null commit -m wip"))
+    ).toBe("deny");
+  });
+
+  it("denies core.hooksPath set empty", () => {
+    expect(decide(payload("git -c core.hooksPath= commit -m wip"))).toBe(
+      "deny"
+    );
+  });
+
+  it("allows a legit custom core.hooksPath", () => {
+    expect(decide(payload("git -c core.hooksPath=.husky commit -m wip"))).toBe(
+      "allow"
+    );
+  });
+
   it("allows on empty stdin (fail open, no crash)", () => {
     expect(decide("")).toBe("allow");
   });
