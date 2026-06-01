@@ -20,18 +20,27 @@ const SKIPPED_RESULT: UpdateCheckResult = {
 function createTestProgram(): {
   program: ReturnType<typeof createProgram>;
   runApply: ReturnType<typeof vi.fn>;
+  runSetupProject: ReturnType<typeof vi.fn>;
   runUpdateCheck: ReturnType<typeof vi.fn>;
   printUpdateWarning: ReturnType<typeof vi.fn>;
 } {
   const runApply = vi.fn(async () => undefined);
+  const runSetupProject = vi.fn(async () => undefined);
   const runUpdateCheck = vi.fn(async () => SKIPPED_RESULT);
   const printUpdateWarning = vi.fn();
   const program = createProgram({
     runApply,
+    runSetupProject,
     runUpdateCheck,
     printUpdateWarning,
   }).exitOverride();
-  return { program, runApply, runUpdateCheck, printUpdateWarning };
+  return {
+    program,
+    runApply,
+    runSetupProject,
+    runUpdateCheck,
+    printUpdateWarning,
+  };
 }
 
 describe("createProgram", () => {
@@ -46,6 +55,12 @@ describe("createProgram", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
     expect(subcommandNames).toContain("apply");
+  });
+
+  it("registers the setup-project subcommand", () => {
+    const { program } = createTestProgram();
+    const subcommandNames = program.commands.map(command => command.name());
+    expect(subcommandNames).toContain("setup-project");
   });
 
   it("exposes the root --no-update-check option", () => {
@@ -128,5 +143,25 @@ describe("update-check pre-action hook", () => {
     });
 
     expect(runUpdateCheck).not.toHaveBeenCalled();
+  });
+});
+
+describe("setup-project invocation", () => {
+  it("routes setup-project to the setup action with shared options", async () => {
+    const { program, runSetupProject } = createTestProgram();
+
+    await program.parseAsync(
+      ["setup-project", "--type", "rails", DEST, "--yes", "--harness", "codex"],
+      { from: "user" }
+    );
+
+    expect(runSetupProject).toHaveBeenCalledWith(
+      DEST,
+      expect.objectContaining({
+        type: "rails",
+        yes: true,
+        harness: "codex",
+      })
+    );
   });
 });
