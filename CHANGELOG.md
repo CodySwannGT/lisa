@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.134.3](https://github.com/CodySwannGT/lisa/compare/vv2.134.2...v2.134.3) (2026-06-02)
+
+
+### Documentation
+
+* **wiki:** ingest carried-forward Lisa wiki state ([e6cfd45](https://github.com/CodySwannGT/lisa/commit/e6cfd45148ba1a4b4f718d28a8ad1ef4da6ef6b7))
+* **wiki:** ingest Lisa history through 2.134.2 ([72fc529](https://github.com/CodySwannGT/lisa/commit/72fc529f33c12e0b2ebcb56027a35b02565a797c))
+* **wiki:** sync lisa-monorepo snapshot to carried-forward ingest state ([40fdf6a](https://github.com/CodySwannGT/lisa/commit/40fdf6a21ff34199a49fe8f98074ff93f27e66d5))
+
 ### [2.134.2](https://github.com/CodySwannGT/lisa/compare/vv2.134.1...v2.134.2) (2026-06-02)
 
 
