@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by connector ingest on 2026-06-02 for Lisa `2.134.1` and the global CLI smoke/maintenance command surface.
+Last updated by connector ingest on 2026-06-02 for Lisa `2.134.2` and carried-forward wiki ingestion provenance.
 
 ## Orientation
 
@@ -12,7 +12,7 @@ Last updated by connector ingest on 2026-06-02 for Lisa `2.134.1` and the global
 
 - [Project Registry](projects/registry.md)
 - [Lisa Monorepo Snapshot](projects/lisa-monorepo.md)
-  - Current package version: `2.134.1`; latest captured merged PR: `#1132`.
+  - Current package version: `2.134.2`; latest captured merged PR: `#1133`.
 
 ## Documentation
 
