@@ -20,16 +20,22 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260601T201744Z` created from synced `origin/main`
-- HEAD at 2026-06-01 incremental ingest: `27af17b457c0062cbafb0fdcff74c216faf59771`
-- Current package version: `2.133.3`
-- Total commits on HEAD: 2781
-- Latest merged PR captured in the incremental git snapshot: `#1129`
-- New commits since the previous incremental git cursor: `28`
+- Ingest branch: `wiki/ingest-20260602T031710Z` created from synced `origin/main`
+- HEAD at 2026-06-02 incremental ingest: `1f112ba0a118d76be3e8475edc668e04eb1aa9f5`
+- Current package version: `2.134.1`
+- Total commits on HEAD: 2790
+- Latest merged PR captured in the incremental git snapshot: `#1132`
+- New commits since the previous incremental git cursor: `9`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.134.1`.
+- PR `#1132` added global command smoke coverage so the built `lisa` binary exercises the command surface after packaging.
+- Release automation advanced the monorepo to `2.134.0`.
+- PR `#1131` added the global maintenance commands documented in the CLI surface: `doctor`, `version`, and `update`.
+- PR `#1130` merged the prior wiki ingestion through Lisa `2.133.3`.
+- Release automation advanced the monorepo to `2.133.4`.
 - Release automation advanced the monorepo to `2.133.3`.
 - PR `#1129` removed advisory-rankings app content from the shared Harper Fabric template so cross-project package.json merges do not pull sibling project state into generated installs.
 - Release automation advanced the monorepo to `2.133.2`.
@@ -146,6 +152,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T131648Z.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T201744Z.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-02-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -167,3 +174,4 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-01-roles-previous-20260601T131648Z.md`
 - `wiki/sources/roles/2026-06-01-roles-previous-20260601T201744Z.md`
 - `wiki/sources/roles/2026-06-01-roles.md`
+- `wiki/sources/roles/2026-06-02-roles.md`
