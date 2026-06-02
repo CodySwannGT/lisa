@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by connector ingest on 2026-06-02 for Lisa `2.134.2` and the prior wiki ingest merge.
+Last updated by connector ingest on 2026-06-02 for Lisa `2.134.2` and carried-forward wiki ingestion provenance.
 
 ## Orientation
 
