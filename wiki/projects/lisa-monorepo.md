@@ -20,16 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260602T031710Z` created from synced `origin/main`
-- HEAD at 2026-06-02 incremental ingest: `1f112ba0a118d76be3e8475edc668e04eb1aa9f5`
-- Current package version: `2.134.1`
-- Total commits on HEAD: 2790
-- Latest merged PR captured in the incremental git snapshot: `#1132`
-- New commits since the previous incremental git cursor: `9`
+- Ingest branch: `wiki/ingest-20260602T125316Z` created from synced `origin/main`
+- HEAD at 2026-06-02 incremental ingest: `e3be42fae54c1e68d03ae88dcc3c2d0797485720`
+- Current package version: `2.134.2`
+- Total commits on HEAD: 2793
+- Latest merged PR captured in the incremental git snapshot: `#1133`
+- New commits since the previous incremental git cursor: `3`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.134.2`.
+- PR `#1133` merged the prior wiki ingestion through Lisa `2.134.1`.
 - Release automation advanced the monorepo to `2.134.1`.
 - PR `#1132` added global command smoke coverage so the built `lisa` binary exercises the command surface after packaging.
 - Release automation advanced the monorepo to `2.134.0`.
@@ -152,6 +154,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T131648Z.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git-previous-20260601T201744Z.md`
 - `wiki/sources/git/2026-06-01-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-02-lisa-monorepo-git-previous-20260602T125316Z.md`
 - `wiki/sources/git/2026-06-02-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -174,4 +177,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-01-roles-previous-20260601T131648Z.md`
 - `wiki/sources/roles/2026-06-01-roles-previous-20260601T201744Z.md`
 - `wiki/sources/roles/2026-06-01-roles.md`
+- `wiki/sources/roles/2026-06-02-roles-previous-20260602T125316Z.md`
 - `wiki/sources/roles/2026-06-02-roles.md`
