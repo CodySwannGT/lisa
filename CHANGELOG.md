@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.134.4](https://github.com/CodySwannGT/lisa/compare/vv2.134.3...v2.134.4) (2026-06-03)
+
+
+### Documentation
+
+* **wiki:** ingest Lisa wiki state ([ccb9689](https://github.com/CodySwannGT/lisa/commit/ccb9689051fc40ecbb9c5232f66956783f7fa0e0))
+
 ### [2.134.3](https://github.com/CodySwannGT/lisa/compare/vv2.134.2...v2.134.3) (2026-06-02)
 
 
