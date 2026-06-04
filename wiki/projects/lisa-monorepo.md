@@ -20,16 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260603T165711Z` created from synced `origin/main`
-- HEAD at 2026-06-03 incremental ingest: `1637bbcef8c07329dfd37ec1133a85963cfddf0c`
-- Current package version: `2.134.4`
-- Total commits on HEAD: 2801
-- Latest merged PR captured in the incremental git snapshot: `#1135`
+- Ingest branch: `wiki/ingest-20260603T235654Z` created from synced `origin/main`
+- HEAD at 2026-06-03 incremental ingest: `dea1ec2f81ae424a1914964f27542fff22412d13`
+- Current package version: `2.134.5`
+- Total commits on HEAD: 2804
+- Latest merged PR captured in the incremental git snapshot: `#1136`
 - New commits since the previous incremental git cursor: `3`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.134.5`.
+- PR `#1136` merged the prior wiki ingestion through Lisa `2.134.4`.
 - Release automation advanced the monorepo to `2.134.4`.
 - PR `#1135` merged the prior wiki ingestion through Lisa `2.134.3`.
 - Release automation advanced the monorepo to `2.134.3`.
@@ -162,6 +164,8 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-02-lisa-monorepo-git-previous-20260602T195405Z.md`
 - `wiki/sources/git/2026-06-02-lisa-monorepo-git-previous-20260603T025542Z.md`
 - `wiki/sources/git/2026-06-02-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-03-lisa-monorepo-git-previous-20260603T165711Z.md`
+- `wiki/sources/git/2026-06-03-lisa-monorepo-git-previous-20260603T235654Z.md`
 - `wiki/sources/git/2026-06-03-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -188,4 +192,6 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-02-roles-previous-20260602T195405Z.md`
 - `wiki/sources/roles/2026-06-02-roles-previous-20260603T025542Z.md`
 - `wiki/sources/roles/2026-06-02-roles.md`
+- `wiki/sources/roles/2026-06-03-roles-previous-20260603T165711Z.md`
+- `wiki/sources/roles/2026-06-03-roles-previous-20260603T235654Z.md`
 - `wiki/sources/roles/2026-06-03-roles.md`
