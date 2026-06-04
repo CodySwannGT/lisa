@@ -20,16 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260603T235654Z` created from synced `origin/main`
-- HEAD at 2026-06-03 incremental ingest: `dea1ec2f81ae424a1914964f27542fff22412d13`
-- Current package version: `2.134.5`
-- Total commits on HEAD: 2804
-- Latest merged PR captured in the incremental git snapshot: `#1136`
+- Ingest branch: `wiki/ingest-20260604T065711Z` created from synced `origin/main`
+- HEAD at 2026-06-04 incremental ingest: `e672acca43a7f954bdaf7ed7d97b0035f82445cc`
+- Current package version: `2.134.6`
+- Total commits on HEAD: 2807
+- Latest merged PR captured in the incremental git snapshot: `#1137`
 - New commits since the previous incremental git cursor: `3`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.134.6`.
+- PR `#1137` merged the prior wiki ingestion through Lisa `2.134.5`.
 - Release automation advanced the monorepo to `2.134.5`.
 - PR `#1136` merged the prior wiki ingestion through Lisa `2.134.4`.
 - Release automation advanced the monorepo to `2.134.4`.
@@ -167,6 +169,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-03-lisa-monorepo-git-previous-20260603T165711Z.md`
 - `wiki/sources/git/2026-06-03-lisa-monorepo-git-previous-20260603T235654Z.md`
 - `wiki/sources/git/2026-06-03-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-04-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -195,3 +198,4 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-03-roles-previous-20260603T165711Z.md`
 - `wiki/sources/roles/2026-06-03-roles-previous-20260603T235654Z.md`
 - `wiki/sources/roles/2026-06-03-roles.md`
+- `wiki/sources/roles/2026-06-04-roles.md`
