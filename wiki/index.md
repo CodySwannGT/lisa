@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by connector ingest on 2026-06-04 for Lisa `2.134.6` and carried-forward wiki ingestion provenance.
+Last updated by connector ingest on 2026-06-04 for Lisa `2.134.7` and carried-forward wiki ingestion provenance.
 
 ## Orientation
 
@@ -12,7 +12,7 @@ Last updated by connector ingest on 2026-06-04 for Lisa `2.134.6` and carried-fo
 
 - [Project Registry](projects/registry.md)
 - [Lisa Monorepo Snapshot](projects/lisa-monorepo.md)
-  - Current package version: `2.134.6`; latest captured merged PR: `#1137`.
+  - Current package version: `2.134.7`; latest captured merged PR: `#1138`.
 
 ## Documentation
 
