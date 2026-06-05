@@ -64,7 +64,10 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
 - **Navigation clarity:** is it obvious how to get somewhere and back? Dead ends, hidden entry points,
   surprising redirects, broken links, no clear "home".
 - **Visual/layout quality:** cut-off or truncated text, overlap, cramped/crowded density, offscreen or
-  unreachable controls, accidental horizontal scroll, awkward empty space.
+  unreachable controls, accidental horizontal scroll, awkward empty space. **Do not judge this by
+  eyeballing a screenshot alone** — a control clipped by a few pixels or pushed just past a container
+  edge looks fine in a thumbnail. Confirm it with the programmatic layout-integrity sweep in §5 at
+  every width.
 - **Consistency / standard UX:** components, spacing, button styles, terminology, and interaction
   patterns should be consistent across the app and follow common conventions. Flag anything
   non-standard or that differs screen-to-screen.
@@ -84,11 +87,39 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
 
 - Discover breakpoints from the app (design tokens, CSS, responsive layout changes) when possible; if
   unknown, use a practical baseline: phone, tablet/narrow, desktop, plus any app-specific cutoff.
-- At each breakpoint, walk the key paths again and confirm the experience holds: expected
+- **Do not test only the named breakpoints.** Clipping and overflow most often appear at the
+  *in-between* widths — where a row can no longer fit its contents but has not yet collapsed to the
+  next layout. Sweep a range of widths (e.g. 360, 390, 414, 600, 768, 834, 1024, 1280, 1440) plus a
+  few intermediate steps (e.g. ~900–1180) and re-check the key paths at each.
+- At each width, walk the key paths again and confirm the experience holds: expected
   shell/navigation variant, critical controls visible and reachable, no unintended horizontal
   overflow, intentional scroll containers still usable, nothing cut off or crowded.
 
-### 5. Watch Load & Latency
+### 5. Run Layout-Integrity Checks — Don't Eyeball Alone
+
+A screenshot glance misses controls clipped by a few pixels or pushed just past a container edge. At
+**every width**, in addition to looking, take DOM measurements via the browser automation tool
+(Playwright, Chrome MCP, etc.) and treat any of these as a finding:
+
+- **Document / container overflow:** `document.documentElement.scrollWidth > clientWidth`, or a
+  horizontal scrollbar on a container that should not scroll → accidental horizontal overflow.
+- **Clipped or offscreen controls:** for every interactive control (buttons, links, inputs, selects,
+  menu items), compare its `getBoundingClientRect()` against the viewport and against each ancestor
+  that has `overflow: hidden | clip | auto | scroll`. If any edge of the control falls outside those
+  bounds, it is partially or fully clipped / unreachable — even when the page looks fine in a thumbnail.
+  This is exactly the case that gets missed: a submit/apply button whose right edge is cut off by its
+  filter card.
+- **Truncated meaningful text:** an element whose `scrollWidth > clientWidth` (or that renders an
+  ellipsis) where the hidden text carries meaning — e.g. a select showing "Any CRD state" jammed into
+  its chevron, a label cut mid-word.
+- **Colliding controls:** a label or value overlapping an adjacent control (icon, chevron, button)
+  with no gap between them.
+
+Record which width(s) trigger each, the offending element, and a screenshot. **A primary or
+interactive control that is clipped, offscreen, or unreachable is a `Bug`, not merely an
+Improvement** — a user literally cannot see or click all of it.
+
+### 6. Watch Load & Latency
 
 - Measure separate milestones: visible app shell, `document.readyState`, first meaningful
   route-specific content, and visually stable/full route content.
@@ -121,6 +152,10 @@ validation gate; never call a vendor `*-write-*` skill directly). Map each findi
 |---------|--------------|---------------|
 | User-visible **bug** (broken behavior) | `Bug` | the `ready` flag (default `false`) |
 | **Usability / UX / clarity issue** | `Improvement` | the `ready` flag (default `false`) |
+
+A control that is **clipped, offscreen, or otherwise unreachable** (per §5) counts as broken behavior
+→ file it as a `Bug`, not an `Improvement`. Pure crowding/clarity with the control still fully usable
+is an `Improvement`.
 
 Each finding is a flat leaf (no children), so `build_ready` applies directly — pass it explicitly on
 every create. Each ticket MUST be a complete spec (the validator rejects thin tickets):
