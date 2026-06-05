@@ -2,6 +2,16 @@
 
 ## 2026-06-05 - Incremental connector ingest
 
+- Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch without conflicts, then created `wiki/ingest-20260605T175810Z` from synced `origin/main`.
+- Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
+- Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-05-lisa-monorepo-git-previous-20260605T175810Z.md` and `wiki/sources/roles/2026-06-05-roles-previous-20260605T175810Z.md` before refreshing the current `2026-06-05` connector notes.
+- Refreshed the `git` source note with 21 new commits through `53e90ef985d52804d17140a69d7d7f8627e8f8c5`, advanced the merged-PR cursor to `#1145`, and captured the release line through Lisa `2.137.0`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge, exploratory-QA hardening, OpenClaw mention-default change, test race fix, and release-history changes through `2.137.0`.
+
+## 2026-06-05 - Incremental connector ingest
+
 - Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch without conflicts, then created `wiki/ingest-20260605T105830Z` from synced `origin/main`.
 - Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
 - No same-day git or roles source notes existed, so no prior `2026-06-05` source provenance copy was needed before writing current connector notes.
