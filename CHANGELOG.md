@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.135.0](https://github.com/CodySwannGT/lisa/compare/vv2.134.10...v2.135.0) (2026-06-05)
+
+
+### Features
+
+* **exploratory-qa:** add flow-completeness / missing-counterpart category ([d56ea39](https://github.com/CodySwannGT/lisa/commit/d56ea39290ef47ae389591f7a59c01134c14651d))
+
+
+### Bug Fixes
+
+* **expo,rails:** apply same exploratory-qa layout-integrity fix ([e111b20](https://github.com/CodySwannGT/lisa/commit/e111b20aa9b2dfd84cdc028b365f313b90e78e07))
+
 ### [2.134.10](https://github.com/CodySwannGT/lisa/compare/vv2.134.9...v2.134.10) (2026-06-05)
 
 
