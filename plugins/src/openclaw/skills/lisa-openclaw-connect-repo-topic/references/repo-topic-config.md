@@ -77,12 +77,18 @@ repos:
       "groups": {
         "<group-id>": {
           "groupPolicy": "allowlist",
+          // Group-level gate stays on: messages in the group that are NOT inside a
+          // routed topic still require an explicit mention.
           "requireMention": true,
           "allowFrom": ["<telegram-user-id>"],
           "topics": {
             "<topic-id>": {
               "agentId": "<topic-slug>-dispatch",
-              "requireMention": true,
+              // Default false: the topic is bound 1:1 to this agent, so every message
+              // in it is already addressed to the agent — an @mention carries no routing
+              // information. Flip to true only for shared-workspace topics where humans
+              // also coordinate with each other (see "Mention gating" below).
+              "requireMention": false,
               "systemPrompt": "Use the topic's configured scope mode. For single-repo, pass the fixed repo path to <topic-slug>-codex. For folder-scoped, confirm the inferred repo or repo set unless the user already named it explicitly, then pass the explicit repo path(s) to <topic-slug>-codex. Treat each native reply root as an independent request context."
             }
           }
@@ -92,6 +98,28 @@ repos:
   }
 }
 ```
+
+## Mention gating
+
+`requireMention` controls whether a message must @-mention the bot before the agent activates. It is
+set independently at the group level and the topic level; the topic-level value wins for messages
+inside a routed topic.
+
+- **Topic level — default `false`.** A repo-coding topic is bound 1:1 to its dispatcher
+  (`agentId`), so the topic itself already determines the agent. Every message in the topic is
+  addressed to that agent and the @mention adds nothing but friction. This is the "inbox topic"
+  shape: the topic *is* the conversation with the agent.
+- **Set the topic level to `true`** only for a **shared-workspace topic** — one where humans also
+  talk *to each other* (status updates, coordination) and you do not want every stray line to spawn
+  an agent run. The mention then acts as an explicit "this one is for the bot" intent signal.
+- **Group level — keep `true`.** It gates messages posted in the group but outside any routed
+  topic, where there is no 1:1 agent binding to lean on.
+
+Tradeoff to weigh before leaving a topic at `false`: with no mention required, **every** top-level
+message and **every** native reply in the topic wakes the dispatcher (and can spawn a worker run). In
+an inbox topic that is exactly what you want; in a topic people also chat in, it is noise and cost.
+When in doubt, keep code-work topics as dedicated inbox topics (`false`) and push human coordination
+to a separate topic or the group body.
 
 ## Worker launcher form
 
