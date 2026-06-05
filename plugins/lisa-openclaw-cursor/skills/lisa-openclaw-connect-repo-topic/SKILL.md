@@ -103,8 +103,13 @@ The worker prepares the safe target and launches the CLI; it does not edit files
 
 Route the topic to the dispatcher: set
 `channels.telegram.groups.<group-id>.topics.<topic-id>.agentId = <topic-slug>-dispatch`, keep
-`requireMention = true` and allowlist policy, and add `allowFrom` only when membership must be
-narrower than the group. The topic `systemPrompt` must state the scope mode, treat each native-reply
+allowlist policy, and add `allowFrom` only when membership must be narrower than the group. Leave the
+topic-level `requireMention = false` (the default) so the agent activates on any message — the topic
+is bound 1:1 to this dispatcher, so an @mention carries no routing information and is pure friction.
+Set it to `true` only for a shared-workspace topic where humans also coordinate with each other and
+you don't want every line to spawn a run; the group-level `requireMention` stays `true` regardless.
+See "Mention gating" in [references/repo-topic-config.md](references/repo-topic-config.md) for the
+tradeoff. The topic `systemPrompt` must state the scope mode, treat each native-reply
 root as an independent request context, confirm repo selection only in folder-scoped mode, spawn the
 worker with an explicit repo path, and return the worker result to the topic. Back up
 `~/.openclaw/openclaw.json` before editing and preserve unrelated routes.
@@ -118,11 +123,14 @@ openclaw gateway status
 openclaw channels status --probe
 ```
 
-Then from the target topic: mention the bot and ask for an exact-token reply with **no** file
-changes, commits, PRs, or merges, e.g. `<bot-handle> reply with exactly TELEGRAM-ROUTE-OK`. Confirm
-the visible reply, that the dispatcher spawned the worker, and that the worker ran in the intended
-repo. For folder-scoped topics, also send a request that implies but doesn't name a repo and confirm
-the dispatcher asks for confirmation before proceeding. Do **not** treat `openclaw agent --agent
+Then from the target topic, send a plain message with **no** @mention (the default
+`requireMention = false` means the agent must activate without one) asking for an exact-token reply
+with **no** file changes, commits, PRs, or merges, e.g. `reply with exactly TELEGRAM-ROUTE-OK`.
+Confirm the visible reply, that the dispatcher spawned the worker, and that the worker ran in the
+intended repo. If the topic was deliberately left at `requireMention = true`, mention the bot instead
+(`<bot-handle> reply with exactly TELEGRAM-ROUTE-OK`) and additionally confirm that an un-mentioned
+message is **ignored**. For folder-scoped topics, also send a request that implies but doesn't name a
+repo and confirm the dispatcher asks for confirmation before proceeding. Do **not** treat `openclaw agent --agent
 <id> ...` as proof a topic route works — use the visible topic reply.
 
 ## Output standard
