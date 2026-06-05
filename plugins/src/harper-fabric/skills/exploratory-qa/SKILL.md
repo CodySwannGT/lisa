@@ -1,6 +1,6 @@
 ---
 name: exploratory-qa
-description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances, dead-end flows that strand a user — e.g. a login page with no way to register or recover a password) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
+description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances, dead-end flows that strand a user — e.g. a login page with no way to register or recover a password, or a primary action that drops the user into an incomplete/unsatisfiable state with no way to finish) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
 ---
 
 # Exploratory QA
@@ -80,6 +80,22 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
     no primary action to populate it.
   When the missing counterpart makes a core task impossible for a whole class of users (e.g. a new
   user literally cannot create an account), file a `Bug`; otherwise file a usability `Improvement`.
+- **Action preconditions & incomplete end-states:** an action whose result only makes sense with
+  multiple inputs (compare, merge, combine, bulk-edit) or with some prerequisite met should guide the
+  user to satisfy that precondition — by disabling/explaining it until it is met, by collecting the
+  inputs first (e.g. a selection tray), or by giving the destination an obvious in-place control to
+  complete it. Actually trigger these actions and watch where they land; flag when a primary action:
+  - **Fires under-satisfied and strands the user:** e.g. a per-row "Compare" that navigates to a
+    comparison of a single item, shows an "under limit / add at least 2" notice, but exposes no
+    visible "add another" control — the user is told what is wrong with no in-place means to fix it.
+  - **Lands on an incomplete / empty end-state with no next step:** a results or detail screen that
+    announces it is empty, partial, or "needs more" yet offers no affordance to add, retry, or return
+    to the selection that produced it.
+  - **Is offered where it cannot succeed:** a multi-item action exposed on a single item, or an action
+    left enabled while its precondition (a selection, a minimum count, a required field) is unmet,
+    with no explanation.
+  When the user is left unable to complete the action they started, file a `Bug`; when it eventually
+  works but the path is confusing or roundabout, file a usability `Improvement`.
 - **Visual/layout quality:** cut-off or truncated text, overlap, cramped/crowded density, offscreen or
   unreachable controls, accidental horizontal scroll, awkward empty space. **Do not judge this by
   eyeballing a screenshot alone** — a control clipped by a few pixels or pushed just past a container
