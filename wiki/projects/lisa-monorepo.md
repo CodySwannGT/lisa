@@ -20,16 +20,27 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260605T105830Z` created from synced `origin/main`
-- HEAD at 2026-06-05 incremental ingest: `a13384923008e71d8491199b3829b04e3658a793`
-- Current package version: `2.134.8`
-- Total commits on HEAD: 2813
-- Latest merged PR captured in the incremental git snapshot: `#1139`
-- New commits since the previous incremental git cursor: `3`
+- Ingest branch: `wiki/ingest-20260605T175810Z` created from synced `origin/main`
+- HEAD at 2026-06-05 incremental ingest: `53e90ef985d52804d17140a69d7d7f8627e8f8c5`
+- Current package version: `2.137.0`
+- Total commits on HEAD: 2834
+- Latest merged PR captured in the incremental git snapshot: `#1145`
+- New commits since the previous incremental git cursor: `21`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.137.0`.
+- PR `#1145` added exploratory-QA action-preconditions / incomplete-end-state coverage and fixed a flaky integration CLI smoke test race.
+- Release automation advanced the monorepo to `2.136.0`.
+- PR `#1144` changed OpenClaw repo-topic matching so `requireMention` defaults to `false`.
+- Release automation advanced the monorepo to `2.135.0`.
+- PR `#1143` added exploratory-QA flow-completeness / missing-counterpart coverage.
+- PR `#1142` applied the exploratory-QA layout-integrity fix across Expo and Rails templates.
+- Release automation advanced the monorepo to `2.134.10`.
+- PR `#1141` hardened Harper Fabric exploratory QA to catch clipped or offscreen controls.
+- Release automation advanced the monorepo to `2.134.9`.
+- PR `#1140` merged the prior wiki ingestion through Lisa `2.134.8`.
 - Release automation advanced the monorepo to `2.134.8`.
 - PR `#1139` merged the prior wiki ingestion through Lisa `2.134.7`.
 - Release automation advanced the monorepo to `2.134.7`.
@@ -174,6 +185,8 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-03-lisa-monorepo-git-previous-20260603T235654Z.md`
 - `wiki/sources/git/2026-06-03-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-06-04-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-05-lisa-monorepo-git-previous-20260605T175810Z.md`
+- `wiki/sources/git/2026-06-05-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -203,3 +216,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-03-roles-previous-20260603T235654Z.md`
 - `wiki/sources/roles/2026-06-03-roles.md`
 - `wiki/sources/roles/2026-06-04-roles.md`
+- `wiki/sources/roles/2026-06-05-roles-previous-20260605T175810Z.md`
+- `wiki/sources/roles/2026-06-05-roles.md`
