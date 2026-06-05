@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.137.0](https://github.com/CodySwannGT/lisa/compare/vv2.136.0...v2.137.0) (2026-06-05)
+
+
+### Features
+
+* **exploratory-qa:** add action-preconditions / incomplete-end-state category ([c8b93b8](https://github.com/CodySwannGT/lisa/commit/c8b93b835f8964c24902660f160af77e891d9b7f))
+
+
+### Bug Fixes
+
+* **test:** stop integration cli-smoke from racing the unit suite ([fc23edf](https://github.com/CodySwannGT/lisa/commit/fc23edf2f19446e9bbba3672103ee4906d28f9a7))
+
 ## [2.136.0](https://github.com/CodySwannGT/lisa/compare/vv2.135.0...v2.136.0) (2026-06-05)
 
 
