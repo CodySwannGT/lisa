@@ -25,8 +25,15 @@ function run(command: string, args: readonly string[]): string {
 }
 
 describe("built Lisa CLI smoke", () => {
+  // Build ONLY the dist CLI (`build:dist` = tsc + copy-codex-scripts), NOT the
+  // full `bun run build`. The full build ends in `build:plugins`, which deletes
+  // and regenerates plugins/** in place; when this integration test shares a
+  // `vitest run` with the unit suite (test / test:cov), that rebuild
+  // intermittently removes plugins/** out from under unit tests reading those
+  // generated artifacts (flaky ENOENT). The CLI smoke only needs dist/index.js,
+  // so it must never run build:plugins. Keep this as build:dist.
   beforeAll(() => {
-    run("bun", ["run", "build"]);
+    run("bun", ["run", "build:dist"]);
   }, 120_000);
 
   it("prints help for the built artifact with every public subcommand", () => {
