@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.136.0](https://github.com/CodySwannGT/lisa/compare/vv2.135.0...v2.136.0) (2026-06-05)
+
+
+### Features
+
+* **openclaw:** default repo-topic requireMention to false ([d563f92](https://github.com/CodySwannGT/lisa/commit/d563f921d574e6b5bf0df7250ae43117ac76b808))
+
 ## [2.135.0](https://github.com/CodySwannGT/lisa/compare/vv2.134.10...v2.135.0) (2026-06-05)
 
 
