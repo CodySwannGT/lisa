@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.134.10](https://github.com/CodySwannGT/lisa/compare/vv2.134.9...v2.134.10) (2026-06-05)
+
+
+### Bug Fixes
+
+* **harper-fabric:** make exploratory-qa catch clipped/offscreen controls ([fb955a0](https://github.com/CodySwannGT/lisa/commit/fb955a05001af0aff4d2e2defb2cffd9a68258c5))
+
 ### [2.134.9](https://github.com/CodySwannGT/lisa/compare/vv2.134.8...v2.134.9) (2026-06-05)
 
 
