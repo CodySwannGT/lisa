@@ -1,6 +1,6 @@
 ---
 name: exploratory-qa
-description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
+description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances, dead-end flows that strand a user — e.g. a login page with no way to register or recover a password) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
 ---
 
 # Exploratory QA
@@ -63,6 +63,23 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
   from the default UI or add context such as excerpts, labels, grouping, or provenance.
 - **Navigation clarity:** is it obvious how to get somewhere and back? Dead ends, hidden entry points,
   surprising redirects, broken links, no clear "home".
+- **Flow completeness & expected counterparts:** a screen that gates access or shows one side of a
+  standard paired flow must offer the other side — or a clear path to it. A brand-new user must never
+  hit a dead end with no next step. Flag missing companion actions, especially on auth and entry
+  screens:
+  - **Sign-in with no sign-up:** a login page with no "Create account" / "Register" link strands
+    anyone who does not already have an account; likewise a registration page with no link back to
+    sign in.
+  - **No account recovery:** login with no "Forgot password?", no way to reset, and no way to resend a
+    verification email.
+  - **No exit from a state:** a signed-in app with no visible sign-out, or a modal / wizard / detail
+    view with no back, close, or cancel.
+  - **One-way actions:** create/add with no matching edit or delete (or the reverse) where a user
+    would reasonably expect both.
+  - **Unreachable entry points:** a feature only reachable by guessing a URL, or an empty state with
+    no primary action to populate it.
+  When the missing counterpart makes a core task impossible for a whole class of users (e.g. a new
+  user literally cannot create an account), file a `Bug`; otherwise file a usability `Improvement`.
 - **Visual/layout quality:** cut-off or truncated text, overlap, cramped/crowded density, offscreen or
   unreachable controls, accidental horizontal scroll, awkward empty space. **Do not judge this by
   eyeballing a screenshot alone** — a control clipped by a few pixels or pushed just past a container
