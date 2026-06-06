@@ -332,13 +332,20 @@ falls through to the blocker path (step 4).
 behind its base — `mergeStateStatus == BEHIND` while `mergeable != CONFLICTING` and no required check
 is failing — it does **not** need a human. This is exactly the case that strands a PR forever: GitHub
 auto-merge will not advance a `BEHIND` branch on its own, so a PR opened with `--auto` sits unmerged
-until something rebases it. Re-sync it in place and let the existing auto-merge land it:
+until something rebases it. Delegate this mechanical nudge + classification to the
+`drive-pr-to-merge` skill in **report** mode — the single source of truth for the
+"ensure auto-merge + re-sync a clean `BEHIND` branch" primitive — so this scanner does not
+re-implement it:
 
-```bash
-gh pr update-branch <n>          # rebase/merge the base into the PR head; reruns required checks
+```text
+drive-pr-to-merge  pr=<n>  on_blocker=report
 ```
 
-Record this as a repair write (`resynced`), keep the item `claimed`, and move on — a later cycle sees
+In report mode it ensures auto-merge is enabled and runs `gh pr update-branch <n>` only when the
+PR is `BEHIND`-but-clean; it never edits code, resolves threads, or dismisses reviews. It returns a
+classification (`merged` / `will-merge-after-resync` / `blocked:<reason>`). On a `merged` /
+`will-merge-after-resync` result,
+record this as a repair write (`resynced`), keep the item `claimed`, and move on — a later cycle sees
 the now-`CLEAN` (or merged) PR and either lets auto-merge finish or applies the merged-PR recovery in
 step 2. Only if `gh pr update-branch` itself reports a conflict it cannot apply does the PR become a
 true conflict (step 4). Honor the backoff window so repeated cycles don't re-issue `update-branch` on

@@ -1,0 +1,4 @@
+display_name: "Sync Down"
+short_description: "run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g"
+default_prompt:
+  - "Use $sync-down: run a back-sync of an environment branch DOWN the deploy chain on demand — propagating merges (e.g."
