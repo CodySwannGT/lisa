@@ -64,6 +64,13 @@ writes nothing). The point is to ingest on top of fresh state, never stale state
 - Source-note-before-synthesis; state advanced **only** after verification.
 - Project-scoped only; memory ingestion never touches global/Codex-global stores.
 - Respect `sourceRetention` and `sensitivity`; do not invent facts.
+- Before advancing state or committing, run the generated-output safety gate
+  (`scripts/verify-wiki-safety.mjs`) against the wiki files/source notes produced by
+  the ingest. The default built-in scan blocks unredacted private keys, tokens, and
+  common financial/person identifiers without printing raw values. Projects may
+  select `--scanner gitleaks` for local parity with Gitleaks, and may use
+  `--scanner trufflehog` as a stricter optional verification pass when installed;
+  if a selected scanner is unavailable, keep the ingest blocked for review.
 - Connector execution and the connector contract are detailed in the connector skills (M2+); this
   router defines and enforces the ordering and side-effect rules above.
 
