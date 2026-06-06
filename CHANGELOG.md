@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.138.0](https://github.com/CodySwannGT/lisa/compare/vv2.137.3...v2.138.0) (2026-06-06)
+
+
+### Features
+
+* **instructions:** make AGENTS.md canonical, CLAUDE.md a pointer, add doctor migration ([afe8035](https://github.com/CodySwannGT/lisa/commit/afe803501ba73c0b69ad1b66c6e063297ffc1d2b))
+
 ### [2.137.3](https://github.com/CodySwannGT/lisa/compare/vv2.137.2...v2.137.3) (2026-06-06)
 
 
