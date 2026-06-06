@@ -80,5 +80,19 @@ describe("repair-intake contract", () => {
       expect(skill).toMatch(/normalized_ready/);
       expect(skill).toMatch(/Official lifecycle labels remain authoritative/);
     });
+
+    it("repairs GitHub PRDs missing native top-level child links", () => {
+      expect(skill).toMatch(/Missing PRD child link drift/);
+      expect(skill).toMatch(/GitHub PRD missing child links/);
+      expect(skill).toMatch(/Top-level work:/);
+      expect(skill).toMatch(/lisa:gw/);
+      expect(skill).toMatch(/subIssues/);
+      expect(skill).toMatch(/addSubIssue/);
+      expect(skill).toMatch(
+        /Leaf Sub-tasks and descendant Stories are never direct PRD children/
+      );
+      expect(skill).toMatch(/relinked/);
+      expect(command).toMatch(/missing native child links/);
+    });
   });
 });
