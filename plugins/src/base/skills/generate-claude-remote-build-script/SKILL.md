@@ -51,9 +51,12 @@ tracker/source, plus the host project's own package manager and tooling — not 
 3. **Emit the environment-variable template.** Write a commented block listing every `env` entry
    from the inventory grouped by integration, marked `REQUIRED`/`OPTIONAL` and `secret`/`plain`,
    with the reason. **Never write real secret values** — only names and placeholders, because the
-   environment config is visible to anyone who can edit it. Include feature flags actually set in
-   `.claude/settings.json` (e.g. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) so cloud behavior matches
-   local. For every secret entry that carries `acquireUrl`/`accessScope`/`headlessSubstrate` (the
+   environment config is visible to anyone who can edit it. Entries flagged `providedBy: settings.json`
+   (the committed `.claude/settings.json` `env` flags, e.g. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) are
+   **already applied from the committed file** — list them under an `# Already provided by committed
+   .claude/settings.json — no UI entry needed` heading, not as values to set. The "set in the
+   environment UI" template is for **secrets only**. For every secret entry that carries
+   `acquireUrl`/`accessScope`/`headlessSubstrate` (the
    active tracker/source credentials from the analysis's group 4a), render those as comment lines
    directly above the name — `# Acquire: <url>` and `# Access: <scope>` — so the user knows exactly
    where to get the token and what permissions it needs. Emit only the **env-var form** of the name
@@ -83,8 +86,9 @@ shape, not a fixed payload):
 #
 # GAPS this script cannot fix (configure separately):
 #   - <gaps from analysis, e.g. auto-memory is machine-local and not synced to cloud routines>
-# ENV VARS to set in the environment config (names only — set real values there, not here):
-#   - CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1   # REQUIRED, matches .claude/settings.json
+# Already provided by committed .claude/settings.json (applied automatically — no UI entry needed):
+#   - CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS, ENABLE_LSP_TOOL, BASH_DEFAULT_TIMEOUT_MS, BASH_MAX_TIMEOUT_MS
+# SECRETS to set in the environment config (names only — set real values there, not here):
 #   # --- credentials for the active tracker/source (set in the environment UI) ---
 #   # Acquire: https://github.com/settings/personal-access-tokens
 #   # Access:  fine-grained PAT on target repo: Contents R/W, Issues R/W, Pull requests R/W, Metadata R

@@ -84,9 +84,19 @@ Group the findings as:
    `secrets.*`/`env:` in CI, and config-referenced tokens. Group by integration (GitHub, AWS,
    Atlassian/JIRA/Confluence, Notion, Linear, Anthropic, notifications, feature flags, other).
    Cross-reference `.lisa.config.json` `tracker`/`source` to mark which credentials are **active**
-   for this repo vs **dormant** (`OPTIONAL`). Always surface Claude Code feature flags actually set
-   in `.claude/settings.json` (e.g. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) as `REQUIRED` to match
-   local behavior, since the environment `env` block is the reliable place to set them.
+   for this repo vs **dormant** (`OPTIONAL`). Distinguish *where* each var must be set, because the
+   answer differs and getting it wrong sends the user to do redundant work:
+
+   - **Committed `.claude/settings.json` `env` flags** (e.g. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`,
+     `ENABLE_LSP_TOOL`, `BASH_*`) — this file is repo-committed, so it reaches the cloud and Claude
+     Code applies its `env` block when it launches. These are **already provided — no action**.
+     Surface them as `OK` (cite the file), not `REQUIRED`. Do **not** tell the user to re-enter them
+     in the environment UI; a duplicate there only risks drifting from the committed value. The lone
+     caveat: the setup script runs *before* Claude Code launches, so it cannot see these — flag any
+     that the **setup script itself** would need (rare) as needing a UI value too.
+   - **Secrets** (tokens/keys) — cannot be committed, so the committed `settings.json` can't carry
+     them. These are the only vars that genuinely **must be set in the environment-variables UI**.
+     Mark active-integration secrets `REQUIRED`; dormant ones `OPTIONAL`.
 
 4a. **Tracker / PRD-source credentials** — this is the load-bearing part of the audit and must be
    driven by config, not by what the scan happens to find. Resolve the active integrations first:
@@ -199,7 +209,10 @@ checklist of the secrets the user must set in the routine's environment for the 
 `tracker`/`source` (from group 4a). One block per active integration, each with its env-var name(s),
 an `Acquire:` URL, and an `Access:` scope line, plus a one-line note that the environment UI is where
 these are set (the generated build script only emits a names-only template, never values). If both
-`tracker` and `source` resolve to the same vendor (e.g. both `github`), render it once.
+`tracker` and `source` resolve to the same vendor (e.g. both GitHub), render it once. List **only
+secrets** here — do not include the committed `.claude/settings.json` `env` flags; close the
+subsection with a one-line reminder that those flags are already provided by the committed file and
+need no UI entry.
 
 End with a fenced, machine-readable inventory block (also printed when `--json` is passed) so
 `/lisa:generate-claude-remote-build-script` can consume it without re-deriving everything. Secret
@@ -216,7 +229,7 @@ so the generator can render acquisition comments into its template:
   "tracker": "github",
   "source": "github",
   "env": [
-    { "name": "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS", "required": true, "secret": false, "reason": "set in .claude/settings.json" },
+    { "name": "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS", "required": false, "secret": false, "providedBy": "settings.json", "uiAction": "none", "reason": "committed in .claude/settings.json env — applied automatically; do not re-enter in the UI" },
     {
       "name": "GH_TOKEN", "required": true, "secret": true, "integration": "github",
       "reason": "active tracker+source; gh scripts gate on gh auth status",
