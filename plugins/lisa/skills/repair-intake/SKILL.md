@@ -45,6 +45,10 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   the build-intake claim gate deliberately leaves for a human; repair-intake reconciles it by
   rolling the parent up from its children (with an audit note), so a container never sits in `ready`
   indefinitely.
+- **Missing official ready-label drift** — a GitHub issue that is missing every configured Lisa
+  lifecycle label. repair-intake classifies it as a PRD or build ticket and adds the configured
+  `ready` label (`prd-ready` for a PRD, build `status:ready` for a ticket) so normal intake can see
+  it; if the later intake/implement gate finds the item incomplete, it moves the item to `blocked`.
 
 This skill is the symmetric counterpart to `lisa:intake`. It reuses the same queue-detection,
 the same agent-team orchestration, the same "don't ask, just run" confirmation policy, and the
@@ -150,7 +154,8 @@ claim-and-advance). The essentials, inlined here so this skill is self-complete:
 | Linear **workspace** URL, **team** URL/key, or literal `linear` | PRD (Linear) | source=linear | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
 | GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
 | GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked`, terminal/open issues, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
-| Literal `github` | GitHub; route by `intake_mode` (`prd` / `build` / `both`) | per lifecycle | per lifecycle above |
+| GitHub **repo** URL / `org/repo` with an open issue missing configured lifecycle labels | GitHub label normalization | per classified lifecycle | add configured `prd.ready` or build `ready` |
+| Literal `github` | GitHub; route by `intake_mode` (`prd` / `build` / `both`) | per lifecycle | per lifecycle above, plus GitHub ready-label normalization |
 | JIRA project key or full JQL | Build (JIRA) | tracker=jira | `claimed`, `blocked`, terminal/closure verification, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
 
 Disambiguation (same as `lisa:intake`): a `notion.so`/`notion.site` URL → Notion; an Atlassian
@@ -545,6 +550,45 @@ work is fully terminal:
 5. If generated work is missing, ambiguous, or partially incomplete, leave the PRD open and report
    the incomplete child set. Never close a PRD on partial completion.
 
+### GitHub missing official ready-label normalization → configured ready
+
+For GitHub queues, enumerate open issues that have **no configured Lisa lifecycle label** in the
+active lifecycle namespace(s). This is the repair path for issues created by older tools or humans
+with labels like `build-ready`, or with no Lisa status label at all, that are invisible to
+`lisa:intake`, whose scanner only reads the configured `ready` labels.
+
+1. Resolve configured lifecycle labels from `.lisa.config.json` / `.lisa.config.local.json`:
+   - PRD lifecycle labels: `draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`,
+     `verified` when configured.
+   - Build lifecycle labels: `ready`, `claimed`, `blocked`, every env-resolved `done` value,
+     intermediate status labels where configured, and `human_needed`.
+2. Query open GitHub issues that are missing all configured lifecycle labels for the lifecycle(s)
+   selected by `intake_mode`. If `intake_mode=prd`, only PRD-classified issues are normalized. If
+   `intake_mode=build`, every non-PRD issue is normalized as a build ticket. If `intake_mode=both`,
+   classify PRDs first and normalize all remaining issues as build tickets.
+3. Classify the issue:
+   - **PRD** if it has PRD labels/markers (`prd`, `type:PRD`, `kind:prd`), PRD structure
+     (`## Problem`, `## Goals`, `## Validation Journey`, generated-work/backlink sections), or
+     body/comment text that explicitly says `prd-ready`.
+   - **Build ticket** if it has build work labels/types (`bug`, `type:Bug`, `task`, `type:Task`,
+     `sub-task`, `type:Sub-task`, `improvement`, `type:Improvement`, `story`, `spike`) or
+     body/comment text that explicitly says `build-ready`. When PRD signals are absent and the
+     selected lifecycle includes build, default to **Build ticket** even if no build type label is
+     present; build-intake/implement will validate the item and move it to `blocked` if required
+     sections are missing.
+   - **Ambiguous PRD/build** if strong PRD and build classifications both match. In `intake_mode=prd`
+     normalize as PRD; in `intake_mode=build` normalize as build; in `intake_mode=both`, prefer PRD
+     only when the body has PRD structure, otherwise build.
+4. Apply exactly one configured ready label for the classified lifecycle:
+   - PRD → add the configured PRD `ready` label (default `prd-ready`).
+   - Build ticket → add the configured build `ready` label (default `status:ready`).
+   Keep any unofficial labels for auditability unless the project has explicitly configured one as a
+   conflicting lifecycle label. Do not claim the item or dispatch an agent in the same repair cycle;
+   normalization makes the next normal `lisa:intake` run pick it up.
+5. Post one idempotent `[lisa-repair-intake]` note naming the classification and the configured label
+   applied. Include the normalization result in the loop-prevention fingerprint so repeated repair
+   cycles do not spam comments.
+
 ## Blocker classification & clearing (conservative, vendor-specific extraction)
 
 A `blocked` build item is held by one or more of three blocker classes. Identify which are present
@@ -664,6 +708,9 @@ It MAY:
   applies only to containers, never to leaves.
 - Move a PRD with fully terminal generated work to `shipped` and close/archive the source artifact
   where the source vendor supports native close-out, per `prd-lifecycle-rollup`.
+- Normalize a GitHub issue with no configured lifecycle label by adding the configured PRD or build
+  `ready` label after classifying the issue. This is a visibility repair, not a claim; the item
+  remains open and unclaimed for normal intake.
 
 It MUST NOT:
 
@@ -673,15 +720,17 @@ It MUST NOT:
 - Touch `ready` **leaves** (that is `lisa:intake`'s lane). A container carrying `ready` is the
   documented exception above — repair-intake reconciles it because `ready` on a parent is an
   invariant violation, not the human "claim this leaf" signal intake owns.
+- Move a GitHub issue that already carries a configured lifecycle label back to `ready` merely
+  because some other label looks stale. Official lifecycle labels remain authoritative.
 
 ## Cycle behavior
 
 1. **Resolve the queue** — detect vendor/lifecycle (Source dispatch); resolve stuck role names
    from config. For JIRA, confirm the needed transitions are reachable; stop on misconfig.
 2. **Enumerate repair candidates** — query in-progress role(s), `blocked` role(s), terminal/open
-   items, rollup parents/PRDs with child work, and **containers carrying the `ready` role** (a
-   leaf-only-invariant violation to reconcile), for the detected lifecycle(s), up to
-   `max_candidates`, via the Access layer reads.
+   items, rollup parents/PRDs with child work, **containers carrying the `ready` role** (a
+   leaf-only-invariant violation to reconcile), and GitHub issues with no configured lifecycle label,
+   for the detected lifecycle(s), up to `max_candidates`, via the Access layer reads.
 3. **Order deterministically**, highest repair-confidence first:
    1. terminal-labeled items that only need native close / complete / resolve,
    2. rollup parents/PRDs whose child sets are all terminal (close-out),
@@ -692,7 +741,8 @@ It MUST NOT:
    5. `blocked` items whose **validation / quality-gate self-block now re-validates PASS** —
       a human filled in the missing sections (Class B; equally safe and high-value),
    6. `blocked` items with **new clarifying answers**,
-   7. **stalled** in-progress items, oldest activity first.
+   7. GitHub missing-official-label normalization candidates,
+   8. **stalled** in-progress items, oldest activity first.
 4. **Walk the ordered list**, evaluating each candidate (terminal close-out, rollup child tally,
    staleness, dependency, answer checks), and repair **every** candidate that is actionable inside
    the `max_candidates` cap. Continue after successful writes and after per-item errors.
@@ -723,6 +773,8 @@ Report outcomes in these buckets:
 - `rolled_up` — parent/container/PRD rollups advanced to their derived state: an intermediate env
   (e.g. all children at `On Stg` → parent `On Stg`), a fully-terminal close-out, or a stale-`ready`
   container reconciled from its children.
+- `normalized_ready` — GitHub issues missing official lifecycle labels that were classified and
+  given the configured PRD/build `ready` label so normal intake can claim them.
 - `still_blocked` — examined and intentionally left `blocked`, with the active reason.
 - `active` — skipped because current work is not stale (or within backoff).
 - `errors` — items that failed evaluation, with the error.
