@@ -2,7 +2,18 @@
 
 Date: 2026-05-28
 
-Status: Accepted (research-side decision; implementation is the responsibility of `lisa-coding-agent-parity-implement`).
+Status: Accepted (research-side decision; implementation is the responsibility of `lisa-coding-agent-parity-implement`). **Superseded in part on 2026-06-06** for the agy rules story — see "Update (2026-06-06): canonical, rule-free AGENTS.md" below.
+
+## Update (2026-06-06): canonical, rule-free AGENTS.md
+
+The agy-specific "bake eager rules into AGENTS.md" mechanism described in this decision (and detailed under "Cluster 4-agy / Option α" in the parity research) **was removed** (PR #1150). The `src/agy/agents-md-installer.ts` installer that wrote eager rule bodies between `<!-- LISA_RULES_START -->` / `<!-- LISA_RULES_END -->` markers is deleted. The current behavior is:
+
+1. **`AGENTS.md` is canonical and rule-free.** A single, create-only, agent-neutral `AGENTS.md` (written by `src/codex/agents-md-installer.ts`) is the cross-agent instruction file for every agent. It holds no rule bodies — Lisa's rules are delivered per session via each agent's `inject-rules.sh` SessionStart hook, not duplicated into the file.
+2. **`CLAUDE.md` is a thin `@AGENTS.md` pointer.** Claude Code does not read `AGENTS.md` natively, so `src/claude/claude-md-installer.ts` writes a `CLAUDE.md` whose only meaningful content is the `@AGENTS.md` import. This keeps guidance in one place and avoids the double-load that agents reading both files (Cursor, Copilot) would otherwise hit.
+3. **agy no longer receives baked eager rules.** agy gets the same thin, rule-free `AGENTS.md` as everyone else (`installAgentsMd` in the agy emit path of `src/core/lisa.ts`); there is no rule-baking and no headless polyfill. Because agy plugin hooks do not fire in `-p` headless mode, agy does not get the SessionStart `inject-rules.sh` eager-rule injection the other agents rely on — accepting that gap (rather than baking) is the deliberate trade-off.
+4. **`lisa doctor` migrates existing projects** via `src/core/instruction-files-migration.ts` (`migrateInstructionFiles`, invoked from `src/cli/doctor.ts`): it creates a canonical `AGENTS.md` when missing, strips any legacy `LISA_RULES_START..END` baked block from an existing `AGENTS.md`, and ensures `CLAUDE.md` `@AGENTS.md`-imports it — non-destructively (host-authored content is preserved).
+
+The rest of this decision (per-agent build-time fan-out, the Pattern A/C alternatives, the Cursor/Copilot variants) stands.
 
 ## Context
 
@@ -14,7 +25,7 @@ Generate per-agent plugin artifacts at build time. The shared source under `plug
 
 - `plugins/lisa/` — Claude Code artifact, the existing build output.
 - `plugins/lisa-cursor/` — Cursor variant, stripped of polyfill hooks that collide with Cursor's native auto-discovery (`inject-rules.sh`).
-- `plugins/lisa-agy/` — agy variant with manifest moved to bare `plugin.json` at the artifact root, Claude-only hooks stripped, and the rules-injection mechanism re-routed to the AGENTS.md template since agy plugin hooks do not fire in headless mode.
+- `plugins/lisa-agy/` — agy variant with manifest moved to bare `plugin.json` at the artifact root and Claude-only hooks stripped. (As originally written, the rules-injection mechanism was re-routed to a baked AGENTS.md block since agy plugin hooks do not fire in headless mode. **That baking was removed on 2026-06-06** — agy now receives the canonical, rule-free `AGENTS.md` like every other agent; see the "Update (2026-06-06)" note above.)
 - `plugins/lisa-copilot/` — Copilot variant with sub-agent files renamed or manifest-overridden to satisfy Copilot's `<n>.agent.md` filename expectation.
 - Codex artifacts continue to derive from the Claude build through `scripts/generate-codex-plugin-artifacts.mjs`, extended where Codex 0.125.0 now supports plugin-bundled hooks.
 

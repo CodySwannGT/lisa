@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.139.0](https://github.com/CodySwannGT/lisa/compare/vv2.138.2...v2.139.0) (2026-06-06)
+
+
+### Features
+
+* **instructions:** run the canonical-files migration during lisa apply ([4475d98](https://github.com/CodySwannGT/lisa/commit/4475d983045f06d1825e0c32974663cb9a70129f))
+
+### [2.138.2](https://github.com/CodySwannGT/lisa/compare/vv2.138.1...v2.138.2) (2026-06-06)
+
+
+### Documentation
+
+* **wiki:** correct remaining agy-baking references for rule-free AGENTS.md ([39d7e93](https://github.com/CodySwannGT/lisa/commit/39d7e93fa3de90dda27068e43920ddec2f9c834b)), closes [#1150](https://github.com/CodySwannGT/lisa/issues/1150) [#1150](https://github.com/CodySwannGT/lisa/issues/1150)
+
+### [2.138.1](https://github.com/CodySwannGT/lisa/compare/vv2.138.0...v2.138.1) (2026-06-06)
+
+
+### Documentation
+
+* **wiki:** correct agy rules story for canonical, rule-free AGENTS.md ([84c5286](https://github.com/CodySwannGT/lisa/commit/84c52869d5f3e80072c44fabdb15b4a2e0f790ba)), closes [#1150](https://github.com/CodySwannGT/lisa/issues/1150)
+
+## [2.138.0](https://github.com/CodySwannGT/lisa/compare/vv2.137.3...v2.138.0) (2026-06-06)
+
+
+### Features
+
+* **instructions:** make AGENTS.md canonical, CLAUDE.md a pointer, add doctor migration ([afe8035](https://github.com/CodySwannGT/lisa/commit/afe803501ba73c0b69ad1b66c6e063297ffc1d2b))
+
+### [2.137.3](https://github.com/CodySwannGT/lisa/compare/vv2.137.2...v2.137.3) (2026-06-06)
+
+
+### Documentation
+
+* **wiki:** ingest Lisa wiki state ([5ac9fc6](https://github.com/CodySwannGT/lisa/commit/5ac9fc6dab1ff271f10476b4446cd20f89f1043b))
+* **wiki:** ingest Lisa wiki state ([cbb4436](https://github.com/CodySwannGT/lisa/commit/cbb443692628a851f8b48456b8a8a5de052c6120))
+
 ### [2.137.2](https://github.com/CodySwannGT/lisa/compare/vv2.137.1...v2.137.2) (2026-06-06)
 
 
