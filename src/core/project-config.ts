@@ -68,6 +68,50 @@ export async function writeProjectConfig(
 }
 
 /**
+ * Whether a `.lisa.config.json` file exists at the destination project root.
+ *
+ * Distinct from `readProjectConfig`, which returns `{}` both when the file is
+ * absent and when it exists but declares no recognized keys — callers that
+ * need to know whether the file physically exists (e.g. to backfill a missing
+ * one) must use this.
+ * @param destDir - Absolute path to the destination project root
+ * @returns True when the config file is present on disk
+ */
+export async function projectConfigExists(destDir: string): Promise<boolean> {
+  return fse.pathExists(path.join(destDir, PROJECT_CONFIG_FILENAME));
+}
+
+/**
+ * Decide whether `apply` should write `.lisa.config.json`.
+ *
+ * Policy: every applied project must carry a `.lisa.config.json`, so a missing
+ * file is always backfilled (with the resolved harness — the default when no
+ * `--harness` flag was passed). An existing file is only rewritten when the
+ * user supplied `--harness` and it actually changes the persisted value, so
+ * routine applies don't churn a project's committed config.
+ * @param params - File presence and resolved/declared harness values
+ * @param params.fileExists - Whether `.lisa.config.json` already exists on disk
+ * @param params.flagHarness - Harness from the `--harness` CLI flag, if passed
+ * @param params.existingHarness - Harness currently persisted in the config
+ * @param params.resolvedHarness - Effective harness resolved for this run
+ * @returns True when the config should be (re)written
+ */
+export function shouldPersistProjectConfig(params: {
+  readonly fileExists: boolean;
+  readonly flagHarness: Harness | undefined;
+  readonly existingHarness: Harness | undefined;
+  readonly resolvedHarness: Harness;
+}): boolean {
+  if (!params.fileExists) {
+    return true;
+  }
+  return (
+    params.flagHarness !== undefined &&
+    params.existingHarness !== params.resolvedHarness
+  );
+}
+
+/**
  * Read `.lisa.config.json` and return its raw parsed object, preserving
  * unknown fields. Unlike `readProjectConfig`, this does NOT strip the
  * result down to the recognized `ProjectConfig` keys — used by
