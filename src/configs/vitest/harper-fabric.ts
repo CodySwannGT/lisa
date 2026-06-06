@@ -46,6 +46,9 @@ export const getHarperFabricVitestConfig = ({
   test: {
     globals: true,
     environment: "node",
+    // Repos with no test files must not fail the pre-push/CI gate; vitest exits 1
+    // on "No test files found" otherwise. See typescript.ts for rationale.
+    passWithNoTests: true,
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
     exclude: [...defaultTestExclusions],
     testTimeout: 10000,
