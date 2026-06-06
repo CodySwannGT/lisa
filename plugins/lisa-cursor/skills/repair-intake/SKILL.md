@@ -49,6 +49,11 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   lifecycle label. repair-intake classifies it as a PRD or build ticket and adds the configured
   `ready` label (`prd-ready` for a PRD, build `status:ready` for a ticket) so normal intake can see
   it; if the later intake/implement gate finds the item incomplete, it moves the item to `blocked`.
+- **Missing PRD child link drift** — a GitHub PRD in `ticketed` (or another open non-product-owned
+  PRD role) has a generated-work section/comment that names top-level generated work, but the PRD's
+  native sub-issue list is missing one or more of those top-level children. repair-intake replays the
+  `prd-backlink` native-linking contract and attaches the missing same-repo top-level children
+  idempotently, so PRD rollup can rely on the native graph again.
 
 This skill is the symmetric counterpart to `lisa:intake`. It reuses the same queue-detection,
 the same agent-team orchestration, the same "don't ask, just run" confirmation policy, and the
@@ -152,7 +157,7 @@ claim-and-advance). The essentials, inlined here so this skill is self-complete:
 | Confluence **space** URL/key | PRD (Confluence) | source=confluence | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
 | Confluence **parent page** URL/ID | PRD (Confluence, narrowed) | source=confluence | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
 | Linear **workspace** URL, **team** URL/key, or literal `linear` | PRD (Linear) | source=linear | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
-| GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked`, terminal/open PRDs, missing PRD child links, all-terminal generated-work rollups |
 | GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked`, terminal/open issues, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
 | GitHub **repo** URL / `org/repo` with an open issue missing configured lifecycle labels | GitHub label normalization | per classified lifecycle | add configured `prd.ready` or build `ready` |
 | Literal `github` | GitHub; route by `intake_mode` (`prd` / `build` / `both`) | per lifecycle | per lifecycle above, plus GitHub ready-label normalization |
@@ -550,6 +555,47 @@ work is fully terminal:
 5. If generated work is missing, ambiguous, or partially incomplete, leave the PRD open and report
    the incomplete child set. Never close a PRD on partial completion.
 
+### GitHub PRD missing child links → native sub-issue repair
+
+For each open GitHub PRD in `ticketed` or another non-product-owned PRD role, compare the durable
+generated-work fallback against the PRD's native sub-issue graph and repair missing native links.
+This is the recovery counterpart to `lisa:prd-backlink`'s GitHub native parent-linking section:
+PRD intake/backlink should attach generated top-level work as native PRD children when possible,
+but repair-intake must heal the graph when that write was skipped, failed, or later drifted.
+
+1. Read the generated work exactly as PRD rollup does:
+   - Prefer the machine-readable `## Tickets` / `## Generated Work` section (`lisa:gw` tokens).
+   - If the machine-readable section is absent but an older Lisa ticketing comment exists, parse only
+     its structured `Top-level work:` block as a compatibility fallback. Do not scrape arbitrary
+     prose.
+2. Select only generated **top-level** work:
+   - `lisa:gw` entries whose `parent` token is empty.
+   - Older ticketing-comment entries under `Top-level work:`.
+   Leaf Sub-tasks and descendant Stories are never direct PRD children.
+3. Restrict native repair to same-repo GitHub issues. Cross-repo or cross-vendor generated work stays
+   documented-only; record a warning instead of failing.
+4. Read the PRD's existing native sub-issues with the same GraphQL `subIssues` query documented by
+   `lisa:prd-backlink` / `lisa:github-read-issue`, and dedupe by child-ref
+   (`owner/repo#number`).
+5. For each missing same-repo top-level child, resolve node IDs and call the same GitHub GraphQL
+   mutation as `prd-backlink`:
+
+   ```graphql
+   mutation($parentId:ID!,$childId:ID!){
+     addSubIssue(input:{issueId:$parentId,subIssueId:$childId}){issue{number}subIssue{number}}
+   }
+   ```
+
+   Treat "already linked" duplicate rejections as success. If `subIssues` / `addSubIssue` is
+   unavailable, leave the documented generated-work fallback intact, record a capability warning, and
+   continue.
+6. Post one idempotent `[lisa-repair-intake]` note when a missing native PRD child link is repaired
+   or when the native-link capability is unavailable. Include the generated top-level child set, the
+   pre-existing native child set, and repaired child refs in the state fingerprint so repeated cycles
+   do not spam comments.
+7. Do not transition the PRD lifecycle merely because child links were repaired. Rollup/ship remains
+   governed by the PRD rollup path after the child graph is complete.
+
 ### GitHub missing official ready-label normalization → configured ready
 
 For GitHub queues, enumerate open issues that have **no configured Lisa lifecycle label** in the
@@ -708,6 +754,9 @@ It MAY:
   applies only to containers, never to leaves.
 - Move a PRD with fully terminal generated work to `shipped` and close/archive the source artifact
   where the source vendor supports native close-out, per `prd-lifecycle-rollup`.
+- Repair missing native GitHub PRD child links from the generated-work fallback by replaying the
+  `prd-backlink` top-level-only, same-repo, idempotent `addSubIssue` contract. This repairs
+  structure only; it does not ship or verify the PRD.
 - Normalize a GitHub issue with no configured lifecycle label by adding the configured PRD or build
   `ready` label after classifying the issue. This is a visibility repair, not a claim; the item
   remains open and unclaimed for normal intake.
@@ -715,6 +764,8 @@ It MAY:
 It MUST NOT:
 
 - Move a PRD out of `draft` or `verified` (those are product-owned), or set `verified` itself.
+- Link leaf Sub-tasks or descendant Stories directly under a PRD. Only generated top-level work
+  (empty parent token / `Top-level work:` entries) may become PRD children.
 - Apply a build `done` value other than via the env-resolution rules, or close a native item at
   any value other than the true terminal `done` (see `leaf-only-lifecycle`).
 - Touch `ready` **leaves** (that is `lisa:intake`'s lane). A container carrying `ready` is the
@@ -728,21 +779,23 @@ It MUST NOT:
 1. **Resolve the queue** — detect vendor/lifecycle (Source dispatch); resolve stuck role names
    from config. For JIRA, confirm the needed transitions are reachable; stop on misconfig.
 2. **Enumerate repair candidates** — query in-progress role(s), `blocked` role(s), terminal/open
-   items, rollup parents/PRDs with child work, **containers carrying the `ready` role** (a
+   items, GitHub PRDs whose generated-work fallback names top-level children missing from native
+   sub-issues, rollup parents/PRDs with child work, **containers carrying the `ready` role** (a
    leaf-only-invariant violation to reconcile), and GitHub issues with no configured lifecycle label,
    for the detected lifecycle(s), up to `max_candidates`, via the Access layer reads.
 3. **Order deterministically**, highest repair-confidence first:
    1. terminal-labeled items that only need native close / complete / resolve,
-   2. rollup parents/PRDs whose child sets are all terminal (close-out),
-   3. rollup parents whose children have advanced to an intermediate env, or stale-`ready`
+   2. GitHub PRDs missing native links for generated top-level work (structure-only repair),
+   3. rollup parents/PRDs whose child sets are all terminal (close-out),
+   4. rollup parents whose children have advanced to an intermediate env, or stale-`ready`
       containers, that need their derived state applied (status-only reconciliation, no native
       close),
-   4. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
-   5. `blocked` items whose **validation / quality-gate self-block now re-validates PASS** —
+   5. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
+   6. `blocked` items whose **validation / quality-gate self-block now re-validates PASS** —
       a human filled in the missing sections (Class B; equally safe and high-value),
-   6. `blocked` items with **new clarifying answers**,
-   7. GitHub missing-official-label normalization candidates,
-   8. **stalled** in-progress items, oldest activity first.
+   7. `blocked` items with **new clarifying answers**,
+   8. GitHub missing-official-label normalization candidates,
+   9. **stalled** in-progress items, oldest activity first.
 4. **Walk the ordered list**, evaluating each candidate (terminal close-out, rollup child tally,
    staleness, dependency, answer checks), and repair **every** candidate that is actionable inside
    the `max_candidates` cap. Continue after successful writes and after per-item errors.
@@ -773,6 +826,8 @@ Report outcomes in these buckets:
 - `rolled_up` — parent/container/PRD rollups advanced to their derived state: an intermediate env
   (e.g. all children at `On Stg` → parent `On Stg`), a fully-terminal close-out, or a stale-`ready`
   container reconciled from its children.
+- `relinked` — GitHub PRDs whose missing native sub-issue links were repaired from the
+  generated-work fallback.
 - `normalized_ready` — GitHub issues missing official lifecycle labels that were classified and
   given the configured PRD/build `ready` label so normal intake can claim them.
 - `still_blocked` — examined and intentionally left `blocked`, with the active reason.
