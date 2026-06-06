@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.141.2](https://github.com/CodySwannGT/lisa/compare/vv2.141.1...v2.141.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* **claude-remote:** don't tell users to re-enter committed settings.json env flags ([3b6edb8](https://github.com/CodySwannGT/lisa/commit/3b6edb85f049d9475ec8a0b091057a9ae7465cb0))
+
+
+### Documentation
+
+* **claude-remote:** capitalize GitHub in analyze-claude-remote prose example ([05e9a1c](https://github.com/CodySwannGT/lisa/commit/05e9a1c098c95fb6df753b85c532804a6437617e)), closes [#1158](https://github.com/CodySwannGT/lisa/issues/1158)
+
 ### [2.141.1](https://github.com/CodySwannGT/lisa/compare/vv2.141.0...v2.141.1) (2026-06-06)
 
 
