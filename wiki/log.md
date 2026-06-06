@@ -2,6 +2,16 @@
 
 ## 2026-06-06 - Incremental connector ingest
 
+- Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current branch without conflicts, then created `wiki/ingest-20260606T230012Z` from synced `origin/main`.
+- Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
+- Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T230012Z.md` and `wiki/sources/roles/2026-06-06-roles-previous-20260606T230012Z.md` before refreshing the current `2026-06-06` connector notes.
+- Refreshed the `git` source note with 50 new commits through `be05afd1aab2a49cd10f897f4e32341d28212ddc`, advanced the merged-PR cursor to `#1184`, and captured the release line through Lisa `2.145.0`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for wiki ingestion safety policy, generated wiki output safety gates, `.lisa.config.json` apply guarantees, repair-intake fixes, source-less repo verification posture, Claude Remote credential handling, deploy-failure escalation, and release-history changes through `2.145.0`.
+
+## 2026-06-06 - Incremental connector ingest
+
 - Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch without conflicts, then created `wiki/ingest-20260606T185916Z` from synced `origin/main`.
 - Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
 - Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T185916Z.md` and `wiki/sources/roles/2026-06-06-roles-previous-20260606T185916Z.md` before refreshing the current `2026-06-06` connector notes.
@@ -198,7 +208,7 @@
 
 ## 2026-05-26 - Incremental connector ingest
 
-- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-26-213208`, and ran another full no-argument ingest against every enabled non-external-write connector that was available.
+- Synced safely to `origin/main`, created the dedicated branch `wiki/ingest-2026-05-26-21h32m08s`, and ran another full no-argument ingest against every enabled non-external-write connector that was available.
 - Refreshed the `git` source note with 9 new commits through `6e98950d496260faad821f90e5f4f6e2b059c3fb`, advanced the merged-PR cursor to `#992`, and confirmed that `roles` still had no roster pages to ingest.
 - Skipped `memory` again because no provably project-scoped memory directory was available for this repository in the current runtime; `CODEX_HOME` was unset and global Codex memory remains out of scope.
 - Updated the monorepo snapshot synthesis for the latest plugin-sync marketplace drift fixes, fixture coverage, prior wiki ingest merge, and release-history changes.
