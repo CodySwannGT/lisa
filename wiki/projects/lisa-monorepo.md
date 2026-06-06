@@ -20,16 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260606T005758Z` created from synced `origin/main`
-- HEAD at 2026-06-06 incremental ingest: `3f3053dc41d14b83eec953386e554d01b79a8428`
-- Current package version: `2.137.1`
-- Total commits on HEAD: 2837
-- Latest merged PR captured in the incremental git snapshot: `#1146`
+- Ingest branch: `wiki/ingest-20260606T075816Z` created from synced `origin/main`
+- HEAD at 2026-06-06 incremental ingest: `e488265b1c6d28b43b8e8b01bb6e3f936b2b4cd8`
+- Current package version: `2.137.2`
+- Total commits on HEAD: 2840
+- Latest merged PR captured in the incremental git snapshot: `#1147`
 - New commits since the previous incremental git cursor: `3`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.137.2`.
+- PR `#1147` merged the prior wiki ingestion through Lisa `2.137.1`.
 - Release automation advanced the monorepo to `2.137.1`.
 - PR `#1146` merged the prior wiki ingestion through Lisa `2.137.0`.
 - Release automation advanced the monorepo to `2.137.0`.
