@@ -21,9 +21,18 @@ const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
  * Minimal shape of a package.lisa.json for the assertions below.
  */
 interface PackageLisaShape {
-  readonly force?: { readonly scripts?: Readonly<Record<string, string>> };
-  readonly defaults?: { readonly scripts?: Readonly<Record<string, string>> };
+  readonly force?: {
+    readonly scripts?: Readonly<Record<string, string>>;
+    readonly dependencies?: Readonly<Record<string, string>>;
+    readonly devDependencies?: Readonly<Record<string, string>>;
+  };
+  readonly defaults?: {
+    readonly scripts?: Readonly<Record<string, string>>;
+    readonly devDependencies?: Readonly<Record<string, string>>;
+  };
 }
+
+const LISA_PACKAGE = "@codyswann/lisa";
 
 /**
  * Load a JSON file from disk and return its parsed contents.
@@ -61,6 +70,35 @@ describe("package.lisa.json templates guard Lisa postinstall with CI-skip prefix
         // silently re-applying templates in CI creates race conditions.
         expect(script.startsWith(CI_GUARD_PREFIX)).toBe(true);
       }
+    }
+  );
+});
+
+describe("package.lisa.json templates never force-pin Lisa's own version", () => {
+  // Background: `force.devDependencies["@codyswann/lisa"]` made every apply
+  // (run from the project's own postinstall) overwrite the project's declared
+  // Lisa version with the template's stale floor. A project upgraded via
+  // `bun add -D @codyswann/lisa@latest` had its package.json silently reverted
+  // on the very next install, so the bump never landed and looked like
+  // cross-project corruption. Lisa's presence is guaranteed via `defaults`
+  // (added when absent, preserved when present) instead — which keeps the
+  // floor without clobbering a legitimate upgrade.
+  it.each(TEMPLATE_PATHS.map(p => [p]))(
+    "%s does not declare @codyswann/lisa in any force block",
+    relPath => {
+      const template = readTemplateJson(relPath) as PackageLisaShape;
+      expect(template.force?.devDependencies?.[LISA_PACKAGE]).toBeUndefined();
+      expect(template.force?.dependencies?.[LISA_PACKAGE]).toBeUndefined();
+    }
+  );
+
+  it.each(TEMPLATE_PATHS.map(p => [p]))(
+    "%s governs @codyswann/lisa via defaults when it pins a version at all",
+    relPath => {
+      const template = readTemplateJson(relPath) as PackageLisaShape;
+      const defaultsPin = template.defaults?.devDependencies?.[LISA_PACKAGE];
+      if (defaultsPin === undefined) return;
+      expect(typeof defaultsPin).toBe("string");
     }
   );
 });
