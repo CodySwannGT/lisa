@@ -1,4 +1,7 @@
+import fs from "node:fs";
 import { readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -6,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   processWikiSourceNote,
   sanitizeWikiSourceText,
+  scanWikiGeneratedFiles,
   serializeWikiSafetyFindings,
 } from "../../../plugins/src/wiki/scripts/wiki-safety.mjs";
 
@@ -130,5 +134,66 @@ describe("wiki safety sanitizer (#1169)", () => {
     expect(result.reviewRequired).toBe(true);
     expect(result.text).toContain("[REDACTED:CREDIT_CARD]");
     expect(result.text).not.toContain("4111 1111 1111 1111");
+  });
+
+  it("blocks unredacted generated wiki secrets before commit", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "wiki-safety-"));
+    const wikiRoot = path.join(root, "wiki");
+    const sourcePath = path.join(wikiRoot, "sources", "fixture.md");
+    mkdirSync(path.dirname(sourcePath), { recursive: true });
+    writeFileSync(
+      sourcePath,
+      [
+        "---",
+        "type: source",
+        "created: 2026-06-06",
+        "updated: 2026-06-06",
+        "---",
+        "-----BEGIN PRIVATE KEY-----",
+        "abc123",
+        "-----END PRIVATE KEY-----",
+      ].join("\n")
+    );
+
+    const result = scanWikiGeneratedFiles([sourcePath], {
+      fsModule: fs,
+      pathModule: path,
+      wikiRoot,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.scanned).toEqual(["sources/fixture.md"]);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        sourceId: "sources/fixture.md",
+        entityType: "private_key",
+        count: 1,
+      }),
+    ]);
+    expect(JSON.stringify(result)).not.toContain("abc123");
+  });
+
+  it("scopes generated wiki verification to wiki output paths", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "wiki-safety-scope-"));
+    const wikiRoot = path.join(root, "wiki");
+    const sourcePath = path.join(wikiRoot, "sources", "clean.md");
+    const unrelatedPath = path.join(root, "notes", "dirty.md");
+    mkdirSync(path.dirname(sourcePath), { recursive: true });
+    mkdirSync(path.dirname(unrelatedPath), { recursive: true });
+    writeFileSync(sourcePath, "# Reader-safe source\n\nNo findings here.\n");
+    writeFileSync(
+      unrelatedPath,
+      "api_key = sk_test_abcdefghijklmnopqrstuvwxyz\n"
+    );
+
+    const result = scanWikiGeneratedFiles([sourcePath, unrelatedPath], {
+      fsModule: fs,
+      pathModule: path,
+      wikiRoot,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.scanned).toEqual(["sources/clean.md"]);
+    expect(result.findings).toEqual([]);
   });
 });
