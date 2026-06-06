@@ -1,5 +1,8 @@
 {
   "defaults": {
+    "devDependencies": {
+      "@codyswann/lisa": "^2.106.0"
+    },
     "scripts": {
       "migration:generate": "tsx ./node_modules/typeorm/cli.js migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
       "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d typeorm.config.ts",
@@ -72,7 +75,6 @@
       "typeorm-naming-strategies": "^4.1.0"
     },
     "devDependencies": {
-      "@codyswann/lisa": "^2.106.0",
       "@graphql-codegen/cli": "^6.1.0",
       "@graphql-codegen/typescript": "^4.1.6",
       "@graphql-codegen/typescript-operations": "^4.4.2",
