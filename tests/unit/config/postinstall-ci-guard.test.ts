@@ -28,6 +28,7 @@ interface PackageLisaShape {
   };
   readonly defaults?: {
     readonly scripts?: Readonly<Record<string, string>>;
+    readonly dependencies?: Readonly<Record<string, string>>;
     readonly devDependencies?: Readonly<Record<string, string>>;
   };
 }
@@ -99,6 +100,9 @@ describe("package.lisa.json templates never force-pin Lisa's own version", () =>
       const defaultsPin = template.defaults?.devDependencies?.[LISA_PACKAGE];
       if (defaultsPin === undefined) return;
       expect(typeof defaultsPin).toBe("string");
+      // Lisa is a dev tool: it must be governed only via
+      // defaults.devDependencies, never pinned in regular `dependencies`.
+      expect(template.defaults?.dependencies?.[LISA_PACKAGE]).toBeUndefined();
     }
   );
 });
