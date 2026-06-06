@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.142.0](https://github.com/CodySwannGT/lisa/compare/vv2.141.3...v2.142.0) (2026-06-06)
+
+
+### Features
+
+* **ci:** escalate unfixed deploy failures as build-ready tickets ([73da716](https://github.com/CodySwannGT/lisa/commit/73da716eeba57b0836aa6172b8fb8b5a88439f39)), closes [#922](https://github.com/CodySwannGT/lisa/issues/922)
+
 ### [2.141.3](https://github.com/CodySwannGT/lisa/compare/vv2.141.2...v2.141.3) (2026-06-06)
 
 
