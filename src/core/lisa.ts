@@ -65,6 +65,7 @@ import {
   createInitialCounters,
   harnessIncludesAgent,
 } from "./config.js";
+import { migrateInstructionFiles } from "./instruction-files-migration.js";
 import type { IGitService } from "./git-service.js";
 
 /**
@@ -677,6 +678,7 @@ export class Lisa {
       await this.processClaudeEmit();
       await this.processAgyEmit();
       await this.processCopilotEmit();
+      await this.processInstructionFilesMigration();
       await this.registerPlugins();
       await this.finalize();
       this.printSummary();
@@ -998,6 +1000,37 @@ export class Lisa {
         }`
       )
     );
+  }
+
+  /**
+   * Reconcile the project's agent instruction files onto Lisa's canonical
+   * pattern after the per-harness emits run.
+   *
+   * The per-agent emits write `AGENTS.md` / `CLAUDE.md` create-only, so they
+   * can't repair files that already exist from older Lisa versions. This step
+   * runs the same non-destructive migration `lisa doctor` uses — stripping the
+   * legacy agy baked-rules block from an existing `AGENTS.md` and adding the
+   * `@AGENTS.md` import to an existing `CLAUDE.md`. Without it, updating an
+   * existing project would create a canonical `AGENTS.md` that its stale
+   * `CLAUDE.md` never imports.
+   *
+   * Harness-aware: a `CLAUDE.md` pointer is only *created* when the harness
+   * includes Claude, so a codex/cursor/copilot/agy-only project never gets a
+   * stray `CLAUDE.md`. An existing host-authored `CLAUDE.md` still gets the
+   * import regardless. Skipped in dry-run mode.
+   */
+  private async processInstructionFilesMigration(): Promise<void> {
+    if (this.config.dryRun) {
+      return;
+    }
+    const result = await migrateInstructionFiles(this.config.destDir, {
+      createClaudePointer: harnessIncludesAgent(this.config.harness, "claude"),
+    });
+    if (result.changed) {
+      this.deps.logger.info(
+        pc.cyan(`Instruction files: ${result.actions.join("; ")}`)
+      );
+    }
   }
 
   /**
