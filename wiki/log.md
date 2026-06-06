@@ -2,6 +2,17 @@
 
 ## 2026-06-06 - Incremental connector ingest
 
+- Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch without conflicts, then created `wiki/ingest-20260606T145756Z` from synced `origin/main`.
+- Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
+- Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T145756Z.md` and `wiki/sources/roles/2026-06-06-roles-previous-20260606T145756Z.md` before refreshing the current `2026-06-06` connector notes.
+- Refreshed the `git` source note with 2 new commits through `c3e576e3bea23b68263849ac907916add59c38b0`, advanced the merged-PR cursor to `#1148`, and kept the captured release line at Lisa `2.137.2`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge and carried-forward release state through `2.137.2`.
+- Corrected an initial probe invocation of the git connector that ran without `--state`; the over-broad generated note was removed before state advancement, and the connector was rerun with `wiki/state/git/latest.json`.
+
+## 2026-06-06 - Incremental connector ingest
+
 - Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch without conflicts, then created `wiki/ingest-20260606T075816Z` from synced `origin/main`.
 - Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
 - Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T075816Z.md` and `wiki/sources/roles/2026-06-06-roles-previous-20260606T075816Z.md` before refreshing the current `2026-06-06` connector notes.
