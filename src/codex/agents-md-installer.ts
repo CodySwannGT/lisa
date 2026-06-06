@@ -1,16 +1,25 @@
 /**
- * Emit a create-only AGENTS.md template into the host project root.
+ * Emit the create-only, canonical `AGENTS.md` template into the host project
+ * root.
  *
- * Codex auto-loads `AGENTS.md` from the project tree on every session
- * (per `developers.openai.com/codex/guides/agents-md`). Lisa ships a
- * starter template so hosts know:
- *   - Lisa governance is active in this project (rules injected via
- *     SessionStart hook from `.codex/lisa-rules/`)
- *   - This file is the place to add project-specific guidance
+ * `AGENTS.md` is Lisa's single, cross-agent instruction file. It follows the
+ * [AGENTS.md](https://agents.md) open standard and is read natively at session
+ * start by Codex, Cursor, GitHub Copilot, and Antigravity (`agy`). Claude Code
+ * does not read `AGENTS.md` natively, so Lisa points `CLAUDE.md` at it with an
+ * `@AGENTS.md` import (see `src/claude/claude-md-installer.ts`) — that keeps the
+ * project's guidance in exactly one place and avoids the double-load that
+ * separate-but-duplicated `AGENTS.md`/`CLAUDE.md` files cause for agents (Copilot,
+ * Cursor) that read both.
  *
- * Create-only: never overwritten on subsequent `lisa` runs. The host owns
- * the file once it exists. (Lisa's actual rules go via the inject-rules
- * hook, so AGENTS.md is purely a host-facing knob.)
+ * The template is deliberately agent-neutral and short: Lisa's actual rules are
+ * injected per session via each agent's `inject-rules.sh` SessionStart hook, so
+ * `AGENTS.md` is purely a host-facing knob, not a place to duplicate rule bodies.
+ *
+ * Create-only: never overwritten on subsequent `lisa` runs. The host owns the
+ * file once it exists.
+ *
+ * This module lives under `src/codex/` for historical reasons (Codex was the
+ * first non-Claude harness); the file it writes is canonical for all agents.
  * @module codex/agents-md-installer
  */
 import * as fse from "fs-extra";
@@ -46,37 +55,33 @@ export async function installAgentsMd(
 }
 
 /**
- * Starter template content. Intentionally short — the heavy lifting (Lisa
- * rules, intent routing, orchestration) lives in `.codex/lisa-rules/` and
- * is injected via the SessionStart hook, so AGENTS.md is reserved for
- * host-specific notes.
+ * Starter template content. Intentionally short and agent-neutral — the heavy
+ * lifting (Lisa rules, intent routing, orchestration) is injected per session
+ * via each agent's `inject-rules.sh` SessionStart hook, so `AGENTS.md` is
+ * reserved for host-specific notes and is never bloated with rule bodies.
  */
-export const AGENTS_MD_TEMPLATE = `# Project Guidance for Codex
+export const AGENTS_MD_TEMPLATE = `# Project Guidance
 
-This project uses Lisa governance. Codex sessions automatically receive
-Lisa's rules, agents, and skills via the SessionStart hook in
-\`.codex/hooks/lisa/inject-rules.sh\`.
+This is the **canonical, cross-agent instruction file** for this project. It
+follows the [AGENTS.md](https://agents.md) open standard and is read natively at
+session start by Codex, Cursor, GitHub Copilot, and Antigravity (\`agy\`). Claude
+Code reads it through the \`@AGENTS.md\` import in \`CLAUDE.md\`, so all of this
+project's guidance lives in one place.
 
-This file is for **project-specific guidance** — add anything Codex should
-know about *this particular* project that isn't covered by Lisa's rules.
+## Lisa Governance
 
-## What lives where
+This project uses [Lisa](https://github.com/CodySwannGT/lisa) for AI-assisted
+software development governance. Lisa ships skills, agents, slash commands,
+hooks, rules, and MCP servers via per-agent plugins. Lisa's eager rules are
+injected into every session by the plugin's \`SessionStart\` / \`SubagentStart\`
+hooks (\`inject-rules.sh\`) — they are intentionally **not** duplicated into this
+file.
 
-- \`.codex/agents/lisa/\` — Lisa-managed subagent role definitions
-- \`.codex/skills/lisa/\` — Lisa-managed skills (invoke via \`$<name>\`)
-- \`.codex/lisa-rules/\` — Lisa rules content (injected at session start)
-- \`.codex/hooks/lisa/\` — Lisa-managed hook scripts
-- \`.codex/config.toml\` — partly Lisa-managed Codex config
+## Add Project-Specific Guidance Below
 
-## Lisa harness parity
-
-Claude is Lisa's production harness. When adding or changing Lisa behavior in
-this project, keep the Claude and Codex implementations in parity where Codex
-has an equivalent surface. Document any intentional gap instead of silently
-dropping Claude behavior from the Codex path.
-
-## Custom rules for this project
-
-Add project-specific guidance below. This section is preserved across Lisa
-updates (\`AGENTS.md\` is create-only).
+The lines above are a Lisa-managed starter; this file is owned by the host
+project and is never overwritten on subsequent \`lisa apply\` runs. Add
+convention notes, terminology, architectural shorthand, or anything agents
+should know about *this particular* project that Lisa's universal rules do not
+cover.
 `;

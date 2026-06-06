@@ -16,7 +16,6 @@ import { installSettings } from "../codex/settings-installer.js";
 import { installSkills } from "../codex/skills-installer.js";
 import { installCodexMarketplace } from "../codex/plugin-marketplace-installer.js";
 import { installAgyPlugin } from "../agy/plugin-installer.js";
-import { installAgyAgentsMd } from "../agy/agents-md-installer.js";
 import {
   collectLisaMcpServers,
   installAgyMcpConfig,
@@ -66,7 +65,14 @@ import {
   createInitialCounters,
   harnessIncludesAgent,
 } from "./config.js";
+import { migrateInstructionFiles } from "./instruction-files-migration.js";
 import type { IGitService } from "./git-service.js";
+
+/**
+ * Log fragment used when a create-only instruction file already exists and is
+ * therefore left untouched (the host owns it).
+ */
+const HOST_OWNED_LABEL = "already present (host-owned)";
 
 /**
  * Dependencies for Lisa operations
@@ -672,6 +678,7 @@ export class Lisa {
       await this.processClaudeEmit();
       await this.processAgyEmit();
       await this.processCopilotEmit();
+      await this.processInstructionFilesMigration();
       await this.registerPlugins();
       await this.finalize();
       this.printSummary();
@@ -800,10 +807,11 @@ export class Lisa {
   /**
    * Emit Claude-Code-targeted artifacts when the harness includes Claude.
    *
-   * Claude's primary distribution is the GitHub marketplace; the only
-   * per-project artifact Lisa writes is a starter CLAUDE.md template the
-   * host owns from creation onward. Skipped in dry-run mode and on harness
-   * modes that don't include Claude.
+   * Claude's primary distribution is the GitHub marketplace; the per-project
+   * artifacts Lisa writes are the canonical `AGENTS.md` and a thin `CLAUDE.md`
+   * that `@AGENTS.md`-imports it (Claude Code doesn't read AGENTS.md natively).
+   * Both are create-only and host-owned from creation onward. Skipped in dry-run
+   * mode and on harness modes that don't include Claude.
    */
   private async processClaudeEmit(): Promise<void> {
     const { harness } = this.config;
@@ -814,10 +822,13 @@ export class Lisa {
       this.deps.logger.info(pc.gray("Claude emit: skipped (dry-run mode)"));
       return;
     }
+    // Ensure the canonical AGENTS.md exists first — it is the import target of
+    // the CLAUDE.md pointer.
+    const agentsResult = await installAgentsMd(this.config.destDir);
     const result = await installClaudeMd(this.config.destDir);
     this.deps.logger.info(
       pc.cyan(
-        `Claude emit: CLAUDE.md ${result.created ? "created" : "already present (host-owned)"}`
+        `Claude emit: AGENTS.md ${agentsResult.created ? "created" : HOST_OWNED_LABEL}, CLAUDE.md ${result.created ? "created (pointer → AGENTS.md)" : HOST_OWNED_LABEL}`
       )
     );
   }
@@ -842,8 +853,12 @@ export class Lisa {
    *      `collectLisaMcpServers`, translated to agy's `serverUrl` shape,
    *      tagged-merge preserving host entries). Cross-project caveat: the most
    *      recent `lisa apply` carrying MCP wins globally.
-   *   4. Rules → baked into AGENTS.md exactly once (the rules-once invariant;
-   *      the artifact ships no `rules/` and `inject-rules.sh` is not a hook).
+   *   4. Instruction file → the canonical create-only `AGENTS.md` (the same file
+   *      every other agent reads). Lisa no longer bakes eager rule bodies into
+   *      AGENTS.md: a giant generated file is not worth carrying just to polyfill
+   *      agy's headless (`-p`) mode, where SessionStart hooks don't fire. agy
+   *      gets the thin host-owned AGENTS.md like everyone else; in interactive
+   *      mode it still receives Lisa's plugin (skills/agents/MCP) above.
    */
   private async processAgyEmit(): Promise<void> {
     const { harness } = this.config;
@@ -894,15 +909,8 @@ export class Lisa {
     // agy variant (emitted at build time by generate-agy-plugin-artifacts.mjs,
     // installed via `agy plugin install` above) — NOT written here at apply time.
 
-    // Bake source is the BASE plugin's eager rules plus each detected stack's
-    // eager rules (NOT the agy variants' — the agy generator strips rules/ from
-    // each variant, so their rules/eager is empty). The canonical content lives
-    // in lisa/rules/eager and lisa-<stack>/rules/eager.
-    const rulesEagerDirs = this.eagerRuleDirs(pluginRoot);
-    const agentsMdResult = await installAgyAgentsMd(
-      this.config.destDir,
-      rulesEagerDirs
-    );
+    // Instruction file: the canonical, create-only AGENTS.md (no baked rules).
+    const agentsMdResult = await installAgentsMd(this.config.destDir);
 
     const attempted = pluginResults.some(r => r.attempted);
     const installedCount = pluginResults.filter(r => r.installed).length;
@@ -918,8 +926,8 @@ export class Lisa {
     this.deps.logger.info(
       pc.cyan(
         `agy emit: ${pluginMessage}, AGENTS.md ${
-          agentsMdResult.created ? "created" : "refreshed"
-        } with ${agentsMdResult.rulesBaked} rules baked${mcpMessage}`
+          agentsMdResult.created ? "created" : HOST_OWNED_LABEL
+        }${mcpMessage}`
       )
     );
   }
@@ -939,40 +947,14 @@ export class Lisa {
   }
 
   /**
-   * Eager-rule source directories to bake into agy's AGENTS.md: the base
-   * plugin plus each detected stack plugin.
-   *
-   * Resolution mirrors the `inject-rules.sh` hook that delivers rules on
-   * Claude/Codex/Copilot: prefer `<plugin>/rules/eager/`, but when a plugin has
-   * no `eager/` subdir fall back to its flat `<plugin>/rules/` directory (the
-   * legacy layout some stacks use, e.g. `lisa-rails/rules/rails-conventions.md`).
-   * Without this fallback agy would silently miss flat-layout stack rules that
-   * every other agent receives.
-   * @param pluginRoot - Absolute path to the `plugins/` directory.
-   * @returns Existing rule-source directory paths, base first.
-   */
-  private eagerRuleDirs(pluginRoot: string): string[] {
-    const resolved: string[] = [];
-    for (const name of ["lisa", ...this.detectedTypes.map(t => `lisa-${t}`)]) {
-      const eager = path.join(pluginRoot, name, "rules", "eager");
-      if (existsSync(eager)) {
-        resolved.push(eager);
-        continue;
-      }
-      const flat = path.join(pluginRoot, name, "rules");
-      if (existsSync(flat)) resolved.push(flat);
-    }
-    return resolved;
-  }
-
-  /**
    * Emit GitHub-Copilot-targeted artifacts when the harness includes copilot.
    *
-   * Two per-project actions:
+   * Three per-project actions:
    *   1. `copilot plugin install lisa@CodySwannGT/lisa` (with local-path
    *      fallback when the marketplace path fails — currently does, pending
    *      the marketplace.json pluginRoot fix gated on Wave 2 spec step 8).
-   *   2. Create-only write of `.github/copilot-instructions.md`.
+   *   2. Ensure the canonical `AGENTS.md` exists (Copilot reads it natively).
+   *   3. Create-only write of `.github/copilot-instructions.md`.
    */
   private async processCopilotEmit(): Promise<void> {
     const { harness } = this.config;
@@ -994,6 +976,10 @@ export class Lisa {
     for (const variant of variantNames) {
       pluginResults.push(await installCopilotPlugin(pluginRoot, variant));
     }
+    // Copilot reads AGENTS.md natively at session start, so ensure the
+    // canonical file exists; copilot-instructions.md stays a thin host-owned
+    // file that points at it.
+    const copilotAgentsResult = await installAgentsMd(this.config.destDir);
     const instructionsResult = await installCopilotInstructions(
       this.config.destDir
     );
@@ -1007,13 +993,44 @@ export class Lisa {
 
     this.deps.logger.info(
       pc.cyan(
-        `Copilot emit: ${pluginMessage}, copilot-instructions ${
-          instructionsResult.created
-            ? "created"
-            : "already present (host-owned)"
+        `Copilot emit: ${pluginMessage}, AGENTS.md ${
+          copilotAgentsResult.created ? "created" : HOST_OWNED_LABEL
+        }, copilot-instructions ${
+          instructionsResult.created ? "created" : HOST_OWNED_LABEL
         }`
       )
     );
+  }
+
+  /**
+   * Reconcile the project's agent instruction files onto Lisa's canonical
+   * pattern after the per-harness emits run.
+   *
+   * The per-agent emits write `AGENTS.md` / `CLAUDE.md` create-only, so they
+   * can't repair files that already exist from older Lisa versions. This step
+   * runs the same non-destructive migration `lisa doctor` uses — stripping the
+   * legacy agy baked-rules block from an existing `AGENTS.md` and adding the
+   * `@AGENTS.md` import to an existing `CLAUDE.md`. Without it, updating an
+   * existing project would create a canonical `AGENTS.md` that its stale
+   * `CLAUDE.md` never imports.
+   *
+   * Harness-aware: a `CLAUDE.md` pointer is only *created* when the harness
+   * includes Claude, so a codex/cursor/copilot/agy-only project never gets a
+   * stray `CLAUDE.md`. An existing host-authored `CLAUDE.md` still gets the
+   * import regardless. Skipped in dry-run mode.
+   */
+  private async processInstructionFilesMigration(): Promise<void> {
+    if (this.config.dryRun) {
+      return;
+    }
+    const result = await migrateInstructionFiles(this.config.destDir, {
+      createClaudePointer: harnessIncludesAgent(this.config.harness, "claude"),
+    });
+    if (result.changed) {
+      this.deps.logger.info(
+        pc.cyan(`Instruction files: ${result.actions.join("; ")}`)
+      );
+    }
   }
 
   /**

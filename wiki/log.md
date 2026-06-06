@@ -2,6 +2,17 @@
 
 ## 2026-06-06 - Incremental connector ingest
 
+- Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch without conflicts, then created `wiki/ingest-20260606T145756Z` from synced `origin/main`.
+- Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
+- Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T145756Z.md` and `wiki/sources/roles/2026-06-06-roles-previous-20260606T145756Z.md` before refreshing the current `2026-06-06` connector notes.
+- Refreshed the `git` source note with 2 new commits through `c3e576e3bea23b68263849ac907916add59c38b0`, advanced the merged-PR cursor to `#1148`, and kept the captured release line at Lisa `2.137.2`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge and carried-forward release state through `2.137.2`.
+- Corrected an initial probe invocation of the git connector that ran without `--state`; the over-broad generated note was removed before state advancement, and the connector was rerun with `wiki/state/git/latest.json`.
+
+## 2026-06-06 - Incremental connector ingest
+
 - Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current wiki branch without conflicts, then created `wiki/ingest-20260606T075816Z` from synced `origin/main`.
 - Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
 - Preserved prior same-day git and roles source notes as `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T075816Z.md` and `wiki/sources/roles/2026-06-06-roles-previous-20260606T075816Z.md` before refreshing the current `2026-06-06` connector notes.
@@ -437,3 +448,24 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot and index for the prior wiki ingest merge and release-history changes through `2.134.6`.
+
+## 2026-06-06 - Doc correction: canonical, rule-free AGENTS.md (agy baking removed)
+
+- Source of truth: PR #1150 (`feat(instructions): make AGENTS.md canonical, CLAUDE.md a pointer, add doctor migration`), merged to `main` at 2026-06-06T15:29:54Z. Verified against the landed code in the worktree before editing — `src/agy/agents-md-installer.ts` deleted, `src/core/instruction-files-migration.ts` added, agy emit path now calls `installAgentsMd` (`src/codex/agents-md-installer.ts`), `CLAUDE.md` pointer via `src/claude/claude-md-installer.ts`, migration wired into `src/cli/doctor.ts`.
+- Corrected `wiki/decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md`: added an "Update (2026-06-06): canonical, rule-free AGENTS.md" section and fixed the `plugins/lisa-agy/` bullet that claimed rules were re-routed into a baked AGENTS.md block.
+- Corrected `wiki/architecture/pattern-b-fan-out-spec.md`: added a top-of-file supersede banner and fixed every inline "agy AGENTS.md bake" / "rules-once invariant for agy" claim — the `NO rules/` output note, the rule-delivery resolution and net-result paragraphs, the `src/agy/` installer-surface section (struck the `rules-bake.ts` entry), and the `lisa-agy/` test-plan row (no longer asserts baked rules content).
+- Recorded the four corrected facts in both pages: (1) `AGENTS.md` is canonical and rule-free, (2) `CLAUDE.md` is a thin `@AGENTS.md` pointer, (3) agy no longer receives baked eager rules (accepted trade-off, since agy plugin hooks do not fire in `-p` headless mode), (4) `lisa doctor` migrates existing projects via `migrateInstructionFiles` in `src/core/instruction-files-migration.ts`.
+- Scanned `parity/` for "Cluster 4-agy / Option α", baking, and rules-once references: none found, so no parity artifact required changes.
+- `wiki/index.md` not modified: its entries are plain title links with no per-page summaries, and both page H1 titles are unchanged.
+- Out of scope (flagged, not edited): other live wiki pages still describe agy baking — `wiki/architecture/lisa-hook-per-agent-ship-list.md`, `wiki/architecture/coding-agent-parity.md`, `wiki/architecture/template-governance.md`, `wiki/entities/coding-agents.md`, `wiki/open-questions/coding-agent-parity.md`, `wiki/playbooks/coding-agent-parity-research.md`. `wiki/sources/**` and prior `wiki/log.md` entries are point-in-time evidence and were intentionally left as-is.
+
+## 2026-06-06 - Doc correction follow-up: remaining agy-baking references
+
+- Follow-up to the same-day "canonical, rule-free AGENTS.md" correction (PR #1151, merged). Same source of truth: PR #1150 on `main`. Corrected the six remaining live wiki pages that the first PR flagged as out of scope:
+  - `wiki/architecture/lisa-hook-per-agent-ship-list.md` — top-of-file supersede banner; fixed the ticket-1054 update note, the `inject-rules.sh` catalog + ship-table rows, the agy hook-delivery bullet, and the historical fleet end-to-end run note (now marked pre-2026-06-06).
+  - `wiki/architecture/coding-agent-parity.md` — Bake strategy and Block strategy entries: the agy-rules-bake instance was removed; agy now accepts the eager-rule gap (effectively Skip).
+  - `wiki/architecture/template-governance.md` — rule-delivery semantics paragraph: agy is the exception with no eager-rule injection.
+  - `wiki/entities/coding-agents.md` — agy headless-hooks caveat: the AGENTS.md bake alternative was tried then removed.
+  - `wiki/open-questions/coding-agent-parity.md` — agy interactive-hooks open question: resolving it no longer changes the rules-delivery design.
+  - `wiki/playbooks/coding-agent-parity-research.md` — Bake strategy taxonomy entry: example removed, strategy retained with no active Lisa instance.
+- All edits are correction-in-place with `2026-06-06 / PR #1150 / was` qualifiers; no current-tense "agy bakes" claim remains uncorrected. `wiki/sources/**` left as point-in-time evidence. `wiki/index.md` unchanged (plain title links; titles unchanged).
