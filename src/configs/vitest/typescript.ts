@@ -58,6 +58,11 @@ export const getTypescriptVitestConfig = ({
   test: {
     globals: true,
     environment: "node",
+    // Source-less/test-less repos (e.g. infra-only TypeScript projects) have no
+    // test files; vitest exits 1 on "No test files found", which fails the
+    // pre-push/CI gates with nothing to fix. Treat zero tests as intentional —
+    // the test-world analog of allowing `files: []` in tsconfig for zero sources.
+    passWithNoTests: true,
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
     exclude: [...defaultTestExclusions],
     testTimeout: 10000,

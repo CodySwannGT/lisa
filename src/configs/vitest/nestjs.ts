@@ -85,6 +85,9 @@ export const getNestjsVitestConfig = ({
     globals: true,
     environment: "node",
     root: "src",
+    // Repos with no spec files must not fail the pre-push/CI gate; vitest exits 1
+    // on "No test files found" otherwise. See typescript.ts for rationale.
+    passWithNoTests: true,
     include: ["**/*.spec.ts"],
     exclude: [...defaultTestExclusions],
     testTimeout: 10000,
