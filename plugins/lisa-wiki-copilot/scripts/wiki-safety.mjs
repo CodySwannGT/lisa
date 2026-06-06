@@ -61,6 +61,19 @@ const PATTERNS = [
   },
 ];
 
+const TEXTISH_EXTS = new Set([
+  ".md",
+  ".mdx",
+  ".json",
+  ".jsonl",
+  ".txt",
+  ".yml",
+  ".yaml",
+  ".toml",
+  ".csv",
+  ".tsv",
+]);
+
 function luhnValid(candidate) {
   const digits = candidate.replace(/\D/g, "");
   if (digits.length < 13 || digits.length > 19) return false;
@@ -221,4 +234,69 @@ export function serializeWikiSafetyFindings(result) {
     null,
     2
   );
+}
+
+export function isWikiSafetyScanTarget(filePath, options = {}) {
+  const pathModule = options.pathModule;
+  if (!pathModule) {
+    throw new Error("isWikiSafetyScanTarget requires options.pathModule");
+  }
+  const wikiRoot = pathModule.resolve(options.wikiRoot ?? "wiki");
+  const resolved = pathModule.resolve(filePath);
+  const relative = pathModule.relative(wikiRoot, resolved);
+  if (
+    !relative ||
+    relative.startsWith("..") ||
+    pathModule.isAbsolute(relative)
+  ) {
+    return false;
+  }
+  const ext = pathModule.extname(resolved);
+  return TEXTISH_EXTS.has(ext);
+}
+
+export function scanWikiGeneratedFiles(files, options = {}) {
+  const fsModule = options.fsModule;
+  const pathModule = options.pathModule;
+  if (!fsModule || !pathModule) {
+    throw new Error("scanWikiGeneratedFiles requires fsModule and pathModule");
+  }
+
+  const wikiRoot = pathModule.resolve(options.wikiRoot ?? "wiki");
+  const candidates = [...new Set(files.map(file => pathModule.resolve(file)))]
+    .filter(file => isWikiSafetyScanTarget(file, { wikiRoot, pathModule }))
+    .sort();
+
+  const scanned = [];
+  const findings = [];
+  const errors = [];
+
+  for (const file of candidates) {
+    let text;
+    try {
+      if (!fsModule.existsSync(file) || !fsModule.statSync(file).isFile()) {
+        continue;
+      }
+      text = fsModule.readFileSync(file, "utf8");
+    } catch (error) {
+      errors.push({
+        file: pathModule.relative(process.cwd(), file),
+        message: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    const sourceId = pathModule.relative(wikiRoot, file);
+    scanned.push(sourceId);
+    const result = scanWikiSourceText(text, { sourceId });
+    findings.push(...result.findings);
+  }
+
+  return {
+    ok: findings.length === 0 && errors.length === 0,
+    wikiRoot: pathModule.relative(process.cwd(), wikiRoot) || ".",
+    scanned,
+    findings,
+    errors,
+  };
 }
