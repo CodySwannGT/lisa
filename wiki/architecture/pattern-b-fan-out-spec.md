@@ -2,6 +2,14 @@
 
 Lisa generates per-agent plugin artifacts at build time from a single shared source under `plugins/src/`. The architectural decision is recorded in `wiki/decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md`. This document is the implementation contract Wave 3 generator scripts honor.
 
+> **2026-06-06 supersede (agy rules story).** The agy "bake eager rules into AGENTS.md" mechanism this spec describes was **removed** (PR #1150). `src/agy/agents-md-installer.ts` (and the `src/agy/rules-bake.ts` / `bakeAgyRulesIntoAgentsMd` plan) is gone. Current behavior, replacing every "agy AGENTS.md bake" / "rules-once invariant for agy" claim below:
+> - `AGENTS.md` is a single, **canonical and rule-free**, create-only, agent-neutral file (`src/codex/agents-md-installer.ts`) shared by all agents; it holds no rule bodies.
+> - `CLAUDE.md` is a thin **`@AGENTS.md` pointer** (`src/claude/claude-md-installer.ts`) — Claude Code does not read `AGENTS.md` natively.
+> - **agy no longer receives baked eager rules.** It gets the same thin AGENTS.md as everyone else. Because agy plugin hooks do not fire in `-p` headless mode, agy also does not get the SessionStart `inject-rules.sh` injection the other agents use — accepting that gap (rather than baking) is the deliberate trade-off.
+> - `lisa doctor` migrates existing projects via `src/core/instruction-files-migration.ts` (`migrateInstructionFiles`, called from `src/cli/doctor.ts`): create canonical `AGENTS.md` if missing, strip any legacy `LISA_RULES_START..END` block, and ensure `CLAUDE.md` `@AGENTS.md`-imports it (non-destructive).
+>
+> The agent-specific notes below are left intact for historical context; read them through this correction.
+
 ## Output shape
 
 `bun run build:plugins` produces the following artifact tree:
@@ -54,7 +62,7 @@ plugins/
     # NO mcp_config.json — agy ignores plugin-bundled MCP; delivered by the runtime MCP installer (user-global)
     # NO hooks/hooks.json subdir — agy loads the ROOT hooks.json, not a subdir one
     # NO .mcp.json — untranslated Claude file dropped (inert on agy)
-    # NO rules/ — rules baked into AGENTS.md (rules-once invariant)
+    # NO rules/ — agy gets no plugin rules/ (and, as of 2026-06-06, no baked AGENTS.md rules either; see top-of-file supersede)
     scripts/
 
   lisa-copilot/                  # GitHub Copilot variant
@@ -102,8 +110,10 @@ Lisa splits rules into `rules/eager/` (always injected at session start) and
 injected on any agent). Some stacks use a legacy FLAT layout
 (`rules/<name>.md`, e.g. `lisa-rails/rules/rails-conventions.md`, no `eager/`
 subdir). The canonical resolution is **prefer `rules/eager/`, else fall back to
-flat `rules/`** — used by `inject-rules.sh` (Claude/Codex/Copilot) and, since
-PR #1052, by agy's AGENTS.md bake (`eagerRuleDirs` in `src/core/lisa.ts`).
+flat `rules/`** — used by `inject-rules.sh` (Claude/Codex/Copilot). (Historically,
+since PR #1052, agy's AGENTS.md bake also used this resolution via `eagerRuleDirs`
+in `src/core/lisa.ts`; that bake was removed on 2026-06-06 and agy no longer
+injects eager rules — see top-of-file supersede.)
 
 **Cursor (corrected, issue #1055): Cursor does NOT read the nested `rules/` tree
 natively.** Cursor's native rule loader only applies `.mdc` files (with YAML
@@ -122,12 +132,17 @@ collision (all 13 eager basenames also exist under `rules/reference/`).
 delivery path (rules-once invariant), not a double-inject collision as previously
 documented.
 
-Net result: **every agent gets eager + flat-layout rules; only
-`rules/reference/` content is on-demand.** On Claude/Codex/Copilot via
-`inject-rules.sh`; on agy via the AGENTS.md bake; on Cursor via native `.mdc`
-files (eager `alwaysApply:true`, reference `alwaysApply:false`). (Before #1052,
-agy's bake read only `rules/eager/` with no flat fallback, so it silently dropped
-flat-layout stack rules like rails-conventions — an agy-only gap, now fixed.)
+Net result (corrected 2026-06-06): **Claude, Codex, Copilot, and Cursor get
+eager + flat-layout rules; only `rules/reference/` content is on-demand.** On
+Claude/Codex/Copilot via `inject-rules.sh`; on Cursor via native `.mdc` files
+(eager `alwaysApply:true`, reference `alwaysApply:false`). **agy is the
+exception**: it receives no eager-rule injection at all — the AGENTS.md bake that
+used to deliver them was removed (the canonical `AGENTS.md` is rule-free, and agy
+plugin hooks do not fire in `-p` headless mode to run `inject-rules.sh`). This is
+the accepted trade-off recorded in the decision record. (Historical note: before
+#1052 agy's bake read only `rules/eager/` with no flat fallback and silently
+dropped flat-layout stack rules like rails-conventions; #1052 fixed that, and the
+bake itself was later removed entirely.)
 
 The Codex variant intentionally reuses `plugins/lisa/` since Codex reads Claude-format manifests via its own `.codex-plugin/plugin.json` pointer file co-located in the same directory. No separate `plugins/lisa-codex/` is generated; the existing dual-pointer pattern (`.claude-plugin/plugin.json` for Claude + `.codex-plugin/plugin.json` for Codex) continues to work and is extended by `scripts/generate-codex-plugin-artifacts.mjs` to emit the migrated hooks block per the Wave 1 audit (see `wiki/architecture/lisa-hook-per-agent-ship-list.md`).
 
@@ -232,12 +247,12 @@ No installers required. Cursor consumes `plugins/lisa-cursor/` (reading its `.cl
 
 ### `src/agy/` (NEW directory)
 
-Three runtime installers (+ build-time plugin-bundled hooks, below):
+Two runtime installers (+ build-time plugin-bundled hooks, below). (This section originally listed a third — `src/agy/rules-bake.ts` — which was **never the final design**: the bake was removed on 2026-06-06. agy's instruction file is now the canonical, rule-free `AGENTS.md` written by `installAgentsMd` in the agy emit path, identical to every other agent. See the struck entry below and the top-of-file supersede.)
 
 - `src/agy/plugin-installer.ts` — detects `agy` in `$PATH` during `lisa apply`. Runs `agy plugin install $(lisa --path)/plugins/lisa-agy`. Public exports: `installAgyPlugin(destDir, lisaPluginRoot)`. Idempotent — re-running is a no-op once installed. No tagged-merge required.
 - `src/agy/mcp-installer.ts` — writes the user-global `~/.gemini/config/mcp_config.json` with Lisa's MCP servers translated from Claude's `{type:"http",url}` shape to agy's `{serverUrl,headers}` shape. Tagged-merge marker `_lisaManaged: true` per server entry; host-authored entries (without the marker) are preserved. Public exports: `installAgyMcpConfig(lisaMcpServers, targetPath)`, `resolveAgyMcpConfigPath`, `collectLisaMcpServers(pluginRoot, detectedTypes)`, `translateMcpEntryToAgy`. **As of ticket-1054 this is the PRIMARY (and only) agy MCP delivery path** — a runtime probe proved agy ignores plugin-bundled MCP AND only reads the user-global file (the project-scope `.agents/mcp_config.json` is never read). `processAgyEmit` calls `collectLisaMcpServers` (reads the built plugin `.mcp.json` files for base + detected stacks, shallow-merged) then `installAgyMcpConfig` into the user-global path. Cross-project caveat: last `lisa apply` carrying MCP wins globally; tagged-merge preserves host entries. Translation lives solely in this installer now — the interim `scripts/lib/agy-mcp-translate.mjs` build helper + its parity test were deleted (their only consumer was the removed generator emission).
 - agy hooks: NO runtime installer. Hooks ship as a PLUGIN-BUNDLED root `hooks.json` emitted at build time by `scripts/generate-agy-plugin-artifacts.mjs` (`emitAgyPluginHooks` + the `AGY_PLUGIN_HOOKS` map) and ride along with `agy plugin install`. agy loads a plugin's hooks from the installed plugin ROOT (`~/.gemini/config/plugins/<variant>/hooks.json`); the command references the `$HOME`-absolute agy-protocol script (`hooks/block-no-verify.agy.sh`). Only `block-no-verify` (PreToolUse) is portable — agy lacks SessionStart. The agy-protocol script source lives at `plugins/src/base/hooks/block-no-verify.agy.sh` (agy stdin/stdout decision protocol; distinct from the Claude `block-no-verify.sh`). Interactive-only firing (never `agy -p`).
-- `src/agy/rules-bake.ts` — extends the existing `src/codex/agents-md-installer.ts` (or wraps it) to concatenate `plugins/src/base/rules/eager/*.md` content into the AGENTS.md template Lisa writes at the host project root when `agy` is the active runtime. This is the Bake polyfill replacing the hook-based rules injection (per Cluster 4-agy / Option α). Public exports: `bakeAgyRulesIntoAgentsMd(destDir, lisaRulesDir)`.
+- ~~`src/agy/rules-bake.ts` — concatenate `plugins/src/base/rules/eager/*.md` into the AGENTS.md template (the Bake polyfill per Cluster 4-agy / Option α; `bakeAgyRulesIntoAgentsMd`).~~ **Removed 2026-06-06 (PR #1150).** The bake polyfill was implemented as `src/agy/agents-md-installer.ts` (not `rules-bake.ts`) and is now deleted. agy's emit path calls `installAgentsMd` (`src/codex/agents-md-installer.ts`) for the canonical, rule-free `AGENTS.md` — no rule bodies, no agy-specific installer. Eager rules are simply not delivered to agy (agy hooks don't fire in `-p` headless mode), which is the accepted trade-off.
 
 ### `src/copilot/` (NEW directory)
 
@@ -287,6 +302,6 @@ Per-variant verification probes:
 | Variant | Probe |
 | --- | --- |
 | `lisa-cursor/` | `cursor-agent -p --plugin-dir plugins/lisa-cursor "list Lisa skills"` returns the full skill set. RULES (issue #1055): `cursor-agent --plugin-dir plugins/lisa-cursor --force -p "<quote an eager rule's codeword>"` returns the rule content (eager `.mdc` applied) — the old nested `.md` layout returned UNKNOWN (see `evidence/cursor-rule-probe-1055.md`). FILE-SHAPE regression is locked by `tests/unit/scripts/generate-cursor-plugin-artifacts*.test.ts`: 26 flat `rules/*.mdc` (13 eager `alwaysApply:true` + 13 `-reference.mdc` `alwaysApply:false`), `hooks/hooks.json` (camelCase, flat `{command,matcher}`), no manifest `hooks`, `mcp.json` on MCP variants. HOOK FIRING is NOT CLI-verifiable for plugin-bundled hooks (only project `.cursor/hooks.json` fires headless) — shape only. |
-| `lisa-agy/` | `agy plugin validate plugins/lisa-agy` returns [ok] for skills, agents, commands. `agy plugin install plugins/lisa-agy && agy plugin list` shows the install. `agy -p "what skills are available"` lists the Lisa skills. The base artifact ships a ROOT `hooks.json` (agy schema, `run_command`, `block-no-verify` only) + `hooks/block-no-verify.agy.sh`; stack variants ship none. NO `mcp_config.json`, NO `.mcp.json`, NO `rules/`, NO `hooks/hooks.json` subdir. Out-of-band: the user-global `~/.gemini/config/mcp_config.json` carries Lisa's MCP servers (`serverUrl` shape); AGENTS.md in a test project contains baked rules content. (Hook firing pending real-IDE confirmation — headless quota-blocked.) |
+| `lisa-agy/` | `agy plugin validate plugins/lisa-agy` returns [ok] for skills, agents, commands. `agy plugin install plugins/lisa-agy && agy plugin list` shows the install. `agy -p "what skills are available"` lists the Lisa skills. The base artifact ships a ROOT `hooks.json` (agy schema, `run_command`, `block-no-verify` only) + `hooks/block-no-verify.agy.sh`; stack variants ship none. NO `mcp_config.json`, NO `.mcp.json`, NO `rules/`, NO `hooks/hooks.json` subdir. Out-of-band: the user-global `~/.gemini/config/mcp_config.json` carries Lisa's MCP servers (`serverUrl` shape); AGENTS.md in a test project is the canonical, rule-free template (no `LISA_RULES_START..END` block — baking removed 2026-06-06, PR #1150). (Hook firing pending real-IDE confirmation — headless quota-blocked.) |
 | `lisa-copilot/` | `copilot -p --plugin-dir plugins/lisa-copilot "list Lisa skills and agents"` returns the full set (agents prefixed `lisa:`). After marketplace fix: `copilot plugin install lisa-copilot@CodySwannGT/lisa` succeeds. |
 | Codex hooks migration | `codex plugin marketplace add CodySwannGT/lisa && codex plugin install lisa@CodySwannGT-lisa` succeeds. `codex` interactive session in a project that does NOT have `lisa apply` run: Lisa skills work and the SessionStart hook fires (inject-rules content visible in context). |
