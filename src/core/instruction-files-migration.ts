@@ -51,6 +51,19 @@ export interface InstructionFilesMigrationResult {
   readonly actions: readonly string[];
 }
 
+/** Options controlling the instruction-files migration. */
+export interface MigrateInstructionFilesOptions {
+  /**
+   * Whether to create a `CLAUDE.md` pointer when none exists. Defaults to true
+   * (doctor's behavior — a project should have a CLAUDE.md so Claude Code reads
+   * the canonical AGENTS.md). Set false for harnesses that don't include Claude
+   * (e.g. a codex-only `lisa apply`) so no stray `CLAUDE.md` is written; an
+   * existing host-authored `CLAUDE.md` still gets the `@AGENTS.md` import either
+   * way.
+   */
+  readonly createClaudePointer?: boolean;
+}
+
 /**
  * Remove a legacy agy `LISA_RULES_START..END` block from an AGENTS.md body,
  * collapsing the whitespace left behind. Returns the original string unchanged
@@ -94,14 +107,22 @@ async function reconcileAgentsMd(destDir: string): Promise<string[]> {
 /**
  * Ensure `CLAUDE.md` imports the canonical `AGENTS.md`.
  *
- * Creates the pointer file when no `CLAUDE.md` exists, or prepends the
- * `@AGENTS.md` import to an existing host-authored file (preserving its content).
+ * Creates the pointer file when no `CLAUDE.md` exists (only when
+ * `createIfMissing` is true), or prepends the `@AGENTS.md` import to an existing
+ * host-authored file (preserving its content) regardless of `createIfMissing`.
  * @param destDir - Absolute path to the host project root.
+ * @param createIfMissing - Whether to create a pointer when no CLAUDE.md exists.
  * @returns Action strings describing what changed (empty when nothing did).
  */
-async function reconcileClaudeMd(destDir: string): Promise<string[]> {
+async function reconcileClaudeMd(
+  destDir: string,
+  createIfMissing: boolean
+): Promise<string[]> {
   const filePath = path.join(destDir, CLAUDE_MD_FILENAME);
   if (!existsSync(filePath)) {
+    if (!createIfMissing) {
+      return [];
+    }
     const result = await installClaudeMd(destDir);
     return result.created ? [`created ${CLAUDE_MD_FILENAME} pointer`] : [];
   }
@@ -117,13 +138,16 @@ async function reconcileClaudeMd(destDir: string): Promise<string[]> {
 /**
  * Run the instruction-files migration against a host project root.
  * @param destDir - Absolute path to the host project root.
+ * @param options - Migration options (see {@link MigrateInstructionFilesOptions}).
  * @returns Whether anything changed plus a description of each action.
  */
 export async function migrateInstructionFiles(
-  destDir: string
+  destDir: string,
+  options: MigrateInstructionFilesOptions = {}
 ): Promise<InstructionFilesMigrationResult> {
+  const createClaudePointer = options.createClaudePointer ?? true;
   const agentsActions = await reconcileAgentsMd(destDir);
-  const claudeActions = await reconcileClaudeMd(destDir);
+  const claudeActions = await reconcileClaudeMd(destDir, createClaudePointer);
   const actions = [...agentsActions, ...claudeActions];
   return { changed: actions.length > 0, actions };
 }
