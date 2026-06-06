@@ -6,6 +6,7 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { CLAUDE_MD_AGENTS_IMPORT } from "../../../src/claude/claude-md-installer.js";
 import {
   LISA_RULES_END_MARKER,
   LISA_RULES_START_MARKER,
@@ -34,7 +35,7 @@ describe("core/instruction-files-migration", () => {
     expect(result.changed).toBe(true);
     expect(await fs.pathExists(agentsPath())).toBe(true);
     const claude = await fs.readFile(claudePath(), "utf8");
-    expect(claude).toContain("@AGENTS.md");
+    expect(claude).toContain(CLAUDE_MD_AGENTS_IMPORT);
   });
 
   it("prepends the @AGENTS.md import to an existing host CLAUDE.md without losing content", async () => {
@@ -44,7 +45,7 @@ describe("core/instruction-files-migration", () => {
     const result = await migrateInstructionFiles(dir);
 
     const claude = await fs.readFile(claudePath(), "utf8");
-    expect(claude).toContain("@AGENTS.md");
+    expect(claude).toContain(CLAUDE_MD_AGENTS_IMPORT);
     expect(claude).toContain("Use tabs, not spaces.");
     expect(result.actions.some(a => a.includes("CLAUDE.md"))).toBe(true);
   });
@@ -73,6 +74,29 @@ describe("core/instruction-files-migration", () => {
     expect(agents).not.toContain("Lots of baked rule text.");
     expect(agents).toContain("Host note above.");
     expect(result.actions.some(a => a.includes("baked-rules"))).toBe(true);
+  });
+
+  it("with createClaudePointer:false, does not create CLAUDE.md but still writes canonical AGENTS.md", async () => {
+    const result = await migrateInstructionFiles(dir, {
+      createClaudePointer: false,
+    });
+
+    expect(await fs.pathExists(agentsPath())).toBe(true);
+    expect(await fs.pathExists(claudePath())).toBe(false);
+    expect(result.actions.some(a => a.includes("CLAUDE.md"))).toBe(false);
+  });
+
+  it("with createClaudePointer:false, still adds the import to an existing CLAUDE.md", async () => {
+    await fs.writeFile(claudePath(), "# Host Claude\n\nNotes.\n", "utf8");
+
+    const result = await migrateInstructionFiles(dir, {
+      createClaudePointer: false,
+    });
+
+    const claude = await fs.readFile(claudePath(), "utf8");
+    expect(claude).toContain(CLAUDE_MD_AGENTS_IMPORT);
+    expect(claude).toContain("Notes.");
+    expect(result.actions.some(a => a.includes("CLAUDE.md"))).toBe(true);
   });
 
   it("is idempotent — a second run reports no changes", async () => {
