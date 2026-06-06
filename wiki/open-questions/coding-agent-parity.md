@@ -8,7 +8,7 @@ What is the exact filename Copilot auto-loads for project instructions? Candidat
 
 ## agy Plugin Hooks In Interactive Mode
 
-agy plugin-bundled hooks validate, install correctly to `~/.gemini/config/plugins/<plugin>/hooks/hooks.json`, and the plugin appears in `agy plugin list` as enabled. During real `agy -p` sessions across two separate probe runs, no registered hook ever fired. Whether agy hooks fire in interactive (non-`-p`) mode remains untested; the headless behavior alone is enough to motivate the AGENTS.md bake-in alternative for rules injection, but the interactive question is still open.
+agy plugin-bundled hooks validate, install correctly to `~/.gemini/config/plugins/<plugin>/hooks/hooks.json`, and the plugin appears in `agy plugin list` as enabled. During real `agy -p` sessions across two separate probe runs, no registered hook ever fired. Whether agy hooks fire in interactive (non-`-p`) mode remains untested; the headless behavior alone originally motivated the AGENTS.md bake-in alternative for rules injection, but the interactive question is still open. _(Update 2026-06-06 — PR #1150: the bake-in alternative was removed. `AGENTS.md` is now canonical and rule-free and Lisa accepts the gap rather than baking, so resolving the interactive-mode question no longer changes the rules-delivery design; it would only affect whether other agy hooks like `block-no-verify` are worth shipping.)_
 
 ## agy Plugin-Root Environment Variable
 

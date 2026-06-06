@@ -458,3 +458,14 @@
 - Scanned `parity/` for "Cluster 4-agy / Option α", baking, and rules-once references: none found, so no parity artifact required changes.
 - `wiki/index.md` not modified: its entries are plain title links with no per-page summaries, and both page H1 titles are unchanged.
 - Out of scope (flagged, not edited): other live wiki pages still describe agy baking — `wiki/architecture/lisa-hook-per-agent-ship-list.md`, `wiki/architecture/coding-agent-parity.md`, `wiki/architecture/template-governance.md`, `wiki/entities/coding-agents.md`, `wiki/open-questions/coding-agent-parity.md`, `wiki/playbooks/coding-agent-parity-research.md`. `wiki/sources/**` and prior `wiki/log.md` entries are point-in-time evidence and were intentionally left as-is.
+
+## 2026-06-06 - Doc correction follow-up: remaining agy-baking references
+
+- Follow-up to the same-day "canonical, rule-free AGENTS.md" correction (PR #1151, merged). Same source of truth: PR #1150 on `main`. Corrected the six remaining live wiki pages that the first PR flagged as out of scope:
+  - `wiki/architecture/lisa-hook-per-agent-ship-list.md` — top-of-file supersede banner; fixed the ticket-1054 update note, the `inject-rules.sh` catalog + ship-table rows, the agy hook-delivery bullet, and the historical fleet end-to-end run note (now marked pre-2026-06-06).
+  - `wiki/architecture/coding-agent-parity.md` — Bake strategy and Block strategy entries: the agy-rules-bake instance was removed; agy now accepts the eager-rule gap (effectively Skip).
+  - `wiki/architecture/template-governance.md` — rule-delivery semantics paragraph: agy is the exception with no eager-rule injection.
+  - `wiki/entities/coding-agents.md` — agy headless-hooks caveat: the AGENTS.md bake alternative was tried then removed.
+  - `wiki/open-questions/coding-agent-parity.md` — agy interactive-hooks open question: resolving it no longer changes the rules-delivery design.
+  - `wiki/playbooks/coding-agent-parity-research.md` — Bake strategy taxonomy entry: example removed, strategy retained with no active Lisa instance.
+- All edits are correction-in-place with `2026-06-06 / PR #1150 / was` qualifiers; no current-tense "agy bakes" claim remains uncorrected. `wiki/sources/**` left as point-in-time evidence. `wiki/index.md` unchanged (plain title links; titles unchanged).

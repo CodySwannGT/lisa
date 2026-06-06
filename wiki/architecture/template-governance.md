@@ -23,7 +23,7 @@ When updating Lisa templates, preserve the strategy contract. A downstream proje
 
 Lisa base rules now ship as paired eager and reference material. Eager rule heads carry the mandatory short-form guidance agents should load immediately, while reference bodies preserve the full procedure and examples. Codex mirrors this split and CI checks the pairing so the two runtime surfaces do not drift.
 
-Generated per-agent stack variants must preserve the same rule-delivery semantics as the base plugin. Claude, Codex, and Copilot use the rule injection script, agy bakes startup rules into AGENTS.md, and Cursor reads rules natively; each path should load eager rules or legacy flat-layout stack rules while leaving reference rules on demand.
+Generated per-agent stack variants must preserve the same rule-delivery semantics as the base plugin. Claude, Codex, and Copilot use the rule injection script and Cursor reads rules natively; each of those paths should load eager rules or legacy flat-layout stack rules while leaving reference rules on demand. agy is the exception: as of 2026-06-06 (PR #1150) it gets **no** eager-rule injection — `AGENTS.md` is canonical and rule-free, and the former "agy bakes startup rules into AGENTS.md" mechanism was removed (agy has no SessionStart event for the injection hook). Not delivering eager rules to agy is the accepted trade-off.
 
 ## Managed Wiki Ignore Block
 
