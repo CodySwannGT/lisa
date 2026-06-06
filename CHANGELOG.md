@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.138.1](https://github.com/CodySwannGT/lisa/compare/vv2.138.0...v2.138.1) (2026-06-06)
+
+
+### Documentation
+
+* **wiki:** correct agy rules story for canonical, rule-free AGENTS.md ([84c5286](https://github.com/CodySwannGT/lisa/commit/84c52869d5f3e80072c44fabdb15b4a2e0f790ba)), closes [#1150](https://github.com/CodySwannGT/lisa/issues/1150)
+
 ## [2.138.0](https://github.com/CodySwannGT/lisa/compare/vv2.137.3...v2.138.0) (2026-06-06)
 
 
