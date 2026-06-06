@@ -20,16 +20,26 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260606T145756Z` created from synced `origin/main`
-- HEAD at 2026-06-06 incremental ingest: `c3e576e3bea23b68263849ac907916add59c38b0`
-- Current package version: `2.137.2`
-- Total commits on HEAD: 2842
-- Latest merged PR captured in the incremental git snapshot: `#1148`
-- New commits since the previous incremental git cursor: `2`
+- Ingest branch: `wiki/ingest-20260606T185916Z` created from synced `origin/main`
+- HEAD at 2026-06-06 incremental ingest: `53e86533d645512ffeef429e161f81a19174c7a7`
+- Current package version: `2.140.0`
+- Total commits on HEAD: 2864
+- Latest merged PR captured in the incremental git snapshot: `#1154`
+- New commits since the previous incremental git cursor: `22`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- PR `#1154` added config-driven sync-down chain derivation from `deploy.order`, introduced `/lisa:sync-down`, and consolidated PR drive-to-merge and review-thread handling into composable plugin skills.
+- Release automation advanced the monorepo to `2.140.0`.
+- PR `#1153` made `lisa apply` run the canonical instruction-files migration so existing projects converge on canonical agent instruction files.
+- Release automation advanced the monorepo to `2.139.0`.
+- PRs `#1151` and `#1152` corrected wiki documentation for the rule-free canonical `AGENTS.md` / agy no-baking design.
+- Release automation advanced the monorepo to `2.138.2`.
+- PR `#1150` made `AGENTS.md` canonical, changed `CLAUDE.md` into a pointer, and added doctor migration support.
+- Release automation advanced the monorepo to `2.138.0`.
+- PR `#1149` merged the prior wiki ingestion through Lisa `2.137.3`.
+- Release automation advanced the monorepo to `2.137.3`.
 - PR `#1148` merged the prior wiki ingestion through Lisa `2.137.2`.
 - Release automation advanced the monorepo to `2.137.2`.
 - PR `#1147` merged the prior wiki ingestion through Lisa `2.137.1`.
@@ -194,6 +204,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-05-lisa-monorepo-git.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T075816Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T145756Z.md`
+- `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T185916Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -228,4 +239,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-05-roles.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T075816Z.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T145756Z.md`
+- `wiki/sources/roles/2026-06-06-roles-previous-20260606T185916Z.md`
 - `wiki/sources/roles/2026-06-06-roles.md`
