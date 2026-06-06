@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.145.1](https://github.com/CodySwannGT/lisa/compare/vv2.145.0...v2.145.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **wiki:** require review for redacted ingests ([4f83645](https://github.com/CodySwannGT/lisa/commit/4f83645f473b8a4497f56e9f606729ab159bfce7))
+
+
+### Documentation
+
+* **wiki:** ingest Lisa wiki state ([a9974f9](https://github.com/CodySwannGT/lisa/commit/a9974f9eb87005992d9d4bce5f5b1ab740d96970))
+
 ## [2.145.0](https://github.com/CodySwannGT/lisa/compare/vv2.144.0...v2.145.0) (2026-06-06)
 
 
