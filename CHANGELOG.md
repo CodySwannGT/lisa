@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.138.2](https://github.com/CodySwannGT/lisa/compare/vv2.138.1...v2.138.2) (2026-06-06)
+
+
+### Documentation
+
+* **wiki:** correct remaining agy-baking references for rule-free AGENTS.md ([39d7e93](https://github.com/CodySwannGT/lisa/commit/39d7e93fa3de90dda27068e43920ddec2f9c834b)), closes [#1150](https://github.com/CodySwannGT/lisa/issues/1150) [#1150](https://github.com/CodySwannGT/lisa/issues/1150)
+
 ### [2.138.1](https://github.com/CodySwannGT/lisa/compare/vv2.138.0...v2.138.1) (2026-06-06)
 
 
