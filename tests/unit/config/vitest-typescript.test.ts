@@ -38,6 +38,12 @@ describe("vitest.typescript", () => {
       expect(config.test?.testTimeout).toBe(10000);
     });
 
+    it("passes with no tests so source-less repos do not fail the gate", () => {
+      const config = getTypescriptVitestConfig();
+
+      expect(config.test?.passWithNoTests).toBe(true);
+    });
+
     it("uses v8 coverage provider", () => {
       const config = getTypescriptVitestConfig();
       const coverage = config.test?.coverage as Record<string, unknown>;
