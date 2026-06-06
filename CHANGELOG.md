@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.143.1](https://github.com/CodySwannGT/lisa/compare/vv2.143.0...v2.143.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **repair-intake:** relink generated prd children ([f4530ae](https://github.com/CodySwannGT/lisa/commit/f4530ae10e050e2d0bab26e90ec8a7adaa39bdcf))
+
 ## [2.143.0](https://github.com/CodySwannGT/lisa/compare/vv2.142.3...v2.143.0) (2026-06-06)
 
 
