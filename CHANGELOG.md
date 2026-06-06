@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.140.0](https://github.com/CodySwannGT/lisa/compare/vv2.139.0...v2.140.0) (2026-06-06)
+
+
+### Features
+
+* **plugins:** derive sync-down chain from deploy.order + add /lisa:sync-down ([442e8c6](https://github.com/CodySwannGT/lisa/commit/442e8c63301d171e2febfdfdcb81cf46a4ce388b))
+
+
+### Code Refactoring
+
+* **plugins:** consolidate PR drive-to-merge and review-thread handling ([07f266b](https://github.com/CodySwannGT/lisa/commit/07f266b7f3a71c35b64788984a1117d1bd7303dc))
+
 ## [2.139.0](https://github.com/CodySwannGT/lisa/compare/vv2.138.2...v2.139.0) (2026-06-06)
 
 
