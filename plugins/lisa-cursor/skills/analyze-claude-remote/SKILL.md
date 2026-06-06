@@ -209,7 +209,7 @@ checklist of the secrets the user must set in the routine's environment for the 
 `tracker`/`source` (from group 4a). One block per active integration, each with its env-var name(s),
 an `Acquire:` URL, and an `Access:` scope line, plus a one-line note that the environment UI is where
 these are set (the generated build script only emits a names-only template, never values). If both
-`tracker` and `source` resolve to the same vendor (e.g. both `github`), render it once. List **only
+`tracker` and `source` resolve to the same vendor (e.g. both GitHub), render it once. List **only
 secrets** here — do not include the committed `.claude/settings.json` `env` flags; close the
 subsection with a one-line reminder that those flags are already provided by the committed file and
 need no UI entry.
