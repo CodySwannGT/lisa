@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.145.0](https://github.com/CodySwannGT/lisa/compare/vv2.144.0...v2.145.0) (2026-06-06)
+
+
+### Features
+
+* **apply:** ensure every project has a .lisa.config.json ([248d46c](https://github.com/CodySwannGT/lisa/commit/248d46c8989ac9030562208c67498f623a4d59f0))
+
 ## [2.144.0](https://github.com/CodySwannGT/lisa/compare/vv2.143.2...v2.144.0) (2026-06-06)
 
 
