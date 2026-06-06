@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.142.3](https://github.com/CodySwannGT/lisa/compare/vv2.142.2...v2.142.3) (2026-06-06)
+
+
+### Bug Fixes
+
+* **repair-intake:** normalize unlabeled github issues ([907f926](https://github.com/CodySwannGT/lisa/commit/907f9263d8f263f19bf2d067daf4818c7675e5c6))
+
 ### [2.142.2](https://github.com/CodySwannGT/lisa/compare/vv2.142.1...v2.142.2) (2026-06-06)
 
 ### [2.142.1](https://github.com/CodySwannGT/lisa/compare/vv2.142.0...v2.142.1) (2026-06-06)
