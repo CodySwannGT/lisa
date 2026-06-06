@@ -38,7 +38,51 @@
       "additionalProperties": true,
       "properties": {
         "enabled": { "type": "boolean" },
-        "default": { "enum": ["public", "internal", "confidential", "restricted"] }
+        "default": { "enum": ["public", "internal", "confidential", "restricted"] },
+        "redaction": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "scanners": {
+              "type": "array",
+              "items": { "enum": ["builtin", "gitleaks", "presidio"] },
+              "minItems": 1
+            },
+            "failClosed": { "type": "boolean" },
+            "requireReview": { "type": "boolean" },
+            "allowedEntities": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "api_key",
+                  "bank_account",
+                  "credit_card",
+                  "oauth_token",
+                  "password",
+                  "private_key",
+                  "routing_number",
+                  "ssn"
+                ]
+              }
+            },
+            "blockedEntities": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "api_key",
+                  "bank_account",
+                  "credit_card",
+                  "oauth_token",
+                  "password",
+                  "private_key",
+                  "routing_number",
+                  "ssn"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "sourceRetention": { "enum": ["raw-ok", "sanitized-note-only", "metadata-only", "external-pointer-only"] },
