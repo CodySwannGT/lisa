@@ -1,4 +1,12 @@
 {
-  "include": ["lib/**/*", "bin/**/*", "test/**/*"],
-  "exclude": ["node_modules", "cdk.out"]
+  "include": [
+    "lib/**/*",
+    "bin/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "cdk.out"
+  ],
+  "files": []
 }
