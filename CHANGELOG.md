@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.139.0](https://github.com/CodySwannGT/lisa/compare/vv2.138.2...v2.139.0) (2026-06-06)
+
+
+### Features
+
+* **instructions:** run the canonical-files migration during lisa apply ([4475d98](https://github.com/CodySwannGT/lisa/commit/4475d983045f06d1825e0c32974663cb9a70129f))
+
 ### [2.138.2](https://github.com/CodySwannGT/lisa/compare/vv2.138.1...v2.138.2) (2026-06-06)
 
 
