@@ -22,6 +22,17 @@ const RETENTION = [
   "external-pointer-only",
 ];
 const SENSITIVITY = ["public", "internal", "confidential", "restricted"];
+const REDACTION_ENTITIES = [
+  "api_key",
+  "bank_account",
+  "credit_card",
+  "oauth_token",
+  "password",
+  "private_key",
+  "routing_number",
+  "ssn",
+];
+const REDACTION_SCANNERS = ["builtin", "gitleaks", "presidio"];
 const SOURCE_LAYOUT = ["by-system", "by-category"];
 const README_MODE = ["rich", "stub", "preserve"];
 
@@ -125,6 +136,55 @@ if (config.sensitivity !== undefined) {
   else {
     checkType(config.sensitivity.enabled, "boolean", "sensitivity.enabled");
     checkEnum(config.sensitivity.default, SENSITIVITY, "sensitivity.default");
+    if (config.sensitivity.redaction !== undefined) {
+      if (!isObject(config.sensitivity.redaction)) {
+        err("sensitivity.redaction: must be an object");
+      } else {
+        const redaction = config.sensitivity.redaction;
+        checkType(
+          redaction.enabled,
+          "boolean",
+          "sensitivity.redaction.enabled"
+        );
+        checkType(
+          redaction.failClosed,
+          "boolean",
+          "sensitivity.redaction.failClosed"
+        );
+        checkType(
+          redaction.requireReview,
+          "boolean",
+          "sensitivity.redaction.requireReview"
+        );
+        if (
+          redaction.scanners !== undefined &&
+          !(isStringArray(redaction.scanners) && redaction.scanners.length > 0)
+        ) {
+          err(
+            "sensitivity.redaction.scanners: must be a non-empty array of strings"
+          );
+        }
+        for (const scanner of redaction.scanners ?? []) {
+          checkEnum(
+            scanner,
+            REDACTION_SCANNERS,
+            "sensitivity.redaction.scanners[]"
+          );
+        }
+        for (const key of ["allowedEntities", "blockedEntities"]) {
+          if (redaction[key] !== undefined && !isStringArray(redaction[key])) {
+            err(`sensitivity.redaction.${key}: must be an array of strings`);
+          }
+          for (const entity of redaction[key] ?? []) {
+            checkEnum(
+              entity,
+              REDACTION_ENTITIES,
+              `sensitivity.redaction.${key}[]`
+            );
+          }
+        }
+      }
+    }
   }
 }
 if (config.documentation !== undefined) {
