@@ -1,8 +1,11 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runDoctor } from "../../../src/cli/doctor.js";
+
+/** Lisa project marker file written into doctor test fixtures. */
+const LISA_CONFIG_FILE = ".lisa.config.json";
 
 let tempDir: string | undefined;
 
@@ -26,7 +29,7 @@ afterEach(async () => {
 describe("runDoctor", () => {
   it("emits structured JSON and warns on stale Lisa versions", async () => {
     const cwd = await getTempDir();
-    await writeFile(path.join(cwd, ".lisa.config.json"), "{}\n");
+    await writeFile(path.join(cwd, LISA_CONFIG_FILE), "{}\n");
     const write = vi.fn();
 
     const result = await runDoctor(
@@ -57,7 +60,7 @@ describe("runDoctor", () => {
 
   it("sets a failing exit code when config JSON is malformed", async () => {
     const cwd = await getTempDir();
-    await writeFile(path.join(cwd, ".lisa.config.json"), "{");
+    await writeFile(path.join(cwd, LISA_CONFIG_FILE), "{");
     const setExitCode = vi.fn();
 
     await runDoctor(
@@ -67,6 +70,67 @@ describe("runDoctor", () => {
     );
 
     expect(setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("repairs instruction files in a Lisa project (AGENTS.md canonical + CLAUDE.md pointer)", async () => {
+    const cwd = await getTempDir();
+    await writeFile(path.join(cwd, LISA_CONFIG_FILE), "{}\n");
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        name: "Instruction files canonical?",
+        status: "ok",
+      })
+    );
+    const claude = await readFile(path.join(cwd, "CLAUDE.md"), "utf8");
+    expect(claude).toContain("@AGENTS.md");
+    expect(await readFile(path.join(cwd, "AGENTS.md"), "utf8")).toContain(
+      "AGENTS.md"
+    );
+  });
+
+  it("strips a legacy agy baked-rules block from AGENTS.md during doctor", async () => {
+    const cwd = await getTempDir();
+    await writeFile(path.join(cwd, LISA_CONFIG_FILE), "{}\n");
+    await writeFile(
+      path.join(cwd, "AGENTS.md"),
+      "# AGENTS.md\n\nHost note.\n\n<!-- LISA_RULES_START -->\n\nbaked\n\n<!-- LISA_RULES_END -->\n"
+    );
+
+    await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    const agents = await readFile(path.join(cwd, "AGENTS.md"), "utf8");
+    expect(agents).not.toContain("LISA_RULES_START");
+    expect(agents).toContain("Host note.");
+  });
+
+  it("skips instruction-file repair in a non-Lisa directory", async () => {
+    const cwd = await getTempDir();
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    const check = result.checks.find(
+      c => c.name === "Instruction files canonical?"
+    );
+    expect(check?.detail).toContain("skipped");
+    // No files were created in the bare directory.
+    expect(
+      await readFile(path.join(cwd, "AGENTS.md"), "utf8").catch(() => null)
+    ).toBeNull();
   });
 
   it("warns when starter repositories are missing or not templates", async () => {
