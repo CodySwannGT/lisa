@@ -33,8 +33,12 @@ export interface CopilotInstructionsInstallResult {
 
 const TEMPLATE = `# Copilot Instructions
 
-GitHub Copilot CLI auto-loads this file at session start as repository-specific
-guidance.
+GitHub Copilot auto-loads this file at session start as repository-specific
+guidance. Copilot also reads \`AGENTS.md\` at the project root natively — that is
+Lisa's **canonical, cross-agent instruction file** and the single source of
+truth for this project's guidance. Prefer editing \`AGENTS.md\`; keep this file
+for Copilot-specific notes only, to avoid duplicated guidance across the two
+files Copilot loads.
 
 Lisa governance is active in this project. Lisa's eager rules ship via the
 \`lisa-copilot\` plugin (see
@@ -43,17 +47,10 @@ through the plugin's bundled \`rules/\` directory plus the \`SessionStart\` hook
 \`inject-rules.sh\` (the same polyfill Lisa uses on Claude and Codex when the
 agent does not auto-load rules from a plugin).
 
-This file is the place to add project-specific guidance that Lisa's universal
-rules do not cover. It is create-only from Lisa's perspective — re-running
-\`lisa apply\` will never overwrite host-authored guidance here.
+This file is create-only from Lisa's perspective — re-running \`lisa apply\` will
+never overwrite host-authored guidance here.
 
-Reference paths Copilot reads natively at session start:
-
-- \`.github/copilot-instructions.md\` (this file)
-- \`AGENTS.md\` at project root, when present
-- \`CLAUDE.md\` at project root, when present (Copilot cross-reads)
-
-Add custom guidance below this line:
+Add Copilot-specific guidance below this line:
 `;
 
 /**

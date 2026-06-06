@@ -1,15 +1,20 @@
 /**
  * Write Lisa's CLAUDE.md template for Claude Code host projects.
  *
- * Claude Code auto-loads `CLAUDE.md` from the project tree at session start
- * as repository-specific guidance. Lisa ships a starter template that:
+ * Claude Code auto-loads `CLAUDE.md` from the project tree at session start but,
+ * unlike Codex / Cursor / Copilot, does **not** read `AGENTS.md` natively. So
+ * Lisa keeps `CLAUDE.md` as a thin pointer: its only meaningful content is an
+ * `@AGENTS.md` import, which makes Claude Code load the canonical, cross-agent
+ * `AGENTS.md` (see `src/codex/agents-md-installer.ts`) at session start.
  *
- *   - Advertises that Lisa governance is active in the project.
- *   - Points downstream readers at the Lisa plugin (CodySwannGT/lisa).
- *   - Reserves space for project-specific guidance the host can edit.
+ * This single-source-of-truth design avoids the double-load problem: agents that
+ * read both files (Copilot, Cursor) would otherwise ingest duplicated guidance.
+ * With CLAUDE.md reduced to a one-line import, the duplicate they see is
+ * negligible while Claude still gets the full canonical content.
  *
- * Create-only semantics: Lisa never overwrites a host-authored CLAUDE.md.
- * The Claude counterpart to `src/codex/agents-md-installer.ts`.
+ * Create-only semantics: Lisa never overwrites a host-authored CLAUDE.md. For
+ * existing projects that predate this pattern, `lisa doctor` non-destructively
+ * adds the `@AGENTS.md` import (see `src/core/instruction-files-migration.ts`).
  * @module claude/claude-md-installer
  */
 import { writeFile } from "node:fs/promises";
@@ -18,6 +23,13 @@ import * as path from "node:path";
 
 /** Filename of the Claude project doc at the host project root. */
 export const CLAUDE_MD_FILENAME = "CLAUDE.md";
+
+/**
+ * The Claude Code `@`-import directive that pulls the canonical `AGENTS.md` into
+ * a Claude session. Exported so the doctor migration can detect whether an
+ * existing CLAUDE.md already points at AGENTS.md.
+ */
+export const CLAUDE_MD_AGENTS_IMPORT = "@AGENTS.md";
 
 /** Result of the CLAUDE.md install pass. */
 export interface ClaudeMdInstallResult {
@@ -29,30 +41,17 @@ export interface ClaudeMdInstallResult {
 
 const TEMPLATE = `# Claude Instructions
 
-This file is auto-loaded by Claude Code at session start as repository-specific
-guidance. Anthropic's Claude Code reads CLAUDE.md from the project root, the
-parent tree, and the user-level home directory; project-level takes precedence.
+${CLAUDE_MD_AGENTS_IMPORT}
 
-## Lisa Governance
+<!--
+Lisa keeps CLAUDE.md as a thin pointer to AGENTS.md — the canonical, cross-agent
+instruction file — so this project's guidance lives in exactly one place. The
+\`${CLAUDE_MD_AGENTS_IMPORT}\` line above uses Claude Code's @-import syntax to load
+AGENTS.md at session start (Claude Code does not read AGENTS.md natively).
 
-This project uses [Lisa](https://github.com/CodySwannGT/lisa) for AI-assisted
-software development governance. The Lisa Claude Code plugin ships skills,
-agents, slash commands, hooks, rules, and MCP servers via the GitHub plugin
-marketplace.
-
-Lisa's eager rules are auto-injected into every Claude Code session via the
-plugin's \`SessionStart\` and \`SubagentStart\` hooks (see
-\`plugins/lisa/hooks/inject-rules.sh\` in the Lisa repository). The rules cover
-coding philosophy, intent routing, leaf-only lifecycle, PRD lifecycle rollup,
-repo-scope splits, security audit handling, documentation-source paths, and
-empirical-inquiry discipline.
-
-## Add Project-Specific Guidance Below
-
-The lines above are managed by Lisa; the rest of this file is owned by the host
-project. Add convention notes, terminology, architectural shorthand, or any
-project-specific guidance Claude Code should consume at session start.
-
+Put project guidance in AGENTS.md. Add Claude-specific guidance below only if you
+need behavior that should apply to Claude Code but not other agents.
+-->
 `;
 
 /**
