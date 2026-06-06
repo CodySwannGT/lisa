@@ -3,9 +3,20 @@
     "outDir": ".build",
     "rootDir": "src",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", ".build", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    ".build",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "files": []
 }
