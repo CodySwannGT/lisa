@@ -50,11 +50,19 @@ describe("codex/agents-md-installer", () => {
     expect(after).toBe(existing);
   });
 
-  it("template mentions Lisa's directory layout", () => {
-    expect(AGENTS_MD_TEMPLATE).toContain(".codex/agents/lisa/");
-    expect(AGENTS_MD_TEMPLATE).toContain(".codex/skills/lisa/");
-    expect(AGENTS_MD_TEMPLATE).toContain(".codex/lisa-rules/");
-    expect(AGENTS_MD_TEMPLATE).toContain(".codex/hooks/lisa/");
+  it("template presents AGENTS.md as the canonical cross-agent file", () => {
+    expect(AGENTS_MD_TEMPLATE).toContain("canonical");
+    expect(AGENTS_MD_TEMPLATE.toLowerCase()).toContain("agents.md");
+    expect(AGENTS_MD_TEMPLATE).toContain("@AGENTS.md");
+    expect(AGENTS_MD_TEMPLATE).toContain("Lisa");
+  });
+
+  it("template is agent-neutral (no Codex-only directory layout)", () => {
+    expect(AGENTS_MD_TEMPLATE).not.toContain(".codex/");
+  });
+
+  it("template does not bake rule bodies into the file", () => {
+    expect(AGENTS_MD_TEMPLATE).not.toContain("LISA_RULES_START");
   });
 
   it("template starts with a top-level heading", () => {
