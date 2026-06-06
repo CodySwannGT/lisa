@@ -1,6 +1,6 @@
 ---
 name: analyze-claude-remote
-description: "Audit whether the current repository can run as a Claude Code remote routine (cloud session). Read-only analysis that inventories what Lisa AND the host project need to configure or build in the cloud environment — external CLIs/binaries to install, environment variables and secrets to set, startup hooks and their headless-safety, MCP server scope/transport/auth, user-scoped config and auto-memory gaps that don't replicate to the cloud, and platform constraints (bun proxy, IP allowlist, network tier, no interactivity). Emits grouped findings plus a machine-readable inventory that /lisa:generate-claude-remote-build-script consumes."
+description: "Audit whether the current repository can run as a Claude Code remote routine (cloud session). Read-only analysis that inventories what Lisa AND the host project need to configure or build in the cloud environment — external CLIs/binaries to install, environment variables and secrets to set, startup hooks and their headless-safety, MCP server scope/transport/auth, user-scoped config and auto-memory gaps that don't replicate to the cloud, and platform constraints (bun proxy, IP allowlist, network tier, no interactivity). Reads `.lisa.config.json` `tracker`/`source` to determine which tracker/PRD-source integrations are active, resolves each to its headless-viable substrate (CLI/curl + token, never browser-OAuth MCP, never OS-keychain), and spells out the exact secret env vars, where to obtain each token, and the precise access scope required — without guessing. Emits grouped findings plus a machine-readable inventory that /lisa:generate-claude-remote-build-script consumes."
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 
@@ -88,12 +88,46 @@ Group the findings as:
    in `.claude/settings.json` (e.g. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) as `REQUIRED` to match
    local behavior, since the environment `env` block is the reliable place to set them.
 
+4a. **Tracker / PRD-source credentials** — this is the load-bearing part of the audit and must be
+   driven by config, not by what the scan happens to find. Resolve the active integrations first:
+
+   ```bash
+   TRACKER=$(jq -r '.tracker // "jira"' .lisa.config.json 2>/dev/null)   # tickets: jira | github | linear
+   SOURCE=$(jq -r '.source // empty'    .lisa.config.json 2>/dev/null)   # PRDs:   notion | confluence | github | linear
+   ```
+   (Apply `config-resolution`: `.lisa.config.local.json` overrides `.lisa.config.json`.) For the
+   **active** `tracker` and the **active** `source` — and only those — emit a `REQUIRED` credential
+   finding using the **Credential reference** table below. For every integration that is *not* the
+   active tracker/source, its credentials are `OPTIONAL` (dormant) — never mark them `REQUIRED`.
+
+   Two non-negotiable headless rules govern which substrate a routine can actually use:
+
+   - **Browser-OAuth MCP is dead headless.** A routine cannot complete an interactive OAuth/SSO
+     browser flow. So for any integration whose local substrate is an OAuth MCP (the committed
+     `linear-server` MCP; the Notion MCP; the Atlassian MCP) or an interactively-authed CLI
+     (`acli auth login --web`), the MCP/interactive tier is a `GAP` — the audit must route to that
+     integration's **token substrate** (CLI/curl + API token) and report the token's env vars.
+   - **OS keychain is absent headless.** Lisa's access skills read the token from the OS keychain
+     first (`security` / `secret-tool` / `cmdkey`) and fall back to an **env var**. A cloud routine
+     has no keyring daemon, so only the env-var fallback works. Always report the **env-var form**,
+     including the per-account suffixed names (`ATLASSIAN_API_TOKEN_<slug>`, `NOTION_API_TOKEN_<slug>`,
+     `LINEAR_API_KEY_<slug>`) when the integration keys tokens by email/workspace.
+
+   For each active integration, the finding must carry: the env var name(s), where to get the token
+   (`Acquire:` URL), and the **exact** access/scope required (`Access:`) — copied from the table, not
+   guessed. If a value the table needs (server URL, project key, workspace id, email, team key) is
+   missing from `.lisa.config.json`, flag it as a `GAP`/`Action:` to set it, rather than inventing one.
+
 5. **MCP servers** — read every committed `.mcp.json`. For each server report transport and auth.
-   Project-scoped HTTP/SSE servers are `OK`. Flag stdio servers as `RISK`/`GAP` (need a local
-   process — only viable if the cloud session can spawn them from the repo). Flag
-   interactively/OAuth-authed servers (e.g. Linear) as `GAP` for first-time auth — they cannot
-   complete a browser flow headless. Note any user-scoped MCP (`~/.claude.json`) as `GAP` — it
-   never reaches the cloud; it must be moved into project `.mcp.json`.
+   Project-scoped HTTP/SSE servers with no interactive auth are `OK`. Flag stdio servers as
+   `RISK`/`GAP` (need a local process — only viable if the cloud session can spawn them from the
+   repo). Flag interactively/OAuth-authed servers as `GAP` for headless auth — they cannot complete
+   a browser flow headless **regardless of transport** (an HTTP MCP like `linear-server` is still a
+   `GAP` because its *auth* is OAuth, not because of its transport). When an OAuth MCP backs an
+   active tracker/source, do not stop at the `GAP` — cross-reference group 4a and point to the
+   integration's token substrate as the headless replacement (e.g. `linear-server` MCP → `LINEAR_API_KEY`
+   + Linear GraphQL). Note any user-scoped MCP (`~/.claude.json`) as `GAP` — it never reaches the
+   cloud; it must be moved into project `.mcp.json`.
 
 6. **Config scope & memory gaps** — identify reliance on user-scoped config that will not load
    remotely: `~/.claude/CLAUDE.md`, user `enabledPlugins`, user skills/agents, user MCP. Most
@@ -112,6 +146,46 @@ Group the findings as:
    runtime service it depends on (database, queue, external API) that will not exist in a fresh
    cloud environment, so the user can decide whether the routine's task is even feasible there.
 
+## Credential reference (tracker / source → headless secret)
+
+Authoritative mapping for group 4a, transcribed from Lisa's `setup-*` skills and access layers
+(`setup-github`, `setup-atlassian`, `setup-jira`, `setup-notion`, `setup-linear`,
+`atlassian-access`, `notion-access`). Use the row for the **active** `tracker`/`source` only. Report
+the **env-var form** of each secret — keychain reads do not work in a cloud routine. Slugs:
+`<email-slug>` = email via `tr '[:upper:]@.' '[:lower:]__'`; `<ws-slug>` = workspace via
+`tr '[:upper:]-' '[:lower:]_'`. If a token has both an unsuffixed and a per-account form, the
+unsuffixed `…_TOKEN`/`…_KEY` is the simplest to set in a single-account routine.
+
+### GitHub — `tracker: github` and/or `source: github`
+- Headless substrate: `gh` CLI authed by token (every Lisa GitHub script gates on `gh auth status`).
+- Env: `GH_TOKEN` (the routine's built-in repo connection may not authenticate the `gh` CLI — verify; set `GH_TOKEN` if `gh auth status` fails). `PAT` only for cross-repo flows.
+- Acquire: fine-grained — `https://github.com/settings/personal-access-tokens`; classic — `https://github.com/settings/tokens`.
+- Access: fine-grained → Repository access to the target repo(s); Repository permissions: Contents R/W, Issues R/W, Pull requests R/W, Metadata R (mandatory); add Workflows R/W only if editing `.github/workflows`, and Organization → Projects R/W only if using ProjectV2. Classic equivalent: `repo` + `workflow` (+ `project`, `read:org` for boards). The identity must hold WRITE/MAINTAIN/ADMIN on the repo.
+
+### JIRA — `tracker: jira`
+- Headless substrate: `jira-cli` + curl (Basic auth). The acli and Atlassian-MCP tiers need prior interactive/OAuth auth → not viable headless.
+- Env: `JIRA_API_TOKEN`, `JIRA_SERVER` (e.g. `https://acme.atlassian.net`), `JIRA_LOGIN` (account email), `JIRA_PROJECT` (default project key); optional `JIRA_INSTALLATION` (default `cloud`), `JIRA_BOARD`. (`setup-jira-cli.sh` writes the jira-cli config from these on SessionStart.)
+- Acquire: `https://id.atlassian.com/manage-profile/security/api-tokens`.
+- Access: the API token inherits the Atlassian user's permissions — the user must have Browse/Create/Edit/Transition on the target project. An unscoped token suffices for jira-cli; a scoped token must cover the JIRA project read/write operations.
+
+### Confluence — `source: confluence`
+- Headless substrate: curl + Basic auth + **scoped** API token.
+- Env: `ATLASSIAN_API_TOKEN` (or per-account `ATLASSIAN_API_TOKEN_<email-slug>`). Config (`.lisa.config.json`): `atlassian.cloudId`, `atlassian.site`, `atlassian.email`.
+- Acquire: `https://id.atlassian.com/manage-profile/security/api-tokens` → "Create API token **with scopes**" → App: **Confluence**.
+- Access (select EXACTLY): `read:page:confluence`, `read:hierarchical-content:confluence`, `read:comment:confluence`, `read:space:confluence`, `write:page:confluence`, `write:comment:confluence`, `write:label:confluence`, `search:confluence`.
+
+### Notion — `source: notion`
+- Headless substrate: curl + Bearer + internal-integration token. The Notion MCP tier is OAuth → not viable headless.
+- Env: `NOTION_API_TOKEN` (or per-account `NOTION_API_TOKEN_<ws-slug>`). Config: `notion.workspaceId`, `notion.prdDatabaseId`.
+- Acquire: `https://www.notion.so/profile/integrations` → New integration → type **Internal** → copy the `ntn_*` Internal Integration Token.
+- Access: internal-integration token. **Non-optional:** share the target PRD database with the integration (Notion's share-based model) or every call returns 404/`object_not_found`.
+
+### Linear — `tracker: linear` and/or `source: linear`
+- Headless substrate: curl GraphQL (`https://api.linear.app/graphql`) + personal API key. The committed `linear-server` MCP is OAuth/browser → cannot authenticate headless; the API key is the only headless path.
+- Env: `LINEAR_API_KEY` (or per-account `LINEAR_API_KEY_<ws-slug>`). Config: `linear.workspace`; `linear.teamKey` required when Linear is the tracker.
+- Acquire: `https://linear.app/<workspace>/settings/account/security` → Personal API keys → New API key.
+- Access: the personal API key inherits the user's workspace permissions — the user must be able to read/create/update Issues in the destination team.
+
 ## Output
 
 Render the report grouped exactly as above. Start with one `Summary:` line, then a `Counts:` line
@@ -120,8 +194,17 @@ line per check as `- <STATUS> <id>: <summary>`, with optional `Observed:` and `A
 beneath that separate fact from advice. Render an empty group as a single `OK`/`SKIP` line with the
 reason rather than omitting it.
 
+Immediately after the grouped findings, render a **`Credentials to provision`** subsection — a
+checklist of the secrets the user must set in the routine's environment for the **active**
+`tracker`/`source` (from group 4a). One block per active integration, each with its env-var name(s),
+an `Acquire:` URL, and an `Access:` scope line, plus a one-line note that the environment UI is where
+these are set (the generated build script only emits a names-only template, never values). If both
+`tracker` and `source` resolve to the same vendor (e.g. both `github`), render it once.
+
 End with a fenced, machine-readable inventory block (also printed when `--json` is passed) so
-`/lisa:generate-claude-remote-build-script` can consume it without re-deriving everything:
+`/lisa:generate-claude-remote-build-script` can consume it without re-deriving everything. Secret
+`env` entries for active integrations MUST carry `acquireUrl`, `accessScope`, and `headlessSubstrate`
+so the generator can render acquisition comments into its template:
 
 ```json
 {
@@ -130,12 +213,22 @@ End with a fenced, machine-readable inventory block (also printed when `--json` 
     { "name": "gh", "required": true, "reason": "github-* skills and scripts shell out to gh" },
     { "name": "jq", "required": true, "reason": "hooks and scripts parse JSON" }
   ],
+  "tracker": "github",
+  "source": "github",
   "env": [
     { "name": "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS", "required": true, "secret": false, "reason": "set in .claude/settings.json" },
-    { "name": "GH_TOKEN", "required": false, "secret": true, "reason": "gh CLI auth beyond the routine's repo connection" }
+    {
+      "name": "GH_TOKEN", "required": true, "secret": true, "integration": "github",
+      "reason": "active tracker+source; gh scripts gate on gh auth status",
+      "headlessSubstrate": "gh CLI (token)",
+      "acquireUrl": "https://github.com/settings/personal-access-tokens",
+      "accessScope": "fine-grained PAT on target repo: Contents R/W, Issues R/W, Pull requests R/W, Metadata R; +Workflows R/W if editing .github/workflows; +Projects R/W if using ProjectV2"
+    }
   ],
-  "mcp": [ { "name": "linear-server", "transport": "http", "authGap": true } ],
-  "gaps": [ "auto-memory not synced to cloud", "bun package fetch behind proxy" ],
+  "mcp": [
+    { "name": "linear-server", "transport": "http", "auth": "oauth", "headlessUsable": false, "replacedBy": "LINEAR_API_KEY + Linear GraphQL", "dormant": true }
+  ],
+  "gaps": [ "auto-memory not synced to cloud", "bun package fetch behind proxy", "OS keychain absent — env-var token form only" ],
   "allowlistDomains": []
 }
 ```
@@ -159,3 +252,9 @@ End with a fenced, machine-readable inventory block (also printed when `--json` 
 - Never report a `GAP` as satisfiable by configuration — a gap is a constraint, and the action must
   be a change of approach, not "set an env var".
 - Never invent tools or env vars that no committed file references.
+- Credential scopes and acquisition URLs come from the **Credential reference** table (sourced from
+  Lisa's `setup-*` skills) — transcribe them exactly; never guess at the access a token needs.
+- For the active `tracker`/`source`, always report the **env-var** form of the secret, never the OS
+  keychain form — keychain reads do not work in a cloud routine.
+- A browser-OAuth MCP (or interactively-authed CLI) backing an active integration is a `GAP`; the
+  remediation is its token substrate from the table, not "authenticate the MCP".

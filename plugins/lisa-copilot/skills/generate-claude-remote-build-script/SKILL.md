@@ -53,7 +53,12 @@ tracker/source, plus the host project's own package manager and tooling — not 
    with the reason. **Never write real secret values** — only names and placeholders, because the
    environment config is visible to anyone who can edit it. Include feature flags actually set in
    `.claude/settings.json` (e.g. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) so cloud behavior matches
-   local.
+   local. For every secret entry that carries `acquireUrl`/`accessScope`/`headlessSubstrate` (the
+   active tracker/source credentials from the analysis's group 4a), render those as comment lines
+   directly above the name — `# Acquire: <url>` and `# Access: <scope>` — so the user knows exactly
+   where to get the token and what permissions it needs. Emit only the **env-var form** of the name
+   that the analysis reported (including any per-account suffixed form like `LINEAR_API_KEY_<slug>`);
+   never emit a keychain instruction — keychain does not exist in a cloud routine.
 
 4. **Emit the allowlist + gaps notice.** List any custom domains the setup or runtime reaches
    (from `allowlistDomains`) that the user must add to the environment's network access, and echo
@@ -80,7 +85,10 @@ shape, not a fixed payload):
 #   - <gaps from analysis, e.g. auto-memory is machine-local and not synced to cloud routines>
 # ENV VARS to set in the environment config (names only — set real values there, not here):
 #   - CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1   # REQUIRED, matches .claude/settings.json
-#   - GH_TOKEN=<token>                          # OPTIONAL, gh auth beyond the repo connection
+#   # --- credentials for the active tracker/source (set in the environment UI) ---
+#   # Acquire: https://github.com/settings/personal-access-tokens
+#   # Access:  fine-grained PAT on target repo: Contents R/W, Issues R/W, Pull requests R/W, Metadata R
+#   - GH_TOKEN=<token>                          # REQUIRED, github is the active tracker+source
 # NETWORK: allowlist these domains in the environment if not on full access:
 #   - <allowlistDomains, if any>
 set -uo pipefail
@@ -116,6 +124,8 @@ to stop are: the analysis could not run, or the `--out` path is not writable.
 - Always derive the script from a fresh `/lisa:analyze-claude-remote` run — never from a stale or
   assumed inventory.
 - Never write real secret values into the script or template — names and placeholders only.
+- For active tracker/source credentials, carry the analysis's `Acquire:` URL and `Access:` scope into
+  the template as comments, and emit only the env-var form of the name — never a keychain command.
 - Never emit an install for a tool the analysis did not surface, and never install `OPTIONAL` tools
   unless `--include-optional` is set.
 - Keep the script idempotent and detect-before-install so it is safe to re-run and cache.
