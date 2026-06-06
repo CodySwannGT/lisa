@@ -7,6 +7,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  createWikiIngestPublicationPolicy,
   processWikiSourceNote,
   sanitizeWikiSourceText,
   scanWikiGeneratedFiles,
@@ -86,6 +87,70 @@ describe("wiki safety sanitizer (#1169)", () => {
     expect(serialized).not.toContain("sk_test_abcdefghijklmnopqrstuvwxyz");
     expect(serialized).not.toContain(fakeSsn);
     expect(serialized).not.toContain("token: public example");
+  });
+
+  it("requires human review and disables auto-merge for redacted ingest summaries", () => {
+    const raw = `api_key = sk_test_abcdefghijklmnopqrstuvwxyz\nSSN ${fakeSsn}`;
+    const safetyResult = sanitizeWikiSourceText(raw, {
+      sourceId: reportSourceId,
+    });
+
+    const policy = createWikiIngestPublicationPolicy({
+      safetyResults: safetyResult,
+    });
+
+    expect(policy.reviewRequired).toBe(true);
+    expect(policy.autoMergeAllowed).toBe(false);
+    expect(policy.findingCount).toBe(2);
+    expect(policy.entityTypes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ entityType: "api_key", count: 1 }),
+        expect.objectContaining({ entityType: "ssn", count: 1 }),
+      ])
+    );
+    expect(policy.prSummaryMarkdown).toContain("Auto-merge: disabled");
+    expect(policy.prSummaryMarkdown).toContain(
+      "Reason: redacted or sensitive findings"
+    );
+    expect(policy.prSummaryMarkdown).toContain("api_key: 1 finding");
+    expect(policy.prSummaryMarkdown).toContain("ssn: 1 finding");
+    expect(policy.prSummaryMarkdown).not.toContain(
+      "sk_test_abcdefghijklmnopqrstuvwxyz"
+    );
+    expect(policy.prSummaryMarkdown).not.toContain(fakeSsn);
+  });
+
+  it("allows auto-merge for clean non-external ingest summaries", () => {
+    const safetyResult = sanitizeWikiSourceText("Reader-safe source note", {
+      sourceId: reportSourceId,
+    });
+
+    const policy = createWikiIngestPublicationPolicy({
+      safetyResults: safetyResult,
+    });
+
+    expect(policy.reviewRequired).toBe(false);
+    expect(policy.autoMergeAllowed).toBe(true);
+    expect(policy.findingCount).toBe(0);
+    expect(policy.prSummaryMarkdown).toContain("Auto-merge: allowed");
+    expect(policy.prSummaryMarkdown).toContain("- none");
+  });
+
+  it("keeps external-write ingests review-only even without redactions", () => {
+    const safetyResult = sanitizeWikiSourceText("Reader-safe source note", {
+      sourceId: reportSourceId,
+    });
+
+    const policy = createWikiIngestPublicationPolicy({
+      externalWrite: true,
+      safetyResults: safetyResult,
+    });
+
+    expect(policy.reviewRequired).toBe(true);
+    expect(policy.autoMergeAllowed).toBe(false);
+    expect(policy.findingCount).toBe(0);
+    expect(policy.prSummaryMarkdown).toContain("Auto-merge: disabled");
+    expect(policy.prSummaryMarkdown).toContain("external-write source");
   });
 
   it("does not flag names, email addresses, or invalid card-shaped numbers", () => {

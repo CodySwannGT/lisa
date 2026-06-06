@@ -23,6 +23,7 @@ Last updated by connector ingest on 2026-06-06 for Lisa `2.140.0` and current mo
 - [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/reference/prd-lifecycle-rollup.md)
 - [Testing Documentation](documentation/testing/)
 - [Workflow Documentation](documentation/workflows/)
+  - [Wiki Ingestion Safety](documentation/workflows/wiki-ingestion-safety.md)
 - [Specifications](documentation/specs/)
 
 ## Architecture
