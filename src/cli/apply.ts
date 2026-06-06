@@ -4,8 +4,10 @@ import type { LisaConfig } from "../core/config.js";
 import { HARNESS_VALUES } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
 import {
+  projectConfigExists,
   readProjectConfig,
   resolveHarness,
+  shouldPersistProjectConfig,
   writeProjectConfig,
 } from "../core/project-config.js";
 import { ConsoleLogger } from "../logging/index.js";
@@ -89,6 +91,7 @@ export async function runApply(
 
   // Resolve harness with precedence: CLI flag > .lisa.config.json > default
   const projectConfig = await readProjectConfig(destDir);
+  const configFileExists = await projectConfigExists(destDir);
   const harness = resolveHarness(options.harness, projectConfig);
 
   const config: LisaConfig = {
@@ -115,16 +118,20 @@ export async function runApply(
       process.exit(1);
     }
 
-    // Persist resolved harness on apply (not validate, not dry-run) so the
-    // choice survives to the next run without requiring the flag every time.
-    // Only write when the user actually supplied --harness, so existing
-    // host projects don't gain a brand-new .lisa.config.json with the
-    // default value just by running `lisa` once.
+    // Ensure every applied project carries a .lisa.config.json (not on
+    // validate / dry-run). A missing file is always backfilled with the
+    // resolved harness (the default when no --harness was passed) so no
+    // project is left config-less; an existing file is only rewritten when
+    // --harness actually changes the persisted value, avoiding churn.
     if (
       !options.validate &&
       !dryRun &&
-      options.harness !== undefined &&
-      projectConfig.harness !== harness
+      shouldPersistProjectConfig({
+        fileExists: configFileExists,
+        flagHarness: options.harness,
+        existingHarness: projectConfig.harness,
+        resolvedHarness: harness,
+      })
     ) {
       await writeProjectConfig(destDir, { harness });
     }
