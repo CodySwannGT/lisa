@@ -187,6 +187,31 @@ export function sanitizeWikiSourceText(rawText, sourceMetadata = {}) {
   };
 }
 
+export function processWikiSourceNote(rawText, options = {}) {
+  const {
+    dryRun = false,
+    scannerAvailable = true,
+    scannerRequired = false,
+    ...sourceMetadata
+  } = options;
+  const sanitized = sanitizeWikiSourceText(rawText, sourceMetadata);
+  const scannerBlocked = scannerRequired && !scannerAvailable;
+
+  return {
+    ...sanitized,
+    dryRun: Boolean(dryRun),
+    writeAllowed: !dryRun && !scannerBlocked,
+    scanner: {
+      available: Boolean(scannerAvailable),
+      required: Boolean(scannerRequired),
+      blocked: scannerBlocked,
+    },
+    blockedReason: scannerBlocked
+      ? "sensitivity scanner is required but unavailable"
+      : undefined,
+  };
+}
+
 export function serializeWikiSafetyFindings(result) {
   return JSON.stringify(
     {
