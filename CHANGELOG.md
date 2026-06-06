@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.141.3](https://github.com/CodySwannGT/lisa/compare/vv2.141.2...v2.141.3) (2026-06-06)
+
+
+### Bug Fixes
+
+* **tsconfig:** graceful typecheck posture for source-less repos ([87e5dad](https://github.com/CodySwannGT/lisa/commit/87e5dadad387be4da7ce195dc5df2fb7985cfe4f))
+
 ### [2.141.2](https://github.com/CodySwannGT/lisa/compare/vv2.141.1...v2.141.2) (2026-06-06)
 
 
