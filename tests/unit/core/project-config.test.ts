@@ -13,8 +13,10 @@ import {
 import {
   PROJECT_CONFIG_FILENAME,
   isHarness,
+  projectConfigExists,
   readProjectConfig,
   resolveHarness,
+  shouldPersistProjectConfig,
   writeProjectConfig,
 } from "../../../src/core/project-config.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
@@ -163,6 +165,83 @@ describe("project-config", () => {
         await fs.readFile(path.join(tempDir, PROJECT_CONFIG_FILENAME), "utf8")
       );
       expect(written).toEqual({ harness: "both" });
+    });
+  });
+
+  describe("projectConfigExists", () => {
+    it("returns false when the file is absent", async () => {
+      expect(await projectConfigExists(tempDir)).toBe(false);
+    });
+
+    it("returns true when the file is present", async () => {
+      await writeProjectConfig(tempDir, { harness: "claude" });
+      expect(await projectConfigExists(tempDir)).toBe(true);
+    });
+
+    it("returns true even for a file with no recognized keys", async () => {
+      await fs.writeFile(
+        path.join(tempDir, PROJECT_CONFIG_FILENAME),
+        JSON.stringify({ deploy: { branches: { production: "main" } } }),
+        "utf8"
+      );
+      expect(await projectConfigExists(tempDir)).toBe(true);
+    });
+  });
+
+  describe("shouldPersistProjectConfig", () => {
+    it("backfills when the config file is absent (no flag)", () => {
+      expect(
+        shouldPersistProjectConfig({
+          fileExists: false,
+          flagHarness: undefined,
+          existingHarness: undefined,
+          resolvedHarness: DEFAULT_HARNESS,
+        })
+      ).toBe(true);
+    });
+
+    it("does not rewrite an existing file on a routine apply (no flag)", () => {
+      expect(
+        shouldPersistProjectConfig({
+          fileExists: true,
+          flagHarness: undefined,
+          existingHarness: "claude",
+          resolvedHarness: "claude",
+        })
+      ).toBe(false);
+    });
+
+    it("does not rewrite an existing file when --harness matches the persisted value", () => {
+      expect(
+        shouldPersistProjectConfig({
+          fileExists: true,
+          flagHarness: "both",
+          existingHarness: "both",
+          resolvedHarness: "both",
+        })
+      ).toBe(false);
+    });
+
+    it("rewrites an existing file when --harness changes the value", () => {
+      expect(
+        shouldPersistProjectConfig({
+          fileExists: true,
+          flagHarness: "codex",
+          existingHarness: "claude",
+          resolvedHarness: "codex",
+        })
+      ).toBe(true);
+    });
+
+    it("backfills a missing file even when --harness is supplied", () => {
+      expect(
+        shouldPersistProjectConfig({
+          fileExists: false,
+          flagHarness: "codex",
+          existingHarness: undefined,
+          resolvedHarness: "codex",
+        })
+      ).toBe(true);
     });
   });
 
