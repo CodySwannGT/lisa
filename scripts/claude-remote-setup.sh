@@ -13,12 +13,10 @@
 #   - linear-server MCP is OAuth (browser) → unusable headless. Dormant here (tracker=github);
 #     if you switch to Linear, use LINEAR_API_KEY + Linear GraphQL instead.
 #
-# ENV VARS to set in the environment config (names only — set real values in the UI, NOT here):
-#   Plain config flags (match .claude/settings.json):
-#     - CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
-#     - ENABLE_LSP_TOOL=1
-#     - BASH_DEFAULT_TIMEOUT_MS=1800000
-#     - BASH_MAX_TIMEOUT_MS=7200000
+# Already provided by committed .claude/settings.json env (applied automatically — do NOT re-enter in the UI):
+#     - CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS, ENABLE_LSP_TOOL, BASH_DEFAULT_TIMEOUT_MS, BASH_MAX_TIMEOUT_MS
+#
+# SECRETS to set in the environment config (names only — set real values in the UI, NOT here):
 #   Credentials for the active tracker/source (tracker=github, source=github):
 #     # Acquire: https://github.com/settings/personal-access-tokens
 #     # Access:  fine-grained PAT on CodySwannGT/lisa — Contents R/W, Issues R/W,
