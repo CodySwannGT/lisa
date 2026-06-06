@@ -22,7 +22,6 @@
       "source-map-support": "^0.5.21"
     },
     "devDependencies": {
-      "@codyswann/lisa": "^2.106.0",
       "aws-cdk": "^2.1104.0",
       "vite": "^8.0.5",
       "vitest": "^4.1.0",
@@ -37,6 +36,9 @@
     "private": true
   },
   "defaults": {
+    "devDependencies": {
+      "@codyswann/lisa": "^2.106.0"
+    },
     "engines": {
       "npm": ">= 10.9.4",
       "yarn": "please-use-npm",

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.141.1](https://github.com/CodySwannGT/lisa/compare/vv2.141.0...v2.141.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **package-lisa:** govern @codyswann/lisa version via defaults, not force ([37b3483](https://github.com/CodySwannGT/lisa/commit/37b34831278c6f884d384f7892303e3e288aafdf))
+
+## [2.141.0](https://github.com/CodySwannGT/lisa/compare/vv2.140.1...v2.141.0) (2026-06-06)
+
+
+### Features
+
+* **claude-remote:** resolve tracker/source credentials for headless routines ([9bbc950](https://github.com/CodySwannGT/lisa/commit/9bbc95074d935b2aab4142b56c1c8dc0c92af4af))
+
 ### [2.140.1](https://github.com/CodySwannGT/lisa/compare/vv2.140.0...v2.140.1) (2026-06-06)
 
 
