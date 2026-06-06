@@ -130,7 +130,8 @@ fi
       "dev":        "dev",
       "staging":    "staging",
       "production": "main"
-    }
+    },
+    "order": ["dev", "staging", "production"]
   },
 
   "usage": {
@@ -380,6 +381,39 @@ The true terminal `done` value is also the only value that triggers provider-nat
 - If `done` is an env-keyed map, the production / final environment's value is terminal. The conventional key is `production`; project-specific final env names must be explicit in deploy config or the lifecycle skill must fail rather than guessing.
 - Intermediate env values (`dev`, `staging`, or configured equivalents) are deployment waypoints. Applying them must not close / resolve / complete the native tracker item.
 
+### Env order (sync-down chain)
+
+`deploy.order` is an **optional** array of the same env names used as keys in
+`deploy.branches`, listed **lowest environment first** (promotion order), e.g.
+`["dev", "staging", "production"]`. It encodes the one thing `deploy.branches`
+cannot: the relative rank of environments. `deploy.branches` is an unordered map,
+so without `deploy.order` the rank of a custom env name (`preprod`, `qa`, …) is
+unknowable.
+
+The back-sync GitHub Action (`reusable-claude-sync-down-branches.yml`) consumes
+`deploy.order` to derive its source → target chain. It walks the order from the
+**highest** environment **down**, mapping each env's branch to the next-lower
+env's branch:
+
+- `order: ["dev","staging","production"]` + `branches: {dev:dev, staging:staging, production:main}`
+  → chain `{"main":"staging","staging":"dev"}` (a hotfix on `main` back-syncs to
+  `staging`, then `staging` back-syncs to `dev`). This is the inverse of the
+  forward promotion order.
+
+Rules:
+
+- **Single-environment projects** (one entry in `deploy.branches`) may omit
+  `deploy.order`; the derived chain is empty and the back-sync no-ops.
+- **Multi-environment projects MUST set `deploy.order`** for config-driven
+  back-sync. If it is absent, the Action fails rather than guessing the rank
+  (or the workflow wrapper must pass an explicit `chain`, which always wins).
+- The env-name set of `deploy.order` and `deploy.branches` **must match exactly**
+  — every env in one appears in the other. A mismatch is a config error.
+
+This is the same `deploy.branches` map already used by env-keyed `done` (reverse:
+env from PR base branch) and the build flow (forward: base branch from env);
+`deploy.order` only adds the ranking those two directions never needed.
+
 ### What's configurable, what's not
 
 - **Status / label NAMES** are configurable per project — that's the point of the vocabulary maps.
@@ -439,6 +473,13 @@ Doctor must validate config in three layers:
      automations. Common examples include `tracker`, `source`, `github.org`, `github.repo`,
      `atlassian.cloudId`, `atlassian.site`, `jira.project`, `linear.workspace`, `linear.teamKey`,
      and `deploy.branches`.
+
+4. **Deploy env-order correctness**
+   - When `deploy.branches` defines more than one environment but `deploy.order` is absent, `WARN`:
+     config-driven back-sync cannot derive a chain without the ranking (the wrapper must add
+     `deploy.order` or pass an explicit `chain`).
+   - When `deploy.order` is present but its env names do not exactly match the `deploy.branches`
+     keys, `FAIL` — the derived sync-down chain would be wrong or empty.
 
 Doctor's severity rule is simple: unusable merged config is `FAIL`; locality drift with a still
 usable merged config is `WARN`.
