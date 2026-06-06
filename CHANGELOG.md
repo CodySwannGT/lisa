@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.143.0](https://github.com/CodySwannGT/lisa/compare/vv2.142.3...v2.143.0) (2026-06-06)
+
+
+### Features
+
+* **wiki:** add deterministic safety sanitizer ([fc4f4eb](https://github.com/CodySwannGT/lisa/commit/fc4f4eb7dee82ff93bf64c84169e2e0ca7a4e98a))
+
 ### [2.142.3](https://github.com/CodySwannGT/lisa/compare/vv2.142.2...v2.142.3) (2026-06-06)
 
 
