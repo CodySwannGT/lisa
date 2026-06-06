@@ -38,6 +38,7 @@ Root package landing content can remain in `README.md`, local ingestion inbox fi
 - [Task Management System](workflows/task-management-system.md)
 - [Claude Code Web Notifications](workflows/claude-code-web-notifications.md)
 - [PRD To Ticket Intake](workflows/prd-to-ticket-intake.md)
+- [Wiki Ingestion Safety](workflows/wiki-ingestion-safety.md)
 
 ## Assets
 
