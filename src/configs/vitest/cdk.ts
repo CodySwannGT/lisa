@@ -63,6 +63,9 @@ export const getCdkVitestConfig = ({
   test: {
     globals: true,
     environment: "node",
+    // Repos with no test files must not fail the pre-push/CI gate; vitest exits 1
+    // on "No test files found" otherwise. See typescript.ts for rationale.
+    passWithNoTests: true,
     include: [
       "test/**/*.test.ts",
       "test/**/*.spec.ts",
