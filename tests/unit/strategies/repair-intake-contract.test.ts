@@ -68,5 +68,17 @@ describe("repair-intake contract", () => {
       // It is the one documented ready-touching exception.
       expect(skill).toMatch(/one .*exception|the one exception/i);
     });
+
+    it("normalizes GitHub issues missing official lifecycle labels into ready", () => {
+      expect(skill).toMatch(/Missing official ready-label drift/);
+      expect(skill).toMatch(/no configured Lisa lifecycle label/);
+      expect(skill).toMatch(
+        /GitHub missing official ready-label normalization/
+      );
+      expect(skill).toMatch(/default to \*\*Build ticket\*\*/);
+      expect(skill).toMatch(/configured PRD\/build `ready` label/);
+      expect(skill).toMatch(/normalized_ready/);
+      expect(skill).toMatch(/Official lifecycle labels remain authoritative/);
+    });
   });
 });
