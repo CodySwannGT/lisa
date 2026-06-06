@@ -101,6 +101,21 @@ this order:
      `github.org`, `github.repo`, `atlassian.cloudId`, `atlassian.site`, `jira.project`,
      `linear.workspace`, `linear.teamKey`, and `deploy.branches`.
 
+6. **Deploy env-order audit** (only when `deploy.branches` is present)
+   - `PASS` (or skip) when `deploy.branches` defines a single environment — `deploy.order` is
+     optional and the back-sync chain is empty.
+   - `WARN` when `deploy.branches` defines **more than one** environment but `deploy.order` is
+     absent. Config-driven back-sync (`reusable-claude-sync-down-branches.yml`) cannot derive a
+     source→target chain without the env ranking; the repo must either add `deploy.order`
+     (low→high, e.g. `["dev","staging","production"]`) or pass an explicit `chain` in its
+     `claude-sync-down-branches.yml` wrapper. WARN not FAIL because the explicit-chain override is
+     a valid configuration.
+   - `FAIL` when `deploy.order` is present but its env-name set does not exactly match the keys of
+     `deploy.branches` (every env in one must appear in the other). A mismatch silently breaks the
+     derived chain.
+   - Reuse the `deploy.order` / `deploy.branches` contract from `config-resolution` ("Env order
+     (sync-down chain)") rather than re-deriving the rules here.
+
 Locality findings are advisory unless the merged config is unusable. Missing shared keys after the
 merge are `FAIL`; shared keys that exist only locally are `WARN`.
 

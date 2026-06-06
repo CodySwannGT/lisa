@@ -1,7 +1,7 @@
 ---
-description: "Checks for code review comments on a PR and implements them if required."
+description: "Address and resolve PR review comments (human + bot): implement valid feedback, reply to invalid, resolve every thread."
 allowed-tools: ["Skill"]
-argument-hint: "<github-pr-link>"
+argument-hint: "[github-pr-link-or-number]"
 ---
 
-Use the /lisa:pull-request-review skill to check for code review comments and implement them. $ARGUMENTS
+Use the /lisa:pull-request-review skill to address and resolve the code review feedback on a pull request — implement valid comments, reply to invalid ones, and resolve every thread via GraphQL. $ARGUMENTS

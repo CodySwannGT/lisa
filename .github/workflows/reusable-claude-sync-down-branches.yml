@@ -7,8 +7,13 @@ on:
   workflow_call:
     inputs:
       chain:
-        description: 'JSON object mapping source branch -> target branch, e.g. {"main":"staging","staging":"dev"}'
-        required: true
+        description: >-
+          Optional explicit JSON object mapping source branch -> target branch,
+          e.g. {"main":"staging","staging":"dev"}. When omitted (the default),
+          the chain is derived from .lisa.config.json `deploy.order` +
+          `deploy.branches`. An explicit value always wins over the derived one.
+        required: false
+        default: ''
         type: string
       node_version:
         description: 'Node.js version used for the Claude conflict-resolver step'
@@ -30,10 +35,68 @@ jobs:
       actions: read
       id-token: write
     steps:
+      # When no explicit `chain` input is given, the chain is derived from the
+      # project's .lisa.config.json. Reading that file requires a checkout of the
+      # merged branch. Skipped entirely when `chain` is provided explicitly.
+      - name: Checkout source branch (to derive chain from config)
+        if: inputs.chain == ''
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve sync chain
+        id: chain
+        env:
+          INPUT_CHAIN: ${{ inputs.chain }}
+        run: |
+          if [ -n "$INPUT_CHAIN" ]; then
+            echo "Using explicit chain input."
+            echo "value=$INPUT_CHAIN" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Derive source->target chain from .lisa.config.json. The chain walks
+          # `deploy.order` (low env -> high env, e.g. ["dev","staging","production"])
+          # from the highest environment DOWN, mapping each env's branch to the
+          # next-lower env's branch via `deploy.branches`. This is the inverse of
+          # the promotion order: a hotfix landing on the production branch
+          # back-syncs to staging, staging back-syncs to dev.
+          if [ ! -f .lisa.config.json ]; then
+            echo "::error::No chain input and no .lisa.config.json found — cannot derive a sync chain. Pass the chain input explicitly or add deploy.order + deploy.branches to .lisa.config.json."
+            exit 1
+          fi
+          DERIVED=$(jq -e -r '
+            (.deploy.branches // {}) as $b
+            | (.deploy.order // []) as $o
+            | ($b | keys | sort) as $bk
+            | ($o | sort) as $ok
+            | if ($b | length) <= 1 then "{}"
+              elif ($o | length) == 0 then "ERR_NO_ORDER"
+              elif ($bk != $ok) then "ERR_MISMATCH"
+              else ($o | reverse) as $hl
+                | [ range(0; ($hl | length) - 1) | { ($b[$hl[.]]): $b[$hl[.+1]] } ] | add
+                | tojson
+              end
+          ' .lisa.config.json 2>/dev/null) || DERIVED="ERR_PARSE"
+          case "$DERIVED" in
+            ERR_PARSE)
+              echo "::error::Could not parse deploy config from .lisa.config.json."
+              exit 1 ;;
+            ERR_NO_ORDER)
+              echo "::error::deploy.branches defines multiple environments but deploy.order is missing. Add deploy.order (low->high, e.g. [\"dev\",\"staging\",\"production\"]) to .lisa.config.json, or pass an explicit chain input."
+              exit 1 ;;
+            ERR_MISMATCH)
+              echo "::error::deploy.order and deploy.branches name different environments. Every env in deploy.order must have a deploy.branches entry and vice versa."
+              exit 1 ;;
+          esac
+          echo "Derived chain from config: $DERIVED"
+          echo "value=$DERIVED" >> "$GITHUB_OUTPUT"
+
       - name: Resolve target branch from chain
         id: target
         env:
-          CHAIN: ${{ inputs.chain }}
+          CHAIN: ${{ steps.chain.outputs.value }}
           SOURCE: ${{ github.event.pull_request.base.ref }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
