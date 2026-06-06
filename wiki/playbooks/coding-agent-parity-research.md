@@ -40,7 +40,7 @@ For every gap cell — `❌` in Step 2, `❌ no` in Step 3, or `📦* yes-with-c
 
 - **Translate**: emit the feature in a different shape the agent does support, such as Codex commands becoming `lisa-`-prefixed skills.
 - **Wrap**: invoke a non-plugin Lisa installer at apply time to write the feature into a non-plugin location, such as agy MCP writing `~/.gemini/config/mcp_config.json`.
-- **Bake**: fold the feature's content into a different surface the agent does auto-load, such as agy rules being baked into AGENTS.md.
+- **Bake**: fold the feature's content into a different surface the agent does auto-load. _(The illustrative example — agy rules baked into AGENTS.md — was removed on 2026-06-06, PR #1150: `AGENTS.md` is now canonical and rule-free, and Lisa accepts the agy eager-rule gap. The strategy stays in the taxonomy; it currently has no active Lisa instance.)_
 - **Skip**: document as agent-only and do not polyfill, such as Copilot LSP servers.
 - **Block**: declare blocked, route to a separate work item to pressure upstream or rethink Lisa's reliance, such as agy plugin hooks not firing in headless mode.
 

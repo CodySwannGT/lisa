@@ -33,9 +33,9 @@ When a feature is absent on an agent or not plugin-distributable, Lisa polyfills
 
 - **Translate**: emit the feature in a different shape the agent supports. Codex commands become `lisa-`-prefixed skills via `src/codex/command-skill-transformer.ts`.
 - **Wrap**: invoke a non-plugin installer at apply time to write the feature into a non-plugin location. agy MCP servers write `~/.gemini/config/mcp_config.json` (with a `url` → `serverUrl` adapter for HTTP transports).
-- **Bake**: fold feature content into a different surface the agent does auto-load. agy rules are baked into the AGENTS.md template that agy auto-loads at session start.
+- **Bake**: fold feature content into a different surface the agent does auto-load. _(Lisa's only Bake instance was agy rules baked into the AGENTS.md template; it was **removed on 2026-06-06 — PR #1150**. `AGENTS.md` is now canonical and rule-free, and agy gets no eager-rule injection — see **Skip**/**Block** below. The strategy is retained here for reference but has no active Lisa instance.)_
 - **Skip**: document the feature as agent-only and ship no polyfill. Copilot LSP servers, Codex app connectors, and Claude monitors are agent-unique components Lisa does not currently use.
-- **Block**: declare the gap blocked, route to a separate work item to either pressure upstream or rethink Lisa's reliance. agy plugin-bundled hooks not firing in headless mode is the canonical Block — Lisa's SessionStart-hook strategy for rules injection cannot run on agy in `-p` mode and is replaced by the Bake-into-AGENTS.md alternative.
+- **Block**: declare the gap blocked, route to a separate work item to either pressure upstream or rethink Lisa's reliance. agy plugin-bundled hooks not firing in headless mode is the canonical Block — Lisa's SessionStart-hook strategy for rules injection cannot run on agy in `-p` mode. _(This was originally resolved with the Bake-into-AGENTS.md alternative; as of 2026-06-06 — PR #1150 — that bake was removed and Lisa instead **accepts the gap**: agy receives no eager-rule injection. So this is now effectively a Skip for agy eager rules.)_
 
 ## Pattern B: Per-Agent Plugin Variants
 
