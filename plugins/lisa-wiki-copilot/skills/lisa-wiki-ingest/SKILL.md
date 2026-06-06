@@ -50,11 +50,14 @@ writes nothing). The point is to ingest on top of fresh state, never stale state
 7. **Commit/PR**: commit only the ingestion changes per `config.git` policy. If the ingest started on
    the default branch, create a dedicated ingestion branch first — never commit ingestion straight to
    the default. Push the branch and **open a PR targeting the default remote branch** (via the host's
-   PR mechanism — e.g. `gh pr create --base <default>`), then **enable auto-merge when possible**
-   (`gh pr merge --auto`, or the host's equivalent). `external-write` runs and sensitive content are
-   the exception — open the PR **without** auto-merge so a human reviews them before it lands. If
-   auto-merge cannot be enabled (the host doesn't support it, or branch protection forbids it), leave
-   the PR open and note that a human must merge.
+   PR mechanism — e.g. `gh pr create --base <default>`). Before enabling auto-merge, feed the safety
+   scan output into `createWikiIngestPublicationPolicy` from `scripts/wiki-safety.mjs`. Enable
+   auto-merge only when `autoMergeAllowed` is true. `external-write` runs, redacted runs, and any run
+   with sensitive findings are the exception — open the PR **without** auto-merge so a human reviews
+   them before it lands. The PR summary must include the policy's safe review summary: counts and
+   entity types only, never raw values, ranges, tokens, source snippets, or scanner output. If
+   auto-merge cannot be enabled (the host doesn't support it, branch protection forbids it, or the
+   policy requires review), leave the PR open and note that a human must merge.
 
 ## Rules
 - **Bookend every ingest with git hygiene:** sync the branch with the default remote branch *before*
@@ -71,6 +74,10 @@ writes nothing). The point is to ingest on top of fresh state, never stale state
   select `--scanner gitleaks` for local parity with Gitleaks, and may use
   `--scanner trufflehog` as a stricter optional verification pass when installed;
   if a selected scanner is unavailable, keep the ingest blocked for review.
+- Redaction and review policy is centralized in `scripts/wiki-safety.mjs`. Treat
+  `reviewRequired` or any summarized finding as a hard auto-merge stop. Use the
+  generated PR summary text as-is or preserve its shape so reviewers see entity
+  types and counts without raw sensitive values.
 - Connector execution and the connector contract are detailed in the connector skills (M2+); this
   router defines and enforces the ordering and side-effect rules above.
 
