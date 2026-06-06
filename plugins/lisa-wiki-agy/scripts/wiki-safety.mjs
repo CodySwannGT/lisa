@@ -236,6 +236,82 @@ export function serializeWikiSafetyFindings(result) {
   );
 }
 
+function normalizeSafetyResults(results) {
+  if (Array.isArray(results)) return results;
+  if (!results) return [];
+  return [results];
+}
+
+function summarizeEntityTypes(results) {
+  const byType = new Map();
+  for (const result of results) {
+    for (const finding of result?.findings ?? []) {
+      const entityType = finding?.entityType ?? "unknown";
+      const current = byType.get(entityType) ?? {
+        entityType,
+        confidence: finding?.confidence ?? "unknown",
+        count: 0,
+      };
+      current.count += Number.isFinite(finding?.count) ? finding.count : 1;
+      if (current.confidence !== "high" && finding?.confidence === "high") {
+        current.confidence = "high";
+      }
+      byType.set(entityType, current);
+    }
+  }
+  return [...byType.values()].sort((a, b) =>
+    a.entityType.localeCompare(b.entityType)
+  );
+}
+
+export function createWikiIngestPublicationPolicy(options = {}) {
+  const safetyResults = normalizeSafetyResults(options.safetyResults);
+  const externalWrite = Boolean(options.externalWrite);
+  const entityTypes = summarizeEntityTypes(safetyResults);
+  const findingCount = entityTypes.reduce((sum, item) => sum + item.count, 0);
+  const reviewRequired =
+    externalWrite ||
+    findingCount > 0 ||
+    safetyResults.some(result => Boolean(result?.reviewRequired));
+  const reasons = [
+    ...(externalWrite ? ["external-write source"] : []),
+    ...(findingCount > 0 ? ["redacted or sensitive findings"] : []),
+    ...(!externalWrite &&
+    findingCount === 0 &&
+    safetyResults.some(result => Boolean(result?.reviewRequired))
+      ? ["source safety review requested"]
+      : []),
+  ];
+
+  const findingLines =
+    entityTypes.length > 0
+      ? entityTypes.map(
+          item =>
+            `- ${item.entityType}: ${item.count} ${item.count === 1 ? "finding" : "findings"} (${item.confidence})`
+        )
+      : ["- none"];
+
+  return {
+    autoMergeAllowed: !reviewRequired,
+    reviewRequired,
+    reasons,
+    findingCount,
+    entityTypes,
+    prSummaryMarkdown: [
+      "## Wiki Safety Review",
+      "",
+      `Auto-merge: ${reviewRequired ? "disabled" : "allowed"}`,
+      `Human review required: ${reviewRequired ? "yes" : "no"}`,
+      `Reason: ${reasons.length > 0 ? reasons.join("; ") : "no redactions or sensitive findings"}`,
+      "",
+      "Finding summary:",
+      ...findingLines,
+      "",
+      "Raw sensitive values are intentionally omitted from this summary.",
+    ].join("\n"),
+  };
+}
+
 export function isWikiSafetyScanTarget(filePath, options = {}) {
   const pathModule = options.pathModule;
   if (!pathModule) {
