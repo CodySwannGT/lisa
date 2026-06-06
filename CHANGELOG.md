@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.144.0](https://github.com/CodySwannGT/lisa/compare/vv2.143.2...v2.144.0) (2026-06-06)
+
+
+### Features
+
+* **wiki:** add generated output safety gate ([3e474da](https://github.com/CodySwannGT/lisa/commit/3e474dacb2f2994d5204cf88ff93ac0ab78a2140))
+
 ### [2.143.2](https://github.com/CodySwannGT/lisa/compare/vv2.143.1...v2.143.2) (2026-06-06)
 
 ### [2.143.1](https://github.com/CodySwannGT/lisa/compare/vv2.143.0...v2.143.1) (2026-06-06)
