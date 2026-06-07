@@ -229,6 +229,18 @@ An in-progress item (build `claimed`, PRD `in_review`) is **stalled** only if it
 observable activity newer than the `stale_after` threshold. `blocked` items are NOT gated on
 staleness — their repairability is judged on current blocker/answer state, not elapsed time.
 
+A build `claimed` leaf whose linked PR has **already merged** (`state == MERGED`) is likewise NOT
+gated on staleness. A merged PR is a settled terminal state, not in-flight work: the only thing
+missing is the env transition build-intake never applied (its merge gate left the item `claimed`
+because the merge landed after its agent returned). The recovery is judged on PR merge state, not
+elapsed time — and crucially **post-merge activity does not defer it**. A freshly-merged PR keeps
+producing activity that the signal below would otherwise read as keep-alive (a queued/in-progress
+release or deploy check-run, a post-merge CodeRabbit summary comment), so gating merged-PR recovery
+on staleness strands a *completed* leaf in `claimed` for as long as that activity keeps the clock
+warm — exactly the failure that leaves a shipped Sub-task showing `status:in-progress` for a day
+while its parents roll up against it. Recover it regardless of recent activity (Build `claimed`
+decision tree step 0, and the dedicated high-confidence ordering bucket).
+
 ### Threshold resolution
 
 1. `$ARGUMENTS` `stale_after=<dur>` (one-off override) — always wins. Parse `Nh` / `Nm` / `Nd` /
@@ -263,6 +275,12 @@ keep-alive activity: it does not reset the staleness clock. The clock runs from 
 progress event, so a PR that has been sitting failed/conflicted/awaiting-changes for longer than
 `stale_after` counts as stalled and is diagnosed below.
 
+A **merged** linked PR is the same kind of non-keep-alive signal, in the other direction: the work
+is settled and complete, so its post-merge check-runs and summary comments must NOT count as
+keep-alive either. A build `claimed` leaf with a merged PR is recovered regardless of the staleness
+clock (see the Staleness model note above and the dedicated ordering bucket); it is never recorded
+`active` and skipped on the strength of post-merge activity.
+
 If a provider cannot expose any reliable timestamp, do **not** auto-resume its in-progress
 items unless the caller passed `stale_after=0`. (Dependency-cleared `blocked` repair still
 proceeds — it is judged on blocker state, not time.)
@@ -276,17 +294,24 @@ recorded under Errors. Do not stop after the first write; the cap is the batch b
 
 ### Build `claimed` (stalled in-progress) → diagnose blocker, else resume in place
 
-After the staleness gate passes, **first diagnose why it stalled** by inspecting the item's PRs and
-deploys (see "Stuck-cause diagnosis" below). A stalled build usually stalled for a concrete external
-reason, and re-dispatching the agent at it will not fix a PR that cannot merge or a deploy that
-failed — it just churns.
+**First check for an already-merged PR — this check is NOT gated on staleness.** Read the item's
+linked PR state before applying the staleness gate (see "Stuck-cause diagnosis" step 1–2 for
+discovery). If `state == MERGED`, recover it immediately via step 0's merged-PR arm regardless of
+elapsed time or recent post-merge activity (per the Staleness model's merged-PR exemption): a merged
+PR is a completed leaf, and deferring it behind the staleness clock is what strands shipped work in
+`claimed`.
+
+Only if the PR is **not** merged does the staleness gate apply. Once it passes, **diagnose why it
+stalled** by inspecting the item's PRs and deploys (see "Stuck-cause diagnosis" below). A stalled
+build usually stalled for a concrete external reason, and re-dispatching the agent at it will not fix
+a PR that cannot merge or a deploy that failed — it just churns.
 
 0. **Diagnose PR & deploy state.** Run "Stuck-cause diagnosis" below. It resolves, in order:
-   - **PR already merged** → the build effectively completed; the vendor build-intake's merge gate
-     left the item `claimed` because the merge landed after its agent returned. Do **not** re-dispatch
-     or file anything — apply the scanner's post-agent env-resolved `claimed → done` transition
-     directly (step 2 below, env-resolved), and record it. This is the recovery arm for build-intake
-     leaving merged-but-unadvanced items in `claimed`.
+   - **PR already merged** (checked first, staleness-exempt) → the build effectively completed; the
+     vendor build-intake's merge gate left the item `claimed` because the merge landed after its agent
+     returned. Do **not** re-dispatch or file anything — apply the scanner's post-agent env-resolved
+     `claimed → done` transition directly (step 2 below, env-resolved), and record it. This is the
+     recovery arm for build-intake leaving merged-but-unadvanced items in `claimed`.
    - **PR only behind its base (a needed rebase)** → mechanically resolvable, **not** a human blocker.
      Re-sync the branch in place so the already-enabled auto-merge can land (see diagnosis step 3).
      Keep the item `claimed`; a later cycle confirms the merge and transitions. Do **not** file a fix
@@ -328,10 +353,15 @@ Run this for every stalled `claimed` build item **before** considering an agent 
 goal is to distinguish "work died mid-flight, just resume it" from "work is blocked on a concrete
 external state that resuming the agent cannot fix."
 
-**1. Find the associated PR(s) and deploy(s).** From the item's linked PRs (GitHub: remote/dev
-links and `gh pr list --search <issue-ref>`; JIRA: dev-status / remote links; Linear: attachments
-and git-branch links) and the deploy(s) for the resulting merge (the env-keyed `deploy.branches`
-mapping from `config-resolution`). Read each PR with the vendor's native state, e.g. GitHub
+**1. Find the associated PR(s) and deploy(s).** From the item's linked PRs (GitHub: prefer the
+native dev-link surface — `gh issue view <n> --json closedByPullRequestsReferences` — which lists
+merged PRs that closed the issue, then `gh pr list --search <issue-ref> --state all`; JIRA:
+dev-status / remote links; Linear: attachments and git-branch links) and the deploy(s) for the
+resulting merge (the env-keyed `deploy.branches` mapping from `config-resolution`). The `--state all`
+is load-bearing: `gh pr list --search` defaults to `--state open`, so a **merged** (closed) PR is
+invisible on that surface — the exact state this recovery path exists to catch. A merged PR linked
+only via search (no `Closes #` / native dev link) would otherwise never be discovered, and the leaf
+would never recover. Read each PR with the vendor's native state, e.g. GitHub
 `gh pr view <n> --json state,mergedAt,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,comments,reviews`.
 
 **2. PR already merged → recover, don't re-dispatch.** If `state == MERGED`, the build is effectively
@@ -852,18 +882,24 @@ It MUST NOT:
    for the detected lifecycle(s), up to `max_candidates`, via the Access layer reads.
 3. **Order deterministically**, highest repair-confidence first:
    1. terminal-labeled items that only need native close / complete / resolve,
-   2. GitHub parents (PRDs missing native links for generated top-level work, or build Epic/Story
+   2. build `claimed` leaves whose linked PR is **already merged** — apply the env-resolved
+      `claimed → done` close-out (staleness-exempt; no re-dispatch). This MUST run before any rollup
+      bucket: a merged-PR leaf is a settled terminal state, and recovering it first means its parent
+      rolls up to its true derived state in the **same** cycle. If this ran after rollup (or last,
+      among generic stalled items), the parent would be reconciled against a not-yet-closed child and
+      the shipped leaf would linger another cron pass — the failure this ordering exists to prevent,
+   3. GitHub parents (PRDs missing native links for generated top-level work, or build Epic/Story
       containers missing native links for prose/hierarchy children) needing structure-only repair,
-   3. rollup parents/PRDs whose child sets are all terminal (close-out),
-   4. rollup parents whose children have advanced to an intermediate env, or stale-`ready`
+   4. rollup parents/PRDs whose child sets are all terminal (close-out),
+   5. rollup parents whose children have advanced to an intermediate env, or stale-`ready`
       containers, that need their derived state applied (status-only reconciliation, no native
       close),
-   5. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
-   6. `blocked` items whose **validation / quality-gate self-block now re-validates PASS** —
+   6. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
+   7. `blocked` items whose **validation / quality-gate self-block now re-validates PASS** —
       a human filled in the missing sections (Class B; equally safe and high-value),
-   7. `blocked` items with **new clarifying answers**,
-   8. GitHub missing-official-label normalization candidates,
-   9. **stalled** in-progress items, oldest activity first.
+   8. `blocked` items with **new clarifying answers**,
+   9. GitHub missing-official-label normalization candidates,
+   10. **stalled** in-progress items (PR not merged), oldest activity first.
 4. **Walk the ordered list**, evaluating each candidate (terminal close-out, rollup child tally,
    staleness, dependency, answer checks), and repair **every** candidate that is actionable inside
    the `max_candidates` cap. Continue after successful writes and after per-item errors.
