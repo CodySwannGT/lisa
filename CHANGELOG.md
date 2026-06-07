@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.147.4](https://github.com/CodySwannGT/lisa/compare/vv2.147.3...v2.147.4) (2026-06-07)
+
+
+### Bug Fixes
+
+* **validate:** don't strand parentless build-ready leaf work units (S7) ([5164960](https://github.com/CodySwannGT/lisa/commit/5164960fd55a0eba9be2a4bff4dc4ebd40049fd2))
+
 ### [2.147.3](https://github.com/CodySwannGT/lisa/compare/vv2.147.2...v2.147.3) (2026-06-07)
 
 
