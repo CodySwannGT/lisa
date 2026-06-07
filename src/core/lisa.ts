@@ -29,6 +29,11 @@ import {
 } from "../opencode/manifest.js";
 import { installSkills as installOpencodeSkills } from "../opencode/skills-installer.js";
 import { installHooks as installOpencodeHooks } from "../opencode/hooks-installer.js";
+import { installSettings as installOpencodeSettings } from "../opencode/settings-installer.js";
+import {
+  installOpencodeMcpConfig,
+  resolveOpencodeConfigPath,
+} from "../opencode/mcp-installer.js";
 import { installClaudeMd } from "../claude/claude-md-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
@@ -1051,14 +1056,46 @@ export class Lisa {
       ...hooksResult.managedFiles,
     ]);
 
+    // Config-level delivery (host-preserving merges into the project
+    // `opencode.json`, NOT tracked in the manifest — deleting a merged host file
+    // would be data loss). The hooks installer above already merged the
+    // `permission.bash` deny rules; settings + MCP merge their own keys and
+    // preserve everything else, so the three writers compose into one file.
+    //   1. Settings: force `share: "disabled"` so applying the fleet config can
+    //      never publish a host's sessions via OpenCode's default-on, public
+    //      share URLs. Other host keys are preserved.
+    //   2. MCP wrap: OpenCode ignores plugin-bundled MCP, so collect Lisa's
+    //      servers from the built plugin `.mcp.json` files (base + detected
+    //      stacks) and write them into the `mcp` key, translated to OpenCode's
+    //      `type:"local"|"remote"` shape. Called unconditionally so stale
+    //      `_lisaManaged` entries are stripped when a project drops MCP.
+    await installOpencodeSettings(this.config.destDir);
+    const pluginRoot = path.join(this.config.lisaDir, "plugins");
+    const lisaMcpServers = collectLisaMcpServers(
+      pluginRoot,
+      this.detectedTypes
+    );
+    const mcpResult = await installOpencodeMcpConfig(
+      lisaMcpServers,
+      resolveOpencodeConfigPath(this.config.destDir)
+    );
+    const mcpMessage =
+      mcpResult.lisaEntryCount > 0
+        ? `, ${mcpResult.lisaEntryCount} MCP server(s)`
+        : "";
     const staleCount = skillsResult.deleted.length + hooksResult.deleted.length;
+
+    // The hooks installer is the first writer, so its `configCreated` flag
+    // reflects whether `opencode.json` existed before this emit.
     this.deps.logger.info(
       pc.cyan(
-        `OpenCode emit: ${skillsResult.installed.length} skills, ${hooksResult.pluginCount} plugin hooks, opencode.json ${
-          hooksResult.configCreated ? "created" : "merged"
-        }${
+        `OpenCode emit: ${skillsResult.installed.length} skills, ${hooksResult.pluginCount} plugin hooks${
           staleCount > 0 ? ` (${staleCount} stale removed)` : ""
-        }, AGENTS.md ${agentsResult.created ? "created" : HOST_OWNED_LABEL}`
+        }, AGENTS.md ${
+          agentsResult.created ? "created" : HOST_OWNED_LABEL
+        }, opencode.json ${
+          hooksResult.configCreated ? "created" : "merged"
+        }${mcpMessage}`
       )
     );
   }
