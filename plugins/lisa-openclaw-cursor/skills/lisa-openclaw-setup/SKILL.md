@@ -83,6 +83,9 @@ loudly, do not silently proceed) if any is missing:
   root (Slack channel + root `thread_ts`; Telegram supergroup + forum topic + root `message_id`), and
   replies in that thread continue the same session, so concurrent threads don't share short-term
   context.
+- **Account-scoped Telegram topic agents** — in multi-account Telegram configs,
+  `channels.telegram.accounts.<account-id>.groups.<group-id>.topics.<topic-id>.agentId` routes group
+  messages as an explicit topic route instead of dropping them as a non-default account fallback.
 - **`NO_REPLY` sentinel** — after an agent sends a message with the platform message tool, returning
   exactly `NO_REPLY` as its assistant final prevents the gateway from posting a duplicate loose
   message.
