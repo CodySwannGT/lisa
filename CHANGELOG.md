@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.150.1](https://github.com/CodySwannGT/lisa/compare/vv2.150.0...v2.150.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **repair-intake:** re-check deployed-verification blocks with same-context reproduction ([d5b8c8f](https://github.com/CodySwannGT/lisa/commit/d5b8c8f90b1fa36c6eecbc7581ad4e8ee2cba9eb))
+
 ## [2.150.0](https://github.com/CodySwannGT/lisa/compare/vv2.149.1...v2.150.0) (2026-06-07)
 
 
