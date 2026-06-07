@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.150.0](https://github.com/CodySwannGT/lisa/compare/vv2.149.1...v2.150.0) (2026-06-07)
+
+
+### Features
+
+* **opencode:** add config-level settings + MCP wrap delivery ([1960a15](https://github.com/CodySwannGT/lisa/commit/1960a15fe6a242d2a47275c13ecd4f2b1becb1cc)), closes [#1197](https://github.com/CodySwannGT/lisa/issues/1197)
+
 ### [2.149.1](https://github.com/CodySwannGT/lisa/compare/vv2.149.0...v2.149.1) (2026-06-07)
 
 
