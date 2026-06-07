@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.148.0](https://github.com/CodySwannGT/lisa/compare/vv2.147.7...v2.148.0) (2026-06-07)
+
+
+### Features
+
+* **migrations:** backfill AccessibilityManager RN mock ([ab056bb](https://github.com/CodySwannGT/lisa/commit/ab056bbb876a9ac11f859be962e35198d42f0539))
+
+
+### Bug Fixes
+
+* **expo:** align SDK 56 dependency templates ([363c0e5](https://github.com/CodySwannGT/lisa/commit/363c0e50de27dc50a1db4a27d054d3da90b9da37))
+
 ### [2.147.7](https://github.com/CodySwannGT/lisa/compare/vv2.147.6...v2.147.7) (2026-06-07)
 
 
