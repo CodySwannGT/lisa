@@ -12,6 +12,7 @@ import {
 } from "../core/project-config.js";
 import { ConsoleLogger } from "../logging/index.js";
 import { toAbsolutePath } from "../utils/path-utils.js";
+import { nudgeCrossPollinate } from "./cross-pollinate-nudge.js";
 import { type CLIOptions, createDependencies } from "./shared-options.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -134,6 +135,13 @@ export async function runApply(
       })
     ) {
       await writeProjectConfig(destDir, { harness });
+    }
+
+    // After a real apply, surface (read-only) whether any locally-authored
+    // agent definitions need cross-pollinating to the project's other agents.
+    // Never writes here — the emit stays behind the explicit skill/command.
+    if (!options.validate && !dryRun) {
+      await nudgeCrossPollinate(destDir, getLisaDir(), logger);
     }
   } catch (error) {
     logger.error(error instanceof Error ? error.message : String(error));
