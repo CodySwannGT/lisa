@@ -1,5 +1,16 @@
 # Lisa Wiki Log
 
+## 2026-06-07 - Incremental connector ingest
+
+- Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current branch without conflicts, then created `wiki/ingest-20260607T030131Z` from synced `origin/main`.
+- Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
+- No same-day git or roles source notes existed for `2026-06-07`, so no prior source provenance copy was needed before writing current connector notes.
+- Refreshed the `git` source note with 21 new commits through `f0344778db527ff4eef004128d1c75761776c03b`, advanced the merged-PR cursor to `#1187`, and captured the release line through Lisa `2.147.0`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge, wiki redaction policy validation hardening, connector source sanitization, `.lisa.config.json` lint ignoring, legacy Safety Net config compatibility, and release-history changes through `2.147.0`.
+- Corrected an initial probe invocation of the git and roles connectors that ran without `--state`; the over-broad untracked notes were removed before state advancement, and the connectors were rerun with `wiki/state/git/latest.json` and `wiki/state/roles/latest.json`.
+
 ## 2026-06-06 - Incremental connector ingest
 
 - Synced the durable checkout with `origin/main` by fetching `origin` and rebasing the current branch without conflicts, then created `wiki/ingest-20260606T230012Z` from synced `origin/main`.
