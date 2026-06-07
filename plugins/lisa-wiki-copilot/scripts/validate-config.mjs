@@ -60,6 +60,14 @@ function checkType(value, type, label) {
     );
   }
 }
+function checkKnownKeys(object, allowed, label) {
+  if (!isObject(object)) return;
+  for (const key of Object.keys(object)) {
+    if (!allowed.includes(key)) {
+      err(`${label}.${key}: unknown field`);
+    }
+  }
+}
 
 if (!fs.existsSync(configPath)) {
   console.error(`✗ config not found: ${configPath}`);
@@ -134,6 +142,11 @@ if (config.readme !== undefined) {
 if (config.sensitivity !== undefined) {
   if (!isObject(config.sensitivity)) err("sensitivity: must be an object");
   else {
+    checkKnownKeys(
+      config.sensitivity,
+      ["enabled", "default", "redaction"],
+      "sensitivity"
+    );
     checkType(config.sensitivity.enabled, "boolean", "sensitivity.enabled");
     checkEnum(config.sensitivity.default, SENSITIVITY, "sensitivity.default");
     if (config.sensitivity.redaction !== undefined) {
@@ -141,6 +154,18 @@ if (config.sensitivity !== undefined) {
         err("sensitivity.redaction: must be an object");
       } else {
         const redaction = config.sensitivity.redaction;
+        checkKnownKeys(
+          redaction,
+          [
+            "enabled",
+            "scanners",
+            "failClosed",
+            "requireReview",
+            "allowedEntities",
+            "blockedEntities",
+          ],
+          "sensitivity.redaction"
+        );
         checkType(
           redaction.enabled,
           "boolean",
@@ -164,7 +189,10 @@ if (config.sensitivity !== undefined) {
             "sensitivity.redaction.scanners: must be a non-empty array of strings"
           );
         }
-        for (const scanner of redaction.scanners ?? []) {
+        const scanners = isStringArray(redaction.scanners)
+          ? redaction.scanners
+          : [];
+        for (const scanner of scanners) {
           checkEnum(
             scanner,
             REDACTION_SCANNERS,
@@ -175,7 +203,8 @@ if (config.sensitivity !== undefined) {
           if (redaction[key] !== undefined && !isStringArray(redaction[key])) {
             err(`sensitivity.redaction.${key}: must be an array of strings`);
           }
-          for (const entity of redaction[key] ?? []) {
+          const entities = isStringArray(redaction[key]) ? redaction[key] : [];
+          for (const entity of entities) {
             checkEnum(
               entity,
               REDACTION_ENTITIES,

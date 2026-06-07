@@ -35,13 +35,13 @@
     },
     "sensitivity": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "enabled": { "type": "boolean" },
         "default": { "enum": ["public", "internal", "confidential", "restricted"] },
         "redaction": {
           "type": "object",
-          "additionalProperties": true,
+          "additionalProperties": false,
           "properties": {
             "enabled": { "type": "boolean" },
             "scanners": {
