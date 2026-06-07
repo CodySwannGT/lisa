@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.146.1](https://github.com/CodySwannGT/lisa/compare/vv2.146.0...v2.146.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **install:** use jq instead of grep to fingerprint legacy .safety-net.json ([135f658](https://github.com/CodySwannGT/lisa/commit/135f6584b2416ead8b89b9598739ffcc56a347eb))
+* stop shipping legacy .safety-net.json incompatible with cc-safety-net 1.0.1 ([d6c67fd](https://github.com/CodySwannGT/lisa/commit/d6c67fdbed07c8edfd100fa2521bf619a30d9829))
+
 ## [2.146.0](https://github.com/CodySwannGT/lisa/compare/vv2.145.2...v2.146.0) (2026-06-07)
 
 
