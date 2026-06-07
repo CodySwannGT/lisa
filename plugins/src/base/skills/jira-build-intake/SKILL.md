@@ -218,6 +218,16 @@ If `lisa:jira-agent` returned Success:
 
 For any non-Success outcome, do NOT transition. The ticket sits in `$CLAIMED` (or wherever `lisa:jira-agent` left it for the Blocked case) — the cycle's job is done; humans take it from there.
 
+#### 3d.1 Roll up the parent chain (forward rollup)
+
+Run this **only after a successful `$DONE` transition in 3d**. This is the **forward** arm of the `leaf-only-lifecycle` rule's *"rollup is evaluated whenever a child transitions"* requirement: a leaf reaching `$DONE` may complete its parent Story, which may in turn complete its Epic. Without this step a fully-built parent stays open until the recovery `lisa:repair-intake` cron happens to run.
+
+1. Resolve the ticket's parent using the same hierarchy `lisa:jira-read-ticket` uses — the native Epic → Story → Sub-task parentage (parent field / Epic link). If the ticket has no parent, skip — nothing to roll up.
+2. Walk **up the ancestor chain bottom-up** (Sub-task → Story → Epic): for each ancestor invoke `lisa:jira-sync <ANCESTOR-KEY> --rollup`. That skill derives the ancestor's status from its children per `leaf-only-lifecycle`, applies it via `lisa:atlassian-access` `operation: transition` only when it differs (never the build-ready status), and performs terminal native resolution (`statusCategory = Done` with a resolution when the workflow requires one) when the derived env is the terminal `$DONE`. It is idempotent and safe-defaults (suggests, does not guess) when the rolled state is ambiguous.
+3. Stop walking up when an ancestor has no parent, or when `--rollup` reports no change. Record each rolled-up ancestor and its derived state in the summary.
+
+This does not re-implement the state machine — it delegates to `lisa:jira-sync --rollup`, the single rollup implementation `lisa:repair-intake` also uses, so the forward and recovery paths can never drift. Children closed **outside** this flow are not observed here; `lisa:repair-intake` remains the recovery net for those.
+
 #### 3e. Stop
 
 Stop immediately after the first claimed, skipped, blocked, held, or errored ticket. Later scheduler invocations process the remaining ready tickets.

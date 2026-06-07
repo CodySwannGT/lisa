@@ -300,6 +300,16 @@ This close is idempotent: if the issue is already closed, record that native clo
 
 For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever `lisa:github-agent` left it) — humans take it from there.
 
+#### 3d.1 Roll up the parent chain (forward rollup)
+
+Run this **only after a successful `$DONE` transition in 3d** (the leaf actually reached an env — intermediate or terminal). This is the **forward** arm of the `leaf-only-lifecycle` rule's *"rollup is evaluated whenever a child transitions"* requirement: a leaf reaching `$DONE` is exactly such a transition, so its parent's derived state may now have changed — the last open child of a Story just shipped, so the Story rolls up to `$DONE` and closes, which may in turn complete its Epic. Without this step a fully-built parent stays open until the recovery `lisa:repair-intake` cron happens to run.
+
+1. Resolve the leaf's parent using the same hierarchy `lisa:github-read-issue` uses — native sub-issue parent first (GraphQL `parent`), then body parentage (`Parent: #<n>` / `Parent Epic: #<n>`). If the leaf has no parent, skip — nothing to roll up.
+2. Walk **up the ancestor chain bottom-up**: for the immediate parent, then its parent, and so on, invoke `lisa:github-sync <org>/<repo>#<ancestor> --rollup`. That skill derives the ancestor's `status:*` from its children per `leaf-only-lifecycle`, applies it only when it differs (never `status:ready`), and performs terminal native closure (`gh issue close --reason completed`) when the derived env is the production/terminal `$DONE`. It is idempotent and safe-defaults (suggests, does not guess) when the rolled state is ambiguous.
+3. Stop walking up when an ancestor has no parent, or when `--rollup` reports no change (a higher ancestor cannot advance past an unchanged child). Record each rolled-up ancestor and its derived state in the summary.
+
+This does not re-implement the state machine — it delegates to `lisa:github-sync --rollup`, the single rollup implementation `lisa:repair-intake` also uses, so the forward and recovery paths can never drift. Children closed **outside** this flow (e.g. by external automation) are not observed here; `lisa:repair-intake` remains the recovery net for those.
+
 #### 3e. Stop
 
 Stop immediately after the first claimed, skipped, blocked, held, or errored issue. Later scheduler invocations process the remaining ready issues.
