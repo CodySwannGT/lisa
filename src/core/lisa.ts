@@ -749,7 +749,8 @@ export class Lisa {
 
   /**
    * Emit Codex-targeted artifacts (agents, hooks, settings) when the host
-   * project's harness is `codex` or `both`. No-op for `claude` (default).
+   * project's harness includes Codex (`codex` or `fleet`). No-op for `claude`
+   * (default).
    *
    * Codex can now ship skills, MCP servers, apps, and hooks via plugins, so
    * Lisa emits a repo-local marketplace as the durable plugin-native path.

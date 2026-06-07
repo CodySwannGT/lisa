@@ -70,8 +70,10 @@ export const COPY_STRATEGIES: readonly CopyStrategy[] = [
  * - "agy":     emit Antigravity artifacts (~/.gemini/config/mcp_config.json + AGENTS.md with baked rules)
  * - "copilot": emit GitHub Copilot artifacts (.github/copilot-instructions.md + plugin install)
  * - "opencode": emit OpenCode artifacts (.opencode/skills/lisa/ + AGENTS.md, read natively)
- * - "both":    emit both Claude and Codex (back-compat — predates the per-agent expansion)
  * - "fleet":   emit for every supported agent (Claude + Codex + Cursor + agy + Copilot + OpenCode)
+ *
+ * The input alias `all` is accepted on the CLI and in `.lisa.config.json` and
+ * normalized to `fleet` (see {@link HARNESS_ALIASES} / `normalizeHarness`).
  */
 export type Harness =
   | "claude"
@@ -80,7 +82,6 @@ export type Harness =
   | "agy"
   | "copilot"
   | "opencode"
-  | "both"
   | "fleet";
 
 /**
@@ -93,9 +94,26 @@ export const HARNESS_VALUES: readonly Harness[] = [
   "agy",
   "copilot",
   "opencode",
-  "both",
   "fleet",
 ] as const;
+
+/**
+ * Input aliases accepted on the CLI and in `.lisa.config.json`, each mapping to
+ * a canonical {@link Harness}. `all` is a friendly synonym for `fleet`.
+ */
+export const HARNESS_ALIASES: Readonly<Record<string, Harness>> = {
+  all: "fleet",
+};
+
+/**
+ * Every string a user may supply for a harness: the canonical values plus the
+ * accepted aliases. Used to build help text and validation error messages so
+ * `all` is advertised alongside `fleet`.
+ */
+export const ACCEPTED_HARNESS_INPUTS: readonly string[] = [
+  ...HARNESS_VALUES,
+  ...Object.keys(HARNESS_ALIASES),
+];
 
 /**
  * Per-project emit agents that have a dispatch path in `lisa apply`.
@@ -108,11 +126,10 @@ export type EmitAgent = "claude" | "codex" | "agy" | "copilot" | "opencode";
  * Whether a configured harness should emit artifacts for a given agent.
  *
  * Centralizes the dispatch-inclusion rule so the four `process<Agent>Emit`
- * guards stay consistent: a `"fleet"` harness includes every agent, `"both"`
- * is the Claude+Codex back-compat pair, and any single-agent harness matches
- * only itself. (A prior copy-paste left `"fleet"` out of the Codex guard, so
- * fleet installs silently skipped Codex — this predicate prevents that class
- * of bug.)
+ * guards stay consistent: a `"fleet"` harness includes every agent, and any
+ * single-agent harness matches only itself. (A prior copy-paste left `"fleet"`
+ * out of the Codex guard, so fleet installs silently skipped Codex — this
+ * predicate prevents that class of bug.)
  * @param harness - The configured/CLI-resolved harness value.
  * @param agent - The emit agent whose dispatch is being gated.
  * @returns True when the harness should run that agent's emit path.
@@ -122,7 +139,6 @@ export function harnessIncludesAgent(
   agent: EmitAgent
 ): boolean {
   if (harness === "fleet") return true;
-  if (harness === "both") return agent === "claude" || agent === "codex";
   return harness === agent;
 }
 
@@ -154,7 +170,7 @@ export interface LisaConfig {
   /** If true, skip the dirty git working directory check (for postinstall use) */
   readonly skipGitCheck: boolean;
 
-  /** Target harness(es) for emitted artifacts (claude | codex | both) */
+  /** Target harness(es) for emitted artifacts (e.g. claude | codex | fleet) */
   readonly harness: Harness;
 }
 
