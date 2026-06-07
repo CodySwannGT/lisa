@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.151.0](https://github.com/CodySwannGT/lisa/compare/vv2.150.1...v2.151.0) (2026-06-07)
+
+
+### Features
+
+* **opencode:** emit native agents and commands ([06532e2](https://github.com/CodySwannGT/lisa/commit/06532e24219748343a2fa776b89fd65a88752e3b)), closes [#1197](https://github.com/CodySwannGT/lisa/issues/1197)
+
 ### [2.150.1](https://github.com/CodySwannGT/lisa/compare/vv2.150.0...v2.150.1) (2026-06-07)
 
 

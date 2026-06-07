@@ -33,6 +33,8 @@ import {
   installOpencodeMcpConfig,
   resolveOpencodeConfigPath,
 } from "../opencode/mcp-installer.js";
+import { discoverAndInstallAgents as installOpencodeAgents } from "../opencode/agent-installer.js";
+import { discoverAndInstallCommands as installOpencodeCommands } from "../opencode/command-installer.js";
 import { installClaudeMd } from "../claude/claude-md-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
@@ -1016,13 +1018,17 @@ export class Lisa {
   /**
    * Emit OpenCode-targeted artifacts when the harness includes OpenCode.
    *
-   * OpenCode reads the open Agent Skills format and `AGENTS.md` natively
-   * (opencode.ai/docs/skills, /docs/rules), so Lisa needs no transformed plugin
-   * variant: it writes skills (bundled + command-derived) into the
-   * OpenCode-owned `.opencode/skills/lisa/` tree and ensures the canonical
-   * `AGENTS.md` exists. Ownership is tracked via `.opencode/.lisa-managed.json`
-   * so updates clean up stale skills without touching host customizations.
-   * Skipped in dry-run mode and on harness modes that don't include OpenCode.
+   * OpenCode reads the open Agent Skills format, native agents
+   * (`.opencode/agents/`), native commands (`.opencode/commands/`), and
+   * `AGENTS.md` natively (opencode.ai/docs/skills, /docs/agents, /docs/commands,
+   * /docs/rules), so Lisa needs no transformed plugin variant. It writes:
+   *   - skills (bundled + command-derived) into `.opencode/skills/lisa/`,
+   *   - agents (Markdown, `lisa-` prefixed) into `.opencode/agents/`,
+   *   - commands (Markdown, `lisa-` prefixed) into `.opencode/commands/`,
+   * and ensures the canonical `AGENTS.md` exists. Ownership of skills/agents/
+   * commands is tracked via `.opencode/.lisa-managed.json` so updates clean up
+   * stale artifacts without touching host customizations. Skipped in dry-run
+   * mode and on harness modes that don't include OpenCode.
    */
   private async processOpencodeEmit(): Promise<void> {
     const { harness } = this.config;
@@ -1040,10 +1046,28 @@ export class Lisa {
       this.config.destDir,
       previous.files
     );
+    // OpenCode reads agents (`.opencode/agents/`) and commands
+    // (`.opencode/commands/`) natively. Emit both from Lisa's plugin sources.
+    // Each installer scopes its own stale cleanup to its `lisa-` namespace, so
+    // passing the full previous manifest to all three is safe.
+    const opencodeAgentsResult = await installOpencodeAgents(
+      this.config.lisaDir,
+      this.config.destDir,
+      previous.files
+    );
+    const commandsResult = await installOpencodeCommands(
+      this.config.lisaDir,
+      this.config.destDir,
+      previous.files
+    );
     // OpenCode reads AGENTS.md natively; ensure the canonical file exists. It is
     // create-only and host-owned afterward, so it's not tracked in the manifest.
-    const agentsResult = await installAgentsMd(this.config.destDir);
-    await writeOpencodeManifest(this.config.destDir, skillsResult.managedFiles);
+    const agentsMdResult = await installAgentsMd(this.config.destDir);
+    await writeOpencodeManifest(this.config.destDir, [
+      ...skillsResult.managedFiles,
+      ...opencodeAgentsResult.managedFiles,
+      ...commandsResult.managedFiles,
+    ]);
 
     // Config-level delivery (host-preserving merges into the project
     // `opencode.json`, NOT tracked in the manifest — deleting a merged host file
@@ -1077,8 +1101,16 @@ export class Lisa {
           skillsResult.deleted.length > 0
             ? ` (${skillsResult.deleted.length} stale skills removed)`
             : ""
+        }, ${opencodeAgentsResult.installed.length} agents${
+          opencodeAgentsResult.deleted.length > 0
+            ? ` (${opencodeAgentsResult.deleted.length} stale agents removed)`
+            : ""
+        }, ${commandsResult.installed.length} commands${
+          commandsResult.deleted.length > 0
+            ? ` (${commandsResult.deleted.length} stale commands removed)`
+            : ""
         }, AGENTS.md ${
-          agentsResult.created ? "created" : HOST_OWNED_LABEL
+          agentsMdResult.created ? "created" : HOST_OWNED_LABEL
         }, opencode.json ${
           settingsResult.created ? "created" : "merged"
         }${mcpMessage}`
