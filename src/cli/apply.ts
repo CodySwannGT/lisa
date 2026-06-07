@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LisaConfig } from "../core/config.js";
-import { HARNESS_VALUES } from "../core/config.js";
+import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
 import {
   projectConfigExists,
@@ -48,7 +48,7 @@ function printUsageAndExit(): never {
   );
   console.log("  --no-update-check Skip the npm latest-version check");
   console.log(
-    `  --harness <h>     Target harness for emitted artifacts: ${HARNESS_VALUES.join(" | ")} (persisted in .lisa.config.json)`
+    `  --harness <h>     Target harness for emitted artifacts: ${ACCEPTED_HARNESS_INPUTS.join(" | ")} (persisted in .lisa.config.json)`
   );
   console.log("  -h, --help        Show this help message");
   console.log("");
@@ -61,7 +61,7 @@ function printUsageAndExit(): never {
   );
   console.log("  lisa --harness=codex .               # Emit Codex artifacts");
   console.log(
-    "  lisa --harness=both .                # Emit both Claude and Codex artifacts"
+    "  lisa --harness=all .                 # Emit for every agent (alias for fleet)"
   );
   process.exit(1);
 }

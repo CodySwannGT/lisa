@@ -10,7 +10,13 @@
 import * as fse from "fs-extra";
 import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import { DEFAULT_HARNESS, HARNESS_VALUES, type Harness } from "./config.js";
+import {
+  ACCEPTED_HARNESS_INPUTS,
+  DEFAULT_HARNESS,
+  HARNESS_ALIASES,
+  HARNESS_VALUES,
+  type Harness,
+} from "./config.js";
 
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
@@ -177,13 +183,15 @@ function validateProjectConfig(
   if (obj.harness === undefined) {
     return {};
   }
-  if (!isHarness(obj.harness)) {
-    const allowed = HARNESS_VALUES.join(" | ");
+  const normalized =
+    typeof obj.harness === "string" ? normalizeHarness(obj.harness) : undefined;
+  if (normalized === undefined) {
+    const allowed = ACCEPTED_HARNESS_INPUTS.join(" | ");
     throw new Error(
       `Invalid harness in ${configPath}: expected ${allowed}, got ${JSON.stringify(obj.harness)}`
     );
   }
-  return { harness: obj.harness };
+  return { harness: normalized };
 }
 
 /**
@@ -196,4 +204,17 @@ export function isHarness(value: unknown): value is Harness {
     typeof value === "string" &&
     (HARNESS_VALUES as readonly string[]).includes(value)
   );
+}
+
+/**
+ * Normalize a raw user-supplied harness string to its canonical Harness,
+ * resolving input aliases (e.g. `all` → `fleet`). Returns undefined when the
+ * value is neither a canonical harness nor a known alias, so callers can raise
+ * a single consistent validation error.
+ * @param value - Raw harness string from the CLI flag or `.lisa.config.json`
+ * @returns The canonical Harness, or undefined if unrecognized
+ */
+export function normalizeHarness(value: string): Harness | undefined {
+  const canonical = HARNESS_ALIASES[value] ?? value;
+  return isHarness(canonical) ? canonical : undefined;
 }

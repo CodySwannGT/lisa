@@ -13,14 +13,23 @@ describe("parseHarnessArg", () => {
     }
   });
 
+  it("normalizes the 'all' alias to 'fleet'", () => {
+    expect(parseHarnessArg("all")).toBe("fleet");
+  });
+
   it("throws InvalidArgumentError listing the allowed values for an unknown harness", () => {
     expect(() => parseHarnessArg("nonsense")).toThrow(InvalidArgumentError);
     try {
       parseHarnessArg("nonsense");
     } catch (error) {
       expect((error as Error).message).toContain(HARNESS_VALUES.join(" | "));
+      expect((error as Error).message).toContain("all");
       expect((error as Error).message).toContain('"nonsense"');
     }
+  });
+
+  it("rejects the removed 'both' harness value", () => {
+    expect(() => parseHarnessArg("both")).toThrow(InvalidArgumentError);
   });
 });
 
