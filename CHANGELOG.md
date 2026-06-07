@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.149.1](https://github.com/CodySwannGT/lisa/compare/vv2.149.0...v2.149.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **lifecycle:** roll parents up forward when a leaf reaches done ([f1078ff](https://github.com/CodySwannGT/lisa/commit/f1078ffc9b80a31216975791dd0695c14666e1c5)), closes [#963](https://github.com/CodySwannGT/lisa/issues/963) [#968](https://github.com/CodySwannGT/lisa/issues/968)
+
 ## [2.149.0](https://github.com/CodySwannGT/lisa/compare/vv2.148.0...v2.149.0) (2026-06-07)
 
 
