@@ -20,16 +20,18 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260607T030131Z` created from synced `origin/main`
-- HEAD at 2026-06-07 incremental ingest: `f0344778db527ff4eef004128d1c75761776c03b`
-- Current package version: `2.147.0`
-- Total commits on HEAD: 2935
-- Latest merged PR captured in the incremental git snapshot: `#1187`
-- New commits since the previous incremental git cursor: `21`
+- Ingest branch: `wiki/ingest-20260607T070304Z` created from synced `origin/main`
+- HEAD at 2026-06-07 incremental ingest: `c4a06bddb01ec7df1755df204f3094d9eb6dc8e4`
+- Current package version: `2.147.1`
+- Total commits on HEAD: 2938
+- Latest merged PR captured in the incremental git snapshot: `#1188`
+- New commits since the previous incremental git cursor: `3`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.147.1`.
+- PR `#1188` merged the prior wiki ingestion through Lisa `2.147.0`.
 - Release automation advanced the monorepo to `2.147.0`.
 - PR `#1178` hardened wiki redaction policy validation after the connector sanitization and redacted-ingest review work.
 - Release automation advanced the monorepo through `2.146.1`.
@@ -234,6 +236,8 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T185916Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T230012Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-07-lisa-monorepo-git-previous-20260607T070304Z.md`
+- `wiki/sources/git/2026-06-07-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -270,3 +274,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T185916Z.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T230012Z.md`
 - `wiki/sources/roles/2026-06-06-roles.md`
+- `wiki/sources/roles/2026-06-07-roles-previous-20260607T070304Z.md`
+- `wiki/sources/roles/2026-06-07-roles.md`
