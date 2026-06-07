@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.153.0](https://github.com/CodySwannGT/lisa/compare/vv2.152.2...v2.153.0) (2026-06-07)
+
+
+### Features
+
+* **harness:** add "all" alias for fleet and remove legacy "both" ([c0978c9](https://github.com/CodySwannGT/lisa/commit/c0978c9fd73731ff2a0a36a282680a78d78a9965))
+
 ### [2.152.2](https://github.com/CodySwannGT/lisa/compare/vv2.152.1...v2.152.2) (2026-06-07)
 
 
