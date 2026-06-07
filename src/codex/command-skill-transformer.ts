@@ -20,12 +20,15 @@ interface CommandFrontmatter {
  * @param commandSource - Raw contents of the command .md file
  * @param skillName - Target skill name (already includes the `lisa-` prefix)
  * @param displayName - Human-readable name used as a fallback description
- * @returns The Codex skill SKILL.md content as a string
+ * @param runtimeLabel - Runtime the compatibility note targets (e.g. "Codex",
+ *   "OpenCode"). Defaults to "Codex" so existing Codex output is unchanged.
+ * @returns The skill SKILL.md content as a string
  */
 export function convertCommandToSkill(
   commandSource: string,
   skillName: string,
-  displayName: string
+  displayName: string,
+  runtimeLabel = "Codex"
 ): string {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(
     commandSource
@@ -61,7 +64,8 @@ export function convertCommandToSkill(
   return `${frontmatter}${formatCommandCompatibilityBlock(
     parsedFrontmatter,
     skillName,
-    displayName
+    displayName,
+    runtimeLabel
   )}\n${body}\n`;
 }
 
@@ -118,20 +122,22 @@ function parseAllowedTools(raw: unknown): readonly string[] {
 /**
  * Emit command compatibility notes at the top of generated Codex skills.
  * @param frontmatter - Parsed Claude command metadata
- * @param skillName - Generated Codex skill name
+ * @param skillName - Generated skill name
  * @param displayName - Original Lisa command display name
+ * @param runtimeLabel - Runtime the note targets (e.g. "Codex", "OpenCode")
  * @returns Markdown block
  */
 function formatCommandCompatibilityBlock(
   frontmatter: CommandFrontmatter,
   skillName: string,
-  displayName: string
+  displayName: string,
+  runtimeLabel: string
 ): string {
   const baseLines = [
     "## Lisa Command Compatibility",
     "",
     `- Original Claude command: \`/${displayName}\``,
-    `- Codex invocation: \`$${skillName}\` or a plain-English request that matches this skill.`,
+    `- ${runtimeLabel} invocation: \`$${skillName}\` or a plain-English request that matches this skill.`,
     "- Treat the user's surrounding request as the command arguments.",
   ];
   const argumentLines =
@@ -146,7 +152,7 @@ function formatCommandCompatibilityBlock(
             .map(t => `\`${t}\``)
             .join(
               ", "
-            )}. Codex tool access is governed by the active Codex runtime and project policy.`,
+            )}. ${runtimeLabel} tool access is governed by the active ${runtimeLabel} runtime and project policy.`,
         ];
   return `${[...baseLines, ...argumentLines, ...toolLines].join("\n")}\n`;
 }
