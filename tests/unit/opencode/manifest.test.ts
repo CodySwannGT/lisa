@@ -66,4 +66,31 @@ describe("opencode/manifest", () => {
       /expected "files" array/
     );
   });
+
+  it("rejects traversal and absolute path entries", async () => {
+    await fs.ensureDir(path.join(destDir, OPENCODE_CONFIG_DIR));
+    const cases = [
+      "skills/lisa/../../etc/passwd",
+      "/abs/skills/lisa/x/SKILL.md",
+      "skills/./lisa/x/SKILL.md",
+    ];
+    for (const bad of cases) {
+      await fs.writeFile(
+        manifestPath(),
+        JSON.stringify({ files: [bad] }),
+        "utf8"
+      );
+      await expect(readManagedManifest(destDir)).rejects.toThrow(
+        /normalized relative path/
+      );
+    }
+  });
+
+  it("rejects non-string file entries", async () => {
+    await fs.ensureDir(path.join(destDir, OPENCODE_CONFIG_DIR));
+    await fs.writeFile(manifestPath(), JSON.stringify({ files: [42] }), "utf8");
+    await expect(readManagedManifest(destDir)).rejects.toThrow(
+      /must be a string/
+    );
+  });
 });

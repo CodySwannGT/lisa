@@ -98,13 +98,43 @@ function validateManifest(
       `Invalid Lisa-managed manifest at ${manifestPath}: expected "files" array`
     );
   }
-  const files = obj.files.filter(
-    (file): file is string => typeof file === "string"
+  const files = obj.files.map((file, index) =>
+    validateManifestPath(file, index, manifestPath)
   );
-  if (files.length !== obj.files.length) {
+  return { files: Object.freeze(files) };
+}
+
+/**
+ * Validate one manifest entry is a normalized, in-tree relative path.
+ *
+ * The manifest drives stale-file deletion, so a traversal or absolute entry
+ * (`../../etc`, `/abs`, mixed `\` separators) could expand the delete scope
+ * beyond the Lisa skill boundary. Reject those here so no consumer ever acts on
+ * an unsafe path.
+ * @param file - Untrusted entry from the parsed `files` array.
+ * @param index - Position in the array (for error messages).
+ * @param manifestPath - Path used in error messages.
+ * @returns The validated, forward-slash-normalized relative path.
+ */
+function validateManifestPath(
+  file: unknown,
+  index: number,
+  manifestPath: string
+): string {
+  if (typeof file !== "string") {
     throw new Error(
-      `Invalid Lisa-managed manifest at ${manifestPath}: "files" must contain only strings`
+      `Invalid Lisa-managed manifest at ${manifestPath}: "files[${index}]" must be a string`
     );
   }
-  return { files: Object.freeze(files) };
+  const normalized = file.replaceAll("\\", "/");
+  const segments = normalized.split("/");
+  if (
+    path.posix.isAbsolute(normalized) ||
+    segments.some(seg => seg === "" || seg === "." || seg === "..")
+  ) {
+    throw new Error(
+      `Invalid Lisa-managed manifest at ${manifestPath}: "files[${index}]" must be a normalized relative path`
+    );
+  }
+  return normalized;
 }
