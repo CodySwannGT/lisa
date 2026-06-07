@@ -77,6 +77,7 @@ export const defaultIgnores = [
   "lib/**/*.js",
   "cdk.out/**",
   "wiki/**",
+  ".lisa.config.json",
 ];
 
 /**

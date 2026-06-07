@@ -112,6 +112,37 @@ if changed:
 PYEOF
 fi
 
+# Remove the legacy cc-safety-net inline rules file (self-heal existing projects).
+#
+# Lisa historically shipped a project-root `.safety-net.json` (the cc-safety-net
+# <=0.9.0 inline-rules format) via all/copy-overwrite/. cc-safety-net 1.0.1
+# dropped that format entirely: its PreToolUse Bash guard now treats a
+# project-level `.safety-net.json` as a "legacy rules config location" and FAILS
+# CLOSED — denying EVERY Bash command (even `echo`/`ls`) with "legacy rules
+# config location is no longer used; ask the user to run `npx -y cc-safety-net
+# rule migrate`" — while `rule migrate` cannot convert it (it only looks for a
+# global ~/.cc-safety-net/config.json). The result bricks the agent, and on an
+# unattended/scheduled run there is no human to intervene.
+#
+# 1.0.1 runs fine on its built-in rules with no config file, and Lisa's own
+# block-no-verify.sh + parity-safety-net.sh hooks already enforce --no-verify and
+# destructive-command guards across every agent, so the file is now dead weight.
+# Lisa no longer ships it (removed from all/copy-overwrite/), but copy-overwrite
+# never deletes, so already-provisioned projects keep a stale copy. Remove it
+# here — but ONLY the Lisa-shipped file (identified by its marker rule name), so a
+# project's own hand-authored `.safety-net.json` is never touched.
+LEGACY_SAFETY_NET="$PROJECT_ROOT/.safety-net.json"
+if [ -f "$LEGACY_SAFETY_NET" ] && command -v jq >/dev/null 2>&1; then
+  if jq -e '
+    (.rules | type == "array")
+    and ([.rules[]?.name] | index("block-git-commit-no-verify") != null)
+    and ([.rules[]?.name] | index("block-git-push-no-verify") != null)
+  ' "$LEGACY_SAFETY_NET" >/dev/null 2>&1; then
+    rm -f "$LEGACY_SAFETY_NET" \
+      && echo "Removed legacy .safety-net.json (incompatible with cc-safety-net >=1.0.0; using built-in + Lisa-native guards)."
+  fi
+fi
+
 # Install plugins only when claude CLI is available
 if ! command -v claude &>/dev/null; then exit 0; fi
 

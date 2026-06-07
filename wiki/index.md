@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by connector ingest on 2026-06-06 for Lisa `2.140.0` and current monorepo provenance through PR `#1154`.
+Last updated by connector ingest on 2026-06-07 for Lisa `2.147.2` and current monorepo provenance through PR `#1189`.
 
 ## Orientation
 
@@ -12,7 +12,7 @@ Last updated by connector ingest on 2026-06-06 for Lisa `2.140.0` and current mo
 
 - [Project Registry](projects/registry.md)
 - [Lisa Monorepo Snapshot](projects/lisa-monorepo.md)
-  - Current package version: `2.140.0`; latest captured merged PR: `#1154`.
+  - Current package version: `2.147.2`; latest captured merged PR: `#1189`.
 
 ## Documentation
 
@@ -23,6 +23,7 @@ Last updated by connector ingest on 2026-06-06 for Lisa `2.140.0` and current mo
 - [PRD Lifecycle Rollup Vendor Matrix](../plugins/src/base/rules/reference/prd-lifecycle-rollup.md)
 - [Testing Documentation](documentation/testing/)
 - [Workflow Documentation](documentation/workflows/)
+  - [Wiki Ingestion Safety](documentation/workflows/wiki-ingestion-safety.md)
 - [Specifications](documentation/specs/)
 
 ## Architecture

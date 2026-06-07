@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import {
   loadConfig,
   loadStructure,
+  readJsonSafe,
   pluginRootFrom,
   walkFiles,
   parseFrontmatter,
@@ -60,6 +61,14 @@ const rel = p => path.relative(process.cwd(), p);
 const wrel = p => path.relative(wikiRoot, p);
 const categories = config?.categories ?? structure.categoryDirs?.default ?? [];
 const frontmatterRequired = config?.frontmatter !== false;
+const configPath = path.resolve(
+  opt("--config") ?? "wiki/lisa-wiki.config.json"
+);
+const localConfigPath = path.join(
+  path.dirname(configPath),
+  "lisa-wiki.config.local.json"
+);
+const localConfig = readJsonSafe(localConfigPath);
 
 const allMd = walkFiles(wikiRoot, { ext: ".md" });
 const allFiles = walkFiles(wikiRoot);
@@ -70,6 +79,134 @@ const isUnder = (p, dir) => {
 };
 const isSynthesisPage = p => categories.some(c => isUnder(p, c));
 const isSourceNote = p => isUnder(p, "sources");
+
+// --- 0. redaction policy readiness ----------------------------------------
+const availableRedactionScanners = new Set(["builtin"]);
+const committedRedaction = config?.sensitivity?.redaction;
+const localRedaction = localConfig?.sensitivity?.redaction;
+const addUnsafeLocalOverride = message =>
+  report.add(
+    "redaction-policy",
+    "unsafe-local-override",
+    "FAIL",
+    message,
+    path.relative(wikiRoot, localConfigPath)
+  );
+const isArraySubset = (candidate, baseline) =>
+  candidate.every(value => baseline.includes(value));
+if (committedRedaction?.enabled === true) {
+  const scanners = Array.isArray(committedRedaction.scanners)
+    ? committedRedaction.scanners
+    : [];
+  const missingScanners = scanners.filter(
+    scanner => !availableRedactionScanners.has(scanner)
+  );
+  if (scanners.length === 0) {
+    report.add(
+      "redaction-policy",
+      "scanner-missing",
+      committedRedaction.failClosed === false ? "WARN" : "FAIL",
+      "redaction is enabled but no scanner is selected"
+    );
+  } else if (missingScanners.length > 0) {
+    report.add(
+      "redaction-policy",
+      "scanner-unavailable",
+      committedRedaction.failClosed === false ? "WARN" : "FAIL",
+      `redaction scanner unavailable: ${missingScanners.join(", ")}`
+    );
+  } else {
+    report.add(
+      "redaction-policy",
+      "scanner-available",
+      "PASS",
+      `redaction scanner available: ${scanners.join(", ")}`
+    );
+  }
+  if (committedRedaction.failClosed !== true) {
+    report.add(
+      "redaction-policy",
+      "fail-closed",
+      "WARN",
+      "redaction is enabled without failClosed=true"
+    );
+  }
+  if (committedRedaction.requireReview !== true) {
+    report.add(
+      "redaction-policy",
+      "review-required",
+      "WARN",
+      "redaction is enabled without requireReview=true"
+    );
+  }
+  if (localRedaction?.enabled === false) {
+    addUnsafeLocalOverride("local config disables committed redaction policy");
+  }
+  if (
+    committedRedaction.failClosed === true &&
+    localRedaction?.failClosed === false
+  ) {
+    addUnsafeLocalOverride(
+      "local config disables committed redaction fail-closed policy"
+    );
+  }
+  if (
+    committedRedaction.requireReview === true &&
+    localRedaction?.requireReview === false
+  ) {
+    addUnsafeLocalOverride(
+      "local config disables committed redaction review requirement"
+    );
+  }
+  if (localRedaction && Array.isArray(localRedaction.scanners)) {
+    const localScanners = localRedaction.scanners;
+    const unavailableLocalScanners = localScanners.filter(
+      scanner => !availableRedactionScanners.has(scanner)
+    );
+    const removedScanners = scanners.filter(
+      scanner => !localScanners.includes(scanner)
+    );
+    if (scanners.length > 0 && localScanners.length === 0) {
+      addUnsafeLocalOverride(
+        "local config removes committed redaction scanners"
+      );
+    } else if (unavailableLocalScanners.length > 0) {
+      addUnsafeLocalOverride(
+        `local config selects unavailable redaction scanner: ${unavailableLocalScanners.join(", ")}`
+      );
+    } else if (removedScanners.length > 0) {
+      addUnsafeLocalOverride(
+        `local config removes committed redaction scanner: ${removedScanners.join(", ")}`
+      );
+    }
+  }
+  if (
+    localRedaction &&
+    Array.isArray(committedRedaction.allowedEntities) &&
+    Array.isArray(localRedaction.allowedEntities) &&
+    !isArraySubset(
+      localRedaction.allowedEntities,
+      committedRedaction.allowedEntities
+    )
+  ) {
+    addUnsafeLocalOverride(
+      "local config expands committed redaction allowed entities"
+    );
+  }
+  if (
+    localRedaction &&
+    Array.isArray(committedRedaction.blockedEntities) &&
+    Array.isArray(localRedaction.blockedEntities) &&
+    !isArraySubset(
+      committedRedaction.blockedEntities,
+      localRedaction.blockedEntities
+    )
+  ) {
+    addUnsafeLocalOverride(
+      "local config removes committed redaction blocked entities"
+    );
+  }
+}
 
 // --- A. structure conformance ---------------------------------------------
 for (const f of structure.requiredFiles ?? []) {

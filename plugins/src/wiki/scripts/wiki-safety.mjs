@@ -61,6 +61,19 @@ const PATTERNS = [
   },
 ];
 
+const TEXTISH_EXTS = new Set([
+  ".md",
+  ".mdx",
+  ".json",
+  ".jsonl",
+  ".txt",
+  ".yml",
+  ".yaml",
+  ".toml",
+  ".csv",
+  ".tsv",
+]);
+
 function luhnValid(candidate) {
   const digits = candidate.replace(/\D/g, "");
   if (digits.length < 13 || digits.length > 19) return false;
@@ -187,6 +200,31 @@ export function sanitizeWikiSourceText(rawText, sourceMetadata = {}) {
   };
 }
 
+export function processWikiSourceNote(rawText, options = {}) {
+  const {
+    dryRun = false,
+    scannerAvailable = true,
+    scannerRequired = false,
+    ...sourceMetadata
+  } = options;
+  const sanitized = sanitizeWikiSourceText(rawText, sourceMetadata);
+  const scannerBlocked = scannerRequired && !scannerAvailable;
+
+  return {
+    ...sanitized,
+    dryRun: Boolean(dryRun),
+    writeAllowed: !dryRun && !scannerBlocked,
+    scanner: {
+      available: Boolean(scannerAvailable),
+      required: Boolean(scannerRequired),
+      blocked: scannerBlocked,
+    },
+    blockedReason: scannerBlocked
+      ? "sensitivity scanner is required but unavailable"
+      : undefined,
+  };
+}
+
 export function serializeWikiSafetyFindings(result) {
   return JSON.stringify(
     {
@@ -196,4 +234,145 @@ export function serializeWikiSafetyFindings(result) {
     null,
     2
   );
+}
+
+function normalizeSafetyResults(results) {
+  if (Array.isArray(results)) return results;
+  if (!results) return [];
+  return [results];
+}
+
+function summarizeEntityTypes(results) {
+  const byType = new Map();
+  for (const result of results) {
+    for (const finding of result?.findings ?? []) {
+      const entityType = finding?.entityType ?? "unknown";
+      const current = byType.get(entityType) ?? {
+        entityType,
+        confidence: finding?.confidence ?? "unknown",
+        count: 0,
+      };
+      current.count += Number.isFinite(finding?.count) ? finding.count : 1;
+      if (current.confidence !== "high" && finding?.confidence === "high") {
+        current.confidence = "high";
+      }
+      byType.set(entityType, current);
+    }
+  }
+  return [...byType.values()].sort((a, b) =>
+    a.entityType.localeCompare(b.entityType)
+  );
+}
+
+export function createWikiIngestPublicationPolicy(options = {}) {
+  const safetyResults = normalizeSafetyResults(options.safetyResults);
+  const externalWrite = Boolean(options.externalWrite);
+  const entityTypes = summarizeEntityTypes(safetyResults);
+  const findingCount = entityTypes.reduce((sum, item) => sum + item.count, 0);
+  const reviewRequired =
+    externalWrite ||
+    findingCount > 0 ||
+    safetyResults.some(result => Boolean(result?.reviewRequired));
+  const reasons = [
+    ...(externalWrite ? ["external-write source"] : []),
+    ...(findingCount > 0 ? ["redacted or sensitive findings"] : []),
+    ...(!externalWrite &&
+    findingCount === 0 &&
+    safetyResults.some(result => Boolean(result?.reviewRequired))
+      ? ["source safety review requested"]
+      : []),
+  ];
+
+  const findingLines =
+    entityTypes.length > 0
+      ? entityTypes.map(
+          item =>
+            `- ${item.entityType}: ${item.count} ${item.count === 1 ? "finding" : "findings"} (${item.confidence})`
+        )
+      : ["- none"];
+
+  return {
+    autoMergeAllowed: !reviewRequired,
+    reviewRequired,
+    reasons,
+    findingCount,
+    entityTypes,
+    prSummaryMarkdown: [
+      "## Wiki Safety Review",
+      "",
+      `Auto-merge: ${reviewRequired ? "disabled" : "allowed"}`,
+      `Human review required: ${reviewRequired ? "yes" : "no"}`,
+      `Reason: ${reasons.length > 0 ? reasons.join("; ") : "no redactions or sensitive findings"}`,
+      "",
+      "Finding summary:",
+      ...findingLines,
+      "",
+      "Raw sensitive values are intentionally omitted from this summary.",
+    ].join("\n"),
+  };
+}
+
+export function isWikiSafetyScanTarget(filePath, options = {}) {
+  const pathModule = options.pathModule;
+  if (!pathModule) {
+    throw new Error("isWikiSafetyScanTarget requires options.pathModule");
+  }
+  const wikiRoot = pathModule.resolve(options.wikiRoot ?? "wiki");
+  const resolved = pathModule.resolve(filePath);
+  const relative = pathModule.relative(wikiRoot, resolved);
+  if (
+    !relative ||
+    relative.startsWith("..") ||
+    pathModule.isAbsolute(relative)
+  ) {
+    return false;
+  }
+  const ext = pathModule.extname(resolved);
+  return TEXTISH_EXTS.has(ext);
+}
+
+export function scanWikiGeneratedFiles(files, options = {}) {
+  const fsModule = options.fsModule;
+  const pathModule = options.pathModule;
+  if (!fsModule || !pathModule) {
+    throw new Error("scanWikiGeneratedFiles requires fsModule and pathModule");
+  }
+
+  const wikiRoot = pathModule.resolve(options.wikiRoot ?? "wiki");
+  const candidates = [...new Set(files.map(file => pathModule.resolve(file)))]
+    .filter(file => isWikiSafetyScanTarget(file, { wikiRoot, pathModule }))
+    .sort();
+
+  const scanned = [];
+  const findings = [];
+  const errors = [];
+
+  for (const file of candidates) {
+    let text;
+    try {
+      if (!fsModule.existsSync(file) || !fsModule.statSync(file).isFile()) {
+        continue;
+      }
+      text = fsModule.readFileSync(file, "utf8");
+    } catch (error) {
+      errors.push({
+        file: pathModule.relative(process.cwd(), file),
+        message: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    const sourceId = pathModule.relative(wikiRoot, file);
+    scanned.push(sourceId);
+    const result = scanWikiSourceText(text, { sourceId });
+    findings.push(...result.findings);
+  }
+
+  return {
+    ok: findings.length === 0 && errors.length === 0,
+    wikiRoot: pathModule.relative(process.cwd(), wikiRoot) || ".",
+    scanned,
+    findings,
+    errors,
+  };
 }
