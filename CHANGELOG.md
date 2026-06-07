@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.147.6](https://github.com/CodySwannGT/lisa/compare/vv2.147.5...v2.147.6) (2026-06-07)
+
+
+### Bug Fixes
+
+* **repair-intake:** heal missing native sub-issue links on build Epics/Stories ([672b5f1](https://github.com/CodySwannGT/lisa/commit/672b5f15ddc8684e6380adff175edeaf688fae90))
+
+### [2.147.5](https://github.com/CodySwannGT/lisa/compare/vv2.147.4...v2.147.5) (2026-06-07)
+
+
+### Documentation
+
+* **openclaw:** document account-scoped Telegram routes ([dbce9d3](https://github.com/CodySwannGT/lisa/commit/dbce9d313669577f3916cf67079e0d6159cb843e))
+
 ### [2.147.4](https://github.com/CodySwannGT/lisa/compare/vv2.147.3...v2.147.4) (2026-06-07)
 
 
