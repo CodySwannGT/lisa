@@ -82,7 +82,7 @@ describe("repair-intake contract", () => {
     });
 
     it("repairs GitHub PRDs missing native top-level child links", () => {
-      expect(skill).toMatch(/Missing PRD child link drift/);
+      expect(skill).toMatch(/Missing native child link drift/);
       expect(skill).toMatch(/GitHub PRD missing child links/);
       expect(skill).toMatch(/Top-level work:/);
       expect(skill).toMatch(/lisa:gw/);
@@ -93,6 +93,25 @@ describe("repair-intake contract", () => {
       );
       expect(skill).toMatch(/relinked/);
       expect(command).toMatch(/missing native child links/);
+    });
+
+    it("heals missing native sub-issue links on build Epic/Story containers", () => {
+      // The native-link repair is no longer PRD-only: build containers whose
+      // children were recorded as prose parentage (e.g. created by an external
+      // generator that never called addSubIssue) must be attached too, so the
+      // GitHub UI rollup is not left empty.
+      const section = skill.slice(
+        skill.indexOf("### Build parent rollup reconciliation"),
+        skill.indexOf("### PRD `in_review`")
+      );
+      // The rollup path attaches missing native links before computing status.
+      expect(section).toMatch(/addSubIssue/);
+      expect(section).toMatch(/body-parentage|Parent Epic/i);
+      // It runs even when the derived status is unchanged, since the native
+      // graph is independent of the parent's lifecycle label.
+      expect(section).toMatch(/even when step 2 derives `unchanged`/i);
+      // The candidate type and "It MAY" guard are generalized to build parents.
+      expect(skill).toMatch(/build Epic\/Story container/);
     });
   });
 });
