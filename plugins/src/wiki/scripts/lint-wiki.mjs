@@ -84,6 +84,16 @@ const isSourceNote = p => isUnder(p, "sources");
 const availableRedactionScanners = new Set(["builtin"]);
 const committedRedaction = config?.sensitivity?.redaction;
 const localRedaction = localConfig?.sensitivity?.redaction;
+const addUnsafeLocalOverride = message =>
+  report.add(
+    "redaction-policy",
+    "unsafe-local-override",
+    "FAIL",
+    message,
+    path.relative(wikiRoot, localConfigPath)
+  );
+const isArraySubset = (candidate, baseline) =>
+  candidate.every(value => baseline.includes(value));
 if (committedRedaction?.enabled === true) {
   const scanners = Array.isArray(committedRedaction.scanners)
     ? committedRedaction.scanners
@@ -130,36 +140,70 @@ if (committedRedaction?.enabled === true) {
     );
   }
   if (localRedaction?.enabled === false) {
-    report.add(
-      "redaction-policy",
-      "unsafe-local-override",
-      "FAIL",
-      "local config disables committed redaction policy",
-      path.relative(wikiRoot, localConfigPath)
-    );
+    addUnsafeLocalOverride("local config disables committed redaction policy");
   }
   if (
     committedRedaction.failClosed === true &&
     localRedaction?.failClosed === false
   ) {
-    report.add(
-      "redaction-policy",
-      "unsafe-local-override",
-      "FAIL",
-      "local config disables committed redaction fail-closed policy",
-      path.relative(wikiRoot, localConfigPath)
+    addUnsafeLocalOverride(
+      "local config disables committed redaction fail-closed policy"
     );
   }
   if (
     committedRedaction.requireReview === true &&
     localRedaction?.requireReview === false
   ) {
-    report.add(
-      "redaction-policy",
-      "unsafe-local-override",
-      "FAIL",
-      "local config disables committed redaction review requirement",
-      path.relative(wikiRoot, localConfigPath)
+    addUnsafeLocalOverride(
+      "local config disables committed redaction review requirement"
+    );
+  }
+  if (localRedaction && Array.isArray(localRedaction.scanners)) {
+    const localScanners = localRedaction.scanners;
+    const unavailableLocalScanners = localScanners.filter(
+      scanner => !availableRedactionScanners.has(scanner)
+    );
+    const removedScanners = scanners.filter(
+      scanner => !localScanners.includes(scanner)
+    );
+    if (scanners.length > 0 && localScanners.length === 0) {
+      addUnsafeLocalOverride(
+        "local config removes committed redaction scanners"
+      );
+    } else if (unavailableLocalScanners.length > 0) {
+      addUnsafeLocalOverride(
+        `local config selects unavailable redaction scanner: ${unavailableLocalScanners.join(", ")}`
+      );
+    } else if (removedScanners.length > 0) {
+      addUnsafeLocalOverride(
+        `local config removes committed redaction scanner: ${removedScanners.join(", ")}`
+      );
+    }
+  }
+  if (
+    localRedaction &&
+    Array.isArray(committedRedaction.allowedEntities) &&
+    Array.isArray(localRedaction.allowedEntities) &&
+    !isArraySubset(
+      localRedaction.allowedEntities,
+      committedRedaction.allowedEntities
+    )
+  ) {
+    addUnsafeLocalOverride(
+      "local config expands committed redaction allowed entities"
+    );
+  }
+  if (
+    localRedaction &&
+    Array.isArray(committedRedaction.blockedEntities) &&
+    Array.isArray(localRedaction.blockedEntities) &&
+    !isArraySubset(
+      committedRedaction.blockedEntities,
+      localRedaction.blockedEntities
+    )
+  ) {
+    addUnsafeLocalOverride(
+      "local config removes committed redaction blocked entities"
     );
   }
 }
