@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.148.0](https://github.com/CodySwannGT/lisa/compare/vv2.147.7...v2.148.0) (2026-06-07)
+
+
+### Features
+
+* **migrations:** backfill AccessibilityManager RN mock ([ab056bb](https://github.com/CodySwannGT/lisa/commit/ab056bbb876a9ac11f859be962e35198d42f0539))
+
+
+### Bug Fixes
+
+* **expo:** align SDK 56 dependency templates ([363c0e5](https://github.com/CodySwannGT/lisa/commit/363c0e50de27dc50a1db4a27d054d3da90b9da37))
+
+### [2.147.7](https://github.com/CodySwannGT/lisa/compare/vv2.147.6...v2.147.7) (2026-06-07)
+
+
+### Bug Fixes
+
+* **wiki:** support older Python UTC constants ([682a74a](https://github.com/CodySwannGT/lisa/commit/682a74aeee1b62dd9bcd410143180d2ff833e1c6))
+
+
+### Documentation
+
+* **openclaw:** note account-scoped topic route runtime requirement ([224b86d](https://github.com/CodySwannGT/lisa/commit/224b86d570da5dfd1b7ff0c0519529268adde18e))
+
+### [2.147.6](https://github.com/CodySwannGT/lisa/compare/vv2.147.5...v2.147.6) (2026-06-07)
+
+
+### Bug Fixes
+
+* **repair-intake:** heal missing native sub-issue links on build Epics/Stories ([672b5f1](https://github.com/CodySwannGT/lisa/commit/672b5f15ddc8684e6380adff175edeaf688fae90))
+
+### [2.147.5](https://github.com/CodySwannGT/lisa/compare/vv2.147.4...v2.147.5) (2026-06-07)
+
+
+### Documentation
+
+* **openclaw:** document account-scoped Telegram routes ([dbce9d3](https://github.com/CodySwannGT/lisa/commit/dbce9d313669577f3916cf67079e0d6159cb843e))
+
 ### [2.147.4](https://github.com/CodySwannGT/lisa/compare/vv2.147.3...v2.147.4) (2026-06-07)
 
 

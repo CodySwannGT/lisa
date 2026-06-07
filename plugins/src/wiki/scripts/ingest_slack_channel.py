@@ -57,12 +57,12 @@ TOKEN_PATTERNS = [
 
 
 def utc_now() -> dt.datetime:
-    return dt.datetime.now(dt.UTC).replace(microsecond=0)
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
 
 
 def iso_from_ts(ts: str) -> str:
     seconds = float(ts)
-    return dt.datetime.fromtimestamp(seconds, dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return dt.datetime.fromtimestamp(seconds, dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def ts_from_input(value: str | None) -> str | None:
