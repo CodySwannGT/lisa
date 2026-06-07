@@ -1,0 +1,346 @@
+/**
+ * Install Lisa-managed OpenCode hooks into a host project.
+ *
+ * Unlike Codex (which drives every hook through shell scripts wired into
+ * `.codex/hooks.json`), OpenCode is mapped to its NATIVE surfaces first, then
+ * falls back to runtime plugins only where genuine behavior is required:
+ *
+ *   - block-no-verify → `permission.bash` deny rules in `opencode.json`. Cheaper
+ *     and more robust than a hook: OpenCode evaluates the parsed command against
+ *     glob patterns and rejects matches before they run (verified-by-run on
+ *     opencode 1.16.2: `git commit … --no-verify` and `HUSKY=0 …` are denied).
+ *   - format-on-edit → OpenCode's BUILT-IN prettier formatter already formats on
+ *     edit, so Lisa emits no formatter config (overriding it would be worse than
+ *     the default). This is why there is no format plugin below.
+ *   - inject-rules → not needed; rules ship via the canonical `AGENTS.md`, which
+ *     OpenCode reads natively (handled by the skills/AGENTS.md emit).
+ *   - everything that needs runtime behavior (blocking suppression directives /
+ *     migration edits, linting / scanning just-edited files, session bootstrap)
+ *     → a `.opencode/plugin/lisa-*.ts` module. OpenCode loads project plugins
+ *     and fires their `tool.execute.before` / `tool.execute.after` hooks under
+ *     `opencode run` headless (verified-by-run; unlike agy / Copilot).
+ *
+ * The plugin templates live in `src/opencode/plugin-templates/` and are copied
+ * verbatim into the host's `.opencode/plugin/`. Stack-specific plugins are gated
+ * by `forProjectTypes` so they ship only when the relevant project type is
+ * detected, exactly like the Codex hook catalog.
+ * @module opencode/hooks-installer
+ */
+import * as fse from "fs-extra";
+import { copyFile, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { ProjectType } from "../core/config.js";
+import { OPENCODE_CONFIG_DIR } from "./manifest.js";
+
+/** Subdirectory inside `.opencode/` where OpenCode discovers project plugins */
+export const OPENCODE_PLUGIN_SUBDIR = "plugin";
+
+/** Filename of the OpenCode project config merged at the host root */
+export const OPENCODE_CONFIG_FILENAME = "opencode.json";
+
+/** JSON Schema URL stamped into a freshly created `opencode.json` */
+const OPENCODE_CONFIG_SCHEMA = "https://opencode.ai/config.json";
+
+/** Prefix every Lisa-managed plugin filename carries (used for stale cleanup) */
+const LISA_PLUGIN_PREFIX = "lisa-";
+
+/**
+ * `permission.bash` deny patterns that replace Lisa's `block-no-verify` hook.
+ * Each glob is matched against the parsed shell command; `*` matches any run of
+ * characters. Deny-only (no catch-all allow) so non-matching commands fall
+ * through to the host's / OpenCode's default posture.
+ */
+const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
+  "*--no-verify*": "deny",
+  "*HUSKY=0*": "deny",
+  "*HUSKY_SKIP_HOOKS=*": "deny",
+  "*core.hooksPath*/dev/null*": "deny",
+};
+
+/** One Lisa-shipped OpenCode plugin template. */
+interface PluginCatalogEntry {
+  /** Stable identifier (also the basename without the `lisa-`/`.ts`) */
+  readonly id: string;
+  /** Template filename in `plugin-templates/` and the dest filename verbatim */
+  readonly templateFilename: string;
+  /** Project types this plugin ships for. `["*"]` ships for every stack. */
+  readonly forProjectTypes: readonly (ProjectType | "*")[];
+}
+
+/**
+ * Plugin catalog — the OpenCode counterpart of the Codex HOOK_CATALOG. Adding a
+ * plugin? Drop a template in `plugin-templates/`, add an entry here, add tests.
+ */
+const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
+  {
+    id: "session-bootstrap",
+    templateFilename: "lisa-session-bootstrap.ts",
+    forProjectTypes: ["*"],
+  },
+  {
+    id: "block-suppress-directives",
+    templateFilename: "lisa-block-suppress-directives.ts",
+    forProjectTypes: ["typescript"],
+  },
+  {
+    id: "lint-on-edit",
+    templateFilename: "lisa-lint-on-edit.ts",
+    forProjectTypes: ["typescript"],
+  },
+  {
+    id: "sg-scan-on-edit",
+    templateFilename: "lisa-sg-scan-on-edit.ts",
+    forProjectTypes: ["typescript", "rails"],
+  },
+  {
+    id: "block-migration-edits",
+    templateFilename: "lisa-block-migration-edits.ts",
+    forProjectTypes: ["nestjs"],
+  },
+  {
+    id: "rubocop-on-edit",
+    templateFilename: "lisa-rubocop-on-edit.ts",
+    forProjectTypes: ["rails"],
+  },
+];
+
+/** Result of the OpenCode hooks install pass */
+export interface OpencodeHooksInstallResult {
+  /** Files written, relative to `.opencode/` (added to the manifest). */
+  readonly managedFiles: readonly string[];
+  /** Number of plugin templates emitted into `.opencode/plugin/`. */
+  readonly pluginCount: number;
+  /** Whether `opencode.json` was created (vs merged into an existing file). */
+  readonly configCreated: boolean;
+  /** Stale Lisa plugin files removed because they're no longer shipped. */
+  readonly deleted: readonly string[];
+}
+
+/**
+ * Install Lisa's OpenCode hooks: merge `permission.bash` deny rules into
+ * `opencode.json` and emit the applicable `.opencode/plugin/lisa-*.ts` modules.
+ *
+ * `opencode.json` lives at the host ROOT (outside `.opencode/`), is a shared
+ * merged file, and is intentionally NOT returned in `managedFiles` — the
+ * `.opencode/`-relative manifest never deletes it. Plugin files under
+ * `.opencode/plugin/` ARE tracked so renames clean up stale modules.
+ * @param destDir - Absolute path to the host project root.
+ * @param detectedTypes - Project types Lisa detected; gates stack-specific
+ *   plugins. Universal plugins/config install regardless.
+ * @param previousManagedFiles - Files Lisa managed last run (relative to
+ *   `.opencode/`); used to detect stale plugin modules.
+ * @returns Result describing what was written + removed.
+ */
+export async function installHooks(
+  destDir: string,
+  detectedTypes: readonly ProjectType[],
+  previousManagedFiles: readonly string[]
+): Promise<OpencodeHooksInstallResult> {
+  const configCreated = await mergeOpencodeConfig(destDir);
+
+  const pluginDir = path.join(
+    destDir,
+    OPENCODE_CONFIG_DIR,
+    OPENCODE_PLUGIN_SUBDIR
+  );
+  await fse.ensureDir(pluginDir);
+
+  const applicable = filterCatalogByTypes(detectedTypes);
+  const managedFiles = await Promise.all(
+    applicable.map(async entry => {
+      const source = resolveTemplate(entry.templateFilename);
+      const dest = path.join(pluginDir, entry.templateFilename);
+      await copyFile(source, dest);
+      return path.join(OPENCODE_PLUGIN_SUBDIR, entry.templateFilename);
+    })
+  );
+
+  const currentFilenames = new Set(
+    applicable.map(entry => entry.templateFilename)
+  );
+  const deleted = await deleteStalePlugins(
+    previousManagedFiles,
+    currentFilenames,
+    destDir
+  );
+
+  return {
+    managedFiles: Object.freeze(managedFiles),
+    pluginCount: applicable.length,
+    configCreated,
+    deleted,
+  };
+}
+
+/**
+ * Filter the catalog by detected project types. Universal plugins (`"*"`)
+ * always pass; stack-specific plugins pass only if their type is detected.
+ * @param detectedTypes - Project types Lisa detected for the host.
+ * @returns The catalog entries that apply to this host.
+ */
+function filterCatalogByTypes(
+  detectedTypes: readonly ProjectType[]
+): readonly PluginCatalogEntry[] {
+  const detectedSet = new Set<string>(detectedTypes);
+  return PLUGIN_CATALOG.filter(entry =>
+    entry.forProjectTypes.some(t => t === "*" || detectedSet.has(t))
+  );
+}
+
+/**
+ * Resolve a bundled plugin template path. Templates ship alongside the compiled
+ * installer at `dist/opencode/plugin-templates/<name>` (copied there by
+ * `scripts/copy-opencode-plugin-templates.mjs`).
+ * @param filename - Template filename (e.g. "lisa-lint-on-edit.ts").
+ * @returns Absolute path to the bundled template.
+ */
+function resolveTemplate(filename: string): string {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  return path.join(moduleDir, "plugin-templates", filename);
+}
+
+/**
+ * Delete Lisa plugin modules that were managed last run but aren't shipped this
+ * run (e.g. a project type stopped being detected, or a template was renamed).
+ * Only files under `.opencode/plugin/` with the `lisa-` prefix are eligible, so
+ * host-authored plugins are never touched.
+ * @param previousManagedFiles - Files Lisa managed last run (relative to
+ *   `.opencode/`).
+ * @param currentFilenames - Plugin filenames Lisa is shipping this run.
+ * @param destDir - Absolute path to the host project root.
+ * @returns Sorted list of stale plugin filenames that were deleted.
+ */
+async function deleteStalePlugins(
+  previousManagedFiles: readonly string[],
+  currentFilenames: ReadonlySet<string>,
+  destDir: string
+): Promise<readonly string[]> {
+  const prefix = `${OPENCODE_PLUGIN_SUBDIR}${path.sep}`;
+  const stale = previousManagedFiles
+    .filter(file => file.startsWith(prefix))
+    .map(file => file.slice(prefix.length))
+    .filter(
+      name =>
+        name.startsWith(LISA_PLUGIN_PREFIX) &&
+        !name.includes(path.sep) &&
+        !currentFilenames.has(name)
+    );
+  await Promise.all(
+    stale.map(async name => {
+      const absPath = path.join(
+        destDir,
+        OPENCODE_CONFIG_DIR,
+        OPENCODE_PLUGIN_SUBDIR,
+        name
+      );
+      if (await fse.pathExists(absPath)) {
+        await rm(absPath, { force: true });
+      }
+    })
+  );
+  return Object.freeze([...new Set(stale)].sort((a, b) => a.localeCompare(b)));
+}
+
+/**
+ * Merge Lisa's `permission.bash` deny rules into the host's `opencode.json`,
+ * preserving every other key. Creates the file (with `$schema`) when absent.
+ *
+ * A host `permission.bash` set to a bare string (e.g. `"allow"`) is preserved by
+ * re-seeding it as a `{ "*": <string> }` catch-all before adding the deny
+ * patterns, so the host's posture survives. The deny patterns are spread LAST so
+ * they win OpenCode's most-specific/last-match evaluation.
+ * @param destDir - Absolute path to the host project root.
+ * @returns Whether the config file was created (vs merged into an existing one).
+ */
+async function mergeOpencodeConfig(destDir: string): Promise<boolean> {
+  const configPath = path.join(destDir, OPENCODE_CONFIG_FILENAME);
+  const existingRaw = (await fse.pathExists(configPath))
+    ? await readFile(configPath, "utf8")
+    : null;
+  const created = existingRaw === null;
+  const config = parseConfigObject(existingRaw, configPath);
+
+  const permission = isPlainObject(config["permission"])
+    ? config["permission"]
+    : {};
+  const existingBash = permission["bash"];
+  const bashBase =
+    typeof existingBash === "string"
+      ? { "*": existingBash }
+      : isPlainObject(existingBash)
+        ? existingBash
+        : {};
+
+  // Build the merged config immutably (functional/immutable-data): a leading
+  // `$schema` provides the default, the `...config` spread overrides it with the
+  // host's own value when present, and `permission` is overridden last so the
+  // deny patterns survive.
+  const merged: Record<string, unknown> = {
+    $schema: OPENCODE_CONFIG_SCHEMA,
+    ...config,
+    permission: {
+      ...permission,
+      bash: { ...bashBase, ...NO_VERIFY_DENY_PATTERNS },
+    },
+  };
+
+  await writeFile(configPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  return created;
+}
+
+/**
+ * Parse an existing `opencode.json` body into a mutable object. Throws on
+ * malformed JSON (so a corrupt config is surfaced, not silently overwritten);
+ * returns a fresh object when the file is absent.
+ * @param raw - File contents, or null when the file doesn't exist.
+ * @param configPath - Path used in error messages.
+ * @returns A shallow-mutable record to merge into.
+ */
+function parseConfigObject(
+  raw: string | null,
+  configPath: string
+): Record<string, unknown> {
+  if (raw === null || raw.trim() === "") {
+    return {};
+  }
+  const parsed: unknown = JSON.parse(raw);
+  if (!isPlainObject(parsed)) {
+    throw new Error(
+      `Invalid ${OPENCODE_CONFIG_FILENAME} at ${configPath}: expected a JSON object`
+    );
+  }
+  return { ...parsed };
+}
+
+/**
+ * Narrow an unknown value to a plain (non-array, non-null) object record.
+ * @param value - The value to test.
+ * @returns Whether `value` is a plain object.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Enumerate the Lisa plugin filenames currently present in a host's
+ * `.opencode/plugin/` directory. Exposed for tests/diagnostics.
+ * @param destDir - Absolute path to the host project root.
+ * @returns Sorted list of `lisa-*.ts` filenames (empty if the dir is absent).
+ */
+export async function listInstalledPluginFiles(
+  destDir: string
+): Promise<readonly string[]> {
+  const pluginDir = path.join(
+    destDir,
+    OPENCODE_CONFIG_DIR,
+    OPENCODE_PLUGIN_SUBDIR
+  );
+  if (!(await fse.pathExists(pluginDir))) {
+    return [];
+  }
+  const entries = await readdir(pluginDir);
+  return entries
+    .filter(name => name.startsWith(LISA_PLUGIN_PREFIX) && name.endsWith(".ts"))
+    .sort((a, b) => a.localeCompare(b));
+}

@@ -28,6 +28,7 @@ import {
   writeManagedManifest as writeOpencodeManifest,
 } from "../opencode/manifest.js";
 import { installSkills as installOpencodeSkills } from "../opencode/skills-installer.js";
+import { installHooks as installOpencodeHooks } from "../opencode/hooks-installer.js";
 import { installClaudeMd } from "../claude/claude-md-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
@@ -1035,17 +1036,28 @@ export class Lisa {
       this.config.destDir,
       previous.files
     );
+    // Hooks: block-no-verify maps to opencode.json `permission.bash`; the
+    // runtime-behavior hooks ship as `.opencode/plugin/lisa-*.ts` modules.
+    const hooksResult = await installOpencodeHooks(
+      this.config.destDir,
+      this.detectedTypes,
+      previous.files
+    );
     // OpenCode reads AGENTS.md natively; ensure the canonical file exists. It is
     // create-only and host-owned afterward, so it's not tracked in the manifest.
     const agentsResult = await installAgentsMd(this.config.destDir);
-    await writeOpencodeManifest(this.config.destDir, skillsResult.managedFiles);
+    await writeOpencodeManifest(this.config.destDir, [
+      ...skillsResult.managedFiles,
+      ...hooksResult.managedFiles,
+    ]);
 
+    const staleCount = skillsResult.deleted.length + hooksResult.deleted.length;
     this.deps.logger.info(
       pc.cyan(
-        `OpenCode emit: ${skillsResult.installed.length} skills${
-          skillsResult.deleted.length > 0
-            ? ` (${skillsResult.deleted.length} stale skills removed)`
-            : ""
+        `OpenCode emit: ${skillsResult.installed.length} skills, ${hooksResult.pluginCount} plugin hooks, opencode.json ${
+          hooksResult.configCreated ? "created" : "merged"
+        }${
+          staleCount > 0 ? ` (${staleCount} stale removed)` : ""
         }, AGENTS.md ${agentsResult.created ? "created" : HOST_OWNED_LABEL}`
       )
     );
