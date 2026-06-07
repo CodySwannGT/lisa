@@ -228,6 +228,16 @@ If `lisa:linear-agent` returned Success:
 
 For any non-Success outcome, do NOT transition. The Issue sits where the agent left it — humans take it from there.
 
+#### 3d.1 Roll up the parent chain (forward rollup)
+
+Run this **only after a successful `$DONE` transition in 3d**. This is the **forward** arm of the `leaf-only-lifecycle` rule's *"rollup is evaluated whenever a child transitions"* requirement: a leaf reaching `$DONE` may complete its parent Issue, which may in turn complete its Project. Without this step a fully-built parent stays open until the recovery `lisa:repair-intake` cron happens to run.
+
+1. Resolve the Issue's parent using the same hierarchy `lisa:linear-read-issue` uses — native parentage: a sub-issue's `parentId`, and Project membership via `projectId` for the Epic-equivalent. If the Issue has no parent, skip — nothing to roll up.
+2. Walk **up the ancestor chain bottom-up** (sub-issue → parent Issue → Project): for each ancestor invoke `lisa:linear-sync <ANCESTOR-ID> --rollup`. That skill derives the ancestor's `status:*` from its children per `leaf-only-lifecycle`, applies it via `mcp__linear-server__save_issue` only when it differs (never `status:ready`), and moves the native Linear `state` to the configured Done / Completed state when the derived env is the terminal `$DONE`. It is idempotent and safe-defaults (suggests, does not guess) when the rolled state is ambiguous.
+3. Stop walking up when an ancestor has no parent, or when `--rollup` reports no change. Record each rolled-up ancestor and its derived state in the summary.
+
+This does not re-implement the state machine — it delegates to `lisa:linear-sync --rollup`, the single rollup implementation `lisa:repair-intake` also uses, so the forward and recovery paths can never drift. Children closed **outside** this flow are not observed here; `lisa:repair-intake` remains the recovery net for those.
+
 #### 3e. Stop
 
 Stop immediately after the first claimed, skipped, blocked, held, or errored Issue. Later scheduler invocations process the remaining ready Issues.
