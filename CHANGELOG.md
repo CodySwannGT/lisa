@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.149.0](https://github.com/CodySwannGT/lisa/compare/vv2.148.0...v2.149.0) (2026-06-07)
+
+
+### Features
+
+* **opencode:** add OpenCode as a fleet coding-agent harness ([479c2a3](https://github.com/CodySwannGT/lisa/commit/479c2a37541af26568f73f217969955565b2fbd3))
+
+
+### Bug Fixes
+
+* **opencode:** harden manifest paths and clean-replace stale skill files ([385ccb2](https://github.com/CodySwannGT/lisa/commit/385ccb2435d3be38ad74be9a97c4336e2547baf9)), closes [#1197](https://github.com/CodySwannGT/lisa/issues/1197)
+
 ## [2.148.0](https://github.com/CodySwannGT/lisa/compare/vv2.147.7...v2.148.0) (2026-06-07)
 
 
