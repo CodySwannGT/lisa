@@ -236,6 +236,8 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T185916Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T230012Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-07-lisa-monorepo-git-previous-20260607T070304Z.md`
+- `wiki/sources/git/2026-06-07-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -272,3 +274,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T185916Z.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T230012Z.md`
 - `wiki/sources/roles/2026-06-06-roles.md`
+- `wiki/sources/roles/2026-06-07-roles-previous-20260607T070304Z.md`
+- `wiki/sources/roles/2026-06-07-roles.md`
