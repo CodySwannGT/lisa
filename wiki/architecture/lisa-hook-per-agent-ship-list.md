@@ -215,3 +215,34 @@ the `reference_codex_plugin_hooks_shape_and_firing` session memory.
   "cursor auto-loads `rules/`" claim, which was false for the nested `.md` tree),
   copilot/codex/claude inject once via hooks, agy baked once. _(Post-2026-06-06:
   agy no longer bakes or injects eager rules at all — see PR #1150.)_
+
+## OpenCode hook delivery (follow-up to PR #1197)
+
+OpenCode does **not** consume the Pattern B per-agent filter above. Like Codex,
+it uses a per-project overlay (`src/opencode/hooks-installer.ts`), so its hooks
+are mapped to OpenCode-native surfaces first and to runtime plugins only where
+genuine behavior is required. Verified-by-run on opencode 1.16.2 (free model,
+`opencode run` headless):
+
+| Lisa hook | OpenCode delivery |
+| --- | --- |
+| `block-no-verify` | `opencode.json` → `permission.bash` deny globs (`*--no-verify*`, `*HUSKY=0*`, `*HUSKY_SKIP_HOOKS=*`, `*core.hooksPath*/dev/null*`). Cheaper + more robust than a hook; OpenCode rejects matches before they run. |
+| `format-on-edit` | OpenCode's **built-in prettier formatter** already formats on edit — Lisa emits no formatter config (overriding it would be worse than the default). |
+| `inject-rules` | Not needed — rules ship via the canonical `AGENTS.md`, which OpenCode reads natively. |
+| `install-pkgs`, `setup-jira-cli` | `.opencode/plugin/lisa-session-bootstrap.ts` (universal) — the plugin factory runs once at session start, the SessionStart equivalent. Fully fail-open. |
+| `block-suppress-directives` (ts) | `.opencode/plugin/lisa-block-suppress-directives.ts` — `tool.execute.before` throws to block the edit/write. |
+| `block-migration-edits` (nestjs) | `.opencode/plugin/lisa-block-migration-edits.ts` — `tool.execute.before` throws. |
+| `lint-on-edit` (ts) | `.opencode/plugin/lisa-lint-on-edit.ts` — `tool.execute.after` runs ESLint `--fix`, throws on remaining problems. |
+| `sg-scan-on-edit` (ts/rails) | `.opencode/plugin/lisa-sg-scan-on-edit.ts` — `tool.execute.after` runs `ast-grep scan`. |
+| `rubocop-on-edit` (rails) | `.opencode/plugin/lisa-rubocop-on-edit.ts` — `tool.execute.after` runs RuboCop `-a`. |
+| `enforce-team-first`, `inject-flow-context` | Not ported (Claude-team-specific / no equivalent), matching Codex. |
+
+OpenCode exposes only `edit`/`write` filesystem tools (no `apply_patch`), so file
+paths come straight from the tool args. Plugin templates live in
+`src/opencode/plugin-templates/` (excluded from this repo's tsconfig/eslint — they
+run under OpenCode's Bun runtime) and are copied verbatim into the host's
+`.opencode/plugin/`, gated by detected project type exactly like the Codex hook
+catalog. `opencode.json` is a shared merged root file (not tracked in the
+`.opencode/`-relative manifest); plugin files are manifest-tracked for stale
+cleanup. Note: OpenCode's first `opencode run` pays a Bun cold-start (~30s) to
+transpile project plugins.

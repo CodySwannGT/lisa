@@ -35,6 +35,11 @@ export default [
       "typescript/**",
       "plugins/**",
       "wiki/**",
+      // OpenCode plugin templates: copied verbatim into a host project's
+      // `.opencode/plugin/` and executed under OpenCode's Bun runtime, NOT this
+      // monorepo's runtime. They use Bun globals (`Bun`, `$`) and the OpenCode
+      // plugin shape, so this repo's functional/jsdoc rules don't apply.
+      "src/opencode/plugin-templates/**",
     ],
   },
 ];
