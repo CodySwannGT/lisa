@@ -6,6 +6,7 @@ import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
 import { discoverLisaAgents, installAgents } from "../codex/agent-installer.js";
+import { isHarnessVariantPlugin } from "./lisa-skill-sources.js";
 import { installHooks } from "../codex/hooks-installer.js";
 import {
   readManagedManifest,
@@ -773,7 +774,14 @@ export class Lisa {
       this.config.destDir
     );
 
-    const agentSources = await discoverLisaAgents(this.config.lisaDir);
+    // Restrict to canonical plugins — the per-harness fanout variants
+    // (`*-agy`/`*-copilot`/`*-cursor`) are reformatted copies, and the copilot
+    // variants rename agents to `*.agent.md`, which slips past id-dedup and would
+    // otherwise ship a duplicate `lisa-<name>.agent.toml` for every agent.
+    const agentSources = await discoverLisaAgents(
+      this.config.lisaDir,
+      name => !isHarnessVariantPlugin(name)
+    );
     const agentResult = await installAgents(
       agentSources,
       this.config.destDir,
