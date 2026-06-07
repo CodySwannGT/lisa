@@ -28,6 +28,11 @@ import {
   writeManagedManifest as writeOpencodeManifest,
 } from "../opencode/manifest.js";
 import { installSkills as installOpencodeSkills } from "../opencode/skills-installer.js";
+import { installSettings as installOpencodeSettings } from "../opencode/settings-installer.js";
+import {
+  installOpencodeMcpConfig,
+  resolveOpencodeConfigPath,
+} from "../opencode/mcp-installer.js";
 import { installClaudeMd } from "../claude/claude-md-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
@@ -1040,13 +1045,43 @@ export class Lisa {
     const agentsResult = await installAgentsMd(this.config.destDir);
     await writeOpencodeManifest(this.config.destDir, skillsResult.managedFiles);
 
+    // Config-level delivery (host-preserving merges into the project
+    // `opencode.json`, NOT tracked in the manifest — deleting a merged host file
+    // would be data loss):
+    //   1. Settings: force `share: "disabled"` so applying the fleet config can
+    //      never publish a host's sessions via OpenCode's default-on, public
+    //      share URLs. Other host keys are preserved.
+    //   2. MCP wrap: OpenCode ignores plugin-bundled MCP, so collect Lisa's
+    //      servers from the built plugin `.mcp.json` files (base + detected
+    //      stacks) and write them into the `mcp` key, translated to OpenCode's
+    //      `type:"local"|"remote"` shape. Called unconditionally so stale
+    //      `_lisaManaged` entries are stripped when a project drops MCP.
+    const settingsResult = await installOpencodeSettings(this.config.destDir);
+    const pluginRoot = path.join(this.config.lisaDir, "plugins");
+    const lisaMcpServers = collectLisaMcpServers(
+      pluginRoot,
+      this.detectedTypes
+    );
+    const mcpResult = await installOpencodeMcpConfig(
+      lisaMcpServers,
+      resolveOpencodeConfigPath(this.config.destDir)
+    );
+    const mcpMessage =
+      mcpResult.lisaEntryCount > 0
+        ? `, ${mcpResult.lisaEntryCount} MCP server(s)`
+        : "";
+
     this.deps.logger.info(
       pc.cyan(
         `OpenCode emit: ${skillsResult.installed.length} skills${
           skillsResult.deleted.length > 0
             ? ` (${skillsResult.deleted.length} stale skills removed)`
             : ""
-        }, AGENTS.md ${agentsResult.created ? "created" : HOST_OWNED_LABEL}`
+        }, AGENTS.md ${
+          agentsResult.created ? "created" : HOST_OWNED_LABEL
+        }, opencode.json ${
+          settingsResult.created ? "created" : "merged"
+        }${mcpMessage}`
       )
     );
   }
