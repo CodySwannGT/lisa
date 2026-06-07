@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.147.7](https://github.com/CodySwannGT/lisa/compare/vv2.147.6...v2.147.7) (2026-06-07)
+
+
+### Bug Fixes
+
+* **wiki:** support older Python UTC constants ([682a74a](https://github.com/CodySwannGT/lisa/commit/682a74aeee1b62dd9bcd410143180d2ff833e1c6))
+
+
+### Documentation
+
+* **openclaw:** note account-scoped topic route runtime requirement ([224b86d](https://github.com/CodySwannGT/lisa/commit/224b86d570da5dfd1b7ff0c0519529268adde18e))
+
 ### [2.147.6](https://github.com/CodySwannGT/lisa/compare/vv2.147.5...v2.147.6) (2026-06-07)
 
 
