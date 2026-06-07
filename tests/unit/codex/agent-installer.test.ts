@@ -177,6 +177,25 @@ describe("codex/agent-installer", () => {
       const result = await discoverLisaAgents(lisaDir);
       expect(result.map(r => r.id)).toEqual(["alpha", "mu", "zeta"]);
     });
+
+    it("applies an optional plugin filter (excludes copilot .agent.md dupes)", async () => {
+      // Without filtering, the copilot variant's `bug-fixer.agent.md` becomes a
+      // distinct id (`bug-fixer.agent`) and ships a duplicate agent.
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin("lisa-copilot", {
+        "bug-fixer.agent.md": SAMPLE_AGENT,
+      });
+      const unfiltered = await discoverLisaAgents(lisaDir);
+      expect(
+        unfiltered.map(r => r.id).sort((a, b) => a.localeCompare(b))
+      ).toEqual(["bug-fixer", "bug-fixer.agent"]);
+
+      const filtered = await discoverLisaAgents(
+        lisaDir,
+        name => !name.endsWith("-copilot")
+      );
+      expect(filtered.map(r => r.id)).toEqual([BUG_FIXER]);
+    });
   });
 
   describe("installAgents", () => {
