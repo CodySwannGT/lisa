@@ -15,7 +15,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { readJsonSafe, SECRET_PATTERNS } from "./_wiki-lib.mjs";
+import { readJsonSafe, writeSanitizedSourceNote } from "./_wiki-lib.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => {
@@ -53,12 +53,6 @@ const commitExists = c => {
     return false;
   }
 };
-const redact = t =>
-  SECRET_PATTERNS.reduce(
-    (acc, { re }) => acc.replace(new RegExp(re, "g"), "[REDACTED]"),
-    t
-  );
-
 if (
   !fs.existsSync(path.join(repo, ".git")) &&
   !tryGit(["rev-parse", "--is-inside-work-tree"])
@@ -165,8 +159,11 @@ ${
 }
 `;
 
-fs.mkdirSync(sourceDir, { recursive: true });
-fs.writeFileSync(notePath, redact(note));
+const safety = writeSanitizedSourceNote(notePath, note, {
+  sourceId: path.relative(process.cwd(), notePath),
+  sourceSystem: "git",
+  project: slug,
+});
 
 const meta = {
   connector: "git",
@@ -174,6 +171,10 @@ const meta = {
   ranAt: new Date().toISOString(),
   proposedCursor: { lastCommit: head, lastPr },
   sourceNotes: [path.relative(process.cwd(), notePath)],
+  safety: {
+    reviewRequired: safety.reviewRequired,
+    findings: safety.findings,
+  },
 };
 if (emitMeta) {
   fs.mkdirSync(path.dirname(emitMeta), { recursive: true });

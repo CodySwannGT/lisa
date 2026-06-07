@@ -5,6 +5,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { sanitizeWikiSourceText } from "./wiki-safety.mjs";
 
 /** Read and parse a JSON file, or return undefined if missing/invalid. */
 export function readJsonSafe(file) {
@@ -57,6 +58,24 @@ export function walkFiles(dir, { ext } = {}) {
     }
   }
   return out.sort();
+}
+
+/**
+ * Sanitize a wiki source note immediately before it is persisted.
+ *
+ * Connectors should keep fetched raw material in memory or temporary locations
+ * outside the repo, render the source note, then call this helper at the final
+ * `wiki/sources/**` write boundary. The return value contains safe finding
+ * metadata only; callers can include it in handoff metadata when useful.
+ */
+export function writeSanitizedSourceNote(file, rawText, sourceMetadata = {}) {
+  const result = sanitizeWikiSourceText(rawText, {
+    ...sourceMetadata,
+    path: sourceMetadata.path ?? file,
+  });
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, result.text);
+  return result;
 }
 
 /**

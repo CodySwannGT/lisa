@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.146.0](https://github.com/CodySwannGT/lisa/compare/vv2.145.2...v2.146.0) (2026-06-07)
+
+
+### Features
+
+* **wiki:** sanitize connector source notes ([a45b203](https://github.com/CodySwannGT/lisa/commit/a45b203dab5cd73690d3600be7843cc95c36f672))
+
+### [2.145.2](https://github.com/CodySwannGT/lisa/compare/vv2.145.1...v2.145.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* **eslint:** ignore .lisa.config.json (config data, not source) ([1510913](https://github.com/CodySwannGT/lisa/commit/1510913664b727f8b35e6a88cd5b784cc510aaf7))
+
+### [2.145.1](https://github.com/CodySwannGT/lisa/compare/vv2.145.0...v2.145.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **wiki:** require review for redacted ingests ([4f83645](https://github.com/CodySwannGT/lisa/commit/4f83645f473b8a4497f56e9f606729ab159bfce7))
+
+
+### Documentation
+
+* **wiki:** ingest Lisa wiki state ([a9974f9](https://github.com/CodySwannGT/lisa/commit/a9974f9eb87005992d9d4bce5f5b1ab740d96970))
+
+## [2.145.0](https://github.com/CodySwannGT/lisa/compare/vv2.144.0...v2.145.0) (2026-06-06)
+
+
+### Features
+
+* **apply:** ensure every project has a .lisa.config.json ([248d46c](https://github.com/CodySwannGT/lisa/commit/248d46c8989ac9030562208c67498f623a4d59f0))
+
+## [2.144.0](https://github.com/CodySwannGT/lisa/compare/vv2.143.2...v2.144.0) (2026-06-06)
+
+
+### Features
+
+* **wiki:** add generated output safety gate ([3e474da](https://github.com/CodySwannGT/lisa/commit/3e474dacb2f2994d5204cf88ff93ac0ab78a2140))
+
+### [2.143.2](https://github.com/CodySwannGT/lisa/compare/vv2.143.1...v2.143.2) (2026-06-06)
+
 ### [2.143.1](https://github.com/CodySwannGT/lisa/compare/vv2.143.0...v2.143.1) (2026-06-06)
 
 

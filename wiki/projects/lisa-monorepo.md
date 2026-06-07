@@ -20,16 +20,33 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260606T185916Z` created from synced `origin/main`
-- HEAD at 2026-06-06 incremental ingest: `53e86533d645512ffeef429e161f81a19174c7a7`
-- Current package version: `2.140.0`
-- Total commits on HEAD: 2864
-- Latest merged PR captured in the incremental git snapshot: `#1154`
-- New commits since the previous incremental git cursor: `22`
+- Ingest branch: `wiki/ingest-20260606T230012Z` created from synced `origin/main`
+- HEAD at 2026-06-06 incremental ingest: `be05afd1aab2a49cd10f897f4e32341d28212ddc`
+- Current package version: `2.145.0`
+- Total commits on HEAD: 2914
+- Latest merged PR captured in the incremental git snapshot: `#1184`
+- New commits since the previous incremental git cursor: `50`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- PR `#1184` requires human review for redacted wiki ingests by centralizing publication policy in `wiki-safety.mjs`; auto-merge stays disabled for redacted, sensitive, or external-write runs even when the source note is sanitized.
+- Release automation advanced the monorepo to `2.145.0`.
+- PR `#1183` makes `lisa apply` ensure every managed project has a `.lisa.config.json`, keeping project config present even when older installs or source-less repositories lack one.
+- Release automation advanced the monorepo to `2.144.0`.
+- PRs `#1176`, `#1181`, and `#1182` added deterministic wiki source sanitization, redaction fixtures, and a generated-output safety gate for wiki ingestion output.
+- Release automation advanced the monorepo through `2.143.2`.
+- PRs `#1175` and `#1177` hardened repair-intake by normalizing unlabeled GitHub issues and relinking generated PRD children.
+- Release automation advanced the monorepo through `2.142.3`.
+- PR `#1163` completed the Lisa self-upgrade pass.
+- PRs `#1161` and `#1162` improved source-less repository verification posture by making typecheck and Vitest gates degrade gracefully when a project has no source/tests to check.
+- Release automation advanced the monorepo through `2.142.1`.
+- PR `#1160` escalates unfixed deploy failures as build-ready tickets.
+- PRs `#1157` and `#1158` improved Claude Remote readiness by resolving tracker/source credentials for headless routines and avoiding instructions that ask users to re-enter already committed `settings.json` environment flags.
+- Release automation advanced the monorepo through `2.141.3`.
+- PR `#1156` merged the prior wiki ingestion through Lisa `2.140.0`.
+- PR `#1155` keeps the `@codyswann/lisa` version governed by defaults instead of forcing it during package metadata handling.
+- Release automation advanced the monorepo to `2.140.1`.
 - PR `#1154` added config-driven sync-down chain derivation from `deploy.order`, introduced `/lisa:sync-down`, and consolidated PR drive-to-merge and review-thread handling into composable plugin skills.
 - Release automation advanced the monorepo to `2.140.0`.
 - PR `#1153` made `lisa apply` run the canonical instruction-files migration so existing projects converge on canonical agent instruction files.
@@ -205,6 +222,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T075816Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T145756Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T185916Z.md`
+- `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T230012Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
@@ -240,4 +258,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T075816Z.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T145756Z.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T185916Z.md`
+- `wiki/sources/roles/2026-06-06-roles-previous-20260606T230012Z.md`
 - `wiki/sources/roles/2026-06-06-roles.md`
