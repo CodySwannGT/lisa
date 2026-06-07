@@ -70,6 +70,13 @@ repos:
 
 ## Topic route
 
+Use `channels.telegram.groups` for a single-account Telegram setup. If
+`channels.telegram.accounts` is configured, bind the route under the owning bot account instead:
+`channels.telegram.accounts.<account-id>.groups.<group-id>`. Account-scoped Telegram configs do not
+inherit root `channels.telegram.groups` routes.
+
+### Single-account route
+
 ```json5
 {
   "channels": {
@@ -98,6 +105,41 @@ repos:
   }
 }
 ```
+
+### Multi-account route
+
+```json5
+{
+  "channels": {
+    "telegram": {
+      "accounts": {
+        "<account-id>": {
+          "groups": {
+            "<group-id>": {
+              "groupPolicy": "allowlist",
+              "requireMention": true,
+              "allowFrom": ["<telegram-user-id>"],
+              "topics": {
+                "<topic-id>": {
+                  "agentId": "<topic-slug>-dispatch",
+                  "requireMention": false,
+                  "systemPrompt": "Use the topic's configured scope mode. For single-repo, pass the fixed repo path to <topic-slug>-codex. For folder-scoped, confirm the inferred repo or repo set unless the user already named it explicitly, then pass the explicit repo path(s) to <topic-slug>-codex. Treat each native reply root as an independent request context. If generated files need to be returned as Telegram attachments, write or copy them under ~/.openclaw/media before calling message(action=\"send\"), because outbound local media delivery rejects arbitrary /tmp paths."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## File return path
+
+When a repo-topic agent returns generated files to Telegram, use the OpenClaw `message` tool with
+real local file paths. Write or copy returnable artifacts under `~/.openclaw/media` before sending;
+outbound local media delivery rejects arbitrary `/tmp` paths even when the file exists.
 
 ## Mention gating
 
