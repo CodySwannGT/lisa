@@ -20,16 +20,47 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260606T185916Z` created from synced `origin/main`
-- HEAD at 2026-06-06 incremental ingest: `53e86533d645512ffeef429e161f81a19174c7a7`
-- Current package version: `2.140.0`
-- Total commits on HEAD: 2864
-- Latest merged PR captured in the incremental git snapshot: `#1154`
-- New commits since the previous incremental git cursor: `22`
+- Ingest branch: `wiki/ingest-20260607T110501Z` created from synced `origin/main`
+- HEAD at 2026-06-07 incremental ingest: `c514070f1d98af24f5a84fe594f6af5d5896d281`
+- Current package version: `2.147.2`
+- Total commits on HEAD: 2942
+- Latest merged PR captured in the incremental git snapshot: `#1189`
+- New commits since the previous incremental git cursor: `4`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.147.2`.
+- PR `#1189` merged the prior wiki ingestion through Lisa `2.147.1`, and the merged branch also preserved same-day source notes before release automation advanced the package line.
+- Release automation advanced the monorepo to `2.147.1`.
+- PR `#1188` merged the prior wiki ingestion through Lisa `2.147.0`.
+- Release automation advanced the monorepo to `2.147.0`.
+- PR `#1178` hardened wiki redaction policy validation after the connector sanitization and redacted-ingest review work.
+- Release automation advanced the monorepo through `2.146.1`.
+- PR `#1187` stopped shipping the legacy `.safety-net.json` shape that is incompatible with `cc-safety-net` `1.0.1`; the install path now fingerprints legacy config with `jq`.
+- PR `#1179` added portable connector source sanitization coverage.
+- Release automation advanced the monorepo to `2.146.0`.
+- PR `#1186` made ESLint ignore `.lisa.config.json` as config data rather than source code.
+- Release automation advanced the monorepo through `2.145.2`.
+- PR `#1185` merged the prior wiki ingestion through Lisa `2.145.0`.
+- Release automation advanced the monorepo to `2.145.1`.
+- PR `#1184` requires human review for redacted wiki ingests by centralizing publication policy in `wiki-safety.mjs`; auto-merge stays disabled for redacted, sensitive, or external-write runs even when the source note is sanitized.
+- Release automation advanced the monorepo to `2.145.0`.
+- PR `#1183` makes `lisa apply` ensure every managed project has a `.lisa.config.json`, keeping project config present even when older installs or source-less repositories lack one.
+- Release automation advanced the monorepo to `2.144.0`.
+- PRs `#1176`, `#1181`, and `#1182` added deterministic wiki source sanitization, redaction fixtures, and a generated-output safety gate for wiki ingestion output.
+- Release automation advanced the monorepo through `2.143.2`.
+- PRs `#1175` and `#1177` hardened repair-intake by normalizing unlabeled GitHub issues and relinking generated PRD children.
+- Release automation advanced the monorepo through `2.142.3`.
+- PR `#1163` completed the Lisa self-upgrade pass.
+- PRs `#1161` and `#1162` improved source-less repository verification posture by making typecheck and Vitest gates degrade gracefully when a project has no source/tests to check.
+- Release automation advanced the monorepo through `2.142.1`.
+- PR `#1160` escalates unfixed deploy failures as build-ready tickets.
+- PRs `#1157` and `#1158` improved Claude Remote readiness by resolving tracker/source credentials for headless routines and avoiding instructions that ask users to re-enter already committed `settings.json` environment flags.
+- Release automation advanced the monorepo through `2.141.3`.
+- PR `#1156` merged the prior wiki ingestion through Lisa `2.140.0`.
+- PR `#1155` keeps the `@codyswann/lisa` version governed by defaults instead of forcing it during package metadata handling.
+- Release automation advanced the monorepo to `2.140.1`.
 - PR `#1154` added config-driven sync-down chain derivation from `deploy.order`, introduced `/lisa:sync-down`, and consolidated PR drive-to-merge and review-thread handling into composable plugin skills.
 - Release automation advanced the monorepo to `2.140.0`.
 - PR `#1153` made `lisa apply` run the canonical instruction-files migration so existing projects converge on canonical agent instruction files.
@@ -205,7 +236,11 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T075816Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T145756Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T185916Z.md`
+- `wiki/sources/git/2026-06-06-lisa-monorepo-git-previous-20260606T230012Z.md`
 - `wiki/sources/git/2026-06-06-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-07-lisa-monorepo-git-previous-20260607T070304Z.md`
+- `wiki/sources/git/2026-06-07-lisa-monorepo-git-previous-20260607T110501Z.md`
+- `wiki/sources/git/2026-06-07-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -240,4 +275,8 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T075816Z.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T145756Z.md`
 - `wiki/sources/roles/2026-06-06-roles-previous-20260606T185916Z.md`
+- `wiki/sources/roles/2026-06-06-roles-previous-20260606T230012Z.md`
 - `wiki/sources/roles/2026-06-06-roles.md`
+- `wiki/sources/roles/2026-06-07-roles-previous-20260607T070304Z.md`
+- `wiki/sources/roles/2026-06-07-roles-previous-20260607T110501Z.md`
+- `wiki/sources/roles/2026-06-07-roles.md`

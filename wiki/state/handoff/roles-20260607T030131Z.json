@@ -1,0 +1,17 @@
+{
+  "connector": "roles",
+  "profile": "project",
+  "ranAt": "2026-06-07T03:02:31.170Z",
+  "proposedCursor": {
+    "roles": 0,
+    "pages": 0,
+    "lastIngest": "2026-06-07"
+  },
+  "sourceNotes": [
+    "wiki/sources/roles/2026-06-07-roles.md"
+  ],
+  "safety": {
+    "reviewRequired": false,
+    "findings": []
+  }
+}

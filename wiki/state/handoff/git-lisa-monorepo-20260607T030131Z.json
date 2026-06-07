@@ -1,0 +1,16 @@
+{
+  "connector": "git",
+  "profile": "lisa-monorepo",
+  "ranAt": "2026-06-07T03:02:31.527Z",
+  "proposedCursor": {
+    "lastCommit": "f0344778db527ff4eef004128d1c75761776c03b",
+    "lastPr": 1187
+  },
+  "sourceNotes": [
+    "wiki/sources/git/2026-06-07-lisa-monorepo-git.md"
+  ],
+  "safety": {
+    "reviewRequired": false,
+    "findings": []
+  }
+}
