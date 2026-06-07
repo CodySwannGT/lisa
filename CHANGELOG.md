@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.147.2](https://github.com/CodySwannGT/lisa/compare/vv2.147.1...v2.147.2) (2026-06-07)
+
+
+### Documentation
+
+* **wiki:** add 2026-06-07 source notes to lisa-monorepo provenance ([c31c416](https://github.com/CodySwannGT/lisa/commit/c31c4160f977940ac29b229d745774fdc0c55fd4)), closes [#1188](https://github.com/CodySwannGT/lisa/issues/1188)
+* **wiki:** ingest Lisa wiki state ([9eaefba](https://github.com/CodySwannGT/lisa/commit/9eaefbae9b258dca6936bc4f784241f2cb517f91))
+
 ### [2.147.1](https://github.com/CodySwannGT/lisa/compare/vv2.147.0...v2.147.1) (2026-06-07)
 
 
