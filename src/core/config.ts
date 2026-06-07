@@ -69,8 +69,9 @@ export const COPY_STRATEGIES: readonly CopyStrategy[] = [
  * - "cursor":  emit Cursor artifacts (Cursor reads .claude-plugin/ natively; no per-project files)
  * - "agy":     emit Antigravity artifacts (~/.gemini/config/mcp_config.json + AGENTS.md with baked rules)
  * - "copilot": emit GitHub Copilot artifacts (.github/copilot-instructions.md + plugin install)
+ * - "opencode": emit OpenCode artifacts (.opencode/skills/lisa/ + AGENTS.md, read natively)
  * - "both":    emit both Claude and Codex (back-compat — predates the per-agent expansion)
- * - "fleet":   emit for every supported agent (Claude + Codex + Cursor + agy + Copilot)
+ * - "fleet":   emit for every supported agent (Claude + Codex + Cursor + agy + Copilot + OpenCode)
  */
 export type Harness =
   | "claude"
@@ -78,6 +79,7 @@ export type Harness =
   | "cursor"
   | "agy"
   | "copilot"
+  | "opencode"
   | "both"
   | "fleet";
 
@@ -90,6 +92,7 @@ export const HARNESS_VALUES: readonly Harness[] = [
   "cursor",
   "agy",
   "copilot",
+  "opencode",
   "both",
   "fleet",
 ] as const;
@@ -99,7 +102,7 @@ export const HARNESS_VALUES: readonly Harness[] = [
  * (Cursor is intentionally absent — it needs no per-project writes; it consumes
  * the `lisa-cursor` plugin variant directly via its marketplace/loader.)
  */
-export type EmitAgent = "claude" | "codex" | "agy" | "copilot";
+export type EmitAgent = "claude" | "codex" | "agy" | "copilot" | "opencode";
 
 /**
  * Whether a configured harness should emit artifacts for a given agent.
