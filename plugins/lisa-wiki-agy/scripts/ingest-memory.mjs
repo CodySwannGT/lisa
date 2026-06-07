@@ -15,7 +15,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { loadConfig, walkFiles, SECRET_PATTERNS } from "./_wiki-lib.mjs";
+import {
+  loadConfig,
+  walkFiles,
+  writeSanitizedSourceNote,
+} from "./_wiki-lib.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => {
@@ -79,15 +83,10 @@ if (!(under(claudeMem) || under(projectCodexMem) || allowedRoots.some(under))) {
   );
 }
 
-const redact = t =>
-  SECRET_PATTERNS.reduce(
-    (acc, { re }) => acc.replace(new RegExp(re, "g"), "[REDACTED]"),
-    t
-  );
 const mdFiles = walkFiles(resolvedMem, { ext: ".md" });
 const date = new Date().toISOString().slice(0, 10);
 const entries = mdFiles.map(f => {
-  const body = redact(fs.readFileSync(f, "utf8")).trim();
+  const body = fs.readFileSync(f, "utf8").trim();
   return `### ${path.basename(f)}\n\n${body}`;
 });
 
@@ -110,8 +109,10 @@ sensitivity: internal
 ${entries.join("\n\n") || "_(no memory files)_"}
 `;
 
-fs.mkdirSync(sourceDir, { recursive: true });
-fs.writeFileSync(notePath, note);
+const safety = writeSanitizedSourceNote(notePath, note, {
+  sourceId: path.relative(process.cwd(), notePath),
+  sourceSystem: "memory",
+});
 
 const meta = {
   connector: "memory",
@@ -119,6 +120,10 @@ const meta = {
   ranAt: new Date().toISOString(),
   proposedCursor: { files: mdFiles.length, lastIngest: date },
   sourceNotes: [path.relative(process.cwd(), notePath)],
+  safety: {
+    reviewRequired: safety.reviewRequired,
+    findings: safety.findings,
+  },
 };
 if (emitMeta) {
   fs.mkdirSync(path.dirname(emitMeta), { recursive: true });

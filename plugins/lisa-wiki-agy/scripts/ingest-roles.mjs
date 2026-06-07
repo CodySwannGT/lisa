@@ -10,7 +10,11 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { loadConfig, walkFiles } from "./_wiki-lib.mjs";
+import {
+  loadConfig,
+  walkFiles,
+  writeSanitizedSourceNote,
+} from "./_wiki-lib.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => {
@@ -61,8 +65,10 @@ ${rosterRows}
 ${staffPages.length ? staffPages.map(p => `- \`${path.relative(wikiRoot, p)}\``).join("\n") : "_(none)_"}
 `;
 
-fs.mkdirSync(sourceDir, { recursive: true });
-fs.writeFileSync(notePath, note);
+const safety = writeSanitizedSourceNote(notePath, note, {
+  sourceId: path.relative(process.cwd(), notePath),
+  sourceSystem: "roles",
+});
 
 const meta = {
   connector: "roles",
@@ -74,6 +80,10 @@ const meta = {
     lastIngest: date,
   },
   sourceNotes: [path.relative(process.cwd(), notePath)],
+  safety: {
+    reviewRequired: safety.reviewRequired,
+    findings: safety.findings,
+  },
 };
 if (emitMeta) {
   fs.mkdirSync(path.dirname(emitMeta), { recursive: true });
