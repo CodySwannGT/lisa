@@ -3,6 +3,7 @@ import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
+import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 import type {
   Migration,
   MigrationContext,
@@ -20,6 +21,7 @@ export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
+export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 
 /**
  * Registry that runs applicable migrations against a destination project
@@ -38,6 +40,7 @@ export class MigrationRegistry {
       new EnsureAuditIgnoreLocalExclusionsMigration(),
       new EnsureJestRnMockAccessibilityManagerMigration(),
       new EnsureLisaPostinstallMigration(),
+      new ReconcileClaudeStackPluginsMigration(),
     ];
   }
 
