@@ -114,13 +114,21 @@ function validateManifest(
       `Invalid Lisa-managed manifest at ${manifestPath}: expected "files" array`
     );
   }
-  const files = obj.files.filter(
-    (file): file is string => typeof file === "string"
-  );
-  if (files.length !== obj.files.length) {
-    throw new Error(
-      `Invalid Lisa-managed manifest at ${manifestPath}: "files" must contain only strings`
-    );
-  }
+  const files = obj.files.map((file, index) => {
+    if (typeof file !== "string") {
+      throw new Error(
+        `Invalid Lisa-managed manifest at ${manifestPath}: "files" must contain only strings`
+      );
+    }
+    if (
+      file.includes("\\") ||
+      file.split("/").some(seg => seg === "" || seg === "." || seg === "..")
+    ) {
+      throw new Error(
+        `Invalid Lisa-managed manifest at ${manifestPath}: "files[${String(index)}]" must be a normalized relative path`
+      );
+    }
+    return file;
+  });
   return { files: Object.freeze(files) };
 }

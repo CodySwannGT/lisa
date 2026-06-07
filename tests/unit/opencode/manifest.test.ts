@@ -66,4 +66,40 @@ describe("opencode/manifest", () => {
       /expected "files" array/
     );
   });
+
+  it("throws on a path with a traversal segment (..)", async () => {
+    await fs.ensureDir(path.join(destDir, OPENCODE_CONFIG_DIR));
+    await fs.writeFile(
+      manifestPath(),
+      JSON.stringify({ files: ["skills/lisa/../evil/SKILL.md"] }),
+      "utf8"
+    );
+    await expect(readManagedManifest(destDir)).rejects.toThrow(
+      /normalized relative path/
+    );
+  });
+
+  it("throws on an absolute path in the files array", async () => {
+    await fs.ensureDir(path.join(destDir, OPENCODE_CONFIG_DIR));
+    await fs.writeFile(
+      manifestPath(),
+      JSON.stringify({ files: ["/etc/passwd"] }),
+      "utf8"
+    );
+    await expect(readManagedManifest(destDir)).rejects.toThrow(
+      /normalized relative path/
+    );
+  });
+
+  it("throws on a path with backslash separators", async () => {
+    await fs.ensureDir(path.join(destDir, OPENCODE_CONFIG_DIR));
+    await fs.writeFile(
+      manifestPath(),
+      JSON.stringify({ files: ["skills\\lisa\\SKILL.md"] }),
+      "utf8"
+    );
+    await expect(readManagedManifest(destDir)).rejects.toThrow(
+      /normalized relative path/
+    );
+  });
 });
