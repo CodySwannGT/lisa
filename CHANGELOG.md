@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.154.0](https://github.com/CodySwannGT/lisa/compare/vv2.153.0...v2.154.0) (2026-06-07)
+
+
+### Features
+
+* **cross-pollinate:** make local agent definitions available across the fleet ([6984a1f](https://github.com/CodySwannGT/lisa/commit/6984a1f8f703ce009bb51f9fb13fbac06527f95a))
+
 ## [2.153.0](https://github.com/CodySwannGT/lisa/compare/vv2.152.2...v2.153.0) (2026-06-07)
 
 
