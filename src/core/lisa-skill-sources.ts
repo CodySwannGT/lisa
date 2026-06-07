@@ -23,6 +23,40 @@ import * as path from "node:path";
 /** Prefix applied to Lisa command-as-skill names (e.g. `lisa-git-commit`). */
 export const LISA_COMMAND_SKILL_PREFIX = "lisa-";
 
+/**
+ * Suffixes that mark a plugin directory as a per-harness fanout VARIANT rather
+ * than a canonical source. Lisa generates `<plugin>-agy`, `<plugin>-copilot`,
+ * and `<plugin>-cursor` variants from the canonical `<plugin>` for those
+ * harnesses (see the stack-per-agent fanout). They are reformatted copies — the
+ * copilot variant even renames agents to `*.agent.md` — so an overlay that reads
+ * the canonical Markdown format (Codex, OpenCode) must ingest the canonical
+ * plugins, not these variants, or it ships duplicates / harness-specific copies.
+ */
+export const HARNESS_VARIANT_PLUGIN_SUFFIXES = [
+  "-agy",
+  "-copilot",
+  "-cursor",
+] as const;
+
+/**
+ * Predicate: is `pluginName` a per-harness fanout variant (agy/copilot/cursor)?
+ * Canonical plugins (`lisa`, `lisa-typescript`, `lisa-wiki`, …) return false.
+ * @param pluginName - Plugin directory name under `plugins/`.
+ * @returns True when the plugin is a harness-specific variant, not a source.
+ */
+export function isHarnessVariantPlugin(pluginName: string): boolean {
+  return HARNESS_VARIANT_PLUGIN_SUFFIXES.some(suffix =>
+    pluginName.endsWith(suffix)
+  );
+}
+
+/**
+ * A plugin-name filter: given a plugin directory name, return true to include
+ * it in discovery. Used to restrict an overlay to canonical (non-variant)
+ * plugins.
+ */
+export type PluginFilter = (pluginName: string) => boolean;
+
 /** A single discovered bundled-skill folder source. */
 export interface BundledSkillSource {
   /** Skill name (matches the SKILL.md `name` frontmatter and folder name). */
@@ -122,16 +156,20 @@ export async function discoverBundledSkills(
  * first, then remaining plugins alphabetically) so stack-specific plugins
  * override the base regardless of name sort order.
  * @param lisaDir - Absolute path to the Lisa repo / installed package.
+ * @param pluginFilter - Optional predicate to restrict which plugin directories
+ *   are walked (e.g. canonical-only for the OpenCode native command surface).
+ *   Defaults to including every plugin.
  * @returns De-duplicated command-derived skill sources, sorted by skill name.
  */
 export async function discoverLisaCommands(
-  lisaDir: string
+  lisaDir: string,
+  pluginFilter?: PluginFilter
 ): Promise<readonly LisaCommandSource[]> {
   const pluginsDir = path.join(lisaDir, "plugins");
   if (!(await fse.pathExists(pluginsDir))) {
     return [];
   }
-  const plugins = await orderedPluginNames(pluginsDir);
+  const plugins = await orderedPluginNames(pluginsDir, pluginFilter);
   const candidatesByPlugin = await Promise.all(
     plugins.map(pluginName => discoverCommandsInPlugin(pluginsDir, pluginName))
   );
@@ -151,12 +189,18 @@ export async function discoverLisaCommands(
  * Base-first ordering is what gives the last-wins Map dedup its "stack
  * overrides base" behavior.
  * @param pluginsDir - Absolute path to `<lisaDir>/plugins`.
+ * @param pluginFilter - Optional predicate to drop plugin directories before
+ *   ordering (e.g. exclude per-harness variants). Defaults to including all.
  * @returns Ordered plugin directory names.
  */
 async function orderedPluginNames(
-  pluginsDir: string
+  pluginsDir: string,
+  pluginFilter?: PluginFilter
 ): Promise<readonly string[]> {
-  const all = (await readdir(pluginsDir)).filter(name => name !== "src");
+  const include = pluginFilter ?? (() => true);
+  const all = (await readdir(pluginsDir)).filter(
+    name => name !== "src" && include(name)
+  );
   return [
     ...all.filter(n => n === "lisa"),
     ...all.filter(n => n !== "lisa").sort((a, b) => a.localeCompare(b)),

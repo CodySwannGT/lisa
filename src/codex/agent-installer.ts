@@ -66,10 +66,15 @@ export interface AgentInstallResult {
  * order, so any stack-specific plugin (e.g. `lisa-rails`) or third-party
  * plugin overrides the base regardless of how the name sorts.
  * @param lisaDir - Absolute path to the Lisa repo root
+ * @param pluginFilter - Optional predicate to restrict which plugin directories
+ *   are walked (e.g. canonical-only for the OpenCode native agent surface, which
+ *   must skip the `*-copilot` variants whose `.agent.md` naming would otherwise
+ *   ship duplicate agents). Defaults to including every plugin.
  * @returns De-duplicated agent sources, sorted by id
  */
 export async function discoverLisaAgents(
-  lisaDir: string
+  lisaDir: string,
+  pluginFilter?: (pluginName: string) => boolean
 ): Promise<readonly AgentSource[]> {
   const pluginsDir = path.join(lisaDir, "plugins");
   if (!(await fse.pathExists(pluginsDir))) {
@@ -78,7 +83,10 @@ export async function discoverLisaAgents(
   // Put the base "lisa" plugin first so it is always overridable by any
   // other plugin via last-wins Map dedup below.  Remaining plugins are
   // sorted for deterministic ordering across machines.
-  const all = (await readdir(pluginsDir)).filter(name => name !== "src");
+  const include = pluginFilter ?? (() => true);
+  const all = (await readdir(pluginsDir)).filter(
+    name => name !== "src" && include(name)
+  );
   const plugins = [
     ...all.filter(n => n === "lisa"),
     ...all.filter(n => n !== "lisa").sort((a, b) => a.localeCompare(b)),
