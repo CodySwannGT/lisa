@@ -303,4 +303,26 @@ describe("opencode/skills-installer", () => {
       cmdFirst
     );
   });
+
+  it("removes files dropped from source inside a surviving skill", async () => {
+    await seedSkill("lisa", BUG_TRIAGE, {
+      [SKILL_MD]: SAMPLE_SKILL_MD,
+      "scripts/old.sh": "#!/bin/bash\necho old\n",
+    });
+    await installSkills(lisaDir, destDir, []);
+    expect(
+      await fs.pathExists(installedSkillPath(BUG_TRIAGE, "scripts/old.sh"))
+    ).toBe(true);
+
+    // Source no longer ships scripts/old.sh; the skill folder still exists.
+    await fs.remove(
+      path.join(lisaDir, "plugins", "lisa", "skills", BUG_TRIAGE, "scripts")
+    );
+    await installSkills(lisaDir, destDir, []);
+
+    expect(
+      await fs.pathExists(installedSkillPath(BUG_TRIAGE, "scripts/old.sh"))
+    ).toBe(false);
+    expect(await fs.pathExists(installedSkillPath(BUG_TRIAGE))).toBe(true);
+  });
 });

@@ -199,6 +199,10 @@ async function copyBundledSkill(
   skillsDir: string
 ): Promise<InstalledSkill> {
   const destSkillDir = path.join(skillsDir, source.skillName);
+  // Clean-replace the Lisa-owned skill folder before copying so files removed
+  // from the source between releases don't linger inside a surviving skill.
+  // Lisa owns this directory boundary (host customizations belong outside it).
+  await rm(destSkillDir, { recursive: true, force: true });
   await fse.ensureDir(destSkillDir);
   await Promise.all(
     source.files.map(async file => {
