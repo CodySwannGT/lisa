@@ -95,6 +95,38 @@ describe("repair-intake contract", () => {
       expect(command).toMatch(/missing native child links/);
     });
 
+    it("recovers a merged-PR leaf staleness-exempt, before rollup, with merged PRs discoverable", () => {
+      // Regression: four shipped Sub-tasks (#1171-1174) stayed status:in-progress
+      // for a day because the merged-PR leaf recovery was (a) gated behind the
+      // staleness clock — which a merged PR's post-merge CI/CodeRabbit activity
+      // kept warm — and (b) ordered last (generic stalled bucket), after the
+      // rollup buckets, so parents reconciled against not-yet-closed children.
+
+      // (a) A merged-PR leaf is explicitly NOT gated on staleness.
+      expect(skill).toMatch(
+        /already merged[\s\S]*?(is likewise )?NOT[\s\S]*?gated on staleness/i
+      );
+      // Post-merge activity must not defer recovery (the keep-alive trap).
+      expect(skill).toMatch(/post-merge activity does not defer it/i);
+      // The merged check happens before the staleness gate in the decision tree.
+      expect(skill).toMatch(/this check is NOT gated on staleness/i);
+
+      // (b) Dedicated high-confidence ordering bucket that runs before rollup.
+      expect(skill).toMatch(
+        /build `claimed` leaves whose linked PR is \*\*already merged\*\*/
+      );
+      expect(skill).toMatch(/MUST run before any rollup\s+bucket/);
+      // The generic stalled bucket is scoped to PRs that have NOT merged.
+      expect(skill).toMatch(
+        /\*\*stalled\*\* in-progress items \(PR not merged\)/
+      );
+
+      // (c) Discovery includes merged (closed) PRs — search defaults to open.
+      expect(skill).toMatch(/gh pr list --search <issue-ref> --state all/);
+      expect(skill).toMatch(/closedByPullRequestsReferences/);
+      expect(skill).toMatch(/defaults to `--state open`/);
+    });
+
     it("heals missing native sub-issue links on build Epic/Story containers", () => {
       // The native-link repair is no longer PRD-only: build containers whose
       // children were recorded as prose parentage (e.g. created by an external
