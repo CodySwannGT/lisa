@@ -13,6 +13,7 @@ import {
 import {
   PROJECT_CONFIG_FILENAME,
   isHarness,
+  normalizeHarness,
   projectConfigExists,
   readProjectConfig,
   resolveHarness,
@@ -80,16 +81,29 @@ describe("project-config", () => {
       expect(result).toEqual({});
     });
 
-    it("throws on invalid harness value", async () => {
+    it("normalizes the 'all' alias to 'fleet'", async () => {
       await fs.writeFile(
         path.join(tempDir, PROJECT_CONFIG_FILENAME),
-        JSON.stringify({ harness: "windsurf" }),
+        JSON.stringify({ harness: "all" }),
         "utf8"
       );
-      await expect(readProjectConfig(tempDir)).rejects.toThrow(
-        /Invalid harness/
-      );
+      const result = await readProjectConfig(tempDir);
+      expect(result).toEqual({ harness: "fleet" });
     });
+
+    it.each(["windsurf", "both"])(
+      "throws on an invalid or removed harness value (%p)",
+      async harness => {
+        await fs.writeFile(
+          path.join(tempDir, PROJECT_CONFIG_FILENAME),
+          JSON.stringify({ harness }),
+          "utf8"
+        );
+        await expect(readProjectConfig(tempDir)).rejects.toThrow(
+          /Invalid harness/
+        );
+      }
+    );
 
     it("throws on non-string harness value", async () => {
       await fs.writeFile(
@@ -160,11 +174,11 @@ describe("project-config", () => {
 
     it("merges into existing config without dropping other fields", async () => {
       await writeProjectConfig(tempDir, { harness: "claude" });
-      await writeProjectConfig(tempDir, { harness: "both" });
+      await writeProjectConfig(tempDir, { harness: "fleet" });
       const written = JSON.parse(
         await fs.readFile(path.join(tempDir, PROJECT_CONFIG_FILENAME), "utf8")
       );
-      expect(written).toEqual({ harness: "both" });
+      expect(written).toEqual({ harness: "fleet" });
     });
   });
 
@@ -215,9 +229,9 @@ describe("project-config", () => {
       expect(
         shouldPersistProjectConfig({
           fileExists: true,
-          flagHarness: "both",
-          existingHarness: "both",
-          resolvedHarness: "both",
+          flagHarness: "fleet",
+          existingHarness: "fleet",
+          resolvedHarness: "fleet",
         })
       ).toBe(false);
     });
@@ -259,13 +273,13 @@ describe("project-config", () => {
       expect(resolveHarness(undefined, {})).toBe("claude");
     });
 
-    it("respects flag value 'both'", () => {
-      expect(resolveHarness("both", {})).toBe("both");
+    it("respects flag value 'fleet'", () => {
+      expect(resolveHarness("fleet", {})).toBe("fleet");
     });
   });
 
   describe("isHarness", () => {
-    it.each(["claude", "codex", "both"] as const)(
+    it.each(["claude", "codex", "fleet"] as const)(
       "accepts %s as a valid harness",
       value => {
         expect(isHarness(value)).toBe(true);
@@ -275,6 +289,8 @@ describe("project-config", () => {
     it.each([
       ["windsurf"],
       ["Claude"],
+      ["all"],
+      ["both"],
       [""],
       [42],
       [null],
@@ -286,18 +302,23 @@ describe("project-config", () => {
     });
   });
 
+  describe("normalizeHarness", () => {
+    it("passes canonical values through, maps 'all' to 'fleet', rejects the rest", () => {
+      for (const value of HARNESS_VALUES) {
+        expect(normalizeHarness(value)).toBe(value);
+      }
+      expect(normalizeHarness("all")).toBe("fleet");
+      expect(normalizeHarness("both")).toBeUndefined();
+      expect(normalizeHarness("windsurf")).toBeUndefined();
+      expect(normalizeHarness("")).toBeUndefined();
+    });
+  });
+
   describe("harnessIncludesAgent", () => {
     it("fleet includes every emit agent (regression: Codex was once excluded)", () => {
       for (const agent of ["claude", "codex", "agy", "copilot"] as const) {
         expect(harnessIncludesAgent("fleet", agent)).toBe(true);
       }
-    });
-
-    it("both includes only Claude and Codex", () => {
-      expect(harnessIncludesAgent("both", "claude")).toBe(true);
-      expect(harnessIncludesAgent("both", "codex")).toBe(true);
-      expect(harnessIncludesAgent("both", "agy")).toBe(false);
-      expect(harnessIncludesAgent("both", "copilot")).toBe(false);
     });
 
     it("a single-agent harness matches only itself", () => {
