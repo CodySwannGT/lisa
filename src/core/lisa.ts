@@ -23,6 +23,11 @@ import {
 } from "../agy/mcp-installer.js";
 import { installCopilotPlugin } from "../copilot/plugin-installer.js";
 import { installCopilotInstructions } from "../copilot/copilot-instructions-installer.js";
+import {
+  readManagedManifest as readOpencodeManifest,
+  writeManagedManifest as writeOpencodeManifest,
+} from "../opencode/manifest.js";
+import { installSkills as installOpencodeSkills } from "../opencode/skills-installer.js";
 import { installClaudeMd } from "../claude/claude-md-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
 import {
@@ -678,6 +683,7 @@ export class Lisa {
       await this.processClaudeEmit();
       await this.processAgyEmit();
       await this.processCopilotEmit();
+      await this.processOpencodeEmit();
       await this.processInstructionFilesMigration();
       await this.registerPlugins();
       await this.finalize();
@@ -998,6 +1004,49 @@ export class Lisa {
         }, copilot-instructions ${
           instructionsResult.created ? "created" : HOST_OWNED_LABEL
         }`
+      )
+    );
+  }
+
+  /**
+   * Emit OpenCode-targeted artifacts when the harness includes OpenCode.
+   *
+   * OpenCode reads the open Agent Skills format and `AGENTS.md` natively
+   * (opencode.ai/docs/skills, /docs/rules), so Lisa needs no transformed plugin
+   * variant: it writes skills (bundled + command-derived) into the
+   * OpenCode-owned `.opencode/skills/lisa/` tree and ensures the canonical
+   * `AGENTS.md` exists. Ownership is tracked via `.opencode/.lisa-managed.json`
+   * so updates clean up stale skills without touching host customizations.
+   * Skipped in dry-run mode and on harness modes that don't include OpenCode.
+   */
+  private async processOpencodeEmit(): Promise<void> {
+    const { harness } = this.config;
+    if (!harnessIncludesAgent(harness, "opencode")) {
+      return;
+    }
+    if (this.config.dryRun) {
+      this.deps.logger.info(pc.gray("OpenCode emit: skipped (dry-run mode)"));
+      return;
+    }
+
+    const previous = await readOpencodeManifest(this.config.destDir);
+    const skillsResult = await installOpencodeSkills(
+      this.config.lisaDir,
+      this.config.destDir,
+      previous.files
+    );
+    // OpenCode reads AGENTS.md natively; ensure the canonical file exists. It is
+    // create-only and host-owned afterward, so it's not tracked in the manifest.
+    const agentsResult = await installAgentsMd(this.config.destDir);
+    await writeOpencodeManifest(this.config.destDir, skillsResult.managedFiles);
+
+    this.deps.logger.info(
+      pc.cyan(
+        `OpenCode emit: ${skillsResult.installed.length} skills${
+          skillsResult.deleted.length > 0
+            ? ` (${skillsResult.deleted.length} stale skills removed)`
+            : ""
+        }, AGENTS.md ${agentsResult.created ? "created" : HOST_OWNED_LABEL}`
       )
     );
   }
