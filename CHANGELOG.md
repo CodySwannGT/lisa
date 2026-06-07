@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.146.0](https://github.com/CodySwannGT/lisa/compare/vv2.145.2...v2.146.0) (2026-06-07)
+
+
+### Features
+
+* **wiki:** sanitize connector source notes ([a45b203](https://github.com/CodySwannGT/lisa/commit/a45b203dab5cd73690d3600be7843cc95c36f672))
+
 ### [2.145.2](https://github.com/CodySwannGT/lisa/compare/vv2.145.1...v2.145.2) (2026-06-06)
 
 
