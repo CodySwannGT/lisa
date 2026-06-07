@@ -115,11 +115,33 @@ export async function installSkills(
     ...commandInstalls,
   ];
 
-  // Step 3: delete stale skill directories
+  // Step 3: delete stale skill directories (whole folders for removed skills)
+  const currentSkillNames = new Set(installed.map(s => s.name));
   const deleted = await deleteStaleSkills(
     previousManagedFiles,
-    new Set(installed.map(s => s.name)),
+    currentSkillNames,
     destDir
+  );
+
+  // Step 4: delete stale files within surviving skill folders.
+  // Whole-folder deletions (step 3) handle removed skills; here we handle the
+  // case where a skill survives but individual files are no longer shipped.
+  const newManagedFileSet = new Set([...bundledFiles, ...commandFiles]);
+  const lisaSkillsPrefix = `${LISA_SKILLS_SUBDIR}${path.sep}`;
+  const staleFilesInSurvivingSkills = previousManagedFiles.filter(prevFile => {
+    if (newManagedFileSet.has(prevFile)) return false;
+    if (!prevFile.startsWith(lisaSkillsPrefix)) return false;
+    const skillName =
+      prevFile.slice(lisaSkillsPrefix.length).split(path.sep)[0] ?? "";
+    return skillName !== "" && currentSkillNames.has(skillName);
+  });
+  await Promise.all(
+    staleFilesInSurvivingSkills.map(async relPath => {
+      const absPath = path.join(destDir, OPENCODE_CONFIG_DIR, relPath);
+      if (await fse.pathExists(absPath)) {
+        await rm(absPath, { force: true });
+      }
+    })
   );
 
   return {

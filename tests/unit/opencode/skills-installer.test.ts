@@ -284,6 +284,31 @@ describe("opencode/skills-installer", () => {
     );
   });
 
+  it("deletes stale files within a surviving skill when the source removes them", async () => {
+    // Seed the skill with only SKILL.md — helper.sh was removed from source
+    await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: SAMPLE_SKILL_MD });
+
+    const skillsDir = path.join(destDir, OPENCODE_DIR, LISA_SKILLS_SUBDIR);
+    // Pre-populate the stale helper.sh as if it was written in a previous run
+    const helperRelPath = path.join("scripts", "helper.sh");
+    const helperAbsPath = path.join(skillsDir, BUG_TRIAGE, helperRelPath);
+    await fs.ensureDir(path.dirname(helperAbsPath));
+    await fs.writeFile(helperAbsPath, "#!/bin/bash\n", "utf8");
+
+    const previousManagedFiles = [
+      path.join(LISA_SKILLS_SUBDIR, BUG_TRIAGE, SKILL_MD),
+      path.join(LISA_SKILLS_SUBDIR, BUG_TRIAGE, helperRelPath),
+    ];
+    const result = await installSkills(lisaDir, destDir, previousManagedFiles);
+
+    // Skill folder is still installed
+    expect(await fs.pathExists(installedSkillPath(BUG_TRIAGE))).toBe(true);
+    // Stale helper.sh was deleted
+    expect(await fs.pathExists(helperAbsPath)).toBe(false);
+    // The skill was NOT deleted entirely — deleted list should be empty
+    expect(result.deleted).toEqual([]);
+  });
+
   it("idempotent: running twice produces the same files", async () => {
     await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: SAMPLE_SKILL_MD });
     await seedCommand("lisa", "fix.md", SAMPLE_COMMAND_MD);

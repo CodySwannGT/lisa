@@ -85,6 +85,45 @@ describe("codex/manifest", () => {
         /must contain only strings/
       );
     });
+
+    it("throws on a path with a traversal segment (..)", async () => {
+      const codexDir = path.join(tempDir, ".codex");
+      await fs.ensureDir(codexDir);
+      await fs.writeFile(
+        path.join(codexDir, LISA_MANAGED_MANIFEST_FILENAME),
+        JSON.stringify({ files: ["agents/lisa/../evil/agent.toml"] }),
+        "utf8"
+      );
+      await expect(readManagedManifest(tempDir)).rejects.toThrow(
+        /normalized relative path/
+      );
+    });
+
+    it("throws on an absolute path in the files array", async () => {
+      const codexDir = path.join(tempDir, ".codex");
+      await fs.ensureDir(codexDir);
+      await fs.writeFile(
+        path.join(codexDir, LISA_MANAGED_MANIFEST_FILENAME),
+        JSON.stringify({ files: ["/etc/passwd"] }),
+        "utf8"
+      );
+      await expect(readManagedManifest(tempDir)).rejects.toThrow(
+        /normalized relative path/
+      );
+    });
+
+    it("throws on a path with backslash separators", async () => {
+      const codexDir = path.join(tempDir, ".codex");
+      await fs.ensureDir(codexDir);
+      await fs.writeFile(
+        path.join(codexDir, LISA_MANAGED_MANIFEST_FILENAME),
+        JSON.stringify({ files: ["agents\\lisa\\agent.toml"] }),
+        "utf8"
+      );
+      await expect(readManagedManifest(tempDir)).rejects.toThrow(
+        /normalized relative path/
+      );
+    });
   });
 
   describe("writeManagedManifest", () => {
