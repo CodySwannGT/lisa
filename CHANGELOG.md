@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.147.0](https://github.com/CodySwannGT/lisa/compare/vv2.146.1...v2.147.0) (2026-06-07)
+
+
+### Features
+
+* validate wiki redaction policy ([057f51b](https://github.com/CodySwannGT/lisa/commit/057f51b404af8e6f67706a9c97038ecd0dc6c3c9))
+
+
+### Bug Fixes
+
+* harden wiki redaction policy validation ([9af7adf](https://github.com/CodySwannGT/lisa/commit/9af7adfe95fc956fcf983a32ac5e27323ea989f0))
+
 ### [2.146.1](https://github.com/CodySwannGT/lisa/compare/vv2.146.0...v2.146.1) (2026-06-07)
 
 
