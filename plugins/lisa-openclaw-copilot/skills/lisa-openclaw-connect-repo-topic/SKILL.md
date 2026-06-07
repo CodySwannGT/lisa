@@ -110,6 +110,11 @@ root-only route can validate while the actual bot still ignores the topic-level 
 `agentId`, and prompt. When in doubt, mirror the route under the owning account and keep any existing
 root group route only as a fallback/documentation shape.
 
+Account-scoped topic `agentId` routes also require an OpenClaw runtime that treats the topic agent as
+an explicit group route for non-default Telegram accounts. If the self-test logs
+`drop non-default account requires explicit binding`, update or rebuild OpenClaw before adding config
+workarounds; do not create persistent ACP bindings solely to bypass that guard.
+
 Keep allowlist policy, and add `allowFrom` only when membership must be narrower than the group.
 Leave the topic-level `requireMention = false` (the default) so the agent activates on any message —
 the topic is bound 1:1 to this dispatcher, so an @mention carries no routing information and is pure
@@ -137,11 +142,14 @@ Then from the target topic, send a plain message with **no** @mention (the defau
 `requireMention = false` means the agent must activate without one) asking for an exact-token reply
 with **no** file changes, commits, PRs, or merges, e.g. `reply with exactly TELEGRAM-ROUTE-OK`.
 Confirm the visible reply, that the dispatcher spawned the worker, and that the worker ran in the
-intended repo. If the topic was deliberately left at `requireMention = true`, mention the bot instead
-(`<bot-handle> reply with exactly TELEGRAM-ROUTE-OK`) and additionally confirm that an un-mentioned
-message is **ignored**. For folder-scoped topics, also send a request that implies but doesn't name a
-repo and confirm the dispatcher asks for confirmation before proceeding. Do **not** treat `openclaw agent --agent
-<id> ...` as proof a topic route works — use the visible topic reply.
+intended repo. If there is no dispatcher session, inspect `/tmp/openclaw/openclaw-YYYY-MM-DD.log`;
+`drop non-default account requires explicit binding` means the OpenClaw runtime is too old for
+account-scoped topic-agent routing. If the topic was deliberately left at `requireMention = true`,
+mention the bot instead (`<bot-handle> reply with exactly TELEGRAM-ROUTE-OK`) and additionally
+confirm that an un-mentioned message is **ignored**. For folder-scoped topics, also send a request
+that implies but doesn't name a repo and confirm the dispatcher asks for confirmation before
+proceeding. Do **not** treat `openclaw agent --agent <id> ...` as proof a topic route works — use the
+visible topic reply.
 
 ## Output standard
 
