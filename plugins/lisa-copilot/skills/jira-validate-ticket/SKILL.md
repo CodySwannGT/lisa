@@ -148,7 +148,7 @@ When `issue_type = Spike`, description must include:
 
 #### S7 — Epic parent declared
 
-When `issue_type ∉ {Bug, Epic}`, `parent_key` must be set. (Validity of the key is checked in feasibility gates.)
+When `issue_type ∉ {Bug, Epic}`, `parent_key` must be set — **except for a build-ready leaf work unit**, which may stand alone. A flat `Task` / `Improvement`, or a childless `Story` / `Spike` (no open child work) with `build_ready = true`, is an independently claimable leaf per `leaf-only-lifecycle`, which states such leaves "must not be stranded"; for these a missing parent is `N/A`, not a FAIL. This mirrors the leaf carve-out already in S10/S15. A `Sub-task` is exempt from this exception — it always requires a parent. (Validity of a declared parent key is checked in feasibility gates.)
 
 #### S8 — Target Backend Environment
 
