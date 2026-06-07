@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.145.2](https://github.com/CodySwannGT/lisa/compare/vv2.145.1...v2.145.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* **eslint:** ignore .lisa.config.json (config data, not source) ([1510913](https://github.com/CodySwannGT/lisa/commit/1510913664b727f8b35e6a88cd5b784cc510aaf7))
+
 ### [2.145.1](https://github.com/CodySwannGT/lisa/compare/vv2.145.0...v2.145.1) (2026-06-06)
 
 

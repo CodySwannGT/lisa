@@ -22,10 +22,37 @@ from typing import Any
 
 
 TOKEN_PATTERNS = [
-    re.compile(r"xox[pbar]-[A-Za-z0-9-]+"),
-    re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]{20,}"),
-    re.compile(r"AKIA[0-9A-Z]{16}"),
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S),
+    (re.compile(r"xox[pbar]-[A-Za-z0-9-]+"), "[REDACTED:OAUTH_TOKEN]"),
+    (
+        re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]{20,}"),
+        "[REDACTED:OAUTH_TOKEN]",
+    ),
+    (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED:API_KEY]"),
+    (
+        re.compile(
+            r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
+            re.S,
+        ),
+        "[REDACTED:PRIVATE_KEY]",
+    ),
+    (
+        re.compile(r"\b(?!000|666|9\d\d)\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b"),
+        "[REDACTED:SSN]",
+    ),
+    (
+        re.compile(
+            r"\b(?:password|passwd|pwd)\s*[:=]\s*(['\"]?)([^\s'\",;]{8,})\1",
+            re.I,
+        ),
+        "[REDACTED:PASSWORD]",
+    ),
+    (
+        re.compile(
+            r"\b(?:api[_-]?key|access[_-]?key|secret[_-]?key|client[_-]?secret)\s*[:=]\s*(['\"]?)([A-Za-z0-9._-]{20,})\1",
+            re.I,
+        ),
+        "[REDACTED:API_KEY]",
+    ),
 ]
 
 
@@ -49,8 +76,13 @@ def ts_from_input(value: str | None) -> str | None:
 
 def redact(text: str) -> str:
     out = text
-    for pattern in TOKEN_PATTERNS:
-        out = pattern.sub("[REDACTED]", out)
+    for pattern, replacement in TOKEN_PATTERNS:
+        out = pattern.sub(
+            lambda match: match.group(0).replace(match.group(2), replacement)
+            if len(match.groups()) >= 2
+            else replacement,
+            out,
+        )
     return out
 
 
@@ -289,7 +321,7 @@ def main() -> int:
             for reply in replies:
                 lines.extend(render_message(reply))
 
-    source_path.write_text("\n".join(lines), encoding="utf-8")
+    source_path.write_text(redact("\n".join(lines)), encoding="utf-8")
 
     latest_ts = previous_state.get("latest_message_ts")
     if messages:
