@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "bun run build:dist && bun run build:plugins",
-    "build:dist": "tsc && node scripts/copy-codex-scripts.mjs",
+    "build:dist": "tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "test:integration": "vitest run tests/integration",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true",
     "pretest": "[ -d dist/configs ] || bun run build",
