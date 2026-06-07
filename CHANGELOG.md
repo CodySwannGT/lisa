@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.152.0](https://github.com/CodySwannGT/lisa/compare/vv2.151.0...v2.152.0) (2026-06-07)
+
+
+### Features
+
+* **opencode:** port Lisa lifecycle hooks to OpenCode ([81d3716](https://github.com/CodySwannGT/lisa/commit/81d3716eaeaaa13a5ca86c32b6ffa2b783c777b4)), closes [#1197](https://github.com/CodySwannGT/lisa/issues/1197)
+
 ## [2.151.0](https://github.com/CodySwannGT/lisa/compare/vv2.150.1...v2.151.0) (2026-06-07)
 
 
