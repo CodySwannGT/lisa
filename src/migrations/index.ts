@@ -1,4 +1,5 @@
 import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
+import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
@@ -15,6 +16,7 @@ export type {
   MigrationResult,
 } from "./migration.interface.js";
 export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
+export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
@@ -34,6 +36,7 @@ export class MigrationRegistry {
       new EnsureTsconfigLocalIncludesMigration(),
       new EnsureTsconfigLocalFilesFallbackMigration(),
       new EnsureAuditIgnoreLocalExclusionsMigration(),
+      new EnsureJestRnMockAccessibilityManagerMigration(),
       new EnsureLisaPostinstallMigration(),
     ];
   }
