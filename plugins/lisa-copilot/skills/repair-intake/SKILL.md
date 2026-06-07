@@ -415,10 +415,10 @@ window and state fingerprint (Loop prevention) so re-runs over the same unchange
 ### Build `blocked` → re-evaluate, unblock if cleared
 
 1. Read the block reason and classify the blocker (see Blocker classification & clearing). An item
-   may be held by a **dependency**, by a **validation / quality-gate self-block**, by an
-   **ambiguity**, or by more than one at once. Re-check **every** class present — do not stop at
-   "no `is blocked by` links, therefore nothing to do." A self-block has zero dependencies by
-   definition, yet is fully re-checkable.
+   may be held by a **dependency**, by a **validation / quality-gate self-block**, by a
+   **deployed / runtime verification failure**, by an **ambiguity**, or by more than one at once.
+   Re-check **every** class present — do not stop at "no `is blocked by` links, therefore nothing
+   to do." A self-block has zero dependencies by definition, yet is fully re-checkable.
 2. **Dependency cleared** — if every parsed `is blocked by` dependency is **cleared** → move
    `blocked → claimed`, then run the same agent-dispatch + post-agent `claimed → done` sequence as
    the stalled-`claimed` path above (one-cycle recovery). If the agent re-blocks, move back to
@@ -435,10 +435,31 @@ window and state fingerprint (Loop prevention) so re-runs over the same unchange
      missing-requirement set so the human sees what remains. Because the fingerprint includes the
      gate verdict + missing-requirement set (Loop prevention), a partial human fix changes the
      fingerprint and re-checks next cycle, while a truly-unchanged gate result stays in backoff.
-4. If the block was an **ambiguity** research can settle and no dependency remains → run the
+4. **Deployed / runtime verification blocker re-check** — if the block reason is a failed
+   *deployed* or *runtime* verification (a smoke/E2E/health check or manual probe against a live
+   environment that errored — e.g. an authenticated endpoint returning 500, a deploy health check
+   red, a seeded-data assertion failing), re-check by **reproducing the original failing check with
+   the same context it used**: the same auth identity/credentials, the same target environment, the
+   same route, and the same scope/parameters. A probe that does **not** exercise the failed path is
+   **not** evidence the blocker cleared — an *anonymous* request to an *auth-gated* resource, a
+   request against a different environment, or a narrower scope can all return a healthy status
+   while the originally-failing path is still broken. (This exact false-negative — an unauthenticated
+   `GET` to an auth-gated resource returning 200 without touching the failing table — wrongly unblocked
+   a build item whose authenticated path was still 500ing, sending it `ready → claimed → blocked` again.)
+   - **Reproduces clean now** (the *same* check that failed now passes) → move `blocked → claimed`
+     and resume as in (2).
+   - **Still failing** → stay `blocked`; refresh the note with the current observed result. Because
+     the root cause is external (a deployed defect, not item content), prefer filing/keeping a
+     build-ready fix ticket and an `is blocked by` link to it (the "real external blocker" path),
+     so a later cycle self-heals when that ticket goes terminal.
+   - **Cannot reproduce this cycle** (the agent lacks the credentials/env access to run the original
+     check) → stay `blocked`; do **not** unblock on the absence of a reproduction. If the missing
+     access is human-only, apply the `human_needed` marker. Never unblock a deployed-verification
+     blocker on a weaker signal than the one that set it.
+5. If the block was an **ambiguity** research can settle and no dependency remains → run the
    research needed (`lisa:codebase-research` / `lisa:product-walkthrough`); if resolved, proceed
    as in (2).
-5. Else → still blocked. Refresh the note with the current reason (Loop prevention) and leave it
+6. Else → still blocked. Refresh the note with the current reason (Loop prevention) and leave it
    `blocked`.
 
 ### Build terminal-open → native close / complete / resolve
@@ -726,6 +747,30 @@ A block that research or a human answer can settle (no dependency, no failing ga
 running the needed research (`lisa:codebase-research` / `lisa:product-walkthrough`) or detecting a
 human comment/edit newer than the last `[lisa-repair-intake]` note. Resolved → proceed to
 re-dispatch; else stay blocked.
+
+### Class D — deployed / runtime verification failure
+
+A block set by a *deployed* or *runtime* check that failed against a live environment — a
+smoke/E2E/health probe or manual reproduction that returned an error (an authenticated endpoint
+500ing, a deploy health check red, a seeded-data assertion failing). This is neither a dependency
+nor a content gate: the item is correct but the environment it must verify against is broken.
+
+Clear-check by **reproducing the original failing check with the same context that set it** — same
+auth identity/credentials, same environment, same route, same scope. The cardinal rule: **never
+unblock on a probe weaker than the one that set the block.** A signal that does not exercise the
+failed path is not a clear:
+
+- Anonymous/unauthenticated request to an **auth-gated** resource (it can short-circuit to a
+  healthy response without touching the failing code path).
+- A request against a **different environment** than the one that failed.
+- A **narrower scope** than the failing check (a subset that happens to pass).
+
+Conservative, same as the other classes: reproduces-clean → cleared; still-failing or
+not-reproducible-this-cycle → stay blocked. Because the cause is external (a deployed defect, not
+item content), the durable handling is the **real external blocker** path — file/keep a build-ready
+fix ticket for the deployed defect and `is blocked by`-link the item to it, so a later cycle
+self-heals when that ticket is terminal. If reproducing the check needs human-only access the agent
+lacks, apply `human_needed`.
 
 ## Loop prevention
 
