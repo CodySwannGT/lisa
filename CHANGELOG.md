@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.152.2](https://github.com/CodySwannGT/lisa/compare/vv2.152.1...v2.152.2) (2026-06-07)
+
+
+### Bug Fixes
+
+* **apply:** prune stale Lisa stack plugins from settings.json ([896e5d4](https://github.com/CodySwannGT/lisa/commit/896e5d44d9c995eb29bcab85354549a5a99c7f08))
+
 ### [2.152.1](https://github.com/CodySwannGT/lisa/compare/vv2.152.0...v2.152.1) (2026-06-07)
 
 
