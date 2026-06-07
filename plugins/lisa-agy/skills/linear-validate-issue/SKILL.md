@@ -153,6 +153,8 @@ When `issue_type ∈ {Story, Task, Improvement}` AND the item is part of an Epic
 
 For top-level Bug / Spike not under an Epic, this gate is N/A.
 
+A **build-ready leaf work unit** that is not part of an Epic context stands alone: a flat `Task` / `Improvement`, or a childless `Story` / `Spike` (no open child work) with `build_ready = true`, is an independently claimable leaf per `leaf-only-lifecycle` ("must not be stranded"), so a missing `parent_project_id` is `N/A`, not a FAIL. A `Sub-task` is exempt from this exception — it always requires `parent_issue_id`. This mirrors the leaf carve-out already in S10/S15.
+
 #### S8 — Target Backend Environment
 
 When `runtime_behavior_change = true`, description must contain `## Target Backend Environment` with one of `dev`, `staging`, `prod`. Skipped for doc-only / config-only / type-only / Epic.
