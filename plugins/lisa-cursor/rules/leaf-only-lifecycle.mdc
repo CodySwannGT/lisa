@@ -12,7 +12,7 @@ A leaf is structurally defined: **no open children** AND not an Epic — the by-
 ## Invariant
 
 - **At decomposition/write time** — only leaves receive the `ready` role. Parent containers are created in their non-ready state.
-- **At validate time** — `*-validate-*` FAILs any container carrying the build-ready role.
+- **At validate time** — `*-validate-*` FAILs any container carrying the build-ready role. The parent-declared gate (S7) does **not** FAIL a build-ready leaf with no parent (flat Task/Improvement or childless Story/Spike); a Sub-task is the one exception and always needs a parent.
 - **At claim time** — build-intake claims leaves only. A container with a stale build-ready role is rolled up or safe-blocked, NEVER implemented.
 
 ## Childless-parent exception
