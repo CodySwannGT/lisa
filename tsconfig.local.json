@@ -13,7 +13,8 @@
     "node_modules",
     "dist",
     "tests",
-    "configs"
+    "configs",
+    "src/opencode/plugin-templates"
   ],
   "files": []
 }

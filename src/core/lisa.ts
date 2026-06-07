@@ -29,6 +29,7 @@ import {
   writeManagedManifest as writeOpencodeManifest,
 } from "../opencode/manifest.js";
 import { installSkills as installOpencodeSkills } from "../opencode/skills-installer.js";
+import { installHooks as installOpencodeHooks } from "../opencode/hooks-installer.js";
 import { installSettings as installOpencodeSettings } from "../opencode/settings-installer.js";
 import {
   installOpencodeMcpConfig,
@@ -1054,10 +1055,17 @@ export class Lisa {
       this.config.destDir,
       previous.files
     );
+    // Hooks: block-no-verify maps to opencode.json `permission.bash`; the
+    // runtime-behavior hooks ship as `.opencode/plugin/lisa-*.ts` modules.
+    const hooksResult = await installOpencodeHooks(
+      this.config.destDir,
+      this.detectedTypes,
+      previous.files
+    );
     // OpenCode reads agents (`.opencode/agents/`) and commands
     // (`.opencode/commands/`) natively. Emit both from Lisa's plugin sources.
     // Each installer scopes its own stale cleanup to its `lisa-` namespace, so
-    // passing the full previous manifest to all three is safe.
+    // passing the full previous manifest to all installers is safe.
     const opencodeAgentsResult = await installOpencodeAgents(
       this.config.lisaDir,
       this.config.destDir,
@@ -1073,13 +1081,16 @@ export class Lisa {
     const agentsMdResult = await installAgentsMd(this.config.destDir);
     await writeOpencodeManifest(this.config.destDir, [
       ...skillsResult.managedFiles,
+      ...hooksResult.managedFiles,
       ...opencodeAgentsResult.managedFiles,
       ...commandsResult.managedFiles,
     ]);
 
     // Config-level delivery (host-preserving merges into the project
     // `opencode.json`, NOT tracked in the manifest — deleting a merged host file
-    // would be data loss):
+    // would be data loss). The hooks installer above already merged the
+    // `permission.bash` deny rules; settings + MCP merge their own keys and
+    // preserve everything else, so the three writers compose into one file.
     //   1. Settings: force `share: "disabled"` so applying the fleet config can
     //      never publish a host's sessions via OpenCode's default-on, public
     //      share URLs. Other host keys are preserved.
@@ -1088,7 +1099,7 @@ export class Lisa {
     //      stacks) and write them into the `mcp` key, translated to OpenCode's
     //      `type:"local"|"remote"` shape. Called unconditionally so stale
     //      `_lisaManaged` entries are stripped when a project drops MCP.
-    const settingsResult = await installOpencodeSettings(this.config.destDir);
+    await installOpencodeSettings(this.config.destDir);
     const pluginRoot = path.join(this.config.lisaDir, "plugins");
     const lisaMcpServers = collectLisaMcpServers(
       pluginRoot,
@@ -1102,25 +1113,22 @@ export class Lisa {
       mcpResult.lisaEntryCount > 0
         ? `, ${mcpResult.lisaEntryCount} MCP server(s)`
         : "";
+    const staleCount =
+      skillsResult.deleted.length +
+      hooksResult.deleted.length +
+      opencodeAgentsResult.deleted.length +
+      commandsResult.deleted.length;
 
+    // The hooks installer is the first writer, so its `configCreated` flag
+    // reflects whether `opencode.json` existed before this emit.
     this.deps.logger.info(
       pc.cyan(
-        `OpenCode emit: ${skillsResult.installed.length} skills${
-          skillsResult.deleted.length > 0
-            ? ` (${skillsResult.deleted.length} stale skills removed)`
-            : ""
-        }, ${opencodeAgentsResult.installed.length} agents${
-          opencodeAgentsResult.deleted.length > 0
-            ? ` (${opencodeAgentsResult.deleted.length} stale agents removed)`
-            : ""
-        }, ${commandsResult.installed.length} commands${
-          commandsResult.deleted.length > 0
-            ? ` (${commandsResult.deleted.length} stale commands removed)`
-            : ""
+        `OpenCode emit: ${skillsResult.installed.length} skills, ${hooksResult.pluginCount} plugin hooks, ${opencodeAgentsResult.installed.length} agents, ${commandsResult.installed.length} commands${
+          staleCount > 0 ? ` (${staleCount} stale removed)` : ""
         }, AGENTS.md ${
           agentsMdResult.created ? "created" : HOST_OWNED_LABEL
         }, opencode.json ${
-          settingsResult.created ? "created" : "merged"
+          hooksResult.configCreated ? "created" : "merged"
         }${mcpMessage}`
       )
     );
