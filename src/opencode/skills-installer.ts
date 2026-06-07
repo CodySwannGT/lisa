@@ -1,26 +1,24 @@
 /**
- * Install Lisa-bundled skills into a host project's `.codex/skills/lisa/`.
+ * Install Lisa-bundled skills into a host project's `.opencode/skills/lisa/`.
  *
- * Skills are the open Agent Skills format (SKILL.md + optional siblings).
- * Codex discovers them from the project config folder (`<destDir>/.codex/`)
- * via the loader at `codex-rs/core-skills/src/loader.rs`.
+ * OpenCode discovers skills (the open Agent Skills format: SKILL.md + optional
+ * siblings) natively from `.opencode/skills/<name>/`, walking up from the cwd to
+ * the git worktree (see opencode.ai/docs/skills). It ALSO reads `.claude/skills`
+ * and `.agents/skills`, but Lisa writes into the OpenCode-owned `.opencode/`
+ * tree so its artifacts never collide with a Claude install on the same machine
+ * (OpenCode dedupes duplicate skill names with a warning — verified-by-run on
+ * opencode 1.16.2).
  *
  * What this installs:
- *   1. Lisa-bundled skill folders from `plugins/<p>/skills/<n>/` are copied
- *      verbatim to `.codex/skills/lisa/<n>/`.
- *   2. Lisa commands (e.g., `plugins/lisa/commands/fix.md`) are converted
- *      to skills since Codex has no first-class slash-command extension
- *      point. A command at `commands/jira/create.md` becomes a skill named
- *      `lisa-jira-create` invocable via `$lisa-jira-create`.
+ *   1. Lisa-bundled skill folders from `plugins/<p>/skills/<n>/` copied verbatim
+ *      to `.opencode/skills/lisa/<n>/` (OpenCode reads SKILL.md verbatim — no
+ *      transform needed, unlike the Codex TOML/openai.yaml path).
+ *   2. Lisa commands converted to skills with a `lisa-` prefix, since the safest
+ *      cross-runtime carrier for a Lisa command is a self-complete skill.
  *
- * The lisa-namespace prefix ensures Lisa's commands-as-skills don't collide
- * with same-named skills (e.g., Lisa's `fix.md` command + Lisa's existing
- * `fix` skill if one ever existed).
- *
- * Source discovery (walking the plugin tree, dedup, denylist) is shared with
- * the OpenCode overlay via `core/lisa-skill-sources`; only the copy/stale/
- * target-directory logic is Codex-specific and lives here.
- * @module codex/skills-installer
+ * Source discovery (walking the plugin tree, dedup, denylist) is shared with the
+ * Codex overlay via `core/lisa-skill-sources`.
+ * @module opencode/skills-installer
  */
 import * as fse from "fs-extra";
 import { mkdir, copyFile, readFile, rm, writeFile } from "node:fs/promises";
@@ -32,21 +30,22 @@ import {
   discoverLisaCommands,
   loadSkillDenylist,
 } from "../core/lisa-skill-sources.js";
-import { convertCommandToSkill } from "./command-skill-transformer.js";
+import { convertCommandToSkill } from "../codex/command-skill-transformer.js";
+import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 
-export { convertCommandToSkill } from "./command-skill-transformer.js";
-export { LISA_COMMAND_SKILL_PREFIX } from "../core/lisa-skill-sources.js";
+/** Runtime label threaded into generated command-as-skill compatibility notes */
+const OPENCODE_RUNTIME_LABEL = "OpenCode";
 
-/** Subdirectory inside `.codex/skills/` where Lisa-owned skills live */
+/** Subdirectory inside `.opencode/skills/` where Lisa-owned skills live */
 export const LISA_SKILLS_SUBDIR = path.join("skills", "lisa");
 
 /** Filename of the skill manifest at the root of every skill folder */
 const SKILL_MD_FILENAME = "SKILL.md";
 
-/** Path to the Codex skill distribution policy, relative to the Lisa root */
-const INTERNAL_CODEX_SKILL_POLICY_RELATIVE_PATH = path.join(
+/** Path to the OpenCode skill distribution policy, relative to the Lisa root */
+const INTERNAL_OPENCODE_SKILL_POLICY_RELATIVE_PATH = path.join(
   "scripts",
-  "internal-codex-skill-policy.json"
+  "internal-opencode-skill-policy.json"
 );
 
 /** Result of one skill copy */
@@ -55,7 +54,7 @@ export interface InstalledSkill {
   readonly name: string;
   /** Source kind: bundled skill folder or generated from command */
   readonly source: "bundled" | "command";
-  /** Path written, relative to `.codex/` */
+  /** Path written, relative to `.opencode/` */
   readonly relativePath: string;
 }
 
@@ -68,27 +67,27 @@ export interface SkillsInstallResult {
 }
 
 /**
- * Install all Lisa-bundled skills + command-derived skills.
+ * Install all Lisa-bundled skills + command-derived skills into
+ * `.opencode/skills/lisa/`.
  *
- * Stale skills (in the previous manifest but no longer in Lisa's catalog)
- * are deleted from `.codex/skills/lisa/` so renames in the source tree
- * don't leave orphan directories behind.
- * @param lisaDir - Absolute path to the Lisa repo root
- * @param destDir - Absolute path to the host project root
+ * Stale skills (in the previous manifest but no longer in Lisa's catalog) are
+ * deleted so renames in the source tree don't leave orphan directories behind.
+ * @param lisaDir - Absolute path to the Lisa repo root.
+ * @param destDir - Absolute path to the host project root.
  * @param previousManagedFiles - Files Lisa managed on the previous run
- *   (relative to `.codex/`); used to detect stale skill directories
- * @returns Result describing installed skills + managed files + deletions
+ *   (relative to `.opencode/`); used to detect stale skill directories.
+ * @returns Result describing installed skills + managed files + deletions.
  */
 export async function installSkills(
   lisaDir: string,
   destDir: string,
   previousManagedFiles: readonly string[]
 ): Promise<SkillsInstallResult> {
-  const skillsDir = path.join(destDir, ".codex", LISA_SKILLS_SUBDIR);
+  const skillsDir = path.join(destDir, OPENCODE_CONFIG_DIR, LISA_SKILLS_SUBDIR);
   await fse.ensureDir(skillsDir);
   const denylistedSkills = await loadSkillDenylist(
     lisaDir,
-    INTERNAL_CODEX_SKILL_POLICY_RELATIVE_PATH
+    INTERNAL_OPENCODE_SKILL_POLICY_RELATIVE_PATH
   );
 
   // Step 1: bundled skills
@@ -131,18 +130,18 @@ export async function installSkills(
 }
 
 /**
- * Delete skill directories that were Lisa-managed last run but aren't
- * shipped this run. Identifies skill names from the previous manifest by
- * looking for paths inside `.codex/skills/lisa/<name>/...`.
+ * Delete skill directories that were Lisa-managed last run but aren't shipped
+ * this run. Identifies skill names from the previous manifest by looking for
+ * paths inside `.opencode/skills/lisa/<name>/...`.
  *
  * Whole directories are removed (not individual files) so siblings the host
- * accidentally added inside a Lisa skill folder also disappear — Lisa owns
- * the directory boundary, not just specific files.
+ * accidentally added inside a Lisa skill folder also disappear — Lisa owns the
+ * directory boundary, not just specific files.
  * @param previousManagedFiles - Files Lisa managed on the previous run
- *   (relative to `.codex/`)
- * @param currentSkillNames - Skill names Lisa is shipping this run
- * @param destDir - Absolute path to the host project root
- * @returns Sorted list of stale skill names that were deleted
+ *   (relative to `.opencode/`).
+ * @param currentSkillNames - Skill names Lisa is shipping this run.
+ * @param destDir - Absolute path to the host project root.
+ * @returns Sorted list of stale skill names that were deleted.
  */
 async function deleteStaleSkills(
   previousManagedFiles: readonly string[],
@@ -157,7 +156,12 @@ async function deleteStaleSkills(
   const stale = previousSkillNames.filter(name => !currentSkillNames.has(name));
   await Promise.all(
     stale.map(async name => {
-      const absPath = path.join(destDir, ".codex", LISA_SKILLS_SUBDIR, name);
+      const absPath = path.join(
+        destDir,
+        OPENCODE_CONFIG_DIR,
+        LISA_SKILLS_SUBDIR,
+        name
+      );
       if (await fse.pathExists(absPath)) {
         await rm(absPath, { recursive: true, force: true });
       }
@@ -167,12 +171,11 @@ async function deleteStaleSkills(
 }
 
 /**
- * Pick the unique skill-folder names out of the previous manifest's file
- * list — every path inside `.codex/skills/lisa/<name>/...` contributes
- * `<name>` to the result.
- * @param previousManagedFiles - Files Lisa managed on the previous run
- * @param lisaSkillsPrefix - The path prefix that identifies Lisa skill files
- * @returns Unique skill names extracted from those paths
+ * Pick the unique skill-folder names out of the previous manifest's file list —
+ * every path inside `.opencode/skills/lisa/<name>/...` contributes `<name>`.
+ * @param previousManagedFiles - Files Lisa managed on the previous run.
+ * @param lisaSkillsPrefix - The path prefix that identifies Lisa skill files.
+ * @returns Unique skill names extracted from those paths.
  */
 function extractPreviousSkillNames(
   previousManagedFiles: readonly string[],
@@ -186,16 +189,20 @@ function extractPreviousSkillNames(
 }
 
 /**
- * Copy one bundled skill folder verbatim into the host's `.codex/skills/lisa/`.
- * @param source - Bundled-skill source to copy
- * @param skillsDir - Absolute path to `<destDir>/.codex/skills/lisa/`
- * @returns Result describing the installed skill
+ * Copy one bundled skill folder verbatim into `.opencode/skills/lisa/`.
+ * @param source - Bundled-skill source to copy.
+ * @param skillsDir - Absolute path to `<destDir>/.opencode/skills/lisa/`.
+ * @returns Result describing the installed skill.
  */
 async function copyBundledSkill(
   source: BundledSkillSource,
   skillsDir: string
 ): Promise<InstalledSkill> {
   const destSkillDir = path.join(skillsDir, source.skillName);
+  // Clean-replace the Lisa-owned skill folder before copying so files removed
+  // from the source between releases don't linger inside a surviving skill.
+  // Lisa owns this directory boundary (host customizations belong outside it).
+  await rm(destSkillDir, { recursive: true, force: true });
   await fse.ensureDir(destSkillDir);
   await Promise.all(
     source.files.map(async file => {
@@ -213,14 +220,13 @@ async function copyBundledSkill(
 }
 
 /**
- * Convert a Lisa command Markdown file into a Codex skill.
+ * Convert a Lisa command Markdown file into an OpenCode skill.
  *
- * The command's frontmatter becomes skill metadata plus a compatibility note.
  * The command body becomes the skill body, with `$ARGUMENTS` replaced by an
  * explicit instruction to use the user's surrounding request as arguments.
- * @param cmd - Discovered command source
- * @param skillsDir - Absolute path to `<destDir>/.codex/skills/lisa/`
- * @returns Result describing the installed (command-derived) skill
+ * @param cmd - Discovered command source.
+ * @param skillsDir - Absolute path to `<destDir>/.opencode/skills/lisa/`.
+ * @returns Result describing the installed (command-derived) skill.
  */
 async function emitCommandAsSkill(
   cmd: LisaCommandSource,
@@ -230,7 +236,8 @@ async function emitCommandAsSkill(
   const skillContent = convertCommandToSkill(
     sourceContent,
     cmd.skillName,
-    cmd.displayName
+    cmd.displayName,
+    OPENCODE_RUNTIME_LABEL
   );
   const destSkillDir = path.join(skillsDir, cmd.skillName);
   await fse.ensureDir(destSkillDir);
