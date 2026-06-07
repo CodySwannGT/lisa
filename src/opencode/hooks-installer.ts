@@ -30,17 +30,21 @@ import * as fse from "fs-extra";
 import { copyFile, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  applyEdits,
+  modify,
+  parse as parseJsonc,
+  type ParseError,
+} from "jsonc-parser";
 import type { ProjectType } from "../core/config.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
+import { OPENCODE_SCHEMA_URL } from "./settings-installer.js";
 
 /** Subdirectory inside `.opencode/` where OpenCode discovers project plugins */
 export const OPENCODE_PLUGIN_SUBDIR = "plugin";
 
 /** Filename of the OpenCode project config merged at the host root */
 export const OPENCODE_CONFIG_FILENAME = "opencode.json";
-
-/** JSON Schema URL stamped into a freshly created `opencode.json` */
-const OPENCODE_CONFIG_SCHEMA = "https://opencode.ai/config.json";
 
 /** Prefix every Lisa-managed plugin filename carries (used for stale cleanup) */
 const LISA_PLUGIN_PREFIX = "lisa-";
@@ -242,75 +246,148 @@ async function deleteStalePlugins(
   return Object.freeze([...new Set(stale)].sort((a, b) => a.localeCompare(b)));
 }
 
+/** JSONC edit formatting — 2-space indent, matching the repo's JSON style. */
+const FORMATTING_OPTIONS = {
+  formattingOptions: { tabSize: 2, insertSpaces: true },
+} as const;
+
 /**
  * Merge Lisa's `permission.bash` deny rules into the host's `opencode.json`,
- * preserving every other key. Creates the file (with `$schema`) when absent.
+ * preserving every other key, comment, and formatting choice. Creates the file
+ * (with `$schema`) when absent.
  *
- * A host `permission.bash` set to a bare string (e.g. `"allow"`) is preserved by
- * re-seeding it as a `{ "*": <string> }` catch-all before adding the deny
- * patterns, so the host's posture survives. The deny patterns are spread LAST so
- * they win OpenCode's most-specific/last-match evaluation.
+ * Edits the document surgically via `jsonc-parser` — the same host-preserving
+ * approach the sibling OpenCode settings/MCP installers use, so the three
+ * writers compose into one `opencode.json` without clobbering each other or a
+ * host's JSONC comments.
  * @param destDir - Absolute path to the host project root.
  * @returns Whether the config file was created (vs merged into an existing one).
  */
 async function mergeOpencodeConfig(destDir: string): Promise<boolean> {
   const configPath = path.join(destDir, OPENCODE_CONFIG_FILENAME);
-  const existingRaw = (await fse.pathExists(configPath))
-    ? await readFile(configPath, "utf8")
-    : null;
-  const created = existingRaw === null;
-  const config = parseConfigObject(existingRaw, configPath);
-
-  const permission = isPlainObject(config["permission"])
-    ? config["permission"]
-    : {};
-  const existingBash = permission["bash"];
-  const bashBase =
-    typeof existingBash === "string"
-      ? { "*": existingBash }
-      : isPlainObject(existingBash)
-        ? existingBash
-        : {};
-
-  // Build the merged config immutably (functional/immutable-data): a leading
-  // `$schema` provides the default, the `...config` spread overrides it with the
-  // host's own value when present, and `permission` is overridden last so the
-  // deny patterns survive.
-  const merged: Record<string, unknown> = {
-    $schema: OPENCODE_CONFIG_SCHEMA,
-    ...config,
-    permission: {
-      ...permission,
-      bash: { ...bashBase, ...NO_VERIFY_DENY_PATTERNS },
-    },
-  };
-
-  await writeFile(configPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
-  return created;
+  const exists = await fse.pathExists(configPath);
+  const existing = exists ? await readFile(configPath, "utf8") : "";
+  await writeFile(configPath, mergeNoVerifyDenyRules(existing), "utf8");
+  return !exists;
 }
 
 /**
- * Parse an existing `opencode.json` body into a mutable object. Throws on
- * malformed JSON (so a corrupt config is surfaced, not silently overwritten);
- * returns a fresh object when the file is absent.
- * @param raw - File contents, or null when the file doesn't exist.
- * @param configPath - Path used in error messages.
- * @returns A shallow-mutable record to merge into.
+ * Merge the `block-no-verify` deny globs into an `opencode.json` (JSONC) body.
+ * Pure function for testability; `mergeOpencodeConfig` is the I/O wrapper.
+ *
+ * Empty input yields a clean Lisa-authored document. A host `permission.bash`
+ * set to a bare string (e.g. `"allow"`) is re-seeded as a `{ "*": <string> }`
+ * catch-all so the host's posture survives alongside the deny rules. Otherwise
+ * each deny glob is added as its own key, preserving host bash patterns. `$schema`
+ * is set only when absent. Throws on invalid JSONC so a corrupt host file is
+ * surfaced, not silently overwritten.
+ * @param existingJsonc - Current contents of `opencode.json` (or "").
+ * @returns Merged JSON/JSONC string with host content preserved.
  */
-function parseConfigObject(
-  raw: string | null,
-  configPath: string
-): Record<string, unknown> {
-  if (raw === null || raw.trim() === "") {
-    return {};
+export function mergeNoVerifyDenyRules(existingJsonc: string): string {
+  if (existingJsonc.trim().length === 0) {
+    const fresh = {
+      $schema: OPENCODE_SCHEMA_URL,
+      permission: { bash: { ...NO_VERIFY_DENY_PATTERNS } },
+    };
+    return `${JSON.stringify(fresh, null, 2)}\n`;
   }
-  const parsed: unknown = JSON.parse(raw);
-  if (!isPlainObject(parsed)) {
+
+  const current = parseJsoncOrThrow(existingJsonc);
+  const permission = isPlainObject(current["permission"])
+    ? current["permission"]
+    : {};
+  const existingBash = permission["bash"];
+
+  const withBash =
+    typeof existingBash === "string"
+      ? // Replace the whole string posture with an object that keeps it as the
+        // catch-all and adds the deny globs.
+        upsertKey(
+          existingJsonc,
+          ["permission", "bash"],
+          { "*": existingBash, ...NO_VERIFY_DENY_PATTERNS },
+          undefined
+        )
+      : addDenyGlobs(
+          existingJsonc,
+          isPlainObject(existingBash) ? existingBash : undefined
+        );
+
+  const withSchema =
+    current["$schema"] === undefined
+      ? upsertKey(withBash, ["$schema"], OPENCODE_SCHEMA_URL, undefined)
+      : withBash;
+
+  return withSchema.endsWith("\n") ? withSchema : `${withSchema}\n`;
+}
+
+/**
+ * Add each deny glob under `permission.bash` as an individual key, preserving
+ * any host bash patterns (and their comments) already present.
+ * @param text - Current document text.
+ * @param currentBash - The host's `permission.bash` object, if any.
+ * @returns The edited document text.
+ */
+function addDenyGlobs(
+  text: string,
+  currentBash: Record<string, unknown> | undefined
+): string {
+  return Object.entries(NO_VERIFY_DENY_PATTERNS).reduce(
+    (acc, [pattern, value]) =>
+      upsertKey(
+        acc,
+        ["permission", "bash", pattern],
+        value,
+        currentBash?.[pattern]
+      ),
+    text
+  );
+}
+
+/**
+ * Set `value` at `keyPath` via a surgical JSONC edit, skipping the write when
+ * the document already holds that value (keeps re-runs no-op-clean).
+ * @param text - Current document text.
+ * @param keyPath - JSON path to the key.
+ * @param value - Value to set.
+ * @param currentValue - The value already present at `keyPath` (or undefined).
+ * @returns The edited document text.
+ */
+function upsertKey(
+  text: string,
+  keyPath: readonly (string | number)[],
+  value: unknown,
+  currentValue: unknown
+): string {
+  if (currentValue === value) {
+    return text;
+  }
+  const edits = modify(text, [...keyPath], value, FORMATTING_OPTIONS);
+  return applyEdits(text, edits);
+}
+
+/**
+ * Parse JSONC, throwing on the first syntax error so a corrupt host config is
+ * surfaced rather than silently clobbered. Comments and trailing commas are
+ * tolerated (OpenCode permits both).
+ * @param jsonc - Raw `opencode.json` contents.
+ * @returns The parsed object (empty object if the root is a non-object).
+ */
+function parseJsoncOrThrow(jsonc: string): Record<string, unknown> {
+  const errors: ParseError[] = [];
+  const parsed = parseJsonc(jsonc, errors, {
+    allowTrailingComma: true,
+    disallowComments: false,
+  }) as unknown;
+  if (errors.length > 0) {
     throw new Error(
-      `Invalid ${OPENCODE_CONFIG_FILENAME} at ${configPath}: expected a JSON object`
+      `Invalid ${OPENCODE_CONFIG_FILENAME} (JSONC syntax error at offset ${
+        errors[0]?.offset ?? 0
+      }); refusing to overwrite host config`
     );
   }
-  return { ...parsed };
+  return isPlainObject(parsed) ? parsed : {};
 }
 
 /**
