@@ -20,16 +20,26 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260606T230012Z` created from synced `origin/main`
-- HEAD at 2026-06-06 incremental ingest: `be05afd1aab2a49cd10f897f4e32341d28212ddc`
-- Current package version: `2.145.0`
-- Total commits on HEAD: 2914
-- Latest merged PR captured in the incremental git snapshot: `#1184`
-- New commits since the previous incremental git cursor: `50`
+- Ingest branch: `wiki/ingest-20260607T030131Z` created from synced `origin/main`
+- HEAD at 2026-06-07 incremental ingest: `f0344778db527ff4eef004128d1c75761776c03b`
+- Current package version: `2.147.0`
+- Total commits on HEAD: 2935
+- Latest merged PR captured in the incremental git snapshot: `#1187`
+- New commits since the previous incremental git cursor: `21`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.147.0`.
+- PR `#1178` hardened wiki redaction policy validation after the connector sanitization and redacted-ingest review work.
+- Release automation advanced the monorepo through `2.146.1`.
+- PR `#1187` stopped shipping the legacy `.safety-net.json` shape that is incompatible with `cc-safety-net` `1.0.1`; the install path now fingerprints legacy config with `jq`.
+- PR `#1179` added portable connector source sanitization coverage.
+- Release automation advanced the monorepo to `2.146.0`.
+- PR `#1186` made ESLint ignore `.lisa.config.json` as config data rather than source code.
+- Release automation advanced the monorepo through `2.145.2`.
+- PR `#1185` merged the prior wiki ingestion through Lisa `2.145.0`.
+- Release automation advanced the monorepo to `2.145.1`.
 - PR `#1184` requires human review for redacted wiki ingests by centralizing publication policy in `wiki-safety.mjs`; auto-merge stays disabled for redacted, sensitive, or external-write runs even when the source note is sanitized.
 - Release automation advanced the monorepo to `2.145.0`.
 - PR `#1183` makes `lisa apply` ensure every managed project has a `.lisa.config.json`, keeping project config present even when older installs or source-less repositories lack one.
