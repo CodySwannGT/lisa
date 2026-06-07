@@ -19,6 +19,11 @@ Use `channels.telegram.groups` for a single-account Telegram setup. If the OpenC
 `channels.telegram.accounts.<account-id>.groups.<telegram-supergroup-id>`; account-scoped Telegram
 configs do not inherit root group routes.
 
+Account-scoped topic `agentId` routes require an OpenClaw runtime that treats the topic agent as an
+explicit group route for non-default Telegram accounts. If a real Telegram topic test reaches the bot
+but logs `drop non-default account requires explicit binding`, update or rebuild OpenClaw before
+adding config workarounds; the topic `agentId` is the intended route.
+
 ### Single-account route
 
 ```json5
