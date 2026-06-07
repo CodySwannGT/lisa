@@ -1,12 +1,12 @@
 import { type Command, InvalidArgumentError } from "commander";
 import type { Harness } from "../core/config.js";
-import { HARNESS_VALUES } from "../core/config.js";
+import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { GitService } from "../core/git-service.js";
 import type { LisaDependencies } from "../core/lisa.js";
 import { DetectorRegistry } from "../detection/index.js";
 import type { ConsoleLogger } from "../logging/index.js";
 import { MigrationRegistry } from "../migrations/index.js";
-import { isHarness } from "../core/project-config.js";
+import { normalizeHarness } from "../core/project-config.js";
 import { StrategyRegistry } from "../strategies/index.js";
 import { BackupService, DryRunBackupService } from "../transaction/index.js";
 import { createPrompter } from "./prompts.js";
@@ -31,13 +31,14 @@ export interface CLIOptions {
  * @returns The validated harness
  */
 export function parseHarnessArg(value: string): Harness {
-  if (!isHarness(value)) {
-    const allowed = HARNESS_VALUES.join(" | ");
+  const normalized = normalizeHarness(value);
+  if (normalized === undefined) {
+    const allowed = ACCEPTED_HARNESS_INPUTS.join(" | ");
     throw new InvalidArgumentError(
       `expected ${allowed}, got ${JSON.stringify(value)}`
     );
   }
-  return value;
+  return normalized;
 }
 
 /**
@@ -63,7 +64,7 @@ export function addSharedOptions(command: Command): Command {
     )
     .option(
       "--harness <harness>",
-      `Target harness for emitted artifacts: ${HARNESS_VALUES.join(" | ")} (default: claude, or value from .lisa.config.json)`,
+      `Target harness for emitted artifacts: ${ACCEPTED_HARNESS_INPUTS.join(" | ")} (default: claude, or value from .lisa.config.json)`,
       parseHarnessArg
     );
 }
