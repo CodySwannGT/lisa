@@ -132,9 +132,15 @@ fi
 # here — but ONLY the Lisa-shipped file (identified by its marker rule name), so a
 # project's own hand-authored `.safety-net.json` is never touched.
 LEGACY_SAFETY_NET="$PROJECT_ROOT/.safety-net.json"
-if [ -f "$LEGACY_SAFETY_NET" ] && grep -q '"block-git-commit-no-verify"' "$LEGACY_SAFETY_NET" 2>/dev/null; then
-  rm -f "$LEGACY_SAFETY_NET" \
-    && echo "Removed legacy .safety-net.json (incompatible with cc-safety-net >=1.0.0; using built-in + Lisa-native guards)."
+if [ -f "$LEGACY_SAFETY_NET" ] && command -v jq >/dev/null 2>&1; then
+  if jq -e '
+    (.rules | type == "array")
+    and ([.rules[]?.name] | index("block-git-commit-no-verify") != null)
+    and ([.rules[]?.name] | index("block-git-push-no-verify") != null)
+  ' "$LEGACY_SAFETY_NET" >/dev/null 2>&1; then
+    rm -f "$LEGACY_SAFETY_NET" \
+      && echo "Removed legacy .safety-net.json (incompatible with cc-safety-net >=1.0.0; using built-in + Lisa-native guards)."
+  fi
 fi
 
 # Install plugins only when claude CLI is available
