@@ -10,8 +10,8 @@ import { writeSanitizedSourceNote } from "../../../plugins/src/wiki/scripts/_wik
 const FIXTURE_SECRET = "sk_test_abcdefghijklmnopqrstuvwxyz";
 const API_KEY_PLACEHOLDER = "api_key = [REDACTED:API_KEY]";
 const GIT_BIN = "/usr/bin/git";
-const PYTHON_BIN =
-  "/Users/cody/.local/share/mise/installs/python/3.14.3/bin/python3";
+const PYTHON_BIN = process.env.PYTHON ?? "python3";
+const CLEAN_GIT_ENV = cleanGitEnv();
 
 describe("lisa-wiki connector source sanitization (#1171)", () => {
   let tmp: string;
@@ -27,17 +27,24 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
   it("sanitizes git source notes immediately before writing wiki/sources", () => {
     const repo = path.join(tmp, "repo");
     fs.mkdirSync(repo);
-    execFileSync(GIT_BIN, ["init"], { cwd: repo });
+    execFileSync(GIT_BIN, ["init"], { cwd: repo, env: CLEAN_GIT_ENV });
     execFileSync(GIT_BIN, ["config", "user.email", "test@example.com"], {
       cwd: repo,
+      env: CLEAN_GIT_ENV,
     });
-    execFileSync(GIT_BIN, ["config", "user.name", "Test User"], { cwd: repo });
+    execFileSync(GIT_BIN, ["config", "user.name", "Test User"], {
+      cwd: repo,
+      env: CLEAN_GIT_ENV,
+    });
     fs.writeFileSync(path.join(repo, "README.md"), "fixture\n");
-    execFileSync(GIT_BIN, ["add", "README.md"], { cwd: repo });
+    execFileSync(GIT_BIN, ["add", "README.md"], {
+      cwd: repo,
+      env: CLEAN_GIT_ENV,
+    });
     execFileSync(
       GIT_BIN,
       ["commit", "-m", `record fixture api_key = ${FIXTURE_SECRET}`],
-      { cwd: repo }
+      { cwd: repo, env: CLEAN_GIT_ENV }
     );
 
     const sourceDir = path.join(tmp, "wiki", "sources", "git");
@@ -55,7 +62,7 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
         "--emit-meta",
         metaPath,
       ],
-      { cwd: tmp }
+      { cwd: tmp, env: CLEAN_GIT_ENV }
     );
 
     const note = fs.readFileSync(
@@ -153,6 +160,7 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
       { encoding: "utf8" }
     );
 
+    expect(result.error).toBeUndefined();
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("[REDACTED:OAUTH_TOKEN]");
     expect(result.stdout).toContain("[REDACTED:SSN]");
@@ -184,3 +192,16 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
     expect(note).not.toContain(FIXTURE_SECRET);
   });
 });
+
+/**
+ * Remove parent-hook Git environment so fixture commands use the temp repo.
+ *
+ * @returns Process environment for nested Git commands.
+ */
+function cleanGitEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, GIT_CONFIG_NOSYSTEM: "1" };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  delete env.GIT_INDEX_FILE;
+  return env;
+}
