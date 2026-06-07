@@ -1,5 +1,9 @@
 import { Command } from "commander";
 import { runApply } from "./apply.js";
+import {
+  type CrossPollinateOptions,
+  runCrossPollinate,
+} from "./cross-pollinate-cmd.js";
 import { runDoctor } from "./doctor.js";
 import { printUpdateWarning } from "./print-update-warning.js";
 import { runSetupProject } from "./setup-project.js";
@@ -29,6 +33,8 @@ export interface ProgramDependencies {
   runUpdate: typeof runUpdate;
   /** Diagnoses Lisa project health. */
   runDoctor: typeof runDoctor;
+  /** Cross-pollinates locally-authored agent definitions across the fleet. */
+  runCrossPollinate: typeof runCrossPollinate;
   /** Runs the non-fatal npm update check (defaults to {@link runUpdateCheck}). */
   runUpdateCheck: typeof runUpdateCheck;
   /** Prints the update warning (defaults to {@link printUpdateWarning}). */
@@ -42,6 +48,7 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runVersion,
   runUpdate,
   runDoctor,
+  runCrossPollinate,
   runUpdateCheck,
   printUpdateWarning,
 };
@@ -85,6 +92,22 @@ function addMaintenanceCommands(
     .action(async (targetPath: string | undefined, options) => {
       await deps.runDoctor(targetPath, options);
     });
+
+  program
+    .command("cross-pollinate")
+    .description(
+      "Make locally-authored agent definitions available to the other agents this project supports"
+    )
+    .argument("[path]", "Project path (default: current directory)")
+    .option("--write", "Apply emits and update the lockfile (default: dry-run)")
+    .action(
+      async (
+        targetPath: string | undefined,
+        options: CrossPollinateOptions
+      ) => {
+        await deps.runCrossPollinate(targetPath, options);
+      }
+    );
 
   return program;
 }
