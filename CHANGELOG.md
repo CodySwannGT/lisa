@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.152.1](https://github.com/CodySwannGT/lisa/compare/vv2.152.0...v2.152.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **codex:** exclude per-harness variant plugins from agent discovery ([326a785](https://github.com/CodySwannGT/lisa/commit/326a78572413a80d757164f31f101e2d4b831d15)), closes [#1203](https://github.com/CodySwannGT/lisa/issues/1203)
+* **repair-intake:** recover merged-PR leaves staleness-exempt and before rollup ([96c9ace](https://github.com/CodySwannGT/lisa/commit/96c9ace05ea702a678dbbb155d1f1e032ae4b78f)), closes [#1171-1174](https://github.com/CodySwannGT/lisa/issues/1171-1174) [#707](https://github.com/CodySwannGT/lisa/issues/707)
+
 ## [2.152.0](https://github.com/CodySwannGT/lisa/compare/vv2.151.0...v2.152.0) (2026-06-07)
 
 
