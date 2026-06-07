@@ -14,6 +14,13 @@ all unrelated agents, channels, routes, and tokens.
 
 ## Telegram — facilitator topic route
 
+Use `channels.telegram.groups` for a single-account Telegram setup. If the OpenClaw config has
+`channels.telegram.accounts`, put the route under the owning bot account at
+`channels.telegram.accounts.<account-id>.groups.<telegram-supergroup-id>`; account-scoped Telegram
+configs do not inherit root group routes.
+
+### Single-account route
+
 ```json5
 {
   "channels": {
@@ -27,6 +34,34 @@ all unrelated agents, channels, routes, and tokens.
             "<facilitator-topic-id>": {
               "agentId": "<facilitator-agent-id>",
               "requireMention": true
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Multi-account route
+
+```json5
+{
+  "channels": {
+    "telegram": {
+      "accounts": {
+        "<account-id>": {
+          "groups": {
+            "<telegram-supergroup-id>": {
+              "groupPolicy": "allowlist",
+              "requireMention": true,
+              "allowFrom": ["<telegram-user-id>"],
+              "topics": {
+                "<facilitator-topic-id>": {
+                  "agentId": "<facilitator-agent-id>",
+                  "requireMention": true
+                }
+              }
             }
           }
         }

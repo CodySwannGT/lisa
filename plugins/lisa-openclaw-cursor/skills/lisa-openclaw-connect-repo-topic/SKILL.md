@@ -101,18 +101,28 @@ The worker prepares the safe target and launches the CLI; it does not edit files
 
 ### 6. Bind the topic
 
-Route the topic to the dispatcher: set
-`channels.telegram.groups.<group-id>.topics.<topic-id>.agentId = <topic-slug>-dispatch`, keep
-allowlist policy, and add `allowFrom` only when membership must be narrower than the group. Leave the
-topic-level `requireMention = false` (the default) so the agent activates on any message — the topic
-is bound 1:1 to this dispatcher, so an @mention carries no routing information and is pure friction.
-Set it to `true` only for a shared-workspace topic where humans also coordinate with each other and
-you don't want every line to spawn a run; the group-level `requireMention` stays `true` regardless.
-See "Mention gating" in [references/repo-topic-config.md](references/repo-topic-config.md) for the
-tradeoff. The topic `systemPrompt` must state the scope mode, treat each native-reply
-root as an independent request context, confirm repo selection only in folder-scoped mode, spawn the
-worker with an explicit repo path, and return the worker result to the topic. Back up
-`~/.openclaw/openclaw.json` before editing and preserve unrelated routes.
+Route the topic to the dispatcher. In single-account Telegram configs, set
+`channels.telegram.groups.<group-id>.topics.<topic-id>.agentId = <topic-slug>-dispatch`. In
+multi-account Telegram configs, set the same route under the owning bot account:
+`channels.telegram.accounts.<account-id>.groups.<group-id>.topics.<topic-id>.agentId =
+<topic-slug>-dispatch`. Account configs do not inherit root `channels.telegram.groups` routes, so a
+root-only route can validate while the actual bot still ignores the topic-level `requireMention`,
+`agentId`, and prompt. When in doubt, mirror the route under the owning account and keep any existing
+root group route only as a fallback/documentation shape.
+
+Keep allowlist policy, and add `allowFrom` only when membership must be narrower than the group.
+Leave the topic-level `requireMention = false` (the default) so the agent activates on any message —
+the topic is bound 1:1 to this dispatcher, so an @mention carries no routing information and is pure
+friction. Set it to `true` only for a shared-workspace topic where humans also coordinate with each
+other and you don't want every line to spawn a run; the group-level `requireMention` stays `true`
+regardless. See "Mention gating" in [references/repo-topic-config.md](references/repo-topic-config.md)
+for the tradeoff. The topic `systemPrompt` must state the scope mode, treat each native-reply root as
+an independent request context, confirm repo selection only in folder-scoped mode, spawn the worker
+with an explicit repo path, and return the worker result to the topic. If the route may return
+generated files, the prompt must also say to write or copy returnable artifacts under
+`~/.openclaw/media` before calling `message(action="send")`, because outbound local media delivery
+rejects arbitrary `/tmp` paths. Back up `~/.openclaw/openclaw.json` before editing and preserve
+unrelated routes.
 
 ### 7. Validate + self-test
 
