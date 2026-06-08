@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.155.3](https://github.com/CodySwannGT/lisa/compare/vv2.155.2...v2.155.3) (2026-06-08)
+
+
+### Bug Fixes
+
+* **sync-down:** no-op chain when all deploy.branches collapse to one branch ([38ff0ac](https://github.com/CodySwannGT/lisa/commit/38ff0ace32b1937e82d5a498f8c405038d2869fd))
+
 ### [2.155.2](https://github.com/CodySwannGT/lisa/compare/vv2.155.1...v2.155.2) (2026-06-08)
 
 
