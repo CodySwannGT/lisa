@@ -76,7 +76,9 @@ derive_chain() {
   jq -e -r '
     (.deploy.branches // {}) as $b | (.deploy.order // []) as $o
     | ($b|keys|sort) as $bk | ($o|sort) as $ok
-    | if ($b|length)<=1 then "{}" elif ($o|length)==0 then "ERR_NO_ORDER"
+    | if ($b|length)<=1 then "{}"
+      elif (($b|[.[]]|unique|length)<=1) then "{}"
+      elif ($o|length)==0 then "ERR_NO_ORDER"
       elif ($bk!=$ok) then "ERR_MISMATCH"
       else ($o|reverse) as $hl
         | [ range(0;($hl|length)-1) | {($b[$hl[.]]):$b[$hl[.+1]]} ] | add | tojson end
