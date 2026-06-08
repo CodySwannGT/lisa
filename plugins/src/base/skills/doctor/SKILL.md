@@ -104,8 +104,12 @@ this order:
 6. **Deploy env-order audit** (only when `deploy.branches` is present)
    - `PASS` (or skip) when `deploy.branches` defines a single environment — `deploy.order` is
      optional and the back-sync chain is empty.
-   - `WARN` when `deploy.branches` defines **more than one** environment but `deploy.order` is
-     absent. Config-driven back-sync (`reusable-claude-sync-down-branches.yml`) cannot derive a
+   - `PASS` (or skip) when `deploy.branches` defines multiple environments that all map to the
+     **same** branch (e.g. `dev`/`staging`/`production` all → `main`). The branches resolve to a
+     single distinct branch, so there is nothing to back-sync, the chain is the empty no-op, and
+     `deploy.order` is not required. Do not WARN.
+   - `WARN` when `deploy.branches` resolves to **more than one distinct** branch but `deploy.order`
+     is absent. Config-driven back-sync (`reusable-claude-sync-down-branches.yml`) cannot derive a
      source→target chain without the env ranking; the repo must either add `deploy.order`
      (low→high, e.g. `["dev","staging","production"]`) or pass an explicit `chain` in its
      `claude-sync-down-branches.yml` wrapper. WARN not FAIL because the explicit-chain override is
