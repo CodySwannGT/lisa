@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.155.4](https://github.com/CodySwannGT/lisa/compare/vv2.155.3...v2.155.4) (2026-06-08)
+
+
+### Bug Fixes
+
+* **typescript:** ignore .opencode overlay in eslint/prettier gates ([8c8bc51](https://github.com/CodySwannGT/lisa/commit/8c8bc5163969a2c595ae86d238ebb5f0f6edb2bb))
+
 ### [2.155.3](https://github.com/CodySwannGT/lisa/compare/vv2.155.2...v2.155.3) (2026-06-08)
 
 
