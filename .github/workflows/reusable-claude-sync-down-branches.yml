@@ -62,6 +62,12 @@ jobs:
           # next-lower env's branch via `deploy.branches`. This is the inverse of
           # the promotion order: a hotfix landing on the production branch
           # back-syncs to staging, staging back-syncs to dev.
+          #
+          # If every environment maps to the SAME branch (e.g. dev/staging/
+          # production all -> main, a single-branch repo), there is nothing to
+          # back-sync: the chain is the empty no-op `{}` and `deploy.order` is
+          # not required. `deploy.order` is only needed when `deploy.branches`
+          # resolves to more than one DISTINCT branch.
           if [ ! -f .lisa.config.json ]; then
             echo "::error::No chain input and no .lisa.config.json found — cannot derive a sync chain. Pass the chain input explicitly or add deploy.order + deploy.branches to .lisa.config.json."
             exit 1
@@ -72,6 +78,7 @@ jobs:
             | ($b | keys | sort) as $bk
             | ($o | sort) as $ok
             | if ($b | length) <= 1 then "{}"
+              elif (($b | [.[]] | unique | length) <= 1) then "{}"
               elif ($o | length) == 0 then "ERR_NO_ORDER"
               elif ($bk != $ok) then "ERR_MISMATCH"
               else ($o | reverse) as $hl
