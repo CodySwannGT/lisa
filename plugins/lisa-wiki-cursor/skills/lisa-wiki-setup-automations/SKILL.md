@@ -43,11 +43,14 @@ independent and use disjoint name prefixes, so running both is safe.
 The automation runs **one cycle** of the full wiki ingest and respects that command's own confirmation
 and commit/PR policy (never ask before running; run a full ingest across every enabled
 non-external-write source; commit/PR per the ingest skill's bookends; report the cycle summary).
-Before running the ingest, the automation must sync its checkout: fetch the default remote branch and
-rebase the current automation branch onto it (for the common GitHub case, `origin/main`). If the
-checkout is already on the default branch, fast-forward/rebase it to the remote default. If the
-rebase has conflicts or the working tree is dirty in a way the automation did not create, abort the
-rebase and report the blocker instead of ingesting from stale code.
+Before running the ingest, the automation must attempt to sync its checkout: fetch the default remote
+branch and rebase the current automation branch onto it (for the common GitHub case, `origin/main`).
+If the checkout is already on the default branch, fast-forward/rebase it to the remote default. A
+dirty working tree is not by itself a blocker: capture `git status --short --branch`, leave
+pre-existing changes untouched, and continue when sync and ingest can run without overwriting those
+paths. Abort only when Git reports an actual sync conflict or ingest would need to modify an
+already-dirty path; in that case leave existing queue/wiki state unchanged and report the exact
+conflicting path(s).
 
 | Automation | Command it runs | Cadence |
 |---|---|---|
