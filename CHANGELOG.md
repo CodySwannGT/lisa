@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.155.0](https://github.com/CodySwannGT/lisa/compare/vv2.154.1...v2.155.0) (2026-06-08)
+
+
+### Features
+
+* **skills:** add /lisa:validate-tracker-mapping drift detector + repairer ([db8317e](https://github.com/CodySwannGT/lisa/commit/db8317e1cfcc6c13827ff9bb6732ce475362caf0))
+
 ### [2.154.1](https://github.com/CodySwannGT/lisa/compare/vv2.154.0...v2.154.1) (2026-06-08)
 
 
