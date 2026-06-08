@@ -404,9 +404,15 @@ Rules:
 
 - **Single-environment projects** (one entry in `deploy.branches`) may omit
   `deploy.order`; the derived chain is empty and the back-sync no-ops.
-- **Multi-environment projects MUST set `deploy.order`** for config-driven
-  back-sync. If it is absent, the Action fails rather than guessing the rank
-  (or the workflow wrapper must pass an explicit `chain`, which always wins).
+- **Projects whose environments all map to the same branch** (e.g.
+  `dev`/`staging`/`production` all → `main`) may also omit `deploy.order`: the
+  branches resolve to a single distinct branch, so there is nothing to back-sync
+  and the derived chain is the empty no-op. `deploy.order` is only required when
+  `deploy.branches` resolves to **more than one distinct branch**.
+- **Multi-branch projects MUST set `deploy.order`** for config-driven back-sync.
+  If `deploy.branches` resolves to more than one distinct branch and `deploy.order`
+  is absent, the Action fails rather than guessing the rank (or the workflow
+  wrapper must pass an explicit `chain`, which always wins).
 - The env-name set of `deploy.order` and `deploy.branches` **must match exactly**
   — every env in one appears in the other. A mismatch is a config error.
 
@@ -475,9 +481,12 @@ Doctor must validate config in three layers:
      and `deploy.branches`.
 
 4. **Deploy env-order correctness**
-   - When `deploy.branches` defines more than one environment but `deploy.order` is absent, `WARN`:
-     config-driven back-sync cannot derive a chain without the ranking (the wrapper must add
-     `deploy.order` or pass an explicit `chain`).
+   - When `deploy.branches` resolves to more than one **distinct** branch but `deploy.order` is
+     absent, `WARN`: config-driven back-sync cannot derive a chain without the ranking (the wrapper
+     must add `deploy.order` or pass an explicit `chain`).
+   - When `deploy.branches` defines multiple environments that all map to the **same** branch (e.g.
+     `dev`/`staging`/`production` all → `main`), `deploy.order` is **not** required — the chain is the
+     empty no-op. Do not `WARN` in this case.
    - When `deploy.order` is present but its env names do not exactly match the `deploy.branches`
      keys, `FAIL` — the derived sync-down chain would be wrong or empty.
 
