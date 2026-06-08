@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.155.2](https://github.com/CodySwannGT/lisa/compare/vv2.155.1...v2.155.2) (2026-06-08)
+
+
+### Bug Fixes
+
+* **expo:** pin apollo-link-sentry to exactly 4.4.0 (Apollo v3 + Sentry v8) ([4f40ca8](https://github.com/CodySwannGT/lisa/commit/4f40ca8c9d1e2674a240a74b19f5803ebfabbdf6))
+
 ### [2.155.1](https://github.com/CodySwannGT/lisa/compare/vv2.155.0...v2.155.1) (2026-06-08)
 
 
