@@ -46,6 +46,10 @@ describe("intake-explain PRD role and repair diagnosis (#850)", () => {
       );
       expect(skill).toMatch(/PRD in `in_review` is already Lisa-owned/);
       expect(skill).toMatch(/stale_after/);
+      expect(skill).toMatch(/then the 2h default/);
+      expect(skill).toMatch(/stale_after=2h/);
+      expect(skill).not.toMatch(/then the 24h default/);
+      expect(skill).not.toMatch(/stale_after=24h/);
       expect(skill).toMatch(/WAITING_ON_STALENESS/);
       expect(skill).toMatch(/ELIGIBLE_FOR_REPAIR/);
       expect(skill).toMatch(/PRD in `blocked` is Lisa-owned/);
