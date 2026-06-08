@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.155.1](https://github.com/CodySwannGT/lisa/compare/vv2.155.0...v2.155.1) (2026-06-08)
+
+
+### Bug Fixes
+
+* relax automation dirty tree preflight ([d0c2246](https://github.com/CodySwannGT/lisa/commit/d0c224618a6739147bd362d9d66505e7dfcd5601))
+
 ## [2.155.0](https://github.com/CodySwannGT/lisa/compare/vv2.154.1...v2.155.0) (2026-06-08)
 
 
