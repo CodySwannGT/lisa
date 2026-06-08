@@ -45,11 +45,15 @@ affect **only** the two exploratory automations.
 
 Each automation runs **one cycle** of a Lisa command and respects that command's confirmation policy
 (never ask before running; exit cleanly when the queue is idle; report the cycle summary).
-Before running the Lisa command, each automation must sync its checkout: fetch the default remote
-branch and rebase the current automation branch onto it (for the common GitHub case, `origin/main`).
-If the checkout is already on the default branch, fast-forward/rebase it to the remote default. If
-the rebase has conflicts or the working tree is dirty in a way the automation did not create, abort
-the rebase, leave queue state unchanged, and report the blocker instead of running on stale code.
+Before running the Lisa command, each automation must attempt to sync its checkout.
+Fetch the default remote branch, then rebase onto `origin/main` or the resolved default branch. If
+the checkout is already on the default branch, fast-forward/rebase it to the remote default. A dirty
+working tree is not by itself a blocker: capture
+`git status --short --branch`,
+leave pre-existing changes untouched, and continue when the sync and selected Lisa command can run
+without overwriting those paths. Abort only when Git reports an actual sync conflict or the selected
+command would need to modify an already-dirty path; in that case leave queue state unchanged and
+report the exact conflicting path(s).
 
 | Automation | Command it runs | Cadence |
 |---|---|---|
