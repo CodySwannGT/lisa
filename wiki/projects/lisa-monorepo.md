@@ -20,16 +20,37 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260607T110501Z` created from synced `origin/main`
-- HEAD at 2026-06-07 incremental ingest: `c514070f1d98af24f5a84fe594f6af5d5896d281`
-- Current package version: `2.147.2`
-- Total commits on HEAD: 2942
-- Latest merged PR captured in the incremental git snapshot: `#1189`
-- New commits since the previous incremental git cursor: `4`
-- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/cody/.codex/worktrees/lisa-automation-main`; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-20260608T064627Z` created from synced `origin/main`
+- HEAD at 2026-06-08 incremental ingest: `a6f7dc06ac56dfd401772e30889edfa66f3beac2`
+- Current package version: `2.154.0`
+- Total commits on HEAD: 3005
+- Latest merged PR captured in the incremental git snapshot: `#1208`
+- New commits since the previous incremental git cursor: `63`
+- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/11c7/lisa`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.154.0`.
+- PR `#1208` made local agent definitions available across the fleet.
+- Release automation advanced the monorepo through `2.153.0`.
+- PR `#1207` added the `all` harness alias and removed the legacy `both` alias.
+- Release automation advanced the monorepo through `2.152.2`.
+- PR `#1206` prunes stale Lisa stack plugins from `settings.json` during apply.
+- PRs `#1204` and `#1201` hardened repair-intake behavior for merged-PR leaf closeout and blocked deployed-verification rechecks.
+- PR `#1205` prevents Codex agent discovery from picking up per-harness variant plugins.
+- Release automation advanced the monorepo through `2.151.0`.
+- PR `#1203` emits native OpenCode agents and commands and ports Lisa lifecycle hooks to OpenCode.
+- Release automation advanced the monorepo through `2.150.1`.
+- PR `#1199` added OpenCode config-level settings and MCP wrap delivery.
+- Release automation advanced the monorepo through `2.149.1`.
+- PR `#1198` rolls parent containers forward when child leaves reach done.
+- PR `#1197` added OpenCode as a fleet coding-agent harness and hardened OpenCode manifest/skill replacement paths.
+- Release automation advanced the monorepo through `2.148.0`.
+- PR `#1195` aligned Expo SDK 56 dependency templates and backfilled the AccessibilityManager React Native mock.
+- PRs `#1194` and `#1192` documented OpenClaw account-scoped Telegram routes and their runtime requirement.
+- PR `#1193` heals missing native sub-issue links on build Epics and Stories during repair-intake.
+- PR `#1191` keeps parentless build-ready leaf work units from being stranded by validation.
+- PR `#1190` merged the prior wiki ingestion through Lisa `2.147.2`.
 - Release automation advanced the monorepo to `2.147.2`.
 - PR `#1189` merged the prior wiki ingestion through Lisa `2.147.1`, and the merged branch also preserved same-day source notes before release automation advanced the package line.
 - Release automation advanced the monorepo to `2.147.1`.
