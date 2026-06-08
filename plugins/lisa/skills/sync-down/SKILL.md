@@ -44,6 +44,7 @@ CHAIN=$(jq -e -r '
   | ($b | keys | sort) as $bk
   | ($o | sort) as $ok
   | if ($b | length) <= 1 then "{}"
+    elif (($b | [.[]] | unique | length) <= 1) then "{}"
     elif ($o | length) == 0 then "ERR_NO_ORDER"
     elif ($bk != $ok) then "ERR_MISMATCH"
     else ($o | reverse) as $hl
@@ -53,12 +54,16 @@ CHAIN=$(jq -e -r '
 ' .lisa.config.json)
 ```
 
-- `ERR_NO_ORDER` → stop: `deploy.branches` has multiple environments but
-  `deploy.order` is missing. Tell the user to add `deploy.order` (low→high, e.g.
-  `["dev","staging","production"]`). Do not guess the ranking.
+- `ERR_NO_ORDER` → stop: `deploy.branches` has multiple environments mapped to
+  more than one distinct branch but `deploy.order` is missing. Tell the user to
+  add `deploy.order` (low→high, e.g. `["dev","staging","production"]`). Do not
+  guess the ranking.
 - `ERR_MISMATCH` → stop: `deploy.order` and `deploy.branches` name different
   environments. They must match exactly.
-- `{}` (single-environment project) → nothing to sync; report and exit cleanly.
+- `{}` → nothing to sync; report and exit cleanly. This covers both a
+  single-environment project and a multi-environment project whose branches all
+  resolve to the **same** branch (e.g. dev/staging/production all → `main`), where
+  `deploy.order` is not required.
 
 ### 2. Resolve the source branch
 
