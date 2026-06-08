@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.155.5](https://github.com/CodySwannGT/lisa/compare/vv2.155.4...v2.155.5) (2026-06-08)
+
+
+### Bug Fixes
+
+* **repair-intake:** align stale default in intake explain ([3e2e1a9](https://github.com/CodySwannGT/lisa/commit/3e2e1a9a6e32fe5aa41f1c6707ceaf9fa9a0fdfe))
+
 ### [2.155.4](https://github.com/CodySwannGT/lisa/compare/vv2.155.3...v2.155.4) (2026-06-08)
 
 
