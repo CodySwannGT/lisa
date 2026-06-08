@@ -36,3 +36,8 @@ amplify
 # scalars) and are not source formatting inputs. Keep them out of format gates.
 # No-op for projects without a Codex mirror.
 .codex
+
+# Lisa also regenerates the OpenCode distribution mirror (.opencode/) on every
+# run. Same generated-output rationale as .codex above.
+# No-op for projects without an OpenCode mirror.
+.opencode

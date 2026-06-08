@@ -49,6 +49,7 @@
 
     ".expo/**",
     ".codex/**",
+    ".opencode/**",
     ".github/**",
     "public/**",
     ".dead/**",
