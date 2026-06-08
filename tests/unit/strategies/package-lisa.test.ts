@@ -822,16 +822,20 @@ describe("PackageLisaStrategy", () => {
       const template = readExpoTemplate();
       // Pure JS tooling stays forced (governance-critical).
       expect(template.force.dependencies["@apollo/client"]).toBeDefined();
-      // The forced apollo-link-sentry range must stay on the 3.x line so its
-      // `@apollo/client` peer (`^3.2.3`) is satisfiable by the forced
-      // `@apollo/client` major (v3). apollo-link-sentry 4.5.0 bumped that peer
-      // to `@apollo/client@^4.0.10`, so a `^4.0.0` pin let a fresh, lockfile-less
-      // Expo install resolve an apollo pair where SentryLink fails to typecheck
-      // against @apollo/client v3 (blocked expostarter).
+      // apollo-link-sentry must be pinned to EXACTLY 4.4.0 — it is the only
+      // release that satisfies BOTH forced majors simultaneously:
+      //   - @apollo/client v3 (forced): 4.5.0 bumped its peer to
+      //     `@apollo/client@^4.0.10`, so any >=4.5.0 (incl. a `^4.0.0` range)
+      //     makes SentryLink fail to typecheck against v3 (blocked expostarter).
+      //   - @sentry/react-native ~7.x (Sentry v8 SDK): the 3.x line imports and
+      //     calls `Sentry.configureScope`, which Sentry v8 REMOVED — so 3.3.0
+      //     throws `(0, t.configureScope) is not a function` on EVERY GraphQL
+      //     request at runtime (broke geminisportsai/frontend-v2 in dev and the
+      //     prod path of expostarter/thumbwar where the Sentry DSN is set).
+      // 4.4.0 (Apollo v3 peer + Sentry v8 API) is the only compatible version,
+      // so it is pinned exactly — a range re-opens one failure mode or the other.
       expect(template.force.dependencies["@apollo/client"]).toMatch(/^\^?3\./);
-      expect(template.force.dependencies["apollo-link-sentry"]).toMatch(
-        /^\^?3\./
-      );
+      expect(template.force.dependencies["apollo-link-sentry"]).toBe("4.4.0");
       expect(template.force.dependencies["zod"]).toBeDefined();
       expect(template.force.dependencies["tailwindcss"]).toBeDefined();
       expect(template.force.devDependencies["jest"]).toBeDefined();
