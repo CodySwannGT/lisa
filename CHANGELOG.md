@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.158.1](https://github.com/CodySwannGT/lisa/compare/vv2.158.0...v2.158.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **ci:** ignore no-config playwright aggregate abandonment ([ab733ac](https://github.com/CodySwannGT/lisa/commit/ab733ac6b0b9f302f8f60c864862787a7badcb16))
+
 ## [2.158.0](https://github.com/CodySwannGT/lisa/compare/vv2.157.1...v2.158.0) (2026-06-09)
 
 
