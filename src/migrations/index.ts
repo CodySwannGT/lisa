@@ -3,6 +3,7 @@ import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
+import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 import type {
@@ -22,6 +23,7 @@ export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
+export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 
@@ -43,6 +45,7 @@ export class MigrationRegistry {
       new EnsureJestRnMockAccessibilityManagerMigration(),
       new EnsureLisaPostinstallMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
+      new EnsureWikiSourceDeclaredMigration(),
       new ReconcileClaudeStackPluginsMigration(),
     ];
   }
