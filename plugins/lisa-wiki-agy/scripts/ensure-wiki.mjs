@@ -8,19 +8,27 @@
  * call as step 0 so they never hardcode `wiki/` and never have to know whether
  * the wiki is local or remote. The mode decision lives HERE, not in the skills:
  *
- *   - LOCAL  — the wiki lives in this repo (the common case). Resolve the wiki
- *              root from `wiki/lisa-wiki.config.json` (`wikiRoot`, default
- *              `wiki`) and return it. No network, effectively a no-op.
+ *   - LOCAL  — the wiki lives on the local filesystem (the common case). Resolve
+ *              the wiki root, in precedence order, from `wiki.source.path`, else
+ *              `wikiRoot` in `wiki/lisa-wiki.config.json`, else `wiki`. No
+ *              network, a no-op. `wiki.source.path` is just the explicit form of
+ *              what the convention resolves implicitly.
  *   - REMOTE — `.lisa.config.json` declares `wiki.source.url`. Maintain a
  *              gitignored mirror of that repo and return the wiki root inside
  *              it. Clone-if-missing, fetch+fast-forward when stale (TTL), and
  *              tolerate being offline (proceed with the existing mirror + warn).
+ *
+ * `url` (remote) and `path` (local) are the two shapes of `wiki.source`; `url`
+ * takes precedence if both are somehow present.
  *
  * Config (consumer repo `.lisa.config.json`, with `.lisa.config.local.json`
  * overriding per the config-resolution rule):
  *
  *   "wiki": {
  *     "source": {
+ *       // LOCAL shape — optional; defaults to the in-repo `wiki/` convention:
+ *       "path":       "wiki",            // local wiki root, relative to repo root
+ *       // REMOTE shape (instead of path):
  *       "url":        "git@github.com:org/wiki.git",  // present => REMOTE mode
  *       "ref":        "main",            // default: remote HEAD / "main"
  *       "mirrorPath": ".lisa/wiki",      // default; always gitignored
@@ -98,6 +106,9 @@ const ttlSeconds = Number(
 if (source.url !== undefined && typeof source.url !== "string") {
   fail("`wiki.source.url` in .lisa.config.json must be a string");
 }
+if (source.path !== undefined && typeof source.path !== "string") {
+  fail("`wiki.source.path` in .lisa.config.json must be a string");
+}
 
 function emit(result) {
   if (asJson) process.stdout.write(`${JSON.stringify(result)}\n`);
@@ -105,15 +116,24 @@ function emit(result) {
   process.exit(0);
 }
 
-// ── LOCAL mode ────────────────────────────────────────────────────────────────
+// ── LOCAL mode (no remote clone) ───────────────────────────────────────────────
+// The wiki lives on the local filesystem. Its root is, in precedence order:
+//   1. `wiki.source.path` — explicit override in .lisa.config.json
+//   2. `wikiRoot` from wiki/lisa-wiki.config.json — the in-repo convention
+//   3. `wiki` — the default
+// No network, a no-op resolve. `wiki.source.path` is just the explicit form of
+// the same thing the convention resolves implicitly.
 if (!source.url) {
-  const localCfg = readJsonSafe(
-    path.join(projectDir, "wiki", "lisa-wiki.config.json")
+  const wikiRoot = path.resolve(
+    projectDir,
+    source.path ??
+      readJsonSafe(path.join(projectDir, "wiki", "lisa-wiki.config.json"))
+        ?.wikiRoot ??
+      "wiki"
   );
-  const wikiRoot = path.resolve(projectDir, localCfg?.wikiRoot ?? "wiki");
   if (!fs.existsSync(path.join(wikiRoot, "index.md"))) {
     log(
-      `⚠ no index.md under ${wikiRoot} — local wiki may not be scaffolded yet (run /lisa-wiki:setup)`
+      `⚠ no index.md under ${wikiRoot} — check wiki.source.path, or run /lisa-wiki:setup if the wiki is not scaffolded yet`
     );
   }
   log(`✓ local wiki: ${wikiRoot}`);
