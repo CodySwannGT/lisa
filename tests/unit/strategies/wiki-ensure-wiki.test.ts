@@ -29,6 +29,10 @@ const MIRROR_MARKER = "# BEGIN: AI GUARDRAILS WIKI MIRROR";
 const INDEX_MD = "index.md";
 /** Body written into the fixture wiki's index page. */
 const REMOTE_WIKI_BODY = "# Remote Wiki\n";
+/** Non-default local wiki dir used by the explicit-path tests. */
+const CUSTOM_WIKI = "custom-wiki";
+/** Override dir used to prove wiki.source.path beats the convention. */
+const OVERRIDE = "override";
 /** Absolute path to the script under test. */
 const SCRIPT_PATH = path.resolve(
   __dirname,
@@ -143,6 +147,38 @@ describe("lisa-wiki ensure-wiki.mjs", () => {
     fs.writeFileSync(path.join(tmp, "wiki", "docs", INDEX_MD), "# Index\n");
     const res = run(tmp);
     expect(res.wikiRoot).toBe(path.join(tmp, "wiki", "docs"));
+  });
+
+  it("LOCAL: an explicit wiki.source.path resolves in place (still mode 'local', no mirror)", () => {
+    fs.mkdirSync(path.join(tmp, CUSTOM_WIKI), { recursive: true });
+    fs.writeFileSync(path.join(tmp, CUSTOM_WIKI, INDEX_MD), "# Index\n");
+    fs.writeFileSync(
+      path.join(tmp, LISA_CONFIG),
+      JSON.stringify({ wiki: { source: { path: CUSTOM_WIKI } } })
+    );
+    const res = run(tmp);
+    expect(res.mode).toBe("local");
+    expect(res.wikiRoot).toBe(path.join(tmp, CUSTOM_WIKI));
+    expect(res.fetched).toBe(false);
+    // Pure no-op: no gitignore churn, no mirror dir.
+    expect(fs.existsSync(path.join(tmp, ".gitignore"))).toBe(false);
+    expect(fs.existsSync(path.join(tmp, ".lisa"))).toBe(false);
+  });
+
+  it("LOCAL: wiki.source.path wins over a lisa-wiki.config.json wikiRoot", () => {
+    fs.mkdirSync(path.join(tmp, "wiki"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmp, "wiki", "lisa-wiki.config.json"),
+      JSON.stringify({ wikiRoot: "wiki" })
+    );
+    fs.writeFileSync(path.join(tmp, "wiki", INDEX_MD), "# convention\n");
+    fs.mkdirSync(path.join(tmp, OVERRIDE), { recursive: true });
+    fs.writeFileSync(path.join(tmp, OVERRIDE, INDEX_MD), "# override\n");
+    fs.writeFileSync(
+      path.join(tmp, LISA_CONFIG),
+      JSON.stringify({ wiki: { source: { path: OVERRIDE } } })
+    );
+    expect(run(tmp).wikiRoot).toBe(path.join(tmp, OVERRIDE));
   });
 
   it("REMOTE: clones the mirror, resolves its wiki/ root, and gitignores it", () => {

@@ -176,9 +176,13 @@ fi
 
 ### Wiki source (`wiki`)
 
-Declares **where this repo's LLM Wiki lives** so the query/ingest skills can resolve and (for a remote wiki) mirror it. This pointer belongs in the **consumer** repo's `.lisa.config.json` — not in `wiki/lisa-wiki.config.json`, which describes a wiki from the inside and is unavailable until the remote wiki is mirrored (chicken-and-egg).
+Declares **where this repo's LLM Wiki lives** so the query/ingest skills can resolve and (for a remote wiki) mirror it. `wiki.source` has two shapes — **local** (`path`) and **remote** (`url`) — and the block belongs in the **consumer** repo's `.lisa.config.json`, not in `wiki/lisa-wiki.config.json` (which describes a wiki from the inside and is unavailable until a remote wiki is mirrored — chicken-and-egg). The whole `wiki` block is optional; omit it and the resolver falls back to the in-repo `wiki/` convention.
 
 ```json
+// local: an explicit path (optional — equivalent to the default convention)
+"wiki": { "source": { "path": "wiki" } }
+
+// remote: mirror a separate wiki repo
 "wiki": {
   "source": {
     "url": "git@github.com:org/wiki.git",
@@ -192,13 +196,14 @@ Declares **where this repo's LLM Wiki lives** so the query/ingest skills can res
 
 | Field | Required | Default | Notes |
 |-------|----------|---------|-------|
-| `wiki.source.url` | no | — | Clone URL of the canonical wiki repo. **Its presence selects REMOTE mode.** Omit the whole `wiki` block for a local in-repo wiki. |
-| `wiki.source.ref` | no | remote HEAD | Branch/ref to mirror. |
-| `wiki.source.mirrorPath` | no | `.lisa/wiki` | Where the gitignored mirror is materialized. `ensure-wiki` keeps this path gitignored automatically. |
-| `wiki.source.subdir` | no | auto | Wiki root within the cloned repo. Auto-detected as `wiki/` if present, else the repo root. |
-| `wiki.ttlSeconds` | no | `300` | Skip the refresh fetch if the mirror was synced more recently than this. |
+| `wiki.source.path` | no | `wiki` (via convention) | **Local** wiki root, relative to the repo. The explicit form of the in-repo default. Mutually exclusive with `url`. |
+| `wiki.source.url` | no | — | Clone URL of a separate wiki repo. **Its presence selects REMOTE mode.** Mutually exclusive with `path`. |
+| `wiki.source.ref` | no | remote HEAD | Branch/ref to mirror (remote only). |
+| `wiki.source.mirrorPath` | no | `.lisa/wiki` | Where the gitignored mirror is materialized (remote only). `ensure-wiki` keeps this path gitignored automatically. |
+| `wiki.source.subdir` | no | auto | Wiki root within the cloned repo (remote only). Auto-detected as `wiki/` if present, else the repo root. |
+| `wiki.ttlSeconds` | no | `300` | Skip the refresh fetch if the mirror was synced more recently than this (remote only). |
 
-`scripts/ensure-wiki.mjs` is the single resolver (`node scripts/ensure-wiki.mjs --json` → `{mode, wikiRoot, …}`). LOCAL mode is a no-op that returns the in-repo `wikiRoot`; REMOTE mode clones-if-missing, fast-forwards when stale, and is offline-tolerant (proceeds with the existing mirror and warns rather than blocking). Callers (`lisa-wiki-query`, `lisa-wiki-ingest`) invoke it as step 0 and never hardcode `wiki/`; the freshness guarantee is the tool's, not the caller's.
+`scripts/ensure-wiki.mjs` is the single resolver (`node scripts/ensure-wiki.mjs --json` → `{mode, wikiRoot, …}`). **LOCAL** mode (no `url`) is a no-op that resolves the wiki root in precedence order `wiki.source.path` → `wikiRoot` in `wiki/lisa-wiki.config.json` → `wiki`; **REMOTE** mode (`url` set) clones-if-missing, fast-forwards when stale, and is offline-tolerant (proceeds with the existing mirror and warns rather than blocking). Callers (`lisa-wiki-query`, `lisa-wiki-ingest`) invoke it as step 0 and never hardcode `wiki/`; the freshness guarantee is the tool's, not the caller's.
 
 ### Vendor sections
 
