@@ -8,7 +8,13 @@ description: Answer a question from the LLM Wiki with citations. Reads the index
 Answer from the wiki, with citations, without changing it (by default).
 
 ## Workflow
-1. Read `wiki/index.md` to locate candidate pages; consult `wiki/start-here.md` for orientation.
+0. **Resolve the wiki root.** Run `node scripts/ensure-wiki.mjs --json` and use the returned
+   `wikiRoot` as the base for every read below — never assume `wiki/`. A local wiki resolves
+   instantly (no-op); a wiki whose `.lisa.config.json` declares `wiki.source.url` is mirrored and
+   refreshed transparently first. The script is offline-tolerant (it proceeds with the existing
+   mirror and warns rather than blocking), so freshness is guaranteed here and the caller never has
+   to think about it.
+1. Read `<wikiRoot>/index.md` to locate candidate pages; consult `<wikiRoot>/start-here.md` for orientation.
 2. Drill into the relevant synthesis pages and their cited source notes.
 3. Synthesize an answer. **Every claim cites its wiki page and/or source note.** If the wiki does not
    support an answer, say so plainly rather than inventing one; suggest an `/ingest` that would fill
