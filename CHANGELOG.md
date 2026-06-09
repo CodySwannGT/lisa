@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.158.3](https://github.com/CodySwannGT/lisa/compare/vv2.158.2...v2.158.3) (2026-06-09)
+
+
+### Bug Fixes
+
+* **safety-net:** portable line-continuation normalization in the push guard ([7d26a28](https://github.com/CodySwannGT/lisa/commit/7d26a28a294b15dfbbfa17aa776655771d725a7b))
+
 ### [2.158.2](https://github.com/CodySwannGT/lisa/compare/vv2.158.1...v2.158.2) (2026-06-09)
 
 
