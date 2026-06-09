@@ -1,13 +1,17 @@
 {
   "connector": "roles",
   "profile": "project",
-  "ingested_at": "2026-06-09T06:49:43.570Z",
-  "cursor": {
+  "ranAt": "2026-06-09T06:49:43.570Z",
+  "proposedCursor": {
     "roles": 0,
     "pages": 0,
     "lastIngest": "2026-06-09"
   },
-  "source_notes": [
+  "sourceNotes": [
     "wiki/sources/roles/2026-06-09-roles.md"
-  ]
+  ],
+  "safety": {
+    "reviewRequired": false,
+    "findings": []
+  }
 }
