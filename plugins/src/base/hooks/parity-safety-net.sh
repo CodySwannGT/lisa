@@ -71,11 +71,13 @@ fi
 #    (`;`, `&&`, `||`, `|`, newlines), keep only the `git push` segments, and
 #    inspect each in isolation — a real `git push --force origin main` still
 #    matches, while a feature-branch push next to `[ -f ]`/`--base main` passes.
-# Normalize bash line-continuations (backslash + newline → space) before
-# segmenting the command. Without this, "git push --force origin \<newline>main"
-# gets split by the grep into a segment that matches --force but not `main`,
-# letting a protected force-push slip past the guard.
-normalized_command_str="$(printf '%s' "$command_str" | sed ':a;N;$!ba;s/\\\n/ /g')"
+# Normalize bash line-continuations (a trailing backslash + newline → space)
+# before segmenting the command. Without this, "git push --force origin
+# \<newline>main" splits into a segment matching --force but not `main`, letting a
+# protected force-push slip past. Uses awk (POSIX) instead of a GNU-only
+# `sed ':a;N;$!ba;…'`, which errors on BSD sed (macOS) and there silently no-ops.
+normalized_command_str="$(printf '%s' "$command_str" \
+  | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
 
 while IFS= read -r push_stmt; do
   if printf '%s' "$push_stmt" \
