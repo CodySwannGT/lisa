@@ -1,6 +1,6 @@
 ---
 name: exploratory-qa
-description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (human-facing jargon, contextless extracted data, machine-style labels, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances, dead-end flows that strand a user — e.g. a login page with no way to register or recover a password, or a primary action that drops the user into an incomplete/unsatisfiable state with no way to finish) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
+description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (unclear purpose or audience, human-facing jargon, contextless extracted data, machine-style labels, raw dates/enums, sparse data with no explanation, wrong control semantics, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances, dead-end flows that strand a user — e.g. a login page with no way to register or recover a password, or a primary action that drops the user into an incomplete/unsatisfiable state with no way to finish) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
 ---
 
 # Exploratory QA
@@ -43,6 +43,9 @@ filed as a tracked work item so it enters the Lisa lifecycle — no static repor
 - Start at the home/landing page with **no prior knowledge of the app**. Do **not** pre-read the
   codebase to learn the intended flows — discover them the way a user would, by looking and clicking.
 - Form a first impression: is it obvious what this app is, what to do first, and where to go next?
+- On each major page, ask what a cold user would think the page is trying to do or tell them. If the
+  page could plausibly be read as several different products or workflows (public browser vs admin
+  workbench vs data-quality dashboard vs review queue), file a clarity/usability ticket.
 
 ### 3. Use It Like a Human
 
@@ -52,17 +55,38 @@ mistakes, and tries the obvious thing. Cover at least these dimensions unless th
 - **Comprehension & labeling:** human-facing copy must sound like something a normal first-time user
   would understand. Flag machine-style or developer labels shown to users (raw IDs, enum keys,
   `snake_case`, `null`/`undefined`, untranslated i18n keys), admin/database terms such as
-  "metadata", implementation identifiers such as slugs, unexplained domain jargon, unclear
-  button/menu names, and icons with no discernible meaning. If a heading, label, or field would make a
-  non-technical user ask "what does that mean?", file a usability/clarity ticket with plainer wording.
+  "metadata", "rows", "bucket", "record", "entity", or "loaded rows", implementation identifiers such
+  as slugs, unexplained domain jargon, unclear button/menu names, and icons with no discernible
+  meaning. Flag all-caps enum/source labels, raw timestamps, and typo-like machine strings. If a
+  heading, label, or field would make a non-technical user ask "what does that mean?", file a
+  usability/clarity ticket with plainer wording.
 - **Data usefulness & context:** extracted facts, metrics, summaries, and structured tables must help
   a person understand the surface. Flag machine residue that only proves extraction happened, such as
   repeated generic fields (`Money Mention`, `Entity`, `Record`) paired with values but no sentence,
   source, category, or explanation of why the value matters. If a user cannot tell what a number,
   fact, or field refers to without rereading the raw source, file a usability/clarity ticket to hide it
   from the default UI or add context such as excerpts, labels, grouping, or provenance.
+- **Data volume and trust:** compare the amount of visible data to what the page promises. A rich
+  explorer, dashboard, or workbench with only a few rows/items can look broken, filtered, still
+  loading, sample-only, or untrusted. File a finding when sparse data is not explicitly explained with
+  result counts, active filters, reset affordances, ingestion/coverage status, or sample/demo labeling.
+- **Dates, numbers, and source metadata:** normal product UI should not expose storage formats unless
+  it is intentionally a technical log. Flag ISO timestamps, inconsistent relative/absolute date
+  styles, unexplained generated/imported/loaded dates, raw score/null states, and source metadata that
+  does not explain what was sourced, when, and why it matters.
+- **Controls and mental model:** controls must match what they do. Sort is not a filter; search is not
+  a facet; finite data domains usually need selects/typeaheads rather than blank text inputs. Flag
+  controls that make users guess exact spelling/casing, hide the available option universe, mix
+  filtering with sorting/view settings, or use the wrong component for the task.
+- **Information hierarchy and panel value:** scan cards, sidebars, workbenches, summaries, and metric
+  tiles for whether they communicate anything useful at a glance. File findings for blank-looking
+  panels, repeated cards with unclear labels, counts without named subjects, decorative summaries that
+  consume more attention than the primary workflow, or duplicated navigation that squeezes the actual
+  task area.
 - **Navigation clarity:** is it obvious how to get somewhere and back? Dead ends, hidden entry points,
-  surprising redirects, broken links, no clear "home".
+  surprising redirects, broken links, no clear "home". Flag duplicated nav regions that compete for
+  space without adding page-specific value, and icon systems that degrade into raw punctuation or mix
+  unrelated visual languages.
 - **Flow completeness & expected counterparts:** a screen that gates access or shows one side of a
   standard paired flow must offer the other side — or a clear path to it. A brand-new user must never
   hit a dead end with no next step. Flag missing companion actions, especially on auth and entry
