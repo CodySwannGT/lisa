@@ -1,5 +1,16 @@
 # Lisa Wiki Log
 
+## 2026-06-09 - Incremental connector ingest
+
+- Synced the automation worktree with `origin/main` and created `wiki/ingest-20260609T064744Z` from current `origin/main` because the run started on a detached HEAD.
+- Fetched a newer `origin/main` during the run after GitHub reported PR `#1216` merged, rebased the ingestion branch, discarded the stale pre-fetch generated notes, and reran the connectors.
+- Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
+- No same-day git or roles source notes existed for `2026-06-09`, so no prior source provenance copy was needed before writing current connector notes.
+- Refreshed the `git` source note with 25 new commits through `fa4fc0069307cf650c1cfc7fd498bfedddc69231`, advanced the merged-PR cursor to `#1216`, and captured the release line through Lisa `2.155.6`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/b484/lisa`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge, tracker-mapping validation/repair, automation dirty-tree preflight relaxation, Expo `apollo-link-sentry` pinning, OpenCode lint ignores, sync-down single-branch no-op handling, repair-intake stale-default alignment, exploratory QA human-experience expansion, and release-history changes through `2.155.6`.
+
 ## 2026-06-08 - Incremental connector ingest
 
 - Synced the durable checkout with `origin/main` by fetching `origin`, then created `wiki/ingest-20260608T064627Z` from synced `origin/main` because the automation worktree started on a detached HEAD 49 commits behind the default branch.
