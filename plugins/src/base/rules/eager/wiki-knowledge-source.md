@@ -1,16 +1,18 @@
 # Wiki as Knowledge Source (load-bearing)
 
-If the project has an LLM Wiki (a `wiki/` directory with `index.md`), treat it as the canonical source of durable project knowledge.
+If the project has an LLM Wiki, treat it as the canonical source of durable project knowledge. A project has a wiki when **either** a local `wiki/` directory with `index.md` exists **or** `.lisa.config.json` declares a `wiki.source` pointer to a remote wiki repo. Documentation rolls UP into that wiki; individual repos are not expected to carry their own prose docs beyond inline code comments.
+
+You never have to fetch or freshness-check the wiki yourself: the query and ingest skills resolve the wiki root and guarantee it exists and is current (via `scripts/ensure-wiki.mjs`) as their own first step — a local wiki resolves instantly, a remote wiki is mirrored/refreshed transparently into a gitignored working copy. Just call the skill.
 
 Before researching background, conventions, ownership, architecture, glossary, or "how/why does X work here":
 
-1. **Consult the wiki first.** Start from `wiki/index.md` or use the wiki query skill (`/lisa-wiki-query`).
+1. **Consult the wiki first.** Use the wiki query skill (`/lisa-wiki-query`), which resolves the wiki root for you; for a local wiki you may also start from `wiki/index.md` directly.
 2. **Use what the wiki says** as the authoritative answer when it covers the question — do not re-derive it from raw sources.
 3. **Fall back to primary sources** (code, tickets, commit history, external docs) only when the wiki is silent, ambiguous, or contradicted by what you observe.
 4. **Surface gaps.** If the wiki is wrong, stale, or missing knowledge that belongs there, flag it — and where the workflow supports it, capture the correction via `/lisa-wiki-ingest`.
 
 The wiki documents knowledge; it does NOT override executable behavior. When wiki and running code disagree about what the system does, trust the code and treat the wiki as out of date.
 
-If the project has no `wiki/`, this rule does not apply.
+If the project has neither a local `wiki/` nor a `wiki.source` pointer, this rule does not apply.
 
 Full prose: [reference/wiki-knowledge-source.md](../reference/wiki-knowledge-source.md).

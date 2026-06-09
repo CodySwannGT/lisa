@@ -167,6 +167,33 @@ fi
 | `tracker` | **yes** | — | Destination for ticket writes. One of `"jira"`, `"github"`, `"linear"`. Missing → fail with instruction to run the matching `/lisa:setup:*` skill. |
 | `source` | no | — | Default PRD source for batch skills (`/lisa:intake`) and arg-less single-PRD skills. One of `"notion"`, `"confluence"`, `"linear"`, `"github"`, `"jira"`. Explicit URLs/keys passed to a skill always win over `source`; this is a default, not a lock. |
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
+| `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
+
+### Wiki source (`wiki`)
+
+Declares **where this repo's LLM Wiki lives** so the query/ingest skills can resolve and (for a remote wiki) mirror it. This pointer belongs in the **consumer** repo's `.lisa.config.json` — not in `wiki/lisa-wiki.config.json`, which describes a wiki from the inside and is unavailable until the remote wiki is mirrored (chicken-and-egg).
+
+```json
+"wiki": {
+  "source": {
+    "url": "git@github.com:org/wiki.git",
+    "ref": "main",
+    "mirrorPath": ".lisa/wiki",
+    "subdir": "wiki"
+  },
+  "ttlSeconds": 300
+}
+```
+
+| Field | Required | Default | Notes |
+|-------|----------|---------|-------|
+| `wiki.source.url` | no | — | Clone URL of the canonical wiki repo. **Its presence selects REMOTE mode.** Omit the whole `wiki` block for a local in-repo wiki. |
+| `wiki.source.ref` | no | remote HEAD | Branch/ref to mirror. |
+| `wiki.source.mirrorPath` | no | `.lisa/wiki` | Where the gitignored mirror is materialized. `ensure-wiki` keeps this path gitignored automatically. |
+| `wiki.source.subdir` | no | auto | Wiki root within the cloned repo. Auto-detected as `wiki/` if present, else the repo root. |
+| `wiki.ttlSeconds` | no | `300` | Skip the refresh fetch if the mirror was synced more recently than this. |
+
+`scripts/ensure-wiki.mjs` is the single resolver (`node scripts/ensure-wiki.mjs --json` → `{mode, wikiRoot, …}`). LOCAL mode is a no-op that returns the in-repo `wikiRoot`; REMOTE mode clones-if-missing, fast-forwards when stale, and is offline-tolerant (proceeds with the existing mirror and warns rather than blocking). Callers (`lisa-wiki-query`, `lisa-wiki-ingest`) invoke it as step 0 and never hardcode `wiki/`; the freshness guarantee is the tool's, not the caller's.
 
 ### Vendor sections
 
