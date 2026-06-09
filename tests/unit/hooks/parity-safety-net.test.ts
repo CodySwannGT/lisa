@@ -71,6 +71,21 @@ describe("parity-safety-net.sh — force-push guard", () => {
         EXIT_BLOCKED
       );
     });
+
+    it("blocks force-push to main when command uses backslash-newline continuation", () => {
+      // "git push --force origin \\\nmain" has a bash line continuation
+      // (backslash + newline) that could split the command across two segments
+      // before the branch name is evaluated, bypassing the protection.
+      expect(runHook("Bash", "git push --force origin \\\nmain").status).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
+    it("blocks force-push to main via HEAD:main with backslash-newline continuation", () => {
+      expect(
+        runHook("Bash", "git push --force origin \\\nHEAD:main").status
+      ).toBe(EXIT_BLOCKED);
+    });
   });
 
   describe("allows safe pushes (no cross-statement false positives)", () => {
