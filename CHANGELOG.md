@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.158.0](https://github.com/CodySwannGT/lisa/compare/vv2.157.1...v2.158.0) (2026-06-09)
+
+
+### Features
+
+* **apply:** exclude generated harness dirs from sonar.exclusions ([4f9a403](https://github.com/CodySwannGT/lisa/commit/4f9a4033c4cce86e46a50e27c8613e90ba2a41c4))
+
 ### [2.157.1](https://github.com/CodySwannGT/lisa/compare/vv2.157.0...v2.157.1) (2026-06-09)
 
 
