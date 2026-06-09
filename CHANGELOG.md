@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.156.0](https://github.com/CodySwannGT/lisa/compare/vv2.155.7...v2.156.0) (2026-06-09)
+
+
+### Features
+
+* **wiki:** resolve + mirror a remote wiki via ensure-wiki (read side) ([50ce32e](https://github.com/CodySwannGT/lisa/commit/50ce32e364a5c37a501e5de7f6b7f4943939579d))
+
 ### [2.155.7](https://github.com/CodySwannGT/lisa/compare/vv2.155.6...v2.155.7) (2026-06-09)
 
 
