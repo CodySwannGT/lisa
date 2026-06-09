@@ -71,6 +71,12 @@ fi
 #    (`;`, `&&`, `||`, `|`, newlines), keep only the `git push` segments, and
 #    inspect each in isolation — a real `git push --force origin main` still
 #    matches, while a feature-branch push next to `[ -f ]`/`--base main` passes.
+# Normalize bash line-continuations (backslash + newline → space) before
+# segmenting the command. Without this, "git push --force origin \<newline>main"
+# gets split by the grep into a segment that matches --force but not `main`,
+# letting a protected force-push slip past the guard.
+normalized_command_str="$(printf '%s' "$command_str" | sed ':a;N;$!ba;s/\\\n/ /g')"
+
 while IFS= read -r push_stmt; do
   if printf '%s' "$push_stmt" \
     | grep -Eiq '(--force([[:space:]]|=|$)|[[:space:]]-f([[:space:]]|$))' \
@@ -79,7 +85,7 @@ while IFS= read -r push_stmt; do
     | grep -Eiq '(^|[^[:alnum:]_/-])(main|master|production|prod|release)([^[:alnum:]_/-]|$)'; then
     block "force-pushing a protected branch (use --force-with-lease, or push a feature branch)"
   fi
-done < <(printf '%s' "$command_str" | tr '&|;' '\n' \
+done < <(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
   | grep -Ei '(^|[^[:alnum:]_-])git[[:space:]]+push\b')
 
 # 3. `git reset --hard` while the working tree has uncommitted changes — this
