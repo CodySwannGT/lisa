@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.157.0](https://github.com/CodySwannGT/lisa/compare/vv2.156.0...v2.157.0) (2026-06-09)
+
+
+### Features
+
+* **wiki:** add local wiki.source.path; unify local resolution ([d713aad](https://github.com/CodySwannGT/lisa/commit/d713aade546c6f40f379e2c4e01b520fb3e688bd))
+
 ## [2.156.0](https://github.com/CodySwannGT/lisa/compare/vv2.155.7...v2.156.0) (2026-06-09)
 
 
