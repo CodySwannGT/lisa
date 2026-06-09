@@ -951,11 +951,15 @@ jobs:
       #   skipped  → playwright_e2e was skipped (no config / skip_jobs)
       #   failure  → at least one shard failed
       #   cancelled → at least one shard was cancelled
+      #   abandoned → runner was lost before the shard completed
       #
       # Fail the aggregator on anything other than success/skipped so the
       # `🎭 Playwright E2E Tests` check accurately reflects shard health.
+      #
+      # Guard on has_config: when there is no Playwright config, no shard tests
+      # ran, so an abandoned/cancelled shard job is not a test failure signal.
       - name: 🚨 Fail if any Playwright shard failed
-        if: ${{ always() && needs.playwright_e2e.result != 'success' && needs.playwright_e2e.result != 'skipped' }}
+        if: ${{ always() && steps.check_playwright.outputs.has_config == 'true' && needs.playwright_e2e.result != 'success' && needs.playwright_e2e.result != 'skipped' }}
         run: |
           echo "::error::Playwright shard matrix result is '${{ needs.playwright_e2e.result }}' — at least one shard did not pass"
           exit 1
