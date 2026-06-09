@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.158.2](https://github.com/CodySwannGT/lisa/compare/vv2.158.1...v2.158.2) (2026-06-09)
+
+
+### Bug Fixes
+
+* **safety-net:** correlate force-push guard to a single push statement ([c1fb296](https://github.com/CodySwannGT/lisa/commit/c1fb296a984ba550bb013708f1a55be28eff08b3))
+* **safety-net:** normalize line-continuations before push guard segmentation ([62f8b81](https://github.com/CodySwannGT/lisa/commit/62f8b817c247502dc53bdf4485bb841c7dd061eb))
+
 ### [2.158.1](https://github.com/CodySwannGT/lisa/compare/vv2.158.0...v2.158.1) (2026-06-09)
 
 
