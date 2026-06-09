@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.159.0](https://github.com/CodySwannGT/lisa/compare/vv2.158.3...v2.159.0) (2026-06-09)
+
+
+### Features
+
+* **apply:** declare wiki.source.path when a project has a local wiki ([05efab3](https://github.com/CodySwannGT/lisa/commit/05efab3b39dfa12be91cd1b1656248ae32e487a6))
+
 ### [2.158.3](https://github.com/CodySwannGT/lisa/compare/vv2.158.2...v2.158.3) (2026-06-09)
 
 
