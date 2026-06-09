@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.157.1](https://github.com/CodySwannGT/lisa/compare/vv2.157.0...v2.157.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **apply:** use node:fs/promises for fs reads/writes (Expo apply crash) ([3087e33](https://github.com/CodySwannGT/lisa/commit/3087e336e3884ea6f911d310bbbf596af0a53c8d))
+
 ## [2.157.0](https://github.com/CodySwannGT/lisa/compare/vv2.156.0...v2.157.0) (2026-06-09)
 
 
