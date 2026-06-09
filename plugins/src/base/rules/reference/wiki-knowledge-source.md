@@ -1,14 +1,21 @@
 # Wiki as Knowledge Source
 
-If this project has an LLM Wiki (a `wiki/` directory with an `index.md`), treat it as the canonical source of durable project knowledge. The wiki is curated and current; ad-hoc scraping of code, tickets, chat history, or stale READMEs is not.
+If this project has an LLM Wiki, treat it as the canonical source of durable project knowledge. The wiki is curated and current; ad-hoc scraping of code, tickets, chat history, or stale READMEs is not.
+
+A project has a wiki in one of two shapes:
+
+- **Local** — a `wiki/` directory with an `index.md` lives in this repo (`wikiRoot` in `wiki/lisa-wiki.config.json`, default `wiki`).
+- **Remote** — `.lisa.config.json` declares a `wiki.source` pointer (`url`, optional `ref` / `mirrorPath` / `subdir`) at the canonical wiki repo. The wiki is **not** committed into this repo; instead the query/ingest skills maintain a gitignored mirror of it. This is the model for an organization whose documentation rolls up into one shared wiki that every repo reads: each repo carries only inline code comments locally, and the full cross-repo knowledge is the mirrored wiki.
+
+Either way, freshness is not your concern. The query and ingest skills run `scripts/ensure-wiki.mjs` as their own first step, which resolves the wiki root and — for a remote wiki — clones the mirror if missing and fast-forwards it when stale (subject to a short TTL, and tolerant of being offline: it proceeds with the existing mirror and warns rather than blocking). The freshness guarantee lives in the tool, not in the caller's discipline. Do **not** add a separate "make sure the wiki is current" step to your own workflow — calling the skill already does it.
 
 Before researching project background, conventions, ownership, architecture, glossary terms, or "how/why does X work here":
 
-1. Consult the wiki first. Start from `wiki/index.md` and follow links, or use the wiki query skill (`/lisa-wiki-query`, or the runtime's wiki query skill) to find the relevant page.
+1. Consult the wiki first via the wiki query skill (`/lisa-wiki-query`, or the runtime's wiki query skill), which resolves the wiki root for you. For a local wiki you may also start from `wiki/index.md` and follow links.
 2. Use what the wiki says as the authoritative answer when it covers the question. Do not re-derive it from raw sources when the wiki already documents it.
 3. Fall back to primary sources (code, tickets, commit history, external docs) only when the wiki is silent, ambiguous, or contradicted by what you observe in the code.
 4. If you find the wiki is wrong, stale, or missing knowledge that belongs there, surface the gap — and where the project's workflow supports it, capture the correction back into the wiki via its ingestion path (`/lisa-wiki-ingest` or equivalent) rather than leaving the knowledge only in this session.
 
 The wiki documents knowledge; it does not override executable behavior. When the wiki and the running code disagree about what the system actually does, trust the code and treat the wiki as out of date. See the `documentation-source-paths` rule for how source-material directories relate to the wiki.
 
-If the project has no `wiki/`, this rule does not apply.
+If the project has neither a local `wiki/` nor a `wiki.source` pointer in `.lisa.config.json`, this rule does not apply.
