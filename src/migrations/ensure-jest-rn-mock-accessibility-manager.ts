@@ -1,3 +1,4 @@
+import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import * as fse from "fs-extra";
 import type {
@@ -79,7 +80,7 @@ export class EnsureJestRnMockAccessibilityManagerMigration implements Migration 
     if (!(await fse.pathExists(mockPath))) {
       return false;
     }
-    const content = await fse.readFile(mockPath, "utf8");
+    const content = await readFile(mockPath, "utf8");
     return content.includes(ANCHOR) && !content.includes(MARKER);
   }
 
@@ -97,7 +98,7 @@ export class EnsureJestRnMockAccessibilityManagerMigration implements Migration 
       return { name: this.name, action: "noop" };
     }
 
-    const content = await fse.readFile(mockPath, "utf8");
+    const content = await readFile(mockPath, "utf8");
     if (content.includes(MARKER) || !content.includes(ANCHOR)) {
       return { name: this.name, action: "noop" };
     }
@@ -118,7 +119,7 @@ export class EnsureJestRnMockAccessibilityManagerMigration implements Migration 
       };
     }
 
-    await fse.writeFile(mockPath, updated);
+    await writeFile(mockPath, updated);
     ctx.logger.success(message);
     return {
       name: this.name,

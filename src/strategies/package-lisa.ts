@@ -1,4 +1,5 @@
 /* eslint-disable max-lines -- Package merge strategy is intentionally comprehensive */
+import { readFile } from "node:fs/promises";
 import * as fse from "fs-extra";
 import path from "node:path";
 import type { FileOperationResult, ProjectType } from "../core/config.js";
@@ -277,7 +278,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
     projectDir: string
   ): Promise<boolean> {
     try {
-      const content = await fse.readFile(
+      const content = await readFile(
         path.join(projectDir, this.HARPER_APP_CONFIG),
         "utf8"
       );
