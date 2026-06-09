@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.155.6](https://github.com/CodySwannGT/lisa/compare/vv2.155.5...v2.155.6) (2026-06-09)
+
+
+### Bug Fixes
+
+* expand exploratory qa human experience checks ([13b67fe](https://github.com/CodySwannGT/lisa/commit/13b67feb6126563ea8371edfcf1b18a132e96730))
+
 ### [2.155.5](https://github.com/CodySwannGT/lisa/compare/vv2.155.4...v2.155.5) (2026-06-08)
 
 
