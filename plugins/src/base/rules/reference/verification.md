@@ -121,4 +121,18 @@ Both levels use the same verification types table above. The difference is the e
 
 ---
 
+## Credential-Gated Verification
+
+Some runtime verification requires signing in to a deployed or local app. Agents must exhaust credential sources before declaring verification blocked:
+
+1. Project e2e / Playwright config and fixtures, including files such as `e2e/constants.ts`, `e2e/fixtures/api-login.ts`, seeded test users, and OTP-bypass patterns such as `555555`.
+2. `.lisa.config.local.json` and environment variables.
+3. Documented ticket credentials, including a `Sign-in Required` or equivalent section in the issue, ticket, PRD, or linked implementation notes.
+
+If credentials are genuinely unavailable after all three source classes are checked, the item is blocked, not done. The agent must post a tracker comment explaining what could not be verified and which sources were checked, transition the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label, creating the label if the tracker supports label creation and it is missing.
+
+Evidence and summaries must explicitly distinguish `verified empirically` from `artifact-only / verification deferred`. Artifact-only evidence can explain what was checked before escalation, but it cannot complete a work item that requires runtime verification.
+
+---
+
 For the full verification lifecycle (classify, check tooling, plan, execute, loop), surfaces, escalation protocol, and proof artifact requirements, see the `verification-lifecycle` skill loaded by the `verification-specialist` agent.
