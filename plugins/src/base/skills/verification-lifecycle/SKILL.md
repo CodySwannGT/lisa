@@ -58,11 +58,19 @@ For each verification type, state:
 
 A verification plan that only lists `bun run test`, `bun run typecheck`, or `bun run lint` is NOT a verification plan. Those are quality gates handled in step 1.
 
+For a user-visible Fix, or a Build change that affects user-visible behavior, the verification plan must include the highest practical observation level for the reported surface. If the project has a browser, device, or end-to-end harness for the affected platform, plan a deterministic regression spec against that surface and the empirical command that observes the same surface. Unit-level or API-only verification does not satisfy a UI-surface defect when browser/device automation is available.
+
+The lead cannot waive, defer, or demote this regression spec as optional, "if cheap", or equivalent. The only acceptable exits are a recorded absence of an end-to-end harness for the platform, or a genuine technical blocker that is captured before merge as a linked build-ready follow-up ticket referenced from the PR and source work item.
+
 ### 6. Execute
 
 After implementation, run the verification plan. Execute each verification type in order.
 
 Evidence output must explicitly label each verification result as either `verified empirically` or `artifact-only / verification deferred`. Artifact-only evidence can support a blocked escalation packet, but it cannot mark a required runtime verification complete.
+
+For a required user-visible regression spec, evidence must prove execution, not only existence. Record a CI log line, reporter output, or equivalent artifact that names the new spec and shows it ran and passed in the PR. A green CI run without named execution proof is not enough; explicitly check for `test.skip`, suite-level environment gates, shard filters, and "0 tests" passes.
+
+If auto-merge is enabled while the regression spec is still in flight, disable auto-merge or apply an equivalent merge gate until the spec commit is pushed and its CI execution proof is available. Do not let the PR merge before the required regression deliverable is satisfied or formally blocked through the linked follow-up path.
 
 ### 7. Codify
 
@@ -71,6 +79,8 @@ After each empirical verification produces PASS evidence, invoke the `codify-ver
 The `codify-verification` skill maps the verification type to the appropriate framework (Playwright for browser/UI, integration test for API/DB/auth, benchmark for performance, etc.), generates a deterministic test that asserts the same observable outcome the verification just confirmed, runs it in isolation to confirm PASS, and commits it in the same PR as the change.
 
 Codification is mandatory for every empirical verification type with one exception set: PR, Documentation, Deploy, and Investigate-Only spikes — those have inherently non-behavioral proof. For every other type, skipping codification is not allowed; if codification is genuinely impossible (e.g., the test framework does not exist and cannot be installed in scope), escalate via the Escalation Protocol rather than silently skipping.
+
+For UI-surface defects with an available browser/device/e2e harness, codification must happen in that harness or the nearest surface-equivalent automated harness. Lower-level tests may be added for diagnosis or edge cases, but they do not replace the reported-surface regression spec.
 
 A change is not "verified" in the lifecycle sense until each empirical verification has both passed AND been codified.
 
