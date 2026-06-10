@@ -1,5 +1,15 @@
 # Lisa Wiki Log
 
+## 2026-06-10 - Incremental connector ingest
+
+- Synced the automation worktree with `origin/main` by fetching `origin` and created `wiki/ingest-20260610T000000Z` from current `origin/main` because the run started on a detached HEAD.
+- Ran the full enabled non-external-write connector set in `wiki/lisa-wiki.config.json`: `git`, `roles`, and `memory`.
+- No same-day git or roles source notes existed for `2026-06-10`, so no prior source provenance copy was needed before writing current connector notes.
+- Refreshed the `git` source note with 41 new commits through `6f6c00cb0462cf2f6e6754e80905771bb6712814`, advanced the merged-PR cursor to `#1231`, and captured the release line through Lisa `2.159.3`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped `memory` because no project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/dae6/lisa`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for local and remote wiki source path support, generated harness Sonar exclusions, Safety Net push guard parsing hardening, Expo apply filesystem fixes, no-config Playwright aggregate handling, Atlassian access profile/cloud-id repairs, credential-gated verification behavior, and release-history changes through `2.159.3`.
+
 ## 2026-06-09 - Incremental connector ingest
 
 - Synced the automation worktree with `origin/main` and created `wiki/ingest-20260609T064744Z` from current `origin/main` because the run started on a detached HEAD.
