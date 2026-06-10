@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.159.6](https://github.com/CodySwannGT/lisa/compare/vv2.159.5...v2.159.6) (2026-06-10)
+
+
+### Bug Fixes
+
+* **skills:** require e2e regression execution proof ([0be769a](https://github.com/CodySwannGT/lisa/commit/0be769abc84673262a27a32ce1c197e1b5d0f256))
+
 ### [2.159.5](https://github.com/CodySwannGT/lisa/compare/vv2.159.4...v2.159.5) (2026-06-10)
 
 
