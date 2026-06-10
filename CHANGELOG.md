@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.159.2](https://github.com/CodySwannGT/lisa/compare/vv2.159.1...v2.159.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* **atlassian-access:** bind jira writes to cloud id ([92817d3](https://github.com/CodySwannGT/lisa/commit/92817d3d036fbd3128675e506c7a51fdec96dd58))
+
 ### [2.159.1](https://github.com/CodySwannGT/lisa/compare/vv2.159.0...v2.159.1) (2026-06-10)
 
 
