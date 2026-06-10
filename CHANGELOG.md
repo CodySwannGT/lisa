@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.159.3](https://github.com/CodySwannGT/lisa/compare/vv2.159.2...v2.159.3) (2026-06-10)
+
+
+### Bug Fixes
+
+* block artifact-only verification without credentials ([29231d3](https://github.com/CodySwannGT/lisa/commit/29231d33a8cd81bba94860919a2298b63aff16c3))
+
 ### [2.159.2](https://github.com/CodySwannGT/lisa/compare/vv2.159.1...v2.159.2) (2026-06-10)
 
 
