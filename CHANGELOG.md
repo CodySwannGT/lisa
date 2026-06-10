@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.159.5](https://github.com/CodySwannGT/lisa/compare/vv2.159.4...v2.159.5) (2026-06-10)
+
+
+### Bug Fixes
+
+* require auditable implement rosters ([8acc0c9](https://github.com/CodySwannGT/lisa/commit/8acc0c9a2f1ab6ef6517d47d279451bad8c0897e))
+
 ### [2.159.4](https://github.com/CodySwannGT/lisa/compare/vv2.159.3...v2.159.4) (2026-06-10)
 
 
