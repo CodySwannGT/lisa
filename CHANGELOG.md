@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.159.1](https://github.com/CodySwannGT/lisa/compare/vv2.159.0...v2.159.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **atlassian-access:** reverify switched acli profile ([ac6c7dc](https://github.com/CodySwannGT/lisa/commit/ac6c7dcd4150d5ed9f5ffc64df21a9d5e7fd4473))
+
 ## [2.159.0](https://github.com/CodySwannGT/lisa/compare/vv2.158.3...v2.159.0) (2026-06-09)
 
 
