@@ -62,6 +62,9 @@ TDD Cycle:
 - Focus on testing behavior, not implementation details
 - The test must fail before you write any production code
 - If the imported module doesn't exist, Jest reports 0 tests found (not N failed) — this is expected RED behavior
+- For a Fix task, or a Build task that changes user-visible behavior, include a regression test at the highest practical observation level for the reported surface. If the project has a browser, device, or end-to-end harness for that platform (for example Playwright, Maestro, Detox, Cypress, or an equivalent runtime), the RED test plan must include a deterministic spec against the reported surface, using mocked or seeded data where needed.
+- The team lead may not waive, defer, or mark that user-visible regression spec as optional, "if cheap", or equivalent. The only exits are a recorded absence of an end-to-end harness for the affected platform, or a genuine technical blocker with a linked build-ready follow-up ticket created before merge and referenced from the PR and source work item.
+- A regression spec is not complete merely because it exists. Completion evidence must prove the spec actually ran and passed in PR CI with a named log line, reporter output, or equivalent execution record. Guard against `test.skip`, suite-level environment gates, shard filters, and "0 tests" passes.
 
 ### GREEN Phase
 

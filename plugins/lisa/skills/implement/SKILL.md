@@ -111,6 +111,17 @@ IF it is a Fix (bug), execute the Reproduce sub-flow FIRST:
    1. Write a simple API client and call the offending API
    2. Start the server on localhost and use the Playwright CLI or Chrome DevTools
 
+For any Fix flow, and for any Build flow that changes user-visible behavior, regression coverage is a required deliverable at the highest practical observation level for the reported surface. If the project has a browser, device, or end-to-end harness for that platform (for example Playwright, Maestro, Detox, Cypress, or an equivalent runtime), the task plan and definition of done MUST include a deterministic regression spec against the reported surface, using mocked or seeded data where needed. This is alongside unit or integration coverage, not a substitute for it.
+
+The team lead may not waive, defer, demote, or phrase this regression spec as "optional", "if cheap", "nice to have", or equivalent. The only permitted exits are:
+
+1. The project genuinely has no end-to-end harness for the affected platform; record the checked locations and that absence in the task metadata, PR, and work-item evidence.
+2. A genuine technical blocker prevents adding or executing the spec in this PR; before merge, create a linked build-ready follow-up ticket, reference it from the PR and source work item, and keep the current item blocked or explicitly non-terminal until that follow-up is accepted.
+
+Completion evidence for the regression spec must prove execution, not mere existence. A green CI run is insufficient unless the PR evidence includes a CI log line, reporter output, or equivalent record naming the new spec and showing that it ran and passed. Guard explicitly against `test.skip`, suite-level environment gates, shard filters, and "0 tests" passes.
+
+If the required regression spec is still in flight on an auto-merge-enabled PR, pause auto-merge or use an equivalent merge gate until the spec commit is pushed and its execution proof is available. The flow must not allow the PR to merge before this non-demotable deliverable is satisfied or formally blocked through the linked follow-up path above.
+
 Using the general-purpose agent in Team Lead session, determine how you will know that the task is fully complete. Write this as an **effective completion condition** — one an independent verifier could confirm from observed output alone, not from your assertion that it works. A strong condition has:
 
 - **One measurable end state** — a status code, an exit code, a row count, an observable UI state, an empty queue. Not "it looks right" or "the code is correct".
@@ -146,13 +157,15 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
 
 Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
 
+For Fix tasks and user-visible Build tasks, `testing_requirements` must include the highest-practical-observation regression requirement above, including the selected harness or the recorded absence/blocker path. The completion condition must include the proof command and the required CI execution evidence for the new spec.
+
 Each task must be reviewed by the team to make sure their verification passes.
 Each task must have their learnings reviewed by the learner subagent.
 
 Before shutting down the team, execute the Verify flow:
 
 1. Run quality gates: lint, typecheck, tests — all must pass. These are prerequisites, NOT verification.
-2. `verification-specialist`: verify locally by running the actual system and observing results (empirical proof that the change works). This is the real verification step.
+2. `verification-specialist`: verify locally by running the actual system and observing results (empirical proof that the change works). This is the real verification step. For UI-surface bugs, the proof must observe the UI surface with browser/device automation against the target environment whenever such a harness exists; unit-level or API-only proof cannot satisfy the empirical verification contract for a UI-surface defect.
 2a. **Record the verification verdict** — the independent, machine-readable proof that gates completion. The `verification-specialist` writes `${CLAUDE_PROJECT_DIR:-.}/.lisa/verification-status.json` with one entry per acceptance criterion, each carrying the proof command's observed evidence:
 
     ```json
@@ -169,7 +182,7 @@ Before shutting down the team, execute the Verify flow:
     Set `status: "pass"` only when every criterion is `pass` with real evidence (output from running the system, not a claim). The verdict must be judged by an agent that did NOT implement the change (the `verification-specialist`), never self-certified by the implementer. This is runtime scratch — it is gitignored and MUST NOT be committed (treat it like the secrets exclusion in the commit step).
 
     On Claude, the `enforce-verification-gate.sh` Stop hook reads this file and **will not let the flow stop** until it shows a terminal, all-`pass` verdict — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion (a readiness gate failed, a blocker was found, a dependency is unresolved), write the verdict with `status: "blocked"` and the reason: that records the outcome and releases the gate instead of leaving it to spin. Other harnesses fall back to this prose obligation.
-3. Write e2e test encoding the verification
+3. Write the highest-practical-observation regression test encoding the verification. For user-visible bugs or user-visible Build changes with an available browser/device/e2e harness, this means a deterministic spec on the reported surface. Prove the new spec actually executed and passed in PR CI by recording a named spec log/reporter line or equivalent execution record; green CI without that named evidence does not satisfy this step.
 4. Record Implement usage on the originating work artifact via `lisa:usage-accounting` so the work item (or other implementation-owned artifact) gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the parent / child graph is already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if runtime usage is unavailable, use `source: unavailable` with nullable token/cost fields instead of skipping the row.
 5. Commit ALL outstanding changes in logical batches on the branch (minus sensitive data/information) — not just changes made by the agent team. This includes pre-existing uncommitted changes that were on the branch before the plan started. Do NOT filter commits to only "task-related" files. If it shows up in git status, it gets committed (unless it contains secrets).
 6. Push the changes - if any pre-push hook blocks you, create a task for the agent team to fix the error/problem whether it was pre-existing or not
