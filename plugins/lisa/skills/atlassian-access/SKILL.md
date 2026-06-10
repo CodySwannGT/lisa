@@ -1,6 +1,6 @@
 ---
 name: atlassian-access
-description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and confluence-* skill MUST delegate through this skill rather than calling Atlassian directly. Resolves a substrate per operation in this order: (1) acli if installed and switchable to a profile matching the configured site, (2) Atlassian MCP if authenticated and the configured cloudId is in its accessible resources, (3) curl + API-token Basic auth. Verifies the active connection matches `.lisa.config.json` before every operation — substrates authenticated as a different Atlassian account are switched to the configured profile when one exists, and skipped only after switch plus re-verification fails."
+description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and confluence-* skill MUST delegate through this skill rather than calling Atlassian directly. Resolves a substrate per operation, binding JIRA writes to the configured cloudId via Atlassian REST whenever token auth is available and using acli only for reads or as a guarded fallback. For non-write acli operations, acli is used when installed and switchable to a profile matching the configured site; mismatched active profiles are skipped only after switch plus re-verification fails."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -40,8 +40,13 @@ Probe each tier in order; the first that's ready AND identity-matches is the sub
 ```bash
 substrate=""
 
-# Tier 1: acli
-if command -v acli >/dev/null 2>&1 && acli auth status >/dev/null 2>&1; then
+# Tier 1: acli for reads and non-write operations only.
+#
+# Do not choose acli for JIRA writes when curl/token auth is available. acli stores
+# one machine-global active account and workitem writes cannot pin a cloudId per
+# invocation, so switch-then-write is a TOCTOU risk in multi-account or concurrent
+# sessions. Write operations prefer the cloudId-scoped REST URL below.
+if [ "$OP_KIND" != "jira-write" ] && command -v acli >/dev/null 2>&1 && acli auth status >/dev/null 2>&1; then
   current_site=$(acli auth status 2>/dev/null | awk '/^  Site:/{print $2}')
   if [ "$current_site" != "$SITE" ]; then
     # acli installed but pointing at a different site. Try switching profiles.
@@ -114,7 +119,13 @@ public static class LisaCred {
   esac
 }
 TOKEN=$(read_atlassian_token "$EMAIL")
-[ -n "$TOKEN" ] && curl_available=true && : ${substrate:=curl}
+[ -n "$TOKEN" ] && curl_available=true && {
+  if [ "$OP_KIND" = "jira-write" ]; then
+    substrate="curl"
+  else
+    : ${substrate:=curl}
+  fi
+}
 
 # Fail loudly with actionable remediation if nothing works.
 if [ -z "$substrate" ]; then
@@ -271,18 +282,18 @@ Substrate column meanings:
 - Multiple cells filled means tier ordering applies — try acli, then MCP, then curl, taking the first that has an adapter for the op AND is identity-matched.
 - One cell means only that substrate can perform the op.
 
-`<SITE>` = `.atlassian.site` (e.g. `propswap.atlassian.net`). `<CLOUDID>` = `.atlassian.cloudId`. `<AUTH>` = `Basic $(printf '%s:%s' "$email" "$ATLASSIAN_API_TOKEN" | base64)`. JIRA paths use `/rest/api/3/...`; Confluence uses `/wiki/rest/api/...` (v1) or `/api/v2/...` (v2).
+`<SITE>` = `.atlassian.site` (e.g. `propswap.atlassian.net`). `<CLOUDID>` = `.atlassian.cloudId`. `<AUTH>` = `Basic $(printf '%s:%s' "$email" "$ATLASSIAN_API_TOKEN" | base64)`. JIRA curl writes use the cloudId-bound Atlassian gateway `https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/...`; JIRA curl reads may use either that gateway or `https://<SITE>/rest/api/3/...` after the token account check. Confluence uses `/wiki/rest/api/...` (v1) or `/api/v2/...` (v2).
 
 | Operation | acli adapter | MCP adapter | curl adapter |
 |---|---|---|---|
 | **JIRA ops** | | | |
 | `read-ticket key:<K>` | `acli jira workitem view <K> --fields '*all' --json` | `mcp__plugin_atlassian_atlassian__getJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>?fields=*all` |
-| `write-ticket payload:<P>` (create) | `acli jira workitem create --from-json <P>` | `mcp__plugin_atlassian_atlassian__createJiraIssue` | `POST https://<SITE>/rest/api/3/issue` body=`<P>` |
-| `write-ticket payload:<P>` (edit) | `acli jira workitem edit <K> --from-json <P>` | `mcp__plugin_atlassian_atlassian__editJiraIssue` | `PUT https://<SITE>/rest/api/3/issue/<K>` body=`<P>` |
-| `transition key:<K> to:<S>` | `acli jira workitem transition --key <K> --status "<S>" --yes` | `mcp__plugin_atlassian_atlassian__transitionJiraIssue` | resolve transition id then `POST .../issue/<K>/transitions` |
+| `write-ticket payload:<P>` (create) | guarded fallback only: `acli jira workitem create --from-json <P>` + response tenant assertion | `mcp__plugin_atlassian_atlassian__createJiraIssue` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue` body=`<P>` |
+| `write-ticket payload:<P>` (edit) | guarded fallback only: `acli jira workitem edit <K> --from-json <P>` + response tenant assertion | `mcp__plugin_atlassian_atlassian__editJiraIssue` | `PUT https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>` body=`<P>` |
+| `transition key:<K> to:<S>` | guarded fallback only: `acli jira workitem transition --key <K> --status "<S>" --yes` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__transitionJiraIssue` | resolve transition id then `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/transitions` |
 | `transitions key:<K>` | (not exposed) | `mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>/transitions` |
-| `comment key:<K> body:<B>` | `acli jira workitem comment add --key <K> --body "<B>"` | `mcp__plugin_atlassian_atlassian__addCommentToJiraIssue` | `POST https://<SITE>/rest/api/3/issue/<K>/comment` |
-| `link from:<K> to:<K2> type:<T>` | `acli jira workitem link create --in <K> --out <K2> --type "<T>" --yes` (see direction note) | `mcp__plugin_atlassian_atlassian__createJiraIssueLink` | `POST https://<SITE>/rest/api/3/issueLink` |
+| `comment key:<K> body:<B>` | guarded fallback only: `acli jira workitem comment add --key <K> --body "<B>"` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__addCommentToJiraIssue` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/comment` |
+| `link from:<K> to:<K2> type:<T>` | guarded fallback only: `acli jira workitem link create --in <K> --out <K2> --type "<T>" --yes` + direction and tenant assertion (see direction note) | `mcp__plugin_atlassian_atlassian__createJiraIssueLink` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issueLink` |
 | `remote-links key:<K>` | (not exposed) | `mcp__plugin_atlassian_atlassian__getJiraIssueRemoteIssueLinks` | `GET https://<SITE>/rest/api/3/issue/<K>/remotelink` |
 | `search-issues jql:<J>` | `acli jira workitem search --jql "<J>" --json` | `mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql` | `POST https://<SITE>/rest/api/3/search/jql` |
 | `list-projects` | `acli jira project list --paginate --json` | `mcp__plugin_atlassian_atlassian__getVisibleJiraProjects` | `GET https://<SITE>/rest/api/3/project/search` |
@@ -304,6 +315,16 @@ Substrate column meanings:
 **Confluence v1 vs v2:** every Confluence curl path above uses **v1** (`/wiki/rest/api/...`). v1 is deprecated by Atlassian but as of writing remains functional for API-token Basic auth. The v2 API (`/api/v2/...`) requires *granular* OAuth scopes that aren't issued to Basic-auth API tokens consistently — so v1 is the safer path for now. When Atlassian fully retires v1, this table must move to v2 (the dispatch is the only thing that changes; the substrate-selection logic is unaffected).
 
 **acli flag note:** acli's `--output` flag does not exist; the correct flag is `--json`. List commands require `--paginate` or `--limit` (no implicit fetch-all). `acli jira workitem view` defaults to a restricted field set (`key,issuetype,summary,status,assignee,description`), so `read-ticket` MUST pass `--fields '*all'` or an explicit equivalent that includes every downstream dependency: parent, subtasks, issue links, components, labels, priority, status, issue type, summary, description, fix versions, affected versions, attachments, comments, estimates, sprint/story-point fields, and project-required custom fields. Never rely on the default view fields; they hide parent/components/labels and corrupt leaf-only, relationship-search, build-ready, and required-custom-field gates. Several documented adapters are nominal — verify against `acli <subcmd> --help` before relying on them. When acli's adapter is broken or missing for a specific op, fall through to MCP (if identity-matched) then curl per the tier ordering.
+
+**JIRA write tenant-safety rule:** create, edit, transition, comment, and link are write operations. They MUST prefer the curl adapter whenever token auth is available because the URL includes `<CLOUDID>` and cannot be redirected by the user-global acli active account. If the flow must fall back to acli for a write, it is a guarded fallback, not the normal path:
+
+1. Switch and assert the active `acli auth status` site/email matches config immediately before the write.
+2. Execute the write.
+3. Read the affected issue(s) immediately after the write.
+4. Assert each response belongs to the configured tenant by checking one of: response `self` URL host equals `<SITE>`, response `self` URL path includes `/ex/jira/<CLOUDID>/`, or response metadata reports `<CLOUDID>`.
+5. If the assertion fails, stop, report a cross-tenant write hazard, and best-effort roll back the write when there is a safe reversal: delete a newly created issue, remove a newly created comment/link, or revert a reversible field edit. Never continue as if the write succeeded.
+
+Do not treat a successful `acli auth switch` or pre-write `auth status` as sufficient for tenant safety. Another process can mutate the global acli active account between the check and the write.
 
 **acli link-create direction is invertible — flags and verification:** acli has no `--inward`/`--outward` flags; the real flags are `--in` and `--out` (confirm with `acli jira workitem link create --help`). For a `Blocks` link, **`--in` is the blocker and `--out` is the blocked** issue, i.e. `--in <X> --out <Y> --type Blocks` resolves to "X blocks Y" (Y `is blocked by` X). The lisa op `link from:<K> to:<K2> type:<T>` means "K ⟨T⟩ K2", so the blocker `from` maps to `--in` and the blocked `to` maps to `--out` (as in the adapter above). The acli success banner only echoes the `--in`/`--out` values you passed — it does NOT confirm the resolved semantic direction, so a reversed link reports success and looks fine. **After every `link` write, re-read the affected issues via `read-ticket` (which already requests `--fields '*all'`) and confirm `issuelinks[].type` + `inwardIssue`/`outwardIssue` resolve to the intended `blocks` / `is blocked by` direction.** Skipping this can silently reverse an entire epic's dependency graph — e.g. cutover tickets recorded as *blocking* the prerequisites that should block them.
 
@@ -332,6 +353,7 @@ Do not paraphrase substrate output beyond JSON normalization.
 - Substrate is decided once per skill invocation and never switches mid-operation.
 - Connection match is mandatory. Operations that bypass it (because "the user obviously meant the configured site") are forbidden.
 - Profile mutations (`acli auth switch`) are allowed when acli is the active substrate. The curl substrate never mutates the token — if `ATLASSIAN_API_TOKEN` doesn't match the configured account, fail loud rather than silently substituting.
+- JIRA writes are cloudId-bound by default. `acli` write adapters are fallback-only and must perform post-write tenant assertions plus safe rollback on mismatch.
 - `.lisa.config.local.json` overrides `.lisa.config.json` per-key — the same precedence rule as every other consumer of project config.
 
 ## Headless behavior
