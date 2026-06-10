@@ -35,9 +35,19 @@ For each required verification type, discover what tools are available in the pr
 
 Report what is available for each required type. If a required type has no available tool, proceed to step 4.
 
+If a required verification type needs sign-in or other credentials, exhaust credential sources before declaring the verification blocked. Check credential sources in this order:
+
+1. Project e2e / Playwright config and fixtures, including files such as `e2e/constants.ts`, `e2e/fixtures/api-login.ts`, seeded test users, and OTP-bypass patterns such as `555555`.
+2. `.lisa.config.local.json` and environment variables.
+3. Documented ticket credentials, including a `Sign-in Required` or equivalent section in the issue, ticket, PRD, or linked implementation notes.
+
+Report which sources were checked. Do not say credentials are unavailable until all three source classes have been checked or proven absent.
+
 ### 4. Fail Fast
 
 If a required verification type has no available tool and no reasonable alternative, escalate immediately using the Escalation Protocol. Do not begin implementation without a verification plan for every required type.
+
+If credentials are genuinely unavailable after the credential lookup order above is exhausted, treat the work item as blocked rather than done. Post a clear tracker comment stating exactly what runtime behavior could not be verified and which credential sources were checked, transition the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label, creating that label if the tracker supports label creation and it is missing.
 
 ### 5. Plan
 
@@ -51,6 +61,8 @@ A verification plan that only lists `bun run test`, `bun run typecheck`, or `bun
 ### 6. Execute
 
 After implementation, run the verification plan. Execute each verification type in order.
+
+Evidence output must explicitly label each verification result as either `verified empirically` or `artifact-only / verification deferred`. Artifact-only evidence can support a blocked escalation packet, but it cannot mark a required runtime verification complete.
 
 ### 7. Codify
 
@@ -229,6 +241,7 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 4. **If verification blocked** (missing tools, services, etc.): Mark as blocked, not complete
 5. **Must not be dependent on CI/CD** if necessary, you may use local deploy methods found in the project manifest, but the verification methods must be listed in the pull request and therefore cannot be dependent on CI/CD completing
 6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every `[EVIDENCE: name]` marker declared on the ticket has a corresponding captured, non-empty artifact attached to the ticket. A missing or empty artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
+7. **No artifact-only completion for required runtime verification**: If empirical verification is required and cannot run because credentials are missing, do not mark the item done on artifact-only evidence. Exhaust the credential lookup order first; if still blocked, post the blocker comment, move the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label.
 
 ---
 
@@ -245,6 +258,7 @@ Common blockers:
 - Missing documentation on how to access required tooling
 - Production-only access gates
 - Compliance restrictions
+- Missing runtime credentials after checking project e2e / Playwright config and fixtures, `.lisa.config.local.json` / environment, and documented ticket credentials
 
 When blocked, agents must do the following:
 
@@ -254,6 +268,8 @@ When blocked, agents must do the following:
 4. Declare verification level as PARTIALLY VERIFIED or UNVERIFIED.
 5. Produce a Human Action Packet.
 6. Pause until explicit human confirmation or tooling is provided.
+
+For tracker-backed work items, also post the packet to the tracker, transition to the configured blocked state, and apply the configured `needs-human` / `human-review` label. If the label is missing and the tracker supports label creation, create it before applying it.
 
 Agents must never proceed past an unverified boundary without surfacing it to the human overseer.
 
