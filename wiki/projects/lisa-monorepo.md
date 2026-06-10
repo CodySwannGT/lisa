@@ -20,16 +20,30 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260608T064627Z` created from synced `origin/main`
-- HEAD at 2026-06-08 incremental ingest: `a6f7dc06ac56dfd401772e30889edfa66f3beac2`
-- Current package version: `2.154.0`
-- Total commits on HEAD: 3005
-- Latest merged PR captured in the incremental git snapshot: `#1208`
-- New commits since the previous incremental git cursor: `63`
-- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/11c7/lisa`; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-20260609T064744Z` created from synced `origin/main`
+- HEAD at 2026-06-09 incremental ingest: `fa4fc0069307cf650c1cfc7fd498bfedddc69231`
+- Current package version: `2.155.6`
+- Total commits on HEAD: 3030
+- Latest merged PR captured in the incremental git snapshot: `#1216`
+- New commits since the previous incremental git cursor: `25`
+- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/b484/lisa`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.155.6`.
+- PR `#1216` expanded exploratory QA human-experience checks.
+- Release automation advanced the monorepo to `2.155.5`.
+- PR `#1215` aligned `/lisa:intake-explain` stale PRD defaults with repair-intake's two-hour stale threshold.
+- Release automation advanced the monorepo through `2.155.4`.
+- PR `#1213` keeps TypeScript template ESLint and Prettier gates from scanning generated `.opencode` overlays.
+- PR `#1214` makes sync-down no-op when all configured deploy branches collapse to a single branch, and updates doctor/config-resolution guidance for that case.
+- Release automation advanced the monorepo through `2.155.2`.
+- PR `#1212` pins Expo `apollo-link-sentry` to exactly `4.4.0` for Apollo v3 and Sentry v8 compatibility.
+- PR `#1211` relaxes automation setup dirty-tree preflight language so scheduler setup can proceed when local changes are unrelated.
+- Release automation advanced the monorepo to `2.155.0`.
+- PR `#1210` added `/lisa:validate-tracker-mapping`, a drift detector and repairer for repo-to-tracker mapping state across supported harnesses.
+- PR `#1209` merged the prior wiki ingestion through Lisa `2.154.0`.
+- Release automation advanced the monorepo to `2.154.1`.
 - Release automation advanced the monorepo to `2.154.0`.
 - PR `#1208` made local agent definitions available across the fleet.
 - Release automation advanced the monorepo through `2.153.0`.
@@ -262,6 +276,8 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/git/2026-06-07-lisa-monorepo-git-previous-20260607T070304Z.md`
 - `wiki/sources/git/2026-06-07-lisa-monorepo-git-previous-20260607T110501Z.md`
 - `wiki/sources/git/2026-06-07-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-08-lisa-monorepo-git.md`
+- `wiki/sources/git/2026-06-09-lisa-monorepo-git.md`
 - `wiki/sources/memory/2026-05-27-memory.md`
 - `wiki/sources/memory/2026-05-28-memory.md`
 - `wiki/sources/roles/2026-05-25-roles.md`
@@ -301,3 +317,5 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - `wiki/sources/roles/2026-06-07-roles-previous-20260607T070304Z.md`
 - `wiki/sources/roles/2026-06-07-roles-previous-20260607T110501Z.md`
 - `wiki/sources/roles/2026-06-07-roles.md`
+- `wiki/sources/roles/2026-06-08-roles.md`
+- `wiki/sources/roles/2026-06-09-roles.md`

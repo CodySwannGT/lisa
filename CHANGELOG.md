@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.159.0](https://github.com/CodySwannGT/lisa/compare/vv2.158.3...v2.159.0) (2026-06-09)
+
+
+### Features
+
+* **apply:** declare wiki.source.path when a project has a local wiki ([05efab3](https://github.com/CodySwannGT/lisa/commit/05efab3b39dfa12be91cd1b1656248ae32e487a6))
+
+### [2.158.3](https://github.com/CodySwannGT/lisa/compare/vv2.158.2...v2.158.3) (2026-06-09)
+
+
+### Bug Fixes
+
+* **safety-net:** portable line-continuation normalization in the push guard ([7d26a28](https://github.com/CodySwannGT/lisa/commit/7d26a28a294b15dfbbfa17aa776655771d725a7b))
+
+### [2.158.2](https://github.com/CodySwannGT/lisa/compare/vv2.158.1...v2.158.2) (2026-06-09)
+
+
+### Bug Fixes
+
+* **safety-net:** correlate force-push guard to a single push statement ([c1fb296](https://github.com/CodySwannGT/lisa/commit/c1fb296a984ba550bb013708f1a55be28eff08b3))
+* **safety-net:** normalize line-continuations before push guard segmentation ([62f8b81](https://github.com/CodySwannGT/lisa/commit/62f8b817c247502dc53bdf4485bb841c7dd061eb))
+
+### [2.158.1](https://github.com/CodySwannGT/lisa/compare/vv2.158.0...v2.158.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **ci:** ignore no-config playwright aggregate abandonment ([ab733ac](https://github.com/CodySwannGT/lisa/commit/ab733ac6b0b9f302f8f60c864862787a7badcb16))
+
+## [2.158.0](https://github.com/CodySwannGT/lisa/compare/vv2.157.1...v2.158.0) (2026-06-09)
+
+
+### Features
+
+* **apply:** exclude generated harness dirs from sonar.exclusions ([4f9a403](https://github.com/CodySwannGT/lisa/commit/4f9a4033c4cce86e46a50e27c8613e90ba2a41c4))
+
+### [2.157.1](https://github.com/CodySwannGT/lisa/compare/vv2.157.0...v2.157.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **apply:** use node:fs/promises for fs reads/writes (Expo apply crash) ([3087e33](https://github.com/CodySwannGT/lisa/commit/3087e336e3884ea6f911d310bbbf596af0a53c8d))
+
+## [2.157.0](https://github.com/CodySwannGT/lisa/compare/vv2.156.0...v2.157.0) (2026-06-09)
+
+
+### Features
+
+* **wiki:** add local wiki.source.path; unify local resolution ([d713aad](https://github.com/CodySwannGT/lisa/commit/d713aade546c6f40f379e2c4e01b520fb3e688bd))
+
+## [2.156.0](https://github.com/CodySwannGT/lisa/compare/vv2.155.7...v2.156.0) (2026-06-09)
+
+
+### Features
+
+* **wiki:** resolve + mirror a remote wiki via ensure-wiki (read side) ([50ce32e](https://github.com/CodySwannGT/lisa/commit/50ce32e364a5c37a501e5de7f6b7f4943939579d))
+
+### [2.155.7](https://github.com/CodySwannGT/lisa/compare/vv2.155.6...v2.155.7) (2026-06-09)
+
+
+### Documentation
+
+* **wiki:** ingest Lisa wiki state ([97f31c8](https://github.com/CodySwannGT/lisa/commit/97f31c824e023c33805d3d95efb45863802b1461))
+
 ### [2.155.6](https://github.com/CodySwannGT/lisa/compare/vv2.155.5...v2.155.6) (2026-06-09)
 
 

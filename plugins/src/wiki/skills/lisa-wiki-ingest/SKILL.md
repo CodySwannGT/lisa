@@ -19,10 +19,23 @@ performs the shared, ordered pipeline.
   run includes explicit external-write intent**.
 - **Dry run:** `/ingest --dry-run` — list the sources a full ingest would run; perform no writes.
 
+## Step 0 — resolve the wiki root (once per run)
+
+Before anything else, run `node scripts/ensure-wiki.mjs --json` and use the returned `wikiRoot` as the
+base for the whole pipeline — never hardcode `wiki/`. This is mode-agnostic by design:
+
+- **Local wiki** (no `wiki.source` in `.lisa.config.json`) — resolves the in-repo wiki root instantly;
+  the branch sync below proceeds against **this** repo's remote, exactly as before.
+- **Remote wiki** (`wiki.source.url` set) — `ensure-wiki` mirrors/refreshes the gitignored working copy
+  of the canonical wiki repo and returns its path. In this mode the "sync the branch" step below, and
+  the Commit/PR step (7), operate against the **wiki repo's own remote** (the mirror), not the host
+  project's `origin`. The host project repo is never written to.
+
 ## Before ingesting — sync the branch (once per run)
 
 Run this **once per ingest invocation, before any source is processed** (skip for `--dry-run`, which
-writes nothing). The point is to ingest on top of fresh state, never stale state.
+writes nothing). The point is to ingest on top of fresh state, never stale state. Operate in the wiki
+root resolved in Step 0 — the host repo for a local wiki, the mirror for a remote one.
 
 1. **Resolve the default remote branch** — `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`,
    or `git remote show origin | sed -n 's/.*HEAD branch: //p'`, or the `origin/HEAD` symbolic ref. If

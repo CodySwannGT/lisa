@@ -61,14 +61,34 @@ fi
 
 # 2. Force-pushing a protected branch. `--force-with-lease` is the safe,
 #    non-clobbering alternative and is intentionally NOT blocked.
-if printf '%s' "$command_str" | grep -Eiq '(^|[^[:alnum:]_-])git[[:space:]]+push\b'; then
-  if printf '%s' "$command_str" | grep -Eiq '(--force([[:space:]]|=|$)|[[:space:]]-f([[:space:]]|$))' \
-    && ! printf '%s' "$command_str" | grep -Eiq -- '--force-with-lease'; then
-    if printf '%s' "$command_str" | grep -Eiq '(^|[^[:alnum:]_/-])(main|master|production|prod|release)([^[:alnum:]_/-]|$)'; then
-      block "force-pushing a protected branch (use --force-with-lease, or push a feature branch)"
-    fi
+#
+#    The force flag AND the protected-branch name must appear in the SAME
+#    `git push` statement. Checking them independently over the whole command is
+#    a false-positive magnet: an unrelated `-f` (a `[ -f file ]` test, `rm -f`,
+#    `grep -f`, `tail -f`) plus an unrelated protected name (`--base main`,
+#    `origin/main`, `git fetch origin main`) alongside any feature-branch
+#    `git push` would wrongly block. So split the command into statements
+#    (`;`, `&&`, `||`, `|`, newlines), keep only the `git push` segments, and
+#    inspect each in isolation — a real `git push --force origin main` still
+#    matches, while a feature-branch push next to `[ -f ]`/`--base main` passes.
+# Normalize bash line-continuations (a trailing backslash + newline → space)
+# before segmenting the command. Without this, "git push --force origin
+# \<newline>main" splits into a segment matching --force but not `main`, letting a
+# protected force-push slip past. Uses awk (POSIX) instead of a GNU-only
+# `sed ':a;N;$!ba;…'`, which errors on BSD sed (macOS) and there silently no-ops.
+normalized_command_str="$(printf '%s' "$command_str" \
+  | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
+
+while IFS= read -r push_stmt; do
+  if printf '%s' "$push_stmt" \
+    | grep -Eiq '(--force([[:space:]]|=|$)|[[:space:]]-f([[:space:]]|$))' \
+    && ! printf '%s' "$push_stmt" | grep -Eiq -- '--force-with-lease' \
+    && printf '%s' "$push_stmt" \
+    | grep -Eiq '(^|[^[:alnum:]_/-])(main|master|production|prod|release)([^[:alnum:]_/-]|$)'; then
+    block "force-pushing a protected branch (use --force-with-lease, or push a feature branch)"
   fi
-fi
+done < <(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
+  | grep -Ei '(^|[^[:alnum:]_-])git[[:space:]]+push\b')
 
 # 3. `git reset --hard` while the working tree has uncommitted changes — this
 #    silently discards them. Only blocks when the tree is actually dirty, so a
