@@ -1,6 +1,6 @@
 ---
 name: atlassian-access
-description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and confluence-* skill MUST delegate through this skill rather than calling Atlassian directly. Resolves a substrate per operation in this order: (1) acli if installed and its active profile matches the configured site, (2) Atlassian MCP if authenticated and the configured cloudId is in its accessible resources, (3) curl + API-token Basic auth. Verifies the active connection matches `.lisa.config.json` before every operation — substrates authenticated as a different Atlassian account are skipped, not used."
+description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and confluence-* skill MUST delegate through this skill rather than calling Atlassian directly. Resolves a substrate per operation in this order: (1) acli if installed and switchable to a profile matching the configured site, (2) Atlassian MCP if authenticated and the configured cloudId is in its accessible resources, (3) curl + API-token Basic auth. Verifies the active connection matches `.lisa.config.json` before every operation — substrates authenticated as a different Atlassian account are switched to the configured profile when one exists, and skipped only after switch plus re-verification fails."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -35,7 +35,7 @@ EMAIL=$(jq -r '.atlassian.email // empty' .lisa.config.local.json 2>/dev/null)
 [ -z "$CLOUDID" ] && { echo "Error: atlassian.cloudId not set. Run /lisa:setup:atlassian." >&2; exit 1; }
 ```
 
-Probe each tier in order; the first that's ready AND identity-matches is the substrate for this operation. Identity-match is verified before any operation; substrates authenticated as a different Atlassian account are skipped, not used.
+Probe each tier in order; the first that's ready AND identity-matches is the substrate for this operation. Identity-match is verified before any operation; substrates authenticated as a different Atlassian account are switched to the configured profile when one exists, then skipped only if the switch fails or re-verification still mismatches.
 
 ```bash
 substrate=""
@@ -43,13 +43,13 @@ substrate=""
 # Tier 1: acli
 if command -v acli >/dev/null 2>&1 && acli auth status >/dev/null 2>&1; then
   current_site=$(acli auth status 2>/dev/null | awk '/^  Site:/{print $2}')
+  if [ "$current_site" != "$SITE" ]; then
+    # acli installed but pointing at a different site. Try switching profiles.
+    acli auth switch --site "$SITE" ${EMAIL:+--email "$EMAIL"} >/dev/null 2>&1 || true
+    current_site=$(acli auth status 2>/dev/null | awk '/^  Site:/{print $2}')
+  fi
   if [ "$current_site" = "$SITE" ]; then
     substrate="acli"
-  else
-    # acli installed but pointing at a different site. Try switching profiles.
-    if acli auth switch --site "$SITE" ${EMAIL:+--email "$EMAIL"} >/dev/null 2>&1; then
-      substrate="acli"
-    fi
   fi
 fi
 
@@ -164,7 +164,7 @@ Operation dispatch then uses `$substrate` for the primary route. If the operatio
 
 ### Step 2 — Connection-match check
 
-The active connection MUST point at the cloudId/site declared in `.lisa.config.json`. Step 1's substrate selection already verifies this implicitly (substrates that don't match are skipped). This step is the explicit assertion before any operation runs — defensive in case the substrate state changed since selection.
+The active connection MUST point at the cloudId/site declared in `.lisa.config.json`. Step 1's substrate selection already tries to switch mismatched acli profiles and verifies the result before selection. This step repeats the assertion before any operation runs — defensive in case the substrate state changed since selection.
 
 Read configured site:
 
@@ -188,8 +188,22 @@ current_site=$(echo "$current" | jq -r '.site // empty')
 current_email=$(echo "$current" | jq -r '.email // empty')
 
 if [ -n "$site" ] && [ "$current_site" != "$site" ]; then
-  # Profile mismatch — switch.
+  # Profile mismatch — switch, then re-verify. Do not trust the switch exit
+  # status alone because acli's active account is machine-global state.
   acli auth switch --site "$site" ${email:+--email "$email"}
+  current=$(acli auth status --json 2>/dev/null)
+  current_site=$(echo "$current" | jq -r '.site // empty')
+  current_email=$(echo "$current" | jq -r '.email // empty')
+fi
+
+if [ -n "$site" ] && [ "$current_site" != "$site" ]; then
+  echo "Error: acli active site is '$current_site', but .lisa.config.json requires '$site'. Run /lisa:setup:atlassian to add or repair the matching profile." >&2
+  exit 1
+fi
+
+if [ -n "$email" ] && [ -n "$current_email" ] && [ "$current_email" != "$email" ]; then
+  echo "Error: acli active account is '$current_email', but .lisa.config.json requires '$email'. Run /lisa:setup:atlassian to add or repair the matching profile." >&2
+  exit 1
 fi
 ```
 
