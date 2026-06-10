@@ -20,16 +20,33 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260609T064744Z` created from synced `origin/main`
-- HEAD at 2026-06-09 incremental ingest: `fa4fc0069307cf650c1cfc7fd498bfedddc69231`
-- Current package version: `2.155.6`
-- Total commits on HEAD: 3030
-- Latest merged PR captured in the incremental git snapshot: `#1216`
-- New commits since the previous incremental git cursor: `25`
-- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/b484/lisa`; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-20260610T000000Z` created from synced `origin/main`
+- HEAD at 2026-06-10 incremental ingest: `6f6c00cb0462cf2f6e6754e80905771bb6712814`
+- Current package version: `2.159.3`
+- Total commits on HEAD: 3071
+- Latest merged PR captured in the incremental git snapshot: `#1231`
+- New commits since the previous incremental git cursor: `41`
+- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/dae6/lisa`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo to `2.159.3`.
+- PR `#1231` blocks artifact-only verification success when credentials are missing and adds review-feedback coverage for that credential gate.
+- Release automation advanced the monorepo through `2.159.2`.
+- PR `#1232` binds Jira writes in the Atlassian access workflow to the selected cloud id.
+- PR `#1230` re-verifies switched `acli` profiles in Atlassian access repair flows.
+- Release automation advanced the monorepo to `2.159.0`.
+- PR `#1226` makes `lisa apply` declare `wiki.source.path` when a managed project has a local wiki.
+- Release automation advanced the monorepo through `2.158.3`.
+- PRs `#1225` and `#1224` hardened Safety Net push guard parsing by normalizing line continuations and correlating force-push checks to a single push statement.
+- PR `#1223` keeps no-config Playwright aggregate abandonment from failing CI.
+- Release automation advanced the monorepo through `2.158.0`.
+- PR `#1221` excludes generated harness directories from Sonar exclusions during `lisa apply`.
+- PR `#1220` fixed an Expo apply crash by using `node:fs/promises` for filesystem reads and writes.
+- Release automation advanced the monorepo through `2.157.0`.
+- PRs `#1219` and `#1218` added local `wiki.source.path` support and read-side remote wiki mirroring through `ensure-wiki`.
+- Release automation advanced the monorepo through `2.155.7`.
+- PR `#1217` merged the prior wiki ingestion through Lisa `2.155.6`.
 - Release automation advanced the monorepo to `2.155.6`.
 - PR `#1216` expanded exploratory QA human-experience checks.
 - Release automation advanced the monorepo to `2.155.5`.
