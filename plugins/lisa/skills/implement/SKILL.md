@@ -17,7 +17,7 @@ Use the team tool for the current runtime:
 - Codex: do not call `TeamCreate`; Codex does not expose that Claude tool. Use `tool_search` with a query like `multi-agent tools` to load `multi_agent_v1`, then use `multi_agent_v1.spawn_agent` for teammate delegation. Treat the first successful `spawn_agent` call as establishing team orchestration.
 - Other runtimes: use the current runtime's tool-discovery mechanism to discover and call the appropriate multi-agent/team tool.
 
-If no team creation or subagent delegation tool is available, explicitly state that team orchestration is unavailable in this runtime, continue as the lead agent, and preserve the workflow's review, verification, and task-tracking obligations locally. Every team must include the Explore agent.
+If no team creation or subagent delegation tool is available, explicitly state that team orchestration is unavailable in this runtime, continue as the lead agent, and preserve the workflow's review, verification, and task-tracking obligations locally.
 
 Until the team is established, the first Codex teammate has been spawned, or the no-team fallback has been declared, do NOT call any of: `Agent`, `TaskCreate`, `Skill` (including `lisa:tracker-read`, `lisa:jira-read-ticket`, `lisa:github-read-issue`), MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. Reading the ticket, exploring the code, fetching context — every one of those is a task for the team you are about to create, not for the lead session before orchestration exists. Doing them inline is the exact bypass path that produces a 1-agent ad-hoc fix instead of a real team flow.
 
@@ -32,7 +32,7 @@ Treat the first successful lead-spawn request (or, on the Codex fallback, the fi
 
 $ARGUMENTS is either a url to a ticket containing the request, a pointer to a file containing the request, or the request in text format.
 
-The team lead does NOT read the input directly. The first task on the team's plan is "resolve the input" — assigned to a teammate, which then:
+The team lead does NOT read the input directly. The first task on the team's plan is "resolve the input" — assigned to a bounded input-resolver teammate, which then:
 
 - If it's a ticket, calls `lisa:tracker-read` (preferred — vendor-agnostic; dispatches per `.lisa.config.json` `tracker`). **Mismatch guard**: if the ticket format doesn't match the configured tracker (e.g., a GitHub URL when `tracker` is `jira`), `tracker-read` stops and reports the error — never auto-translates vendors:
   - JIRA ticket → `lisa:tracker-read` → `lisa:jira-read-ticket`
@@ -43,9 +43,23 @@ The team lead does NOT read the input directly. The first task on the team's pla
 - If it's a plain-text request, uses the provided text verbatim as the resolved input.
 - Returns the resolved input to the team lead, who then proceeds to roster selection.
 
+The input resolver is the only teammate that may be spawned before the Roster Decision exists. After it returns the resolved input, do not spawn any lifecycle, research, implementation, review, verification, or learning teammate until the Roster Decision has been recorded.
+
 ## Select the agent roster
 
-Review all available agent types listed in the Task tool's `subagent_type` options. This includes built-in agents (like `Explore`, `general-purpose`), custom agents (from `.claude/agents/`), and plugin agents (from `.claude/settings.json` `enabledPlugins`). For each agent, explain in one sentence why it IS or IS NOT relevant to this task. Then select all agents that are relevant. You MUST justify excluding an agent — inclusion is the default.
+Before spawning any teammate beyond the bounded input resolver, record a **Roster Decision** artifact. It must enumerate every agent or specialist type exposed by the current runtime's delegation tool and record one line per type:
+
+```text
+INCLUDE|EXCLUDE - <agent type> - <one-sentence reason>
+```
+
+Review all available agent types listed in the current runtime's delegation options. In Claude, this includes the Task tool's `subagent_type` options: built-in agents such as `Explore` and `general-purpose`, custom agents from `.claude/agents/`, and plugin agents from enabled plugins. In Codex, Cursor, Copilot, agy, OpenCode, or another runtime, use that runtime's tool-discovery and delegation surfaces to enumerate the equivalent available specialists. If the runtime exposes no specialist list, record that explicitly in the Roster Decision and justify the fallback agent type you will use.
+
+Persist the Roster Decision where the flow can be audited later. Prefer task-list metadata `metadata.roster` when a task list exists; otherwise write `${LISA_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-.}}/.lisa/roster.md` or post the Roster Decision in the plan/tracker artifact the flow is already updating. The later verification/evidence step must reference the recorded artifact; absence of the artifact is a workflow failure.
+
+Inclusion is the default. You MUST justify excluding an agent. Every team must include the Explore agent, or the runtime's nearest read-only search/research equivalent; if no equivalent exists, record that gap in the Roster Decision.
+
+Do not spawn a teammate whose agent type is not included in the recorded Roster Decision. `general-purpose` is a fallback, not a default: using it requires an explicit INCLUDE line explaining why no more specific specialist fits or why the runtime exposes no specialist type. If the task changes enough that a different specialist is needed, update the Roster Decision before spawning that teammate.
 
 When deciding the agents to use, consider:
 * Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
