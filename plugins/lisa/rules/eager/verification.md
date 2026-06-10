@@ -11,6 +11,8 @@
 - **Before starting implementation, state your verification plan** — how you will USE the resulting software to prove it works. A plan that only lists `test`/`typecheck`/`lint` commands is not a plan. Do not begin until confirmed.
 - **After verifying empirically, codify it as a regression test** via the `codify-verification` skill — Playwright for UI, integration test for API/DB/auth, benchmark for performance. Codification is mandatory for every verification type except PR/Documentation/Deploy and Investigate-Only spikes.
 - **Every PR must include reviewer replay steps** — the exact human steps to use the software and confirm the change works. Not test commands. If a reviewer can't reproduce from the PR description alone, the PR is incomplete.
+- **Exhaust credential sources before deferring runtime verification** — check project e2e / Playwright config and fixtures first, then `.lisa.config.local.json` / environment variables, then documented ticket credentials such as `Sign-in Required`.
+- **Never mark required runtime verification done on artifact-only evidence** — if credentials are genuinely unavailable after all sources are checked, post the blocker, transition the item to the configured blocked state, apply the configured `needs-human` / `human-review` label, and label the evidence as `artifact-only / verification deferred`.
 
 ## Roles
 
