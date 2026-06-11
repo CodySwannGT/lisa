@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.163.5](https://github.com/CodySwannGT/lisa/compare/vv2.163.4...v2.163.5) (2026-06-11)
+
+
+### Bug Fixes
+
+* **hooks:** tokenize no-verify guard input ([37a7904](https://github.com/CodySwannGT/lisa/commit/37a790452c068e249c2963c107b4c2f5ef2e3031))
+
 ### [2.163.4](https://github.com/CodySwannGT/lisa/compare/vv2.163.3...v2.163.4) (2026-06-11)
 
 
