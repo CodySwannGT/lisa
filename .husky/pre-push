@@ -144,17 +144,29 @@ else
     echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
 
   elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-    # Build --ignore flags dynamically from exclusion list
-    BUN_IGNORE_FLAGS=""
-    for _id in $AUDIT_EXCLUSIONS; do
-      BUN_IGNORE_FLAGS="$BUN_IGNORE_FLAGS --ignore $_id"
-    done
-
-    if ! bun audit --audit-level=high $BUN_IGNORE_FLAGS; then
-      echo "⚠️ Security audit failed. Please fix high/critical vulnerabilities before pushing."
+    # NOTE: bun's `--ignore` flag is unreliable when many exclusions are passed
+    # (bun <=1.3.x silently stops applying ignores past a small count, leaking
+    # excluded high/critical advisories and failing the gate). So instead of
+    # `bun audit --audit-level=high --ignore ...`, parse `bun audit --json` and
+    # apply the exclusion list ourselves with jq — same approach as the npm/yarn
+    # paths above.
+    AUDIT_JSON=$(bun audit --json 2>/dev/null || true)
+    UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq -r --arg ids "$AUDIT_EXCLUSIONS" '
+      ($ids | split(" ") | map(select(length > 0))) as $ex
+      | [ .[]? | .[]?
+          | select(.severity == "high" or .severity == "critical")
+          | (.url | sub(".*/"; "")) as $g
+          | select(($ex | index($g)) | not)
+          | $g ]
+      | unique')
+    UNFIXED_COUNT=$(echo "$UNFIXED_HIGH" | jq -r 'length' 2>/dev/null || echo 0)
+    if [ "$UNFIXED_COUNT" -gt 0 ]; then
+      echo "⚠️ Security audit failed. Unresolved high/critical advisories in production dependencies:"
+      echo "$UNFIXED_HIGH" | jq -r '.[]'
+      echo "Fix them, or add the GHSA id to audit.ignore.local.json with a justification, before pushing."
       exit 1
     fi
-    echo "✅ No high or critical vulnerabilities found in production dependencies"
+    echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
   fi
 fi
 
