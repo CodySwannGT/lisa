@@ -9,7 +9,7 @@
       "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "format:check": "prettier --check .",
-      "format": "prettier --check . --write",
+      "format": "prettier --write .",
       "knip": "knip",
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
