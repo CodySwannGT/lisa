@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.160.0](https://github.com/CodySwannGT/lisa/compare/vv2.159.9...v2.160.0) (2026-06-11)
+
+
+### Features
+
+* add harper fabric deploy workflows ([e653373](https://github.com/CodySwannGT/lisa/commit/e6533735decb150d35167ea00789f0310cd79f76))
+
 ### [2.159.9](https://github.com/CodySwannGT/lisa/compare/vv2.159.8...v2.159.9) (2026-06-11)
 
 
