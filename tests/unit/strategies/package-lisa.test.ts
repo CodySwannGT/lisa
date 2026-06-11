@@ -541,6 +541,157 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  describe("remove behavior", () => {
+    it("deletes retired keys from the named section", async () => {
+      await createPackageLisaTemplate("all", {
+        force: {
+          scripts: { "knip:check": "knip" },
+        },
+        remove: {
+          scripts: ["knip"],
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "all",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await fs.writeJson(destPath, {
+        name: "my-project",
+        scripts: { knip: "knip", start: "node index.js" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.knip).toBeUndefined(); // Retired key removed
+      expect(content.scripts["knip:check"]).toBe("knip"); // Replacement forced
+      expect(content.scripts.start).toBe("node index.js"); // Preserved
+    });
+
+    it("runs after force so a removed key cannot be reintroduced", async () => {
+      await createPackageLisaTemplate("all", {
+        force: {
+          scripts: { retired: "should-not-survive" },
+        },
+        remove: {
+          scripts: ["retired"],
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "all",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await fs.writeJson(destPath, { name: "my-project" });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.retired).toBeUndefined();
+    });
+
+    it("leaves missing or non-object sections alone", async () => {
+      await createPackageLisaTemplate("all", {
+        remove: {
+          scripts: ["knip"],
+          missingSection: ["whatever"],
+          arraySection: ["item"],
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "all",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await fs.writeJson(destPath, {
+        name: "my-project",
+        arraySection: ["item", "other"],
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      // Nothing to remove → output equals input → strategy reports skipped
+      expect(_result.action).toBe("skipped");
+      const content = await fs.readJson(destPath);
+      expect(content.name).toBe("my-project");
+      expect(content.scripts).toBeUndefined(); // Still absent, not created
+      expect(content.missingSection).toBeUndefined();
+      expect(content.arraySection).toEqual(["item", "other"]); // Untouched
+    });
+
+    it("concatenates remove lists across the inheritance chain", async () => {
+      await createPackageLisaTemplate("typescript", {
+        remove: {
+          scripts: ["knip"],
+        },
+      });
+
+      await createPackageLisaTemplate("expo", {
+        remove: {
+          scripts: ["legacy-expo-script"],
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createExpoProject(projectDir);
+      await fs.writeJson(path.join(projectDir, "tsconfig.json"), {});
+      await fs.writeJson(destPath, {
+        name: "my-project",
+        scripts: {
+          knip: "knip",
+          "legacy-expo-script": "expo legacy",
+          start: "expo start",
+        },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      expect(content.scripts.knip).toBeUndefined(); // Parent removal applied
+      expect(content.scripts["legacy-expo-script"]).toBeUndefined(); // Child removal applied
+      expect(content.scripts.start).toBe("expo start"); // Preserved
+    });
+  });
+
   describe("inheritance and type hierarchy", () => {
     it("merges templates from all types in inheritance chain", async () => {
       // Setup all → typescript → expo hierarchy

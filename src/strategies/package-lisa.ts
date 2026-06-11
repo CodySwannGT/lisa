@@ -389,6 +389,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       force: {},
       defaults: {},
       merge: {},
+      remove: {},
     };
 
     // Expand types to include parents (e.g., expo includes typescript)
@@ -451,7 +452,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
   /**
    * Merge two template objects
    * Child template (override) values win in force and defaults.
-   * Merge arrays are concatenated without deduplication at merge time.
+   * Merge and remove arrays are concatenated without deduplication at merge time.
    * @param parent - Parent template (e.g., "all" or "typescript")
    * @param child - Child template (e.g., "expo") that overrides parent
    * @returns Merged template
@@ -465,6 +466,10 @@ export class PackageLisaStrategy implements ICopyStrategy {
       force: deepMerge(parent.force, child.force || {}),
       defaults: deepMerge(parent.defaults, child.defaults || {}),
       merge: this.mergeMergeSections(parent.merge, child.merge || {}),
+      remove: this.mergeMergeSections(
+        parent.remove,
+        child.remove || {}
+      ) as Record<string, string[]>,
     };
   }
 
@@ -496,12 +501,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
   }
 
   /**
-   * Apply force/defaults/merge logic to project's package.json
+   * Apply force/defaults/merge/remove logic to project's package.json
    * @remarks
    * Processing order:
    * 1. Apply force: Deep merge with Lisa values winning (entire section replaced)
    * 2. Apply defaults: Deep merge with project values winning (only set if missing)
    * 3. Apply merge: Concatenate arrays and deduplicate
+   * 4. Apply remove: Delete retired keys from their sections (runs last so an
+   *    earlier phase cannot reintroduce a removed key)
    * @param projectJson - Current project's package.json
    * @param template - Merged package.lisa.json template
    * @returns Modified package.json
@@ -524,7 +531,46 @@ export class PackageLisaStrategy implements ICopyStrategy {
     );
 
     // Phase 3: Apply merge (concatenate and deduplicate arrays)
-    return this.applyMergeSections(afterDefaults, template.merge);
+    const afterMerge = this.applyMergeSections(afterDefaults, template.merge);
+
+    // Phase 4: Apply remove (delete retired keys from their sections)
+    return this.applyRemoveSections(afterMerge, template.remove);
+  }
+
+  /**
+   * Delete retired keys from their package.json sections
+   * @remarks
+   * Used to clean up keys Lisa previously forced and has since renamed or
+   * retired (e.g. the "knip" script renamed to "knip:check"). Runs after
+   * force/defaults/merge so a removed key cannot be reintroduced within the
+   * same apply. Sections that don't exist or aren't objects are left alone.
+   * @param packageJson - Current package.json after force/defaults/merge applied
+   * @param removeSections - Map of section name to keys to delete from it
+   * @returns Package.json with retired keys removed
+   * @private
+   */
+  private applyRemoveSections(
+    packageJson: Record<string, unknown>,
+    removeSections: Record<string, string[]>
+  ): Record<string, unknown> {
+    const result = { ...packageJson };
+
+    for (const [sectionName, keysToRemove] of Object.entries(removeSections)) {
+      const section = result[sectionName];
+      if (!section || typeof section !== "object" || Array.isArray(section)) {
+        // Section missing or not a plain object; nothing to remove
+        continue;
+      }
+
+      const cleaned = Object.fromEntries(
+        Object.entries(section as Record<string, unknown>).filter(
+          ([key]) => !keysToRemove.includes(key)
+        )
+      );
+      result[sectionName] = cleaned;
+    }
+
+    return result;
   }
 
   /**

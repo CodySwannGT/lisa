@@ -11,7 +11,7 @@
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "format:check": "prettier --check .",
       "format": "prettier --check . --write",
-      "knip": "knip",
+      "knip:check": "knip",
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "start": "harperdb start",
@@ -78,5 +78,10 @@
       "dev:server": "bun run build && node dist/scripts/dev_server.js",
       "deploy": "bun run build && node dist/scripts/deploy.js"
     }
+  },
+  "remove": {
+    "scripts": [
+      "knip"
+    ]
   }
 }
