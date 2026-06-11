@@ -53,8 +53,25 @@ relevant deployed or smoke path agree.
 
 ## Deploying to Fabric
 
-Fabric is Harper's distributed deploy network. Deploy packages the component and
-sends it to a target instance:
+Fabric is Harper's distributed deploy network. Lisa ships a create-only GitHub
+Actions workflow at `.github/workflows/deploy.yml` for Harper/Fabric projects. Use
+that workflow as the canonical deployment path for repositories that have adopted
+the template: it builds the project, runs `harper deploy_component` against the
+configured Fabric target, and then runs the project's smoke verification script.
+
+Required GitHub secrets:
+
+- `CLI_TARGET` or `HARPER_FABRIC_TARGET` — Fabric target URL.
+- `CLI_TARGET_USERNAME` — deploy username.
+- `CLI_TARGET_PASSWORD` — deploy password.
+
+Optional GitHub variables:
+
+- `HARPER_PROJECT` — Fabric project name; defaults to the repository name.
+- `HARPER_PACKAGE` — package path; defaults to `harper-app`.
+
+For local debugging or one-off deploys, the equivalent CLI command packages the
+component and sends it to a target instance:
 
 ```bash
 harper deploy_component \
@@ -85,8 +102,11 @@ env var, which store) without recording their values.
 1. `bun run build` — produces fresh `resources.js` / `web/**`.
 2. `bun run typecheck`.
 3. The smallest relevant test command.
-4. For deploy-affecting changes, the project **smoke command** against the local or
-   deployed Harper endpoint.
+4. For deploy-affecting changes, run the create-only GitHub deploy workflow when
+   available, or manually run `harper deploy_component` plus the project **smoke
+   command** against the local or deployed Harper endpoint.
+5. For public HTTP surfaces, run the create-only ZAP baseline workflow or
+   `bash scripts/zap-baseline.sh` with `ZAP_TARGET_URL` set to the deployed app.
 
 If a verification command cannot run, report the exact command and the blocker —
 do not claim completion. When you hit a Harper/Fabric limitation or workaround,
