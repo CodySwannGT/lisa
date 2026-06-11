@@ -143,6 +143,49 @@ export async function createRailsProject(dir: string): Promise<void> {
 }
 
 /**
+ * Add representative Harper/Fabric templates to a mock Lisa directory.
+ * @param dir - Mock Lisa directory
+ */
+async function createMockHarperFabricTemplates(dir: string): Promise<void> {
+  const harperCreateOnly = path.join(dir, "harper-fabric", CREATE_ONLY);
+  await fs.ensureDir(path.join(harperCreateOnly, ".github", "workflows"));
+  await fs.ensureDir(path.join(harperCreateOnly, ".zap"));
+  await fs.ensureDir(path.join(harperCreateOnly, "scripts"));
+  await fs.writeFile(
+    path.join(harperCreateOnly, ".github", "workflows", "deploy.yml"),
+    [
+      "name: Deploy Harper Fabric",
+      "jobs:",
+      "  deploy:",
+      "    steps:",
+      "      - run: bun run build",
+      "      - run: harper deploy_component",
+      "      - run: bun run verify",
+      "",
+    ].join("\n")
+  );
+  await fs.writeFile(
+    path.join(harperCreateOnly, ".github", "workflows", "zap-baseline.yml"),
+    [
+      "name: ZAP Baseline",
+      "jobs:",
+      "  zap:",
+      "    steps:",
+      "      - run: bash scripts/zap-baseline.sh",
+      "",
+    ].join("\n")
+  );
+  await fs.writeFile(
+    path.join(harperCreateOnly, ".zap", "baseline.conf"),
+    "10023\tFAIL\t(Information Disclosure - Debug Error Messages)\n"
+  );
+  await fs.writeFile(
+    path.join(harperCreateOnly, "scripts", "zap-baseline.sh"),
+    "#!/usr/bin/env bash\nzap-baseline.py -t ${ZAP_TARGET_URL:-http://localhost:9926}\n"
+  );
+}
+
+/**
  * Create a mock Lisa config directory structure with all strategies
  * @param dir - Directory to create Lisa structure in
  */
@@ -182,6 +225,8 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   await fs.writeJson(path.join(dir, "typescript", DELETIONS_JSON), {
     paths: ["legacy-workflow.yml"],
   });
+
+  await createMockHarperFabricTemplates(dir);
 
   // Create rails/ directory with Rails-specific files
   const railsCopyOverwrite = path.join(dir, "rails", COPY_OVERWRITE);
