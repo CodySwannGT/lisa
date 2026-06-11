@@ -200,6 +200,43 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies).toEqual({ eslint: "^9.0.0" });
     });
 
+    it("preserves existing package.json during skip-git-check applies", async () => {
+      await createPackageLisaTemplate("all", {
+        force: {
+          scripts: { test: "vitest run" },
+          devDependencies: { oxlint: "^1.0.0" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "all",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.lisa.json");
+      const actualPackageJson = path.join(projectDir, "package.json");
+      await fs.writeJson(actualPackageJson, {
+        name: "host-project",
+        scripts: { test: "host test" },
+        devDependencies: { oxlint: "^0.1.0" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.lisa.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      expect(_result.action).toBe("skipped");
+      expect(await fs.readJson(actualPackageJson)).toEqual({
+        name: "host-project",
+        scripts: { test: "host test" },
+        devDependencies: { oxlint: "^0.1.0" },
+      });
+    });
+
     // Regression: force.resolutions and force.overrides must replace project-side
     // values for package-level dep pinning (e.g. axios). This is the write that
     // was silently lost when `bun add -d @codyswann/lisa@latest` clobbered
