@@ -6,6 +6,7 @@ import { ExpoDetector } from "../../../src/detection/detectors/expo.js";
 import { NestJSDetector } from "../../../src/detection/detectors/nestjs.js";
 import { CDKDetector } from "../../../src/detection/detectors/cdk.js";
 import { HarperFabricDetector } from "../../../src/detection/detectors/harper-fabric.js";
+import { PhaserDetector } from "../../../src/detection/detectors/phaser.js";
 import { RailsDetector } from "../../../src/detection/detectors/rails.js";
 import { DetectorRegistry } from "../../../src/detection/index.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
@@ -21,6 +22,7 @@ const EXPO_DEP = "expo";
 const NESTJS_TYPE = "nestjs";
 const CDK_TYPE = "cdk";
 const HARPER_FABRIC_TYPE = "harper-fabric";
+const PHASER_TYPE = "phaser";
 const RAILS_TYPE = "rails";
 const BIN_RAILS = "bin/rails";
 const CONFIG_APPLICATION_RB = "config/application.rb";
@@ -284,6 +286,52 @@ describe("HarperFabricDetector", () => {
   });
 });
 
+describe("PhaserDetector", () => {
+  let detector: PhaserDetector;
+  let tempDir: string;
+
+  beforeEach(async () => {
+    detector = new PhaserDetector();
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  it(HAS_CORRECT_TYPE, () => {
+    expect(detector.type).toBe(PHASER_TYPE);
+  });
+
+  it("detects by phaser dependency", async () => {
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
+      dependencies: { phaser: "^4.1.0" },
+    });
+
+    expect(await detector.detect(tempDir)).toBe(true);
+  });
+
+  it("detects by phaser devDependency", async () => {
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
+      devDependencies: { phaser: "^4.1.0" },
+    });
+
+    expect(await detector.detect(tempDir)).toBe(true);
+  });
+
+  it("returns false when not a Phaser project", async () => {
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
+      dependencies: { typescript: "^5.0.0" },
+    });
+
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+
+  it("returns false when no package.json", async () => {
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+});
+
 describe("RailsDetector", () => {
   let detector: RailsDetector;
   let tempDir: string;
@@ -380,6 +428,22 @@ describe("DetectorRegistry", () => {
     const expanded = registry.expandAndOrderTypes([HARPER_FABRIC_TYPE]);
 
     expect(expanded).toEqual([TYPESCRIPT_TYPE, HARPER_FABRIC_TYPE]);
+  });
+
+  it("expands Phaser to include TypeScript parent", () => {
+    const expanded = registry.expandAndOrderTypes([PHASER_TYPE]);
+
+    expect(expanded).toEqual([TYPESCRIPT_TYPE, PHASER_TYPE]);
+  });
+
+  it("detects Phaser project", async () => {
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
+      dependencies: { phaser: "^4.1.0" },
+    });
+
+    const types = await registry.detectAll(tempDir);
+
+    expect(types).toContain(PHASER_TYPE);
   });
 
   it("deduplicates types", () => {

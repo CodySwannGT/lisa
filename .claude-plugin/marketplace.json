@@ -45,6 +45,12 @@
       "category": "productivity"
     },
     {
+      "name": "lisa-phaser",
+      "source": "./plugins/lisa-phaser",
+      "description": "Phaser 4 game-development rules, skills, and enforcement for TypeScript projects (Claude + Codex)",
+      "category": "productivity"
+    },
+    {
       "name": "lisa-rails",
       "source": "./plugins/lisa-rails",
       "description": "Ruby on Rails skills, rules, and conventions",
@@ -168,6 +174,24 @@
       "name": "lisa-openclaw-cursor",
       "source": "./plugins/lisa-openclaw-cursor",
       "description": "Cursor variant — OpenClaw Telegram/Slack routing",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-phaser-agy",
+      "source": "./plugins/lisa-phaser-agy",
+      "description": "Antigravity (agy) variant — Phaser 4 rules and skills for TS game projects",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-phaser-copilot",
+      "source": "./plugins/lisa-phaser-copilot",
+      "description": "GitHub Copilot variant — Phaser 4 rules and skills for TS game projects",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-phaser-cursor",
+      "source": "./plugins/lisa-phaser-cursor",
+      "description": "Cursor variant — Phaser 4 rules and skills for TS game projects",
       "category": "productivity"
     },
     {

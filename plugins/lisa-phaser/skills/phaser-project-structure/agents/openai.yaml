@@ -1,0 +1,4 @@
+display_name: "Phaser Project Structure"
+short_description: "creating, restructuring, or reasoning about a Phaser 4 game project — the game config, the Vite + TypeScript layout, the Boot → Preloader →…"
+default_prompt:
+  - "Use $phaser-project-structure: creating, restructuring, or reasoning about a Phaser 4 game project — the game config, the Vite + TypeScript layout, the Boot → Preloader →…."

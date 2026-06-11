@@ -63,7 +63,7 @@ build_per_agent_variant() {
 build_plugin base lisa
 
 # Stack-specific plugins (NO base copy)
-STACKS=(typescript expo nestjs cdk harper-fabric rails)
+STACKS=(typescript expo nestjs cdk harper-fabric phaser rails)
 for stack in "${STACKS[@]}"; do
   build_plugin "$stack" "lisa-$stack"
 done
