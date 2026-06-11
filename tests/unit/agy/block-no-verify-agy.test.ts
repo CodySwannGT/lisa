@@ -74,6 +74,22 @@ describe("block-no-verify.agy.sh", () => {
     expect(decide(payload("git commit -n -m wip"))).toBe("allow");
   });
 
+  it("allows --no-verify when it only appears in heredoc payload text", () => {
+    expect(
+      decide(
+        payload(
+          "gh issue create --body-file - <<'EOF'\nMention --no-verify in prose.\nEOF"
+        )
+      )
+    ).toBe("allow");
+  });
+
+  it("allows --no-verify when it only appears in a message argument", () => {
+    expect(
+      decide(payload('gh issue comment 1 --body "Mention --no-verify."'))
+    ).toBe("allow");
+  });
+
   it("allows -n appearing in a commit message (no false positive)", () => {
     expect(decide(payload('git commit -m "fix the -n flag handling"'))).toBe(
       "allow"
@@ -111,6 +127,12 @@ describe("block-no-verify.agy.sh", () => {
   it("denies core.hooksPath pointed at /dev/null", () => {
     expect(
       decide(payload("git -c core.hooksPath=/dev/null commit -m wip"))
+    ).toBe("deny");
+  });
+
+  it("denies quoted core.hooksPath pointed at /dev/null", () => {
+    expect(
+      decide(payload('git -c "core.hooksPath=/dev/null" commit -m wip'))
     ).toBe("deny");
   });
 

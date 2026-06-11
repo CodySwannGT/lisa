@@ -79,6 +79,22 @@ describe("block-no-verify.sh", () => {
       const { status } = runHook("Bash", "git push --no-verify");
       expect(status).toBe(EXIT_BLOCKED);
     });
+
+    it("allows --no-verify when it only appears in heredoc payload text", () => {
+      const { status } = runHook(
+        "Bash",
+        "gh issue create --body-file - <<'EOF'\nMention --no-verify in the issue body.\nEOF"
+      );
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("allows --no-verify when it only appears in a message argument", () => {
+      const { status } = runHook(
+        "Bash",
+        'gh issue comment 1 --body "Mention --no-verify in prose."'
+      );
+      expect(status).toBe(EXIT_ALLOWED);
+    });
   });
 
   describe("blocks husky-disabling env bypasses", () => {
@@ -117,6 +133,14 @@ describe("block-no-verify.sh", () => {
       );
       expect(status).toBe(EXIT_BLOCKED);
     });
+
+    it("blocks quoted core.hooksPath set to /dev/null", () => {
+      const { status } = runHook(
+        "Bash",
+        'git -c "core.hooksPath=/dev/null" commit -m bypass'
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+    });
   });
 
   describe("allows commands without --no-verify", () => {
@@ -134,6 +158,14 @@ describe("block-no-verify.sh", () => {
 
     it("allows HUSKY=1 (enabling husky)", () => {
       const { status } = runHook("Bash", 'HUSKY=1 git commit -m "normal"');
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("allows HUSKY=0 when it only appears in heredoc payload text", () => {
+      const { status } = runHook(
+        "Bash",
+        "gh issue create --body-file - <<EOF\nMention HUSKY=0 in the issue body.\nEOF"
+      );
       expect(status).toBe(EXIT_ALLOWED);
     });
 
