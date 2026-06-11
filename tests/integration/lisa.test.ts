@@ -34,6 +34,9 @@ const LISAIGNORE = ".lisaignore";
 const LEGACY_WORKFLOW = "legacy-workflow.yml";
 const CREATE_ONLY = "create-only";
 const COPY_OVERWRITE = "copy-overwrite";
+const KNIP_JSON = "knip.json";
+const LINT_STAGED_JSON = ".lintstagedrc.json";
+const SAFETY_NET_JSON = ".safety-net.json";
 const HARPER_FABRIC_TYPE = "harper-fabric";
 const HARPER_FABRIC_TXT = "harper-fabric.txt";
 const JEST_CONFIG_LOCAL = "jest.config.local.ts";
@@ -114,6 +117,61 @@ describe("Lisa Integration Tests", () => {
       // Check that files were copied
       expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
       expect(await fs.pathExists(path.join(destDir, TSCONFIG_BASE))).toBe(true);
+    });
+
+    it("preserves host-owned config during postinstall-safe apply", async () => {
+      await createTypeScriptProject(destDir);
+      const guardedPostinstall =
+        '[ -n "$CI" ] || node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true';
+      const hostPackageJson = {
+        name: "host-project",
+        dependencies: { typescript: "^5.0.0" },
+        scripts: { postinstall: guardedPostinstall, test: "host test" },
+        devDependencies: { oxlint: "^0.1.0" },
+      };
+      const hostKnip = { ignoreDependencies: ["shell-quote"] };
+      const hostLintStaged = { "*.ts": "host-lint" };
+      const hostSafetyNet = { rules: [] };
+
+      await fs.writeJson(path.join(destDir, PACKAGE_JSON), hostPackageJson);
+      await fs.writeJson(path.join(destDir, KNIP_JSON), hostKnip);
+      await fs.writeJson(path.join(destDir, LINT_STAGED_JSON), hostLintStaged);
+      await fs.writeJson(path.join(destDir, SAFETY_NET_JSON), hostSafetyNet);
+
+      const tsCopyOverwrite = path.join(lisaDir, "typescript", COPY_OVERWRITE);
+      await fs.writeJson(path.join(tsCopyOverwrite, KNIP_JSON), {
+        ignoreDependencies: ["from-lisa"],
+      });
+      await fs.writeJson(path.join(tsCopyOverwrite, LINT_STAGED_JSON), {
+        "*.ts": "lisa-lint",
+      });
+      await fs.writeJson(path.join(tsCopyOverwrite, SAFETY_NET_JSON), {
+        rules: [{ match: "no-verify" }],
+      });
+      const packageLisaDir = path.join(lisaDir, "typescript", "package-lisa");
+      await fs.ensureDir(packageLisaDir);
+      await fs.writeJson(path.join(packageLisaDir, "package.lisa.json"), {
+        force: {
+          scripts: { test: "vitest run" },
+          devDependencies: { oxlint: "^1.0.0" },
+        },
+      });
+
+      const result = await createLisa({ skipGitCheck: true }).apply();
+
+      expect(result.success).toBe(true);
+      expect(await fs.readJson(path.join(destDir, PACKAGE_JSON))).toEqual(
+        hostPackageJson
+      );
+      expect(await fs.readJson(path.join(destDir, KNIP_JSON))).toEqual(
+        hostKnip
+      );
+      expect(await fs.readJson(path.join(destDir, LINT_STAGED_JSON))).toEqual(
+        hostLintStaged
+      );
+      expect(await fs.readJson(path.join(destDir, SAFETY_NET_JSON))).toEqual(
+        hostSafetyNet
+      );
     });
 
     it("applies configurations to Expo project", async () => {
