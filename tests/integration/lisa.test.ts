@@ -221,6 +221,61 @@ describe("Lisa Integration Tests", () => {
       );
     });
 
+    it("ships Harper/Fabric deploy and ZAP workflow templates as create-only files", async () => {
+      await createHarperFabricProject(destDir);
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      const deployPath = path.join(
+        destDir,
+        ".github",
+        "workflows",
+        "deploy.yml"
+      );
+      const zapWorkflowPath = path.join(
+        destDir,
+        ".github",
+        "workflows",
+        "zap-baseline.yml"
+      );
+      const zapScriptPath = path.join(destDir, "scripts", "zap-baseline.sh");
+      const zapConfigPath = path.join(destDir, ".zap", "baseline.conf");
+
+      expect(await fs.pathExists(deployPath)).toBe(true);
+      expect(await fs.pathExists(zapWorkflowPath)).toBe(true);
+      expect(await fs.pathExists(zapScriptPath)).toBe(true);
+      expect(await fs.pathExists(zapConfigPath)).toBe(true);
+
+      const deployContent = await fs.readFile(deployPath, "utf-8");
+      expect(deployContent).toContain("bun run build");
+      expect(deployContent).toContain("harper deploy_component");
+      expect(deployContent).toContain("bun run verify");
+
+      const zapWorkflowContent = await fs.readFile(zapWorkflowPath, "utf-8");
+      expect(zapWorkflowContent).toContain("scripts/zap-baseline.sh");
+    });
+
+    it("preserves existing Harper/Fabric deploy workflow customizations", async () => {
+      await createHarperFabricProject(destDir);
+      const deployPath = path.join(
+        destDir,
+        ".github",
+        "workflows",
+        "deploy.yml"
+      );
+      const customDeploy = "name: Custom Harper Deploy\n";
+      await fs.ensureDir(path.dirname(deployPath));
+      await fs.writeFile(deployPath, customDeploy);
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      await createLisa().apply();
+      const deployContent = await fs.readFile(deployPath, "utf-8");
+      expect(deployContent).toBe(customDeploy);
+    });
+
     it("removes an existing manifest file during apply", async () => {
       await createTypeScriptProject(destDir);
       const manifestPath = path.join(destDir, ".lisa-manifest");
