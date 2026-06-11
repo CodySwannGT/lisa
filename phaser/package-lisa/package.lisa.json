@@ -10,7 +10,7 @@
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "format:check": "prettier --check .",
       "format": "prettier --write .",
-      "knip": "knip",
+      "knip:check": "knip",
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "prepare": "husky install || true"
@@ -55,7 +55,10 @@
     "private": true
   },
   "merge": {
-    "trustedDependencies": ["@ast-grep/cli", "@codyswann/lisa"]
+    "trustedDependencies": [
+      "@ast-grep/cli",
+      "@codyswann/lisa"
+    ]
   },
   "defaults": {
     "scripts": {
@@ -69,5 +72,10 @@
     "devDependencies": {
       "vite": "^6.3.1"
     }
+  },
+  "remove": {
+    "scripts": [
+      "knip"
+    ]
   }
 }

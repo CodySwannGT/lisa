@@ -183,10 +183,20 @@ else
   echo "ℹ️  Skipping slow lint rules (lint:slow not configured)"
 fi
 
-# Run dead code detection (knip) - only if script exists
-if jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
+# Run dead code detection (knip) - only if script exists.
+# Prefer knip:check (the script was renamed because expo-doctor flags scripts
+# that shadow node_modules/.bin entries); fall back to the legacy knip name.
+if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
+  KNIP_SCRIPT="knip:check"
+elif jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
+  KNIP_SCRIPT="knip"
+else
+  KNIP_SCRIPT=""
+fi
+
+if [ -n "$KNIP_SCRIPT" ]; then
   echo "🗑️ Running dead code detection (knip)..."
-  $RUNNER knip
+  $RUNNER "$KNIP_SCRIPT"
   if [ $? -ne 0 ]; then
     echo "❌ Dead code detected. Please remove unused exports/dependencies before pushing."
     echo ""

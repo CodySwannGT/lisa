@@ -13,6 +13,8 @@ Replace inline `//lisa-*` tags with separate `package.lisa.json` template files 
 - **force**: Keys Lisa always overwrites (project changes are discarded)
 - **defaults**: Keys Lisa sets only if missing (project can override)
 - **merge**: Arrays where Lisa's items are combined with project's items
+- **remove**: Keys Lisa deletes from a section (retired/renamed keys, e.g. the
+  `knip` script renamed to `knip:check`)
 
 The project's `package.json` remains 100% clean - no Lisa artifacts.
 
@@ -39,6 +41,9 @@ The project's `package.json` remains 100% clean - no Lisa artifacts.
   },
   "merge": {
     "trustedDependencies": ["@ast-grep/cli"]
+  },
+  "remove": {
+    "scripts": ["knip"]
   }
 }
 ```
@@ -60,18 +65,21 @@ all/package-lisa/package.lisa.json
 - `force`: Child values override parent values (deep merge, child wins)
 - `defaults`: Child values override parent values (deep merge, child wins)
 - `merge`: Arrays are concatenated and deduplicated
+- `remove`: Key lists are concatenated across the chain
 
 ### Application Logic
 
 When Lisa applies `package.lisa.json` to a project:
 
 1. **Collect templates** - Gather all `package.lisa.json` files from detected types (e.g., `all` + `typescript` + `expo`)
-2. **Merge templates** - Combine into single force/defaults/merge structure
+2. **Merge templates** - Combine into single force/defaults/merge/remove structure
 3. **Read project's package.json** - Parse current state
 4. **Apply force** - Deep merge, Lisa's values win
 5. **Apply defaults** - Deep merge, project's values win (only set if missing)
 6. **Apply merge** - Concatenate arrays, deduplicate
-7. **Write package.json** - Output clean JSON with no Lisa metadata
+7. **Apply remove** - Delete retired keys from their sections (runs last so an
+   earlier phase cannot reintroduce a removed key)
+8. **Write package.json** - Output clean JSON with no Lisa metadata
 
 ## Implementation Tasks
 
