@@ -6,23 +6,17 @@ import { BOOTSTRAP_SKIP_NOTICE } from "../../../src/core/bootstrap-environment.j
 import { runApply } from "../../../src/cli/apply.js";
 
 describe("runApply bootstrap guard", () => {
-  const originalCi = process.env.CI;
-
   afterEach(() => {
-    if (originalCi === undefined) {
-      delete process.env.CI;
-    } else {
-      process.env.CI = originalCi;
-    }
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("exits successfully without writing in a build context", async () => {
+    vi.stubEnv("CI", "1");
     const projectDir = await mkdtemp(join(tmpdir(), "lisa-apply-guard-"));
     const packageJson = join(projectDir, "package.json");
     await writeFile(packageJson, '{"name":"guard-fixture"}\n', "utf8");
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    process.env.CI = "true";
 
     await runApply(projectDir, { yes: true, skipGitCheck: true });
 
@@ -36,11 +30,11 @@ describe("runApply bootstrap guard", () => {
   });
 
   it("skips before parsing project config in a build context", async () => {
+    vi.stubEnv("CI", "1");
     const projectDir = await mkdtemp(join(tmpdir(), "lisa-apply-guard-"));
     const configPath = join(projectDir, ".lisa.config.json");
     await writeFile(configPath, "{not-json", "utf8");
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    process.env.CI = "true";
 
     await expect(
       runApply(projectDir, { yes: true, skipGitCheck: true })
