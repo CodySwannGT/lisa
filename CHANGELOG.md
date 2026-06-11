@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.163.1](https://github.com/CodySwannGT/lisa/compare/vv2.163.0...v2.163.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **husky:** make pre-push bun audit gate filter exclusions reliably ([a888871](https://github.com/CodySwannGT/lisa/commit/a8888713159715d498a3d641fe1a9db2e2cabb0d))
+
 ## [2.163.0](https://github.com/CodySwannGT/lisa/compare/vv2.162.0...v2.163.0) (2026-06-11)
 
 
