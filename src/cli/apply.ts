@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LisaConfig } from "../core/config.js";
+import { getBootstrapApplySkipNotice } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
 import {
@@ -16,6 +17,22 @@ import { nudgeCrossPollinate } from "./cross-pollinate-nudge.js";
 import { type CLIOptions, createDependencies } from "./shared-options.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Inputs used to decide whether `.lisa.config.json` should be persisted.
+ */
+interface ProjectConfigPersistenceInput {
+  /** Whether the destination already has `.lisa.config.json`. */
+  readonly fileExists: boolean;
+  /** Harness value supplied by the caller, if any. */
+  readonly flagHarness: CLIOptions["harness"];
+  /** Harness already persisted in `.lisa.config.json`, if any. */
+  readonly existingHarness: Awaited<
+    ReturnType<typeof readProjectConfig>
+  >["harness"];
+  /** Harness resolved for this invocation. */
+  readonly resolvedHarness: LisaConfig["harness"];
+}
 
 /**
  * Get Lisa directory (where configs are stored)
@@ -68,6 +85,32 @@ function printUsageAndExit(): never {
 }
 
 /**
+ * Resolve the required destination argument or print the legacy usage error.
+ * @param destination - Destination argument from the CLI
+ * @returns Absolute destination path
+ */
+function resolveDestinationOrExit(destination: string | undefined): string {
+  if (!destination) {
+    printUsageAndExit();
+  }
+  return toAbsolutePath(destination);
+}
+
+/**
+ * Persist the resolved harness when a real apply needs to backfill or update
+ * `.lisa.config.json`.
+ * @param destDir - Destination project directory
+ * @param input - Existing config state and resolved harness values
+ */
+async function persistProjectConfigIfNeeded(
+  destDir: string,
+  input: ProjectConfigPersistenceInput
+): Promise<void> {
+  if (!shouldPersistProjectConfig(input)) return;
+  await writeProjectConfig(destDir, { harness: input.resolvedHarness });
+}
+
+/**
  * Apply Lisa to the given destination with the given options.
  *
  * This is the relocated action that previously lived inline in
@@ -82,13 +125,17 @@ export async function runApply(
   destination: string | undefined,
   options: CLIOptions
 ): Promise<void> {
-  if (!destination) {
-    printUsageAndExit();
-  }
-
   const dryRun = options.dryRun ?? options.validate ?? false;
   const yesMode = options.yes ?? false;
-  const destDir = toAbsolutePath(destination);
+  const validateOnly = options.validate ?? false;
+  const destDir = resolveDestinationOrExit(destination);
+  const logger = new ConsoleLogger();
+
+  const skipNotice = getBootstrapApplySkipNotice({ validateOnly });
+  if (skipNotice !== undefined) {
+    console.log(skipNotice);
+    return;
+  }
 
   // Resolve harness with precedence: CLI flag > .lisa.config.json > default
   const projectConfig = await readProjectConfig(destDir);
@@ -100,12 +147,11 @@ export async function runApply(
     destDir,
     dryRun,
     yesMode,
-    validateOnly: options.validate ?? false,
+    validateOnly,
     skipGitCheck: options.skipGitCheck ?? false,
     harness,
   };
 
-  const logger = new ConsoleLogger();
   const deps = createDependencies(dryRun, yesMode, logger);
   const lisa = new Lisa(config, deps);
 
@@ -124,17 +170,13 @@ export async function runApply(
     // resolved harness (the default when no --harness was passed) so no
     // project is left config-less; an existing file is only rewritten when
     // --harness actually changes the persisted value, avoiding churn.
-    if (
-      !options.validate &&
-      !dryRun &&
-      shouldPersistProjectConfig({
+    if (!options.validate && !dryRun) {
+      await persistProjectConfigIfNeeded(destDir, {
         fileExists: configFileExists,
         flagHarness: options.harness,
         existingHarness: projectConfig.harness,
         resolvedHarness: harness,
-      })
-    ) {
-      await writeProjectConfig(destDir, { harness });
+      });
     }
 
     // After a real apply, surface (read-only) whether any locally-authored
