@@ -1,0 +1,7 @@
+# BEGIN: AI GUARDRAILS PHASER
+
+# Game assets (atlas manifests, packs, audio sprites) are tool-generated
+# data, not source formatting inputs.
+public/assets/
+
+# END: AI GUARDRAILS PHASER

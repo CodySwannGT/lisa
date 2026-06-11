@@ -1,0 +1,7 @@
+{
+  "extends": ["@codyswann/lisa/tsconfig/phaser", "./tsconfig.local.json"],
+  "compilerOptions": {
+    "baseUrl": "./",
+    "ignoreDeprecations": "6.0"
+  }
+}
