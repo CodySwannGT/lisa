@@ -552,3 +552,12 @@
   - `wiki/open-questions/coding-agent-parity.md` — agy interactive-hooks open question: resolving it no longer changes the rules-delivery design.
   - `wiki/playbooks/coding-agent-parity-research.md` — Bake strategy taxonomy entry: example removed, strategy retained with no active Lisa instance.
 - All edits are correction-in-place with `2026-06-06 / PR #1150 / was` qualifiers; no current-tense "agy bakes" claim remains uncorrected. `wiki/sources/**` left as point-in-time evidence. `wiki/index.md` unchanged (plain title links; titles unchanged).
+
+## 2026-06-11 - Incremental connector ingest
+
+- Created `wiki/ingest-20260611T000000Z` from detached `origin/main` HEAD for this ingestion PR.
+- No same-day git or roles source notes existed for `2026-06-11`, so no provenance preservation copy was needed before writing the new connector notes.
+- Refreshed the `git` source note with 12 new commits through `f09469adb26fe433abedd62ede613b395e25ec4f`, advanced the merged-PR cursor to `#1241`, and captured the release line through Lisa `2.159.7`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped project-scoped memory because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/058c/lisa`; global Codex memory remains out of scope.
+- Updated the monorepo snapshot and index for the prior wiki ingest merge, auditable implement roster decisions, required E2E regression execution proof, host config preservation during postinstall apply, and release-history changes through `2.159.7`.
