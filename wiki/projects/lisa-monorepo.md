@@ -20,16 +20,21 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260610T000000Z` created from synced `origin/main`
-- HEAD at 2026-06-10 incremental ingest: `6f6c00cb0462cf2f6e6754e80905771bb6712814`
-- Current package version: `2.159.3`
-- Total commits on HEAD: 3071
-- Latest merged PR captured in the incremental git snapshot: `#1231`
-- New commits since the previous incremental git cursor: `41`
-- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/dae6/lisa`; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-20260611T000000Z` created from detached `origin/main` HEAD
+- HEAD at 2026-06-11 incremental ingest: `f09469adb26fe433abedd62ede613b395e25ec4f`
+- Current package version: `2.159.7`
+- Total commits on HEAD: 3083
+- Latest merged PR captured in the incremental git snapshot: `#1241`
+- New commits since the previous incremental git cursor: `12`
+- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/058c/lisa`; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo through `2.159.7`.
+- PR `#1241` preserves host-owned Lisa config fields during postinstall apply by keeping configured wiki and tracker values intact across copy-overwrite, JSON merge, and package metadata strategies.
+- PR `#1238` requires executed end-to-end regression proof for user-facing workflow changes in TDD and verification lifecycle skills, with scoped exceptions documented when an E2E run is not applicable.
+- PR `#1236` requires Lisa implementation flows to record an auditable roster decision before coding, including the agent-role coverage or single-agent rationale.
+- PR `#1234` merged the prior wiki ingestion through Lisa `2.159.3`.
 - Release automation advanced the monorepo to `2.159.3`.
 - PR `#1231` blocks artifact-only verification success when credentials are missing and adds review-feedback coverage for that credential gate.
 - Release automation advanced the monorepo through `2.159.2`.
