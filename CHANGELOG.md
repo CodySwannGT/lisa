@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.162.0](https://github.com/CodySwannGT/lisa/compare/vv2.161.0...v2.162.0) (2026-06-11)
+
+
+### Features
+
+* **phaser:** add Phaser 4 stack pack (plugin, templates, detection, lint enforcement) ([d9f8f68](https://github.com/CodySwannGT/lisa/commit/d9f8f683ef6a1bf660c3e768139217b7345a2bf0))
+
+
+### Bug Fixes
+
+* **phaser:** re-stamp plugin artifacts at v2.160.0 after main merge + clarify skill provenance ([28c5e59](https://github.com/CodySwannGT/lisa/commit/28c5e5915e97b3bad66ee862a064f6ae65969998))
+* **phaser:** remove conflicting --check flag from format script ([149d402](https://github.com/CodySwannGT/lisa/commit/149d40275c561605a9953609755da99f26105266))
+
 ## [2.161.0](https://github.com/CodySwannGT/lisa/compare/vv2.160.0...v2.161.0) (2026-06-11)
 
 
