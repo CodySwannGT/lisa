@@ -129,6 +129,30 @@ describe("MergeStrategy", () => {
     expect(result.action).toBe("skipped");
   });
 
+  it("preserves existing package.json during skip-git-check applies", async () => {
+    const srcFile = path.join(srcDir, PACKAGE_JSON);
+    const destFile = path.join(destDir, PACKAGE_JSON);
+
+    await fs.writeJson(srcFile, { scripts: { test: "echo test" } });
+    await fs.writeJson(destFile, {
+      name: "host-project",
+      scripts: { test: "host test" },
+    });
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      PACKAGE_JSON,
+      createContext({ skipGitCheck: true })
+    );
+
+    expect(result.action).toBe("skipped");
+    expect(await fs.readJson(destFile)).toEqual({
+      name: "host-project",
+      scripts: { test: "host test" },
+    });
+  });
+
   it("backs up file before merging", async () => {
     const srcFile = path.join(srcDir, PACKAGE_JSON);
     const destFile = path.join(destDir, PACKAGE_JSON);
