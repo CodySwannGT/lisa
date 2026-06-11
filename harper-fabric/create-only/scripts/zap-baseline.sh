@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# OWASP ZAP Baseline Scan - Harper Fabric app
+# Builds the Harper app, starts it locally when no deployed target is supplied,
+# and runs a ZAP baseline scan via Docker.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TARGET_URL="${ZAP_TARGET_URL:-http://host.docker.internal:9926}"
+LOCAL_TARGETS=("http://localhost:9926" "http://host.docker.internal:9926")
+SCAN_TARGET_URL="$TARGET_URL"
+ZAP_RULES_FILE="${ZAP_RULES_FILE:-.zap/baseline.conf}"
+REPORT_FILE="zap-report.html"
+SERVER_PID=""
+
+cd "$PROJECT_ROOT"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Error: Docker is required but not installed."
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Error: Docker daemon is not running."
+  exit 1
+fi
+
+echo "==> Building Harper Fabric project..."
+bun run build
+
+should_start_local=false
+for local_target in "${LOCAL_TARGETS[@]}"; do
+  if [ "$TARGET_URL" = "$local_target" ]; then
+    should_start_local=true
+    SCAN_TARGET_URL="http://host.docker.internal:9926"
+  fi
+done
+
+cleanup() {
+  if [ -n "${SERVER_PID:-}" ]; then
+    echo "==> Stopping Harper app..."
+    kill "$SERVER_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+if [ "$should_start_local" = true ]; then
+  if command -v harper >/dev/null 2>&1; then
+    HARPER_BIN="harper"
+  elif [ -x node_modules/.bin/harper ]; then
+    HARPER_BIN="node_modules/.bin/harper"
+  elif [ -x node_modules/.bin/harperdb ]; then
+    HARPER_BIN="node_modules/.bin/harperdb"
+  else
+    echo "Error: missing Harper CLI. Set ZAP_TARGET_URL to a deployed app or install the Harper CLI."
+    exit 1
+  fi
+
+  echo "==> Starting Harper app locally..."
+  "$HARPER_BIN" run harper-app &
+  SERVER_PID=$!
+
+  echo "==> Waiting for Harper app..."
+  retries=30
+  until curl -sf http://localhost:9926 >/dev/null 2>&1 || [ "$retries" -eq 0 ]; do
+    retries=$((retries - 1))
+    sleep 2
+  done
+
+  if [ "$retries" -eq 0 ]; then
+    echo "Error: Harper app did not become reachable at http://localhost:9926"
+    exit 1
+  fi
+fi
+
+echo "==> Running OWASP ZAP baseline scan against $SCAN_TARGET_URL..."
+zap_args="-t $SCAN_TARGET_URL"
+
+if [ -f "$ZAP_RULES_FILE" ]; then
+  echo "    Using rules file: $ZAP_RULES_FILE"
+  zap_args="$zap_args -c /zap/wrk/$(basename "$ZAP_RULES_FILE")"
+  mount_rules="-v $(dirname "$(realpath "$ZAP_RULES_FILE")"):/zap/wrk:ro"
+else
+  mount_rules=""
+fi
+
+docker run --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -v "$(pwd)":/zap/wrk/:rw \
+  $mount_rules \
+  ghcr.io/zaproxy/zaproxy:stable \
+  zap-baseline.py $zap_args \
+  -r "$REPORT_FILE" \
+  -J zap-report.json \
+  -w zap-report.md \
+  -l WARN || zap_exit=$?
+
+if [ -f "$REPORT_FILE" ]; then
+  echo "ZAP report saved to: $REPORT_FILE"
+fi
+
+if [ "${zap_exit:-0}" -ne 0 ]; then
+  echo "ZAP found medium+ severity findings (exit code: $zap_exit)."
+  exit "$zap_exit"
+fi
+
+echo "ZAP baseline scan passed."
