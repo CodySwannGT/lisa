@@ -25,8 +25,8 @@ export const defaultHarperFabricIgnores = [
   "*.config.local.ts",
   "harper-app/resources.js",
   "harper-app/resource-*.js",
-  "harper-app/web/**/*.js",
-  "harper-app/web/**/*.js.map",
+  "harper-app/web/**",
+  "harper-app/lib/**",
 ];
 
 /**

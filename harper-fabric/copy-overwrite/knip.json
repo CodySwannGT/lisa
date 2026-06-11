@@ -15,7 +15,8 @@
     "**/node_modules/**",
     "harper-app/resources.js",
     "harper-app/resource-*.js",
-    "harper-app/web/**/*.js"
+    "harper-app/web/**",
+    "harper-app/lib/**"
   ],
   "ignoreIssues": {
     "src/types/harper-schema.ts": ["types"]
