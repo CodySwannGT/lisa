@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.159.9](https://github.com/CodySwannGT/lisa/compare/vv2.159.8...v2.159.9) (2026-06-11)
+
+
+### Bug Fixes
+
+* **codex:** clarify repair intake default invocation ([ef5f0cc](https://github.com/CodySwannGT/lisa/commit/ef5f0cc5f8aed96588e6b3e690fcf7a07d544b69))
+* **codex:** expose lisa repair intake skill ([84f8c63](https://github.com/CodySwannGT/lisa/commit/84f8c633afbeac200e9fe33c4cc138d4ba6ae75c))
+
 ### [2.159.8](https://github.com/CodySwannGT/lisa/compare/vv2.159.7...v2.159.8) (2026-06-11)
 
 
