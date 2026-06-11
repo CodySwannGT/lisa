@@ -2,7 +2,10 @@
 
 # Harper/Fabric generated web output and scraped research captures are not
 # source formatting inputs.
-harper-app/web/
+harper-app/resources.js
+harper-app/resource-*.js
+harper-app/web/**
+harper-app/lib/**
 research/articles/
 
 # END: AI GUARDRAILS HARPER-FABRIC
