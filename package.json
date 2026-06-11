@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check .",
     "format": "prettier --check . --write",
-    "knip": "knip",
+    "knip:check": "knip",
     "knip:fix": "knip --fix",
     "sg:scan": "ast-grep scan",
     "build:plugins": "bash scripts/build-plugins.sh",
