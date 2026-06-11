@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.161.0](https://github.com/CodySwannGT/lisa/compare/vv2.160.0...v2.161.0) (2026-06-11)
+
+
+### Features
+
+* block harper generated artifact edits ([a0f0a18](https://github.com/CodySwannGT/lisa/commit/a0f0a18a81ff9be0c329a7efa0fe008df396331b))
+
 ## [2.160.0](https://github.com/CodySwannGT/lisa/compare/vv2.159.9...v2.160.0) (2026-06-11)
 
 
