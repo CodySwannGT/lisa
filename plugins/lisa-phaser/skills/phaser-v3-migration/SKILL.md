@@ -14,10 +14,10 @@ rendering internals. The official estimate for a standard-API game is hours,
 not weeks. The npm package is still `phaser`; v4 ships its own
 `types/phaser.d.ts`.
 
-Upstream references: the official migration guide in the phaser repo
-(`changelog/v4/4.0/MIGRATION-GUIDE.md`) and the shader-specific guide. Phaser
-also ships agent skills in its repo `skills/` directory; this skill is the
-distilled, enforced version for this stack.
+Upstream references for deeper detail: the official migration guide in the
+phaser repo (`changelog/v4/4.0/MIGRATION-GUIDE.md`) and the shader-specific
+guide. This skill is original Lisa content written against those primary
+sources — it is not a port of any upstream plugin or skill package.
 
 ## What did NOT change (don't "migrate" these)
 
