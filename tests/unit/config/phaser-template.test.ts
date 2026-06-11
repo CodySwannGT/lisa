@@ -59,6 +59,24 @@ describe("Phaser templates", () => {
     expect(template.force?.scripts?.["test:cov"]).toBe("vitest run --coverage");
   });
 
+  it("format script uses --write only; format:check uses --check only", () => {
+    // Prettier's --check and --write are mutually exclusive modes.
+    // --check exits non-zero when files need formatting (validation only);
+    // --write rewrites files in place. Mixing both is undefined behaviour and
+    // will make the format script a no-op fix (check fires before write).
+    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as {
+      readonly force?: { readonly scripts?: Record<string, string> };
+    };
+
+    const formatScript = template.force?.scripts?.["format"] ?? "";
+    const formatCheckScript = template.force?.scripts?.["format:check"] ?? "";
+
+    expect(formatScript).toContain("--write");
+    expect(formatScript).not.toContain("--check");
+    expect(formatCheckScript).toContain("--check");
+    expect(formatCheckScript).not.toContain("--write");
+  });
+
   it("wraps the Phaser ESLint factory in the shipped eslint.config.ts", () => {
     const config = readText("phaser/copy-overwrite/eslint.config.ts");
 
