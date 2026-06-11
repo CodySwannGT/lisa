@@ -257,6 +257,10 @@ export class PackageLisaStrategy implements ICopyStrategy {
         (await this.packageJsonHasDependency(projectDir, "harperdb")));
     if (hasHarperFabric) types.push("harper-fabric");
 
+    // Phaser detection
+    const hasPhaser = await this.packageJsonHasDependency(projectDir, "phaser");
+    if (hasPhaser) types.push("phaser");
+
     // npm-package detection
     const isPrivate = await this.packageJsonField<boolean>(
       projectDir,

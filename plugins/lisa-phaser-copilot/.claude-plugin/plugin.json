@@ -1,0 +1,24 @@
+{
+  "name": "lisa-phaser",
+  "version": "2.160.0",
+  "description": "Phaser 4 game-development rules for TypeScript projects",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "dependencies": [
+    "lisa-typescript"
+  ],
+  "hooks": {
+    "sessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

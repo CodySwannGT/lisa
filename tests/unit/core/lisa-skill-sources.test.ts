@@ -21,6 +21,7 @@ describe("core/lisa-skill-sources isHarnessVariantPlugin", () => {
       "lisa-nestjs",
       "lisa-rails",
       "lisa-harper-fabric",
+      "lisa-phaser",
       "lisa-openclaw",
       "lisa-wiki",
     ]) {

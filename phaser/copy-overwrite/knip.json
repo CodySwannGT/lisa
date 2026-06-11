@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.ts", "tests/e2e/**/*.ts"],
+  "project": ["src/**/*.ts", "tests/**/*.ts"],
+  "ignore": [
+    "**/*.test.ts",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/node_modules/**",
+    "public/assets/**"
+  ],
+  "ignoreDependencies": ["@types/node", "@vitest/coverage-v8", "phaser"],
+  "ignoreBinaries": ["audit", "knip", "playwright", "tsx", "vite"],
+  "rules": {
+    "devDependencies": "off"
+  }
+}

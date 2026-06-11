@@ -18,6 +18,7 @@ export type ProjectType =
   | "nestjs"
   | "cdk"
   | "harper-fabric"
+  | "phaser"
   | "npm-package"
   | "rails";
 
@@ -31,6 +32,7 @@ export const PROJECT_TYPE_HIERARCHY: Readonly<
   nestjs: "typescript",
   cdk: "typescript",
   "harper-fabric": "typescript",
+  phaser: "typescript",
   "npm-package": "typescript",
   typescript: undefined,
   rails: undefined,
@@ -43,6 +45,7 @@ export const PROJECT_TYPE_ORDER: readonly ProjectType[] = [
   "typescript",
   "npm-package",
   "harper-fabric",
+  "phaser",
   "expo",
   "nestjs",
   "cdk",

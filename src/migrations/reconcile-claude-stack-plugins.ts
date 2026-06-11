@@ -22,6 +22,7 @@ const STACK_PLUGIN_TYPES: readonly ProjectType[] = [
   "nestjs",
   "cdk",
   "harper-fabric",
+  "phaser",
   "rails",
 ];
 

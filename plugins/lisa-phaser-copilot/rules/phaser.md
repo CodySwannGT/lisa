@@ -1,0 +1,59 @@
+# Phaser 4 Project Rules
+
+This is a **Phaser 4** (v4.1+ "Salusa") TypeScript game project. Phaser 4 is the
+only supported target — never introduce Phaser 3 idioms. The lint config enforces
+the bans below; do not disable those rules, fix the code.
+
+## Phaser 4 Only — Banned v3 Idioms
+
+- **No pipelines.** `setPipeline` / `setPostPipeline` / `resetPipeline` are gone.
+  Custom rendering is a **RenderNode** (registered via `render.renderNodes` in the
+  game config); post-processing is a **Filter** (`gameObject.filters` /
+  `camera.filters`). See the `phaser-rendering` skill.
+- **No preFX/postFX.** The v3 FX controllers were replaced by the unified Filter
+  system. `BitmapMask` → `Mask` filter.
+- **No `setTintFill`/`tintFill`.** Use `setTint()` + `setTintMode(Phaser.TintModes.FILL)`.
+- **No `Phaser.Geom.Point`** (removed — use `Phaser.Math.Vector2`) and **no
+  `Phaser.Struct.Set/Map`** (removed — use native `Set`/`Map`).
+- **No raw WebGL calls.** External GL work goes through the `Extern` game object.
+- **No `setPipeline('Light2D')`.** Lighting is `gameObject.setLighting(true)`.
+
+## Architecture
+
+- **One scene class per file** under `src/scenes/`, named after the scene key.
+  The scene flow is `Boot → Preloader → MainMenu → Game` (plus overlays). Boot
+  loads only what the Preloader needs; the Preloader loads everything else.
+- **Pure game logic lives outside scenes** in `src/logic/` (or `src/core/`) with
+  **no `phaser` imports** — plain TypeScript functions and classes that take and
+  return data. Scenes are thin orchestrators that wire logic to GameObjects.
+  This is what makes the game unit-testable; see the `phaser-testing` skill.
+- **Asset keys are typed constants** in `src/assets.ts` — never inline magic
+  strings for texture/audio/animation keys. Load via asset-pack manifests
+  (`this.load.pack`), not ad-hoc `load.image` lists scattered across scenes.
+
+## Determinism
+
+- **No `Math.random()` in game code.** Use the scene-seeded
+  `Phaser.Math.RandomDataGenerator` (`Phaser.Math.RND` or a local instance with
+  an explicit seed) so replays and tests are reproducible.
+- Arcade physics keeps its v4 default `fixedStep: true`. Do not switch physics to
+  variable step to "fix" a tunneling bug — fix the body/velocity configuration.
+
+## Performance
+
+- **No allocations in `update()`.** No `new`, array literals, closures, or
+  `.filter/.map` chains in per-frame paths — hoist scratch objects, reuse vectors.
+- **Pool, don't churn.** Bullets, enemies, particles, and pickups come from
+  `Group` pools (`get`/`killAndHide`), never `new`/`destroy` per spawn.
+- **Mass rendering uses the GPU layers.** Large static/animated sprite fields →
+  `SpriteGPULayer`; large tile maps → `TilemapGPULayer`. Texture atlases (PCT
+  where possible) over loose images — see the `phaser-assets` skill.
+- Target WebGL; the Canvas renderer is deprecated in v4 and only acceptable as an
+  explicit, documented fallback decision.
+
+## Verification
+
+Before reporting any change complete: run `bun run typecheck`, `bun run test`,
+and `bun run build`. For changes that affect rendering or input, verify in the
+real browser — `bun run dev` plus a Playwright check (the game boots, the canvas
+renders, no console errors). A green typecheck alone is not proof a game works.

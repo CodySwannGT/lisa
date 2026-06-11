@@ -1,0 +1,23 @@
+# This file is managed by Lisa.
+# Do not edit directly -- changes will be overwritten on the next `lisa` run.
+
+name: 🔍 CI Quality Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  quality:
+    name: 🔍 Quality Checks
+    uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
+    with:
+      node_version: '22.21.1'
+      package_manager: 'bun'
+      skip_jobs: ''
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+      MAESTRO_API_KEY: ${{ secrets.MAESTRO_API_KEY }}
