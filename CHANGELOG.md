@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.159.7](https://github.com/CodySwannGT/lisa/compare/vv2.159.6...v2.159.7) (2026-06-11)
+
+
+### Bug Fixes
+
+* preserve host config during postinstall apply ([2429738](https://github.com/CodySwannGT/lisa/commit/2429738b9e72ab89aaf81b71c6470cf13c0c2862))
+
 ### [2.159.6](https://github.com/CodySwannGT/lisa/compare/vv2.159.5...v2.159.6) (2026-06-10)
 
 
