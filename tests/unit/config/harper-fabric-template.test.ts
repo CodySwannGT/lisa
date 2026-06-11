@@ -7,6 +7,12 @@ import * as path from "node:path";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const HARPER_FABRIC_KNIP_TEMPLATE = "harper-fabric/copy-overwrite/knip.json";
+const HARPER_FABRIC_TSCONFIG_ESLINT_TEMPLATE =
+  "harper-fabric/copy-overwrite/tsconfig.eslint.json";
+const HARPER_FABRIC_PRETTIERIGNORE_TEMPLATE =
+  "harper-fabric/copy-contents/.prettierignore";
+const GENERATED_ARTIFACT_GLOBS_TEMPLATE =
+  "plugins/src/harper-fabric/generated-artifact-globs.txt";
 
 /**
  * Read a JSON template from the Lisa repository.
@@ -26,6 +32,33 @@ function readJson(relativePath: string): unknown {
  */
 function readText(relativePath: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf-8");
+}
+
+/**
+ * Read the source-of-truth generated Harper artifact glob list.
+ * @returns Non-empty generated artifact glob entries
+ */
+function readGeneratedArtifactGlobs(): readonly string[] {
+  return readText(GENERATED_ARTIFACT_GLOBS_TEMPLATE)
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0 && !line.startsWith("#"));
+}
+
+/**
+ * Assert that one ignore surface contains every generated artifact glob.
+ * @param surfaceName - Human-readable surface name for assertion messages
+ * @param values - Ignore values from the surface
+ * @param expectedGlobs - Required generated artifact glob values
+ */
+function expectContainsAllGlobs(
+  surfaceName: string,
+  values: readonly string[],
+  expectedGlobs: readonly string[]
+): void {
+  for (const glob of expectedGlobs) {
+    expect(values, `${surfaceName} is missing ${glob}`).toContain(glob);
+  }
 }
 
 describe("Harper/Fabric templates", () => {
@@ -58,9 +91,7 @@ describe("Harper/Fabric templates", () => {
   });
 
   it("includes slow lint config but not Jest config in the ESLint project", () => {
-    const tsconfig = readJson(
-      "harper-fabric/copy-overwrite/tsconfig.eslint.json"
-    ) as {
+    const tsconfig = readJson(HARPER_FABRIC_TSCONFIG_ESLINT_TEMPLATE) as {
       readonly include?: readonly string[];
     };
 
@@ -69,18 +100,14 @@ describe("Harper/Fabric templates", () => {
   });
 
   it("keeps generated web and scraped research captures out of Prettier", () => {
-    const prettierIgnore = readText(
-      "harper-fabric/copy-contents/.prettierignore"
-    );
+    const prettierIgnore = readText(HARPER_FABRIC_PRETTIERIGNORE_TEMPLATE);
 
-    expect(prettierIgnore).toContain("harper-app/web/");
+    expect(prettierIgnore).toContain("harper-app/web/**");
     expect(prettierIgnore).toContain("research/articles/");
   });
 
-  it("ignores per-resource generated Harper deploy artifacts everywhere", () => {
-    // The Harper build emits one `harper-app/resource-<name>.js` per resource
-    // alongside the `harper-app/resources.js` barrel. Every ignore surface must
-    // cover the per-resource glob or lint/knip/oxlint break after a Lisa update.
+  it("keeps generated Harper deploy artifacts ignored across every surface", () => {
+    const generatedArtifactGlobs = readGeneratedArtifactGlobs();
     const oxlint = readJson("oxlint/harper-fabric.json") as {
       readonly ignorePatterns?: readonly string[];
     };
@@ -90,19 +117,54 @@ describe("Harper/Fabric templates", () => {
     const knip = readJson(HARPER_FABRIC_KNIP_TEMPLATE) as {
       readonly ignore?: readonly string[];
     };
-    const tsconfigEslint = readJson(
-      "harper-fabric/copy-overwrite/tsconfig.eslint.json"
-    ) as { readonly exclude?: readonly string[] };
-    const gitignore = readText("harper-fabric/copy-contents/.gitignore");
+    const tsconfigEslint = readJson(HARPER_FABRIC_TSCONFIG_ESLINT_TEMPLATE) as {
+      readonly exclude?: readonly string[];
+    };
+    const gitignore = readText("harper-fabric/copy-contents/.gitignore")
+      .split(/\r?\n/)
+      .map(line => line.trim());
+    const prettierIgnore = readText(HARPER_FABRIC_PRETTIERIGNORE_TEMPLATE)
+      .split(/\r?\n/)
+      .map(line => line.trim());
     const eslintConfigSource = readText("src/configs/eslint/harper-fabric.ts");
-    const perResourceGlob = "harper-app/resource-*.js";
 
-    expect(oxlint.ignorePatterns).toContain(perResourceGlob);
-    expect(oxlintMerge.ignorePatterns).toContain(perResourceGlob);
-    expect(knip.ignore).toContain(perResourceGlob);
-    expect(tsconfigEslint.exclude).toContain(perResourceGlob);
-    expect(gitignore).toContain(perResourceGlob);
-    expect(eslintConfigSource).toContain(`"${perResourceGlob}"`);
+    expectContainsAllGlobs(
+      "oxlint/harper-fabric.json",
+      oxlint.ignorePatterns ?? [],
+      generatedArtifactGlobs
+    );
+    expectContainsAllGlobs(
+      "harper-fabric/merge/.oxlintrc.json",
+      oxlintMerge.ignorePatterns ?? [],
+      generatedArtifactGlobs
+    );
+    expectContainsAllGlobs(
+      HARPER_FABRIC_KNIP_TEMPLATE,
+      knip.ignore ?? [],
+      generatedArtifactGlobs
+    );
+    expectContainsAllGlobs(
+      HARPER_FABRIC_TSCONFIG_ESLINT_TEMPLATE,
+      tsconfigEslint.exclude ?? [],
+      generatedArtifactGlobs
+    );
+    expectContainsAllGlobs(
+      "harper-fabric/copy-contents/.gitignore",
+      gitignore,
+      generatedArtifactGlobs
+    );
+    expectContainsAllGlobs(
+      HARPER_FABRIC_PRETTIERIGNORE_TEMPLATE,
+      prettierIgnore,
+      generatedArtifactGlobs
+    );
+
+    for (const glob of generatedArtifactGlobs) {
+      expect(
+        eslintConfigSource,
+        `src/configs/eslint/harper-fabric.ts is missing ${glob}`
+      ).toContain(`"${glob}"`);
+    }
   });
 
   it("keeps the generated Codex distribution mirror out of Prettier", () => {
