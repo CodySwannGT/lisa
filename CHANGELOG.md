@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.163.4](https://github.com/CodySwannGT/lisa/compare/vv2.163.3...v2.163.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* guard bootstrapper in build contexts ([65be62b](https://github.com/CodySwannGT/lisa/commit/65be62b77941bae1c6d7acba5e57155e50b7e06c))
+
 ### [2.163.3](https://github.com/CodySwannGT/lisa/compare/vv2.163.2...v2.163.3) (2026-06-11)
 
 
