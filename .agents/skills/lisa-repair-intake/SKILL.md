@@ -18,7 +18,7 @@ canonical executable contract lives at:
 
 1. Read `plugins/lisa/skills/repair-intake/SKILL.md`.
 2. Run exactly one bounded repair-intake cycle using the caller's arguments.
-3. If the caller provides no explicit arguments, use `github intake_mode=both`.
+3. If the caller provides no arguments, invoke with `github intake_mode=both`.
 4. Preserve the generated skill's confirmation policy: do not ask whether to
    proceed once a queue is known.
 5. Preserve the generated skill's Codex team-orchestration rule where available.
