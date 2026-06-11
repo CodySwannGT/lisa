@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.163.0](https://github.com/CodySwannGT/lisa/compare/vv2.162.0...v2.163.0) (2026-06-11)
+
+
+### Features
+
+* guard harper config extension drops ([5969713](https://github.com/CodySwannGT/lisa/commit/5969713b7fbdd2d3ff6c2c7a26e321e1e5ff141b))
+
+
+### Bug Fixes
+
+* handle malformed YAML in enforce-config-extensions hook ([e19be49](https://github.com/CodySwannGT/lisa/commit/e19be49496e5a85570094578e51e084e35e6b34a))
+
 ## [2.162.0](https://github.com/CodySwannGT/lisa/compare/vv2.161.0...v2.162.0) (2026-06-11)
 
 
