@@ -36,11 +36,24 @@ export interface MergeSection {
 }
 
 /**
+ * Remove behavior: Keys Lisa deletes from the named package.json section.
+ * Used to retire keys Lisa previously forced (e.g. a renamed script) so they
+ * don't linger in downstream projects forever. Applied after force/defaults/
+ * merge, so a removed key cannot be reintroduced by an earlier phase in the
+ * same apply. Each entry maps a package.json section (e.g. "scripts") to the
+ * list of keys to delete from it.
+ */
+export interface RemoveSection {
+  [key: string]: string[];
+}
+
+/**
  * Template structure for package.lisa.json files
  * @remarks
  * - `force`: Sections where Lisa's values completely replace project's values
  * - `defaults`: Sections where project's values take precedence if they exist
  * - `merge`: Array sections that are concatenated and deduplicated
+ * - `remove`: Section keys Lisa deletes from the project (retired keys)
  *
  * When multiple package.lisa.json files are loaded from the inheritance chain (all → typescript → specific),
  * they are merged with child types overriding parent types in each section.
@@ -63,6 +76,9 @@ export interface MergeSection {
  *   },
  *   "merge": {
  *     "trustedDependencies": ["@ast-grep/cli"]
+ *   },
+ *   "remove": {
+ *     "scripts": ["knip"]
  *   }
  * }
  * ```
@@ -76,14 +92,18 @@ export interface PackageLisaTemplate {
 
   /** Array sections that are concatenated and deduplicated */
   merge?: Record<string, unknown[]>;
+
+  /** Section keys Lisa deletes from the project (retired keys) */
+  remove?: Record<string, string[]>;
 }
 
 /**
- * Merged template with resolved force/defaults/merge sections
+ * Merged template with resolved force/defaults/merge/remove sections
  * ready to be applied to a project's package.json
  */
 export interface ResolvedPackageLisaTemplate extends PackageLisaTemplate {
   force: Record<string, unknown>;
   defaults: Record<string, unknown>;
   merge: Record<string, unknown[]>;
+  remove: Record<string, string[]>;
 }

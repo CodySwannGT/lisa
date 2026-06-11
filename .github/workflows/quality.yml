@@ -1121,7 +1121,15 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🗑️ Run dead code detection (knip)
-        run: ${{ inputs.package_manager }} run knip
+        # The script was renamed knip -> knip:check (expo-doctor flags scripts
+        # that shadow node_modules/.bin entries); fall back to the legacy name
+        # for projects that haven't re-applied Lisa yet.
+        run: |
+          if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
+            ${{ inputs.package_manager }} run knip:check
+          else
+            ${{ inputs.package_manager }} run knip
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
   sg_scan:

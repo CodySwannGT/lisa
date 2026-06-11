@@ -12,7 +12,7 @@
       "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
       "typecheck": "tsc --noEmit",
-      "knip": "knip",
+      "knip:check": "knip",
       "knip:fix": "knip --fix",
       "sg:scan": "ast-grep scan",
       "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true"
@@ -55,6 +55,11 @@
       "@ast-grep/cli",
       "@codyswann/lisa",
       "@sentry/cli"
+    ]
+  },
+  "remove": {
+    "scripts": [
+      "knip"
     ]
   }
 }

@@ -183,10 +183,20 @@ else
   echo "ℹ️  Skipping slow lint rules (lint:slow not configured)"
 fi
 
-# Run dead code detection (knip) - only if script exists
-if jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
+# Run dead code detection (knip) - only if script exists.
+# Prefer knip:check (the script was renamed because expo-doctor flags scripts
+# that shadow node_modules/.bin entries); fall back to the legacy knip name.
+if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
+  KNIP_SCRIPT="knip:check"
+elif jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
+  KNIP_SCRIPT="knip"
+else
+  KNIP_SCRIPT=""
+fi
+
+if [ -n "$KNIP_SCRIPT" ]; then
   echo "🗑️ Running dead code detection (knip)..."
-  $RUNNER knip
+  $RUNNER "$KNIP_SCRIPT"
   if [ $? -ne 0 ]; then
     echo "❌ Dead code detected. Please remove unused exports/dependencies before pushing."
     echo ""
@@ -283,6 +293,20 @@ fi
 #     echo "✅ Lighthouse CI performance audit passed"
 #   fi
 # fi
+
+# Project-specific extension slot (see .husky/pre-push.local).
+# This hook sources pre-push.local if present so per-project checks
+# (e.g., app-boot verification, schema validation) survive Lisa template
+# updates without editing the governance block above.
+if [ -f .husky/pre-push.local ]; then
+  echo "🔌 Running project-specific pre-push checks (.husky/pre-push.local)..."
+  # shellcheck source=/dev/null
+  . .husky/pre-push.local
+  if [ $? -ne 0 ]; then
+    echo "❌ Project-specific pre-push checks failed."
+    exit 1
+  fi
+fi
 
 exit 0
 
