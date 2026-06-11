@@ -1,0 +1,4 @@
+display_name: "Phaser Assets"
+short_description: "loading or organizing assets in a Phaser 4 game — the Loader (images, texture atlases, spritesheets, audio, fonts), asset-pack manifests…"
+default_prompt:
+  - "Use $phaser-assets: loading or organizing assets in a Phaser 4 game — the Loader (images, texture atlases, spritesheets, audio, fonts), asset-pack manifests…."

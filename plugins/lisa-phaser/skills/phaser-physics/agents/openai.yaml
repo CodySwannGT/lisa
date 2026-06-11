@@ -1,0 +1,4 @@
+display_name: "Phaser Physics"
+short_description: "working with physics in a Phaser 4 game — Arcade physics bodies, velocity/acceleration, colliders and overlaps, the fixed timestep, groups…"
+default_prompt:
+  - "Use $phaser-physics: working with physics in a Phaser 4 game — Arcade physics bodies, velocity/acceleration, colliders and overlaps, the fixed timestep, groups…."

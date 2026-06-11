@@ -1,0 +1,30 @@
+{
+  "name": "lisa-phaser",
+  "version": "2.159.9",
+  "description": "Phaser 4 game-development rules for TypeScript projects",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "keywords": [
+    "lisa"
+  ],
+  "dependencies": [
+    "lisa-typescript"
+  ],
+  "skills": "./skills/",
+  "hooks": "./.codex-plugin/hooks.json",
+  "interface": {
+    "displayName": "lisa-phaser",
+    "shortDescription": "Phaser 4 game-development rules for TypeScript projects",
+    "longDescription": "Phaser 4 game-development rules for TypeScript projects",
+    "developerName": "Cody Swann",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use lisa-phaser"
+    ]
+  }
+}

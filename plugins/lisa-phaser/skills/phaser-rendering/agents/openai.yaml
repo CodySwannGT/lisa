@@ -1,0 +1,4 @@
+display_name: "Phaser Rendering"
+short_description: "working on rendering in Phaser 4 — the render node architecture that replaced v3 pipelines, the unified Filter system that replaced FX and…"
+default_prompt:
+  - "Use $phaser-rendering: working on rendering in Phaser 4 — the render node architecture that replaced v3 pipelines, the unified Filter system that replaced FX and…."
