@@ -92,6 +92,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
     const destExists = await fse.pathExists(actualDestPath);
 
+    if (context.config.skipGitCheck && destExists) {
+      return {
+        relativePath: actualRelativePath,
+        strategy: this.name,
+        action: "skipped",
+      };
+    }
+
     try {
       // Load templates and apply to package.json
       const merged = await this.mergePackageJson(actualDestPath, context);

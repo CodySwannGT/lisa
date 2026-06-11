@@ -8,6 +8,8 @@ import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 const TEST_FILE = "TEST_FILE";
 const NEW_CONTENT = "new content";
 const OLD_CONTENT = "old content";
+const KNIP_JSON = "knip.json";
+const TSCONFIG_JSON = "tsconfig.json";
 
 describe("CopyOverwriteStrategy", () => {
   let strategy: CopyOverwriteStrategy;
@@ -146,6 +148,44 @@ describe("CopyOverwriteStrategy", () => {
 
     expect(result.action).toBe("skipped");
     expect(await fs.readFile(destFile, "utf-8")).toBe(OLD_CONTENT);
+  });
+
+  it("preserves host-owned config during skip-git-check applies", async () => {
+    const srcFile = path.join(srcDir, KNIP_JSON);
+    const destFile = path.join(destDir, KNIP_JSON);
+    await fs.writeJson(srcFile, { ignoreDependencies: ["from-lisa"] });
+    await fs.writeJson(destFile, { ignoreDependencies: ["shell-quote"] });
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      KNIP_JSON,
+      createContext({ skipGitCheck: true })
+    );
+
+    expect(result.action).toBe("skipped");
+    expect(await fs.readJson(destFile)).toEqual({
+      ignoreDependencies: ["shell-quote"],
+    });
+  });
+
+  it("still overwrites other Lisa-managed files during skip-git-check applies", async () => {
+    const srcFile = path.join(srcDir, TSCONFIG_JSON);
+    const destFile = path.join(destDir, TSCONFIG_JSON);
+    await fs.writeJson(srcFile, { extends: "./tsconfig.base.json" });
+    await fs.writeJson(destFile, {});
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      TSCONFIG_JSON,
+      createContext({ skipGitCheck: true })
+    );
+
+    expect(result.action).toBe("overwritten");
+    expect(await fs.readJson(destFile)).toEqual({
+      extends: "./tsconfig.base.json",
+    });
   });
 
   it("creates parent directories when needed", async () => {

@@ -40,6 +40,10 @@ export class MergeStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "copied" };
     }
 
+    if (config.skipGitCheck && relativePath === "package.json") {
+      return { relativePath, strategy: this.name, action: "skipped" };
+    }
+
     const sourceJson = await readJson<object>(sourcePath).catch(() => {
       throw new JsonMergeError(
         relativePath,
