@@ -120,4 +120,29 @@ describe("enforce-config-extensions.sh", () => {
     expect(result.status).toBe(EXIT_ALLOWED);
     expect(result.stderr).toBe("");
   });
+
+  it("allows edits when the current config.yaml contains malformed YAML", () => {
+    fs.writeFileSync(
+      path.join(tempDir, CONFIG_PATH),
+      "!! invalid yaml: {{{ unclosed"
+    );
+
+    const result = run(tempDir);
+
+    expect(result.status).toBe(EXIT_ALLOWED);
+  });
+
+  it("allows edits when the HEAD config.yaml contains malformed YAML", () => {
+    fs.writeFileSync(
+      path.join(tempDir, CONFIG_PATH),
+      "!! invalid yaml: {{{ unclosed"
+    );
+    git(tempDir, ["add", CONFIG_PATH]);
+    git(tempDir, ["commit", "-m", "commit malformed yaml"]);
+    fs.writeFileSync(path.join(tempDir, CONFIG_PATH), BASE_CONFIG);
+
+    const result = run(tempDir);
+
+    expect(result.status).toBe(EXIT_ALLOWED);
+  });
 });

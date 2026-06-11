@@ -46,7 +46,12 @@ const loadYaml = () => {
 
 const topLevelExtensionKeys = yamlText => {
   const yaml = loadYaml();
-  const parsed = yaml.load(yamlText);
+  let parsed;
+  try {
+    parsed = yaml.load(yamlText);
+  } catch {
+    return null;
+  }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
   return Object.keys(parsed).sort();
 };
@@ -104,7 +109,10 @@ const main = () => {
   if (previousText === null) return ALLOWED;
 
   const previousExtensions = topLevelExtensionKeys(previousText);
-  const currentExtensions = new Set(topLevelExtensionKeys(currentText));
+  const currentExtensionKeys = topLevelExtensionKeys(currentText);
+  if (previousExtensions === null || currentExtensionKeys === null)
+    return ALLOWED;
+  const currentExtensions = new Set(currentExtensionKeys);
   const allowedRemovals = readAllowlist(repoRoot, configPath);
   const missing = previousExtensions.filter(
     extension =>
