@@ -174,6 +174,37 @@ describe("Lisa Integration Tests", () => {
       );
     });
 
+    it("is a no-op on the second apply to an unchanged managed tree", async () => {
+      await createTypeScriptProject(destDir);
+
+      const auditConfig = "audit.ignore.config.json";
+      const auditLocal = "audit.ignore.local.json";
+      const tsCopyOverwrite = path.join(lisaDir, "typescript", COPY_OVERWRITE);
+      await fs.writeJson(path.join(tsCopyOverwrite, auditConfig), {
+        exclusions: [{ id: "LISA-OWNED", package: "pkg", reason: "template" }],
+      });
+      await fs.writeJson(path.join(destDir, auditConfig), {
+        exclusions: [
+          { id: "LISA-OWNED", package: "pkg", reason: "template" },
+          { id: "PROJECT-LOCAL", package: "dep", reason: "host" },
+        ],
+      });
+
+      const first = await createLisa().apply();
+      expect(first.success).toBe(true);
+      expect(first.counters.migrationsApplied).toBeGreaterThan(0);
+
+      const second = await createLisa().apply();
+
+      expect(second.success).toBe(true);
+      expect(second.counters.overwritten).toBe(0);
+      expect(second.counters.merged).toBe(0);
+      expect(second.counters.migrationsApplied).toBe(0);
+      expect(await fs.readJson(path.join(destDir, auditLocal))).toEqual({
+        exclusions: [{ id: "PROJECT-LOCAL", package: "dep", reason: "host" }],
+      });
+    });
+
     it("applies configurations to Expo project", async () => {
       await createExpoProject(destDir);
 
