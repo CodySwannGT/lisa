@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-generated-artifact-edits.sh",
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ]
+  }
+}
