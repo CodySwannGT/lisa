@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.163.7](https://github.com/CodySwannGT/lisa/compare/vv2.163.6...v2.163.7) (2026-06-12)
+
+
+### Bug Fixes
+
+* **expo:** add shell-quote to knip ignoreDependencies template ([43acf3a](https://github.com/CodySwannGT/lisa/commit/43acf3a70e395154c11b6154bb3738dc22ded0cb)), closes [geminisportsai/frontend-v2#5256](https://github.com/geminisportsai/frontend-v2/issues/5256)
+
 ### [2.163.6](https://github.com/CodySwannGT/lisa/compare/vv2.163.5...v2.163.6) (2026-06-12)
 
 
