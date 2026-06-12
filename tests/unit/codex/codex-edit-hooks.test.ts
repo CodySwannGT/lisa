@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 const SCRIPTS_DIR = path.resolve("src/codex/scripts");
 const LIB_PATH = path.join(SCRIPTS_DIR, "_extract-edit-paths.sh");
 const BLOCK_MIGRATION_PATH = path.join(SCRIPTS_DIR, "block-migration-edits.sh");
+const SHELL_WRITE_NUDGE_PATH = path.join(SCRIPTS_DIR, "shell-write-nudge.sh");
 const BASH_PATH = "/bin/bash";
 
 const EXIT_BLOCKED = 2;
@@ -34,6 +35,12 @@ const editEnvelope = (filePath: string): string =>
   JSON.stringify({
     tool_name: "Edit",
     tool_input: { file_path: filePath },
+  });
+
+const bashEnvelope = (command: string): string =>
+  JSON.stringify({
+    tool_name: "Bash",
+    tool_input: { command },
   });
 
 // Source the helper and run lisa_extract_edit_paths against an envelope.
@@ -54,6 +61,16 @@ const runBlockMigration = (
   envelope: string
 ): { status: number | null; stderr: string } => {
   const result = spawnSync(BASH_PATH, [BLOCK_MIGRATION_PATH], {
+    input: envelope,
+    encoding: "utf-8",
+  });
+  return { status: result.status, stderr: result.stderr };
+};
+
+const runShellWriteNudge = (
+  envelope: string
+): { status: number | null; stderr: string } => {
+  const result = spawnSync(BASH_PATH, [SHELL_WRITE_NUDGE_PATH], {
     input: envelope,
     encoding: "utf-8",
   });
@@ -133,5 +150,31 @@ describe("block-migration-edits.sh", () => {
       "*** Begin Patch\n*** Add File: src/users.entity.ts\n+x\n*** End Patch\n";
     const { status } = runBlockMigration(applyPatchEnvelope(patch));
     expect(status).toBe(EXIT_ALLOWED);
+  });
+});
+
+describe("shell-write-nudge.sh", () => {
+  it("emits a non-blocking nudge for sed -i on a tracked file", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope("sed -i '' 's/foo/bar/' src/codex/hooks-installer.ts")
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain("prefer Edit/Write");
+  });
+
+  it("emits a non-blocking nudge for redirection into a tracked file", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope("printf '%s\\n' value >> package.json")
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain("prefer Edit/Write");
+  });
+
+  it("does not nudge for committed script execution", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope("node scripts/build-plugins.sh")
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toBe("");
   });
 });

@@ -17,6 +17,17 @@
         ]
       }
     ],
+    "postToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/shell-write-nudge.sh"
+          }
+        ]
+      }
+    ],
     "preToolUse": [
       {
         "matcher": "Bash",
