@@ -4,17 +4,15 @@
 # =============================================================================
 # Lint-on-Edit Hook (PostToolUse - Write|Edit)
 # =============================================================================
-# Runs oxlint --fix, then ESLint --fix --quiet --cache on each edited
-# TypeScript file. Part of the inline self-correction pipeline:
-#   prettier → ast-grep → oxlint --fix → eslint --fix
+# Runs oxlint on each edited TypeScript file. Full ESLint remains enforced at
+# the commit/CI chokepoint via the project lint scripts.
 #
-# oxlint runs first because it's a Rust-native linter (~1000x faster) that
-# covers the majority of rules, leaving only the slow / type-aware / plugin
-# rules for ESLint to handle.
+# oxlint is Rust-native and covers the fast-feedback rule tier in milliseconds;
+# ESLint stays out of the edit-time path.
 #
 # Behavior:
-#   - Exit 0: lint passes or auto-fix resolved all errors
-#   - Exit 2: unfixable errors remain — blocks Claude so it fixes them immediately
+#   - Exit 0: lint passes
+#   - Exit 2: oxlint errors remain - blocks Claude so it fixes them immediately
 #
 # @see .claude/rules/verfication.md "Self-Correction Loop" section
 # =============================================================================
@@ -49,7 +47,7 @@ esac
 
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
-# Resolve oxlint and ESLint binaries — prefer local node_modules/.bin
+# Resolve oxlint binary - prefer local node_modules/.bin
 if [ -x "./node_modules/.bin/oxlint" ]; then
     OXLINT_CMD="./node_modules/.bin/oxlint"
 elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
@@ -62,19 +60,7 @@ else
     OXLINT_CMD="npx oxlint"
 fi
 
-if [ -x "./node_modules/.bin/eslint" ]; then
-    ESLINT_CMD="./node_modules/.bin/eslint"
-elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
-    ESLINT_CMD="bunx eslint"
-elif [ -f "pnpm-lock.yaml" ]; then
-    ESLINT_CMD="pnpm exec eslint"
-elif [ -f "yarn.lock" ]; then
-    ESLINT_CMD="yarn exec eslint"
-else
-    ESLINT_CMD="npx eslint"
-fi
-
-# 1) oxlint --fix (REQUIRED in the Phase 2 hybrid pipeline)
+# oxlint (REQUIRED in the Phase 2 hybrid pipeline)
 # If oxlint is missing the project is out of sync with the current Lisa
 # governance — fail loudly rather than silently skipping. ESLint alone is
 # no longer a complete lint pass.
@@ -89,46 +75,14 @@ if [ ! -f ".oxlintrc.json" ] && [ ! -f ".oxlintrc.jsonc" ] && [ ! -f "oxlint.con
     exit 2
 fi
 
-echo "Running oxlint --fix on: $FILE_PATH"
-OX_OUTPUT=$($OXLINT_CMD --fix --quiet "$FILE_PATH" 2>&1)
+echo "Running oxlint on: $FILE_PATH"
+OX_OUTPUT=$($OXLINT_CMD --quiet "$FILE_PATH" 2>&1)
 OX_EXIT=$?
 if [ $OX_EXIT -ne 0 ]; then
-    # Re-run without --fix to capture remaining errors
-    OX_OUTPUT=$($OXLINT_CMD --quiet "$FILE_PATH" 2>&1)
-    OX_EXIT=$?
-    if [ $OX_EXIT -ne 0 ]; then
-        echo "oxlint found unfixable errors in: $FILE_PATH" >&2
-        echo "$OX_OUTPUT" >&2
-        exit 2
-    fi
+    echo "oxlint found errors in: $FILE_PATH" >&2
+    echo "$OX_OUTPUT" >&2
+    exit 2
 fi
 
-# 2) ESLint --fix --quiet --cache
-# --quiet: suppress warnings, only show errors
-# --cache: use ESLint cache for performance
-# --rule: disable no-unused-vars auto-fix to prevent removing imports that Claude
-#         plans to use in a subsequent edit (pre-commit hook still catches them)
-echo "Running ESLint --fix on: $FILE_PATH"
-
-# First pass: attempt auto-fix
-OUTPUT=$($ESLINT_CMD --fix --quiet --cache --rule '@typescript-eslint/no-unused-vars: off' "$FILE_PATH" 2>&1)
-FIX_EXIT=$?
-
-if [ $FIX_EXIT -eq 0 ]; then
-    echo "ESLint: No errors in $(basename "$FILE_PATH")"
-    exit 0
-fi
-
-# Auto-fix resolved some issues but errors remain — re-run to get remaining errors
-OUTPUT=$($ESLINT_CMD --quiet --cache "$FILE_PATH" 2>&1)
-LINT_EXIT=$?
-
-if [ $LINT_EXIT -eq 0 ]; then
-    echo "ESLint: Auto-fixed all errors in $(basename "$FILE_PATH")"
-    exit 0
-fi
-
-# Unfixable errors remain — block with feedback
-echo "ESLint found unfixable errors in: $FILE_PATH" >&2
-echo "$OUTPUT" >&2
-exit 2
+echo "oxlint: No errors in $(basename "$FILE_PATH")"
+exit 0
