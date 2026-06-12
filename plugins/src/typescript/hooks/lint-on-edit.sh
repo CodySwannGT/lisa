@@ -79,6 +79,12 @@ echo "Running oxlint on: $FILE_PATH"
 OX_OUTPUT=$($OXLINT_CMD --quiet "$FILE_PATH" 2>&1)
 OX_EXIT=$?
 if [ $OX_EXIT -ne 0 ]; then
+    case "$OX_OUTPUT" in
+        *"No files found to lint"* | *" on 0 files"* | *" on 0 file"*)
+            echo "oxlint: Ignored by lint config: $FILE_PATH"
+            exit 0
+            ;;
+    esac
     echo "oxlint found errors in: $FILE_PATH" >&2
     echo "$OX_OUTPUT" >&2
     exit 2
