@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Lisa-managed Codex hook script (PostToolUse Bash).
+# Emits a non-blocking nudge when a shell command appears to write directly to a
+# tracked repository file, bypassing Edit/Write hooks such as lint-on-edit.
+set -uo pipefail
+
+JSON_INPUT="$(cat)"
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+COMMAND="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+[ -n "$COMMAND" ] || exit 0
+
+# Running committed scripts or package scripts is the supported shell path.
+case "$COMMAND" in
+  bun\ run* | npm\ run* | pnpm\ run* | yarn\ run* | node\ scripts/* | bun\ scripts/* | bash\ scripts/* | sh\ scripts/*)
+    exit 0
+    ;;
+esac
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root" 2>/dev/null || exit 0
+
+is_tracked_file() {
+  local candidate="$1"
+  [ -n "$candidate" ] || return 1
+  candidate="${candidate#./}"
+  git ls-files --error-unmatch -- "$candidate" >/dev/null 2>&1
+}
+
+# Returns 0 when an inline runtime command (python -c / node -e / bun -e) contains
+# explicit write-intent indicators.  Read-only operations such as open(f).read() or
+# readFileSync should not trigger the nudge.
+inline_runtime_intends_to_write() {
+  local cmd="$1"
+  # Python: open() with write/append mode as second positional argument
+  [[ "$cmd" == *", 'w'"* || "$cmd" == *", 'a'"* || "$cmd" == *", 'wb'"* || "$cmd" == *", 'ab'"* ]] && return 0
+  [[ "$cmd" == *', "w"'* || "$cmd" == *', "a"'* || "$cmd" == *', "wb"'* || "$cmd" == *', "ab"'* ]] && return 0
+  # Python / general: explicit .write( method call
+  [[ "$cmd" == *'.write('* ]] && return 0
+  # Node/Bun fs write functions
+  [[ "$cmd" == *'writeFile'* || "$cmd" == *'appendFile'* || "$cmd" == *'createWriteStream'* ]] && return 0
+  return 1
+}
+
+command_mentions_tracked_write() {
+  local token
+  local sed_command_re='(^|[[:space:];&|])sed[[:space:]]'
+  local inline_runtime_re='(^|[[:space:];&|])(python3?|node|bun)[[:space:]]+-[ce][[:space:]]'
+
+  if [[ "$COMMAND" =~ $sed_command_re && "$COMMAND" == *"-i"* ]]; then
+    while IFS= read -r token; do
+      is_tracked_file "$token" && return 0
+    done < <(printf '%s\n' "$COMMAND" | tr ' ' '\n' | sed 's/^[\"'\'']//; s/[\"'\'',;|&)]$//')
+  fi
+
+  while IFS= read -r token; do
+    token="${token#./}"
+    is_tracked_file "$token" && return 0
+  done < <(
+    printf '%s\n' "$COMMAND" |
+      grep -Eo '(^|[[:space:]])(>>?|tee([[:space:]]+-a)?|cat[[:space:]]+<<[^[:space:]]+[[:space:]]*>)[[:space:]]*[^[:space:];|&]+' |
+      sed -E 's/^[[:space:]]*(>>?|tee([[:space:]]+-a)?|cat[[:space:]]+<<[^[:space:]]+[[:space:]]*>)[[:space:]]*//; s/^[\"'\'']//; s/[\"'\'']$//'
+  )
+
+  if [[ "$COMMAND" =~ $inline_runtime_re ]] && inline_runtime_intends_to_write "$COMMAND"; then
+    while IFS= read -r token; do
+      is_tracked_file "$token" && return 0
+    done < <(git ls-files | while IFS= read -r file; do
+      [[ "$COMMAND" == *"$file"* ]] && printf '%s\n' "$file"
+    done)
+  fi
+
+  return 1
+}
+
+if command_mentions_tracked_write; then
+  echo "Lisa notice: prefer Edit/Write for tracked file edits so lint-on-edit can see the change." >&2
+fi
+
+exit 0
