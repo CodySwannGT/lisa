@@ -31,7 +31,18 @@ while IFS= read -r FILE_PATH; do
     ts | tsx | js | jsx | mjs | cjs) ;;
     *) continue ;;
   esac
-  "$OXLINT" --quiet "${FILE_PATH}" || STATUS=1
+  OX_OUTPUT=$("$OXLINT" --quiet "${FILE_PATH}" 2>&1)
+  OX_EXIT=$?
+  if [ "$OX_EXIT" -eq 0 ]; then
+    continue
+  fi
+  case "$OX_OUTPUT" in
+    *"No files found to lint"* | *" on 0 files"* | *" on 0 file"*)
+      continue
+      ;;
+  esac
+  echo "$OX_OUTPUT" >&2
+  STATUS=1
 done <<EOF
 $(lisa_extract_edit_paths "$JSON_INPUT")
 EOF
