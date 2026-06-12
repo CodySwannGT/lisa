@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.165.4](https://github.com/CodySwannGT/lisa/compare/vv2.165.3...v2.165.4) (2026-06-12)
+
+
+### Bug Fixes
+
+* **hooks:** allow lint-ignored edit files ([8fdb329](https://github.com/CodySwannGT/lisa/commit/8fdb329671f15bccf8a1443c4cd8f3b0be5bd122))
+
 ### [2.165.3](https://github.com/CodySwannGT/lisa/compare/vv2.165.2...v2.165.3) (2026-06-12)
 
 
