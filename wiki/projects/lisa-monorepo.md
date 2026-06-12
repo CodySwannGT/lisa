@@ -26,7 +26,7 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 - Total commits on HEAD: 3146
 - Latest merged PR captured in the incremental git snapshot: `#1280`
 - New commits since the previous incremental git cursor: `63`
-- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/9faa/lisa`; global Codex memory remains out of scope.
+- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
