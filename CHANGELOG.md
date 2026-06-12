@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.164.0](https://github.com/CodySwannGT/lisa/compare/vv2.163.7...v2.164.0) (2026-06-12)
+
+
+### Features
+
+* **codex:** nudge on shell writes ([831b2e1](https://github.com/CodySwannGT/lisa/commit/831b2e14b95307768ce8e8d411ec615a85063a87))
+
+
+### Bug Fixes
+
+* **hooks:** catch plain tee writes and suppress read-only inline-runtime false positives ([6b8814d](https://github.com/CodySwannGT/lisa/commit/6b8814da7282666c053edf46ebf42bd06df5b6b3))
+
 ### [2.163.7](https://github.com/CodySwannGT/lisa/compare/vv2.163.6...v2.163.7) (2026-06-12)
 
 
