@@ -45,11 +45,21 @@ if [ -n "$JIRA_KEY" ]; then
 fi
 
 echo "📝 Validating commit message with commitlint..."
-$EXECUTOR commitlint --edit $1
+COMMITLINT_OUTPUT=$($EXECUTOR commitlint --edit "$COMMIT_MSG_FILE" 2>&1)
+COMMITLINT_STATUS=$?
 
-if [ $? -ne 0 ]; then
+if [ $COMMITLINT_STATUS -ne 0 ]; then
+  printf "%s\n" "$COMMITLINT_OUTPUT"
   echo ""
   echo "❌ Commit message does not follow conventional commits format!"
+  FAILED_RULES=$(printf "%s\n" "$COMMITLINT_OUTPUT" | sed -n '/\[[^]]*\]/p')
+  if [ -n "$FAILED_RULES" ]; then
+    SUBJECT_LINE=$(sed -n '1p' "$COMMIT_MSG_FILE")
+    echo ""
+    echo "Failed commitlint rule(s):"
+    printf "%s\n" "$FAILED_RULES" | sed 's/^/  /'
+    echo "Subject: $SUBJECT_LINE"
+  fi
   echo ""
   echo "📖 Examples of valid commit messages:"
   echo "  - feat: add new feature"
@@ -91,6 +101,10 @@ if ! echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex)"; then
   echo "❌ Commit message must include AI co-authorship!"
   echo ""
   echo "All commits must include a Co-authored-by line for a coding agent (Claude or Codex)."
+  echo ""
+  echo "Expected one of these trailers:"
+  echo "  Co-authored-by: Claude <noreply@anthropic.com>"
+  echo "  Co-authored-by: Codex <codex@openai.com>"
   echo ""
   echo "If you're using Claude Code, use the /git:commit command"
   echo "If you're using Codex, enable commit_attribution in .codex/config.toml"

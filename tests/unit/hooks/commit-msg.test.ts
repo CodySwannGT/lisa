@@ -1,0 +1,127 @@
+/**
+ * Regression tests for the commit-msg hook diagnostics.
+ *
+ * The hook should name the exact failing commitlint rule and show concrete
+ * attribution trailers, so agents do not need multiple commit attempts to learn
+ * what the hook wanted.
+ * @module tests/unit/hooks/commit-msg
+ */
+import { spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+
+const HOOK_PATH = path.resolve(".husky/commit-msg");
+const BASH_PATH = "/bin/bash";
+const GIT_PATH = "/usr/bin/git";
+
+let tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs) {
+    rmSync(dir, { force: true, recursive: true });
+  }
+  tempDirs = [];
+});
+
+describe("commit-msg hook diagnostics", () => {
+  it("names the failed commitlint rule and offending subject", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: [
+        "printf '%s\\n' 'input: Fix Bad Subject'",
+        "printf '%s\\n' '✖   subject must not be sentence-case, start-case, pascal-case, upper-case [subject-case]'",
+        "exit 1",
+      ].join("\n"),
+      message: "Fix Bad Subject\n\nCo-authored-by: Codex <codex@openai.com>\n",
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("Failed commitlint rule(s):");
+    expect(result.stdout).toContain("[subject-case]");
+    expect(result.stdout).toContain("Subject: Fix Bad Subject");
+  });
+
+  it("prints exact expected attribution trailers", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: "exit 0\n",
+      message: "fix: clarify hook output\n",
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("Expected one of these trailers:");
+    expect(result.stdout).toContain(
+      "Co-authored-by: Claude <noreply@anthropic.com>"
+    );
+    expect(result.stdout).toContain("Co-authored-by: Codex <codex@openai.com>");
+  });
+});
+
+/**
+ *
+ */
+type ProjectOptions = {
+  readonly binName: string;
+  readonly binBody: string;
+  readonly message: string;
+};
+
+/**
+ * Create a temporary git project wired to a fake package-manager binary.
+ * @param options - Project setup options.
+ * @returns The temporary project directory.
+ */
+function createProject(options: ProjectOptions): string {
+  const project = mkdtempSync(path.join(tmpdir(), "lisa-commit-msg-"));
+  tempDirs.push(project);
+  mkdirSync(path.join(project, "node_modules", ".bin"), { recursive: true });
+  writeFileSync(path.join(project, "package-lock.json"), "{}\n");
+  writeFileSync(path.join(project, "COMMIT_EDITMSG"), options.message);
+  writeBin(project, options.binName, options.binBody);
+  spawnSync(GIT_PATH, ["init"], { cwd: project, encoding: "utf8" });
+  spawnSync(GIT_PATH, ["checkout", "-b", "codex/issue-1264"], {
+    cwd: project,
+    encoding: "utf8",
+  });
+  return project;
+}
+
+/**
+ * Run the real commit-msg hook against the temp project's commit message.
+ * @param project - Temporary project directory.
+ * @returns The completed hook process.
+ */
+function runHook(project: string): ReturnType<typeof spawnSync> {
+  return spawnSync(BASH_PATH, [HOOK_PATH, "COMMIT_EDITMSG"], {
+    cwd: project,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      PATH: `${path.join(project, "node_modules", ".bin")}:${process.env.PATH}`,
+    },
+  });
+}
+
+/**
+ * Write an executable fake binary into the temp project's local bin directory.
+ * @param project - Temporary project directory.
+ * @param name - Binary filename.
+ * @param body - Shell body to execute after the shebang.
+ */
+function writeBin(project: string, name: string, body: string): void {
+  const binPath = path.join(project, "node_modules", ".bin", name);
+  writeFileSync(binPath, `#!/usr/bin/env bash\n${body}`);
+  chmodSync(binPath, 0o755);
+}
