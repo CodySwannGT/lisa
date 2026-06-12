@@ -144,6 +144,14 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     statusMessage: "Checking shell command policy",
   },
   {
+    id: "shell-write-nudge",
+    event: "PostToolUse",
+    matcher: "Bash",
+    scriptFilename: "shell-write-nudge.sh",
+    forProjectTypes: ["*"],
+    statusMessage: "Checking shell write visibility",
+  },
+  {
     id: "format-on-edit",
     event: "PostToolUse",
     matcher: WRITE_MATCHER,
