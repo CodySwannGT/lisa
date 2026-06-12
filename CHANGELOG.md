@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.163.6](https://github.com/CodySwannGT/lisa/compare/vv2.163.5...v2.163.6) (2026-06-12)
+
+
+### Documentation
+
+* clarify sync-down conflict patterns ([603a392](https://github.com/CodySwannGT/lisa/commit/603a392b90aeba7f26c95cc10df873e2f02ca4f1))
+
 ### [2.163.5](https://github.com/CodySwannGT/lisa/compare/vv2.163.4...v2.163.5) (2026-06-11)
 
 
