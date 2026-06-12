@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.165.0](https://github.com/CodySwannGT/lisa/compare/vv2.164.1...v2.165.0) (2026-06-12)
+
+
+### Features
+
+* **harper-fabric:** add realtime skill ([0b8e607](https://github.com/CodySwannGT/lisa/commit/0b8e607b9801934c65330be407c06c8814a301f2))
+
 ### [2.164.1](https://github.com/CodySwannGT/lisa/compare/vv2.164.0...v2.164.1) (2026-06-12)
 
 
