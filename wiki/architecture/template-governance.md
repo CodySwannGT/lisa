@@ -15,6 +15,8 @@ Lisa distributes standards to downstream projects through template families and 
 
 Template families observed in the monorepo include all, TypeScript, Expo, NestJS, CDK, Rails, tsconfig, oxlint, and plugin-related assets.
 
+Recent additions extend the template surface to Phaser 4 and Harper Fabric. Phaser now has a stack pack with plugin metadata, templates, detection, and lint enforcement. Harper Fabric templates now include deploy workflow parity, generated-artifact edit guards, config-extension drop guards, and realtime skill support.
+
 ## Practical Rule
 
 When updating Lisa templates, preserve the strategy contract. A downstream project may rely on Lisa overwriting one file while preserving another.

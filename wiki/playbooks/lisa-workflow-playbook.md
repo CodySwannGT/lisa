@@ -64,6 +64,12 @@ Repair intake treats work as stuck after a two-hour threshold and records PR or 
 
 Build intake distinguishes container issues from leaf issues by both type and child state. Epics and parent Stories remain rollup containers when they have child work, but a childless Story or Spike can be treated as a buildable leaf when it is otherwise ready for a single-repository implementation lane.
 
+Codex has a local Lisa repair-intake skill surface. A bare `$lisa-repair-intake` trigger should use the current repo configuration and established defaults, including `github intake_mode=both` where that is the configured queue lane, instead of asking the operator to restate the queue.
+
+## Hook And Bootstrapper Guards
+
+Lisa hook defenses now tokenize no-verify guard input, detect shell writes including plain `tee`, nudge Codex away from shell-based file writes, and use `oxlint` for edit-time lint where applicable. Bootstrapper behavior is guarded in noninteractive build contexts and covered for second-apply convergence so generated installs do not hang or diverge during CI/package workflows.
+
 ## Quality Gate Habit
 
 Before shipping Lisa changes, expect local hooks and CI to run typecheck, formatting, linting, slow lint, dead-code detection, tests, coverage, security audit, and integration checks depending on the action.

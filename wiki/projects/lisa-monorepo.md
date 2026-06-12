@@ -20,16 +20,33 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260611T000000Z` created from detached `origin/main` HEAD
-- HEAD at 2026-06-11 incremental ingest: `f09469adb26fe433abedd62ede613b395e25ec4f`
-- Current package version: `2.159.7`
-- Total commits on HEAD: 3083
-- Latest merged PR captured in the incremental git snapshot: `#1241`
-- New commits since the previous incremental git cursor: `12`
-- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/058c/lisa`; global Codex memory remains out of scope.
+- Ingest branch: `wiki/ingest-20260612T000000Z` created from detached `origin/main` HEAD
+- HEAD at 2026-06-12 incremental ingest: `f4278cbd2b796440fc943970c2c79cfedce3ca14`
+- Current package version: `2.165.0`
+- Total commits on HEAD: 3146
+- Latest merged PR captured in the incremental git snapshot: `#1280`
+- New commits since the previous incremental git cursor: `63`
+- Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo through `2.165.0`.
+- PR `#1280` added a Harper Fabric realtime skill.
+- PR `#1279` moved edit-time hook linting to `oxlint`.
+- PR `#1278` added Codex shell-write nudges and broadened hook detection for plain `tee` writes while suppressing read-only inline-runtime false positives.
+- PR `#1277` added `shell-quote` to the Expo knip ignore-dependencies template.
+- PR `#1276` clarified sync-down conflict patterns.
+- PR `#1275` tokenizes the no-verify guard input before detecting bypass attempts.
+- PR `#1274` guards the bootstrapper in noninteractive build contexts and made the build-context test deterministic.
+- PR `#1273` renamed the package metadata knip script to `knip:check` and added a remove section.
+- PR `#1272` added regression coverage for bootstrapper second-apply convergence.
+- PR `#1271` made the pre-push bun audit gate filter exclusions reliably.
+- PR `#1260` guards Harper config extension drops and handles malformed YAML in that enforcement hook.
+- PR `#1258` blocks Harper generated artifact edits.
+- PR `#1257` added a Phaser 4 stack pack with plugin metadata, templates, detection, and lint enforcement.
+- PR `#1256` added Harper Fabric deploy workflow parity.
+- PR `#1242` merged the prior wiki ingestion through Lisa `2.159.7`.
+- PR `#1240` exposed the Lisa repair-intake skill to Codex and clarified bare-trigger defaults.
 - Release automation advanced the monorepo through `2.159.7`.
 - PR `#1241` preserves host-owned Lisa config fields during postinstall apply by keeping configured wiki and tracker values intact across copy-overwrite, JSON merge, and package metadata strategies.
 - PR `#1238` requires executed end-to-end regression proof for user-facing workflow changes in TDD and verification lifecycle skills, with scoped exceptions documented when an E2E run is not applicable.
