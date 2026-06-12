@@ -6,6 +6,12 @@
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
       }
     ],
+    "postToolUse": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/shell-write-nudge.sh",
+        "matcher": "Bash"
+      }
+    ],
     "preToolUse": [
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-no-verify.sh",
