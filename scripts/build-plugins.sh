@@ -38,6 +38,12 @@ build_plugin() {
   rm -rf "$out"
   mkdir -p "$out"
   cp -r "$src/." "$out/"
+  # Hook scripts are invoked by path from hooks.json, and the marketplace git
+  # clone delivers whatever mode is committed — force the exec bit so a source
+  # file added without +x can't ship a "Permission denied" hook.
+  if [ -d "$out/hooks" ]; then
+    find "$out/hooks" -name '*.sh' -exec chmod +x {} +
+  fi
   inject_version "$out/.claude-plugin/plugin.json"
   node "$ROOT_DIR/scripts/generate-codex-plugin-artifacts.mjs" "$out" "$VERSION"
   echo "Built plugins/$out_name (v$VERSION)"
