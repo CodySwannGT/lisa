@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Lisa-managed Codex hook script (PostToolUse Edit|Write|apply_patch).
-# Runs ESLint --fix on every just-edited file. If unfixable errors remain on
-# any file, exits non-zero so Codex sees the failure and the agent self-corrects.
+# Runs oxlint on every just-edited JS/TS file. Full ESLint remains enforced at
+# the commit/CI chokepoint via the project lint scripts.
 # Resolves target file(s) via the shared extractor (Edit/Write + apply_patch).
 set -uo pipefail
 
@@ -15,10 +15,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 . "${SCRIPT_DIR}/_extract-edit-paths.sh"
 
-if [ -x "./node_modules/.bin/eslint" ]; then
-  ESLINT="./node_modules/.bin/eslint"
-elif command -v eslint >/dev/null 2>&1; then
-  ESLINT="eslint"
+if [ -x "./node_modules/.bin/oxlint" ]; then
+  OXLINT="./node_modules/.bin/oxlint"
+elif command -v oxlint >/dev/null 2>&1; then
+  OXLINT="oxlint"
 else
   exit 0
 fi
@@ -31,9 +31,7 @@ while IFS= read -r FILE_PATH; do
     ts | tsx | js | jsx | mjs | cjs) ;;
     *) continue ;;
   esac
-  # Auto-fix what we can; surface anything left so the agent fixes it itself.
-  "$ESLINT" --fix "${FILE_PATH}" >/dev/null 2>&1 || true
-  "$ESLINT" --quiet "${FILE_PATH}" || STATUS=1
+  "$OXLINT" --quiet "${FILE_PATH}" || STATUS=1
 done <<EOF
 $(lisa_extract_edit_paths "$JSON_INPUT")
 EOF

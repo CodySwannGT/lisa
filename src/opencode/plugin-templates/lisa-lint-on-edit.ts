@@ -1,10 +1,10 @@
 /**
  * Lisa-managed OpenCode plugin (tool.execute.after).
  *
- * Runs ESLint --fix on every just-edited JS/TS file, then re-checks. If
- * unfixable problems remain, throws so OpenCode marks the tool call failed and
- * the agent self-corrects (the equivalent of the Codex hook's non-zero exit).
- * Fails open when ESLint isn't installed.
+ * Runs oxlint on every just-edited JS/TS file. If problems remain, throws so
+ * OpenCode marks the tool call failed and the agent self-corrects (the
+ * equivalent of the Codex hook's non-zero exit). Fails open when oxlint isn't
+ * installed. Full ESLint remains enforced at the commit/CI chokepoint.
  *
  * Port of Lisa's Codex hook `lint-on-edit.sh`. OpenCode passes the edited file
  * via `input.args.filePath`; `tool.execute.after` runs after a successful
@@ -38,15 +38,14 @@ export const LisaLintOnEdit = async ({
       if (input.tool !== "edit" && input.tool !== "write") return;
       const filePath = String(input.args?.filePath ?? "");
       if (!filePath || !EXTS.has(extOf(filePath))) return;
-      const eslint = resolveBin("eslint");
-      if (!eslint) return; // fail open — no ESLint installed
-      await $`${eslint} --fix ${filePath}`.quiet().nothrow();
-      const res = await $`${eslint} --quiet ${filePath}`.quiet().nothrow();
+      const oxlint = resolveBin("oxlint");
+      if (!oxlint) return; // fail open - no oxlint installed
+      const res = await $`${oxlint} --quiet ${filePath}`.quiet().nothrow();
       if (res.exitCode === 0) return;
       const out =
         `${res.stdout?.toString() ?? ""}${res.stderr?.toString() ?? ""}`.trim();
       throw new Error(
-        `lint-on-edit: ESLint reported unfixable problems in ${filePath}:\n${out}`
+        `lint-on-edit: oxlint reported problems in ${filePath}:\n${out}`
       );
     },
   };
