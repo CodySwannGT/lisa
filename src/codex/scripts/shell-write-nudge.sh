@@ -28,6 +28,21 @@ is_tracked_file() {
   git ls-files --error-unmatch -- "$candidate" >/dev/null 2>&1
 }
 
+# Returns 0 when an inline runtime command (python -c / node -e / bun -e) contains
+# explicit write-intent indicators.  Read-only operations such as open(f).read() or
+# readFileSync should not trigger the nudge.
+inline_runtime_intends_to_write() {
+  local cmd="$1"
+  # Python: open() with write/append mode as second positional argument
+  [[ "$cmd" == *", 'w'"* || "$cmd" == *", 'a'"* || "$cmd" == *", 'wb'"* || "$cmd" == *", 'ab'"* ]] && return 0
+  [[ "$cmd" == *', "w"'* || "$cmd" == *', "a"'* || "$cmd" == *', "wb"'* || "$cmd" == *', "ab"'* ]] && return 0
+  # Python / general: explicit .write( method call
+  [[ "$cmd" == *'.write('* ]] && return 0
+  # Node/Bun fs write functions
+  [[ "$cmd" == *'writeFile'* || "$cmd" == *'appendFile'* || "$cmd" == *'createWriteStream'* ]] && return 0
+  return 1
+}
+
 command_mentions_tracked_write() {
   local token
   local sed_command_re='(^|[[:space:];&|])sed[[:space:]]'
@@ -44,11 +59,11 @@ command_mentions_tracked_write() {
     is_tracked_file "$token" && return 0
   done < <(
     printf '%s\n' "$COMMAND" |
-      grep -Eo '(^|[[:space:]])(>>?|tee[[:space:]]+-a?|cat[[:space:]]+<<[^[:space:]]+[[:space:]]*>)[[:space:]]*[^[:space:];|&]+' |
-      sed -E 's/^[[:space:]]*(>>?|tee[[:space:]]+-a?|cat[[:space:]]+<<[^[:space:]]+[[:space:]]*>)[[:space:]]*//; s/^[\"'\'']//; s/[\"'\'']$//'
+      grep -Eo '(^|[[:space:]])(>>?|tee([[:space:]]+-a)?|cat[[:space:]]+<<[^[:space:]]+[[:space:]]*>)[[:space:]]*[^[:space:];|&]+' |
+      sed -E 's/^[[:space:]]*(>>?|tee([[:space:]]+-a)?|cat[[:space:]]+<<[^[:space:]]+[[:space:]]*>)[[:space:]]*//; s/^[\"'\'']//; s/[\"'\'']$//'
   )
 
-  if [[ "$COMMAND" =~ $inline_runtime_re ]]; then
+  if [[ "$COMMAND" =~ $inline_runtime_re ]] && inline_runtime_intends_to_write "$COMMAND"; then
     while IFS= read -r token; do
       is_tracked_file "$token" && return 0
     done < <(git ls-files | while IFS= read -r file; do

@@ -153,13 +153,15 @@ describe("block-migration-edits.sh", () => {
   });
 });
 
+const NUDGE_MESSAGE = "prefer Edit/Write";
+
 describe("shell-write-nudge.sh", () => {
   it("emits a non-blocking nudge for sed -i on a tracked file", () => {
     const { status, stderr } = runShellWriteNudge(
       bashEnvelope("sed -i '' 's/foo/bar/' src/codex/hooks-installer.ts")
     );
     expect(status).toBe(EXIT_ALLOWED);
-    expect(stderr).toContain("prefer Edit/Write");
+    expect(stderr).toContain(NUDGE_MESSAGE);
   });
 
   it("emits a non-blocking nudge for redirection into a tracked file", () => {
@@ -167,7 +169,7 @@ describe("shell-write-nudge.sh", () => {
       bashEnvelope("printf '%s\\n' value >> package.json")
     );
     expect(status).toBe(EXIT_ALLOWED);
-    expect(stderr).toContain("prefer Edit/Write");
+    expect(stderr).toContain(NUDGE_MESSAGE);
   });
 
   it("does not nudge for committed script execution", () => {
@@ -176,5 +178,51 @@ describe("shell-write-nudge.sh", () => {
     );
     expect(status).toBe(EXIT_ALLOWED);
     expect(stderr).toBe("");
+  });
+
+  // Thread 2: plain tee (no -a flag) must also trigger the nudge
+  it("emits a non-blocking nudge for plain tee (no -a flag) into a tracked file", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope("echo value | tee package.json")
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain(NUDGE_MESSAGE);
+  });
+
+  // Thread 3: inline runtime read-only operations must NOT trigger the nudge
+  it("does not nudge for python -c reading a tracked file (read-only)", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope("python3 -c \"print(open('package.json').read())\"")
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toBe("");
+  });
+
+  it("emits a nudge for python -c with open() in write mode for a tracked file", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope("python3 -c \"open('package.json', 'w').write('x')\"")
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain(NUDGE_MESSAGE);
+  });
+
+  it("does not nudge for node -e reading a tracked file (read-only)", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope(
+        "node -e \"require('fs').readFileSync('package.json', 'utf8')\""
+      )
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toBe("");
+  });
+
+  it("emits a nudge for node -e with writeFileSync for a tracked file", () => {
+    const { status, stderr } = runShellWriteNudge(
+      bashEnvelope(
+        "node -e \"require('fs').writeFileSync('package.json', 'x')\""
+      )
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain(NUDGE_MESSAGE);
   });
 });
