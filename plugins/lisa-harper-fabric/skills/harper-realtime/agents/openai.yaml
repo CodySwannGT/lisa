@@ -1,0 +1,4 @@
+display_name: "Harper Realtime"
+short_description: "adding or troubleshooting Harper (HarperDB/Fabric) real-time behavior: MQTT topics, WebSocket resource subscriptions, resource…"
+default_prompt:
+  - "Use $harper-realtime: adding or troubleshooting Harper (HarperDB/Fabric) real-time behavior: MQTT topics, WebSocket resource subscriptions, resource…."
