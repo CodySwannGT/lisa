@@ -44,6 +44,13 @@ export const LisaLintOnEdit = async ({
       if (res.exitCode === 0) return;
       const out =
         `${res.stdout?.toString() ?? ""}${res.stderr?.toString() ?? ""}`.trim();
+      if (
+        out.includes("No files found to lint") ||
+        out.includes(" on 0 files") ||
+        out.includes(" on 0 file")
+      ) {
+        return;
+      }
       throw new Error(
         `lint-on-edit: oxlint reported problems in ${filePath}:\n${out}`
       );
