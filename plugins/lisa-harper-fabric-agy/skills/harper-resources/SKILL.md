@@ -70,8 +70,9 @@ jsResource:
 ```
 
 Resources can also be registered programmatically with `server.resources.set()`.
-See [[harper-config-yaml]] for the extension wiring and [[harper-schema-graphql]]
-for how the schema defines the tables resources extend.
+See [[harper-config-yaml]] for the extension wiring, [[harper-schema-graphql]] for
+how the schema defines the tables resources extend, and [[harper-realtime]] when
+`subscribe`, `publish`, or WebSocket behavior is part of the feature.
 
 ## Project conventions (TS is source)
 

@@ -52,7 +52,7 @@ unmentioned extensions stay on.
 
 | Key | Purpose | Common options |
 | --- | --- | --- |
-| `rest` | Auto REST endpoints for exported resources/tables | `true`, or an object with options |
+| `rest` | Auto REST endpoints and resource WebSocket subscriptions | `true`, or an object with options such as `webSocket` |
 | `graphqlSchema` | Define tables/types from GraphQL files | `files: '*.graphql'` — see [[harper-schema-graphql]] |
 | `jsResource` | Load custom JS resources | `files: 'resources.js'` — see [[harper-resources]] |
 | `static` | Serve static files over HTTP | `files: 'web/**'`, `urlPath` |
@@ -60,6 +60,11 @@ unmentioned extensions stay on.
 | `loadEnv` | Load env vars from `.env` | `files` |
 | `dataLoader` | Seed tables from JSON/YAML | `files` |
 | `fastifyRoutes` | Custom Fastify routes | `files: 'routes/*.js'`, `urlPath` |
+
+For real-time work, component `config.yaml` keeps `rest`, `graphqlSchema`, and
+`jsResource` enabled so exported resources can be addressed by HTTP/WebSocket and
+MQTT topic paths. Broker ports and MQTT authentication live in the root
+`harper-config.yaml`, not the component file. See [[harper-realtime]].
 
 ## External components and custom plugins
 
