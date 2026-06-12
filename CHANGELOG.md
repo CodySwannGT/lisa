@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.165.3](https://github.com/CodySwannGT/lisa/compare/vv2.165.2...v2.165.3) (2026-06-12)
+
+
+### Bug Fixes
+
+* **plugins:** ship hook scripts with the executable bit set ([47972fb](https://github.com/CodySwannGT/lisa/commit/47972fb0ba7e628179a425c488d334ac8f28e637))
+
 ### [2.165.2](https://github.com/CodySwannGT/lisa/compare/vv2.165.0...v2.165.2) (2026-06-12)
 
 
