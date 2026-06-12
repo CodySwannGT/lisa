@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by connector ingest on 2026-06-11 for Lisa `2.159.7` and current monorepo provenance through PR `#1241`.
+Last updated by connector ingest on 2026-06-12 for Lisa `2.165.0` and current monorepo provenance through PR `#1280`.
 
 ## Orientation
 
@@ -12,7 +12,7 @@ Last updated by connector ingest on 2026-06-11 for Lisa `2.159.7` and current mo
 
 - [Project Registry](projects/registry.md)
 - [Lisa Monorepo Snapshot](projects/lisa-monorepo.md)
-  - Current package version: `2.159.7`; latest captured merged PR: `#1241`.
+  - Current package version: `2.165.0`; latest captured merged PR: `#1280`.
 
 ## Documentation
 
@@ -30,6 +30,7 @@ Last updated by connector ingest on 2026-06-11 for Lisa `2.159.7` and current mo
 
 - [Lisa Architecture](architecture/lisa-architecture.md)
 - [Template Governance](architecture/template-governance.md)
+  - Current template surface includes Phaser 4 and Harper Fabric workflow/realtime guard additions.
 - [Coding-Agent Parity Architecture](architecture/coding-agent-parity.md)
 - [Lisa Hook Per-Agent Ship List](architecture/lisa-hook-per-agent-ship-list.md)
 - [Pattern B Per-Agent Plugin Fan-Out Specification](architecture/pattern-b-fan-out-spec.md)
@@ -46,6 +47,7 @@ Last updated by connector ingest on 2026-06-11 for Lisa `2.159.7` and current mo
 ## Playbooks
 
 - [Lisa Workflow Playbook](playbooks/lisa-workflow-playbook.md)
+  - Codex repair-intake defaults, hook-write nudges, oxlint edit-time lint, and bootstrapper build-context guards are captured here.
 - [Coding-Agent Parity Research Playbook](playbooks/coding-agent-parity-research.md)
 
 ## Concepts
