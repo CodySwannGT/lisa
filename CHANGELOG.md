@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.165.1](https://github.com/CodySwannGT/lisa/compare/vv2.165.0...v2.165.1) (2026-06-12)
+
+
+### Documentation
+
+* **wiki:** ingest Lisa wiki state ([60a3d65](https://github.com/CodySwannGT/lisa/commit/60a3d650703c6f9f412e66cb6fc6e96ec4e5c1e9))
+* **wiki:** remove machine-specific worktree path from wiki snapshot ([dadad5a](https://github.com/CodySwannGT/lisa/commit/dadad5af898a4f01ebf8fdda864f6df89feb7cac))
+
 ## [2.165.0](https://github.com/CodySwannGT/lisa/compare/vv2.164.1...v2.165.0) (2026-06-12)
 
 
