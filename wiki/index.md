@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by connector ingest on 2026-06-12 for Lisa `2.165.0` and current monorepo provenance through PR `#1280`.
+Last updated by connector ingest on 2026-06-13 for Lisa `2.165.4` and current monorepo provenance through PR `#1284`.
 
 ## Orientation
 
@@ -12,7 +12,7 @@ Last updated by connector ingest on 2026-06-12 for Lisa `2.165.0` and current mo
 
 - [Project Registry](projects/registry.md)
 - [Lisa Monorepo Snapshot](projects/lisa-monorepo.md)
-  - Current package version: `2.165.0`; latest captured merged PR: `#1280`.
+  - Current package version: `2.165.4`; latest captured merged PR: `#1284`.
 
 ## Documentation
 
@@ -47,7 +47,7 @@ Last updated by connector ingest on 2026-06-12 for Lisa `2.165.0` and current mo
 ## Playbooks
 
 - [Lisa Workflow Playbook](playbooks/lisa-workflow-playbook.md)
-  - Codex repair-intake defaults, hook-write nudges, oxlint edit-time lint, and bootstrapper build-context guards are captured here.
+  - Codex repair-intake defaults, hook-write nudges, oxlint edit-time lint, lint-ignored file handling, executable plugin hooks, and bootstrapper build-context guards are captured here.
 - [Coding-Agent Parity Research Playbook](playbooks/coding-agent-parity-research.md)
 
 ## Concepts

@@ -570,3 +570,12 @@
 - Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
 - Skipped project-scoped memory because no eligible project-scoped Claude memory directory exists for `/Users/codysai/.codex/worktrees/058c/lisa`; global Codex memory remains out of scope.
 - Updated the monorepo snapshot and index for the prior wiki ingest merge, auditable implement roster decisions, required E2E regression execution proof, host config preservation during postinstall apply, and release-history changes through `2.159.7`.
+
+## 2026-06-13 - Incremental connector ingest
+
+- Synced the checkout with `origin/main` by fetching `origin`, then created `wiki/ingest-20260613T000000Z` from synced `origin/main` for this ingestion PR.
+- No same-day git or roles source notes existed for `2026-06-13`, so no provenance preservation copy was needed before writing the new connector notes.
+- Refreshed the `git` source note with 14 new commits through `05853e6ce16319386f642adcc8a55fefbb3a0ec2`, advanced the merged-PR cursor to `#1284`, and captured the release line through Lisa `2.165.4`.
+- Refreshed the `roles` source note with 0 declared roles and 0 staff pages.
+- Skipped project-scoped memory because no eligible project-scoped Claude memory directory exists for this automation checkout; global Codex memory remains out of scope.
+- Updated the monorepo snapshot, workflow playbook, and index for the prior wiki ingest merge, commit-message diagnostics, executable plugin hook scripts, lint-ignored edit-file handling, and release-history changes through `2.165.4`.
