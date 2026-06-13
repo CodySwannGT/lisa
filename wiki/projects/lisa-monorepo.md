@@ -20,16 +20,21 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260612T000000Z` created from detached `origin/main` HEAD
-- HEAD at 2026-06-12 incremental ingest: `f4278cbd2b796440fc943970c2c79cfedce3ca14`
-- Current package version: `2.165.0`
-- Total commits on HEAD: 3146
-- Latest merged PR captured in the incremental git snapshot: `#1280`
-- New commits since the previous incremental git cursor: `63`
+- Ingest branch: `wiki/ingest-20260613T000000Z` created from synced `origin/main`
+- HEAD at 2026-06-13 incremental ingest: `05853e6ce16319386f642adcc8a55fefbb3a0ec2`
+- Current package version: `2.165.4`
+- Total commits on HEAD: 3160
+- Latest merged PR captured in the incremental git snapshot: `#1284`
+- New commits since the previous incremental git cursor: `14`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo through `2.165.4`.
+- PR `#1284` allows lint-ignored edit files to pass through edit-time lint handling.
+- PR `#1283` preserves executable bits for shipped plugin hook scripts.
+- PR `#1282` merged the prior wiki ingestion through Lisa `2.165.0`; a follow-up cleanup removed a machine-specific worktree path from the wiki snapshot.
+- PR `#1281` improved commit-message hook diagnostics.
 - Release automation advanced the monorepo through `2.165.0`.
 - PR `#1280` added a Harper Fabric realtime skill.
 - PR `#1279` moved edit-time hook linting to `oxlint`.
