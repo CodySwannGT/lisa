@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.165.5](https://github.com/CodySwannGT/lisa/compare/vv2.165.4...v2.165.5) (2026-06-13)
+
+
+### Bug Fixes
+
+* **security:** exclude esbuild GHSA-gv7w-rqvm-qjhr from audit ([61488cf](https://github.com/CodySwannGT/lisa/commit/61488cf1b3a9192c3b1a079a4a6e8aa578be521b))
+
+
+### Documentation
+
+* **wiki:** ingest Lisa wiki state ([8f1b9dc](https://github.com/CodySwannGT/lisa/commit/8f1b9dc94a6a9713f32a1b8f16a115db359595cb))
+
 ### [2.165.4](https://github.com/CodySwannGT/lisa/compare/vv2.165.3...v2.165.4) (2026-06-12)
 
 
