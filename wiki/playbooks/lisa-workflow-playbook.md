@@ -68,7 +68,9 @@ Codex has a local Lisa repair-intake skill surface. A bare `$lisa-repair-intake`
 
 ## Hook And Bootstrapper Guards
 
-Lisa hook defenses now tokenize no-verify guard input, detect shell writes including plain `tee`, nudge Codex away from shell-based file writes, and use `oxlint` for edit-time lint where applicable. Bootstrapper behavior is guarded in noninteractive build contexts and covered for second-apply convergence so generated installs do not hang or diverge during CI/package workflows.
+Lisa hook defenses now tokenize no-verify guard input, detect shell writes including plain `tee`, nudge Codex away from shell-based file writes, and use `oxlint` for edit-time lint where applicable. Edit-time lint must treat files ignored by the lint configuration as a pass condition rather than a failed edit. Bootstrapper behavior is guarded in noninteractive build contexts and covered for second-apply convergence so generated installs do not hang or diverge during CI/package workflows.
+
+Plugin hook scripts must retain executable bits in the published plugin payload so installed hook commands can run without local chmod repair.
 
 ## Quality Gate Habit
 
