@@ -74,6 +74,11 @@
       "id": "GHSA-9cx6-37pm-9jff",
       "package": "handlebars",
       "reason": "DoS via malformed decorator syntax — transitive devDep via ts-jest/standard-version, no untrusted templates"
+    },
+    {
+      "id": "GHSA-gv7w-rqvm-qjhr",
+      "package": "esbuild",
+      "reason": "Missing binary integrity verification for Deno module installs via NPM_CONFIG_REGISTRY — only exploitable via the Deno runtime, not Node.js; esbuild is a devDep build tool used in Node.js only (via tsx, esbuild-register, vite)"
     }
   ]
 }
