@@ -55,7 +55,7 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -486,6 +486,74 @@ jobs:
       - name: ⏭️ Skip unit tests (no test:unit script)
         if: steps.check_script.outputs.exists == 'false'
         run: echo "Skipping unit tests - test:unit script not found in package.json"
+
+  test_mutation:
+    name: 🧬 Mutation Testing Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: ${{ !contains(inputs.skip_jobs, 'test:mutation') }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Full history so the gate can diff changed files against the PR base.
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 🔍 Check for test:mutation script
+        id: check_script
+        run: |
+          if [ -f "package.json" ] && grep -q '"test:mutation"' package.json; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📦 Install dependencies
+        if: steps.check_script.outputs.exists == 'true'
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+        if: steps.check_script.outputs.exists == 'true'
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm run test:mutation
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn test:mutation
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun run test:mutation
+          fi
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          # Diff against the PR base branch (falls back to 'main' outside PRs).
+          MUTATION_SINCE: ${{ github.base_ref || 'main' }}
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ⏭️ Skip mutation gate (no test:mutation script)
+        if: steps.check_script.outputs.exists == 'false'
+        run: echo "Skipping mutation-testing gate - test:mutation script not found in package.json"
 
   test_integration:
     name: 🧪 Run Integration Tests

@@ -31,6 +31,11 @@ group :development, :test do
   gem "flog", "~> 4.8", require: false
   gem "flay", "~> 2.13", require: false
 
+  # Mutation testing (opt-in gate — see mutation.gate.yml / scripts/lisa-mutation.sh).
+  # NOTE: mutant is commercially licensed for closed-source projects (free for OSS).
+  # The gate is disabled by default, so the gem is never invoked until opted in.
+  gem "mutant-rspec", "~> 0.12", require: false
+
   # Security
   gem "brakeman", "~> 7.0", require: false
   gem "bundler-audit", "~> 0.9", require: false
