@@ -1,0 +1,8 @@
+# Mutation-testing gate toggle (project-owned).
+# Flip `enabled` to true to turn on the diff-only mutant gate in the pre-push
+# hook and CI. The mutation subjects are configured in `.mutant.yml`.
+#
+# NOTE: mutant requires a commercial license for closed-source projects.
+---
+enabled: false
+since: main
