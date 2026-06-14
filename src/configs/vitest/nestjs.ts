@@ -22,6 +22,7 @@ import {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  worktreeExclusions,
 } from "./base.js";
 
 import type { PortableThresholds } from "./base.js";
@@ -34,6 +35,7 @@ export {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  worktreeExclusions,
 };
 
 export type { PortableThresholds };
@@ -89,12 +91,12 @@ export const getNestjsVitestConfig = ({
     // on "No test files found" otherwise. See typescript.ts for rationale.
     passWithNoTests: true,
     include: ["**/*.spec.ts"],
-    exclude: [...defaultTestExclusions],
+    exclude: [...defaultTestExclusions, ...worktreeExclusions()],
     testTimeout: 10000,
     coverage: {
       provider: "v8",
       include: ["**/*.ts"],
-      exclude: [...nestjsCoverageExclusions],
+      exclude: [...nestjsCoverageExclusions, ...worktreeExclusions()],
       thresholds: mapThresholds(thresholds),
     },
   },
