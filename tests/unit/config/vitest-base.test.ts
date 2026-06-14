@@ -5,10 +5,12 @@ import {
   mergeThresholds,
   mergeVitestConfigs,
   mapThresholds,
+  worktreeExclusions,
 } from "../../../src/configs/vitest/base.js";
 import type { PortableThresholds } from "../../../src/configs/vitest/base.js";
 
 const DSTAR_TEST_TS = "**/*.test.ts";
+const WORKTREE_GLOB = "**/.claude/worktrees/**";
 const TESTS_GLOB = "tests/**/*.test.ts";
 const SRC_TEST_GLOB = "src/**/*.test.ts";
 const SRC_TS_GLOB = "src/**/*.ts";
@@ -54,18 +56,55 @@ describe("vitest.base", () => {
       expect(hasNegation).toBe(false);
     });
 
-    it("excludes scratch worktrees from coverage", () => {
-      expect(defaultCoverageExclusions).toContain("**/.claude/worktrees/**");
+    it("does not bake the worktree glob into the static list (supplied by worktreeExclusions)", () => {
+      expect(defaultCoverageExclusions).not.toContain(WORKTREE_GLOB);
     });
   });
 
   describe("defaultTestExclusions", () => {
-    it("excludes node_modules, dist, and scratch worktrees", () => {
+    it("excludes node_modules and dist (worktrees supplied by worktreeExclusions)", () => {
       expect(defaultTestExclusions).toEqual([
         "**/node_modules/**",
         "**/dist/**",
-        "**/.claude/worktrees/**",
       ]);
+    });
+  });
+
+  describe("worktreeExclusions", () => {
+    const realCwd = process.cwd;
+
+    afterEach(() => {
+      process.cwd = realCwd;
+    });
+
+    it("returns the worktree exclude glob when cwd is outside a worktree", () => {
+      process.cwd = () => "/some/project";
+
+      expect(worktreeExclusions()).toEqual([WORKTREE_GLOB]);
+    });
+
+    it("returns an empty array when cwd is inside a .claude/worktrees path", () => {
+      process.cwd = () => "/some/project/.claude/worktrees/feature-branch";
+
+      expect(worktreeExclusions()).toEqual([]);
+    });
+
+    it("detects a worktree in any path segment", () => {
+      process.cwd = () => "/Users/dev/project/.claude/worktrees/SE-123/subdir";
+
+      expect(worktreeExclusions()).toEqual([]);
+    });
+
+    it("returns an empty array for a Windows-style worktree path", () => {
+      process.cwd = () => "C:\\projects\\.claude\\worktrees\\feature-branch";
+
+      expect(worktreeExclusions()).toEqual([]);
+    });
+
+    it("returns the glob for a Windows-style path outside a worktree", () => {
+      process.cwd = () => "C:\\projects\\my-app";
+
+      expect(worktreeExclusions()).toEqual([WORKTREE_GLOB]);
     });
   });
 
