@@ -50,6 +50,7 @@ Git Discipline:
 - Prefix git push with `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"`.
 - Never commit directly to an environment branch (dev, staging, main).
 - Never use --no-verify or attempt to bypass a git hook.
+- When a pre-commit, pre-push, CI, or other quality gate fails, fix the root cause first: upgrade the vulnerable dependency, fix the lint/type/test failure, remove the secret, or repair the failing check. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a narrow, documented ignore for the specific failing rule or advisory. Never use `--no-verify`, hook environment switches, blanket ignores, or threshold reductions as a substitute for fixing the gate.
 - Never bypass branch protection. Never use `--admin`, `--force`, or any other flag to merge a PR that has failing CI checks. If CI fails, fix it. If you cannot fix it, escalate to the human. There are zero exceptions. "Green in CI" is the definition of done — not "green locally." A PR is not complete until CI passes on the actual PR branch.
 - Never stash changes you cannot commit. Either fix whatever is preventing the commit or fail out and let the human know why.
 - Never add "BREAKING CHANGE" to a commit message unless there is actually a breaking change.
