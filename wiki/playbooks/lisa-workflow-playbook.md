@@ -76,4 +76,6 @@ Plugin hook scripts must retain executable bits in the published plugin payload 
 
 Before shipping Lisa changes, expect local hooks and CI to run typecheck, formatting, linting, slow lint, dead-code detection, tests, coverage, security audit, and integration checks depending on the action.
 
+Audit-ignore entries can be promoted into shared templates when a vulnerability is non-applicable across Lisa-managed projects and is causing routine gate failures. The esbuild `GHSA-gv7w-rqvm-qjhr` exclusion is the current example: it belongs in the TypeScript audit-ignore template until the build-tool dependency chain upgrades past the affected esbuild range.
+
 The wiki has a separate lint path. Normal ESLint defaults ignore `wiki/**`, while wiki integrity continues to be checked through the Lisa wiki lint scripts.
