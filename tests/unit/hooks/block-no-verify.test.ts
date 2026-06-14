@@ -38,8 +38,11 @@ const runHook = (
 describe("block-no-verify.sh", () => {
   describe("blocks commands with --no-verify", () => {
     it("blocks a simple git commit --no-verify", () => {
-      const { status } = runHook("Bash", "git commit --no-verify");
+      const { status, stderr } = runHook("Bash", "git commit --no-verify");
       expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("Fix the underlying issue");
+      expect(stderr).toContain("specific documented ignore");
+      expect(stderr).not.toContain("ask the user before bypassing");
     });
 
     it("blocks --no-verify followed by additional flags", () => {
