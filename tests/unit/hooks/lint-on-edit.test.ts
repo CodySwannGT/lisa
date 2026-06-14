@@ -101,6 +101,44 @@ describe("lint-on-edit hooks", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Ignored by lint config");
   });
+
+  it("reports Codex edit-hook diagnostics without rewriting the edited file", () => {
+    const project = createProject({ oxlintBody: mutatingOnlyWithFixOxlint() });
+    const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
+    const originalSource = readFileSync(sourcePath, "utf8");
+    const result = spawnSync(BASH_PATH, [CODEX_HOOK_PATH], {
+      cwd: project,
+      encoding: "utf8",
+      input: JSON.stringify({
+        tool_name: "Edit",
+        tool_input: { file_path: sourcePath },
+      }),
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("simulated fixable issue");
+    expect(readFileSync(sourcePath, "utf8")).toBe(originalSource);
+    expect(readLog(project)).toContain(`oxlint --quiet ${sourcePath}`);
+    expect(readLog(project)).not.toContain("--fix");
+  });
+
+  it("reports TypeScript-stack edit-hook diagnostics without rewriting the edited file", () => {
+    const project = createProject({ oxlintBody: mutatingOnlyWithFixOxlint() });
+    const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
+    const originalSource = readFileSync(sourcePath, "utf8");
+    const result = spawnSync(BASH_PATH, [TYPESCRIPT_HOOK_PATH], {
+      cwd: project,
+      encoding: "utf8",
+      env: { ...process.env, CLAUDE_PROJECT_DIR: project },
+      input: JSON.stringify({ tool_input: { file_path: sourcePath } }),
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("simulated fixable issue");
+    expect(readFileSync(sourcePath, "utf8")).toBe(originalSource);
+    expect(readLog(project)).toContain(`oxlint --quiet ${sourcePath}`);
+    expect(readLog(project)).not.toContain("--fix");
+  });
 });
 
 /**
@@ -151,4 +189,22 @@ function writeBin(project: string, name: string, body: string): void {
  */
 function readLog(project: string): string {
   return readFileSync(path.join(project, "lint.log"), "utf8");
+}
+
+/**
+ * Fake linter that would mutate only when called with --fix.
+ * @returns Shell body for the fake oxlint binary.
+ */
+function mutatingOnlyWithFixOxlint(): string {
+  return `
+printf 'oxlint %s\\n' "$*" >> "$PWD/lint.log"
+target="\${@: -1}"
+for arg in "$@"; do
+  if [ "$arg" = "--fix" ]; then
+    printf 'export const rewritten = true;\\n' > "$target"
+  fi
+done
+printf 'simulated fixable issue\\n' >&2
+exit 1
+`;
 }

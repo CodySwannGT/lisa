@@ -17,6 +17,8 @@ Template families observed in the monorepo include all, TypeScript, Expo, NestJS
 
 Recent additions extend the template surface to Phaser 4 and Harper Fabric. Phaser now has a stack pack with plugin metadata, templates, detection, and lint enforcement. Harper Fabric templates now include deploy workflow parity, generated-artifact edit guards, config-extension drop guards, and realtime skill support.
 
+The shared TypeScript audit-ignore template carries the esbuild `GHSA-gv7w-rqvm-qjhr` exclusion as of PR `#1287`. This keeps Lisa-managed downstream projects from failing the bun audit pre-push gate for the esbuild Deno install module advisory when their exposure is dev/build-time tooling through bun/npm dependency chains. Remove the template exclusion once the transitive `tsx`, `vite`, `vitest`, and `esbuild-register` chain reaches esbuild `>=0.28.1`.
+
 ## Practical Rule
 
 When updating Lisa templates, preserve the strategy contract. A downstream project may rely on Lisa overwriting one file while preserving another.
