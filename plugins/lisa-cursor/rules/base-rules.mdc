@@ -30,6 +30,7 @@ Do not begin work if there are blockers, ambiguities, access requirements, or un
 ## Git Discipline
 
 - **Never use `--no-verify`** or bypass any git hook.
+- When a hook or quality gate fails, fix the root cause first. If no fix is genuinely possible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never use a blanket bypass.
 - **Never bypass branch protection** — no `--admin`, `--force`, no merging a PR with failing CI. "Green in CI" is the definition of done.
 - Never commit directly to environment branches (`dev`, `staging`, `main`).
 - Prefix `git push` with `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"`.
