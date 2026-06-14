@@ -18,6 +18,7 @@ import {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  worktreeExclusions,
 } from "./base.js";
 
 import type { PortableThresholds } from "./base.js";
@@ -30,6 +31,7 @@ export {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  worktreeExclusions,
 };
 
 export type { PortableThresholds };
@@ -64,12 +66,12 @@ export const getTypescriptVitestConfig = ({
     // the test-world analog of allowing `files: []` in tsconfig for zero sources.
     passWithNoTests: true,
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
-    exclude: [...defaultTestExclusions],
+    exclude: [...defaultTestExclusions, ...worktreeExclusions()],
     testTimeout: 10000,
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: [...defaultCoverageExclusions],
+      exclude: [...defaultCoverageExclusions, ...worktreeExclusions()],
       thresholds: mapThresholds(thresholds),
     },
   },
