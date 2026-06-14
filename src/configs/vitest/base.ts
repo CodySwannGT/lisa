@@ -67,7 +67,6 @@ export const defaultCoverageExclusions: readonly string[] = [
   "**/index.ts",
   "**/node_modules/**",
   "**/dist/**",
-  "**/.claude/worktrees/**",
   "**/*.test.ts",
   "**/*.spec.ts",
   "**/*.mock.ts",
@@ -80,14 +79,38 @@ export const defaultCoverageExclusions: readonly string[] = [
 
 /**
  * Default patterns to exclude from test discovery across all stacks.
- * Lisa manages `.claude/worktrees/` as scratch worktrees for subagents;
- * test files inside them should never be collected by the repo-level vitest run.
+ *
+ * The `.claude/worktrees/` exclusion is intentionally NOT baked in here —
+ * it is cwd-conditional and supplied by {@link worktreeExclusions} so that
+ * a vitest run launched from INSIDE a worktree can still discover its own
+ * tests. Stack factories spread `worktreeExclusions()` alongside this list.
  */
 export const defaultTestExclusions: readonly string[] = [
   "**/node_modules/**",
   "**/dist/**",
-  "**/.claude/worktrees/**",
 ];
+
+/**
+ * Returns the worktree exclusion glob a stack config should add to skip
+ * test files / coverage that live inside `.claude/worktrees/`.
+ *
+ * Lisa manages `.claude/worktrees/` as scratch worktrees for subagents.
+ * When vitest runs from the primary checkout, tests inside those worktrees
+ * should be skipped — each worktree has its own vitest run. When vitest runs
+ * from INSIDE a worktree (the project root *is* the worktree), the same glob
+ * matches every path under root and vitest finds zero tests. This returns the
+ * glob only when the current working directory is outside a worktree, so each
+ * stack factory can spread it into its `exclude` arrays without hand-rolling
+ * the conditional. Mirrors jest's `worktreeTestPathIgnorePatterns()`.
+ * @returns Single-entry array with the worktree exclude glob, or an empty array when already inside a worktree.
+ */
+export function worktreeExclusions(): readonly string[] {
+  const isInsideWorktree = /[/\\]\.claude[/\\]worktrees(?:[/\\]|$)/.test(
+    process.cwd()
+  );
+
+  return isInsideWorktree ? [] : ["**/.claude/worktrees/**"];
+}
 
 /**
  * Maps portable threshold format (with `global` wrapper) to Vitest's
