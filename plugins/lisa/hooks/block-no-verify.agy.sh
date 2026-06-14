@@ -25,7 +25,7 @@ allow() {
 }
 
 deny() {
-  printf '%s\n' '{"decision":"deny","reason":"This command bypasses Lisa pre-commit/pre-push quality gates (--no-verify, HUSKY=0, or core.hooksPath disabling). Fix the underlying issue (lint, tests, formatting) or ask the user before bypassing."}'
+  printf '%s\n' '{"decision":"deny","reason":"This command bypasses Lisa pre-commit/pre-push quality gates (--no-verify, HUSKY=0, or core.hooksPath disabling). Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook."}'
   exit 0
 }
 
