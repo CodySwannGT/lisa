@@ -20,16 +20,19 @@ The Lisa monorepo is the primary ingestion source for this wiki.
 
 ## Current Snapshot
 
-- Ingest branch: `wiki/ingest-20260613T000000Z` created from synced `origin/main`
-- HEAD at 2026-06-13 incremental ingest: `05853e6ce16319386f642adcc8a55fefbb3a0ec2`
-- Current package version: `2.165.4`
-- Total commits on HEAD: 3160
-- Latest merged PR captured in the incremental git snapshot: `#1284`
-- New commits since the previous incremental git cursor: `14`
+- Ingest branch: `wiki/ingest-20260614T000000Z` created from synced `origin/main`
+- HEAD at 2026-06-14 incremental ingest: `4bd9a9b749fa26376a5bfdd4d84cb1cb9fb51b93`
+- Current package version: `2.165.6`
+- Total commits on HEAD: 3167
+- Latest merged PR captured in the incremental git snapshot: `#1287`
+- New commits since the previous incremental git cursor: `7`
 - Project-scoped memory skipped this cycle because no eligible project-scoped Claude memory directory exists; global Codex memory remains out of scope.
 
 ## Recent Changes Since The 2026-05-14 Baseline
 
+- Release automation advanced the monorepo through `2.165.6`.
+- PR `#1287` added the esbuild `GHSA-gv7w-rqvm-qjhr` audit exclusion to the shared TypeScript audit-ignore template as a durable cross-project fix for a dev/build-time Deno install module advisory.
+- PR `#1285` merged the prior wiki ingestion through Lisa `2.165.4`.
 - Release automation advanced the monorepo through `2.165.4`.
 - PR `#1284` allows lint-ignored edit files to pass through edit-time lint handling.
 - PR `#1283` preserves executable bits for shipped plugin hook scripts.
