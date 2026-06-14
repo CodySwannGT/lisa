@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.166.0](https://github.com/CodySwannGT/lisa/compare/vv2.165.8...v2.166.0) (2026-06-14)
+
+
+### Features
+
+* **mutation-testing:** add configurable opt-in mutation gate for TS and Rails ([1345bd4](https://github.com/CodySwannGT/lisa/commit/1345bd4c6e04aec88b19a7268f027f7d82e2e3ef))
+
 ### [2.165.8](https://github.com/CodySwannGT/lisa/compare/vv2.165.7...v2.165.8) (2026-06-14)
 
 ### [2.165.7](https://github.com/CodySwannGT/lisa/compare/vv2.165.6...v2.165.7) (2026-06-14)
