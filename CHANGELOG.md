@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.166.1](https://github.com/CodySwannGT/lisa/compare/vv2.166.0...v2.166.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* enforce fix-before-ignore hook policy ([e29095b](https://github.com/CodySwannGT/lisa/commit/e29095b0b3987210ff6880cbea886d462788dcc0))
+
 ## [2.166.0](https://github.com/CodySwannGT/lisa/compare/vv2.165.8...v2.166.0) (2026-06-14)
 
 
