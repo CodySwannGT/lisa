@@ -91,11 +91,10 @@ PY
 then
   cat >&2 <<'EOF'
 Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify, HUSKY=0,
-or core.hooksPath disabling). Fix the underlying issue (lint error, failing
-test, formatting) or ask the user before bypassing.
-
-If the user has explicitly authorized the bypass for this specific command,
-re-run after they confirm.
+or core.hooksPath disabling). Fix the underlying issue (security audit, lint,
+typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the
+user to make the risk-acceptance decision and add a specific documented ignore;
+never bypass the hook.
 EOF
   exit 2
 fi

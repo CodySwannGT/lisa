@@ -81,7 +81,7 @@ then
     "hookSpecificOutput": {
       "hookEventName": "PreToolUse",
       "permissionDecision": "deny",
-      "permissionDecisionReason": "Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify, HUSKY=0, or core.hooksPath disabling). Fix the underlying issue or ask the user before bypassing."
+      "permissionDecisionReason": "Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify, HUSKY=0, or core.hooksPath disabling). Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook."
     }
   }'
 fi
