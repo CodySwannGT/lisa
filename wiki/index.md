@@ -1,6 +1,6 @@
 # Lisa Wiki Index
 
-Last updated by connector ingest on 2026-06-13 for Lisa `2.165.4` and current monorepo provenance through PR `#1284`.
+Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current monorepo provenance through PR `#1287`.
 
 ## Orientation
 
@@ -12,7 +12,7 @@ Last updated by connector ingest on 2026-06-13 for Lisa `2.165.4` and current mo
 
 - [Project Registry](projects/registry.md)
 - [Lisa Monorepo Snapshot](projects/lisa-monorepo.md)
-  - Current package version: `2.165.4`; latest captured merged PR: `#1284`.
+  - Current package version: `2.165.6`; latest captured merged PR: `#1287`.
 
 ## Documentation
 
@@ -30,7 +30,7 @@ Last updated by connector ingest on 2026-06-13 for Lisa `2.165.4` and current mo
 
 - [Lisa Architecture](architecture/lisa-architecture.md)
 - [Template Governance](architecture/template-governance.md)
-  - Current template surface includes Phaser 4 and Harper Fabric workflow/realtime guard additions.
+  - Current template surface includes Phaser 4, Harper Fabric workflow/realtime guard additions, and the esbuild audit-ignore template exclusion.
 - [Coding-Agent Parity Architecture](architecture/coding-agent-parity.md)
 - [Lisa Hook Per-Agent Ship List](architecture/lisa-hook-per-agent-ship-list.md)
 - [Pattern B Per-Agent Plugin Fan-Out Specification](architecture/pattern-b-fan-out-spec.md)
@@ -47,7 +47,7 @@ Last updated by connector ingest on 2026-06-13 for Lisa `2.165.4` and current mo
 ## Playbooks
 
 - [Lisa Workflow Playbook](playbooks/lisa-workflow-playbook.md)
-  - Codex repair-intake defaults, hook-write nudges, oxlint edit-time lint, lint-ignored file handling, executable plugin hooks, and bootstrapper build-context guards are captured here.
+  - Codex repair-intake defaults, hook-write nudges, oxlint edit-time lint, lint-ignored file handling, executable plugin hooks, bootstrapper build-context guards, and shared audit-ignore promotion guidance are captured here.
 - [Coding-Agent Parity Research Playbook](playbooks/coding-agent-parity-research.md)
 
 ## Concepts
