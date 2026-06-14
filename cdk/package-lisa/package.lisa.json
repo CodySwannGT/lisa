@@ -10,6 +10,7 @@
       "test:unit": "vitest run --exclude='**/integration/**'",
       "test:integration": "vitest run tests/integration --passWithNoTests",
       "test:cov": "vitest run --coverage",
+      "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "vitest",
       "lint": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix"
@@ -28,7 +29,9 @@
       "@vitest/coverage-v8": "^4.1.0",
       "eslint-plugin-oxlint": "^1.62.0",
       "oxlint": "^1.62.0",
-      "oxlint-tsgolint": "^0.22.1"
+      "oxlint-tsgolint": "^0.22.1",
+      "@stryker-mutator/core": "^9.0.0",
+      "@stryker-mutator/vitest-runner": "^9.0.0"
     },
     "bin": {
       "infrastructure": "bin/infrastructure.js"

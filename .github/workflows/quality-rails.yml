@@ -43,7 +43,7 @@ on:
         type: string
         default: 'test'
       skip_jobs:
-        description: 'Comma-separated list of jobs to skip (lint, security, test, code_quality, secret_scanning, sg_scan, license_compliance, zap_baseline)'
+        description: 'Comma-separated list of jobs to skip (lint, security, test, mutation, code_quality, secret_scanning, sg_scan, license_compliance, zap_baseline)'
         required: false
         type: string
         default: ''
@@ -178,6 +178,56 @@ jobs:
 
       - name: 🧪 Run tests
         run: bundle exec rspec
+
+  mutation:
+    name: 🧬 Mutation Testing Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Diff-only mutation gate. Self-skips instantly when disabled
+    # (mutation.gate.yml: enabled: false). PostgreSQL-based; MySQL projects can
+    # adapt the service block or skip via skip_jobs: mutation.
+    if: ${{ !contains(inputs.skip_jobs, 'mutation') && inputs.database_type == 'postgres' }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.database_name }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
+      # Diff against the PR base branch (falls back to 'main' outside PRs).
+      MUTATION_SINCE: ${{ github.base_ref || 'main' }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Full history so the gate can diff changed files against the PR base.
+          fetch-depth: 0
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        run: bin/rails db:prepare
+
+      - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+        run: |
+          if [ -f scripts/lisa-mutation.sh ]; then
+            bash scripts/lisa-mutation.sh
+          else
+            echo "Skipping mutation gate - scripts/lisa-mutation.sh not found"
+          fi
 
   code-quality:
     name: Code Quality

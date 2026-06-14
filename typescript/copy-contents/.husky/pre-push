@@ -224,6 +224,20 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Run mutation-testing gate - only if script exists.
+# The test:mutation script self-skips instantly when the gate is disabled
+# (mutation.gate.json: "enabled": false), so this adds no cost to projects that
+# have not opted in. When enabled, it runs Stryker diff-only on changed files
+# and fails the push when the mutation score is below thresholds.break.
+if jq -e '.scripts["test:mutation"]' package.json >/dev/null 2>&1; then
+  echo "🧬 Running mutation-testing gate..."
+  $RUNNER test:mutation
+  if [ $? -ne 0 ]; then
+    echo "❌ Mutation-testing gate failed (mutation score below threshold). Strengthen tests before pushing."
+    exit 1
+  fi
+fi
+
 # Run Lighthouse CI performance audit (only if installed)
 # Disable Lighthouse beause it takes too long to run on push. Just let it run in ci/cd 
 # Check if lighthouse:check script exists in package.json
