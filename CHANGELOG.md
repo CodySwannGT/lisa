@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.166.2](https://github.com/CodySwannGT/lisa/compare/vv2.166.1...v2.166.2) (2026-06-14)
+
+
+### Bug Fixes
+
+* **vitest:** make .claude/worktrees exclusion cwd-aware ([12d85fc](https://github.com/CodySwannGT/lisa/commit/12d85fca7ffd745ac86f19a5f3eeea3b23e55141))
+
 ### [2.166.1](https://github.com/CodySwannGT/lisa/compare/vv2.166.0...v2.166.1) (2026-06-14)
 
 
