@@ -1,0 +1,21 @@
+# Mutant configuration (project-owned).
+# Docs: https://github.com/mbj/mutant/blob/main/docs/configuration.md
+#
+# The gate runs `mutant run --since <ref>` (see scripts/lisa-mutation.sh), so
+# only code changed on the branch is mutated. Define the subject scope below —
+# replace the example matcher with your application's top-level namespace(s).
+---
+integration:
+  name: rspec
+# `usage` must reflect your license: opensource | commercial | restricted.
+usage: opensource
+requires:
+  - ./config/environment
+includes:
+  - app
+  - lib
+matcher:
+  # Replace with your app's namespace(s), e.g. ["MyApp*"]. Mutant will only
+  # mutate subjects matching these expressions that are also in the diff.
+  subjects:
+    - '*'

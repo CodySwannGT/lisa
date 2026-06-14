@@ -28,3 +28,7 @@ pre-push:
       run: bundle exec flog --all --group app/ lib/
     flay:
       run: bundle exec flay app/ lib/
+    mutation:
+      # Opt-in, diff-only mutation gate. Self-skips instantly when disabled
+      # (mutation.gate.yml: enabled: false), so it adds no cost until opted in.
+      run: bash scripts/lisa-mutation.sh
