@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.167.0](https://github.com/CodySwannGT/lisa/compare/vv2.166.5...v2.167.0) (2026-06-15)
+
+
+### Features
+
+* **harper-fabric:** add testing skill ([e63e84d](https://github.com/CodySwannGT/lisa/commit/e63e84d5c637d87906d73a914af260598f8a87c7))
+
 ### [2.166.5](https://github.com/CodySwannGT/lisa/compare/vv2.166.4...v2.166.5) (2026-06-15)
 
 
