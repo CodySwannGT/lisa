@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.168.0](https://github.com/CodySwannGT/lisa/compare/vv2.167.0...v2.168.0) (2026-06-15)
+
+
+### Features
+
+* **harper-fabric:** add REST query skill ([710df8c](https://github.com/CodySwannGT/lisa/commit/710df8c7be88e00d8763d5a20e534ce4a96687c8))
+
+
+### Bug Fixes
+
+* **harper-rest-queries:** normalize URL path casing and fix malformed range example ([53061a6](https://github.com/CodySwannGT/lisa/commit/53061a6699f2a1b551c7b69536c3a38d8718f52f))
+
 ## [2.167.0](https://github.com/CodySwannGT/lisa/compare/vv2.166.5...v2.167.0) (2026-06-15)
 
 
