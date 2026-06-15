@@ -101,12 +101,34 @@ need() { command -v "$1" >/dev/null 2>&1; }
 require() { need "$1" || { echo "FATAL: required tool '$1' missing and install failed" >&2; exit 1; }; }
 
 # --- package manager (REQUIRED) ---
-if ! need bun; then
+# Resolve the PM from packageManager/engines/lockfiles — emit the manager the
+# `packageManager` inventory field reported, NEVER a hardcoded bun. An npm-only
+# project (engines.bun = "please-use-npm") must install with npm; emitting
+# `bun install` would create a stray bun.lock and break it (the SE-5221
+# regression). Only install/PATH-export the manager actually selected below.
+detect_package_manager() {
+  _field="" _forced="" _forbidden=""
+  if [ -f package.json ]; then
+    _field=$(jq -r '(.packageManager // "") | sub("@.*$";"")' package.json 2>/dev/null)
+    _forced=$(jq -r 'first((.engines // {})[] | strings | capture("please-use-(?<pm>bun|npm|yarn|pnpm)")?.pm) // ""' package.json 2>/dev/null)
+    _forbidden=$(jq -r '[(.engines // {}) | to_entries[] | select(((.value|strings) // "") | test("please-use|do-not-use";"i")) | .key] | join(" ")' package.json 2>/dev/null)
+  fi
+  case "$_field" in bun | npm | yarn | pnpm) printf '%s\n' "$_field"; return 0 ;; esac
+  case "$_forced" in bun | npm | yarn | pnpm) printf '%s\n' "$_forced"; return 0 ;; esac
+  _pm_allowed() { case " $_forbidden " in *" $1 "*) return 1 ;; *) return 0 ;; esac; }
+  { [ -f bun.lockb ] || [ -f bun.lock ]; } && _pm_allowed bun && { printf 'bun\n'; return 0; }
+  [ -f pnpm-lock.yaml ] && _pm_allowed pnpm && { printf 'pnpm\n'; return 0; }
+  [ -f yarn.lock ] && _pm_allowed yarn && { printf 'yarn\n'; return 0; }
+  [ -f package-lock.json ] && _pm_allowed npm && { printf 'npm\n'; return 0; }
+  printf 'npm\n'
+}
+PM="$(detect_package_manager)"
+if [ "$PM" = "bun" ] && ! need bun; then
   curl -fsSL https://bun.sh/install | bash
+  export PATH="$HOME/.bun/bin:$PATH"
 fi
-export PATH="$HOME/.bun/bin:$PATH"
 # NOTE: bun has known proxy package-fetch issues in cloud sessions; retry to survive transient proxy errors.
-for i in 1 2 3; do bun install && break || sleep 5; done
+for i in 1 2 3; do "$PM" install && break || sleep 5; done
 
 # --- required CLIs ---
 need gh || (sudo apt-get update -y && sudo apt-get install -y gh)
