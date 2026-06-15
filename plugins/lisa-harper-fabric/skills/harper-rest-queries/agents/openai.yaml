@@ -1,0 +1,4 @@
+display_name: "Harper Rest Queries"
+short_description: "building or debugging Harper (HarperDB/Fabric) REST collection queries and Resource search methods - filters, FIQL comparison operators…"
+default_prompt:
+  - "Use $harper-rest-queries: building or debugging Harper (HarperDB/Fabric) REST collection queries and Resource search methods - filters, FIQL comparison operators…."
