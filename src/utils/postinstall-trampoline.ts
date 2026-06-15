@@ -438,7 +438,7 @@ function buildTrampolineHelpers(literals: {
     function detectPackageManagers(dir) {
       const forbidden = enginesForbiddenManagers(dir);
       return Object.values(LOCKFILE_PLANS)
-        .filter((plan) => existsSync(path.join(dir, plan.lockfile)))
+        .filter((plan) => [plan.lockfile].concat(plan.lockfileAlternatives || []).some((f) => existsSync(path.join(dir, f))))
         .map((plan) => plan.pm)
         .filter((pm) => forbidden.indexOf(pm) === -1);
     }

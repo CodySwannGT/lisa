@@ -43,6 +43,7 @@ const FAKE_PACKAGE_JSON_PATH = "./fake/project/package.json";
 // Lockfile base names used across detection, plan, and hash tests. Named constants
 // silence sonarjs/no-duplicate-string and make the intent obvious at call sites.
 const BUN_LOCK = "bun.lock";
+const BUN_LOCKB = "bun.lockb";
 const NPM_LOCK = "package-lock.json";
 const PNPM_LOCK = "pnpm-lock.yaml";
 const YARN_LOCK = "yarn.lock";
@@ -194,6 +195,24 @@ describe("postinstall-trampoline", () => {
 
     it("detects bun from bun.lock", () => {
       const dir = withLockfiles([BUN_LOCK]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["bun"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects bun from bun.lockb (legacy binary lockfile format)", () => {
+      const dir = withLockfiles([BUN_LOCKB]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["bun"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects bun once when both bun.lock and bun.lockb coexist", () => {
+      const dir = withLockfiles([BUN_LOCK, BUN_LOCKB]);
       try {
         expect(detectPackageManagers(dir)).toEqual(["bun"]);
       } finally {

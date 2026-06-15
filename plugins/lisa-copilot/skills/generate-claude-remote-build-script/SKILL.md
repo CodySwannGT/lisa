@@ -108,7 +108,7 @@ require() { need "$1" || { echo "FATAL: required tool '$1' missing and install f
 # regression). Only install/PATH-export the manager actually selected below.
 detect_package_manager() {
   _field="" _forced="" _forbidden=""
-  if [ -f package.json ]; then
+  if [ -f package.json ] && command -v jq >/dev/null 2>&1; then
     _field=$(jq -r '(.packageManager // "") | sub("@.*$";"")' package.json 2>/dev/null)
     _forced=$(jq -r 'first((.engines // {})[] | strings | capture("please-use-(?<pm>bun|npm|yarn|pnpm)")?.pm) // ""' package.json 2>/dev/null)
     _forbidden=$(jq -r '[(.engines // {}) | to_entries[] | select(((.value|strings) // "") | test("please-use|do-not-use";"i")) | .key] | join(" ")' package.json 2>/dev/null)
