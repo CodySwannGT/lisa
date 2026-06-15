@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.166.4](https://github.com/CodySwannGT/lisa/compare/vv2.166.3...v2.166.4) (2026-06-15)
+
+
+### Documentation
+
+* deepen Harper config extension guidance ([77b945b](https://github.com/CodySwannGT/lisa/commit/77b945bd27e7c3eeb1dbdf4943b47503a5e27c08))
+
 ### [2.166.3](https://github.com/CodySwannGT/lisa/compare/vv2.166.2...v2.166.3) (2026-06-15)
 
 
