@@ -1,0 +1,4 @@
+display_name: "Harper Testing"
+short_description: "adding, repairing, or designing tests for a Harper (HarperDB/Fabric) component app — Vitest unit tests for pure functions and Resource…"
+default_prompt:
+  - "Use $harper-testing: adding, repairing, or designing tests for a Harper (HarperDB/Fabric) component app — Vitest unit tests for pure functions and Resource…."

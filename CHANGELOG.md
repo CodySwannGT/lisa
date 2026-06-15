@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.166.5](https://github.com/CodySwannGT/lisa/compare/vv2.166.4...v2.166.5) (2026-06-15)
+
+
+### Documentation
+
+* pin Harper schema guidance ([8940a1a](https://github.com/CodySwannGT/lisa/commit/8940a1a27f796ca3a62b4508d9a7f4af793c59ad))
+
 ### [2.166.4](https://github.com/CodySwannGT/lisa/compare/vv2.166.3...v2.166.4) (2026-06-15)
 
 
