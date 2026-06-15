@@ -27,8 +27,8 @@ relationships in [[harper-schema-graphql]].
 REST queries run against collection paths with a trailing slash:
 
 ```text
-GET /Products/?category=software
-GET /Products/?category=software&active=true
+GET /products/?category=software
+GET /products/?category=software&active=true
 ```
 
 Rules:
@@ -43,15 +43,15 @@ Rules:
 Common condition examples:
 
 ```text
-GET /Products/?category=software
-GET /Products/?price=gt=100
-GET /Products/?price=ge=100&price=lt=200
-GET /Products/?price=gt=100&lt=200
-GET /Products/?name==Keyboard*
-GET /Products/?rating=5|featured=true
-GET /Products/?rating=5&[tag=fast|tag=scalable|tag=efficient]
-GET /Products/?discount=null
-GET /Products/?listDate=gt=2026-01-05T20%3A07%3A27.955Z
+GET /products/?category=software
+GET /products/?price=gt=100
+GET /products/?price=ge=100&price=lt=200
+GET /products/?price=gt=100&price=lt=200
+GET /products/?name==Keyboard*
+GET /products/?rating=5|featured=true
+GET /products/?rating=5&[tag=fast|tag=scalable|tag=efficient]
+GET /products/?discount=null
+GET /products/?listDate=gt=2026-01-05T20%3A07%3A27.955Z
 ```
 
 ## Operators
@@ -77,10 +77,10 @@ and schema-typed values before searching. Use explicit prefixes when a generated
 URL must control conversion:
 
 ```text
-GET /Products/?price==number:123
-GET /Products/?active==boolean:true
-GET /Products/?sku==string:00123
-GET /Products/?createdAt==date:2026-01-05T20%3A07%3A27.955Z
+GET /products/?price==number:123
+GET /products/?active==boolean:true
+GET /products/?sku==string:00123
+GET /products/?createdAt==date:2026-01-05T20%3A07%3A27.955Z
 ```
 
 ## Select, sort, and pagination
@@ -88,12 +88,12 @@ GET /Products/?createdAt==date:2026-01-05T20%3A07%3A27.955Z
 Use query functions for projection, paging, and order:
 
 ```text
-GET /Products/?category=software&select(id,name,price)
-GET /Products/?category=software&select([id,name])
-GET /Products/?category=software&limit(20)
-GET /Products/?category=software&limit(40,60)
-GET /Products/?category=software&sort(+name)
-GET /Products/?category=software&sort(+rating,-price)
+GET /products/?category=software&select(id,name,price)
+GET /products/?category=software&select([id,name])
+GET /products/?category=software&limit(20)
+GET /products/?category=software&limit(40,60)
+GET /products/?category=software&sort(+name)
+GET /products/?category=software&sort(+rating,-price)
 ```
 
 Guidance:
