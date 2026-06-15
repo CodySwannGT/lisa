@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.166.3](https://github.com/CodySwannGT/lisa/compare/vv2.166.2...v2.166.3) (2026-06-15)
+
+
+### Documentation
+
+* document Harper Fabric build deploy semantics ([fdaef46](https://github.com/CodySwannGT/lisa/commit/fdaef46caa0261f5ddef9d206c0aafc4e44357a6))
+
 ### [2.166.2](https://github.com/CodySwannGT/lisa/compare/vv2.166.1...v2.166.2) (2026-06-14)
 
 
