@@ -22,6 +22,8 @@ export type PackageManager = "bun" | "npm" | "pnpm" | "yarn";
 export interface LockfileRegenPlan {
   readonly pm: PackageManager;
   readonly lockfile: string;
+  /** Additional lockfile names for the same PM (e.g. bun.lockb for bun). */
+  readonly lockfileAlternatives?: readonly string[];
   readonly command: string;
   readonly args: readonly string[];
 }
@@ -46,6 +48,7 @@ export const LOCKFILE_REGEN_PLANS: Readonly<
   bun: {
     pm: "bun",
     lockfile: "bun.lock",
+    lockfileAlternatives: ["bun.lockb"],
     command: "bun",
     args: [INSTALL, IGNORE_SCRIPTS],
   },
@@ -125,7 +128,11 @@ export function detectPackageManagers(
 ): readonly PackageManager[] {
   const forbidden = enginesForbiddenManagers(projectDir);
   return Object.values(LOCKFILE_REGEN_PLANS)
-    .filter(plan => existsSync(path.join(projectDir, plan.lockfile)))
+    .filter(plan =>
+      [plan.lockfile, ...(plan.lockfileAlternatives ?? [])].some(f =>
+        existsSync(path.join(projectDir, f))
+      )
+    )
     .map(plan => plan.pm)
     .filter(pm => !forbidden.has(pm));
 }
