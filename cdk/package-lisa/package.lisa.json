@@ -23,7 +23,7 @@
       "source-map-support": "^0.5.21"
     },
     "devDependencies": {
-      "aws-cdk": "^2.1104.0",
+      "aws-cdk": "^2.1127.0",
       "vite": "^8.0.5",
       "vitest": "^4.1.0",
       "@vitest/coverage-v8": "^4.1.0",
@@ -36,7 +36,13 @@
     "bin": {
       "infrastructure": "bin/infrastructure.js"
     },
-    "private": true
+    "private": true,
+    "overrides": {
+      "aws-cdk-lib": ">=2.246.0"
+    },
+    "resolutions": {
+      "aws-cdk-lib": ">=2.246.0"
+    }
   },
   "defaults": {
     "devDependencies": {
