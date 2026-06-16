@@ -198,10 +198,8 @@ Refresh an expired operation token with the refresh token:
 ```bash
 curl -sS http://localhost:9925/ \
   -H 'Content-Type: application/json' \
-  --data '{
-    "operation": "refresh_operation_token",
-    "refresh_token": "'"$refresh_token"'"
-  }'
+  -H "Authorization: Bearer $refresh_token" \
+  --data '{"operation": "refresh_operation_token"}'
 ```
 
 Treat operation tokens and refresh tokens as credentials. Never log them, commit
@@ -218,17 +216,21 @@ ownership, or business state that is not expressible in `roles.yaml`:
 
 ```javascript
 export class Orders extends tables.Orders {
-  static async post(data, context) {
+  static async post(target, data, context) {
     const user = context.user;
     if (!user) {
-      throw new Error('Authentication required');
+      const error = new Error('Authentication required');
+      error.statusCode = 401;
+      throw error;
     }
 
     if (user.role !== 'order_admin') {
-      throw new Error('Forbidden');
+      const error = new Error('Forbidden');
+      error.statusCode = 403;
+      throw error;
     }
 
-    return super.post(await data, context);
+    return super.post(target, await data, context);
   }
 }
 ```
@@ -237,10 +239,11 @@ Pass `context` through when delegating to tables or other resources:
 
 ```javascript
 await tables.OrderEvents.post(
+  target,
   {
     orderId,
     type: 'created',
-    createdBy: context.user?.id,
+    createdBy: context.user?.username,
   },
   context,
 );
