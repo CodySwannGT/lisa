@@ -20,6 +20,7 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   detectPackageManagers,
+  enginesForbiddenManagers,
   getLisaDistDir,
   getLockfileRegenPlan,
   hashFile,
@@ -42,6 +43,7 @@ const FAKE_PACKAGE_JSON_PATH = "./fake/project/package.json";
 // Lockfile base names used across detection, plan, and hash tests. Named constants
 // silence sonarjs/no-duplicate-string and make the intent obvious at call sites.
 const BUN_LOCK = "bun.lock";
+const BUN_LOCKB = "bun.lockb";
 const NPM_LOCK = "package-lock.json";
 const PNPM_LOCK = "pnpm-lock.yaml";
 const YARN_LOCK = "yarn.lock";
@@ -200,6 +202,24 @@ describe("postinstall-trampoline", () => {
       }
     });
 
+    it("detects bun from bun.lockb (legacy binary lockfile format)", () => {
+      const dir = withLockfiles([BUN_LOCKB]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["bun"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("detects bun once when both bun.lock and bun.lockb coexist", () => {
+      const dir = withLockfiles([BUN_LOCK, BUN_LOCKB]);
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["bun"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
     it("detects npm from package-lock.json", () => {
       const dir = withLockfiles([NPM_LOCK]);
       try {
@@ -234,6 +254,95 @@ describe("postinstall-trampoline", () => {
         expect(detected).toContain("bun");
         expect(detected).toContain("npm");
         expect(detected.length).toBe(2);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    /**
+     * Create a disposable directory with lockfile sentinels plus a package.json
+     * carrying the supplied `engines` block. Used to exercise the engines-based
+     * opt-out that excludes a forbidden manager even when its lockfile is present.
+     * @param lockfiles - Lockfile base names to create
+     * @param engines - engines object to write into package.json
+     * @returns Absolute path to the scratch directory
+     */
+    function withProject(
+      lockfiles: readonly string[],
+      engines: Readonly<Record<string, string>>
+    ): string {
+      const dir = withLockfiles(lockfiles);
+      fs.writeFileSync(
+        path.join(dir, PACKAGE_JSON),
+        JSON.stringify({ engines }, null, 2)
+      );
+      return dir;
+    }
+
+    it("excludes a manager forbidden via engines sentinel even when its lockfile is present (SE-5221)", () => {
+      // npm-only project with a stray bun.lock — bun must be dropped so the
+      // reconciliation never re-creates the bun.lock via `bun install`.
+      const dir = withProject([BUN_LOCK, NPM_LOCK], { bun: "please-use-npm" });
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["npm"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("keeps bun when it is the engines-sanctioned manager (npm forbidden)", () => {
+      const dir = withProject([BUN_LOCK], {
+        npm: "please-use-bun",
+        bun: "1.3.8",
+      });
+      try {
+        expect(detectPackageManagers(dir)).toEqual(["bun"]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("enginesForbiddenManagers", () => {
+    /**
+     * Write a package.json with the given engines block into a scratch dir.
+     * @param engines - engines object (omit to write no engines field)
+     * @returns Absolute path to the scratch directory
+     */
+    function withEngines(engines?: Readonly<Record<string, string>>): string {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-forbidden-pm-"));
+      const pkg = engines === undefined ? {} : { engines };
+      fs.writeFileSync(
+        path.join(dir, PACKAGE_JSON),
+        JSON.stringify(pkg, null, 2)
+      );
+      return dir;
+    }
+
+    it("returns an empty set when there is no package.json", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-no-pkg-"));
+      try {
+        expect(enginesForbiddenManagers(dir).size).toBe(0);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("flags a manager pinned to a please-use sentinel", () => {
+      const dir = withEngines({ bun: "please-use-npm", node: ">=20" });
+      try {
+        const forbidden = enginesForbiddenManagers(dir);
+        expect(forbidden.has("bun")).toBe(true);
+        expect(forbidden.has("npm")).toBe(false);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("does not flag a manager pinned to a real version range", () => {
+      const dir = withEngines({ npm: ">=10", node: ">=20" });
+      try {
+        expect(enginesForbiddenManagers(dir).size).toBe(0);
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }
