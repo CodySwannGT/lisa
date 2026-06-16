@@ -92,17 +92,24 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
     const destExists = await fse.pathExists(actualDestPath);
 
-    if (context.config.skipGitCheck && destExists) {
-      return {
-        relativePath: actualRelativePath,
-        strategy: this.name,
-        action: "skipped",
-      };
-    }
+    // During a non-interactive / postinstall apply (`--skip-git-check`) we must
+    // not clobber the host's package.json scripts, deps, or other customizations
+    // (see commit "fix: preserve host config during postinstall apply"). But
+    // governance-critical dependency pins — `force.resolutions` and
+    // `force.overrides` — are SECURITY writes (e.g. transitive-CVE force-bumps
+    // like ws/axios/esbuild). If we skip the whole strategy they never reach the
+    // project and the pre-push audit hook blocks every update. So when
+    // skip-git-check applies to an existing package.json, restrict the apply to
+    // only those two force sections and leave everything else untouched.
+    const securityPinsOnly = context.config.skipGitCheck && destExists;
 
     try {
       // Load templates and apply to package.json
-      const merged = await this.mergePackageJson(actualDestPath, context);
+      const merged = await this.mergePackageJson(
+        actualDestPath,
+        context,
+        securityPinsOnly
+      );
 
       if (!destExists) {
         return this.createDestination(
@@ -189,12 +196,15 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * Merge package.json using force/defaults/merge logic from package.lisa.json templates
    * @param packageJsonPath - Absolute path to destination package.json
    * @param context - Strategy context with Lisa config
+   * @param securityPinsOnly - When true (skip-git-check on an existing package.json),
+   *   apply only force.resolutions/force.overrides and preserve all other host config
    * @returns Merged package.json object
    * @private
    */
   private async mergePackageJson(
     packageJsonPath: string,
-    context: StrategyContext
+    context: StrategyContext,
+    securityPinsOnly = false
   ): Promise<Record<string, unknown>> {
     // Try to read existing package.json, or start with empty object
     const projectJson =
@@ -210,8 +220,37 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // Load and merge all package.lisa.json templates from type hierarchy
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
 
+    // During a skip-git-check apply on an existing package.json, restrict to the
+    // security-critical force.resolutions/force.overrides sections so host
+    // scripts/deps/defaults are preserved while dependency pins still land.
+    const effective = securityPinsOnly
+      ? this.restrictToSecurityPins(merged)
+      : merged;
+
     // Apply force/defaults/merge logic to project's package.json
-    return this.applyTemplate(projectJson, merged);
+    return this.applyTemplate(projectJson, effective);
+  }
+
+  /**
+   * Reduce a resolved template to only the security-critical force sections
+   * (`resolutions` and `overrides`), dropping force.scripts/devDependencies,
+   * defaults, merge, and remove. Used during skip-git-check (postinstall)
+   * applies so dependency pins still apply without clobbering host config.
+   * @param template - Fully merged template from the type hierarchy
+   * @returns Template carrying only force.resolutions and force.overrides
+   * @private
+   */
+  private restrictToSecurityPins(
+    template: ResolvedPackageLisaTemplate
+  ): ResolvedPackageLisaTemplate {
+    const force: Record<string, unknown> = {};
+    if (template.force.resolutions !== undefined) {
+      force.resolutions = template.force.resolutions;
+    }
+    if (template.force.overrides !== undefined) {
+      force.overrides = template.force.overrides;
+    }
+    return { force, defaults: {}, merge: {}, remove: {} };
   }
 
   /**

@@ -41,3 +41,11 @@ amplify
 # run. Same generated-output rationale as .codex above.
 # No-op for projects without an OpenCode mirror.
 .opencode
+
+# Lisa ships scripts/lisa-mutation.mjs as a managed helper, formatted in Lisa's
+# own Prettier style (single quotes). Host projects run varying Prettier configs
+# (commonly the default double-quote style), so the managed script would trip
+# their `prettier --check .` gate through no fault of the host. Keep it out of
+# the format gate. The rails counterpart (scripts/lisa-mutation.sh) is already
+# covered by the *.sh rule above. No-op for projects without it.
+scripts/lisa-mutation.mjs
