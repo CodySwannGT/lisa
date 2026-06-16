@@ -929,6 +929,44 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  describe("TypeScript real template: security resolution floors", () => {
+    // Governance: the typescript/package-lisa/package.lisa.json force blocks must
+    // carry every security floor that package.json (root) carries. This test loads
+    // the REAL template so drift can never silently creep back.
+    const repoRoot = process.cwd();
+    const tsSource = path.join(
+      repoRoot,
+      "typescript",
+      "package-lisa",
+      "package.lisa.json"
+    );
+
+    /**
+     * Read and parse the real shipped TypeScript package.lisa.json template.
+     * @returns The parsed template with force section.
+     */
+    function readTsTemplate(): {
+      force: {
+        resolutions: Record<string, string>;
+        overrides: Record<string, string>;
+      };
+    } {
+      return fs.readJsonSync(tsSource);
+    }
+
+    it("includes lodash floor in force.resolutions to match root package.json governance", () => {
+      const template = readTsTemplate();
+      expect(template.force.resolutions["lodash"]).toBeDefined();
+      expect(template.force.resolutions["lodash"]).toBe(">=4.18.1");
+    });
+
+    it("includes lodash floor in force.overrides to match root package.json governance", () => {
+      const template = readTsTemplate();
+      expect(template.force.overrides["lodash"]).toBeDefined();
+      expect(template.force.overrides["lodash"]).toBe(">=4.18.1");
+    });
+  });
+
   describe("Expo real template: dual SDK 54/56 support", () => {
     // Regression: the Expo package.lisa.json used to hard-pin the entire
     // SDK-coupled dependency set (expo, react, react-native, every expo-*,
