@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.171.3](https://github.com/CodySwannGT/lisa/compare/vv2.171.2...v2.171.3) (2026-06-16)
+
+
+### Bug Fixes
+
+* **release:** align vite npm override ([bb379e8](https://github.com/CodySwannGT/lisa/commit/bb379e824fbd6054404a9cf1da22e5277b777754)), closes [#1304](https://github.com/CodySwannGT/lisa/issues/1304)
+
 ### [2.171.2](https://github.com/CodySwannGT/lisa/compare/vv2.171.1...v2.171.2) (2026-06-16)
 
 
