@@ -150,7 +150,14 @@ else
     # `bun audit --audit-level=high --ignore ...`, parse `bun audit --json` and
     # apply the exclusion list ourselves with jq — same approach as the npm/yarn
     # paths above.
-    AUDIT_JSON=$(bun audit --json 2>/dev/null || true)
+    #
+    # `--production` scopes the audit to production dependencies, matching the
+    # npm branch (`npm audit --production`) and the yarn branch
+    # (`yarn audit --groups dependencies`). Without it, bun audits
+    # devDependencies too and the gate fails on dev-only CVEs that never ship —
+    # the SE-5221 false positive. bun honours `--production` even though
+    # `bun audit --help` omits it from the flag list.
+    AUDIT_JSON=$(bun audit --production --json 2>/dev/null || true)
     UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq -r --arg ids "$AUDIT_EXCLUSIONS" '
       ($ids | split(" ") | map(select(length > 0))) as $ex
       | [ .[]? | .[]?
