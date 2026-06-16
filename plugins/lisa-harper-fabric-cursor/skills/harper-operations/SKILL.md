@@ -24,7 +24,7 @@ Operations API requests are JSON `POST` requests to the operations endpoint. Har
 listens on port `9925` at the root path by default:
 
 ```bash
-curl -sS https://<harper-host>:9925/ \
+curl -sS http://<harper-host>:9925/ \
   -u "$HARPER_USERNAME:$HARPER_PASSWORD" \
   -H 'Content-Type: application/json' \
   --data '{"operation":"system_information"}'
@@ -60,7 +60,7 @@ before assuming the endpoint or component is broken.
 | `describe_table` | Confirm table/database names, attributes, and primary key shape. | `{"operation":"describe_table","database":"data","table":"Product"}` |
 | `system_information` | Capture runtime, host, and process information for health/debug reports. | `{"operation":"system_information"}` |
 | `read_log` | Read Harper's primary `hdb.log` with level/time/filter controls. | `{"operation":"read_log","level":"error","limit":50,"order":"desc"}` |
-| `search_jobs_by_start_date` | Find background jobs when deploys, imports, or long operations are involved. | `{"operation":"search_jobs_by_start_date","from":"2026-06-16","limit":20}` |
+| `search_jobs_by_start_date` | Find background jobs when deploys, imports, or long operations are involved. | `{"operation":"search_jobs_by_start_date","from_date":"2026-06-16T00:00:00.000+0000","to_date":"2026-06-17T00:00:00.000+0000"}` |
 | `get_job` | Inspect one known job id returned by a search or operation response. | `{"operation":"get_job","id":"<job-id>"}` |
 | `get_configuration` | Find runtime paths such as `rootPath`, `componentsRoot`, ports, and logging config. | `{"operation":"get_configuration"}` |
 
@@ -206,7 +206,7 @@ After deploy or restart, check:
 - Configuration: `get_configuration` shows the expected operations/API ports,
   `rootPath`, `componentsRoot`, and logging configuration.
 - Schema/data shape: `describe_all` or `describe_table` matches the expected
-  GraphQL schema and exported tables.
+  database/table definitions and exported tables.
 - Logs: `read_log` has no new error entries for the deploy/restart window.
 - Jobs: `search_jobs_by_start_date` and `get_job` show background work completed
   when deploy, import, backup, or long-running data operations were involved.
