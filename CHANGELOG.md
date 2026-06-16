@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.171.5](https://github.com/CodySwannGT/lisa/compare/vv2.171.4...v2.171.5) (2026-06-16)
+
+
+### Bug Fixes
+
+* **cdk:** deliver aws-cdk-lib >=2.246.0 via overrides + bump aws-cdk CLI to ^2.1127.0 (schema 53) ([0c720f2](https://github.com/CodySwannGT/lisa/commit/0c720f2a60d6bdf302e97ab2fe75b538caa044aa))
+* **typescript:** force-pin form-data >=4.0.6 (GHSA-hmw2-7cc7-3qxx) ([500a6c5](https://github.com/CodySwannGT/lisa/commit/500a6c57269413b6445d2e0e1da4056e5a281b4a))
+
 ### [2.171.4](https://github.com/CodySwannGT/lisa/compare/vv2.171.3...v2.171.4) (2026-06-16)
 
 
