@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.171.4](https://github.com/CodySwannGT/lisa/compare/vv2.171.3...v2.171.4) (2026-06-16)
+
+
+### Bug Fixes
+
+* **package-lisa:** apply security pins under skip-git-check; bump ws/aws-cdk-lib ([6fae359](https://github.com/CodySwannGT/lisa/commit/6fae3596111393c7be5ac6e938317968b373433e))
+
 ### [2.171.3](https://github.com/CodySwannGT/lisa/compare/vv2.171.2...v2.171.3) (2026-06-16)
 
 
