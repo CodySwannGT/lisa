@@ -182,7 +182,7 @@ acceptable during refresh:
 export class WeatherSnapshot extends tables.WeatherSnapshot {
   static loadAsInstance = false;
 
-  allowStaleWhileRevalidate(entry) {
+  allowStaleWhileRevalidate(entry, id) {
     return Date.now() - entry.expiresAt < 60_000;
   }
 }
