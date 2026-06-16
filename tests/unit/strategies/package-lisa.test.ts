@@ -237,6 +237,56 @@ describe("PackageLisaStrategy", () => {
       });
     });
 
+    // Regression: under skip-git-check (the postinstall / lisa-update-projects
+    // path), host scripts/devDependencies stay preserved BUT the security-
+    // critical force.resolutions/force.overrides pins must still apply. Skipping
+    // them entirely let transitive-CVE force-bumps (e.g. ws) never reach the
+    // project, blocking the pre-push audit hook fleet-wide.
+    it("applies force.resolutions/overrides but preserves host scripts/deps under skip-git-check", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          resolutions: { ws: ">=8.21.0" },
+          overrides: { ws: ">=8.21.0" },
+          scripts: { test: "lisa test" },
+          devDependencies: { oxlint: "^1.0.0" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        scripts: { test: "host test" },
+        devDependencies: { oxlint: "^0.1.0" },
+        resolutions: { ws: "^8.0.0", "other-pkg": "^1.0.0" },
+        overrides: { ws: "^8.0.0" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      // Security pins ARE forced even under skip-git-check
+      expect(content.resolutions.ws).toBe(">=8.21.0");
+      expect(content.overrides.ws).toBe(">=8.21.0");
+      // Sibling entries in the same nested object are preserved
+      expect(content.resolutions["other-pkg"]).toBe("^1.0.0");
+      // Host scripts/devDependencies are NOT clobbered (preserve-host intent)
+      expect(content.scripts.test).toBe("host test");
+      expect(content.devDependencies.oxlint).toBe("^0.1.0");
+    });
+
     // Regression: force.resolutions and force.overrides must replace project-side
     // values for package-level dep pinning (e.g. axios). This is the write that
     // was silently lost when `bun add -d @codyswann/lisa@latest` clobbered
