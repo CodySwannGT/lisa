@@ -965,6 +965,18 @@ describe("PackageLisaStrategy", () => {
       expect(template.force.overrides["lodash"]).toBeDefined();
       expect(template.force.overrides["lodash"]).toBe(">=4.18.1");
     });
+
+    it("keeps vite npm override compatible with the root direct dependency", () => {
+      const rootPackageJson = fs.readJsonSync(
+        path.join(repoRoot, "package.json")
+      );
+      const template = readTsTemplate();
+
+      expect(template.force.resolutions["vite"]).toBe(">=8.0.16");
+      expect(template.force.overrides["vite"]).toBe(
+        rootPackageJson.devDependencies.vite
+      );
+    });
   });
 
   describe("Expo real template: dual SDK 54/56 support", () => {
