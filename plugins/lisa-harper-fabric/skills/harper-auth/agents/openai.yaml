@@ -1,0 +1,4 @@
+display_name: "Harper Auth"
+short_description: "adding or debugging Harper (HarperDB/Fabric) authentication and authorization - roles.yaml, user and role Operations API calls, Basic auth…"
+default_prompt:
+  - "Use $harper-auth: adding or debugging Harper (HarperDB/Fabric) authentication and authorization - roles.yaml, user and role Operations API calls, Basic auth…."

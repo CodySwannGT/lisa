@@ -2,6 +2,90 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.171.1](https://github.com/CodySwannGT/lisa/compare/vv2.171.0...v2.171.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* **pm:** add bun.lockb detection and jq guard to generated script skeleton ([3ce1ab7](https://github.com/CodySwannGT/lisa/commit/3ce1ab731faadad09943e1e206765e77f9512f2b))
+* **pm:** detect & respect project package manager; scope bun audit to prod (SE-5221) ([7f3993e](https://github.com/CodySwannGT/lisa/commit/7f3993e094e1291f9786b67561ebdf7921ac0485))
+
+## [2.171.0](https://github.com/CodySwannGT/lisa/compare/vv2.170.0...v2.171.0) (2026-06-16)
+
+
+### Features
+
+* **harper-fabric:** add caching skill ([3f22fd6](https://github.com/CodySwannGT/lisa/commit/3f22fd61354ce3880ff3c265d26f82418039784e))
+
+
+### Bug Fixes
+
+* **harper-fabric:** add missing id parameter to allowStaleWhileRevalidate example ([b604e3c](https://github.com/CodySwannGT/lisa/commit/b604e3cd917d0ce8d12e009529b366910520aa1a))
+
+## [2.170.0](https://github.com/CodySwannGT/lisa/compare/vv2.169.0...v2.170.0) (2026-06-16)
+
+
+### Features
+
+* **harper-fabric:** add harper auth skill ([8acac03](https://github.com/CodySwannGT/lisa/commit/8acac03dc5ebd842ce1e42c8e961ccd61145fbea))
+
+
+### Bug Fixes
+
+* **harper-auth:** correct refresh_operation_token API usage and static method signatures ([d5bb0f7](https://github.com/CodySwannGT/lisa/commit/d5bb0f788578894a6e7f59c83b0ff99e67709a96))
+
+## [2.169.0](https://github.com/CodySwannGT/lisa/compare/vv2.168.0...v2.169.0) (2026-06-16)
+
+
+### Features
+
+* **harper-fabric:** add operations skill ([b52f8c9](https://github.com/CodySwannGT/lisa/commit/b52f8c9e4e0fc813b61860656fddb936a6172b60))
+
+
+### Bug Fixes
+
+* **harper-operations:** correct API documentation errors in SKILL.md ([837c3aa](https://github.com/CodySwannGT/lisa/commit/837c3aa0f57035bbb1511c9aad4ebda915a208b7))
+
+## [2.168.0](https://github.com/CodySwannGT/lisa/compare/vv2.167.0...v2.168.0) (2026-06-15)
+
+
+### Features
+
+* **harper-fabric:** add REST query skill ([710df8c](https://github.com/CodySwannGT/lisa/commit/710df8c7be88e00d8763d5a20e534ce4a96687c8))
+
+
+### Bug Fixes
+
+* **harper-rest-queries:** normalize URL path casing and fix malformed range example ([53061a6](https://github.com/CodySwannGT/lisa/commit/53061a6699f2a1b551c7b69536c3a38d8718f52f))
+
+## [2.167.0](https://github.com/CodySwannGT/lisa/compare/vv2.166.5...v2.167.0) (2026-06-15)
+
+
+### Features
+
+* **harper-fabric:** add testing skill ([e63e84d](https://github.com/CodySwannGT/lisa/commit/e63e84d5c637d87906d73a914af260598f8a87c7))
+
+### [2.166.5](https://github.com/CodySwannGT/lisa/compare/vv2.166.4...v2.166.5) (2026-06-15)
+
+
+### Documentation
+
+* pin Harper schema guidance ([8940a1a](https://github.com/CodySwannGT/lisa/commit/8940a1a27f796ca3a62b4508d9a7f4af793c59ad))
+
+### [2.166.4](https://github.com/CodySwannGT/lisa/compare/vv2.166.3...v2.166.4) (2026-06-15)
+
+
+### Documentation
+
+* deepen Harper config extension guidance ([77b945b](https://github.com/CodySwannGT/lisa/commit/77b945bd27e7c3eeb1dbdf4943b47503a5e27c08))
+
+### [2.166.3](https://github.com/CodySwannGT/lisa/compare/vv2.166.2...v2.166.3) (2026-06-15)
+
+
+### Documentation
+
+* document Harper Fabric build deploy semantics ([fdaef46](https://github.com/CodySwannGT/lisa/commit/fdaef46caa0261f5ddef9d206c0aafc4e44357a6))
+
 ### [2.166.2](https://github.com/CodySwannGT/lisa/compare/vv2.166.1...v2.166.2) (2026-06-14)
 
 

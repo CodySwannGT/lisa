@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -8,6 +8,14 @@ import {
   PM_PATH_ENV_PREFIXES,
   sanitizeEnvForReconciliation,
 } from "./pm-env.js";
+import {
+  type LockfileRegenPlan,
+  type PackageManager,
+  LOCKFILE_REGEN_PLANS,
+  detectPackageManagers,
+  enginesForbiddenManagers,
+  getLockfileRegenPlan,
+} from "./package-manager-detect.js";
 
 /**
  * Env var set by npm/bun/yarn/pnpm when running lifecycle scripts (postinstall, etc.).
@@ -38,65 +46,16 @@ const POLL_INTERVAL_MS = 100;
  */
 const SETTLE_DELAY_MS = 250;
 
-/**
- * Known package managers whose lockfiles must be regenerated when Lisa's apply
- * mutates package.json (e.g., adds/updates resolutions or overrides entries).
- */
-export type PackageManager = "bun" | "npm" | "pnpm" | "yarn";
-
-/**
- * Description of a package manager's lockfile file + the command Lisa should run
- * to rebuild the lockfile without running install scripts.
- */
-export interface LockfileRegenPlan {
-  readonly pm: PackageManager;
-  readonly lockfile: string;
-  readonly command: string;
-  readonly args: readonly string[];
-}
-
-/**
- * Per-PM lockfile + regen command mapping. The regen commands are all
- * "sync lockfile without running scripts" variants — we do NOT want to
- * re-run lifecycle scripts (that would re-trigger the trampoline).
- *
- * bun: `bun install` is the canonical way to sync bun.lock after package.json
- * changes. As of bun 1.x there is no `--lockfile-only` flag; `bun install`
- * is already fast when node_modules is up-to-date and will simply update
- * bun.lock to match package.json. We pass `--ignore-scripts` to avoid re-running
- * the parent PM's lifecycle hooks (which triggered this trampoline to begin with).
- */
-const INSTALL = "install";
-const IGNORE_SCRIPTS = "--ignore-scripts";
-
-const LOCKFILE_REGEN_PLANS: Readonly<
-  Record<PackageManager, LockfileRegenPlan>
-> = {
-  bun: {
-    pm: "bun",
-    lockfile: "bun.lock",
-    command: "bun",
-    args: [INSTALL, IGNORE_SCRIPTS],
-  },
-  npm: {
-    pm: "npm",
-    lockfile: "package-lock.json",
-    command: "npm",
-    args: [INSTALL, "--package-lock-only", IGNORE_SCRIPTS],
-  },
-  pnpm: {
-    pm: "pnpm",
-    lockfile: "pnpm-lock.yaml",
-    command: "pnpm",
-    args: [INSTALL, "--lockfile-only", IGNORE_SCRIPTS],
-  },
-  yarn: {
-    pm: "yarn",
-    lockfile: "yarn.lock",
-    command: "yarn",
-    args: [INSTALL, "--mode", "update-lockfile"],
-  },
-} as const;
+// Re-export the package-manager detection surface (imported above from
+// package-manager-detect.ts) so existing importers/tests can keep importing it
+// from this module.
+export {
+  LOCKFILE_REGEN_PLANS,
+  detectPackageManagers,
+  enginesForbiddenManagers,
+  getLockfileRegenPlan,
+};
+export type { LockfileRegenPlan, PackageManager };
 
 /**
  * Read an env var by name without widening the project-wide process.env ban.
@@ -204,33 +163,6 @@ export function getLisaDistDir(moduleUrl: string): string {
   const filename = fileURLToPath(moduleUrl);
   // Walk from <dist>/utils/postinstall-trampoline.js → <dist>
   return path.resolve(path.dirname(filename), "..");
-}
-
-/**
- * Detect which package managers the project uses based on lockfile presence.
- *
- * A project may have more than one lockfile (the CDK dual-lockfile pattern
- * keeps `bun.lock` for local dev while publishing `package-lock.json` for
- * consumers), in which case every present lockfile must be regenerated so both
- * stay in sync with package.json.
- * @param projectDir - Absolute path to the project directory
- * @returns Ordered list of detected package managers (possibly empty)
- */
-export function detectPackageManagers(
-  projectDir: string
-): readonly PackageManager[] {
-  return Object.values(LOCKFILE_REGEN_PLANS)
-    .filter(plan => existsSync(path.join(projectDir, plan.lockfile)))
-    .map(plan => plan.pm);
-}
-
-/**
- * Get the regen plan (command/args/lockfile) for a given package manager.
- * @param pm - Package manager to look up
- * @returns Regen plan describing which command to spawn
- */
-export function getLockfileRegenPlan(pm: PackageManager): LockfileRegenPlan {
-  return LOCKFILE_REGEN_PLANS[pm];
 }
 
 /**
@@ -491,10 +423,24 @@ function buildTrampolineHelpers(literals: {
       catch { return null; }
     }
 
+    function enginesForbiddenManagers(dir) {
+      try {
+        const pkg = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
+        const engines = (pkg && pkg.engines) || {};
+        return ["bun", "npm", "yarn", "pnpm"].filter(
+          (pm) => typeof engines[pm] === "string" && /please-use|do-not-use/i.test(engines[pm])
+        );
+      } catch {
+        return [];
+      }
+    }
+
     function detectPackageManagers(dir) {
+      const forbidden = enginesForbiddenManagers(dir);
       return Object.values(LOCKFILE_PLANS)
-        .filter((plan) => existsSync(path.join(dir, plan.lockfile)))
-        .map((plan) => plan.pm);
+        .filter((plan) => [plan.lockfile].concat(plan.lockfileAlternatives || []).some((f) => existsSync(path.join(dir, f))))
+        .map((plan) => plan.pm)
+        .filter((pm) => forbidden.indexOf(pm) === -1);
     }
 
     async function waitForParent() {

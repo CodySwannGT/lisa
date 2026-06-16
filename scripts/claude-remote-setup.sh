@@ -80,12 +80,40 @@ fi
 require gitleaks
 
 # --- project dependencies ---
+# Resolve the package manager from packageManager/engines/lockfiles rather than
+# hardcoding bun: an npm-only project (engines.bun = "please-use-npm", CI runs
+# `npm ci`) must install with npm, never `bun install` — which would create a
+# stray bun.lock and break the project (the SE-5221 regression). jq is required
+# above, so the package.json signals are always available here.
 # bun has known proxy package-fetch issues in cloud sessions; retry transient failures.
+detect_package_manager() {
+  _field="" _forced="" _forbidden=""
+  if [ -f package.json ]; then
+    _field=$(jq -r '(.packageManager // "") | sub("@.*$";"")' package.json 2>/dev/null)
+    _forced=$(jq -r 'first((.engines // {})[] | strings | capture("please-use-(?<pm>bun|npm|yarn|pnpm)")?.pm) // ""' package.json 2>/dev/null)
+    _forbidden=$(jq -r '[(.engines // {}) | to_entries[] | select(((.value|strings) // "") | test("please-use|do-not-use";"i")) | .key] | join(" ")' package.json 2>/dev/null)
+  fi
+  case "$_field" in bun | npm | yarn | pnpm) printf '%s\n' "$_field"; return 0 ;; esac
+  case "$_forced" in bun | npm | yarn | pnpm) printf '%s\n' "$_forced"; return 0 ;; esac
+  _pm_allowed() { case " $_forbidden " in *" $1 "*) return 1 ;; *) return 0 ;; esac; }
+  if { [ -f bun.lockb ] || [ -f bun.lock ]; } && _pm_allowed bun; then printf 'bun\n'; return 0; fi
+  if [ -f pnpm-lock.yaml ] && _pm_allowed pnpm; then printf 'pnpm\n'; return 0; fi
+  if [ -f yarn.lock ] && _pm_allowed yarn; then printf 'yarn\n'; return 0; fi
+  if [ -f package-lock.json ] && _pm_allowed npm; then printf 'npm\n'; return 0; fi
+  printf 'npm\n'
+}
+PM="$(detect_package_manager)"
+case "$PM" in
+  bun) PM_INSTALL="bun install" ;;
+  pnpm) PM_INSTALL="pnpm install" ;;
+  yarn) PM_INSTALL="yarn install" ;;
+  *) PM_INSTALL="npm install" ;;
+esac
 if [ ! -d node_modules ]; then
-  echo "Installing project dependencies (bun install)..."
-  for i in 1 2 3; do bun install && break || { echo "bun install attempt $i failed; retrying..."; sleep 5; }; done
+  echo "Installing project dependencies (${PM_INSTALL})..."
+  for i in 1 2 3; do $PM_INSTALL && break || { echo "${PM_INSTALL} attempt $i failed; retrying..."; sleep 5; }; done
 fi
-[ -d node_modules ] || { echo "FATAL: bun install failed after retries" >&2; exit 1; }
+[ -d node_modules ] || { echo "FATAL: ${PM_INSTALL} failed after retries" >&2; exit 1; }
 
 # --- OPTIONAL (only with --include-optional; dormant stacks/integrations) ---
 if [ "$INCLUDE_OPTIONAL" = "1" ]; then
