@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.169.0](https://github.com/CodySwannGT/lisa/compare/vv2.168.0...v2.169.0) (2026-06-16)
+
+
+### Features
+
+* **harper-fabric:** add operations skill ([b52f8c9](https://github.com/CodySwannGT/lisa/commit/b52f8c9e4e0fc813b61860656fddb936a6172b60))
+
+
+### Bug Fixes
+
+* **harper-operations:** correct API documentation errors in SKILL.md ([837c3aa](https://github.com/CodySwannGT/lisa/commit/837c3aa0f57035bbb1511c9aad4ebda915a208b7))
+
 ## [2.168.0](https://github.com/CodySwannGT/lisa/compare/vv2.167.0...v2.168.0) (2026-06-15)
 
 
