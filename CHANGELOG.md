@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.171.2](https://github.com/CodySwannGT/lisa/compare/vv2.171.1...v2.171.2) (2026-06-16)
+
+
+### Bug Fixes
+
+* **governance:** mirror lodash floor into TypeScript package.lisa.json force blocks ([661cc25](https://github.com/CodySwannGT/lisa/commit/661cc25ab4b1e19a700be6f27db46fb559bc47d7))
+
 ### [2.171.1](https://github.com/CodySwannGT/lisa/compare/vv2.171.0...v2.171.1) (2026-06-16)
 
 
