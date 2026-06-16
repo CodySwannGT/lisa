@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.171.0](https://github.com/CodySwannGT/lisa/compare/vv2.170.0...v2.171.0) (2026-06-16)
+
+
+### Features
+
+* **harper-fabric:** add caching skill ([3f22fd6](https://github.com/CodySwannGT/lisa/commit/3f22fd61354ce3880ff3c265d26f82418039784e))
+
+
+### Bug Fixes
+
+* **harper-fabric:** add missing id parameter to allowStaleWhileRevalidate example ([b604e3c](https://github.com/CodySwannGT/lisa/commit/b604e3cd917d0ce8d12e009529b366910520aa1a))
+
 ## [2.170.0](https://github.com/CodySwannGT/lisa/compare/vv2.169.0...v2.170.0) (2026-06-16)
 
 
