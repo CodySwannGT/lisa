@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.170.0](https://github.com/CodySwannGT/lisa/compare/vv2.169.0...v2.170.0) (2026-06-16)
+
+
+### Features
+
+* **harper-fabric:** add harper auth skill ([8acac03](https://github.com/CodySwannGT/lisa/commit/8acac03dc5ebd842ce1e42c8e961ccd61145fbea))
+
+
+### Bug Fixes
+
+* **harper-auth:** correct refresh_operation_token API usage and static method signatures ([d5bb0f7](https://github.com/CodySwannGT/lisa/commit/d5bb0f788578894a6e7f59c83b0ff99e67709a96))
+
 ## [2.169.0](https://github.com/CodySwannGT/lisa/compare/vv2.168.0...v2.169.0) (2026-06-16)
 
 
