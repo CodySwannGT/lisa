@@ -20,10 +20,13 @@ close-out** roles and moves work *unstuck* or *fully closed*:
   after its agent returned) — no re-dispatch. A PR that is merely **behind its base** (`BEHIND`, no
   conflict) is **re-synced in place** with `gh pr update-branch` so the already-enabled auto-merge can
   finally land — a clean rebase needs no human, and leaving it stranded is the exact gap that lets an
-  auto-merge PR sit unmerged forever. Only a PR that cannot merge for a non-mechanical reason (true
-  conflict / failing checks / unaddressed CodeRabbit or `CHANGES_REQUESTED` review) or a failed deploy
-  gets a build-ready leaf fix ticket with the item moved to `blocked` (blocked by that ticket) instead
-  of blindly re-dispatching the agent — which would just churn against an unmergeable PR.
+  auto-merge PR sit unmerged forever. A **true merge conflict** is first given **one bounded in-place
+  re-dispatch** to the build agent — whose `drive-pr-to-merge` fix-mode loop resolves conflicts — because
+  a conflict, unlike a failing external check, is fixable by re-running the build; only a conflict that
+  survives that single attempt (or that the agent says needs design input) becomes a fix ticket. The
+  genuinely non-resolvable blockers — failing checks / unaddressed CodeRabbit or `CHANGES_REQUESTED`
+  review / a failed deploy — get a build-ready leaf fix ticket with the item moved to `blocked` (blocked
+  by that ticket) instead of blindly re-dispatching the agent, which would just churn against them.
 - **Recoverable blocked** — an item in `blocked` whose blocker may now be gone. The blocker is
   one of three classes, and repair re-checks **all** of them, not just dependencies: (a) an
   `is blocked by` **dependency** has since closed; (b) a **validation / quality-gate self-block** —
@@ -316,12 +319,16 @@ a PR that cannot merge or a deploy that failed — it just churns.
      Re-sync the branch in place so the already-enabled auto-merge can land (see diagnosis step 3).
      Keep the item `claimed`; a later cycle confirms the merge and transitions. Do **not** file a fix
      ticket for a clean rebase.
-   - **A real external blocker** (PR cannot merge for a non-mechanical reason — true merge conflict /
-     failing checks / `CHANGES_REQUESTED` / unaddressed CodeRabbit; or a failed deploy) → **do not
-     dispatch the agent**. File a build-ready leaf fix ticket for the blocker, move this item
-     `claimed → blocked` with an `is blocked by` link to that ticket, and record it. The existing
-     "Build `blocked` → unblock if cleared" path resumes this item on a later cycle once the fix
-     ticket is terminal — a self-healing loop. Skip the resume steps below.
+   - **A true merge conflict** → **not** an immediate fix ticket. A conflict is fixable by re-running
+     the build, so attempt **one** in-place re-dispatch first (the resume sequence below; the vendor
+     agent re-enters `drive-pr-to-merge` fix mode, which resolves conflicts). Only a conflict that
+     survives that single attempt — the same conflicting head still `CONFLICTING` on a later cycle — or
+     that the agent reports needs design input, falls through to the fix-ticket path (diagnosis step 5).
+   - **A real external blocker re-running the build cannot fix** (failing checks / `CHANGES_REQUESTED` /
+     unaddressed CodeRabbit; or a failed deploy) → **do not dispatch the agent**. File a build-ready leaf
+     fix ticket for the blocker, move this item `claimed → blocked` with an `is blocked by` link to that
+     ticket, and record it. The existing "Build `blocked` → unblock if cleared" path resumes this item on
+     a later cycle once the fix ticket is terminal — a self-healing loop. Skip the resume steps below.
 
 If the PR is healthy in-flight and no blocker is found, the work simply died mid-flight — run the **same per-item sequence
 the vendor build-intake runs**, skipping the claim transition (the item is already `claimed`):
@@ -400,7 +407,9 @@ branch — operate on it the same way.
 
 - **True merge conflict** — `mergeable = CONFLICTING` or `mergeStateStatus = DIRTY` (overlapping
   changes a plain rebase cannot resolve), or `gh pr update-branch` (step 3) reported a conflict. A
-  merely `BEHIND` branch is **not** here — it was re-synced in step 3.
+  merely `BEHIND` branch is **not** here — it was re-synced in step 3. Unlike the other classes below, a
+  conflict is **resolvable by re-running the build**, so step 5 gives it one in-place re-dispatch before
+  filing — see its conflict-first rule.
 - **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
   or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
 - **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
@@ -415,6 +424,19 @@ outstanding change request, is **not** a blocker — that is normal in-flight st
 recent check/commit activity would already have been caught as `active` by the staleness gate.)
 
 **5. On a blocker found → file a leaf fix ticket + block the item.**
+
+**Conflict-first exception (try to resolve before filing).** A *true merge conflict* — and only a
+conflict, not failing checks, change requests, or a failed deploy — is fixable by re-running the build:
+the vendor agent's `drive-pr-to-merge` fix-mode loop resolves conflicts. So before filing a fix ticket
+for a conflict, give the item **one** in-place re-dispatch: run the resume-in-place sequence (steps 1–3
+of the parent path above), which re-enters `drive-pr-to-merge` in fix mode against the existing PR.
+Bound it to a single attempt per conflicting head — when you re-dispatch, post a `[lisa-repair-intake]
+conflict-resolve-attempt: <item-ref>@<head-sha>` marker keyed on the PR head SHA. On a later cycle, if
+that marker already exists for the **same** head SHA and the PR is still `CONFLICTING`, the attempt
+failed: stop retrying and file the fix ticket below. File immediately (skip the attempt) if the agent
+reports the conflict needs design input. Every other blocker class files the fix ticket with no
+re-dispatch. Honor the backoff window / state fingerprint (Loop prevention) so the re-dispatch is never
+re-issued against an unchanged conflicting head.
 
 1. **File one build-ready leaf fix ticket** per distinct blocker via `lisa:tracker-write` (the
    vendor-neutral leaf writer + validation gate; never a vendor `*-write-*` skill directly),
