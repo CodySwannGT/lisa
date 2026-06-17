@@ -64,7 +64,7 @@
         ]
       },
       {
-        "matcher": "TeamCreate",
+        "matcher": "TeamCreate|Agent",
         "hooks": [
           {
             "type": "command",

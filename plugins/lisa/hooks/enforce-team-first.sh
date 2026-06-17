@@ -9,10 +9,13 @@
 #   - UserPromptSubmit  : detects /lisa:research|plan|implement|intake|debrief in the
 #                         raw prompt and arms enforcement for the session
 #   - PreToolUse        : detects the same skills via a `Skill` tool call,
-#                         arms enforcement, and blocks bypass tool calls
-#                         until ToolSearch+TeamCreate have fired in Claude
-#   - PostToolUse       : on a successful Claude TeamCreate, marks the session as
-#                         team-created (lifts enforcement)
+#                         arms enforcement, and blocks bypass tool calls until
+#                         the team is established — i.e. until a TeamCreate
+#                         (older Claude Code) or the first Agent spawn
+#                         (implicit-team model, Claude Code >= 2.1.178) fires
+#   - PostToolUse       : on a successful Claude TeamCreate OR a successful
+#                         Agent spawn (implicit team), marks the session as
+#                         team-established (lifts enforcement)
 #   - SubagentStart     : marks the new subagent session as a teammate so
 #                         it is exempt — teammates inherit the lead's team
 #                         and must never create a second team (double-create
@@ -85,7 +88,12 @@ case "$HOOK_EVENT" in
 
   PostToolUse)
     TOOL_NAME=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
-    if [ "$TOOL_NAME" = "TeamCreate" ]; then
+    # A successful TeamCreate (older Claude Code) OR a successful Agent spawn
+    # (Claude Code >= 2.1.178, where TeamCreate/TeamDelete were removed in favor
+    # of the implicit-team model — the team forms automatically when the lead
+    # spawns its first teammate via the Agent tool) marks the session as
+    # team-established and lifts enforcement.
+    if [ "$TOOL_NAME" = "TeamCreate" ] || [ "$TOOL_NAME" = "Agent" ]; then
       ERROR=$(printf '%s' "$INPUT" | jq -r '.tool_response.error // empty' 2>/dev/null || true)
       IS_ERROR=$(printf '%s' "$INPUT" | jq -r '.tool_response.is_error // empty' 2>/dev/null || true)
       if [ -z "$ERROR" ] && [ "$IS_ERROR" != "true" ]; then
@@ -136,9 +144,12 @@ if [ -f "$TEAM_FLAG" ]; then
   exit 0
 fi
 
-# These two are the path forward; never block them.
+# These are the path forward; never block them.
+#   - ToolSearch / TeamCreate : the older explicit-team path (Claude Code < 2.1.178)
+#   - Agent                   : the implicit-team path (Claude Code >= 2.1.178) —
+#                               spawning the first teammate IS what forms the team
 case "$TOOL_NAME" in
-  ToolSearch|TeamCreate)
+  ToolSearch|TeamCreate|Agent)
     exit 0
     ;;
 esac
@@ -163,21 +174,25 @@ fi
 ACTIVE_SKILL=$(cat "$SKILL_FLAG" 2>/dev/null || echo "lisa:???")
 cat >&2 <<EOF
 Blocked: this session invoked /${ACTIVE_SKILL}, which is an agent-team flow.
-In Claude, before any other tool call, you must:
+In Claude, before any other tool call, you must establish the team by spawning
+your first teammate:
 
-  1. ToolSearch with query: "select:TeamCreate"  (load the deferred schema)
-  2. TeamCreate                                   (actually create the team)
+  Call the \`Agent\` tool with an appropriate \`subagent_type\`.
+
+The team forms automatically the moment the lead spawns its first teammate —
+this is the implicit-team model on Claude Code >= 2.1.178, where the explicit
+\`TeamCreate\`/\`TeamDelete\` tools were removed. (On older Claude Code the
+\`TeamCreate\` tool path still works and is also accepted.)
 
 The current attempt to call \`${TOOL_NAME}\` is a team-bypass path. Reading
 the ticket, exploring the code, fetching context — those are tasks for the
-team you are about to create, not for the lead session before the team
-exists.
+team you are about to spawn, not for the lead session before the team exists.
 
 If you are running Lisa in a non-Claude harness, this Claude enforcement hook
 should not be installed; follow the runtime-aware orchestration preamble in the
 skill instead.
 
-Re-read the orchestration preamble in /${ACTIVE_SKILL} and start with
-ToolSearch.
+Re-read the orchestration preamble in /${ACTIVE_SKILL} and start by spawning a
+teammate with the \`Agent\` tool.
 EOF
 exit 2
