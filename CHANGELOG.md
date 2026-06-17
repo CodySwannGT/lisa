@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.173.1](https://github.com/CodySwannGT/lisa/compare/vv2.173.0...v2.173.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **enforce-team-first:** accept implicit-team Agent spawn (Claude Code >= 2.1.178) ([93db633](https://github.com/CodySwannGT/lisa/commit/93db6331c23c050f0e7eefa8fea90d98ce99322e))
+
 ## [2.173.0](https://github.com/CodySwannGT/lisa/compare/vv2.172.0...v2.173.0) (2026-06-17)
 
 
