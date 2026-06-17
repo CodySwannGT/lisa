@@ -177,6 +177,7 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 #### 3b. Claim
 
 Transition the ticket from `$READY` to `$CLAIMED` by invoking `lisa:atlassian-access` `operation: transition key: <TICKET> to: "$CLAIMED"`.
+- **Assign to the authenticated user when the ticket is unassigned.** A claim must be attributable. If the ticket has no assignee, assign it to the authenticated account — prefer acli `--assignee @me` (resolves server-side to the authenticated user, which avoids the federated-`accountId` mis-assignment), or `write-ticket` with the `accountId` from the `/rest/api/3/myself` identity probe the access skill already documents. Leave an already-assigned ticket's assignee untouched — never reassign work that already has an owner.
 - Post a `[claude-build-intake]` comment via `lisa:atlassian-access` `operation: comment key: <TICKET> body: "Claimed by Claude. Starting build."`
 - This is the idempotency lock — a re-entrant cycle's `Status = $READY` filter will not see this ticket again.
 
