@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.173.0](https://github.com/CodySwannGT/lisa/compare/vv2.172.0...v2.173.0) (2026-06-17)
+
+
+### Features
+
+* **repair-intake:** try to resolve a true merge conflict before filing a fix ticket ([d1da19c](https://github.com/CodySwannGT/lisa/commit/d1da19c185dcd6e87d9dcbddf65f92c25c56cf88)), closes [#1308](https://github.com/CodySwannGT/lisa/issues/1308)
+
 ## [2.172.0](https://github.com/CodySwannGT/lisa/compare/vv2.171.6...v2.172.0) (2026-06-17)
 
 
