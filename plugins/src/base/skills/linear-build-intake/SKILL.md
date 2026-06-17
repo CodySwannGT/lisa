@@ -186,6 +186,8 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 Update labels via `mcp__linear-server__save_issue`: remove `$READY`, add `$CLAIMED`. Resolve label IDs via `list_issue_labels` (create `$CLAIMED` if missing).
 
+**Assign to the authenticated user when the Issue is unassigned.** A claim must be attributable. If the Issue has no assignee, set its `assigneeId` to the authenticated viewer (resolve the viewer's id via the Linear MCP identity — e.g. `get_user` for the current actor) through `mcp__linear-server__save_issue`. Leave an already-assigned Issue's assignee untouched — never reassign work that already has an owner.
+
 Post a `[claude-build-intake]` comment via `save_comment`: `"Claimed by Claude. Starting build."`
 
 This is the idempotency lock — a re-entrant cycle's `label: $READY` filter will not see this Issue again.

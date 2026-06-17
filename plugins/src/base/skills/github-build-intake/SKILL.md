@@ -245,6 +245,10 @@ A blocker is active if it is open and has no cleared status label. Treat `status
 
 ```bash
 gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$CLAIMED"
+# Assign to the authenticated user ONLY when the issue is currently unassigned (attributable claim;
+# do not pile a second assignee onto an issue that already has an owner):
+gh issue view <number> --repo <org>/<repo> --json assignees -q '.assignees | length' # → if 0:
+gh issue edit <number> --repo <org>/<repo> --add-assignee "@me"
 gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Claimed by Claude. Starting build."
 ```
 
