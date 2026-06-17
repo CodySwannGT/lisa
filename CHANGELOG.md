@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.172.0](https://github.com/CodySwannGT/lisa/compare/vv2.171.6...v2.172.0) (2026-06-17)
+
+
+### Features
+
+* **build-intake:** assign an unassigned claimed item to the authenticated user ([6bfd964](https://github.com/CodySwannGT/lisa/commit/6bfd964f171768cd51b02f216060783fad18514b))
+
 ### [2.171.6](https://github.com/CodySwannGT/lisa/compare/vv2.171.5...v2.171.6) (2026-06-17)
 
 
