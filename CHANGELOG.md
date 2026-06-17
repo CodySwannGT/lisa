@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.171.6](https://github.com/CodySwannGT/lisa/compare/vv2.171.5...v2.171.6) (2026-06-17)
+
+
+### Bug Fixes
+
+* **implement:** fill fillable gaps, then file+link a dependency ticket before a blocked exit ([329de88](https://github.com/CodySwannGT/lisa/commit/329de886cc78435f7a43dbca2e49f63b7500a52d))
+
 ### [2.171.5](https://github.com/CodySwannGT/lisa/compare/vv2.171.4...v2.171.5) (2026-06-16)
 
 
