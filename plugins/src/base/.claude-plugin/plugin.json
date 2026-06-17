@@ -47,7 +47,7 @@
         ]
       },
       {
-        "matcher": "TeamCreate",
+        "matcher": "TeamCreate|Agent",
         "hooks": [
           { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh" }
         ]
