@@ -14,7 +14,8 @@
 #   2. Updates the GitHub PR description with evidence/comment.md
 #   3. Uploads image evidence as JIRA attachments
 #   4. Posts/updates the JIRA comment with evidence/comment.txt
-#   5. Moves the JIRA ticket to "Code Review"
+#   5. Moves the JIRA ticket to the configured jira.workflow.review status
+#      (skipped entirely when review is unconfigured — stays in claimed)
 
 set -euo pipefail
 
@@ -152,10 +153,26 @@ else
   echo "$RESP" | grep -v "HTTP_CODE:" | head -3
 fi
 
-# ── Step 5: Move ticket to Code Review ──────────────────────────────────────
+# ── Step 5: Move ticket to the configured review status (if any) ────────────
+# A transition may target only a status named in .lisa.config.json jira.workflow.
+# `review` is OPTIONAL: when it is not configured, the build lifecycle stays in
+# `claimed` until `done` — do NOT invent a transition. (See config-resolution.md.)
+REVIEW=""
+if [ -f .lisa.config.json ]; then
+  _cfg=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.json 2>/dev/null)
+  [ -n "$_cfg" ] && REVIEW="$_cfg"
+fi
+if [ -f .lisa.config.local.json ]; then
+  _local=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.local.json 2>/dev/null)
+  [ -n "$_local" ] && REVIEW="$_local"
+fi
 echo ""
-echo "==> Moving $TICKET_ID to Code Review..."
-jira issue move "$TICKET_ID" "Code Review" 2>&1 && echo "  ✓ Ticket moved to Code Review" || echo "  WARNING: Could not move ticket" >&2
+if [ -n "$REVIEW" ]; then
+  echo "==> Moving $TICKET_ID to $REVIEW..."
+  jira issue move "$TICKET_ID" "$REVIEW" 2>&1 && echo "  ✓ Ticket moved to $REVIEW" || echo "  WARNING: Could not move ticket to $REVIEW (not a valid transition?); leaving in current status" >&2
+else
+  echo "==> No jira.workflow.review configured; leaving $TICKET_ID in its current (claimed) status per config-resolution."
+fi
 
 echo ""
 echo "==> Done!"
