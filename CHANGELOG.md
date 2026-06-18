@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.173.3](https://github.com/CodySwannGT/lisa/compare/vv2.173.2...v2.173.3) (2026-06-18)
+
+
+### Bug Fixes
+
+* **qa:** require browser interaction for exploratory QA ([52b6431](https://github.com/CodySwannGT/lisa/commit/52b6431ed6edb850e2e340c14b4e7496e297a151)), closes [#1314](https://github.com/CodySwannGT/lisa/issues/1314)
+
 ### [2.173.2](https://github.com/CodySwannGT/lisa/compare/vv2.173.1...v2.173.2) (2026-06-18)
 
 
