@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.173.2](https://github.com/CodySwannGT/lisa/compare/vv2.173.1...v2.173.2) (2026-06-18)
+
+
+### Bug Fixes
+
+* **jira:** bind ticket status transitions to config.jira.workflow; skip review hop when unconfigured ([2f14903](https://github.com/CodySwannGT/lisa/commit/2f149034e798c77284e05f40bd6f3f0fad56916b))
+
 ### [2.173.1](https://github.com/CodySwannGT/lisa/compare/vv2.173.0...v2.173.1) (2026-06-17)
 
 
