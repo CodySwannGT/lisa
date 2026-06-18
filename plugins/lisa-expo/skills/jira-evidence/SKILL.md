@@ -1,6 +1,6 @@
 ---
 name: jira-evidence
-description: "Upload screenshots to GitHub pr-assets release, update PR description with evidence, upload attachments to JIRA, post wiki markup comment, and move ticket to Code Review. Reusable by any skill that captures screenshots and generates evidence/comment.txt + evidence/comment.md."
+description: "Upload screenshots to GitHub pr-assets release, update PR description with evidence, upload attachments to JIRA, post wiki markup comment, and move ticket to the configured review status only when `jira.workflow.review` is set (otherwise leave it in `claimed`). Reusable by any skill that captures screenshots and generates evidence/comment.txt + evidence/comment.md."
 ---
 
 # JIRA Evidence Posting
@@ -44,7 +44,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body using `gh pr edit`
 4. **Upload JIRA attachments** — Uploads screenshots via REST API v3 so `!filename.png!` wiki markup renders inline
 5. **Post JIRA comment** — Posts `comment.txt` as a new comment via REST API v2 (wiki markup with embedded images)
-6. **Move ticket to Code Review** — Transitions the JIRA ticket via `jira issue move`
+6. **Move ticket to the configured review status** — Resolves `jira.workflow.review` (or the `jira.workflow.code_review` alias) from `.lisa.config.json` / `.lisa.config.local.json` and transitions via `jira issue move`. `review` is optional; when unset, the ticket stays in `claimed` and this step is skipped. Never transition to a status not named in `config.jira.workflow`. If the configured status is not a valid transition from the current state, log a warning and skip.
 
 ## Screenshot Naming Convention
 
