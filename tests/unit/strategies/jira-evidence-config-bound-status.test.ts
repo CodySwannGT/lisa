@@ -35,10 +35,19 @@ import { describe, expect, it } from "vitest";
 const SCRIPT_PATHS = [
   "plugins/src/base/skills/jira-evidence/scripts/post-evidence.sh",
   "plugins/lisa/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-agy/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-copilot/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-cursor/skills/jira-evidence/scripts/post-evidence.sh",
   "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh",
   "plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh",
   "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh",
   "plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh",
 ] as const;
 
 /**
@@ -50,14 +59,23 @@ const SCRIPT_PATHS = [
 const SKILL_PATHS = [
   "plugins/src/base/skills/jira-evidence/SKILL.md",
   "plugins/lisa/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-agy/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-copilot/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-cursor/skills/jira-evidence/SKILL.md",
 ] as const;
 
 /** Stack jira-evidence docs (expo/rails) — source + generated copies. */
 const STACK_SKILL_PATHS = [
   "plugins/src/expo/skills/jira-evidence/SKILL.md",
   "plugins/lisa-expo/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-expo-agy/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-expo-copilot/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-expo-cursor/skills/jira-evidence/SKILL.md",
   "plugins/src/rails/skills/jira-evidence/SKILL.md",
   "plugins/lisa-rails/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-rails-agy/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-rails-copilot/skills/jira-evidence/SKILL.md",
+  "plugins/lisa-rails-cursor/skills/jira-evidence/SKILL.md",
 ] as const;
 
 /**
