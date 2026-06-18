@@ -67,7 +67,7 @@ Based on the milestone, suggest (but don't automatically perform) a status trans
 | Milestone | Suggested Status |
 |-----------|-----------------|
 | Plan created | "In Progress" |
-| PR ready | "In Review" |
+| PR ready | configured `jira.workflow.review` status, or no transition when unconfigured |
 | PR merged | "Done" |
 
 ### Step 5: Parent Status Rollup (`--rollup`)

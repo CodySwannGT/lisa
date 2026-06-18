@@ -1,16 +1,16 @@
 ---
 name: jira-evidence
-description: "Upload text evidence to GitHub pr-assets release, update PR description, post JIRA comment with code blocks, and move ticket to the configured code-review status. Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md."
+description: "Upload text evidence to GitHub pr-assets release, update PR description, post JIRA comment with code blocks, and move ticket to the configured review status only when `jira.workflow.review` is set (otherwise leave it in `claimed`). Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md."
 ---
 
 # JIRA Evidence Posting
 
 ## Workflow resolution
 
-The post-build review status is read from `.lisa.config.json` `jira.workflow.review` (or `jira.workflow.code_review`), falling back to `Code Review`. JIRA does not have a separate `review` role in the canonical config schema (the build lifecycle stays in `claimed` until `done`); this skill uses the project's actual post-build review status when one exists. If the configured status is not a valid transition from the ticket's current state, log a warning and skip the transition — the human will handle it.
+The post-build review status is read from `.lisa.config.json` `jira.workflow.review` (or `jira.workflow.code_review`). `review` is optional; when unset, the ticket stays in `claimed` until `done` and this skill skips the transition. Never transition to a status that is not named in `config.jira.workflow`. If the configured status is not a valid transition from the current state, log a warning and skip.
 
 ```bash
-REVIEW="Code Review"
+REVIEW=""
 if [ -f .lisa.config.json ]; then
   _cfg=$(jq -r '.jira.workflow.review // .jira.workflow.code_review // empty' .lisa.config.json 2>/dev/null)
   [ -n "$_cfg" ] && REVIEW="$_cfg"
