@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.174.0](https://github.com/CodySwannGT/lisa/compare/vv2.173.3...v2.174.0) (2026-06-19)
+
+
+### Features
+
+* **quality:** add opt-in concurrency_group input to mutex cross-run E2E ([72160cc](https://github.com/CodySwannGT/lisa/commit/72160ccfc0b47e694e616f3cbba75b1620ef456f))
+
 ### [2.173.3](https://github.com/CodySwannGT/lisa/compare/vv2.173.2...v2.173.3) (2026-06-18)
 
 
