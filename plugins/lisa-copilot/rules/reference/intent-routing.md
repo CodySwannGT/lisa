@@ -314,11 +314,16 @@ Sequence:
 
 ### Monitor
 
-Purpose: Check application health and operational status. Can be invoked standalone or as part of Verify.
+Purpose: Check application health and operational status, **audit observability completeness**, and (standalone only) **file build-ready tickets** for anomalies and instrumentation gaps. Repo-scoped and manual — there is no cron for Monitor. Can be invoked standalone or as the post-deploy step of Verify.
 
 Sequence:
-1. `ops-specialist` -- health checks, log inspection, error monitoring, performance analysis
-2. Report findings, escalate if action needed
+1. **Discover** -- stack-agnostic detection of the repo's observability profile (`frontend` / `backend` / `infra`) and which observability tools are actually wired (read manifests/config; probe only with available credentials). See the `observability-audit` rule.
+2. **Collect live signals** -- `ops-specialist` (Expo/Rails) or inline base probing (Sentry CLI/REST, CloudWatch, X-Ray, Playwright MCP) for health, logs, errors, performance. An observation is a fileable **anomaly** only when it clears the conservative thresholds in `observability-audit`.
+3. **Audit completeness** -- score the repo against the `observability-audit` rubric for its profile; each in-scope MISSING dimension is a **gap** finding (`core` always; `recommended` only with `--all-gaps`).
+4. **Report** -- health/anomaly summary + audit table. Always produced.
+5. **File (standalone only; SKIP under `--report-only`/`--dry-run` and when invoked from Verify)** -- for each anomaly and gap, dedupe by fingerprint (sentinel + search-before-create incl. closed tickets), then file a single-repo build-ready leaf via `tracker-write` (`build_ready: true`) — a `Bug` for an anomaly, a `Task`/`Improvement` for a gap — stamped `repo:<current>`, capped at `max_candidates` (default 20, `core`/high-severity first; list any dropped). Default files; `--dry-run` previews without filing. `lisa:verify` invokes monitor as `lisa:monitor <env> --report-only`, so the post-deploy check never files. Escalate anything not made into a ticket.
+
+The `observability-audit` rule owns the profile detection, rubric, anomaly thresholds, ticket templates (gate-passing), fingerprint/idempotency contract, the cap, and the Verify report-only guard. Monitor **files only** — the `intake` / `tracker-build-intake` cron implements what it files.
 
 ## Tracker Entry Point (JIRA, GitHub Issues, or Linear)
 
