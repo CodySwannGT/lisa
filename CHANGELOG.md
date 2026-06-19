@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.175.0](https://github.com/CodySwannGT/lisa/compare/vv2.174.1...v2.175.0) (2026-06-19)
+
+
+### Features
+
+* **monitor:** add observability audit + build-ready ticket filing ([04ebbcd](https://github.com/CodySwannGT/lisa/commit/04ebbcd1e87e09a897b8c12183f4fc71d90f6491))
+
 ### [2.174.1](https://github.com/CodySwannGT/lisa/compare/vv2.174.0...v2.174.1) (2026-06-19)
 
 
