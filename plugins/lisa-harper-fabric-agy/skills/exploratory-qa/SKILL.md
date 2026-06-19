@@ -1,19 +1,22 @@
 ---
 name: exploratory-qa
-description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — landing cold on the home page and clicking through to find anything confusing, broken, or hard to understand (unclear purpose or audience, human-facing jargon, contextless extracted data, machine-style labels, raw dates/enums, sparse data with no explanation, wrong control semantics, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances, dead-end flows that strand a user — e.g. a login page with no way to register or recover a password, or a primary action that drops the user into an incomplete/unsatisfiable state with no way to finish) across all breakpoints. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
+description: First-time-user exploratory QA walkthrough for web apps that FEEDS THE LIFECYCLE. Use when asked to experience an app the way a brand-new human user would — opening it in a real browser or browser automation session, landing cold on the home page, and clicking/typing/selecting through visible controls to find anything confusing, broken, or hard to understand (unclear purpose or audience, human-facing jargon, contextless extracted data, machine-style labels, raw dates/enums, sparse data with no explanation, wrong control semantics, slow or unclear loads, late meaningful content, cramped or cut-off UI, inconsistent/non-standard UX, awkward scroll behavior, unclear affordances, dead-end flows that strand a user — e.g. a login page with no way to register or recover a password, or a primary action that drops the user into an incomplete/unsatisfiable state with no way to finish) across all breakpoints. Static route scans, HTTP fetches, screenshots alone, or console/network checks alone are not sufficient exploratory QA evidence. Instead of writing a report file, it files every finding as a tracked work item via lisa:tracker-write (bugs and usability/UX issues). A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa:intake) or left in the backlog for human triage (default). For gaps in the automated Playwright test suite, use the e2e-coverage-gaps skill instead.
 ---
 
 # Exploratory QA
 
 ## Overview
 
-Experience the app the way a **brand-new human user** would: land cold on the home page with no prior
-knowledge, then click through and actually try to use it — just like a real person. The goal is to
-surface anything **confusing, broken, or hard to understand**, and to do so at **every breakpoint**.
+Experience the app the way a **brand-new human user** would: open it in a real browser or browser
+automation tool, land cold on the home page with no prior knowledge, then click through and actually
+try to use it — just like a real person. The goal is to surface anything **confusing, broken, or hard
+to understand**, and to do so at **every breakpoint**.
 
 This is a usability/experience pass, **not** a test-coverage audit. It does not look at the Playwright
 suite or hunt for coverage gaps — for that, use the `e2e-coverage-gaps` skill. Here, every finding is
-filed as a tracked work item so it enters the Lisa lifecycle — no static report file.
+filed as a tracked work item so it enters the Lisa lifecycle — no static report file. Static route
+scans, HTTP fetches, screenshots alone, and console/network checks alone do not count as exploratory
+QA evidence because they do not prove a person could use the visible UI.
 
 ## Parameters
 
@@ -29,6 +32,9 @@ filed as a tracked work item so it enters the Lisa lifecycle — no static repor
 
 - Identify the target environment, account type, and browser requirement, and read the `ready` flag
   (default `false`).
+- Open the target in a real browser or browser automation tool before drawing conclusions. Use static
+  code inspection, route lists, network/console logs, and screenshots only as supporting evidence, not
+  as a substitute for live browser interaction.
 - **Confirm the tracker is configured.** Findings are filed as tickets, so read `tracker` from
   `.lisa.config.json` (local overrides global). If it is unset, stop and report that the tracker must
   be configured (via `/lisa:setup:jira` / `:github` / `:linear`) before exploratory QA can file
@@ -49,8 +55,11 @@ filed as a tracked work item so it enters the Lisa lifecycle — no static repor
 
 ### 3. Use It Like a Human
 
-Click through the visible paths and actually attempt real tasks — a first-time user explores, makes
-mistakes, and tries the obvious thing. Cover at least these dimensions unless the user narrows scope:
+Click through the visible paths and actually attempt real tasks in the browser — a first-time user
+explores, makes mistakes, and tries the obvious thing. When a page exposes forms, filters, menus,
+links, buttons, selects, tabs, or other visible controls, click, type, select, submit, clear,
+navigate, and otherwise exercise representative controls when safe; then verify the resulting UI or
+data state in the browser. Cover at least these dimensions unless the user narrows scope:
 
 - **Comprehension & labeling:** human-facing copy must sound like something a normal first-time user
   would understand. Flag machine-style or developer labels shown to users (raw IDs, enum keys,

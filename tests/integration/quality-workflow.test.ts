@@ -51,6 +51,7 @@ interface QualityWorkflow {
       inputs?: Record<string, WorkflowInput>;
     };
   };
+  concurrency?: { group?: string; "cancel-in-progress"?: boolean };
   jobs: Record<string, WorkflowJob>;
 }
 
@@ -77,6 +78,33 @@ describe("quality.yml reusable workflow", () => {
       expect(input?.required).toBe(false);
       expect(input?.default).toBe(false);
       expect(input?.type).toBe("boolean");
+    });
+  });
+
+  describe("cross-run concurrency mutex (opt-in)", () => {
+    it("declares concurrency_group input defaulting to '' (no serialization)", () => {
+      const input = workflow.on.workflow_call?.inputs?.concurrency_group;
+      expect(input).toBeDefined();
+      expect(input?.required).toBe(false);
+      expect(input?.default).toBe("");
+      expect(input?.type).toBe("string");
+    });
+
+    it("sets a top-level concurrency that queues rather than cancels", () => {
+      // cancel-in-progress must be false so opted-in runs queue (serialize)
+      // instead of cancelling each other — cancelling mid-run is what leaves
+      // shared external state (e.g. a test user's server-side org) dirty.
+      expect(workflow.concurrency).toBeDefined();
+      expect(workflow.concurrency?.["cancel-in-progress"]).toBe(false);
+    });
+
+    it("falls back to a per-run unique group when the input is unset", () => {
+      // Default behavior must be identical to having no concurrency: when
+      // concurrency_group is empty the group resolves to a github.run_id-keyed
+      // string, so no run ever waits on another (and no parent/child deadlock).
+      const group = workflow.concurrency?.group ?? "";
+      expect(group).toContain("inputs.concurrency_group");
+      expect(group).toContain("github.run_id");
     });
   });
 

@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.174.1](https://github.com/CodySwannGT/lisa/compare/vv2.174.0...v2.174.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **intake:** close duplicate already fixed tickets ([ccc1fde](https://github.com/CodySwannGT/lisa/commit/ccc1fdedcfed54dba86405b4421255ec97655e41))
+
+## [2.174.0](https://github.com/CodySwannGT/lisa/compare/vv2.173.3...v2.174.0) (2026-06-19)
+
+
+### Features
+
+* **quality:** add opt-in concurrency_group input to mutex cross-run E2E ([72160cc](https://github.com/CodySwannGT/lisa/commit/72160ccfc0b47e694e616f3cbba75b1620ef456f))
+
+### [2.173.3](https://github.com/CodySwannGT/lisa/compare/vv2.173.2...v2.173.3) (2026-06-18)
+
+
+### Bug Fixes
+
+* **qa:** require browser interaction for exploratory QA ([52b6431](https://github.com/CodySwannGT/lisa/commit/52b6431ed6edb850e2e340c14b4e7496e297a151)), closes [#1314](https://github.com/CodySwannGT/lisa/issues/1314)
+
+### [2.173.2](https://github.com/CodySwannGT/lisa/compare/vv2.173.1...v2.173.2) (2026-06-18)
+
+
+### Bug Fixes
+
+* **jira:** bind ticket status transitions to config.jira.workflow; skip review hop when unconfigured ([2f14903](https://github.com/CodySwannGT/lisa/commit/2f149034e798c77284e05f40bd6f3f0fad56916b))
+
+### [2.173.1](https://github.com/CodySwannGT/lisa/compare/vv2.173.0...v2.173.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **enforce-team-first:** accept implicit-team Agent spawn (Claude Code >= 2.1.178) ([93db633](https://github.com/CodySwannGT/lisa/commit/93db6331c23c050f0e7eefa8fea90d98ce99322e))
+
 ## [2.173.0](https://github.com/CodySwannGT/lisa/compare/vv2.172.0...v2.173.0) (2026-06-17)
 
 
