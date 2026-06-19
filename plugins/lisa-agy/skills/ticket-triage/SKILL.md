@@ -1,6 +1,6 @@
 ---
 name: ticket-triage
-description: "Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear). Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed. Vendor-neutral: the caller (jira-agent or github-agent) is responsible for fetching the ticket via lisa:tracker-read, running the pre-flight gate via lisa:tracker-verify, and posting findings via the matching vendor comment tool."
+description: "Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear). Detects requirement ambiguities, identifies edge cases from codebase analysis, and plans verification methodology. Posts findings to the ticket and produces a verdict (DUPLICATE_ALREADY_FIXED/BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed. Vendor-neutral: the caller (jira-agent or github-agent) is responsible for fetching the ticket via lisa:tracker-read, running the pre-flight gate via lisa:tracker-verify, and posting findings via the matching vendor comment tool."
 allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 ---
 
@@ -48,11 +48,13 @@ From the context bundle, evaluate relationships before analyzing this ticket in 
 
 - **Open blockers (`is blocked by`)**: if any blocker is not `Done` or its linked PR is not merged, raise an ambiguity: "Blocker {KEY} is not shipped — work cannot meaningfully start." This is an automatic `BLOCKED` verdict unless the human confirms the blocker state is acceptable.
 - **Epic siblings in progress**: if a sibling under the same epic is `In Progress` / `In Review` with a different assignee and overlapping scope, raise it as an edge case in Phase 4 ("Duplicate-work risk with {KEY}").
-- **`duplicates` / `is duplicated by` links**: if this ticket is a duplicate of an open ticket, verdict is `BLOCKED` with the recommendation to close as duplicate rather than implement.
+- **`duplicates` / `is duplicated by` links**:
+  - If this ticket is a duplicate of an open canonical ticket whose fix is not yet merged into the base branch, verdict is `BLOCKED` with the recommendation to close as duplicate manually rather than implement.
+  - If this ticket is a duplicate of canonical work that is already merged/deployed, verdict is `DUPLICATE_ALREADY_FIXED`. This verdict must carry the canonical ticket reference, the canonical PR/commit reference, and empirical evidence that the canonical fix is present on the relevant base branch. Never emit this verdict from a name/label match alone.
 - **`relates to` links with shipped PRs**: flag the PRs in the verification methodology (Phase 5) as prior art worth reviewing before writing new code.
 
 Do not re-fetch tickets — the bundle already has the context.
-If Phase 1.5 finds an automatic blocker condition (`is blocked by` not shipped, or duplicate-of-open), emit `BLOCKED` immediately and skip to Phase 6 output formatting.
+If Phase 1.5 finds an automatic blocker condition (`is blocked by` not shipped, or duplicate-of-open), emit `BLOCKED` immediately and skip to Phase 6 output formatting. If it finds a duplicate whose canonical fix is empirically present on the base branch, emit `DUPLICATE_ALREADY_FIXED` immediately and skip to Phase 6 output formatting.
 
 ## Phase 2 -- Cross-Repo Awareness
 
@@ -142,6 +144,7 @@ Every verification method must be specific enough that an automated agent could 
 Evaluate the findings and produce exactly one verdict:
 
 - **`NOT_RELEVANT`** -- No relevant code was found in this repository (Phase 1). The caller should add the triage label and skip implementation in this repo.
+- **`DUPLICATE_ALREADY_FIXED`** -- This ticket duplicates canonical work whose fix is already merged/deployed and empirically confirmed present on the relevant base branch. Work MUST NOT proceed. The caller must post the triage finding, ensure the native `duplicates <canonical>` link exists when the tracker supports one, and return the structured canonical reference/evidence to build intake for terminal duplicate closeout.
 - **`BLOCKED`** -- Blocking conditions were found in Phase 0 (missing required description content), Phase 1.5 (open blockers, duplicate-of-open), and/or Phase 3 (ambiguities). Work MUST NOT proceed until resolved by a human. When the block is from Phase 0, the caller (jira-agent) MUST transition the ticket to `Blocked` and reassign to the Reporter — not just leave it in place. For Phase 1.5 / Phase 3 blocks, post findings, add the triage label, and STOP.
 - **`PASSED_WITH_FINDINGS`** -- No ambiguities, but edge cases or verification findings were identified. Work can proceed. The caller should post findings and add the triage label.
 - **`PASSED`** -- No ambiguities, edge cases, or verification gaps found. Work can proceed. The caller should add the triage label.
@@ -149,7 +152,7 @@ Evaluate the findings and produce exactly one verdict:
 Output format:
 
 ```text
-## Verdict: [NOT_RELEVANT | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
+## Verdict: [NOT_RELEVANT | DUPLICATE_ALREADY_FIXED | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
 
 **Ambiguities found:** [count]
 **Edge cases identified:** [count]
@@ -172,11 +175,12 @@ Structure all output with clear section headers so the caller can parse and post
 ### Verification Methodology
 [Phase 5 table, or "No acceptance criteria to verify."]
 
-## Verdict: [NOT_RELEVANT | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
+## Verdict: [NOT_RELEVANT | DUPLICATE_ALREADY_FIXED | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
 ```
 
 The caller is responsible for:
 1. Posting the findings as comments on the ticket (using whatever Jira mechanism is available)
 2. Adding the `claude-triaged-{repo}` label to the ticket
 3. If `BLOCKED` due to Phase 0 (missing required description content): transitioning the ticket to `Blocked`, reassigning to the **Reporter**, posting a comment listing the missing requirements, and stopping all work.
-4. If `BLOCKED` due to Phase 1.5 (open blockers, duplicate-of-open) or Phase 3 (ambiguities): stopping all work and reporting to the human; do NOT auto-transition status in these cases.
+4. If `DUPLICATE_ALREADY_FIXED`: return the canonical ticket reference and empirical base-branch evidence to build intake so it can close the ticket as a terminal duplicate without opening a PR.
+5. If `BLOCKED` due to Phase 1.5 (open blockers, duplicate-of-open) or Phase 3 (ambiguities): stopping all work and reporting to the human; do NOT auto-transition status in these cases.
