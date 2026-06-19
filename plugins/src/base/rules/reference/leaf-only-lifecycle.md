@@ -104,6 +104,7 @@ This action is **terminal-only**:
 - Intermediate env-keyed states such as `status:on-dev`, `status:on-stg`, `On Dev`, or `On Stg` remain open / unresolved / active. They are deployment waypoints, not terminal completion.
 - A single-environment project whose `done` resolves to one value treats that value as terminal. In this repo, `production: main` means `status:done` / `Done` is terminal.
 - A multi-environment project treats only the production / final environment's `done` value as terminal unless the project explicitly configures `done` as a single string. Do not close native work items at lower environments.
+- Duplicate closeout is a narrow terminal exception: build intake may close a claimed item without a PR only when `ticket-triage` returns `DUPLICATE_ALREADY_FIXED` with a canonical item reference and empirical proof that the canonical fix is present on the relevant base branch. That closeout uses the provider's duplicate semantics (`Duplicate` resolution, duplicate/canceled state, or GitHub not-planned close with a duplicate link/comment), not the normal "completed build" reason. `BLOCKED`, ambiguous, duplicate-of-open, and other human-owned dispositions are not auto-closed.
 - The native finalization must be idempotent. If the item is already closed / completed / resolved, report that and continue.
 - If a provider exposes no native close / archive operation, or a project has not configured the native Done state, record a capability-aware no-op or setup error according to the vendor skill. Do not invent a state name.
 

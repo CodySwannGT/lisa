@@ -12,6 +12,8 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 The vendor scanners also own the terminal native-closure step from `leaf-only-lifecycle`: after a leaf reaches the true terminal `done` value, they close / resolve / complete the native tracker item where supported, while leaving intermediate env states open.
 
+They also forward the narrow duplicate terminal exception from `ticket-triage`: when a claimed item returns `DUPLICATE_ALREADY_FIXED` with a canonical item reference and empirical base-branch evidence, the vendor scanner posts the triage finding, ensures a native `duplicates <canonical>` link where supported, and closes the item as a duplicate without opening a PR. This is distinct from `BLOCKED`; open blockers, ambiguous tickets, and duplicate-of-open findings stay held for human action.
+
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa:tracker-write`).
@@ -55,10 +57,29 @@ This shim also forwards the `leaf-only-lifecycle` terminal native-closure contra
 
 Intermediate env states are not native closure. A vendor scanner that resolves `On Dev`, `On Stg`, `status:on-dev`, `status:on-stg`, or a configured equivalent leaves the item open / unresolved.
 
+## Duplicate-already-fixed terminal contract (forwarded to every vendor)
+
+`DUPLICATE_ALREADY_FIXED` is the only triage verdict that may close a claimed build item without a PR from the current cycle. The vendor scanner must require:
+
+- canonical ticket/issue reference;
+- canonical PR/commit reference;
+- empirical evidence that the canonical fix is present on the relevant base branch.
+
+Vendor closeout behavior:
+
+| Tracker | Duplicate closeout |
+|---|---|
+| `github` | apply terminal `$DONE`, ensure/link `duplicates <canonical>` where available, then `gh issue close --reason "not planned"` |
+| `jira` | transition to terminal `$DONE` with resolution `Duplicate` and ensure the native duplicates link |
+| `linear` | apply terminal `$DONE`, ensure/link duplicate relationship where available, then move to the configured canceled-as-duplicate or terminal duplicate state |
+
+If the canonical fix is merged but not yet on the production branch, the close comment must preserve the production-promotion caveat: the production error can recur until the canonical item promotes, and recurrence is tracked by the canonical item rather than by reopening this duplicate.
+
 ## Rules
 
 - Single cycle per invocation — the vendor skill processes at most one eligible `Ready` item and exits. Scheduler repetition works the rest of the queue.
 - The vendor skills run their own pre-flight checks (JIRA workflow transitions for the JIRA path; label namespace adoption for the GitHub and Linear paths) before processing items. Never bypass.
 - **Leaf-only dispatch, every vendor.** Per the `leaf-only-lifecycle` rule, each vendor scanner dispatches leaf work units only and moves or safe-blocks a container (open child work, or a childless Epic) carrying a stale build-ready role according to its lifecycle semantics. This shim does not re-implement the gate — it relies on the vendor scanner's Phase 3a — but the contract is uniform across `jira`, `github`, and `linear` so behavior never drifts by tracker.
 - **Terminal native closure, every capable vendor.** Per the same rule, each vendor scanner finalizes native open/closed state only at the true terminal `done` value. This shim never performs native closure itself, but callers can rely on the dispatched vendor scanner to apply the contract.
+- **Duplicate already fixed, every vendor.** Auto-close without a PR is allowed only for `DUPLICATE_ALREADY_FIXED` with canonical reference and empirical base-branch evidence. Do not conflate this with `BLOCKED`.
 - Never run two intake cycles concurrently against overlapping queues — the scheduling layer is responsible for serialization.

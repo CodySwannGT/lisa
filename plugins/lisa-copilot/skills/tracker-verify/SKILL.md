@@ -25,3 +25,4 @@ See the `config-resolution` rule for configuration and dispatch table.
 - Read-only.
 - The same gates run pre-write and post-write — this shim simply chooses the vendor implementation.
 - If the vendor verify reports `FAIL`, callers must NOT auto-fix from this layer. Surface the failures to the caller and let the higher-level skill decide.
+- Duplicate closeout is not a verifier shortcut. A build-intake ticket may be auto-closed as duplicate only when downstream triage returns `DUPLICATE_ALREADY_FIXED` with a canonical ticket reference and empirical evidence that the canonical fix is present on the relevant base branch; ordinary verifier `FAIL`/`PASS` output never implies duplicate resolution.
