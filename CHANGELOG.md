@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.174.1](https://github.com/CodySwannGT/lisa/compare/vv2.174.0...v2.174.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **intake:** close duplicate already fixed tickets ([ccc1fde](https://github.com/CodySwannGT/lisa/commit/ccc1fdedcfed54dba86405b4421255ec97655e41))
+
 ## [2.174.0](https://github.com/CodySwannGT/lisa/compare/vv2.173.3...v2.174.0) (2026-06-19)
 
 
