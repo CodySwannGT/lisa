@@ -38,4 +38,6 @@ When a leaf reaches the true terminal `done` (the production / final-env value),
 
 Intermediate env-keyed states (`status:on-dev`, `On Stg`, etc.) remain open. Idempotent — if already closed, report and continue.
 
+Duplicate closeout is a narrow terminal exception: build intake may close a claimed item without a PR only when `ticket-triage` returns `DUPLICATE_ALREADY_FIXED` with a canonical item reference and empirical base-branch proof. Close it through provider duplicate semantics, not as completed build work. `BLOCKED`, ambiguous, duplicate-of-open, and other human-owned dispositions are not auto-closed.
+
 Full vendor mechanics + the state machine in prose: [reference/leaf-only-lifecycle.md](../reference/leaf-only-lifecycle.md).
