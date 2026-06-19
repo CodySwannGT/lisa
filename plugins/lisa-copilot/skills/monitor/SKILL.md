@@ -1,12 +1,19 @@
 ---
 name: monitor
-description: "Monitor application health across environments. Checks health endpoints, recent logs (CloudWatch / Sentry / browser console), error-rate spikes, performance hotspots, pending migrations, and runs Playwright smoke flows when relevant. Routes to the stack-specific ops-specialist agent (Expo, Rails, etc.). Also invoked as the post-deploy step of the lisa:verify skill."
-allowed-tools: ["Skill", "Bash", "Read", "Grep"]
+description: "Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for what it finds. Checks health endpoints, recent logs (CloudWatch / Sentry / browser console), error-rate spikes, performance hotspots, pending migrations, and Playwright smoke flows via the stack-specific ops-specialist (Expo, Rails) or stack-agnostic base probing (any stack, incl. NestJS / CDK). Audits the repo against an observability-completeness rubric scoped to its type (frontend / backend / infra) and flags instrumentation gaps (e.g. no distributed tracing, no DB/query analytics). For each high-signal anomaly and each in-scope missing dimension it files a single-repo, build-ready leaf ticket via tracker-write (idempotent, capped, repo-scoped) so the intake cron implements it — monitor files only, it never fixes. Manual (no cron); files by default, `--dry-run` previews. Conservative by default. Also invoked as the post-deploy step of lisa:verify, where it runs report-only (never files)."
+allowed-tools: ["Skill", "Bash", "Read", "Grep", "Glob"]
 ---
 
 # Monitor: $ARGUMENTS
 
-Spot-check application health in the named environment (`dev` / `staging` / `prod`). Useful both reactively (after a deploy, after a Sentry alert, before pushing a hot change) and as the post-deploy verification step inside `lisa:verify`.
+Spot-check application health, **audit observability completeness**, and **file build-ready tickets** for the problems and instrumentation gaps it finds — all scoped to the current repo. Useful reactively (after a deploy, after a Sentry alert, before pushing a hot change), as a periodic manual observability sweep, and as the post-deploy verification step inside `lisa:verify`.
+
+**Arguments:** `<environment>` (`dev` / `staging` / `prod`) `[--dry-run] [--report-only] [--all-gaps] [max_candidates=<n>]`.
+
+- `--dry-run` — audit and report which tickets *would* be filed, but create nothing.
+- `--report-only` — health/audit summary only; no filing and no would-file analysis. This is the mode `lisa:verify` passes for its post-deploy check, so monitor never files during a verify run.
+- `--all-gaps` — also file `recommended`-tier gaps (session replay, product analytics, etc.), not just `core`. Does not change anomaly thresholds.
+- `max_candidates=<n>` — cap tickets filed this run (default 20; config `monitor.maxCandidates`).
 
 ## Orchestration: agent team
 
@@ -31,7 +38,9 @@ Treat the first successful lead-spawn request (or, on the Codex fallback, the fi
 
 ## Flow
 
-Execute the **Monitor** sub-flow as defined in the `intent-routing` rule (loaded via the lisa plugin). The Monitor sub-flow delegates to a stack-specific `ops-specialist` agent (Expo, Rails, etc.), which composes the underlying ops skills:
+Execute the **Monitor** sub-flow as defined in the `intent-routing` rule (loaded via the lisa plugin): **discover → collect live signals → audit completeness → report → file (standalone only)**. The `observability-audit` rule owns the profile detection, the completeness rubric, the conservative anomaly thresholds, the gate-passing ticket templates, the fingerprint/idempotency contract, the cap, and the Verify report-only guard — follow it; do not restate it here.
+
+**Live-signal collection** delegates to a stack-specific `ops-specialist` agent when the stack overlay ships one. The **Expo** ops-specialist composes the full set below:
 
 - `ops-verify-health` — health endpoints
 - `ops-check-logs` — CloudWatch / browser console / device / Serverless logs
@@ -41,8 +50,20 @@ Execute the **Monitor** sub-flow as defined in the `intent-routing` rule (loaded
 - `ops-db-ops` — pending migrations, replication lag
 - `ops-deploy` — deploy status / rollback readiness
 
-The agent decides which subset to run based on the env, the situation, and any extra context provided. The rule contains the canonical decision logic.
+The **Rails** ops-specialist composes a different subset (`ops-run-local`, `ops-deploy`, `ops-check-logs`, `ops-verify-jobs`, `ops-verify-telemetry` — X-Ray/CloudWatch traces and metrics via `ops-verify-telemetry`). When no `ops-specialist` overlay is present (e.g. NestJS, CDK, or a generic TypeScript repo), fall back to **stack-agnostic base probing** — read manifests/config to discover what's wired, then probe live sources directly (Sentry CLI/REST, `aws logs` / `aws cloudwatch` / `aws xray`, the Playwright MCP for client-side console/network), exactly as the `observability-audit` "read-then-probe" detection prescribes. The agent decides which subset to run based on the env, the repo profile, and any extra context.
+
+## Ticket filing (standalone only)
+
+After report, file what was found — **only when run standalone**, never under `--report-only`/`--dry-run` and never when nested inside `lisa:verify` (which passes `--report-only`):
+
+- **Anomalies** (live signals over the conservative bar) → `Bug` leaves. **Gaps** (in-scope MISSING rubric dimensions) → `Task`/`Improvement` leaves.
+- Every ticket is filed via the vendor-neutral `lisa:tracker-write` shim with `build_ready: true` (never a vendor write skill directly), as a **single-repo leaf** stamped `repo:<current>`, with a real three-audience description, Gherkin AC, Target Backend Environment, and a Validation Journey + `EVIDENCE:` marker so it passes the `tracker-validate` gates.
+- **Idempotent:** embed the `<!-- lisa-monitor-finding: <fingerprint> -->` sentinel and search-before-create; never duplicate a live or just-resolved finding.
+- **Capped** at `max_candidates` (default 20), `core`/high-severity first; report how many were filed vs dropped.
+- **`--dry-run`** previews would-file tickets and creates nothing. **`--all-gaps`** widens gap filing to `recommended` tiers.
+
+`monitor` files only. The `intake` / `tracker-build-intake` cron picks the ready tickets up and implements them.
 
 ## Output
 
-A health summary with the relevant findings (failures, warnings, no-issue confirmations). For post-deploy verification (when called from `lisa:verify`), the summary becomes evidence on the originating work item.
+A single report: the health/anomaly summary (failures, warnings, no-issue confirmations) + the observability audit table (each in-scope dimension as `OK` / `WARN` / `MISSING` / `PRESENT (unverified)`) + the filing summary (tickets filed with refs + fingerprints, duplicates skipped, dropped count if the cap truncated; or would-file tickets under `--dry-run`). For post-deploy verification (when called from `lisa:verify`), the report-only summary becomes evidence on the originating work item.

@@ -156,6 +156,18 @@ fi
       "staleAfterHours": 2,
       "maxCandidates": 100
     }
+  },
+
+  "monitor": {
+    "maxCandidates": 20,
+    "gapTiers": "core",
+    "backoffHours": 24,
+    "thresholds": {
+      "sentryMinEvents24h": 10,
+      "errorRateSpikeMultiplier": 2,
+      "p95LatencyMs": 1000,
+      "xrayFaultRatePct": 5
+    }
   }
 }
 ```
@@ -359,6 +371,29 @@ documented defaults, so existing projects need no config change.
 |-----|----------|---------|-------|
 | `intake.repair.staleAfterHours` | no | `2` | How long an in-progress item (build `claimed`, PRD `in_review`) may show no observable activity before repair-intake treats it as stalled and resumes it. `blocked` items are judged on blocker/answer state, not this threshold. Overridable per-run via `stale_after=<dur>` in `$ARGUMENTS` (which always wins). The same value is the default backoff window for loop-prevention notes. |
 | `intake.repair.maxCandidates` | no | `100` | Upper bound on how many stuck items repair-intake enumerates while searching for the first actionable one. Bounds scan cost. Overridable per-run via `max_candidates=<n>`. |
+
+### Monitor audit config (`monitor`)
+
+`lisa:monitor`'s audit-and-file arm reads an optional top-level `monitor` block. Every key is
+**optional** — a missing block inherits the documented defaults, so existing projects need no
+config change. The role SEMANTICS (what counts as an anomaly or gap, how findings become tickets)
+are fixed like every other lifecycle behavior; only these thresholds and caps are tunable. Full
+contract: the `observability-audit` rule.
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `monitor.maxCandidates` | no | `20` | Cap on tickets filed per standalone run (`core`/high-severity first). Overridable per-run via `max_candidates=<n>` in `$ARGUMENTS`, which always wins. |
+| `monitor.gapTiers` | no | `core` | Which gap tier files tickets by default: `core` (operationally load-bearing dimensions only) or `all` (also `recommended`). The `--all-gaps` run flag forces `all` for that invocation. |
+| `monitor.backoffHours` | no | `24` | How long after a finding's ticket is closed/resolved to keep suppressing a re-file (the recently-resolved dedup window), so a just-fixed regression isn't re-filed before its signal drains. Distinct from `intake.repair.staleAfterHours` (2h). |
+| `monitor.thresholds.sentryMinEvents24h` | no | `10` | Minimum 24h event count for an unresolved Sentry error to be fileable. |
+| `monitor.thresholds.errorRateSpikeMultiplier` | no | `2` | Error rate must be ≥ this × the prior-window baseline (and above an absolute floor) to file. |
+| `monitor.thresholds.p95LatencyMs` | no | `1000` | p95 latency at/above this (or up ≥ 50% vs prior window) is a fileable regression. |
+| `monitor.thresholds.xrayFaultRatePct` | no | `5` | X-Ray fault traces above this % of traces in the window is a fileable anomaly. |
+
+Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.config.local.json` →
+`.lisa.config.json` → built-in default. `monitor` files only within the current repo (type-scoped
+rubric + `repo:<name>` single-repo leaves); it never fixes — the `intake` cron implements what it
+files.
 
 ### Intake assignee filter (`intake.assignee`)
 
