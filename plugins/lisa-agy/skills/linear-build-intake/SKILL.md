@@ -207,8 +207,24 @@ Invoke `lisa:linear-agent` (per-Issue lifecycle agent) with the Issue identifier
 Wait for the agent to return. Capture its outcome:
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the Issue to a `done` env status.
 - **Blocked by linear-verify pre-flight gate** — `lisa:linear-agent` itself relabels to `status:blocked` and assigns to creator. Let it stand. Record and move on.
+- **Duplicate already fixed** — `lisa:linear-agent` / `lisa:ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical Issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when Linear exposes it (otherwise leave an explicit relation/comment reference), apply the terminal `$DONE` label, move the native Issue to the configured canceled-as-duplicate or completed terminal state, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical Issue promotes and that recurrence is tracked by the canonical Issue; do not reopen this duplicate for that recurrence.
 - **Blocked by ticket-triage ambiguities** — agent posts findings and stops. The Issue stays at `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave at `$CLAIMED`. Record with exception summary.
+
+#### 3c.1 Close duplicate already fixed
+
+Run this only when the returned triage verdict is exactly `DUPLICATE_ALREADY_FIXED`.
+
+1. Verify the structured result includes a canonical Issue reference, the canonical PR/commit, and empirical evidence that the canonical fix is present on the base branch. If any piece is missing, treat the outcome as Held instead of closing.
+2. Post or preserve the triage-finding comment that explains why this Issue is a duplicate and names the canonical Issue.
+3. Ensure a native `duplicates <canonical>` relationship exists when Linear exposes one; if this workspace cannot create that relationship, leave an explicit relation/comment reference and record the limitation in the summary.
+4. Resolve the terminal `$DONE` value exactly as in Phase 3d. For env-keyed workflows, duplicate closeout uses the production/final done label, not an intermediate `status:on-dev`/`status:on-stg` waypoint.
+5. Update labels by removing `$CLAIMED` and adding terminal `$DONE`, then move the native Linear state to the configured canceled-as-duplicate state. If no duplicate/canceled state is configured, use the configured terminal completed state only when that is the project's duplicate-close convention; otherwise record setup as an Error rather than inventing a state.
+6. Post a close comment naming the canonical Issue, PR/commit, and base-branch evidence.
+
+If the canonical fix is merged but not yet present on the production branch, append the production-promotion caveat to the close comment: the production error can recur until the canonical Issue promotes, and recurrence is tracked by the canonical Issue rather than by reopening this duplicate.
+
+This path is distinct from `BLOCKED`: ambiguity, open blockers, and duplicate-of-open findings remain held for human action and must not be auto-closed.
 
 #### 3d. Relabel to $DONE (only after the PR is merged)
 
@@ -260,6 +276,8 @@ Issues processed: <n>
   - <ID> <title> → PR <URL> (mergeStateStatus: <state>)
 - Skipped (container — leaf-only-lifecycle): <n>
   - <ID> <title> — build-ready on a parent with open child work; lifecycle-repair comment posted
+- Duplicate already fixed (closed as duplicate): <n>
+  - <ID> <title> — duplicate of <canonical>; no PR opened
 - status:blocked (pre-flight verify failed): <n>
   - <ID> <title> — see Issue comments
 - Held (triage found ambiguities): <n>
@@ -275,6 +293,7 @@ Total PRs opened: <n>
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic) is skipped/safe-blocked, never claimed (the `leaf-only-lifecycle` rule's claim-time arm). The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE agent invocation — no double-pickup.
 - **No writes outside the lifecycle**: this skill only adds/removes `$READY`, `$CLAIMED`, `$DONE`, plus terminal-only native state completion required by `leaf-only-lifecycle`. Every other label change (and non-terminal native state change) is owned by the agent or `lisa:linear-evidence`.
+- **Duplicate terminal exception**: `DUPLICATE_ALREADY_FIXED` is the only triage outcome that may close a claimed Issue without a PR from this cycle. It must include a canonical Issue reference and empirical base-branch evidence, and it closes through the configured duplicate/canceled terminal path rather than as completed build work.
 - **Terminal native closure**: after the `$DONE` label is applied, move the Linear Issue to a native completed state only when `$DONE` is the true terminal done value; intermediate env labels stay open / active.
 - **One item per cycle**: per-Issue exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
 - **Single cycle per team**: do not run two concurrent cycles against the same team — concurrent claims could race.
