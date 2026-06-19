@@ -107,7 +107,7 @@ Use the `jira-sync` skill to update the ticket at these milestones:
 Use the `jira-evidence` skill to:
 - Upload verification evidence to the GitHub PR
 - Post evidence summary as a JIRA comment
-- Transition the ticket to Code Review
+- Transition the ticket to the configured `jira.workflow.review` status **only if it is set**; if `review` is unconfigured, leave the ticket in `claimed` (do not transition).
 
 ### 8. Suggest Status Transition
 
@@ -116,7 +116,7 @@ Based on the milestone, suggest (but don't auto-transition). Status role names a
 | Milestone | Suggested role | Default status |
 |-----------|----------------|----------------|
 | Plan created | `claimed` | `In Progress` |
-| PR ready | (review-equivalent — project's code-review status) | `In Review` |
+| PR ready | (review-equivalent — project's review status) | the configured `jira.workflow.review` status, or **no transition** when `review` is unconfigured |
 | PR merged | `done` (env-aware) | `Done` (or env-keyed variant per `jira.workflow.done`) |
 
 Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`). When suggesting the PR-merged transition, the env is implied by the PR's base branch via `deploy.branches` — surface the resolved status name to the human; do not auto-transition.
@@ -124,6 +124,7 @@ Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`
 ## Rules
 
 - Never auto-transition ticket status, with one explicit exception: when `jira-verify` returns `FAIL` for the pre-flight gate (Step 2), transition to the configured `blocked` status, add the configured `human_needed` marker label (`jira.labels.human_needed`, default `Human Needed`), and reassign to the Reporter. Every other status change remains a suggestion the human confirms.
+- Any transition is config-bound: never invent transitions; a transition may target only a status named in `config.jira.workflow`. Don't guess from the live workflow. The evidence-time review hop (Step 7) follows this rule too — it is config-bound, optional, and skipped when `jira.workflow.review` is absent (the ticket stays in `claimed`).
 - Always read the full ticket graph via `jira-read-ticket` before determining intent — don't rely on ticket type alone
 - Never create or materially edit a ticket by calling MCP write tools directly — always delegate to `jira-write-ticket` so relationships, Gherkin criteria, and metadata gates are enforced
 - If sign-in credentials are in the ticket, extract and pass them to the flow. If the ticket touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.

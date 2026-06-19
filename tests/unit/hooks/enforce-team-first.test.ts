@@ -2,9 +2,10 @@
  * Tests for the enforce-team-first.sh hook.
  *
  * The hook arms enforcement when /lisa:research|plan|implement|intake is
- * invoked, blocks bypass tool calls until ToolSearch+TeamCreate fire,
- * and exempts subagent (teammate) sessions because they inherit the
- * lead's team.
+ * invoked, blocks bypass tool calls until the team is established — a
+ * TeamCreate (older Claude Code) or the first Agent spawn (implicit-team
+ * model, Claude Code >= 2.1.178) — and exempts subagent (teammate)
+ * sessions because they inherit the lead's team.
  * @module tests/unit/hooks/enforce-team-first
  */
 import { spawnSync } from "child_process";
@@ -133,7 +134,10 @@ describe("enforce-team-first.sh", () => {
     it("explains the path forward in the block message", () => {
       armSession("msg");
       const { stderr } = preToolUse("msg", "Task", {});
-      expect(stderr).toContain("ToolSearch");
+      // The path forward under the implicit-team model is spawning a teammate
+      // via the Agent tool; the message still names TeamCreate for older
+      // Claude Code, and the active skill.
+      expect(stderr).toContain("Agent");
       expect(stderr).toContain("TeamCreate");
       expect(stderr).toContain("/lisa:implement");
     });
@@ -143,6 +147,7 @@ describe("enforce-team-first.sh", () => {
     it.each([
       ["ToolSearch", { query: "select:TeamCreate" }],
       ["TeamCreate", {}],
+      ["Agent", { subagent_type: "general-purpose" }],
       ["TodoWrite", { todos: [] }],
       ["AskUserQuestion", {}],
     ])("allows %s while armed", (tool, input) => {
@@ -153,7 +158,7 @@ describe("enforce-team-first.sh", () => {
     });
   });
 
-  describe("PostToolUse on TeamCreate", () => {
+  describe("PostToolUse team-established signal", () => {
     it("lifts enforcement when TeamCreate succeeds", () => {
       const sid = "post-ok";
       armSession(sid);
@@ -167,6 +172,26 @@ describe("enforce-team-first.sh", () => {
         tool_name: "TeamCreate",
         tool_input: {},
         tool_response: { team_id: "team-xyz" },
+      });
+      expect(existsSync(flagPath(sid, "team"))).toBe(true);
+      expect(preToolUse(sid, "Bash", { command: "ls" }).status).toBe(
+        EXIT_ALLOWED
+      );
+    });
+
+    it("lifts enforcement when the first Agent spawn succeeds (implicit team)", () => {
+      const sid = "post-ok-agent";
+      armSession(sid);
+      expect(preToolUse(sid, "Bash", { command: "ls" }).status).toBe(
+        EXIT_BLOCKED
+      );
+
+      runHook({
+        hook_event_name: "PostToolUse",
+        session_id: sid,
+        tool_name: "Agent",
+        tool_input: { subagent_type: "general-purpose" },
+        tool_response: { agentId: "a1234-abcd" },
       });
       expect(existsSync(flagPath(sid, "team"))).toBe(true);
       expect(preToolUse(sid, "Bash", { command: "ls" }).status).toBe(

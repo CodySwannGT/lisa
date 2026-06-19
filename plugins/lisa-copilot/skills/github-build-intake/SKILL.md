@@ -270,8 +270,29 @@ Wait for `lisa:github-agent` to return. Capture its outcome:
 
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the issue to a `done` env status.
 - **Blocked by github-verify pre-flight gate** — `lisa:github-agent` itself relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
+- **Duplicate already fixed** — `lisa:github-agent` / `lisa:ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when GitHub exposes it (otherwise leave an explicit cross-reference comment/body link), remove `$CLAIMED`, add the terminal `$DONE` label, close the issue with `gh issue close --reason "not planned"`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical issue promotes and that recurrence is tracked by the canonical issue; do not reopen this duplicate for that recurrence.
 - **Blocked by ticket-triage ambiguities** — `lisa:github-agent` posts findings and stops. The issue stays in `$CLAIMED`. Surface to human; do not auto-relabel. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave the issue in `$CLAIMED` for human investigation. Record under "Errors".
+
+#### 3c.1 Close duplicate already fixed
+
+Run this only when the returned triage verdict is exactly `DUPLICATE_ALREADY_FIXED`.
+
+1. Verify the structured result includes a canonical issue reference, the canonical PR/commit, and empirical evidence that the canonical fix is present on the base branch. If any piece is missing, treat the outcome as Held instead of closing.
+2. Post or preserve the triage-finding comment that explains why this issue is a duplicate and names the canonical issue.
+3. Ensure a native `duplicates <canonical>` link exists when GitHub exposes issue relationships; if this installation cannot create that relationship, leave an explicit issue cross-reference comment/body link and record the limitation in the summary.
+4. Resolve terminal `$DONE` exactly as in Phase 3d. For a single-env repo, `$DONE` is terminal; for env-keyed config, only the production/final value is terminal.
+5. Replace `$CLAIMED` with `$DONE`, then close the issue as duplicate/not-planned:
+
+```bash
+gh issue edit <number> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$DONE"
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Closed as duplicate of <canonical>. Canonical fix: <PR-or-commit>. Evidence: <base-branch-proof>."
+gh issue close <number> --repo <org>/<repo> --reason "not planned"
+```
+
+If the canonical fix is merged but not yet present on the production branch, append the production-promotion caveat to the close comment: the production error can recur until the canonical issue promotes, and recurrence is tracked by the canonical issue rather than by reopening this duplicate.
+
+This path is distinct from `BLOCKED`: ambiguity, open blockers, and duplicate-of-open findings remain held for human action and must not be auto-closed.
 
 #### 3d. Transition to $DONE (only after the PR is merged)
 
@@ -336,6 +357,8 @@ Issues processed: <n>
   - <org>/<repo>#<number> <title> — build-ready on a parent/container; moved $READY → $CLAIMED without invoking lisa:github-agent; lifecycle-repair comment posted
 - Skipped (active blockers): <n>
   - <org>/<repo>#<number> <title> — waiting on <blocker refs>
+- Duplicate already fixed (closed as duplicate): <n>
+  - <org>/<repo>#<number> <title> — duplicate of <canonical>; no PR opened
 - Blocked (pre-flight verify failed): <n>
   - <org>/<repo>#<number> <title> — see issue comments
 - Held (triage found ambiguities): <n>
@@ -352,6 +375,7 @@ Total PRs opened: <n>
 - **Dependency hold runs before leaf claim**: explicit `Blocked by:` relationships are resolved after container repair is ruled out but before `$READY → $CLAIMED`; active blockers leave the leaf candidate in `$READY` and are reported as skipped, not blocked.
 - **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa:github-agent` invocation for leaves; containers are also moved to `$CLAIMED` to leave the ready pickup queue, but are not dispatched.
 - **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. For containers, `$READY → $CLAIMED` is a lifecycle repair, not a direct build claim. Every other label change is owned by `lisa:github-agent`.
+- **Duplicate terminal exception**: `DUPLICATE_ALREADY_FIXED` is the only triage outcome that may close a claimed item without a PR from this cycle. It must include a canonical issue reference and empirical base-branch evidence, and it closes as duplicate/not-planned rather than as completed build work.
 - **Terminal native closure**: after `$CLAIMED → $DONE`, close the GitHub issue only when `$DONE` is the true terminal done value per `leaf-only-lifecycle`; intermediate env labels stay open.
 - **One item per cycle**: per-issue exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
 - **Single cycle per repo**: do not run two `lisa:github-build-intake` cycles in parallel against the same repo — concurrent claims could race. The scheduling layer is responsible for serialization.
@@ -378,6 +402,7 @@ If the repo has not adopted the `status:*` label namespace, this skill cannot ru
 - Never bypass `lisa:github-agent` to do build work directly. `lisa:github-agent` owns the per-issue lifecycle.
 - Never auto-transition past `$DONE`. Downstream labels (terminal `status:done`, etc.) are owned by QA / PM / merge automation.
 - Never close a GitHub issue at intermediate env states (`status:on-dev`, `status:on-stg`, or configured equivalents). Native close happens only at the terminal `done` value.
+- Never auto-close a `BLOCKED`, ambiguous, or duplicate-of-open issue. Auto-close is allowed only for `DUPLICATE_ALREADY_FIXED`.
 - If the issue has no Validation Journey or no sign-in credentials, `lisa:github-agent`'s pre-flight verify will catch it — **don't try to fix the issue from here**.
 - On any unexpected response from `lisa:github-agent` (status it doesn't claim, missing PR URL on success), record as Error and surface — never assume.
 - Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.
