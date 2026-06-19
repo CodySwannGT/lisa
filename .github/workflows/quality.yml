@@ -134,6 +134,11 @@ on:
         required: false
         default: false
         type: boolean
+      concurrency_group:
+        description: 'Optional concurrency group to serialize whole workflow runs that share mutable external state (e.g. Playwright E2E that switches the server-side org of a shared test user; concurrent runs otherwise stomp each other). When set, every run passing the same string queues one-behind-another (cancel-in-progress: false). It MUST differ from the calling workflow concurrency group, or parent/child runs sharing a group can deadlock. Default empty = no cross-run serialization (a unique group per run, prior behavior preserved).'
+        required: false
+        default: ''
+        type: string
     secrets:
       SONAR_TOKEN:
         description: 'SonarCloud token for SAST analysis'
@@ -151,8 +156,24 @@ on:
         description: 'Maestro Cloud API key for mobile E2E testing'
         required: false
 
-# Concurrency is managed by the parent workflow that calls this one
-# This avoids deadlocks between parent and child workflows
+# Cross-run serialization is opt-in via the `concurrency_group` input.
+#
+# Historically this workflow set NO concurrency and deferred entirely to the
+# calling workflow, to avoid parent/child deadlocks (a parent run holding a
+# group slot while waiting on a child that queues on the same group). That
+# hazard only exists when parent and child SHARE a group with
+# `cancel-in-progress: false`, so this opt-in is deadlock-safe by construction:
+#   - default (input empty): the group is unique per run (github.run_id), so no
+#     run ever waits on another — behavior is identical to having no concurrency.
+#   - set: callers pass a constant string DISTINCT from their own top-level
+#     concurrency group, serializing these runs across PRs without ever sharing
+#     a group with the parent.
+# Used to mutex suites that mutate shared external state — e.g. Playwright E2E
+# that switches a shared test user's server-side org (concurrent CI runs across
+# PRs otherwise stomp each other's org context).
+concurrency:
+  group: ${{ inputs.concurrency_group != '' && inputs.concurrency_group || format('lisa-quality-no-serialize-{0}', github.run_id) }}
+  cancel-in-progress: false
 
 jobs:
   # Central dependency installation job to optimize performance
