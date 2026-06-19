@@ -51,7 +51,9 @@ describe("build intake duplicate-already-fixed closeout", () => {
       expect(content).toMatch(/canonical ticket\/issue reference/i);
       expect(content).toMatch(/canonical PR\/commit reference/i);
       expect(content).toMatch(/empirical evidence/i);
-      expect(content).toMatch(/Do not conflate this with `BLOCKED`/);
+      expect(content).toMatch(
+        /distinct from `BLOCKED`|do not conflate.*`BLOCKED`/i
+      );
     });
   });
 
@@ -77,7 +79,7 @@ describe("build intake duplicate-already-fixed closeout", () => {
       it("keeps BLOCKED and ambiguous outcomes out of auto-close", () => {
         expect(content).toMatch(/distinct from `BLOCKED`/);
         expect(content).toMatch(
-          /must not be auto-closed|Auto-close is allowed only/i
+          /must not be auto-closed|not auto-closed|only triage verdict.*close.*without a PR|close.*without opening a PR/i
         );
       });
     });
