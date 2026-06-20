@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.175.3](https://github.com/CodySwannGT/lisa/compare/vv2.175.2...v2.175.3) (2026-06-20)
+
+
+### Bug Fixes
+
+* **rules:** make security-audit remediation autonomous via decision ladder ([5420223](https://github.com/CodySwannGT/lisa/commit/54202239232e854bb80a2dacbcc759a13b77dfbd))
+
+
+### Documentation
+
+* **migrations:** clarify reason field is policy-enforced, not code-validated ([96941a8](https://github.com/CodySwannGT/lisa/commit/96941a8422ad634346aa08c4063f2a08190b02b2))
+
 ### [2.175.2](https://github.com/CodySwannGT/lisa/compare/vv2.175.1...v2.175.2) (2026-06-20)
 
 

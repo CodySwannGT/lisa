@@ -36,7 +36,7 @@ If those checks fail, the override is "not possible" — drop to step 3.
 
 - Never add a blanket audit bypass or lower the configured audit level.
 - Never escalate to a human (step 4) before genuinely attempting steps 1–3.
-- Never add an ignore entry (step 5) without an impact evaluation recorded in its `reason`.
+- Never add an ignore entry (step 5) without an impact evaluation recorded in its `reason`. (This is a policy requirement enforced by convention. The `reason` field is not programmatically validated by Lisa tooling, so its presence relies on Claude following this rule faithfully.)
 
 ## Rails (bundler-audit)
 
