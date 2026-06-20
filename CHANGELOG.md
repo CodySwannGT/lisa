@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.1](https://github.com/CodySwannGT/lisa/compare/vv2.176.0...v2.176.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **apply:** stop copy-contents from duplicating markerless managed files ([0d622d7](https://github.com/CodySwannGT/lisa/commit/0d622d7517e2d48ec04989e79d4b934c4d2c2460))
+
 ## [2.176.0](https://github.com/CodySwannGT/lisa/compare/vv2.175.3...v2.176.0) (2026-06-20)
 
 
