@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.176.0](https://github.com/CodySwannGT/lisa/compare/vv2.175.3...v2.176.0) (2026-06-20)
+
+
+### Features
+
+* **rules:** add upstream-to-lisa rule for host-project agents ([50ae92c](https://github.com/CodySwannGT/lisa/commit/50ae92c3609979ccf72dc25ef0effdd99b16fe67))
+
 ### [2.175.3](https://github.com/CodySwannGT/lisa/compare/vv2.175.2...v2.175.3) (2026-06-20)
 
 
