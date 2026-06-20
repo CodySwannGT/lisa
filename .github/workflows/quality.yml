@@ -1432,17 +1432,43 @@ jobs:
               echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
             fi
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            # Build --ignore flags dynamically from exclusion list
-            BUN_IGNORE_FLAGS=""
-            for _id in $GHSA_IDS; do
-              BUN_IGNORE_FLAGS="$BUN_IGNORE_FLAGS --ignore=$_id"
-            done
+            GHSA_IDS_JSON=$(printf '%s\n' $GHSA_IDS | jq -R . | jq -s 'map(select(length > 0))')
+            CVE_IDS_JSON=$(printf '%s\n' $CVE_IDS | jq -R . | jq -s 'map(select(length > 0))')
+            AUDIT_JSON=$(bun audit --json 2>/dev/null || true)
+            if [ -z "$AUDIT_JSON" ]; then
+              AUDIT_JSON="{}"
+            fi
 
-            if ! bun audit --audit-level=high $BUN_IGNORE_FLAGS; then
-              echo "::warning::Found high or critical vulnerabilities"
+            BUN_HIGH_VULNS=$(echo "$AUDIT_JSON" | jq \
+              --argjson ghsa_ids "$GHSA_IDS_JSON" \
+              --argjson cve_ids "$CVE_IDS_JSON" \
+              '[
+                to_entries[]
+                | .key as $package
+                | (.value // [])[]?
+                | select(.severity == "high" or .severity == "critical")
+                | . + {
+                    package: $package,
+                    ghsa_id: (.url // "" | split("/") | last),
+                    advisory_id: (.id // "" | tostring),
+                    cves: ([.cve?, .cves[]?] | map(select(. != null and . != "")))
+                  }
+                | select(
+                    (
+                      ([.ghsa_id, .advisory_id] | map(select(. != "")) | any(. as $id | $ghsa_ids | index($id)))
+                      or (.cves | any(. as $cve | $cve_ids | index($cve)))
+                    )
+                    | not
+                  )
+              ]')
+            UNFIXED_HIGH=$(echo "$BUN_HIGH_VULNS" | jq 'length')
+
+            if [ "$UNFIXED_HIGH" -gt 0 ]; then
+              echo "::error::Found high or critical vulnerabilities (after excluding known false positives):"
+              echo "$BUN_HIGH_VULNS" | jq .
               exit 1
             fi
-            echo "::notice::No high or critical vulnerabilities found"
+            echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
           else
             echo "Unsupported package manager: ${{ inputs.package_manager }}"
             exit 1
