@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.5](https://github.com/CodySwannGT/lisa/compare/vv2.176.4...v2.176.5) (2026-06-20)
+
+
+### Bug Fixes
+
+* **ci:** bust poisoned node_modules cache and align forced vite floor ([295858c](https://github.com/CodySwannGT/lisa/commit/295858c242e0293b6c976618536d191a59aedfd2))
+
 ### [2.176.4](https://github.com/CodySwannGT/lisa/compare/vv2.176.3...v2.176.4) (2026-06-20)
 
 ### [2.176.3](https://github.com/CodySwannGT/lisa/compare/vv2.176.2...v2.176.3) (2026-06-20)
