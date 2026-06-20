@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.175.2](https://github.com/CodySwannGT/lisa/compare/vv2.175.1...v2.175.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* honor bun audit allowlist ([7bd3fcf](https://github.com/CodySwannGT/lisa/commit/7bd3fcf3c178145eb25448aee510ca036334b71a)), closes [#1322](https://github.com/CodySwannGT/lisa/issues/1322)
+
 ### [2.175.1](https://github.com/CodySwannGT/lisa/compare/vv2.175.0...v2.175.1) (2026-06-20)
 
 
