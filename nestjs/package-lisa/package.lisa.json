@@ -95,6 +95,12 @@
       "oxlint-tsgolint": "^0.22.1",
       "@stryker-mutator/core": "^9.0.0",
       "@stryker-mutator/vitest-runner": "^9.0.0"
+    },
+    "overrides": {
+      "vite": "$vite"
+    },
+    "resolutions": {
+      "vite": "$vite"
     }
   }
 }
