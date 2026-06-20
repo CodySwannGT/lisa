@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.2](https://github.com/CodySwannGT/lisa/compare/vv2.176.1...v2.176.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* **security:** force-bump undici and multer in TS package governance ([1c2422f](https://github.com/CodySwannGT/lisa/commit/1c2422f9df9651c528072266bee63d4c78d26571))
+
 ### [2.176.1](https://github.com/CodySwannGT/lisa/compare/vv2.176.0...v2.176.1) (2026-06-20)
 
 
