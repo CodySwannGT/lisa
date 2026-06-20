@@ -25,9 +25,10 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
     resolve review comments, dismiss stale review gates — drive until merged.
   - **`report`** (diagnose & mechanically nudge only): perform just the safe,
     idempotent, non-destructive actions — ensure auto-merge is enabled and, if the
-    PR is `BEHIND` but otherwise clean, run `gh pr update-branch`. For **anything**
-    that would require editing code, resolving threads, or dismissing a review,
-    **do not act** — stop and return a structured blocker classification
+    PR is `BEHIND` but otherwise clean, run `gh pr update-branch` only when the
+    base branch requires strict up-to-date checks. For **anything** that would
+    require editing code, resolving threads, or dismissing a review, **do not
+    act** — stop and return a structured blocker classification
     (`merged` / `will-merge-after-resync` / `blocked:<conflict|checks|changes_requested|deploy>`)
     so the caller applies its own policy. This is the mode `repair-intake` and the
     build-intake skills use to diagnose-and-route without fixing in place.
@@ -60,8 +61,33 @@ apply; for any of (b)–(e) do not act — classify the blocker and return per t
 contract above.
 
 ### a. Branch behind base (`mergeStateStatus == BEHIND`)
-Once required checks are green, run `gh pr update-branch <pr>` and keep watching the
-new head while checks rerun.
+Before proactively syncing a clean `BEHIND` PR, check whether the base branch
+actually requires up-to-date branches:
+
+```bash
+owner_repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+base=$(gh pr view <pr> --json baseRefName -q .baseRefName)
+strict=$(gh api "repos/$owner_repo/rules/branches/$base" \
+  --jq '[.[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy // false] | any')
+```
+
+If that rules endpoint is unavailable, fall back to classic branch protection:
+
+```bash
+strict=$(gh api "repos/$owner_repo/branches/$base/protection/required_status_checks" \
+  --jq '.strict // false')
+```
+
+Only when `strict == true`, once required checks are green, run
+`gh pr update-branch <pr>` and keep watching the new head while checks rerun.
+If `strict == false`, do **not** update the branch solely because the base moved:
+continue the mergeability loop and let GitHub merge the existing head once the
+checks/reviews are acceptable. This avoids cancellation storms in repos whose CI
+uses `concurrency.cancel-in-progress: true`.
+
+Still sync when it is necessary to resolve a genuine merge conflict, and it is
+acceptable to perform one final sync immediately before a direct merge if the
+merge attempt proves the head must be updated.
 
 ### b. Sync/merge conflict
 If `gh pr update-branch` reports a conflict (or `mergeStateStatus == DIRTY`):
