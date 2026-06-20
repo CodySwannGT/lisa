@@ -38,10 +38,12 @@
     },
     "private": true,
     "overrides": {
-      "aws-cdk-lib": ">=2.246.0"
+      "aws-cdk-lib": "$aws-cdk-lib",
+      "vite": "$vite"
     },
     "resolutions": {
-      "aws-cdk-lib": ">=2.246.0"
+      "aws-cdk-lib": "$aws-cdk-lib",
+      "vite": "$vite"
     }
   },
   "defaults": {
