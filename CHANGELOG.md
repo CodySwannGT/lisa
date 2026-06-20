@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.3](https://github.com/CodySwannGT/lisa/compare/vv2.176.2...v2.176.3) (2026-06-20)
+
+
+### Bug Fixes
+
+* **skills:** gate branch updates on strict checks ([b8da59e](https://github.com/CodySwannGT/lisa/commit/b8da59e1e406eee84ed28a043c16c12371b162d9)), closes [#1327](https://github.com/CodySwannGT/lisa/issues/1327)
+
 ### [2.176.2](https://github.com/CodySwannGT/lisa/compare/vv2.176.1...v2.176.2) (2026-06-20)
 
 
