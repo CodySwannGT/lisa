@@ -91,7 +91,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🔖 Create Jira Issue
         id: create_jira_issue

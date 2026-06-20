@@ -98,7 +98,6 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
           registry-url: 'https://registry.npmjs.org'
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: Update npm for OIDC support
         run: npm install -g npm@latest
