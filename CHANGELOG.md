@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.7](https://github.com/CodySwannGT/lisa/compare/vv2.176.6...v2.176.7) (2026-06-20)
+
+
+### Bug Fixes
+
+* **ci:** drop contradictory setup-node cache input that breaks npm ci ([8826521](https://github.com/CodySwannGT/lisa/commit/8826521e25467fdcdb03b975adb13635e613b8a9)), closes [#163](https://github.com/CodySwannGT/lisa/issues/163) [#165](https://github.com/CodySwannGT/lisa/issues/165)
+
 ### [2.176.6](https://github.com/CodySwannGT/lisa/compare/vv2.176.5...v2.176.6) (2026-06-20)
 
 
