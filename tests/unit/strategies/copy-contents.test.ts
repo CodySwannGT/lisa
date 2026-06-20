@@ -323,6 +323,38 @@ describe("CopyContentsStrategy", () => {
     expect(content).not.toContain("\n\n");
   });
 
+  it("overwrites (never appends) when the source has no guardrail markers", async () => {
+    // Regression: a fully Lisa-managed file with no AI GUARDRAILS block must
+    // not be block-merged. Appending the markerless source duplicated the
+    // whole file on every content change (shipped lisa-mutation.mjs twice).
+    const SCRIPT = "scripts/lisa-managed.mjs";
+    const srcFile = path.join(srcDir, SCRIPT);
+    const destFile = path.join(destDir, SCRIPT);
+    const sourceContent = "#!/usr/bin/env node\nconsole.log('v2');\n";
+    const destContent = "#!/usr/bin/env node\nconsole.log('v1');\n";
+
+    await fs.ensureDir(path.dirname(srcFile));
+    await fs.ensureDir(path.dirname(destFile));
+    await fs.writeFile(srcFile, sourceContent);
+    await fs.writeFile(destFile, destContent);
+
+    const result = await strategy.apply(
+      srcFile,
+      destFile,
+      SCRIPT,
+      createContext()
+    );
+
+    expect(result.action).toBe("overwritten");
+
+    const content = await fs.readFile(destFile, "utf-8");
+    // Exactly the source — not source appended onto the old content.
+    expect(content).toBe(sourceContent);
+    expect(content).not.toContain("v1");
+    // Single shebang, not duplicated.
+    expect(content.match(/#!\/usr\/bin\/env node/g)).toHaveLength(1);
+  });
+
   it("handles only begin marker without end marker", async () => {
     const srcFile = path.join(srcDir, GITIGNORE);
     const destFile = path.join(destDir, GITIGNORE);
