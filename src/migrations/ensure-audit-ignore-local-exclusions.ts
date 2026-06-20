@@ -12,7 +12,13 @@ const AUDIT_CONFIG = "audit.ignore.config.json";
 const AUDIT_LOCAL = "audit.ignore.local.json";
 
 /**
- * One exclusion entry (partial — we only read `id` to detect duplicates)
+ * One exclusion entry (partial — we only read `id` to detect duplicates).
+ *
+ * Per security-audit-handling.md, every exclusion entry added by Claude must
+ * include a `reason` field documenting the impact evaluation. That requirement
+ * is a behavioural policy enforced by convention, not validated here. The
+ * migration treats all fields other than `id` as opaque so that entries are
+ * relocated intact regardless of their completeness.
  */
 interface Exclusion {
   readonly id?: string;
