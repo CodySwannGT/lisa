@@ -287,6 +287,58 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies.oxlint).toBe("^0.1.0");
     });
 
+    // Regression (fleet-wide `npm ci` EUSAGE): npm's `assertRootOverrides`
+    // rejects the whole install when a force.override targets a package that is
+    // ALSO a direct dependency unless the override spec matches the dep spec.
+    // Under skip-git-check we write overrides but not devDependencies, so a
+    // floored override (vite "^8.0.16") collided with a lagging direct dep
+    // (vite "^8.0.5") and `npm ci` failed. The security-pins path must pin such
+    // overridden direct deps to the override spec — without adding non-direct
+    // overridden packages or clobbering unrelated host deps.
+    it("pins an overridden direct dependency to the override spec under skip-git-check", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          overrides: { vite: "^8.0.16", ws: ">=8.21.0" },
+          resolutions: { vite: ">=8.0.16" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        dependencies: { vite: "^8.0.5", "left-pad": "^1.0.0" },
+        devDependencies: { typescript: "^6.0.3" },
+        overrides: {},
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      // The overridden direct dep is pinned to the override spec so it matches
+      // (npm's assertRootOverrides then accepts the install) and the floor lands.
+      expect(content.dependencies.vite).toBe("^8.0.16");
+      expect(content.overrides.vite).toBe("^8.0.16");
+      // Unrelated host direct deps are preserved (deepMerge per-key).
+      expect(content.dependencies["left-pad"]).toBe("^1.0.0");
+      expect(content.devDependencies.typescript).toBe("^6.0.3");
+      // `ws` is overridden but NOT a direct dep, so it is never added to deps.
+      expect(content.dependencies.ws).toBeUndefined();
+      expect(content.devDependencies.ws).toBeUndefined();
+    });
+
     // Regression: force.resolutions and force.overrides must replace project-side
     // values for package-level dep pinning (e.g. axios). This is the write that
     // was silently lost when `bun add -d @codyswann/lisa@latest` clobbered

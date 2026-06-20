@@ -224,7 +224,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // security-critical force.resolutions/force.overrides sections so host
     // scripts/deps/defaults are preserved while dependency pins still land.
     const effective = securityPinsOnly
-      ? this.restrictToSecurityPins(merged)
+      ? this.restrictToSecurityPins(merged, projectJson)
       : merged;
 
     // Apply force/defaults/merge logic to project's package.json
@@ -233,15 +233,26 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
   /**
    * Reduce a resolved template to only the security-critical force sections
-   * (`resolutions` and `overrides`), dropping force.scripts/devDependencies,
-   * defaults, merge, and remove. Used during skip-git-check (postinstall)
-   * applies so dependency pins still apply without clobbering host config.
+   * (`resolutions` and `overrides`), dropping force.scripts, defaults, merge,
+   * and remove. Used during skip-git-check (postinstall) applies so dependency
+   * pins still apply without clobbering host config.
+   *
+   * Additionally pins any overridden package that the project already declares
+   * as a direct dependency to the override spec (in its existing section). npm
+   * forbids a root override on a direct dependency unless the specs match, so
+   * without this an override-only apply leaves `npm ci` failing with EUSAGE and
+   * the security floor unenforced on the direct dependency. Only existing direct
+   * deps are bumped; nothing new is added.
    * @param template - Fully merged template from the type hierarchy
-   * @returns Template carrying only force.resolutions and force.overrides
+   * @param projectJson - The project's current package.json (to detect which
+   *   overridden packages are direct dependencies)
+   * @returns Template carrying force.resolutions, force.overrides, and the
+   *   matching direct-dependency floors
    * @private
    */
   private restrictToSecurityPins(
-    template: ResolvedPackageLisaTemplate
+    template: ResolvedPackageLisaTemplate,
+    projectJson: Record<string, unknown>
   ): ResolvedPackageLisaTemplate {
     const force: Record<string, unknown> = {};
     if (template.force.resolutions !== undefined) {
@@ -250,6 +261,40 @@ export class PackageLisaStrategy implements ICopyStrategy {
     if (template.force.overrides !== undefined) {
       force.overrides = template.force.overrides;
     }
+
+    // npm's `assertRootOverrides` rejects the entire install when a root
+    // `overrides` entry targets a package that is ALSO a direct dependency,
+    // unless the override spec exactly matches the dependency spec. The
+    // postinstall (security-pins-only) apply writes overrides/resolutions but
+    // not dependencies, so a floored override (e.g. vite "^8.0.16") collides
+    // with a lagging direct dep (vite "^8.0.5") and `npm ci` fails with EUSAGE.
+    // To keep the override valid AND land the security floor, pin every
+    // overridden package the project already depends on directly to the
+    // override spec, in whichever section the project declares it. Only
+    // existing direct deps are bumped (never added); deepMerge preserves all
+    // sibling dependencies.
+    const overrides =
+      (template.force.overrides as Record<string, string> | undefined) ?? {};
+    const stringOverrides = Object.entries(overrides).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
+    );
+    const projectDeps =
+      (projectJson.dependencies as Record<string, string> | undefined) ?? {};
+    const projectDevDeps =
+      (projectJson.devDependencies as Record<string, string> | undefined) ?? {};
+    const dependencies = Object.fromEntries(
+      stringOverrides.filter(([pkg]) => pkg in projectDeps)
+    );
+    const devDependencies = Object.fromEntries(
+      stringOverrides.filter(([pkg]) => pkg in projectDevDeps)
+    );
+    if (Object.keys(dependencies).length > 0) {
+      force.dependencies = dependencies;
+    }
+    if (Object.keys(devDependencies).length > 0) {
+      force.devDependencies = devDependencies;
+    }
+
     return { force, defaults: {}, merge: {}, remove: {} };
   }
 
