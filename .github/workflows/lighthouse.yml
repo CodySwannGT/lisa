@@ -37,7 +37,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: '🍞 Setup Bun'
         if: inputs.package_manager == 'bun'

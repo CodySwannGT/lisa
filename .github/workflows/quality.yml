@@ -192,7 +192,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -203,14 +202,22 @@ jobs:
       - name: 🔑 Generate cache key
         id: cache
         run: |
+          # CACHE_VERSION prefix lets us abandon every previously-saved cache in
+          # one bump. An earlier revision of this workflow cached package-lock.json
+          # itself; those stale entries still match the loose restore-keys below and,
+          # when restored, overwrote the checked-out lockfile with an invalid one —
+          # making `npm ci` fail with "can only install with an existing
+          # package-lock.json (lockfileVersion >= 1)" on repos that happened to hold
+          # such a cache. Bumping the version invalidates them fleet-wide.
+          CACHE_VERSION=v2
           if [ -f "package-lock.json" ]; then
-            echo "cache-key=${{ runner.os }}-node-${{ inputs.node_version }}-npm-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-npm-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
           elif [ -f "yarn.lock" ]; then
-            echo "cache-key=${{ runner.os }}-node-${{ inputs.node_version }}-yarn-${{ hashFiles('yarn.lock') }}" >> $GITHUB_OUTPUT
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-yarn-${{ hashFiles('yarn.lock') }}" >> $GITHUB_OUTPUT
           elif [ -f "bun.lockb" ]; then
-            echo "cache-key=${{ runner.os }}-node-${{ inputs.node_version }}-bun-${{ hashFiles('bun.lockb') }}" >> $GITHUB_OUTPUT
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-bun-${{ hashFiles('bun.lockb') }}" >> $GITHUB_OUTPUT
           else
-            echo "cache-key=${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-${{ hashFiles('package.json') }}" >> $GITHUB_OUTPUT
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-${{ hashFiles('package.json') }}" >> $GITHUB_OUTPUT
           fi
 
       - name: 📦 Cache node_modules
@@ -223,10 +230,11 @@ jobs:
             ~/.yarn/cache
             ~/.bun/install/cache
           key: ${{ steps.cache.outputs.cache-key }}
+          # restore-keys are package-manager-scoped only. The old cross-PM blanket
+          # (`<os>-node-`) could restore a yarn/bun cache into an npm project; dropped.
           restore-keys: |
-            ${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-
-            ${{ runner.os }}-node-${{ inputs.node_version }}-
-            ${{ runner.os }}-node-
+            v2-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-
+            v2-${{ runner.os }}-node-${{ inputs.node_version }}-
 
       - name: 📥 Install dependencies
         if: steps.cache-modules.outputs.cache-hit != 'true'
@@ -275,7 +283,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -330,7 +337,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -370,7 +376,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -410,7 +415,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -457,7 +461,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -526,7 +529,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -591,7 +593,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -657,7 +658,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -839,7 +839,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -979,7 +978,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: steps.check_playwright.outputs.has_config == 'true' && inputs.package_manager == 'bun'
@@ -1068,7 +1066,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1108,7 +1105,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1190,7 +1186,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1236,7 +1231,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1314,7 +1308,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1593,7 +1586,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1741,7 +1733,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
