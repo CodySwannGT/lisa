@@ -150,6 +150,37 @@ export class CopyContentsStrategy implements ICopyStrategy {
   }
 
   /**
+   * Overwrite the destination with the full source content.
+   *
+   * Used when a copy-contents source carries no guardrails block: such a file
+   * cannot be block-merged, and the append fallback would duplicate the entire
+   * file on every content change. Overwriting matches the file's intent (a
+   * fully Lisa-managed file) and is idempotent.
+   * @param destPath Destination file path
+   * @param relativePath Relative path
+   * @param sourceContent Full source content to write
+   * @param context Strategy context
+   * @returns Result of the overwrite operation
+   */
+  private async handleOverwrite(
+    destPath: string,
+    relativePath: string,
+    sourceContent: string,
+    context: StrategyContext
+  ): Promise<FileOperationResult> {
+    const { config, backupFile } = context;
+    if (!config.dryRun) {
+      await backupFile(destPath);
+      await writeFile(destPath, sourceContent, "utf-8");
+    }
+    return {
+      relativePath,
+      strategy: this.name,
+      action: "overwritten",
+    };
+  }
+
+  /**
    * Apply copy-contents strategy: Create, replace block, or append to file
    * @param sourcePath - Source file path
    * @param destPath - Destination file path
@@ -175,6 +206,22 @@ export class CopyContentsStrategy implements ICopyStrategy {
 
     const sourceContent = await readFile(sourcePath, "utf-8");
     const destContent = await readFile(destPath, "utf-8");
+
+    // A copy-contents source must itself carry a guardrails block to manage.
+    // Without a BEGIN marker there is no block to replace, and the append
+    // fallback would duplicate the whole file on every content change (the
+    // bug that shipped lisa-mutation.mjs twice). Such a file is fully
+    // Lisa-managed and belongs in copy-overwrite — treat it as an overwrite
+    // here so a miscategorized file can never silently self-duplicate.
+    if (!sourceContent.includes(this.BEGIN_MARKER_PREFIX)) {
+      return this.handleOverwrite(
+        destPath,
+        relativePath,
+        sourceContent,
+        context
+      );
+    }
+
     const mergedContent = this.mergeContent(sourceContent, destContent);
 
     if (mergedContent === destContent) {
