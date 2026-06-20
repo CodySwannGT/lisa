@@ -1,0 +1,20 @@
+# Upstream To Lisa (load-bearing)
+
+When working in a project that has Lisa installed, you will sometimes find that the **real fix belongs upstream in Lisa**, not in this project — a bug or gap in a Lisa-distributed template, rule, skill, agent, hook, or CI workflow, or a governance pattern worth generalizing back to the templates. Tell-tale signs: the file you want to change is Lisa-managed (carries Lisa governance markers, or lives in a path Lisa owns), and any edit you make here would be **overwritten on the next `lisa apply`**.
+
+When that happens, you have **two obligations — do both**:
+
+1. **Fix it locally so you are not blocked.** Apply the stopgap in this project so you can keep working. Treat it as temporary: it will be clobbered when the upstream fix ships and Lisa re-applies. Do not wait on the upstream fix.
+2. **File an upstream issue in the Lisa repository.** Use the `github-write-issue` skill (`lisa:github-write-issue`) to create an issue **in Lisa's source repo `CodySwannGT/lisa`** (pass it as the target repo, e.g. `gh ... --repo CodySwannGT/lisa`) — **not** in this project's own repo. Capture: the root cause, the symptom you hit here, and the proposed durable fix in Lisa's templates/rules/skills.
+
+## Do not
+
+- Do **not** only fix it locally and move on — the local fix is throwaway; without the upstream issue the root cause is lost and re-breaks on the next apply.
+- Do **not** try to edit Lisa's templates from inside this project — you are not in the Lisa repo; those edits don't exist upstream and get overwritten.
+- Do **not** file the issue in this project's repo — it must land in `CodySwannGT/lisa`.
+
+If you lack access to file an issue in `CodySwannGT/lisa`, surface that to the user with the proposed issue contents rather than silently dropping it.
+
+> Not applicable when you are already working **inside the Lisa repo itself** — there the fix is local, so just make it directly.
+
+Full procedure: [reference/upstream-to-lisa.md](../reference/upstream-to-lisa.md).

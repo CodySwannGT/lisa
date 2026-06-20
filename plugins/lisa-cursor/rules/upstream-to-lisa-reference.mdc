@@ -1,0 +1,49 @@
+---
+description: "Upstream To Lisa"
+alwaysApply: false
+---
+
+# Upstream To Lisa
+
+When working in a project that has Lisa installed, you will sometimes find that the **real fix belongs upstream in Lisa**, not in this project. This rule defines what to do so the fix is both unblocking *now* and durable *later*.
+
+## When this applies
+
+You are working in a downstream/host project (not the Lisa source repo) and you discover one of:
+
+- A bug or gap in a Lisa-distributed **template, rule, skill, agent, hook, or CI workflow**.
+- A **governance pattern** discovered here that should be generalized back into Lisa's templates so every project benefits.
+- Anything where the file you want to change is **Lisa-managed** — it carries Lisa governance markers, lives in a path Lisa owns, or any edit would be **overwritten on the next `lisa apply`**.
+
+The defining test: *if I fix this only here, does `lisa apply` wipe it out next time?* If yes, the root cause lives in Lisa and must be upstreamed.
+
+## What to do — both steps, always
+
+### 1. Fix it locally so you are not blocked
+
+Apply the stopgap in this project so you can keep working. Do **not** stall waiting for an upstream fix to land. Treat the local change as temporary — it will be clobbered when the upstream fix ships and Lisa re-applies. That is expected and fine; the upstream issue (step 2) is what makes it durable.
+
+### 2. File an upstream issue in the Lisa repository
+
+Use the `github-write-issue` skill (`lisa:github-write-issue`) to create a GitHub Issue **in Lisa's source repository `CodySwannGT/lisa`** — not in this project's own repo. The skill uses the `gh` CLI; the target repo must be `CodySwannGT/lisa` (e.g. `gh issue create --repo CodySwannGT/lisa ...`), because the agent's default repo is this host project.
+
+The issue should capture, following the skill's three-audience / acceptance-criteria conventions:
+
+- **Root cause** — which Lisa template/rule/skill/agent/hook/workflow is wrong or missing, with the path under `plugins/src/...` (or the relevant template source) if known.
+- **Symptom** — what broke or was missing in *this* project, and how it surfaced. Reference this project so the fix can be validated against a real case.
+- **Proposed durable fix** — the change to make in Lisa's source so it propagates to all projects on the next apply.
+- **Local stopgap applied** — note that a temporary local fix is in place here, so the maintainer knows the host project is unblocked and the local change will be superseded.
+
+## Do not
+
+- Do **not** only fix it locally and move on. The local fix is throwaway; without the upstream issue the root cause is lost and re-breaks for every project on the next apply.
+- Do **not** edit Lisa's templates from inside this project. You are not in the Lisa repo; those edits don't exist upstream and get overwritten — they create the illusion of a fix while the real source stays broken.
+- Do **not** file the issue in this project's own repo. The durable fix is tracked in `CodySwannGT/lisa`.
+
+## Access fallback
+
+If you lack permission to create an issue in `CodySwannGT/lisa`, do not silently drop it. Surface the situation to the user along with the fully-drafted issue contents (root cause, symptom, proposed fix, local stopgap), so a human can file it or grant access.
+
+## Not applicable inside the Lisa repo itself
+
+When you are already working **inside the Lisa source repo** (`CodySwannGT/lisa`), this rule does not apply — the fix is local to that repo, so make it directly in `plugins/src/...` (and rebuild artifacts) rather than filing an issue against yourself.
