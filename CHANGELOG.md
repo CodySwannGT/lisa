@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.7](https://github.com/CodySwannGT/lisa/compare/vv2.176.6...v2.176.7) (2026-06-20)
+
+
+### Bug Fixes
+
+* **ci:** drop contradictory setup-node cache input that breaks npm ci ([8826521](https://github.com/CodySwannGT/lisa/commit/8826521e25467fdcdb03b975adb13635e613b8a9)), closes [#163](https://github.com/CodySwannGT/lisa/issues/163) [#165](https://github.com/CodySwannGT/lisa/issues/165)
+
+### [2.176.6](https://github.com/CodySwannGT/lisa/compare/vv2.176.5...v2.176.6) (2026-06-20)
+
+
+### Bug Fixes
+
+* **package-lisa:** $name self-ref for direct-dep overrides (aws-cdk-lib, vite) ([0a446d0](https://github.com/CodySwannGT/lisa/commit/0a446d03f3223feb954dbb6dc2c7c3a89da670f0)), closes [#1330](https://github.com/CodySwannGT/lisa/issues/1330) [#1330](https://github.com/CodySwannGT/lisa/issues/1330)
+
+### [2.176.5](https://github.com/CodySwannGT/lisa/compare/vv2.176.4...v2.176.5) (2026-06-20)
+
+
+### Bug Fixes
+
+* **ci:** bust poisoned node_modules cache and align forced vite floor ([295858c](https://github.com/CodySwannGT/lisa/commit/295858c242e0293b6c976618536d191a59aedfd2))
+
+### [2.176.4](https://github.com/CodySwannGT/lisa/compare/vv2.176.3...v2.176.4) (2026-06-20)
+
 ### [2.176.3](https://github.com/CodySwannGT/lisa/compare/vv2.176.2...v2.176.3) (2026-06-20)
 
 

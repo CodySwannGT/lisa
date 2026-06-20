@@ -91,7 +91,7 @@
     "ws": ">=8.20.1"
   },
   "name": "@codyswann/lisa",
-  "version": "2.176.3",
+  "version": "2.176.7",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
@@ -214,7 +214,7 @@
     "vitest": "^4.1.9"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^2.171.3",
+    "@codyswann/lisa": "^2.176.3",
     "@types/js-yaml": "^4.0.9",
     "@types/semver": "^7.7.1",
     "eslint-plugin-oxlint": "^1.62.0",
