@@ -221,4 +221,23 @@ describe("quality.yml reusable workflow", () => {
       expect(scan?.run).toContain('exit "$scan_status"');
     });
   });
+
+  describe("bun audit allowlist handling", () => {
+    it("filters bun audit JSON by GHSA, advisory id, and CVE allowlists", () => {
+      const steps = workflow.jobs.npm_security_scan.steps ?? [];
+      const audit = steps.find(s => s.name === "🔒 Run security audit");
+      const run = audit?.run ?? "";
+
+      expect(run).toContain("bun audit --json");
+      expect(run).not.toContain(
+        "bun audit --audit-level=high $BUN_IGNORE_FLAGS"
+      );
+      expect(run).not.toContain("--ignore=$_id");
+      expect(run).toContain('ghsa_id: (.url // "" | split("/") | last)');
+      expect(run).toContain('advisory_id: (.id // "" | tostring)');
+      expect(run).toContain("cves: ([.cve?, .cves[]?]");
+      expect(run).toContain("$ghsa_ids | index($id)");
+      expect(run).toContain("$cve_ids | index($cve)");
+    });
+  });
 });
