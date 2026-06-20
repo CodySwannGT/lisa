@@ -44,7 +44,7 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
     const mdcFiles = (): readonly string[] =>
       fs.readdirSync(rulesDir).filter(f => f.endsWith(".mdc"));
 
-    it("ships 28 flat .mdc (14 eager + 14 reference), no nested dirs, no plain .md", () => {
+    it("ships 30 flat .mdc (15 eager + 15 reference), no nested dirs, no plain .md", () => {
       expect(fs.existsSync(rulesDir)).toBe(true);
       expect(fs.existsSync(path.join(rulesDir, "eager"))).toBe(false);
       expect(fs.existsSync(path.join(rulesDir, "reference"))).toBe(false);
@@ -53,9 +53,9 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
         expect(e.name.endsWith(".mdc")).toBe(true);
       }
       const mdc = mdcFiles();
-      expect(mdc.length).toBe(28);
-      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(14);
-      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(14);
+      expect(mdc.length).toBe(30);
+      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(15);
+      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(15);
     });
 
     it("eager rules carry alwaysApply:true; reference rules alwaysApply:false + description", () => {
