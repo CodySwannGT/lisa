@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.175.1](https://github.com/CodySwannGT/lisa/compare/vv2.175.0...v2.175.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **ci:** pass Bun audit ignore flags with equals ([39f81a8](https://github.com/CodySwannGT/lisa/commit/39f81a8fbacb83b9f2b95b9402afdc382e1af8fc))
+
 ## [2.175.0](https://github.com/CodySwannGT/lisa/compare/vv2.174.1...v2.175.0) (2026-06-19)
 
 
