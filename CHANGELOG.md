@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.6](https://github.com/CodySwannGT/lisa/compare/vv2.176.5...v2.176.6) (2026-06-20)
+
+
+### Bug Fixes
+
+* **package-lisa:** $name self-ref for direct-dep overrides (aws-cdk-lib, vite) ([0a446d0](https://github.com/CodySwannGT/lisa/commit/0a446d03f3223feb954dbb6dc2c7c3a89da670f0)), closes [#1330](https://github.com/CodySwannGT/lisa/issues/1330) [#1330](https://github.com/CodySwannGT/lisa/issues/1330)
+
 ### [2.176.5](https://github.com/CodySwannGT/lisa/compare/vv2.176.4...v2.176.5) (2026-06-20)
 
 
