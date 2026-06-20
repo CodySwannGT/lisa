@@ -1435,7 +1435,7 @@ jobs:
             # Build --ignore flags dynamically from exclusion list
             BUN_IGNORE_FLAGS=""
             for _id in $GHSA_IDS; do
-              BUN_IGNORE_FLAGS="$BUN_IGNORE_FLAGS --ignore $_id"
+              BUN_IGNORE_FLAGS="$BUN_IGNORE_FLAGS --ignore=$_id"
             done
 
             if ! bun audit --audit-level=high $BUN_IGNORE_FLAGS; then
