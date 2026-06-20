@@ -393,9 +393,12 @@ drive-pr-to-merge  pr=<n>  on_blocker=report
 ```
 
 In report mode it ensures auto-merge is enabled and runs `gh pr update-branch <n>` only when the
-PR is `BEHIND`-but-clean; it never edits code, resolves threads, or dismisses reviews. It returns a
-classification (`merged` / `will-merge-after-resync` / `blocked:<reason>`). On a `merged` /
-`will-merge-after-resync` result,
+PR is `BEHIND`-but-clean **and** the base branch's ruleset or classic branch protection requires
+strict up-to-date status checks (`strict_required_status_checks_policy` / `required_status_checks.strict`).
+If strict checks are off, it does not update the branch solely because the base moved; that avoids
+CI cancellation storms in repos where updating the PR head restarts and cancels in-flight runs. It
+never edits code, resolves threads, or dismisses reviews. It returns a classification (`merged` /
+`will-merge-after-resync` / `blocked:<reason>`). On a `merged` / `will-merge-after-resync` result,
 record this as a repair write (`resynced`), keep the item `claimed`, and move on — a later cycle sees
 the now-`CLEAN` (or merged) PR and either lets auto-merge finish or applies the merged-PR recovery in
 step 2. Only if `gh pr update-branch` itself reports a conflict it cannot apply does the PR become a
