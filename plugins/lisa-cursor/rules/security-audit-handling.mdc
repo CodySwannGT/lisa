@@ -5,36 +5,41 @@ alwaysApply: true
 
 # Security Audit Handling (load-bearing)
 
-If `git push` fails because the pre-push hook reports security vulnerabilities, follow the rules below. **Never use `--no-verify`**, `HUSKY=0`, `core.hooksPath`, or any other hook bypass to skip the security audit.
+If `git push` fails because the pre-push hook reports security vulnerabilities, work the decision ladder below **autonomously**. Do not stop to ask the user except at the one rung that explicitly requires it. **Never use `--no-verify`**, `HUSKY=0`, `core.hooksPath`, or any other hook bypass to skip the security audit.
 
-## Fix before ignore
+## Decision ladder (do not skip rungs)
 
-1. Fix the root cause first: upgrade or override the actually-vulnerable leaf package to a patched compatible version, regenerate the lockfile, and retry the gate.
-2. Only if no safe fix exists, ask the user to make the risk-acceptance decision. Add a narrow documented ignore for the specific advisory, package, and reason.
-3. Never add a blanket audit bypass, lower an audit level, or self-approve a new risk-acceptance entry.
+For each high/critical advisory the gate reports, take the **first** action that is possible:
 
-## Core rule
+1. **Update the offending package.** Upgrade the actually-vulnerable leaf package to a patched compatible version, regenerate the lockfile, retry the gate. Done.
+2. **If an upgrade isn't possible** (no compatible patched version on the dependency graph): **force a resolution/override** on the vulnerable leaf package (both `resolutions` and `overrides`), regenerate the lockfile, retry. Done.
+3. **If an override isn't possible either** (would break a dependent, or no fixed version exists anywhere): **evaluate whether the advisory actually affects this project** — is the vulnerable code path reachable, does it process untrusted input, is it runtime vs. dev/build-only?
+4. **If it does affect the project** and neither (1) nor (2) was possible: **ask a human** what to do. This is the only rung that pauses for a person.
+5. **If it does not affect the project**: **add a documented exclusion yourself** to `audit.ignore.local.json` (`{"id", "package", "reason"}` — reason states the impact evaluation), commit, retry. No human approval needed.
+
+Steps 1, 2, 3, and 5 are autonomous. Only step 4 escalates.
+
+## Core override rule
 
 Override the actually-vulnerable **leaf package**, not its parent. The audit chain shows `parent › intermediate › vulnerable` — only the vulnerable leaf needs the override.
 
 **Never override a parent package to force a lower major version.** Other packages may depend on the newer major; a forced downgrade breaks them.
 
-Before adding any override, verify:
+Before adding any override (step 2), verify:
 - You are targeting the actually-vulnerable package, not a parent in the chain.
 - The override is compatible with all dependents (check via `bun why <pkg>` or `npm ls <pkg>`).
 - The override does not downgrade across a major version boundary other deps require.
 
-## Node.js (GHSA)
+If those checks fail, the override is "not possible" — drop to step 3.
 
-1. Note GHSA ID, package, advisory URL.
-2. If a patched version exists: add a resolution AND override in `package.json` for the leaf package, regenerate the lockfile, commit, retry.
-3. If no patch but safe (transitive, no untrusted input, dev/build only): ask the user to make the risk-acceptance decision, then add an exclusion to `audit.ignore.local.json` with `{"id", "package", "reason"}`, commit, retry.
+## Never
+
+- Never add a blanket audit bypass or lower the configured audit level.
+- Never escalate to a human (step 4) before genuinely attempting steps 1–3.
+- Never add an ignore entry (step 5) without an impact evaluation recorded in its `reason`.
 
 ## Rails (bundler-audit)
 
-1. Note advisory ID, gem, URL.
-2. If direct dep with patch: update Gemfile constraint, `bundle update <gem>`, commit, retry.
-3. If transitive with patch: `bundle update <gem>` to bump the lockfile only, commit, retry.
-4. If no patch but safe: document the exception, retry.
+Same ladder. Note advisory ID, gem, URL. (1) Direct dep with patch → update Gemfile constraint, `bundle update <gem>`, retry. (2) Transitive with patch → `bundle update <gem>` to bump the lockfile only, retry. (3) No patch → evaluate impact. (4) Affects the project → ask a human. (5) Doesn't affect → document the exception, retry.
 
 Full procedure with examples: [reference/security-audit-handling.md](security-audit-handling-reference.mdc).
