@@ -192,7 +192,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -275,7 +274,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -330,7 +328,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -370,7 +367,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -410,7 +406,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -457,7 +452,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -526,7 +520,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -591,7 +584,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -657,7 +649,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -839,7 +830,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -979,7 +969,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: steps.check_playwright.outputs.has_config == 'true' && inputs.package_manager == 'bun'
@@ -1068,7 +1057,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1108,7 +1096,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1190,7 +1177,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1236,7 +1222,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1314,7 +1299,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1593,7 +1577,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
@@ -1741,7 +1724,6 @@ jobs:
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
-          cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
