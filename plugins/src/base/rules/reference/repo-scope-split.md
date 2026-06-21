@@ -45,7 +45,21 @@ Resolve the current repo per the `config-resolution` "Repo scoping" section (con
 2. **Multi-repo leaf → split, never claim.** If determination finds the leaf touches more than one repo, run the **work-time split procedure** below to break it into single-repo siblings — each created **build-ready** (`build_ready: true`, so the build queue auto-claims it) and stamped with its own `repo:<name>`. After the split, the current repo's sibling (if any) becomes a normal current-repo candidate; the others are separate single-repo `ready` leaves for their repos. A multi-repo leaf is never claimed as-is.
 3. **Wrong repo → skip.** A single-repo leaf whose `repo:<name>` ≠ the current repo is left `ready` (and labeled) and skipped; intake moves on until it finds a claimable current-repo leaf, then stops (one item per cycle).
 
-**Cost.** Only **unlabeled** candidates need content determination; once stamped, wrong-repo candidates are skipped by label alone. Prefer candidates already labeled `repo:<current>` first (cheap claim), falling through to unlabeled candidates (determine + stamp) only when no pre-labeled current-repo leaf is ready.
+**Query-time pre-filter (the cheapest arm — apply before the per-candidate walk).** When the queue is queryable, scope the candidate **query itself** to the current repo so sibling-repo tickets never even enter the set — instead of pulling the whole project's ready tickets and skipping the wrong ones one-by-one (a full wasted scan when none belong to the current repo, e.g. a JIRA project shared across `frontend`/`backend`/`infrastructure`). On JIRA, append to the JQL:
+
+```text
+AND (labels = "repo:<current>" OR labels IS EMPTY)
+```
+
+This pre-applies **only** the unambiguous *"labeled for another repo → skip"* arm at query time, while `labels IS EMPTY` keeps **unlabeled** tickets in the set so the determine + stamp arm still works. It does not change any outcome — it just moves the cheap skips off the per-candidate walk. The JIRA **component** alias and any rarer residual cases are not expressed in the pre-filter and remain with the authoritative per-candidate gate above. Skip the pre-filter (fall back to the broad scan) when the current repo can't be resolved, or when the caller's query already constrains repo (a `repo:` label term or a `component =` term) — never fail the cycle just because the pre-filter couldn't be built.
+
+Apply it **only where the query layer can express `OR labels IS EMPTY` without dropping unlabeled candidates** — otherwise the pre-filter would hide the very tickets the determine + stamp arm exists to handle:
+
+- **JIRA (multi-repo project):** JQL expresses it directly — `lisa:jira-build-intake` applies it in Phase 1. This is the case the optimization is for.
+- **GitHub:** issues are inherently single-repo, so the scanner is already repo-scoped — no pre-filter needed.
+- **Linear (multi-repo team):** the `list_issues` label filter is an AND-of-labels and cannot express "current-repo **or** unlabeled" in one query, so `lisa:linear-build-intake` keeps the broad `$READY` query and relies on the per-candidate 3a.0 gate — a narrowing label filter there would strand unlabeled Issues.
+
+**Cost.** Only **unlabeled** candidates need content determination; once stamped, wrong-repo candidates are skipped by label alone — and with the query-time pre-filter, sibling-repo tickets are not even fetched. Prefer candidates already labeled `repo:<current>` first (cheap claim), falling through to unlabeled candidates (determine + stamp) only when no pre-labeled current-repo leaf is ready.
 
 A container (an Epic, or any item with open child work) is handled by the leaf-only gate, not here — containers may span repos, may keep multiple `repo:<name>` labels for visibility, and are never claimed/built directly. Only a leaf work unit — including a now-childless Story/Spike that the leaf-only gate treats as a leaf — is split or skipped by repo scope.
 

@@ -30,7 +30,11 @@ Fall back to the standard BLOCK + reassign-to-Reporter path when:
 
 ## Claim-time repo scoping (build-intake)
 
-A tracker can oversee multiple repos. Build-intake claims only current-repo tickets. Resolve current repo per `config-resolution` (config `repo` → `github.repo` → git remote basename). For each ready candidate:
+A tracker can oversee multiple repos. Build-intake claims only current-repo tickets. Resolve current repo per `config-resolution` (config `repo` → `github.repo` → git remote basename).
+
+**Query-time pre-filter (do this first, where expressible).** Scope the candidate query to the current repo so sibling-repo tickets never enter the set — on JIRA, append `AND (labels = "repo:<current>" OR labels IS EMPTY)`. This pre-applies only the unambiguous wrong-repo → skip arm; `labels IS EMPTY` keeps unlabeled tickets visible so the per-candidate gate below can still determine + stamp them. Skip it (broad scan) when the current repo can't be resolved or the query already constrains repo. Apply only where the query layer can express `OR labels IS EMPTY`: JIRA does (applied); GitHub issues are inherently single-repo (not needed); Linear's label filter can't, so it keeps the broad query and relies on the per-candidate gate.
+
+Then, for each ready candidate:
 
 1. **Read `repo:<name>` label.** Wrong repo → skip. Current repo → leaf-only gate + claim. Unlabeled → determine + stamp + re-apply.
 2. **Multi-repo leaf → split, never claim.** Each split sibling is created build-ready and stamped with its own `repo:<name>`.

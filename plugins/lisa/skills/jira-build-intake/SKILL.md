@@ -11,7 +11,7 @@ All Atlassian operations in this skill go through `lisa:atlassian-access`. Do no
 `$ARGUMENTS` is one of:
 
 1. A JIRA project key (e.g. `SE`) — scans that project for tickets in the configured `ready` status.
-2. A full JQL filter (e.g. `project = SE AND component = "frontend" AND Status = Ready`) — used as-is. The skill will not append a `Status = <ready>` clause if the JQL already names a status, so callers can intentionally widen.
+2. A full JQL filter (e.g. `project = SE AND component = "frontend" AND Status = Ready`) — used as-is. The skill will not append a `Status = <ready>` clause if the JQL already names a status, so callers can intentionally widen. It also auto-scopes the query to the current repo (Phase 1 step 2) unless the JQL already constrains repo (a `repo:` label or `component =` term), so a multi-repo project / forwarded assignee filter is not widened to sibling repos by accident.
 
 Run one build-intake cycle. The first eligible ready ticket is claimed, built via the `lisa:jira-agent` flow, transitioned to the configured `done` status (env-aware — see below), then the cycle exits. Remaining ready tickets stay queued for later scheduler invocations.
 
@@ -105,10 +105,30 @@ This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $D
 
 ### Phase 1 — Resolve the query
 
-1. Parse `$ARGUMENTS`:
-   - Project key: build JQL `project = <KEY> AND Status = "$READY" ORDER BY priority DESC, created ASC`.
+1. Parse `$ARGUMENTS` into a base JQL:
+   - Project key: `project = <KEY> AND Status = "$READY"`.
    - Full JQL: use as-is. If it does not include a `Status` clause, append `AND Status = "$READY"`.
-2. Confirm the configured Atlassian site by invoking `lisa:atlassian-access` `operation: list-sites` (it enforces connection match against `.lisa.config.json`).
+2. **Repo-scope pre-filter (query-time arm of `repo-scope-split`).** A JIRA project can oversee multiple repos (`frontend` / `backend` / `infrastructure`), so an unscoped `project = <KEY> AND Status = $READY` — or an `assignee = … AND Status = $READY` filter forwarded by `lisa:intake` — pulls in **every** sibling repo's ready tickets and forces the claim-time gate (3a.0) to skip them one-by-one: a full wasted scan when none belong to the current repo. Narrow the candidate set at query time so other-repo tickets never enter it:
+   1. **Resolve the current repo** per `config-resolution` "Repo scoping" (`.repo` → `.github.repo` → `git remote get-url origin` basename) — the same resolution 3a.0 uses.
+   2. **If the base JQL already constrains repo** — it contains a `repo:` label term or a `component = "<repo>"` term — the caller has already scoped (or intentionally widened) it; leave it untouched.
+   3. **Else, if the current repo resolved**, append (before the `ORDER BY`):
+      ```text
+      AND (labels = "repo:<current>" OR labels IS EMPTY)
+      ```
+      This drops tickets explicitly stamped for a **sibling** repo up front, while still surfacing **unlabeled** tickets (`labels IS EMPTY`) so the claim-time gate can determine + stamp them — i.e. it pre-applies only the unambiguous "wrong-repo → skip" arm of 3a.0 and never hides work the stamping path must see. The JIRA **component** alias and any rarer residual cases stay with the authoritative claim-time gate in 3a.0.
+   4. **If the current repo cannot be resolved**, skip this augmentation and fall back to the broad scan (3a.0 still enforces scoping). Do not fail the cycle solely because the pre-filter could not be built.
+3. Append the ordering: `ORDER BY priority DESC, created ASC`.
+
+```bash
+# CURRENT_REPO resolved per config-resolution "Repo scoping" (see 3a.0).
+# Append a repo pre-filter only when the JQL does not already constrain repo.
+if [ -n "$CURRENT_REPO" ] && ! printf '%s' "$BASE_JQL" | grep -qiE 'repo:|component[[:space:]]*='; then
+  BASE_JQL="${BASE_JQL} AND (labels = \"repo:${CURRENT_REPO}\" OR labels IS EMPTY)"
+fi
+JQL="${BASE_JQL} ORDER BY priority DESC, created ASC"
+```
+
+4. Confirm the configured Atlassian site by invoking `lisa:atlassian-access` `operation: list-sites` (it enforces connection match against `.lisa.config.json`).
 
 ### Phase 2 — Find ready tickets
 
@@ -123,7 +143,7 @@ If empty, report `"No tickets with Status=$READY. Nothing to do."` and exit. Thi
 A JIRA project can oversee multiple repos (`frontend` / `backend` / `infrastructure`). This skill claims only tickets for the repo it is running in. Run this gate **before** the leaf-only gate (3a) and the claim (3b), per the `repo-scope-split` rule's "Claim-time repo scoping" section (cite it by slug; do not restate its decision table).
 
 1. **Resolve the current repo** per `config-resolution` "Repo scoping" (`.repo` → `.github.repo` → `git remote get-url origin` basename). If unresolvable, stop and report — do not claim tickets you cannot scope.
-2. **Cheap path first.** Prefer candidates already carrying `repo:<current>` — a JIRA **label**, or a **component** equal to the repo name (accepted as an alias). Keep the Phase 2 scan broad (it must still see unlabeled tickets so they can be determined and stamped); this gate orders/filters the results.
+2. **Cheap path first.** Phase 1's query-time pre-filter has already dropped tickets explicitly stamped for a sibling repo, so the Phase 2 result set is current-repo-labeled + unlabeled tickets. Prefer candidates already carrying `repo:<current>` — a JIRA **label**, or a **component** equal to the repo name (accepted as an alias); the pre-filter is label-only, so a ticket scoped solely by a sibling-repo **component** can still appear and is skipped here. The result set still includes unlabeled tickets so they can be determined and stamped; this gate orders/filters what remains.
 3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
    - Carries `repo:<other>` (label or component) → **skip** (leave it `ready` for that repo's own intake); next candidate.
    - **Unlabeled** → determine the target repo(s) from the ticket (description, AC, technical approach) confirmed against the code surfaces, then **stamp** `repo:<name>` via `lisa:atlassian-access` `operation: write-ticket` (add the label / set the component) so later cycles filter cheaply; re-apply with the now-known repo.
@@ -311,9 +331,11 @@ If a ready-equivalent status does not exist in the JIRA project's workflow, this
 | `.lisa.config.json` `jira.workflow.claimed` | `In Progress` | The intermediate status the agent sets on pickup |
 | `.lisa.config.json` `jira.workflow.done` | env-keyed map (`dev`/`staging`/`production`) or string | The status set after a successful build; env-aware |
 | `.lisa.config.json` `deploy.branches` | — | Reverse-lookup map for env inference from PR base branch |
+| `.lisa.config.json` `repo` / `github.repo` (or git remote basename) | (git remote basename) | Current repo for the Phase 1 query-time repo pre-filter and the 3a.0 claim-time gate |
 
 ## Rules
 
+- **Scope the query to the current repo.** Per `repo-scope-split`, append the repo pre-filter (Phase 1 step 2) so a multi-repo JIRA project — or a forwarded `assignee` filter — never pulls sibling repos' ready tickets into the candidate set. It is the cheap query-time arm of the same rule whose authoritative claim-time arm is the 3a.0 gate; the two must agree on how the current repo is resolved. Skip the augmentation (do not fail) only when the current repo can't be resolved or the JQL already constrains repo.
 - **Claim leaves only.** Per the `leaf-only-lifecycle` rule, never claim a container — a ticket with open child work, or a childless Epic — even if it carries the build-ready status. Skip or safe-block it (Phase 3a); never silently implement a container.
 - Never transition a ticket the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
 - Never bypass `lisa:jira-agent` to do build work directly. `lisa:jira-agent` owns the per-ticket lifecycle (read, verify, triage, route, sync, evidence). This skill is the dispatcher, not the builder.
