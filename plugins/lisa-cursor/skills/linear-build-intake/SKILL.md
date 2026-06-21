@@ -124,6 +124,8 @@ Query: `mcp__linear-server__list_issues({team: <teamId>, label: "$READY"})`.
 
 Capture each Issue's: identifier, title, type label, priority, assignee, project, labels, description summary.
 
+> **No query-time repo pre-filter here (by design).** Unlike `lisa:jira-build-intake`, which narrows its JQL with `AND (labels = "repo:<current>" OR labels IS EMPTY)` (the query-time arm of `repo-scope-split`), the Linear `list_issues` label filter is an AND-of-labels and cannot express "current-repo **or** unlabeled" in one query. Adding `repo:<current>` to this query would strand unlabeled Issues the determine + stamp path must see. So the Linear scanner keeps this query broad and relies on the per-candidate 3a.0 gate below for repo scoping.
+
 If empty, report `"No Linear Issues labeled $READY. Nothing to do."` and exit. Common idle case.
 
 ### Phase 3 — Process the first eligible ready Issue
