@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.8](https://github.com/CodySwannGT/lisa/compare/vv2.176.7...v2.176.8) (2026-06-21)
+
+
+### Bug Fixes
+
+* **skills:** repo-scope jira-build-intake query to skip sibling-repo tickets ([9780173](https://github.com/CodySwannGT/lisa/commit/9780173293c208c62e062dbfbb41e4f88a04ef23))
+
 ### [2.176.7](https://github.com/CodySwannGT/lisa/compare/vv2.176.6...v2.176.7) (2026-06-20)
 
 
