@@ -56,9 +56,10 @@ If `github-verify` returns `FAIL` on any of the above, do NOT continue to build.
 1. **Best-effort autofill (before blocking).** Run the **draft-then-block procedure** in the `pre-flight-autofill` rule: draft every *authorable* missing section — Technical Approach, Out of Scope, Gherkin acceptance criteria, expected-vs-actual, Repository, Relationship Search (run the git + `gh`/tracker search, don't fabricate it), a Validation Journey **draft** via `github-add-journey`, and a recommended Target Backend Environment — from the issue's own content (title, body, screenshots, design links, repro steps) plus the codebase. Write it into the body via `github-write-issue` as clearly-labeled assumptions/recommendations (never overwrite the author's prose), then re-run `github-verify`. Whatever the agent could author is now structured spec; only genuinely human-only inputs remain.
 2. Relabel: remove the `claimed` label, add the `blocked` label **and** the `human_needed` marker label. Even after the agent drafted what it could, a pre-flight gate failure bounces the issue back to its author because it still needs a human to **confirm the drafted assumptions** or supply something no agent can invent — real missing credentials, access, or an irreducible product/scoping decision — so the marker tells a human scanning the board which blocked issues are waiting on them. The marker is additive to `blocked`, not a replacement. (See the `config-resolution` rule's "Build markers" for when the marker applies and when it must NOT.)
    ```bash
-   CLAIMED=$(jq -r '.github.labels.build.claimed // "status:in-progress"' .lisa.config.json)
-   BLOCKED=$(jq -r '.github.labels.build.blocked // "status:blocked"' .lisa.config.json)
-   HUMAN_NEEDED=$(jq -r '.github.labels.build.human_needed // "human-needed"' .lisa.config.json)
+   _read_cfg() { local lv gv; lv=$(jq -r "$1 // empty" .lisa.config.local.json 2>/dev/null); gv=$(jq -r "$1 // empty" .lisa.config.json 2>/dev/null); echo "${lv:-${gv}}"; }
+   CLAIMED=$(_read_cfg '.github.labels.build.claimed'); CLAIMED="${CLAIMED:-status:in-progress}"
+   BLOCKED=$(_read_cfg '.github.labels.build.blocked'); BLOCKED="${BLOCKED:-status:blocked}"
+   HUMAN_NEEDED=$(_read_cfg '.github.labels.build.human_needed'); HUMAN_NEEDED="${HUMAN_NEEDED:-human-needed}"
    gh label create "$HUMAN_NEEDED" --color D93F0B --description "Blocked on human-only input (credentials / access / decision)" --repo <org>/<repo> 2>/dev/null || true
    gh issue edit <num> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$BLOCKED" --add-label "$HUMAN_NEEDED"
    ```
