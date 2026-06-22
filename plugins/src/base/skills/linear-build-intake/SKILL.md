@@ -196,9 +196,31 @@ This is the idempotency lock — a re-entrant cycle's `label: $READY` filter wil
 
 If the relabel fails (permission, race), record under "Errors" and skip. **Do not invoke the build flow on an Issue you didn't successfully claim.**
 
-#### 3c. Run the build flow
+#### 3c. Return or run the build delegation
 
-Invoke `lisa:linear-agent` (per-Issue lifecycle agent) with the Issue identifier. `lisa:linear-agent` owns:
+After the claim succeeds, the per-Issue build must run under `lisa:linear-agent` (the per-Issue lifecycle agent), but a teammate running this skill must not spawn that named peer itself. Claude teams are flat: only the lead can add a named teammate. Therefore:
+
+- If you are the team lead/root agent, spawn or invoke `lisa:linear-agent` with the Issue identifier and wait for its structured result.
+- If you are a teammate, stop this skill's direct work and return a structured `delegation-request` to the lead instead of calling `Agent` with `name` or otherwise spawning `linear-agent` as a named peer.
+- A private anonymous helper is allowed only when the helper is not a roster peer and the `Agent` call omits `name`; it must not replace this `linear-agent` delegation.
+
+Return this payload shape to the lead:
+
+```json
+{
+  "type": "delegation-request",
+  "agent": "linear-agent",
+  "workItem": "<ISSUE-ID>",
+  "context": {
+    "claimedLabel": "$CLAIMED",
+    "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
+  },
+  "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
+  "onBlockedOrError": "Leave the Issue where linear-agent left it and record the surfaced outcome"
+}
+```
+
+`lisa:linear-agent` owns:
 - Reading the full Issue graph (`lisa:linear-read-issue`)
 - Running its own pre-flight quality gate (`lisa:linear-verify`)
 - Running ticket triage (`lisa:ticket-triage`)
@@ -206,7 +228,7 @@ Invoke `lisa:linear-agent` (per-Issue lifecycle agent) with the Issue identifier
 - Posting progress comments via `lisa:linear-sync`
 - Posting evidence via `lisa:linear-evidence`
 
-Wait for the agent to return. Capture its outcome:
+The lead waits for `lisa:linear-agent` to return, then resumes this scanner with the returned outcome:
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the Issue to a `done` env status.
 - **Blocked by linear-verify pre-flight gate** — `lisa:linear-agent` itself relabels to `status:blocked` and assigns to creator. Let it stand. Record and move on.
 - **Duplicate already fixed** — `lisa:linear-agent` / `lisa:ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical Issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when Linear exposes it (otherwise leave an explicit relation/comment reference), apply the terminal `$DONE` label, move the native Issue to the configured canceled-as-duplicate or completed terminal state, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical Issue promotes and that recurrence is tracked by the canonical Issue; do not reopen this duplicate for that recurrence.

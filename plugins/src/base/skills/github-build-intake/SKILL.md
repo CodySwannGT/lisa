@@ -256,9 +256,31 @@ This is the idempotency lock — a re-entrant cycle's `--label $READY` filter wi
 
 If the relabel fails (permission, race), log under "Errors" in the cycle summary and skip this issue. **Do not invoke the build flow on an issue you didn't successfully claim.**
 
-#### 3c. Run the build flow
+#### 3c. Return or run the build delegation
 
-Invoke `lisa:github-agent` (the per-issue lifecycle agent) with the issue ref. `lisa:github-agent` owns:
+After the claim succeeds, the per-issue build must run under `lisa:github-agent` (the per-issue lifecycle agent), but a teammate running this skill must not spawn that named peer itself. Claude teams are flat: only the lead can add a named teammate. Therefore:
+
+- If you are the team lead/root agent, spawn or invoke `lisa:github-agent` with the issue ref and wait for its structured result.
+- If you are a teammate, stop this skill's direct work and return a structured `delegation-request` to the lead instead of calling `Agent` with `name` or otherwise spawning `github-agent` as a named peer.
+- A private anonymous helper is allowed only when the helper is not a roster peer and the `Agent` call omits `name`; it must not replace this `github-agent` delegation.
+
+Return this payload shape to the lead:
+
+```json
+{
+  "type": "delegation-request",
+  "agent": "github-agent",
+  "workItem": "<org>/<repo>#<number>",
+  "context": {
+    "claimedLabel": "$CLAIMED",
+    "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
+  },
+  "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
+  "onBlockedOrError": "Leave the issue where github-agent left it and record the surfaced outcome"
+}
+```
+
+`lisa:github-agent` owns:
 - Reading the full issue graph (`lisa:github-read-issue`)
 - Running its own pre-flight quality gate (`lisa:github-verify`)
 - Running issue triage (`lisa:ticket-triage`)
@@ -266,7 +288,7 @@ Invoke `lisa:github-agent` (the per-issue lifecycle agent) with the issue ref. `
 - Posting progress comments via `lisa:github-sync`
 - Posting evidence via `lisa:github-evidence`
 
-Wait for `lisa:github-agent` to return. Capture its outcome:
+The lead waits for `lisa:github-agent` to return, then resumes this scanner with the returned outcome:
 
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the issue to a `done` env status.
 - **Blocked by github-verify pre-flight gate** — `lisa:github-agent` itself relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
