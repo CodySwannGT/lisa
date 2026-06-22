@@ -44,7 +44,7 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
     const mdcFiles = (): readonly string[] =>
       fs.readdirSync(rulesDir).filter(f => f.endsWith(".mdc"));
 
-    it("ships 30 flat .mdc (15 eager + 15 reference), no nested dirs, no plain .md", () => {
+    it("ships 32 flat .mdc (16 eager + 16 reference), no nested dirs, no plain .md", () => {
       expect(fs.existsSync(rulesDir)).toBe(true);
       expect(fs.existsSync(path.join(rulesDir, "eager"))).toBe(false);
       expect(fs.existsSync(path.join(rulesDir, "reference"))).toBe(false);
@@ -53,9 +53,9 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
         expect(e.name.endsWith(".mdc")).toBe(true);
       }
       const mdc = mdcFiles();
-      expect(mdc.length).toBe(30);
-      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(15);
-      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(15);
+      expect(mdc.length).toBe(32);
+      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(16);
+      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(16);
     });
 
     it("eager rules carry alwaysApply:true; reference rules alwaysApply:false + description", () => {
@@ -80,7 +80,7 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
       expect(body).toContain("](base-rules-reference.mdc)");
       // … while the readable link TEXT is preserved verbatim (fix D).
       expect(body).toContain("[reference/base-rules.md]");
-      // Guard is non-vacuous: the 14 eager rules each carry a cross-link URL.
+      // Guard is non-vacuous: the eager rules each carry a cross-link URL.
       const filesWithLinks = mdcFiles().filter(f =>
         /\]\([^)]+\)/.test(fs.readFileSync(path.join(rulesDir, f), "utf8"))
       );

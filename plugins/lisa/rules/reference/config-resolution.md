@@ -330,7 +330,7 @@ A **marker** is an additive label applied *alongside* a lifecycle role, not a st
 
 | Marker | What it means | JIRA default | GitHub/Linear default |
 |---|---|---|---|
-| `human_needed` | Applied with `blocked` when the block genuinely requires something **no agent and no automated retry can supply** — credentials, access/permissions, a product or scoping decision, or required ticket quality only the human reporter can add. | `Human Needed` (label) | `human-needed` (label) |
+| `human_needed` | Applied with `blocked` when — **after the agent has drafted every authorable missing section via the `pre-flight-autofill` procedure** — the block still requires a human to confirm the drafted assumptions or supply something no agent can invent: real missing credentials, access/permissions, or an irreducible product/scoping decision. | `Human Needed` (label) | `human-needed` (label) |
 
 Resolution keys:
 
@@ -338,7 +338,7 @@ Resolution keys:
 - GitHub: `github.labels.build.human_needed` (default `human-needed`). Added next to the `blocked` label.
 - Linear: `linear.labels.build.human_needed` (default `human-needed`). Added next to the `blocked` label.
 
-**When to apply it.** Apply `human_needed` only when a human must act before the item can move — the pre-flight gate failures that bounce a ticket back to its reporter (missing credentials, missing acceptance criteria / validation journey, missing parent/epic, an ambiguous product or scoping decision) are exactly this case.
+**When to apply it.** Apply `human_needed` only when a human must act before the item can move — the pre-flight gate failures that bounce a ticket back to its reporter are exactly this case, but **only after** the agent has run the `pre-flight-autofill` draft-then-block procedure (drafting the authorable gaps — acceptance criteria, validation journey, repository, relationship search, etc. — into the ticket as labeled assumptions). What then remains for the human is to **confirm those assumptions** or supply a genuinely human-only input (real missing credentials, an irreducible product/scoping decision). The marker means "a human must confirm or decide," not "a human must author from scratch."
 
 **When NOT to apply it.** Do **not** apply `human_needed` to a block that an automated cycle can clear on its own: a block whose `is blocked by` dependency is another tracked ticket that will build and close (for example a `repair-intake`-filed build-ready fix ticket for an unmergeable PR or a failed deploy), or any block waiting only on a retry. Those self-heal; flagging them for a human is noise. If such an item already carries a stale `human_needed` marker, clear it when the block becomes auto-recoverable.
 
