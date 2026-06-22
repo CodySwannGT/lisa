@@ -27,6 +27,12 @@ const RULE_FILES = [
   "plugins/lisa/rules/reference/base-rules.md",
 ] as const;
 
+const BUILD_INTAKE_SKILLS = [
+  ["github-build-intake", "github-agent"],
+  ["jira-build-intake", "jira-agent"],
+  ["linear-build-intake", "linear-agent"],
+] as const;
+
 describe("Codex lifecycle skill orchestration", () => {
   it.each(
     SKILL_ROOTS.flatMap(root =>
@@ -52,6 +58,23 @@ describe("Codex lifecycle skill orchestration", () => {
       expect(content).toContain("Codex must not call `TeamCreate`");
       expect(content).toContain("multi_agent_v1.spawn_agent");
       expect(content).not.toContain("Use `TeamCreate` if available");
+    }
+  );
+
+  it.each(
+    SKILL_ROOTS.flatMap(root =>
+      BUILD_INTAKE_SKILLS.map(([skill, agent]) => [root, skill, agent] as const)
+    )
+  )(
+    "%s/%s returns named-peer delegation requests to the lead",
+    (root, skill, agent) => {
+      const skillPath = path.resolve(root, skill, "SKILL.md");
+      const content = readFileSync(skillPath, "utf8");
+
+      expect(content).toContain('"type": "delegation-request"');
+      expect(content).toContain(`"agent": "${agent}"`);
+      expect(content).toContain("only the lead can add a named teammate");
+      expect(content).toContain("instead of calling `Agent` with `name`");
     }
   );
 });

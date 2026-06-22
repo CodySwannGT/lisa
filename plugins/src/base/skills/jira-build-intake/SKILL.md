@@ -203,9 +203,31 @@ Transition the ticket from `$READY` to `$CLAIMED` by invoking `lisa:atlassian-ac
 
 If the transition fails (permission, missing transition, race), log under "Errors" in the cycle summary and skip this ticket. **Do not invoke the build flow on a ticket you didn't successfully claim.**
 
-#### 3c. Run the build flow
+#### 3c. Return or run the build delegation
 
-Invoke the `lisa:jira-agent` (existing per-ticket lifecycle agent) with the ticket key. `lisa:jira-agent` owns:
+After the claim succeeds, the per-ticket build must run under `lisa:jira-agent` (the per-ticket lifecycle agent), but a teammate running this skill must not spawn that named peer itself. Claude teams are flat: only the lead can add a named teammate. Therefore:
+
+- If you are the team lead/root agent, spawn or invoke `lisa:jira-agent` with the ticket key and wait for its structured result.
+- If you are a teammate, stop this skill's direct work and return a structured `delegation-request` to the lead instead of calling `Agent` with `name` or otherwise spawning `jira-agent` as a named peer.
+- A private anonymous helper is allowed only when the helper is not a roster peer and the `Agent` call omits `name`; it must not replace this `jira-agent` delegation.
+
+Return this payload shape to the lead:
+
+```json
+{
+  "type": "delegation-request",
+  "agent": "jira-agent",
+  "workItem": "<TICKET>",
+  "context": {
+    "claimedStatus": "$CLAIMED",
+    "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
+  },
+  "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
+  "onBlockedOrError": "Leave the ticket where jira-agent left it and record the surfaced outcome"
+}
+```
+
+`lisa:jira-agent` owns:
 - Reading the full ticket graph (`lisa:jira-read-ticket`)
 - Running its own pre-flight quality gate (`lisa:jira-verify`)
 - Running ticket triage (`lisa:ticket-triage`)
@@ -213,7 +235,7 @@ Invoke the `lisa:jira-agent` (existing per-ticket lifecycle agent) with the tick
 - Posting progress comments via `lisa:jira-sync`
 - Posting evidence via `lisa:jira-evidence`
 
-Wait for `lisa:jira-agent` to return. Capture its outcome:
+The lead waits for `lisa:jira-agent` to return, then resumes this scanner with the returned outcome:
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the ticket to a `done` env status.
 - **Blocked by jira-verify pre-flight gate** — `lisa:jira-agent` itself transitions the ticket to `Blocked` and reassigns to Reporter. This is correct and expected — let it stand. Record the outcome and move on.
 - **Duplicate already fixed** — `lisa:jira-agent` / `lisa:ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical ticket reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` link exists, transition to the terminal `$DONE` status with resolution `Duplicate`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical ticket promotes and that recurrence is tracked by the canonical ticket; do not reopen this duplicate for that recurrence.
