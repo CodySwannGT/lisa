@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.10](https://github.com/CodySwannGT/lisa/compare/vv2.176.9...v2.176.10) (2026-06-22)
+
+
+### Bug Fixes
+
+* **agents:** draft missing spec content before blocking at the pre-flight gate ([adb7e64](https://github.com/CodySwannGT/lisa/commit/adb7e64f4f52d18c269c0685574e81327d8f6075))
+* **agents:** respect .lisa.config.local.json override when resolving build labels in github-agent ([d08bbc5](https://github.com/CodySwannGT/lisa/commit/d08bbc5900698bf6872aa7219ede6d812b96ab01))
+
 ### [2.176.9](https://github.com/CodySwannGT/lisa/compare/vv2.176.8...v2.176.9) (2026-06-22)
 
 
