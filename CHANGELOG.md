@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.9](https://github.com/CodySwannGT/lisa/compare/vv2.176.8...v2.176.9) (2026-06-22)
+
+
+### Bug Fixes
+
+* **skills:** return delegation requests for build agents ([483bb07](https://github.com/CodySwannGT/lisa/commit/483bb07c3f70a55cd3fd9fcba4acf1cbbfba3a55))
+
 ### [2.176.8](https://github.com/CodySwannGT/lisa/compare/vv2.176.7...v2.176.8) (2026-06-21)
 
 
