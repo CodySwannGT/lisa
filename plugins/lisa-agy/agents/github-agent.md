@@ -51,22 +51,24 @@ Use the `github-verify` skill to check the issue against organizational standard
 
 Resolve build labels from `.lisa.config.json` `github.labels.build.*` (defaults: `status:ready` / `status:in-progress` / env-keyed `status:on-*`); resolve the `blocked` label from the same section (`github.labels.build.blocked`, default `status:blocked`) and the `human_needed` marker label from the same section (`github.labels.build.human_needed`, default `human-needed`).
 
-If `github-verify` returns `FAIL` on any of the above, do NOT continue:
+If `github-verify` returns `FAIL` on any of the above, do NOT continue to build. **Draft the missing spec content first, then block for confirmation** — never bounce a raw "go write all this" checklist back to the author:
 
-1. Relabel: remove the `claimed` label, add the `blocked` label **and** the `human_needed` marker label. A pre-flight gate failure bounces the issue back to its author precisely because it needs something **no agent and no automated retry can supply** — credentials, access, a product/scoping decision, or required issue quality only the human can add — so the marker tells a human scanning the board which blocked issues are waiting on them. The marker is additive to `blocked`, not a replacement. (See the `config-resolution` rule's "Build markers" for when the marker applies and when it must NOT.)
+1. **Best-effort autofill (before blocking).** Run the **draft-then-block procedure** in the `pre-flight-autofill` rule: draft every *authorable* missing section — Technical Approach, Out of Scope, Gherkin acceptance criteria, expected-vs-actual, Repository, Relationship Search (run the git + `gh`/tracker search, don't fabricate it), a Validation Journey **draft** via `github-add-journey`, and a recommended Target Backend Environment — from the issue's own content (title, body, screenshots, design links, repro steps) plus the codebase. Write it into the body via `github-write-issue` as clearly-labeled assumptions/recommendations (never overwrite the author's prose), then re-run `github-verify`. Whatever the agent could author is now structured spec; only genuinely human-only inputs remain.
+2. Relabel: remove the `claimed` label, add the `blocked` label **and** the `human_needed` marker label. Even after the agent drafted what it could, a pre-flight gate failure bounces the issue back to its author because it still needs a human to **confirm the drafted assumptions** or supply something no agent can invent — real missing credentials, access, or an irreducible product/scoping decision — so the marker tells a human scanning the board which blocked issues are waiting on them. The marker is additive to `blocked`, not a replacement. (See the `config-resolution` rule's "Build markers" for when the marker applies and when it must NOT.)
    ```bash
-   CLAIMED=$(jq -r '.github.labels.build.claimed // "status:in-progress"' .lisa.config.json)
-   BLOCKED=$(jq -r '.github.labels.build.blocked // "status:blocked"' .lisa.config.json)
-   HUMAN_NEEDED=$(jq -r '.github.labels.build.human_needed // "human-needed"' .lisa.config.json)
+   _read_cfg() { local lv gv; lv=$(jq -r "$1 // empty" .lisa.config.local.json 2>/dev/null); gv=$(jq -r "$1 // empty" .lisa.config.json 2>/dev/null); echo "${lv:-${gv}}"; }
+   CLAIMED=$(_read_cfg '.github.labels.build.claimed'); CLAIMED="${CLAIMED:-status:in-progress}"
+   BLOCKED=$(_read_cfg '.github.labels.build.blocked'); BLOCKED="${BLOCKED:-status:blocked}"
+   HUMAN_NEEDED=$(_read_cfg '.github.labels.build.human_needed'); HUMAN_NEEDED="${HUMAN_NEEDED:-human-needed}"
    gh label create "$HUMAN_NEEDED" --color D93F0B --description "Blocked on human-only input (credentials / access / decision)" --repo <org>/<repo> 2>/dev/null || true
    gh issue edit <num> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$BLOCKED" --add-label "$HUMAN_NEEDED"
    ```
-2. Reassign the issue back to its **author** (the original reporter — `author.login` from `gh issue view --json author`). Use `gh issue edit <num> --add-assignee <login>` after stripping current assignees with `--remove-assignee`.
-3. Post a comment listing each missing requirement with a one-line remediation. Prefix with `[<repo>]`:
+3. Reassign the issue back to its **author** (the original reporter — `author.login` from `gh issue view --json author`). Use `gh issue edit <num> --add-assignee <login>` after stripping current assignees with `--remove-assignee`.
+4. Post the **confirmation comment** from the `pre-flight-autofill` rule, **not** a bare remediation checklist: disclose it is a Claude draft, give one line per drafted section naming the key assumption made, list any remaining human-only item as a specific question with a recommended default, and close with *"review the drafted sections, correct anything wrong, then flip back to Ready and it builds — or reply with corrections."* Prefix with `[<repo>]`:
    ```bash
    gh issue comment <num> --repo <org>/<repo> --body-file /tmp/blocked-comment.md
    ```
-4. Stop. Do not run triage, do not delegate to a flow, do not start work.
+5. Stop. Do not run triage, do not delegate to a flow, do not start work.
 
 **Exception — single-repo scope is split, not blocked.** A single-repo-scope FAIL is the one gate failure the agent fixes rather than bounces to the author: a cross-repo work unit is a decomposition error the agent owns (S10 is `product_relevant: false`), not a product question. Instead of blocking, run the **work-time split procedure** in the `repo-scope-split` rule — narrow this issue to one repo, create a sibling issue per additional repo cloning its metadata, encode the producer→consumer dependency (`Blocked by #<n>` / `Blocks #<n>`), comment on the original, then re-run `github-verify` on the original and every new sibling. Block (per the path above) only if the split is ambiguous (see "When to block instead of split"). If single-repo scope was the only FAIL and the split succeeded, proceed to Step 3 once every resulting issue passes.
 
@@ -143,7 +145,7 @@ Note: `done` may be a string or an env-keyed map (`{ dev, staging, production }`
 
 ## Rules
 
-- Never auto-relabel build labels, with one explicit exception: when `github-verify` returns FAIL for the pre-flight gate (Step 2), relabel to the configured `blocked` label, add the configured `human_needed` marker label (`github.labels.build.human_needed`, default `human-needed`), and reassign to the original author. The build-intake owner transitions a successful issue from `claimed` directly to the configured `done` label after PR evidence is posted.
+- Never auto-relabel build labels, with one explicit exception: when `github-verify` returns FAIL for the pre-flight gate (Step 2), first run the `pre-flight-autofill` draft-then-block procedure (draft the authorable missing sections into the issue body as labeled assumptions), then relabel to the configured `blocked` label, add the configured `human_needed` marker label (`github.labels.build.human_needed`, default `human-needed`), and reassign to the original author with a confirmation comment. The build-intake owner transitions a successful issue from `claimed` directly to the configured `done` label after PR evidence is posted.
 - Always read the full issue graph via `github-read-issue` before determining intent — don't rely on the `type:` label alone.
 - Never create or materially edit an issue by calling `gh issue create` / `gh issue edit` directly — always delegate to `github-write-issue` (or, from a vendor-neutral caller, `tracker-write`) so relationships, Gherkin criteria, and metadata gates are enforced.
 - If sign-in credentials are in the issue body, extract and pass them to the flow. If the issue touches an authenticated surface and credentials are missing, that is a Step 2 failure — block and reassign rather than guessing.
