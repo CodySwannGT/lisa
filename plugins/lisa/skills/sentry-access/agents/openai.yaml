@@ -1,0 +1,4 @@
+display_name: "Sentry Access"
+short_description: "Vendor-neutral access layer for Sentry"
+default_prompt:
+  - "Use $sentry-access: Vendor-neutral access layer for Sentry."
