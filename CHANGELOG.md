@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.12](https://github.com/CodySwannGT/lisa/compare/vv2.176.11...v2.176.12) (2026-06-23)
+
+
+### Bug Fixes
+
+* add Jira CLI config fallback ([a177e28](https://github.com/CodySwannGT/lisa/commit/a177e28a9e88c314c7922c567c2dc3aa42a35730))
+* use strict https?:// regex in session bootstrap URL check ([ca4e6cd](https://github.com/CodySwannGT/lisa/commit/ca4e6cd66a10ae67d309858671b4bcb42b5cde55))
+
 ### [2.176.11](https://github.com/CodySwannGT/lisa/compare/vv2.176.10...v2.176.11) (2026-06-23)
 
 
