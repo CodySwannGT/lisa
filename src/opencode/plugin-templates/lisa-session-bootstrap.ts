@@ -23,7 +23,8 @@ export const LisaSessionBootstrap = async ({
   worktree: string;
 }) => {
   const root = worktree;
-  const { existsSync, mkdirSync, writeFileSync } = await import("node:fs");
+  const { existsSync, mkdirSync, readFileSync, writeFileSync } =
+    await import("node:fs");
 
   // install-pkgs: bootstrap dependencies when they're missing.
   try {
@@ -46,9 +47,38 @@ export const LisaSessionBootstrap = async ({
     // fail open — never block startup on a dependency-install error
   }
 
-  // setup-jira-cli: write jira-cli config from environment variables.
+  // setup-jira-cli: write jira-cli config from environment variables and non-secret Lisa config.
   try {
-    const server = process.env.JIRA_SERVER;
+    const readLisaConfig = (path: string[]) => {
+      for (const file of [".lisa.config.local.json", ".lisa.config.json"]) {
+        const configPath = `${root}/${file}`;
+        if (!existsSync(configPath)) continue;
+        try {
+          let value: unknown = JSON.parse(readFileSync(configPath, "utf8"));
+          for (const key of path) {
+            if (!value || typeof value !== "object" || !(key in value)) {
+              value = undefined;
+              break;
+            }
+            value = (value as Record<string, unknown>)[key];
+          }
+          if (typeof value === "string" && value) return value;
+        } catch {
+          // ignore malformed local config and keep fail-open behavior
+        }
+      }
+      return undefined;
+    };
+    const atlassianSite = readLisaConfig(["atlassian", "site"]);
+    const server =
+      process.env.JIRA_SERVER ??
+      (/^https?:\/\//.test(atlassianSite ?? "")
+        ? atlassianSite
+        : atlassianSite
+          ? `https://${atlassianSite}`
+          : undefined);
+    const project =
+      process.env.JIRA_PROJECT ?? readLisaConfig(["jira", "project"]) ?? "";
     const login = process.env.JIRA_LOGIN;
     const home = process.env.HOME;
     if (server && login && home) {
@@ -58,7 +88,7 @@ export const LisaSessionBootstrap = async ({
         `installation: ${process.env.JIRA_INSTALLATION ?? "cloud"}`,
         `server: ${server}`,
         `login: ${login}`,
-        `project: ${process.env.JIRA_PROJECT ?? ""}`,
+        `project: ${project}`,
         `board: "${process.env.JIRA_BOARD ?? ""}"`,
         "auth_type: basic",
         "epic:",
