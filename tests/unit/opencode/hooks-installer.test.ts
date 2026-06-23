@@ -201,6 +201,24 @@ describe("opencode/hooks-installer", () => {
       expect(body).toContain("export const LisaSessionBootstrap");
     });
 
+    it("session bootstrap uses strict https?:// URL-scheme check (not loose startsWith)", async () => {
+      await installHooks(destDir, [], []);
+      const body = await fs.readFile(
+        path.join(
+          destDir,
+          OPENCODE_CONFIG_DIR,
+          OPENCODE_PLUGIN_SUBDIR,
+          SESSION
+        ),
+        "utf8"
+      );
+      // Ensure the bootstrap uses a strict regex so that values like "httpfoo"
+      // are treated as bare hostnames and get https:// prepended, matching the
+      // behaviour of the shell hook (which checks http://* || https://*).
+      expect(body).toContain("/^https?:\\/\\//");
+      expect(body).not.toContain('.startsWith("http")');
+    });
+
     it("reports pluginCount equal to the emitted file count", async () => {
       const result = await installHooks(destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);

@@ -72,7 +72,7 @@ export const LisaSessionBootstrap = async ({
     const atlassianSite = readLisaConfig(["atlassian", "site"]);
     const server =
       process.env.JIRA_SERVER ??
-      (atlassianSite?.startsWith("http")
+      (/^https?:\/\//.test(atlassianSite ?? "")
         ? atlassianSite
         : atlassianSite
           ? `https://${atlassianSite}`
