@@ -140,6 +140,11 @@ describe("enforce-team-first.sh", () => {
       expect(stderr).toContain("Agent");
       expect(stderr).toContain("TeamCreate");
       expect(stderr).toContain("/lisa:implement");
+      // The first spawn must be the bounded input-resolver, and the Roster
+      // Decision must be recorded before lifecycle specialists — guarding
+      // against the implicit-team "one fat agent" collapse.
+      expect(stderr).toContain("input-resolver");
+      expect(stderr).toContain("Roster Decision");
     });
   });
 
