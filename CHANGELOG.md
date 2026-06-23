@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.177.0](https://github.com/CodySwannGT/lisa/compare/vv2.176.12...v2.177.0) (2026-06-23)
+
+
+### Features
+
+* **integrations:** add headless access layers ([cf6557f](https://github.com/CodySwannGT/lisa/commit/cf6557f9dfe7479bcaaca54e2390d963bfce85be))
+
+
+### Bug Fixes
+
+* **codex:** preserve PostHog and SonarCloud brand-name capitalization in display_name ([70bee13](https://github.com/CodySwannGT/lisa/commit/70bee1316fd5289118f57614fd0866e507167e86)), closes [#1345](https://github.com/CodySwannGT/lisa/issues/1345)
+
 ### [2.176.12](https://github.com/CodySwannGT/lisa/compare/vv2.176.11...v2.176.12) (2026-06-23)
 
 
