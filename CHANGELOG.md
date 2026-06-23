@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.176.11](https://github.com/CodySwannGT/lisa/compare/vv2.176.10...v2.176.11) (2026-06-23)
+
+
+### Bug Fixes
+
+* **implement:** keep the Roster Decision gate after implicit-team migration ([3cb90e3](https://github.com/CodySwannGT/lisa/commit/3cb90e3545ccf2411430a88ad448e9cda625be7b))
+
 ### [2.176.10](https://github.com/CodySwannGT/lisa/compare/vv2.176.9...v2.176.10) (2026-06-22)
 
 
