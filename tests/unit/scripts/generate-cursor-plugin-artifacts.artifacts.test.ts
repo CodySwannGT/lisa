@@ -6,7 +6,7 @@
  * `check:plugins` keeps these artifacts in sync with `plugins/src` in CI, so they
  * are a stable fixture. Final FLAT scheme: eager → `rules/<name>.mdc`
  * (alwaysApply:true), reference → `rules/<name>-reference.mdc`
- * (alwaysApply:false + description), 13 each / 26 total, no nested subdirs, no
+ * (alwaysApply:false + description), no nested subdirs, no
  * plain `.md`. Hooks are asserted by SHAPE only — plugin-hook firing is not
  * verifiable through the cursor-agent CLI (only project `.cursor/hooks.json`
  * fires), proven during reproduction.
@@ -44,7 +44,7 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
     const mdcFiles = (): readonly string[] =>
       fs.readdirSync(rulesDir).filter(f => f.endsWith(".mdc"));
 
-    it("ships 32 flat .mdc (16 eager + 16 reference), no nested dirs, no plain .md", () => {
+    it("ships 34 flat .mdc (17 eager + 17 reference), no nested dirs, no plain .md", () => {
       expect(fs.existsSync(rulesDir)).toBe(true);
       expect(fs.existsSync(path.join(rulesDir, "eager"))).toBe(false);
       expect(fs.existsSync(path.join(rulesDir, "reference"))).toBe(false);
@@ -53,9 +53,9 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
         expect(e.name.endsWith(".mdc")).toBe(true);
       }
       const mdc = mdcFiles();
-      expect(mdc.length).toBe(32);
-      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(16);
-      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(16);
+      expect(mdc.length).toBe(34);
+      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(17);
+      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(17);
     });
 
     it("eager rules carry alwaysApply:true; reference rules alwaysApply:false + description", () => {
