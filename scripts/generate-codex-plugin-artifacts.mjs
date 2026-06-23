@@ -192,11 +192,27 @@ const ACRONYMS = new Set([
 ]);
 
 /**
+ * Brand names whose mixed-case capitalization cannot be reproduced by the
+ * simple title-case or all-upper-case rules above.
+ *
+ * Keys are lower-cased token forms (as they appear split from a kebab skill
+ * name). Values are the canonical display spellings. Entries here take
+ * precedence over both {@link ACRONYMS} and the default title-case path so
+ * that `posthog-access` -> "PostHog Access" rather than "Posthog Access".
+ */
+const BRAND_NAMES = new Map([
+  ["posthog", "PostHog"],
+  ["sonarcloud", "SonarCloud"],
+]);
+
+/**
  * Humanize a kebab/snake/space-delimited token into a Title-Cased display name.
  *
  * Splits on `-`, `_`, and runs of whitespace, then title-cases each word —
- * except tokens in {@link ACRONYMS}, which are upper-cased. This is the rule the
- * PRD (#521) specifies for `display_name`: `exploratory-qa` -> "Exploratory QA".
+ * except tokens in {@link ACRONYMS}, which are upper-cased, and tokens in
+ * {@link BRAND_NAMES}, which are emitted with their canonical spelling.
+ * This is the rule the PRD (#521) specifies for `display_name`:
+ * `exploratory-qa` -> "Exploratory QA".
  * Pure: same input always yields the same output.
  *
  * @param {string} raw The raw skill/frontmatter name token.
@@ -206,11 +222,16 @@ function humanizeName(raw) {
   return raw
     .split(/[-_\s]+/)
     .filter(word => word.length > 0)
-    .map(word =>
-      ACRONYMS.has(word.toLowerCase())
-        ? word.toUpperCase()
-        : word.charAt(0).toUpperCase() + word.slice(1)
-    )
+    .map(word => {
+      const lower = word.toLowerCase();
+      if (BRAND_NAMES.has(lower)) {
+        return BRAND_NAMES.get(lower);
+      }
+      if (ACRONYMS.has(lower)) {
+        return word.toUpperCase();
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
     .join(" ");
 }
 
