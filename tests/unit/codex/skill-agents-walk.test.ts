@@ -233,6 +233,22 @@ describe("codex/skill-agents-walk", () => {
       ).toBe("Jsdoc Best Practices");
     });
 
+    it("preserves mixed-case brand names (PostHog) in display_name", () => {
+      const iface = deriveSkillInterface(
+        { name: "posthog-access", description: "Access PostHog." },
+        "posthog-access"
+      );
+      expect(iface.display_name).toBe("PostHog Access");
+    });
+
+    it("preserves mixed-case brand names (SonarCloud) in display_name", () => {
+      const iface = deriveSkillInterface(
+        { name: "sonarcloud-access", description: "Access SonarCloud." },
+        "sonarcloud-access"
+      );
+      expect(iface.display_name).toBe("SonarCloud Access");
+    });
+
     // ---- short_description summarization ----
 
     it("derives a concise short_description from the first sentence", () => {
