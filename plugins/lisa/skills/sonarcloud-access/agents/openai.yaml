@@ -1,0 +1,4 @@
+display_name: "SonarCloud Access"
+short_description: "Vendor-neutral access layer for SonarCloud/SonarQube Cloud"
+default_prompt:
+  - "Use $sonarcloud-access: Vendor-neutral access layer for SonarCloud/SonarQube Cloud."
