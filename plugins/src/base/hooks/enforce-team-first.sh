@@ -175,14 +175,22 @@ ACTIVE_SKILL=$(cat "$SKILL_FLAG" 2>/dev/null || echo "lisa:???")
 cat >&2 <<EOF
 Blocked: this session invoked /${ACTIVE_SKILL}, which is an agent-team flow.
 In Claude, before any other tool call, you must establish the team by spawning
-your first teammate:
+your FIRST teammate — and that first spawn MUST be the bounded input-resolver,
+NOT a builder/implementer that does the whole task inline:
 
-  Call the \`Agent\` tool with an appropriate \`subagent_type\`.
+  Call the \`Agent\` tool with an appropriate \`subagent_type\`, scoped to ONLY
+  resolving the input (read the ticket/file/prompt and return it).
 
 The team forms automatically the moment the lead spawns its first teammate —
 this is the implicit-team model on Claude Code >= 2.1.178, where the explicit
 \`TeamCreate\`/\`TeamDelete\` tools were removed. (On older Claude Code the
 \`TeamCreate\` tool path still works and is also accepted.)
+
+Spawning a single fat agent that does the whole build satisfies this gate but
+collapses the flow into the 1-agent ad-hoc fix the skill forbids. After the
+input-resolver returns, record the Roster Decision — enumerate every available
+\`subagent_type\` with an INCLUDE/EXCLUDE line — BEFORE spawning any lifecycle,
+research, implementation, review, or verification specialist.
 
 The current attempt to call \`${TOOL_NAME}\` is a team-bypass path. Reading
 the ticket, exploring the code, fetching context — those are tasks for the
@@ -192,7 +200,7 @@ If you are running Lisa in a non-Claude harness, this Claude enforcement hook
 should not be installed; follow the runtime-aware orchestration preamble in the
 skill instead.
 
-Re-read the orchestration preamble in /${ACTIVE_SKILL} and start by spawning a
-teammate with the \`Agent\` tool.
+Re-read the orchestration preamble in /${ACTIVE_SKILL} and start by spawning the
+bounded input-resolver with the \`Agent\` tool.
 EOF
 exit 2
