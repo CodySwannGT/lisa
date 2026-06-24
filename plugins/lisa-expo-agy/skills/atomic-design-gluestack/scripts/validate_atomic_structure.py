@@ -13,6 +13,7 @@ Usage:
     If no path provided, validates the entire project from current directory.
 """
 
+import json
 import os
 import re
 import sys
@@ -44,29 +45,45 @@ ATOM_BARREL_MARKERS = [
 ]
 
 
-def find_project_root(path: str) -> Path:
-    """Find the nearest project root for marker detection."""
+def find_project_roots(path: str) -> list[Path]:
+    """Find candidate roots for marker detection, from nearest to farthest.
+
+    Returns all package boundaries (package.json or .git directories) found
+    when walking up from ``path``.  In a monorepo this means both the inner
+    package root and the workspace root are returned, so seal markers stored at
+    the workspace level are not missed.
+    """
     current = Path(path).resolve()
     if current.is_file():
         current = current.parent
 
-    for candidate in [current, *current.parents]:
-        if (candidate / "package.json").exists() or (candidate / ".git").exists():
-            return candidate
-    return current
+    return [
+        candidate
+        for candidate in [current, *current.parents]
+        if (candidate / "package.json").exists() or (candidate / ".git").exists()
+    ] or [current]
 
 
 def has_design_system_eslint_rule(project_root: Path) -> bool:
-    """Detect project-owned design-system lint rules."""
+    """Detect project-owned design-system lint rules.
+
+    Only matches actual rule/plugin identifier syntax (``design-system/``) so
+    that comments, package names, or arbitrary strings containing
+    ``design-system`` as a substring do not trigger a false positive.
+    """
     eslint_files = [
         ".eslintrc",
         ".eslintrc.js",
         ".eslintrc.cjs",
+        ".eslintrc.yaml",
+        ".eslintrc.yml",
         ".eslintrc.json",
         "eslint.config.js",
         "eslint.config.mjs",
         "eslint.config.cjs",
         "eslint.config.ts",
+        "eslint.config.mts",
+        "eslint.config.cts",
     ]
 
     for eslint_file in eslint_files:
@@ -77,20 +94,44 @@ def has_design_system_eslint_rule(project_root: Path) -> bool:
             content = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        if "design-system" in content:
+        if re.search(r"\bdesign-system/", content):
             return True
+
+    # Check package.json eslintConfig field explicitly so that dependency
+    # names (e.g. "design-system" in dependencies) don't cause false positives.
+    package_json_path = project_root / "package.json"
+    if package_json_path.exists() and package_json_path.is_file():
+        try:
+            pkg = json.loads(package_json_path.read_text(encoding="utf-8"))
+            eslint_config = pkg.get("eslintConfig")
+            if eslint_config is not None:
+                eslint_config_str = json.dumps(eslint_config)
+                if re.search(r"\bdesign-system/", eslint_config_str):
+                    return True
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            pass
+
     return False
 
 
 def has_sealed_design_system(path: str) -> bool:
     """Check whether this project has a closed local design-system seal."""
-    project_root = find_project_root(path)
-    has_seal_marker = any((project_root / marker).exists() for marker in SEALED_DESIGN_SYSTEM_MARKERS)
-    has_atom_barrel = any((project_root / marker).exists() for marker in ATOM_BARREL_MARKERS)
+    project_roots = find_project_roots(path)
+    has_seal_marker = any(
+        (root / marker).exists()
+        for root in project_roots
+        for marker in SEALED_DESIGN_SYSTEM_MARKERS
+    )
+    has_atom_barrel = any(
+        (root / marker).exists()
+        for root in project_roots
+        for marker in ATOM_BARREL_MARKERS
+    )
+    has_claude_rules = any((root / ".claude/rules").exists() for root in project_roots)
 
-    if has_seal_marker and (has_atom_barrel or (project_root / ".claude/rules").exists()):
+    if has_seal_marker and (has_atom_barrel or has_claude_rules):
         return True
-    return has_design_system_eslint_rule(project_root)
+    return any(has_design_system_eslint_rule(root) for root in project_roots)
 
 
 # Patterns to identify atomic level from file path
