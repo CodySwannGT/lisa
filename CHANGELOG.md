@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.178.5](https://github.com/CodySwannGT/lisa/compare/vv2.178.4...v2.178.5) (2026-06-24)
+
+
+### Bug Fixes
+
+* **husky:** run pre-push in Claude remote ([bb806cd](https://github.com/CodySwannGT/lisa/commit/bb806cd94b36ccadbcc01598e5612996bb97f230)), closes [#1349](https://github.com/CodySwannGT/lisa/issues/1349)
+
 ### [2.178.4](https://github.com/CodySwannGT/lisa/compare/vv2.178.3...v2.178.4) (2026-06-24)
 
 
