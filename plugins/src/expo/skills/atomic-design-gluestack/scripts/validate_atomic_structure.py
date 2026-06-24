@@ -29,6 +29,70 @@ ATOMIC_LEVELS = {
     "app": 4,      # Expo Router pages
 }
 
+SEALED_DESIGN_SYSTEM_MARKERS = [
+    ".claude/rules/use-the-design-library.md",
+    ".claude/rules/figma-design-system.md",
+    "docs/design-system/tokens.md",
+    "docs/design-system-rfc.md",
+]
+
+ATOM_BARREL_MARKERS = [
+    "components/atoms/index.ts",
+    "components/atoms/index.tsx",
+    "src/components/atoms/index.ts",
+    "src/components/atoms/index.tsx",
+]
+
+
+def find_project_root(path: str) -> Path:
+    """Find the nearest project root for marker detection."""
+    current = Path(path).resolve()
+    if current.is_file():
+        current = current.parent
+
+    for candidate in [current, *current.parents]:
+        if (candidate / "package.json").exists() or (candidate / ".git").exists():
+            return candidate
+    return current
+
+
+def has_design_system_eslint_rule(project_root: Path) -> bool:
+    """Detect project-owned design-system lint rules."""
+    eslint_files = [
+        ".eslintrc",
+        ".eslintrc.js",
+        ".eslintrc.cjs",
+        ".eslintrc.json",
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "eslint.config.cjs",
+        "eslint.config.ts",
+    ]
+
+    for eslint_file in eslint_files:
+        path = project_root / eslint_file
+        if not path.exists() or not path.is_file():
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if "design-system" in content:
+            return True
+    return False
+
+
+def has_sealed_design_system(path: str) -> bool:
+    """Check whether this project has a closed local design-system seal."""
+    project_root = find_project_root(path)
+    has_seal_marker = any((project_root / marker).exists() for marker in SEALED_DESIGN_SYSTEM_MARKERS)
+    has_atom_barrel = any((project_root / marker).exists() for marker in ATOM_BARREL_MARKERS)
+
+    if has_seal_marker and (has_atom_barrel or (project_root / ".claude/rules").exists()):
+        return True
+    return has_design_system_eslint_rule(project_root)
+
+
 # Patterns to identify atomic level from file path
 LEVEL_PATTERNS = [
     (r"/components/atoms/", "atoms"),
@@ -302,6 +366,11 @@ def main():
     if not os.path.exists(path):
         print(f"Error: Path '{path}' does not exist")
         sys.exit(1)
+
+    if has_sealed_design_system(path):
+        print("Sealed design system detected; deferring to the project's design-library rules.")
+        print("Skipping generic Gluestack atomic-design validation.")
+        sys.exit(0)
 
     print(f"Validating atomic design structure in: {path}")
     print("-" * 60)

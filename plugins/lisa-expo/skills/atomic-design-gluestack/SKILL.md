@@ -10,6 +10,14 @@ description: |
 
 This skill enforces Brad Frost's atomic design methodology adapted for React Native/Expo projects using Gluestack UI v3 + NativeWind v4. It provides clear guidelines for component categorization, directory structure, composition patterns, and testing strategies for each atomic level.
 
+## Sealed Design System Guard
+
+Before applying this skill, check whether the target project has a sealed or closed design system. Common markers include `.claude/rules/use-the-design-library.md`, `.claude/rules/figma-design-system.md`, design-system ESLint rules, or a project-owned `@/components/atoms` barrel paired with design-system docs/configuration.
+
+If a sealed design system is present, defer to the project's design-library rules and skills instead, such as `use-the-design-library` and `add-design-library-item`. Keep the atomic hierarchy concepts only when they match the local seal. Do not redefine the atom library as `@/components/ui`, use Gluestack compound trees as canonical atoms, or recommend `className` and raw Gluestack tokens where the project seal forbids them.
+
+For open Gluestack UI v3 + NativeWind v4 projects without those seal markers, continue with the guidance below.
+
 ## Core Principles
 
 ### The Atomic Hierarchy
