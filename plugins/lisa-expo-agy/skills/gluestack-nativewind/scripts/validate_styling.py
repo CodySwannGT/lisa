@@ -19,6 +19,7 @@ Arguments:
             Can be a file or directory.
 """
 
+import json
 import os
 import re
 import sys
@@ -97,6 +98,109 @@ SKIP_PATTERNS = [
     r'tailwind\.config',
     r'\.config\.',
 ]
+
+
+SEALED_DESIGN_SYSTEM_MARKERS = [
+    ".claude/rules/use-the-design-library.md",
+    ".claude/rules/figma-design-system.md",
+    "docs/design-system/tokens.md",
+    "docs/design-system-rfc.md",
+]
+
+ATOM_BARREL_MARKERS = [
+    "components/atoms/index.ts",
+    "components/atoms/index.tsx",
+    "src/components/atoms/index.ts",
+    "src/components/atoms/index.tsx",
+]
+
+
+def find_project_roots(path: str) -> list[Path]:
+    """Find candidate roots for marker detection, from nearest to farthest.
+
+    Returns all package boundaries (package.json or .git directories) found
+    when walking up from ``path``.  In a monorepo this means both the inner
+    package root and the workspace root are returned, so seal markers stored at
+    the workspace level are not missed.
+    """
+    current = Path(path).resolve()
+    if current.is_file():
+        current = current.parent
+
+    return [
+        candidate
+        for candidate in [current, *current.parents]
+        if (candidate / "package.json").exists() or (candidate / ".git").exists()
+    ] or [current]
+
+
+def has_design_system_eslint_rule(project_root: Path) -> bool:
+    """Detect project-owned design-system lint rules.
+
+    Only matches actual rule/plugin identifier syntax (``design-system/``) so
+    that comments, package names, or arbitrary strings containing
+    ``design-system`` as a substring do not trigger a false positive.
+    """
+    eslint_files = [
+        ".eslintrc",
+        ".eslintrc.js",
+        ".eslintrc.cjs",
+        ".eslintrc.yaml",
+        ".eslintrc.yml",
+        ".eslintrc.json",
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "eslint.config.cjs",
+        "eslint.config.ts",
+        "eslint.config.mts",
+        "eslint.config.cts",
+    ]
+
+    for eslint_file in eslint_files:
+        path = project_root / eslint_file
+        if not path.exists() or not path.is_file():
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if re.search(r"\bdesign-system/", content):
+            return True
+
+    # Check package.json eslintConfig field explicitly so that dependency
+    # names (e.g. "design-system" in dependencies) don't cause false positives.
+    package_json_path = project_root / "package.json"
+    if package_json_path.exists() and package_json_path.is_file():
+        try:
+            pkg = json.loads(package_json_path.read_text(encoding="utf-8"))
+            eslint_config = pkg.get("eslintConfig")
+            if eslint_config is not None:
+                eslint_config_str = json.dumps(eslint_config)
+                if re.search(r"\bdesign-system/", eslint_config_str):
+                    return True
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            pass
+
+    return False
+
+
+def has_sealed_design_system(path: str) -> bool:
+    """Check whether this project has a closed local design-system seal."""
+    project_roots = find_project_roots(path)
+    has_seal_marker = any(
+        (root / marker).exists()
+        for root in project_roots
+        for marker in SEALED_DESIGN_SYSTEM_MARKERS
+    )
+    has_atom_barrel = any(
+        (root / marker).exists()
+        for root in project_roots
+        for marker in ATOM_BARREL_MARKERS
+    )
+
+    if has_seal_marker or has_atom_barrel:
+        return True
+    return any(has_design_system_eslint_rule(root) for root in project_roots)
 
 
 def should_skip_file(file_path: str) -> bool:
@@ -269,6 +373,11 @@ def main():
     if not os.path.exists(path):
         print(f"❌ Path not found: {path}")
         sys.exit(1)
+
+    if has_sealed_design_system(path):
+        print("Sealed design system detected; deferring to the project's design-library rules.")
+        print("Skipping generic Gluestack NativeWind validation.")
+        sys.exit(0)
 
     print(f"🔍 Validating styling patterns in: {path}\n")
 
