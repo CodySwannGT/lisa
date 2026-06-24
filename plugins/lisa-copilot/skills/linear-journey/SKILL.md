@@ -1,7 +1,7 @@
 ---
 name: linear-journey
 description: "Parse a Linear Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database queries, Playwright), capture evidence at each [EVIDENCE: name] marker, and post to Linear + GitHub PR using the linear-evidence skill. Linear counterpart of lisa:jira-journey."
-allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue"]
+allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 ---
 
 # Linear Validation Journey
@@ -31,7 +31,7 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 
 ### Step 1: Parse the Validation Journey
 
-Fetch the Issue via `mcp__linear-server__get_issue` and extract the `## Validation Journey` section from the markdown description. Parse:
+Fetch the Issue via `lisa:linear-access operation: get-issue` and extract the `## Validation Journey` section from the markdown description. Parse:
 
 - `### Prerequisites` — list of required services / env / setup
 - `### Steps` — numbered steps, each potentially containing `[EVIDENCE: name]` markers

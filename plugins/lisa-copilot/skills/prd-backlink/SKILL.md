@@ -162,7 +162,7 @@ Linear models top-level grouping two ways, and the PRD's own entity type decides
 - **PRD is a Linear Project** (the common case — a PRD project groups its generated work). Generated top-level **Issues** are attached to the PRD by setting their `projectId` to the PRD Project's id. The Project *is* the native parent of its Issues; no separate parent-issue link is needed.
 - **PRD is a Linear Issue** (a parent issue, not a project). Generated top-level Issues are attached as native **sub-Issues** of the PRD Issue by setting their `parentId` to the PRD Issue's id.
 
-Either way the write surface is `mcp__linear-server__save_issue` with the single relevant field (`projectId` or `parentId`) — the same primitive `lisa:linear-write-issue` uses to set a Story's `projectId` (Epic Project) and a Sub-task's `parentId` (Story Issue). Send **only** that field on update; Linear treats `save_issue` as a full overwrite of the fields named (`lisa:linear-write-issue` Phase 6 UPDATE), so resending other fields would clobber them.
+Either way the write surface is `lisa:linear-access operation: save-issue` with the single relevant field (`projectId` or `parentId`) — the same primitive `lisa:linear-write-issue` uses to set a Story's `projectId` (Epic Project) and a Sub-task's `parentId` (Story Issue). Send **only** that field on update; Linear treats `save_issue` as a full overwrite of the fields named (`lisa:linear-write-issue` Phase 6 UPDATE), so resending other fields would clobber them.
 
 ### What gets linked — generated top-level work only
 
@@ -178,14 +178,14 @@ So if the PRD generated `Epic E1 (Project) → Story S1 (Issue) → Sub-task T1 
 The dedupe key is **child-ref identity** — the Linear issue/project identifier (e.g. `TEAM-123`) or its UUID — per the `prd-lifecycle-rollup` idempotency rule. Before attaching any child, read the PRD's current children and skip any child already attached, so re-running `prd-backlink` never duplicates a relationship and is a no-op when everything is already attached.
 
 1. **Read the PRD's existing children** (the same reads `lisa:linear-read-issue` uses for Project members and sub-Issues):
-   - PRD-as-Project → `mcp__linear-server__list_issues({project: <prd_project_id>})` and collect each member Issue's identifier/UUID.
-   - PRD-as-Issue → `mcp__linear-server__get_issue({id: <prd_issue_id>})` and collect its sub-Issue identifiers/UUIDs.
+   - PRD-as-Project → `lisa:linear-access operation: list-issues({project: <prd_project_id>})` and collect each member Issue's identifier/UUID.
+   - PRD-as-Issue → `lisa:linear-access operation: get-issue({id: <prd_issue_id>})` and collect its sub-Issue identifiers/UUIDs.
 
    The resulting identifiers/UUIDs are the existing child-ref set.
 
 2. **For each generated top-level item** whose child-ref is **not** already in that set, attach it with a single-field `save_issue`:
-   - PRD-as-Project → `mcp__linear-server__save_issue({id: <child_id>, projectId: <prd_project_id>})`.
-   - PRD-as-Issue → `mcp__linear-server__save_issue({id: <child_id>, parentId: <prd_issue_id>})`.
+   - PRD-as-Project → `lisa:linear-access operation: save-issue({id: <child_id>, projectId: <prd_project_id>})`.
+   - PRD-as-Issue → `lisa:linear-access operation: save-issue({id: <child_id>, parentId: <prd_issue_id>})`.
 
    A child already in the existing-children set is a no-op — do not issue the `save_issue` call for it. Reading the child's current `projectId`/`parentId` and finding it already equal to the PRD's id is the same no-op (attaching to the value it already holds changes nothing).
 

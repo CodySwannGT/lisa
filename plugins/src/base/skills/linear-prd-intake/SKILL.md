@@ -1,7 +1,7 @@
 ---
 name: linear-prd-intake
 description: "Scans a Linear workspace (or a specific team) for projects carrying the configured `ready` PRD label and runs the first eligible one through the dry-run validation pipeline. A project that passes every gate gets tickets written and the label flipped to the configured `ticketed` label; a project that fails gets clarifying-question comments (on a sentinel feedback issue under the project) and the label flipped to the configured `blocked` label. Linear counterpart of `lisa:notion-prd-intake` and `lisa:confluence-prd-intake` — the workflow is identical; only the source-of-truth tools differ. Composes existing skills (linear-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough)."
-allowed-tools: ["Skill", "Bash", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__list_documents", "mcp__linear-server__get_document", "mcp__linear-server__list_teams"]
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # Linear PRD Intake: $ARGUMENTS
@@ -96,13 +96,13 @@ If the project does not yet use these labels, this skill cannot run. Adopting th
    - Bare team key → use as-is; the scope is that team.
    - The literal `linear` → fall back to `linear.workspace` from `.lisa.config.json`; error if not set.
 2. Verify the scope is reachable:
-   - For a workspace: call `mcp__linear-server__list_teams` and confirm at least one team is returned (non-empty workspaces are readable; empty results indicate auth or workspace-mismatch).
-   - For a team: call `mcp__linear-server__list_teams({query: <KEY>})` and confirm the team resolves.
-3. Resolve the project-label IDs for `$READY`, `$IN_REVIEW`, `$BLOCKED`, `$TICKETED` via `mcp__linear-server__list_project_labels`. Cache them — every transition uses these IDs. If any of the four are missing, surface a label-convention error and exit (see "Adoption").
+   - For a workspace: call `lisa:linear-access operation: list-teams` and confirm at least one team is returned (non-empty workspaces are readable; empty results indicate auth or workspace-mismatch).
+   - For a team: call `lisa:linear-access operation: list-teams({query: <KEY>})` and confirm the team resolves.
+3. Resolve the project-label IDs for `$READY`, `$IN_REVIEW`, `$BLOCKED`, `$TICKETED` via `lisa:linear-access operation: list-project-labels`. Cache them — every transition uses these IDs. If any of the four are missing, surface a label-convention error and exit (see "Adoption").
 
 ### Phase 2 — Find ready PRDs
 
-Call `mcp__linear-server__list_projects({label: "$READY", ...scope-filter})`:
+Call `lisa:linear-access operation: list-projects({label: "$READY", ...scope-filter})`:
 
 - For a workspace scope: pass `label: "$READY"` only.
 - For a team scope: pass `label: "$READY"` AND `team: "<KEY>"`.
@@ -123,7 +123,7 @@ Select the first ready project returned by Phase 2 and process only that project
 
 #### 3a. Claim
 
-Transition labels via `mcp__linear-server__save_project({id, labels})`: pass the full new label set with `$READY` removed and `$IN_REVIEW` added. This is the idempotency lock — a re-entrant cycle running concurrently won't see this project because its query filters on `label: "$READY"`.
+Transition labels via `lisa:linear-access operation: save-project({id, labels})`: pass the full new label set with `$READY` removed and `$IN_REVIEW` added. This is the idempotency lock — a re-entrant cycle running concurrently won't see this project because its query filters on `label: "$READY"`.
 
 If the update fails (permission error, race condition), log it and skip this project. Do not proceed to validation on a project you didn't successfully claim.
 
@@ -145,7 +145,7 @@ This call also indirectly invokes `lisa:tracker-source-artifacts` (artifact extr
 
 1. Re-invoke `lisa:linear-to-tracker` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
 2. Capture the created ticket keys from the skill's output.
-3. Ensure the project has a sentinel feedback issue (see "Sentinel feedback issue" below for the helper). Post a comment on it via `mcp__linear-server__save_comment` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the $SHIPPED label to the Linear project after the work is delivered."`
+3. Ensure the project has a sentinel feedback issue (see "Sentinel feedback issue" below for the helper). Post a comment on it via `lisa:linear-access operation: save-comment` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the $SHIPPED label to the Linear project after the work is delivered."`
 4. Transition labels: remove `$IN_REVIEW`, add `$TICKETED` via `save_project`.
 5. **Run Phase 3e (coverage audit)** before considering this PRD done.
 
@@ -160,7 +160,7 @@ The audience for these comments is the **product team**, not engineers. They are
 
 ##### 3c.2 Render each comment
 
-Ensure the project has a sentinel feedback issue (see helper below). For each anchored group (`prd_anchor` is a sub-issue identifier), post a comment on THAT sub-issue via `mcp__linear-server__save_comment({issueId: <prd_anchor>, body: <template>})`. For the unanchored group, post a single comment on the sentinel feedback issue using the same template, prefixed with `Issues without a specific sub-issue anchor:` and one block per failure.
+Ensure the project has a sentinel feedback issue (see helper below). For each anchored group (`prd_anchor` is a sub-issue identifier), post a comment on THAT sub-issue via `lisa:linear-access operation: save-comment({issueId: <prd_anchor>, body: <template>})`. For the unanchored group, post a single comment on the sentinel feedback issue using the same template, prefixed with `Issues without a specific sub-issue anchor:` and one block per failure.
 
 If `save_comment` fails for a specific anchored sub-issue (the issue was deleted between fetch and post, or the agent lacks comment permission), fall back to the sentinel feedback issue for that group. Do not silently drop the failure.
 
@@ -246,7 +246,7 @@ Rollup is keyed by the PRD's current state. If the PRD project already carries `
 
 Read the PRD's **generated top-level work** — its created Epics and any top-level Stories created directly under it, **excluding** leaf Sub-tasks and any Story nested under a generated Epic (`prd-lifecycle-rollup` rule, generated-top-level-work contract). Use two sources, native first:
 
-1. **Native parent / project relationships (primary).** Linear records the PRD→child relationship natively where the PRD also lives in Linear: a generated top-level Issue uses `parentId`, or a generated Project groups the generated Issues. Read the PRD project's generated top-level Issues via `mcp__linear-server__list_issues({project: <id>})` and take the **top-level** ones (no `parentId`, or whose parent is the PRD itself) — those are the PRD's direct children. Fetch each with `mcp__linear-server__get_issue` for its workflow state.
+1. **Native parent / project relationships (primary).** Linear records the PRD→child relationship natively where the PRD also lives in Linear: a generated top-level Issue uses `parentId`, or a generated Project groups the generated Issues. Read the PRD project's generated top-level Issues via `lisa:linear-access operation: list-issues({project: <id>})` and take the **top-level** ones (no `parentId`, or whose parent is the PRD itself) — those are the PRD's direct children. Fetch each with `lisa:linear-access operation: get-issue` for its workflow state.
 
 2. **Documented `## Tickets` section (fallback).** When the native relationship is unavailable (the destination tracker is a *different* system — e.g. Linear PRD → JIRA tracker — so the children were never linked as Linear issues), parse the machine-readable generated-work section `lisa:prd-backlink` writes to the PRD (`## Tickets`, alias `## Generated Work`; see #582). Top-level children are the `### <Epic key>: <title>` group headers' first line (`- [<ref>](<url>) — Epic`) plus any top-level Story listed directly under `### Unparented items`. Lines nested deeper (`  - ... — Story:` under an Epic, `    - ... — Sub-task:`) are descendants, NOT top-level children — skip them.
 
@@ -266,7 +266,7 @@ The set of **required** children for the all-terminal check is the top-level chi
 
 **All required children terminal** (every required top-level child is terminal; at least one required child exists):
 
-1. Transition labels: remove `$TICKETED`, add `$SHIPPED` via `mcp__linear-server__save_project({id, labels})`. Verify exactly one lifecycle label remains (the single-label invariant).
+1. Transition labels: remove `$TICKETED`, add `$SHIPPED` via `lisa:linear-access operation: save-project({id, labels})`. Verify exactly one lifecycle label remains (the single-label invariant).
 2. Leave the PRD active for `/lisa:verify-prd`; do not archive at the shipped hop.
 3. Post a short rollup comment on the sentinel feedback issue naming the terminal child set and (when dropped children exist) the dropped set, so the audit trail records *why* the PRD shipped. Lead with `"Shipped by Claude — all generated top-level work is complete."`
 
@@ -283,7 +283,7 @@ This phase implements exactly one PRD-lifecycle hop — `$TICKETED → $SHIPPED`
 
 `shipped` and `verified` are distinct facts about a PRD (see the `prd-lifecycle-rollup` rule's "PRD-level verification vs ticket verification" and "Closing the loop" sections). Rollup (3f) only reaches `$SHIPPED`; the `shipped → verified` (pass) / `shipped → ticketed` (fail) hops are owned by `/lisa:verify-prd`. This phase **closes that loop** by dispatching the initiative-level acceptance gate for shipped PRDs. It never performs the verification transition itself — the "never sets the verification outcome" invariant holds: `lisa:verify-prd`, not this skill, sets `verified` (or, on failure, re-opens the PRD to `ticketed`).
 
-Re-query the projects currently carrying the `$SHIPPED` label via `mcp__linear-server__list_projects` (filtered by the `$SHIPPED` project label, **including archived projects** — so shipped PRDs remain active for `lisa:verify-prd`). Pick the **first** one and invoke `lisa:verify-prd <project-url>`. Process **one shipped PRD per cycle** — `lisa:verify-prd` is a heavy full flow (spec-conformance + empirical verification + fix-issue creation), so it is bounded exactly like the single-ready-PRD claim in Phase 3; the scheduler drains the rest.
+Re-query the projects currently carrying the `$SHIPPED` label via `lisa:linear-access operation: list-projects` (filtered by the `$SHIPPED` project label, **including archived projects** — so shipped PRDs remain active for `lisa:verify-prd`). Pick the **first** one and invoke `lisa:verify-prd <project-url>`. Process **one shipped PRD per cycle** — `lisa:verify-prd` is a heavy full flow (spec-conformance + empirical verification + fix-issue creation), so it is bounded exactly like the single-ready-PRD claim in Phase 3; the scheduler drains the rest.
 
 **Per-cycle combined bound:** each scheduler cycle dispatches at most one ready PRD (the Phase 3 single-ready-PRD claim) **and** at most one shipped PRD for verification (this Phase 3g dispatch), for a maximum of two PRD operations per cycle. Ready intake runs first (Phase 3), then shipped verify (Phase 3g).
 

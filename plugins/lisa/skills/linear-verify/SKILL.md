@@ -1,7 +1,7 @@
 ---
 name: linear-verify
 description: "Verifies a Linear work item meets organizational standards by fetching the live item and running it through lisa:linear-validate-issue. Catches anything dropped or reformatted on write — same gates as the pre-write check, but applied to what Linear actually stored. Read-only."
-allowed-tools: ["Bash", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__get_project", "mcp__linear-server__list_issue_labels", "mcp__linear-server__list_project_labels"]
+allowed-tools: ["Bash", "Skill"]
 ---
 
 # Verify Linear Work Item: $ARGUMENTS
@@ -25,14 +25,14 @@ If `$ARGUMENTS` is not parseable, stop and report.
 ## Phase 1 — Resolve Context
 
 1. Read `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.local` override).
-2. Resolve team ID via `mcp__linear-server__list_teams({query: <teamKey>})`.
+2. Resolve team ID via `lisa:linear-access operation: list-teams({query: <teamKey>})`.
 3. Determine entity type from the identifier shape:
    - `<TEAM>-<n>` → Issue
    - URL containing `/project/<slug>-<id>` → Project
 
 ## Phase 2 — Fetch Live State
 
-Call `mcp__linear-server__get_issue` (for Issues) or `mcp__linear-server__get_project` (for Projects). Capture every field, label, relation, comment, milestone, and project membership.
+Call `lisa:linear-access operation: get-issue` (for Issues) or `lisa:linear-access operation: get-project` (for Projects). Capture every field, label, relation, comment, milestone, and project membership.
 
 ## Phase 3 — Delegate to Validator
 

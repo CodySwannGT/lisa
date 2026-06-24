@@ -22,5 +22,5 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 ## Rules
 
-- The journey content is identical across vendors; only the parser source differs (the JIRA vendor reads description via Atlassian MCP; the GitHub vendor reads body via `gh issue view --json body`; the Linear vendor reads description via `mcp__linear-server__get_issue`).
+- The journey content is identical across vendors; only the parser source differs (the JIRA vendor reads description via Atlassian MCP; the GitHub vendor reads body via `gh issue view --json body`; the Linear vendor reads description via `lisa:linear-access operation: get-issue`).
 - Evidence posting always goes through `lisa:tracker-evidence` — never bypass.
