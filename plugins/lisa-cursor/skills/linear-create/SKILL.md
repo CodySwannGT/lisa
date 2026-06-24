@@ -1,12 +1,12 @@
 ---
 name: linear-create
 description: "Creates Linear Projects (Epic-equivalent), Issues (Story / Task / Bug / Spike), and sub-Issues (Sub-task) from code files or descriptions. Analyzes the input, determines the appropriate hierarchy, and creates items with comprehensive quality requirements including test-first development and Validation Journey. The Linear counterpart of lisa:jira-create — delegates every write to lisa:linear-write-issue."
-allowed-tools: ["Read", "Glob", "LS", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__list_projects", "mcp__linear-server__list_issue_labels", "mcp__linear-server__list_project_labels"]
+allowed-tools: ["Read", "Glob", "LS", "Skill"]
 ---
 
 # Create Linear Work Items from $ARGUMENTS
 
-Analyze the provided file(s) and plan a Linear hierarchy. **This skill plans structure only — every individual write is delegated to `lisa:linear-write-issue`.** Do not call `mcp__linear-server__save_project` or `mcp__linear-server__save_issue` from this skill; those write tools are intentionally not in `allowed-tools`.
+Analyze the provided file(s) and plan a Linear hierarchy. **This skill plans structure only — every individual write is delegated to `lisa:linear-write-issue`.** Do not call `lisa:linear-access operation: save-project` or `lisa:linear-access operation: save-issue` from this skill; those write tools are intentionally not in `allowed-tools`.
 
 This skill is the destination of the `lisa:tracker-create` shim when `tracker = "linear"`.
 
@@ -104,7 +104,7 @@ Default team: from `linear.teamKey` config (override via arguments).
 
 ## Delegation to linear-write-issue
 
-**Mandatory.** Every item created by this skill MUST go through `lisa:linear-write-issue`. This skill never calls `mcp__linear-server__save_*` itself — those tools are intentionally excluded from `allowed-tools` so the gate cannot be bypassed.
+**Mandatory.** Every item created by this skill MUST go through `lisa:linear-write-issue`. This skill never performs Linear save operations itself — those tools are intentionally excluded from `allowed-tools` so the gate cannot be bypassed.
 
 `lisa:linear-write-issue` enforces:
 - 3-audience description (Context / Technical Approach / Acceptance Criteria)

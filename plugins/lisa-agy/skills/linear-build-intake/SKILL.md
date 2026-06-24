@@ -1,7 +1,7 @@
 ---
 name: linear-build-intake
 description: "Symmetric counterpart to lisa:jira-build-intake on the Linear side. Scans a Linear team for Issues carrying the configured `ready` build label, claims the first eligible Issue by relabeling to the configured `claimed` label, runs the implementation/build flow via lisa:linear-agent, relabels to the configured `done` label on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still carries a stale build-ready label is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` label is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed."
-allowed-tools: ["Skill", "Bash", "mcp__linear-server__list_teams", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label"]
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # Linear Build Intake: $ARGUMENTS
@@ -107,7 +107,7 @@ ready → claimed → review → done(env-keyed) (downstream)
 
 This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $DONE` on completion. It never touches `status:done`-as-terminal, `$REVIEW` (owned by `lisa:linear-agent` / `lisa:linear-evidence`), or `status:blocked` (owned by `lisa:linear-agent`'s pre-flight gate).
 
-**Pre-flight check**: at start of each cycle, confirm `$READY`, `$CLAIMED`, and the relevant `$DONE` variants exist on the team via `mcp__linear-server__list_issue_labels`. If `$READY` is missing, stop and report adoption needed. The other labels can be created on demand.
+**Pre-flight check**: at start of each cycle, confirm `$READY`, `$CLAIMED`, and the relevant `$DONE` variants exist on the team via `lisa:linear-access operation: list-issue-labels`. If `$READY` is missing, stop and report adoption needed. The other labels can be created on demand.
 
 ## Phases
 
@@ -116,11 +116,11 @@ This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $D
 1. Parse `$ARGUMENTS`:
    - Bare team key → use as-is.
    - Literal `linear` → fall back to `linear.teamKey` from config.
-2. Resolve team ID via `mcp__linear-server__list_teams({query: <teamKey>})`.
+2. Resolve team ID via `lisa:linear-access operation: list-teams({query: <teamKey>})`.
 
 ### Phase 2 — Find ready Issues
 
-Query: `mcp__linear-server__list_issues({team: <teamId>, label: "$READY"})`.
+Query: `lisa:linear-access operation: list-issues({team: <teamId>, label: "$READY"})`.
 
 Capture each Issue's: identifier, title, type label, priority, assignee, project, labels, description summary.
 
@@ -138,7 +138,7 @@ A Linear team can oversee multiple repos (`frontend` / `backend` / `infrastructu
 2. **Cheap path first.** Prefer candidates already carrying the `repo:<current>` label. Keep the Phase 2 scan broad so unlabeled Issues are still seen, determined, and stamped.
 3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
    - Carries `repo:<other>` → **skip** (leave it `ready` for that repo's own intake); next candidate.
-   - **Unlabeled** → determine the target repo(s) from the Issue + code surfaces, then **stamp** `repo:<name>` via `mcp__linear-server__save_issue` (resolve/create the label via `list_issue_labels`/`create_issue_label`) so later cycles filter cheaply; re-apply with the now-known repo.
+   - **Unlabeled** → determine the target repo(s) from the Issue + code surfaces, then **stamp** `repo:<name>` via `lisa:linear-access operation: save-issue` (resolve/create the label via `list_issue_labels`/`create_issue_label`) so later cycles filter cheaply; re-apply with the now-known repo.
    - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
    - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
 4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the ready set is exhausted — exit cleanly with `"No ready Issues for repo <current>. Nothing to do."`.
@@ -151,7 +151,7 @@ Run this gate **before** the claim relabel, starting with the oldest/highest-pri
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an Issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa:linear-read-issue` uses — Linear's native parentage: an Issue groups **sub-issues** via `parentId`, and a **Project** (the Epic equivalent) groups Issues via `projectId`. Relations (`save_issue_relation` — `blocks` / `is blocked by`) express dependencies and are **not** parentage — do not count them as children.
 
-Fetch the Issue's sub-issues via `mcp__linear-server__get_issue` (which returns the children) or `mcp__linear-server__list_issues({parentId: <issueId>})`, then count those still open (Linear `state.type` not in the completed/canceled set):
+Fetch the Issue's sub-issues via `lisa:linear-access operation: get-issue` (which returns the children) or `lisa:linear-access operation: list-issues({parentId: <issueId>})`, then count those still open (Linear `state.type` not in the completed/canceled set):
 
 ```text
 # Children of <issueId>: native sub-issues via parentId.
@@ -176,7 +176,7 @@ The childless-parent exception promotes every childless type **except Epic** to 
 
 **Safe-block (default action for a flagged container).** Leave the build-ready label in place (don't silently strip it — that hides the lifecycle error), post a single lifecycle-repair comment, record the Issue under "Skipped (container)" in the summary, and end the cycle. Do NOT relabel to `$CLAIMED`. Keep the comment idempotent — skip posting if an identical `[claude-build-intake]` lifecycle-repair comment already exists on the Issue, so a re-entrant cycle doesn't spam it.
 
-Post via `mcp__linear-server__save_comment` with:
+Post via `lisa:linear-access operation: save-comment` with:
 
 ```text
 [claude-build-intake] Not claimed: this Issue carries the build-ready label ($READY) but is a container with open child work (or a childless Epic), which violates the leaf-only-lifecycle rule. Build-ready (status:ready) is leaf-only per leaf-only-lifecycle — an agent claims and implements leaves, never a container. Repair: move $READY off this parent onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type). A parent's lifecycle state rolls up from its children and is never set to ready directly.
@@ -186,9 +186,9 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 #### 3b. Claim
 
-Update labels via `mcp__linear-server__save_issue`: remove `$READY`, add `$CLAIMED`. Resolve label IDs via `list_issue_labels` (create `$CLAIMED` if missing).
+Update labels via `lisa:linear-access operation: save-issue`: remove `$READY`, add `$CLAIMED`. Resolve label IDs via `list_issue_labels` (create `$CLAIMED` if missing).
 
-**Assign to the authenticated user when the Issue is unassigned.** A claim must be attributable. If the Issue has no assignee, set its `assigneeId` to the authenticated viewer (resolve the viewer's id via the Linear MCP identity — e.g. `get_user` for the current actor) through `mcp__linear-server__save_issue`. Leave an already-assigned Issue's assignee untouched — never reassign work that already has an owner.
+**Assign to the authenticated user when the Issue is unassigned.** A claim must be attributable. If the Issue has no assignee, set its `assigneeId` to the authenticated viewer (resolve the viewer's id via the Linear MCP identity — e.g. `get_user` for the current actor) through `lisa:linear-access operation: save-issue`. Leave an already-assigned Issue's assignee untouched — never reassign work that already has an owner.
 
 Post a `[claude-build-intake]` comment via `save_comment`: `"Claimed by Claude. Starting build."`
 
@@ -264,7 +264,7 @@ If `lisa:linear-agent` returned Success:
    - If `linear.labels.build.done` is a string, that string is terminal.
    - If `linear.labels.build.done` is an object, only the production/final environment value is terminal (default: `status:done`). Intermediate env values such as `status:on-dev` and `status:on-stg` are not terminal and must keep the native Issue open.
    - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not change the native state.
-4. Update labels via `mcp__linear-server__save_issue`: remove `$CLAIMED` (or `$REVIEW` if `lisa:linear-evidence` already moved it forward), add `$DONE`.
+4. Update labels via `lisa:linear-access operation: save-issue`: remove `$CLAIMED` (or `$REVIEW` if `lisa:linear-evidence` already moved it forward), add `$DONE`.
 5. If `$DONE` is terminal, move the native Linear Issue state to the configured Done / Completed state. Resolve that state from project configuration if present; otherwise inspect the team workflow for a terminal state with `state.type = "completed"` and a name such as `Done` or `Completed`. If no terminal state can be resolved, record an Error and leave the labels as the source of truth — do not invent a state name.
 6. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL> merged. Transitioned to $DONE."` Include whether native closure was applied, already satisfied, skipped for an intermediate env, or unavailable for setup reasons.
 
@@ -275,7 +275,7 @@ For any non-Success outcome, do NOT transition. The Issue sits where the agent l
 Run this **only after a successful `$DONE` transition in 3d**. This is the **forward** arm of the `leaf-only-lifecycle` rule's *"rollup is evaluated whenever a child transitions"* requirement: a leaf reaching `$DONE` may complete its parent Issue, which may in turn complete its Project. Without this step a fully-built parent stays open until the recovery `lisa:repair-intake` cron happens to run.
 
 1. Resolve the Issue's parent using the same hierarchy `lisa:linear-read-issue` uses — native parentage: a sub-issue's `parentId`, and Project membership via `projectId` for the Epic-equivalent. If the Issue has no parent, skip — nothing to roll up.
-2. Walk **up the ancestor chain bottom-up** (sub-issue → parent Issue → Project): for each ancestor invoke `lisa:linear-sync <ANCESTOR-ID> --rollup`. That skill derives the ancestor's `status:*` from its children per `leaf-only-lifecycle`, applies it via `mcp__linear-server__save_issue` only when it differs (never `status:ready`), and moves the native Linear `state` to the configured Done / Completed state when the derived env is the terminal `$DONE`. It is idempotent and safe-defaults (suggests, does not guess) when the rolled state is ambiguous.
+2. Walk **up the ancestor chain bottom-up** (sub-issue → parent Issue → Project): for each ancestor invoke `lisa:linear-sync <ANCESTOR-ID> --rollup`. That skill derives the ancestor's `status:*` from its children per `leaf-only-lifecycle`, applies it via `lisa:linear-access operation: save-issue` only when it differs (never `status:ready`), and moves the native Linear `state` to the configured Done / Completed state when the derived env is the terminal `$DONE`. It is idempotent and safe-defaults (suggests, does not guess) when the rolled state is ambiguous.
 3. Stop walking up when an ancestor has no parent, or when `--rollup` reports no change. Record each rolled-up ancestor and its derived state in the summary.
 
 This does not re-implement the state machine — it delegates to `lisa:linear-sync --rollup`, the single rollup implementation `lisa:repair-intake` also uses, so the forward and recovery paths can never drift. Children closed **outside** this flow are not observed here; `lisa:repair-intake` remains the recovery net for those.
