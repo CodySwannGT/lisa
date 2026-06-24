@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.178.1](https://github.com/CodySwannGT/lisa/compare/vv2.178.0...v2.178.1) (2026-06-24)
+
+
+### Documentation
+
+* **claude-remote:** encode routine platform network model ([934d66e](https://github.com/CodySwannGT/lisa/commit/934d66e36334b73df58adcf0199055e18fddc6c0))
+
 ## [2.178.0](https://github.com/CodySwannGT/lisa/compare/vv2.177.0...v2.178.0) (2026-06-24)
 
 
