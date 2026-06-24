@@ -7,6 +7,14 @@ description: This skill enforces Gluestack UI v3 and NativeWind v4 design patter
 
 This skill enforces constrained, opinionated styling patterns that reduce decision fatigue, improve performance, enable consistent theming, and limit the solution space to canonical patterns.
 
+## Sealed Design System Guard
+
+Before applying this skill, check whether the target project has a sealed or closed design system. Common markers include `.claude/rules/use-the-design-library.md`, `.claude/rules/figma-design-system.md`, design-system ESLint rules, or a project-owned `@/components/atoms` barrel paired with design-system docs/configuration.
+
+If a sealed design system is present, this skill does not apply. Defer to the project's design-library rules and skills instead, such as `use-the-design-library` and `add-design-library-item`. Do not instruct `@/components/ui` imports, Gluestack compound trees, raw shade tokens, margins, or `className` usage above the atom layer when the project seal forbids them.
+
+For open Gluestack UI v3 + NativeWind v4 projects without those seal markers, continue with the guidance below.
+
 ## Core Principles
 
 1. **Gluestack components over React Native primitives** - Gluestack wraps RN with theming, accessibility, and cross-platform consistency
