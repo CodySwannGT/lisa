@@ -42,9 +42,10 @@ class TestFindProjectRoots(unittest.TestCase):
             source_file.mkdir(parents=True)
 
             roots = find_project_roots(str(source_file))
-            # Both the inner package root and the workspace root should be returned
-            self.assertIn(inner, roots)
-            self.assertIn(workspace, roots)
+            # Both the inner package root and the workspace root should be returned.
+            # Use .resolve() to handle symlinked temp dirs (e.g. /var → /private/var on macOS).
+            self.assertIn(inner.resolve(), roots)
+            self.assertIn(workspace.resolve(), roots)
 
     def test_returns_single_root_for_simple_project(self) -> None:
         """A flat project returns its single root."""
@@ -56,7 +57,8 @@ class TestFindProjectRoots(unittest.TestCase):
 
             roots = find_project_roots(str(project / "src"))
             self.assertEqual(len(roots), 1)
-            self.assertEqual(roots[0], project)
+            # Use .resolve() to handle symlinked temp dirs (e.g. /var → /private/var on macOS).
+            self.assertEqual(roots[0], project.resolve())
 
     def test_falls_back_to_current_directory_when_no_root_found(self) -> None:
         """When no package.json or .git exists, returns the starting path."""
@@ -164,6 +166,42 @@ class TestHasDesignSystemEslintRule(unittest.TestCase):
             self.assertFalse(
                 has_design_system_eslint_rule(root),
                 msg="'design-system' in dependencies must not trigger the ESLint seal check",
+            )
+
+
+class TestHasSealedDesignSystem(unittest.TestCase):
+    """has_sealed_design_system seal-detection logic."""
+
+    def test_seal_marker_alone_is_sufficient(self) -> None:
+        """A seal marker without an atom barrel or .claude/rules directory seals the project."""
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            project.mkdir()
+            (project / ".git").mkdir()
+            docs = project / "docs"
+            docs.mkdir()
+            (docs / "design-system-rfc.md").write_text("", encoding="utf-8")
+            # Deliberately NO atom barrel and NO .claude/rules directory.
+
+            self.assertTrue(
+                has_sealed_design_system(str(project)),
+                msg="A single seal marker must be sufficient to detect a sealed design system",
+            )
+
+    def test_atom_barrel_alone_is_sufficient(self) -> None:
+        """A project exposing only an atoms barrel is treated as having a sealed design system."""
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            project.mkdir()
+            (project / ".git").mkdir()
+            atoms = project / "src" / "components" / "atoms"
+            atoms.mkdir(parents=True)
+            (atoms / "index.ts").write_text("", encoding="utf-8")
+            # Deliberately NO seal marker and NO .claude/rules directory.
+
+            self.assertTrue(
+                has_sealed_design_system(str(project)),
+                msg="An atoms barrel alone must be sufficient to detect a sealed design system",
             )
 
 

@@ -197,9 +197,8 @@ def has_sealed_design_system(path: str) -> bool:
         for root in project_roots
         for marker in ATOM_BARREL_MARKERS
     )
-    has_claude_rules = any((root / ".claude/rules").exists() for root in project_roots)
 
-    if has_seal_marker and (has_atom_barrel or has_claude_rules):
+    if has_seal_marker or has_atom_barrel:
         return True
     return any(has_design_system_eslint_rule(root) for root in project_roots)
 
