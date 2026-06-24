@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.178.4](https://github.com/CodySwannGT/lisa/compare/vv2.178.3...v2.178.4) (2026-06-24)
+
+
+### Bug Fixes
+
+* **hooks:** link node_modules in agent worktrees ([add08b4](https://github.com/CodySwannGT/lisa/commit/add08b409be75543851ca39ddabd1950ac0430c7))
+
 ### [2.178.3](https://github.com/CodySwannGT/lisa/compare/vv2.178.2...v2.178.3) (2026-06-24)
 
 
