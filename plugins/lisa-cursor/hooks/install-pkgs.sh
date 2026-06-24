@@ -2,9 +2,34 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 
+link_primary_worktree_node_modules() {
+  [ -f "package.json" ] || return 1
+  [ ! -e "node_modules" ] && [ ! -L "node_modules" ] || return 1
+
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  case "$repo_root" in
+    */.claude/worktrees/*)
+      primary_root="${repo_root%%/.claude/worktrees/*}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  [ "$primary_root" != "$repo_root" ] || return 1
+  [ -d "$primary_root/node_modules" ] || return 1
+
+  ln -s "$primary_root/node_modules" "node_modules"
+  echo "Linked node_modules from primary worktree: $primary_root/node_modules"
+}
+
 # Only run package installation when node_modules are missing.
 # This covers remote environments, new worktrees, fresh clones, and CI.
 if [ -d "node_modules" ]; then
+  exit 0
+fi
+
+if link_primary_worktree_node_modules && [ -d "node_modules" ]; then
   exit 0
 fi
 
