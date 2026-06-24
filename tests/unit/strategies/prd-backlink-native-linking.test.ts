@@ -12,7 +12,7 @@
  * Issue #581 (LPC-1.1, Linear/JIRA leg): extend the same skill so that when the
  * PRD source is Linear or JIRA and the PRD lives in the same system, generated
  * top-level work is attached via that vendor's NATIVE parent relationship —
- * Linear `projectId`/`parentId` (via `save_issue`), JIRA native parent / Epic
+ * Linear `projectId`/`parentId` (via `linear-access` save-issue), JIRA native parent / Epic
  * link or a documented issue-link type (via `atlassian-access`). Same contract as
  * the GitHub leg: top-level-only, idempotent (dedupe by child-ref — Linear
  * identifier/UUID, JIRA issue key), graceful degradation (cross-vendor / no
@@ -176,9 +176,9 @@ describe("prd-backlink native Linear parent/project linking (#581)", () => {
       expect(content).toContain(RULE_SLUG);
     });
 
-    // Uses the same Linear MCP write primitive as linear-write-issue.
-    it("uses the Linear save_issue primitive and linear-write-issue", () => {
-      expect(content).toContain("mcp__linear-server__save_issue");
+    // Uses the same Linear access-layer write operation as linear-write-issue.
+    it("uses the Linear save-issue operation and linear-write-issue", () => {
+      expect(content).toContain("lisa:linear-access operation: save-issue");
       expect(content).toContain("linear-write-issue");
     });
 
@@ -186,7 +186,7 @@ describe("prd-backlink native Linear parent/project linking (#581)", () => {
     it("reads the PRD's existing children before linking", () => {
       expect(content).toContain("linear-read-issue");
       // Project members and/or sub-Issue reads.
-      expect(content).toMatch(/list_issues|get_issue/);
+      expect(content).toMatch(/list-issues|get-issue/);
     });
 
     // (b) generated-top-level-work only — leaf Sub-tasks are NOT PRD children.

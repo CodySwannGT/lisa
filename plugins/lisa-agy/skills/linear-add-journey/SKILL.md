@@ -1,7 +1,7 @@
 ---
 name: linear-add-journey
 description: "Add a Validation Journey section to an existing Linear Issue by analyzing the change type and generating appropriate verification steps with evidence markers. Linear counterpart of lisa:jira-add-journey."
-allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue"]
+allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 ---
 
 # Add Validation Journey to Existing Linear Issue
@@ -22,7 +22,7 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 
 ### Step 1: Read the Issue
 
-Fetch via `mcp__linear-server__get_issue` and extract: title, description (markdown), labels, project, parent, attachments.
+Fetch via `lisa:linear-access operation: get-issue` and extract: title, description (markdown), labels, project, parent, attachments.
 
 ### Step 2: Check for Existing Journey
 
@@ -91,7 +91,7 @@ Display the drafted journey and ask for confirmation before appending.
 
 ### Step 7: Append to Issue Description
 
-After approval, fetch the current description, append the new Validation Journey section, and update via `mcp__linear-server__save_issue({id, description: <new-description>})`. Preserve all existing description content — never overwrite.
+After approval, fetch the current description, append the new Validation Journey section, and update via `lisa:linear-access operation: save-issue({id, description: <new-description>})`. Preserve all existing description content — never overwrite.
 
 ### Step 8: Verify
 

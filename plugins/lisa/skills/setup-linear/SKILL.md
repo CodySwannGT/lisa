@@ -1,7 +1,7 @@
 ---
 name: setup-linear
 description: "Configure Linear as the destination tracker and/or the PRD source for this project. Verifies Linear access (MCP OAuth or a personal API key in OS keychain), resolves the workspace slug and team key, scaffolds the build-queue issue-label namespace (`status:*`) when Linear is the tracker and/or the PRD-lifecycle project-label namespace (`prd-*` + issue-level sentinel) when Linear is the PRD source, writes the `linear` section into `.lisa.config.json`, and offers to set top-level `tracker: \"linear\"` and/or `source: \"linear\"`. Idempotent — re-running updates the existing section and reuses existing labels. No /lisa:setup:atlassian prerequisite."
-allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion", "mcp__linear-server__authenticate", "mcp__linear-server__complete_authentication", "mcp__linear-server__list_teams", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__list_project_labels", "mcp__linear-server__create_project_label"]
+allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion", "mcp__linear-server__authenticate", "mcp__linear-server__complete_authentication"]
 ---
 
 # Setup Linear: $ARGUMENTS
@@ -40,7 +40,7 @@ The role answer drives Step 3 (which label namespaces to scaffold) and whether `
 Verify the Linear MCP is authenticated to the right workspace by listing teams:
 
 ```text
-mcp__linear-server__list_teams({})
+lisa:linear-access operation: list-teams({})
 ```
 
 If it errors / returns nothing, run `mcp__linear-server__authenticate` and have the user complete OAuth in the browser, then `mcp__linear-server__complete_authentication`, then re-list. A non-empty team list confirms the MCP is authed to a readable workspace.
@@ -137,7 +137,7 @@ echo "Linear key validated. Org: $(echo "$VIEWER" | jq -r '.data.organization.ur
 ### Step 2 — Resolve workspace slug + team key
 
 - **Workspace slug**: honor `--workspace=<slug>`. Otherwise derive from the validated identity — the GraphQL `organization.urlKey` (API path) or the team list's workspace (MCP path). Confirm with the user; this slug is the keychain `account` key and the multi-workspace disambiguator.
-- **Team key** (required when Linear is the **tracker**): honor `--team=<KEY>`. Otherwise enumerate teams via `mcp__linear-server__list_teams({})` (or the GraphQL `teams` query) and present them via `AskUserQuestion` (label = team key, description = team name) for the user to pick the team that owns lisa's destination Issues. If Linear is source-only, `teamKey` is optional — skip unless the user wants to pin a team scope.
+- **Team key** (required when Linear is the **tracker**): honor `--team=<KEY>`. Otherwise enumerate teams via `lisa:linear-access operation: list-teams({})` (or the GraphQL `teams` query) and present them via `AskUserQuestion` (label = team key, description = team name) for the user to pick the team that owns lisa's destination Issues. If Linear is source-only, `teamKey` is optional — skip unless the user wants to pin a team scope.
 
 ### Step 3 — Scaffold the lifecycle label namespaces
 
@@ -154,7 +154,7 @@ read_role() {  # $1=namespace (build|prd) $2=role $3=default
 
 #### 3a. Build-queue labels — ISSUE labels (only if Linear is the tracker)
 
-Probe with `mcp__linear-server__list_issue_labels` (scoped to the team). For each role's resolved name, create it via `mcp__linear-server__create_issue_label` only if absent. The `done` role is env-keyed — create all three defaults; collapse to a single string in config later if the project's terminal state is env-independent.
+Probe with `lisa:linear-access operation: list-issue-labels` (scoped to the team). For each role's resolved name, create it via `lisa:linear-access operation: create-issue-label` only if absent. The `done` role is env-keyed — create all three defaults; collapse to a single string in config later if the project's terminal state is env-independent.
 
 | Role | Default | 
 |------|---------|
@@ -168,7 +168,7 @@ Probe with `mcp__linear-server__list_issue_labels` (scoped to the team). For eac
 
 #### 3b. PRD-lifecycle labels — PROJECT labels (only if Linear is the PRD source)
 
-Probe with `mcp__linear-server__list_project_labels`. Create missing ones via `mcp__linear-server__create_project_label`. This probe-then-create is find-or-create per label: a label already present is reused untouched, so re-running never duplicates `prd-*`. These are a **separate label kind** from issue labels — creating an issue label of the same name will NOT work for the PRD flow.
+Probe with `lisa:linear-access operation: list-project-labels`. Create missing ones via `lisa:linear-access operation: create-project-label`. This probe-then-create is find-or-create per label: a label already present is reused untouched, so re-running never duplicates `prd-*`. These are a **separate label kind** from issue labels — creating an issue label of the same name will NOT work for the PRD flow.
 
 `prd-verified` is the terminal lifecycle state after `prd-shipped` (the `verified` role from config-resolution, #591): `/lisa:verify-prd` transitions a Linear PRD project into it once the shipped product has been empirically verified against the PRD. Scaffold it through the same find-or-create path as every other `prd-*` row.
 

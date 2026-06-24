@@ -1,7 +1,7 @@
 ---
 name: linear-sync
 description: "Syncs plan progress to a linked Linear Issue. Posts plan contents, progress updates, branch links, and PR links at key milestones. Use this skill throughout the plan lifecycle to keep Linear Issues in sync. The Linear counterpart of lisa:jira-sync and lisa:github-sync."
-allowed-tools: ["Bash", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__list_issues", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__save_issue"]
+allowed-tools: ["Bash", "Skill"]
 ---
 
 # Sync Plan to Linear: $ARGUMENTS
@@ -37,7 +37,7 @@ This skill **suggests** transitions but does not auto-transition the native Line
 
 1. If `$ARGUMENTS` includes an identifier, parse it.
 2. Else search for the active plan file (most recent file under `plans/`) and extract the linked Linear Issue identifier from its frontmatter.
-3. Fetch the Issue via `mcp__linear-server__get_issue` to confirm it exists.
+3. Fetch the Issue via `lisa:linear-access operation: get-issue` to confirm it exists.
 
 ## Phase 2 — Compose Milestone Comment
 
@@ -65,7 +65,7 @@ Next: implementation begins. Suggested status: **Todo** (label: `status:ready`).
 
 ## Phase 3 — Post Comment
 
-Call `mcp__linear-server__save_comment({issueId: <id>, body: <comment>})`.
+Call `lisa:linear-access operation: save-comment({issueId: <id>, body: <comment>})`.
 
 ## Phase 3b — Ensure PR Backlink
 
@@ -79,14 +79,14 @@ The PR branch/title/body identifier is the PR -> Linear side. This phase is the 
 
 ## Phase 4 — Update Status Label (when caller requests)
 
-If the caller passes `--update-label`, update the `status:*` label set via `mcp__linear-server__save_issue`:
+If the caller passes `--update-label`, update the `status:*` label set via `lisa:linear-access operation: save-issue`:
 
 - `plan-created` → add `status:ready`
 - `implementation-in-progress` → remove `status:ready`, add `status:in-progress`
 - `pr-ready` → remove `status:in-progress`, add `status:code-review`
 - `pr-merged` → remove `status:code-review`, add `status:done`
 
-If the requested label doesn't exist on the team, create it via `mcp__linear-server__create_issue_label`.
+If the requested label doesn't exist on the team, create it via `lisa:linear-access operation: create-issue-label`.
 
 Verify exactly one `status:*` label remains after the update — having two simultaneously breaks the build-queue invariant.
 
@@ -96,7 +96,7 @@ Without `--update-label`, this skill posts the comment only and does NOT touch l
 
 When the caller passes `--rollup`, this skill **derives a parent/container's `status:*` label from the roll-up of its children** instead of acting on a leaf. A **Project** (the Epic equivalent) rolls up from its Issues; an **Issue** rolls up from its sub-Issues. This implements the Linear child-issue-status arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy.
 
-**Resolve the child set the same way `lisa:linear-read-issue` does** — `mcp__linear-server__list_issues({project: <id>})` for a Project's Issues, or `mcp__linear-server__get_issue` per child for an Issue's sub-Issues (via `parentId`). Capture each child's `status:*` label. If the item has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
+**Resolve the child set the same way `lisa:linear-read-issue` does** — `lisa:linear-access operation: list-issues({project: <id>})` for a Project's Issues, or `lisa:linear-access operation: get-issue` per child for an Issue's sub-Issues (via `parentId`). Capture each child's `status:*` label. If the item has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
 
 **Evaluate the required children over the env ladder `in-progress < dev < staging < production` (the ordered keys of the Linear env-keyed `done` map, e.g. `status:on-dev < status:on-stg < status:done`) and take the first match** (canonical roles from `config-resolution`; Linear label map is `status:blocked`, `status:in-progress`, `status:code-review`, env-keyed `done`):
 
@@ -115,7 +115,7 @@ When the caller passes `--rollup`, this skill **derives a parent/container's `st
 
 **Single-environment collapse (this repo).** The env rungs resolve via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to the single `status:done` label, the only env rung is production, and the lifecycle is `status:ready → status:in-progress → status:code-review → status:done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map and roll a parent up to intermediate env labels (`status:on-dev`/`status:on-stg`).
 
-**Apply the derived label** via `mcp__linear-server__save_issue` (Project or Issue), removing the parent's existing `status:*` and adding the derived one so exactly one `status:*` label remains. Post an idempotent rollup comment naming the derived state and the child tally. The native Linear `state` is **not** auto-transitioned — only the `status:*` label, mirroring the `--update-label` rule. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's label untouched.
+**Apply the derived label** via `lisa:linear-access operation: save-issue` (Project or Issue), removing the parent's existing `status:*` and adding the derived one so exactly one `status:*` label remains. Post an idempotent rollup comment naming the derived state and the child tally. The native Linear `state` is **not** auto-transitioned — only the `status:*` label, mirroring the `--update-label` rule. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's label untouched.
 
 ## Rules
 

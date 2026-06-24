@@ -1,7 +1,7 @@
 ---
 name: linear-write-prd
 description: "Creates or idempotently updates a PRD as a Linear Project carrying exactly one PRD lifecycle project-label (`prd-draft` by default, or `prd-ready` when initial_role is ready so lisa:linear-prd-intake auto-claims it). The Linear PRD-source writer behind lisa:prd-source-write. Dedupes by a stable marker embedded in the Project description (matched by marker, never by name). Uses the Linear MCP."
-allowed-tools: ["Skill", "Bash", "mcp__linear-server__list_teams", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_project_labels", "mcp__linear-server__create_project_label"]
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # Write Linear PRD: $ARGUMENTS
@@ -37,17 +37,17 @@ PROGRESSED=("$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD
 ```
 
 Resolve the target project-label from `initial_role`: `ready` → `$PRD_READY`, else `$PRD_DRAFT`.
-Resolve its label id via `mcp__linear-server__list_project_labels` (create via
-`mcp__linear-server__create_project_label` if missing).
+Resolve its label id via `lisa:linear-access operation: list-project-labels` (create via
+`lisa:linear-access operation: create-project-label` if missing).
 
 ## Phase 2 — Dedupe by marker (search before create)
 
 The `marker` is embedded in the Project description. Find an existing Project carrying it — match the
 marker, **never** the project name:
 
-1. `mcp__linear-server__list_projects` scoped to the team/workspace (filtered by the `prd-*` label
+1. `lisa:linear-access operation: list-projects` scoped to the team/workspace (filtered by the `prd-*` label
    set when supported), then inspect each candidate's description via
-   `mcp__linear-server__get_project` for the marker. If `source_ref` was passed, target it directly.
+   `lisa:linear-access operation: get-project` for the marker. If `source_ref` was passed, target it directly.
 2. If a Project with the marker exists → **update**; else → **create**.
 
 ## Phase 3 — Create or update
@@ -59,7 +59,7 @@ dedupe. If the live Project description already contains the canonical managed `
 section, preserve it verbatim unless the caller intentionally supplied an updated canonical section;
 use the shared `usage-accounting` serializer/merge path rather than hand-editing ledger rows.
 
-**CREATE:** `mcp__linear-server__save_project` with:
+**CREATE:** `lisa:linear-access operation: save-project` with:
 - `name`: `$TITLE`
 - `description`: the marker-normalized full PRD markdown
 - `teamIds`: `[<resolved team id>]`

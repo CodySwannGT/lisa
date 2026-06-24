@@ -6,7 +6,7 @@ description: >
   "break down this Linear project", "create tickets from a Linear project", "turn this Linear PRD into tickets", or similar. This skill mirrors `lisa:notion-to-tracker` and `lisa:confluence-to-tracker` for projects
   whose PRDs live in Linear — the workflow, gates, dry-run mode, and validation rules are identical;
   only the source-of-truth tool surface differs (Linear MCP instead of Notion / Confluence MCP).
-allowed-tools: ["Skill", "Bash", "mcp__linear-server__get_project", "mcp__linear-server__list_projects", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__list_comments", "mcp__linear-server__list_documents", "mcp__linear-server__get_document", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_teams"]
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # Linear PRD to Tracker Breakdown
@@ -21,8 +21,8 @@ This skill is the Linear counterpart of `lisa:notion-to-tracker` and `lisa:confl
 Linear has no native "PRD" entity. This skill treats a **Linear Project** as the PRD container:
 
 - **Project description** (markdown) is the PRD body — equivalent to a Notion page body or a Confluence page body.
-- **Project documents** (Linear's long-form markdown docs attached to projects, fetched via `list_documents({projectId})` / `get_document`) are treated as additional spec content and merged into the analysis. A multi-document Linear PRD is the analog of a multi-page Confluence PRD.
-- **Project sub-issues** (`list_issues({project})`) act as the candidate set for epics and user stories — the same role child Epic pages play in a Notion/Confluence PRD.
+- **Project documents** (Linear's long-form markdown docs attached to projects, fetched via `list-documents({projectId})` / `get-document`) are treated as additional spec content and merged into the analysis. A multi-document Linear PRD is the analog of a multi-page Confluence PRD.
+- **Project sub-issues** (`list-issues({project})`) act as the candidate set for epics and user stories — the same role child Epic pages play in a Notion/Confluence PRD.
 - **Linear comments live on Issues, not on Projects.** This skill aggregates comments from every issue under the project to capture decisions and engineering notes. Project-level discussion that isn't reflected on an issue is invisible to this skill.
 
 ## Modes
@@ -127,10 +127,10 @@ If env vars are not available, ask the user to provide them explicitly before pr
 
 ### Phase 1: Fetch & Analyze the PRD
 
-1. **Resolve the project** via `mcp__linear-server__get_project` with the slug or ID, including milestones and resources (`includeMilestones: true`, `includeResources: true`). Capture the project title, description, state, labels, lead, dates, attached documents, attached links.
-2. **Fetch attached Linear documents** via `mcp__linear-server__list_documents({projectId})` then `get_document` per result. Treat each as additional PRD content. (A Linear PRD with a single rich project description and no attached documents is the common case; multi-document PRDs are valid too.)
-3. **Identify candidate epics and user stories** from project sub-issues via `mcp__linear-server__list_issues({project: <id>})`. Capture identifier, title, description, labels, state, parent issue, and `parentId` chain so the issue hierarchy is reproducible.
-4. **Fetch full comments per sub-issue** via `mcp__linear-server__list_comments({issueId})` for every issue surfaced in step 3. Walk thread parents/children — comments are threaded via `parentId` references on the comment object.
+1. **Resolve the project** via `lisa:linear-access operation: get-project` with the slug or ID, including milestones and resources (`includeMilestones: true`, `includeResources: true`). Capture the project title, description, state, labels, lead, dates, attached documents, attached links.
+2. **Fetch attached Linear documents** via `lisa:linear-access operation: list-documents({projectId})` then `lisa:linear-access operation: get-document` per result. Treat each as additional PRD content. (A Linear PRD with a single rich project description and no attached documents is the common case; multi-document PRDs are valid too.)
+3. **Identify candidate epics and user stories** from project sub-issues via `lisa:linear-access operation: list-issues({project: <id>})`. Capture identifier, title, description, labels, state, parent issue, and `parentId` chain so the issue hierarchy is reproducible.
+4. **Fetch full comments per sub-issue** via `lisa:linear-access operation: list-comments({issueId})` for every issue surfaced in step 3. Walk thread parents/children — comments are threaded via `parentId` references on the comment object.
 5. **Synthesize decisions and blockers** from the project description + every document + every issue comment:
    - Decisions already confirmed by the team (look for agreement in comment threads)
    - Open questions that need product/engineering input
