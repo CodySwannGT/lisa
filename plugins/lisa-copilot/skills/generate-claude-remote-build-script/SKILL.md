@@ -66,6 +66,27 @@ tracker/source, plus the host project's own package manager and tooling — not 
    When the entry is `GH_TOKEN`, add a comment from `platform.githubProxy` clarifying that the token
    is for `gh` CLI commands against the project/Lisa repos, not for raw git clone/fetch/push or
    sibling repos reachable through the routine's GitHub proxy.
+   For OPTIONAL non-tracker MCP recovery entries discovered by
+   `/lisa:analyze-claude-remote`, preserve the same names-only behavior:
+   include `JAM_PAT`, `SONAR_TOKEN`, or similar documented substrate env vars
+   only as optional secrets, with their acquire/scope comments when the analysis
+   supplied them. Never invent values or promote dormant substrates to required.
+
+3a. **Emit substrate setup snippets.** When the inventory marks an MCP
+   `headlessUsable: true` through a documented substrate, render the matching
+   wiring guidance as commented, opt-in setup:
+   - CLI substrates: emit the detected install/login commands gated on the
+     optional env var. For Jam, this means `curl -fsSL https://native.jam.dev/install | bash`,
+     `export PATH="$HOME/.local/bin:$PATH"`, `printf '%s' "$JAM_PAT" | jam auth login --token`,
+     and `jam skills install`, all inside `[ -n "${JAM_PAT:-}" ] && ...` guards so missing
+     optional secrets do not fail the environment build.
+   - REST substitute substrates: do not install an MCP. Emit comments naming the
+     REST host and env var (for example `SONAR_TOKEN` with `https://sonarcloud.io/api/`) and
+     rely on the access skill or generated consumer to call the API.
+   - PAT-bearer MCP substrates: print a commented `.mcp.json` `headers` snippet from the
+     inventory's `mcpHeaders`. Use this only when the analysis explicitly says the same MCP
+     transport supports static-token auth. Do not print a Jam `.mcp.json` header snippet because
+     Jam's preferred headless substrate is its PAT-authenticated CLI.
 
 4. **Emit the allowlist + gaps notice.** List any custom domains the setup or runtime reaches
    (from `networkAccess.allowlistDomains`, falling back to legacy `allowlistDomains`) that the user

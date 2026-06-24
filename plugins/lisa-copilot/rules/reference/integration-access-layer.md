@@ -22,7 +22,7 @@ available.
 | Atlassian | `lisa:atlassian-access` | `ATLASSIAN_API_TOKEN` | Atlassian Cloud REST |
 | Notion | `lisa:notion-access` | `NOTION_API_TOKEN` | Notion REST |
 | Linear | `lisa:linear-access` | `LINEAR_API_KEY` | Linear GraphQL |
-| Jam | `lisa:jam-access` | `JAM_PAT` | Jam MCP HTTP endpoint with bearer PAT |
+| Jam | `lisa:jam-access` | `JAM_PAT` | Jam CLI |
 | SonarCloud | `lisa:sonarcloud-access` | `SONAR_TOKEN` | SonarCloud Web API |
 | Sentry | `lisa:sentry-access` | `SENTRY_AUTH_TOKEN` | Sentry REST API |
 | PostHog | `lisa:posthog-access` | `POSTHOG_PERSONAL_API_KEY` | PostHog REST API |

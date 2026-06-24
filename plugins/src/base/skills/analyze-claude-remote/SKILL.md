@@ -133,11 +133,35 @@ Group the findings as:
    `RISK`/`GAP` (need a local process — only viable if the cloud session can spawn them from the
    repo). Flag interactively/OAuth-authed servers as `GAP` for headless auth — they cannot complete
    a browser flow headless **regardless of transport** (an HTTP MCP like `linear-server` is still a
-   `GAP` because its *auth* is OAuth, not because of its transport). When an OAuth MCP backs an
-   active tracker/source, do not stop at the `GAP` — cross-reference group 4a and point to the
-   integration's token substrate as the headless replacement (e.g. `linear-server` MCP → `LINEAR_API_KEY`
-   + Linear GraphQL). Note any user-scoped MCP (`~/.claude.json`) as `GAP` — it never reaches the
-   cloud; it must be moved into project `.mcp.json`.
+   `GAP` because its *auth* is OAuth, not because of its transport). Before finalizing any
+   OAuth/interactive/stdio MCP as a flat `GAP`, check for a documented headless substrate: a
+   static-token MCP header, a vendor CLI that can login from an env token, or a token-authenticated
+   REST API that the MCP wraps. If documented evidence exists, mark the MCP `headlessUsable: true`
+   in the inventory, mark the supporting secret `required: false` / `secret: true` unless the
+   integration is active, and set `replacedBy` to the concrete substrate rather than leaving it as
+   an impossible capability. When an OAuth MCP backs an active tracker/source, do not stop at the
+   `GAP` — cross-reference group 4a and point to the integration's token substrate as the headless
+   replacement (e.g. `linear-server` MCP -> `LINEAR_API_KEY` + Linear GraphQL). Note any user-scoped
+   MCP (`~/.claude.json`) as `GAP` — it never reaches the cloud; it must be moved into project
+   `.mcp.json`.
+
+   Use this data-driven hint table as seed evidence, and extend it only when you can cite a vendor
+   doc or committed access-skill reference:
+
+   | Match | Substrate | Env | Setup / wiring | Domains |
+   |---|---|---|---|---|
+   | `mcp.jam.dev`, `jam`, or Jam MCP entries | Jam CLI (`jam`) authenticated by PAT | `JAM_PAT` | install with `curl -fsSL https://native.jam.dev/install | bash`; export `~/.local/bin`; run `printf '%s' "$JAM_PAT" | jam auth login --token`; optionally `jam skills install` | `native.jam.dev`, `api.jam.dev` |
+   | `mcp/sonarqube`, `sonarqube`, or SonarCloud/SonarQube MCP entries | SonarCloud Web API | `SONAR_TOKEN` | use REST calls against `https://sonarcloud.io/api/`; if a host needs legacy token-as-basic-auth, put that in the access adapter | `sonarcloud.io` |
+
+   For PAT-bearer MCP substrates that really use the same MCP transport, include `mcpHeaders` in
+   the inventory with a snippet such as `headers: { "Authorization": "Bearer ${VAR}" }` so the
+   generator can print a commented `.mcp.json` example. Do **not** use that for Jam: Jam's preferred
+   headless substrate is the `jam` CLI, so the generator should emit CLI setup lines instead of an
+   `.mcp.json` header snippet.
+
+   When no documented substrate is known, keep the MCP as `headlessUsable: false` / `GAP`, and add
+   an action line like: `check the vendor for a documented PAT, API-key, CLI, or REST substrate`.
+   Never assert that no substrate exists unless the vendor documentation explicitly says so.
 
 6. **Config scope & memory gaps** — identify reliance on user-scoped config that will not load
    remotely: `~/.claude/CLAUDE.md`, user `enabledPlugins`, user skills/agents, user MCP. Most
@@ -250,10 +274,27 @@ so the generator can render acquisition comments into its template:
       "headlessSubstrate": "gh CLI (token)",
       "acquireUrl": "https://github.com/settings/personal-access-tokens",
       "accessScope": "fine-grained PAT on target repo: Contents R/W, Issues R/W, Pull requests R/W, Metadata R; +Workflows R/W if editing .github/workflows; +Projects R/W if using ProjectV2"
+    },
+    {
+      "name": "JAM_PAT", "required": false, "secret": true, "integration": "jam",
+      "reason": "optional non-tracker MCP recovery; Jam CLI can authenticate headlessly from a PAT",
+      "headlessSubstrate": "jam CLI (PAT)",
+      "acquireUrl": "https://jam.dev/docs/debug-a-jam/mcp/personal-access-tokens",
+      "accessScope": "Jam Personal Access Token for the workspace/team whose traces the routine needs to read",
+      "setupSnippet": "curl -fsSL https://native.jam.dev/install | bash; export PATH=\"$HOME/.local/bin:$PATH\"; printf '%s' \"$JAM_PAT\" | jam auth login --token; jam skills install"
+    },
+    {
+      "name": "SONAR_TOKEN", "required": false, "secret": true, "integration": "sonarcloud",
+      "reason": "optional non-tracker MCP recovery; SonarQube MCP wraps the token-authenticated SonarCloud Web API",
+      "headlessSubstrate": "SonarCloud Web API (token)",
+      "acquireUrl": "https://docs.sonarsource.com/sonarqube-cloud/managing-your-account/managing-tokens",
+      "accessScope": "token must be able to read the target SonarCloud organization/project quality gate, issues, hotspots, rules, and source snippets"
     }
   ],
   "mcp": [
-    { "name": "linear-server", "transport": "http", "auth": "oauth", "headlessUsable": false, "replacedBy": "LINEAR_API_KEY + Linear GraphQL", "dormant": true }
+    { "name": "linear-server", "transport": "http", "auth": "oauth", "headlessUsable": false, "replacedBy": "LINEAR_API_KEY + Linear GraphQL", "dormant": true },
+    { "name": "jam", "transport": "http", "auth": "oauth", "headlessUsable": true, "replacedBy": "jam CLI + JAM_PAT", "dormant": true },
+    { "name": "sonarqube", "transport": "stdio", "auth": "local-wrapper", "headlessUsable": true, "replacedBy": "SONAR_TOKEN + SonarCloud Web API", "dormant": true }
   ],
   "gaps": [ "auto-memory not synced to cloud", "bun package fetch behind proxy", "OS keychain absent — env-var token form only" ],
   "platform": {
@@ -305,3 +346,6 @@ so the generator can render acquisition comments into its template:
   to environment editors; never imply the generated script can hide them.
 - A browser-OAuth MCP (or interactively-authed CLI) backing an active integration is a `GAP`; the
   remediation is its token substrate from the table, not "authenticate the MCP".
+- For non-tracker MCPs, a documented CLI, PAT/API-key, or REST substrate converts the finding from
+  a flat `GAP` into an `OPTIONAL` headless recovery path; unknown vendors remain gaps with a
+  vendor-substrate follow-up, not invented credentials.
