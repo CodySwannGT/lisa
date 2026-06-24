@@ -78,13 +78,18 @@ Group the findings as:
    git, and coreutils are present; `gh` is available but should be installed explicitly if scripts
    call it. Classify each `REQUIRED` (core path uses it) vs `OPTIONAL` (only a dormant stack/skill
    uses it). Typical finds: `gh`, `jq`, `docker` (ZAP), `aws`, `acli`, `ruby`/`rubocop`,
-   `python3`, `playwright`/chromium, secret scanners.
+   `python3`, `playwright`/chromium, secret scanners. Treat AWS as more than a
+   binary install: if the repo invokes `aws`, imports AWS SDK packages, uses CDK/Serverless/SST,
+   references `AWS_*` env vars, or documents `aws sso login` / `sso_*` profile setup, add the AWS
+   credential findings in group 4b as well as the `aws` CLI tool finding.
 
 4. **Environment variables & secrets** — scan for `process.env.*`, `${VAR}`/`$VAR` in shell,
    `secrets.*`/`env:` in CI, and config-referenced tokens. Group by integration (GitHub, AWS,
    Atlassian/JIRA/Confluence, Notion, Linear, Anthropic, notifications, feature flags, other).
    Cross-reference `.lisa.config.json` `tracker`/`source` to mark which credentials are **active**
-   for this repo vs **dormant** (`OPTIONAL`). Distinguish *where* each var must be set, because the
+   for this repo vs **dormant** (`OPTIONAL`). Separately classify host-project AWS usage in group 4b:
+   AWS can be required even when it is not the tracker or PRD source. Distinguish *where* each var
+   must be set, because the
    answer differs and getting it wrong sends the user to do redundant work:
 
    - **Committed `.claude/settings.json` `env` flags** (e.g. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`,
@@ -127,6 +132,34 @@ Group the findings as:
    (`Acquire:` URL), and the **exact** access/scope required (`Access:`) — copied from the table, not
    guessed. If a value the table needs (server URL, project key, workspace id, email, team key) is
    missing from `.lisa.config.json`, flag it as a `GAP`/`Action:` to set it, rather than inventing one.
+
+4b. **AWS operations credentials** — scan the host project for AWS usage independent of Lisa's
+   tracker/source config:
+
+   - `aws` CLI invocations in `scripts/`, package scripts, committed skills/agents, or
+     `.github/workflows/`.
+   - AWS SDK imports/packages (`@aws-sdk/*`, `aws-sdk`, `boto3`, CDK, Serverless, SST, Amplify,
+     Terraform providers).
+   - `aws sso login`, `aws:signin:*`, `sso_start_url`, `sso_account_id`, `sso_role_name`, or
+     `sso_session` in docs or config.
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_DEFAULT_REGION`,
+     `AWS_PROFILE`, role ARN, external ID, account, or CloudWatch/STS references.
+
+   If AWS is present, emit an AWS credential finding and inventory entry. If the repo's current
+   local path is `aws sso login` or an `aws:signin:*` script, classify that local path as a `GAP`
+   for headless remote routines: it is an interactive browser/device-authorization flow and cannot
+   complete in the cloud. Route to the AWS row in the Credential reference instead of suggesting
+   SSO auth. The finding must name the headless substrate: a dedicated IAM principal (user or role)
+   with only permission to `sts:AssumeRole`, environment credentials in the routine UI, and
+   `~/.aws/config` profiles using `role_arn`, `credential_source = Environment`, optional
+   `external_id`, and `region`.
+
+   When the repository contains concrete non-secret AWS metadata (role ARNs, account aliases,
+   profile names, regions, or ExternalId values), include it in an `awsProfiles` inventory array so
+   `/lisa:generate-claude-remote-build-script` can write matching `~/.aws/config` profiles. Never
+   invent account IDs, ExternalIds, role names, or regions. If AWS is detected but profile metadata
+   is absent, emit the required AWS secret names plus an action to add project-specific profile
+   metadata to the generated artifact or environment notes.
 
 5. **MCP servers** — read every committed `.mcp.json`. For each server report transport and auth.
    Project-scoped HTTP/SSE servers with no interactive auth are `OK`. Flag stdio servers as
@@ -234,6 +267,31 @@ unsuffixed `…_TOKEN`/`…_KEY` is the simplest to set in a single-account rout
 - Acquire: `https://linear.app/<workspace>/settings/account/security` → Personal API keys → New API key.
 - Access: the personal API key inherits the user's workspace permissions — the user must be able to read/create/update Issues in the destination team.
 
+### AWS — host-project operations, logs, deploys, CDK/Serverless/SST, or AWS SDK usage
+- Headless substrate: a dedicated IAM principal (user or role) with long-lived bootstrap credentials
+  stored in the routine environment, used only to call `sts:AssumeRole` into per-account operational
+  roles. The routine writes `~/.aws/config` profiles with `role_arn`, `credential_source =
+  Environment`, optional `external_id`, and `region`; agents use `aws --profile <profile> ...`.
+- Env: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`; optional `AWS_SESSION_TOKEN` for temporary
+  bootstrap credentials; `AWS_DEFAULT_REGION` when no profile region is provided. Role ARNs,
+  ExternalIds, profile names, and regions are non-secret project metadata and belong in generated
+  artifacts or project docs, not in the skill's global guidance.
+- Allowlist: `*.amazonaws.com`, or narrower service hosts such as `sts.amazonaws.com`,
+  `logs.<region>.amazonaws.com`, `cloudwatch.<region>.amazonaws.com`,
+  `xray.<region>.amazonaws.com`, `ssm.<region>.amazonaws.com`, and service-specific endpoints the
+  repo uses.
+- Access: the bootstrap principal should have only `sts:AssumeRole` on the scoped operational role
+  ARNs, preferably guarded by an `ExternalId` condition. The assumed roles carry the real
+  permissions needed by the repo (CloudWatch Logs, deploy, SSM, etc.) as short-lived STS
+  credentials.
+- IAM Identity Center caveat: an IAM Identity Center permission set provisions an `AWSReservedSSO_*`
+  role whose trust allows the SSO service, not an arbitrary IAM principal. A headless IAM principal
+  cannot directly assume that reserved role. Use a separate assumable role that attaches the same
+  policy as the permission set, with the delegated Identity Center admin keeping that policy as the
+  source of truth.
+- Alternative: IAM Roles Anywhere (X.509 to STS) when long-lived bootstrap access keys are
+  unacceptable.
+
 ## Output
 
 Render the report grouped exactly as above. Start with one `Summary:` line, then a `Counts:` line
@@ -296,6 +354,15 @@ so the generator can render acquisition comments into its template:
     { "name": "jam", "transport": "http", "auth": "oauth", "headlessUsable": true, "replacedBy": "jam CLI + JAM_PAT", "dormant": true },
     { "name": "sonarqube", "transport": "stdio", "auth": "local-wrapper", "headlessUsable": true, "replacedBy": "SONAR_TOKEN + SonarCloud Web API", "dormant": true }
   ],
+  "awsProfiles": [
+    {
+      "name": "dev",
+      "roleArn": "arn:aws:iam::<account-id>:role/<role-name>",
+      "credentialSource": "Environment",
+      "externalId": "<project-external-id>",
+      "region": "us-east-1"
+    }
+  ],
   "gaps": [ "auto-memory not synced to cloud", "bun package fetch behind proxy", "OS keychain absent — env-var token form only" ],
   "platform": {
     "githubProxy": {
@@ -346,6 +413,9 @@ so the generator can render acquisition comments into its template:
   to environment editors; never imply the generated script can hide them.
 - A browser-OAuth MCP (or interactively-authed CLI) backing an active integration is a `GAP`; the
   remediation is its token substrate from the table, not "authenticate the MCP".
+- `aws sso login`, `sso_*` profile configuration, and project scripts that wrap AWS SSO are
+  interactive-auth paths. In a headless routine they are a `GAP`, not a setup step. Route AWS access
+  to env-var bootstrap credentials plus assume-role profiles.
 - For non-tracker MCPs, a documented CLI, PAT/API-key, or REST substrate converts the finding from
   a flat `GAP` into an `OPTIONAL` headless recovery path; unknown vendors remain gaps with a
   vendor-substrate follow-up, not invented credentials.

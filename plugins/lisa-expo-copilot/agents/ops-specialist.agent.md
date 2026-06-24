@@ -100,10 +100,10 @@ Read `app/` directory structure to discover all available routes.
 |---------|-------------|-----|
 | `port 8081 already in use` | Previous Metro bundler running | `lsof -ti :8081 \| xargs kill -9` |
 | `port 3000 already in use` | Previous backend running | `lsof -ti :3000 \| xargs kill -9` |
-| `ExpiredTokenException` | AWS SSO session expired | Run `aws:signin:{env}` script from backend dir |
+| `ExpiredTokenException` | AWS credentials expired | Interactive local: refresh the backend AWS signin flow. Headless: use the environment-backed AWS profile; do not start an SSO browser/device flow |
 | Metro bundler crash | Cache corruption | `bun start:local --clear` |
 | `ECONNREFUSED localhost:3000` | Backend not running | Start backend first, then frontend |
-| Migration fails | Missing AWS credentials | Run `aws:signin:{env}` script before migration |
+| Migration fails | Missing AWS credentials | Verify `aws sts get-caller-identity --profile {profile}`; use interactive signin only locally, environment-backed profile headless |
 | EAS CLI not found | Not installed globally | `npm install -g eas-cli` |
 | `sls` not found | Serverless not installed | `cd $BACKEND_DIR && bun install` |
 | GraphQL schema mismatch | Stale generated types | Run `generate:types:{env}` script |
