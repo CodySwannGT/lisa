@@ -58,7 +58,7 @@ Call `lisa:linear-access operation: get-project` with `includeMilestones: true`,
 
 **Body**
 - Description (markdown)
-- Attached documents — call `lisa:linear-access operation: list-documents({projectId})` then `get_document` per result. Treat each as additional spec content.
+- Attached documents — call `lisa:linear-access operation: list-documents({projectId})` then `lisa:linear-access operation: get-document` per result. Treat each as additional spec content.
 
 **Member Issues**
 - Call `lisa:linear-access operation: list-issues({project: <id>})` to enumerate the Project's Issues. Capture identifier, title, state, parent Issue (for sub-Issue tree).

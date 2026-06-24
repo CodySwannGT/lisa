@@ -38,7 +38,7 @@ Detect the vendor from `$ARGUMENTS` the same way `prd-ticket-coverage` / `prd-ba
 | Input shape | Vendor | Read surface |
 |---|---|---|
 | `github.com/<org>/<repo>/issues/<n>` or `<org>/<repo>#<n>` | **GitHub Issues** | `gh` CLI (Lisa uses the CLI exclusively for GitHub — no GitHub MCP) |
-| `linear.app/...` | **Linear** | `lisa:linear-access operation: get-project` / `get_issue` |
+| `linear.app/...` | **Linear** | `lisa:linear-access operation: get-project` / `lisa:linear-access operation: get-issue` |
 | `notion.so` / `notion.site` | **Notion** | `mcp__claude_ai_Notion__notion-fetch` (`include_discussions: true`) |
 | `*.atlassian.net/wiki/...` | **Confluence** | `mcp__atlassian__getConfluencePage` (+ descendants) |
 | JIRA issue key (e.g. `PROJ-123`) or `*.atlassian.net/browse/...` | **JIRA** | `mcp__atlassian__getJiraIssue` |
