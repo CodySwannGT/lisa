@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.178.6](https://github.com/CodySwannGT/lisa/compare/vv2.178.5...v2.178.6) (2026-06-24)
+
+
+### Bug Fixes
+
+* document AWS headless remote substrate ([7ee7935](https://github.com/CodySwannGT/lisa/commit/7ee793578dbc9b24df55711524cde022f2d29123))
+
 ### [2.178.5](https://github.com/CodySwannGT/lisa/compare/vv2.178.4...v2.178.5) (2026-06-24)
 
 
