@@ -251,7 +251,7 @@ For each entry in `relations`, call `lisa:linear-access operation: get-issue` to
 
 #### F4 — Required labels exist (or can be created)
 
-For each label referenced (`status:*`, `component:<name>`, `prd-*`), confirm via `lisa:linear-access operation: list-issue-labels` (or `list_project_labels` for Project labels) that it exists OR is creatable. Linear labels are team-scoped or workspace-scoped; flag if the requested scope is wrong.
+For each label referenced (`status:*`, `component:<name>`, `prd-*`), confirm via `lisa:linear-access operation: list-issue-labels` (or `lisa:linear-access operation: list-project-labels` for Project labels) that it exists OR is creatable. Linear labels are team-scoped or workspace-scoped; flag if the requested scope is wrong.
 
 ## Execution
 

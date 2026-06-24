@@ -237,14 +237,14 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Epic (Project)
 
-1. Resolve any required Project labels (`prd-ticketed`, etc.) via `lisa:linear-access operation: list-project-labels` (create via `create_project_label` if missing).
+1. Resolve any required Project labels (`prd-ticketed`, etc.) via `lisa:linear-access operation: list-project-labels` (create via `lisa:linear-access operation: create-project-label` if missing).
 2. Call `lisa:linear-access operation: save-project` with: `name` (summary), `description` (markdown), `teamIds: [<teamId>]`, `labelIds`, `priority` (Linear Project priority is also 0–4), `state` (default `backlog`), milestones if dated.
 3. Capture the returned Project ID and slug — Phase 4 children need these.
 4. If the Project is the parent for downstream Stories, record the ID for `lisa:linear-to-tracker` Phase 4 to use.
 
 ### CREATE — Story / Task / Bug / Spike / Improvement (Issue with projectId)
 
-1. Resolve any required Issue labels (`component:<name>`, `prd-intake-feedback` only if this is a sentinel issue, etc.) via `lisa:linear-access operation: list-issue-labels` (create via `create_issue_label` if missing). Include `status:ready` in `labelIds` only for a **leaf** work unit and only when `build_ready` is not `false` (per the Build-ready control input) — omit it for a container, and for a `build_ready: false` leaf which then waits in the backlog for a human to promote it.
+1. Resolve any required Issue labels (`component:<name>`, `prd-intake-feedback` only if this is a sentinel issue, etc.) via `lisa:linear-access operation: list-issue-labels` (create via `lisa:linear-access operation: create-issue-label` if missing). Include `status:ready` in `labelIds` only for a **leaf** work unit and only when `build_ready` is not `false` (per the Build-ready control input) — omit it for a container, and for a `build_ready: false` leaf which then waits in the backlog for a human to promote it.
 2. Call `lisa:linear-access operation: save-issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
 3. Capture the returned identifier (e.g. `ENG-123`) — Phase 4 sub-tasks need it as `parentId`.
 4. Add relationships from Phase 4b via `save_issue` (relations field) or paired relation calls.
