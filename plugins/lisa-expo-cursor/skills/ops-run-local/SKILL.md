@@ -95,11 +95,14 @@ Use when the backend is already deployed and you only need the frontend.
 
 ### start-backend (backend only)
 
-1. Check AWS credentials (discover profile from backend `package.json` `aws:signin:*` scripts):
+1. Check AWS credentials (discover profile from backend `package.json` scripts or remote-routine
+   `~/.aws/config`):
    ```bash
    aws sts get-caller-identity --profile {aws-profile} 2>/dev/null
    ```
-   If expired, run the backend's `aws:signin:{env}` script.
+   If this is an interactive local session and credentials are expired, refresh the backend's local
+   AWS signin flow. In headless sessions, rely on the configured environment-backed AWS profile and
+   do not start an SSO browser/device flow.
 
 2. Start:
    ```bash

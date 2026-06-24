@@ -29,7 +29,7 @@ Read the backend `package.json` to discover available migration and schema scrip
 - `migration:generate:*` — generate new migration from entity changes
 - `migration:create` — create empty migration
 - `generate:sql-schema*` — regenerate SQL schema for MCP
-- `aws:signin:*` — AWS credential scripts
+- AWS credential/profile scripts such as `aws:signin:*` and any environment-backed remote profile
 
 Read the frontend `package.json` to discover codegen scripts:
 - `fetch:graphql:schema:*` — fetch GraphQL schema
@@ -37,12 +37,16 @@ Read the frontend `package.json` to discover codegen scripts:
 
 ## AWS Prerequisite
 
-All database operations (except `codegen`) require AWS credentials. Run the backend's AWS signin script first:
+All database operations (except `codegen`) require AWS credentials. Verify the target profile first:
 
 ```bash
 cd "${BACKEND_DIR:-../backend-v2}"
-bun run aws:signin:{env}
+aws sts get-caller-identity --profile {aws-profile}
 ```
+
+If this is an interactive local session and credentials are expired, refresh the backend's local AWS
+signin flow. In a headless or remote-routine session, use the preconfigured environment-backed
+assume-role profile and do not start an SSO browser/device flow.
 
 ## Operations
 
