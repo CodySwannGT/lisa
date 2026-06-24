@@ -148,9 +148,14 @@ Group the findings as:
 7. **Platform constraints** — surface the non-config constraints as `GAP`/`RISK` so the user is
    not surprised: routines run with no interactive permission prompts and cannot ask the user
    mid-run; interactive auth (SSO/OAuth browser, keychain) is unavailable; GitHub org IP
-   allowlisting blocks cloud sessions; outbound traffic is proxied and custom domains need
-   allowlisting; resource limits (~4 vCPU / 16 GB RAM / 30 GB disk); no desktop/computer-use; no
-   statusline/theme rendering.
+   allowlisting blocks cloud sessions; raw GitHub clone/fetch/push operations are handled by
+   Claude's connected-GitHub proxy/identity and do not need a separate PAT; the `gh` CLI is not the
+   same substrate and still needs `GH_TOKEN`; outbound traffic is controlled by the routine
+   environment network tier, where the default Trusted tier includes common development domains and
+   package registries but arbitrary integration hosts need Custom or Full access; environment
+   variables and setup scripts are stored in the cloud environment configuration and are visible to
+   anyone who can edit that environment; resource limits (~4 vCPU / 16 GB RAM / 30 GB disk); no
+   desktop/computer-use; no statusline/theme rendering.
 
 8. **Host-project app needs** — note any build/test/run command a routine would invoke and any
    runtime service it depends on (database, queue, external API) that will not exist in a fresh
@@ -168,9 +173,18 @@ unsuffixed `…_TOKEN`/`…_KEY` is the simplest to set in a single-account rout
 
 ### GitHub — `tracker: github` and/or `source: github`
 - Headless substrate: `gh` CLI authed by token (every Lisa GitHub script gates on `gh auth status`).
-- Env: `GH_TOKEN` (the routine's built-in repo connection may not authenticate the `gh` CLI — verify; set `GH_TOKEN` if `gh auth status` fails). `PAT` only for cross-repo flows.
+- Platform substrate: Claude's connected-GitHub proxy/identity authenticates raw git
+  clone/fetch/push for repositories the routine can access. Do not ask for a PAT solely for raw git
+  or sibling-repo clones.
+- Env: `GH_TOKEN` for the `gh` CLI only; set it because Lisa's PR/issue lifecycle shells out to
+  `gh`. Do not describe it as required for raw git clone/fetch/push.
 - Acquire: fine-grained — `https://github.com/settings/personal-access-tokens`; classic — `https://github.com/settings/tokens`.
-- Access: fine-grained → Repository access to the target repo(s); Repository permissions: Contents R/W, Issues R/W, Pull requests R/W, Metadata R (mandatory); add Workflows R/W only if editing `.github/workflows`, and Organization → Projects R/W only if using ProjectV2. Classic equivalent: `repo` + `workflow` (+ `project`, `read:org` for boards). The identity must hold WRITE/MAINTAIN/ADMIN on the repo.
+- Access: fine-grained → Repository access to the repo(s) where Lisa will run `gh` commands (the
+  project repo, and the Lisa repo only if filing Lisa issues); Repository permissions: Contents R/W,
+  Issues R/W, Pull requests R/W, Metadata R (mandatory); add Workflows R/W only if editing
+  `.github/workflows`, and Organization → Projects R/W only if using ProjectV2. Do not include
+  sibling repos that are only cloned/fetched with raw git. Classic equivalent: `repo` + `workflow`
+  (+ `project`, `read:org` for boards). The identity must hold WRITE/MAINTAIN/ADMIN on the repo.
 
 ### JIRA — `tracker: jira`
 - Headless substrate: `jira-cli` + curl (Basic auth). The acli and Atlassian-MCP tiers need prior interactive/OAuth auth → not viable headless.
@@ -242,6 +256,18 @@ so the generator can render acquisition comments into its template:
     { "name": "linear-server", "transport": "http", "auth": "oauth", "headlessUsable": false, "replacedBy": "LINEAR_API_KEY + Linear GraphQL", "dormant": true }
   ],
   "gaps": [ "auto-memory not synced to cloud", "bun package fetch behind proxy", "OS keychain absent — env-var token form only" ],
+  "platform": {
+    "githubProxy": {
+      "rawGitAuthenticated": true,
+      "crossRepoAccess": "repositories reachable by the connected GitHub identity/routine access do not need a PAT for raw git",
+      "ghCliNeedsToken": true
+    },
+    "secretsVisibility": "environment variables and setup scripts are visible to environment editors"
+  },
+  "networkAccess": {
+    "tier": "custom",
+    "allowlistDomains": []
+  },
   "allowlistDomains": []
 }
 ```
@@ -269,5 +295,13 @@ so the generator can render acquisition comments into its template:
   Lisa's `setup-*` skills) — transcribe them exactly; never guess at the access a token needs.
 - For the active `tracker`/`source`, always report the **env-var** form of the secret, never the OS
   keychain form — keychain reads do not work in a cloud routine.
+- For GitHub, keep the split explicit: raw git uses the platform GitHub proxy/identity, while
+  `GH_TOKEN` is for `gh` CLI commands. Sibling repos that are only cloned or fetched with raw git do
+  not belong in the token scope.
+- Add GitHub/npm/PyPI/Docker Hub/common development domains to neither `allowlistDomains` nor
+  `networkAccess.allowlistDomains`; those are covered by the routine environment's default Trusted
+  list. Only non-default integration hosts require Custom-network allowlisting.
+- Always include a `RISK`/`GAP` finding when environment secrets or setup scripts would be visible
+  to environment editors; never imply the generated script can hide them.
 - A browser-OAuth MCP (or interactively-authed CLI) backing an active integration is a `GAP`; the
   remediation is its token substrate from the table, not "authenticate the MCP".
