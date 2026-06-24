@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.178.3](https://github.com/CodySwannGT/lisa/compare/vv2.178.2...v2.178.3) (2026-06-24)
+
+
+### Bug Fixes
+
+* add sealed design system guards to Expo skills ([bba9a81](https://github.com/CodySwannGT/lisa/commit/bba9a81c668e228af9b421ee9d7ccb919e9ed708))
+* **expo:** harden sealed design-system detection in validator scripts ([fb79493](https://github.com/CodySwannGT/lisa/commit/fb794939867b46d083a88cb80376db5ce2b5ce46)), closes [#1352](https://github.com/CodySwannGT/lisa/issues/1352)
+* **expo:** relax sealed-design-system predicate and harden test path assertions ([e2cdfe2](https://github.com/CodySwannGT/lisa/commit/e2cdfe2044147d46591188a9fa18cd7cbce49164))
+
 ### [2.178.2](https://github.com/CodySwannGT/lisa/compare/vv2.178.1...v2.178.2) (2026-06-24)
 
 
