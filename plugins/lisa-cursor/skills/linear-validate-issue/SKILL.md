@@ -1,7 +1,7 @@
 ---
 name: linear-validate-issue
 description: "Validates a proposed Linear work item spec (Project, Issue, or sub-Issue) — or an existing Linear item — against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. Single source of truth for what makes a valid Linear item — both the write path (linear-write-issue runs it pre-write) and the dry-run path (linear-to-tracker runs it during PRD intake) call this skill so the bar can never drift."
-allowed-tools: ["Bash", "mcp__linear-server__list_teams", "mcp__linear-server__get_team", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__list_issue_labels", "mcp__linear-server__list_project_labels"]
+allowed-tools: ["Skill", "Bash"]
 ---
 
 # Validate Linear Work Item: $ARGUMENTS
@@ -65,7 +65,7 @@ build_ready: true                 # caller asserts the build-ready role (status:
 child_refs: ["ENG-601", "ENG-602"]   # known child work (sub-issues / project-member issues / blocked_by parentage) — see S15
 ```
 
-If the caller passes only an identifier, fetch the item via `mcp__linear-server__get_issue` (Issue) or `mcp__linear-server__get_project` (Project), derive the same fields from the fetched data — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa:linear-read-issue`) so S15 can classify the item — then run gates.
+If the caller passes only an identifier, fetch the item via `lisa:linear-access operation: get-issue` (Issue) or `lisa:linear-access operation: get-project` (Project), derive the same fields from the fetched data — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa:linear-read-issue`) so S15 can classify the item — then run gates.
 
 ## Gates
 
@@ -235,28 +235,28 @@ Remediation: `"Build-ready (status:ready) is leaf-only per leaf-only-lifecycle. 
 
 #### F1 — Issue type valid in team
 
-For Issue types: confirm the team supports the issue type via `mcp__linear-server__get_team`. Linear issue types are typically per-team; check that the requested type exists.
+For Issue types: confirm the team supports the issue type via `lisa:linear-access operation: get-team`. Linear issue types are typically per-team; check that the requested type exists.
 
 For Epic (Project): confirm the team allows projects.
 
 #### F2 — Project parent exists and is in same team
 
-When `parent_project_id` is set: fetch via `mcp__linear-server__get_project`, confirm it exists and belongs to the configured team.
+When `parent_project_id` is set: fetch via `lisa:linear-access operation: get-project`, confirm it exists and belongs to the configured team.
 
-When `parent_issue_id` is set (Sub-task case): fetch via `mcp__linear-server__get_issue`, confirm the issue is non-Sub-task and in the same team / project.
+When `parent_issue_id` is set (Sub-task case): fetch via `lisa:linear-access operation: get-issue`, confirm the issue is non-Sub-task and in the same team / project.
 
 #### F3 — Linked items exist
 
-For each entry in `relations`, call `mcp__linear-server__get_issue` to confirm the identifier resolves. Flag broken identifiers.
+For each entry in `relations`, call `lisa:linear-access operation: get-issue` to confirm the identifier resolves. Flag broken identifiers.
 
 #### F4 — Required labels exist (or can be created)
 
-For each label referenced (`status:*`, `component:<name>`, `prd-*`), confirm via `mcp__linear-server__list_issue_labels` (or `list_project_labels` for Project labels) that it exists OR is creatable. Linear labels are team-scoped or workspace-scoped; flag if the requested scope is wrong.
+For each label referenced (`status:*`, `component:<name>`, `prd-*`), confirm via `lisa:linear-access operation: list-issue-labels` (or `lisa:linear-access operation: list-project-labels` for Project labels) that it exists OR is creatable. Linear labels are team-scoped or workspace-scoped; flag if the requested scope is wrong.
 
 ## Execution
 
 1. Parse `$ARGUMENTS`. If it's an identifier, fetch the item and derive the spec from the fetched fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa:linear-read-issue`) so S15 can classify the item. Otherwise parse the YAML spec.
-2. Resolve team ID via `mcp__linear-server__list_teams({query: <teamKey>})` if any feasibility gate will run.
+2. Resolve team ID via `lisa:linear-access operation: list-teams({query: <teamKey>})` if any feasibility gate will run.
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only` (dry-run), run every Feasibility gate. Collect results.
 5. Emit the report below.

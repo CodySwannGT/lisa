@@ -6,15 +6,15 @@
  * `setup-linear` must scaffold the new terminal `prd-verified` PROJECT label so
  * `/lisa:verify-prd` has a label to transition a Linear PRD project into once the
  * shipped product has been empirically verified against the PRD. The label must
- * be scaffolded idempotently — through the same `list_project_labels` (probe) →
- * `create_project_label` (create-missing) find-or-create path the rest of the
+ * be scaffolded idempotently — through the same `linear-access` list-project-labels (probe) →
+ * create-project-label (create-missing) find-or-create path the rest of the
  * `prd-*` namespace uses — so reruns reuse the existing label instead of
  * duplicating.
  *
  * This is the Linear counterpart of merged #593 (setup-github prd-verified) and
  * aligns with sibling #591 (config-resolution `verified` role). Unlike
  * setup-github (bash `ensure_label`), setup-linear drives scaffolding from a
- * role->label table plus MCP probe/create, so the assertions target that idiom:
+ * role->label table plus access-layer probe/create, so the assertions target that idiom:
  * the `verified | prd-verified | project label` table row and the project-label
  * tooling.
  *
@@ -73,10 +73,10 @@ describe("setup-linear scaffolds prd-verified idempotently (#594)", () => {
       expect(verifiedRowIdx).toBeGreaterThan(shippedRowIdx);
     });
 
-    it("drives prd-* creation through the find-or-create MCP project-label path", () => {
+    it("drives prd-* creation through the find-or-create access-layer project-label path", () => {
       // The probe-then-create that makes reruns non-duplicating.
-      expect(content).toMatch(/list_project_labels/);
-      expect(content).toMatch(/create_project_label/);
+      expect(content).toMatch(/operation: list-project-labels/);
+      expect(content).toMatch(/operation: create-project-label/);
       expect(content).toMatch(/find-or-create/);
     });
 

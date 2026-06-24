@@ -1,7 +1,7 @@
 ---
 name: linear-write-issue
 description: "Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices. Polymorphic: dispatches internally on issue_type to save_project (Epic) or save_issue (Story / Sub-task). Enforces description quality (three audiences), Gherkin acceptance criteria, project-as-parent for Stories, parentId for Sub-tasks, explicit relationship discovery (blocks / is blocked by / relates to / duplicates), labels, components-as-labels, project milestones for fix versions, native priority and estimate fields, and Validation Journey. Rejects thin items — use this skill any time a Linear work item is created or significantly edited."
-allowed-tools: ["Bash", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_team", "mcp__linear-server__list_projects", "mcp__linear-server__get_project", "mcp__linear-server__save_project", "mcp__linear-server__list_issues", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label", "mcp__linear-server__list_project_labels", "mcp__linear-server__list_comments", "mcp__linear-server__save_comment"]
+allowed-tools: ["Bash", "Skill"]
 ---
 
 # Write Linear Work Item: $ARGUMENTS
@@ -25,11 +25,11 @@ Linear's data model maps Epic / Story / Sub-task to **different entity types**. 
 
 | `issue_type` | Linear entity | MCP write tool | Parent field |
 |--------------|---------------|----------------|--------------|
-| `Epic` | **Project** | `mcp__linear-server__save_project` | (none — Projects are top-level within a team) |
-| `Story` / `Task` / `Improvement` | **Issue** | `mcp__linear-server__save_issue` | `projectId` (the Epic Project) |
-| `Sub-task` | **sub-Issue** | `mcp__linear-server__save_issue` | `parentId` (the Story Issue) |
-| `Bug` | **Issue** | `mcp__linear-server__save_issue` | `projectId` if part of an Epic; else top-level |
-| `Spike` | **Issue** | `mcp__linear-server__save_issue` | `projectId` if part of an Epic; else top-level |
+| `Epic` | **Project** | `lisa:linear-access operation: save-project` | (none — Projects are top-level within a team) |
+| `Story` / `Task` / `Improvement` | **Issue** | `lisa:linear-access operation: save-issue` | `projectId` (the Epic Project) |
+| `Sub-task` | **sub-Issue** | `lisa:linear-access operation: save-issue` | `parentId` (the Story Issue) |
+| `Bug` | **Issue** | `lisa:linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
+| `Spike` | **Issue** | `lisa:linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
 
 Status workflow uses **labels** (`status:ready`, `status:in-progress`, `status:on-dev`, `status:done`) for portability across teams — Linear's per-team workflow state names vary, but labels are workspace-scoped and stable. Native Linear `state` is set to the team's default `Todo` state on create.
 
@@ -40,7 +40,7 @@ Determine from `$ARGUMENTS` and context whether this is a CREATE or UPDATE:
 - **CREATE**: no existing identifier provided.
 - **UPDATE**: identifier provided (`<TEAM>-<n>` for Issue, project slug + short-id for Project) — call `/linear-read-issue <ref>` first to load the full current state. Never overwrite without reading.
 
-Resolve the team ID for `linear.teamKey` via `mcp__linear-server__list_teams({query: <teamKey>})`. Cache it.
+Resolve the team ID for `linear.teamKey` via `lisa:linear-access operation: list-teams({query: <teamKey>})`. Cache it.
 
 ## Phase 2 — Gather Required Inputs
 
@@ -129,7 +129,7 @@ If the parent is explicitly provided, use it. Otherwise:
 
 1. Search active Projects in the team:
    ```text
-   mcp__linear-server__list_projects({team: <teamKey>, state: ["backlog", "planned", "started"]})
+   lisa:linear-access operation: list-projects({team: <teamKey>, state: ["backlog", "planned", "started"]})
    ```
    Match on keywords from the summary and description.
 2. If no matching Project exists, stop and ask the human to create or pick one. Do NOT orphan the item.
@@ -152,16 +152,16 @@ If the git search surfaces a PR or commit that relates to this work, capture the
 
 ```text
 # Open items in the same Project
-mcp__linear-server__list_issues({project: <projectId>, state_type: ["unstarted", "started"]})
+lisa:linear-access operation: list-issues({project: <projectId>, state_type: ["unstarted", "started"]})
 
 # Open items with overlapping keywords (workspace-wide)
-mcp__linear-server__list_issues({query: "<keyword>", state_type: ["unstarted", "started"]})
+lisa:linear-access operation: list-issues({query: "<keyword>", state_type: ["unstarted", "started"]})
 
 # Items with shared labels
-mcp__linear-server__list_issues({label: "<label>", updatedAt: ">-30d"})
+lisa:linear-access operation: list-issues({label: "<label>", updatedAt: ">-30d"})
 
 # Recently closed items in the same Project
-mcp__linear-server__list_issues({project: <projectId>, state_type: ["completed", "canceled"], updatedAt: ">-30d"})
+lisa:linear-access operation: list-issues({project: <projectId>, state_type: ["completed", "canceled"], updatedAt: ">-30d"})
 ```
 
 **Record the outcome.** Add a `## Relationship Search` subsection (or a comment if updating) listing the queries you ran and what they returned. If the searches yielded nothing, write that explicitly — "Searched git history for `<keywords>` and Linear for project=`X`, label=`Y`; no related work found." An item with zero relations and no documented search is rejected.
@@ -229,7 +229,7 @@ The validator is the **single source of truth** for what makes a valid Linear wo
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.
 - Do NOT proceed to Phase 6. Fix the spec (or stop and ask the human) and re-run validation.
-- Never call `mcp__linear-server__save_project` or `mcp__linear-server__save_issue` while the validator's verdict is FAIL.
+- Never call `lisa:linear-access operation: save-project` or `lisa:linear-access operation: save-issue` while the validator's verdict is FAIL.
 
 If the validator reports `PASS`, continue to Phase 6.
 
@@ -237,15 +237,15 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Epic (Project)
 
-1. Resolve any required Project labels (`prd-ticketed`, etc.) via `mcp__linear-server__list_project_labels` (create via `create_project_label` if missing).
-2. Call `mcp__linear-server__save_project` with: `name` (summary), `description` (markdown), `teamIds: [<teamId>]`, `labelIds`, `priority` (Linear Project priority is also 0–4), `state` (default `backlog`), milestones if dated.
+1. Resolve any required Project labels (`prd-ticketed`, etc.) via `lisa:linear-access operation: list-project-labels` (create via `lisa:linear-access operation: create-project-label` if missing).
+2. Call `lisa:linear-access operation: save-project` with: `name` (summary), `description` (markdown), `teamIds: [<teamId>]`, `labelIds`, `priority` (Linear Project priority is also 0–4), `state` (default `backlog`), milestones if dated.
 3. Capture the returned Project ID and slug — Phase 4 children need these.
 4. If the Project is the parent for downstream Stories, record the ID for `lisa:linear-to-tracker` Phase 4 to use.
 
 ### CREATE — Story / Task / Bug / Spike / Improvement (Issue with projectId)
 
-1. Resolve any required Issue labels (`component:<name>`, `prd-intake-feedback` only if this is a sentinel issue, etc.) via `mcp__linear-server__list_issue_labels` (create via `create_issue_label` if missing). Include `status:ready` in `labelIds` only for a **leaf** work unit and only when `build_ready` is not `false` (per the Build-ready control input) — omit it for a container, and for a `build_ready: false` leaf which then waits in the backlog for a human to promote it.
-2. Call `mcp__linear-server__save_issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
+1. Resolve any required Issue labels (`component:<name>`, `prd-intake-feedback` only if this is a sentinel issue, etc.) via `lisa:linear-access operation: list-issue-labels` (create via `lisa:linear-access operation: create-issue-label` if missing). Include `status:ready` in `labelIds` only for a **leaf** work unit and only when `build_ready` is not `false` (per the Build-ready control input) — omit it for a container, and for a `build_ready: false` leaf which then waits in the backlog for a human to promote it.
+2. Call `lisa:linear-access operation: save-issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
 3. Capture the returned identifier (e.g. `ENG-123`) — Phase 4 sub-tasks need it as `parentId`.
 4. Add relationships from Phase 4b via `save_issue` (relations field) or paired relation calls.
 5. If the item changes runtime behavior, invoke `lisa:linear-add-journey` to append the Validation Journey section.
@@ -253,13 +253,13 @@ If the validator reports `PASS`, continue to Phase 6.
 ### CREATE — Sub-task (Issue with parentId)
 
 1. Resolve labels as above.
-2. Call `mcp__linear-server__save_issue` with: `team` (teamId), `title` (`[<repo>] <summary>` prefix is mandatory), `description` (markdown), `parentId` (the Story Issue ID), `projectId` (inherit from parent), `priority`, `estimate`, `labelIds`.
+2. Call `lisa:linear-access operation: save-issue` with: `team` (teamId), `title` (`[<repo>] <summary>` prefix is mandatory), `description` (markdown), `parentId` (the Story Issue ID), `projectId` (inherit from parent), `priority`, `estimate`, `labelIds`.
 3. Capture identifier.
 4. Add relationships via Phase 4b.
 
 ### UPDATE
 
-1. Call `mcp__linear-server__save_project` or `mcp__linear-server__save_issue` with **only the fields being changed**. Do NOT resend fields that weren't in the change set — Linear treats the call as a full overwrite of the listed fields.
+1. Call `lisa:linear-access operation: save-project` or `lisa:linear-access operation: save-issue` with **only the fields being changed**. Do NOT resend fields that weren't in the change set — Linear treats the call as a full overwrite of the listed fields.
 2. Preserve description sections you are not editing — re-read via `/linear-read-issue` first, including any existing canonical managed `## Lisa Usage` section unless the caller intentionally supplied an updated canonical section. Use the shared `usage-accounting` serializer/merge path rather than freehand edits to ledger rows.
 
 ## Phase 7 — Verify
@@ -268,7 +268,7 @@ Call the `lisa:linear-verify` skill on the resulting item. `lisa:linear-verify` 
 
 ## Phase 8 — Announce
 
-Post a creation comment via `mcp__linear-server__save_comment` (on the Issue, or on a sentinel issue under the Project for Epic-level announcements) with:
+Post a creation comment via `lisa:linear-access operation: save-comment` (on the Issue, or on a sentinel issue under the Project for Epic-level announcements) with:
 
 - `[<repo>]` prefix if the item is repo-scoped
 - Who the item is assigned to (if known)

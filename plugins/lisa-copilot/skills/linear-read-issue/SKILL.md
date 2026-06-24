@@ -1,7 +1,7 @@
 ---
 name: linear-read-issue
 description: "Fetches the full scope of a Linear work item — Issue or Project — including metadata, description, acceptance criteria, all comments, attachments, native relations (blocks/blocked_by/relates_to/duplicates), Project parent (if any) with siblings, and sub-Issues. Produces a consolidated context bundle that downstream agents consume so they never act on a single item in isolation."
-allowed-tools: ["Bash", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__get_project", "mcp__linear-server__list_issues", "mcp__linear-server__list_comments", "mcp__linear-server__list_documents", "mcp__linear-server__get_document"]
+allowed-tools: ["Bash", "Skill"]
 ---
 
 # Read Linear Work Item: $ARGUMENTS
@@ -21,13 +21,13 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 1. If `$ARGUMENTS` matches `<TEAM>-<n>` → Issue mode.
 2. If `$ARGUMENTS` is a URL containing `/project/<slug>-<short-id>` → Project mode (extract `<short-id>`).
 3. Otherwise stop and report. Do NOT guess.
-4. Resolve team ID via `mcp__linear-server__list_teams({query: <teamKey>})`.
+4. Resolve team ID via `lisa:linear-access operation: list-teams({query: <teamKey>})`.
 
 ## Phase 2 — Fetch Primary Item
 
 ### Issue mode
 
-Call `mcp__linear-server__get_issue`. Extract and preserve:
+Call `lisa:linear-access operation: get-issue`. Extract and preserve:
 
 **Metadata**
 - Identifier, title, issue type (typically a label or workflow state), state, priority (0–4)
@@ -43,13 +43,13 @@ Call `mcp__linear-server__get_issue`. Extract and preserve:
 - Attachment URLs (capture, do not download unless needed)
 
 **Comments**
-Fetch ALL comments via `mcp__linear-server__list_comments({issueId: <id>})` in chronological order. Walk thread parents/children — Linear comments are threaded via `parentId`. Do not truncate. For each comment:
+Fetch ALL comments via `lisa:linear-access operation: list-comments({issueId: <id>})` in chronological order. Walk thread parents/children — Linear comments are threaded via `parentId`. Do not truncate. For each comment:
 - Author, timestamp, body
 - Flag comments that contain: credentials, reproduction steps, status updates from stakeholders, decisions, or triage headers.
 
 ### Project mode
 
-Call `mcp__linear-server__get_project` with `includeMilestones: true`, `includeResources: true`. Extract:
+Call `lisa:linear-access operation: get-project` with `includeMilestones: true`, `includeResources: true`. Extract:
 
 **Metadata**
 - ID, slug, name, state, priority, lead, color
@@ -58,10 +58,10 @@ Call `mcp__linear-server__get_project` with `includeMilestones: true`, `includeR
 
 **Body**
 - Description (markdown)
-- Attached documents — call `mcp__linear-server__list_documents({projectId})` then `get_document` per result. Treat each as additional spec content.
+- Attached documents — call `lisa:linear-access operation: list-documents({projectId})` then `lisa:linear-access operation: get-document` per result. Treat each as additional spec content.
 
 **Member Issues**
-- Call `mcp__linear-server__list_issues({project: <id>})` to enumerate the Project's Issues. Capture identifier, title, state, parent Issue (for sub-Issue tree).
+- Call `lisa:linear-access operation: list-issues({project: <id>})` to enumerate the Project's Issues. Capture identifier, title, state, parent Issue (for sub-Issue tree).
 
 ## Phase 3 — Fetch Attachments / Remote Links
 
@@ -81,7 +81,7 @@ Linear native Issue relations are returned in the `get_issue` response under `re
 - `relates_to`
 - `duplicates` / `duplicated_by`
 
-For each related Issue, call `mcp__linear-server__get_issue` and capture:
+For each related Issue, call `lisa:linear-access operation: get-issue` and capture:
 - Identifier, title, state, priority, assignee
 - Description (full, unless cancelled — then summary only)
 - Acceptance Criteria section
@@ -96,9 +96,9 @@ For Project-level relationships (Project ↔ Project), Linear doesn't model nati
 
 If the primary Item is an Issue with a Project parent:
 
-1. Fetch the Project via `mcp__linear-server__get_project` — full description, milestones, labels, lead.
+1. Fetch the Project via `lisa:linear-access operation: get-project` — full description, milestones, labels, lead.
 2. Fetch Project documents (Phase 2 procedure).
-3. Find Project siblings via `mcp__linear-server__list_issues({project: <projectId>})` excluding the primary identifier.
+3. Find Project siblings via `lisa:linear-access operation: list-issues({project: <projectId>})` excluding the primary identifier.
 4. For each sibling, capture: identifier, title, state, priority, assignee, summary (first paragraph of description).
 5. If a sibling is `Started` or `In Review` with a different assignee, flag it prominently.
 
@@ -106,7 +106,7 @@ If the primary Item IS a Project, Phase 5 is the same as fetching all member Iss
 
 ## Phase 6 — Fetch Sub-Issues
 
-If the primary Issue has children (sub-Issues), fetch each via `mcp__linear-server__get_issue`: identifier, title, state, assignee, description (first paragraph), Acceptance Criteria.
+If the primary Issue has children (sub-Issues), fetch each via `lisa:linear-access operation: get-issue`: identifier, title, state, assignee, description (first paragraph), Acceptance Criteria.
 
 ## Phase 7 — Assemble Context Bundle
 

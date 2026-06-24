@@ -1,7 +1,7 @@
 ---
 name: linear-evidence
 description: "Uploads text evidence to the GitHub `pr-assets` release, updates the PR description, posts a comment on the originating Linear Issue with code blocks, and transitions the Issue from the configured `claimed` label to the configured `review` label. Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/code-blocks.md. Linear counterpart of lisa:jira-evidence and lisa:github-evidence."
-allowed-tools: ["Bash", "Skill", "mcp__linear-server__list_teams", "mcp__linear-server__get_issue", "mcp__linear-server__save_issue", "mcp__linear-server__save_comment", "mcp__linear-server__list_issue_labels", "mcp__linear-server__create_issue_label"]
+allowed-tools: ["Bash", "Skill"]
 ---
 
 # Linear Evidence: $ARGUMENTS
@@ -44,7 +44,7 @@ If any of these are missing, stop and report.
 ## Phase 1 — Resolve Linear Issue
 
 1. Parse the identifier from `$ARGUMENTS`.
-2. Fetch via `mcp__linear-server__get_issue` to confirm it exists and capture its current state, label set, and Project membership.
+2. Fetch via `lisa:linear-access operation: get-issue` to confirm it exists and capture its current state, label set, and Project membership.
 
 ## Phase 2 — Upload Evidence Files (optional)
 
@@ -64,7 +64,7 @@ If no PR is open, skip this phase.
 
 ## Phase 4 — Post Linear Comment
 
-Call `mcp__linear-server__save_comment({issueId: <id>, body: <body>})` where `<body>` is:
+Call `lisa:linear-access operation: save-comment({issueId: <id>, body: <body>})` where `<body>` is:
 
 ```markdown
 [<comment.txt contents verbatim>]
@@ -83,7 +83,7 @@ Linear comments support markdown including `<details>` collapsibles, fenced code
 
 ## Phase 5 — Transition Status
 
-Update labels via `mcp__linear-server__save_issue` to remove `$CLAIMED` and add `$REVIEW`. Resolve label IDs first via `mcp__linear-server__list_issue_labels` (create the label via `create_issue_label` if it doesn't exist on the team).
+Update labels via `lisa:linear-access operation: save-issue` to remove `$CLAIMED` and add `$REVIEW`. Resolve label IDs first via `lisa:linear-access operation: list-issue-labels` (create the label via `create_issue_label` if it doesn't exist on the team).
 
 The native Linear `state` field is also updated to the team's "In Review" state if one exists — but the label remains the source of truth for cross-team consistency.
 
@@ -99,5 +99,5 @@ Return:
 
 - Never modify the Issue description as part of evidence posting — comments only. Description edits go through `lisa:linear-write-issue`.
 - Never skip the label transition. The build queue is keyed off the configured `linear.labels.build.*` labels; an item that ships without transitioning is invisible to monitoring.
-- If `mcp__linear-server__save_comment` fails, retry once. If it fails again, surface the error — don't pretend the comment was posted.
+- If `lisa:linear-access operation: save-comment` fails, retry once. If it fails again, surface the error — don't pretend the comment was posted.
 - Do not delete prior comments. The history is the audit trail.
