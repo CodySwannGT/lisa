@@ -30,8 +30,9 @@ tracker/source, plus the host project's own package manager and tooling — not 
 ## Procedure
 
 1. **Inventory.** Invoke `/lisa:analyze-claude-remote --json` and parse its machine-readable
-   inventory block (`packageManager`, `tools`, `env`, `mcp`, `gaps`, `allowlistDomains`). If the
-   analysis cannot run, stop and report why — never emit a script from guesses.
+   inventory block (`packageManager`, `tools`, `env`, `mcp`, `gaps`, `platform`,
+   `networkAccess`, `allowlistDomains`). If the analysis cannot run, stop and report why — never
+   emit a script from guesses.
 
 2. **Compose the setup script** from the inventory. The script must be:
    - **Idempotent & detect-before-install** — every install guarded by a `command -v <tool>` check
@@ -62,11 +63,17 @@ tracker/source, plus the host project's own package manager and tooling — not 
    where to get the token and what permissions it needs. Emit only the **env-var form** of the name
    that the analysis reported (including any per-account suffixed form like `LINEAR_API_KEY_<slug>`);
    never emit a keychain instruction — keychain does not exist in a cloud routine.
+   When the entry is `GH_TOKEN`, add a comment from `platform.githubProxy` clarifying that the token
+   is for `gh` CLI commands against the project/Lisa repos, not for raw git clone/fetch/push or
+   sibling repos reachable through the routine's GitHub proxy.
 
 4. **Emit the allowlist + gaps notice.** List any custom domains the setup or runtime reaches
-   (from `allowlistDomains`) that the user must add to the environment's network access, and echo
-   the `gaps` from the analysis (auto-memory not synced, interactive-auth/stdio-MCP unavailable,
-   etc.) as a header comment so the user knows what the script **cannot** fix.
+   (from `networkAccess.allowlistDomains`, falling back to legacy `allowlistDomains`) that the user
+   must add when the environment needs Custom network access. Do not include default Trusted domains
+   such as GitHub, npm/PyPI registries, or Docker Hub. Echo the `gaps` from the analysis
+   (auto-memory not synced, interactive-auth/stdio-MCP unavailable, etc.) and the
+   `platform.secretsVisibility` warning as a header comment so the user knows what the script
+   **cannot** fix.
 
 5. **Write and report.** Write the script to `--out` (default `scripts/claude-remote-setup.sh`),
    `chmod +x` it, and print: the path, a one-line summary of what it installs and which env vars to
@@ -92,9 +99,11 @@ shape, not a fixed payload):
 #   # --- credentials for the active tracker/source (set in the environment UI) ---
 #   # Acquire: https://github.com/settings/personal-access-tokens
 #   # Access:  fine-grained PAT on target repo: Contents R/W, Issues R/W, Pull requests R/W, Metadata R
+#   # Note: GH_TOKEN is for gh CLI only. Raw git uses Claude's connected-GitHub proxy/identity;
+#   # sibling repos reached only by raw git do not need to be in this token scope.
 #   - GH_TOKEN=<token>                          # REQUIRED, github is the active tracker+source
-# NETWORK: allowlist these domains in the environment if not on full access:
-#   - <allowlistDomains, if any>
+# NETWORK: set the environment to Custom and allowlist these non-default domains if not on Full:
+#   - <networkAccess.allowlistDomains, if any>
 set -uo pipefail
 
 need() { command -v "$1" >/dev/null 2>&1; }
@@ -152,8 +161,12 @@ to stop are: the analysis could not run, or the `--out` path is not writable.
 - Never write real secret values into the script or template — names and placeholders only.
 - For active tracker/source credentials, carry the analysis's `Acquire:` URL and `Access:` scope into
   the template as comments, and emit only the env-var form of the name — never a keychain command.
+- For `GH_TOKEN`, preserve the analysis's GitHub proxy split: it is for `gh` CLI commands only, and
+  raw git/cross-repo clone guidance must not expand the token scope to sibling repositories.
 - Never emit an install for a tool the analysis did not surface, and never install `OPTIONAL` tools
   unless `--include-optional` is set.
+- Prefer `networkAccess.allowlistDomains` over legacy top-level `allowlistDomains`; never emit
+  domains already covered by the routine environment's default Trusted list.
 - Keep the script idempotent and detect-before-install so it is safe to re-run and cache.
 - Preserve the inventory's `REQUIRED` vs `OPTIONAL` distinction in both fail-behavior (fatal vs
   warn) and section placement.
