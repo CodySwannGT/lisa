@@ -287,7 +287,7 @@ so the generator can render acquisition comments into its template:
       "name": "SONAR_TOKEN", "required": false, "secret": true, "integration": "sonarcloud",
       "reason": "optional non-tracker MCP recovery; SonarQube MCP wraps the token-authenticated SonarCloud Web API",
       "headlessSubstrate": "SonarCloud Web API (token)",
-      "acquireUrl": "https://docs.sonarsource.com/sonarqube-cloud/managing-your-account/generating-and-using-tokens/",
+      "acquireUrl": "https://docs.sonarsource.com/sonarqube-cloud/managing-your-account/managing-tokens",
       "accessScope": "token must be able to read the target SonarCloud organization/project quality gate, issues, hotspots, rules, and source snippets"
     }
   ],
