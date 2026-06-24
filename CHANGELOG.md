@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.178.2](https://github.com/CodySwannGT/lisa/compare/vv2.178.1...v2.178.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* **analyze-claude-remote:** update SonarCloud URL and strengthen Jam antipattern test ([a60eb42](https://github.com/CodySwannGT/lisa/commit/a60eb4259442760429e37a8b1aab5ea758164e25))
+* **claude-remote:** detect mcp token substrates ([7a16149](https://github.com/CodySwannGT/lisa/commit/7a16149f5e6b83911246e0c7648d85c07138ceed))
+
 ### [2.178.1](https://github.com/CodySwannGT/lisa/compare/vv2.178.0...v2.178.1) (2026-06-24)
 
 
