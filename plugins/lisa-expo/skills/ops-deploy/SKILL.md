@@ -73,11 +73,15 @@ Use for JS-only changes (no native module changes).
 
 ### Full Deploy (Serverless Framework)
 
-1. AWS signin (discover script name from backend `package.json`):
+1. Verify AWS credentials (discover the profile from backend `package.json` or remote-routine
+   `~/.aws/config`):
    ```bash
    cd "${BACKEND_DIR:-../backend-v2}"
-   bun run aws:signin:{env}
+   aws sts get-caller-identity --profile {aws-profile}
    ```
+   If this is an interactive local session and credentials are expired, refresh the backend's local
+   AWS signin flow. In a headless or remote-routine session, use the environment-backed assume-role
+   profile and do not start an SSO browser/device flow.
 
 2. Deploy all functions:
    ```bash
