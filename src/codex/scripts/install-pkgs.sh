@@ -7,7 +7,33 @@ set -uo pipefail
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$repo_root" 2>/dev/null || exit 0
 
-if [ -d "node_modules" ] || [ ! -f "package.json" ]; then
+if [ ! -f "package.json" ]; then
+  exit 0
+fi
+
+link_primary_worktree_node_modules() {
+  [ ! -e "node_modules" ] && [ ! -L "node_modules" ] || return 1
+
+  case "$repo_root" in
+    */.claude/worktrees/*)
+      primary_root="${repo_root%%/.claude/worktrees/*}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  [ "$primary_root" != "$repo_root" ] || return 1
+  [ -d "$primary_root/node_modules" ] || return 1
+
+  ln -s "$primary_root/node_modules" "node_modules"
+}
+
+if [ -d "node_modules" ]; then
+  exit 0
+fi
+
+if link_primary_worktree_node_modules && [ -d "node_modules" ]; then
   exit 0
 fi
 

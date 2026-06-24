@@ -23,7 +23,7 @@ export const LisaSessionBootstrap = async ({
   worktree: string;
 }) => {
   const root = worktree;
-  const { existsSync, mkdirSync, readFileSync, writeFileSync } =
+  const { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } =
     await import("node:fs");
 
   // install-pkgs: bootstrap dependencies when they're missing.
@@ -32,16 +32,29 @@ export const LisaSessionBootstrap = async ({
       existsSync(`${root}/package.json`) &&
       !existsSync(`${root}/node_modules`)
     ) {
+      let linkedPrimaryNodeModules = false;
+      const marker = "/.claude/worktrees/";
+      if (root.includes(marker)) {
+        const primaryRoot = root.slice(0, root.indexOf(marker));
+        const primaryNodeModules = `${primaryRoot}/node_modules`;
+        if (primaryRoot && existsSync(primaryNodeModules)) {
+          symlinkSync(primaryNodeModules, `${root}/node_modules`);
+          linkedPrimaryNodeModules = true;
+        }
+      }
+
       const has = (f: string) => existsSync(`${root}/${f}`);
       const install = async (cmd: string) => {
         if (Bun.which(cmd)) {
           await $`${cmd} install`.cwd(root).quiet().nothrow();
         }
       };
-      if (has("bun.lockb") || has("bun.lock")) await install("bun");
-      else if (has("pnpm-lock.yaml")) await install("pnpm");
-      else if (has("yarn.lock")) await install("yarn");
-      else await install("npm");
+      if (!linkedPrimaryNodeModules) {
+        if (has("bun.lockb") || has("bun.lock")) await install("bun");
+        else if (has("pnpm-lock.yaml")) await install("pnpm");
+        else if (has("yarn.lock")) await install("yarn");
+        else await install("npm");
+      }
     }
   } catch {
     // fail open — never block startup on a dependency-install error
