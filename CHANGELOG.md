@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.178.0](https://github.com/CodySwannGT/lisa/compare/vv2.177.0...v2.178.0) (2026-06-24)
+
+
+### Features
+
+* **linear:** route consumers through access layer ([6c5c861](https://github.com/CodySwannGT/lisa/commit/6c5c8618e21ab6712b2112e6e3da85f091667c77))
+
+
+### Bug Fixes
+
+* standardize linear-access operation names to kebab-case ([46a8231](https://github.com/CodySwannGT/lisa/commit/46a8231a17bdc7931bdc365eb61b4b5f82487c51))
+
 ## [2.177.0](https://github.com/CodySwannGT/lisa/compare/vv2.176.12...v2.177.0) (2026-06-23)
 
 
