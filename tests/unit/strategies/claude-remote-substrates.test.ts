@@ -41,7 +41,10 @@ describe("analyze-claude-remote non-tracker MCP substrate guidance", () => {
       );
       expect(content).toContain("setupSnippet");
       expect(content).toMatch(/Do \*\*not\*\* use that for Jam/i);
-      expect(content).not.toContain("mcp.jam.dev`, `JAM_PAT` (`jam_pat_`");
+      // Ensure Jam is not seeded as an MCP bearer substrate in the inventory
+      expect(content).not.toMatch(
+        /`mcp\.jam\.dev`\s*[,`]\s*`?JAM_PAT`.*mcpHeaders/i
+      );
     });
 
     it("seeds SonarCloud as SONAR_TOKEN plus REST", () => {
@@ -49,7 +52,7 @@ describe("analyze-claude-remote non-tracker MCP substrate guidance", () => {
       expect(content).toContain("SONAR_TOKEN");
       expect(content).toContain("https://sonarcloud.io/api/");
       expect(content).toContain(
-        "https://docs.sonarsource.com/sonarqube-cloud/managing-your-account/generating-and-using-tokens/"
+        "https://docs.sonarsource.com/sonarqube-cloud/managing-your-account/managing-tokens"
       );
       expect(content).toContain("sonarcloud.io");
     });
