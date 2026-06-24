@@ -132,8 +132,13 @@ Discover available log scripts from the backend `package.json` (matching `logs:*
 
 ```bash
 cd "${BACKEND_DIR:-../backend-v2}"
-bun run aws:signin:{env}
+aws sts get-caller-identity --profile {aws-profile} 2>/dev/null
 ```
+
+If this is an interactive local session and credentials are expired, refresh the backend's local
+AWS signin flow. In a headless or remote-routine session, do not start an SSO browser/device flow;
+use the preconfigured `~/.aws/config` profile backed by `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY` environment credentials.
 
 ### View Recent Logs
 
@@ -151,7 +156,8 @@ FUNCTION_NAME={fn} bun run logs:watch:{env}
 
 ## Remote Logs (AWS CLI — Advanced Filtering)
 
-For more advanced filtering, use the AWS CLI directly. Discover the AWS profile from backend `package.json` `aws:signin:*` scripts.
+For more advanced filtering, use the AWS CLI directly. Discover the AWS profile from backend
+`package.json` scripts or the remote-routine `~/.aws/config` profile.
 
 ### Discover Log Groups
 
