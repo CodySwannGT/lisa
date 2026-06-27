@@ -86,7 +86,7 @@ VitePWA({
   registerType: "autoUpdate",
   includeAssets: ["favicon.svg"],
   workbox: {
-    globPatterns: ["**/*.{js,css,html,png,jpg,svg,webp,wo://*}"],
+    globPatterns: ["**/*.{js,css,html,png,jpg,svg,webp,woff2,json,fnt,mp3,m4a,ogg}"],
     // critically include packed game assets:
     globDirectory: "dist",
     additionalManifestEntries: [],     // or widen globPatterns to assets/**/*.{png,json,fnt,ogg,m4a}
