@@ -209,6 +209,11 @@ const PHASER_OVERRIDES: Linter.Config[] = [
       "phaser/no-create-in-update": "error",
       "phaser/no-allocation-in-update": "error",
       "phaser/require-shutdown-cleanup": "error",
+      // Game hot loops want the zero-allocation indexed for-loop
+      // (`for (let i = 0; …)`), which otherwise conflicts with
+      // no-allocation-in-update (for...of/.entries() allocate an iterator).
+      // Keep no-let everywhere else; allow it only in for-loop init.
+      "functional/no-let": ["error", { allowInForLoopInit: true }],
     },
   },
   // The architecture boundary: pure logic may not import Phaser.
