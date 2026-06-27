@@ -7,7 +7,7 @@ description: This skill should be used when creating, restructuring, or reasonin
 
 ## Overview
 
-This stack targets **Phaser 4** (v4.1+ "Salusa", npm package `phaser`), built
+This stack targets **Phaser 4** (v4.2+, npm package `phaser@^4.2.0`), built
 with **Vite + TypeScript** — the layout the official `phaserjs/template-vite-ts`
 template and `npm create @phaserjs/game@latest` scaffold. Phaser 4 ships its own
 type definitions (`types/phaser.d.ts`); do not add `@types/phaser`.
