@@ -31,7 +31,10 @@ export default defineConfig({
     terserOptions: { compress: { passes: 2, drop_console: true }, format: { comments: false } },
     rollupOptions: {
       output: {
-        manualChunks: { phaser: ["phaser"] },          // engine in its own long-lived chunk
+        // Vite 8's rolldown bundler requires the FUNCTION form (the object form
+        // `{ phaser: ["phaser"] }` throws "manualChunks is not a function").
+        manualChunks: id =>
+          id.includes("node_modules/phaser") ? "phaser" : undefined,
         entryFileNames: "assets/[name]-[hash].js",      // content hash on everything
         chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
@@ -41,9 +44,11 @@ export default defineConfig({
 });
 ```
 
-`manualChunks: { phaser: ["phaser"] }` is the single highest-value line: Phaser is
-hundreds of KB and rarely changes, so isolating it means a gameplay tweak only
-busts the small app chunk. Two-pass terser squeezes meaningfully more than one.
+The `manualChunks` function is the single highest-value line: Phaser is hundreds
+of KB and rarely changes, so isolating it means a gameplay tweak only busts the
+small app chunk. Use the **function** form — Vite 8 ships the rolldown bundler,
+which requires it (the classic object form throws `manualChunks is not a
+function`). Two-pass terser squeezes meaningfully more than one.
 
 ## Asset hashing and immutable caching
 

@@ -8,6 +8,7 @@ import * as path from "node:path";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const PHASER_PACKAGE_LISA_TEMPLATE = "phaser/package-lisa/package.lisa.json";
 const PHASER_ESLINT_FACTORY = "src/configs/eslint/phaser.ts";
+const PHASER_TSCONFIG = "tsconfig/phaser.json";
 
 /**
  * Read a JSON template from the Lisa repository.
@@ -108,7 +109,7 @@ describe("Phaser templates", () => {
     expect(readText("phaser/copy-overwrite/tsconfig.eslint.json")).toMatch(
       assetGlobPattern
     );
-    expect(readText("tsconfig/phaser.json")).toMatch(assetGlobPattern);
+    expect(readText(PHASER_TSCONFIG)).toMatch(assetGlobPattern);
     expect(readText("oxlint/phaser.json")).toMatch(assetGlobPattern);
   });
 
@@ -179,7 +180,7 @@ describe("Phaser templates", () => {
   });
 
   it("applies game-strict TypeScript flags in tsconfig/phaser.json", () => {
-    const tsconfig = readJson("tsconfig/phaser.json") as {
+    const tsconfig = readJson(PHASER_TSCONFIG) as {
       readonly compilerOptions?: Record<string, unknown>;
     };
     const opts = tsconfig.compilerOptions ?? {};
@@ -275,5 +276,42 @@ describe("Phaser templates", () => {
     expect(template.defaults?.devDependencies?.["vite"]).toBe("^8.0.16");
     expect(template.force?.overrides?.["vite"]).toBe("$vite");
     expect(template.force?.resolutions?.["vite"]).toBe("$vite");
+  });
+
+  it("uses bundler module resolution (Vite app, not a Node library)", () => {
+    // NodeNext forces `.js` extensions on relative imports — wrong for a Vite
+    // app. Bundler resolution is idiomatic and extension-free. Also drop the
+    // rootDir/outDir that resolve into node_modules when this config is extended.
+    const tsconfig = readJson(PHASER_TSCONFIG) as {
+      readonly compilerOptions?: Record<string, unknown>;
+    };
+    const opts = tsconfig.compilerOptions ?? {};
+    expect(opts["moduleResolution"]).toBe("Bundler");
+    expect(opts["module"]).toBe("ESNext");
+    expect(opts["rootDir"]).toBeUndefined();
+    expect(opts["outDir"]).toBeUndefined();
+  });
+
+  it("typechecks tests via the phaser create-only tsconfig.local", () => {
+    const local = readJson("phaser/create-only/tsconfig.local.json") as {
+      readonly include?: readonly string[];
+      readonly exclude?: readonly string[];
+    };
+    expect(local.include).toContain("tests/**/*");
+    expect(local.exclude ?? []).not.toContain("**/*.test.ts");
+  });
+
+  it("allows let in for-loop init for zero-allocation game loops", () => {
+    const factory = readText(PHASER_ESLINT_FACTORY);
+    expect(factory).toContain("functional/no-let");
+    expect(factory).toContain("allowInForLoopInit");
+  });
+
+  it("documents the Vite 8 (rolldown) function-form manualChunks", () => {
+    const skill = readText(
+      "plugins/src/phaser/skills/phaser-build-deploy/SKILL.md"
+    );
+    expect(skill).toContain("manualChunks: id");
+    expect(skill).not.toContain('manualChunks: { phaser: ["phaser"] }');
   });
 });
