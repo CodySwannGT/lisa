@@ -307,6 +307,11 @@ describe("Phaser templates", () => {
     expect(factory).toContain("allowInForLoopInit");
   });
 
+  it("enforces verification (UAT) coverage in the phaser CI workflow", () => {
+    const ci = readText("phaser/copy-overwrite/.github/workflows/ci.yml");
+    expect(ci).toContain("verify_enforced: true");
+  });
+
   it("documents the Vite 8 (rolldown) function-form manualChunks", () => {
     const skill = readText(
       "plugins/src/phaser/skills/phaser-build-deploy/SKILL.md"
