@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.180.0](https://github.com/CodySwannGT/lisa/compare/vv2.179.0...v2.180.0) (2026-06-27)
+
+
+### Features
+
+* **phaser:** defer to Phaser's official skills + wire Editor MCP ([bea1ab4](https://github.com/CodySwannGT/lisa/commit/bea1ab47a18b7ea05b41dd2389148a9123de14c2))
+
+
+### Bug Fixes
+
+* **phaser:** align project-structure skill to Phaser v4.2 pin ([c27b083](https://github.com/CodySwannGT/lisa/commit/c27b08342eb5ff03e79bf7b5a6e500c114bf5b05)), closes [#1358](https://github.com/CodySwannGT/lisa/issues/1358)
+
 ## [2.179.0](https://github.com/CodySwannGT/lisa/compare/vv2.178.6...v2.179.0) (2026-06-27)
 
 
