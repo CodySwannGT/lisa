@@ -43,7 +43,8 @@
   "workspaces": [
     "eslint-plugin-code-organization",
     "eslint-plugin-component-structure",
-    "eslint-plugin-ui-standards"
+    "eslint-plugin-ui-standards",
+    "eslint-plugin-phaser"
   ],
   "files": [
     "dist",
@@ -63,7 +64,8 @@
     ".claude-plugin",
     "eslint-plugin-code-organization",
     "eslint-plugin-component-structure",
-    "eslint-plugin-ui-standards"
+    "eslint-plugin-ui-standards",
+    "eslint-plugin-phaser"
   ],
   "trustedDependencies": [
     "@ast-grep/cli",

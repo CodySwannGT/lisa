@@ -7,6 +7,7 @@ import * as path from "node:path";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const PHASER_PACKAGE_LISA_TEMPLATE = "phaser/package-lisa/package.lisa.json";
+const PHASER_ESLINT_FACTORY = "src/configs/eslint/phaser.ts";
 
 /**
  * Read a JSON template from the Lisa repository.
@@ -47,7 +48,7 @@ describe("Phaser templates", () => {
     };
 
     expect(template.force?.dependencies?.["phaser"]).toBeUndefined();
-    expect(template.defaults?.dependencies?.["phaser"]).toBe("^4.1.0");
+    expect(template.defaults?.dependencies?.["phaser"]).toBe("^4.2.0");
   });
 
   it("ships vitest scripts, not jest", () => {
@@ -120,7 +121,7 @@ describe("Phaser templates", () => {
   });
 
   it("bans Phaser 3 idioms in the ESLint factory", () => {
-    const factory = readText("src/configs/eslint/phaser.ts");
+    const factory = readText(PHASER_ESLINT_FACTORY);
 
     for (const banned of [
       "setPipeline",
@@ -133,5 +134,71 @@ describe("Phaser templates", () => {
     ]) {
       expect(factory).toContain(banned);
     }
+  });
+
+  it("registers eslint-plugin-phaser and its stateful rules in the factory", () => {
+    const factory = readText(PHASER_ESLINT_FACTORY);
+
+    expect(factory).toContain("eslint-plugin-phaser/index.js");
+    expect(factory).toContain("phaser/no-create-in-update");
+    expect(factory).toContain("phaser/no-allocation-in-update");
+    expect(factory).toContain("phaser/require-shutdown-cleanup");
+  });
+
+  it("enforces determinism and the architecture boundary in the factory", () => {
+    const factory = readText(PHASER_ESLINT_FACTORY);
+
+    // Determinism + event-bus + physics-debug bans.
+    expect(factory).toContain("Date");
+    expect(factory).toContain("performance");
+    expect(factory).toContain("debug");
+    // The pure-logic boundary: src/logic may not import phaser.
+    expect(factory).toContain("src/logic/**/*.ts");
+    expect(factory).toContain("no-restricted-imports");
+    // Storage discipline outside services.
+    expect(factory).toContain("no-restricted-globals");
+    expect(factory).toContain("src/services/**/*.ts");
+  });
+
+  it("registers the eslint-plugin-phaser workspace and ships it in the package", () => {
+    const pkg = readJson("package.json") as {
+      readonly workspaces?: readonly string[];
+      readonly files?: readonly string[];
+    };
+
+    expect(pkg.workspaces).toContain("eslint-plugin-phaser");
+    expect(pkg.files).toContain("eslint-plugin-phaser");
+  });
+
+  it("exports all three rules from the eslint-plugin-phaser index", () => {
+    const index = readText("eslint-plugin-phaser/index.js");
+
+    expect(index).toContain("no-create-in-update");
+    expect(index).toContain("no-allocation-in-update");
+    expect(index).toContain("require-shutdown-cleanup");
+  });
+
+  it("applies game-strict TypeScript flags in tsconfig/phaser.json", () => {
+    const tsconfig = readJson("tsconfig/phaser.json") as {
+      readonly compilerOptions?: Record<string, unknown>;
+    };
+    const opts = tsconfig.compilerOptions ?? {};
+
+    expect(opts["noUncheckedIndexedAccess"]).toBe(true);
+    expect(opts["noImplicitOverride"]).toBe(true);
+    expect(opts["exactOptionalPropertyTypes"]).toBe(true);
+  });
+
+  it("ships the Phaser 4 toolchain (PWA, packing, bundle budget) in defaults", () => {
+    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as {
+      readonly defaults?: {
+        readonly devDependencies?: Record<string, string>;
+      };
+    };
+    const dev = template.defaults?.devDependencies ?? {};
+
+    expect(dev["vite-plugin-pwa"]).toBeDefined();
+    expect(dev["free-tex-packer-core"]).toBeDefined();
+    expect(dev["size-limit"]).toBeDefined();
   });
 });

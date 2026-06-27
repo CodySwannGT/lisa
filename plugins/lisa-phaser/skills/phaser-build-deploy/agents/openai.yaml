@@ -1,0 +1,4 @@
+display_name: "Phaser Build Deploy"
+short_description: "configuring the production build or deploying a Phaser 4 game — the Vite prod config (manualChunks to split the phaser vendor chunk, terser…"
+default_prompt:
+  - "Use $phaser-build-deploy: configuring the production build or deploying a Phaser 4 game — the Vite prod config (manualChunks to split the phaser vendor chunk, terser…."

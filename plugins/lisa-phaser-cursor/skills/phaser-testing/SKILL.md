@@ -1,6 +1,6 @@
 ---
 name: phaser-testing
-description: This skill should be used when writing or designing tests for a Phaser 4 game — unit-testing pure game logic with Vitest, keeping logic Phaser-free so it tests without a browser, the Phaser.HEADLESS renderer for logic-only boots, asset-manifest coverage tests, and Playwright smoke tests that prove the game actually boots and renders. Use it when adding tests, setting up CI verification, or deciding what is testable at which level. Pairs with phaser-project-structure, phaser-assets, and phaser-physics.
+description: This skill should be used when writing or designing tests for a Phaser 4 game — unit-testing pure game logic with Vitest, keeping logic Phaser-free so it tests without a browser, the Phaser.HEADLESS renderer for logic-only boots, asset-manifest coverage tests, and the CI runtime gates (boot smoke, allocation/perf budget, leak gate, determinism gate, deterministic Playwright visual regression, bundle-size budget) that verify scenes and entities that are excluded from unit coverage. Use it when adding tests, setting up CI verification, or deciding what is testable at which level. Pairs with phaser-project-structure, phaser-assets, and phaser-services.
 ---
 
 # Phaser 4 Testing
@@ -13,10 +13,17 @@ pyramid, bottom-up:
 1. **Vitest unit tests** over `src/logic/**` — the bulk of coverage.
 2. **Manifest/contract tests** — cheap structural checks (asset packs, scene
    keys, anim definitions).
-3. **Playwright smoke test** — the game boots in a real browser, renders past
-   the Preloader, no console errors.
+3. **Headless integration** (sparingly) — `Phaser.HEADLESS` for things that
+   genuinely need the engine loop.
+4. **Playwright smoke** — the game boots in a real browser, renders past the
+   Preloader, no console errors.
+5. **CI runtime gates** — scenes/entities are excluded from unit coverage and
+   instead verified by deterministic runtime gates: boot smoke, allocation/perf
+   budget, leak gate, determinism gate, visual regression, bundle-size budget.
 
-There is no official Phaser testing harness — this layering IS the strategy.
+There is no official Phaser testing harness — this layering IS the strategy. The
+dividing line: pure logic is unit-tested; everything that needs the engine is a
+runtime gate, never a brittle unit test that mocks the world.
 
 ## Layer 1: pure logic under Vitest (the rule that makes it possible)
 
@@ -85,15 +92,101 @@ Convention: scenes set `window.__sceneReady = key` in `create()` (dev/test
 builds) so tests await real readiness instead of sleeping. Run against
 `bun run dev` (or `vite preview` in CI).
 
+## Layer 5: CI runtime gates (how scenes get verified)
+
+Scenes and entities are deliberately **excluded from unit coverage** — mocking
+the engine to "unit test" a scene tests the mock. Instead, CI runs a set of
+deterministic gates against a real (or headless) game. Each gate fails the build
+on regression; together they are the contract that the engine-coupled layer
+keeps working.
+
+**Boot smoke** — the Playwright test above, hardened: page error listener, wait
+for `__sceneReady`, assert zero console errors. This is the floor.
+
+**Allocation / perf budget** — run the game for N frames and assert the frame
+budget and heap growth. Per-frame allocation is what the `no-allocation-in-update`
+and `no-create-in-update` lint rules forbid statically; this gate catches what
+slips through dynamically.
+
+```ts
+test("steady-state frames stay within budget", async ({ page }) => {
+  await page.goto("/"); await bootTo(page, "Game");
+  const stats = await page.evaluate(async () => {
+    const g = (window as any).__game as Phaser.Game;
+    const frames: number[] = []; let last = performance.now();
+    for (let i = 0; i < 600; i++) { await new Promise(r => g.events.once("postrender", r)); const n = performance.now(); frames.push(n - last); last = n; }
+    return { p95: frames.sort((a,b)=>a-b)[Math.floor(frames.length*0.95)], heap: (performance as any).memory?.usedJSHeapSize };
+  });
+  expect(stats.p95).toBeLessThan(20); // ~50fps floor on CI hardware
+});
+```
+
+**Leak gate** — start and stop a scene N times and assert that texture count,
+event-listener count, active tweens, and timers all return to baseline. This is
+the runtime enforcement of the `require-shutdown-cleanup` rule and the
+on/off-discipline in [[phaser-services]].
+
+```ts
+test("scene start/stop leaves no leaks", async ({ page }) => {
+  await page.goto("/"); await bootTo(page, "MainMenu");
+  const before = await page.evaluate(() => (window as any).__game.textures.getTextureKeys().length);
+  for (let i = 0; i < 20; i++) await page.evaluate(async () => {
+    const g = (window as any).__game as Phaser.Game; g.scene.start("Game");
+    await new Promise(r => setTimeout(r, 50)); g.scene.stop("Game");
+    await new Promise(r => setTimeout(r, 50));
+  });
+  const after = await page.evaluate(() => (window as any).__game.textures.getTextureKeys().length);
+  expect(after).toBeLessThanOrEqual(before); // no per-cycle texture growth
+});
+```
+
+**Determinism gate** — boot twice with the same seed, drive the same inputs, and
+assert an identical state hash. Logic exposes a serializable snapshot; the gate
+hashes it. Same seed → same hash, always. This is the runtime backstop for the
+no-`Math.random()`/`Date.now()`/`performance.now()` rules ([[phaser-services]]).
+
+```ts
+const run = (seed: number) => page.evaluate(s => (window as any).__sim(s, REPLAY), seed);
+expect(hash(await run(1234))).toBe(hash(await run(1234)));
+```
+
+**Deterministic visual regression** — `toHaveScreenshot` under **software GL**
+(`--use-gl=swiftshader`), a **frozen frame** (pause the loop / step a fixed
+number of ticks at a fixed delta), and **masked dynamic regions** (timers,
+particles). Without all three, screenshots flake. Pin Playwright's browser and
+OS in CI so the baseline is stable.
+
+```ts
+await page.evaluate(() => { const g=(window as any).__game; g.loop.sleep(); g.step(0,16.6); });
+await expect(page).toHaveScreenshot("game.png", { mask: [page.locator("#timer")], maxDiffPixelRatio: 0.01 });
+```
+
+**Bundle-size budget** — assert the built bundle stays under a byte budget so a
+stray dependency or an un-split `phaser` chunk fails the PR. Wire it to the prod
+build's `manualChunks` split ([[phaser-build-deploy]]).
+
+```jsonc
+// size-limit / custom check after `bun run build`
+[{ "path": "dist/assets/index-*.js", "limit": "60 kB" },
+ { "path": "dist/assets/phaser-*.js", "limit": "400 kB" }]
+```
+
 ## Project conventions
 
-- `bun run test` = Vitest (layers 1–2, coverage-gated). Playwright smoke runs as
-  its own script/CI job against a built preview.
+- `bun run test` = Vitest (layers 1–2, coverage-gated **over `src/logic/**`
+  only** — scenes/entities are out of scope here). The layer-5 gates run as their
+  own CI jobs against a built `vite preview` (and a headless boot for the
+  determinism gate).
+- Build pins are part of the contract: `phaser ^4.2.0`, Vite, TypeScript 6.
 - Tests never assert on private scene fields; they assert on logic outputs
-  (layer 1) or observable behavior (layer 4).
+  (layer 1), observable behavior (layer 4), or the runtime invariants the gates
+  measure (layer 5).
 
 ## Verification
 
 The testing setup itself is verified when `bun run test` passes with coverage
-over `src/logic/**`, and the Playwright smoke fails when you deliberately break
-boot (rename a pack file) — a smoke test that can't fail is decoration.
+over `src/logic/**`, the Playwright smoke fails when you deliberately break boot
+(rename a pack file), and each layer-5 gate fails on its targeted regression —
+leak gate when a listener loses its `.off()`, determinism gate when a
+`Math.random()` sneaks in, visual gate when the frame changes. A gate that
+can't fail is decoration.

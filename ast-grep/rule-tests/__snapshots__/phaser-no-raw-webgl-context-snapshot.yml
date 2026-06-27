@@ -1,0 +1,14 @@
+id: phaser-no-raw-webgl-context
+snapshots:
+  const gl = game.renderer.gl;:
+    labels:
+      - source: game.renderer.gl
+        style: primary
+        start: 11
+        end: 27
+  const gl = this.renderer.gl;:
+    labels:
+      - source: this.renderer.gl
+        style: primary
+        start: 11
+        end: 27
