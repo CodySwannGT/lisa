@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.179.0](https://github.com/CodySwannGT/lisa/compare/vv2.178.6...v2.179.0) (2026-06-27)
+
+
+### Features
+
+* **phaser:** enforce Phaser 4 best practices across lint, types, and skills ([7af6d13](https://github.com/CodySwannGT/lisa/commit/7af6d13c8ee1a43dd608d12b906cd1f17387b2c3))
+
+
+### Bug Fixes
+
+* **phaser:** scope per-frame/listener rules to Scenes; address review ([b50a3ca](https://github.com/CodySwannGT/lisa/commit/b50a3ca8b09632d9b4c933d7837e51b9e524cc37)), closes [#1357](https://github.com/CodySwannGT/lisa/issues/1357)
+
 ### [2.178.6](https://github.com/CodySwannGT/lisa/compare/vv2.178.5...v2.178.6) (2026-06-24)
 
 
