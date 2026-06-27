@@ -14,7 +14,9 @@
     "eslint.config.local.ts",
     "eslint.slow.config.ts",
     "vitest.config.ts",
-    "vitest.config.local.ts"
+    "vitest.config.local.ts",
+    "vite.config.ts",
+    "playwright.config.ts"
   ],
   "exclude": ["node_modules", "dist", "coverage", "public/assets"]
 }
