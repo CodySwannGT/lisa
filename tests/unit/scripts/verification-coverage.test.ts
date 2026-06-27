@@ -84,6 +84,15 @@ describe("check-verification-coverage", () => {
     expect(r.ok).toBe(false);
   });
 
+  it("does not count an arbitrary path that merely contains an e2e segment", () => {
+    const r = evaluate({
+      changedFiles: [GAME_SCENE, "src/e2e/helpers.ts"],
+      changeTypes: ["feat"],
+      labels: [],
+    });
+    expect(r.ok).toBe(false);
+  });
+
   it("allows a behavioral change with the logged verification-exempt label", () => {
     const r = evaluate({
       changedFiles: [GAME_SCENE],
