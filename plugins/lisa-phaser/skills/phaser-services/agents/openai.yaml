@@ -1,0 +1,4 @@
+display_name: "Phaser Services"
+short_description: "wiring cross-cutting services and shared state in a Phaser 4 game — the typed registry wrapper for global state, a single dedicated…"
+default_prompt:
+  - "Use $phaser-services: wiring cross-cutting services and shared state in a Phaser 4 game — the typed registry wrapper for global state, a single dedicated…."

@@ -39,6 +39,7 @@
     "plugins/lisa/**",
     "eslint-plugin-code-organization/**",
     "eslint-plugin-component-structure/**",
-    "eslint-plugin-ui-standards/**"
+    "eslint-plugin-ui-standards/**",
+    "eslint-plugin-phaser/**"
   ]
 }

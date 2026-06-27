@@ -1,0 +1,8 @@
+id: phaser-no-canvas-renderer
+snapshots:
+  'const config = { type: Phaser.CANVAS, width: 800, height: 600 };':
+    labels:
+      - source: Phaser.CANVAS
+        style: primary
+        start: 23
+        end: 36

@@ -7,7 +7,14 @@
     "resolveJsonModule": true,
     "allowJs": false,
     "skipLibCheck": true,
-    "types": ["node", "vitest"]
+    "types": ["node", "vitest"],
+
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["dist", "coverage", "node_modules", "public/assets"]
