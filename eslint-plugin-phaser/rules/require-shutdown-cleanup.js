@@ -68,8 +68,16 @@ function isLeakyListener(node) {
     node.callee.property.type === "Identifier"
       ? node.callee.property.name
       : null;
-  // window.addEventListener / document.addEventListener — always external.
-  if (method === "addEventListener") return true;
+  // window/document/globalThis.addEventListener — external, outlives the scene.
+  if (method === "addEventListener") {
+    const obj = node.callee.object;
+    return (
+      obj.type === "Identifier" &&
+      (obj.name === "window" ||
+        obj.name === "document" ||
+        obj.name === "globalThis")
+    );
+  }
   if (method !== "on") return false;
   const { root, props } = memberInfo(node.callee);
   if (root.type !== "ThisExpression") return false;

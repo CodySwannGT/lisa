@@ -26,38 +26,37 @@ const ruleTester = new RuleTester({
 ruleTester.run("no-create-in-update", noCreateInUpdate, {
   valid: [
     // Creation in create() is fine.
-    "class S { create() { this.add.sprite(0, 0, 'k'); } }",
+    "class S extends Phaser.Scene { create() { this.add.sprite(0, 0, 'k'); } }",
     // No creation in update().
-    "class S { update() { this.player.x += 1; } }",
-    "class S { update() { this.sprite.setVelocity(100); } }",
+    "class S extends Phaser.Scene { update() { this.player.x += 1; } }",
+    "class S extends Phaser.Scene { update() { this.sprite.setVelocity(100); } }",
     // Creation lives in a callback defined (not directly) in update — out of scope.
-    "class S { update() { const cb = () => this.add.sprite(0, 0, 'k'); } }",
+    "class S extends Phaser.Scene { update() { const cb = () => this.add.sprite(0, 0, 'k'); } }",
     // Non-Phaser new is fine.
-    "class S { update() { const v = new MyVector(1, 2); } }",
+    "class S extends Phaser.Scene { update() { const v = new MyVector(1, 2); } }",
+    // Not a Scene — an update() method on some other class is out of scope.
+    "class Widget { update() { this.add.sprite(0, 0, 'k'); } }",
   ],
   invalid: [
     {
-      code: "class S { update() { this.add.sprite(0, 0, 'k'); } }",
+      code: "class S extends Phaser.Scene { update() { this.add.sprite(0, 0, 'k'); } }",
       errors: [{ messageId: "createInUpdate" }],
     },
     {
-      code: "class S { update() { this.physics.add.sprite(0, 0, 'k'); } }",
+      code: "class S extends Phaser.Scene { update() { this.physics.add.sprite(0, 0, 'k'); } }",
       errors: [{ messageId: "createInUpdate" }],
     },
     {
-      code: "class S { update() { this.time.delayedCall(100, this.fn); } }",
+      code: "class S extends Phaser.Scene { update() { this.time.delayedCall(100, this.fn); } }",
+      errors: [{ messageId: "createInUpdate" }],
+    },
+    // A project base class whose name still ends in "Scene" counts.
+    {
+      code: "class S extends BaseScene { update = () => { this.add.image(0, 0, 'k'); }; }",
       errors: [{ messageId: "createInUpdate" }],
     },
     {
-      code: "class S { update() { this.make.image({ key: 'k' }); } }",
-      errors: [{ messageId: "createInUpdate" }],
-    },
-    {
-      code: "class S { update = () => { this.add.image(0, 0, 'k'); }; }",
-      errors: [{ messageId: "createInUpdate" }],
-    },
-    {
-      code: "class S { update() { const r = new Phaser.Geom.Rectangle(0, 0, 1, 1); } }",
+      code: "class S extends Scene { update() { const r = new Phaser.Geom.Rectangle(0, 0, 1, 1); } }",
       errors: [{ messageId: "newInUpdate" }],
     },
   ],
@@ -65,31 +64,33 @@ ruleTester.run("no-create-in-update", noCreateInUpdate, {
 
 ruleTester.run("no-allocation-in-update", noAllocationInUpdate, {
   valid: [
-    "class S { update() { this.x += 1; } }",
-    "class S { create() { const o = { a: 1 }; } }",
-    "class S { update() { for (let i = 0; i < this.n; i++) { this.tick(i); } } }",
+    "class S extends Phaser.Scene { update() { this.x += 1; } }",
+    "class S extends Phaser.Scene { create() { const o = { a: 1 }; } }",
+    "class S extends Phaser.Scene { update() { for (let i = 0; i < this.n; i++) { this.tick(i); } } }",
     // Reusing a hoisted scratch object is fine.
-    "class S { update() { this.scratch.x = 1; this.scratch.y = 2; } }",
+    "class S extends Phaser.Scene { update() { this.scratch.x = 1; this.scratch.y = 2; } }",
+    // Not a Scene — out of scope.
+    "class Widget { update() { const o = { a: 1 }; } }",
   ],
   invalid: [
     {
-      code: "class S { update() { const o = { a: 1 }; } }",
+      code: "class S extends Phaser.Scene { update() { const o = { a: 1 }; } }",
       errors: [{ messageId: "objectLiteral" }],
     },
     {
-      code: "class S { update() { const a = [1, 2, 3]; } }",
+      code: "class S extends Phaser.Scene { update() { const a = [1, 2, 3]; } }",
       errors: [{ messageId: "arrayLiteral" }],
     },
     {
-      code: "class S { update() { this.items.map(x => x.y); } }",
+      code: "class S extends Phaser.Scene { update() { this.items.map(x => x.y); } }",
       errors: [{ messageId: "arrayMethod" }],
     },
     {
-      code: "class S { update() { const m = new Map(); } }",
+      code: "class S extends Phaser.Scene { update() { const m = new Map(); } }",
       errors: [{ messageId: "newCollection" }],
     },
     {
-      code: "class S { update() { this.spawn({ x: 1, y: 2 }); } }",
+      code: "class S extends Phaser.Scene { update() { this.spawn({ x: 1, y: 2 }); } }",
       errors: [{ messageId: "objectLiteral" }],
     },
   ],

@@ -170,7 +170,7 @@ const PHASER_OVERRIDES: Linter.Config[] = [
   // stateful per-frame/lifecycle rules. Test files are excluded.
   {
     files: ["src/**/*.ts"],
-    ignores: ["src/**/*.test.ts"],
+    ignores: ["src/**/*.test.ts", "src/**/*.spec.ts"],
     plugins: { phaser: phaserPlugin },
     rules: {
       "no-restricted-syntax": [
@@ -214,7 +214,7 @@ const PHASER_OVERRIDES: Linter.Config[] = [
   // The architecture boundary: pure logic may not import Phaser.
   {
     files: ["src/logic/**/*.ts"],
-    ignores: ["src/logic/**/*.test.ts"],
+    ignores: ["src/logic/**/*.test.ts", "src/logic/**/*.spec.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -237,7 +237,7 @@ const PHASER_OVERRIDES: Linter.Config[] = [
   },
   // Tests can do anything (mock removed APIs, allocate freely, etc.).
   {
-    files: ["tests/**/*.ts", "src/**/*.test.ts"],
+    files: ["tests/**/*.ts", "src/**/*.test.ts", "src/**/*.spec.ts"],
     rules: {
       "no-restricted-syntax": "off",
       "no-restricted-imports": "off",

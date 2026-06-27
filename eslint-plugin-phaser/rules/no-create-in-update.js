@@ -60,18 +60,44 @@ function memberInfo(node) {
 }
 
 /**
- * Determine whether a function node IS a Phaser Scene update method.
+ * Whether a class extends a Phaser Scene (superclass name ends in "Scene", e.g.
+ * Phaser.Scene, Scene, BaseScene). Keeps this per-frame rule from firing on
+ * unrelated classes that merely happen to define an update() method.
+ * @param {object} classNode - A ClassDeclaration/ClassExpression node
+ * @returns {boolean} True if the class extends a Scene-like superclass
+ */
+function extendsScene(classNode) {
+  const sc = classNode.superClass;
+  if (!sc) return false;
+  if (sc.type === "Identifier") return /Scene$/.test(sc.name);
+  if (sc.type === "MemberExpression" && sc.property.type === "Identifier") {
+    return /Scene$/.test(sc.property.name);
+  }
+  return false;
+}
+
+/**
+ * Whether the nearest enclosing class extends a Phaser Scene.
+ * @param {object} node - Any node
+ * @returns {boolean} True if an enclosing class extends a Scene
+ */
+function enclosingSceneClass(node) {
+  const up = n => {
+    if (!n) return false;
+    if (n.type === "ClassDeclaration" || n.type === "ClassExpression") {
+      return extendsScene(n);
+    }
+    return up(n.parent);
+  };
+  return up(node.parent);
+}
+
+/**
+ * Determine whether a function node is the update() method of a Phaser Scene.
  * @param {object} node - A function-like node
- * @returns {boolean} True if the node is an `update` method/field/declaration
+ * @returns {boolean} True if it is a Scene update() method/field
  */
 function isUpdateFunction(node) {
-  if (
-    node.type === "FunctionDeclaration" &&
-    node.id &&
-    node.id.name === "update"
-  ) {
-    return true;
-  }
   const parent = node.parent;
   if (!parent) return false;
   if (
@@ -80,7 +106,7 @@ function isUpdateFunction(node) {
     parent.value === node &&
     keyName(parent.key) === "update"
   ) {
-    return true;
+    return enclosingSceneClass(node);
   }
   return false;
 }
