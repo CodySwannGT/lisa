@@ -246,4 +246,34 @@ describe("Phaser templates", () => {
     };
     expect(settings.disabledMcpjsonServers).toContain("phaser-editor");
   });
+
+  it("ships .gitignore as a dotless `gitignore` template (npm strips .gitignore)", () => {
+    // npm excludes .gitignore from published tarballs, so the template must
+    // ship as `gitignore`; the copy-contents strategy restores the dot on apply.
+    expect(
+      fs.existsSync(path.join(REPO_ROOT, "phaser/copy-contents/gitignore"))
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(REPO_ROOT, "phaser/copy-contents/.gitignore"))
+    ).toBe(false);
+  });
+
+  it("aligns the vite version with the forced override (no npm EOVERRIDE)", () => {
+    // A literal vite default that differs from the inherited `^8.0.16` override
+    // makes `npm install` / `npx lisa apply` fail with EOVERRIDE. Pin the
+    // default to the override and point overrides/resolutions at $vite.
+    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as {
+      readonly force?: {
+        readonly overrides?: Record<string, string>;
+        readonly resolutions?: Record<string, string>;
+      };
+      readonly defaults?: {
+        readonly devDependencies?: Record<string, string>;
+      };
+    };
+
+    expect(template.defaults?.devDependencies?.["vite"]).toBe("^8.0.16");
+    expect(template.force?.overrides?.["vite"]).toBe("$vite");
+    expect(template.force?.resolutions?.["vite"]).toBe("$vite");
+  });
 });

@@ -120,7 +120,7 @@ describe("Harper/Fabric templates", () => {
     const tsconfigEslint = readJson(HARPER_FABRIC_TSCONFIG_ESLINT_TEMPLATE) as {
       readonly exclude?: readonly string[];
     };
-    const gitignore = readText("harper-fabric/copy-contents/.gitignore")
+    const gitignore = readText("harper-fabric/copy-contents/gitignore")
       .split(/\r?\n/)
       .map(line => line.trim());
     const prettierIgnore = readText(HARPER_FABRIC_PRETTIERIGNORE_TEMPLATE)
@@ -149,7 +149,7 @@ describe("Harper/Fabric templates", () => {
       generatedArtifactGlobs
     );
     expectContainsAllGlobs(
-      "harper-fabric/copy-contents/.gitignore",
+      "harper-fabric/copy-contents/gitignore",
       gitignore,
       generatedArtifactGlobs
     );
