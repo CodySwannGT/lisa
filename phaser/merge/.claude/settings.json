@@ -11,7 +11,8 @@
     "code-review@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "sentry@claude-plugins-official": true,
-    "lisa-phaser@lisa": true
+    "lisa-phaser@lisa": true,
+    "lisa-wiki@lisa": true
   },
   "extraKnownMarketplaces": {
     "CodySwannGT/lisa": {

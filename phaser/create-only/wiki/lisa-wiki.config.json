@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "org": "Game",
+  "displayName": "Game Docs Wiki",
+  "purpose": "The durable knowledge base and source of documentation for this Phaser 4 game — architecture, conventions, design decisions, and playbooks. Keep it current as the game evolves; it is the canonical reference, with the README a thin pointer.",
+  "mode": "embedded",
+  "wikiRoot": "wiki",
+  "frontmatter": true,
+  "categories": [
+    "architecture",
+    "concepts",
+    "conventions",
+    "decisions",
+    "playbooks",
+    "open-questions"
+  ],
+  "sources": { "layout": "by-system" },
+  "git": {
+    "prPerIngestion": true,
+    "autoMerge": true,
+    "targetBranch": "main",
+    "branchPrefix": "wiki/"
+  },
+  "sensitivity": { "enabled": false, "default": "internal" },
+  "sourceRetention": "sanitized-note-only",
+  "readme": { "mode": "rich" },
+  "documentation": { "absorb": true },
+  "staff": [],
+  "connectors": {
+    "git": { "enabled": true, "sideEffects": "read-only-ingest" },
+    "memory": { "enabled": true, "sideEffects": "read-only-ingest" }
+  }
+}
