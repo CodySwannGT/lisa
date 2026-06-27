@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.185.0](https://github.com/CodySwannGT/lisa/compare/vv2.184.0...v2.185.0) (2026-06-27)
+
+
+### Features
+
+* **phaser:** enable lisa-wiki as the docs source for the phaser type ([b49234f](https://github.com/CodySwannGT/lisa/commit/b49234f3a2caad1662c02ef9785ac90dbd068c27))
+
 ## [2.184.0](https://github.com/CodySwannGT/lisa/compare/vv2.183.0...v2.184.0) (2026-06-27)
 
 
