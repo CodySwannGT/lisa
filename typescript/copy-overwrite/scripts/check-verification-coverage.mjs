@@ -25,9 +25,10 @@ import { pathToFileURL } from "node:url";
 
 const BEHAVIORAL_TYPES = new Set(["feat", "fix"]);
 const EXEMPT_LABEL = "verification-exempt";
-// A verification spec = the project's e2e/Playwright tests (where codified
-// verification lives), or a dedicated tests/verification tree.
-const VERIFICATION_PATH = /(^|\/)e2e\/|(^|\/)tests\/verification\//;
+// A verification spec lives in a top-level e2e/ dir, a nested tests/e2e/ tree,
+// or a tests/verification/ tree — NOT an arbitrary path that merely contains an
+// "e2e" segment (e.g. src/e2e/helpers.ts must not satisfy the gate).
+const VERIFICATION_PATH = /^e2e\/|(^|\/)tests\/(e2e|verification)\//;
 
 /**
  * Pure decision: is a verification-spec delta required, and is it satisfied?
@@ -82,9 +83,11 @@ export function evaluateVerificationCoverage({
 function gatherContext() {
   const head = process.env.VERIFY_HEAD_SHA || "HEAD";
   const baseRef = process.env.VERIFY_BASE_REF || "main";
-  const range = process.env.VERIFY_BASE_SHA
-    ? `${process.env.VERIFY_BASE_SHA} ${head}`
-    : `origin/${baseRef}...HEAD`;
+  const base = process.env.VERIFY_BASE_SHA || `origin/${baseRef}`;
+  // Three-dot diff = the PR's "files changed" (merge-base), matching GitHub.
+  // Two-dot log = the commits the PR introduces (not both tips).
+  const diffRange = `${base}...${head}`;
+  const logRange = `${base}..${head}`;
 
   const runGit = (cmd, fallback) => {
     try {
@@ -94,7 +97,7 @@ function gatherContext() {
     }
   };
 
-  const changedFiles = runGit(`git diff --name-only ${range}`, "")
+  const changedFiles = runGit(`git diff --name-only ${diffRange}`, "")
     .split("\n")
     .map(line => line.trim())
     .filter(Boolean);
@@ -105,7 +108,7 @@ function gatherContext() {
     .filter(Boolean);
   const fromCommits = fromEnv.length
     ? []
-    : runGit(`git log --format=%s ${range.replace("...", "..")}`, "")
+    : runGit(`git log --format=%s ${logRange}`, "")
         .split("\n")
         .map(subject => {
           const match = subject.match(/^(\w+)[(!:]/);
