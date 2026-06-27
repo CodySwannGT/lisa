@@ -93,6 +93,8 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     );
 
     expect(result.action).toBe("merged");
+    expect(result.relativePath).toBe(GITIGNORE);
+    expect(await fs.pathExists(destFile)).toBe(false);
     const merged = await fs.readFile(destGitignore, "utf-8");
     expect(merged).toContain("custom-entry");
     expect(merged).toContain("node_modules");
