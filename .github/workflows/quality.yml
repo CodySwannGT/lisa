@@ -139,6 +139,11 @@ on:
         required: false
         default: ''
         type: string
+      verify_enforced:
+        description: 'Require per-change verification (UAT) coverage: a feat/fix PR must add or extend a verification (e2e) spec, unless labeled verification-exempt. Default false = inert (the verification_coverage job is skipped) so a project type without a drive mechanism is never wedged. A type opts in by passing true from its ci.yml.'
+        required: false
+        default: false
+        type: boolean
     secrets:
       SONAR_TOKEN:
         description: 'SonarCloud token for SAST analysis'
@@ -445,6 +450,33 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
+
+  verification_coverage:
+    name: ✅ Verification Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Per-change verification (UAT) gate: a feat/fix must ship a verification
+    # (e2e) spec, unless labeled verification-exempt. Inert unless a project type
+    # opts in via verify_enforced, and only meaningful on pull_request (needs the
+    # base/head SHAs to diff). When skipped, GitHub reports success.
+    if: ${{ inputs.verify_enforced && github.event_name == 'pull_request' }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+      - name: ✅ Require a verification (e2e) spec delta on feat/fix
+        run: node scripts/check-verification-coverage.mjs
+        working-directory: ${{ inputs.working_directory || '.' }}
+        env:
+          VERIFY_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          VERIFY_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VERIFY_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
 
   test_unit:
     name: 🧪 Run Unit Tests

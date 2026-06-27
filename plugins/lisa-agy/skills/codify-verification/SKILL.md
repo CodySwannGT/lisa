@@ -88,6 +88,16 @@ For Playwright UI tests specifically:
 - Capture a trace or screenshot only if the project's existing tests do; do not invent a new artifact convention
 - Mirror the project's existing config for base URL, retries, and test isolation
 
+**Concrete verification (UAT) contract.** Verification *is* UAT — codifying it is
+how the playthrough becomes durable. For a runtime/behavioral `feat`/`fix`: place
+the codified test where the project's e2e/Playwright tests live (`tests/e2e/**`)
+so CI re-runs it, and commit the evidence artifact to `evidence/<ticket>/`
+(`verdict.json` + state + screenshots). For a Phaser game, drive the canvas
+through the in-game verification test bridge (seed RNG, read state, inject input,
+step frames) with deterministic rendering. CI's `verification-coverage` check
+requires a verification-spec delta on every behavioral change. See the
+`reference/verification.md` "Making verification concrete (UAT)" section.
+
 ### 4. Run the test in isolation
 
 Run only the new test, using whatever per-test invocation the project supports:
