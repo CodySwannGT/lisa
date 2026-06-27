@@ -10,6 +10,29 @@ on the official `template-vite-ts` layout (Vite + TypeScript 6). Phaser 4 is the
 only supported target — never introduce Phaser 3 idioms. These decisions are
 **locked** and most are **lint-enforced**; do not disable a rule, fix the code.
 
+## Official Phaser skills — use these for API knowledge
+
+Phaser ships **28 official, authoritative agent skills** inside the installed
+package at **`node_modules/phaser/skills/<topic>/SKILL.md`** — e.g. `scenes`,
+`sprites-and-images`, `physics-arcade`, `physics-matter`, `tweens`, `particles`,
+`filters-and-postfx`, `loading-assets`, `animations`, `tilemaps`, `cameras`,
+`input-keyboard-mouse-touch`, `audio-and-sound`, `game-object-components`,
+`v3-to-v4-migration`, `v4-new-features`, and more. The Phaser team maintains them
+in lockstep with the engine, and they cite exact `src/...` source paths.
+
+**For any Phaser API or subsystem question, read the matching official skill
+first.** Do not rely on memory, and do not expect Lisa to duplicate that
+knowledge — the `lisa-phaser` skills intentionally cover only the opinionated,
+project-specific, and lint-enforced layer (project structure, services, asset
+pipeline, i18n, accessibility, build/deploy, testing gates) that the official
+skills do not. When this file points at a Phaser subsystem (physics, rendering,
+scenes, …) the authority is the official skill of that name.
+
+An optional **Phaser Editor MCP server** (`@phaserjs/editor-mcp-server`, 40+
+tools for scenes/assets/tilemaps) is defined for this project type but
+**disabled by default** — enable it only when working with Phaser Editor v5. See
+`.mcp.json` and `disabledMcpjsonServers` in `.claude/settings.json`.
+
 ## Locked architecture decisions
 
 1. **Thin scenes over a pure-logic core.** Scenes and GameObjects are thin
@@ -23,7 +46,7 @@ only supported target — never introduce Phaser 3 idioms. These decisions are
    as an upgrade path — it is not the default and is not added unless required.
 3. **Arcade physics by default; Matter is opt-in.** Matter is heavier and does
    not interop with Arcade. Switching is a one-line config swap. See
-   `phaser-physics`.
+   the official `physics-arcade` skill.
 4. **Determinism.** No `Math.random()`, `Date.now()`, or `performance.now()` in
    game code. Use the seeded `Phaser.Math.RandomDataGenerator` (`Phaser.Math.RND`
    or a local instance seeded from one place) so replays and tests reproduce.
@@ -36,7 +59,7 @@ only supported target — never introduce Phaser 3 idioms. These decisions are
 6. **Performance.** Pool transient objects via `Group`s; make **no allocations
    and create no objects/tweens/timers inside `update()`**; atlas everything; use
    `BitmapText` for high-churn text; use `SpriteGPULayer` / `TilemapGPULayer` for
-   mass rendering. See `phaser-gameobjects`.
+   mass rendering. See the official `game-object-components` skill.
 7. **Baked-in asset pipeline.** Raw art in `assets/src` is packed at build time
    (free-tex-packer-core atlases, audiosprite, BMFont) into `public/assets`, and
    a codegen step emits typed keys to `src/assets.ts` so a missing or renamed key
