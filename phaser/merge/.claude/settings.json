@@ -30,5 +30,6 @@
   "permissions": {
     "deny": ["Read(./.entire/metadata/**)"]
   },
+  "disabledMcpjsonServers": ["phaser-editor"],
   "plansDirectory": "./plans"
 }

@@ -1,4 +1,0 @@
-display_name: "Phaser Gameobjects"
-short_description: "creating or managing Phaser 4 GameObjects — sprites, images, text, containers, groups and object pooling, animations (anims), tweens…"
-default_prompt:
-  - "Use $phaser-gameobjects: creating or managing Phaser 4 GameObjects — sprites, images, text, containers, groups and object pooling, animations (anims), tweens…."

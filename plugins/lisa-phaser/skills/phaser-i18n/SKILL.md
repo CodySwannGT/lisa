@@ -86,7 +86,7 @@ Persist the chosen locale via SaveService and apply it on boot; default from
 
 ## BitmapText vs Text — the localization trade-off
 
-The performance advice "use BitmapText for hot text" ([[phaser-gameobjects]])
+The performance advice "use BitmapText for hot text" (the official `game-object-components` skill)
 collides with i18n: a bitmap font only contains the glyphs it was generated with.
 
 - **BitmapText** — fastest, but the BMFont must include every glyph the locale

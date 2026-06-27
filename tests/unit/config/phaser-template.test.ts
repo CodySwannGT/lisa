@@ -201,4 +201,49 @@ describe("Phaser templates", () => {
     expect(dev["free-tex-packer-core"]).toBeDefined();
     expect(dev["size-limit"]).toBeDefined();
   });
+
+  it("defers to Phaser's official skills and drops duplicative lisa skills", () => {
+    // Phaser ships authoritative API skills in node_modules/phaser/skills; the
+    // lisa-phaser plugin must point at them, not duplicate (and drift from) them.
+    const rules = readText("plugins/src/phaser/rules/phaser.md");
+    expect(rules).toContain("node_modules/phaser/skills");
+
+    const skillsDir = path.join(REPO_ROOT, "plugins/src/phaser/skills");
+    const skills = fs.readdirSync(skillsDir);
+    // Removed: these duplicate official Phaser skills.
+    for (const dup of [
+      "phaser-scenes",
+      "phaser-gameobjects",
+      "phaser-physics",
+      "phaser-assets",
+      "phaser-rendering",
+      "phaser-v3-migration",
+    ]) {
+      expect(skills).not.toContain(dup);
+    }
+    // Kept: the opinionated / enforcement-tied skills not covered upstream.
+    for (const keep of [
+      "phaser-project-structure",
+      "phaser-services",
+      "phaser-asset-pipeline",
+      "phaser-accessibility",
+      "phaser-i18n",
+      "phaser-build-deploy",
+      "phaser-testing",
+    ]) {
+      expect(skills).toContain(keep);
+    }
+  });
+
+  it("wires the Phaser Editor MCP server, disabled by default", () => {
+    const mcp = readJson("phaser/merge/.mcp.json") as {
+      readonly mcpServers?: Record<string, { command?: string }>;
+    };
+    expect(mcp.mcpServers?.["phaser-editor"]?.command).toBe("npx");
+
+    const settings = readJson("phaser/merge/.claude/settings.json") as {
+      readonly disabledMcpjsonServers?: readonly string[];
+    };
+    expect(settings.disabledMcpjsonServers).toContain("phaser-editor");
+  });
 });
