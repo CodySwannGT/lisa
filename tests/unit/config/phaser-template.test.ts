@@ -309,7 +309,7 @@ describe("Phaser templates", () => {
 
   it("enforces verification (UAT) coverage in the phaser CI workflow", () => {
     const ci = readText("phaser/copy-overwrite/.github/workflows/ci.yml");
-    expect(ci).toContain("verify_enforced: true");
+    expect(ci).toMatch(/^ *verify_enforced: true$/m);
   });
 
   it("documents the Vite 8 (rolldown) function-form manualChunks", () => {
