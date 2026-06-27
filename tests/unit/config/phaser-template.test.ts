@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { load as loadYaml } from "js-yaml";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const PHASER_PACKAGE_LISA_TEMPLATE = "phaser/package-lisa/package.lisa.json";
@@ -305,6 +306,17 @@ describe("Phaser templates", () => {
     const factory = readText(PHASER_ESLINT_FACTORY);
     expect(factory).toContain("functional/no-let");
     expect(factory).toContain("allowInForLoopInit");
+  });
+
+  it("enforces verification (UAT) coverage in the phaser CI workflow", () => {
+    const ci = loadYaml(
+      readText("phaser/copy-overwrite/.github/workflows/ci.yml")
+    ) as {
+      readonly jobs?: {
+        readonly quality?: { readonly with?: Record<string, unknown> };
+      };
+    };
+    expect(ci.jobs?.quality?.with?.["verify_enforced"]).toBe(true);
   });
 
   it("documents the Vite 8 (rolldown) function-form manualChunks", () => {
