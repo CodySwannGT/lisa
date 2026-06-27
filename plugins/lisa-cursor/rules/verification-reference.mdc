@@ -140,4 +140,51 @@ Evidence and summaries must explicitly distinguish `verified empirically` from `
 
 ---
 
+## Making verification concrete (UAT)
+
+Verification **is** UAT — one gate, not two. This section makes the single
+verification process concrete so "an agent actually exercised the running
+software against the acceptance criteria" is durable and re-checkable, not a
+one-off claim. It builds on the **Per-Work-Unit Evidence Contract** above (the
+`[EVIDENCE: name]` manifest), adding three concrete requirements:
+
+**1. The codified proof re-runs in CI.** After local verification passes,
+`codify-verification` encodes it where the project's e2e/Playwright tests live
+(`tests/e2e/**`). That suite runs in CI (the existing e2e/Playwright job); for a
+project type with verification **enforced**, it is a required check — so the proof
+re-runs on every PR instead of being proven once by hand.
+
+**2. Evidence is committed to the repo.** The named artifacts from the work
+unit's evidence manifest are committed under `evidence/<ticket>/` (in addition to
+any tracker attachment), so the proof lives with the code and is reviewable in the
+PR:
+
+```
+evidence/<ticket>/
+  verdict.json       # acceptance criteria + per-criterion pass/fail + note,
+                     # overall verdict, ticket, commit, lisaVersion, agent, stampedAt
+  state.json         # observed runtime state asserted against
+  screenshots/*.png  # downscaled, capped; key frames of the playthrough
+```
+
+`evidence/**` is ignored by lint/format/knip/coverage — it is proof, not source.
+
+**3. Per-change verification is enforced.** Every `feat`/`fix` adds or extends a
+verification (e2e) spec mapped to its acceptance criteria. CI's
+`verification-coverage` check requires that delta. The sole exception is a
+genuinely non-behavioral change carrying the **logged** `verification-exempt`
+label — the check prints why it was exempted; it is never a silent skip.
+
+**Playthrough driver.** `/lisa:product-walkthrough` is the shared driver (it walks
+the live product through a real browser). Each project type supplies its own drive
+mechanism: a Phaser game is driven through Playwright + an in-game verification
+test bridge (seed RNG, read state, inject semantic input, step frames); API types
+drive HTTP against a running service; etc.
+
+**Rollout.** Enforcement is per-type and flag-gated (the `verify_enforced`
+workflow input, default off) so a type without a drive mechanism is never wedged.
+Phaser is the first enforced type.
+
+---
+
 For the full verification lifecycle (classify, check tooling, plan, execute, loop), surfaces, escalation protocol, and proof artifact requirements, see the `verification-lifecycle` skill loaded by the `verification-specialist` agent.

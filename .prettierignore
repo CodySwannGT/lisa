@@ -33,3 +33,8 @@ coverage
 # stays formatted.
 plugins/lisa/**/openai.yaml
 plugins/lisa-*/**/openai.yaml
+
+# Committed verification (UAT) evidence is agent-written proof, not source —
+# never reformat it. Enforced project types add the same ignore to their own
+# .prettierignore alongside enabling verification.
+evidence/**
