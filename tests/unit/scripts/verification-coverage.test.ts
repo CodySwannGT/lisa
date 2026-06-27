@@ -84,15 +84,6 @@ describe("check-verification-coverage", () => {
     expect(r.ok).toBe(false);
   });
 
-  it("does not count an arbitrary path that merely contains an e2e segment", () => {
-    const r = evaluate({
-      changedFiles: [GAME_SCENE, "src/e2e/helpers.ts"],
-      changeTypes: ["feat"],
-      labels: [],
-    });
-    expect(r.ok).toBe(false);
-  });
-
   it("allows a behavioral change with the logged verification-exempt label", () => {
     const r = evaluate({
       changedFiles: [GAME_SCENE],
@@ -101,6 +92,68 @@ describe("check-verification-coverage", () => {
     });
     expect(r.ok).toBe(true);
     expect(r.exempt).toBe(true);
+  });
+
+  it("does not count docs/e2e/ as a verification spec", () => {
+    // docs/e2e/ is documentation, not a codified verification spec;
+    // only tests/e2e/** satisfies the gate.
+    const r = evaluate({
+      changedFiles: [GAME_SCENE, "docs/e2e/setup-guide.md"],
+      changeTypes: ["feat"],
+      labels: [],
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it("does not count src/e2e/ as a verification spec", () => {
+    // src/e2e/ is not a verification spec location; only tests/e2e/** satisfies the gate.
+    const r = evaluate({
+      changedFiles: [GAME_SCENE, "src/e2e/helpers.ts"],
+      changeTypes: ["feat"],
+      labels: [],
+    });
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("buildGitRanges (git range construction)", () => {
+  let buildGitRanges: (opts: {
+    baseSha?: string;
+    head?: string;
+    baseRef?: string;
+  }) => { diff: string; log: string };
+
+  beforeAll(async () => {
+    const url = pathToFileURL(path.join(REPO_ROOT, SCRIPT_REL)).href;
+    const mod = await import(url);
+    buildGitRanges = mod.buildGitRanges as typeof buildGitRanges;
+  });
+
+  it("uses three-dot diff range and two-dot log range when baseSha is provided", () => {
+    // Ensures we get only PR-branch changes, not unrelated base-branch commits.
+    const r = buildGitRanges({
+      baseSha: "abc123",
+      head: "def456",
+      baseRef: "main",
+    });
+    expect(r.diff).toBe("abc123...def456");
+    expect(r.log).toBe("abc123..def456");
+  });
+
+  it("falls back to origin/baseRef when baseSha is absent", () => {
+    const r = buildGitRanges({
+      baseSha: undefined,
+      head: "HEAD",
+      baseRef: "main",
+    });
+    expect(r.diff).toBe("origin/main...HEAD");
+    expect(r.log).toBe("origin/main..HEAD");
+  });
+
+  it("uses origin/main as default when neither baseSha nor baseRef is provided", () => {
+    const r = buildGitRanges({});
+    expect(r.diff).toBe("origin/main...HEAD");
+    expect(r.log).toBe("origin/main..HEAD");
   });
 });
 
