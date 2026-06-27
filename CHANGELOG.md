@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.185.1](https://github.com/CodySwannGT/lisa/compare/vv2.185.0...v2.185.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **typescript:** use endsWith in mutation script to satisfy oxlint ([cf14fd7](https://github.com/CodySwannGT/lisa/commit/cf14fd759764908a2ab2cf35797d2f04e28f5ad8))
+
 ## [2.185.0](https://github.com/CodySwannGT/lisa/compare/vv2.184.0...v2.185.0) (2026-06-27)
 
 
