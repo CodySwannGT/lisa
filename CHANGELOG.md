@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.184.0](https://github.com/CodySwannGT/lisa/compare/vv2.183.0...v2.184.0) (2026-06-27)
+
+
+### Features
+
+* **cli:** register phaser setup-type; lint app config files ([53defe6](https://github.com/CodySwannGT/lisa/commit/53defe6dd232db3432f61cce5b1bc31d75e2ebc9))
+
 ## [2.183.0](https://github.com/CodySwannGT/lisa/compare/vv2.182.0...v2.183.0) (2026-06-27)
 
 
