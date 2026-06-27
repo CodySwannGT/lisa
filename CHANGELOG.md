@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.180.1](https://github.com/CodySwannGT/lisa/compare/vv2.180.0...v2.180.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **strategies:** ship .gitignore via npm; align phaser vite override ([ef1aff2](https://github.com/CodySwannGT/lisa/commit/ef1aff29e79a6fb1a064aa794350c45f843f8887))
+
 ## [2.180.0](https://github.com/CodySwannGT/lisa/compare/vv2.179.0...v2.180.0) (2026-06-27)
 
 
