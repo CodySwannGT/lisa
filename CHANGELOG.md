@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.181.0](https://github.com/CodySwannGT/lisa/compare/vv2.180.1...v2.181.0) (2026-06-27)
+
+
+### Features
+
+* **verification:** make verification (UAT) concrete and per-change enforced ([cd9ebdc](https://github.com/CodySwannGT/lisa/commit/cd9ebdcd62f3814090ce4984fcaf3b72daac903d))
+
+
+### Bug Fixes
+
+* **verification:** tighten coverage matcher + diff/log ranges; harden checkout ([b7ec49b](https://github.com/CodySwannGT/lisa/commit/b7ec49b2dc728b41fbbe9fb06fbfcbe0df5faa03)), closes [#1360](https://github.com/CodySwannGT/lisa/issues/1360)
+
 ### [2.180.1](https://github.com/CodySwannGT/lisa/compare/vv2.180.0...v2.180.1) (2026-06-27)
 
 
