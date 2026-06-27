@@ -25,10 +25,11 @@ import { pathToFileURL } from "node:url";
 
 const BEHAVIORAL_TYPES = new Set(["feat", "fix"]);
 const EXEMPT_LABEL = "verification-exempt";
-// A verification spec lives in a top-level e2e/ dir, a nested tests/e2e/ tree,
-// or a tests/verification/ tree — NOT an arbitrary path that merely contains an
-// "e2e" segment (e.g. src/e2e/helpers.ts must not satisfy the gate).
-const VERIFICATION_PATH = /^e2e\/|(^|\/)tests\/(e2e|verification)\//;
+// A verification spec = the project's e2e/Playwright tests (where codified
+// verification lives), or a dedicated tests/verification tree.
+// Requires the tests/ prefix so docs/e2e/ or src/e2e/ do not falsely satisfy
+// the gate — only tests/e2e/** and tests/verification/** count.
+const VERIFICATION_PATH = /(^|\/)tests\/e2e\/|(^|\/)tests\/verification\//;
 
 /**
  * Pure decision: is a verification-spec delta required, and is it satisfied?
@@ -77,17 +78,33 @@ export function evaluateVerificationCoverage({
 }
 
 /**
+ * Build the git range strings for diff and log given base/head inputs.
+ * Uses three-dot syntax for diff (merge-base, PR-only changes) and two-dot
+ * for log (commits reachable from head but not base).
+ * @param {object} opts - Range options
+ * @param {string} [opts.baseSha] - Explicit base commit SHA (e.g. VERIFY_BASE_SHA)
+ * @param {string} [opts.head] - Head ref or SHA (default "HEAD")
+ * @param {string} [opts.baseRef] - Base branch name used when baseSha is absent (default "main")
+ * @returns {{diff: string, log: string}} Range strings ready for git diff / git log
+ */
+export function buildGitRanges({ baseSha, head, baseRef } = {}) {
+  const resolvedHead = head || "HEAD";
+  const base = baseSha || `origin/${baseRef || "main"}`;
+  return { diff: `${base}...${resolvedHead}`, log: `${base}..${resolvedHead}` };
+}
+
+/**
  * Gather the change context from git + env.
  * @returns {{changedFiles: string[], changeTypes: string[], labels: string[]}} Context
  */
 function gatherContext() {
   const head = process.env.VERIFY_HEAD_SHA || "HEAD";
   const baseRef = process.env.VERIFY_BASE_REF || "main";
-  const base = process.env.VERIFY_BASE_SHA || `origin/${baseRef}`;
-  // Three-dot diff = the PR's "files changed" (merge-base), matching GitHub.
-  // Two-dot log = the commits the PR introduces (not both tips).
-  const diffRange = `${base}...${head}`;
-  const logRange = `${base}..${head}`;
+  const { diff: diffRange, log: logRange } = buildGitRanges({
+    baseSha: process.env.VERIFY_BASE_SHA,
+    head,
+    baseRef,
+  });
 
   const runGit = (cmd, fallback) => {
     try {
