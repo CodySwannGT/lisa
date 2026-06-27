@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.182.0](https://github.com/CodySwannGT/lisa/compare/vv2.181.0...v2.182.0) (2026-06-27)
+
+
+### Features
+
+* **phaser:** bundler module resolution + Vite 8 idioms ([fff629e](https://github.com/CodySwannGT/lisa/commit/fff629e209c0250abbb8c0cb9ee6a00d0c8594e6))
+
 ## [2.181.0](https://github.com/CodySwannGT/lisa/compare/vv2.180.1...v2.181.0) (2026-06-27)
 
 
