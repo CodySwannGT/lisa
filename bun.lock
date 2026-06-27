@@ -85,6 +85,13 @@
         "eslint": ">=9.0.0",
       },
     },
+    "eslint-plugin-phaser": {
+      "name": "@codyswann/eslint-plugin-phaser",
+      "version": "1.0.0",
+      "peerDependencies": {
+        "eslint": ">=9.0.0",
+      },
+    },
     "eslint-plugin-ui-standards": {
       "name": "@codyswann/eslint-plugin-ui-standards",
       "version": "1.0.0",
@@ -235,6 +242,8 @@
     "@codyswann/eslint-plugin-code-organization": ["@codyswann/eslint-plugin-code-organization@workspace:eslint-plugin-code-organization"],
 
     "@codyswann/eslint-plugin-component-structure": ["@codyswann/eslint-plugin-component-structure@workspace:eslint-plugin-component-structure"],
+
+    "@codyswann/eslint-plugin-phaser": ["@codyswann/eslint-plugin-phaser@workspace:eslint-plugin-phaser"],
 
     "@codyswann/eslint-plugin-ui-standards": ["@codyswann/eslint-plugin-ui-standards@workspace:eslint-plugin-ui-standards"],
 

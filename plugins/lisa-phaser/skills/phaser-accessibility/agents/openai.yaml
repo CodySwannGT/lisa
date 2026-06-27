@@ -1,0 +1,4 @@
+display_name: "Phaser Accessibility"
+short_description: "making a Phaser 4 game accessible — honoring prefers-reduced-motion, pausing on window/tab blur, keyboard navigation and visible focus for…"
+default_prompt:
+  - "Use $phaser-accessibility: making a Phaser 4 game accessible — honoring prefers-reduced-motion, pausing on window/tab blur, keyboard navigation and visible focus for…."

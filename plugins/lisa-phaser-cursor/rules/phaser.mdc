@@ -5,60 +5,127 @@ alwaysApply: true
 
 # Phaser 4 Project Rules
 
-This is a **Phaser 4** (v4.1+ "Salusa") TypeScript game project. Phaser 4 is the
-only supported target — never introduce Phaser 3 idioms. The lint config enforces
-the bans below; do not disable those rules, fix the code.
+This is a **Phaser 4** (v4.2+, npm `phaser@^4.2.0`) TypeScript game project built
+on the official `template-vite-ts` layout (Vite + TypeScript 6). Phaser 4 is the
+only supported target — never introduce Phaser 3 idioms. These decisions are
+**locked** and most are **lint-enforced**; do not disable a rule, fix the code.
 
-## Phaser 4 Only — Banned v3 Idioms
+## Locked architecture decisions
 
-- **No pipelines.** `setPipeline` / `setPostPipeline` / `resetPipeline` are gone.
-  Custom rendering is a **RenderNode** (registered via `render.renderNodes` in the
-  game config); post-processing is a **Filter** (`gameObject.filters` /
-  `camera.filters`). See the `phaser-rendering` skill.
-- **No preFX/postFX.** The v3 FX controllers were replaced by the unified Filter
-  system. `BitmapMask` → `Mask` filter.
-- **No `setTintFill`/`tintFill`.** Use `setTint()` + `setTintMode(Phaser.TintModes.FILL)`.
-- **No `Phaser.Geom.Point`** (removed — use `Phaser.Math.Vector2`) and **no
-  `Phaser.Struct.Set/Map`** (removed — use native `Set`/`Map`).
-- **No raw WebGL calls.** External GL work goes through the `Extern` game object.
-- **No `setPipeline('Light2D')`.** Lighting is `gameObject.setLighting(true)`.
+1. **Thin scenes over a pure-logic core.** Scenes and GameObjects are thin
+   adapters that wire pure logic to the engine. All game rules live in
+   `src/logic/**` as plain TypeScript with **zero `phaser` imports** (data in,
+   data out). This is what makes the game unit-testable. ECS (bitECS / Miniplex)
+   is an opt-in option, not the default — reach for it only at high entity
+   counts. See `phaser-project-structure` and `phaser-testing`.
+2. **Canvas-only, framework-agnostic UI.** UI is plain TS + DOM/canvas (the
+   `template-vite-ts` baseline). A React/Vue EventBus bridge is documented only
+   as an upgrade path — it is not the default and is not added unless required.
+3. **Arcade physics by default; Matter is opt-in.** Matter is heavier and does
+   not interop with Arcade. Switching is a one-line config swap. See
+   `phaser-physics`.
+4. **Determinism.** No `Math.random()`, `Date.now()`, or `performance.now()` in
+   game code. Use the seeded `Phaser.Math.RandomDataGenerator` (`Phaser.Math.RND`
+   or a local instance seeded from one place) so replays and tests reproduce.
+5. **State and events.** Global state goes through a **typed wrapper over the
+   registry**; cross-cutting events go through a **single dedicated
+   EventsCenter** (`new Phaser.Events.EventEmitter()`) — **never reuse
+   `game.events`**. Every external `.on()` (`this.input` / `scale` / `time` /
+   `window` / the custom bus) must have a matching `.off()` in the scene's
+   `shutdown`. See `phaser-services`.
+6. **Performance.** Pool transient objects via `Group`s; make **no allocations
+   and create no objects/tweens/timers inside `update()`**; atlas everything; use
+   `BitmapText` for high-churn text; use `SpriteGPULayer` / `TilemapGPULayer` for
+   mass rendering. See `phaser-gameobjects`.
+7. **Baked-in asset pipeline.** Raw art in `assets/src` is packed at build time
+   (free-tex-packer-core atlases, audiosprite, BMFont) into `public/assets`, and
+   a codegen step emits typed keys to `src/assets.ts` so a missing or renamed key
+   is a **compile error**. No raw string asset / scene / event keys anywhere.
+   See `phaser-asset-pipeline`.
+8. **PWA on by default** via `vite-plugin-pwa` (`registerType: "autoUpdate"`,
+   `globPatterns` extended to cover game assets). See `phaser-build-deploy`.
+9. **Cross-cutting services are scaffolded** in `src/services/**`: SoundService
+   (mobile audio unlock on first gesture), InputService (semantic actions, not
+   raw keys), SaveService (typed `localStorage` with a schema `VERSION` +
+   migration chain — never raw `localStorage`), a typed i18n string catalog (no
+   hardcoded user-facing strings), accessibility (prefers-reduced-motion,
+   pause-on-blur, keyboard-navigable menus, screen-reader live region), and a
+   vendor-neutral telemetry/analytics abstraction. In-game errors are wired to
+   the observability sink. See `phaser-services`, `phaser-i18n`,
+   `phaser-accessibility`.
+10. **Testing is a pyramid.** Pure logic is unit-tested with Vitest;
+    scenes/entities are excluded from unit coverage and verified by **runtime
+    gates** in CI (boot smoke, allocation/perf budget, leak gate, determinism
+    gate, deterministic visual regression, bundle-size budget). See
+    `phaser-testing`. Build pins: `phaser ^4.2.0`, Vite, TypeScript 6.
+
+## Enforced lint rules (prose must match machine enforcement)
+
+The lint config enforces the rules below. Each exists because the prose above
+relies on it — keep them in sync.
+
+**`no-restricted-imports`**
+
+- Importing `phaser` anywhere under `src/logic/**` is banned. The logic core
+  stays engine-free so Vitest runs it without a browser.
+
+**`no-restricted-syntax`** bans:
+
+- Removed v3 idioms: `setPipeline` / `setPostPipeline` / `resetPipeline`,
+  `setTintFill`, `preFX` / `postFX`, `Phaser.Geom.Point`, `Phaser.Struct`,
+  `BitmapMask`, `Mesh`, `Plane`, `Camera3D`. Use the v4 replacements
+  (RenderNodes, Filters, `Phaser.Math.Vector2`, native `Set`/`Map`, GPU layers).
+- `Math.random()` / `Date.now()` / `performance.now()` in `src` game code — use
+  the seeded RND and the scene clock (`this.time.now`).
+- Reusing `game.events` for app messaging — use the dedicated EventsCenter.
+- `debug: true` inside a physics/game config object literal — debug stays off in
+  committed code (toggle locally, never commit it on).
+
+**Direct-`localStorage` ban**
+
+- Direct `localStorage` access outside `src/services/**` is banned. Persist
+  through SaveService (versioned + migrated).
+
+**Custom `eslint-plugin-phaser` rules**
+
+- `no-create-in-update` — no `this.add.*`, `tweens.add`, `time.addEvent`,
+  `physics.add.*`, or `new Phaser.*` inside an `update()` method. Create in
+  `create()`; in the loop, reuse and pool.
+- `no-allocation-in-update` — no object/array literals, closures, or
+  `.map`/`.filter`/`.reduce` chains inside `update()`. Hoist scratch objects.
+- `require-shutdown-cleanup` — a `Scene` that registers persistent external
+  listeners must define a `shutdown` handler that removes them.
 
 ## Architecture
 
 - **One scene class per file** under `src/scenes/`, named after the scene key.
   The scene flow is `Boot → Preloader → MainMenu → Game` (plus overlays). Boot
   loads only what the Preloader needs; the Preloader loads everything else.
-- **Pure game logic lives outside scenes** in `src/logic/` (or `src/core/`) with
-  **no `phaser` imports** — plain TypeScript functions and classes that take and
-  return data. Scenes are thin orchestrators that wire logic to GameObjects.
-  This is what makes the game unit-testable; see the `phaser-testing` skill.
-- **Asset keys are typed constants** in `src/assets.ts` — never inline magic
-  strings for texture/audio/animation keys. Load via asset-pack manifests
-  (`this.load.pack`), not ad-hoc `load.image` lists scattered across scenes.
-
-## Determinism
-
-- **No `Math.random()` in game code.** Use the scene-seeded
-  `Phaser.Math.RandomDataGenerator` (`Phaser.Math.RND` or a local instance with
-  an explicit seed) so replays and tests are reproducible.
-- Arcade physics keeps its v4 default `fixedStep: true`. Do not switch physics to
-  variable step to "fix" a tunneling bug — fix the body/velocity configuration.
+- **Pure game logic lives in `src/logic/**`** with no `phaser` imports — plain
+  TypeScript that takes and returns data. Scenes/entities are thin orchestrators
+  that wire that logic to GameObjects. See `phaser-testing`.
+- **Keys are typed constants** generated into `src/assets.ts` — never inline
+  magic strings for texture/audio/animation/scene/event keys. Load via asset-pack
+  manifests (`this.load.pack`), not ad-hoc `load.image` lists.
 
 ## Performance
 
-- **No allocations in `update()`.** No `new`, array literals, closures, or
-  `.filter/.map` chains in per-frame paths — hoist scratch objects, reuse vectors.
+- **No allocations in `update()`** and **no object/tween/timer creation in
+  `update()`** (both lint-enforced) — hoist scratch objects, reuse vectors.
 - **Pool, don't churn.** Bullets, enemies, particles, and pickups come from
-  `Group` pools (`get`/`killAndHide`), never `new`/`destroy` per spawn.
-- **Mass rendering uses the GPU layers.** Large static/animated sprite fields →
-  `SpriteGPULayer`; large tile maps → `TilemapGPULayer`. Texture atlases (PCT
-  where possible) over loose images — see the `phaser-assets` skill.
-- Target WebGL; the Canvas renderer is deprecated in v4 and only acceptable as an
-  explicit, documented fallback decision.
+  `Group` pools (`get` / `killAndHide`), never `new` / `destroy` per spawn.
+- **Mass rendering uses the GPU layers.** Large sprite fields → `SpriteGPULayer`;
+  large tile maps → `TilemapGPULayer`. Atlas everything (see
+  `phaser-asset-pipeline`); `BitmapText` for high-churn text.
+- Target WebGL; the Canvas renderer is deprecated in v4 and acceptable only as an
+  explicit, documented fallback.
 
 ## Verification
 
-Before reporting any change complete: run `bun run typecheck`, `bun run test`,
-and `bun run build`. For changes that affect rendering or input, verify in the
-real browser — `bun run dev` plus a Playwright check (the game boots, the canvas
-renders, no console errors). A green typecheck alone is not proof a game works.
+Before reporting any change complete: run `bun run typecheck`, `bun run lint`,
+`bun run test`, and `bun run build`. For changes that affect rendering or input,
+verify in the real browser — `bun run dev` plus a Playwright check (the game
+boots, the canvas renders, no console errors). CI additionally runs the runtime
+gates (`phaser-testing`). A green typecheck alone is not proof a game works.
+</content>
+</invoke>

@@ -1,0 +1,7 @@
+id: phaser-no-raw-webgl-context
+valid:
+  - 'const r = this.renderer;'
+  - "this.add.sprite(0, 0, 'k');"
+invalid:
+  - 'const gl = this.renderer.gl;'
+  - 'const gl = game.renderer.gl;'
