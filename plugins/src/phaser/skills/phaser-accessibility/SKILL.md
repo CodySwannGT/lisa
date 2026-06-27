@@ -1,6 +1,6 @@
 ---
 name: phaser-accessibility
-description: This skill should be used when making a Phaser 4 game accessible — honoring prefers-reduced-motion, pausing on window/tab blur, keyboard navigation and visible focus for menus, colorblind-safe palettes, and a screen-reader live region that announces game state through the DOM. Use it when building menus, settings, HUD, or any player-facing UI, or when an accessibility requirement comes up. Pairs with phaser-services, phaser-i18n, and phaser-scenes.
+description: This skill should be used when making a Phaser 4 game accessible — honoring prefers-reduced-motion, pausing on window/tab blur, keyboard navigation and visible focus for menus, colorblind-safe palettes, and a screen-reader live region that announces game state through the DOM. Use it when building menus, settings, HUD, or any player-facing UI, or when an accessibility requirement comes up. Pairs with phaser-services, phaser-i18n, and the official scenes skill.
 ---
 
 # Phaser 4 Accessibility

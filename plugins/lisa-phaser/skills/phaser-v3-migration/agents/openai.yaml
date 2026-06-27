@@ -1,4 +1,0 @@
-display_name: "Phaser V3 Migration"
-short_description: "migrating a Phaser 3 game to Phaser 4, reviewing code that contains Phaser 3 idioms, or answering \"does this v3 API still exist\" questions…"
-default_prompt:
-  - "Use $phaser-v3-migration: migrating a Phaser 3 game to Phaser 4, reviewing code that contains Phaser 3 idioms, or answering \"does this v3 API still exist\" questions…."

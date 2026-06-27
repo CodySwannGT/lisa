@@ -1,6 +1,6 @@
 ---
 name: phaser-asset-pipeline
-description: This skill should be used when setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets (free-tex-packer-core texture atlases, audiosprite audio sprites, BMFont bitmap fonts) and the codegen step that emits typed keys to src/assets.ts so a missing or renamed key is a compile error. Use it when adding source art, wiring packing into the build, regenerating typed keys, or eliminating raw string asset keys. Pairs with phaser-assets, phaser-build-deploy, and phaser-services.
+description: This skill should be used when setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets (free-tex-packer-core texture atlases, audiosprite audio sprites, BMFont bitmap fonts) and the codegen step that emits typed keys to src/assets.ts so a missing or renamed key is a compile error. Use it when adding source art, wiring packing into the build, regenerating typed keys, or eliminating raw string asset keys. Pairs with the official loading-assets skill, phaser-build-deploy, and phaser-services.
 ---
 
 # Phaser 4 Asset Pipeline
@@ -13,7 +13,7 @@ Runtime assets are **generated, not hand-placed**. Raw source art lives in
 key constants into `src/assets.ts`**. The payoff: a missing or renamed asset is a
 **compile error**, not a green square or silent-missing audio at runtime. No raw
 string asset / scene / event keys anywhere — they all come from the generated
-module ([[phaser-assets]] covers loading those keys at runtime).
+module (the official `loading-assets` skill covers loading those keys at runtime).
 
 ## Layout
 
@@ -52,7 +52,7 @@ for (const f of files) await writeFile(`public/assets/atlases/${f.name}`, f.buff
 
 The frame names in the manifest become the atlas frame keys you reference as
 generated constants. Atlas everything that renders together — loose images break
-sprite batching ([[phaser-assets]]).
+sprite batching (the official `loading-assets` skill).
 
 ## Step 2: audio sprites with audiosprite
 
@@ -70,7 +70,7 @@ with `this.load.audioSprite(Audio.Sfx, "audio/sfx.json")` and play by sprite key
 ## Step 3: bitmap fonts with BMFont
 
 `BitmapText` is the performant choice for high-churn text (scores, timers) —
-[[phaser-assets]] / [[phaser-i18n]]. Generate the `.fnt` (XML/JSON) + PNG page
+the official `loading-assets` skill / [[phaser-i18n]]. Generate the `.fnt` (XML/JSON) + PNG page
 from a font source with a BMFont tool (`msdf-bmfont-xml` or the `bmfont` CLI) in
 the same script:
 
