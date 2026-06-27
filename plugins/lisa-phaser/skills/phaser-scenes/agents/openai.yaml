@@ -1,4 +1,0 @@
-display_name: "Phaser Scenes"
-short_description: "creating or editing Phaser 4 scenes — the init/preload/create/update lifecycle, starting/stopping/sleeping scenes, running scenes in…"
-default_prompt:
-  - "Use $phaser-scenes: creating or editing Phaser 4 scenes — the init/preload/create/update lifecycle, starting/stopping/sleeping scenes, running scenes in…."

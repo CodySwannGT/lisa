@@ -1,13 +1,13 @@
 ---
 name: phaser-project-structure
-description: This skill should be used when creating, restructuring, or reasoning about a Phaser 4 game project — the game config, the Vite + TypeScript layout, the Boot → Preloader → MainMenu → Game scene flow, scale/resolution setup for desktop and mobile, and where code and assets belong. Use it before scaffolding a project, adding a major subsystem, or deciding where a file should live. Pairs with phaser-scenes, phaser-assets, phaser-rendering, and phaser-testing.
+description: This skill should be used when creating, restructuring, or reasoning about a Phaser 4 game project — the game config, the Vite + TypeScript layout, the Boot → Preloader → MainMenu → Game scene flow, scale/resolution setup for desktop and mobile, and where code and assets belong. Use it before scaffolding a project, adding a major subsystem, or deciding where a file should live. Pairs with the official scenes skill, the official loading-assets skill, the official filters-and-postfx skill, and phaser-testing.
 ---
 
 # Phaser 4 Project Structure
 
 ## Overview
 
-This stack targets **Phaser 4** (v4.1+ "Salusa", npm package `phaser`), built
+This stack targets **Phaser 4** (v4.2+, npm package `phaser@^4.2.0`), built
 with **Vite + TypeScript** — the layout the official `phaserjs/template-vite-ts`
 template and `npm create @phaserjs/game@latest` scaffold. Phaser 4 ships its own
 type definitions (`types/phaser.d.ts`); do not add `@types/phaser`.
@@ -55,17 +55,17 @@ v4-specific config facts:
 - Pixel-art games: `pixelArt: true` (nearest-neighbor + roundPixels), or the new
   **`render.smoothPixelArt: true`** (WebGL-only) for pixel art that rotates or
   scales smoothly. Pick one per project and record the choice.
-- Custom render nodes register under `render.renderNodes` — see [[phaser-rendering]].
+- Custom render nodes register under `render.renderNodes` — see the official `filters-and-postfx` skill.
 - `Phaser.HEADLESS` exists for logic-only boots (tests) — see [[phaser-testing]].
 
 ## Scene flow
 
-Four-stage boot, in order (see [[phaser-scenes]] for lifecycle detail):
+Four-stage boot, in order (see the official `scenes` skill for lifecycle detail):
 
 1. **Boot** — loads only the handful of assets the Preloader's loading screen
    needs (logo, progress-bar art). No game assets here.
 2. **Preloader** — renders the loading UI and loads everything else, preferably
-   via a single asset-pack manifest (see [[phaser-assets]]), then starts MainMenu.
+   via a single asset-pack manifest (see the official `loading-assets` skill), then starts MainMenu.
 3. **MainMenu** — entry UI; starts Game.
 4. **Game** (+ overlay scenes like `HUD`, `Pause` run in parallel) — gameplay.
 
