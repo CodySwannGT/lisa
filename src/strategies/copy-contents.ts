@@ -1,5 +1,6 @@
 import * as fse from "fs-extra";
 import { readFile, copyFile, writeFile } from "node:fs/promises";
+import * as path from "node:path";
 import type { FileOperationResult } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
@@ -194,18 +195,38 @@ export class CopyContentsStrategy implements ICopyStrategy {
     relativePath: string,
     context: StrategyContext
   ): Promise<FileOperationResult> {
-    const destExists = await fse.pathExists(destPath);
+    // npm strips `.gitignore` from published tarballs, so these templates ship
+    // as `gitignore` (no leading dot). Restore the real dotfile name at the
+    // destination so downstream projects actually receive their `.gitignore`.
+    const shippedAsDotless = path.basename(destPath) === "gitignore";
+    const realDestPath = shippedAsDotless
+      ? path.join(path.dirname(destPath), ".gitignore")
+      : destPath;
+    const realRelativePath = shippedAsDotless
+      ? path.join(path.dirname(relativePath), ".gitignore")
+      : relativePath;
+
+    const destExists = await fse.pathExists(realDestPath);
 
     if (!destExists) {
-      return this.handleNewFile(sourcePath, destPath, relativePath, context);
+      return this.handleNewFile(
+        sourcePath,
+        realDestPath,
+        realRelativePath,
+        context
+      );
     }
 
-    if (await filesIdentical(sourcePath, destPath)) {
-      return { relativePath, strategy: this.name, action: "skipped" };
+    if (await filesIdentical(sourcePath, realDestPath)) {
+      return {
+        relativePath: realRelativePath,
+        strategy: this.name,
+        action: "skipped",
+      };
     }
 
     const sourceContent = await readFile(sourcePath, "utf-8");
-    const destContent = await readFile(destPath, "utf-8");
+    const destContent = await readFile(realDestPath, "utf-8");
 
     // A copy-contents source must itself carry a guardrails block to manage.
     // Without a BEGIN marker there is no block to replace, and the append
@@ -215,8 +236,8 @@ export class CopyContentsStrategy implements ICopyStrategy {
     // here so a miscategorized file can never silently self-duplicate.
     if (!sourceContent.includes(this.BEGIN_MARKER_PREFIX)) {
       return this.handleOverwrite(
-        destPath,
-        relativePath,
+        realDestPath,
+        realRelativePath,
         sourceContent,
         context
       );
@@ -225,9 +246,18 @@ export class CopyContentsStrategy implements ICopyStrategy {
     const mergedContent = this.mergeContent(sourceContent, destContent);
 
     if (mergedContent === destContent) {
-      return { relativePath, strategy: this.name, action: "skipped" };
+      return {
+        relativePath: realRelativePath,
+        strategy: this.name,
+        action: "skipped",
+      };
     }
 
-    return this.handleMerge(destPath, relativePath, mergedContent, context);
+    return this.handleMerge(
+      realDestPath,
+      realRelativePath,
+      mergedContent,
+      context
+    );
   }
 }
