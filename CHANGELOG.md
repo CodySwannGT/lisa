@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.183.0](https://github.com/CodySwannGT/lisa/compare/vv2.182.0...v2.183.0) (2026-06-27)
+
+
+### Features
+
+* **phaser:** enforce verification (UAT) coverage in CI ([7c104df](https://github.com/CodySwannGT/lisa/commit/7c104dfaf511d80f5b2d6c53b4a450f22974f5e3))
+
 ## [2.182.0](https://github.com/CodySwannGT/lisa/compare/vv2.181.0...v2.182.0) (2026-06-27)
 
 
