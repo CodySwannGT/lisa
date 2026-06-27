@@ -1,0 +1,12 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+id: phaser-no-canvas-renderer
+language: typescript
+severity: error
+message: |
+  Phaser 4 targets WebGL (the new "Beam" renderer); the Canvas renderer is
+  deprecated and loses WebGL-only features (filters, GPU layers, lighting).
+  Use Phaser.AUTO (WebGL with fallback) or Phaser.WEBGL in the game config.
+  Canvas is acceptable only as an explicit, documented fallback decision.
+rule:
+  pattern: Phaser.CANVAS

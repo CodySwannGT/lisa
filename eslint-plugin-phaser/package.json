@@ -1,0 +1,10 @@
+{
+  "name": "@codyswann/eslint-plugin-phaser",
+  "version": "1.0.0",
+  "description": "ESLint plugin for Phaser 4 game-development standards",
+  "main": "index.js",
+  "publishConfig": { "access": "public" },
+  "peerDependencies": {
+    "eslint": ">=9.0.0"
+  }
+}

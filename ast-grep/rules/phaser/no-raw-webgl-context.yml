@@ -1,0 +1,12 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+id: phaser-no-raw-webgl-context
+language: typescript
+severity: error
+message: |
+  Do not reach into the raw WebGL context (renderer.gl) in Phaser 4. Custom
+  rendering is a RenderNode (registered via render.renderNodes); external WebGL
+  work belongs in an Extern game object. Touching renderer.gl directly bypasses
+  the renderer's state tracking and breaks batching. See the phaser-rendering skill.
+rule:
+  pattern: $OBJ.renderer.gl
