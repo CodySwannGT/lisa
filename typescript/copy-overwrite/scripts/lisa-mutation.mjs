@@ -100,8 +100,8 @@ if (!base) {
 const isMutable = f =>
   /\.(ts|tsx)$/.test(f) &&
   !/\.(spec|test)\.(ts|tsx)$/.test(f) &&
-  !/\.d\.ts$/.test(f) &&
-  !/\.stories\.tsx$/.test(f) &&
+  !f.endsWith(".d.ts") &&
+  !f.endsWith(".stories.tsx") &&
   (f.startsWith("src/") || f.startsWith("lib/"));
 
 let changed = [];
