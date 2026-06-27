@@ -293,6 +293,16 @@ describe("Phaser templates", () => {
     expect(opts["outDir"]).toBeUndefined();
   });
 
+  it("includes app config files in the eslint tsconfig (type-aware slow lint)", () => {
+    // vite.config.ts / playwright.config.ts must be in the eslint TS project, or
+    // the type-aware slow lint errors "file not found in any of the projects".
+    const tsconfig = readJson("phaser/copy-overwrite/tsconfig.eslint.json") as {
+      readonly include?: readonly string[];
+    };
+    expect(tsconfig.include).toContain("vite.config.ts");
+    expect(tsconfig.include).toContain("playwright.config.ts");
+  });
+
   it("typechecks tests via the phaser create-only tsconfig.local", () => {
     const local = readJson("phaser/create-only/tsconfig.local.json") as {
       readonly include?: readonly string[];

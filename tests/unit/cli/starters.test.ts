@@ -24,6 +24,7 @@ describe("starter registry", () => {
       expo: { owner: "CodySwannGT", repo: "expostarter", template: true },
       nestjs: { owner: "CodySwannGT", repo: "nestjsstarter", template: true },
       cdk: { owner: "CodySwannGT", repo: "cdkstarter", template: true },
+      phaser: { owner: "CodySwannGT", repo: "phaserstarter", template: true },
       wiki: { owner: "CodySwannGT", repo: "wikistarter", template: true },
       "harper-wiki": {
         owner: "CodySwannGT",
