@@ -32,6 +32,22 @@ async function tryGit(command: string, cwd: string): Promise<boolean> {
 }
 
 /**
+ * Run a fixed git command in a directory, throwing on failure.
+ *
+ * Use this when the command is expected to succeed — a failure is a real error
+ * that the caller should be made aware of (e.g. index-lock, permissions).
+ * @param command - Full literal git command line
+ * @param cwd - Working directory to run in
+ * @throws When the command exits non-zero
+ */
+async function runGit(command: string, cwd: string): Promise<void> {
+  const { exec } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const run = promisify(exec);
+  await run(command, { cwd });
+}
+
+/**
  * Migration: stop git-tracking the generated `.agents/plugins/marketplace.json`.
  *
  * The Codex marketplace points its plugin sources at `./node_modules/@codyswann/
@@ -93,14 +109,13 @@ export class UntrackCodexMarketplaceMigration implements Migration {
       };
     }
 
-    const removed = await tryGit(
+    // runGit throws on failure; a failure here is unexpected — the ls-files
+    // check above already confirmed the file is tracked, so any git rm error
+    // (e.g. index-lock, permission denied) is a real problem, not a noop.
+    await runGit(
       "git rm --cached --quiet .agents/plugins/marketplace.json",
       ctx.projectDir
     );
-    if (!removed) {
-      // Not a git repo, or nothing to remove — nothing to heal.
-      return { name: this.name, action: "noop" };
-    }
 
     ctx.logger.success(message);
     return {

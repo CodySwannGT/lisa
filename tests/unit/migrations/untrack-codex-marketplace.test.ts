@@ -127,5 +127,22 @@ describe("UntrackCodexMarketplaceMigration", () => {
     expect(result.action).toBe("applied");
     expect(isTracked()).toBe(true);
   });
+
+  it("throws when git rm --cached fails unexpectedly after file is confirmed tracked", async () => {
+    initRepo();
+    await writeMarketplace();
+    commitMarketplace();
+
+    // Create a .git/index.lock to simulate a concurrent git process holding the lock.
+    // git ls-files (read-only) succeeds; git rm --cached (write) fails.
+    const lockFile = path.join(projectDir, ".git", "index.lock");
+    await fs.writeFile(lockFile, "lock", "utf8");
+
+    try {
+      await expect(migration.apply(ctx())).rejects.toThrow();
+    } finally {
+      await fs.remove(lockFile);
+    }
+  });
 });
 /* eslint-enable sonarjs/no-os-command-from-path -- end of test-fixture git scope */
