@@ -308,6 +308,19 @@ fi
 #   fi
 # fi
 
+# Managed verification (UAT) extension slot (see .husky/pre-push.verify).
+# Opt-in project types (e.g. phaser) ship this snippet via Lisa; it mirrors the
+# CI verification_coverage gate locally. It is absent for types that have not
+# opted into verify_enforced, so this block is a no-op for them.
+if [ -f .husky/pre-push.verify ]; then
+  # shellcheck source=/dev/null
+  . .husky/pre-push.verify
+  if [ $? -ne 0 ]; then
+    echo "❌ Verification (UAT) coverage check failed."
+    exit 1
+  fi
+fi
+
 # Project-specific extension slot (see .husky/pre-push.local).
 # This hook sources pre-push.local if present so per-project checks
 # (e.g., app-boot verification, schema validation) survive Lisa template
