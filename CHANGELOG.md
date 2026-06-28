@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.1](https://github.com/CodySwannGT/lisa/compare/vv2.186.0...v2.186.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* **codex:** stop committing the node_modules-pointing Codex marketplace ([dcc6c6a](https://github.com/CodySwannGT/lisa/commit/dcc6c6a9f7cbeefd7b8a3774940e06a0a59b39d3)), closes [#1366](https://github.com/CodySwannGT/lisa/issues/1366)
+* **migration:** throw instead of noop when git rm --cached fails unexpectedly ([4285270](https://github.com/CodySwannGT/lisa/commit/4285270ad19648ff8146480152e3fac656ee0dcf))
+
 ## [2.186.0](https://github.com/CodySwannGT/lisa/compare/vv2.185.1...v2.186.0) (2026-06-28)
 
 
