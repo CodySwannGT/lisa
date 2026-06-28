@@ -6,6 +6,7 @@ import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-loc
 import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
+import { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
 import type {
   Migration,
   MigrationContext,
@@ -26,6 +27,7 @@ export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-loc
 export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
+export { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
 
 /**
  * Registry that runs applicable migrations against a destination project
@@ -47,6 +49,7 @@ export class MigrationRegistry {
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureWikiSourceDeclaredMigration(),
       new ReconcileClaudeStackPluginsMigration(),
+      new UntrackCodexMarketplaceMigration(),
     ];
   }
 

@@ -203,4 +203,9 @@ expo-env.d.ts
 
 .lisa.config.local.json
 
+# Generated Codex plugin marketplace — points into node_modules, so a committed
+# copy breaks plugin resolution in git worktrees / fresh checkouts (lisa#1366).
+# Lisa regenerates it on apply; never commit it.
+.agents/plugins/marketplace.json
+
 # END: AI GUARDRAILS
