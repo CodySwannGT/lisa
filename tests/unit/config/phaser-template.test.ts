@@ -361,4 +361,22 @@ describe("Phaser templates", () => {
     expect(skill).toContain("manualChunks: id");
     expect(skill).not.toContain('manualChunks: { phaser: ["phaser"] }');
   });
+
+  it("ships a pre-push verification (UAT) snippet that runs the coverage check", () => {
+    // Mirrors the CI verification_coverage gate locally. Sourced (not a static
+    // node_modules pointer) so it is safe to commit and works in worktrees.
+    const verify = readText("phaser/copy-overwrite/.husky/pre-push.verify");
+
+    expect(verify).toContain("scripts/check-verification-coverage.mjs");
+    // Local escape hatch (no PR labels available on pre-push).
+    expect(verify).toContain("VERIFY_LABELS=verification-exempt");
+  });
+
+  it("base pre-push sources the managed verification slot (per-type opt-in)", () => {
+    // The check ships only with opt-in types (phaser); the base hook must source
+    // it when present, and no-op otherwise, so non-opt-in TS projects are unaffected.
+    const prePush = readText("typescript/copy-contents/.husky/pre-push");
+
+    expect(prePush).toContain(".husky/pre-push.verify");
+  });
 });

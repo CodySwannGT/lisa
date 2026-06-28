@@ -1,0 +1,19 @@
+# This file is managed by Lisa.
+# Do not edit directly -- changes will be overwritten on the next `lisa` run.
+#
+# Verification IS UAT — local mirror of the CI verification_coverage gate.
+# Sourced by .husky/pre-push (the managed verification extension slot). Blocks a
+# push whose feat/fix commits ship no verification (e2e) spec delta, so the gate
+# is caught locally before code leaves the machine, not only in CI.
+#
+# The check (scripts/check-verification-coverage.mjs) falls back to diffing
+# origin/main...HEAD and derives the change types from commit subjects. PR labels
+# are not available locally, so the escape hatch for a genuinely non-behavioral
+# change is an env var:
+#
+#   VERIFY_LABELS=verification-exempt git push
+#
+if [ -f scripts/check-verification-coverage.mjs ]; then
+  echo "✅ Verification (UAT) coverage check..."
+  node scripts/check-verification-coverage.mjs || exit 1
+fi

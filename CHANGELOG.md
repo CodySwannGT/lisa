@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.186.0](https://github.com/CodySwannGT/lisa/compare/vv2.185.1...v2.186.0) (2026-06-28)
+
+
+### Features
+
+* **phaser:** mirror the verification (UAT) gate on pre-push ([8e60f6f](https://github.com/CodySwannGT/lisa/commit/8e60f6fbe97834475cb275d3b5a46a7e5b96f987)), closes [#1367](https://github.com/CodySwannGT/lisa/issues/1367)
+
 ### [2.185.1](https://github.com/CodySwannGT/lisa/compare/vv2.185.0...v2.185.1) (2026-06-27)
 
 
