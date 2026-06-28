@@ -67,6 +67,7 @@ describe("MigrationRegistry", () => {
     expect(names).toContain("ensure-audit-ignore-local-exclusions");
     expect(names).toContain("ensure-jest-rn-mock-accessibility-manager");
     expect(names).toContain("ensure-lisa-postinstall");
+    expect(names).toContain("untrack-codex-marketplace");
   });
 
   it("runs only applicable migrations", async () => {
