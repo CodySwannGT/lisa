@@ -356,6 +356,9 @@ jobs:
   quality:
     name: 🔍 Quality Checks
     needs: [release_init, release_schedule]
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/quality.yml
     with:
       skip_jobs: ${{ inputs.skip_jobs }}

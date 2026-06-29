@@ -455,6 +455,9 @@ jobs:
     name: ✅ Verification Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     # Per-change verification (UAT) gate: a feat/fix must ship a verification
     # (e2e) spec, unless labeled verification-exempt. Inert unless a project type
     # opts in via verify_enforced, and only meaningful on pull_request (needs the
@@ -477,7 +480,10 @@ jobs:
         env:
           VERIFY_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           VERIFY_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VERIFY_PR_NUMBER: ${{ github.event.pull_request.number }}
           VERIFY_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   test_unit:
     name: 🧪 Run Unit Tests
