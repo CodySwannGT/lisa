@@ -17,8 +17,8 @@
  *                        (e.g. "feat,chore"); if empty, derived from commit subjects
  *   VERIFY_LABELS        comma list of PR labels (fallback for `verification-exempt`)
  *   VERIFY_PR_NUMBER     pull request number for live label lookup
- *   GITHUB_REPOSITORY    owner/repo for live label lookup
- *   GITHUB_TOKEN         token with pull-requests: read for live label lookup
+ *   VERIFY_GITHUB_REPOSITORY owner/repo for live label lookup
+ *   VERIFY_GITHUB_TOKEN      token with pull-requests: read for live label lookup
  *
  * Exit 0 = satisfied / exempt / not-required. Exit 1 = required but missing.
  * @module scripts/check-verification-coverage
@@ -180,9 +180,9 @@ async function gatherContext() {
 
   const fallbackLabels = parseLabels(process.env.VERIFY_LABELS);
   const liveLabels = await fetchLivePullRequestLabels({
-    repository: process.env.GITHUB_REPOSITORY,
+    repository: process.env.VERIFY_GITHUB_REPOSITORY,
     prNumber: process.env.VERIFY_PR_NUMBER,
-    token: process.env.GITHUB_TOKEN,
+    token: process.env.VERIFY_GITHUB_TOKEN,
   });
   const labels = liveLabels ?? fallbackLabels;
 
