@@ -110,6 +110,7 @@ function runHook(repo: Repo, flag: string): string[] {
 }
 
 const WORKTREE_ROOT = [".claude", "worktrees", "wtA"];
+const INSTALL_LISA_CALL = "plugin install lisa@lisa --scope project";
 
 describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
   it("installs each enabled plugin at project scope inside a worktree", () => {
@@ -119,7 +120,7 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
     });
     const calls = runHook(repo, "1");
     expect(calls).toContain("plugin marketplace update lisa");
-    expect(calls).toContain("plugin install lisa@lisa --scope project");
+    expect(calls).toContain(INSTALL_LISA_CALL);
     expect(calls).toContain(
       "plugin install coderabbit@claude-plugins-official --scope project"
     );
@@ -131,7 +132,7 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
       "bad;rm -rf": true,
     });
     const calls = runHook(repo, "1");
-    expect(calls).toContain("plugin install lisa@lisa --scope project");
+    expect(calls).toContain(INSTALL_LISA_CALL);
     expect(calls.some(call => call.includes("bad;rm"))).toBe(false);
   });
 
@@ -150,5 +151,55 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
   it("does nothing in a non-worktree (main) checkout", () => {
     const repo = createRepo(["mainproj"], { "lisa@lisa": true });
     expect(runHook(repo, "1")).toEqual([]);
+  });
+
+  it("does not install plugins explicitly set to false", () => {
+    const repo = createRepo(WORKTREE_ROOT, {
+      "lisa@lisa": true,
+      "disabled-plugin@suite": false,
+    });
+    const calls = runHook(repo, "1");
+    expect(calls).toContain(INSTALL_LISA_CALL);
+    expect(calls.some(c => c.includes("disabled-plugin@suite"))).toBe(false);
+  });
+
+  it("does not write sentinel when a plugin install fails", () => {
+    const base = mkdtempSync(path.join(tmpdir(), "lisa-post-checkout-fail-"));
+    const root = path.join(base, ...WORKTREE_ROOT);
+    const binDir = path.join(base, "bin");
+    const claudeBin = path.join(binDir, "claude");
+
+    tempDirs.push(base);
+    mkdirSync(path.join(root, ".claude"), { recursive: true });
+    mkdirSync(binDir, { recursive: true });
+    spawnSync(GIT_PATH, ["init", "-q"], { cwd: root });
+    spawnSync(GIT_PATH, ["commit", "-q", "--allow-empty", "-m", "init"], {
+      cwd: root,
+      env: { ...process.env, ...GIT_IDENTITY },
+    });
+    writeFileSync(
+      path.join(root, ".claude", "settings.json"),
+      JSON.stringify({ enabledPlugins: { "lisa@lisa": true } })
+    );
+    // A claude that always fails on plugin install
+    writeFileSync(
+      claudeBin,
+      `#!/bin/sh\ncase "$*" in\n  "plugin install"*) exit 1 ;;\nesac\n`
+    );
+    chmodSync(claudeBin, 0o755);
+
+    spawnSync(SH_PATH, [HOOK_PATH, NULL_SHA, HEAD_SHA, "1"], {
+      cwd: root,
+      env: { ...process.env, PATH: `${binDir}:${process.env.PATH ?? ""}` },
+      encoding: "utf-8",
+    });
+
+    // Sentinel must NOT exist — failed install should not mark the worktree done
+    const gitDir = spawnSync(GIT_PATH, ["rev-parse", "--git-dir"], {
+      cwd: root,
+      encoding: "utf-8",
+    }).stdout.trim();
+    const sentinel = path.join(root, gitDir, "lisa-plugins-bootstrapped");
+    expect(existsSync(sentinel)).toBe(false);
   });
 });
