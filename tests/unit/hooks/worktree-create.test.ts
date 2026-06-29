@@ -28,6 +28,20 @@ const GIT_IDENTITY = {
 };
 const hasJq = spawnSync(SH_PATH, ["-c", "command -v jq"]).status === 0;
 
+/**
+ * Return process env without outer git hook state for nested temp repos.
+ * @returns Environment safe for fixture git commands
+ */
+function cleanGitEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("GIT_")) {
+      delete env[key];
+    }
+  }
+  return env;
+}
+
 let tempDirs: string[] = [];
 
 afterEach(() => {
@@ -44,10 +58,10 @@ afterEach(() => {
 function createGitRepo(): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-worktree-create-"));
   tempDirs.push(root);
-  spawnSync(GIT_PATH, ["init", "-q"], { cwd: root });
+  spawnSync(GIT_PATH, ["init", "-q"], { cwd: root, env: cleanGitEnv() });
   spawnSync(GIT_PATH, ["commit", "-q", "--allow-empty", "-m", "init"], {
     cwd: root,
-    env: { ...process.env, ...GIT_IDENTITY },
+    env: { ...cleanGitEnv(), ...GIT_IDENTITY },
   });
   return root;
 }
@@ -69,6 +83,7 @@ function runHook(
   });
   const result = spawnSync(SH_PATH, [HOOK_PATH], {
     cwd: root,
+    env: cleanGitEnv(),
     input: payload,
     encoding: "utf-8",
   });
@@ -97,6 +112,7 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     const { stdout } = runHook(root, "featureY");
     const branch = spawnSync(GIT_PATH, ["rev-parse", "--abbrev-ref", "HEAD"], {
       cwd: stdout.trim(),
+      env: cleanGitEnv(),
       encoding: "utf-8",
     }).stdout.trim();
     expect(branch).toBe("worktree-featureY");
@@ -120,6 +136,7 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     const root = createGitRepo();
     const result = spawnSync(SH_PATH, [HOOK_PATH], {
       cwd: root,
+      env: cleanGitEnv(),
       input: JSON.stringify({ hook_event_name: "WorktreeCreate", cwd: root }),
       encoding: "utf-8",
     });
