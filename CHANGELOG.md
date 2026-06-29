@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.8](https://github.com/CodySwannGT/lisa/compare/vv2.186.7...v2.186.8) (2026-06-29)
+
+
+### Bug Fixes
+
+* **ci:** drop dynamic approval environment ([2976d64](https://github.com/CodySwannGT/lisa/commit/2976d6459664b58d5b921d831644213412ccf578))
+
 ### [2.186.7](https://github.com/CodySwannGT/lisa/compare/vv2.186.6...v2.186.7) (2026-06-29)
 
 
