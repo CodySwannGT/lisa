@@ -41,6 +41,7 @@ interface WorkflowJob {
   "timeout-minutes"?: number;
   needs?: string | string[];
   if?: string;
+  environment?: unknown;
   permissions?: Record<string, unknown>;
   strategy?: { matrix?: Record<string, unknown>; "fail-fast"?: boolean };
   steps?: WorkflowStep[];
@@ -251,6 +252,12 @@ describe("quality.yml reusable workflow", () => {
       expect(scan).toBeDefined();
       expect(scan?.env?.SONAR_TOKEN).toBe("${{ secrets.SONAR_TOKEN }}");
       expect(scan?.env).not.toHaveProperty("GITHUB_TOKEN");
+    });
+  });
+
+  describe("cross-repo reusable workflow approval gate", () => {
+    it("does not bind a dynamic environment in the optional approval job", () => {
+      expect(workflow.jobs.approval_gate.environment).toBeUndefined();
     });
   });
 
