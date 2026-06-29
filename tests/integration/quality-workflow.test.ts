@@ -229,6 +229,19 @@ describe("quality.yml reusable workflow", () => {
     });
   });
 
+  describe("cross-repo reusable workflow token handling", () => {
+    it("uses github.token for SonarCloud instead of requiring callers to pass GITHUB_TOKEN", () => {
+      const steps = workflow.jobs.sonarcloud.steps ?? [];
+      const scan = steps.find(
+        s => s.uses === "SonarSource/sonarqube-scan-action@v6.0.0"
+      );
+
+      expect(scan).toBeDefined();
+      expect(scan?.env?.GITHUB_TOKEN).toBe("${{ github.token }}");
+      expect(scan?.env?.GITHUB_TOKEN).not.toContain("secrets.GITHUB_TOKEN");
+    });
+  });
+
   describe("GitGuardian quota exhaustion", () => {
     it.each([
       ["quality.yml", QUALITY_YML],
