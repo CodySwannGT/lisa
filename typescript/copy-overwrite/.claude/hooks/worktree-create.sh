@@ -34,6 +34,15 @@ if [ -z "${_name:-}" ]; then
   exit 1
 fi
 
+# The name is interpolated into a filesystem path and a git ref, so reject path
+# traversal/separators, a leading dash, and any character outside a safe slug.
+case "$_name" in
+  *..* | /* | -* | *[!A-Za-z0-9._-]*)
+    _log "WorktreeCreate: unsafe worktree name '$_name'; aborting."
+    exit 1
+    ;;
+esac
+
 _root="${_cwd:-$(pwd)}"
 _base="$_root/.claude/worktrees"
 _path="$_base/$_name"
@@ -52,7 +61,7 @@ _log "Creating worktree $_path (branch: $_wt_branch)…"
 # Reuse the worktree branch if it already exists, else create it from HEAD.
 # All git output is kept off stdout (its "Preparing worktree…" line would
 # corrupt the path contract and hang Claude).
-if git show-ref --verify --quiet "refs/heads/$_wt_branch" 2>/dev/null; then
+if git -C "$_root" show-ref --verify --quiet "refs/heads/$_wt_branch" 2>/dev/null; then
   git -C "$_root" worktree add "$_path" "$_wt_branch" >/dev/null 2>&1
 else
   git -C "$_root" worktree add -b "$_wt_branch" "$_path" HEAD >/dev/null 2>&1

@@ -72,21 +72,23 @@ function runHook(
     input: payload,
     encoding: "utf-8",
   });
+  // Raw stdout (not trimmed): the contract is "ONLY the path", so tests assert
+  // the exact `<path>\n` shape and catch any stray whitespace/chatter.
   return {
     status: result.status,
-    stdout: (result.stdout ?? "").trim(),
+    stdout: result.stdout ?? "",
     stderr: result.stderr ?? "",
   };
 }
 
 describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
-  it("creates <cwd>/.claude/worktrees/<name> and prints only its path", () => {
+  it("creates <cwd>/.claude/worktrees/<name> and prints exactly its path", () => {
     const root = createGitRepo();
     const { status, stdout } = runHook(root, "featureX");
     const expected = path.join(root, ".claude", "worktrees", "featureX");
 
     expect(status).toBe(0);
-    expect(stdout).toBe(expected);
+    expect(stdout).toBe(`${expected}\n`);
     expect(existsSync(expected)).toBe(true);
   });
 
@@ -94,7 +96,7 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     const root = createGitRepo();
     const { stdout } = runHook(root, "featureY");
     const branch = spawnSync(GIT_PATH, ["rev-parse", "--abbrev-ref", "HEAD"], {
-      cwd: stdout,
+      cwd: stdout.trim(),
       encoding: "utf-8",
     }).stdout.trim();
     expect(branch).toBe("worktree-featureY");
@@ -108,11 +110,10 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     expect(second.stdout).toBe(first.stdout);
   });
 
-  it("prints nothing on stdout but the path (no git chatter)", () => {
+  it("emits only the path on stdout — no git chatter", () => {
     const root = createGitRepo();
-    const { stdout } = runHook(root, "clean");
-    expect(stdout.split("\n")).toHaveLength(1);
-    expect(stdout).not.toMatch(/Preparing|HEAD is now/);
+    const expected = path.join(root, ".claude", "worktrees", "clean");
+    expect(runHook(root, "clean").stdout).toBe(`${expected}\n`);
   });
 
   it("aborts with a non-zero exit when the payload has no name", () => {
@@ -124,5 +125,13 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     });
     expect(result.status).not.toBe(0);
     expect((result.stdout ?? "").trim()).toBe("");
+  });
+
+  it("rejects an unsafe worktree name (path traversal) without creating it", () => {
+    const root = createGitRepo();
+    const { status, stdout } = runHook(root, "../escape");
+    expect(status).not.toBe(0);
+    expect(stdout.trim()).toBe("");
+    expect(existsSync(path.join(root, "..", "escape"))).toBe(false);
   });
 });
