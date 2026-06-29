@@ -743,6 +743,9 @@ describe("Lisa Integration Tests", () => {
       const ciPath = path.join(destDir, ".github", "workflows", "ci.yml");
       expect(await fs.pathExists(ciPath)).toBe(true);
       const content = await fs.readFile(ciPath, "utf-8");
+      expect(content).toContain(
+        "types: [opened, synchronize, reopened, labeled, unlabeled]"
+      );
       expect(content).toContain("uses: ./.github/workflows/quality.yml");
       expect(content).toContain("secrets: inherit");
     });
