@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.5](https://github.com/CodySwannGT/lisa/compare/vv2.186.4...v2.186.5) (2026-06-29)
+
+
+### Bug Fixes
+
+* **plugins:** address review — value-filter, retry-on-failure, name safety ([8bd004d](https://github.com/CodySwannGT/lisa/commit/8bd004dbdac5c9f73f2f71598cf501598b8fa614))
+* **plugins:** load Lisa plugins/hooks in git worktree sessions ([49783f2](https://github.com/CodySwannGT/lisa/commit/49783f2f11eedecd3ba4795a7d8f8c494594e532)), closes [anthropics/claude-code#46808](https://github.com/anthropics/claude-code/issues/46808) [#36360](https://github.com/CodySwannGT/lisa/issues/36360)
+
 ### [2.186.4](https://github.com/CodySwannGT/lisa/compare/vv2.186.3...v2.186.4) (2026-06-29)
 
 
