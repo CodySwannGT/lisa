@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.6](https://github.com/CodySwannGT/lisa/compare/vv2.186.5...v2.186.6) (2026-06-29)
+
+
+### Bug Fixes
+
+* **ci:** use workflow token for sonar scan ([34d5ed3](https://github.com/CodySwannGT/lisa/commit/34d5ed3d3cf8b6e51a02e97d0899b3df7f5ad82f))
+
 ### [2.186.5](https://github.com/CodySwannGT/lisa/compare/vv2.186.4...v2.186.5) (2026-06-29)
 
 
