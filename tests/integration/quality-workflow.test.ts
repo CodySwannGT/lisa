@@ -30,6 +30,7 @@ interface WorkflowStep {
   run?: string;
   uses?: string;
   if?: string;
+  env?: Record<string, unknown>;
   with?: Record<string, unknown>;
 }
 
@@ -40,6 +41,7 @@ interface WorkflowJob {
   "timeout-minutes"?: number;
   needs?: string | string[];
   if?: string;
+  permissions?: Record<string, unknown>;
   strategy?: { matrix?: Record<string, unknown>; "fail-fast"?: boolean };
   steps?: WorkflowStep[];
 }
@@ -200,6 +202,28 @@ describe("quality.yml reusable workflow", () => {
       // per-shard checks that coexist with the aggregator's unsuffixed
       // context under the same display name.
       expect(workflow.jobs.playwright_e2e.name).toBe("🎭 Playwright E2E Tests");
+    });
+  });
+
+  describe("verification coverage labels", () => {
+    it("passes live pull request context to the coverage script", () => {
+      const job = workflow.jobs.verification_coverage;
+      expect(job.permissions?.contents).toBe("read");
+      expect(job.permissions?.["pull-requests"]).toBe("read");
+
+      const steps = job.steps ?? [];
+      const check = steps.find(s =>
+        s.run?.includes("check-verification-coverage.mjs")
+      );
+      expect(check).toBeDefined();
+      expect(check?.env?.VERIFY_PR_NUMBER).toBe(
+        "${{ github.event.pull_request.number }}"
+      );
+      expect(check?.env?.GITHUB_REPOSITORY).toBe("${{ github.repository }}");
+      expect(check?.env?.GITHUB_TOKEN).toBe("${{ github.token }}");
+      expect(check?.env?.VERIFY_LABELS).toContain(
+        "github.event.pull_request.labels"
+      );
     });
   });
 
