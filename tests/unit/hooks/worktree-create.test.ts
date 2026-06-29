@@ -56,7 +56,7 @@ function createGitRepo(): string {
  * Run the hook with a WorktreeCreate stdin payload.
  * @param root - Project root passed as `cwd` in the payload
  * @param name - Worktree name
- * @returns The hook's exit status, trimmed stdout, and stderr
+ * @returns The hook's exit status, raw stdout, and stderr
  */
 function runHook(
   root: string,
@@ -74,7 +74,7 @@ function runHook(
   });
   return {
     status: result.status,
-    stdout: (result.stdout ?? "").trim(),
+    stdout: result.stdout ?? "",
     stderr: result.stderr ?? "",
   };
 }
@@ -86,7 +86,7 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     const expected = path.join(root, ".claude", "worktrees", "featureX");
 
     expect(status).toBe(0);
-    expect(stdout).toBe(expected);
+    expect(stdout).toBe(`${expected}\n`);
     expect(existsSync(expected)).toBe(true);
   });
 
@@ -94,7 +94,7 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     const root = createGitRepo();
     const { stdout } = runHook(root, "featureY");
     const branch = spawnSync(GIT_PATH, ["rev-parse", "--abbrev-ref", "HEAD"], {
-      cwd: stdout,
+      cwd: stdout.trimEnd(),
       encoding: "utf-8",
     }).stdout.trim();
     expect(branch).toBe("worktree-featureY");
@@ -111,7 +111,7 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
   it("prints nothing on stdout but the path (no git chatter)", () => {
     const root = createGitRepo();
     const { stdout } = runHook(root, "clean");
-    expect(stdout.split("\n")).toHaveLength(1);
+    expect(stdout.split("\n").filter(Boolean)).toHaveLength(1);
     expect(stdout).not.toMatch(/Preparing|HEAD is now/);
   });
 
@@ -124,5 +124,19 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     });
     expect(result.status).not.toBe(0);
     expect((result.stdout ?? "").trim()).toBe("");
+  });
+
+  it("aborts when worktree name contains a path separator", () => {
+    const root = createGitRepo();
+    const { status, stdout } = runHook(root, "../evil");
+    expect(status).not.toBe(0);
+    expect(stdout.trim()).toBe("");
+  });
+
+  it("aborts when worktree name contains path traversal (..)", () => {
+    const root = createGitRepo();
+    const { status, stdout } = runHook(root, "..");
+    expect(status).not.toBe(0);
+    expect(stdout.trim()).toBe("");
   });
 });
