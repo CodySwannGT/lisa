@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.9](https://github.com/CodySwannGT/lisa/compare/vv2.186.8...v2.186.9) (2026-06-29)
+
+
+### Bug Fixes
+
+* **ci:** avoid implicit token in verification gate ([0b3f1fc](https://github.com/CodySwannGT/lisa/commit/0b3f1fc61fac04759ebec178fb482f1c16b49b64))
+
 ### [2.186.8](https://github.com/CodySwannGT/lisa/compare/vv2.186.7...v2.186.8) (2026-06-29)
 
 
