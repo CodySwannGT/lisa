@@ -61,7 +61,7 @@ afterEach(() => {
 
 /** A temp git repo wired with a fake `claude` for exercising the hook. */
 interface Repo {
-  /** Repo root (may sit under a .claude/worktrees/* path). */
+  /** Target root — a linked worktree, or the primary checkout. */
   readonly root: string;
   /** Directory holding the fake `claude` binary, prepended to PATH. */
   readonly binDir: string;
@@ -70,31 +70,46 @@ interface Repo {
 }
 
 /**
- * Create a git repo at `relativeRoot` under a fresh temp dir, seed
- * .claude/settings.json with the given enabled plugins, and a fake `claude`
- * binary that appends its argv to a log.
- * @param relativeRoot - Path segments for the repo root under the temp dir
+ * Create a temp git repo and, when requested, a REAL linked worktree off it,
+ * seed .claude/settings.json with the enabled plugins, and a fake `claude` that
+ * logs its argv. The hook detects linked worktrees via git metadata (private
+ * git dir ≠ common dir), so fixtures must be genuine worktrees rather than a
+ * directory that merely looks like one.
+ * @param options - Fixture shape
+ * @param options.worktree - Whether `root` is a linked worktree or the primary checkout
  * @param enabledPlugins - Map written to .claude/settings.json enabledPlugins
- * @returns The repo root, fake-bin directory, and the claude-call log path
+ * @returns The target root, fake-bin directory, and the claude-call log path
  */
 function createRepo(
-  relativeRoot: readonly string[],
+  options: { readonly worktree: boolean },
   enabledPlugins: Record<string, boolean>
 ): Repo {
   const base = mkdtempSync(path.join(tmpdir(), "lisa-post-checkout-"));
-  const root = path.join(base, ...relativeRoot);
+  const main = path.join(base, "main");
   const binDir = path.join(base, "bin");
   const callsFile = path.join(base, "claude-calls.log");
   const claudeBin = path.join(binDir, "claude");
+  const root = options.worktree
+    ? path.join(main, ".claude", "worktrees", "wtA")
+    : main;
 
   tempDirs.push(base);
-  mkdirSync(path.join(root, ".claude"), { recursive: true });
+  mkdirSync(main, { recursive: true });
   mkdirSync(binDir, { recursive: true });
-  spawnSync(GIT_PATH, ["init", "-q"], { cwd: root, env: cleanGitEnv() });
+  spawnSync(GIT_PATH, ["init", "-q"], { cwd: main, env: cleanGitEnv() });
   spawnSync(GIT_PATH, ["commit", "-q", "--allow-empty", "-m", "init"], {
-    cwd: root,
+    cwd: main,
     env: { ...cleanGitEnv(), ...GIT_IDENTITY },
   });
+
+  if (options.worktree) {
+    spawnSync(GIT_PATH, ["worktree", "add", "-q", "-b", "feat", root, "HEAD"], {
+      cwd: main,
+      env: { ...cleanGitEnv(), ...GIT_IDENTITY },
+    });
+  }
+
+  mkdirSync(path.join(root, ".claude"), { recursive: true });
   writeFileSync(
     path.join(root, ".claude", "settings.json"),
     JSON.stringify({ enabledPlugins })
@@ -123,12 +138,13 @@ function runHook(repo: Repo, flag: string): string[] {
   return readFileSync(repo.callsFile, "utf-8").split("\n").filter(Boolean);
 }
 
-const WORKTREE_ROOT = [".claude", "worktrees", "wtA"];
 const INSTALL_LISA = "plugin install lisa@lisa --scope project";
+const WORKTREE = { worktree: true } as const;
+const MAIN = { worktree: false } as const;
 
 describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
   it("installs each enabled plugin at project scope inside a worktree", () => {
-    const repo = createRepo(WORKTREE_ROOT, {
+    const repo = createRepo(WORKTREE, {
       "lisa@lisa": true,
       "coderabbit@claude-plugins-official": true,
     });
@@ -141,7 +157,7 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
   });
 
   it("skips plugin ids containing shell-unsafe characters", () => {
-    const repo = createRepo(WORKTREE_ROOT, {
+    const repo = createRepo(WORKTREE, {
       "lisa@lisa": true,
       "bad;rm -rf": true,
     });
@@ -151,7 +167,7 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
   });
 
   it("does not install plugins disabled (set to false) in settings", () => {
-    const repo = createRepo(WORKTREE_ROOT, {
+    const repo = createRepo(WORKTREE, {
       "lisa@lisa": true,
       "code-review@claude-plugins-official": false,
     });
@@ -161,19 +177,19 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
   });
 
   it("is idempotent: a second checkout is a no-op (sentinel)", () => {
-    const repo = createRepo(WORKTREE_ROOT, { "lisa@lisa": true });
+    const repo = createRepo(WORKTREE, { "lisa@lisa": true });
     const first = runHook(repo, "1");
     const second = runHook(repo, "1");
     expect(second).toEqual(first);
   });
 
   it("does nothing on a file checkout (flag 0)", () => {
-    const repo = createRepo(WORKTREE_ROOT, { "lisa@lisa": true });
+    const repo = createRepo(WORKTREE, { "lisa@lisa": true });
     expect(runHook(repo, "0")).toEqual([]);
   });
 
-  it("does nothing in a non-worktree (main) checkout", () => {
-    const repo = createRepo(["mainproj"], { "lisa@lisa": true });
+  it("does nothing in the primary (non-worktree) checkout", () => {
+    const repo = createRepo(MAIN, { "lisa@lisa": true });
     expect(runHook(repo, "1")).toEqual([]);
   });
 });

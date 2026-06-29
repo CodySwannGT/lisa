@@ -45,6 +45,7 @@ describe("check-verification-coverage", () => {
     readonly prNumber?: string;
     readonly token?: string;
     readonly fetchImpl?: typeof fetch;
+    readonly timeoutMs?: number;
   }) => Promise<string[] | null>;
 
   beforeAll(async () => {
@@ -135,6 +136,41 @@ describe("check-verification-coverage", () => {
       "https://api.github.com/repos/CodySwannGT/lisa/pulls/1371",
     ]);
     expect(labels).toEqual([EXEMPT_LABEL, "component:ci"]);
+  });
+
+  it("bounds the request with an abort signal", async () => {
+    let signal: AbortSignal | undefined;
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      signal = init?.signal ?? undefined;
+      return { ok: true, json: async () => ({ labels: [] }) };
+    }) as unknown as typeof fetch;
+
+    await fetchLivePullRequestLabels({
+      repository: REPOSITORY,
+      prNumber: "1371",
+      token: "token",
+      fetchImpl,
+    });
+
+    expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("surfaces a clear error when the request times out", async () => {
+    const fetchImpl = (async () => {
+      const error = new Error("aborted");
+      error.name = "TimeoutError";
+      throw error;
+    }) as unknown as typeof fetch;
+
+    await expect(
+      fetchLivePullRequestLabels({
+        repository: REPOSITORY,
+        prNumber: "1371",
+        token: "token",
+        fetchImpl,
+        timeoutMs: 5,
+      })
+    ).rejects.toThrow(/timed out after 5ms/);
   });
 
   it("skips live label lookup when PR API context is absent", async () => {
