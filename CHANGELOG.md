@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.2](https://github.com/CodySwannGT/lisa/compare/vv2.186.1...v2.186.2) (2026-06-29)
+
+
+### Bug Fixes
+
+* read live labels for verification coverage ([c9f5341](https://github.com/CodySwannGT/lisa/commit/c9f534176663af33e54c6cd2eebbc6abce64689e)), closes [#1371](https://github.com/CodySwannGT/lisa/issues/1371)
+
 ### [2.186.1](https://github.com/CodySwannGT/lisa/compare/vv2.186.0...v2.186.1) (2026-06-28)
 
 
