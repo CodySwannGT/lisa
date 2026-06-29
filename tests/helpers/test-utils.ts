@@ -268,7 +268,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   await fs.ensureDir(path.join(railsCreateOnly, ".github", "workflows"));
   await fs.writeFile(
     path.join(railsCreateOnly, ".github", "workflows", "ci.yml"),
-    "name: CI\n\non:\n  pull_request:\n  workflow_dispatch:\n\njobs:\n  quality:\n    name: Quality Checks\n    uses: ./.github/workflows/quality.yml\n    secrets: inherit\n"
+    "name: CI\n\non:\n  pull_request:\n    types: [opened, synchronize, reopened, labeled, unlabeled]\n  workflow_dispatch:\n\njobs:\n  quality:\n    name: Quality Checks\n    uses: ./.github/workflows/quality.yml\n    secrets: inherit\n"
   );
   await fs.writeFile(
     path.join(railsCreateOnly, ".github", "workflows", "quality.yml"),
