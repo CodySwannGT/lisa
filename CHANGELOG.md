@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.4](https://github.com/CodySwannGT/lisa/compare/vv2.186.3...v2.186.4) (2026-06-29)
+
+
+### Bug Fixes
+
+* avoid reserved github env names in verification gate ([baa349e](https://github.com/CodySwannGT/lisa/commit/baa349eb91b28f7202e75d4a11bff349b1c1f4e6))
+
 ### [2.186.3](https://github.com/CodySwannGT/lisa/compare/vv2.186.2...v2.186.3) (2026-06-29)
 
 
