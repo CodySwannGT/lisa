@@ -1,0 +1,83 @@
+# BEGIN: AI GUARDRAILS
+
+# Worktree plugin bootstrap.
+#
+# A git worktree is a DISTINCT project path to Claude Code, so the plugins
+# enabled in .claude/settings.json are "enabled in project settings but isn't
+# installed here" for the worktree until `claude plugin install --scope project`
+# runs against that path. The result: Lisa's guardrail hooks (block-no-verify,
+# the verification gate, inject-rules) AND the other managed plugins
+# (coderabbit / sentry / atlassian / safety-net / …) load ZERO hooks in a
+# worktree session started as `cd <worktree> && claude`. (A `claude -w` session
+# inherits the marketplace plugins, but the project-scoped ones still report
+# "not installed here".)
+#
+# git fires post-checkout INSIDE the new worktree at `git worktree add` time
+# (which `claude -w` and Fleet both use), so this is a deadlock-free place to
+# seed those installs once, before any session loads plugins. Both `claude -w`
+# and standalone `cd && claude` sessions then resolve every enabled plugin.
+#
+# Guards keep it cheap and safe:
+#   - only inside a *.claude/worktrees/* path (the main checkout is handled by
+#     `lisa apply`'s plugin registration);
+#   - only on a branch checkout ($3 = 1), never a file checkout;
+#   - only once per worktree (a sentinel in the worktree's private git dir), so
+#     ordinary branch switches do not re-run 10+ installs;
+#   - only when `claude` and `jq` are on PATH and settings exist (skips CI/remote);
+#   - best-effort — never blocks or fails the checkout.
+
+_lisa_bootstrap_worktree_plugins() {
+  # $3 == 1 -> branch checkout (worktree add / branch switch); 0 -> file checkout
+  [ "${3:-1}" = "1" ] || return 0
+  command -v claude >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  _root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  case "$_root" in
+    */.claude/worktrees/*) : ;;
+    *) return 0 ;; # main checkout: `lisa apply` installs plugins there
+  esac
+
+  _settings="$_root/.claude/settings.json"
+  [ -f "$_settings" ] || return 0
+
+  # Per-worktree sentinel lives in the worktree's private git dir
+  # (<main>/.git/worktrees/<name>), so it neither pollutes the tree nor leaks to
+  # other worktrees, and survives branch switches.
+  _gitdir="$(git rev-parse --git-dir 2>/dev/null || echo .git)"
+  _sentinel="$_gitdir/lisa-plugins-bootstrapped"
+  [ -f "$_sentinel" ] && return 0
+
+  # Only the truthy entries — an explicit `false` means "disabled", not "install".
+  _plugins="$(jq -r '(.enabledPlugins // {}) | to_entries[] | select(.value == true) | .key' "$_settings" 2>/dev/null)"
+  [ -n "$_plugins" ] || return 0
+
+  echo "🔌 Bootstrapping Claude Code plugins for new worktree (scope: project)…"
+  claude plugin marketplace update lisa >/dev/null 2>&1 || true
+  _had_failure=0
+  for _p in $_plugins; do
+    # Skip ids with shell-unsafe characters before interpolating into the CLI.
+    case "$_p" in
+      *[!A-Za-z0-9@._/-]*) continue ;;
+    esac
+    if claude plugin install "$_p" --scope project >/dev/null 2>&1; then
+      echo "  ✓ $_p"
+    else
+      echo "  ⚠ $_p (skipped)"
+      _had_failure=1
+    fi
+  done
+
+  # Mark bootstrapped only when every install succeeded, so a transient failure
+  # retries on the next checkout instead of being skipped forever.
+  if [ "$_had_failure" = "0" ]; then
+    : >"$_sentinel" 2>/dev/null || true
+  fi
+}
+
+# Never let a bootstrap hiccup block the checkout.
+_lisa_bootstrap_worktree_plugins "$@" || true
+
+exit 0
+
+# END: AI GUARDRAILS
