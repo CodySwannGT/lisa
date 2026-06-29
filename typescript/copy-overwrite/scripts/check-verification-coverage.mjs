@@ -15,7 +15,10 @@
  *   VERIFY_BASE_REF      base branch for the fallback range (default main)
  *   VERIFY_CHANGE_TYPES  comma list of conventional-commit types in the change
  *                        (e.g. "feat,chore"); if empty, derived from commit subjects
- *   VERIFY_LABELS        comma list of PR labels (for `verification-exempt`)
+ *   VERIFY_LABELS        comma list of PR labels (fallback for `verification-exempt`)
+ *   VERIFY_PR_NUMBER     pull request number for live label lookup
+ *   GITHUB_REPOSITORY    owner/repo for live label lookup
+ *   GITHUB_TOKEN         token with pull-requests: read for live label lookup
  *
  * Exit 0 = satisfied / exempt / not-required. Exit 1 = required but missing.
  * @module scripts/check-verification-coverage
@@ -29,6 +32,64 @@ const EXEMPT_LABEL = "verification-exempt";
 // or a tests/verification/ tree — NOT an arbitrary path that merely contains an
 // "e2e" segment (e.g. src/e2e/helpers.ts must not satisfy the gate).
 const VERIFICATION_PATH = /^e2e\/|(^|\/)tests\/(e2e|verification)\//;
+
+/**
+ * Parse a comma-delimited label list.
+ * @param {string | undefined} value - Comma-delimited labels
+ * @returns {string[]} Parsed labels
+ */
+function parseLabels(value) {
+  return (value || "")
+    .split(",")
+    .map(label => label.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Fetch the current PR label set from GitHub when CI provides PR context.
+ * @param {object} input - GitHub API context
+ * @param {string | undefined} input.repository - Repository in owner/name form
+ * @param {string | undefined} input.prNumber - Pull request number
+ * @param {string | undefined} input.token - GitHub token
+ * @param {typeof fetch} [input.fetchImpl] - Fetch implementation for tests
+ * @returns {Promise<string[] | null>} Live labels, or null when context is absent
+ */
+export async function fetchLivePullRequestLabels({
+  repository,
+  prNumber,
+  token,
+  fetchImpl = globalThis.fetch,
+}) {
+  if (!repository || !prNumber || !token) {
+    return null;
+  }
+  if (typeof fetchImpl !== "function") {
+    throw new Error("Live label lookup requires a fetch implementation.");
+  }
+
+  const response = await fetchImpl(
+    `https://api.github.com/repos/${repository}/pulls/${prNumber}`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch live PR labels: GitHub API returned ${response.status}.`
+    );
+  }
+
+  const pullRequest = await response.json();
+  return Array.isArray(pullRequest.labels)
+    ? pullRequest.labels
+        .map(label => label?.name)
+        .filter(label => typeof label === "string" && label.length > 0)
+    : [];
+}
 
 /**
  * Pure decision: is a verification-spec delta required, and is it satisfied?
@@ -78,9 +139,9 @@ export function evaluateVerificationCoverage({
 
 /**
  * Gather the change context from git + env.
- * @returns {{changedFiles: string[], changeTypes: string[], labels: string[]}} Context
+ * @returns {Promise<{changedFiles: string[], changeTypes: string[], labels: string[]}>} Context
  */
-function gatherContext() {
+async function gatherContext() {
   const head = process.env.VERIFY_HEAD_SHA || "HEAD";
   const baseRef = process.env.VERIFY_BASE_REF || "main";
   const base = process.env.VERIFY_BASE_SHA || `origin/${baseRef}`;
@@ -117,20 +178,23 @@ function gatherContext() {
         .filter(Boolean);
   const changeTypes = [...new Set([...fromEnv, ...fromCommits])];
 
-  const labels = (process.env.VERIFY_LABELS || "")
-    .split(",")
-    .map(value => value.trim())
-    .filter(Boolean);
+  const fallbackLabels = parseLabels(process.env.VERIFY_LABELS);
+  const liveLabels = await fetchLivePullRequestLabels({
+    repository: process.env.GITHUB_REPOSITORY,
+    prNumber: process.env.VERIFY_PR_NUMBER,
+    token: process.env.GITHUB_TOKEN,
+  });
+  const labels = liveLabels ?? fallbackLabels;
 
   return { changedFiles, changeTypes, labels };
 }
 
 /**
  * CLI entry: evaluate and exit non-zero when a required verification delta is missing.
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function main() {
-  const context = gatherContext();
+async function main() {
+  const context = await gatherContext();
   const result = evaluateVerificationCoverage(context);
   console.log(
     `[verification-coverage] types=[${context.changeTypes.join(
@@ -155,5 +219,8 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  main();
+  main().catch(error => {
+    console.error(`[verification-coverage] FAIL: ${error.message}`);
+    process.exit(1);
+  });
 }
