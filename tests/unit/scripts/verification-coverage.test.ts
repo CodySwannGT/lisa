@@ -11,6 +11,8 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL =
   "typescript/copy-overwrite/scripts/check-verification-coverage.mjs";
 const GAME_SCENE = "src/game/scenes/Game.ts";
+const REPOSITORY = "CodySwannGT/lisa";
+const EXEMPT_LABEL = "verification-exempt";
 
 /**
  * Read a repo-relative text file.
@@ -38,11 +40,18 @@ interface CoverageResult {
 describe("check-verification-coverage", () => {
   // Dynamic import via a runtime URL keeps this typed as `any` (no .mjs decls).
   let evaluate: (input: CoverageInput) => CoverageResult;
+  let fetchLivePullRequestLabels: (input: {
+    readonly repository?: string;
+    readonly prNumber?: string;
+    readonly token?: string;
+    readonly fetchImpl?: typeof fetch;
+  }) => Promise<string[] | null>;
 
   beforeAll(async () => {
     const url = pathToFileURL(path.join(REPO_ROOT, SCRIPT_REL)).href;
     const mod = await import(url);
     evaluate = mod.evaluateVerificationCoverage;
+    fetchLivePullRequestLabels = mod.fetchLivePullRequestLabels;
   });
 
   it("does not require a delta for non-behavioral changes", () => {
@@ -97,10 +106,48 @@ describe("check-verification-coverage", () => {
     const r = evaluate({
       changedFiles: [GAME_SCENE],
       changeTypes: ["fix"],
-      labels: ["verification-exempt"],
+      labels: [EXEMPT_LABEL],
     });
     expect(r.ok).toBe(true);
     expect(r.exempt).toBe(true);
+  });
+
+  it("fetches live pull request labels when GitHub context is present", async () => {
+    const calls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      calls.push(url);
+      return {
+        ok: true,
+        json: async () => ({
+          labels: [{ name: EXEMPT_LABEL }, { name: "component:ci" }],
+        }),
+      };
+    }) as unknown as typeof fetch;
+
+    const labels = await fetchLivePullRequestLabels({
+      repository: REPOSITORY,
+      prNumber: "1371",
+      token: "token",
+      fetchImpl,
+    });
+
+    expect(calls).toEqual([
+      "https://api.github.com/repos/CodySwannGT/lisa/pulls/1371",
+    ]);
+    expect(labels).toEqual([EXEMPT_LABEL, "component:ci"]);
+  });
+
+  it("skips live label lookup when PR API context is absent", async () => {
+    const labels = await fetchLivePullRequestLabels({
+      repository: REPOSITORY,
+      prNumber: "1371",
+      token: undefined,
+      fetchImpl: (() => {
+        throw new Error("fetch should not be called");
+      }) as unknown as typeof fetch,
+    });
+
+    expect(labels).toBeNull();
   });
 });
 
