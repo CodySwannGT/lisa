@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.11](https://github.com/CodySwannGT/lisa/compare/vv2.186.10...v2.186.11) (2026-06-29)
+
+
+### Bug Fixes
+
+* **plugins:** harden worktree bootstrap + bound verification fetch ([836f366](https://github.com/CodySwannGT/lisa/commit/836f366c53978699d991d8dee39cb358a5a381e3)), closes [CodySwannGT/grist#166](https://github.com/CodySwannGT/grist/issues/166)
+
 ### [2.186.10](https://github.com/CodySwannGT/lisa/compare/vv2.186.9...v2.186.10) (2026-06-29)
 
 
