@@ -48,11 +48,13 @@ _lisa_bootstrap_worktree_plugins() {
   _sentinel="$_gitdir/lisa-plugins-bootstrapped"
   [ -f "$_sentinel" ] && return 0
 
-  _plugins="$(jq -r '(.enabledPlugins // {}) | keys[]' "$_settings" 2>/dev/null)"
+  # Only the truthy entries — an explicit `false` means "disabled", not "install".
+  _plugins="$(jq -r '(.enabledPlugins // {}) | to_entries[] | select(.value == true) | .key' "$_settings" 2>/dev/null)"
   [ -n "$_plugins" ] || return 0
 
   echo "🔌 Bootstrapping Claude Code plugins for new worktree (scope: project)…"
   claude plugin marketplace update lisa >/dev/null 2>&1 || true
+  _had_failure=0
   for _p in $_plugins; do
     # Skip ids with shell-unsafe characters before interpolating into the CLI.
     case "$_p" in
@@ -62,10 +64,15 @@ _lisa_bootstrap_worktree_plugins() {
       echo "  ✓ $_p"
     else
       echo "  ⚠ $_p (skipped)"
+      _had_failure=1
     fi
   done
 
-  : >"$_sentinel" 2>/dev/null || true
+  # Mark bootstrapped only when every install succeeded, so a transient failure
+  # retries on the next checkout instead of being skipped forever.
+  if [ "$_had_failure" = "0" ]; then
+    : >"$_sentinel" 2>/dev/null || true
+  fi
 }
 
 # Never let a bootstrap hiccup block the checkout.

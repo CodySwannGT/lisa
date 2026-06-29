@@ -110,6 +110,7 @@ function runHook(repo: Repo, flag: string): string[] {
 }
 
 const WORKTREE_ROOT = [".claude", "worktrees", "wtA"];
+const INSTALL_LISA = "plugin install lisa@lisa --scope project";
 
 describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
   it("installs each enabled plugin at project scope inside a worktree", () => {
@@ -119,7 +120,7 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
     });
     const calls = runHook(repo, "1");
     expect(calls).toContain("plugin marketplace update lisa");
-    expect(calls).toContain("plugin install lisa@lisa --scope project");
+    expect(calls).toContain(INSTALL_LISA);
     expect(calls).toContain(
       "plugin install coderabbit@claude-plugins-official --scope project"
     );
@@ -131,8 +132,18 @@ describe.skipIf(!hasJq)("post-checkout worktree plugin bootstrap", () => {
       "bad;rm -rf": true,
     });
     const calls = runHook(repo, "1");
-    expect(calls).toContain("plugin install lisa@lisa --scope project");
+    expect(calls).toContain(INSTALL_LISA);
     expect(calls.some(call => call.includes("bad;rm"))).toBe(false);
+  });
+
+  it("does not install plugins disabled (set to false) in settings", () => {
+    const repo = createRepo(WORKTREE_ROOT, {
+      "lisa@lisa": true,
+      "code-review@claude-plugins-official": false,
+    });
+    const calls = runHook(repo, "1");
+    expect(calls).toContain(INSTALL_LISA);
+    expect(calls.some(call => call.includes("code-review"))).toBe(false);
   });
 
   it("is idempotent: a second checkout is a no-op (sentinel)", () => {
