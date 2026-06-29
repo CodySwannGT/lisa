@@ -2330,13 +2330,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.require_approval == true && inputs.compliance_framework != 'none' && inputs.approval_environment != '' }}
     needs: [compliance_validation]
-    environment:
-      name: ${{ inputs.approval_environment }}
-      # NOTE: This environment must be created in your repository before using this workflow
-      # To create it:
-      # 1. Go to Settings > Environments > New environment
-      # 2. Name it to match the approval_environment input (default: "production")
-      # 3. Add protection rules (required reviewers, deployment branches, etc.)
     steps:
       - name: 📝 Log approval
         run: |
