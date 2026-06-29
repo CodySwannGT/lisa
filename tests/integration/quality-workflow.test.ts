@@ -207,22 +207,17 @@ describe("quality.yml reusable workflow", () => {
   });
 
   describe("verification coverage labels", () => {
-    it("passes live pull request context to the coverage script", () => {
+    it("passes event labels to the coverage script without live GitHub context", () => {
       const job = workflow.jobs.verification_coverage;
-      expect(job.permissions?.contents).toBe("read");
-      expect(job.permissions?.["pull-requests"]).toBe("read");
+      expect(job.permissions).toBeUndefined();
 
       const steps = job.steps ?? [];
       const check = steps.find(s =>
         s.run?.includes("check-verification-coverage.mjs")
       );
       expect(check).toBeDefined();
-      expect(check?.env?.VERIFY_PR_NUMBER).toBe(
-        "${{ github.event.pull_request.number }}"
-      );
-      expect(check?.env?.VERIFY_GITHUB_REPOSITORY).toBe(
-        "${{ github.repository }}"
-      );
+      expect(check?.env?.VERIFY_PR_NUMBER).toBeUndefined();
+      expect(check?.env?.VERIFY_GITHUB_REPOSITORY).toBeUndefined();
       expect(check?.env?.VERIFY_GITHUB_TOKEN).toBeUndefined();
       expect(check?.env?.VERIFY_LABELS).toContain(
         "github.event.pull_request.labels"
