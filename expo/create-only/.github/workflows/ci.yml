@@ -2,6 +2,7 @@ name: 🔍 CI Quality Checks
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   workflow_dispatch:
     # Optional knobs forwarded to the reusable quality workflow. Both default
     # to values that preserve pre-SE-4551/SE-4552 behavior (single runner, no
