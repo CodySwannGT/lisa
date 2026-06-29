@@ -14,6 +14,20 @@ import type { MigrationContext } from "../../../src/migrations/migration.interfa
 
 const MARKETPLACE = ".agents/plugins/marketplace.json";
 
+/**
+ * Return process env without outer git hook state for nested temp repos.
+ * @returns Environment safe for fixture git commands
+ */
+function cleanGitEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("GIT_")) {
+      delete env[key];
+    }
+  }
+  return env;
+}
+
 describe("UntrackCodexMarketplaceMigration", () => {
   const migration = new UntrackCodexMarketplaceMigration();
   let tempDir: string;
@@ -41,13 +55,19 @@ describe("UntrackCodexMarketplaceMigration", () => {
   });
 
   const initRepo = (): void => {
-    execSync("git init", { cwd: projectDir, stdio: "ignore" });
+    execSync("git init", {
+      cwd: projectDir,
+      env: cleanGitEnv(),
+      stdio: "ignore",
+    });
     execSync('git config user.email "test@example.com"', {
       cwd: projectDir,
+      env: cleanGitEnv(),
       stdio: "ignore",
     });
     execSync('git config user.name "Test"', {
       cwd: projectDir,
+      env: cleanGitEnv(),
       stdio: "ignore",
     });
   };
@@ -55,10 +75,12 @@ describe("UntrackCodexMarketplaceMigration", () => {
   const commitMarketplace = (): void => {
     execSync("git add .agents/plugins/marketplace.json", {
       cwd: projectDir,
+      env: cleanGitEnv(),
       stdio: "ignore",
     });
     execSync('git commit -m "add marketplace"', {
       cwd: projectDir,
+      env: cleanGitEnv(),
       stdio: "ignore",
     });
   };
@@ -76,7 +98,7 @@ describe("UntrackCodexMarketplaceMigration", () => {
     try {
       execSync(
         "git ls-files --error-unmatch .agents/plugins/marketplace.json",
-        { cwd: projectDir, stdio: "ignore" }
+        { cwd: projectDir, env: cleanGitEnv(), stdio: "ignore" }
       );
       return true;
     } catch {

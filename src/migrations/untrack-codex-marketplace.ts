@@ -8,6 +8,17 @@ import type {
 
 /** Generated Codex marketplace, relative to a project root (posix, git-style). */
 const MARKETPLACE_PATH = ".agents/plugins/marketplace.json";
+const GIT_COMMAND_ENV: NodeJS.ProcessEnv = {
+  PATH: "/usr/bin:/bin:/usr/sbin:/sbin",
+};
+
+/**
+ * Return the minimal environment needed for project-scoped git commands.
+ * @returns Environment safe from caller git hook state
+ */
+function cleanGitEnv(): NodeJS.ProcessEnv {
+  return GIT_COMMAND_ENV;
+}
 
 /**
  * Run a fixed git command in a directory, returning success.
@@ -24,7 +35,7 @@ async function tryGit(command: string, cwd: string): Promise<boolean> {
   const { promisify } = await import("node:util");
   const run = promisify(exec);
   try {
-    await run(command, { cwd });
+    await run(command, { cwd, env: cleanGitEnv() });
     return true;
   } catch {
     return false;
@@ -44,7 +55,7 @@ async function runGit(command: string, cwd: string): Promise<void> {
   const { exec } = await import("node:child_process");
   const { promisify } = await import("node:util");
   const run = promisify(exec);
-  await run(command, { cwd });
+  await run(command, { cwd, env: cleanGitEnv() });
 }
 
 /**

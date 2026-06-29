@@ -230,15 +230,27 @@ describe("quality.yml reusable workflow", () => {
   });
 
   describe("cross-repo reusable workflow token handling", () => {
-    it("uses github.token for SonarCloud instead of requiring callers to pass GITHUB_TOKEN", () => {
+    it("does not declare reserved GITHUB_* environment keys", () => {
+      for (const [jobName, job] of Object.entries(workflow.jobs)) {
+        for (const step of job.steps ?? []) {
+          const envKeys = Object.keys(step.env ?? {});
+          const reservedKeys = envKeys.filter(key => key.startsWith("GITHUB_"));
+          expect(reservedKeys, `${jobName}: ${step.name ?? step.id}`).toEqual(
+            []
+          );
+        }
+      }
+    });
+
+    it("passes only SonarCloud's token to the SonarCloud action", () => {
       const steps = workflow.jobs.sonarcloud.steps ?? [];
       const scan = steps.find(
         s => s.uses === "SonarSource/sonarqube-scan-action@v6.0.0"
       );
 
       expect(scan).toBeDefined();
-      expect(scan?.env?.GITHUB_TOKEN).toBe("${{ github.token }}");
-      expect(scan?.env?.GITHUB_TOKEN).not.toContain("secrets.GITHUB_TOKEN");
+      expect(scan?.env?.SONAR_TOKEN).toBe("${{ secrets.SONAR_TOKEN }}");
+      expect(scan?.env).not.toHaveProperty("GITHUB_TOKEN");
     });
   });
 
