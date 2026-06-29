@@ -223,7 +223,7 @@ describe("quality.yml reusable workflow", () => {
       expect(check?.env?.VERIFY_GITHUB_REPOSITORY).toBe(
         "${{ github.repository }}"
       );
-      expect(check?.env?.VERIFY_GITHUB_TOKEN).toBe("${{ github.token }}");
+      expect(check?.env?.VERIFY_GITHUB_TOKEN).toBeUndefined();
       expect(check?.env?.VERIFY_LABELS).toContain(
         "github.event.pull_request.labels"
       );

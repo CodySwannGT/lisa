@@ -483,7 +483,6 @@ jobs:
           VERIFY_PR_NUMBER: ${{ github.event.pull_request.number }}
           VERIFY_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           VERIFY_GITHUB_REPOSITORY: ${{ github.repository }}
-          VERIFY_GITHUB_TOKEN: ${{ github.token }}
 
   test_unit:
     name: 🧪 Run Unit Tests
