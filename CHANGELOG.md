@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.3](https://github.com/CodySwannGT/lisa/compare/vv2.186.2...v2.186.3) (2026-06-29)
+
+
+### Bug Fixes
+
+* rerun CI on PR label changes ([6301716](https://github.com/CodySwannGT/lisa/commit/6301716235c4f6ad75090b2def07d594e8cba9ae)), closes [#1370](https://github.com/CodySwannGT/lisa/issues/1370)
+
 ### [2.186.2](https://github.com/CodySwannGT/lisa/compare/vv2.186.1...v2.186.2) (2026-06-29)
 
 
