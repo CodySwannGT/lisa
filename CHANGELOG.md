@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.10](https://github.com/CodySwannGT/lisa/compare/vv2.186.9...v2.186.10) (2026-06-29)
+
+
+### Bug Fixes
+
+* **ci:** restore cross-repo verification gate wiring ([62d4272](https://github.com/CodySwannGT/lisa/commit/62d4272ad0a1a088f05a99d1c39e783150cb6c3b))
+
 ### [2.186.9](https://github.com/CodySwannGT/lisa/compare/vv2.186.8...v2.186.9) (2026-06-29)
 
 
