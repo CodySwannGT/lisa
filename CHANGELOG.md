@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.7](https://github.com/CodySwannGT/lisa/compare/vv2.186.6...v2.186.7) (2026-06-29)
+
+
+### Bug Fixes
+
+* **ci:** remove reserved github env from sonar scan ([3baa870](https://github.com/CodySwannGT/lisa/commit/3baa8706cf176a09af0ef504032d2f1abacdd802))
+
 ### [2.186.6](https://github.com/CodySwannGT/lisa/compare/vv2.186.5...v2.186.6) (2026-06-29)
 
 
