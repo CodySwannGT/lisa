@@ -219,8 +219,10 @@ describe("quality.yml reusable workflow", () => {
       expect(check?.env?.VERIFY_PR_NUMBER).toBe(
         "${{ github.event.pull_request.number }}"
       );
-      expect(check?.env?.GITHUB_REPOSITORY).toBe("${{ github.repository }}");
-      expect(check?.env?.GITHUB_TOKEN).toBe("${{ github.token }}");
+      expect(check?.env?.VERIFY_GITHUB_REPOSITORY).toBe(
+        "${{ github.repository }}"
+      );
+      expect(check?.env?.VERIFY_GITHUB_TOKEN).toBe("${{ github.token }}");
       expect(check?.env?.VERIFY_LABELS).toContain(
         "github.event.pull_request.labels"
       );
