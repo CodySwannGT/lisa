@@ -55,11 +55,13 @@
     "private": true,
     "resolutions": {
       "vite": "$vite",
-      "underscore": "^1.13.8"
+      "underscore": "^1.13.8",
+      "minimist": "^1.2.8"
     },
     "overrides": {
       "vite": "$vite",
-      "underscore": "^1.13.8"
+      "underscore": "^1.13.8",
+      "minimist": "^1.2.8"
     }
   },
   "merge": {
