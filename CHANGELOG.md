@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.186.12](https://github.com/CodySwannGT/lisa/compare/vv2.186.11...v2.186.12) (2026-06-30)
+
+
+### Bug Fixes
+
+* **ci:** make Playwright quality job framework-aware; pin underscore in phaser starter ([04b1aff](https://github.com/CodySwannGT/lisa/commit/04b1affee1ad4d544505229e5ebe0c62d2cdc2d4))
+* **phaser:** also pin minimist@^1.2.8 in starter template ([ff942f0](https://github.com/CodySwannGT/lisa/commit/ff942f0cae5ab7390054fa1dc983b46836e7a1de))
+
 ### [2.186.11](https://github.com/CodySwannGT/lisa/compare/vv2.186.10...v2.186.11) (2026-06-29)
 
 
