@@ -723,6 +723,25 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🔍 Check for Playwright config
+        id: check_playwright
+        run: |
+          if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
+            echo "has_config=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_config=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # A `test:e2e` script that drives Playwright needs the browser binaries.
+      # Without this the run dies with "Looks like Playwright was just installed
+      # … run npx playwright install". Gated on a Playwright config so non-
+      # Playwright e2e suites (Cypress, etc.) don't pay for an unused install.
+      - name: 🎭 Install Playwright browsers
+        if: steps.check_script.outputs.exists == 'true' && steps.check_playwright.outputs.has_config == 'true'
+        run: npx playwright install --with-deps
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧪 Run E2E tests
         if: steps.check_script.outputs.exists == 'true'
         run: |
@@ -907,6 +926,25 @@ jobs:
         run: ${{ inputs.playwright_setup_command }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # The web-export build below assumes an Expo project (`expo export`).
+      # Non-Expo web projects (e.g. Vite/Phaser) build + serve themselves via
+      # the Playwright config's `webServer`, so `expo export` is both wrong
+      # (no Metro/Expo config → "No platforms are configured to use the Metro
+      # bundler") and unnecessary. Detect Expo and gate the export/cache steps
+      # on it; non-Expo projects skip straight to the browser install + test run.
+      - name: 🔍 Detect Expo project
+        id: check_expo
+        run: |
+          if [ -f "app.json" ] || [ -f "app.config.js" ] || [ -f "app.config.ts" ] \
+            || { [ -f "package.json" ] && grep -q '"expo"[[:space:]]*:' package.json; }; then
+            echo "is_expo=true" >> $GITHUB_OUTPUT
+            echo "✅ Expo project detected — will run \`expo export\`"
+          else
+            echo "is_expo=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Non-Expo project — skipping \`expo export\` (Playwright webServer self-builds)"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # Expo build cache — opt-in via `cache_build: true`.
       #
       # Cache invalidation contract:
@@ -919,7 +957,7 @@ jobs:
       #   - .expo/            Expo CLI metadata and bundler cache
       #   - node_modules/.cache  Metro/Babel bundler caches
       - name: 💾 Restore Expo build cache
-        if: steps.check_playwright.outputs.has_config == 'true' && inputs.cache_build == true
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.check_expo.outputs.is_expo == 'true' && inputs.cache_build == true
         id: expo_cache
         uses: actions/cache@v5
         with:
@@ -932,12 +970,12 @@ jobs:
             ${{ runner.os }}-expo-build-
 
       - name: 🌐 Build web export
-        if: steps.check_playwright.outputs.has_config == 'true' && (inputs.cache_build != true || steps.expo_cache.outputs.cache-hit != 'true')
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.check_expo.outputs.is_expo == 'true' && (inputs.cache_build != true || steps.expo_cache.outputs.cache-hit != 'true')
         run: npx expo export --platform web
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Expo build cache hit — skipping expo export
-        if: steps.check_playwright.outputs.has_config == 'true' && inputs.cache_build == true && steps.expo_cache.outputs.cache-hit == 'true'
+        if: steps.check_playwright.outputs.has_config == 'true' && steps.check_expo.outputs.is_expo == 'true' && inputs.cache_build == true && steps.expo_cache.outputs.cache-hit == 'true'
         run: echo "::notice::Expo build cache hit — skipped \`npx expo export --platform web\`"
         working-directory: ${{ inputs.working_directory || '.' }}
 

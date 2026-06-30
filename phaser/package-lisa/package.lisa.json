@@ -54,10 +54,12 @@
     "packageManager": "bun@1.3.11",
     "private": true,
     "resolutions": {
-      "vite": "$vite"
+      "vite": "$vite",
+      "underscore": "^1.13.8"
     },
     "overrides": {
-      "vite": "$vite"
+      "vite": "$vite",
+      "underscore": "^1.13.8"
     }
   },
   "merge": {
