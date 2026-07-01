@@ -92,18 +92,24 @@ describe("automation-status expected fleet (#799)", () => {
     expect(fleet.unsupported).toEqual([]);
   });
 
-  it("fails loudly instead of inventing a mixed-vendor repair queue", () => {
-    expect(() =>
-      resolveExpectedAutomationFleet({
-        config: {
-          tracker: "jira",
-          source: "notion",
-          jira: { project: "ENG" },
-          notion: { prdDatabaseId: "db-123" },
-          github: { org: "Acme", repo: "platform" },
-        },
+  it("covers the build repair queue for mixed PRD source and JIRA tracker repos", () => {
+    const fleet = resolveExpectedAutomationFleet({
+      config: {
+        tracker: "jira",
+        source: "notion",
+        jira: { project: "SE" },
+        notion: { prdDatabaseId: "db-123" },
+        github: { org: "GeminiSportsAI", repo: "frontend-v2" },
+      },
+    });
+
+    expect(fleet.expected).toContainEqual(
+      expect.objectContaining({
+        id: "intake-repair",
+        automationId: "lisa-auto-geminisportsai-frontend-v2-intake-repair",
+        expectedCommand: "/lisa:repair-intake SE intake_mode=build",
       })
-    ).toThrow(/single repair-intake queue/i);
+    );
   });
 
   it("falls back to the GitHub remote when config does not carry the repo identity", () => {

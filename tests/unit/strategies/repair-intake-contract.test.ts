@@ -127,6 +127,16 @@ describe("repair-intake contract", () => {
       expect(skill).toMatch(/defaults to `--state open`/);
     });
 
+    it("does not let automation self-comments reset the stalled claimed clock", () => {
+      expect(skill).toMatch(
+        /last state-changing transition into the in-progress role/i
+      );
+      expect(skill).toMatch(/automation self-comments/i);
+      expect(skill).toMatch(/must not reset the staleness clock/i);
+      expect(skill).toMatch(/\[claude-build-intake\]/);
+      expect(skill).toMatch(/\[codex-build-intake\]/);
+    });
+
     it("heals missing native sub-issue links on build Epic/Story containers", () => {
       // The native-link repair is no longer PRD-only: build containers whose
       // children were recorded as prose parentage (e.g. created by an external
