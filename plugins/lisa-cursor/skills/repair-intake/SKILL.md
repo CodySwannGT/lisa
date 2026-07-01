@@ -80,7 +80,7 @@ lifecycle state with provider-native closure and rollup state.
 |-------|---------|---------|
 | `<queue>` | Same queue identifier `lisa:intake` accepts (see Source dispatch). Required. | — |
 | `intake_mode` | `prd` \| `build` \| `both`. Only meaningful for a GitHub `org/repo` (or bare `github`) that hosts both PRD and build label namespaces. `both` is unique to repair — a repair sweep usefully covers both lifecycles in one schedule. Absent → `both` when both namespaces exist, else whichever lifecycle exists. | `both` for dual GitHub queues; otherwise infer |
-| `stale_after` | How long with no observable activity before an in-progress item counts as stalled. Accepts `24h`, `90m`, `2d`, or `0` (treat any in-progress item as stalled — manual recovery, also the only way to resume work on a provider that exposes no reliable timestamp). Overrides config. | `2h` |
+| `stale_after` | How long since the last state-changing transition into the in-progress role, or since the last human / PR-side forward-progress activity, before an in-progress item counts as stalled. Automation self-comments do not reset this clock. Accepts `24h`, `90m`, `2d`, or `0` (treat any in-progress item as stalled — manual recovery, also the only way to resume work on a provider that exposes no reliable timestamp). Overrides config. | `2h` |
 | `max_candidates` | Cap on how many stuck/close-out candidates to enumerate and evaluate. Repair every materially actionable candidate within this bounded set, then stop. Overrides config. | `100` |
 | `force` | `true` bypasses the loop-prevention backoff window (so a manual re-run re-attempts items even if their fingerprint is unchanged). It does **not** change the staleness rule — use `stale_after=0` for that. | `false` |
 
@@ -228,9 +228,19 @@ intakes use. Never call Atlassian MCP or `acli` directly — go through `lisa:at
 
 ## Staleness model
 
-An in-progress item (build `claimed`, PRD `in_review`) is **stalled** only if it shows no
-observable activity newer than the `stale_after` threshold. `blocked` items are NOT gated on
-staleness — their repairability is judged on current blocker/answer state, not elapsed time.
+An in-progress item (build `claimed`, PRD `in_review`) is **stalled** when the last
+state-changing transition into the in-progress role, or the last human / PR-side forward-progress
+activity after that transition, is older than the `stale_after` threshold. `blocked` items are NOT
+gated on staleness — their repairability is judged on current blocker/answer state, not elapsed
+time.
+
+Automation self-comments are not forward progress and must not reset the staleness clock. Status
+comments like `[claude-build-intake] PR remains open...`, `[codex-build-intake] Follow-up pushed...`,
+or `[lisa-repair-intake] ...` may be useful audit notes, but they cannot make a claimed item fresh
+forever. If a provider exposes a changelog/history surface, prefer the timestamp of the last
+transition into the claimed/In-Progress role over the item's generic `updated` timestamp. When the
+history surface is unavailable, ignore comments whose author/marker clearly belongs to Lisa or its
+automation agents, and use the newest human comment/edit or PR-side progress event instead.
 
 A build `claimed` leaf whose linked PR has **already merged** (`state == MERGED`) is likewise NOT
 gated on staleness. A merged PR is a settled terminal state, not in-flight work: the only thing
@@ -254,17 +264,24 @@ decision tree step 0, and the dedicated high-confidence ordering bucket).
 `stale_after=0` means "treat any in-progress item as stalled" — a manual full-recovery lever,
 and the only way to resume work on a provider that exposes no reliable activity timestamp.
 
-### Activity signal (most-recent-wins, portable across vendors)
+### Activity signal (state-change first, portable across vendors)
 
-Compute the item's newest activity timestamp from the highest-priority signal the vendor
+Compute the item's newest eligible activity timestamp from the highest-priority signal the vendor
 exposes, and compare it to `now - stale_after`:
 
-1. Provider-native item `updatedAt` / `last_edited_time` / `updated`.
-2. Latest lifecycle/progress **comment** on the item (and, for Linear PRDs, the sentinel
-   feedback issue).
-3. For build items, latest **PR activity** on the linked PR: newest commit, review, check-run,
+1. Provider-native status/label **transition** time into the in-progress role, when the provider
+   exposes it cleanly (JIRA changelog transition to `claimed` / In Progress, GitHub label event,
+   Linear state/label history, Notion/Confluence page move/status history).
+2. Latest human lifecycle/progress **comment** or edit on the item (and, for Linear PRDs, the
+   sentinel feedback issue). Exclude automation self-comments and Lisa audit markers such as
+   `[claude-build-intake]`, `[codex-build-intake]`, `[lisa-build-intake]`, and
+   `[lisa-repair-intake]`.
+3. For build items, latest **PR-side forward-progress activity** on the linked PR: newest commit,
+   review, check-run,
    or PR comment.
-4. Status/label **transition** time, when the provider exposes it cleanly.
+4. Provider-native item `updatedAt` / `last_edited_time` / `updated` only when the provider cannot
+   expose transition/comment authorship and the timestamp is not known to be driven by automation
+   self-comments.
 
 If ANY of these is newer than the threshold, the item is **active** → record it as `active` and
 skip it (read-only). For build `claimed`, an open PR with recent commits/checks is active. For

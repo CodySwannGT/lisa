@@ -13,11 +13,14 @@ import {
   resolveExpectedAutomationFleet,
 } from "../../../plugins/src/base/scripts/automation-status-expected-fleet.mjs";
 
+const GITHUB_TRACKER = "github";
+const INTAKE_REPAIR_ID = "intake-repair";
+
 describe("automation-status expected fleet (#799)", () => {
   it("resolves the self-host GitHub Lisa fleet and flags unsupported exploratory-bugs", () => {
     const fleet = resolveExpectedAutomationFleet({
       config: {
-        tracker: "github",
+        tracker: GITHUB_TRACKER,
         github: {
           org: "CodySwannGT",
           repo: "lisa",
@@ -30,7 +33,7 @@ describe("automation-status expected fleet (#799)", () => {
     expect(fleet.automationPrefix).toBe("lisa-auto-codyswanngt-lisa-");
     expect(fleet.expected).toEqual([
       expect.objectContaining({
-        id: "intake-repair",
+        id: INTAKE_REPAIR_ID,
         automationId: "lisa-auto-codyswanngt-lisa-intake-repair",
         expectedCadence: "every 60 minutes",
         expectedRRule: "FREQ=HOURLY;INTERVAL=1",
@@ -64,8 +67,8 @@ describe("automation-status expected fleet (#799)", () => {
   it("emits the stack-specific exploratory command and auto-start flags when supported", () => {
     const fleet = resolveExpectedAutomationFleet({
       config: {
-        tracker: "github",
-        source: "github",
+        tracker: GITHUB_TRACKER,
+        source: GITHUB_TRACKER,
         github: {
           org: "Acme",
           repo: "mobile-app",
@@ -92,24 +95,48 @@ describe("automation-status expected fleet (#799)", () => {
     expect(fleet.unsupported).toEqual([]);
   });
 
-  it("fails loudly instead of inventing a mixed-vendor repair queue", () => {
-    expect(() =>
-      resolveExpectedAutomationFleet({
-        config: {
-          tracker: "jira",
-          source: "notion",
-          jira: { project: "ENG" },
-          notion: { prdDatabaseId: "db-123" },
-          github: { org: "Acme", repo: "platform" },
-        },
+  it("covers the build repair queue for mixed PRD source and JIRA tracker repos", () => {
+    const fleet = resolveExpectedAutomationFleet({
+      config: {
+        tracker: "jira",
+        source: "notion",
+        jira: { project: "SE" },
+        notion: { prdDatabaseId: "db-123" },
+        github: { org: "GeminiSportsAI", repo: "frontend-v2" },
+      },
+    });
+
+    expect(fleet.expected).toContainEqual(
+      expect.objectContaining({
+        id: INTAKE_REPAIR_ID,
+        automationId: "lisa-auto-geminisportsai-frontend-v2-intake-repair",
+        expectedCommand: "/lisa:repair-intake SE intake_mode=build",
       })
-    ).toThrow(/single repair-intake queue/i);
+    );
+  });
+
+  it("does not duplicate intake_mode=build when the GitHub build queue already carries it", () => {
+    const fleet = resolveExpectedAutomationFleet({
+      config: {
+        tracker: GITHUB_TRACKER,
+        source: "notion",
+        github: { org: "CodySwannGT", repo: "lisa" },
+        notion: { prdDatabaseId: "db-123" },
+      },
+    });
+
+    expect(fleet.expected).toContainEqual(
+      expect.objectContaining({
+        id: INTAKE_REPAIR_ID,
+        expectedCommand: "/lisa:repair-intake github intake_mode=build",
+      })
+    );
   });
 
   it("falls back to the GitHub remote when config does not carry the repo identity", () => {
     expect(
       resolveAutomationProjectIdentity({
-        config: { tracker: "github" },
+        config: { tracker: GITHUB_TRACKER },
         gitRemoteUrl: "git@github.com:CodySwannGT/lisa.git",
       })
     ).toEqual({
