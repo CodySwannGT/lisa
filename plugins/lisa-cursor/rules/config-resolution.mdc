@@ -30,4 +30,15 @@ Project tracker (`jira` / `github` / `linear`) is read from `.lisa.config.json` 
 
 `repo:<name>` is the canonical label for which repo a work item belongs to. Resolve current-repo identity in this priority order: `.lisa.config.local.json` `repo` → `.lisa.config.json` `repo` → `.lisa.config.json` `github.repo` → `basename -s .git "$(git remote get-url origin)"`. If none resolve, stop with a clear error.
 
+## Env → base branch
+
+For implementation work, map the work item's `## Target Backend Environment` to
+the PR base branch through `.lisa.config.json` `deploy.branches`. For bugs, a
+reported environment extracted from the description/reproduction steps wins over
+an autofill default. If a reported environment is absent from `deploy.branches`,
+stop and report the missing mapping instead of silently falling back to the
+default or integration branch. A non-integration environment bug is fixed,
+merged, and verified on that environment branch first, then forward
+cherry-picked down to the integration branch via a linked follow-up.
+
 Full reference: [reference/config-resolution.md](config-resolution-reference.mdc).

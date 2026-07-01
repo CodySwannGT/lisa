@@ -26,8 +26,13 @@ information was already on the ticket; only the structure was missing).
   Gherkin Acceptance Criteria (one scenario per fix), expected-vs-actual +
   environment, Repository, Relationship Search (actually run the git+tracker
   search — don't fabricate "none found"), Validation Journey **draft** (via the
-  vendor `*-add-journey` skill), Target Backend Environment (recommend a default
-  from `deploy.branches`/config).
+  vendor `*-add-journey` skill), Target Backend Environment. For bugs, parse the
+  reported environment from the item body/reproduction steps before recommending
+  any default: bare environment names (`dev`, `staging`, `prod`, `production`)
+  and environment-bearing URLs (for example `staging.<domain>`, `gql.staging.*`,
+  `dev.<domain>`) are authoritative. Only recommend the configured default when
+  no environment is discoverable anywhere in the work item, and record that as
+  an assumption.
 - **Tier B — irreducibly human:** real credentials/access that exist nowhere on
   the item or in repo test-user docs; a genuine product/scoping decision with no
   defensible default. Still propose a recommended default where one exists; ask

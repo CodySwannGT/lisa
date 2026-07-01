@@ -217,6 +217,33 @@ Declares **where this repo's LLM Wiki lives** so the query/ingest skills can res
 
 `scripts/ensure-wiki.mjs` is the single resolver (`node scripts/ensure-wiki.mjs --json` → `{mode, wikiRoot, …}`). **LOCAL** mode (no `url`) is a no-op that resolves the wiki root in precedence order `wiki.source.path` → `wikiRoot` in `wiki/lisa-wiki.config.json` → `wiki`; **REMOTE** mode (`url` set) clones-if-missing, fast-forwards when stale, and is offline-tolerant (proceeds with the existing mirror and warns rather than blocking). Callers (`lisa-wiki-query`, `lisa-wiki-ingest`) invoke it as step 0 and never hardcode `wiki/`; the freshness guarantee is the tool's, not the caller's.
 
+### Env → base branch
+
+Implementation flows resolve their PR base from the work item's
+`## Target Backend Environment` in the forward direction of `deploy.branches`.
+For example, `{ "staging": "staging", "production": "main" }` means a staging
+work item starts from `origin/staging` and opens its PR against `staging`. This
+is the reverse/inverse of the env-keyed `done` inference that derives an
+environment from a merged PR's base branch.
+
+For bug work, the reported environment is authoritative. `pre-flight-autofill`
+must parse environment mentions from the description/body and reproduction
+steps, including bare names (`dev`, `staging`, `prod`, `production`) and
+environment-bearing URLs (`staging.<domain>`, `gql.staging.*`,
+`dev.<domain>`). A parsed reported environment wins over any generic autofill
+default. If no environment is named anywhere, the flow may fall back to the
+remote default branch and record that assumption on the work item.
+
+If the reported environment is not present in `deploy.branches`, stop and report
+the missing mapping. Do not silently default to the integration branch.
+
+For non-integration environment bugs, definition of done is two-step:
+
+1. Fix, merge, deploy, and verify on the reported environment branch first.
+2. Forward cherry-pick the verified fix down to the integration branch, usually
+   via a linked follow-up PR or work item, so the next promotion does not
+   regress the fix.
+
 ### Vendor sections
 
 Each vendor section is **conditionally required**: required only when that vendor is referenced as `tracker`, as `source`, or by an explicit invocation. Skills validate their own required keys at entry and stop with a clear error if missing — never invent values.
