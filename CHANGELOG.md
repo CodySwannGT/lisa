@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.187.2](https://github.com/CodySwannGT/lisa/compare/vv2.187.1...v2.187.2) (2026-07-01)
+
+
+### Bug Fixes
+
+* avoid duplicate intake_mode=build in repair queue fallback ([879cf3d](https://github.com/CodySwannGT/lisa/commit/879cf3dc32a1b280752eac61548084f0d76286e6))
+* repair-intake stale build coverage ([8bd0518](https://github.com/CodySwannGT/lisa/commit/8bd05181014a511eaf3621c18649bd0dafb4dda0))
+
 ### [2.187.1](https://github.com/CodySwannGT/lisa/compare/vv2.187.0...v2.187.1) (2026-07-01)
 
 
