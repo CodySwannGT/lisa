@@ -264,7 +264,9 @@ function resolveRepairQueueArgument(config, source, tracker) {
   }
 
   const buildQueue = resolveBuildQueueArgument(config, tracker);
-  return `${buildQueue} intake_mode=build`;
+  return buildQueue.includes("intake_mode=")
+    ? buildQueue
+    : `${buildQueue} intake_mode=build`;
 }
 
 /**
