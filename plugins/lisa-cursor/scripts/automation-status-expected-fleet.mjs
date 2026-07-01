@@ -263,9 +263,10 @@ function resolveRepairQueueArgument(config, source, tracker) {
     return "github intake_mode=both";
   }
 
-  throw new Error(
-    `Unable to resolve a single repair-intake queue for tracker=${String(tracker)} and source=${String(source)} without guessing.`
-  );
+  const buildQueue = resolveBuildQueueArgument(config, tracker);
+  return buildQueue.includes("intake_mode=")
+    ? buildQueue
+    : `${buildQueue} intake_mode=build`;
 }
 
 /**
