@@ -54,9 +54,14 @@ spec.
 - **Validation Journey (draft)** — run the vendor `*-add-journey` skill to draft
   the click-path, markers, and viewports from the reproduction steps. This is a
   draft for human approval, not the final ratified contract.
-- **Target Backend Environment** — recommend a default from `deploy.branches` /
-  config (the backend the FE points at for verification) and state it as a
-  recommendation.
+- **Target Backend Environment** — for bugs, first parse the reported
+  environment from the title, description/body, screenshots captions, links, and
+  reproduction steps. Bare words such as `dev`, `staging`, `prod`, and
+  `production` count, as do environment-bearing URLs such as
+  `staging.<domain>`, `gql.staging.*`, and `dev.<domain>`. That reported
+  environment is authoritative for the draft. Only recommend a configured
+  default from `deploy.branches` / config when no environment is discoverable
+  anywhere in the work item, and record the default as an explicit assumption.
 
 **Tier B — irreducibly human (cannot invent — but still propose a default):**
 
