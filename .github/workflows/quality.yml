@@ -1498,7 +1498,18 @@ jobs:
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
             GHSA_IDS_JSON=$(printf '%s\n' $GHSA_IDS | jq -R . | jq -s 'map(select(length > 0))')
             CVE_IDS_JSON=$(printf '%s\n' $CVE_IDS | jq -R . | jq -s 'map(select(length > 0))')
-            AUDIT_JSON=$(bun audit --json 2>/dev/null || true)
+            # `--production` scopes the audit to production dependencies, matching
+            # every other audit path: the pre-push hook's bun branch
+            # (`bun audit --production`, which documents this same rationale), and
+            # both this workflow's own npm branch (`npm audit --production`) and
+            # yarn branch (`yarn audit --groups dependencies`). Without it, bun
+            # alone audited devDependencies too, so this gate failed on dev-only
+            # build-tool advisories that never ship (e.g. audiosprite -> underscore/
+            # minimist) while the identical local hook passed — a confusing
+            # local/CI split. Dev-dependency / supply-chain coverage is owned by
+            # the dedicated Snyk step (`--all-projects`), not this ship-scope gate.
+            # bun honours `--production` even though `bun audit --help` omits it.
+            AUDIT_JSON=$(bun audit --production --json 2>/dev/null || true)
             if [ -z "$AUDIT_JSON" ]; then
               AUDIT_JSON="{}"
             fi

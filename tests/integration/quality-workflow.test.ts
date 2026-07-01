@@ -281,7 +281,9 @@ describe("quality.yml reusable workflow", () => {
       const audit = steps.find(s => s.name === "🔒 Run security audit");
       const run = audit?.run ?? "";
 
-      expect(run).toContain("bun audit --json");
+      // Production-scoped, matching the pre-push hook and the npm/yarn paths so
+      // the local and CI audit gates agree (dev/supply-chain is Snyk's job).
+      expect(run).toContain("bun audit --production --json");
       expect(run).not.toContain(
         "bun audit --audit-level=high $BUN_IGNORE_FLAGS"
       );
