@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.187.0](https://github.com/CodySwannGT/lisa/compare/vv2.186.12...v2.187.0) (2026-07-01)
+
+
+### Features
+
+* **phaser:** add game-development persona subagents ([a614a6d](https://github.com/CodySwannGT/lisa/commit/a614a6ded9e8d667bef57af88c4110c77e5ea169))
+
 ### [2.186.12](https://github.com/CodySwannGT/lisa/compare/vv2.186.11...v2.186.12) (2026-06-30)
 
 
