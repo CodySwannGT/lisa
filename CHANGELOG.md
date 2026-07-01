@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.187.1](https://github.com/CodySwannGT/lisa/compare/vv2.187.0...v2.187.1) (2026-07-01)
+
+
+### Bug Fixes
+
+* **ci:** scope the bun security audit to production deps ([5c2e3f0](https://github.com/CodySwannGT/lisa/commit/5c2e3f0bc2595e83e13a15a5d1e7e1c22182ba6d))
+
 ## [2.187.0](https://github.com/CodySwannGT/lisa/compare/vv2.186.12...v2.187.0) (2026-07-01)
 
 
