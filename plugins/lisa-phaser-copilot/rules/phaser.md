@@ -145,5 +145,33 @@ Before reporting any change complete: run `bun run typecheck`, `bun run lint`,
 verify in the real browser — `bun run dev` plus a Playwright check (the game
 boots, the canvas renders, no console errors). CI additionally runs the runtime
 gates (`phaser-testing`). A green typecheck alone is not proof a game works.
-</content>
-</invoke>
+
+## Game-development personas (subagents)
+
+This plugin ships **game-development persona subagents** under `agents/` —
+reusable *roles* (a publisher, a game designer, a target player, …) that
+critique the game from a non-engineering seat. They complement, and never
+duplicate, Lisa's engineering specialists (architecture, quality, test,
+security, performance). Most are **critics** (they review the design and report
+findings); a couple (`narrative-designer`, `target-player`) also **generate**
+content.
+
+**Role vs. instance.** The persona *role* lives here (genre-neutral, reusable
+across every Phaser game). The persona *instance data* — this game's actual
+target-player archetypes, art direction, economy spec, publisher constraints —
+lives in the project's wiki. Each subagent reads its source-of-truth wiki docs
+(`wiki/design/**`, `wiki/narrative/**`, `wiki/production/**`,
+`wiki/personas/**`, …) and degrades to genre-neutral best practice, saying so,
+when those docs are absent.
+
+| Tier | Personas |
+|------|----------|
+| **Core** (most games) | `game-designer`, `player-advocate`, `narrative-designer`, `level-designer`, `ux-ui-designer`, `game-feel-specialist`, `qa-playtester`, `producer` |
+| **Business & audience** | `publisher`, `marketing-strategist`, `target-player`, `accessibility-advocate` |
+| **Specialist** (opt-in per project) | `combat-designer`, `economy-designer`, `art-director`, `audio-director`, `monetization-designer`, `localization-manager`, `onboarding-advocate`, `product-analyst` |
+
+Invoke a persona as a subagent (e.g. via the Agent tool / `@`-mention) during
+planning and review. Specialist personas are opt-in — enable the ones the
+project's genre warrants (a puzzle game does not need a `combat-designer`); the
+`monetization-designer` should stay off for premium/offline titles.
+
