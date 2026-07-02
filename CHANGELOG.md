@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.188.1](https://github.com/CodySwannGT/lisa/compare/vv2.188.0...v2.188.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **workflows:** fail EAS Build workflow when a queued remote build errors ([d6575af](https://github.com/CodySwannGT/lisa/commit/d6575afc281c48ac9b288fe96ca056a72128a473))
+
 ## [2.188.0](https://github.com/CodySwannGT/lisa/compare/vv2.187.4...v2.188.0) (2026-07-02)
 
 
