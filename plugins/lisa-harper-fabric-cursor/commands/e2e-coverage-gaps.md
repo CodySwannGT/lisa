@@ -4,4 +4,4 @@ allowed-tools: ["Skill"]
 argument-hint: "[target-url | env] [ready=true|false]"
 ---
 
-Use the /lisa-harper-fabric:e2e-coverage-gaps skill to inventory the app's routes and the existing Playwright suite, find uncovered and happy-path-only paths, confirm each gap in the running app, and file one build-ready missing-test ticket per gap via lisa:tracker-write (build-ready per the ready flag, default true). For human usability/experience findings, use /lisa-harper-fabric:exploratory-qa. $ARGUMENTS
+Use the /lisa-harper-fabric:e2e-coverage-gaps skill to inventory the app's routes and the existing Playwright suite, find uncovered and happy-path-only paths, confirm each gap in the running app, and file one build-ready missing-test ticket per gap via lisa:tracker-write (build-ready per the ready flag, default true). For human usability/experience findings, use /lisa:exploratory-qa. $ARGUMENTS
