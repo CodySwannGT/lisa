@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.187.3](https://github.com/CodySwannGT/lisa/compare/vv2.187.2...v2.187.3) (2026-07-02)
+
+
+### Bug Fixes
+
+* honor reported bug environments ([56d6dea](https://github.com/CodySwannGT/lisa/commit/56d6deaaf5f9b1bdbe791eeb243dba80d68f4d7f))
+
 ### [2.187.2](https://github.com/CodySwannGT/lisa/compare/vv2.187.1...v2.187.2) (2026-07-01)
 
 
