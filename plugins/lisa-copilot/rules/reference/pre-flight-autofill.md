@@ -54,9 +54,9 @@ spec.
   reproduction steps. Bare words such as `dev`, `staging`, `prod`, and
   `production` count, as do environment-bearing URLs such as
   `staging.<domain>`, `gql.staging.*`, and `dev.<domain>`. That reported
-  environment is authoritative for the draft. Only recommend a configured
-  default from `deploy.branches` / config when no environment is discoverable
-  anywhere in the work item, and record the default as an explicit assumption.
+  environment is authoritative for the draft. Only recommend the repo's
+  remote default branch when no environment is discoverable anywhere in the
+  work item, and record the default as an explicit assumption.
 
 **Tier B — irreducibly human (cannot invent — but still propose a default):**
 
