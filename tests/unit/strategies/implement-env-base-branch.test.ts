@@ -82,12 +82,18 @@ describe("lisa:implement resolves the base branch from the ticket environment", 
     it("treats a bug's reported environment as authoritative over autofill defaults", () => {
       expect(content).toMatch(/For bug work/i);
       expect(content).toMatch(/reported environment wins/i);
-      expect(content).toMatch(/staging\.\<domain\>|gql\.staging/i);
+      expect(content).toMatch(/staging\.<domain>|gql\.staging/i);
     });
 
     it("falls back to the remote default branch when no environment is named", () => {
       expect(content).toMatch(/no\*{0,2} environment|remote default branch/i);
       expect(content).toMatch(/defaultBranchRef|origin\/HEAD/);
+    });
+
+    it("records the fallback assumption when no environment is named", () => {
+      expect(content).toMatch(
+        /record that fallback assumption in the plan\/tracker artifact/i
+      );
     });
 
     it("stops rather than defaulting when the reported environment is unmapped", () => {
@@ -174,7 +180,7 @@ describe("pre-flight autofill extracts reported bug environments before defaults
         expect(content).toMatch(/bare environment names|bare words/i);
         expect(content).toContain("staging");
         expect(content).toContain("production");
-        expect(content).toMatch(/gql\.staging|staging\.\<domain\>/);
+        expect(content).toMatch(/gql\.staging|staging\.<domain>/);
       }
     });
 
@@ -200,11 +206,24 @@ describe("tracker agents preserve reported bug environment semantics", () => {
     });
 
     it.each(agents)(
-      "%s stops on missing env mapping and requires down-port follow-up",
+      "%s falls back to the default branch when no environment is reported",
       agent => {
         const content = readAgent(root, agent);
         expect(content).toMatch(/drives the implementation base branch/i);
-        expect(content).toMatch(/if the mapping is missing, stop/i);
+        expect(content).toMatch(/no environment can be found anywhere/i);
+        expect(content).toMatch(/fall back to the configured default branch/i);
+        expect(content).toMatch(/record that assumption/i);
+      }
+    );
+
+    it.each(agents)(
+      "%s stops and reports the missing mapping and requires down-port follow-up",
+      agent => {
+        const content = readAgent(root, agent);
+        expect(content).toMatch(/drives the implementation base branch/i);
+        expect(content).toMatch(
+          /stop and report the missing environment\/branch mapping/i
+        );
         expect(content).toMatch(
           /forward cherry-picked down to the integration branch/i
         );

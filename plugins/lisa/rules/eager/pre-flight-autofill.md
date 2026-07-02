@@ -25,7 +25,7 @@ information was already on the ticket; only the structure was missing).
   reported environment from the item body/reproduction steps before recommending
   any default: bare environment names (`dev`, `staging`, `prod`, `production`)
   and environment-bearing URLs (for example `staging.<domain>`, `gql.staging.*`,
-  `dev.<domain>`) are authoritative. Only recommend the configured default when
+  `dev.<domain>`) are authoritative. Only recommend the repo's remote default branch when
   no environment is discoverable anywhere in the work item, and record that as
   an assumption.
 - **Tier B — irreducibly human:** real credentials/access that exist nowhere on
