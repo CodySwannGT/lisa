@@ -34,15 +34,63 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Install dependencies
         run: bun install
+      # Builds are queued with --no-wait so profiles fan out without holding a
+      # runner per compile; the "Wait for EAS builds" step below polls the queued
+      # build IDs so a remote build failure still fails this workflow.
       - name: Build Dev Preview
         if: inputs.environment == 'dev'
-        run: eas build --platform all --non-interactive --no-wait --profile=dev-preview
+        shell: bash
+        run: eas build --platform all --non-interactive --no-wait --profile=dev-preview --json | tee eas-builds-dev-preview.json
       - name: Build Dev
         if: inputs.environment == 'dev'
-        run: eas build --platform all --non-interactive --no-wait --profile=dev
+        shell: bash
+        run: eas build --platform all --non-interactive --no-wait --profile=dev --json | tee eas-builds-dev.json
       - name: Build Staging
         if: inputs.environment == 'staging'
-        run: eas build --platform all --non-interactive --no-wait --profile=staging --auto-submit
+        shell: bash
+        run: eas build --platform all --non-interactive --no-wait --profile=staging --auto-submit --json | tee eas-builds-staging.json
       - name: Build Production
         if: inputs.environment == 'main'
-        run: eas build --platform all --non-interactive --no-wait --profile=production --auto-submit
+        shell: bash
+        run: eas build --platform all --non-interactive --no-wait --profile=production --auto-submit --json | tee eas-builds-production.json
+      - name: Wait for EAS builds
+        timeout-minutes: 120
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(eas-builds-*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No builds were queued for environment '${{ inputs.environment }}'; nothing to wait for."
+            exit 0
+          fi
+
+          ids=$(jq -r '.[].id' "${files[@]}")
+          echo "Monitoring EAS builds:"
+          echo "$ids"
+
+          while true; do
+            pending=0
+            failed=0
+            for id in $ids; do
+              status=$(eas build:view "$id" --json | jq -r '.status')
+              echo "$(date -u +%H:%M:%S) build $id: $status"
+              case "$status" in
+                FINISHED) ;;
+                ERRORED|CANCELED) failed=1 ;;
+                *) pending=1 ;;
+              esac
+            done
+            if [ "$pending" -eq 0 ]; then
+              break
+            fi
+            sleep 120
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::One or more EAS builds errored or were canceled. See build logs on expo.dev."
+            for id in $ids; do
+              eas build:view "$id" --json | jq -r '"\(.id) [\(.platform) \(.buildProfile)] \(.status): \(.error.message // "ok")"'
+            done
+            exit 1
+          fi
+          echo "All EAS builds finished successfully."
