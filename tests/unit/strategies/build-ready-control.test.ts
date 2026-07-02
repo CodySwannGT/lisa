@@ -11,7 +11,7 @@
  * `status:ready` label for GitHub/Linear; the project's default status for
  * JIRA), which a human can promote later.
  *
- * `exploratory-qa` (shipped in the expo / rails / harper-fabric stacks) stops
+ * `exploratory-qa` (a base skill, inherited by every stack) stops
  * writing a report file and instead files every finding as a tracked work item
  * via `lisa:tracker-write`. It is a pure first-time-user experience pass: a
  * `ready` flag controls the build-ready state of bug and usability-suggestion
@@ -125,15 +125,8 @@ describe("build_ready write-control input", () => {
 });
 
 describe("exploratory-qa feeds the lifecycle (no report file)", () => {
-  /** Source + generated root pairs for each stack that ships exploratory-qa. */
-  const QA_ROOTS = [
-    "plugins/src/expo/skills",
-    "plugins/src/rails/skills",
-    "plugins/src/harper-fabric/skills",
-    "plugins/lisa-expo/skills",
-    "plugins/lisa-rails/skills",
-    "plugins/lisa-harper-fabric/skills",
-  ] as const;
+  /** Source + generated roots — exploratory-qa is a base skill (inherited by every stack). */
+  const QA_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
   describe.each(QA_ROOTS)("%s/exploratory-qa", root => {
     const content = readSkill(root, "exploratory-qa");
