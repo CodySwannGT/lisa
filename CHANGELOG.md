@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.188.0](https://github.com/CodySwannGT/lisa/compare/vv2.187.4...v2.188.0) (2026-07-02)
+
+
+### Features
+
+* **skills:** global, product-type-aware exploratory-qa & product-walkthrough ([8092717](https://github.com/CodySwannGT/lisa/commit/8092717c2262dc2d5fa888347cbfb37611614608))
+
 ### [2.187.4](https://github.com/CodySwannGT/lisa/compare/vv2.187.3...v2.187.4) (2026-07-02)
 
 
