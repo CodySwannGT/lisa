@@ -1,0 +1,4 @@
+display_name: "Use The Product"
+short_description: "Shared methodology for actually USING a project's product the way its real end user would — across product types (DOM web app, HTTP/API…"
+default_prompt:
+  - "Use $use-the-product: Shared methodology for actually USING a project's product the way its real end user would — across product types (DOM web app, HTTP/API…."
