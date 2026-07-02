@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.187.4](https://github.com/CodySwannGT/lisa/compare/vv2.187.3...v2.187.4) (2026-07-02)
+
+
+### Bug Fixes
+
+* clarify env base branch mapping fallback ([63ae590](https://github.com/CodySwannGT/lisa/commit/63ae590247933b49f11e2f422425e6bd115da6d8))
+* restore env-base-branch fallback and clarify missing-mapping report ([b6be240](https://github.com/CodySwannGT/lisa/commit/b6be2403e540ba3a75b48efd8576b4bbe4193dfd)), closes [#1388](https://github.com/CodySwannGT/lisa/issues/1388)
+
 ### [2.187.3](https://github.com/CodySwannGT/lisa/compare/vv2.187.2...v2.187.3) (2026-07-02)
 
 
