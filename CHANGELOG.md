@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.188.4](https://github.com/CodySwannGT/lisa/compare/vv2.188.3...v2.188.4) (2026-07-04)
+
+
+### Bug Fixes
+
+* **audit:** align ignore policy with current lockfile ([d6a97c7](https://github.com/CodySwannGT/lisa/commit/d6a97c74d7db37f8999d263b13cd3a67811616e8))
+
 ### [2.188.3](https://github.com/CodySwannGT/lisa/compare/vv2.188.2...v2.188.3) (2026-07-04)
 
 
