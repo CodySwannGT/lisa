@@ -76,7 +76,7 @@ Lisa organizes a piece of work as a pipeline of specialized agent roles. Concept
 Most people invoke only the first stages explicitly; the rest run as nested sub-flows. The same logic runs whether you trigger it by hand or a scheduled job triggers it unattended.
 
 > **Prompt for your coding agent**
-> "List the current Lisa lifecycle commands for this project — understand, plan, build, verify, debrief — with their exact names and arguments, and note any that run automatically as sub-steps. Read the installed commands, don't answer from memory."
+> "List the current Lisa lifecycle commands for this project — understand, plan, build, prove, learn — with their exact names and arguments, and note any that run automatically as sub-steps. Read the installed commands, don't answer from memory."
 
 ### Unattended and batch work
 
