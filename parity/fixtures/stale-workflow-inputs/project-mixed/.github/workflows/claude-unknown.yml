@@ -1,0 +1,12 @@
+# Fixture: caller of a reusable workflow with no matching file under the
+# fixtures contracts root — must report "unknown-contract", not "stale".
+name: Claude Unknown Reusable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  something:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-does-not-exist.yml@main
+    with:
+      event_name: ${{ github.event_name }}

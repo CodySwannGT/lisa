@@ -35,6 +35,11 @@ on:
         required: false
         type: string
         default: ''
+      package_manager:
+        description: 'Deprecated; accepted for backward compatibility with vintage callers'
+        required: false
+        type: string
+        default: ''
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
