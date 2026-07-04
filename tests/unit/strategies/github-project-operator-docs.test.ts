@@ -18,20 +18,21 @@ const read = (filePath: string): string =>
   readFileSync(path.resolve(filePath), "utf8");
 
 describe("GitHub Project coordination rollout docs (#706)", () => {
-  it("documents operator entrypoints and v1 semantics in the README", () => {
+  it("keeps the single-repo leaf invariant stated and tracker setup discoverable in the README", () => {
     const readme = read("README.md");
 
-    expect(readme).toContain("### Optional GitHub Project Coordination");
-    expect(readme).toContain("/lisa:setup-github");
-    expect(readme).toContain("/lisa:doctor");
-    expect(readme).toMatch(/optional coordination layer/i);
-    expect(readme).toMatch(/not the lifecycle source of truth/i);
-    expect(readme).toMatch(/owner\.slug.*must match.*github\.org/i);
-    expect(readme).toMatch(/required:\s*false.*best-effort/i);
-    expect(readme).toMatch(/required:\s*true.*blocking readiness error/i);
-    expect(readme).toMatch(/single-repo leaf rule/i);
-    expect(readme).toMatch(/Task, Bug, Sub-task, or Improvement/i);
-    expect(readme).toMatch(/exactly one `repo:<name>` marker/i);
+    // The rewritten README defers vendor-specific setup (GitHub Projects,
+    // per-tracker config keys, the v1 owner.slug/required semantics) to
+    // "Prompt for your coding agent" blocks that read the live repo, so it no
+    // longer hardcodes the GitHub Project coordination section. The durable
+    // single-repo leaf invariant stays stated in prose; the detailed v1
+    // semantics live in the setup/doctor command and skill files, asserted
+    // below.
+    expect(readme).toContain("Prompt for your coding agent");
+    expect(readme).toMatch(/planning artifacts may span repositories/i);
+    expect(readme).toMatch(/exactly one repository/i);
+    expect(readme).toMatch(/which issue trackers/i);
+    expect(readme).toMatch(/config keys select them/i);
   });
 
   describe.each(PLUGIN_ROOTS)("%s", root => {

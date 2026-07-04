@@ -16,15 +16,22 @@ const read = (filePath: string): string =>
   readFileSync(path.resolve(filePath), "utf8");
 
 describe("intake-explain published docs (#853)", () => {
-  it("lists intake-explain in the README batch and scheduled work table", () => {
+  it("keeps the unattended batch/queue surface discoverable and defers the command catalog to agent prompts", () => {
     const readme = read("README.md");
 
-    expect(readme).toContain("/lisa:intake-explain <item-ref>");
+    // The rewritten README deliberately defers the concrete command list to
+    // "Prompt for your coding agent" blocks that read the live repo, so it no
+    // longer hardcodes the intake-explain table row. It must still make the
+    // unattended batch/queue capability (scan, dispatch, repair, automation
+    // status) discoverable; the concise per-command docs live in the command
+    // file, asserted below.
+    expect(readme).toContain("Prompt for your coding agent");
+    expect(readme).toMatch(/scan a work queue/i);
+    expect(readme).toMatch(/dispatch (each|ready)/i);
+    expect(readme).toMatch(/recover queues that are stuck|repair stuck ones/i);
     expect(readme).toMatch(
-      /lifecycle role, verdict, decisive intake or repair gate/i
+      /automation fleet is healthy|scheduled-automation health/i
     );
-    expect(readme).toContain("/lisa:intake");
-    expect(readme).toContain("/lisa:repair-intake");
   });
 
   describe.each(PLUGIN_ROOTS)("%s", root => {
