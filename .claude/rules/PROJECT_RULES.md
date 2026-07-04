@@ -65,14 +65,14 @@ When creating Claude Code hooks for enforcement (linting, code quality, static a
 
 ## Skills and Commands
 
-Skills and commands serve different roles in Claude Code:
+Skills and commands serve different roles across coding-agent harnesses:
 
-- **Skills** (`.claude/skills/<name>/SKILL.md`): Contain implementation logic. Use hyphen-separated naming (e.g., `plan-create`, `git-commit`). Skills do NOT support `argument-hint` or `$ARGUMENTS` substitution.
-- **Commands** (`.claude/commands/<namespace>/<name>.md`): User-facing interface with `argument-hint` and `$ARGUMENTS` support. Directory nesting creates colon-separated names in the UI (e.g., `plan/create.md` becomes `/plan:create`). Commands pass through to skills.
+- **Skills** (`.claude/skills/<name>/SKILL.md`): Contain implementation logic. Use hyphen-separated naming (e.g., `lisa-plan`, `lisa-git-commit`). Skills do NOT support `argument-hint` or `$ARGUMENTS` substitution.
+- **Commands** (`.claude/commands/<namespace>/<name>.md`): User-facing interface with `argument-hint` and `$ARGUMENTS` support. Use colon-scoped namespaces whenever the target agent supports native commands. Directory nesting creates colon-separated names in slash-command UIs (e.g., `lisa/implement.md` becomes `/lisa:implement` in Claude/OpenCode-style harnesses). Commands pass through to skills.
 
-Every skill should have a corresponding command that acts as a pass-through. The command provides the user-facing description, argument hints, and delegates to the skill via "Use the /<skill-name> skill... $ARGUMENTS".
+Every user-facing workflow should have a colon-scoped command and a hyphenated skill target when both surfaces exist. Example: `/lisa:implement` delegates to `/lisa-implement`. Not every coding agent supports `/` commands; Codex does not. For agents without native command support, install the equivalent hyphenated skill alias and document its native invocation syntax, such as `$lisa-implement` for Codex.
 
-Skills can invoke other skills via the Skill tool, enabling skill chaining and composition. Internal skill-to-skill references use hyphen names (e.g., `/git-commit`).
+Skills can invoke other skills via the Skill tool, enabling skill chaining and composition. Internal skill-to-skill references use hyphen names (e.g., `/lisa-git-commit`).
 
 Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-project`) should only exist in the root `.claude/skills/` and `.claude/commands/` directories, NOT in downstream template directories such as `all/merge/`, since they are only relevant to the Lisa repository itself, not downstream projects.
 
