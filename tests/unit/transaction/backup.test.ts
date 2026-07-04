@@ -1,5 +1,6 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
+import type { ILogger } from "../../../src/logging/index.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { BackupService } from "../../../src/transaction/backup.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
@@ -7,6 +8,54 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const TEST_FILE = "test.txt";
 const ORIGINAL_CONTENT = "original content";
 const NESTED_CONTENT = "nested content";
+
+/**
+ * Logger test double that exposes messages emitted during backup operations.
+ */
+class CapturingLogger implements ILogger {
+  /** Captured info-level messages. */
+  readonly infoMessages: string[] = [];
+
+  /**
+   * Capture info-level messages for later assertions.
+   * @param message - Message emitted by the backup service.
+   */
+  info(message: string): void {
+    this.infoMessages.push(message);
+  }
+
+  /**
+   * Ignore success-level messages.
+   * @param _message - Message emitted by the backup service.
+   */
+  success(_message: string): void {
+    // Intentionally unused in these tests.
+  }
+
+  /**
+   * Ignore warning-level messages.
+   * @param _message - Message emitted by the backup service.
+   */
+  warn(_message: string): void {
+    // Intentionally unused in these tests.
+  }
+
+  /**
+   * Ignore error-level messages.
+   * @param _message - Message emitted by the backup service.
+   */
+  error(_message: string): void {
+    // Intentionally unused in these tests.
+  }
+
+  /**
+   * Ignore dry-run-level messages.
+   * @param _message - Message emitted by the backup service.
+   */
+  dry(_message: string): void {
+    // Intentionally unused in these tests.
+  }
+}
 
 describe("BackupService", () => {
   let service: BackupService;
@@ -26,10 +75,18 @@ describe("BackupService", () => {
 
   describe("init", () => {
     it("creates backup directory", async () => {
+      const logger = new CapturingLogger();
+      service = new BackupService(logger);
+
       await service.init(destDir);
 
-      // Should not throw
-      expect(true).toBe(true);
+      const backupDirMessage = logger.infoMessages.find(message =>
+        message.startsWith("Backup directory: ")
+      );
+      const backupDir = backupDirMessage?.replace("Backup directory: ", "");
+
+      expect(backupDir).toBeDefined();
+      expect(await fs.pathExists(backupDir ?? "")).toBe(true);
     });
   });
 
@@ -42,8 +99,12 @@ describe("BackupService", () => {
 
       await service.backup(testFile);
 
-      // Should not throw
-      expect(true).toBe(true);
+      await fs.writeFile(testFile, "modified content");
+      await service.rollback();
+
+      await expect(fs.readFile(testFile, "utf-8")).resolves.toBe(
+        ORIGINAL_CONTENT
+      );
     });
 
     it("handles non-existent file gracefully", async () => {
@@ -295,8 +356,7 @@ describe("BackupService", () => {
       await service.cleanup();
       await service.cleanup();
 
-      // Should not throw
-      expect(true).toBe(true);
+      await expect(service.cleanup()).resolves.toBeUndefined();
     });
   });
 });
