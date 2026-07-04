@@ -37,6 +37,10 @@ describe("install-pkgs worktree node_modules handoff", () => {
       path.join(fakeBin, "git"),
       '#!/usr/bin/env bash\nif [ "$1" = "rev-parse" ] && [ "$2" = "--show-toplevel" ]; then pwd; exit 0; fi\nexit 1\n'
     );
+    await writeExecutable(
+      path.join(fakeBin, "uname"),
+      "#!/usr/bin/env bash\necho Darwin\n"
+    );
 
     for (const name of ["bun", "npm", "pnpm", "yarn"]) {
       await writeExecutable(
@@ -57,16 +61,48 @@ describe("install-pkgs worktree node_modules handoff", () => {
     "%s hook links primary node_modules before installing",
     (_name, script) => {
       // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim fakes git and package managers.
-      execFileSync("bash", [script], {
+      const output = execFileSync("bash", [script], {
         cwd: worktreeRoot,
         env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
         stdio: "pipe",
       });
 
+      expect(output.toString("utf8")).toBe("");
       expect(fs.realpathSync(path.join(worktreeRoot, "node_modules"))).toBe(
         fs.realpathSync(path.join(primaryRoot, "node_modules"))
       );
       expect(fs.existsSync(installMarker)).toBe(false);
+    }
+  );
+
+  it.each([
+    ["Claude/plugin", CLAUDE_INSTALL_PKGS],
+    ["Codex", CODEX_INSTALL_PKGS],
+  ])(
+    "%s hook keeps package-manager output off stdout",
+    async (_name, script) => {
+      const projectRoot = path.join(tempDir, `install-${_name}`);
+      fs.ensureDirSync(projectRoot);
+      fs.writeFileSync(
+        path.join(projectRoot, "package.json"),
+        '{"name":"fixture","engines":{"npm":"please-use-npm"}}\n',
+        "utf8"
+      );
+
+      await writeExecutable(
+        path.join(fakeBin, "npm"),
+        `#!/usr/bin/env bash\necho "fake npm stdout"\necho "fake npm stderr" >&2\ntouch "${installMarker}"\nexit 0\n`
+      );
+
+      // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim fakes git and package managers.
+      const output = execFileSync("bash", [script], {
+        cwd: projectRoot,
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+        stdio: "pipe",
+      });
+
+      expect(output.toString("utf8")).toBe("");
+      expect(fs.existsSync(installMarker)).toBe(true);
     }
   );
 });

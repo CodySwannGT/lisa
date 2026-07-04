@@ -20,7 +20,7 @@ link_primary_worktree_node_modules() {
   [ -d "$primary_root/node_modules" ] || return 1
 
   ln -s "$primary_root/node_modules" "node_modules"
-  echo "Linked node_modules from primary worktree: $primary_root/node_modules"
+  echo "Linked node_modules from primary worktree: $primary_root/node_modules" >&2
 }
 
 # Only run package installation when node_modules are missing.
@@ -60,12 +60,12 @@ detect_package_manager() {
 }
 
 PACKAGE_MANAGER="$(detect_package_manager)"
-echo "Detected package manager: ${PACKAGE_MANAGER}"
+echo "Detected package manager: ${PACKAGE_MANAGER}" >&2
 case "$PACKAGE_MANAGER" in
-  bun) bun install ;;
-  pnpm) pnpm install ;;
-  yarn) yarn install ;;
-  *) npm install ;;
+  bun) bun install >&2 ;;
+  pnpm) pnpm install >&2 ;;
+  yarn) yarn install >&2 ;;
+  *) npm install >&2 ;;
 esac
 
 # The tools below use Linux-specific binaries and paths — skip on other platforms.
@@ -74,15 +74,15 @@ if [ "$(uname -s)" != "Linux" ]; then
 fi
 
 # Install Gitleaks for secret detection (pre-commit hook)
-echo "Installing Gitleaks for secret detection..."
+echo "Installing Gitleaks for secret detection..." >&2
 GITLEAKS_VERSION="8.18.4"
 curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz -C /usr/local/bin gitleaks
-echo "Gitleaks installed: $(gitleaks version)"
+echo "Gitleaks installed: $(gitleaks version)" >&2
 
 # Install jira-cli for JIRA integration
 # The tarball nests the binary at jira_VERSION_linux_x86_64/bin/jira,
 # so we extract to a temp dir and copy the binary out.
-echo "Installing jira-cli for JIRA integration..."
+echo "Installing jira-cli for JIRA integration..." >&2
 JIRA_CLI_VERSION="1.7.0"
 JIRA_TMPDIR=$(mktemp -d)
 curl -sSfL "https://github.com/ankitpokhrel/jira-cli/releases/download/v${JIRA_CLI_VERSION}/jira_${JIRA_CLI_VERSION}_linux_x86_64.tar.gz" \
@@ -90,12 +90,12 @@ curl -sSfL "https://github.com/ankitpokhrel/jira-cli/releases/download/v${JIRA_C
 cp "${JIRA_TMPDIR}/jira_${JIRA_CLI_VERSION}_linux_x86_64/bin/jira" /usr/local/bin/jira
 chmod +x /usr/local/bin/jira
 rm -rf "${JIRA_TMPDIR}"
-echo "jira-cli installed: $(jira version)"
+echo "jira-cli installed: $(jira version)" >&2
 
 # Install Chromium for Lighthouse CI (pre-push hook)
 # Playwright's bundled Chromium works with @lhci/cli
-echo "Installing Chromium for Lighthouse CI..."
-npx playwright install chromium
+echo "Installing Chromium for Lighthouse CI..." >&2
+npx playwright install chromium >&2
 
 # Find and export CHROME_PATH for Lighthouse CI
 # Use sort to ensure deterministic selection of the latest version
@@ -110,7 +110,7 @@ if [ -n "$CHROME_PATH" ]; then
   fi
 
   export CHROME_PATH="$CHROME_PATH"
-  echo "Chromium installed at: $CHROME_PATH"
+  echo "Chromium installed at: $CHROME_PATH" >&2
 fi
 
 exit 0
