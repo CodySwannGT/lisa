@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.6](https://github.com/CodySwannGT/lisa/compare/vv2.189.5...v2.189.6) (2026-07-04)
+
+
+### Bug Fixes
+
+* **hooks:** keep install package output off stdout ([090b27b](https://github.com/CodySwannGT/lisa/commit/090b27bf3d683ae6e5c0e8767b128a4f9f2ccbd9))
+* **hooks:** keep install package output off stdout ([a2b2378](https://github.com/CodySwannGT/lisa/commit/a2b2378b84ac858ae0c5914fbf58cc6f882ea10f))
+
 ### [2.189.5](https://github.com/CodySwannGT/lisa/compare/vv2.189.4...v2.189.5) (2026-07-04)
 
 
