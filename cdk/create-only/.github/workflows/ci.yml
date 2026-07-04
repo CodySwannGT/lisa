@@ -48,22 +48,25 @@ jobs:
 
           echo "environment=$TARGET_ENV" >> $GITHUB_OUTPUT
 
-          # Map to CDK environment name
+          # Map to CDK environment name.
+          # Set your per-environment AWS account IDs as repository or environment
+          # secrets: AWS_ACCOUNT_ID_PRODUCTION / AWS_ACCOUNT_ID_STAGING / AWS_ACCOUNT_ID_DEV.
+          # The deploy role name defaults to DeployServiceRole; change it below if yours differs.
           case $TARGET_ENV in
             production)
               echo "cdk_env=production" >> $GITHUB_OUTPUT
-              echo "aws_account_id=017820663592" >> $GITHUB_OUTPUT
-              echo "role_arn=arn:aws:iam::017820663592:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              echo "aws_account_id=${{ secrets.AWS_ACCOUNT_ID_PRODUCTION }}" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_PRODUCTION }}:role/DeployServiceRole" >> $GITHUB_OUTPUT
               ;;
             staging)
               echo "cdk_env=staging" >> $GITHUB_OUTPUT
-              echo "aws_account_id=017820663537" >> $GITHUB_OUTPUT
-              echo "role_arn=arn:aws:iam::017820663537:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              echo "aws_account_id=${{ secrets.AWS_ACCOUNT_ID_STAGING }}" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_STAGING }}:role/DeployServiceRole" >> $GITHUB_OUTPUT
               ;;
             dev|*)
               echo "cdk_env=dev" >> $GITHUB_OUTPUT
-              echo "aws_account_id=017820663466" >> $GITHUB_OUTPUT
-              echo "role_arn=arn:aws:iam::017820663466:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              echo "aws_account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/DeployServiceRole" >> $GITHUB_OUTPUT
               ;;
           esac
 
