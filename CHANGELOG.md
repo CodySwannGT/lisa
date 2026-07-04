@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.189.0](https://github.com/CodySwannGT/lisa/compare/vv2.188.4...v2.189.0) (2026-07-04)
+
+
+### Features
+
+* **expo:** add Play Store access skill ([a04f6df](https://github.com/CodySwannGT/lisa/commit/a04f6df44dab895dda09c379293f2359de9bc0c2))
+
+
+### Bug Fixes
+
+* **expo:** recognize app.config.json in play-store-access Expo detection ([ff7d43f](https://github.com/CodySwannGT/lisa/commit/ff7d43fd5bd2b1b21d1793cd33834525074babba)), closes [#1422](https://github.com/CodySwannGT/lisa/issues/1422)
+
 ### [2.188.4](https://github.com/CodySwannGT/lisa/compare/vv2.188.3...v2.188.4) (2026-07-04)
 
 
