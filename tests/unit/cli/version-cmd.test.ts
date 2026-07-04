@@ -25,7 +25,7 @@ describe("runVersion", () => {
       expect.stringContaining("installPath: ")
     );
     expect(write).toHaveBeenCalledWith(
-      expect.stringContaining("defaultHarness: claude")
+      expect.stringContaining("defaultHarness: fleet")
     );
   });
 });
