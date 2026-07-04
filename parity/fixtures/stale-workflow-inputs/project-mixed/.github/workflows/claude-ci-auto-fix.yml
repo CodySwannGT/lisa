@@ -1,0 +1,19 @@
+# Fixture: stale caller (extra `package_manager`) sitting alongside the
+# clean claude.yml caller in project-mixed, to prove aggregation across files.
+name: Claude CI Auto Fix
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+
+jobs:
+  auto-fix:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-claude.yml@main
+    with:
+      event_name: ${{ github.event_name }}
+      author_association: ''
+      comment_body: ''
+      package_manager: 'npm'
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
