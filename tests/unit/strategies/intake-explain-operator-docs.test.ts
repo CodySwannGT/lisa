@@ -19,7 +19,7 @@ const read = (root: string, rel: string): string =>
 describe("intake-explain operator docs (#844)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("documents read-only operator entrypoints in the command surface", () => {
-      const command = read(root, "commands/intake-explain.md");
+      const command = read(root, "commands/lisa/intake-explain.md");
 
       expect(command).toContain("/lisa:intake-explain");
       expect(command).toMatch(/read-only/i);
@@ -29,7 +29,7 @@ describe("intake-explain operator docs (#844)", () => {
     });
 
     it("documents verdict semantics, rule explanations, and next actions in the skill", () => {
-      const skill = read(root, "skills/intake-explain/SKILL.md");
+      const skill = read(root, "skills/lisa-intake-explain/SKILL.md");
 
       expect(skill).toContain("## Operator usage");
       expect(skill).toContain("## Verdicts and next actions");
@@ -50,7 +50,7 @@ describe("intake-explain operator docs (#844)", () => {
     });
 
     it("shows a stable diagnosis rendering pattern with signals", () => {
-      const skill = read(root, "skills/intake-explain/SKILL.md");
+      const skill = read(root, "skills/lisa-intake-explain/SKILL.md");
 
       expect(skill).toMatch(/One acceptable rendering pattern/i);
       expect(skill).toMatch(/Item: CodySwannGT\/lisa#123/);

@@ -12,7 +12,7 @@ import {
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const SKILL_MD = "SKILL.md";
-const PUBLIC_SKILL = "bug-triage";
+const PUBLIC_SKILL = "lisa-bug-triage";
 const INTERNAL_SKILL = "harness-parity-council";
 const INTERNAL_CODEX_SKILL_POLICY = JSON.stringify(
   {

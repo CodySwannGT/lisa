@@ -1,0 +1,4 @@
+display_name: "Jira Sync"
+short_description: "Syncs plan progress to a linked JIRA ticket"
+default_prompt:
+  - "Use $lisa-jira-sync: Syncs plan progress to a linked JIRA ticket."

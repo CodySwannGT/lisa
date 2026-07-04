@@ -1,0 +1,4 @@
+display_name: "Security Review"
+short_description: "Security review methodology"
+default_prompt:
+  - "Use $lisa-security-review: Security review methodology."

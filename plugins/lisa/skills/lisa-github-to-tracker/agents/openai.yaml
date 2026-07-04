@@ -1,0 +1,4 @@
+display_name: "Github To Tracker"
+short_description: ">"
+default_prompt:
+  - "Use $lisa-github-to-tracker: >."

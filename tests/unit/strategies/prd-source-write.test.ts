@@ -2,16 +2,16 @@
  * Regression tests for the PRD-source-write surface and the persona-driven
  * project-ideation -> research -> PRD creation chain.
  *
- * Design (co-designed with the codex CLI): `lisa:prd-source-write` is the PRD-side
- * sibling of `lisa:tracker-write` — a thin vendor-neutral dispatcher that reads
+ * Design (co-designed with the codex CLI): `lisa-prd-source-write` is the PRD-side
+ * sibling of `lisa-tracker-write` — a thin vendor-neutral dispatcher that reads
  * `source` and routes to a per-vendor PRD writer (`notion-write-prd`,
  * `confluence-write-prd`, `github-write-prd`, `linear-write-prd`). Each writer
  * creates (or idempotently updates) the PRD in the source with an `initial_role`
  * of `draft` (default) or `ready` (prd-ready), deduping by a stable body marker
- * matched by marker (never title). `research` synthesizes the PRD then creates it
+ * matched by marker (never title). `lisa-research` synthesizes the PRD then creates it
  * in the source via the shim — there is no loose document artifact.
  * `project-ideation` derives evidence-gated personas, ideates per persona, and
- * chains selected build-ready ideas into `research` with `prd_ready`.
+ * chains selected build-ready ideas into `lisa-research` with `prd_ready`.
  *
  * Both source (`plugins/src/base/skills`) and generated artifact
  * (`plugins/lisa/skills`) roots are asserted so an artifact-only edit or a missed
@@ -27,11 +27,19 @@ import { describe, expect, it } from "vitest";
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 /** The PRD-side dispatcher skill name, referenced by callers and writers. */
-const SHIM = "lisa:prd-source-write";
+const SHIM = "lisa-prd-source-write";
 /** The role-control input every writer honors. */
 const INITIAL_ROLE = "initial_role";
 /** The stable ideation dedupe marker prefix. */
 const IDEATION_MARKER = "[lisa-project-ideation]";
+/** Per-vendor PRD writer skill slugs dispatched by the shim. */
+const PRD_WRITERS = [
+  "lisa-notion-write-prd",
+  "lisa-confluence-write-prd",
+  "lisa-github-write-prd",
+  "lisa-linear-write-prd",
+] as const;
+const RESEARCH_SKILL = "lisa-research";
 
 /**
  * Read a skill's SKILL.md from a root.
@@ -44,7 +52,7 @@ const readSkill = (root: string, skill: string): string =>
 
 describe("prd-source-write shim", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "prd-source-write");
+    const content = readSkill(root, SHIM);
 
     it("reads source from config and fails loudly for jira and unknown sources", () => {
       expect(content).toMatch(/\.source/);
@@ -53,10 +61,9 @@ describe("prd-source-write shim", () => {
     });
 
     it("dispatches to each per-vendor PRD writer", () => {
-      expect(content).toContain("lisa:notion-write-prd");
-      expect(content).toContain("lisa:confluence-write-prd");
-      expect(content).toContain("lisa:github-write-prd");
-      expect(content).toContain("lisa:linear-write-prd");
+      for (const writer of PRD_WRITERS) {
+        expect(content).toContain(writer);
+      }
     });
 
     it("accepts initial_role with draft default and ready opt-in", () => {
@@ -81,12 +88,7 @@ describe("prd-source-write shim", () => {
 });
 
 describe("per-vendor PRD writers", () => {
-  const WRITERS = [
-    "notion-write-prd",
-    "confluence-write-prd",
-    "github-write-prd",
-    "linear-write-prd",
-  ] as const;
+  const WRITERS = PRD_WRITERS;
 
   describe.each(WRITERS)("%s", writer => {
     describe.each(ROOTS)("%s", root => {
@@ -137,7 +139,7 @@ describe("per-vendor PRD writers", () => {
 
   // Per-vendor specifics: each writer uses the right substrate + state mechanism.
   describe.each(ROOTS)("github-write-prd specifics (%s)", root => {
-    const content = readSkill(root, "github-write-prd");
+    const content = readSkill(root, "lisa-github-write-prd");
     it("uses gh and applies exactly one prd lifecycle label", () => {
       expect(content).toMatch(/gh issue create/);
       expect(content).toMatch(/prd-draft/);
@@ -171,7 +173,7 @@ describe("per-vendor PRD writers", () => {
   });
 
   describe.each(ROOTS)("linear-write-prd specifics (%s)", root => {
-    const content = readSkill(root, "linear-write-prd");
+    const content = readSkill(root, "lisa-linear-write-prd");
     it("creates a Linear Project with one prd lifecycle project-label", () => {
       expect(content).toContain("save_project");
       expect(content).toMatch(/prd-ready/);
@@ -180,18 +182,18 @@ describe("per-vendor PRD writers", () => {
   });
 
   describe.each(ROOTS)("notion-write-prd specifics (%s)", root => {
-    const content = readSkill(root, "notion-write-prd");
+    const content = readSkill(root, "lisa-notion-write-prd");
     it("goes through notion-access create-page and sets the Status role", () => {
-      expect(content).toContain("lisa:notion-access");
+      expect(content).toContain("lisa-notion-access");
       expect(content).toContain("create-page");
       expect(content).toMatch(/Status/);
     });
   });
 
   describe.each(ROOTS)("confluence-write-prd specifics (%s)", root => {
-    const content = readSkill(root, "confluence-write-prd");
+    const content = readSkill(root, "lisa-confluence-write-prd");
     it("goes through atlassian-access and models state by parent page", () => {
-      expect(content).toContain("lisa:atlassian-access");
+      expect(content).toContain("lisa-atlassian-access");
       expect(content).toMatch(/parent/i);
       expect(content).toMatch(/search-pages/);
     });
@@ -210,7 +212,7 @@ describe("per-vendor PRD writers", () => {
 
 describe("notion-access gains a create-page operation", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "notion-access");
+    const content = readSkill(root, "lisa-notion-access");
     it("documents create-page (POST /v1/pages) in the dispatch table", () => {
       expect(content).toContain("create-page");
       expect(content).toMatch(/POST \/v1\/pages/);
@@ -220,7 +222,7 @@ describe("notion-access gains a create-page operation", () => {
 
 describe("research creates the PRD in the source", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "research");
+    const content = readSkill(root, RESEARCH_SKILL);
 
     it("creates the PRD via prd-source-write rather than emitting a document", () => {
       expect(content).toContain(SHIM);
@@ -248,7 +250,7 @@ describe("intent-routing Research flow writes the PRD to the source", () => {
 
 describe("project-ideation is persona-driven and chains into research", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "project-ideation");
+    const content = readSkill(root, "lisa-project-ideation");
 
     it("derives personas from evidence with a no-fabrication rule", () => {
       expect(content).toMatch(
@@ -265,7 +267,7 @@ describe("project-ideation is persona-driven and chains into research", () => {
     });
 
     it("chains selected ideas into research with prd_ready", () => {
-      expect(content).toContain("lisa:research");
+      expect(content).toContain(RESEARCH_SKILL);
       expect(content).toContain("prd_ready");
     });
 
@@ -273,7 +275,9 @@ describe("project-ideation is persona-driven and chains into research", () => {
       expect(content).toContain("evaluatePrdQueuePressure");
       expect(content).toMatch(/prd_ready=true/);
       expect(content).toMatch(/prd_ready=false[^]*skips this gate/i);
-      expect(content).toMatch(/stop before any `lisa:research`/i);
+      expect(content).toMatch(
+        new RegExp(`stop before any \`${RESEARCH_SKILL}\``, "i")
+      );
       expect(content).toMatch(/no research or PRD source write was invoked/i);
       expect(content).toMatch(/\/lisa:intake <PRD queue>/);
     });
@@ -320,12 +324,12 @@ describe("project-ideation is persona-driven and chains into research", () => {
 
 describe("research forwards ideation ledger metadata to prd-source-write", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "research");
+    const content = readSkill(root, RESEARCH_SKILL);
 
     it("accepts and preserves ideation_ledger_payload", () => {
       expect(content).toContain("ideation_ledger_payload");
       expect(content).toMatch(/pass.*through.*unchanged|forward unchanged/i);
-      expect(content).toContain("lisa:prd-source-write");
+      expect(content).toContain(SHIM);
     });
   });
 });

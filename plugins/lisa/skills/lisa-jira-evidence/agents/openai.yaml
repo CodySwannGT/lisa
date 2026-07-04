@@ -1,0 +1,4 @@
+display_name: "Jira Evidence"
+short_description: "Upload text evidence to GitHub pr-assets release, update PR description, post JIRA comment with code blocks, and move ticket to the…"
+default_prompt:
+  - "Use $lisa-jira-evidence: Upload text evidence to GitHub pr-assets release, update PR description, post JIRA comment with code blocks, and move ticket to the…."

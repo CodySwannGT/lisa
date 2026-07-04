@@ -1,4 +1,0 @@
-display_name: "Github Sync"
-short_description: "Syncs plan progress to a linked GitHub Issue"
-default_prompt:
-  - "Use $github-sync: Syncs plan progress to a linked GitHub Issue."

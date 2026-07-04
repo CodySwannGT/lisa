@@ -27,6 +27,8 @@ const EXIT_BLOCKED = 2;
 const EXIT_ALLOWED = 0;
 
 const IMPLEMENT_PROMPT = "/lisa:implement SE-1";
+const LISA_IMPLEMENT = "lisa-implement";
+const LISA_GIT_COMMIT = "lisa-git-commit";
 
 let stateRoot: string;
 
@@ -80,10 +82,10 @@ describe("enforce-team-first.sh", () => {
     });
 
     it.each([
-      ["/lisa:research onboarding", "research"],
-      ["/lisa:plan https://example.com/prd", "plan"],
-      ["/lisa:implement SE-1", "implement"],
-      ["/lisa:intake SE", "intake"],
+      ["/lisa:research onboarding", "lisa-research"],
+      ["/lisa:plan https://example.com/prd", "lisa-plan"],
+      ["/lisa:implement SE-1", LISA_IMPLEMENT],
+      ["/lisa:intake SE", "lisa-intake"],
     ])("arms via UserPromptSubmit on %s", (prompt, label) => {
       const sid = `arm-${label}`;
       armSession(sid, prompt);
@@ -95,17 +97,17 @@ describe("enforce-team-first.sh", () => {
       expect(existsSync(flagPath("not-lifecycle", "skill"))).toBe(false);
     });
 
-    it("arms via Skill tool with skill=lisa:implement", () => {
+    it(`arms via Skill tool with skill=${LISA_IMPLEMENT}`, () => {
       const { status } = preToolUse("skill-arm", "Skill", {
-        skill: "lisa:implement",
+        skill: LISA_IMPLEMENT,
       });
       expect(status).toBe(EXIT_ALLOWED);
       expect(existsSync(flagPath("skill-arm", "skill"))).toBe(true);
     });
 
     it("does not arm for non-lifecycle Skill calls", () => {
-      preToolUse("git-commit", "Skill", { skill: "lisa:git-commit" });
-      expect(existsSync(flagPath("git-commit", "skill"))).toBe(false);
+      preToolUse(LISA_GIT_COMMIT, "Skill", { skill: LISA_GIT_COMMIT });
+      expect(existsSync(flagPath(LISA_GIT_COMMIT, "skill"))).toBe(false);
     });
   });
 
@@ -123,7 +125,7 @@ describe("enforce-team-first.sh", () => {
       ["WebSearch", {}],
       ["TaskCreate", {}],
       ["mcp__plugin_atlassian_atlassian__getJiraIssue", {}],
-      ["Skill", { skill: "lisa:tracker-read" }],
+      ["Skill", { skill: "lisa-tracker-read" }],
     ])("blocks %s", (tool, input) => {
       const sid = `block-${tool}`;
       armSession(sid);
@@ -261,7 +263,7 @@ describe("enforce-team-first.sh", () => {
       const dir = path.join(stateRoot, "lisa-team-enforce");
       mkdirSync(dir, { recursive: true });
       const oldFlag = path.join(dir, "stale-session.skill");
-      writeFileSync(oldFlag, "lisa:implement\n");
+      writeFileSync(oldFlag, `${LISA_IMPLEMENT}\n`);
       const past = (Date.now() - 25 * 60 * 60 * 1000) / 1000;
       utimesSync(oldFlag, past, past);
       expect(existsSync(oldFlag)).toBe(true);

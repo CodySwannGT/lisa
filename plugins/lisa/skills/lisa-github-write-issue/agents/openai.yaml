@@ -1,0 +1,4 @@
+display_name: "Github Write Issue"
+short_description: "Creates or updates a GitHub Issue following the same organizational best practices as lisa-jira-write-ticket — three-audience description…"
+default_prompt:
+  - "Use $lisa-github-write-issue: Creates or updates a GitHub Issue following the same organizational best practices as lisa-jira-write-ticket — three-audience description…."

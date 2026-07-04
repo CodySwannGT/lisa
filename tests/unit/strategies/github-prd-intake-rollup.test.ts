@@ -7,7 +7,7 @@
  * machine-readable `## Tickets` generated-work section from #582) and apply the
  * GitHub terminal-state predicate to each required child:
  *   - ALL required children terminal → transition `prd-ticketed` → `prd-shipped`
- *     and leave the PRD issue open for `lisa:verify-prd`.
+ *     and leave the PRD issue open for `lisa-verify-prd`.
  *   - ANY required child incomplete/blocked → leave the PRD OPEN, do not add
  *     `prd-shipped`, and report the incomplete child set.
  *   - Idempotent: a PRD already `prd-shipped` is a no-op — no duplicate
@@ -31,7 +31,7 @@ import { describe, expect, it } from "vitest";
 const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 /** The skill's directory / slug. */
-const SKILL_SLUG = "github-prd-intake";
+const SKILL_SLUG = "lisa-github-prd-intake";
 /** The vendor-neutral rule this skill cites by slug. */
 const RULE_SLUG = "prd-lifecycle-rollup";
 /** The build-lifecycle companion the rule (and predicate) leans on. */

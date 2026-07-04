@@ -143,11 +143,11 @@ Apply it as follows:
 
 Skills that link generated work to a PRD or roll a PRD up cite this rule by slug (the `prd-lifecycle-rollup` rule) instead of restating it:
 
-- **PRD backlink / native linking** (`prd-backlink`) — record generated top-level work as native PRD children where supported; always write the documented generated-work fallback; dedupe by child-ref. *(LPC-1.1 #580, LPC-1.2 #582)*
-- **PRD coverage** (`prd-ticket-coverage`) — read the generated top-level child set deterministically from the recorded relationship, not from free-form comments.
-- **GitHub PRD shipped rollup** (`github-prd-intake`) — detect terminal/incomplete/blocked child sets, transition to `prd-shipped`, and leave the PRD open for `/lisa:verify-prd`. *(LPC-1.3 #583)*
-- **Linear / Confluence / Notion PRD shipped rollup** (`linear-prd-intake`, `confluence-prd-intake`, `notion-prd-intake`) — mirror the GitHub shipped rollup with each vendor's terminal predicate and keep the PRD active for verification. *(LPC-1.3 #584)*
-- **Repair close-out** (`repair-intake`) — re-run the same generated-top-level-work terminal
+- **PRD backlink / native linking** (`lisa-prd-backlink`) — record generated top-level work as native PRD children where supported; always write the documented generated-work fallback; dedupe by child-ref. *(LPC-1.1 #580, LPC-1.2 #582)*
+- **PRD coverage** (`lisa-prd-ticket-coverage`) — read the generated top-level child set deterministically from the recorded relationship, not from free-form comments.
+- **GitHub PRD shipped rollup** (`lisa-github-prd-intake`) — detect terminal/incomplete/blocked child sets, transition to `prd-shipped`, and leave the PRD open for `/lisa:verify-prd`. *(LPC-1.3 #583)*
+- **Linear / Confluence / Notion PRD shipped rollup** (`lisa-linear-prd-intake`, `lisa-confluence-prd-intake`, `lisa-notion-prd-intake`) — mirror the GitHub shipped rollup with each vendor's terminal predicate and keep the PRD active for verification. *(LPC-1.3 #584)*
+- **Repair close-out** (`lisa-repair-intake`) — re-run the same generated-top-level-work terminal
   predicate to close out PRDs that were left open after all associated child work became terminal,
   without setting the product-owned `verified` role.
 - **Idempotency** (all of the above) — dedupe-by-ref linking and no-op already-shipped rollup. *(LPC-1.4 #585)*

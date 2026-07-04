@@ -1,4 +1,0 @@
-display_name: "Verify PRD"
-short_description: "Initiative-level PRD acceptance gate"
-default_prompt:
-  - "Use $verify-prd: Initiative-level PRD acceptance gate."

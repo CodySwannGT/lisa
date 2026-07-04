@@ -40,7 +40,7 @@ describe("project-ideation idempotency harness (#1010)", () => {
   });
 
   it.each(SKILL_ROOTS)("%s documents fixture-driven verification", root => {
-    const content = readFile(root, "project-ideation/SKILL.md");
+    const content = readFile(root, "lisa-project-ideation/SKILL.md");
 
     expect(content).toContain("fixture=<path>");
     expect(content).toContain("idempotency-verification-harness.md");

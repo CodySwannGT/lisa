@@ -194,7 +194,7 @@ export function multiKind(copilotActions: readonly string[]): Artifact {
       {
         kind: "command",
         id: "demo-cmd",
-        path: "commands/demo.md",
+        path: "commands/lisa/demo.md",
         classification: "claude-command",
         notes: "",
       },

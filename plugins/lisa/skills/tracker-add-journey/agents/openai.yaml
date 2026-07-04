@@ -1,4 +1,0 @@
-display_name: "Tracker Add Journey"
-short_description: "Vendor-neutral wrapper for appending a Validation Journey section to an existing ticket/issue"
-default_prompt:
-  - "Use $tracker-add-journey: Vendor-neutral wrapper for appending a Validation Journey section to an existing ticket/issue."

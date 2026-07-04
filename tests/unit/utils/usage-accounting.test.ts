@@ -20,6 +20,7 @@ const CHILD_ENTRY_SHARED = "shared-child";
 const CHILD_ENTRY_UNIQUE = "unique-child";
 const PRICING_SOURCE = "config:openai-api-pricing@2026-05-25";
 const PRICED_ENTRY_ID = "entry-priced";
+const FLOW_VERIFY = "lisa-verify";
 
 /**
  * Create a deterministic direct usage entry for unit tests.
@@ -36,7 +37,7 @@ function makeEntry(
     cost: 0.12,
     currency: "USD",
     entryId: overrides.entryId,
-    flow: "plan",
+    flow: "lisa-plan",
     inputTokens: 100,
     model: "gpt-5",
     outputTokens: 20,
@@ -167,7 +168,7 @@ describe("usage-accounting utilities", () => {
     const secondEntry = makeEntry({
       entryId: "entry-2",
       runId: "run-2",
-      flow: "implement",
+      flow: "lisa-implement",
       totalTokens: 80,
       cost: 0.08,
     });
@@ -222,7 +223,7 @@ describe("usage-accounting utilities", () => {
       artifactRef: CHILD_REF_ONE,
       cost: 0.08,
       entryId: CHILD_ENTRY_SHARED,
-      flow: "verify",
+      flow: FLOW_VERIFY,
       runId: "run-verify-1",
       totalTokens: 80,
     });
@@ -230,7 +231,7 @@ describe("usage-accounting utilities", () => {
       artifactRef: CHILD_REF_TWO,
       cost: 0.04,
       entryId: CHILD_ENTRY_UNIQUE,
-      flow: "verify",
+      flow: FLOW_VERIFY,
       runId: "run-verify-2",
       totalTokens: 40,
     });
@@ -238,7 +239,7 @@ describe("usage-accounting utilities", () => {
       artifactRef: "github:issue:902",
       cost: 0.5,
       entryId: "entry-1",
-      flow: "verify",
+      flow: FLOW_VERIFY,
       runId: "run-verify-duplicate",
       totalTokens: 500,
     });

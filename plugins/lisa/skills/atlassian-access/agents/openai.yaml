@@ -1,4 +1,0 @@
-display_name: "Atlassian Access"
-short_description: "Vendor-neutral access layer for Atlassian (JIRA + Confluence)"
-default_prompt:
-  - "Use $atlassian-access: Vendor-neutral access layer for Atlassian (JIRA + Confluence)."

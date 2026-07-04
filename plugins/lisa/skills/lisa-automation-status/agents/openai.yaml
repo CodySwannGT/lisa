@@ -1,0 +1,4 @@
+display_name: "Automation Status"
+short_description: "Read-only operator surface for the current project's Lisa automation fleet"
+default_prompt:
+  - "Use $lisa-automation-status: Read-only operator surface for the current project's Lisa automation fleet."

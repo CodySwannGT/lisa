@@ -1,0 +1,4 @@
+display_name: "Research"
+short_description: "Research a problem space and create a PRD in the configured PRD source"
+default_prompt:
+  - "Use $lisa-research: Research a problem space and create a PRD in the configured PRD source."

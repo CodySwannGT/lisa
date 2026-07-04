@@ -1,4 +1,0 @@
-display_name: "Jsdoc Best Practices"
-short_description: "Enforces JSDoc documentation standards for this TypeScript project"
-default_prompt:
-  - "Use $jsdoc-best-practices: Enforces JSDoc documentation standards for this TypeScript project."

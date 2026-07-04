@@ -1,6 +1,6 @@
 ---
 name: e2e-coverage-gaps
-description: Playwright/e2e coverage-gap explorer that FEEDS THE LIFECYCLE. Use when asked to find paths the automated end-to-end suite does NOT cover — routes with no test at all, or flows that are only happy-path tested (missing error, validation, permission, empty, loading, and edge states). It inventories the app's routes and the existing Playwright tests, explores the running app to confirm each uncovered or under-covered path is real and reachable, and files one build-ready missing-test ticket per gap via lisa:tracker-write. For human usability/experience issues (confusing, cramped, or broken UI), use the exploratory-qa skill instead.
+description: Playwright/e2e coverage-gap explorer that FEEDS THE LIFECYCLE. Use when asked to find paths the automated end-to-end suite does NOT cover — routes with no test at all, or flows that are only happy-path tested (missing error, validation, permission, empty, loading, and edge states). It inventories the app's routes and the existing Playwright tests, explores the running app to confirm each uncovered or under-covered path is real and reachable, and files one build-ready missing-test ticket per gap via lisa-tracker-write. For human usability/experience issues (confusing, cramped, or broken UI), use the lisa-exploratory-qa skill instead.
 ---
 
 # E2E Coverage Gaps
@@ -14,7 +14,7 @@ is real and reachable, then file each gap as a **build-ready missing-test work i
 Lisa lifecycle.
 
 This skill is purely about **automated-coverage gaps**. It does not judge whether the UI is confusing
-or pretty — for human usability findings, use the `exploratory-qa` skill.
+or pretty — for human usability findings, use the `lisa-exploratory-qa` skill.
 
 ## Parameters
 
@@ -67,7 +67,7 @@ Map routes/flows against existing coverage and classify each gap:
 
 ### 6. File One Ticket Per Gap
 
-Each confirmed gap becomes a leaf **missing-test** work item created via `lisa:tracker-write` (the
+Each confirmed gap becomes a leaf **missing-test** work item created via `lisa-tracker-write` (the
 vendor-neutral writer — it dispatches to the configured tracker and runs the validation gate; never
 call a vendor `*-write-*` skill directly), `issue_type: Task`, **build-ready per the `ready` flag
 (default `true`)**. Pass `build_ready` explicitly on every create. Each ticket MUST specify:
@@ -101,5 +101,5 @@ No report file. Emit a concise in-session summary:
 - Every ticket must stand alone for an implementer who was not in the session and must be concretely
   automatable (named route, behavior, and stable hook).
 - Do not refile gaps already covered or already ticketed (marker check).
-- This skill is about automated coverage only — route human usability issues to `exploratory-qa`.
+- This skill is about automated coverage only — route human usability issues to `lisa-exploratory-qa`.
 - Preserve unrelated repo changes.

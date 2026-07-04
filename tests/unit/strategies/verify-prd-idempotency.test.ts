@@ -7,12 +7,12 @@
  * (#598), and FAIL path (#599). The three guarantees under test:
  *
  *   (1) EVIDENCE / FAILURE-REPORT COMMENTS — each carries a stable HTML-comment
- *       sentinel (`<!-- lisa:verify-prd-evidence -->` for PASS,
- *       `<!-- lisa:verify-prd-failure-report -->` for FAIL) and is REGENERATED in
+ *       sentinel (`<!-- lisa-verify-prd-evidence -->` for PASS,
+ *       `<!-- lisa-verify-prd-failure-report -->` for FAIL) and is REGENERATED in
  *       place on re-run rather than appended — the same regenerate-don't-append
  *       discipline `prd-backlink` uses for its `## Tickets` section.
  *   (2) FIX ISSUES — deduped by a stable PRD-ref + requirement marker
- *       (`<!-- lisa:verify-prd-fix prd=… req=… -->`); a re-run with the same
+ *       (`<!-- lisa-verify-prd-fix prd=… req=… -->`); a re-run with the same
  *       still-failing requirement REFERENCES/UPDATES the existing open fix issue
  *       instead of creating a duplicate. Match by the marker, never by title.
  *   (3) LIFECYCLE TRANSITION — a no-op when the PRD already carries the target
@@ -40,7 +40,7 @@ const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 const RULE_SLUG = "prd-lifecycle-rollup";
 
 /** Relative path of the skill within a plugin root. */
-const SKILL_REL = "skills/verify-prd/SKILL.md";
+const SKILL_REL = "skills/lisa-verify-prd/SKILL.md";
 
 /** The stable sentinel markers the idempotency layer documents. */
 const EVIDENCE_MARKER = "<!-- lisa:verify-prd-evidence -->";
@@ -166,7 +166,7 @@ type FixIssue = {
  * @returns The literal marker string.
  */
 const fixMarker = (prdRef: string, reqId: string): string =>
-  `<!-- lisa:verify-prd-fix prd=${prdRef} req=${reqId} -->`;
+  `<!-- lisa-verify-prd-fix prd=${prdRef} req=${reqId} -->`;
 
 /**
  * Decide whether to REFERENCE an existing open fix issue or CREATE a new one for
@@ -216,7 +216,7 @@ const applyTransition = (
 };
 
 describe("verify-prd evidence/failure comment regeneration (Phase 6.3 / 7.3)", () => {
-  const EVIDENCE = "<!-- lisa:verify-prd-evidence -->";
+  const EVIDENCE = "<!-- lisa-verify-prd-evidence -->";
 
   it("creates a new comment when no sentinel-marked comment exists", () => {
     const result = selectCommentAction(
@@ -242,7 +242,7 @@ describe("verify-prd evidence/failure comment regeneration (Phase 6.3 / 7.3)", (
   });
 
   it("matches the failure-report sentinel independently of the evidence sentinel", () => {
-    const FAILURE = "<!-- lisa:verify-prd-failure-report -->";
+    const FAILURE = "<!-- lisa-verify-prd-failure-report -->";
     const comments: readonly PrdComment[] = [
       { id: 10, body: `${EVIDENCE}\nPASS evidence` },
       { id: 11, body: `${FAILURE}\nFAIL report` },

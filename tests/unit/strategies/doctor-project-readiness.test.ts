@@ -19,7 +19,7 @@ import { describe, expect, it } from "vitest";
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 const readSkill = (root: string): string =>
-  readFileSync(path.resolve(root, "doctor", "SKILL.md"), "utf8");
+  readFileSync(path.resolve(root, "lisa-doctor", "SKILL.md"), "utf8");
 
 describe.each(ROOTS)("doctor Project readiness contract (%s)", root => {
   const content = readSkill(root);

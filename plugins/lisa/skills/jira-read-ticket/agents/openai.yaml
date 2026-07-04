@@ -1,4 +1,0 @@
-display_name: "Jira Read Ticket"
-short_description: "Fetches the full scope of a JIRA ticket — metadata, description, acceptance criteria, all comments, remote links (PRs, Confluence…"
-default_prompt:
-  - "Use $jira-read-ticket: Fetches the full scope of a JIRA ticket — metadata, description, acceptance criteria, all comments, remote links (PRs, Confluence…."

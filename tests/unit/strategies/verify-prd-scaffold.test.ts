@@ -13,8 +13,8 @@
  * the PRD at `shipped`.
  *
  * The guarantees under test:
- *   (1) commands/verify-prd.md is a pass-through with `argument-hint: "<prd>"`
- *       that delegates to the /lisa:verify-prd skill;
+ *   (1) commands/lisa/verify-prd.md is a pass-through with `argument-hint: "<prd>"`
+ *       that delegates to the /lisa-verify-prd skill;
  *   (2) the skill resolves the PRD vendor and reads the generated child set via
  *       the #525/#562 child-linking + machine-readable generated-work section,
  *       and explicitly does NOT reimplement child enumeration;
@@ -52,9 +52,9 @@ const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 const RULE_SLUG = "prd-lifecycle-rollup";
 
 /** Relative path of the pass-through command within a plugin root. */
-const COMMAND_REL = "commands/verify-prd.md";
+const COMMAND_REL = "commands/lisa/verify-prd.md";
 /** Relative path of the skill within a plugin root. */
-const SKILL_REL = "skills/verify-prd/SKILL.md";
+const SKILL_REL = "skills/lisa-verify-prd/SKILL.md";
 
 /** Source vendors the skill resolves, the same set prd-ticket-coverage lists. */
 const SOURCE_VENDORS = [
@@ -78,7 +78,7 @@ describe("verify-prd scaffold (#597)", () => {
       expect(existsSync(skillPath)).toBe(true);
     });
 
-    describe("commands/verify-prd.md", () => {
+    describe("commands/lisa/verify-prd.md", () => {
       const command = read(root, COMMAND_REL);
 
       it("is a pass-through with argument-hint that delegates to the skill", () => {
@@ -86,8 +86,8 @@ describe("verify-prd scaffold (#597)", () => {
         expect(command).toMatch(/^---/);
         expect(command).toMatch(/description:/);
         expect(command).toContain('argument-hint: "<prd>"');
-        // Body delegates to the /lisa:verify-prd skill and forwards $ARGUMENTS.
-        expect(command).toMatch(/Use the \/lisa:verify-prd skill/);
+        // Body delegates to the /lisa-verify-prd skill and forwards $ARGUMENTS.
+        expect(command).toMatch(/Use the \/lisa-verify-prd skill/);
         expect(command).toContain("$ARGUMENTS");
       });
     });
@@ -97,7 +97,7 @@ describe("verify-prd scaffold (#597)", () => {
 
       it("declares frontmatter name, description, and allowed-tools", () => {
         expect(skill).toMatch(/^---/);
-        expect(skill).toMatch(/name:\s*verify-prd/);
+        expect(skill).toMatch(/name:\s*lisa-verify-prd/);
         expect(skill).toMatch(/description:/);
         expect(skill).toMatch(/allowed-tools:/);
         // The vendor read surfaces it resolves (Skill/Bash plus MCP readers).

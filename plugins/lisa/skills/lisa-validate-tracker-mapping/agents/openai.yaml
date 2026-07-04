@@ -1,0 +1,4 @@
+display_name: "Validate Tracker Mapping"
+short_description: "Detect and repair drift between a project's configured Lisa status/label mappings and the live tracker/source workflow"
+default_prompt:
+  - "Use $lisa-validate-tracker-mapping: Detect and repair drift between a project's configured Lisa status/label mappings and the live tracker/source workflow."

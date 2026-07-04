@@ -1,4 +1,0 @@
-display_name: "Repair Intake"
-short_description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake"
-default_prompt:
-  - "Use $repair-intake: Vendor-agnostic repair scanner — the recovery counterpart to lisa:intake."

@@ -33,11 +33,11 @@ import { describe, expect, it } from "vitest";
  * `bun run build:plugins` fails the suite.
  */
 const SCRIPT_PATHS = [
-  "plugins/src/base/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/lisa/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/lisa-agy/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/lisa-copilot/skills/jira-evidence/scripts/post-evidence.sh",
-  "plugins/lisa-cursor/skills/jira-evidence/scripts/post-evidence.sh",
+  "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh",
+  "plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh",
   "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh",
   "plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh",
   "plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh",
@@ -57,11 +57,11 @@ const SCRIPT_PATHS = [
  * separately below.
  */
 const SKILL_PATHS = [
-  "plugins/src/base/skills/jira-evidence/SKILL.md",
-  "plugins/lisa/skills/jira-evidence/SKILL.md",
-  "plugins/lisa-agy/skills/jira-evidence/SKILL.md",
-  "plugins/lisa-copilot/skills/jira-evidence/SKILL.md",
-  "plugins/lisa-cursor/skills/jira-evidence/SKILL.md",
+  "plugins/src/base/skills/lisa-jira-evidence/SKILL.md",
+  "plugins/lisa/skills/lisa-jira-evidence/SKILL.md",
+  "plugins/lisa-agy/skills/lisa-jira-evidence/SKILL.md",
+  "plugins/lisa-copilot/skills/lisa-jira-evidence/SKILL.md",
+  "plugins/lisa-cursor/skills/lisa-jira-evidence/SKILL.md",
 ] as const;
 
 /** Stack jira-evidence docs (expo/rails) — source + generated copies. */

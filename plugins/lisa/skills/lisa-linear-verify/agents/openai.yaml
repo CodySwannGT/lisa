@@ -1,0 +1,4 @@
+display_name: "Linear Verify"
+short_description: "Verifies a Linear work item meets organizational standards by fetching the live item and running it through lisa-linear-validate-issue"
+default_prompt:
+  - "Use $lisa-linear-verify: Verifies a Linear work item meets organizational standards by fetching the live item and running it through lisa-linear-validate-issue."

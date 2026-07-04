@@ -60,9 +60,9 @@ This pre-applies **only** the unambiguous *"labeled for another repo → skip"* 
 
 Apply it **only where the query layer can express `OR labels IS EMPTY` without dropping unlabeled candidates** — otherwise the pre-filter would hide the very tickets the determine + stamp arm exists to handle:
 
-- **JIRA (multi-repo project):** JQL expresses it directly — `lisa:jira-build-intake` applies it in Phase 1. This is the case the optimization is for.
+- **JIRA (multi-repo project):** JQL expresses it directly — `lisa-jira-build-intake` applies it in Phase 1. This is the case the optimization is for.
 - **GitHub:** issues are inherently single-repo, so the scanner is already repo-scoped — no pre-filter needed.
-- **Linear (multi-repo team):** the `list_issues` label filter is an AND-of-labels and cannot express "current-repo **or** unlabeled" in one query, so `lisa:linear-build-intake` keeps the broad `$READY` query and relies on the per-candidate 3a.0 gate — a narrowing label filter there would strand unlabeled Issues.
+- **Linear (multi-repo team):** the `list_issues` label filter is an AND-of-labels and cannot express "current-repo **or** unlabeled" in one query, so `lisa-linear-build-intake` keeps the broad `$READY` query and relies on the per-candidate 3a.0 gate — a narrowing label filter there would strand unlabeled Issues.
 
 **Cost.** Only **unlabeled** candidates need content determination; once stamped, wrong-repo candidates are skipped by label alone — and with the query-time pre-filter, sibling-repo tickets are not even fetched. Prefer candidates already labeled `repo:<current>` first (cheap claim), falling through to unlabeled candidates (determine + stamp) only when no pre-labeled current-repo leaf is ready.
 
@@ -74,4 +74,4 @@ The procedure is vendor-neutral; the create + link + edit mechanics differ:
 
 - **JIRA** — create via `mcp__atlassian__createJiraIssue` (clone fields, set the same epic parent); link via `mcp__atlassian__createIssueLink` with `Blocks` / `is blocked by` (resolve names via `mcp__atlassian__getIssueLinkTypes`); narrow the original via `mcp__atlassian__editJiraIssue`; comment via `mcp__atlassian__addCommentToJiraIssue`. See `jira-write-ticket` Phase 6.
 - **GitHub** — create the sibling issue with the same labels and parent sub-issue; encode the dependency in the body (`Blocked by #<n>` / `Blocks #<n>`) and via the sub-issue/parent graph where used; edit the original's body to narrow scope. See `github-write-issue` Phase 6.
-- **Linear** — create via `lisa:linear-access operation: save-issue` (clone fields, set the same `projectId`); add a blocking relation via the `relations` field or a paired relation call; edit the original to narrow scope. See `linear-write-issue` Phase 6.
+- **Linear** — create via `lisa-linear-access operation: save-issue` (clone fields, set the same `projectId`); add a blocking relation via the `relations` field or a paired relation call; edit the original to narrow scope. See `linear-write-issue` Phase 6.

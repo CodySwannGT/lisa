@@ -12,7 +12,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const SKILL_REL = "skills/intake-explain/SKILL.md";
+const SKILL_REL = "skills/lisa-intake-explain/SKILL.md";
 
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");

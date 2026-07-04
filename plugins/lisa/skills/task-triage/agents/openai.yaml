@@ -1,4 +1,0 @@
-display_name: "Task Triage"
-short_description: "8-step task triage and implementation workflow"
-default_prompt:
-  - "Use $task-triage: 8-step task triage and implementation workflow."

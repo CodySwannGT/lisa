@@ -1,4 +1,0 @@
-display_name: "Intake"
-short_description: "Vendor-agnostic scanner for Ready queues"
-default_prompt:
-  - "Use $intake: Vendor-agnostic scanner for Ready queues."

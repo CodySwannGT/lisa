@@ -55,8 +55,8 @@ Design the approach.
 `;
     const out = transformAgentMarkdownToOpencode(agent);
     expect(out).toContain("## Available Lisa Skills");
-    expect(out).toContain("- codebase-research");
-    expect(out).toContain("- task-decomposition");
+    expect(out).toContain("- lisa-codebase-research");
+    expect(out).toContain("- lisa-task-decomposition");
     expect(out).toContain("Design the approach.");
   });
 

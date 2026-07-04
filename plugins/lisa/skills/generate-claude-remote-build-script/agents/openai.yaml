@@ -1,4 +1,0 @@
-display_name: "Generate Claude Remote Build Script"
-short_description: "Generate the setup/build script (and env-var template) to paste into a Claude Code remote routine environment so this repo runs in the cloud"
-default_prompt:
-  - "Use $generate-claude-remote-build-script: Generate the setup/build script (and env-var template) to paste into a Claude Code remote routine environment so this repo runs in the cloud."

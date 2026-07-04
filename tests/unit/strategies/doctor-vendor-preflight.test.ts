@@ -22,7 +22,7 @@ const RULE_ROOTS = [
 ] as const;
 
 const readDoctorSkill = (root: string): string =>
-  readFileSync(path.resolve(root, "doctor", "SKILL.md"), "utf8");
+  readFileSync(path.resolve(root, "lisa-doctor", "SKILL.md"), "utf8");
 
 describe.each(SKILL_ROOTS)("doctor vendor preflight contract (%s)", root => {
   const content = readDoctorSkill(root);

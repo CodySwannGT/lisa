@@ -31,7 +31,7 @@ const read = (root: string, rel: string): string =>
 
 describe("setup-github scaffolds prd-verified idempotently (#593)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
-    const content = read(root, "skills/setup-github/SKILL.md");
+    const content = read(root, "skills/lisa-setup-github/SKILL.md");
 
     it("scaffolds prd-verified via the read_role default ladder", () => {
       // Mirrors the rest of the prd-* block: `read_role prd <role> <default>`.

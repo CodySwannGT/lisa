@@ -1,0 +1,4 @@
+display_name: "Improve Code Complexity"
+short_description: "reducing the cognitive complexity threshold of the codebase"
+default_prompt:
+  - "Use $lisa-improve-code-complexity: reducing the cognitive complexity threshold of the codebase."

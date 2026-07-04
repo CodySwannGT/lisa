@@ -1,4 +1,0 @@
-display_name: "Quality Review"
-short_description: "Code quality review checklist"
-default_prompt:
-  - "Use $quality-review: Code quality review checklist."

@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Usage"
+display_name: "Wiki Usage"
 short_description: "Explain how to browse, query, and contribute to this project's LLM Wiki"
 default_prompt:
   - "Use $lisa-wiki-usage: Explain how to browse, query, and contribute to this project's LLM Wiki."

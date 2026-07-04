@@ -16,7 +16,7 @@ const RULES = [
   "plugins/src/base/rules/reference/intent-routing.md",
   "plugins/lisa/rules/reference/intent-routing.md",
 ] as const;
-const USAGE_SKILL = "lisa:usage-accounting";
+const USAGE_SKILL = "lisa-usage-accounting";
 const USAGE_SECTION = "## Lisa Usage";
 const UNAVAILABLE_USAGE = /source:\s*unavailable/i;
 
@@ -26,7 +26,7 @@ const readSkill = (root: string, skill: string): string =>
 describe("research/plan/debrief usage-accounting integration", () => {
   describe.each(ROOTS)("%s", root => {
     it("records research usage on the PRD artifact", () => {
-      const content = readSkill(root, "research");
+      const content = readSkill(root, "lisa-research");
 
       expect(content).toContain(USAGE_SKILL);
       expect(content).toContain(USAGE_SECTION);
@@ -35,7 +35,7 @@ describe("research/plan/debrief usage-accounting integration", () => {
     });
 
     it("records plan usage on the PRD and created work items", () => {
-      const content = readSkill(root, "plan");
+      const content = readSkill(root, "lisa-plan");
 
       expect(content).toContain(USAGE_SKILL);
       expect(content).toMatch(/direct entry on the source PRD/i);
@@ -46,7 +46,7 @@ describe("research/plan/debrief usage-accounting integration", () => {
     });
 
     it("records debrief usage on the generated triage document", () => {
-      const content = readSkill(root, "debrief");
+      const content = readSkill(root, "lisa-debrief");
 
       expect(content).toContain(USAGE_SKILL);
       expect(content).toContain(USAGE_SECTION);
@@ -59,41 +59,41 @@ describe("research/plan/debrief usage-accounting integration", () => {
 describe("implement/verify/intake usage-accounting integration", () => {
   describe.each(ROOTS)("%s", root => {
     it("records implement usage on the work artifact and refreshes ancestor totals when known", () => {
-      const content = readSkill(root, "implement");
+      const content = readSkill(root, "lisa-implement");
 
       expect(content).toContain(USAGE_SKILL);
       expect(content).toContain(USAGE_SECTION);
-      expect(content).toMatch(/direct `implement` usage entry/i);
+      expect(content).toMatch(/direct `lisa-implement` usage entry/i);
       expect(content).toMatch(/record_and_rollup/i);
       expect(content).toMatch(UNAVAILABLE_USAGE);
     });
 
     it("records verify usage on evidence artifacts before posting", () => {
-      const content = readSkill(root, "verify");
+      const content = readSkill(root, "lisa-verify");
 
       expect(content).toContain(USAGE_SKILL);
       expect(content).toContain(USAGE_SECTION);
-      expect(content).toMatch(/direct `verify` usage entry/i);
+      expect(content).toMatch(/direct `lisa-verify` usage entry/i);
       expect(content).toMatch(/tracker-evidence/i);
       expect(content).toMatch(UNAVAILABLE_USAGE);
     });
 
     it("records intake usage on cycle summaries and refreshes ancestor totals when known", () => {
-      const content = readSkill(root, "intake");
+      const content = readSkill(root, "lisa-intake");
 
       expect(content).toContain(USAGE_SKILL);
       expect(content).toContain(USAGE_SECTION);
-      expect(content).toMatch(/direct `intake` entry/i);
+      expect(content).toMatch(/direct `lisa-intake` entry/i);
       expect(content).toMatch(/record_and_rollup/i);
       expect(content).toMatch(UNAVAILABLE_USAGE);
     });
 
     it("routes tracker evidence usage through the shared usage-accounting contract", () => {
-      const content = readSkill(root, "tracker-evidence");
+      const content = readSkill(root, "lisa-tracker-evidence");
 
       expect(content).toContain(USAGE_SKILL);
       expect(content).toContain(USAGE_SECTION);
-      expect(content).toMatch(/direct `verify` usage entry/i);
+      expect(content).toMatch(/direct `lisa-verify` usage entry/i);
       expect(content).toMatch(/record_and_rollup/i);
       expect(content).toMatch(UNAVAILABLE_USAGE);
     });

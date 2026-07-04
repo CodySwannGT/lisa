@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Connector Notion"
+display_name: "Wiki Connector Notion"
 short_description: "Produce sanitized Notion source notes for lisa-wiki ingest via the Notion MCP"
 default_prompt:
   - "Use $lisa-wiki-connector-notion: Produce sanitized Notion source notes for lisa-wiki ingest via the Notion MCP."

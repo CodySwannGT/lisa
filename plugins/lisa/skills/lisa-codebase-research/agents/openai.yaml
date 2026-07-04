@@ -1,0 +1,4 @@
+display_name: "Codebase Research"
+short_description: "Codebase exploration and architecture analysis"
+default_prompt:
+  - "Use $lisa-codebase-research: Codebase exploration and architecture analysis."

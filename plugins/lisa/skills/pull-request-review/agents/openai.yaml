@@ -1,4 +1,0 @@
-display_name: "Pull Request Review"
-short_description: "address and resolve the code review feedback on a pull request — human and bot (CodeRabbit, etc.)"
-default_prompt:
-  - "Use $pull-request-review: address and resolve the code review feedback on a pull request — human and bot (CodeRabbit, etc.)."
