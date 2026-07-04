@@ -8,6 +8,8 @@
 import { describe, expect, it } from "vitest";
 import {
   HARNESS_VARIANT_PLUGIN_SUFFIXES,
+  commandSegmentsToLisaDisplayName,
+  commandSegmentsToLisaSkillName,
   isHarnessVariantPlugin,
 } from "../../../src/core/lisa-skill-sources.js";
 
@@ -46,5 +48,14 @@ describe("core/lisa-skill-sources isHarnessVariantPlugin", () => {
     for (const suffix of HARNESS_VARIANT_PLUGIN_SUFFIXES) {
       expect(isHarnessVariantPlugin(`lisa-stack${suffix}`)).toBe(true);
     }
+  });
+});
+
+describe("core/lisa-skill-sources command naming", () => {
+  it("uses colon-scoped display names and hyphenated skill aliases", () => {
+    const segments = ["git", "commit"];
+
+    expect(commandSegmentsToLisaDisplayName(segments)).toBe("lisa:git:commit");
+    expect(commandSegmentsToLisaSkillName(segments)).toBe("lisa-git-commit");
   });
 });

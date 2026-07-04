@@ -3,10 +3,10 @@
  * stale cleanup).
  *
  * Covers:
- *   - Writes commands to `.opencode/commands/lisa-<name>.md`
- *   - Nested commands use the dash-joined `lisa-` name
+ *   - Writes commands to `.opencode/commands/lisa:<name>.md`
+ *   - Nested commands use the colon-scoped `lisa:` command name
  *   - $ARGUMENTS preserved in the emitted command
- *   - Stale cleanup scoped to `commands/lisa-*` — never touches host commands
+ *   - Stale cleanup scoped to `commands/lisa:*` — never touches host commands
  *   - managedFiles for manifest persistence; idempotence
  */
 import * as fs from "fs-extra";
@@ -16,7 +16,10 @@ import {
   LISA_COMMANDS_SUBDIR,
   discoverAndInstallCommands,
 } from "../../../src/opencode/command-installer.js";
-import { LISA_COMMAND_SKILL_PREFIX } from "../../../src/core/lisa-skill-sources.js";
+import {
+  LISA_COMMAND_DISPLAY_PREFIX,
+  LISA_COMMAND_SKILL_PREFIX,
+} from "../../../src/core/lisa-skill-sources.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const PLUGIN_LISA = "lisa";
@@ -75,20 +78,20 @@ describe("opencode/command-installer", () => {
 
   /**
    * Resolve the absolute path of an installed Lisa command file.
-   * @param filename - Emitted filename (e.g. "lisa-fix.md").
+   * @param filename - Emitted filename (e.g. "lisa:fix.md").
    * @returns Absolute path under `.opencode/commands/`.
    */
   function installedCommandPath(filename: string): string {
     return path.join(destDir, OPENCODE_DIR, LISA_COMMANDS_SUBDIR, filename);
   }
 
-  it("writes a top-level command to .opencode/commands/lisa-<name>.md", async () => {
+  it("writes a top-level command to .opencode/commands/lisa:<name>.md", async () => {
     await seedCommand(PLUGIN_LISA, "fix.md", SAMPLE_COMMAND);
     const result = await discoverAndInstallCommands(lisaDir, destDir, []);
 
-    const filename = `${LISA_COMMAND_SKILL_PREFIX}fix.md`;
+    const filename = `${LISA_COMMAND_DISPLAY_PREFIX}fix.md`;
     expect(result.installed.map(c => c.name)).toContain(
-      `${LISA_COMMAND_SKILL_PREFIX}fix`
+      `${LISA_COMMAND_DISPLAY_PREFIX}fix`
     );
     expect(await fs.pathExists(installedCommandPath(filename))).toBe(true);
     const content = await fs.readFile(installedCommandPath(filename), "utf8");
@@ -96,14 +99,14 @@ describe("opencode/command-installer", () => {
     expect(content).toContain("$ARGUMENTS");
   });
 
-  it("names nested commands with the dash-joined lisa- prefix", async () => {
+  it("names nested commands with the colon-scoped lisa: prefix", async () => {
     await seedCommand(PLUGIN_LISA, "git/commit.md", SAMPLE_COMMAND);
     const result = await discoverAndInstallCommands(lisaDir, destDir, []);
 
-    const filename = `${LISA_COMMAND_SKILL_PREFIX}git-commit.md`;
+    const filename = `${LISA_COMMAND_DISPLAY_PREFIX}git:commit.md`;
     expect(await fs.pathExists(installedCommandPath(filename))).toBe(true);
     expect(result.installed.map(c => c.name)).toContain(
-      `${LISA_COMMAND_SKILL_PREFIX}git-commit`
+      `${LISA_COMMAND_DISPLAY_PREFIX}git:commit`
     );
   });
 
@@ -118,10 +121,10 @@ describe("opencode/command-installer", () => {
     const result = await discoverAndInstallCommands(lisaDir, destDir, []);
 
     expect(result.installed.map(c => c.name)).toEqual([
-      `${LISA_COMMAND_SKILL_PREFIX}fix`,
+      `${LISA_COMMAND_DISPLAY_PREFIX}fix`,
     ]);
     const content = await fs.readFile(
-      installedCommandPath(`${LISA_COMMAND_SKILL_PREFIX}fix.md`),
+      installedCommandPath(`${LISA_COMMAND_DISPLAY_PREFIX}fix.md`),
       "utf8"
     );
     expect(content).toContain("Execute the Implement flow.");
@@ -132,11 +135,11 @@ describe("opencode/command-installer", () => {
     await seedCommand(PLUGIN_LISA, "fix.md", SAMPLE_COMMAND);
     const result = await discoverAndInstallCommands(lisaDir, destDir, []);
     expect(result.managedFiles).toContain(
-      path.join(LISA_COMMANDS_SUBDIR, `${LISA_COMMAND_SKILL_PREFIX}fix.md`)
+      path.join(LISA_COMMANDS_SUBDIR, `${LISA_COMMAND_DISPLAY_PREFIX}fix.md`)
     );
   });
 
-  it("deletes stale lisa- commands managed previously but not shipped now", async () => {
+  it("deletes stale Lisa commands managed previously but not shipped now", async () => {
     await seedCommand(PLUGIN_LISA, "fix.md", SAMPLE_COMMAND);
     const commandsDir = path.join(destDir, OPENCODE_DIR, LISA_COMMANDS_SUBDIR);
     await fs.ensureDir(commandsDir);
@@ -146,7 +149,7 @@ describe("opencode/command-installer", () => {
       "utf8"
     );
     const previousManagedFiles = [
-      path.join(LISA_COMMANDS_SUBDIR, `${LISA_COMMAND_SKILL_PREFIX}fix.md`),
+      path.join(LISA_COMMANDS_SUBDIR, `${LISA_COMMAND_DISPLAY_PREFIX}fix.md`),
       path.join(LISA_COMMANDS_SUBDIR, OLD_COMMAND_OUT),
     ];
     const result = await discoverAndInstallCommands(
@@ -163,7 +166,7 @@ describe("opencode/command-installer", () => {
     );
   });
 
-  it("never deletes host commands (files without the lisa- prefix)", async () => {
+  it("never deletes host commands (files without a Lisa prefix)", async () => {
     await seedCommand(PLUGIN_LISA, "fix.md", SAMPLE_COMMAND);
     const commandsDir = path.join(destDir, OPENCODE_DIR, LISA_COMMANDS_SUBDIR);
     await fs.ensureDir(commandsDir);
@@ -184,7 +187,7 @@ describe("opencode/command-installer", () => {
 
   it("idempotent: running twice produces identical output", async () => {
     await seedCommand(PLUGIN_LISA, "fix.md", SAMPLE_COMMAND);
-    const filename = `${LISA_COMMAND_SKILL_PREFIX}fix.md`;
+    const filename = `${LISA_COMMAND_DISPLAY_PREFIX}fix.md`;
     await discoverAndInstallCommands(lisaDir, destDir, []);
     const first = await fs.readFile(installedCommandPath(filename), "utf8");
     await discoverAndInstallCommands(lisaDir, destDir, []);

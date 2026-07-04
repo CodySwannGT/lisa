@@ -184,18 +184,18 @@ EOF
 
 ### Adding Custom Commands
 
-Commands are user-facing pass-throughs to skills. Directory nesting creates colon-separated names in the UI (e.g., `my-namespace/my-skill.md` becomes `/my-namespace:my-skill`):
+Commands are user-facing pass-throughs to skills. Use `:` namespaces for commands whenever the agent supports native commands, and keep the underlying skills hyphenated. Directory nesting creates colon-separated names in slash-command UIs (e.g., `lisa/my-skill.md` becomes `/lisa:my-skill` in Claude/OpenCode-style harnesses). Agents without `/` commands, such as Codex, get the hyphenated skill alias instead (e.g., `$lisa-my-skill`):
 
 ```bash
-mkdir -p .claude/commands/my-namespace
-cat > .claude/commands/my-namespace/my-skill.md << 'EOF'
+mkdir -p .claude/commands/lisa
+cat > .claude/commands/lisa/my-skill.md << 'EOF'
 ---
 description: "What this command does"
 allowed-tools: ["Skill"]
 argument-hint: "<arguments>"
 ---
 
-Use the /my-namespace-my-skill skill to do the thing. $ARGUMENTS
+Use the /lisa-my-skill skill to do the thing. $ARGUMENTS
 EOF
 ```
 
