@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.1](https://github.com/CodySwannGT/lisa/compare/vv2.189.0...v2.189.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **ci:** accept vintage claude workflow package manager input ([9d0efe6](https://github.com/CodySwannGT/lisa/commit/9d0efe648a289b55adb6085f340dc9d59ee00b24))
+
 ## [2.189.0](https://github.com/CodySwannGT/lisa/compare/vv2.188.4...v2.189.0) (2026-07-04)
 
 
