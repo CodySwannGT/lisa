@@ -127,6 +127,56 @@
       "id": "GHSA-c2c7-rcm5-vvqj",
       "package": "picomatch",
       "reason": "ReDoS via extglob quantifiers — devDep only (vitest, jest, lint-staged), no user-controlled globs"
+    },
+    {
+      "id": "GHSA-3v7f-55p6-f55p",
+      "package": "picomatch",
+      "reason": "POSIX character class method injection causing incorrect glob matching — dev tooling only, Lisa uses repo-owned glob patterns"
+    },
+    {
+      "id": "GHSA-v39h-62p7-jpjc",
+      "package": "fast-uri",
+      "reason": "Host confusion via percent-encoded authority delimiters — transitive via ajv in ESLint/commitlint schema validation, no attacker-controlled URI input"
+    },
+    {
+      "id": "GHSA-q3j6-qgpj-74h6",
+      "package": "fast-uri",
+      "reason": "Path traversal via percent-encoded dot segments — transitive via ajv in ESLint/commitlint schema validation, no attacker-controlled URI input"
+    },
+    {
+      "id": "GHSA-v3rj-xjv7-4jmq",
+      "package": "smol-toml",
+      "reason": "DoS via large commented TOML documents — Lisa reads repo-owned TOML config/template files, not untrusted user TOML"
+    },
+    {
+      "id": "GHSA-jxxr-4gwj-5jf2",
+      "package": "brace-expansion",
+      "reason": "Large numeric range DoS — transitive through minimatch for repo/dev-tool glob patterns, no untrusted pattern input"
+    },
+    {
+      "id": "GHSA-f886-m6hf-6m8v",
+      "package": "brace-expansion",
+      "reason": "Zero-step sequence DoS — transitive through minimatch for repo/dev-tool glob patterns, no untrusted pattern input"
+    },
+    {
+      "id": "GHSA-qx2v-qp2m-jg93",
+      "package": "postcss",
+      "reason": "CSS stringify XSS for unescaped style-closing text — dev tooling only via vite/tailwind lint dependencies, no browser-served untrusted CSS stringify path"
+    },
+    {
+      "id": "GHSA-4x5r-pxfx-6jf8",
+      "package": "@babel/core",
+      "reason": "Arbitrary file read via sourceMappingURL comments — dev/test transform tooling only, no untrusted code transform service exposed"
+    },
+    {
+      "id": "GHSA-48c2-rrv3-qjmp",
+      "package": "yaml",
+      "reason": "Stack overflow via deeply nested YAML collections — dev tooling only, Lisa processes repo-owned YAML config/templates"
+    },
+    {
+      "id": "GHSA-h67p-54hq-rp68",
+      "package": "js-yaml",
+      "reason": "Quadratic-complexity DoS in merge key handling — dev tooling and direct helper dependency, no untrusted YAML parsing path"
     }
   ]
 }
