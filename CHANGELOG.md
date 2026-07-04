@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.3](https://github.com/CodySwannGT/lisa/compare/vv2.189.2...v2.189.3) (2026-07-04)
+
+
+### Bug Fixes
+
+* address review feedback for cleanup ([b7deba2](https://github.com/CodySwannGT/lisa/commit/b7deba2c5e29dfc740332c8826dd9b9a2c6687a1))
+* clean low-severity repo hygiene issues ([969482f](https://github.com/CodySwannGT/lisa/commit/969482f0707d039b7b9a9fbb3c6b3f98047ea8cf))
+
 ### [2.189.2](https://github.com/CodySwannGT/lisa/compare/vv2.189.1...v2.189.2) (2026-07-04)
 
 
