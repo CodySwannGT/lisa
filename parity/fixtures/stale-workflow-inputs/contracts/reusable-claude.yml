@@ -1,0 +1,46 @@
+# Fixture copy of the current .github/workflows/reusable-claude.yml contract
+# (trimmed to the `workflow_call.inputs` shape the detector cares about).
+# It deliberately does NOT declare `package_manager` — that's the bug in #1423.
+name: Claude Code (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      event_name:
+        description: 'The event that triggered the workflow'
+        required: true
+        type: string
+      author_association:
+        description: 'Author association of the event actor'
+        required: false
+        type: string
+        default: ''
+      comment_body:
+        description: 'Body of the comment (for issue_comment and PR review comment events)'
+        required: false
+        type: string
+        default: ''
+      review_body:
+        description: 'Body of the review (for pull_request_review events)'
+        required: false
+        type: string
+        default: ''
+      issue_body:
+        description: 'Body of the issue (for issues events)'
+        required: false
+        type: string
+        default: ''
+      issue_title:
+        description: 'Title of the issue (for issues events)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "fixture stub — not a real job"
