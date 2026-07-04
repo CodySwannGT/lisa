@@ -1,0 +1,4 @@
+display_name: "Setup Notion"
+short_description: "Configure Notion as the PRD source for this project"
+default_prompt:
+  - "Use $lisa-setup-notion: Configure Notion as the PRD source for this project."

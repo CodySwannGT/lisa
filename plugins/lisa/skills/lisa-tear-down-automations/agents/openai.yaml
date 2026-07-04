@@ -1,0 +1,4 @@
+display_name: "Tear Down Automations"
+short_description: "Remove every recurring Lisa automation that /setup-automations created for this project (the lisa-auto-<project>-* set: intake-repair…"
+default_prompt:
+  - "Use $lisa-tear-down-automations: Remove every recurring Lisa automation that /setup-automations created for this project (the lisa-auto-<project>-* set: intake-repair…."

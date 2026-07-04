@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Add Role"
+display_name: "Wiki Add Role"
 short_description: "Scaffold a domain-expert \"digital staff\" role over the wiki — a dual-runtime subagent (Claude + Codex) plus a staff doc page — from a…"
 default_prompt:
   - "Use $lisa-wiki-add-role: Scaffold a domain-expert \"digital staff\" role over the wiki — a dual-runtime subagent (Claude + Codex) plus a staff doc page — from a…."

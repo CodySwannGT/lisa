@@ -3,7 +3,7 @@
  * stale cleanup).
  *
  * Covers:
- *   - Writes commands to `.opencode/commands/lisa:<name>.md`
+ *   - Writes commands to `.opencode/commands/lisa/lisa:<name>.md`
  *   - Nested commands use the colon-scoped `lisa:` command name
  *   - $ARGUMENTS preserved in the emitted command
  *   - Stale cleanup scoped to `commands/lisa:*` — never touches host commands
@@ -85,7 +85,7 @@ describe("opencode/command-installer", () => {
     return path.join(destDir, OPENCODE_DIR, LISA_COMMANDS_SUBDIR, filename);
   }
 
-  it("writes a top-level command to .opencode/commands/lisa:<name>.md", async () => {
+  it("writes a top-level command to .opencode/commands/lisa/lisa:<name>.md", async () => {
     await seedCommand(PLUGIN_LISA, "fix.md", SAMPLE_COMMAND);
     const result = await discoverAndInstallCommands(lisaDir, destDir, []);
 

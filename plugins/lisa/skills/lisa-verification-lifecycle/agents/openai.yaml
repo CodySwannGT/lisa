@@ -1,0 +1,4 @@
+display_name: "Verification Lifecycle"
+short_description: "Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, codify (turn each passing…"
+default_prompt:
+  - "Use $lisa-verification-lifecycle: Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, codify (turn each passing…."

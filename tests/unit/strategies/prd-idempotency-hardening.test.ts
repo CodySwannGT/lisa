@@ -55,9 +55,9 @@ const PLUGIN_ROOTS = [
 /** The vendor-neutral rule that owns the dedupe key (#579). */
 const RULE_SLUG = "prd-lifecycle-rollup";
 /** The backlink skill slug — the documented + native-linking surface. */
-const BACKLINK_SLUG = "prd-backlink";
+const BACKLINK_SLUG = "lisa-prd-backlink";
 /** The GitHub PRD intake skill slug — the closure-rollup surface. */
-const GITHUB_INTAKE_SLUG = "github-prd-intake";
+const GITHUB_INTAKE_SLUG = "lisa-github-prd-intake";
 
 const readFile = (filePath: string): string => readFileSync(filePath, "utf8");
 

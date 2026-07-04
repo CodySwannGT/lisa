@@ -1,0 +1,4 @@
+display_name: "Root Cause Analysis"
+short_description: "Root cause analysis methodology"
+default_prompt:
+  - "Use $lisa-root-cause-analysis: Root cause analysis methodology."

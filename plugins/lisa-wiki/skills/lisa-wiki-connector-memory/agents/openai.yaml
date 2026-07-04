@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Connector Memory"
+display_name: "Wiki Connector Memory"
 short_description: "Ingest the agent's PROJECT-SCOPED memory into a sanitized source note"
 default_prompt:
   - "Use $lisa-wiki-connector-memory: Ingest the agent's PROJECT-SCOPED memory into a sanitized source note."

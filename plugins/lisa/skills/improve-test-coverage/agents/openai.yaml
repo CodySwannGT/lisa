@@ -1,4 +1,0 @@
-display_name: "Improve Test Coverage"
-short_description: "increasing test coverage to a specified threshold percentage"
-default_prompt:
-  - "Use $improve-test-coverage: increasing test coverage to a specified threshold percentage."

@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Status"
+display_name: "Wiki Status"
 short_description: "Report Lisa wiki source freshness across enabled ingestion connectors"
 default_prompt:
   - "Use $lisa-wiki-status: Report Lisa wiki source freshness across enabled ingestion connectors."

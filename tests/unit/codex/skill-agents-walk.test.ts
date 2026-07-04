@@ -199,8 +199,8 @@ describe("codex/skill-agents-walk", () => {
 
     it("title-cases multi-word kebab names", () => {
       const iface = deriveSkillInterface(
-        { name: "review-local", description: "Review local changes." },
-        "review-local"
+        { name: "lisa-review-local", description: "Review local changes." },
+        "lisa-review-local"
       );
       expect(iface.display_name).toBe("Review Local");
     });
@@ -227,24 +227,24 @@ describe("codex/skill-agents-walk", () => {
       // deliberately NOT in the acronym set — forcing "JSDOC" would be wrong.
       expect(
         deriveSkillInterface(
-          { name: "jsdoc-best-practices", description: "Enforce JSDoc." },
-          "jsdoc-best-practices"
+          { name: "lisa-jsdoc-best-practices", description: "Enforce JSDoc." },
+          "lisa-jsdoc-best-practices"
         ).display_name
       ).toBe("Jsdoc Best Practices");
     });
 
     it("preserves mixed-case brand names (PostHog) in display_name", () => {
       const iface = deriveSkillInterface(
-        { name: "posthog-access", description: "Access PostHog." },
-        "posthog-access"
+        { name: "lisa-posthog-access", description: "Access PostHog." },
+        "lisa-posthog-access"
       );
       expect(iface.display_name).toBe("PostHog Access");
     });
 
     it("preserves mixed-case brand names (SonarCloud) in display_name", () => {
       const iface = deriveSkillInterface(
-        { name: "sonarcloud-access", description: "Access SonarCloud." },
-        "sonarcloud-access"
+        { name: "lisa-sonarcloud-access", description: "Access SonarCloud." },
+        "lisa-sonarcloud-access"
       );
       expect(iface.display_name).toBe("SonarCloud Access");
     });
@@ -264,11 +264,11 @@ describe("codex/skill-agents-walk", () => {
     it("strips a 'This skill should be used when ...' boilerplate prefix", () => {
       const iface = deriveSkillInterface(
         {
-          name: "git-commit",
+          name: "lisa-git-commit",
           description:
             "This skill should be used when creating conventional commits for current changes. It groups related changes into logical commits.",
         },
-        "git-commit"
+        "lisa-git-commit"
       );
       expect(iface.short_description).toBe(
         "creating conventional commits for current changes"

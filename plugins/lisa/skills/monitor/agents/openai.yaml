@@ -1,4 +1,0 @@
-display_name: "Monitor"
-short_description: "Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for what it finds"
-default_prompt:
-  - "Use $monitor: Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for what it finds."

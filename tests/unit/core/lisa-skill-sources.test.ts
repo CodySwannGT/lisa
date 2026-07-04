@@ -11,6 +11,7 @@ import {
   commandSegmentsToLisaDisplayName,
   commandSegmentsToLisaSkillName,
   isHarnessVariantPlugin,
+  normalizeLisaCommandSegments,
 } from "../../../src/core/lisa-skill-sources.js";
 
 describe("core/lisa-skill-sources isHarnessVariantPlugin", () => {
@@ -57,5 +58,13 @@ describe("core/lisa-skill-sources command naming", () => {
 
     expect(commandSegmentsToLisaDisplayName(segments)).toBe("lisa:git:commit");
     expect(commandSegmentsToLisaSkillName(segments)).toBe("lisa-git-commit");
+  });
+
+  it("strips a redundant leading lisa segment from nested command paths", () => {
+    const nested = ["lisa", "git", "commit"];
+
+    expect(normalizeLisaCommandSegments(nested)).toEqual(["git", "commit"]);
+    expect(commandSegmentsToLisaDisplayName(nested)).toBe("lisa:git:commit");
+    expect(commandSegmentsToLisaSkillName(nested)).toBe("lisa-git-commit");
   });
 });

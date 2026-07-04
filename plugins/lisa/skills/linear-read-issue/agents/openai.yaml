@@ -1,4 +1,0 @@
-display_name: "Linear Read Issue"
-short_description: "Fetches the full scope of a Linear work item — Issue or Project — including metadata, description, acceptance criteria, all comments…"
-default_prompt:
-  - "Use $linear-read-issue: Fetches the full scope of a Linear work item — Issue or Project — including metadata, description, acceptance criteria, all comments…."

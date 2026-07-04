@@ -1,0 +1,4 @@
+display_name: "Intake"
+short_description: "Vendor-agnostic scanner for Ready queues"
+default_prompt:
+  - "Use $lisa-intake: Vendor-agnostic scanner for Ready queues."

@@ -57,19 +57,19 @@ interface VendorSpec {
 
 const VENDORS: readonly VendorSpec[] = [
   {
-    slug: "linear-prd-intake",
+    slug: "lisa-linear-prd-intake",
     childSource: /native parent|parentId|project/i,
     terminalPredicate: [/completed/i, /canceled|cancelled/i, /workflow state/i],
     verificationAvailability: /leaves the PRD project \*\*active\*\*/i,
   },
   {
-    slug: "confluence-prd-intake",
+    slug: "lisa-confluence-prd-intake",
     childSource: /## Tickets|## Generated Work/,
     terminalPredicate: [/marked \*\*done\*\*|marked done/i, /no native/i],
     verificationAvailability: /leaves the page \*\*active\*\*/i,
   },
   {
-    slug: "notion-prd-intake",
+    slug: "lisa-notion-prd-intake",
     childSource: /## Tickets|## Generated Work/,
     terminalPredicate: [/marked \*\*done\*\*|marked done/i, /no native/i],
     verificationAvailability: /leaves the PRD page \*\*active\*\*/i,

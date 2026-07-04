@@ -1,4 +1,0 @@
-display_name: "Codify Verification"
-short_description: "Convert empirical verification into a regression test so it never has to be re-proven manually"
-default_prompt:
-  - "Use $codify-verification: Convert empirical verification into a regression test so it never has to be re-proven manually."

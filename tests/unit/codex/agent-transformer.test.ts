@@ -63,9 +63,9 @@ describe("agent-transformer", () => {
     it("parses skills as string array", () => {
       const result = parseAgentMarkdown(WITH_SKILLS);
       expect(result.frontmatter.skills).toEqual([
-        "bug-triage",
-        "tdd-implementation",
-        "jsdoc-best-practices",
+        "lisa-bug-triage",
+        "lisa-tdd-implementation",
+        "lisa-jsdoc-best-practices",
       ]);
     });
 
@@ -172,9 +172,9 @@ body
       const parsed = parseToml(out) as Record<string, unknown>;
       const instructions = String(parsed.developer_instructions);
       expect(instructions).toContain("## Available Lisa Skills");
-      expect(instructions).toContain("- bug-triage");
-      expect(instructions).toContain("- tdd-implementation");
-      expect(instructions).toContain("- jsdoc-best-practices");
+      expect(instructions).toContain("- lisa-bug-triage");
+      expect(instructions).toContain("- lisa-tdd-implementation");
+      expect(instructions).toContain("- lisa-jsdoc-best-practices");
       // Original body still present after skills block
       expect(instructions).toContain(BUG_FIXER_HEADING);
     });

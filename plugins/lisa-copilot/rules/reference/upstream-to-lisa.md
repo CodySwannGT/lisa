@@ -20,7 +20,7 @@ Apply the stopgap in this project so you can keep working. Do **not** stall wait
 
 ### 2. File an upstream issue in the Lisa repository
 
-Use the `github-write-issue` skill (`lisa:github-write-issue`) to create a GitHub Issue **in Lisa's source repository `CodySwannGT/lisa`** — not in this project's own repo. The skill uses the `gh` CLI; the target repo must be `CodySwannGT/lisa` (e.g. `gh issue create --repo CodySwannGT/lisa ...`), because the agent's default repo is this host project.
+Use the `github-write-issue` skill (`lisa-github-write-issue`) to create a GitHub Issue **in Lisa's source repository `CodySwannGT/lisa`** — not in this project's own repo. The skill uses the `gh` CLI; the target repo must be `CodySwannGT/lisa` (e.g. `gh issue create --repo CodySwannGT/lisa ...`), because the agent's default repo is this host project.
 
 The issue should capture, following the skill's three-audience / acceptance-criteria conventions:
 

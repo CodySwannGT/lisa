@@ -1,4 +1,0 @@
-display_name: "Tracker Journey"
-short_description: "Vendor-neutral wrapper for executing a ticket/issue's Validation Journey end-to-end"
-default_prompt:
-  - "Use $tracker-journey: Vendor-neutral wrapper for executing a ticket/issue's Validation Journey end-to-end."

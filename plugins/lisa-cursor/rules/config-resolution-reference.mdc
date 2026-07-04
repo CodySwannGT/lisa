@@ -395,7 +395,7 @@ PRD lifecycle completion is **derived** from the PRD's generated top-level work,
 
 ### Repair intake config (`intake.repair`)
 
-`lisa:repair-intake` (the recovery counterpart to `lisa:intake`) reads two optional tuning keys
+`lisa-repair-intake` (the recovery counterpart to `lisa-intake`) reads two optional tuning keys
 from the top-level `intake.repair` block. Both are **optional** — a missing block inherits the
 documented defaults, so existing projects need no config change.
 
@@ -406,7 +406,7 @@ documented defaults, so existing projects need no config change.
 
 ### Monitor audit config (`monitor`)
 
-`lisa:monitor`'s audit-and-file arm reads an optional top-level `monitor` block. Every key is
+`lisa-monitor`'s audit-and-file arm reads an optional top-level `monitor` block. Every key is
 **optional** — a missing block inherits the documented defaults, so existing projects need no
 config change. The role SEMANTICS (what counts as an anomaly or gap, how findings become tickets)
 are fixed like every other lifecycle behavior; only these thresholds and caps are tunable. Full
@@ -466,12 +466,12 @@ If a project's terminal state is the same regardless of env, set `done` to a str
 
 ### Env → base branch (forward: the build base and PR base)
 
-`deploy.branches` is also read in the **forward** direction by the build flow (`lisa:implement`): the environment a work item targets determines the branch the work is built on and the branch the PR opens against.
+`deploy.branches` is also read in the **forward** direction by the build flow (`lisa-implement`): the environment a work item targets determines the branch the work is built on and the branch the PR opens against.
 
 1. **Resolve the work item's target environment** — its `## Target Backend Environment` field.
 2. **If no environment is named**, use the **remote default branch** (`gh repo view --json defaultBranchRef`, or `origin/HEAD`) and record that default-branch assumption.
 3. **If a reported environment exists**, map env → base branch via `deploy.branches` (e.g. `staging → staging`, `production → main`). A reported env absent from `deploy.branches`, or a mapped branch missing from the remote, must stop and report the exact missing environment-to-branch mapping; never guess and never silently fall back.
-4. **Before any code is written**, `lisa:implement` fetches and **rebases the working branch onto `origin/<base>`, resolving conflicts**, so implementation builds on the latest target-environment code. **The PR then opens against that same base branch** (`target_branch=<base>` to `lisa:git-submit-pr`).
+4. **Before any code is written**, `lisa-implement` fetches and **rebases the working branch onto `origin/<base>`, resolving conflicts**, so implementation builds on the latest target-environment code. **The PR then opens against that same base branch** (`target_branch=<base>` to `lisa-git-submit-pr`).
 
 This is the exact inverse of the env-keyed `done` "Branch inference" above: `done` derives the env *from* the PR base branch (reverse); the build flow derives the base branch *from* the env (forward). Both use the one `deploy.branches` map, so the branch a PR targets and the `done` status it earns always agree.
 
@@ -632,8 +632,8 @@ reconciling any automation state.
 1. **Resolve the automation queues from merged config**
    - Resolve the PRD automation queue from merged `source`.
    - Resolve the build automation queue from merged `tracker`.
-   - Resolve repair-intake from the same queue-detection contract `lisa:intake` /
-     `lisa:repair-intake` already use; doctor should not invent a second queue schema.
+   - Resolve repair-intake from the same queue-detection contract `lisa-intake` /
+     `lisa-repair-intake` already use; doctor should not invent a second queue schema.
    - If an automation's queue cannot be resolved because `source`, `tracker`, or the selected
      vendor's required keys are still missing after merge, that automation is a doctor `FAIL`.
      Unattended runs would be ambiguous before the scheduler is even involved.
@@ -661,16 +661,16 @@ The shim → vendor mapping is fixed:
 
 | Shim | jira tracker | github tracker | linear tracker |
 |------|--------------|----------------|----------------|
-| `lisa:tracker-write` | `lisa:jira-write-ticket` | `lisa:github-write-issue` | `lisa:linear-write-issue` |
-| `lisa:tracker-validate` | `lisa:jira-validate-ticket` | `lisa:github-validate-issue` | `lisa:linear-validate-issue` |
-| `lisa:tracker-verify` | `lisa:jira-verify` | `lisa:github-verify` | `lisa:linear-verify` |
-| `lisa:tracker-read` | `lisa:jira-read-ticket` | `lisa:github-read-issue` | `lisa:linear-read-issue` |
-| `lisa:tracker-evidence` | `lisa:jira-evidence` | `lisa:github-evidence` | `lisa:linear-evidence` |
-| `lisa:tracker-sync` | `lisa:jira-sync` | `lisa:github-sync` | `lisa:linear-sync` |
-| `lisa:tracker-add-journey` | `lisa:jira-add-journey` | `lisa:github-add-journey` | `lisa:linear-add-journey` |
-| `lisa:tracker-journey` | `lisa:jira-journey` | `lisa:github-journey` | `lisa:linear-journey` |
-| `lisa:tracker-create` | `lisa:jira-create` | `lisa:github-create` | `lisa:linear-create` |
-| `lisa:tracker-build-intake` | `lisa:jira-build-intake` | `lisa:github-build-intake` | `lisa:linear-build-intake` |
+| `lisa-tracker-write` | `lisa-jira-write-ticket` | `lisa-github-write-issue` | `lisa-linear-write-issue` |
+| `lisa-tracker-validate` | `lisa-jira-validate-ticket` | `lisa-github-validate-issue` | `lisa-linear-validate-issue` |
+| `lisa-tracker-verify` | `lisa-jira-verify` | `lisa-github-verify` | `lisa-linear-verify` |
+| `lisa-tracker-read` | `lisa-jira-read-ticket` | `lisa-github-read-issue` | `lisa-linear-read-issue` |
+| `lisa-tracker-evidence` | `lisa-jira-evidence` | `lisa-github-evidence` | `lisa-linear-evidence` |
+| `lisa-tracker-sync` | `lisa-jira-sync` | `lisa-github-sync` | `lisa-linear-sync` |
+| `lisa-tracker-add-journey` | `lisa-jira-add-journey` | `lisa-github-add-journey` | `lisa-linear-add-journey` |
+| `lisa-tracker-journey` | `lisa-jira-journey` | `lisa-github-journey` | `lisa-linear-journey` |
+| `lisa-tracker-create` | `lisa-jira-create` | `lisa-github-create` | `lisa-linear-create` |
+| `lisa-tracker-build-intake` | `lisa-jira-build-intake` | `lisa-github-build-intake` | `lisa-linear-build-intake` |
 
 The `tracker-source-artifacts` skill (formerly `tracker-source-artifacts`) is read-only and vendor-neutral — it has no shim and is invoked directly by every `*-to-tracker` skill and every destination write skill (`jira-write-ticket`, `github-write-issue`, `linear-write-issue`).
 

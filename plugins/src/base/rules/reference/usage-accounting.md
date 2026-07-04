@@ -101,7 +101,7 @@ _Managed by Lisa. Regenerated on each usage update; do not edit by hand._
 
 | Flow | Model | Source | Tokens | Cost |
 |---|---|---|---:|---:|
-| ...human-readable rows ending with `lisa:usage-entry` tokens... |
+| ...human-readable rows ending with `lisa-usage-entry` tokens... |
 
 ### Rollup
 

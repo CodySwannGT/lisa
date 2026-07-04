@@ -21,7 +21,7 @@ import { LISA_COMMAND_SKILL_PREFIX } from "../../../src/core/lisa-skill-sources.
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Reusable bundled-skill name for happy-path tests */
-const BUG_TRIAGE = "bug-triage";
+const BUG_TRIAGE = "lisa-bug-triage";
 /** SKILL.md filename — appears in many path joins */
 const SKILL_MD = "SKILL.md";
 /** Command-derived skill name reused across assertions */
@@ -97,7 +97,7 @@ describe("opencode/skills-installer", () => {
   }
 
   /**
-   * Write a fake command file under plugins/<plugin>/commands/<...path>.md.
+   * Write a fake command file under plugins/<plugin>/commands/lisa/<...path>.md.
    * @param pluginName - Plugin directory name.
    * @param relPath - Path under commands/ (e.g. "fix.md", "git/commit.md").
    * @param content - Markdown content of the command file.
@@ -200,7 +200,7 @@ describe("opencode/skills-installer", () => {
       "utf8"
     );
     await seedSkill("lisa", PARITY_COUNCIL, {
-      [SKILL_MD]: SAMPLE_SKILL_MD.replace("bug-triage", PARITY_COUNCIL),
+      [SKILL_MD]: SAMPLE_SKILL_MD.replace("lisa-bug-triage", PARITY_COUNCIL),
     });
     await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: SAMPLE_SKILL_MD });
     const result = await installSkills(lisaDir, destDir, []);

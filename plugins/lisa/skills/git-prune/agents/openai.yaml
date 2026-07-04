@@ -1,4 +1,0 @@
-display_name: "Git Prune"
-short_description: "pruning local branches that have been deleted on the remote"
-default_prompt:
-  - "Use $git-prune: pruning local branches that have been deleted on the remote."

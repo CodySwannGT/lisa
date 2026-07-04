@@ -11,8 +11,8 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SKILL_FILES = [
-  "plugins/src/base/skills/project-ideation/SKILL.md",
-  "plugins/lisa/skills/project-ideation/SKILL.md",
+  "plugins/src/base/skills/lisa-project-ideation/SKILL.md",
+  "plugins/lisa/skills/lisa-project-ideation/SKILL.md",
 ] as const;
 
 /**

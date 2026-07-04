@@ -15,7 +15,7 @@
  * The runtime metadata is the per-skill `agents/openai.yaml` artifact. Because a
  * single generic auto-derived `default_prompt` cannot carry all three themes,
  * the skill ships a source-authored `agents/openai.yaml` under
- * `plugins/src/base/skills/project-ideation/` (the #550 carry-through contract),
+ * `plugins/src/base/skills/lisa-project-ideation/` (the #550 carry-through contract),
  * which the build copies verbatim into `plugins/lisa/`. This suite reads the
  * REAL committed artifacts (no temp fixture, no build) and asserts each theme is
  * present, so the three prompts can never silently regress.
@@ -43,7 +43,7 @@ const SOURCE_YAML = path.join(
   "src",
   "base",
   "skills",
-  "project-ideation",
+  "lisa-project-ideation",
   "agents",
   "openai.yaml"
 );
@@ -53,7 +53,7 @@ const GENERATED_YAML = path.join(
   "plugins",
   "lisa",
   "skills",
-  "project-ideation",
+  "lisa-project-ideation",
   "agents",
   "openai.yaml"
 );

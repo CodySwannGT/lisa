@@ -1,4 +1,0 @@
-display_name: "Setup Jira"
-short_description: "Configure JIRA as the destination tracker for this project"
-default_prompt:
-  - "Use $setup-jira: Configure JIRA as the destination tracker for this project."

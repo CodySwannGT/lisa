@@ -36,7 +36,9 @@ describe("intake-explain published docs (#853)", () => {
 
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("documents command usage, verdict taxonomy, and workflows", () => {
-      const command = read(path.join(root, "commands", "intake-explain.md"));
+      const command = read(
+        path.join(root, "commands", "lisa", "intake-explain.md")
+      );
 
       expect(command).toContain("Common operator usage");
       expect(command).toContain("The diagnosis uses stable verdicts");

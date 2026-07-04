@@ -1,4 +1,0 @@
-display_name: "Linear Journey"
-short_description: "Parse a Linear Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…"
-default_prompt:
-  - "Use $linear-journey: Parse a Linear Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…."

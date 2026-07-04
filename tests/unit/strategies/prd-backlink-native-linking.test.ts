@@ -47,7 +47,7 @@ import { describe, expect, it } from "vitest";
 const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 /** The skill's directory / slug. */
-const SKILL_SLUG = "prd-backlink";
+const SKILL_SLUG = "lisa-prd-backlink";
 /** The vendor-neutral rule this skill cites by slug. */
 const RULE_SLUG = "prd-lifecycle-rollup";
 
@@ -102,13 +102,13 @@ describe("prd-backlink native GitHub sub-issue linking (#580)", () => {
       expect(content).toContain("addSubIssue");
       expect(content).toMatch(/issueId:\$parentId,subIssueId:\$childId/);
       // References the canonical write-path source of the mutation.
-      expect(content).toContain("github-write-issue");
+      expect(content).toContain("lisa-github-write-issue");
     });
 
     // Reads the PRD's existing sub-issues to dedupe (github-read-issue Phase 3).
     it("reads the PRD's existing sub-issues before linking", () => {
       expect(content).toContain("subIssues");
-      expect(content).toContain("github-read-issue");
+      expect(content).toContain("lisa-github-read-issue");
     });
 
     // (a) same-repo guard.
@@ -178,13 +178,13 @@ describe("prd-backlink native Linear parent/project linking (#581)", () => {
 
     // Uses the same Linear access-layer write operation as linear-write-issue.
     it("uses the Linear save-issue operation and linear-write-issue", () => {
-      expect(content).toContain("lisa:linear-access operation: save-issue");
-      expect(content).toContain("linear-write-issue");
+      expect(content).toContain("lisa-linear-access operation: save-issue");
+      expect(content).toContain("lisa-linear-write-issue");
     });
 
     // Reads the PRD's existing children before linking (linear-read-issue).
     it("reads the PRD's existing children before linking", () => {
-      expect(content).toContain("linear-read-issue");
+      expect(content).toContain("lisa-linear-read-issue");
       // Project members and/or sub-Issue reads.
       expect(content).toMatch(/list-issues|get-issue/);
     });
@@ -236,14 +236,14 @@ describe("prd-backlink native JIRA parent/issue-link linking (#581)", () => {
 
     // Uses the same Atlassian write/link primitives as jira-write-ticket.
     it("uses atlassian-access write/link and jira-write-ticket", () => {
-      expect(content).toContain("atlassian-access");
+      expect(content).toContain("lisa-atlassian-access");
       expect(content).toMatch(/operation: write-ticket|operation: link/);
-      expect(content).toContain("jira-write-ticket");
+      expect(content).toContain("lisa-jira-write-ticket");
     });
 
     // Reads the PRD's existing children/links before linking (jira-read-ticket).
     it("reads the PRD's existing children/links before linking", () => {
-      expect(content).toContain("jira-read-ticket");
+      expect(content).toContain("lisa-jira-read-ticket");
       // Epic-link / parent JQL or issuelinks read.
       expect(content).toMatch(/Epic Link|issuelinks|parent =/);
     });

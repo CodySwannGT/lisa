@@ -140,12 +140,12 @@ describe("prd-lifecycle-rollup rule (#579)", () => {
 
     it("lists the downstream sibling skills that cite it (Citation section)", () => {
       expect(content).toMatch(/## Citation/);
-      expect(content).toContain("prd-backlink");
-      expect(content).toContain("prd-ticket-coverage");
-      expect(content).toContain("github-prd-intake");
-      expect(content).toContain("linear-prd-intake");
-      expect(content).toContain("confluence-prd-intake");
-      expect(content).toContain("notion-prd-intake");
+      expect(content).toContain("lisa-prd-backlink");
+      expect(content).toContain("lisa-prd-ticket-coverage");
+      expect(content).toContain("lisa-github-prd-intake");
+      expect(content).toContain("lisa-linear-prd-intake");
+      expect(content).toContain("lisa-confluence-prd-intake");
+      expect(content).toContain("lisa-notion-prd-intake");
     });
   });
 });

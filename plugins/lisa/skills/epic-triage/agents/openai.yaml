@@ -1,4 +1,0 @@
-display_name: "Epic Triage"
-short_description: "9-step epic triage and 5-step implementation workflow"
-default_prompt:
-  - "Use $epic-triage: 9-step epic triage and 5-step implementation workflow."

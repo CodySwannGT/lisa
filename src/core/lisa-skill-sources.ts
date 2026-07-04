@@ -186,6 +186,22 @@ export async function discoverLisaCommands(
 }
 
 /**
+ * Strip a redundant leading `lisa` segment from nested command paths.
+ * `commands/lisa/git/commit.md` and `commands/git/commit.md` both normalize to
+ * `["git", "commit"]` so display/skill names stay `lisa:git:commit` /
+ * `lisa-git-commit`.
+ * @param segments - Command path without the `.md` extension.
+ * @returns Segments with an optional leading `lisa` directory removed.
+ */
+export function normalizeLisaCommandSegments(
+  segments: readonly string[]
+): readonly string[] {
+  return segments.length > 0 && segments[0] === "lisa"
+    ? segments.slice(1)
+    : segments;
+}
+
+/**
  * Convert command path segments into the cross-runtime skill alias.
  * @param segments - Command path without the `.md` extension.
  * @returns Hyphenated skill name, e.g. `["git", "commit"]` → `lisa-git-commit`.
@@ -193,7 +209,8 @@ export async function discoverLisaCommands(
 export function commandSegmentsToLisaSkillName(
   segments: readonly string[]
 ): string {
-  return `${LISA_COMMAND_SKILL_PREFIX}${segments.join("-")}`;
+  const normalized = normalizeLisaCommandSegments(segments);
+  return `${LISA_COMMAND_SKILL_PREFIX}${normalized.join("-")}`;
 }
 
 /**
@@ -204,7 +221,8 @@ export function commandSegmentsToLisaSkillName(
 export function commandSegmentsToLisaDisplayName(
   segments: readonly string[]
 ): string {
-  return `${LISA_COMMAND_DISPLAY_PREFIX}${segments.join(":")}`;
+  const normalized = normalizeLisaCommandSegments(segments);
+  return `${LISA_COMMAND_DISPLAY_PREFIX}${normalized.join(":")}`;
 }
 
 /**

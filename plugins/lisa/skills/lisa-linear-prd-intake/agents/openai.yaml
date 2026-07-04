@@ -1,0 +1,4 @@
+display_name: "Linear PRD Intake"
+short_description: "Scans a Linear workspace (or a specific team) for projects carrying the configured `ready` PRD label and runs the first eligible one…"
+default_prompt:
+  - "Use $lisa-linear-prd-intake: Scans a Linear workspace (or a specific team) for projects carrying the configured `ready` PRD label and runs the first eligible one…."

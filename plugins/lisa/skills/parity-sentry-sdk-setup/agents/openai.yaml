@@ -1,4 +1,0 @@
-display_name: "Parity Sentry SDK Setup"
-short_description: "Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize…"
-default_prompt:
-  - "Use $parity-sentry-sdk-setup: Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize…."

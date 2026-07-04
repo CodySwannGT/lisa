@@ -1,4 +1,4 @@
-display_name: "Lisa Review Implementation"
+display_name: "Review Implementation"
 short_description: "comparing a project's Lisa-managed files against Lisa's source templates to identify drift"
 default_prompt:
   - "Use $lisa-review-implementation: comparing a project's Lisa-managed files against Lisa's source templates to identify drift."

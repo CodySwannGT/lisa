@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Add Ingest"
+display_name: "Wiki Add Ingest"
 short_description: "Scaffold a project-specific \"front-door\" ingest skill that does something unique (classify a source, fetch from a special system, stamp…"
 default_prompt:
   - "Use $lisa-wiki-add-ingest: Scaffold a project-specific \"front-door\" ingest skill that does something unique (classify a source, fetch from a special system, stamp…."

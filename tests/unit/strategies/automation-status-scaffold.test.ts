@@ -24,8 +24,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const COMMAND_REL = "commands/automation-status.md";
-const SKILL_REL = "skills/automation-status/SKILL.md";
+const COMMAND_REL = "commands/lisa/automation-status.md";
+const SKILL_REL = "skills/lisa-automation-status/SKILL.md";
 const SCRIPT_REL = "scripts/automation-status-report.mjs";
 
 const read = (root: string, rel: string): string =>
@@ -48,7 +48,7 @@ describe("automation-status scaffold (#797)", () => {
 
       expect(command).toMatch(/^---/);
       expect(command).toMatch(/description:/);
-      expect(command).toMatch(/Use the \/lisa:automation-status skill/);
+      expect(command).toMatch(/Use the \/lisa-automation-status skill/);
       expect(command).toContain("$ARGUMENTS");
     });
 
@@ -56,7 +56,7 @@ describe("automation-status scaffold (#797)", () => {
       const skill = read(root, SKILL_REL);
 
       expect(skill).toMatch(/^---/);
-      expect(skill).toMatch(/name:\s*automation-status/);
+      expect(skill).toMatch(/name:\s*lisa-automation-status/);
       expect(skill).toMatch(/allowed-tools:/);
       expect(skill).toContain("Skill");
       expect(skill).toContain("Bash");

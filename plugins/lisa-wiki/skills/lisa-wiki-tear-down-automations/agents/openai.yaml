@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Tear Down Automations"
+display_name: "Wiki Tear Down Automations"
 short_description: "Remove the recurring LLM Wiki ingest automation that /lisa-wiki:setup-automations created for this project (the lisa-wiki-auto-<project>-*…"
 default_prompt:
   - "Use $lisa-wiki-tear-down-automations: Remove the recurring LLM Wiki ingest automation that /lisa-wiki:setup-automations created for this project (the lisa-wiki-auto-<project>-*…."

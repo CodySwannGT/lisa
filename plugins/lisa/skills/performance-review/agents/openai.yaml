@@ -1,4 +1,0 @@
-display_name: "Performance Review"
-short_description: "Performance review methodology"
-default_prompt:
-  - "Use $performance-review: Performance review methodology."

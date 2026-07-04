@@ -21,7 +21,7 @@ const readSkill = (root: string, skill: string): string =>
 
 describe("task-decomposition preserves cross-repo containers", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "task-decomposition");
+    const content = readSkill(root, "lisa-task-decomposition");
 
     it("allows the source PRD and containers to span repositories", () => {
       expect(content).toMatch(/PRD.*MAY span repos/i);
@@ -45,7 +45,7 @@ describe("task-decomposition preserves cross-repo containers", () => {
 
 describe("github-to-tracker keeps multi-repo containers but splits leaves", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "github-to-tracker");
+    const content = readSkill(root, "lisa-github-to-tracker");
 
     it("allows the source PRD and containers to remain cross-repo", () => {
       expect(content).toMatch(/PRD may span multiple repositories/i);

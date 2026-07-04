@@ -1,4 +1,0 @@
-display_name: "Github Read Issue"
-short_description: "Fetches the full scope of a GitHub Issue — metadata, body sections, all comments, native sub-issue parent and children, linked PRs, related…"
-default_prompt:
-  - "Use $github-read-issue: Fetches the full scope of a GitHub Issue — metadata, body sections, all comments, native sub-issue parent and children, linked PRs, related…."

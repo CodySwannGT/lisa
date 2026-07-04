@@ -1,0 +1,4 @@
+display_name: "Git Commit"
+short_description: "creating conventional commits for current changes"
+default_prompt:
+  - "Use $lisa-git-commit: creating conventional commits for current changes."

@@ -1,0 +1,4 @@
+display_name: "Debrief Apply"
+short_description: "Apply human-marked dispositions from a Debrief triage document"
+default_prompt:
+  - "Use $lisa-debrief-apply: Apply human-marked dispositions from a Debrief triage document."

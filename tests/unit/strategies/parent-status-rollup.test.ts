@@ -4,9 +4,9 @@
  *
  * Issue #544: implement the **Parent status rollup (the state machine)** arm of
  * the vendor-neutral `leaf-only-lifecycle` rule (merged in #537) across the
- * surfaces that own status transitions — `lisa:github-sync` (GitHub sub-issue
- * completion), `lisa:jira-sync` (JIRA child/subtask status), `lisa:linear-sync`
- * (Linear child-issue status) — plus the vendor-neutral `lisa:tracker-sync`
+ * surfaces that own status transitions — `lisa-github-sync` (GitHub sub-issue
+ * completion), `lisa-jira-sync` (JIRA child/subtask status), `lisa-linear-sync`
+ * (Linear child-issue status) — plus the vendor-neutral `lisa-tracker-sync`
  * dispatcher that documents the contract once. A parent/container derives its
  * lifecycle state from its children: any leaf blocked → parent blocked; any leaf
  * in progress → parent active; all required leaves terminal → parent rolls up to
@@ -119,8 +119,8 @@ const assertIntermediateEnvRollup = (
 describe("parent status rollup (#544)", () => {
   // The vendor-neutral dispatcher documents the rollup contract once and
   // forwards the --rollup flag to the resolved vendor sync skill.
-  describe.each(SKILL_ROOTS)("%s/tracker-sync", root => {
-    const content = readSkill(root, "tracker-sync");
+  describe.each(SKILL_ROOTS)("%s/lisa-tracker-sync", root => {
+    const content = readSkill(root, "lisa-tracker-sync");
 
     it(CITES_SLUG, () => {
       expect(content).toContain(RULE_SLUG);
@@ -154,8 +154,8 @@ describe("parent status rollup (#544)", () => {
 
   // GitHub sub-issue-completion arm: derive the parent's status:* label from
   // its child sub-issues, blocked-dominant, terminal = single status:done.
-  describe.each(SKILL_ROOTS)("%s/github-sync", root => {
-    const content = readSkill(root, "github-sync");
+  describe.each(SKILL_ROOTS)("%s/lisa-github-sync", root => {
+    const content = readSkill(root, "lisa-github-sync");
     const heading = "### Step 5: Parent Status Rollup";
 
     it(CITES_SLUG, () => {
@@ -207,8 +207,8 @@ describe("parent status rollup (#544)", () => {
   });
 
   // JIRA child/subtask-status arm: Epic ← Stories ← Sub-tasks, native hierarchy.
-  describe.each(SKILL_ROOTS)("%s/jira-sync", root => {
-    const content = readSkill(root, "jira-sync");
+  describe.each(SKILL_ROOTS)("%s/lisa-jira-sync", root => {
+    const content = readSkill(root, "lisa-jira-sync");
     const heading = "### Step 5: Parent Status Rollup";
 
     it(CITES_SLUG, () => {
@@ -250,8 +250,8 @@ describe("parent status rollup (#544)", () => {
   });
 
   // Linear child-issue-status arm: Project ← Issues, Issue ← sub-Issues.
-  describe.each(SKILL_ROOTS)("%s/linear-sync", root => {
-    const content = readSkill(root, "linear-sync");
+  describe.each(SKILL_ROOTS)("%s/lisa-linear-sync", root => {
+    const content = readSkill(root, "lisa-linear-sync");
     const heading = "## Phase 5 — Parent Status Rollup";
 
     it(CITES_SLUG, () => {

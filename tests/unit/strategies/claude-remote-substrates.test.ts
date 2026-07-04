@@ -18,8 +18,8 @@ const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
 
 describe("analyze-claude-remote non-tracker MCP substrate guidance", () => {
-  describe.each(ROOTS)("%s/analyze-claude-remote", root => {
-    const content = readSkill(root, "analyze-claude-remote");
+  describe.each(ROOTS)("%s/lisa-analyze-claude-remote", root => {
+    const content = readSkill(root, "lisa-analyze-claude-remote");
 
     it("checks documented substrates before finalizing an MCP as a flat GAP", () => {
       expect(content).toMatch(
@@ -60,8 +60,8 @@ describe("analyze-claude-remote non-tracker MCP substrate guidance", () => {
 });
 
 describe("generate-claude-remote-build-script substrate output", () => {
-  describe.each(ROOTS)("%s/generate-claude-remote-build-script", root => {
-    const content = readSkill(root, "generate-claude-remote-build-script");
+  describe.each(ROOTS)("%s/lisa-generate-claude-remote-build-script", root => {
+    const content = readSkill(root, "lisa-generate-claude-remote-build-script");
 
     it("renders optional substrate env vars without promoting them to required", () => {
       expect(content).toMatch(/OPTIONAL non-tracker MCP recovery entries/i);

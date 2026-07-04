@@ -1,0 +1,4 @@
+display_name: "Task Decomposition"
+short_description: "Methodology for breaking work into ordered tasks"
+default_prompt:
+  - "Use $lisa-task-decomposition: Methodology for breaking work into ordered tasks."

@@ -1,4 +1,0 @@
-display_name: "Github Journey"
-short_description: "Parse a GitHub Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…"
-default_prompt:
-  - "Use $github-journey: Parse a GitHub Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…."

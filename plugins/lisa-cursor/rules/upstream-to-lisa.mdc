@@ -10,7 +10,7 @@ When working in a project that has Lisa installed, you will sometimes find that 
 When that happens, you have **two obligations — do both**:
 
 1. **Fix it locally so you are not blocked.** Apply the stopgap in this project so you can keep working. Treat it as temporary: it will be clobbered when the upstream fix ships and Lisa re-applies. Do not wait on the upstream fix.
-2. **File an upstream issue in the Lisa repository.** Use the `github-write-issue` skill (`lisa:github-write-issue`) to create an issue **in Lisa's source repo `CodySwannGT/lisa`** (pass it as the target repo, e.g. `gh ... --repo CodySwannGT/lisa`) — **not** in this project's own repo. Capture: the root cause, the symptom you hit here, and the proposed durable fix in Lisa's templates/rules/skills.
+2. **File an upstream issue in the Lisa repository.** Use the `github-write-issue` skill (`lisa-github-write-issue`) to create an issue **in Lisa's source repo `CodySwannGT/lisa`** (pass it as the target repo, e.g. `gh ... --repo CodySwannGT/lisa`) — **not** in this project's own repo. Capture: the root cause, the symptom you hit here, and the proposed durable fix in Lisa's templates/rules/skills.
 
 ## Do not
 

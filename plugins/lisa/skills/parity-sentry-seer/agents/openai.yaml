@@ -1,4 +1,0 @@
-display_name: "Parity Sentry Seer"
-short_description: "AI debugging — given an error message, stack trace, or failing test, analyze the signal, form ranked hypotheses, locate the root cause in…"
-default_prompt:
-  - "Use $parity-sentry-seer: AI debugging — given an error message, stack trace, or failing test, analyze the signal, form ranked hypotheses, locate the root cause in…."

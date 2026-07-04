@@ -10,8 +10,8 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const EXAMPLE_ROOTS = [
-  "plugins/src/base/skills/project-ideation/examples",
-  "plugins/lisa/skills/project-ideation/examples",
+  "plugins/src/base/skills/lisa-project-ideation/examples",
+  "plugins/lisa/skills/lisa-project-ideation/examples",
 ] as const;
 
 const IDEMPOTENCY_HARNESS_EXAMPLE = "idempotency-verification-harness.md";

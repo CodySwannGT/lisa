@@ -27,16 +27,16 @@ const LEAF_GATE = "#### 3a. Leaf-only claim gate";
 /** The rule the gate cites as its single source of truth. */
 const RULE_SLUG = "repo-scope-split";
 /** GitHub build-intake skill slug used by the GitHub-only container assertions. */
-const GITHUB_BUILD_INTAKE = "github-build-intake";
+const GITHUB_BUILD_INTAKE = "lisa-github-build-intake";
 
 const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
 
 describe("claim-time repo scoping (Phase 3a.0)", () => {
   const SCANNERS = [
-    "jira-build-intake",
+    "lisa-jira-build-intake",
     GITHUB_BUILD_INTAKE,
-    "linear-build-intake",
+    "lisa-linear-build-intake",
   ] as const;
 
   describe.each(SCANNERS)("%s", scanner => {
@@ -93,7 +93,7 @@ describe("claim-time repo scoping (Phase 3a.0)", () => {
     };
 
     it("keeps multi-repo containers visible without splitting or claiming them in GitHub intake", () => {
-      expect(content).toContain("github-build-intake");
+      expect(content).toContain("lisa-github-build-intake");
       expect(section()).toMatch(/multiple `repo:<name>` labels/i);
       expect(section()).toMatch(/Do not split or claim it here/i);
       expect(section()).toMatch(/leaf-only gate/i);
@@ -140,7 +140,7 @@ describe("config-resolution documents repo scoping", () => {
 
 describe("tracker-build-intake shim forwards the repo-scope contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "tracker-build-intake");
+    const content = readSkill(root, "lisa-tracker-build-intake");
     it("documents the forwarded repo-scope claim contract", () => {
       expect(content).toMatch(/Repo-scope claim contract/i);
       expect(content).toContain(RULE_SLUG);

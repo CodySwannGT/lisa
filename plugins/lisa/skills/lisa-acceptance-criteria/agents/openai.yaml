@@ -1,0 +1,4 @@
+display_name: "Acceptance Criteria"
+short_description: "Acceptance criteria definition"
+default_prompt:
+  - "Use $lisa-acceptance-criteria: Acceptance criteria definition."

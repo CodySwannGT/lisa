@@ -1,0 +1,4 @@
+display_name: "Linear To Tracker"
+short_description: ">"
+default_prompt:
+  - "Use $lisa-linear-to-tracker: >."

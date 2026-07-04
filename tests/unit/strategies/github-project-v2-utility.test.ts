@@ -22,7 +22,7 @@ const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
 
 describe.each(ROOTS)("github-project-v2 utility (%s)", root => {
-  const content = readSkill(root, "github-project-v2");
+  const content = readSkill(root, "lisa-github-project-v2");
 
   it("defines a shared ProjectV2 chokepoint for GitHub writers", () => {
     expect(content).toMatch(/single chokepoint/i);
