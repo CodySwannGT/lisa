@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.8](https://github.com/CodySwannGT/lisa/compare/vv2.189.7...v2.189.8) (2026-07-04)
+
+
+### Bug Fixes
+
+* **plugins:** namespace Lisa commands and skills to prevent slash collisions ([e0856ed](https://github.com/CodySwannGT/lisa/commit/e0856edddc5fbac7d1f09aa44feaea2325a5c057))
+
 ### [2.189.7](https://github.com/CodySwannGT/lisa/compare/vv2.189.6...v2.189.7) (2026-07-04)
 
 
