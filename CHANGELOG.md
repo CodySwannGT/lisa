@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.188.3](https://github.com/CodySwannGT/lisa/compare/vv2.188.2...v2.188.3) (2026-07-04)
+
+
+### Documentation
+
+* **readme:** align lifecycle prompt stage names with the pipeline list ([5ae7028](https://github.com/CodySwannGT/lisa/commit/5ae702862bfce365acd34d3bc842838fceef62ff)), closes [#1392](https://github.com/CodySwannGT/lisa/issues/1392)
+
 ### [2.188.2](https://github.com/CodySwannGT/lisa/compare/vv2.188.1...v2.188.2) (2026-07-04)
 
 
