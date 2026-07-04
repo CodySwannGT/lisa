@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.5](https://github.com/CodySwannGT/lisa/compare/vv2.189.4...v2.189.5) (2026-07-04)
+
+
+### Bug Fixes
+
+* **hooks:** support OpenCode commit attribution ([eb7c256](https://github.com/CodySwannGT/lisa/commit/eb7c25686c93aa4938d824fd2c3ad4aad4771e06))
+
 ### [2.189.4](https://github.com/CodySwannGT/lisa/compare/vv2.189.3...v2.189.4) (2026-07-04)
 
 
