@@ -69,7 +69,7 @@ fall back to Play Console UI scraping.
 For `operation: setup`:
 
 1. Confirm the project is an Expo app by checking for `app.json`,
-   `app.config.js`, or `app.config.ts`.
+   `app.config.json`, `app.config.js`, or `app.config.ts`.
 2. Resolve or ask the operator to provide the Android package name. Prefer
    `.lisa.config.json` `playStore.packageName`, then `expo.android.package` from
    app config.
