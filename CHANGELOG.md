@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.4](https://github.com/CodySwannGT/lisa/compare/vv2.189.3...v2.189.4) (2026-07-04)
+
+
+### Bug Fixes
+
+* **commands:** namespace Lisa command surfaces ([ab5caae](https://github.com/CodySwannGT/lisa/commit/ab5caae45ad96a30df287c6402ae2a145cb62a3d))
+
 ### [2.189.3](https://github.com/CodySwannGT/lisa/compare/vv2.189.2...v2.189.3) (2026-07-04)
 
 
