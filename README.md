@@ -1,209 +1,125 @@
 # Lisa
 
-Lisa is a governance layer for AI-assisted software development. It ensures that AI agents — whether running on a developer's machine or in CI/CD — follow the same standards, workflows, and quality gates.
+Lisa is governance-as-code for AI-assisted software development. It makes one set of standards, workflows, and quality gates apply identically whether the work is done by a human, by an AI agent on a laptop, or by an automated job in CI — and it distributes those standards to every project as a versioned dependency.
 
-## What Lisa Does
+> **How to read this README**
+>
+> Lisa changes frequently, so this file stays deliberately conceptual. It teaches the mental model, which is stable, and avoids the specifics that drift — exact command names, flags, file paths, supported stacks, and version-dependent behavior. Wherever you need a current, concrete answer, you'll find a **Prompt for your coding agent**: a question to ask Claude Code (or whichever agent you use) that reads the live repository and answers from source.
+>
+> - **Humans** — paste the prompt into your agent instead of trusting a hard-coded list that may be stale.
+> - **Agents** — treat these prompts as instructions. Prefer discovering the current answer from the repository over asserting it from memory, and verify against source before stating it as fact. That habit is the same one Lisa enforces on all work: *prove it, don't assume it.*
 
-### Intent Routing
+## What Lisa is
 
-When a request comes in (from a human, a JIRA ticket, or a scheduled job), Lisa classifies it and routes it to the appropriate **flow**. Flows are ordered sequences of specialized agents, each with a defined role.
+Lisa wears three faces from a single package:
 
-A request to fix a bug routes to a different flow than a request to build a feature or reduce code complexity. The routing is automatic based on context, but can be overridden explicitly via slash commands.
+- **A standards engine.** It applies a curated set of configs, CI workflows, git hooks, and project rules into a target repository and keeps them current as the package updates.
+- **An operating system for coding agents.** It ships the skills, commands, agent roles, rules, and hooks that define *how* an AI agent investigates, builds, reviews, ships, and verifies work — and it delivers that same content to several different agent runtimes from one source.
+- **A configuration library.** Projects can consume Lisa's linting, testing, and TypeScript presets directly, per technology stack, without adopting the rest.
 
-### Flows and Agents
+All three are versioned together, so "how we build software here" upgrades by bumping one dependency.
 
-A flow is a pipeline. Each step in the pipeline is an **agent** — a scoped AI with specific tools and instructions. One agent investigates git history, another reproduces bugs, another writes code, another verifies the result.
+> **Prompt for your coding agent**
+> "Give me a one-paragraph tour of this repository's top-level layout: where the apply/template engine lives, where the agent plugin content is authored, and where the shared config presets are exported. Read the source and cite paths."
 
-Behind the scenes, agents delegate domain-specific work to reusable instruction sets that are loaded automatically when a command runs. The same logic that triages a JIRA ticket interactively is the same logic invoked by the nightly triage workflow — you don't need to know which one is running.
+## Core principles
 
-Flows can nest. A build flow includes a verification sub-flow, which includes a ship sub-flow. This composition keeps each flow focused while enabling complex end-to-end workflows.
+These are the durable ideas. Everything concrete descends from them.
 
-### Quality Gates
+**Single source, many destinations.** Agent instructions are authored once and compiled into runtime-specific artifacts and into each project. You never hand-edit the generated output — you edit the source and rebuild.
 
-Lisa enforces quality through layered gates:
+> **Prompt for your coding agent**
+> "In this repo, which directory is the source of truth for plugin/agent content, which directories are generated artifacts, and what command rebuilds them? Show me the guard that fails CI if the artifacts drift from source."
 
-- **Rules** are loaded into every AI session automatically. They define coding standards, architectural patterns, and behavioral expectations. The AI follows them because they're part of its context.
-- **Git hooks** are hard stops. Pre-commit hooks run linting, formatting, and type checking. Pre-push hooks run tests, coverage checks, security audits, and dead code detection. Nothing ships without passing.
-- **Claude hooks** bridge AI actions to project tooling — ensuring that when the AI commits, pushes, or creates a PR, the project's quality infrastructure runs.
+**Location-agnostic.** The same rules and gates hold on a developer's workstation, in a scheduled improvement job, and in a CI workflow reacting to a PR. Only the plumbing adapts — local integrations versus REST in CI — the standards do not.
 
-### Location Agnostic
+**Layered quality gates.** Rules load into every agent session as context; git hooks are hard stops on commit and push; agent hooks bridge an agent's actions to the project's real tooling so linting, tests, and checks actually run.
 
-The same rules, workflows, and quality gates apply everywhere:
+> **Prompt for your coding agent**
+> "List the quality gates that would run against a change in this project — session rules, git hooks, and agent hooks — and for each, tell me whether it blocks or only warns, and how you can tell from the code."
 
-- On a developer's workstation running Claude Code interactively
-- In a GitHub Action running a nightly improvement job
-- In a CI workflow responding to a PR review comment
+**Evidence-based verification.** A task is not "done" because an agent says so. Lisa requires work to be proven with reproducible, empirical evidence — the change is exercised, the behavior observed, the proof attached to the ticket and the PR — and it enforces this with gates that are not meant to be bypassed. If you take one idea from Lisa, take this one.
 
-The orchestration adapts to context — using MCP integrations locally and REST APIs in CI — but the standards don't change.
+> **Prompt for your coding agent**
+> "Walk me through how this project verifies that a change actually works before it is considered complete. What evidence is required, where is it recorded, and which gate refuses to let unverified work ship?"
 
-### Template Governance
+**Governed templates.** Every file Lisa distributes carries a governance intent: some are enforced and overwritten on every update, some are seeded once and then owned by the project, and some are merged so the project and Lisa both contribute. Knowing which is which tells you what you can safely edit.
 
-Lisa distributes its standards to downstream projects as templates. When a project installs Lisa, it receives:
+> **Prompt for your coding agent**
+> "For the file I want to change in my project, is it enforced by Lisa (overwritten on update), created-once (mine to edit), or merged? Read the template source and explain what will happen to my edits on the next Lisa update."
 
-- Linting, formatting, and type checking configurations
-- Test and coverage infrastructure
-- CI/CD workflows
-- Git hooks
-- AI agent definitions and project rules
+**One repository per unit of work.** Planning artifacts may span repositories, but anything actually built and shipped targets exactly one repository. This keeps ownership and review unambiguous.
 
-Templates follow governance rules: some files are overwritten on every update (enforced standards), some are created once and left alone (project customization), and some are merged (shared defaults with project additions).
+## Getting started
 
-## Quick Start
-
-```bash
-npm install -g @codyswann/lisa
-lisa setup-project --type rails my-app
-cd my-app
-```
-
-To add Lisa to an existing project instead, run:
-
-```bash
-lisa apply /path/to/project
-```
-
-The historical positional form still works for backwards compatibility:
-
-```bash
-lisa /path/to/project
-```
-
-## Working With Lisa
-
-Lisa exposes a small global CLI for project setup plus slash commands for the work lifecycle. Everything underneath — agents, sub-flows, and the supporting libraries that power each step — happens automatically.
-
-### Global CLI
-
-Install Lisa once and use the explicit setup commands for new or existing projects:
+Install once, then create a new project or adopt Lisa into an existing one:
 
 ```bash
 npm install -g @codyswann/lisa
-lisa setup-project --type rails my-app
-lisa setup-wiki
-lisa apply /path/to/project
 ```
 
-Supported starter-backed setup types are `rails`, `typescript`, `expo`, `nestjs`, `cdk`, `wiki`, and `harper-wiki`. `setup-project --type wiki` creates a wiki-first repository; `setup-wiki` adds or repairs an embedded `wiki/` in the current project.
+The supported stacks, setup flags, and exact invocation evolve as the project grows, so ask for the current set rather than copying a list that may have moved on:
 
-Maintenance commands are intentionally small:
+> **Prompt for your coding agent**
+> "Using the installed `lisa` CLI, show me how to (a) scaffold a new project and (b) apply Lisa to an existing one. List the project types it supports right now and the flags each command accepts — read `lisa --help` and the CLI source, don't guess."
 
-```bash
-lisa doctor [path]
-lisa version
-lisa update
-```
+## The work lifecycle
 
-`lisa version` reports the installed package version, latest npm version, install path, and default harness. `lisa update` prints the package-manager update command and only runs it when `--yes` is supplied. Normal commands perform a non-fatal npm update check unless `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1` is set.
+Lisa organizes a piece of work as a pipeline of specialized agent roles. Conceptually it moves through five stages:
 
-### Lisa Workflow Commands
+1. **Understand** — investigate the codebase and the problem, produce a spec or PRD.
+2. **Plan** — decompose the spec into ordered work items in your tracker.
+3. **Build** — take one item from spec to a merged PR: a team of agents implements, reviews, and ships it.
+4. **Prove** — deploy, verify the behavior in the target environment with real evidence, and turn a passing manual check into a regression test.
+5. **Learn** — after shipping, mine the work for edge cases and friction and fold accepted learnings back into the standards.
 
-Run these in Claude Code or the supported harness for the project.
+Most people invoke only the first stages explicitly; the rest run as nested sub-flows. The same logic runs whether you trigger it by hand or a scheduled job triggers it unattended.
 
-### The Lifecycle
+> **Prompt for your coding agent**
+> "List the current Lisa lifecycle commands for this project — understand, plan, build, verify, debrief — with their exact names and arguments, and note any that run automatically as sub-steps. Read the installed commands, don't answer from memory."
 
-A piece of work moves through five stages. Each stage has one command.
+### Unattended and batch work
 
-| Stage | Command | What it does |
-| --- | --- | --- |
-| Research | `/lisa:research <problem>` | Investigates the codebase and problem space, then produces a PRD ready for planning. |
-| Plan | `/lisa:plan <PRD>` | Decomposes a PRD into ordered work items in your tracker (JIRA, GitHub Issues, or Linear). |
-| Implement | `/lisa:implement <ticket>` | Takes one work item from spec to shipped: assembles an agent team, runs the build, opens a PR, handles review, merges. |
-| Verify | `/lisa:verify` | Commits, pushes, opens a PR, monitors deploy, and verifies behavior in the target environment. Folded into `/lisa:implement` but available standalone. |
-| Debrief | `/lisa:debrief <epic>` | After shipping, mines tickets and PRs to surface edge cases, gotchas, and friction. Produces a triage doc; `/lisa:debrief:apply` persists accepted learnings. |
+Lisa can watch a queue of ready work and dispatch each item through the lifecycle on its own, which is what makes it usable as a scheduled operator. It can also recover queues that are stuck and report whether the automation fleet is healthy.
 
-Most users only ever call `/lisa:research`, `/lisa:plan`, and `/lisa:implement`. The rest run automatically as sub-flows.
+> **Prompt for your coding agent**
+> "Which commands let this Lisa scan a work queue, dispatch ready items, repair stuck ones, and report on scheduled-automation health? Show me how I'd point one at my queue and what it expects in configuration."
 
-### Batch and Scheduled Work
+## Working across trackers and sources
 
-| Command | What it does |
-| --- | --- |
-| `/lisa:intake <queue-url>` | Scans a Ready queue (Notion PRD database, JIRA project, GitHub repo, Linear team, Confluence space) and dispatches each item through the right lifecycle command. Designed as the cron target for unattended runs. |
-| `/lisa:intake-explain <item-ref>` | Read-only per-item diagnosis for PRD or build work. Reports the lifecycle role, verdict, decisive intake or repair gate, and smallest next action before an operator chooses `/lisa:intake`, `/lisa:repair-intake`, blocker cleanup, decomposition, or product follow-up. |
-| `/lisa:queue-status [queue=prd|queue=build]` | Read-only queue inspection for the current repo. Distinguishes idle vs misconfigured queues, highlights the most actionable item, and points operators to `/lisa:intake`, `/lisa:repair-intake`, `/lisa:automation-status`, or `/lisa:verify-prd`. |
-| `/lisa:repair-intake <queue-url>` | Read/write recovery scan for blocked, stale, or inconsistent queue state when normal intake is not the right next move. |
-| `/lisa:automation-status` | Read-only inspection of the repo's expected Lisa automation fleet so operators can distinguish empty queues from stale, drifted, or failing scheduler jobs. |
-| `/lisa:verify-prd <prd>` | Initiative-level acceptance pass for shipped PRDs. Verifies the shipped surface against the PRD and reopens to ticketed with fix work on failure. |
+Lisa is deliberately vendor-neutral. The lifecycle runs the same whether your tickets live in one tracker or another and whether your product specs originate in one document tool or another — a thin dispatch layer selects the right integration from configuration, so the workflow you learn transfers.
 
-PRD intake records generated work with native hierarchy where the source and tracker support it, and with a durable generated-work fallback everywhere else. The vendor matrix for GitHub, Linear, JIRA/Atlassian, Confluence, Notion, and cross-vendor queues lives in `plugins/src/base/rules/prd-lifecycle-rollup.md`.
+> **Prompt for your coding agent**
+> "Which issue trackers and which PRD/spec sources does this Lisa support today, and which config keys select them? Read the vendor dispatch layer and the setup skills, then show me a minimal configuration for my combination."
 
-### Optional GitHub Project Coordination
+## The in-repository knowledge base
 
-GitHub Projects are an optional coordination layer for GitHub-backed Lisa flows, not the lifecycle source of truth. Real GitHub Issues and Pull Requests still carry the durable labels, comments, hierarchy, dependencies, and review state; Project membership just gives you a cross-repo view over that work.
+Lisa keeps a durable, markdown knowledge base inside the repo as the long-lived memory for architecture, workflows, decisions, and history — separate from the fast-moving code. It can ingest commits, PRs, design docs, and notes into that base and answer questions from it.
 
-Use `/lisa:setup-github` to scaffold `github.projects.v2` in `.lisa.config.json`, then `/lisa:doctor` to verify namespace and access before operators rely on it. In v1, `github.projects.v2.owner.slug` must match `github.org`. `required: false` is the default best-effort mode: repository-local issue and PR writes still succeed if Project membership cannot be added. `required: true` upgrades the same failure into a blocking readiness error.
+> **Prompt for your coding agent**
+> "Where is this repo's knowledge base, what should I read first to orient myself, and how do I ask you to ingest recent changes into it? List the current entry points."
 
-This does not relax Lisa's single-repo leaf rule. PRDs, Epics, Stories, and Spikes may coordinate work across repositories, but every build-ready Task, Bug, Sub-task, or Improvement must still target exactly one repository, carry exactly one `repo:<name>` marker, and be claimed only by that repository's intake lane.
+A downstream project can add the same knowledge base on demand rather than receiving it by default.
 
-### Maintenance and Operations
+> **Prompt for your coding agent**
+> "Does my project have Lisa's knowledge base enabled? If not, walk me through enabling and bootstrapping it using whatever the current install and setup commands are."
 
-| Command | What it does |
-| --- | --- |
-| `/lisa:monitor [environment]` | Checks application health, logs, error rates, and performance for the named environment. |
-| `/lisa:product-walkthrough <route>` | Walks the live product through a real browser to ground PRD or ticket reasoning in current behavior. |
-| `/lisa:codify-verification <type> <what>` | Converts a passing manual verification into a regression test in the appropriate framework (Playwright, integration test, benchmark). Runs automatically after `/lisa:verify`. |
-| `/lisa:review:local` | Reviews local branch changes against `main`. |
-| `/lisa:pull-request:review <pr-url>` | Pulls down review comments on a PR and implements the valid ones. |
-| `/lisa:security:zap-scan` | Runs an OWASP ZAP baseline scan against the local app. |
+## Extending or contributing to Lisa
 
-### Targeted Improvements
+If you're changing Lisa itself: author agent content and templates at their source, never in generated output, and rebuild so the distributed artifacts regenerate. Lisa applies its own standards to itself, so the same gates that guard downstream projects guard this one — including the requirement to prove your change works.
 
-These commands tighten a specific quality threshold and fix every violation in one pass — useful for incremental hardening or nightly jobs.
+> **Prompt for your coding agent**
+> "I want to add or change a skill, rule, hook, or agent in Lisa. Show me the source location, the build step, what I must commit alongside it, and the CI check that fails if I edit a generated artifact directly. Then check my change against those rules before I commit."
 
-| Command | What it does |
-| --- | --- |
-| `/lisa:improve:test-coverage <pct>` | Raises coverage to the target percentage by adding tests for uncovered code. |
-| `/lisa:improve:tests <target>` | Strengthens weak, brittle, or poorly-written tests. |
-| `/lisa:improve:code-complexity` | Lowers the cognitive-complexity threshold by 2 and fixes resulting violations. |
-| `/lisa:improve:max-lines <n>` | Reduces the max-file-lines threshold and fixes violations. |
-| `/lisa:improve:max-lines-per-function <n>` | Reduces the max-lines-per-function threshold and fixes violations. |
-| `/lisa:fix:linter-error <rule> [...]` | Fixes every violation of one or more ESLint rules across the codebase. |
+## Just ask
 
-### Git Helpers
+You don't need to memorize any of this. Describe the outcome you want and let Lisa route it:
 
-| Command | What it does |
-| --- | --- |
-| `/lisa:git:commit [hint]` | Creates conventional commits from the current changes. |
-| `/lisa:git:submit-pr [hint]` | Pushes and opens or updates a PR. |
-| `/lisa:git:prune` | Prunes local branches whose remotes have been deleted. |
+> "I have a ticket in our tracker — research it, plan it, and implement it."
+>
+> "Walk the checkout flow in a real browser and tell me what's broken."
+>
+> "Get test coverage on this module to 90% and prove it."
 
-### Talking to Lisa in Plain English
-
-You don't have to remember any of this. Tell Claude what you want and the right command will run:
-
-> "I have JIRA ticket PROJ-1234. Research, plan, and implement it."
-> "Walk through the checkout flow and tell me what's broken."
-> "Get test coverage to 90%."
-
-> Ask Claude: "What commands are available?" for the full list at any time.
-
-## Lisa LLM Wiki
-
-Lisa keeps an in-repository LLM Wiki under `wiki/`. It is the durable markdown knowledge base for Lisa architecture, workflows, skills, commands, templates, quality gates, git history, and ingestion notes.
-
-Start with:
-
-- `wiki/start-here.md` for orientation.
-- `wiki/index.md` for the maintained map.
-- `wiki/documentation/` for canonical Lisa documentation moved from root docs/spec files.
-- `wiki/projects/registry.md` for the monorepo registry.
-- `wiki/log.md` for ingestion history.
-- `wiki/sources/` for provenance.
-
-Sample questions:
-
-- What are Lisa's main architecture layers?
-- How do rules, skills, hooks, commands, and CI quality gates work together?
-- Which template strategies does Lisa use?
-- What changed in recent merged PRs?
-- What should a new contributor read first?
-
-Useful ingestion requests:
-
-- Ingest the latest repository commits and merged PRs.
-- Ingest this design plan into the Lisa wiki.
-- Ingest these meeting notes.
-- Update the architecture overview from recent source changes.
-
-### Adding a wiki to a downstream project
-
-The wiki kernel ships as a separate plugin (`lisa-wiki`) that is `AVAILABLE` but not enabled by default. To bootstrap it in a project that already has Lisa installed, run `/lisa:wiki:install` (Claude) or `$lisa-wiki-install` (Codex). This shipped-with-base command flips `lisa-wiki@lisa` to enabled in `.claude/settings.json` and verifies the Codex skill overlay is current — but does not scaffold the wiki itself. After reload, follow up with `/setup:wiki` (Claude) or `$lisa-wiki-setup` (Codex) to create `wiki/` from `wiki/lisa-wiki.config.json`.
+> **Prompt for your coding agent**
+> "What can Lisa do in this project right now? List the available commands grouped by purpose, and flag anything that needs configuration I haven't set up yet."
