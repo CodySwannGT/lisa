@@ -31,6 +31,7 @@ available.
 | SonarCloud | `lisa:sonarcloud-access` | `SONAR_TOKEN` | SonarCloud Web API |
 | Sentry | `lisa:sentry-access` | `SENTRY_AUTH_TOKEN` | Sentry REST API |
 | PostHog | `lisa:posthog-access` | `POSTHOG_PERSONAL_API_KEY` | PostHog REST API |
+| Google Play | `lisa-expo:play-store-access` | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` or `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_BASE64` | Google Play Developer API |
 
 ## Current Coupling Matrix
 
@@ -46,6 +47,7 @@ Source audit date: 2026-06-23. Scope: `plugins/src/**/skills/**` and
 | SonarCloud | None in `plugins/src` at audit time | No access layer | Access layer added for host rules that include SonarCloud gate triage. |
 | Sentry | No Sentry MCP references in `plugins/src`; CLI/REST mentions only | CLI/REST scattered in observability docs | Access layer added for future MCP-backed consumers. |
 | PostHog | No PostHog MCP references in `plugins/src`; observability docs mention PostHog detection | No access layer | Access layer added for future MCP-backed consumers. |
+| Google Play | No MCP surface; EAS submit docs only | `play-store-access` for Expo post-submit release visibility | Done for Expo stack. |
 
 ## Migration Rule For Consumers
 

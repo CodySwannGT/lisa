@@ -1,0 +1,4 @@
+display_name: "Play Store Access"
+short_description: "Read-only Google Play Console access layer for Expo projects"
+default_prompt:
+  - "Use $play-store-access: Read-only Google Play Console access layer for Expo projects."
