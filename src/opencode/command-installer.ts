@@ -7,17 +7,19 @@
  *      `discoverLisaCommands` walker (identical discovery to the skills path).
  *   2. Transform the command Markdown → OpenCode command Markdown (frontmatter
  *      `description`; body preserves `$ARGUMENTS` for native substitution).
- *   3. Write the result to `.opencode/commands/<lisa-name>.md`, where the
- *      filename is the shared dash-joined `lisa-` prefixed name (e.g.
- *      `lisa-git-commit`), so the command surfaces as `/lisa-git-commit`.
+ *   3. Write the result to `.opencode/commands/<lisa:name>.md`, where the
+ *      filename is the shared colon-scoped display name (e.g.
+ *      `lisa:git:commit`), so the command surfaces as `/lisa:git:commit`.
  *
  * This is ADDITIVE and native-fidelity: Lisa commands already work on OpenCode
- * as `lisa-` prefixed skills, so the lower-priority value here is exposing them
- * through OpenCode's first-class command surface with native argument handling.
+ * as `$lisa-` prefixed skills, so the lower-priority value here is exposing
+ * them through OpenCode's first-class `/lisa:*` command surface with native
+ * argument handling.
  *
- * The `lisa-` filename prefix (already baked into the shared command skill name)
- * is the ownership boundary — host-authored commands (any file NOT starting with
- * `lisa-`) are never touched, and stale cleanup is scoped to `lisa-` files only.
+ * The `lisa:` filename prefix is the ownership boundary — host-authored commands
+ * (any file NOT starting with `lisa:`) are never touched. Stale cleanup also
+ * recognizes legacy `lisa-` files because older Lisa releases wrote those names
+ * into persisted manifests.
  * @module opencode/command-installer
  */
 import * as fse from "fs-extra";
@@ -25,6 +27,7 @@ import { readFile, unlink, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import {
   type LisaCommandSource,
+  LISA_COMMAND_DISPLAY_PREFIX,
   discoverLisaCommands,
   isHarnessVariantPlugin,
 } from "../core/lisa-skill-sources.js";
@@ -40,15 +43,17 @@ export {
 export const LISA_COMMANDS_SUBDIR = "commands";
 
 /**
- * Filename prefix marking a command file as Lisa-owned. The shared command
- * discovery already names every command `lisa-<...>`, so this matches the
- * basename of every file Lisa writes and scopes stale cleanup safely.
+ * Filename prefix marking a command file as Lisa-owned. Native OpenCode command
+ * names use Lisa's user-facing slash-command namespace (`/lisa:*`).
  */
-export const LISA_COMMAND_FILE_PREFIX = "lisa-";
+export const LISA_COMMAND_FILE_PREFIX = LISA_COMMAND_DISPLAY_PREFIX;
+
+/** Legacy filename prefix used before OpenCode native commands matched `/lisa:*`. */
+const LEGACY_LISA_COMMAND_FILE_PREFIX = "lisa-";
 
 /** Result of installing one command */
 export interface InstalledCommand {
-  /** Command name (the `lisa-` prefixed, dash-joined skill name) */
+  /** Command name (the `lisa:` prefixed, colon-scoped display name) */
   readonly name: string;
   /** Path written, relative to the destination project's `.opencode/` directory */
   readonly relativePath: string;
@@ -118,18 +123,18 @@ async function installSingleCommand(
     sourceContent,
     source.displayName
   );
-  const filename = `${source.skillName}.md`;
+  const filename = `${source.displayName}.md`;
   await writeFile(path.join(commandsDir, filename), markdown, "utf8");
   return {
-    name: source.skillName,
+    name: source.displayName,
     relativePath: path.join(LISA_COMMANDS_SUBDIR, filename),
   };
 }
 
 /**
  * Delete files that were Lisa-managed last run but aren't shipped this run.
- * Only deletes files inside `.opencode/commands/` whose basename carries the
- * `lisa-` prefix, so host-authored commands are never removed.
+ * Only deletes files inside `.opencode/commands/` whose basename carries a Lisa
+ * prefix, so host-authored commands are never removed.
  * @param previousManagedFiles - Files Lisa managed on the previous run
  *   (relative to `.opencode/`)
  * @param currentManagedFiles - Files Lisa is shipping this run (relative
@@ -143,9 +148,14 @@ async function deleteStaleCommands(
   destDir: string
 ): Promise<readonly string[]> {
   const currentSet = new Set(currentManagedFiles);
-  const lisaCommandPrefix = `${LISA_COMMANDS_SUBDIR}${path.sep}${LISA_COMMAND_FILE_PREFIX}`;
+  const lisaCommandPrefixes = [
+    `${LISA_COMMANDS_SUBDIR}${path.sep}${LISA_COMMAND_FILE_PREFIX}`,
+    `${LISA_COMMANDS_SUBDIR}${path.sep}${LEGACY_LISA_COMMAND_FILE_PREFIX}`,
+  ];
   const stale = previousManagedFiles.filter(
-    file => !currentSet.has(file) && file.startsWith(lisaCommandPrefix)
+    file =>
+      !currentSet.has(file) &&
+      lisaCommandPrefixes.some(prefix => file.startsWith(prefix))
   );
   await Promise.all(
     stale.map(async file => {
