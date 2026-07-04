@@ -1,0 +1,4 @@
+display_name: "Tracker Source Artifacts"
+short_description: "Canonical, vendor-neutral taxonomy and rules for handling source artifacts (Figma, Lovable, Loom, screenshots, design docs, data samples)…"
+default_prompt:
+  - "Use $lisa-tracker-source-artifacts: Canonical, vendor-neutral taxonomy and rules for handling source artifacts (Figma, Lovable, Loom, screenshots, design docs, data samples)…."

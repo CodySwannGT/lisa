@@ -1,4 +1,0 @@
-display_name: "Implement"
-short_description: "any non-trivial request — features, bugs, stories, epics, spikes, or multi-step tasks"
-default_prompt:
-  - "Use $implement: any non-trivial request — features, bugs, stories, epics, spikes, or multi-step tasks."

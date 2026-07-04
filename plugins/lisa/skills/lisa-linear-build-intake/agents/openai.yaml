@@ -1,0 +1,4 @@
+display_name: "Linear Build Intake"
+short_description: "Symmetric counterpart to lisa-jira-build-intake on the Linear side"
+default_prompt:
+  - "Use $lisa-linear-build-intake: Symmetric counterpart to lisa-jira-build-intake on the Linear side."

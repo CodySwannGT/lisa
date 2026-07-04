@@ -28,7 +28,7 @@ This protocol runs **once per session**, on the first user message. After that, 
 
 ## Orchestration Selection Protocol
 
-Orchestration is owned by the **lifecycle skill** for the chosen flow, not by this rule. Each top-level lifecycle skill (`lisa:research`, `lisa:plan`, `lisa:implement`, `lisa:verify`, `lisa:monitor`, `lisa:intake`) contains its own cascade-safe orchestration preamble — that's where the team is created (or skipped, if already inside one).
+Orchestration is owned by the **lifecycle skill** for the chosen flow, not by this rule. Each top-level lifecycle skill (`lisa-research`, `lisa-plan`, `lisa-implement`, `lisa-verify`, `lisa-monitor`, `lisa-intake`) contains its own cascade-safe orchestration preamble — that's where the team is created (or skipped, if already inside one).
 
 What this rule still enforces:
 
@@ -74,11 +74,11 @@ Sequence:
 4. `architecture-specialist` -- assess technical feasibility, identify constraints, map existing system boundaries
 5. Synthesize findings into a PRD containing: problem statement, user stories, acceptance criteria, technical constraints, open questions, and proposed scope
 6. **Plan Phase Tooling** -- review all available skills and agents (project-defined, plugin-provided, and built-in) and determine which ones the Plan phase will need. For each recommended skill or agent, state why it is needed. If no skills or agents beyond the defaults are identified, explicitly justify why the standard set is sufficient. Include this as a "Recommended Tooling for Plan Phase" section in the PRD.
-7. **Create the PRD in the configured source** -- invoke `lisa:prd-source-write` with the synthesized PRD (`title`, `body`, `initial_role` resolved from the caller's `prd_ready` flag — `draft` by default, `ready` when `prd_ready=true`, plus any `dedupe_key`/`marker`/`source_ref` the caller passed). The PRD **lives in the source** (Notion page / Confluence page / GitHub issue / Linear project per `.lisa.config.json` `source`); there is no separate document artifact. A `source` must be configured — if it is not, stop and report it. `prd-source-write` dedupes by marker, so re-running against the same idea references the existing PRD instead of creating a duplicate.
-8. **Record Research usage on the PRD artifact** -- invoke `lisa:usage-accounting` against the created PRD/source artifact so it gains a direct `research` usage entry in the canonical `## Lisa Usage` section at creation time. If the runtime cannot provide trustworthy usage, still write the row with `source: unavailable` and nullable token/cost fields; missing usage is never treated as zero or silently omitted.
+7. **Create the PRD in the configured source** -- invoke `lisa-prd-source-write` with the synthesized PRD (`title`, `body`, `initial_role` resolved from the caller's `prd_ready` flag — `draft` by default, `ready` when `prd_ready=true`, plus any `dedupe_key`/`marker`/`source_ref` the caller passed). The PRD **lives in the source** (Notion page / Confluence page / GitHub issue / Linear project per `.lisa.config.json` `source`); there is no separate document artifact. A `source` must be configured — if it is not, stop and report it. `prd-source-write` dedupes by marker, so re-running against the same idea references the existing PRD instead of creating a duplicate.
+8. **Record Research usage on the PRD artifact** -- invoke `lisa-usage-accounting` against the created PRD/source artifact so it gains a direct `research` usage entry in the canonical `## Lisa Usage` section at creation time. If the runtime cannot provide trustworthy usage, still write the row with `source: unavailable` and nullable token/cost fields; missing usage is never treated as zero or silently omitted.
 9. `learner` -- capture discoveries for future sessions
 
-Output: A PRD created in the configured source, carrying a "Recommended Tooling for Plan Phase" section, in the `draft` role by default (or `ready` when `prd_ready=true`, so `lisa:intake` auto-claims it). If there is not enough context to produce a complete PRD, stop and report what is missing rather than creating an incomplete one. If no `source` is configured, stop and report it rather than emitting a loose document.
+Output: A PRD created in the configured source, carrying a "Recommended Tooling for Plan Phase" section, in the `draft` role by default (or `ready` when `prd_ready=true`, so `lisa-intake` auto-claims it). If there is not enough context to produce a complete PRD, stop and report what is missing rather than creating an incomplete one. If no `source` is configured, stop and report it rather than emitting a loose document.
 
 ### Plan
 
@@ -103,9 +103,9 @@ Sequence:
    - Dependencies
    - Skills and agents required (from step 5)
 7. Create work items in the tracker (JIRA, Linear, GitHub) with acceptance criteria, dependencies, and recommended skills/agents
-8. **Record Plan usage on the PRD and created work items** -- route all direct usage writes through `lisa:usage-accounting`: attach a `plan` entry to the source PRD/spec artifact and to each created work item. If runtime usage is unavailable, still write an explicit `source: unavailable` row with nullable token/cost fields instead of omitting the entry.
-9. **PRD back-link** -- update the source PRD with a `## Tickets` section listing every created work item (key, title, type, link), so the PRD becomes the canonical anchor for downstream flows (notably **Debrief**). Invoke `lisa:prd-backlink` with the PRD source and the created ticket list. The section is regenerated on each run, not appended, so re-planning never produces stale links.
-10. **Refresh the PRD usage rollup** -- re-invoke `lisa:usage-accounting` on the source PRD after `lisa:prd-backlink` regenerates child refs so the PRD `## Lisa Usage` rollup reflects the created ticket set.
+8. **Record Plan usage on the PRD and created work items** -- route all direct usage writes through `lisa-usage-accounting`: attach a `plan` entry to the source PRD/spec artifact and to each created work item. If runtime usage is unavailable, still write an explicit `source: unavailable` row with nullable token/cost fields instead of omitting the entry.
+9. **PRD back-link** -- update the source PRD with a `## Tickets` section listing every created work item (key, title, type, link), so the PRD becomes the canonical anchor for downstream flows (notably **Debrief**). Invoke `lisa-prd-backlink` with the PRD source and the created ticket list. The section is regenerated on each run, not appended, so re-planning never produces stale links.
+10. **Refresh the PRD usage rollup** -- re-invoke `lisa-usage-accounting` on the source PRD after `lisa-prd-backlink` regenerates child refs so the PRD `## Lisa Usage` rollup reflects the created ticket set.
 11. `learner` -- capture discoveries for future sessions
 
 Output: Work items in a tracker with acceptance criteria and recommended skills/agents, ordered by dependency. The source PRD carries a `## Tickets` section linking back to every created item. If the specification cannot be decomposed without further clarification, stop and report what is missing.
@@ -132,7 +132,7 @@ Determine the work type and execute the matching variant:
 6. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 7. `verification-specialist` -- verify locally (run the software, observe behavior)
 8. `verification-specialist` -- invoke `codify-verification` skill per passing verification (Playwright for UI, integration test for API/DB/auth, etc.); commit each test in the same PR
-9. **Record Implement usage on the work artifact** -- invoke `lisa:usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+9. **Record Implement usage on the work artifact** -- invoke `lisa-usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
 10. **Review sub-flow**
 11. `learner` -- capture discoveries
 
@@ -147,7 +147,7 @@ Determine the work type and execute the matching variant:
 7. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 8. `verification-specialist` -- verify locally (prove the bug is fixed)
 9. `verification-specialist` -- invoke `codify-verification` skill to encode the fix as a regression test (mandatory for bug fixes — the test must fail against the pre-fix commit and pass against the fix); commit in the same PR
-10. **Record Implement usage on the work artifact** -- invoke `lisa:usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+10. **Record Implement usage on the work artifact** -- invoke `lisa-usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
 11. **Review sub-flow**
 12. `learner` -- capture discoveries
 
@@ -160,7 +160,7 @@ Determine the work type and execute the matching variant:
 5. Run quality gates: lint, typecheck, tests (these are prerequisites, NOT verification)
 6. `verification-specialist` -- measure again, prove improvement over baseline
 7. `verification-specialist` -- invoke `codify-verification` skill (typically a benchmark asserting against baseline for performance work, or a regression test for behavioral refactors); commit in the same PR
-8. **Record Implement usage on the work artifact** -- invoke `lisa:usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+8. **Record Implement usage on the work artifact** -- invoke `lisa-usage-accounting` against the originating work item or implementation artifact so it gains a direct `implement` usage entry in the canonical `## Lisa Usage` section. If the hierarchy / parent refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise record the direct entry and leave rollup for the next caller that has the child refs. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
 9. **Review sub-flow**
 10. `learner` -- capture discoveries
 
@@ -201,8 +201,8 @@ Sequence:
    - `verification-specialist` -- verify in target environment (same checks as local verification, but on remote)
    - `ops-specialist` -- post-deploy health check, smoke test, monitor for errors in first minutes
    - If remote verification fails -- fix, open new PR, return to step 3
-7. **Record Verify usage on the evidence artifact** -- invoke `lisa:usage-accounting` against the generated evidence artifact (comment body, PR evidence section, or markdown proof) so it gains a direct `verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item or PRD parentage is known, prefer `record_and_rollup` so ancestor totals refresh in the same pass. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
-8. **Post evidence via the tracker surface** -- invoke `lisa:tracker-evidence` after the usage write so the same canonical evidence artifact is uploaded / posted without hand-editing a second format.
+7. **Record Verify usage on the evidence artifact** -- invoke `lisa-usage-accounting` against the generated evidence artifact (comment body, PR evidence section, or markdown proof) so it gains a direct `verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item or PRD parentage is known, prefer `record_and_rollup` so ancestor totals refresh in the same pass. If runtime usage is unavailable, still write `source: unavailable` with nullable token/cost fields instead of omitting the row.
+8. **Post evidence via the tracker surface** -- invoke `lisa-tracker-evidence` after the usage write so the same canonical evidence artifact is uploaded / posted without hand-editing a second format.
 
 Output: Merged PR, successful deploy, remote verification passing.
 
@@ -228,7 +228,7 @@ Sequence:
    - **Tooling gap** — missing skill, wrong agent assignment, broken hook, missing automation
    - **Convention drift** — an unwritten rule revealed by review comments that should be codified
 4. **Produce the human-triage document** — a markdown file with one row per candidate learning showing: category, summary, evidence (links to the source ticket comment / PR comment / commit), recommended persistence destination, and a checkbox-style disposition field the human will mark (Accept / Reject / Defer). Surface step-1 anomalies (work items missing PRs, etc.) in a separate section. The document is exhaustive — it lists every candidate, even ones the synthesizer rates low confidence — because the human, not the agent, decides what is worth keeping.
-5. **Record Debrief usage on the triage document** — invoke `lisa:usage-accounting` against the generated markdown artifact so the document carries its own direct `debrief` usage entry in the canonical `## Lisa Usage` section. If runtime usage is unavailable, write the entry with `source: unavailable` and nullable token/cost fields rather than skipping it.
+5. **Record Debrief usage on the triage document** — invoke `lisa-usage-accounting` against the generated markdown artifact so the document carries its own direct `debrief` usage entry in the canonical `## Lisa Usage` section. If runtime usage is unavailable, write the entry with `source: unavailable` and nullable token/cost fields rather than skipping it.
 6. **Stop and hand the document to the human.** Debrief does NOT persist accepted learnings itself. The human triages, marks dispositions, and runs the **`/lisa:debrief:apply`** command (skill: `debrief-apply`) to route the accepted items to their destinations.
 
 Output: A triage-ready learnings document covering every work item and PR in the initiative, with structured evidence and disposition fields. Persistence is deferred to `debrief-apply`, which the human invokes after triage.
@@ -326,7 +326,7 @@ Sequence:
 2. **Collect live signals** -- `ops-specialist` (Expo/Rails) or inline base probing (Sentry CLI/REST, CloudWatch, X-Ray, Playwright MCP) for health, logs, errors, performance. An observation is a fileable **anomaly** only when it clears the conservative thresholds in `observability-audit`.
 3. **Audit completeness** -- score the repo against the `observability-audit` rubric for its profile; each in-scope MISSING dimension is a **gap** finding (`core` always; `recommended` only with `--all-gaps`).
 4. **Report** -- health/anomaly summary + audit table. Always produced.
-5. **File (standalone only; SKIP under `--report-only`/`--dry-run` and when invoked from Verify)** -- for each anomaly and gap, dedupe by fingerprint (sentinel + search-before-create incl. closed tickets), then file a single-repo build-ready leaf via `tracker-write` (`build_ready: true`) — a `Bug` for an anomaly, a `Task`/`Improvement` for a gap — stamped `repo:<current>`, capped at `max_candidates` (default 20, `core`/high-severity first; list any dropped). Default files; `--dry-run` previews without filing. `lisa:verify` invokes monitor as `lisa:monitor <env> --report-only`, so the post-deploy check never files. Escalate anything not made into a ticket.
+5. **File (standalone only; SKIP under `--report-only`/`--dry-run` and when invoked from Verify)** -- for each anomaly and gap, dedupe by fingerprint (sentinel + search-before-create incl. closed tickets), then file a single-repo build-ready leaf via `tracker-write` (`build_ready: true`) — a `Bug` for an anomaly, a `Task`/`Improvement` for a gap — stamped `repo:<current>`, capped at `max_candidates` (default 20, `core`/high-severity first; list any dropped). Default files; `--dry-run` previews without filing. `lisa-verify` invokes monitor as `lisa-monitor <env> --report-only`, so the post-deploy check never files. Escalate anything not made into a ticket.
 
 The `observability-audit` rule owns the profile detection, rubric, anomaly thresholds, ticket templates (gate-passing), fingerprint/idempotency contract, the cap, and the Verify report-only guard. Monitor **files only** — the `intake` / `tracker-build-intake` cron implements what it files.
 

@@ -1,0 +1,4 @@
+display_name: "Jam Access"
+short_description: "Vendor-neutral access layer for Jam"
+default_prompt:
+  - "Use $lisa-jam-access: Vendor-neutral access layer for Jam."

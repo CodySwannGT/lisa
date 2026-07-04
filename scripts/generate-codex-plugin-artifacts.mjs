@@ -219,7 +219,8 @@ const BRAND_NAMES = new Map([
  * @returns {string} The humanized, title-cased display name.
  */
 function humanizeName(raw) {
-  return raw
+  const stripped = raw.startsWith("lisa-") ? raw.slice("lisa-".length) : raw;
+  return stripped
     .split(/[-_\s]+/)
     .filter(word => word.length > 0)
     .map(word => {

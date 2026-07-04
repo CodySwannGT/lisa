@@ -27,8 +27,8 @@ const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
 
 describe("setup-automations is a runtime-branched declarative spec", () => {
-  describe.each(ROOTS)("%s/setup-automations", root => {
-    const content = readSkill(root, "setup-automations");
+  describe.each(ROOTS)("%s/lisa-setup-automations", root => {
+    const content = readSkill(root, "lisa-setup-automations");
 
     it("is declared a specification, not a script (no hand-templating)", () => {
       expect(content).toMatch(/specification, not a script/i);
@@ -47,7 +47,7 @@ describe("setup-automations is a runtime-branched declarative spec", () => {
     it("specifies all five automations with their commands", () => {
       expect(content).toContain("/lisa:repair-intake");
       expect(content).toContain("/lisa:intake");
-      expect(content).toContain("exploratory-qa");
+      expect(content).toContain("lisa-exploratory-qa");
       expect(content).toContain("/lisa:project-ideation");
     });
 
@@ -88,8 +88,8 @@ describe("setup-automations is a runtime-branched declarative spec", () => {
 });
 
 describe("tear-down-automations removes only this project's lisa-auto set", () => {
-  describe.each(ROOTS)("%s/tear-down-automations", root => {
-    const content = readSkill(root, "tear-down-automations");
+  describe.each(ROOTS)("%s/lisa-tear-down-automations", root => {
+    const content = readSkill(root, "lisa-tear-down-automations");
 
     it("is declared a specification, not a script", () => {
       expect(content).toMatch(/specification, not a script/i);

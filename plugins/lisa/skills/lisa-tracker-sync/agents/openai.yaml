@@ -1,0 +1,4 @@
+display_name: "Tracker Sync"
+short_description: "Vendor-neutral wrapper for posting milestone updates to the linked ticket/issue"
+default_prompt:
+  - "Use $lisa-tracker-sync: Vendor-neutral wrapper for posting milestone updates to the linked ticket/issue."

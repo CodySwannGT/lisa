@@ -28,11 +28,11 @@ const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
 
 describe("two-way PR/ticket linking contract", () => {
-  describe.each(ROOTS)("%s/git-submit-pr", root => {
-    const content = readSkill(root, "git-submit-pr");
+  describe.each(ROOTS)("%s/lisa-git-submit-pr", root => {
+    const content = readSkill(root, "lisa-git-submit-pr");
 
     it("requires tracker-sync after PR creation", () => {
-      expect(content).toMatch(/lisa:tracker-sync/);
+      expect(content).toMatch(/lisa-tracker-sync/);
       expect(content).toMatch(/pr-ready/);
       expect(content).toMatch(/pr_url=<url>|pr_url=<url>/i);
     });
@@ -44,8 +44,8 @@ describe("two-way PR/ticket linking contract", () => {
     });
   });
 
-  describe.each(ROOTS)("%s/tracker-sync", root => {
-    const content = readSkill(root, "tracker-sync");
+  describe.each(ROOTS)("%s/lisa-tracker-sync", root => {
+    const content = readSkill(root, "lisa-tracker-sync");
 
     it("documents native-first PR backlinking with managed-comment fallback", () => {
       expect(content).toMatch(/Pull request backlinking/i);
@@ -56,24 +56,25 @@ describe("two-way PR/ticket linking contract", () => {
   });
 
   describe.each(ROOTS)("%s/vendor sync skills", root => {
-    it.each(["github-sync", "jira-sync", "linear-sync"] as const)(
-      "%s requires native-or-comment PR backlinking",
-      slug => {
-        const content = readSkill(root, slug);
+    it.each([
+      "lisa-github-sync",
+      "lisa-jira-sync",
+      "lisa-linear-sync",
+    ] as const)("%s requires native-or-comment PR backlinking", slug => {
+      const content = readSkill(root, slug);
 
-        expect(content).toMatch(/Ensure PR Backlink/i);
-        expect(content).toMatch(/native/i);
-        expect(content).toMatch(/cannot be verified/i);
-        expect(content).toContain(MARKER);
-        expect(content).toMatch(
-          /Do not append duplicate|instead of appending duplicates/i
-        );
-      }
-    );
+      expect(content).toMatch(/Ensure PR Backlink/i);
+      expect(content).toMatch(/native/i);
+      expect(content).toMatch(/cannot be verified/i);
+      expect(content).toContain(MARKER);
+      expect(content).toMatch(
+        /Do not append duplicate|instead of appending duplicates/i
+      );
+    });
   });
 
-  describe.each(ROOTS)("%s/implement", root => {
-    const content = readSkill(root, "implement");
+  describe.each(ROOTS)("%s/lisa-implement", root => {
+    const content = readSkill(root, "lisa-implement");
 
     it("requires two-way linkage before PR submission is complete", () => {
       expect(content).toMatch(/Confirm two-way linkage/i);

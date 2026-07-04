@@ -1,4 +1,0 @@
-display_name: "Tracker Evidence"
-short_description: "Vendor-neutral wrapper for posting verification evidence"
-default_prompt:
-  - "Use $tracker-evidence: Vendor-neutral wrapper for posting verification evidence."

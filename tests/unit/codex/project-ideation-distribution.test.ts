@@ -9,7 +9,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
-const SKILL_NAME = "project-ideation";
+const SKILL_NAME = "lisa-project-ideation";
 const SOURCE_SKILL = path.join(
   REPO_ROOT,
   "plugins",
@@ -53,7 +53,7 @@ describe("codex/project-ideation-distribution (#670)", () => {
     const builtSkill = await fs.readFile(BUILT_SKILL, "utf8");
 
     expect(builtSkill).toBe(sourceSkill);
-    expect(builtSkill).toContain("name: project-ideation");
+    expect(builtSkill).toContain("name: lisa-project-ideation");
     expect(builtSkill).toContain("Practicality gate");
     expect(builtSkill).toContain("Empirical verification gate");
   });
@@ -74,9 +74,9 @@ describe("codex/project-ideation-distribution (#670)", () => {
     );
     expect(metadata.default_prompt).toEqual(
       expect.arrayContaining([
-        "Use $project-ideation: Generate practical feature ideas for this project.",
-        "Use $project-ideation: Looking at an external public product, what should we add here?",
-        "Use $project-ideation: Suggest practical improvements we can verify ourselves.",
+        "Use $lisa-project-ideation: Generate practical feature ideas for this project.",
+        "Use $lisa-project-ideation: Looking at an external public product, what should we add here?",
+        "Use $lisa-project-ideation: Suggest practical improvements we can verify ourselves.",
       ])
     );
   });

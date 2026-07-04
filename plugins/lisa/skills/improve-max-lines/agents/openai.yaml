@@ -1,4 +1,0 @@
-display_name: "Improve Max Lines"
-short_description: "reducing the maximum file lines threshold and fixing all violations"
-default_prompt:
-  - "Use $improve-max-lines: reducing the maximum file lines threshold and fixing all violations."

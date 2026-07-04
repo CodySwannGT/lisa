@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Lint"
+display_name: "Wiki Lint"
 short_description: "Health-check the LLM Wiki"
 default_prompt:
   - "Use $lisa-wiki-lint: Health-check the LLM Wiki."

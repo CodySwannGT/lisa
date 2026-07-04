@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Query"
+display_name: "Wiki Query"
 short_description: "Answer a question from the LLM Wiki with citations"
 default_prompt:
   - "Use $lisa-wiki-query: Answer a question from the LLM Wiki with citations."

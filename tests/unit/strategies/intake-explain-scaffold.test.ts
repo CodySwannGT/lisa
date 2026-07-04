@@ -11,7 +11,7 @@
  * intended contract clearly enough for later implementation work:
  *   (1) the command delegates to `/lisa:intake-explain`;
  *   (2) the skill is read-only and scoped to one repo/project item;
- *   (3) the skill reuses `intake` / `repair-intake` contract semantics rather
+ *   (3) the skill reuses `lisa-intake` / `repair-intake` contract semantics rather
  *       than inventing a second source of truth;
  *   (4) the skill names the expected verdict families and supported vendors;
  *   (5) the skill defines a stable per-item output shape and next-action model.
@@ -26,8 +26,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const COMMAND_REL = "commands/intake-explain.md";
-const SKILL_REL = "skills/intake-explain/SKILL.md";
+const COMMAND_REL = "commands/lisa/intake-explain.md";
+const SKILL_REL = "skills/lisa-intake-explain/SKILL.md";
 
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
@@ -48,7 +48,7 @@ describe("intake-explain scaffold (#843)", () => {
       expect(command).toMatch(/^---/);
       expect(command).toMatch(/description:/);
       expect(command).toContain('argument-hint: "<item-ref>"');
-      expect(command).toMatch(/Use the \/lisa:intake-explain skill/);
+      expect(command).toMatch(/Use the \/lisa-intake-explain skill/);
       expect(command).toContain("$ARGUMENTS");
     });
 
@@ -56,7 +56,7 @@ describe("intake-explain scaffold (#843)", () => {
       const skill = read(root, SKILL_REL);
 
       expect(skill).toMatch(/^---/);
-      expect(skill).toMatch(/name:\s*intake-explain/);
+      expect(skill).toMatch(/name:\s*lisa-intake-explain/);
       expect(skill).toMatch(/allowed-tools:/);
       expect(skill).toContain("Skill");
       expect(skill).toContain("Bash");

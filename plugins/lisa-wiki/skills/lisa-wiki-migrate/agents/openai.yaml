@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Migrate"
+display_name: "Wiki Migrate"
 short_description: "Migrate an existing, hand-rolled wiki implementation onto the lisa-wiki kernel — phased and compatibility-first, with a strict no-loss…"
 default_prompt:
   - "Use $lisa-wiki-migrate: Migrate an existing, hand-rolled wiki implementation onto the lisa-wiki kernel — phased and compatibility-first, with a strict no-loss…."

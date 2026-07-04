@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
-import { markdownToAdf } from "../../../plugins/src/base/skills/atlassian-access/scripts/markdown-to-adf.mjs";
+import { markdownToAdf } from "../../../plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs";
 
 const SKILL_ROOTS = [
   "plugins/src/base/skills",
@@ -75,7 +75,7 @@ Then it works
 
   describe.each(SKILL_ROOTS)("%s", root => {
     it("routes JIRA write descriptions through the shared converter", () => {
-      const content = readSkill(root, "atlassian-access");
+      const content = readSkill(root, "lisa-atlassian-access");
 
       expect(content).toContain("markdown-to-adf.mjs");
       expect(content).toContain("normalize_jira_description_payload");
@@ -84,7 +84,7 @@ Then it works
     });
 
     it("requires validators to inspect rendered ADF heading nodes", () => {
-      const content = readSkill(root, "jira-validate-ticket");
+      const content = readSkill(root, "lisa-jira-validate-ticket");
 
       expect(content).toContain("ADF heading");
       expect(content).toContain("extract section headings from ADF");
@@ -92,7 +92,7 @@ Then it works
     });
 
     it("documents that post-write verify catches descriptions dropped to literal text", () => {
-      const content = readSkill(root, "jira-write-ticket");
+      const content = readSkill(root, "lisa-jira-write-ticket");
 
       expect(content).toContain("markdown-to-adf.mjs");
       expect(content).toMatch(/literal .*paragraph/i);

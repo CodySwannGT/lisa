@@ -1,4 +1,4 @@
-display_name: "Lisa Openclaw Connect Staff"
+display_name: "Openclaw Connect Staff"
 short_description: "Connect staff roles to a human chat surface (Telegram or Slack) via OpenClaw using a facilitator/specialist hub-and-spoke model"
 default_prompt:
   - "Use $lisa-openclaw-connect-staff: Connect staff roles to a human chat surface (Telegram or Slack) via OpenClaw using a facilitator/specialist hub-and-spoke model."

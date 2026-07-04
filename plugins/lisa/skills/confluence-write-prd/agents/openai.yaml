@@ -1,4 +1,0 @@
-display_name: "Confluence Write PRD"
-short_description: "Creates or idempotently updates a PRD as a Confluence page parented under the configured lifecycle parent page (the draft parent by…"
-default_prompt:
-  - "Use $confluence-write-prd: Creates or idempotently updates a PRD as a Confluence page parented under the configured lifecycle parent page (the draft parent by…."

@@ -27,8 +27,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const COMMAND_REL = "commands/queue-status.md";
-const SKILL_REL = "skills/queue-status/SKILL.md";
+const COMMAND_REL = "commands/lisa/queue-status.md";
+const SKILL_REL = "skills/lisa-queue-status/SKILL.md";
 
 const read = (root: string, rel: string): string =>
   readFileSync(path.resolve(root, rel), "utf8");
@@ -48,7 +48,7 @@ describe("queue-status scaffold (#820)", () => {
 
       expect(command).toMatch(/^---/);
       expect(command).toMatch(/description:/);
-      expect(command).toMatch(/Use the \/lisa:queue-status skill/);
+      expect(command).toMatch(/Use the \/lisa-queue-status skill/);
       expect(command).toContain("$ARGUMENTS");
     });
 
@@ -56,7 +56,7 @@ describe("queue-status scaffold (#820)", () => {
       const skill = read(root, SKILL_REL);
 
       expect(skill).toMatch(/^---/);
-      expect(skill).toMatch(/name:\s*queue-status/);
+      expect(skill).toMatch(/name:\s*lisa-queue-status/);
       expect(skill).toMatch(/allowed-tools:/);
       expect(skill).toContain("Skill");
       expect(skill).toContain("Bash");

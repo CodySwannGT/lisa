@@ -1,0 +1,4 @@
+display_name: "Performance Review"
+short_description: "Performance review methodology"
+default_prompt:
+  - "Use $lisa-performance-review: Performance review methodology."

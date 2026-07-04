@@ -1,4 +1,0 @@
-display_name: "Bug Triage"
-short_description: "8-step bug triage and implementation workflow"
-default_prompt:
-  - "Use $bug-triage: 8-step bug triage and implementation workflow."

@@ -19,12 +19,12 @@ const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 describe.each(ROOTS)("git-submit-pr Project membership (%s)", root => {
   const content = readFileSync(
-    path.resolve(root, "git-submit-pr", "SKILL.md"),
+    path.resolve(root, "lisa-git-submit-pr", "SKILL.md"),
     "utf8"
   );
 
   it("delegates pull request membership through the shared utility", () => {
-    expect(content).toMatch(/lisa:github-project-v2/);
+    expect(content).toMatch(/lisa-github-project-v2/);
     expect(content).toMatch(/operation:\s*ensure-item/i);
     expect(content).toMatch(/content_node_id/i);
     expect(content).toMatch(/Pull Request node id/i);

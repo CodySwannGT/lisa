@@ -16,7 +16,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
-const WRITERS = ["github-write-issue", "github-write-prd"] as const;
+const WRITERS = ["lisa-github-write-issue", "lisa-github-write-prd"] as const;
 
 const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
@@ -27,7 +27,7 @@ describe("github writer project membership", () => {
       const content = readSkill(root, writer);
 
       it("delegates project membership through the shared utility", () => {
-        expect(content).toMatch(/lisa:github-project-v2/);
+        expect(content).toMatch(/lisa-github-project-v2/);
         expect(content).toMatch(/operation:\s*ensure-item/i);
         expect(content).toMatch(/content_node_id/i);
       });

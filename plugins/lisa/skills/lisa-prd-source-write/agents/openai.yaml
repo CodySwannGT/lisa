@@ -1,0 +1,4 @@
+display_name: "PRD Source Write"
+short_description: "Vendor-neutral wrapper for creating (or idempotently updating) a PRD in the configured PRD source"
+default_prompt:
+  - "Use $lisa-prd-source-write: Vendor-neutral wrapper for creating (or idempotently updating) a PRD in the configured PRD source."

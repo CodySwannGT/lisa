@@ -1,4 +1,0 @@
-display_name: "Queue Status"
-short_description: "Read-only operator surface for the current project's PRD and build backlog health"
-default_prompt:
-  - "Use $queue-status: Read-only operator surface for the current project's PRD and build backlog health."

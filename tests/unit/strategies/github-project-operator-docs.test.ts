@@ -38,9 +38,11 @@ describe("GitHub Project coordination rollout docs (#706)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("keeps setup and doctor command descriptions explicit about Project coordination", () => {
       const setupCommand = read(
-        path.join(root, "commands", "setup", "github.md")
+        path.join(root, "commands", "lisa", "setup", "github.md")
       );
-      const doctorCommand = read(path.join(root, "commands", "doctor.md"));
+      const doctorCommand = read(
+        path.join(root, "commands", "lisa", "doctor.md")
+      );
 
       expect(setupCommand).toMatch(/optional GitHub ProjectV2 coordination/i);
       expect(setupCommand).toContain(".lisa.config.json");
@@ -53,14 +55,16 @@ describe("GitHub Project coordination rollout docs (#706)", () => {
 
     it("keeps setup, doctor, and intake docs aligned with the single-repo leaf invariant", () => {
       const setupSkill = read(
-        path.join(root, "skills", "setup-github", "SKILL.md")
+        path.join(root, "skills", "lisa-setup-github", "SKILL.md")
       );
-      const doctorSkill = read(path.join(root, "skills", "doctor", "SKILL.md"));
+      const doctorSkill = read(
+        path.join(root, "skills", "lisa-doctor", "SKILL.md")
+      );
       const intakeSkill = read(
-        path.join(root, "skills", "github-build-intake", "SKILL.md")
+        path.join(root, "skills", "lisa-github-build-intake", "SKILL.md")
       );
       const decompositionSkill = read(
-        path.join(root, "skills", "task-decomposition", "SKILL.md")
+        path.join(root, "skills", "lisa-task-decomposition", "SKILL.md")
       );
 
       expect(setupSkill).toMatch(/Project membership is best-effort/i);

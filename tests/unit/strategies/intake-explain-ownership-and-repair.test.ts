@@ -19,7 +19,7 @@ const read = (root: string, rel: string): string =>
 describe("intake-explain ownership and repair readiness (#847)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("classifies product-owned roles separately from Lisa-owned roles", () => {
-      const skill = read(root, "skills/intake-explain/SKILL.md");
+      const skill = read(root, "skills/lisa-intake-explain/SKILL.md");
 
       expect(skill).toContain("## Ownership and repair readiness");
       expect(skill).toMatch(/Product-owned roles are roles/i);
@@ -33,7 +33,7 @@ describe("intake-explain ownership and repair readiness (#847)", () => {
     });
 
     it("documents repair readiness gates for staleness, blockers, and backoff", () => {
-      const skill = read(root, "skills/intake-explain/SKILL.md");
+      const skill = read(root, "skills/lisa-intake-explain/SKILL.md");
 
       expect(skill).toMatch(/Report repair readiness in this order/i);
       expect(skill).toMatch(/configured staleness threshold/i);

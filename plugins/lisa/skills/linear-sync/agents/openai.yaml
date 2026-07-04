@@ -1,4 +1,0 @@
-display_name: "Linear Sync"
-short_description: "Syncs plan progress to a linked Linear Issue"
-default_prompt:
-  - "Use $linear-sync: Syncs plan progress to a linked Linear Issue."

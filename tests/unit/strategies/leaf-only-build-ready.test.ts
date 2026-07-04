@@ -3,15 +3,15 @@
  * Regression tests for build-ready intake invariants across the GitHub write,
  * validate, and claim paths.
  *
- * Issue #538: `lisa:github-to-tracker` / `lisa:github-write-issue` must apply
+ * Issue #538: `lisa-github-to-tracker` / `lisa-github-write-issue` must apply
  * the build-ready label (`status:ready`) ONLY to leaf sub-tasks when writing a
  * decomposed hierarchy — never to the Epic or Stories.
  *
- * Issue #540: `lisa:github-validate-issue` adds the symmetric read-side guard —
+ * Issue #540: `lisa-github-validate-issue` adds the symmetric read-side guard —
  * an S15 gate that FAILs a build-ready container (or a childless
  * Epic/Story/Spike) and PASSes a childless build-ready leaf work unit.
  *
- * Issue #542/#649: `lisa:github-build-intake` adds the claim-time arm — Phase 3a
+ * Issue #542/#649: `lisa-github-build-intake` adds the claim-time arm — Phase 3a
  * classifies each candidate before claiming and repairs any parent
  * with open child work (or a childless Epic) carrying a stale
  * build-ready label, while a childless leaf is claimed normally.
@@ -38,7 +38,7 @@
  * build-intake skills encode it so the label is never hard-applied to — nor
  * accepted on, nor claimed from — a container.
  *
- * Issue #644: `lisa:github-build-intake` must also hold an otherwise valid
+ * Issue #644: `lisa-github-build-intake` must also hold an otherwise valid
  * ready leaf when explicit `Blocked by:` relationships still point at active
  * issues, without mutating lifecycle labels or invoking the build agent.
  *
@@ -64,6 +64,7 @@ const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 /** Vendor-neutral rule slug every leaf-only enforcement path cites. */
 const RULE_SLUG = "leaf-only-lifecycle";
+const GITHUB_BUILD_INTAKE = "lisa-github-build-intake";
 /** Heading that anchors the S15 gate section in github-validate-issue. */
 const S15_HEADING = "#### S15 — Leaf-only build-ready";
 /** Shared test name reused for every skill that cites the rule by slug. */
@@ -73,8 +74,8 @@ const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
 
 describe("leaf-only build-ready invariant (#538)", () => {
-  describe.each(SKILL_ROOTS)("%s/github-write-issue", root => {
-    const content = readSkill(root, "github-write-issue");
+  describe.each(SKILL_ROOTS)("%s/lisa-github-write-issue", root => {
+    const content = readSkill(root, "lisa-github-write-issue");
 
     it(CITES_SLUG, () => {
       expect(content).toContain(RULE_SLUG);
@@ -101,8 +102,8 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
   });
 
-  describe.each(SKILL_ROOTS)("%s/github-to-tracker", root => {
-    const content = readSkill(root, "github-to-tracker");
+  describe.each(SKILL_ROOTS)("%s/lisa-github-to-tracker", root => {
+    const content = readSkill(root, "lisa-github-to-tracker");
 
     it(CITES_SLUG, () => {
       expect(content).toContain(RULE_SLUG);
@@ -128,7 +129,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
   // The gate is documented as S15 in github-validate-issue/SKILL.md. Asserting
   // both roots catches an artifact-only edit or a missed `bun run build:plugins`.
   describe.each(SKILL_ROOTS)("%s/github-validate-issue (#540)", root => {
-    const content = readSkill(root, "github-validate-issue");
+    const content = readSkill(root, "lisa-github-validate-issue");
 
     it(CITES_SLUG, () => {
       expect(content).toContain(RULE_SLUG);
@@ -206,8 +207,8 @@ describe("leaf-only build-ready invariant (#538)", () => {
   // keeping the three validators symmetric. Asserting both roots catches an
   // artifact-only edit or a missed `bun run build:plugins`.
   const VALIDATE_SKILLS = [
-    "jira-validate-ticket",
-    "linear-validate-issue",
+    "lisa-jira-validate-ticket",
+    "lisa-linear-validate-issue",
   ] as const;
 
   describe.each(VALIDATE_SKILLS)("%s (#541)", skill => {
@@ -300,7 +301,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
   // Phase 3a, ahead of the claim relabel. Asserting both roots catches an
   // artifact-only edit or a missed `bun run build:plugins`.
   describe.each(SKILL_ROOTS)("%s/github-build-intake (#542)", root => {
-    const content = readSkill(root, "github-build-intake");
+    const content = readSkill(root, GITHUB_BUILD_INTAKE);
     /** Heading that anchors the claim-time leaf-only gate. */
     const gateHeading = "#### 3a. Leaf-only claim gate";
     /** Heading that anchors the claim step after all pre-claim gates. */
@@ -334,7 +335,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
     it("queries native sub-issues to detect open children", () => {
       const gateIndex = content.indexOf(gateHeading);
       const section = content.slice(gateIndex);
-      // Same native hierarchy lisa:github-read-issue uses.
+      // Same native hierarchy lisa-github-read-issue uses.
       expect(section).toMatch(/subIssues/);
       expect(section).toMatch(/graphql/i);
       expect(section).toMatch(/OPEN/);
@@ -392,7 +393,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
       );
       expect(section).toMatch(/before the claim relabel/i);
       expect(section).toMatch(/without changing lifecycle labels/i);
-      expect(section).toMatch(/without invoking `lisa:github-agent`/);
+      expect(section).toMatch(/without invoking `lisa-github-agent`/);
     });
 
     it("defines cleared and active blocker status semantics", () => {
@@ -423,8 +424,8 @@ describe("leaf-only build-ready invariant (#538)", () => {
   // symmetric with the GitHub one so behavior never drifts by tracker. Asserting
   // both roots catches an artifact-only edit or a missed `bun run build:plugins`.
   const BUILD_INTAKE_SKILLS = [
-    "jira-build-intake",
-    "linear-build-intake",
+    "lisa-jira-build-intake",
+    "lisa-linear-build-intake",
   ] as const;
 
   describe.each(BUILD_INTAKE_SKILLS)("%s (#543)", skill => {
@@ -537,7 +538,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
   // rule by slug and names each vendor's Phase 3a gate. Asserting both roots
   // catches an artifact-only edit or a missed `bun run build:plugins`.
   describe.each(SKILL_ROOTS)("%s/tracker-build-intake (#543)", root => {
-    const content = readSkill(root, "tracker-build-intake");
+    const content = readSkill(root, "lisa-tracker-build-intake");
 
     it(CITES_SLUG, () => {
       expect(content).toContain(RULE_SLUG);
@@ -552,9 +553,9 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
 
     it("names each vendor's Phase 3a gate", () => {
-      expect(content).toContain("lisa:github-build-intake");
-      expect(content).toContain("lisa:jira-build-intake");
-      expect(content).toContain("lisa:linear-build-intake");
+      expect(content).toContain(GITHUB_BUILD_INTAKE);
+      expect(content).toContain("lisa-jira-build-intake");
+      expect(content).toContain("lisa-linear-build-intake");
       expect(content).toMatch(/Phase 3a/);
     });
 
@@ -567,8 +568,8 @@ describe("leaf-only build-ready invariant (#538)", () => {
     });
 
     it("ties the claim-time arm to its write and validate siblings", () => {
-      expect(content).toContain("lisa:tracker-write");
-      expect(content).toContain("lisa:tracker-validate");
+      expect(content).toContain("lisa-tracker-write");
+      expect(content).toContain("lisa-tracker-validate");
     });
   });
 
@@ -578,9 +579,9 @@ describe("leaf-only build-ready invariant (#538)", () => {
   // Phase 5 (Sub-tasks) is the only phase that applies it. Asserting both roots
   // catches an artifact-only edit or a missed `bun run build:plugins`.
   const TO_TRACKER_SKILLS = [
-    "notion-to-tracker",
-    "confluence-to-tracker",
-    "linear-to-tracker",
+    "lisa-notion-to-tracker",
+    "lisa-confluence-to-tracker",
+    "lisa-linear-to-tracker",
   ] as const;
   /** Phase headings used to slice each to-tracker skill into phase windows. */
   const PHASE_3_HEADING = "### Phase 3: Create Epics";
@@ -636,10 +637,10 @@ describe("leaf-only build-ready invariant (#538)", () => {
       it("cites the vendor-neutral build intake, not the GitHub one", () => {
         const phase5 = phaseWindow(PHASE_5_HEADING, PHASE_55_HEADING);
         // These are vendor-neutral PRD sources: the destination tracker is
-        // resolved by lisa:tracker-write, so the leaf-only guidance must point
-        // at lisa:tracker-build-intake rather than lisa:github-build-intake.
-        expect(phase5).toContain("lisa:tracker-build-intake");
-        expect(phase5).not.toContain("lisa:github-build-intake");
+        // resolved by lisa-tracker-write, so the leaf-only guidance must point
+        // at lisa-tracker-build-intake rather than lisa-github-build-intake.
+        expect(phase5).toContain("lisa-tracker-build-intake");
+        expect(phase5).not.toContain(GITHUB_BUILD_INTAKE);
       });
     });
   });

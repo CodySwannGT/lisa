@@ -6,9 +6,9 @@
  * `plugins/lisa` artifact ships the same surface after `bun run build:plugins`.
  *
  * This suite asserts the scaffold only:
- * 1. `commands/doctor.md` exists in both plugin roots and delegates to
+ * 1. `commands/lisa/doctor.md` exists in both plugin roots and delegates to
  *    `/lisa:doctor`.
- * 2. `skills/doctor/SKILL.md` exists in both plugin roots with the expected
+ * 2. `skills/lisa-doctor/SKILL.md` exists in both plugin roots with the expected
  *    frontmatter and read-only readiness-audit contract.
  * 3. The skill documents grouped `PASS` / `WARN` / `FAIL` / `SKIP` checks plus
  *    the overall `READY` / `READY_WITH_WARNINGS` / `NOT_READY` verdict ladder.
@@ -25,8 +25,8 @@ import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 
-const COMMAND_REL = "commands/doctor.md";
-const SKILL_REL = "skills/doctor/SKILL.md";
+const COMMAND_REL = "commands/lisa/doctor.md";
+const SKILL_REL = "skills/lisa-doctor/SKILL.md";
 const SCRIPT_REL = "scripts/doctor-report.mjs";
 
 const read = (root: string, rel: string): string =>
@@ -51,7 +51,7 @@ describe("doctor scaffold (#749)", () => {
         expect(command).toMatch(/^---/);
         expect(command).toMatch(/description:/);
         expect(command).toContain('argument-hint: "[--fix=false]"');
-        expect(command).toMatch(/Use the \/lisa:doctor skill/);
+        expect(command).toMatch(/Use the \/lisa-doctor skill/);
         expect(command).toContain("$ARGUMENTS");
       });
     });
@@ -61,7 +61,7 @@ describe("doctor scaffold (#749)", () => {
 
       it("declares name, description, and allowed-tools in frontmatter", () => {
         expect(skill).toMatch(/^---/);
-        expect(skill).toMatch(/name:\s*doctor/);
+        expect(skill).toMatch(/name:\s*lisa-doctor/);
         expect(skill).toMatch(/description:/);
         expect(skill).toMatch(/allowed-tools:/);
         expect(skill).toContain("Skill");
@@ -102,7 +102,7 @@ describe("doctor scaffold (#749)", () => {
 
       it("reuses existing contracts for GitHub Project and wiki checks", () => {
         expect(skill).toContain("config-resolution");
-        expect(skill).toContain("github-project-v2");
+        expect(skill).toContain("lisa-github-project-v2");
         expect(skill).toContain("lisa-wiki-doctor");
       });
     });

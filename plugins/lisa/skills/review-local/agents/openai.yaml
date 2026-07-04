@@ -1,4 +1,0 @@
-display_name: "Review Local"
-short_description: "performing a code review on local changes on the current branch compared to the main branch"
-default_prompt:
-  - "Use $review-local: performing a code review on local changes on the current branch compared to the main branch."

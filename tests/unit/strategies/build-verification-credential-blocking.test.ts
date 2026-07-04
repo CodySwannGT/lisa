@@ -45,7 +45,7 @@ const readPath = (rel: string): string =>
 describe("build-side credential-gated verification (#1229)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("verification lifecycle documents the credential lookup order", () => {
-      const content = read(root, "skills/verification-lifecycle/SKILL.md");
+      const content = read(root, "skills/lisa-verification-lifecycle/SKILL.md");
 
       const fixtureIndex = content.indexOf("e2e/fixtures/api-login.ts");
       const localConfigIndex = content.indexOf(
@@ -69,7 +69,7 @@ describe("build-side credential-gated verification (#1229)", () => {
     });
 
     it("verification lifecycle blocks genuine credential absence with a human label", () => {
-      const content = read(root, "skills/verification-lifecycle/SKILL.md");
+      const content = read(root, "skills/lisa-verification-lifecycle/SKILL.md");
 
       expect(content).toMatch(/configured blocked state/i);
       expect(content).toContain(HUMAN_REVIEW_LABEL_TEXT);
@@ -81,7 +81,7 @@ describe("build-side credential-gated verification (#1229)", () => {
     });
 
     it("verify flow applies the shared behavior during remote verification", () => {
-      const content = read(root, "skills/verify/SKILL.md");
+      const content = read(root, "skills/lisa-verify/SKILL.md");
 
       expect(content).toContain(
         "shared `verification-lifecycle` credential lookup order"

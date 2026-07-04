@@ -1,4 +1,0 @@
-display_name: "Confluence To Tracker"
-short_description: ">"
-default_prompt:
-  - "Use $confluence-to-tracker: >."

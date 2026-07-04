@@ -9,7 +9,7 @@
  *
  * The dispatch is documented as the single source of truth in the
  * `prd-lifecycle-rollup` rule ("Closing the loop") and surfaced in the vendor-
- * neutral `intake` skill. Both source and generated plugin roots are asserted so
+ * neutral `lisa-intake` skill. Both source and generated plugin roots are asserted so
  * an artifact-only edit or a missed `bun run build:plugins` fails the suite.
  * @module tests/unit/strategies/prd-intake-verify-dispatch
  */
@@ -20,8 +20,10 @@ import { describe, expect, it } from "vitest";
 
 /** Source + generated roots. */
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
-/** The acceptance-gate skill every scanner dispatches. */
-const VERIFY = "lisa:verify-prd";
+/** Skill slug dispatched by intake scanners. */
+const VERIFY_SKILL = "lisa-verify-prd";
+/** Slash command form cited in the rollup rule. */
+const VERIFY_COMMAND = "/lisa:verify-prd";
 /** The Phase 3g heading text. */
 const PHASE_3G = "3g. PRD verification dispatch";
 /** The rule the dispatch cites as its single source of truth. */
@@ -32,10 +34,10 @@ const readSkill = (root: string, slug: string): string =>
 
 describe("PRD verification dispatch — Phase 3g closes the shipped loop", () => {
   const VENDORS = [
-    "notion-prd-intake",
-    "github-prd-intake",
-    "linear-prd-intake",
-    "confluence-prd-intake",
+    "lisa-notion-prd-intake",
+    "lisa-github-prd-intake",
+    "lisa-linear-prd-intake",
+    "lisa-confluence-prd-intake",
   ] as const;
 
   describe.each(VENDORS)("%s", vendor => {
@@ -46,8 +48,8 @@ describe("PRD verification dispatch — Phase 3g closes the shipped loop", () =>
         expect(content).toContain(PHASE_3G);
       });
 
-      it("dispatches lisa:verify-prd for shipped PRDs", () => {
-        expect(content).toContain(VERIFY);
+      it("dispatches lisa-verify-prd for shipped PRDs", () => {
+        expect(content).toContain(VERIFY_SKILL);
         expect(content).toMatch(/shipped/i);
       });
 
@@ -87,7 +89,7 @@ describe("prd-lifecycle-rollup documents the loop-closing dispatch", () => {
   );
   it("has a Closing the loop section dispatching verify-prd, one per cycle", () => {
     expect(content).toMatch(/Closing the loop/i);
-    expect(content).toContain(VERIFY);
+    expect(content).toContain(VERIFY_COMMAND);
     expect(content).toMatch(/one shipped PRD per cycle/i);
     // Dispatch, not transition — the invariant is preserved at the rule level.
     expect(content).toMatch(/dispatch, not a transition|never \*?sets\*?/i);
@@ -102,9 +104,9 @@ describe("prd-lifecycle-rollup documents the loop-closing dispatch", () => {
 
 describe("intake surfaces the PRD loop closure", () => {
   describe.each(ROOTS)("%s", root => {
-    const content = readSkill(root, "intake");
+    const content = readSkill(root, "lisa-intake");
     it("documents dispatching verify-prd for shipped PRDs in the cycle", () => {
-      expect(content).toContain(VERIFY);
+      expect(content).toContain(VERIFY_SKILL);
       expect(content).toMatch(/closing the (prd )?loop|close the loop/i);
       expect(content).toMatch(/shipped/i);
     });

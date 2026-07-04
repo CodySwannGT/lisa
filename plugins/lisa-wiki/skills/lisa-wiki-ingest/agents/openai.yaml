@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Ingest"
+display_name: "Wiki Ingest"
 short_description: "Ingest source material into the LLM Wiki"
 default_prompt:
   - "Use $lisa-wiki-ingest: Ingest source material into the LLM Wiki."

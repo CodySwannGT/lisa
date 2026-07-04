@@ -14,7 +14,10 @@ import { describe, expect, it } from "vitest";
 const ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 
 const read = (root: string): string =>
-  readFileSync(path.resolve(root, "skills/atlassian-access/SKILL.md"), "utf8");
+  readFileSync(
+    path.resolve(root, "skills/lisa-atlassian-access/SKILL.md"),
+    "utf8"
+  );
 
 describe("atlassian-access acli profile matching", () => {
   describe.each(ROOTS)("%s", root => {

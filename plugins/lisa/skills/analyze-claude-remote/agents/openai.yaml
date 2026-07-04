@@ -1,4 +1,0 @@
-display_name: "Analyze Claude Remote"
-short_description: "Audit whether the current repository can run as a Claude Code remote routine (cloud session)"
-default_prompt:
-  - "Use $analyze-claude-remote: Audit whether the current repository can run as a Claude Code remote routine (cloud session)."

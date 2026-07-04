@@ -1,0 +1,4 @@
+display_name: "Linear Write Issue"
+short_description: "Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices"
+default_prompt:
+  - "Use $lisa-linear-write-issue: Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices."

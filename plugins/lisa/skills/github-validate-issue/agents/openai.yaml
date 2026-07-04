@@ -1,4 +1,0 @@
-display_name: "Github Validate Issue"
-short_description: "Validates a proposed GitHub Issue spec (or an existing issue) against the organizational quality gates without writing anything"
-default_prompt:
-  - "Use $github-validate-issue: Validates a proposed GitHub Issue spec (or an existing issue) against the organizational quality gates without writing anything."

@@ -1,4 +1,0 @@
-display_name: "Tracker Create"
-short_description: "Vendor-neutral wrapper for creating tickets/issues from code files or descriptions"
-default_prompt:
-  - "Use $tracker-create: Vendor-neutral wrapper for creating tickets/issues from code files or descriptions."

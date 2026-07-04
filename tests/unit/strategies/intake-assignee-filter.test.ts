@@ -17,8 +17,8 @@ const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
 
 describe("intake assignee filter", () => {
-  describe.each(ROOTS)("%s/intake", root => {
-    const content = readSkill(root, "intake");
+  describe.each(ROOTS)("%s/lisa-intake", root => {
+    const content = readSkill(root, "lisa-intake");
 
     it("documents the assignee argument and local config resolution order", () => {
       expect(content).toContain("assignee=<vendor-user-id-or-login>");
@@ -34,8 +34,8 @@ describe("intake assignee filter", () => {
     });
   });
 
-  describe.each(ROOTS)("%s/github-build-intake", root => {
-    const content = readSkill(root, "github-build-intake");
+  describe.each(ROOTS)("%s/lisa-github-build-intake", root => {
+    const content = readSkill(root, "lisa-github-build-intake");
 
     it("documents assignee resolution for github build intake", () => {
       expect(content).toContain("assignee=<github-login>");

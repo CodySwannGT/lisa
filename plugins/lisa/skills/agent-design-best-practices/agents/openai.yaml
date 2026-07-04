@@ -1,4 +1,0 @@
-display_name: "Agent Design Best Practices"
-short_description: "Best practices for designing Claude Code agent files (.claude/agents/*.md)"
-default_prompt:
-  - "Use $agent-design-best-practices: Best practices for designing Claude Code agent files (.claude/agents/*.md)."

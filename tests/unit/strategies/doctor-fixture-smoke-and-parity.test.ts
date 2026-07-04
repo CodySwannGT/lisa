@@ -209,15 +209,21 @@ describe("doctor plugin sync readiness (#1097)", () => {
 describe("doctor source/generated parity (#756)", () => {
   it("keeps the distributed doctor command in lockstep with the source asset", () => {
     expect(
-      readUtf8(path.join(GENERATED_PLUGIN_ROOT, "commands", "doctor.md"))
-    ).toBe(readUtf8(path.join(BASE_PLUGIN_ROOT, "commands", "doctor.md")));
+      readUtf8(
+        path.join(GENERATED_PLUGIN_ROOT, "commands", "lisa", "doctor.md")
+      )
+    ).toBe(
+      readUtf8(path.join(BASE_PLUGIN_ROOT, "commands", "lisa", "doctor.md"))
+    );
   });
 
   it("keeps the distributed doctor skill in lockstep with the source asset", () => {
     expect(
-      readUtf8(path.join(GENERATED_PLUGIN_ROOT, "skills", "doctor", "SKILL.md"))
+      readUtf8(
+        path.join(GENERATED_PLUGIN_ROOT, "skills", "lisa-doctor", "SKILL.md")
+      )
     ).toBe(
-      readUtf8(path.join(BASE_PLUGIN_ROOT, "skills", "doctor", "SKILL.md"))
+      readUtf8(path.join(BASE_PLUGIN_ROOT, "skills", "lisa-doctor", "SKILL.md"))
     );
   });
 

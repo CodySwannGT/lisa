@@ -1,4 +1,0 @@
-display_name: "Linear Evidence"
-short_description: "Uploads text evidence to the GitHub `pr-assets` release, updates the PR description, posts a comment on the originating Linear Issue with…"
-default_prompt:
-  - "Use $linear-evidence: Uploads text evidence to the GitHub `pr-assets` release, updates the PR description, posts a comment on the originating Linear Issue with…."

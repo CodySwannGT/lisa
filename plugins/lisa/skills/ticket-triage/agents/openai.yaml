@@ -1,4 +1,0 @@
-display_name: "Ticket Triage"
-short_description: "Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear)"
-default_prompt:
-  - "Use $ticket-triage: Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear)."

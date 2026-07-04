@@ -1,0 +1,4 @@
+display_name: "Jira Validate Ticket"
+short_description: "Validates a proposed JIRA ticket spec (or an existing ticket) against the organizational quality gates without writing anything"
+default_prompt:
+  - "Use $lisa-jira-validate-ticket: Validates a proposed JIRA ticket spec (or an existing ticket) against the organizational quality gates without writing anything."

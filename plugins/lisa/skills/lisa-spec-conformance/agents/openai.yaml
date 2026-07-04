@@ -1,0 +1,4 @@
+display_name: "Spec Conformance"
+short_description: "Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey…"
+default_prompt:
+  - "Use $lisa-spec-conformance: Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey…."

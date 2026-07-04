@@ -1,4 +1,0 @@
-display_name: "Linear Validate Issue"
-short_description: "Validates a proposed Linear work item spec (Project, Issue, or sub-Issue) — or an existing Linear item — against the organizational quality…"
-default_prompt:
-  - "Use $linear-validate-issue: Validates a proposed Linear work item spec (Project, Issue, or sub-Issue) — or an existing Linear item — against the organizational quality…."

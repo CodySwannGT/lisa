@@ -1,0 +1,4 @@
+display_name: "Exploratory QA"
+short_description: "First-time-user exploratory QA pass for ANY product type (DOM web app, HTTP/API backend, canvas game, CLI/library, IaC/CDK) that FEEDS THE…"
+default_prompt:
+  - "Use $lisa-exploratory-qa: First-time-user exploratory QA pass for ANY product type (DOM web app, HTTP/API backend, canvas game, CLI/library, IaC/CDK) that FEEDS THE…."

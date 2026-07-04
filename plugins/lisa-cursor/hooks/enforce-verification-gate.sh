@@ -13,12 +13,12 @@
 #
 # Intentionally Claude-specific (like enforce-team-first.sh). Other harnesses
 # may not fire a Stop hook; they fall back to the prose completion gate in
-# skills/implement/SKILL.md.
+# skills/lisa-implement/SKILL.md.
 #
 # Triggered on four hook events:
 #   - UserPromptSubmit : arm enforcement when the prompt starts with
 #                        /lisa:implement (or /implement)
-#   - PreToolUse       : arm enforcement when the Skill tool loads lisa:implement
+#   - PreToolUse       : arm enforcement when the Skill tool loads lisa-implement
 #                        (covers nested/programmatic invocation, e.g. intake)
 #   - SubagentStart    : mark teammate sessions exempt — teammates inherit the
 #                        lead's flow and must not be gated on their own stop
@@ -105,7 +105,7 @@ case "$HOOK_EVENT" in
     if [ "$TOOL_NAME" = "Skill" ]; then
       SKILL_NAME=$(printf '%s' "$INPUT" | jq -r '.tool_input.skill // empty' 2>/dev/null || true)
       case "$SKILL_NAME" in
-        lisa:implement|implement)
+        lisa-implement|implement)
           arm_once
           ;;
       esac
@@ -198,7 +198,7 @@ fi
     echo "No verification verdict found at .lisa/verification-status.json."
     echo "The Verify flow must run the verification-specialist (run the actual"
     echo "system, observe results) and write a machine-readable verdict — schema"
-    echo "in skills/implement/SKILL.md — with status \"pass\" and every"
+    echo "in skills/lisa-implement/SKILL.md — with status \"pass\" and every"
     echo "acceptance criterion proven."
     echo
     echo "If you are stopping deliberately because of a blocker (readiness gate"

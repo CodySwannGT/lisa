@@ -1,4 +1,4 @@
-display_name: "Lisa Openclaw Setup"
+display_name: "Openclaw Setup"
 short_description: "Set up OpenClaw as the chat-surface runtime for this project's staff roles"
 default_prompt:
   - "Use $lisa-openclaw-setup: Set up OpenClaw as the chat-surface runtime for this project's staff roles."

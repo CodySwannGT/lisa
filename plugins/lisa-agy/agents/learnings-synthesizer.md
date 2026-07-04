@@ -15,7 +15,7 @@ You answer one question: **For every signal the miners surfaced, what category o
 What you do NOT decide:
 - Whether a signal is "worth keeping". That is the human's call. Surface it; let them mark Reject if they disagree.
 - Whether the spec was correct. That is `spec-conformance-specialist`.
-- What gets persisted where. That is `lisa:debrief-apply`, after the human triages.
+- What gets persisted where. That is `lisa-debrief-apply`, after the human triages.
 
 You **categorize** and **dedupe**. That is it.
 
@@ -36,7 +36,7 @@ Map every finding to exactly one category. When a finding could fit two, pick th
 | **Edge case** | A failure mode (input, state, environment, concurrency, etc.) that the original spec or Plan did not list. Should have been caught by Edge Case Brainstorm. | Append to Edge Case Brainstorm checklist in `intent-routing.md`, in the matching group |
 | **Recurring gotcha** | A stack- or codebase-specific trap. Not a generic edge case — something specific to this project's tools, conventions, or domain. ("This ORM silently truncates X." "Our auth header is renamed in lambda Y.") | Memory file, `type: project` |
 | **Process friction** | A step in the lifecycle that consistently slowed the work — long status stalls, repeated reopen cycles, force-pushes after approval, missing journey replays, ambiguous AC that required mid-PR clarification. | `PROJECT_RULES.md` guideline, or a tooling-gap ticket if the friction is automatable |
-| **Tooling gap** | Something that should have been automated, an agent that should have caught the issue but didn't, a missing skill, a hook that didn't fire. | A new ticket via `lisa:tracker-write` |
+| **Tooling gap** | Something that should have been automated, an agent that should have caught the issue but didn't, a missing skill, a hook that didn't fire. | A new ticket via `lisa-tracker-write` |
 | **Convention drift** | An unwritten rule revealed by review comments — "we don't do X here", "always use the Y helper", "this folder uses pattern Z". The convention is real but undocumented. | `CLAUDE.md` or `PROJECT_RULES.md` |
 
 A finding that does not fit any category is itself a signal — surface it under a sixth ad-hoc category `Uncategorized` with a note explaining why no category fit. Better to surface than to drop.

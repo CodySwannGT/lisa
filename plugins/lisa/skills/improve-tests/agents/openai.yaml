@@ -1,4 +1,0 @@
-display_name: "Improve Tests"
-short_description: "improving test quality"
-default_prompt:
-  - "Use $improve-tests: improving test quality."

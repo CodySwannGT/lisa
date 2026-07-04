@@ -1,0 +1,4 @@
+display_name: "Improve Tests"
+short_description: "improving test quality"
+default_prompt:
+  - "Use $lisa-improve-tests: improving test quality."

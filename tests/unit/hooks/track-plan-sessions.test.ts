@@ -32,7 +32,7 @@ const runHook = (
 ): void => {
   const input = JSON.stringify({
     session_id: sessionId,
-    permission_mode: "plan",
+    permission_mode: "lisa-plan",
     hook_event_name: "PostToolUse",
     tool_input: { file_path: planFilePath },
   });

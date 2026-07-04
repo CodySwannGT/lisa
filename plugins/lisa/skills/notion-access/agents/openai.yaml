@@ -1,4 +1,0 @@
-display_name: "Notion Access"
-short_description: "Vendor-neutral access layer for Notion"
-default_prompt:
-  - "Use $notion-access: Vendor-neutral access layer for Notion."
