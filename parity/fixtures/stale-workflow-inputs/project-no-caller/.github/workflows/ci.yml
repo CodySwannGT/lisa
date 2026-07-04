@@ -1,0 +1,14 @@
+# Fixture: a workflow file with no reusable-workflow caller at all (plain
+# inline job) — the detector must skip it rather than report anything.
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: echo "build"
