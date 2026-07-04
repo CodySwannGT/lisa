@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.7](https://github.com/CodySwannGT/lisa/compare/vv2.189.6...v2.189.7) (2026-07-04)
+
+
+### Bug Fixes
+
+* tighten eslint rule coverage ([667d83b](https://github.com/CodySwannGT/lisa/commit/667d83bdbff67637dd4684919bea4ba3d23082fe))
+
 ### [2.189.6](https://github.com/CodySwannGT/lisa/compare/vv2.189.5...v2.189.6) (2026-07-04)
 
 
