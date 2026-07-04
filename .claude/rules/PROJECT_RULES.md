@@ -74,11 +74,11 @@ Every skill should have a corresponding command that acts as a pass-through. The
 
 Skills can invoke other skills via the Skill tool, enabling skill chaining and composition. Internal skill-to-skill references use hyphen names (e.g., `/git-commit`).
 
-Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-project`) should only exist in the root `.claude/skills/` and `.claude/commands/` directories, NOT in `all/copy-overwrite/`, since they are only relevant to the Lisa repository itself, not downstream projects.
+Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-project`) should only exist in the root `.claude/skills/` and `.claude/commands/` directories, NOT in downstream template directories such as `all/merge/`, since they are only relevant to the Lisa repository itself, not downstream projects.
 
 ## Task Metadata
 
-When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is auto-loaded as a rule via `.claude/rules/coding-philosophy.md` and does not need to be explicitly invoked.
+When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is distributed as a generated Lisa rule and does not need to be explicitly invoked.
 
 ## ESLint Statement Order
 
