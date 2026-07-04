@@ -65,10 +65,10 @@ detect_package_manager() {
 
 PACKAGE_MANAGER="$(detect_package_manager)"
 case "$PACKAGE_MANAGER" in
-  bun) command -v bun >/dev/null 2>&1 && bun install ;;
-  pnpm) command -v pnpm >/dev/null 2>&1 && pnpm install ;;
-  yarn) command -v yarn >/dev/null 2>&1 && yarn install ;;
-  *) command -v npm >/dev/null 2>&1 && npm install ;;
+  bun) command -v bun >/dev/null 2>&1 && bun install >&2 ;;
+  pnpm) command -v pnpm >/dev/null 2>&1 && pnpm install >&2 ;;
+  yarn) command -v yarn >/dev/null 2>&1 && yarn install >&2 ;;
+  *) command -v npm >/dev/null 2>&1 && npm install >&2 ;;
 esac
 
 exit 0
