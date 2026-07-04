@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.188.2](https://github.com/CodySwannGT/lisa/compare/vv2.188.1...v2.188.2) (2026-07-04)
+
+
+### Bug Fixes
+
+* **cdk:** replace hardcoded AWS account IDs with per-environment secrets ([9ea1593](https://github.com/CodySwannGT/lisa/commit/9ea1593cbbf6ef168a7e17d2be88c690798c9748))
+
+
+### Documentation
+
+* **readme:** rewrite for dual human/agent audience with live-repo prompts ([8604667](https://github.com/CodySwannGT/lisa/commit/86046673b238b0fb94f839a311686e39990e55b9))
+
 ### [2.188.1](https://github.com/CodySwannGT/lisa/compare/vv2.188.0...v2.188.1) (2026-07-02)
 
 
