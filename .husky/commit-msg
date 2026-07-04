@@ -93,23 +93,56 @@ fi
 
 echo "🤖 Checking for AI co-authorship..."
 
-# Accept attribution from any supported coding agent (Claude or Codex),
-# case-insensitively. Claude Code emits "Co-Authored-By: Claude"; the Codex CLI
-# emits "Co-authored-by: Codex <noreply@openai.com>".
-if ! echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex)"; then
+# Accept attribution from any supported coding agent, case-insensitively.
+# Claude Code emits "Co-Authored-By: Claude"; Codex can emit
+# "Co-authored-by: Codex <noreply@openai.com>"; OpenCode-authored commits
+# should identify OpenCode and include model/effort metadata trailers.
+if ! echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex|OpenCode)"; then
   echo ""
   echo "❌ Commit message must include AI co-authorship!"
   echo ""
-  echo "All commits must include a Co-authored-by line for a coding agent (Claude or Codex)."
+  echo "All commits must include a Co-authored-by line for a supported coding agent."
   echo ""
   echo "Expected one of these trailers:"
   echo "  Co-authored-by: Claude <noreply@anthropic.com>"
   echo "  Co-authored-by: Codex <codex@openai.com>"
+  echo "  Co-authored-by: OpenCode <noreply@opencode.ai>"
+  echo ""
+  echo "OpenCode commits must also include:"
+  echo "  AI-Agent: OpenCode"
+  echo "  AI-Model: <provider/model>"
+  echo "  AI-Effort: <effort or runtime value>"
   echo ""
   echo "If you're using Claude Code, use the /git:commit command"
   echo "If you're using Codex, enable commit_attribution in .codex/config.toml"
+  echo "If you're using OpenCode, include the OpenCode trailer and AI-* metadata"
   echo ""
   exit 1
+fi
+
+if echo "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*OpenCode"; then
+  missing_opencode_metadata=0
+  if ! echo "$COMMIT_MSG" | grep -Eiq "^AI-Agent:[[:space:]]*OpenCode[[:space:]]*$"; then
+    missing_opencode_metadata=1
+  fi
+  if ! echo "$COMMIT_MSG" | grep -Eiq "^AI-Model:[[:space:]]*[^[:space:]].*$"; then
+    missing_opencode_metadata=1
+  fi
+  if ! echo "$COMMIT_MSG" | grep -Eiq "^AI-Effort:[[:space:]]*[^[:space:]].*$"; then
+    missing_opencode_metadata=1
+  fi
+
+  if [ "$missing_opencode_metadata" -eq 1 ]; then
+    echo ""
+    echo "❌ OpenCode commits must include AI metadata trailers!"
+    echo ""
+    echo "Expected trailers:"
+    echo "  AI-Agent: OpenCode"
+    echo "  AI-Model: <provider/model>"
+    echo "  AI-Effort: <effort or runtime value>"
+    echo ""
+    exit 1
+  fi
 fi
 
 # END: AI GUARDRAILS
