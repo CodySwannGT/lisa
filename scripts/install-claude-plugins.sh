@@ -6,15 +6,78 @@ set -euo pipefail
 PROJECT_ROOT="${npm_config_local_prefix:-${INIT_CWD:-}}"
 if [ -z "$PROJECT_ROOT" ]; then exit 0; fi
 
-LISA_DIR="$PROJECT_ROOT/node_modules/@codyswann/lisa"
-if [ ! -d "$LISA_DIR" ]; then exit 0; fi
+SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
+
+harness_includes_codex() {
+  [ "${IS_LISA_SELF:-false}" = "true" ] && return 0
+  node -e '
+    const fs = require("fs");
+    const path = process.argv[1];
+    try {
+      const parsed = JSON.parse(fs.readFileSync(path, "utf8"));
+      const harness = parsed.harness === "all" ? "fleet" : parsed.harness;
+      process.exit(harness === "codex" || harness === "fleet" ? 0 : 1);
+    } catch {
+      process.exit(1);
+    }
+  ' "$PROJECT_ROOT/.lisa.config.json" >/dev/null 2>&1
+}
+
+detect_lisa_stack() {
+  local settings_file="$1"
+  [ -f "$settings_file" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  local stack
+  for stack in expo nestjs cdk harper-fabric rails; do
+    if jq -e "(.enabledPlugins // {}) | has(\"lisa-${stack}@lisa\")" "$settings_file" >/dev/null 2>&1; then
+      printf '%s\n' "$stack"
+      return 0
+    fi
+  done
+}
+
+install_codex_lisa_plugins() {
+  harness_includes_codex || return 0
+  command -v codex >/dev/null 2>&1 || return 0
+
+  # Codex reads the Lisa marketplace from the project/repo root. For the Lisa
+  # repo itself this points at the working tree, not node_modules, so postinstall
+  # never needs to run the full template/deletion engine just to expose skills.
+  (cd "$PROJECT_ROOT" && codex plugin marketplace add "$PROJECT_ROOT" </dev/null >/dev/null 2>&1) || true
+  (cd "$PROJECT_ROOT" && codex plugin add "lisa@lisa" </dev/null >/dev/null 2>&1) || true
+
+  local lisa_stack
+  lisa_stack="$(detect_lisa_stack "$SETTINGS_FILE")"
+  case "$lisa_stack" in
+    rails) ;;
+    *)
+      (cd "$PROJECT_ROOT" && codex plugin add "lisa-typescript@lisa" </dev/null >/dev/null 2>&1) || true
+      ;;
+  esac
+
+  if [ -n "$lisa_stack" ]; then
+    (cd "$PROJECT_ROOT" && codex plugin add "lisa-${lisa_stack}@lisa" </dev/null >/dev/null 2>&1) || true
+  fi
+}
 
 # Skip running Lisa on itself — the Lisa repo IS the template source.
-# Self-running causes chicken-and-egg issues (npm package deletes source files).
+# Self-running the full apply causes chicken-and-egg issues (npm package
+# deletes source files). The self path below only registers plugin surfaces.
 PACKAGE_NAME=$(node -e "console.log(require('$PROJECT_ROOT/package.json').name || '')" 2>/dev/null || true)
-if [ "$PACKAGE_NAME" = "@codyswann/lisa" ]; then exit 0; fi
+IS_LISA_SELF=false
+if [ "$PACKAGE_NAME" = "@codyswann/lisa" ]; then
+  IS_LISA_SELF=true
+  LISA_DIR="$PROJECT_ROOT"
+else
+  LISA_DIR="$PROJECT_ROOT/node_modules/@codyswann/lisa"
+  if [ ! -d "$LISA_DIR" ]; then exit 0; fi
+fi
 
 cd "$PROJECT_ROOT"
+
+if [ "$IS_LISA_SELF" = "true" ]; then
+  install_codex_lisa_plugins
+fi
 
 # Apply Lisa templates non-interactively (init when missing, update when present),
 # EXCEPT in CI. --skip-git-check bypasses the dirty working directory check since
@@ -34,18 +97,21 @@ cd "$PROJECT_ROOT"
 # each path is written exactly once by its most-specific stack — there is no
 # intermediate clobbered state to be interrupted in. See src/core/lisa.ts
 # loadCopyOverwriteOwnership.
-if [ -z "${CI:-}" ]; then
+if [ "$IS_LISA_SELF" != "true" ] && [ -z "${CI:-}" ]; then
   if ! node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
     echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
   fi
+fi
+
+if [ "$IS_LISA_SELF" != "true" ]; then
+  install_codex_lisa_plugins
 fi
 
 # Strip only hook entries that reference deleted .claude/hooks/*.sh scripts
 # (hooks moved to plugin.json; file-path hooks would produce "No such file or directory" errors).
 # Preserve inline command hooks (e.g. `command -v entire ...`, `echo ...`) and stack-template hooks
 # from rails/merge/.claude/settings.json.
-SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
-if [ -f "$SETTINGS_FILE" ] && command -v python3 >/dev/null 2>&1; then
+if [ "$IS_LISA_SELF" != "true" ] && [ -f "$SETTINGS_FILE" ] && command -v python3 >/dev/null 2>&1; then
   python3 - "$SETTINGS_FILE" <<'PYEOF'
 import json, sys
 path = sys.argv[1]
@@ -132,7 +198,7 @@ fi
 # here — but ONLY the Lisa-shipped file (identified by its marker rule name), so a
 # project's own hand-authored `.safety-net.json` is never touched.
 LEGACY_SAFETY_NET="$PROJECT_ROOT/.safety-net.json"
-if [ -f "$LEGACY_SAFETY_NET" ] && command -v jq >/dev/null 2>&1; then
+if [ "$IS_LISA_SELF" != "true" ] && [ -f "$LEGACY_SAFETY_NET" ] && command -v jq >/dev/null 2>&1; then
   if jq -e '
     (.rules | type == "array")
     and ([.rules[]?.name] | index("block-git-commit-no-verify") != null)
@@ -255,15 +321,7 @@ fi
 claude plugin install "lisa@lisa" --scope project </dev/null 2>&1 || true
 
 # Detect which stack plugin to install from .claude/settings.json
-LISA_STACK=""
-if [ -f "$SETTINGS_FILE" ] && command -v jq >/dev/null 2>&1; then
-  for stack in expo nestjs cdk harper-fabric rails; do
-    if jq -e "(.enabledPlugins // {}) | has(\"lisa-${stack}@lisa\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-      LISA_STACK="$stack"
-      break
-    fi
-  done
-fi
+LISA_STACK="$(detect_lisa_stack "$SETTINGS_FILE")"
 
 # Install typescript layer for all TS-based stacks (everything except rails)
 case "$LISA_STACK" in
