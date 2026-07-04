@@ -160,6 +160,7 @@ describe("install-claude-plugins self postinstall path", () => {
     await execFileAsync("bash", [SCRIPT_PATH], {
       env: {
         ...process.env,
+        CI: "",
         npm_config_local_prefix: projectRoot,
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
@@ -183,6 +184,7 @@ describe("install-claude-plugins self postinstall path", () => {
     await execFileAsync("bash", [SCRIPT_PATH], {
       env: {
         ...process.env,
+        CI: "",
         npm_config_local_prefix: projectRoot,
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
