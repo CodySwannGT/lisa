@@ -28,8 +28,7 @@ describe("BackupService", () => {
     it("creates backup directory", async () => {
       await service.init(destDir);
 
-      // Should not throw
-      expect(true).toBe(true);
+      await expect(service.rollback()).resolves.toBeUndefined();
     });
   });
 
@@ -42,8 +41,12 @@ describe("BackupService", () => {
 
       await service.backup(testFile);
 
-      // Should not throw
-      expect(true).toBe(true);
+      await fs.writeFile(testFile, "modified content");
+      await service.rollback();
+
+      await expect(fs.readFile(testFile, "utf-8")).resolves.toBe(
+        ORIGINAL_CONTENT
+      );
     });
 
     it("handles non-existent file gracefully", async () => {
@@ -295,8 +298,7 @@ describe("BackupService", () => {
       await service.cleanup();
       await service.cleanup();
 
-      // Should not throw
-      expect(true).toBe(true);
+      await expect(service.cleanup()).resolves.toBeUndefined();
     });
   });
 });
