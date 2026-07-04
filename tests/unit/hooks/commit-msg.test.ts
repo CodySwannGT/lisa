@@ -21,6 +21,12 @@ import { afterEach, describe, expect, it } from "vitest";
 const HOOK_PATH = path.resolve(".husky/commit-msg");
 const BASH_PATH = "/bin/bash";
 const GIT_PATH = "/usr/bin/git";
+const VALID_SUBJECT = "fix: clarify hook output";
+const PASSING_COMMITLINT_BIN = "exit 0\n";
+const OPENCODE_TRAILER = "Co-authored-by: OpenCode <noreply@opencode.ai>";
+const OPENCODE_AGENT_TRAILER = "AI-Agent: OpenCode";
+const OPENCODE_MODEL_HINT = "AI-Model: <provider/model>";
+const OPENCODE_EFFORT_HINT = "AI-Effort: <effort or runtime value>";
 
 let tempDirs: string[] = [];
 
@@ -54,8 +60,8 @@ describe("commit-msg hook diagnostics", () => {
   it("prints exact expected attribution trailers", () => {
     const project = createProject({
       binName: "npx",
-      binBody: "exit 0\n",
-      message: "fix: clarify hook output\n",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: `${VALID_SUBJECT}\n`,
     });
 
     const result = runHook(project);
@@ -66,6 +72,48 @@ describe("commit-msg hook diagnostics", () => {
       "Co-authored-by: Claude <noreply@anthropic.com>"
     );
     expect(result.stdout).toContain("Co-authored-by: Codex <codex@openai.com>");
+    expect(result.stdout).toContain(OPENCODE_TRAILER);
+    expect(result.stdout).toContain(OPENCODE_AGENT_TRAILER);
+    expect(result.stdout).toContain(OPENCODE_MODEL_HINT);
+    expect(result.stdout).toContain(OPENCODE_EFFORT_HINT);
+  });
+
+  it("accepts OpenCode attribution with model and effort metadata", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        OPENCODE_TRAILER,
+        OPENCODE_AGENT_TRAILER,
+        "AI-Model: openai/gpt-5.5",
+        "AI-Effort: not exposed by runtime",
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(0);
+  });
+
+  it("rejects OpenCode attribution without model and effort metadata", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [VALID_SUBJECT, "", OPENCODE_TRAILER, ""].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain(
+      "OpenCode commits must include AI metadata trailers"
+    );
+    expect(result.stdout).toContain(OPENCODE_AGENT_TRAILER);
+    expect(result.stdout).toContain(OPENCODE_MODEL_HINT);
+    expect(result.stdout).toContain(OPENCODE_EFFORT_HINT);
   });
 });
 
