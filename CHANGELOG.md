@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.2](https://github.com/CodySwannGT/lisa/compare/vv2.189.1...v2.189.2) (2026-07-04)
+
+
+### Bug Fixes
+
+* **postinstall:** bootstrap Lisa self plugins safely ([d08abc5](https://github.com/CodySwannGT/lisa/commit/d08abc5eeccdde595a3388d32815ed95b86bd807))
+
 ### [2.189.1](https://github.com/CodySwannGT/lisa/compare/vv2.189.0...v2.189.1) (2026-07-04)
 
 
