@@ -18,7 +18,7 @@
     "knip:fix": "knip --fix",
     "sg:scan": "ast-grep scan",
     "build:plugins": "bash scripts/build-plugins.sh",
-    "prepare": "node -e \"if (process.env.INIT_CWD && process.env.INIT_CWD.includes('.serverless')) { process.exit(0); }\" && husky install || true",
+    "prepare": "node -e \"if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);\" || husky install || true",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test:watch": "vitest",
