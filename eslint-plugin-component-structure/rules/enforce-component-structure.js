@@ -116,36 +116,7 @@ module.exports = {
       return {};
     }
 
-    // Check file naming
     if (
-      fileName === "index.ts" ||
-      fileName === "index.tsx" ||
-      fileName === "index.jsx"
-    ) {
-      // Check if index.tsx exports the Container
-      return {
-        Program(node) {
-          const sourceCode = context.getSourceCode();
-          const text = sourceCode.getText();
-
-          // Check for export patterns (allow Container or View)
-          const defaultExportPattern = new RegExp(
-            `export\\s*{\\s*default\\s*}\\s*from\\s*['"\`]\\.\\/${componentName}(Container|View)['"\`]|` +
-              `export\\s*\\*\\s*from\\s*['"\`]\\.\\/${componentName}(Container|View)['"\`]|` +
-              `export\\s*{\\s*${componentName}(Container|View)\\s*as\\s*default\\s*}|` +
-              `export\\s*default\\s*${componentName}(Container|View)`
-          );
-
-          if (!defaultExportPattern.test(text)) {
-            context.report({
-              node,
-              messageId: "incorrectIndexExport",
-              data: { componentName },
-            });
-          }
-        },
-      };
-    } else if (
       fileName.endsWith("Container.tsx") ||
       fileName.endsWith("Container.jsx")
     ) {
@@ -196,7 +167,7 @@ module.exports = {
             f === `${componentName}View.tsx` || f === `${componentName}View.jsx`
         );
         const hasIndex = files.some(
-          f => f === "index.tsx" || f === "index.jsx"
+          f => f === "index.ts" || f === "index.tsx" || f === "index.jsx"
         );
 
         if (!hasContainer) {
@@ -226,8 +197,43 @@ module.exports = {
     };
 
     // Only check once per file
-    if (fileName === "index.tsx" || fileName === "index.jsx") {
+    if (
+      fileName === "index.ts" ||
+      fileName === "index.tsx" ||
+      fileName === "index.jsx"
+    ) {
       checkRequiredFiles();
+    }
+
+    // Check file naming
+    if (
+      fileName === "index.ts" ||
+      fileName === "index.tsx" ||
+      fileName === "index.jsx"
+    ) {
+      // Check if index.tsx exports the Container
+      return {
+        Program(node) {
+          const sourceCode = context.getSourceCode();
+          const text = sourceCode.getText();
+
+          // Check for export patterns (allow Container or View)
+          const defaultExportPattern = new RegExp(
+            `export\\s*{\\s*default\\s*}\\s*from\\s*['"\`]\\.\\/${componentName}(Container|View)['"\`]|` +
+              `export\\s*\\*\\s*from\\s*['"\`]\\.\\/${componentName}(Container|View)['"\`]|` +
+              `export\\s*{\\s*${componentName}(Container|View)\\s*as\\s*default\\s*}|` +
+              `export\\s*default\\s*${componentName}(Container|View)`
+          );
+
+          if (!defaultExportPattern.test(text)) {
+            context.report({
+              node,
+              messageId: "incorrectIndexExport",
+              data: { componentName },
+            });
+          }
+        },
+      };
     }
 
     return {};

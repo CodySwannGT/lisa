@@ -42,4 +42,15 @@ export default [
       "src/opencode/plugin-templates/**",
     ],
   },
+  {
+    rules: {
+      // Lisa's own codebase has existing awaited side effects before later
+      // declarations. Keep the published rule stricter by default while this repo
+      // carries that cleanup as separate follow-up work.
+      "code-organization/enforce-statement-order": [
+        "error",
+        { checkAwaitedCalls: false },
+      ],
+    },
+  },
 ];
