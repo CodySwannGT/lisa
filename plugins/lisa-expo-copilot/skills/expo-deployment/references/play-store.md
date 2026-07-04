@@ -237,6 +237,24 @@ eas submit:list -p android
 eas submit:view SUBMISSION_ID
 ```
 
+## Monitoring Production Track State
+
+EAS can submit Android builds, but Play Console owns review, production release,
+and staged-rollout state. For non-interactive visibility into whether a version
+is live or rolling out on Google Play, use the `play-store-access` skill.
+
+The skill configures a read-only Google Play Developer API service account and
+queries `androidpublisher` v3:
+
+1. Resolve the package name from `.lisa.config.json` or Expo app config.
+2. Create a short-lived read-only edit.
+3. Read the target track, usually `production`.
+4. Delete the edit without making changes.
+
+It reports release `versionCodes`, `status`, and `userFraction` when a staged
+rollout is active. It does not promote tracks, adjust rollout percentages, or
+submit builds.
+
 ## Tips
 
 - Start with `internal` track for testing before production

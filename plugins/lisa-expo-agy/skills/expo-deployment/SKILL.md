@@ -19,6 +19,9 @@ Consult these resources as needed:
 - ./references/play-store.md -- Submitting Android builds to Google Play Store
 - ./references/ios-app-store.md -- iOS App Store submission and review process
 
+For post-submit Android release visibility, use the `play-store-access` skill to
+query Google Play production-track state without opening Play Console.
+
 ## Quick Start
 
 ### Install EAS CLI
