@@ -1,0 +1,4 @@
+display_name: "Jira Write Ticket"
+short_description: "Creates or updates a JIRA ticket following organizational best practices"
+default_prompt:
+  - "Use $lisa-jira-write-ticket: Creates or updates a JIRA ticket following organizational best practices."

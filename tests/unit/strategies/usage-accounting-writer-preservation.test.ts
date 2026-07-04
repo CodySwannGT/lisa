@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 const USAGE_SECTION = "## Lisa Usage";
-const USAGE_RULE = "usage-accounting";
+const USAGE_RULE = "lisa-usage-accounting";
 
 const readSkill = (root: string, skill: string): string =>
   readFileSync(path.resolve(root, skill, "SKILL.md"), "utf8");
@@ -26,14 +26,14 @@ const skillRoots = (skill: string): string[] =>
 describe("writer shims preserve managed Lisa Usage ledgers", () => {
   describe.each(ROOTS)("%s", root => {
     it("threads PRD writes through usage-aware vendor writers", () => {
-      const content = readSkill(root, "prd-source-write");
+      const content = readSkill(root, "lisa-prd-source-write");
       expect(content).toContain(USAGE_SECTION);
       expect(content).toMatch(/preserve/i);
       expect(content).toMatch(new RegExp(USAGE_RULE, "i"));
     });
 
     it("threads tracker writes through usage-aware vendor writers", () => {
-      const content = readSkill(root, "tracker-write");
+      const content = readSkill(root, "lisa-tracker-write");
       expect(content).toContain(USAGE_SECTION);
       expect(content).toMatch(/preserve/i);
       expect(content).toMatch(new RegExp(USAGE_RULE, "i"));
@@ -43,10 +43,10 @@ describe("writer shims preserve managed Lisa Usage ledgers", () => {
 
 describe("per-vendor PRD writers preserve managed Lisa Usage ledgers", () => {
   const writers = [
-    "github-write-prd",
-    "linear-write-prd",
-    "notion-write-prd",
-    "confluence-write-prd",
+    "lisa-github-write-prd",
+    "lisa-linear-write-prd",
+    "lisa-notion-write-prd",
+    "lisa-confluence-write-prd",
   ] as const;
 
   describe.each(writers)("%s", writer => {
@@ -69,9 +69,9 @@ describe("per-vendor PRD writers preserve managed Lisa Usage ledgers", () => {
 
 describe("per-vendor tracker writers preserve managed Lisa Usage ledgers", () => {
   const writers = [
-    "github-write-issue",
-    "linear-write-issue",
-    "jira-write-ticket",
+    "lisa-github-write-issue",
+    "lisa-linear-write-issue",
+    "lisa-jira-write-ticket",
   ] as const;
 
   describe.each(writers)("%s", writer => {

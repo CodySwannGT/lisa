@@ -22,7 +22,7 @@ function makeEntry(overrides: Partial<LisaUsageEntry> = {}): LisaUsageEntry {
     cost: 0.12,
     currency: "USD",
     entryId: "entry-869",
-    flow: "implement",
+    flow: "lisa-implement",
     inputTokens: 100,
     model: "gpt-5",
     outputTokens: 20,

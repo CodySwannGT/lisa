@@ -1,4 +1,0 @@
-display_name: "Intake Explain"
-short_description: "Read-only operator surface for diagnosing one repo-scoped PRD or build item against Lisa's current intake and repair contracts"
-default_prompt:
-  - "Use $intake-explain: Read-only operator surface for diagnosing one repo-scoped PRD or build item against Lisa's current intake and repair contracts."

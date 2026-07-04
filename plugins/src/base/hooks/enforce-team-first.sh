@@ -53,7 +53,7 @@ find "$STATE_DIR" -maxdepth 1 -type f -mmin +1440 -delete 2>/dev/null || true
 
 is_lifecycle_skill() {
   case "$1" in
-    lisa:research|lisa:plan|lisa:implement|lisa:intake|lisa:debrief) return 0 ;;
+    lisa-research|lisa-plan|lisa-implement|lisa-intake|lisa-debrief) return 0 ;;
     *) return 1 ;;
   esac
 }

@@ -22,7 +22,7 @@ const RULE_ROOTS = [
 ] as const;
 
 const readDoctorSkill = (root: string): string =>
-  readFileSync(path.resolve(root, "doctor", "SKILL.md"), "utf8");
+  readFileSync(path.resolve(root, "lisa-doctor", "SKILL.md"), "utf8");
 
 describe.each(SKILL_ROOTS)(
   "doctor automation-readiness contract (%s)",
@@ -37,7 +37,7 @@ describe.each(SKILL_ROOTS)(
       expect(content).toMatch(/Resolve the PRD queue from merged `source`/i);
       expect(content).toMatch(/Resolve the build queue from merged `tracker`/i);
       expect(content).toMatch(
-        /Resolve the repair queue.*`lisa:repair-intake`/is
+        /Resolve the repair queue.*`lisa-repair-intake`/is
       );
       expect(content).toMatch(
         /report that automation as `FAIL` rather\s+than pretending scheduling can proceed safely/i
@@ -99,7 +99,7 @@ describe.each(RULE_ROOTS)(
       expect(content).toMatch(
         /Resolve the build automation queue from merged `tracker`/i
       );
-      expect(content).toMatch(/`lisa:intake`\s*\/\s*`lisa:repair-intake`/i);
+      expect(content).toMatch(/`lisa-intake`\s*\/\s*`lisa-repair-intake`/i);
       expect(content).toMatch(/Codex[\s\S]*`automation_update`/i);
       expect(content).toMatch(/Claude[\s\S]*`\/schedule`/i);
       expect(content).toMatch(/must not create a throwaway automation/i);

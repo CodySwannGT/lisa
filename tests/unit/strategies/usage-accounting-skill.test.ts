@@ -14,7 +14,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
-const SKILL_SLUG = "usage-accounting";
+const SKILL_SLUG = "lisa-usage-accounting";
 const OPENAI_AGENT_PATH = path.resolve(
   "plugins/lisa/skills",
   SKILL_SLUG,
@@ -83,7 +83,7 @@ describe("usage-accounting skill contract", () => {
       'short_description: "Shared usage-ledger utility for Lisa lifecycle flows and artifact writers"'
     );
     expect(content).toContain(
-      '"Use $usage-accounting: Shared usage-ledger utility for Lisa lifecycle flows and artifact writers."'
+      '"Use $lisa-usage-accounting: Shared usage-ledger utility for Lisa lifecycle flows and artifact writers."'
     );
   });
 });

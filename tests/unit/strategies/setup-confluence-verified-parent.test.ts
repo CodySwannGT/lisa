@@ -38,7 +38,7 @@ const read = (root: string, rel: string): string =>
 
 describe("setup-confluence scaffolds the verified parent idempotently (#596)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
-    const content = read(root, "skills/setup-confluence/SKILL.md");
+    const content = read(root, "skills/lisa-setup-confluence/SKILL.md");
 
     it("includes verified in the parents-scaffolding role list", () => {
       // The role loop iterates draft..shipped, now extended with verified.

@@ -71,7 +71,10 @@ const NODE_BIN = process.execPath;
  */
 const FIXTURE_SKILLS: readonly (readonly [string, string])[] = [
   ["alpha-skill", "First skill in the set."],
-  ["exploratory-qa", "Playwright-backed exploratory QA workflow for web apps."],
+  [
+    "lisa-exploratory-qa",
+    "Playwright-backed exploratory QA workflow for web apps.",
+  ],
   ["setup-jira-api", "This skill should be used when wiring up the JIRA API."],
   [
     "tricky-chars",

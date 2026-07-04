@@ -1,4 +1,0 @@
-display_name: "Setup Github"
-short_description: "Configure GitHub Issues as the destination tracker and/or the PRD source for this project"
-default_prompt:
-  - "Use $setup-github: Configure GitHub Issues as the destination tracker and/or the PRD source for this project."

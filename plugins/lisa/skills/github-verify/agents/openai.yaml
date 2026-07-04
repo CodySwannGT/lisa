@@ -1,4 +1,0 @@
-display_name: "Github Verify"
-short_description: "verifying that a GitHub Issue meets organizational standards for parent-sub-issue relationships and description quality"
-default_prompt:
-  - "Use $github-verify: verifying that a GitHub Issue meets organizational standards for parent-sub-issue relationships and description quality."

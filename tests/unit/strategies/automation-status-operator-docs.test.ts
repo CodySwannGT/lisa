@@ -19,7 +19,7 @@ const read = (root: string, rel: string): string =>
 describe("automation-status operator docs (#804)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("documents operator entrypoints in the command surface", () => {
-      const command = read(root, "commands/automation-status.md");
+      const command = read(root, "commands/lisa/automation-status.md");
 
       expect(command).toContain("/lisa:automation-status");
       expect(command).toContain("--verbose");
@@ -30,7 +30,7 @@ describe("automation-status operator docs (#804)", () => {
     });
 
     it("documents runtime differences and remediation guidance in the skill", () => {
-      const skill = read(root, "skills/automation-status/SKILL.md");
+      const skill = read(root, "skills/lisa-automation-status/SKILL.md");
 
       expect(skill).toContain("## Operator usage");
       expect(skill).toContain("## Runtime differences");

@@ -38,7 +38,7 @@ const read = (root: string, rel: string): string =>
 
 describe("setup-notion maps/creates the verified status idempotently (#595)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
-    const content = read(root, "skills/setup-notion/SKILL.md");
+    const content = read(root, "skills/lisa-setup-notion/SKILL.md");
 
     it("includes verified in the Step 6 role list", () => {
       // The role loop iterates draft..shipped, now extended with verified.

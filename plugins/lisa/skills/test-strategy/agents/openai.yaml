@@ -1,4 +1,0 @@
-display_name: "Test Strategy"
-short_description: "Test strategy design"
-default_prompt:
-  - "Use $test-strategy: Test strategy design."

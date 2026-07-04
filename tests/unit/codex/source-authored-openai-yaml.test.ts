@@ -33,7 +33,7 @@ const AGENTS = "agents";
 /** Top-level skills directory name. */
 const SKILLS = "skills";
 /** Skill that carries a hand-authored openai.yaml in these tests. */
-const HAND_AUTHORED_SKILL = "exploratory-qa";
+const HAND_AUTHORED_SKILL = "lisa-exploratory-qa";
 /** Sibling skill that ships no source openai.yaml (gets generated output). */
 const GENERATED_SKILL = "apollo-client";
 /** Dummy release version passed positionally to the generator. */

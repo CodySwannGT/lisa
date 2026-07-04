@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Connector Git"
+display_name: "Wiki Connector Git"
 short_description: "Produce sanitized git/PR-history source notes for lisa-wiki ingest"
 default_prompt:
   - "Use $lisa-wiki-connector-git: Produce sanitized git/PR-history source notes for lisa-wiki ingest."

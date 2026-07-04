@@ -66,7 +66,7 @@ describe.each(SKILL_ROOTS)(
   "setup-github Project config docs (%s)",
   skillRoot => {
     const content = readFileSync(
-      path.resolve(skillRoot, "setup-github", "SKILL.md"),
+      path.resolve(skillRoot, "lisa-setup-github", "SKILL.md"),
       "utf8"
     );
 

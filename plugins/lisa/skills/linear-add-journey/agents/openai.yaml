@@ -1,4 +1,0 @@
-display_name: "Linear Add Journey"
-short_description: "Add a Validation Journey section to an existing Linear Issue by analyzing the change type and generating appropriate verification steps…"
-default_prompt:
-  - "Use $linear-add-journey: Add a Validation Journey section to an existing Linear Issue by analyzing the change type and generating appropriate verification steps…."

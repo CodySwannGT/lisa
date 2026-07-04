@@ -18,7 +18,7 @@ import {
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Reusable bundled-skill name for happy-path tests */
-const BUG_TRIAGE = "bug-triage";
+const BUG_TRIAGE = "lisa-bug-triage";
 /** SKILL.md filename — appears in many path joins */
 const SKILL_MD = "SKILL.md";
 /** Host-skill folder used in safety/no-delete tests */
@@ -86,7 +86,7 @@ describe("codex/skills-installer", () => {
   }
 
   /**
-   * Write a fake command file under plugins/<plugin>/commands/<...path>.md.
+   * Write a fake command file under plugins/<plugin>/commands/lisa/<...path>.md.
    * @param pluginName - Plugin directory name
    * @param relPath - Path under commands/ (e.g. "fix.md", "git/commit.md")
    * @param content - Markdown content of the command file

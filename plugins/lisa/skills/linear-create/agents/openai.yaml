@@ -1,4 +1,0 @@
-display_name: "Linear Create"
-short_description: "Creates Linear Projects (Epic-equivalent), Issues (Story / Task / Bug / Spike), and sub-Issues (Sub-task) from code files or descriptions"
-default_prompt:
-  - "Use $linear-create: Creates Linear Projects (Epic-equivalent), Issues (Story / Task / Bug / Spike), and sub-Issues (Sub-task) from code files or descriptions."

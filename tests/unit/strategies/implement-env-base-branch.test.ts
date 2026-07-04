@@ -1,5 +1,5 @@
 /**
- * Regression tests for environment-driven base-branch selection in lisa:implement.
+ * Regression tests for environment-driven base-branch selection in lisa-implement.
  *
  * The build flow must work off the latest code for the ticket's target
  * environment and open its PR against that environment's branch:
@@ -65,9 +65,9 @@ const readRule = (
   return readFileSync(path.resolve(root, group, `${slug}.md`), "utf8");
 };
 
-describe("lisa:implement resolves the base branch from the ticket environment", () => {
-  describe.each(SKILL_ROOTS)("%s/implement", root => {
-    const content = readSkill(root, "implement");
+describe("lisa-implement resolves the base branch from the ticket environment", () => {
+  describe.each(SKILL_ROOTS)("%s/lisa-implement", root => {
+    const content = readSkill(root, "lisa-implement");
 
     it("resolves the target environment from the work item's Target Backend Environment", () => {
       expect(content).toMatch(/Resolve the target environment/i);

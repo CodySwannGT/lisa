@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Connector Web"
+display_name: "Wiki Connector Web"
 short_description: "Ingest a public URL into a sanitized source note for lisa-wiki ingest (via WebFetch)"
 default_prompt:
   - "Use $lisa-wiki-connector-web: Ingest a public URL into a sanitized source note for lisa-wiki ingest (via WebFetch)."

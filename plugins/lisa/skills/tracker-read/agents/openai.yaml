@@ -1,4 +1,0 @@
-display_name: "Tracker Read"
-short_description: "Vendor-neutral wrapper for fetching the full scope of a ticket/issue and its related graph"
-default_prompt:
-  - "Use $tracker-read: Vendor-neutral wrapper for fetching the full scope of a ticket/issue and its related graph."

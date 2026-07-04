@@ -42,7 +42,7 @@ const read = (root: string, rel: string): string =>
 describe("verified PRD lifecycle state in docs (#592)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     describe.each(PRD_INTAKE_VENDORS)("%s-prd-intake SKILL", vendor => {
-      const content = read(root, `skills/${vendor}-prd-intake/SKILL.md`);
+      const content = read(root, `skills/lisa-${vendor}-prd-intake/SKILL.md`);
 
       it("lifecycle diagram ends ... → shipped → verified", () => {
         expect(content).toContain(

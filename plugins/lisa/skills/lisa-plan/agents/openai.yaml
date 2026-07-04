@@ -1,0 +1,4 @@
+display_name: "Plan"
+short_description: "Decompose a single PRD or specification into ordered work items in the configured tracker"
+default_prompt:
+  - "Use $lisa-plan: Decompose a single PRD or specification into ordered work items in the configured tracker."

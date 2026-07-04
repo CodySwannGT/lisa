@@ -101,8 +101,12 @@ export async function installSkills(
     )
   );
 
-  // Step 2: command-as-skill conversions
-  const commandSkills = await discoverLisaCommands(lisaDir);
+  // Step 2: command-as-skill conversions (skip when the bundled skill already
+  // owns the target name — native `/lisa:*` commands cover Claude-style entry).
+  const bundledSkillNames = new Set(bundled.map(source => source.skillName));
+  const commandSkills = (await discoverLisaCommands(lisaDir)).filter(
+    cmd => !bundledSkillNames.has(cmd.skillName)
+  );
   const commandInstalls = await Promise.all(
     commandSkills.map(cmd => emitCommandAsSkill(cmd, skillsDir))
   );

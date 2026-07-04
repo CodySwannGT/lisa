@@ -24,7 +24,7 @@ function makeEntry(
     cost: 0.12,
     currency: "USD",
     entryId: overrides.entryId,
-    flow: "plan",
+    flow: "lisa-plan",
     inputTokens: 100,
     model: "gpt-5",
     outputTokens: 20,

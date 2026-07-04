@@ -1,4 +1,0 @@
-display_name: "Acceptance Criteria"
-short_description: "Acceptance criteria definition"
-default_prompt:
-  - "Use $acceptance-criteria: Acceptance criteria definition."

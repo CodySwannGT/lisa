@@ -11,13 +11,13 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const LIFECYCLE_SKILLS = [
-  "debrief",
-  "implement",
-  "intake",
-  "monitor",
-  "plan",
-  "research",
-  "verify",
+  "lisa-debrief",
+  "lisa-implement",
+  "lisa-intake",
+  "lisa-monitor",
+  "lisa-plan",
+  "lisa-research",
+  "lisa-verify",
 ] as const;
 
 const SKILL_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
@@ -28,9 +28,9 @@ const RULE_FILES = [
 ] as const;
 
 const BUILD_INTAKE_SKILLS = [
-  ["github-build-intake", "github-agent"],
-  ["jira-build-intake", "jira-agent"],
-  ["linear-build-intake", "linear-agent"],
+  ["lisa-github-build-intake", "github-agent"],
+  ["lisa-jira-build-intake", "jira-agent"],
+  ["lisa-linear-build-intake", "linear-agent"],
 ] as const;
 
 describe("Codex lifecycle skill orchestration", () => {

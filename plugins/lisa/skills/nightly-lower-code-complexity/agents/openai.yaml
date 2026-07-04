@@ -1,4 +1,0 @@
-display_name: "Nightly Lower Code Complexity"
-short_description: "Nightly direct-execution skill for reducing code complexity thresholds"
-default_prompt:
-  - "Use $nightly-lower-code-complexity: Nightly direct-execution skill for reducing code complexity thresholds."

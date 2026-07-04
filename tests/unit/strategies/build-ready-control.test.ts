@@ -13,7 +13,7 @@
  *
  * `exploratory-qa` (a base skill, inherited by every stack) stops
  * writing a report file and instead files every finding as a tracked work item
- * via `lisa:tracker-write`. It is a pure first-time-user experience pass: a
+ * via `lisa-tracker-write`. It is a pure first-time-user experience pass: a
  * `ready` flag controls the build-ready state of bug and usability-suggestion
  * tickets (default: backlog/triage). Automated-coverage gaps are NOT its job —
  * they are delegated to the sibling `e2e-coverage-gaps` skill, which inventories
@@ -49,9 +49,9 @@ const readSkill = (root: string, skill: string): string =>
 
 describe("build_ready write-control input", () => {
   const WRITE_SKILLS = [
-    "github-write-issue",
-    "linear-write-issue",
-    "jira-write-ticket",
+    "lisa-github-write-issue",
+    "lisa-linear-write-issue",
+    "lisa-jira-write-ticket",
   ] as const;
 
   describe.each(WRITE_SKILLS)("%s", skill => {
@@ -87,7 +87,10 @@ describe("build_ready write-control input", () => {
   });
 
   // Label-based trackers omit the ready label for build_ready: false.
-  describe.each(["github-write-issue", "linear-write-issue"] as const)(
+  describe.each([
+    "lisa-github-write-issue",
+    "lisa-linear-write-issue",
+  ] as const)(
     "%s omits the status:ready label for a build_ready:false leaf",
     skill => {
       describe.each(WRITE_ROOTS)("%s", root => {
@@ -106,7 +109,7 @@ describe("build_ready write-control input", () => {
   describe.each(WRITE_ROOTS)(
     "jira-write-ticket build_ready:true (%s)",
     root => {
-      const content = readSkill(root, "jira-write-ticket");
+      const content = readSkill(root, "lisa-jira-write-ticket");
 
       it("transitions a leaf to the configured ready status on build_ready:true", () => {
         expect(content).toMatch(
@@ -128,11 +131,11 @@ describe("exploratory-qa feeds the lifecycle (no report file)", () => {
   /** Source + generated roots — exploratory-qa is a base skill (inherited by every stack). */
   const QA_ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
-  describe.each(QA_ROOTS)("%s/exploratory-qa", root => {
-    const content = readSkill(root, "exploratory-qa");
+  describe.each(QA_ROOTS)("%s/lisa-exploratory-qa", root => {
+    const content = readSkill(root, "lisa-exploratory-qa");
 
-    it("files findings via the vendor-neutral lisa:tracker-write", () => {
-      expect(content).toContain("lisa:tracker-write");
+    it("files findings via the vendor-neutral lisa-tracker-write", () => {
+      expect(content).toContain("lisa-tracker-write");
     });
 
     it("does not write a report file", () => {
@@ -184,8 +187,8 @@ describe("e2e-coverage-gaps files missing-test gaps as build-ready work", () => 
   describe.each(GAP_ROOTS)("%s/e2e-coverage-gaps", root => {
     const content = readSkill(root, "e2e-coverage-gaps");
 
-    it("files findings via the vendor-neutral lisa:tracker-write", () => {
-      expect(content).toContain("lisa:tracker-write");
+    it("files findings via the vendor-neutral lisa-tracker-write", () => {
+      expect(content).toContain("lisa-tracker-write");
     });
 
     it("files missing-test tickets build-ready by default", () => {
@@ -198,7 +201,7 @@ describe("e2e-coverage-gaps files missing-test gaps as build-ready work", () => 
     });
 
     it("delegates human usability findings back to exploratory-qa", () => {
-      expect(content).toContain("exploratory-qa");
+      expect(content).toContain("lisa-exploratory-qa");
     });
 
     it("is idempotent via a stable lisa-e2e-coverage-gaps marker", () => {

@@ -16,9 +16,9 @@ const RULE_ROOTS = [
   "plugins/lisa/rules/reference",
 ] as const;
 const BUILD_SKILLS = [
-  "github-build-intake",
-  "jira-build-intake",
-  "linear-build-intake",
+  "lisa-github-build-intake",
+  "lisa-jira-build-intake",
+  "lisa-linear-build-intake",
 ] as const;
 
 const readSkill = (root: string, slug: string): string =>
@@ -26,7 +26,7 @@ const readSkill = (root: string, slug: string): string =>
 
 describe("build intake duplicate-already-fixed closeout", () => {
   describe.each(ROOTS)("%s ticket-triage", root => {
-    const content = readSkill(root, "ticket-triage");
+    const content = readSkill(root, "lisa-ticket-triage");
 
     it("emits a distinct DUPLICATE_ALREADY_FIXED verdict", () => {
       expect(content).toContain("DUPLICATE_ALREADY_FIXED");
@@ -44,7 +44,7 @@ describe("build intake duplicate-already-fixed closeout", () => {
   });
 
   describe.each(ROOTS)("%s tracker-build-intake", root => {
-    const content = readSkill(root, "tracker-build-intake");
+    const content = readSkill(root, "lisa-tracker-build-intake");
 
     it("forwards the duplicate terminal contract to every vendor", () => {
       expect(content).toContain("Duplicate-already-fixed terminal contract");

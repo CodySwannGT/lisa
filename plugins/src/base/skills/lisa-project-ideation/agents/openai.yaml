@@ -1,0 +1,6 @@
+display_name: 'Project Ideation'
+short_description: 'Generate practical, verifiable product or workflow ideas for the current host project'
+default_prompt:
+  - 'Use $lisa-project-ideation: Generate practical feature ideas for this project.'
+  - 'Use $lisa-project-ideation: Looking at an external public product, what should we add here?'
+  - 'Use $lisa-project-ideation: Suggest practical improvements we can verify ourselves.'

@@ -1,4 +1,0 @@
-display_name: "Setup Atlassian"
-short_description: "Configure Atlassian access for this project"
-default_prompt:
-  - "Use $setup-atlassian: Configure Atlassian access for this project."

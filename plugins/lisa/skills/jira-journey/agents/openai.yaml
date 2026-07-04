@@ -1,4 +1,0 @@
-display_name: "Jira Journey"
-short_description: "Parse a JIRA ticket's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…"
-default_prompt:
-  - "Use $jira-journey: Parse a JIRA ticket's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database…."

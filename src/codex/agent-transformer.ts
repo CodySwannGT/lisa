@@ -192,9 +192,15 @@ function parseSkills(raw: unknown): readonly string[] | undefined {
   if (!Array.isArray(raw)) {
     return undefined;
   }
-  const filtered = raw.filter(
-    (entry): entry is string => typeof entry === "string" && entry.length > 0
-  );
+  const filtered = raw
+    .filter(
+      (entry): entry is string => typeof entry === "string" && entry.length > 0
+    )
+    .map(entry =>
+      entry.startsWith(LISA_AGENT_NAME_PREFIX)
+        ? entry
+        : `${LISA_AGENT_NAME_PREFIX}${entry}`
+    );
   return filtered.length > 0 ? Object.freeze(filtered) : undefined;
 }
 

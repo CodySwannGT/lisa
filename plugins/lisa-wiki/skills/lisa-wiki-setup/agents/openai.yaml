@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Setup"
+display_name: "Wiki Setup"
 short_description: "Scaffold, repair, verify, or upgrade a project's LLM Wiki from its config"
 default_prompt:
   - "Use $lisa-wiki-setup: Scaffold, repair, verify, or upgrade a project's LLM Wiki from its config."

@@ -14,10 +14,10 @@ import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 const TO_TRACKER_SKILLS = [
-  "notion-to-tracker",
-  "confluence-to-tracker",
-  "github-to-tracker",
-  "linear-to-tracker",
+  "lisa-notion-to-tracker",
+  "lisa-confluence-to-tracker",
+  "lisa-github-to-tracker",
+  "lisa-linear-to-tracker",
 ] as const;
 const REPAIR_LOOP_HEADING = "S10 hard gate repair loop";
 
@@ -33,14 +33,14 @@ describe("PRD-to-tracker S10 hard gate repair loop (#1062)", () => {
         expect(content).toContain(REPAIR_LOOP_HEADING);
         expect(content).toMatch(/Dry-run validation is not advisory/i);
         expect(content).toMatch(/Before any Phase 5 write/i);
-        expect(content).toMatch(/lisa:tracker-validate --spec-only/);
+        expect(content).toMatch(/lisa-tracker-validate --spec-only/);
       });
 
       it("requires auto-split or restamp before write when S10 fails", () => {
         const section = content.slice(content.indexOf(REPAIR_LOOP_HEADING));
         expect(section).toMatch(/fails S10/i);
         expect(section).toMatch(/auto-split or restamp/i);
-        expect(section).toMatch(/lisa:task-decomposition.*step 1\.5/i);
+        expect(section).toMatch(/lisa-task-decomposition.*step 1\.5/i);
         expect(section).toMatch(/add the repo bracket/i);
         expect(section).toMatch(/Repository/);
       });
@@ -62,15 +62,15 @@ describe("PRD-to-tracker S10 hard gate repair loop (#1062)", () => {
     });
   });
 
-  describe.each(ROOTS)("%s/jira-write-ticket", root => {
-    const content = readSkill(root, "jira-write-ticket");
+  describe.each(ROOTS)("%s/lisa-jira-write-ticket", root => {
+    const content = readSkill(root, "lisa-jira-write-ticket");
 
     it("runs the validator before any JIRA write and forbids writes on FAIL", () => {
       expect(content).toMatch(
-        /Before any write, invoke `lisa:jira-validate-ticket`/
+        /Before any write, invoke `lisa-jira-validate-ticket`/
       );
       expect(content).toMatch(
-        /Never invoke `lisa:atlassian-access`.*write-ticket.*FAIL/s
+        /Never invoke `lisa-atlassian-access`.*write-ticket.*FAIL/s
       );
     });
 

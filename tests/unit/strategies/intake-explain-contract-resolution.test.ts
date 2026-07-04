@@ -21,7 +21,7 @@ const read = (root: string, rel: string): string =>
 describe("intake-explain contract resolution (#846)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("ties one-item diagnosis to source/tracker config and fallback defaults", () => {
-      const skill = read(root, "skills/intake-explain/SKILL.md");
+      const skill = read(root, "skills/lisa-intake-explain/SKILL.md");
 
       expect(skill).toContain(".lisa.config.json");
       expect(skill).toContain("source");
@@ -32,7 +32,7 @@ describe("intake-explain contract resolution (#846)", () => {
     });
 
     it("documents one-item routing against the existing queue and repo-scope contract", () => {
-      const skill = read(root, "skills/intake-explain/SKILL.md");
+      const skill = read(root, "skills/lisa-intake-explain/SKILL.md");
 
       expect(skill).toMatch(/one-item routing helpers/i);
       expect(skill).toMatch(/queue family/i);

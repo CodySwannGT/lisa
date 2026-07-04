@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 const readSkill = (root: string): string =>
-  readFileSync(path.resolve(root, "setup-github", "SKILL.md"), "utf8");
+  readFileSync(path.resolve(root, "lisa-setup-github", "SKILL.md"), "utf8");
 
 describe.each(ROOTS)("setup-github Project verification (%s)", root => {
   const content = readSkill(root);
@@ -29,7 +29,7 @@ describe.each(ROOTS)("setup-github Project verification (%s)", root => {
   it("runs shared Project resolution during setup verification", () => {
     expect(content).toMatch(/Step 6 .*Verify/s);
     expect(content).toMatch(/operation:\s*resolve-project/i);
-    expect(content).toMatch(/delegate to `lisa:github-project-v2`/i);
+    expect(content).toMatch(/delegate to `lisa-github-project-v2`/i);
   });
 
   it("documents exact namespace-mismatch failure text and remediation", () => {

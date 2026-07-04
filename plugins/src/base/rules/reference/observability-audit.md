@@ -1,6 +1,6 @@
 # Observability Audit (load-bearing)
 
-This rule is the single source of truth for the **audit + file** arm of the `lisa:monitor` skill. The `monitor` skill collects live signals (errors, logs, performance, health) via the stack `ops-specialist` exactly as before; this rule adds two things on top, both **repo-scoped**:
+This rule is the single source of truth for the **audit + file** arm of the `lisa-monitor` skill. The `monitor` skill collects live signals (errors, logs, performance, health) via the stack `ops-specialist` exactly as before; this rule adds two things on top, both **repo-scoped**:
 
 1. **Audit** — score the repo against an observability-completeness rubric for its detected type, so a frontend repo is never dinged for missing backend tracing.
 2. **File** — turn both *anomalies* (a real bad live signal) and *gaps* (an in-scope observability dimension that isn't wired) into **build-ready leaf tickets** so the existing `intake` / `tracker-build-intake` cron picks them up and fixes them. `monitor` files only; it never fixes.
@@ -66,7 +66,7 @@ Everything below the bar is reported (so the human sees it) but **not** ticketed
 
 ## Two finding types → build-ready leaf tickets
 
-Both finding types are filed through the vendor-neutral `lisa:tracker-write` shim with `build_ready: true` (never a vendor write skill directly — that is what keeps the destination switchable). Both are **leaf** work units (`Bug` for anomalies, `Task`/`Improvement` for gaps) — never an Epic or container (gate S15). Each must pass the `tracker-validate` gates S1–S15, so each ticket is a real authored artifact, not a template dump.
+Both finding types are filed through the vendor-neutral `lisa-tracker-write` shim with `build_ready: true` (never a vendor write skill directly — that is what keeps the destination switchable). Both are **leaf** work units (`Bug` for anomalies, `Task`/`Improvement` for gaps) — never an Epic or container (gate S15). Each must pass the `tracker-validate` gates S1–S15, so each ticket is a real authored artifact, not a template dump.
 
 ### Required fields (so the gates pass)
 
@@ -93,7 +93,7 @@ A manual re-run next week must not duplicate last week's tickets. Mirror the `re
 1. **Stable fingerprint per finding.**
    - Anomaly: `sha1("<source>:<stable-signature>:<CURRENT_REPO>")` (12 hex chars). `stable-signature` is the Sentry issue short-id (or culprit), the CloudWatch alarm name, or `errorType@location` — something that survives between runs, **never** the human title or occurrence count.
    - Gap: the literal `gap:<dimension>:<CURRENT_REPO>` (a dimension is missing-or-not; no hash needed).
-2. **Sentinel in the body.** Embed `<!-- lisa-monitor-finding: <fingerprint> -->` in every filed ticket.
+2. **Sentinel in the body.** Embed `<!-- lisa:monitor-finding: <fingerprint> -->` in every filed ticket.
 3. **Search before create** (this IS gate S13). Before filing, search the tracker for the fingerprint string. The search **MUST include closed/resolved tickets** (`gh issue list --search <fp> --state all` for GitHub; JQL with no status filter for JIRA; all states for Linear) — otherwise a just-closed match is invisible and the backoff below can't fire. If an **open** ticket carries the fingerprint → skip (optionally link). If a ticket carrying it was closed **within the recently-resolved backoff window** (`monitor.backoffHours`, default **24h** — matching the 24h Sentry event window; this is **not** the 2h `intake.repair.staleAfterHours`) → skip, to avoid re-filing a just-fixed regression before its signal has drained. Only file when no live or recently-resolved match exists.
 
 ## The cap
@@ -105,7 +105,7 @@ File **at most `max_candidates` tickets per run** (default **20**; config `monit
 - **Default (standalone `monitor <env>`): files.** A plain manual run audits, reports, dedupes, and files up to the cap.
 - **`--dry-run`:** does everything except call `tracker-write` — prints exactly which tickets *would* be filed (title, type, fingerprint, dedup verdict) so the human can preview.
 - **`--report-only`:** produces the health/audit summary only — no filing and no would-file analysis. This is the mode Verify uses (below).
-- **Invoked as `lisa:verify`'s post-deploy step: never files — enforced mechanically, not inferred.** `lisa:verify` step 6 invokes monitor as `lisa:monitor <env> --report-only`; monitor must never file when `--report-only` (or `--dry-run`) is set. This is load-bearing **today** — Verify already routes its remote verification through the `monitor` skill, so without the passed flag the new file-by-default behavior would create tickets during every verify run. As a belt-and-suspenders default, if monitor is invoked via the Skill tool from within a Verify flow and no filing flag was passed, treat it as `--report-only` rather than filing.
+- **Invoked as `lisa-verify`'s post-deploy step: never files — enforced mechanically, not inferred.** `lisa-verify` step 6 invokes monitor as `lisa-monitor <env> --report-only`; monitor must never file when `--report-only` (or `--dry-run`) is set. This is load-bearing **today** — Verify already routes its remote verification through the `monitor` skill, so without the passed flag the new file-by-default behavior would create tickets during every verify run. As a belt-and-suspenders default, if monitor is invoked via the Skill tool from within a Verify flow and no filing flag was passed, treat it as `--report-only` rather than filing.
 
 ## Output
 

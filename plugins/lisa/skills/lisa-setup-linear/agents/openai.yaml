@@ -1,0 +1,4 @@
+display_name: "Setup Linear"
+short_description: "Configure Linear as the destination tracker and/or the PRD source for this project"
+default_prompt:
+  - "Use $lisa-setup-linear: Configure Linear as the destination tracker and/or the PRD source for this project."

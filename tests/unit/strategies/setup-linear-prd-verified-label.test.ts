@@ -39,7 +39,7 @@ const read = (root: string, rel: string): string =>
 
 describe("setup-linear scaffolds prd-verified idempotently (#594)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
-    const content = read(root, "skills/setup-linear/SKILL.md");
+    const content = read(root, "skills/lisa-setup-linear/SKILL.md");
 
     it("adds the verified role row to the PRD role->label table", () => {
       // Mirrors the rest of the prd-* table: `| <role> | <default> | <kind> |`.

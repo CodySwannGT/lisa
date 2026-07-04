@@ -1,4 +1,0 @@
-display_name: "Wiki Install"
-short_description: "Bootstrap the LLM Wiki kernel (lisa-wiki plugin) in a host project"
-default_prompt:
-  - "Use $wiki-install: Bootstrap the LLM Wiki kernel (lisa-wiki plugin) in a host project."

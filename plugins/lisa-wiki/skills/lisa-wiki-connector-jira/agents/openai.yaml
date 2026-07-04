@@ -1,4 +1,4 @@
-display_name: "Lisa Wiki Connector Jira"
+display_name: "Wiki Connector Jira"
 short_description: "Produce sanitized JIRA source notes for lisa-wiki ingest via the Atlassian MCP"
 default_prompt:
   - "Use $lisa-wiki-connector-jira: Produce sanitized JIRA source notes for lisa-wiki ingest via the Atlassian MCP."

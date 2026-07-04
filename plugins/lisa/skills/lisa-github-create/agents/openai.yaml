@@ -1,0 +1,4 @@
+display_name: "Github Create"
+short_description: "creating GitHub Issue Epics, Stories, and Sub-tasks from code files or descriptions"
+default_prompt:
+  - "Use $lisa-github-create: creating GitHub Issue Epics, Stories, and Sub-tasks from code files or descriptions."
