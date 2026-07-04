@@ -362,6 +362,26 @@ ruleTester.run("enforce-statement-order", rule, {
       ],
     },
 
+    // Awaited side effect before definition
+    {
+      code: `
+        async function loadData() {
+          await fetchData();
+          const data = [];
+          return data;
+        }
+      `,
+      errors: [
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: DEFINITIONS,
+            previous: SIDE_EFFECTS,
+          },
+        },
+      ],
+    },
+
     // Console.log before definition
     {
       code: `

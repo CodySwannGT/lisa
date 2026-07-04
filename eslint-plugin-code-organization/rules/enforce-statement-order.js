@@ -24,7 +24,17 @@ module.exports = {
       recommended: true,
     },
     fixable: null,
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: {
+          checkAwaitedCalls: {
+            type: "boolean",
+          },
+        },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       wrongOrder:
         "{{current}} should come before {{previous}}. Expected order: definitions → side effects → return statement",
@@ -43,6 +53,25 @@ module.exports = {
       [ORDER.SIDE_EFFECT]: "Side effects",
       [ORDER.RETURN]: "Return statement",
     };
+    const options = context.options[0] || {};
+    const checkAwaitedCalls = options.checkAwaitedCalls !== false;
+
+    /**
+     * Removes transparent wrappers around a candidate side-effect expression.
+     * @param {import('eslint').Rule.Node | null | undefined} expression - Expression node
+     * @returns {import('eslint').Rule.Node | null | undefined} Unwrapped expression node
+     */
+    function unwrapExpression(expression) {
+      if (
+        expression &&
+        ((checkAwaitedCalls && expression.type === "AwaitExpression") ||
+          expression.type === "ChainExpression")
+      ) {
+        return unwrapExpression(expression.expression || expression.argument);
+      }
+
+      return expression;
+    }
 
     /**
      * Checks if an expression statement is a function call (side effect)
@@ -54,14 +83,10 @@ module.exports = {
         return false;
       }
 
-      const expression = statement.expression;
+      const expression = unwrapExpression(statement.expression);
 
       // Direct call: doSomething() or object.method()
-      if (expression.type === "CallExpression") {
-        return true;
-      }
-
-      return false;
+      return Boolean(expression && expression.type === "CallExpression");
     }
 
     /**
