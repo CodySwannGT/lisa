@@ -35,8 +35,8 @@ Skills contain implementation logic — the actual instructions Claude follows t
 | Property | Details |
 |----------|---------|
 | **Location** | `.claude/skills/<name>/SKILL.md` |
-| **Naming** | Hyphen-separated (e.g., `plan-create`, `git-commit`) |
-| **Invocation** | Via `Skill` tool: `Skill(skill: "plan-create", args: "...")` |
+| **Naming** | Hyphen-separated (e.g., `lisa-plan`, `lisa-git-commit`) |
+| **Invocation** | Via `Skill` tool: `Skill(skill: "lisa-plan", args: "...")` |
 | **`$ARGUMENTS`** | NOT substituted — appears as literal text |
 | **`argument-hint`** | NOT supported — ignored in frontmatter |
 | **Frontmatter** | `name`, `description`, `allowed-tools` |
@@ -44,13 +44,13 @@ Skills contain implementation logic — the actual instructions Claude follows t
 
 ### Commands (`.claude/commands/<namespace>/<name>.md`)
 
-Commands are the user-facing interface — they provide argument hints in the UI and substitute `$ARGUMENTS` before delegating to a skill.
+Commands are the user-facing interface for harnesses that support native commands. They provide argument hints in the UI and substitute `$ARGUMENTS` before delegating to a skill. Harnesses without `/` commands, such as Codex, use the generated hyphenated skill alias instead.
 
 | Property | Details |
 |----------|---------|
 | **Location** | `.claude/commands/<namespace>/<name>.md` |
-| **Naming** | Directory nesting creates colon-separated UI names (e.g., `plan/create.md` → `/plan:create`) |
-| **Invocation** | User types `/plan:create <args>` in the prompt |
+| **Naming** | Directory nesting creates colon-separated UI names (e.g., `lisa/plan.md` → `/lisa:plan`) |
+| **Invocation** | User types `/lisa:plan <args>` in slash-command harnesses |
 | **`$ARGUMENTS`** | Substituted with user input before Claude sees the prompt |
 | **`argument-hint`** | Supported — shown as placeholder text in the UI |
 | **Frontmatter** | `description`, `allowed-tools`, `argument-hint` |
@@ -59,11 +59,11 @@ Commands are the user-facing interface — they provide argument hints in the UI
 ### How They Work Together
 
 ```text
-User types: /plan:create https://jira.example.com/TICKET-123
+User types: /lisa:plan https://jira.example.com/TICKET-123
 
-1. Claude Code finds .claude/commands/plan/create.md
-2. $ARGUMENTS is replaced: "Use the /plan-create skill to create a plan for https://jira.example.com/TICKET-123"
-3. Claude invokes Skill(skill: "plan-create", args: "https://jira.example.com/TICKET-123")
+1. Claude Code finds .claude/commands/lisa/plan.md
+2. $ARGUMENTS is replaced: "Use the /lisa-plan skill to create a plan for https://jira.example.com/TICKET-123"
+3. Claude invokes Skill(skill: "lisa-plan", args: "https://jira.example.com/TICKET-123")
 4. Skill SKILL.md is loaded and Claude follows the instructions
 ```
 
@@ -71,15 +71,15 @@ User types: /plan:create https://jira.example.com/TICKET-123
 
 | Context | Format | Example |
 |---------|--------|---------|
-| Skill directory | Hyphen-separated | `.claude/skills/plan-create/SKILL.md` |
-| Command directory | Nested directories | `.claude/commands/plan/create.md` |
-| User-facing name | Colon-separated (from command nesting) | `/plan:create` |
-| Skill-to-skill reference | Hyphen name | `Run /git-commit` |
-| User docs and rules | Either format | `/plan:create` or `/plan-create` |
+| Skill directory | Hyphen-separated | `.claude/skills/lisa-plan/SKILL.md` |
+| Command directory | Nested directories | `.claude/commands/lisa/plan.md` |
+| User-facing command | Colon-separated where native commands are supported | `/lisa:plan` |
+| Skill-to-skill reference | Hyphen name | `Run /lisa-git-commit` |
+| Codex skill alias | Dollar + hyphen name | `$lisa-git-commit` |
 
 ### Command Pass-Through Pattern
 
-Every skill should have a corresponding command:
+Every user-facing workflow should have a colon-scoped command that delegates to its hyphenated skill target:
 
 ```markdown
 ---
@@ -88,7 +88,7 @@ allowed-tools: ["Skill"]
 argument-hint: "<required-arg> [optional-arg]"
 ---
 
-Use the /my-skill-name skill to do the thing. $ARGUMENTS
+Use the /lisa-my-skill skill to do the thing. $ARGUMENTS
 ```
 
 For skills without arguments, omit `argument-hint` and `$ARGUMENTS`.

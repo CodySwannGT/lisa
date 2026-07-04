@@ -314,7 +314,7 @@ This example produces **no** `synced-from` skill (no `reimplement`), so it never
 ## 7. Skill/command house-style notes (for the builder)
 
 - **Skills** (`.claude/skills/<name>/SKILL.md`): hyphen names; frontmatter `name` + `description` (siblings also set `allowed-tools`). No `argument-hint`/`$ARGUMENTS` in skills. `analyze-plugin` & `plugin-parity-drift` → `allowed-tools: ["Bash","Read","Write","Edit","Glob","Grep","Skill"]`; `implement-plugin-parity` same set (it edits/builds).
-- **Commands** (`.claude/commands/<name>.md`): frontmatter `description`, `argument-hint`, optional `allowed-tools: ["Skill"]`; body is a one-line pass-through: `Use the /<skill> skill ... $ARGUMENTS` (verified pattern in `.claude/commands/lisa-codex-parity.md`).
+- **Commands** (`.claude/commands/lisa/<name>.md`): frontmatter `description`, `argument-hint`, optional `allowed-tools: ["Skill"]`; body is a one-line pass-through to a hyphenated skill target, e.g. `/lisa:codex-parity` delegates with `Use the /lisa-codex-parity skill ... $ARGUMENTS`. Agents without `/` commands, such as Codex, receive the equivalent generated skill alias (for example, `$lisa-codex-parity`) instead.
 - Plan-only skills must explicitly STOP and refuse implementation requests (mirror `lisa-coding-agent-parity` "reject and point at the sibling").
 - These three skills live ONLY in root `.claude/` (Lisa-internal), never in `all/copy-overwrite/` or `plugins/src/` (per PROJECT_RULES.md — same rule that keeps `lisa-codex-parity` root-only).
 

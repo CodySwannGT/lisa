@@ -23,6 +23,9 @@ import * as path from "node:path";
 /** Prefix applied to Lisa command-as-skill names (e.g. `lisa-git-commit`). */
 export const LISA_COMMAND_SKILL_PREFIX = "lisa-";
 
+/** Prefix applied to Lisa command display names (e.g. `lisa:git:commit`). */
+export const LISA_COMMAND_DISPLAY_PREFIX = "lisa:";
+
 /**
  * Suffixes that mark a plugin directory as a per-harness fanout VARIANT rather
  * than a canonical source. Lisa generates `<plugin>-agy`, `<plugin>-copilot`,
@@ -183,6 +186,28 @@ export async function discoverLisaCommands(
 }
 
 /**
+ * Convert command path segments into the cross-runtime skill alias.
+ * @param segments - Command path without the `.md` extension.
+ * @returns Hyphenated skill name, e.g. `["git", "commit"]` → `lisa-git-commit`.
+ */
+export function commandSegmentsToLisaSkillName(
+  segments: readonly string[]
+): string {
+  return `${LISA_COMMAND_SKILL_PREFIX}${segments.join("-")}`;
+}
+
+/**
+ * Convert command path segments into the user-facing slash-command name.
+ * @param segments - Command path without the `.md` extension.
+ * @returns Colon-scoped command name, e.g. `["git", "commit"]` → `lisa:git:commit`.
+ */
+export function commandSegmentsToLisaDisplayName(
+  segments: readonly string[]
+): string {
+  return `${LISA_COMMAND_DISPLAY_PREFIX}${segments.join(":")}`;
+}
+
+/**
  * List the plugin directory names under `plugins/`, base-first then the rest
  * alphabetically, skipping the `src/` build-input tree.
  *
@@ -261,11 +286,10 @@ async function discoverCommandsInPlugin(
     .map(relFile => {
       // commands/git/commit.md → ["git", "commit"]
       const segments = relFile.replace(/\.md$/, "").split(path.sep);
-      const skillName = `${LISA_COMMAND_SKILL_PREFIX}${segments.join("-")}`;
       return {
-        skillName,
+        skillName: commandSegmentsToLisaSkillName(segments),
         sourcePath: path.join(commandsRoot, relFile),
-        displayName: `lisa:${segments.join(":")}`,
+        displayName: commandSegmentsToLisaDisplayName(segments),
       };
     });
 }
