@@ -196,7 +196,7 @@ describe("MergeStrategy", () => {
     expect(content.editor.formatOnSave).toBe(true); // Lisa value added
   });
 
-  it("handles arrays (merges by index)", async () => {
+  it("unions arrays instead of merging them by index", async () => {
     const srcFile = path.join(srcDir, CONFIG_JSON);
     const destFile = path.join(destDir, CONFIG_JSON);
 
@@ -206,8 +206,73 @@ describe("MergeStrategy", () => {
     await strategy.apply(srcFile, destFile, CONFIG_JSON, createContext());
 
     const content = await fs.readJson(destFile);
-    // lodash.merge merges arrays by index - src[0]='a' overwrites dest[0]='c', src[1]='b' is kept
-    expect(content.plugins).toEqual(["a", "b"]);
+    expect(content.plugins).toEqual(["c", "a", "b"]);
+  });
+
+  it("preserves host Claude deny rules when merging settings", async () => {
+    const srcFile = path.join(srcDir, SETTINGS_JSON);
+    const destFile = path.join(destDir, SETTINGS_JSON);
+
+    await fs.writeJson(srcFile, {
+      permissions: {
+        deny: ["Bash(git push --force*)", "Bash(git commit --no-verify*)"],
+      },
+    });
+    await fs.writeJson(destFile, {
+      permissions: {
+        deny: ["Bash(rm -rf*)", "Bash(git reset --hard*)"],
+      },
+    });
+
+    await strategy.apply(srcFile, destFile, SETTINGS_JSON, createContext());
+
+    const content = await fs.readJson(destFile);
+    expect(content.permissions.deny).toEqual([
+      "Bash(rm -rf*)",
+      "Bash(git reset --hard*)",
+      "Bash(git push --force*)",
+      "Bash(git commit --no-verify*)",
+    ]);
+  });
+
+  it("preserves host Claude hooks when merging settings", async () => {
+    const srcFile = path.join(srcDir, SETTINGS_JSON);
+    const destFile = path.join(destDir, SETTINGS_JSON);
+
+    await fs.writeJson(srcFile, {
+      hooks: {
+        PostToolUse: [
+          {
+            matcher: "Edit|Write",
+            hooks: [{ type: "command", command: "bash .claude/hooks/lisa.sh" }],
+          },
+        ],
+      },
+    });
+    await fs.writeJson(destFile, {
+      hooks: {
+        PostToolUse: [
+          {
+            matcher: "Edit",
+            hooks: [{ type: "command", command: "bash .claude/hooks/host.sh" }],
+          },
+        ],
+      },
+    });
+
+    await strategy.apply(srcFile, destFile, SETTINGS_JSON, createContext());
+
+    const content = await fs.readJson(destFile);
+    expect(content.hooks.PostToolUse).toEqual([
+      {
+        matcher: "Edit",
+        hooks: [{ type: "command", command: "bash .claude/hooks/host.sh" }],
+      },
+      {
+        matcher: "Edit|Write",
+        hooks: [{ type: "command", command: "bash .claude/hooks/lisa.sh" }],
+      },
+    ]);
   });
 
   it("does not modify files in dry run mode", async () => {
