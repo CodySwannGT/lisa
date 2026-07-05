@@ -1059,6 +1059,7 @@ export class Lisa {
     // Hooks: block-no-verify maps to opencode.json `permission.bash`; the
     // runtime-behavior hooks ship as `.opencode/plugin/lisa-*.ts` modules.
     const hooksResult = await installOpencodeHooks(
+      this.config.lisaDir,
       this.config.destDir,
       this.detectedTypes,
       previous.files
