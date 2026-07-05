@@ -20,6 +20,11 @@ const TRACKER_SHIMS = [
   "lisa-tracker-write",
 ] as const;
 
+const CONFIG_OVERRIDE_SKILLS = [
+  "lisa-analyze-claude-remote",
+  "lisa-validate-tracker-mapping",
+] as const;
+
 describe("governance text contracts", () => {
   it("keeps root CLAUDE.md as a thin pointer to AGENTS.md", () => {
     expect(readFileSync(path.resolve("CLAUDE.md"), "utf8")).toBe(
@@ -42,4 +47,29 @@ describe("governance text contracts", () => {
       );
     }
   );
+
+  it.each(CONFIG_OVERRIDE_SKILLS)(
+    "%s resolves tracker/source through local config overrides",
+    skill => {
+      const content = readFileSync(
+        path.resolve("plugins/src/base/skills", skill, "SKILL.md"),
+        "utf8"
+      );
+
+      expect(content).toContain(".lisa.config.local.json");
+      expect(content).toContain('local_v=$(jq -r "$path // empty"');
+      expect(content).toContain('global_v=$(jq -r "$path // empty"');
+    }
+  );
+
+  it("checks tracker config before writing evidence usage", () => {
+    const content = readFileSync(
+      path.resolve("plugins/src/base/skills/lisa-tracker-evidence/SKILL.md"),
+      "utf8"
+    );
+
+    expect(content.indexOf("Missing / empty")).toBeLessThan(
+      content.indexOf("Before dispatching, update")
+    );
+  });
 });

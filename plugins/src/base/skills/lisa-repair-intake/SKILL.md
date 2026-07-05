@@ -136,8 +136,10 @@ orchestration is unavailable in this runtime, continue as the lead agent, and pr
 workflow's review, verification, and task-tracking obligations locally.
 
 Until the team is established, the first Codex teammate has been spawned, or the no-team
-fallback has been declared, do NOT call any of: `Agent`, `TaskCreate`, `Skill`, MCP tools
+fallback has been declared, do NOT call any of: `TaskCreate`, `Skill`, MCP tools
 (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`.
+The initial Claude `Agent` spawn described above is the only pre-team exception because it
+establishes the team.
 Scanning the queue, evaluating staleness, and dispatching per-item repairs — all of those are
 tasks for the team you are about to create, not for the lead session before orchestration
 exists.

@@ -49,7 +49,10 @@ describe("Codex lifecycle skill orchestration", () => {
       expect(content).toContain("multi_agent_v1.spawn_agent");
       expect(content).toContain("Claude Code >= 2.1.178");
       expect(content).toContain("first teammate");
-      expect(content).toContain("Agent");
+      expect(
+        content.includes("The initial Claude `Agent` spawn") &&
+          content.includes("only pre-team exception")
+      ).toBe(true);
       expect(content).not.toContain("Claude: use `TeamCreate`");
       expect(content).not.toContain("Use `TeamCreate` if available");
     }
@@ -62,6 +65,9 @@ describe("Codex lifecycle skill orchestration", () => {
 
       expect(content).toContain("Codex must not call `TeamCreate`");
       expect(content).toContain("multi_agent_v1.spawn_agent");
+      expect(content).toContain(
+        "Apart from the initial Claude `Agent` spawn that establishes the team"
+      );
       expect(content).not.toContain("Use `TeamCreate` if available");
     }
   );

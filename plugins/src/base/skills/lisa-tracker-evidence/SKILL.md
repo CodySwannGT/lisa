@@ -13,14 +13,14 @@ See the `config-resolution` rule for configuration and dispatch table.
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
-2. Before dispatching, update the generated evidence artifact through `lisa-usage-accounting` so the comment body / PR evidence section carries a direct `lisa-verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item's parentage or child refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if trustworthy runtime usage is unavailable, write `source: unavailable` with nullable token/cost fields instead of skipping the row.
-3. Dispatch:
-   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
+2. Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
+3. Before dispatching, update the generated evidence artifact through `lisa-usage-accounting` so the comment body / PR evidence section carries a direct `lisa-verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item's parentage or child refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if trustworthy runtime usage is unavailable, write `source: unavailable` with nullable token/cost fields instead of skipping the row.
+4. Dispatch:
    - `jira` → invoke `lisa-jira-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>`.
    - `github` → invoke `lisa-github-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<ISSUE_REF> <EVIDENCE_DIR> <PR_NUMBER>` where `ISSUE_REF` is `org/repo#<number>` or a GitHub issue URL.
    - `linear` → invoke `lisa-linear-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<IDENTIFIER> <EVIDENCE_DIR>` where `IDENTIFIER` is a Linear Issue identifier (e.g., `ENG-123`).
    - Anything else → stop and report `"Unknown tracker '<value>' in .lisa.config.json. Expected 'jira', 'github', or 'linear'."`
-4. Pass through the vendor skill's output.
+5. Pass through the vendor skill's output.
 
 ## Rules
 

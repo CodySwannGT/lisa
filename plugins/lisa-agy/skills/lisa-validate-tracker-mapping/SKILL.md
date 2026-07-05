@@ -10,7 +10,7 @@ allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "AskUserQuestion"]
 
 Lisa's lifecycle is driven by configured role → name mappings (`ready` → `"Ready"`, `done.staging` → `"On Stg"`, a GitHub `ready` build label → `"status:ready"`, a Notion `ticketed` value → `"Ticketed"`, …). When someone renames or deletes a status in JIRA, a label in GitHub/Linear, or a select option in Notion, the config silently points at a name that no longer resolves. The symptom is downstream: a build finishes but the completion transition can't be found, so the item stalls — exactly the kind of half-broken state `/lisa:repair-intake` then has to clean up. This skill catches that drift at the source: the config-to-live mapping itself.
 
-It is the audit/repair counterpart to `/lisa:setup-jira` (and the other `setup-*` skills): where `setup-*` *establishes* the mapping interactively, this skill *re-validates an existing mapping* against the live workflow and, on request, repairs the config to match.
+It is the audit/repair counterpart to `/lisa:setup:jira` (and the other `setup:*` skills): where `setup:*` *establishes* the mapping interactively, this skill *re-validates an existing mapping* against the live workflow and, on request, repairs the config to match.
 
 ## Confirmation policy
 
@@ -53,14 +53,20 @@ Skip (and note) any path with no `.lisa.config.json`.
 
 ## Step 2 — Load the project's mappings
 
-For each project, read `.lisa.config.json`:
+For each project, resolve the effective config from `.lisa.config.local.json` first, then `.lisa.config.json`:
 
 ```bash
-tracker=$(jq -r '.tracker // empty' .lisa.config.json)
-source=$(jq -r '.source // empty' .lisa.config.json)
+read_config() {
+  local path="$1" local_v global_v
+  local_v=$(jq -r "$path // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r "$path // empty" .lisa.config.json 2>/dev/null)
+  printf '%s\n' "${local_v:-$global_v}"
+}
+tracker=$(read_config '.tracker')
+source=$(read_config '.source')
 ```
 
-Resolve the **effective** role → name mapping using the same defaults `/lisa:intake` and `/lisa:setup-jira` use (config-resolution contract). Only keys present in config override the defaults; absent keys fall back to the documented default. Build the list of `(role, configured-name)` pairs to validate:
+Resolve the **effective** role → name mapping using the same defaults `/lisa:intake` and `/lisa:setup:jira` use (config-resolution contract). The tracker field is required; only vendor-specific role-name keys present in config override the defaults, and absent vendor-specific role-name keys fall back to the documented defaults. Build the list of `(role, configured-name)` pairs to validate:
 
 - **Missing / empty tracker**: report `UNRESOLVABLE` with setup guidance (`/lisa:setup:jira`, `/lisa:setup:github`, or `/lisa:setup:linear`). Do not default to JIRA.
 - **JIRA build workflow** (`jira.workflow`): `ready`, `claimed`, optional `review`, `blocked`, and each `done.<env>` (`dev` / `staging` / `production`). Defaults: `Ready`, `In Progress`, `Code Review`, `Blocked`, `{dev: "On Dev", staging: "On Stg", production: "Done"}`.
