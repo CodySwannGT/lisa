@@ -33,7 +33,8 @@ If `audio-direction.md` is absent, critique against general game-audio principle
 ## Audio Direction Review
 
 ### Verdict
-[ON STYLE / NEEDS WORK / SILENT GAPS] — one sentence
+[ON STYLE / NEEDS WORK / SILENT GAPS / PLACEHOLDER-BLOCKED] — one sentence
+(use PLACEHOLDER-BLOCKED when the game ships beeps/temp audio with no tracked debt)
 
 ### Audio identity check
 - Musical fit: ... | SFX language: ... | Mix priorities: ...
@@ -57,6 +58,7 @@ If `audio-direction.md` is absent, critique against general game-audio principle
 ## Rules
 
 - Map feedback coverage first — every meaningful action should be audible; flag silent state changes at top severity.
+- Treat temp/placeholder audio (synth beeps, un-sourced SFX) as tracked debt: acceptable only with a linked audio-debt issue, never as the finished mix; real audio must be sourced (CC0 or human-approved) and run through the audiosprite pipeline. Never frame "no audio assets" as zero-risk best practice.
 - Judge the mix by whether critical cues survive over music and ambience.
 - Tie issues to feedback clarity, mood, or fatigue, citing the audio-direction guideline you're applying.
 - Respect the baked audio pipeline and the mobile audio-unlock-on-first-gesture constraint; flag anything that breaks them.
