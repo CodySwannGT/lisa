@@ -30,6 +30,13 @@ The accompanying `expo` MCP server in `.mcp.json` points at Expo's official
 remote server (`https://mcp.expo.dev/mcp`), replacing the previously bundled
 third-party `expo-local-docs-mcp` stdio server.
 
+The `maestro` MCP server in `.mcp.json` runs the official Maestro CLI's
+built-in MCP server (`maestro mcp`, STDIO) — nothing is bundled; it requires
+the host machine's own Maestro CLI (with a Java runtime) and exposes device
+automation tools (list_devices, inspect_screen, take_screenshot, run flows,
+cheat_sheet, and Maestro Cloud variants) to coding agents. Servers whose CLI
+is absent simply fail to start without affecting the rest of the plugin.
+
 ### MIT License
 
 ```
