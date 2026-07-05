@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-create
-description: "Vendor-neutral wrapper for creating tickets/issues from code files or descriptions. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-create, lisa-github-create, or lisa-linear-create. Plans hierarchy structure (epic / story / sub-task), then delegates each individual write through the tracker-write shim."
+description: "Vendor-neutral wrapper for creating tickets/issues from code files or descriptions. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-create, lisa-github-create, or lisa-linear-create. Plans hierarchy structure (epic / story / sub-task), then delegates each individual write through the tracker-write shim."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -14,6 +14,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Dispatch:
+   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-create` with `$ARGUMENTS` verbatim.
    - `github` → invoke `lisa-github-create` with `$ARGUMENTS` verbatim.
    - `linear` → invoke `lisa-linear-create` with `$ARGUMENTS` verbatim.
