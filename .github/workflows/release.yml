@@ -511,6 +511,7 @@ jobs:
           case "${{ inputs.release_strategy }}" in
             "standard-version")
               VERSION=$(npx standard-version --dry-run | grep "tagging release" | awk '{print $4}')
+              VERSION="${VERSION#v}"
               ;;
             "semantic")
               if git log --format=%B -n 50 --no-merges | grep -qE "^(BREAKING CHANGE:|.*!:)"; then
