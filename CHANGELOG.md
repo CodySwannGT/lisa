@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.12](https://github.com/CodySwannGT/lisa/compare/vv2.189.11...v2.189.12) (2026-07-05)
+
+
+### Bug Fixes
+
+* make every skill/command frontmatter load under strict agent loaders ([3076176](https://github.com/CodySwannGT/lisa/commit/307617648584dac8c0db62cc7102791ffe41f149))
+
 ### [2.189.11](https://github.com/CodySwannGT/lisa/compare/vv2.189.10...v2.189.11) (2026-07-05)
 
 
