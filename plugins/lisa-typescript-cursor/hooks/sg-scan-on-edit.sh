@@ -67,5 +67,5 @@ if OUTPUT=$($PKG_MANAGER run sg:scan "$FILE_PATH" 2>&1); then
 else
     echo "ast-grep found issues in: $FILE_PATH" >&2
     echo "$OUTPUT" >&2
-    exit 1
+    exit 2
 fi

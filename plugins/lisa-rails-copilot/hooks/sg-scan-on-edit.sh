@@ -9,7 +9,7 @@
 #
 # Behavior:
 #   - Exit 0: no issues found or ast-grep not configured
-#   - Exit 1: issues found — blocks Claude so it fixes them immediately
+#   - Exit 2: issues found — blocks Claude so it fixes them immediately
 #
 # @see .claude/rules/verification.md "Self-Correction Loop" section
 # =============================================================================
@@ -70,5 +70,5 @@ if OUTPUT=$($SG_CMD scan "$FILE_PATH" 2>&1); then
 else
     echo "ast-grep found issues in: $FILE_PATH" >&2
     echo "$OUTPUT" >&2
-    exit 1
+    exit 2
 fi
