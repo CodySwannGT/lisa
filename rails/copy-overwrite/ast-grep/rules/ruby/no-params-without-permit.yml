@@ -1,0 +1,12 @@
+id: no-params-without-permit
+language: ruby
+severity: warning
+message: 'Direct params access without strong parameters. Use params.require(:model).permit(:attr1, :attr2) instead.'
+rule:
+  pattern: params[$KEY]
+  not:
+    inside:
+      any:
+        - pattern: params.require($$$)
+        - pattern: 'def $NAME_params'
+note: 'Define a private method like `def user_params; params.require(:user).permit(:name, :email); end`'

@@ -1,0 +1,11 @@
+id: no-update-columns
+language: ruby
+severity: warning
+message: 'update_column/update_columns bypasses validations and callbacks. Use update or update! instead.'
+rule:
+  any:
+    - pattern: $OBJ.update_column($$$)
+    - pattern: $OBJ.update_columns($$$)
+    - pattern: update_column($$$)
+    - pattern: update_columns($$$)
+note: 'If bypassing validations is intentional, add a code comment explaining why.'
