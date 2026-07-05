@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # Reads all .md files from the plugin's rules/ directory and injects them
-# into the session context via additionalContext.
+# into the session context via hookSpecificOutput.additionalContext.
 # Used by SessionStart and SubagentStart hooks.
 set -euo pipefail
+
+INPUT=$(cat 2>/dev/null || true)
+if [ -n "$INPUT" ]; then
+  HOOK_EVENT=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // "SessionStart"' 2>/dev/null || echo "SessionStart")
+else
+  HOOK_EVENT="SessionStart"
+fi
 
 RULES_DIR="${CLAUDE_PLUGIN_ROOT}/rules"
 
@@ -19,4 +26,4 @@ done
 [ -n "$CONTEXT" ] || exit 0
 
 # Output as JSON — jq handles escaping
-jq -n --arg ctx "$CONTEXT" '{"additionalContext": $ctx}'
+jq -n --arg event "$HOOK_EVENT" --arg ctx "$CONTEXT" '{"hookSpecificOutput": {"hookEventName": $event, "additionalContext": $ctx}}'
