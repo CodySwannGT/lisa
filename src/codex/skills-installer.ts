@@ -30,6 +30,7 @@ import {
   type LisaCommandSource,
   discoverBundledSkills,
   discoverLisaCommands,
+  isHarnessVariantPlugin,
   loadSkillDenylist,
 } from "../core/lisa-skill-sources.js";
 import { convertCommandToSkill } from "./command-skill-transformer.js";
@@ -92,7 +93,11 @@ export async function installSkills(
   );
 
   // Step 1: bundled skills
-  const bundled = await discoverBundledSkills(lisaDir, denylistedSkills);
+  const bundled = await discoverBundledSkills(
+    lisaDir,
+    denylistedSkills,
+    pluginName => !isHarnessVariantPlugin(pluginName)
+  );
   const bundledInstalls = await Promise.all(
     bundled.map(source => copyBundledSkill(source, skillsDir))
   );
@@ -106,9 +111,12 @@ export async function installSkills(
   // owns the target name — e.g. `lisa-implement` ships as a bundled skill, so
   // the thin command wrapper would only duplicate it on Codex).
   const bundledSkillNames = new Set(bundled.map(source => source.skillName));
-  const commandSkills = (await discoverLisaCommands(lisaDir)).filter(
-    cmd => !bundledSkillNames.has(cmd.skillName)
-  );
+  const commandSkills = (
+    await discoverLisaCommands(
+      lisaDir,
+      pluginName => !isHarnessVariantPlugin(pluginName)
+    )
+  ).filter(cmd => !bundledSkillNames.has(cmd.skillName));
   const commandInstalls = await Promise.all(
     commandSkills.map(cmd => emitCommandAsSkill(cmd, skillsDir))
   );

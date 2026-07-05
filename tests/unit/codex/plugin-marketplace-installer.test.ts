@@ -36,7 +36,7 @@ describe("codex/plugin-marketplace-installer", () => {
   it("creates a repo-local marketplace with Lisa plugin entries", async () => {
     const result = await installCodexMarketplace(lisaDir, destDir);
     expect(result.created).toBe(true);
-    expect(result.pluginEntries).toBe(9);
+    expect(result.pluginEntries).toBe(10);
 
     const marketplacePath = path.join(destDir, CODEX_MARKETPLACE_PATH);
     const parsed = JSON.parse(await fs.readFile(marketplacePath, "utf8"));
@@ -53,6 +53,7 @@ describe("codex/plugin-marketplace-installer", () => {
       "lisa-phaser",
       "lisa-rails",
       "lisa-wiki",
+      "lisa-openclaw",
     ]);
     expect(parsed.plugins[0].source.path).toBe(
       "./node_modules/@codyswann/lisa/plugins/lisa"
@@ -75,6 +76,7 @@ describe("codex/plugin-marketplace-installer", () => {
       "lisa-phaser": "Coding",
       "lisa-rails": "Coding",
       "lisa-wiki": "Productivity",
+      "lisa-openclaw": "Productivity",
     });
   });
 

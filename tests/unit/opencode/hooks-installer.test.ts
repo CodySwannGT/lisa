@@ -10,7 +10,9 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  OPENCODE_EAGER_RULES_INSTRUCTION,
   OPENCODE_CONFIG_FILENAME,
+  OPENCODE_LISA_RULES_SUBDIR,
   OPENCODE_PLUGIN_SUBDIR,
   installHooks,
   listInstalledPluginFiles,
@@ -25,16 +27,23 @@ const SUPPRESS = "lisa-block-suppress-directives.ts";
 const SGSCAN = "lisa-sg-scan-on-edit.ts";
 const MIGRATION = "lisa-block-migration-edits.ts";
 const RUBOCOP = "lisa-rubocop-on-edit.ts";
+const BASE_RULES = "base-rules.md";
 
 describe("opencode/hooks-installer", () => {
+  let tempDir: string;
+  let lisaDir: string;
   let destDir: string;
 
   beforeEach(async () => {
-    destDir = await createTempDir();
+    tempDir = await createTempDir();
+    lisaDir = path.join(tempDir, "lisa");
+    destDir = path.join(tempDir, "project");
+    await fs.ensureDir(lisaDir);
+    await fs.ensureDir(destDir);
   });
 
   afterEach(async () => {
-    await cleanupTempDir(destDir);
+    await cleanupTempDir(tempDir);
   });
 
   /**
@@ -59,9 +68,31 @@ describe("opencode/hooks-installer", () => {
     return permission["bash"] as Record<string, string>;
   }
 
+  /**
+   * Write a fake Lisa rule file under plugins/<plugin>/rules/<relPath>.
+   * @param pluginName - Plugin directory name.
+   * @param relPath - Path under rules/ (for example eager/base-rules.md).
+   * @param body - Rule Markdown body.
+   */
+  async function seedRule(
+    pluginName: string,
+    relPath: string,
+    body: string
+  ): Promise<void> {
+    const filePath = path.join(
+      lisaDir,
+      "plugins",
+      pluginName,
+      "rules",
+      relPath
+    );
+    await fs.ensureDir(path.dirname(filePath));
+    await fs.writeFile(filePath, body, "utf8");
+  }
+
   describe("opencode.json permission.bash (block-no-verify)", () => {
     it("creates opencode.json with deny rules when absent", async () => {
-      const result = await installHooks(destDir, ["typescript"], []);
+      const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       expect(result.configCreated).toBe(true);
       const bash = await readBash();
       expect(bash["*--no-verify*"]).toBe("deny");
@@ -70,14 +101,36 @@ describe("opencode/hooks-installer", () => {
       expect(bash["*core.hooksPath*/dev/null*"]).toBe("deny");
     });
 
+    it("adds Lisa eager rules to OpenCode instructions", async () => {
+      await installHooks(lisaDir, destDir, [], []);
+      const config = await readConfig();
+      expect(config["instructions"]).toContain(
+        OPENCODE_EAGER_RULES_INSTRUCTION
+      );
+    });
+
+    it("preserves host instructions while adding Lisa eager rules", async () => {
+      await fs.writeFile(
+        path.join(destDir, OPENCODE_CONFIG_FILENAME),
+        JSON.stringify({ instructions: ["docs/standards.md"] }),
+        "utf8"
+      );
+      await installHooks(lisaDir, destDir, [], []);
+      const config = await readConfig();
+      expect(config["instructions"]).toEqual([
+        "docs/standards.md",
+        OPENCODE_EAGER_RULES_INSTRUCTION,
+      ]);
+    });
+
     it("stamps the $schema on a freshly created config", async () => {
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const config = await readConfig();
       expect(config["$schema"]).toBe("https://opencode.ai/config.json");
     });
 
     it("writes the config with a trailing newline", async () => {
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const raw = await fs.readFile(
         path.join(destDir, OPENCODE_CONFIG_FILENAME),
         "utf8"
@@ -95,7 +148,7 @@ describe("opencode/hooks-installer", () => {
         }),
         "utf8"
       );
-      const result = await installHooks(destDir, [], []);
+      const result = await installHooks(lisaDir, destDir, [], []);
       expect(result.configCreated).toBe(false);
       const config = await readConfig();
       expect(config["theme"]).toBe("tokyonight");
@@ -113,19 +166,19 @@ describe("opencode/hooks-installer", () => {
         JSON.stringify({ permission: { bash: "allow" } }),
         "utf8"
       );
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const bash = await readBash();
       expect(bash["*"]).toBe("allow");
       expect(bash["*--no-verify*"]).toBe("deny");
     });
 
     it("is idempotent across repeated installs", async () => {
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const first = await fs.readFile(
         path.join(destDir, OPENCODE_CONFIG_FILENAME),
         "utf8"
       );
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const second = await fs.readFile(
         path.join(destDir, OPENCODE_CONFIG_FILENAME),
         "utf8"
@@ -139,11 +192,11 @@ describe("opencode/hooks-installer", () => {
         "{ not json",
         "utf8"
       );
-      await expect(installHooks(destDir, [], [])).rejects.toThrow();
+      await expect(installHooks(lisaDir, destDir, [], [])).rejects.toThrow();
     });
 
     it("does not list opencode.json in managedFiles", async () => {
-      const result = await installHooks(destDir, ["typescript"], []);
+      const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       expect(result.managedFiles).not.toContain(OPENCODE_CONFIG_FILENAME);
       expect(
         result.managedFiles.every(f =>
@@ -155,40 +208,73 @@ describe("opencode/hooks-installer", () => {
 
   describe("plugin emission + project-type gating", () => {
     it("always ships the universal session-bootstrap plugin", async () => {
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(files).toContain(SESSION);
     });
 
+    it("mirrors eager and reference rule files for OpenCode instructions", async () => {
+      await seedRule(
+        "lisa",
+        path.join("eager", BASE_RULES),
+        "Always do the thing.\n"
+      );
+      await seedRule(
+        "lisa",
+        path.join("reference", BASE_RULES),
+        "Detailed body.\n"
+      );
+      const result = await installHooks(lisaDir, destDir, [], []);
+
+      expect(result.managedFiles).toContain(
+        path.join(OPENCODE_LISA_RULES_SUBDIR, "eager", BASE_RULES)
+      );
+      expect(result.managedFiles).toContain(
+        path.join(OPENCODE_LISA_RULES_SUBDIR, "reference", BASE_RULES)
+      );
+      expect(
+        await fs.readFile(
+          path.join(
+            destDir,
+            OPENCODE_CONFIG_DIR,
+            OPENCODE_LISA_RULES_SUBDIR,
+            "eager",
+            BASE_RULES
+          ),
+          "utf8"
+        )
+      ).toContain("Always do the thing.");
+    });
+
     it("ships the typescript guards for a typescript project", async () => {
-      await installHooks(destDir, ["typescript"], []);
+      await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(files).toEqual([SUPPRESS, LINT, SESSION, SGSCAN]);
     });
 
     it("adds the migration guard for a nestjs project", async () => {
       // detectedTypes arrive already expanded (nestjs implies typescript).
-      await installHooks(destDir, ["typescript", "nestjs"], []);
+      await installHooks(lisaDir, destDir, ["typescript", "nestjs"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(files).toContain(MIGRATION);
       expect(files).toContain(LINT);
     });
 
     it("ships the rails guards for a rails project", async () => {
-      await installHooks(destDir, ["rails"], []);
+      await installHooks(lisaDir, destDir, ["rails"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(files).toEqual([RUBOCOP, SESSION, SGSCAN]);
     });
 
     it("does not ship typescript guards to a rails-only project", async () => {
-      await installHooks(destDir, ["rails"], []);
+      await installHooks(lisaDir, destDir, ["rails"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(files).not.toContain(LINT);
       expect(files).not.toContain(SUPPRESS);
     });
 
     it("copies real plugin source (not an empty stub)", async () => {
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const body = await fs.readFile(
         path.join(
           destDir,
@@ -202,7 +288,7 @@ describe("opencode/hooks-installer", () => {
     });
 
     it("session bootstrap uses strict https?:// URL-scheme check (not loose startsWith)", async () => {
-      await installHooks(destDir, [], []);
+      await installHooks(lisaDir, destDir, [], []);
       const body = await fs.readFile(
         path.join(
           destDir,
@@ -220,7 +306,7 @@ describe("opencode/hooks-installer", () => {
     });
 
     it("reports pluginCount equal to the emitted file count", async () => {
-      const result = await installHooks(destDir, ["typescript"], []);
+      const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
       expect(result.managedFiles).toHaveLength(files.length);
@@ -230,14 +316,19 @@ describe("opencode/hooks-installer", () => {
   describe("stale plugin cleanup", () => {
     it("deletes a Lisa plugin no longer shipped this run", async () => {
       // First install as a nestjs project (ships the migration guard).
-      await installHooks(destDir, ["typescript", "nestjs"], []);
+      await installHooks(lisaDir, destDir, ["typescript", "nestjs"], []);
       const previous = (await listInstalledPluginFiles(destDir)).map(name =>
         path.join(OPENCODE_PLUGIN_SUBDIR, name)
       );
       expect(previous.some(f => f.endsWith(MIGRATION))).toBe(true);
 
       // Re-install as a plain typescript project — migration guard goes stale.
-      const result = await installHooks(destDir, ["typescript"], previous);
+      const result = await installHooks(
+        lisaDir,
+        destDir,
+        ["typescript"],
+        previous
+      );
       expect(result.deleted).toContain(MIGRATION);
       const files = await listInstalledPluginFiles(destDir);
       expect(files).not.toContain(MIGRATION);
@@ -259,6 +350,7 @@ describe("opencode/hooks-installer", () => {
       // Even if a stale-looking host entry is in the manifest, only `lisa-`
       // files are eligible for deletion.
       await installHooks(
+        lisaDir,
         destDir,
         ["typescript"],
         [path.join(OPENCODE_PLUGIN_SUBDIR, hostPlugin)]

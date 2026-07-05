@@ -123,17 +123,20 @@ export async function loadSkillDenylist(
  * the name sorts.
  * @param lisaDir - Absolute path to the Lisa repo / installed package.
  * @param denylistedSkills - Skill names that must not ship to host projects.
+ * @param pluginFilter - Optional predicate to restrict which plugin directories
+ *   are walked. Defaults to including every plugin.
  * @returns De-duplicated bundled-skill sources, sorted by skill name.
  */
 export async function discoverBundledSkills(
   lisaDir: string,
-  denylistedSkills: ReadonlySet<string>
+  denylistedSkills: ReadonlySet<string>,
+  pluginFilter?: PluginFilter
 ): Promise<readonly BundledSkillSource[]> {
   const pluginsDir = path.join(lisaDir, "plugins");
   if (!(await fse.pathExists(pluginsDir))) {
     return [];
   }
-  const plugins = await orderedPluginNames(pluginsDir);
+  const plugins = await orderedPluginNames(pluginsDir, pluginFilter);
   const candidatesByPlugin = await Promise.all(
     plugins.map(pluginName => discoverSkillsInPlugin(pluginsDir, pluginName))
   );
