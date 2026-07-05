@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.18](https://github.com/CodySwannGT/lisa/compare/vv2.189.17...v2.189.18) (2026-07-05)
+
+
+### Bug Fixes
+
+* normalize release tag version output ([ec5caa6](https://github.com/CodySwannGT/lisa/commit/ec5caa613b048b38dc8eebb27dba0434f50cdcb7))
+
 ### [2.189.17](https://github.com/CodySwannGT/lisa/compare/vv2.189.16...v2.189.17) (2026-07-05)
 
 
