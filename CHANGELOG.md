@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.19](https://github.com/CodySwannGT/lisa/compare/v2.189.18...v2.189.19) (2026-07-05)
+
+
+### Bug Fixes
+
+* harden failure workflow inputs ([e57a95d](https://github.com/CodySwannGT/lisa/commit/e57a95d63c4cd3290c12132b6630f74c9510eb48))
+
 ### [2.189.18](https://github.com/CodySwannGT/lisa/compare/vv2.189.17...v2.189.18) (2026-07-05)
 
 
