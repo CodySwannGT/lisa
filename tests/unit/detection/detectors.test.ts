@@ -8,6 +8,7 @@ import { CDKDetector } from "../../../src/detection/detectors/cdk.js";
 import { HarperFabricDetector } from "../../../src/detection/detectors/harper-fabric.js";
 import { PhaserDetector } from "../../../src/detection/detectors/phaser.js";
 import { RailsDetector } from "../../../src/detection/detectors/rails.js";
+import { PROJECT_TYPE_ORDER } from "../../../src/core/config.js";
 import { DetectorRegistry } from "../../../src/detection/index.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
@@ -472,6 +473,22 @@ describe("DetectorRegistry", () => {
     const types = await registry.detectAll(tempDir);
 
     expect(types).toContain(RAILS_TYPE);
+  });
+});
+
+describe("published project type templates", () => {
+  it("includes every supported project type template directory in package files", async () => {
+    const packageJson = await fs.readJson(
+      path.join(process.cwd(), PACKAGE_JSON)
+    );
+    const packageFiles = new Set(packageJson.files);
+
+    for (const projectType of PROJECT_TYPE_ORDER) {
+      expect(await fs.pathExists(path.join(process.cwd(), projectType))).toBe(
+        true
+      );
+      expect(packageFiles.has(projectType)).toBe(true);
+    }
   });
 });
 /* eslint-enable max-lines -- Re-enable after detector matrix */
