@@ -334,6 +334,24 @@ describe("release and deploy workflows", () => {
     );
   });
 
+  it("normalizes standard-version output before composing release tags", () => {
+    const steps = releaseWorkflow.jobs.version.steps ?? [];
+    const determineVersion = steps.find(s => s.name === "Determine Version");
+    const run = determineVersion?.run ?? "";
+
+    expect(determineVersion).toBeDefined();
+    expect(run).toContain("awk '{print $4}'");
+    expect(run).toContain('VERSION="${VERSION#v}"');
+
+    const stripPrefixIndex = run.indexOf('VERSION="${VERSION#v}"');
+    const versionOutputIndex = run.indexOf('echo "version=$VERSION"');
+    const tagOutputIndex = run.indexOf('echo "tag=v$VERSION"');
+
+    expect(stripPrefixIndex).toBeGreaterThan(-1);
+    expect(versionOutputIndex).toBeGreaterThan(stripPrefixIndex);
+    expect(tagOutputIndex).toBeGreaterThan(stripPrefixIndex);
+  });
+
   it("fails the job when GitHub release creation returns an API error", () => {
     const steps = releaseWorkflow.jobs.github_release.steps ?? [];
     const createRelease = steps.find(s => s.name === "Create GitHub Release");
