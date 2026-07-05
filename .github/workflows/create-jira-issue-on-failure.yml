@@ -94,6 +94,8 @@ jobs:
 
       - name: 🔖 Create Jira Issue
         id: create_jira_issue
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'N/A' }}
         run: |
           cd "${{ inputs.working_directory || '.' }}"
 
@@ -103,9 +105,8 @@ jobs:
           ISSUE_TYPE="${{ inputs.issue_type }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          # Get commit message, handling special characters properly
-          # Remove leading/trailing whitespace and escape for shell
-          COMMIT_MESSAGE="${{ github.event.head_commit.message || 'N/A' }}"
+          # Get commit message from env so GitHub expressions are never expanded inside shell.
+          COMMIT_MESSAGE="${COMMIT_MESSAGE:-N/A}"
 
           # Create summary with failure details
           if [ "$FAILED_JOB" != "Unknown" ]; then
