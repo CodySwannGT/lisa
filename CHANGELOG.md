@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.20](https://github.com/CodySwannGT/lisa/compare/v2.189.19...v2.189.20) (2026-07-05)
+
+
+### Bug Fixes
+
+* handle pnpm postinstall script paths ([bdb8d68](https://github.com/CodySwannGT/lisa/commit/bdb8d68f46d632452053c0b4226c8fcba1873405))
+* make postinstall root detection project-local ([2728986](https://github.com/CodySwannGT/lisa/commit/27289865e8e65d39a2ee39f990f3656d7e53cf52))
+
 ### [2.189.19](https://github.com/CodySwannGT/lisa/compare/v2.189.18...v2.189.19) (2026-07-05)
 
 
