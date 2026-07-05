@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.13](https://github.com/CodySwannGT/lisa/compare/vv2.189.12...v2.189.13) (2026-07-05)
+
+
+### Bug Fixes
+
+* correct Codex and OpenCode plugin fanout ([2ac28b4](https://github.com/CodySwannGT/lisa/commit/2ac28b493adbc921af101f6c30f5ef8ab0d04da6))
+
 ### [2.189.12](https://github.com/CodySwannGT/lisa/compare/vv2.189.11...v2.189.12) (2026-07-05)
 
 
