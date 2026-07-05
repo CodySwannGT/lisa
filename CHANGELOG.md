@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.190.5](https://github.com/CodySwannGT/lisa/compare/v2.190.4...v2.190.5) (2026-07-05)
+
+
+### Bug Fixes
+
+* widen plugins sync trigger paths ([a9e89a1](https://github.com/CodySwannGT/lisa/commit/a9e89a18a68ff2e3fae7a27272080b916b0f140c))
+
+### [2.190.4](https://github.com/CodySwannGT/lisa/compare/v2.190.3...v2.190.4) (2026-07-05)
+
+
+### Bug Fixes
+
+* catch plugin artifact additions and deletions ([bf47fba](https://github.com/CodySwannGT/lisa/commit/bf47fbaeea83476161c88786870590c0ce361008))
+
 ### [2.190.3](https://github.com/CodySwannGT/lisa/compare/v2.190.2...v2.190.3) (2026-07-05)
 
 
