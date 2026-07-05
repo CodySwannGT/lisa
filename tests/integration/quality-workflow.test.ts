@@ -280,7 +280,8 @@ describe("quality.yml reusable workflow", () => {
 
       expect(scan).toBeDefined();
       expect(scan?.uses).toBeUndefined();
-      expect(scan?.run).toContain("ggshield secret scan ci --show-secrets");
+      expect(scan?.run).toContain("ggshield secret scan ci");
+      expect(scan?.run).not.toContain("--show-secrets");
       expect(scan?.run).not.toContain("--all-policies");
       expect(scan?.run).toContain("no more API calls available");
       expect(scan?.run).toContain('exit "$scan_status"');

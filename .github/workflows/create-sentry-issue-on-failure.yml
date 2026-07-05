@@ -94,6 +94,8 @@ jobs:
 
       - name: 🔴 Create Sentry Issue
         id: create_sentry_issue
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'N/A' }}
         run: |
           cd "${{ inputs.working_directory || '.' }}"
 
@@ -104,8 +106,8 @@ jobs:
           LEVEL="${{ inputs.level }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          # Get commit message, handling special characters properly
-          COMMIT_MESSAGE="${{ github.event.head_commit.message || 'N/A' }}"
+          # Get commit message from env so GitHub expressions are never expanded inside shell.
+          COMMIT_MESSAGE="${COMMIT_MESSAGE:-N/A}"
 
           # Create error message
           if [ "$FAILED_JOB" != "Unknown" ]; then
