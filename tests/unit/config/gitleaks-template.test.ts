@@ -19,7 +19,12 @@ describe("gitleaks allowlist templates", () => {
 
   it("ships shared Lisa gitleaks entries in a local companion file", async () => {
     const localIgnore = await fs.readFile(
-      path.join(repoRoot, "typescript", "create-only", ".gitleaksignore.local"),
+      path.join(
+        repoRoot,
+        "typescript",
+        "copy-overwrite",
+        ".gitleaksignore.local"
+      ),
       "utf8"
     );
 
