@@ -133,19 +133,47 @@ function mergeJsonObjects(
 
 /**
  * Remove duplicate JSON array entries while preserving first occurrence order.
+ * Uses structural equality so key order does not affect deduplication.
  * @param items Array entries to deduplicate
  * @returns Deduplicated array
  */
 function dedupeArray(items: unknown[]): unknown[] {
   return items.reduce<unknown[]>(
     (deduped, item) =>
-      deduped.some(
-        existing => JSON.stringify(existing) === JSON.stringify(item)
-      )
+      deduped.some(existing => isDeepEqualJsonValue(existing, item))
         ? deduped
         : [...deduped, cloneJsonValue(item)],
     []
   );
+}
+
+/**
+ * Compare two JSON-compatible values for structural equality, independent of
+ * object key insertion order.
+ * @param a First value
+ * @param b Second value
+ * @returns True when the values are structurally equal
+ */
+function isDeepEqualJsonValue(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return (
+      a.length === b.length &&
+      a.every((entry, index) => isDeepEqualJsonValue(entry, b[index]))
+    );
+  }
+
+  if (isJsonObject(a) && isJsonObject(b)) {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    return (
+      aKeys.length === bKeys.length &&
+      aKeys.every(
+        key => Object.hasOwn(b, key) && isDeepEqualJsonValue(a[key], b[key])
+      )
+    );
+  }
+
+  return a === b;
 }
 
 /**
