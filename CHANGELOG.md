@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.191.0](https://github.com/CodySwannGT/lisa/compare/v2.190.5...v2.191.0) (2026-07-05)
+
+
+### Features
+
+* **expo:** add official Maestro MCP server to the expo plugin ([b12d5d3](https://github.com/CodySwannGT/lisa/commit/b12d5d3ec90a8852c5794e7632c47821ed6fc133))
+
+
+### Bug Fixes
+
+* **postinstall:** skip hyphenated npm_package_* names in env sanitize ([b1740d5](https://github.com/CodySwannGT/lisa/commit/b1740d528786a7c3819db998a3d876bfc7efe502))
+
 ### [2.190.5](https://github.com/CodySwannGT/lisa/compare/v2.190.4...v2.190.5) (2026-07-05)
 
 
