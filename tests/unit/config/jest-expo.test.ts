@@ -19,9 +19,7 @@ describe("jest.expo", () => {
 
       expect(template).toContain('from "@codyswann/lisa/jest/expo"');
       expect(template).toContain("selectExpoJestResolver");
-      expect(template).not.toContain(
-        'resolver: "react-native/jest/resolver.js"'
-      );
+      expect(template).not.toContain(LEGACY_RESOLVER);
     });
   });
 
