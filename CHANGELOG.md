@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.23](https://github.com/CodySwannGT/lisa/compare/v2.189.22...v2.189.23) (2026-07-05)
+
+
+### Bug Fixes
+
+* install husky after successful prepare build ([b5f459e](https://github.com/CodySwannGT/lisa/commit/b5f459ef160be6c781fa976df1b6bddc76323f1c))
+
 ### [2.189.22](https://github.com/CodySwannGT/lisa/compare/v2.189.21...v2.189.22) (2026-07-05)
 
 
