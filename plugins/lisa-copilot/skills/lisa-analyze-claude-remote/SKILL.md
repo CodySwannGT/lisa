@@ -107,13 +107,15 @@ Group the findings as:
    driven by config, not by what the scan happens to find. Resolve the active integrations first:
 
    ```bash
-   TRACKER=$(jq -r '.tracker // "jira"' .lisa.config.json 2>/dev/null)   # tickets: jira | github | linear
+   TRACKER=$(jq -r '.tracker // empty' .lisa.config.json 2>/dev/null)    # tickets: jira | github | linear
    SOURCE=$(jq -r '.source // empty'    .lisa.config.json 2>/dev/null)   # PRDs:   notion | confluence | github | linear
    ```
    (Apply `config-resolution`: `.lisa.config.local.json` overrides `.lisa.config.json`.) For the
    **active** `tracker` and the **active** `source` — and only those — emit a `REQUIRED` credential
    finding using the **Credential reference** table below. For every integration that is *not* the
    active tracker/source, its credentials are `OPTIONAL` (dormant) — never mark them `REQUIRED`.
+   If `tracker` is missing, report a `GAP` for build-ticket flows with setup guidance instead of
+   assuming JIRA.
 
    Two non-negotiable headless rules govern which substrate a routine can actually use:
 

@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-read
-description: "Vendor-neutral wrapper for fetching the full scope of a ticket/issue and its related graph. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-read-ticket, lisa-github-read-issue, or lisa-linear-read-issue. Returns a consolidated context bundle so downstream agents never act on a single ticket in isolation."
+description: "Vendor-neutral wrapper for fetching the full scope of a ticket/issue and its related graph. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-read-ticket, lisa-github-read-issue, or lisa-linear-read-issue. Returns a consolidated context bundle so downstream agents never act on a single ticket in isolation."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -14,6 +14,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Dispatch:
+   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-read-ticket` with `$ARGUMENTS` verbatim. The argument is a JIRA key (e.g., `PROJ-123`).
    - `github` → invoke `lisa-github-read-issue` with `$ARGUMENTS` verbatim. The argument is `org/repo#<number>` or a full GitHub issue URL.
    - `linear` → invoke `lisa-linear-read-issue` with `$ARGUMENTS` verbatim. The argument is a Linear identifier (e.g., `ENG-123`) or a project URL.

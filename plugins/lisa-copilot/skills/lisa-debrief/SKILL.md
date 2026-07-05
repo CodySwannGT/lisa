@@ -1,7 +1,7 @@
 ---
 name: lisa-debrief
 description: "Run the Debrief flow over a shipped initiative. Input: a PRD URL (Notion / Confluence / Linear / GitHub Issue / file), a JIRA epic key, or a GitHub epic issue URL. Output: a triage-ready learnings document covering every work item in the initiative — edge cases, gotchas, process friction, tooling gaps, convention drift — each with structured evidence and a human-disposition field. Persistence is deferred to lisa-debrief-apply."
-allowed-tools: ["Skill", "ToolSearch", "TeamCreate", "Bash", "Read", "Glob", "Grep"]
+allowed-tools: ["Skill", "ToolSearch", "Bash", "Read", "Glob", "Grep"]
 ---
 
 # Debrief: $ARGUMENTS
@@ -14,7 +14,7 @@ If you are NOT already operating inside an agent team (no prior successful team-
 
 Use the team tool for the current runtime:
 
-- Claude: use `TeamCreate`. If `TeamCreate` has not been loaded yet, first use `ToolSearch` with `query: "select:TeamCreate"` to load its schema.
+- Claude Code >= 2.1.178: there is no `TeamCreate` tool; the team forms automatically when you spawn the first teammate with `Agent`. That first spawn should be the bounded specialist needed to start this flow. On older Claude Code that still exposes `TeamCreate`, the explicit team-create path is also acceptable.
 - Codex: do not call `TeamCreate`; Codex does not expose that Claude tool. Use `tool_search` with a query like `multi-agent tools` to load `multi_agent_v1`, then use `multi_agent_v1.spawn_agent` for teammate delegation. Treat the first successful `spawn_agent` call as establishing team orchestration.
 - Other runtimes: use the current runtime's tool-discovery mechanism to discover and call the appropriate multi-agent/team tool.
 
