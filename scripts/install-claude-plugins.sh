@@ -7,6 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
 case "$PACKAGE_ROOT" in
+  */node_modules/.pnpm/*/node_modules/@codyswann/lisa)
+    PROJECT_ROOT="${PACKAGE_ROOT%%/node_modules/.pnpm/*}"
+    ;;
   */node_modules/@codyswann/lisa)
     PROJECT_ROOT="$(cd "$PACKAGE_ROOT/../../.." && pwd -P)"
     ;;
