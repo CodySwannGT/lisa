@@ -24,11 +24,12 @@ fi
 
 bun run build:plugins >/dev/null
 
-if ! git diff --quiet -- plugins/; then
+plugin_status="$(git status --porcelain -- plugins/)"
+if [ -n "$plugin_status" ]; then
   echo "✗ Generated plugin artifacts are out of sync with plugins/src." >&2
   echo "" >&2
   echo "  Files that changed after rebuilding from source:" >&2
-  git --no-pager diff --name-only -- plugins/ | sed 's/^/    /' >&2
+  printf "%s\n" "$plugin_status" | sed 's/^/    /' >&2
   echo "" >&2
   echo "  plugins/lisa and plugins/lisa-* are GENERATED from plugins/src by" >&2
   echo "  'bun run build:plugins'. Never edit them directly — the next build" >&2
