@@ -1106,6 +1106,24 @@ describe("PackageLisaStrategy", () => {
       ).toBeUndefined();
     });
 
+    it("removes the inherited TypeScript Vitest mutation runner for Expo", () => {
+      const template = readExpoTemplate() as ReturnType<
+        typeof readExpoTemplate
+      > & {
+        remove: { devDependencies: string[] };
+      };
+
+      expect(
+        template.force.devDependencies["@stryker-mutator/jest-runner"]
+      ).toBeDefined();
+      expect(
+        template.force.devDependencies["@stryker-mutator/vitest-runner"]
+      ).toBeUndefined();
+      expect(template.remove.devDependencies).toContain(
+        "@stryker-mutator/vitest-runner"
+      );
+    });
+
     it("keeps non-SDK-coupled tooling/governance in force", () => {
       const template = readExpoTemplate();
       // Pure JS tooling stays forced (governance-critical).
@@ -1215,6 +1233,33 @@ describe("PackageLisaStrategy", () => {
       // Forced tooling wins over the project's pin.
       expect(content.dependencies.zod).toBe("^4.3.5");
       expect(content.devDependencies.oxlint).toBe("^1.62.0");
+    });
+
+    it("removes the inherited Vitest mutation runner from Expo projects", async () => {
+      await createExpoProject(projectDir);
+      const destPath = path.join(projectDir, "package.json");
+      await fs.writeJson(destPath, {
+        dependencies: { expo: "~56.0.0" },
+        devDependencies: {
+          "@stryker-mutator/vitest-runner": "^9.0.0",
+        },
+        scripts: {},
+      });
+
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(
+        content.devDependencies["@stryker-mutator/vitest-runner"]
+      ).toBeUndefined();
+      expect(content.devDependencies["@stryker-mutator/jest-runner"]).toBe(
+        "^9.0.0"
+      );
     });
   });
 
