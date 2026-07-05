@@ -55,11 +55,18 @@ tools for scenes/assets/tilemaps) is defined for this project type but
    and create no objects/tweens/timers inside `update()`**; atlas everything; use
    `BitmapText` for high-churn text; use `SpriteGPULayer` / `TilemapGPULayer` for
    mass rendering. See the official `game-object-components` skill.
-7. **Baked-in asset pipeline.** Raw art in `assets/src` is packed at build time
-   (free-tex-packer-core atlases, audiosprite, BMFont) into `public/assets`, and
-   a codegen step emits typed keys to `src/assets.ts` so a missing or renamed key
-   is a **compile error**. No raw string asset / scene / event keys anywhere.
-   See `phaser-asset-pipeline`.
+7. **Baked-in asset pipeline with REAL art.** Raw art in `assets/src` is packed
+   at build time (free-tex-packer-core atlases, audiosprite, BMFont) into
+   `public/assets`, and a codegen step emits typed keys to `src/assets.ts` so a
+   missing or renamed key is a **compile error**. No raw string asset / scene /
+   event keys anywhere. The art itself must be **real and licensed** — sourced
+   per `phaser-asset-sourcing` (CC0-or-equivalent only, with an exact license
+   quote + evidence URL in `assets/LICENSES.md` and committed provenance).
+   Procedural `generateTexture` placeholders are **tracked art debt**: a scene
+   may ship them **only** with a linked art-debt issue, never as the finished
+   state and never described as "zero-asset best practice." Characters ship real
+   idle+walk animation, not static frames. See `phaser-asset-sourcing` and
+   `phaser-asset-pipeline`.
 8. **PWA on by default** via `vite-plugin-pwa` (`registerType: "autoUpdate"`,
    `globPatterns` extended to cover game assets). See `phaser-build-deploy`.
 9. **Cross-cutting services are scaffolded** in `src/services/**`: SoundService
