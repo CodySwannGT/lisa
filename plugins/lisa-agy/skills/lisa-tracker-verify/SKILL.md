@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-verify
-description: "Vendor-neutral wrapper for the post-write verification gate. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-verify, lisa-github-verify, or lisa-linear-verify. Fetches the live ticket/issue and runs the validator gates against the stored state — catches anything dropped or reformatted on write. Read-only."
+description: "Vendor-neutral wrapper for the post-write verification gate. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-verify, lisa-github-verify, or lisa-linear-verify. Fetches the live ticket/issue and runs the validator gates against the stored state — catches anything dropped or reformatted on write. Read-only."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -14,6 +14,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Dispatch:
+   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-verify` with `$ARGUMENTS` verbatim.
    - `github` → invoke `lisa-github-verify` with `$ARGUMENTS` verbatim.
    - `linear` → invoke `lisa-linear-verify` with `$ARGUMENTS` verbatim.

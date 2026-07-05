@@ -56,12 +56,13 @@ Skip (and note) any path with no `.lisa.config.json`.
 For each project, read `.lisa.config.json`:
 
 ```bash
-tracker=$(jq -r '.tracker // "jira"' .lisa.config.json)
+tracker=$(jq -r '.tracker // empty' .lisa.config.json)
 source=$(jq -r '.source // empty' .lisa.config.json)
 ```
 
 Resolve the **effective** role → name mapping using the same defaults `/lisa:intake` and `/lisa:setup-jira` use (config-resolution contract). Only keys present in config override the defaults; absent keys fall back to the documented default. Build the list of `(role, configured-name)` pairs to validate:
 
+- **Missing / empty tracker**: report `UNRESOLVABLE` with setup guidance (`/lisa:setup:jira`, `/lisa:setup:github`, or `/lisa:setup:linear`). Do not default to JIRA.
 - **JIRA build workflow** (`jira.workflow`): `ready`, `claimed`, optional `review`, `blocked`, and each `done.<env>` (`dev` / `staging` / `production`). Defaults: `Ready`, `In Progress`, `Code Review`, `Blocked`, `{dev: "On Dev", staging: "On Stg", production: "Done"}`.
 - **GitHub build/prd labels** (`github.labels.build`, `github.labels.prd`): each configured label string.
 - **Linear build/prd labels** (`linear.labels.build`, `linear.labels.prd`): each configured label/state string.

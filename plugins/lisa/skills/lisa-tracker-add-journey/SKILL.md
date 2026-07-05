@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-add-journey
-description: "Vendor-neutral wrapper for appending a Validation Journey section to an existing ticket/issue. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-add-journey, lisa-github-add-journey, or lisa-linear-add-journey."
+description: "Vendor-neutral wrapper for appending a Validation Journey section to an existing ticket/issue. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-add-journey, lisa-github-add-journey, or lisa-linear-add-journey."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -14,6 +14,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Dispatch:
+   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-add-journey` with `$ARGUMENTS` verbatim. Arg: a JIRA ticket key.
    - `github` → invoke `lisa-github-add-journey` with `$ARGUMENTS` verbatim. Arg: `org/repo#<number>` or a GitHub issue URL.
    - `linear` → invoke `lisa-linear-add-journey` with `$ARGUMENTS` verbatim. Arg: a Linear Issue identifier (e.g., `ENG-123`).

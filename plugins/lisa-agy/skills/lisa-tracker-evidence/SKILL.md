@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-evidence
-description: "Vendor-neutral wrapper for posting verification evidence. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-evidence, lisa-github-evidence, or lisa-linear-evidence. Uploads evidence to the GitHub `pr-assets` release, updates the PR description, posts a comment on the originating ticket/issue, and leaves workflow transitions to the tracker-specific lifecycle owner."
+description: "Vendor-neutral wrapper for posting verification evidence. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-evidence, lisa-github-evidence, or lisa-linear-evidence. Uploads evidence to the GitHub `pr-assets` release, updates the PR description, posts a comment on the originating ticket/issue, and leaves workflow transitions to the tracker-specific lifecycle owner."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -15,6 +15,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Before dispatching, update the generated evidence artifact through `lisa-usage-accounting` so the comment body / PR evidence section carries a direct `lisa-verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item's parentage or child refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if trustworthy runtime usage is unavailable, write `source: unavailable` with nullable token/cost fields instead of skipping the row.
 3. Dispatch:
+   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>`.
    - `github` → invoke `lisa-github-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<ISSUE_REF> <EVIDENCE_DIR> <PR_NUMBER>` where `ISSUE_REF` is `org/repo#<number>` or a GitHub issue URL.
    - `linear` → invoke `lisa-linear-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<IDENTIFIER> <EVIDENCE_DIR>` where `IDENTIFIER` is a Linear Issue identifier (e.g., `ENG-123`).

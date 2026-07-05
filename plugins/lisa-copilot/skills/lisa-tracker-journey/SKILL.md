@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-journey
-description: "Vendor-neutral wrapper for executing a ticket/issue's Validation Journey end-to-end. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-journey, lisa-github-journey, or lisa-linear-journey. Parses the journey, satisfies prerequisites, executes the steps, captures evidence at each marker, and posts results via tracker-evidence."
+description: "Vendor-neutral wrapper for executing a ticket/issue's Validation Journey end-to-end. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-journey, lisa-github-journey, or lisa-linear-journey. Parses the journey, satisfies prerequisites, executes the steps, captures evidence at each marker, and posts results via tracker-evidence."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -14,6 +14,7 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Dispatch:
+   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-journey` with `$ARGUMENTS` verbatim. Arg shape: `<TICKET_ID> [PR_NUMBER]`.
    - `github` → invoke `lisa-github-journey` with `$ARGUMENTS` verbatim. Arg shape: `<ISSUE_REF> [PR_NUMBER]`.
    - `linear` → invoke `lisa-linear-journey` with `$ARGUMENTS` verbatim. Arg shape: `<IDENTIFIER> [PR_NUMBER]`.

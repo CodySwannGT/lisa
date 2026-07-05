@@ -16,6 +16,7 @@ const LIFECYCLE_SKILLS = [
   "lisa-intake",
   "lisa-monitor",
   "lisa-plan",
+  "lisa-repair-intake",
   "lisa-research",
   "lisa-verify",
 ] as const;
@@ -46,6 +47,10 @@ describe("Codex lifecycle skill orchestration", () => {
 
       expect(content).toContain("Codex: do not call `TeamCreate`");
       expect(content).toContain("multi_agent_v1.spawn_agent");
+      expect(content).toContain("Claude Code >= 2.1.178");
+      expect(content).toContain("first teammate");
+      expect(content).toContain("Agent");
+      expect(content).not.toContain("Claude: use `TeamCreate`");
       expect(content).not.toContain("Use `TeamCreate` if available");
     }
   );
