@@ -3,7 +3,11 @@ import { copyFile } from "node:fs/promises";
 import type { FileOperationResult } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { ensureParentDir } from "../utils/file-operations.js";
-import { readJson, writeJson, deepMerge } from "../utils/json-utils.js";
+import {
+  readJson,
+  writeJson,
+  deepMergeWithArrayUnion,
+} from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
 
 /**
@@ -58,8 +62,9 @@ export class MergeStrategy implements ICopyStrategy {
       );
     });
 
-    // Deep merge: Lisa (source) takes precedence, project (dest) provides defaults
-    const merged = deepMerge(destJson, sourceJson);
+    // Deep merge: Lisa (source) takes precedence, project (dest) provides defaults.
+    // Arrays are unioned so Lisa templates add guardrails without removing host ones.
+    const merged = deepMergeWithArrayUnion(destJson, sourceJson);
 
     // Normalize for comparison (parse and re-stringify both)
     const normalizedDest = JSON.stringify(destJson, null, 2);
