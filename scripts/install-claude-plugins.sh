@@ -23,7 +23,14 @@ sanitize_package_manager_env() {
   while IFS='=' read -r env_name _; do
     case "$env_name" in
       npm_config_*|npm_package_*|npm_lifecycle_*)
-        unset "$env_name"
+        # bash cannot unset names that are not valid identifiers (e.g.
+        # npm_package_bin_setup-deploy-key, exported when a package's bin map
+        # has hyphenated keys — Lisa's own does); under `set -e` that failure
+        # aborts the whole postinstall. Skip them: they cannot be referenced
+        # by child scripts either, so leaving them is inert.
+        if [[ "$env_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+          unset "$env_name"
+        fi
         ;;
     esac
   done < <(env)
