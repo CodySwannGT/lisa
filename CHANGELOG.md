@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.21](https://github.com/CodySwannGT/lisa/compare/v2.189.20...v2.189.21) (2026-07-05)
+
+
+### Bug Fixes
+
+* preserve arrays in merge strategy ([66c6d96](https://github.com/CodySwannGT/lisa/commit/66c6d9621760392f1e73c0abbff8d49a10b7612a))
+* use structural equality when deduping merged JSON arrays ([ad7a395](https://github.com/CodySwannGT/lisa/commit/ad7a395fb40d63831c62404428dad1c749e441b9)), closes [#1444](https://github.com/CodySwannGT/lisa/issues/1444)
+
 ### [2.189.20](https://github.com/CodySwannGT/lisa/compare/v2.189.19...v2.189.20) (2026-07-05)
 
 
