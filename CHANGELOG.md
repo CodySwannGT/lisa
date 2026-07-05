@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.15](https://github.com/CodySwannGT/lisa/compare/vv2.189.14...v2.189.15) (2026-07-05)
+
+
+### Bug Fixes
+
+* scope Phaser shutdown cleanup rule to scenes ([f3b5d38](https://github.com/CodySwannGT/lisa/commit/f3b5d3868e34f5f13a8127f2aa1584de0ec5521c))
+
 ### [2.189.14](https://github.com/CodySwannGT/lisa/compare/vv2.189.13...v2.189.14) (2026-07-05)
 
 
