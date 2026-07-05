@@ -479,9 +479,9 @@ main() {
 
   for template in "${templates[@]}"; do
     if apply_ruleset "$repo" "$template" "$existing_rulesets"; then
-      ((success_count++))
+      success_count=$((success_count + 1))
     else
-      ((fail_count++))
+      fail_count=$((fail_count + 1))
     fi
   done
 
