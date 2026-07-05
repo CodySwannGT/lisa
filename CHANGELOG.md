@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.14](https://github.com/CodySwannGT/lisa/compare/vv2.189.13...v2.189.14) (2026-07-05)
+
+
+### Bug Fixes
+
+* address governance review feedback ([f993232](https://github.com/CodySwannGT/lisa/commit/f993232eedb9b85a9b9eca7d7d18b68e10de2f76))
+* **governance:** align tracker and team instructions ([66a0997](https://github.com/CodySwannGT/lisa/commit/66a0997daf5b293b911185902f32517f99bae578))
+
 ### [2.189.13](https://github.com/CodySwannGT/lisa/compare/vv2.189.12...v2.189.13) (2026-07-05)
 
 
