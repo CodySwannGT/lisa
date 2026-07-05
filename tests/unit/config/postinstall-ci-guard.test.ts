@@ -108,6 +108,19 @@ describe("package.lisa.json templates never force-pin Lisa's own version", () =>
   );
 });
 
+describe("package.lisa.json prepare scripts install hooks after successful builds", () => {
+  it.each([
+    ["package.lisa.json"],
+    ["npm-package/package-lisa/package.lisa.json"],
+  ])("%s runs husky install only after a successful build", relPath => {
+    const template = readTemplateJson(relPath) as PackageLisaShape;
+    const prepare = template.force?.scripts?.prepare;
+
+    expect(prepare).toBe("$npm_execpath run build && husky install || true");
+    expect(prepare).not.toContain("run build || husky install");
+  });
+});
+
 describe("EnsureLisaPostinstallMigration injects CI-guarded invocation", () => {
   it("the migration's LISA_INVOCATION constant starts with the CI guard", async () => {
     // Read the compiled source verbatim — we want to guard the literal
