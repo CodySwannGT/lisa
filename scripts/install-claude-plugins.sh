@@ -3,8 +3,35 @@
 # Runs as Lisa's postinstall lifecycle script.
 set -euo pipefail
 
-PROJECT_ROOT="${npm_config_local_prefix:-${INIT_CWD:-}}"
-if [ -z "$PROJECT_ROOT" ]; then exit 0; fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+
+case "$PACKAGE_ROOT" in
+  */node_modules/.pnpm/*/node_modules/@codyswann/lisa)
+    PROJECT_ROOT="${PACKAGE_ROOT%%/node_modules/.pnpm/*}"
+    ;;
+  */node_modules/@codyswann/lisa)
+    PROJECT_ROOT="$(cd "$PACKAGE_ROOT/../../.." && pwd -P)"
+    ;;
+  *)
+    PROJECT_ROOT="$PACKAGE_ROOT"
+    ;;
+esac
+
+sanitize_package_manager_env() {
+  local env_name
+  while IFS='=' read -r env_name _; do
+    case "$env_name" in
+      npm_config_*|npm_package_*|npm_lifecycle_*)
+        unset "$env_name"
+        ;;
+    esac
+  done < <(env)
+
+  unset INIT_CWD npm_node_execpath npm_execpath PROJECT_CWD BUN_INSTALL_CACHE_DIR
+}
+
+sanitize_package_manager_env
 
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 
