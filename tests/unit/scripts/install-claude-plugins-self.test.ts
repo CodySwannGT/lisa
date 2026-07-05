@@ -7,9 +7,11 @@
 import { execFile } from "node:child_process";
 import {
   chmod,
+  cp,
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
@@ -19,12 +21,9 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 
 const execFileAsync = promisify(execFile);
+const INSTALL_SCRIPT_NAME = "install-claude-plugins.sh";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const SCRIPT_PATH = path.join(
-  REPO_ROOT,
-  "scripts",
-  "install-claude-plugins.sh"
-);
+const SCRIPT_PATH = path.join(REPO_ROOT, "scripts", INSTALL_SCRIPT_NAME);
 const COMMAND_LOG = "commands.log";
 
 let tempRoots: string[] = [];
@@ -34,7 +33,9 @@ let tempRoots: string[] = [];
  * @returns Absolute path to the temp directory.
  */
 async function makeTempRoot(): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), "lisa-self-postinstall-"));
+  const root = await realpath(
+    await mkdtemp(path.join(os.tmpdir(), "lisa-self-postinstall-"))
+  );
   tempRoots.push(root);
   return root;
 }
@@ -115,6 +116,39 @@ async function writeDownstreamProject(root: string): Promise<void> {
 }
 
 /**
+ * Copy the postinstall script into a fixture as though Lisa were installed from npm.
+ * @param root - Downstream fixture root.
+ * @returns Absolute path to the copied lifecycle script.
+ */
+async function writeInstalledLisaScript(root: string): Promise<string> {
+  const scriptPath = path.join(
+    root,
+    "node_modules",
+    "@codyswann",
+    "lisa",
+    "scripts",
+    INSTALL_SCRIPT_NAME
+  );
+  await mkdir(path.dirname(scriptPath), { recursive: true });
+  await cp(SCRIPT_PATH, scriptPath);
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
+}
+
+/**
+ * Copy the postinstall script into a fixture as though it were Lisa's source checkout.
+ * @param root - Self fixture root.
+ * @returns Absolute path to the copied lifecycle script.
+ */
+async function writeSelfLisaScript(root: string): Promise<string> {
+  const scriptPath = path.join(root, "scripts", INSTALL_SCRIPT_NAME);
+  await mkdir(path.dirname(scriptPath), { recursive: true });
+  await cp(SCRIPT_PATH, scriptPath);
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
+}
+
+/**
  * Create fake agent CLIs that log invocations and otherwise succeed.
  * @param binDir - Directory to place fake executables in.
  */
@@ -155,13 +189,13 @@ describe("install-claude-plugins self postinstall path", () => {
     const fakeBin = path.join(projectRoot, "bin");
     const commandLog = path.join(projectRoot, COMMAND_LOG);
     await writeSelfProject(projectRoot);
+    const selfScriptPath = await writeSelfLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    await execFileAsync("bash", [SCRIPT_PATH], {
+    await execFileAsync("bash", [selfScriptPath], {
       env: {
         ...process.env,
         CI: "",
-        npm_config_local_prefix: projectRoot,
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -179,13 +213,13 @@ describe("install-claude-plugins self postinstall path", () => {
     const fakeBin = path.join(projectRoot, "bin");
     const commandLog = path.join(projectRoot, COMMAND_LOG);
     await writeDownstreamProject(projectRoot);
+    const installedScriptPath = await writeInstalledLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    await execFileAsync("bash", [SCRIPT_PATH], {
+    await execFileAsync("bash", [installedScriptPath], {
       env: {
         ...process.env,
         CI: "",
-        npm_config_local_prefix: projectRoot,
         LISA_TEST_COMMAND_LOG: commandLog,
         PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
@@ -198,5 +232,32 @@ describe("install-claude-plugins self postinstall path", () => {
     );
     expect(applyIndex).toBeGreaterThanOrEqual(0);
     expect(codexIndex).toBeGreaterThan(applyIndex);
+  });
+
+  it("ignores leaked package-manager project roots from sibling installs", async () => {
+    const projectRoot = await makeTempRoot();
+    const leakedRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeDownstreamProject(projectRoot);
+    await writeDownstreamProject(leakedRoot);
+    const installedScriptPath = await writeInstalledLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+
+    await execFileAsync("bash", [installedScriptPath], {
+      env: {
+        ...process.env,
+        CI: "",
+        INIT_CWD: leakedRoot,
+        npm_config_local_prefix: leakedRoot,
+        LISA_TEST_COMMAND_LOG: commandLog,
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    const log = await readFile(commandLog, "utf8");
+    expect(log).toContain("apply downstream");
+    expect(log).toContain(`codex plugin marketplace add ${projectRoot}`);
+    expect(log).not.toContain(`codex plugin marketplace add ${leakedRoot}`);
   });
 });
