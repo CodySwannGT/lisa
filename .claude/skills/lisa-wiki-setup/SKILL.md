@@ -1,3 +1,8 @@
+---
+name: lisa-wiki-setup
+description: Use when setting up, repairing, or verifying the Lisa in-repository LLM Wiki.
+---
+
 # Lisa Wiki Setup Skill
 
 Use this skill when setting up, repairing, or verifying the Lisa in-repository LLM Wiki.

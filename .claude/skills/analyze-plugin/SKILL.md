@@ -1,6 +1,6 @@
 ---
 name: analyze-plugin
-description: This skill should be used to analyze a single curated third-party Claude plugin (one of Lisa's enabledPlugins) and plan how to bring it to parity across the non-Claude agents Lisa distributes to (Codex, Cursor, agy, Copilot). It inventories the plugin's components, classifies each, decides a per-agent routing outcome, and writes a machine-readable routing artifact plus a human review matrix under parity/plugin-routing/. It is PLAN-ONLY: it STOPS for human approval and makes no source-tree edits — the sibling skill implement-plugin-parity executes an approved artifact.
+description: "This skill should be used to analyze a single curated third-party Claude plugin (one of Lisa's enabledPlugins) and plan how to bring it to parity across the non-Claude agents Lisa distributes to (Codex, Cursor, agy, Copilot). It inventories the plugin's components, classifies each, decides a per-agent routing outcome, and writes a machine-readable routing artifact plus a human review matrix under parity/plugin-routing/. It is PLAN-ONLY: it STOPS for human approval and makes no source-tree edits — the sibling skill implement-plugin-parity executes an approved artifact."
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "Skill"]
 ---
 

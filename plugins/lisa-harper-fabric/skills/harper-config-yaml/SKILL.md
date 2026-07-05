@@ -1,6 +1,6 @@
 ---
 name: harper-config-yaml
-description: This skill should be used when creating or editing a Harper (HarperDB/Fabric) component's config.yaml — enabling a built-in extension (graphqlSchema, jsResource, rest, static, roles, loadEnv, dataLoader, fastifyRoutes), wiring an external component, or troubleshooting why an extension is not loading. Critical: it documents the no-merge footgun where a custom config.yaml replaces Harper's default config entirely. Pairs with harper-component-model, harper-resources, and harper-schema-graphql.
+description: "This skill should be used when creating or editing a Harper (HarperDB/Fabric) component's config.yaml — enabling a built-in extension (graphqlSchema, jsResource, rest, static, roles, loadEnv, dataLoader, fastifyRoutes), wiring an external component, or troubleshooting why an extension is not loading. Critical: it documents the no-merge footgun where a custom config.yaml replaces Harper's default config entirely. Pairs with harper-component-model, harper-resources, and harper-schema-graphql."
 ---
 
 # Harper config.yaml
