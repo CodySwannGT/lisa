@@ -30,11 +30,12 @@ build_plugin() {
   local src_name="$1"
   local out_name="$2"
   local src="$SRC_DIR/$src_name"
+  local out="$PLUGINS_DIR/$out_name"
   if [ ! -d "$src" ]; then
-    echo "Skipping plugins/$out_name (no source at plugins/src/$src_name)"
+    rm -rf "$out"
+    echo "Removed plugins/$out_name (no source at plugins/src/$src_name)"
     return 0
   fi
-  local out="$PLUGINS_DIR/$out_name"
   rm -rf "$out"
   mkdir -p "$out"
   cp -r "$src/." "$out/"
@@ -57,11 +58,12 @@ build_per_agent_variant() {
   local src_name="$2"
   local out_name="$3"
   local src="$PLUGINS_DIR/$src_name"
+  local out="$PLUGINS_DIR/$out_name"
   if [ ! -d "$src" ]; then
-    echo "Skipping per-agent variant $out_name (no plugins/$src_name source)"
+    rm -rf "$out"
+    echo "Removed per-agent variant $out_name (no plugins/$src_name source)"
     return 0
   fi
-  local out="$PLUGINS_DIR/$out_name"
   node "$ROOT_DIR/scripts/generate-${agent}-plugin-artifacts.mjs" "$src" "$out" "$VERSION"
 }
 
