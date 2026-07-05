@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.22](https://github.com/CodySwannGT/lisa/compare/v2.189.21...v2.189.22) (2026-07-05)
+
+
+### Bug Fixes
+
+* remove rails tired boss prompt hook ([da5fbff](https://github.com/CodySwannGT/lisa/commit/da5fbffa39a135ad325de8dc54795eef24dcd668))
+
 ### [2.189.21](https://github.com/CodySwannGT/lisa/compare/v2.189.20...v2.189.21) (2026-07-05)
 
 
