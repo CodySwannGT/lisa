@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.190.1](https://github.com/CodySwannGT/lisa/compare/v2.190.0...v2.190.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* ship ast-grep rules in stack templates ([ba1c2c0](https://github.com/CodySwannGT/lisa/commit/ba1c2c03e2d94d9a1ec16516c70fb705e3dc696f))
+
 ## [2.190.0](https://github.com/CodySwannGT/lisa/compare/v2.189.23...v2.190.0) (2026-07-05)
 
 
