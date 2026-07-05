@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.190.0](https://github.com/CodySwannGT/lisa/compare/v2.189.23...v2.190.0) (2026-07-05)
+
+
+### Features
+
+* **phaser:** asset-sourcing skill + art-debt guardrails ([32fb925](https://github.com/CodySwannGT/lisa/commit/32fb925db474132ad5c9d7afe8a52172f56e058e)), closes [#7](https://github.com/CodySwannGT/lisa/issues/7)
+
+
+### Bug Fixes
+
+* **phaser:** address CodeRabbit review on asset guardrails ([c31bae8](https://github.com/CodySwannGT/lisa/commit/c31bae85ee09bafda40adebc0a23448f00296250))
+
+
+### Documentation
+
+* **phaser:** narrow contract-test guarantee to atlas-derived frame names ([25e48d8](https://github.com/CodySwannGT/lisa/commit/25e48d8b1e69732edef8895784c114a8929907cc)), closes [#1445](https://github.com/CodySwannGT/lisa/issues/1445)
+
 ### [2.189.23](https://github.com/CodySwannGT/lisa/compare/v2.189.22...v2.189.23) (2026-07-05)
 
 
