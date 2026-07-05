@@ -178,13 +178,17 @@ generated files for immutable caching ([[phaser-build-deploy]]).
 - `assets/src/**` is the source of truth; `public/assets/**` and `src/assets.ts`
   are generated — treat them as build output (re-runnable, not hand-edited).
 - One atlas per render group, one audiosprite per SFX set, BMFont for hot text.
-- A **contract test** asserts every constant in `src/assets.ts` — and every frame
-  name the game *derives by convention* (e.g. `battlerWalkFrame(ref, dir, n)`,
-  FX-strip frame lists, per-speaker portrait keys) — resolves to a real entry in
-  the committed atlas JSON under `public/assets`. This keeps the typed-key
-  guarantee honest for names built at runtime from a pattern: a renamed or missing
-  frame fails a headless Vitest assertion instead of rendering a silent black
-  square. The test reads the packed JSON directly — zero Phaser ([[phaser-testing]]):
+- A **contract test** asserts every frame name the game *derives by convention*
+  (e.g. `battlerWalkFrame(ref, dir, n)`, FX-strip frame lists, per-speaker
+  portrait keys) resolves to a real entry in the committed atlas JSON under
+  `public/assets`. The other constants in `src/assets.ts` (`SceneKeys`,
+  `GameEvent`, `Font`, `Audio`, standalone `Img` entries) are plain generated
+  literals already enforced by TypeScript at every use site, so they don't need
+  a runtime check — only names built at runtime from a pattern can go stale
+  silently without one. This keeps that narrower guarantee honest: a renamed or
+  missing frame fails a headless Vitest assertion instead of rendering a silent
+  black square. The test reads the packed JSON directly — zero Phaser
+  ([[phaser-testing]]):
 
   ```ts
   const frames = new Set(Object.keys(
