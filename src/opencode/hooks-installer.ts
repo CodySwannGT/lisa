@@ -12,8 +12,9 @@
  *   - format-on-edit → OpenCode's BUILT-IN prettier formatter already formats on
  *     edit, so Lisa emits no formatter config (overriding it would be worse than
  *     the default). This is why there is no format plugin below.
- *   - inject-rules → not needed; rules ship via the canonical `AGENTS.md`, which
- *     OpenCode reads natively (handled by the skills/AGENTS.md emit).
+ *   - inject-rules → OpenCode has no SessionStart additional-context hook like
+ *     Codex, so Lisa mirrors eager rules into `.opencode/lisa-rules/` and merges
+ *     those files into `opencode.json` `instructions`.
  *   - everything that needs runtime behavior (blocking suppression directives /
  *     migration edits, linting / scanning just-edited files, session bootstrap)
  *     → a `.opencode/plugin/lisa-*.ts` module. OpenCode loads project plugins
@@ -37,6 +38,7 @@ import {
   type ParseError,
 } from "jsonc-parser";
 import type { ProjectType } from "../core/config.js";
+import { mirrorLisaRules } from "../core/lisa-rules-mirror.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 import { OPENCODE_SCHEMA_URL } from "./settings-installer.js";
 
@@ -48,6 +50,12 @@ export const OPENCODE_CONFIG_FILENAME = "opencode.json";
 
 /** Prefix every Lisa-managed plugin filename carries (used for stale cleanup) */
 const LISA_PLUGIN_PREFIX = "lisa-";
+
+/** Subdirectory inside `.opencode/` for Lisa rule instruction files. */
+export const OPENCODE_LISA_RULES_SUBDIR = "lisa-rules";
+
+/** OpenCode instruction glob that loads Lisa eager rules every session. */
+export const OPENCODE_EAGER_RULES_INSTRUCTION = `${OPENCODE_CONFIG_DIR}/${OPENCODE_LISA_RULES_SUBDIR}/eager/*.md`;
 
 /**
  * `permission.bash` deny patterns that replace Lisa's `block-no-verify` hook.
@@ -123,7 +131,9 @@ export interface OpencodeHooksInstallResult {
 
 /**
  * Install Lisa's OpenCode hooks: merge `permission.bash` deny rules into
- * `opencode.json` and emit the applicable `.opencode/plugin/lisa-*.ts` modules.
+ * `opencode.json`, mirror Lisa rule files for `instructions`, and emit the
+ * applicable `.opencode/plugin/lisa-*.ts` modules.
+ * @param lisaDir - Absolute path to the Lisa repo root or installed package.
  *
  * `opencode.json` lives at the host ROOT (outside `.opencode/`), is a shared
  * merged file, and is intentionally NOT returned in `managedFiles` — the
@@ -137,11 +147,22 @@ export interface OpencodeHooksInstallResult {
  * @returns Result describing what was written + removed.
  */
 export async function installHooks(
+  lisaDir: string,
   destDir: string,
   detectedTypes: readonly ProjectType[],
   previousManagedFiles: readonly string[]
 ): Promise<OpencodeHooksInstallResult> {
   const configCreated = await mergeOpencodeConfig(destDir);
+
+  const rulesDir = path.join(
+    destDir,
+    OPENCODE_CONFIG_DIR,
+    OPENCODE_LISA_RULES_SUBDIR
+  );
+  await fse.ensureDir(rulesDir);
+  const ruleFiles = (
+    await mirrorLisaRules(lisaDir, rulesDir, detectedTypes)
+  ).map(file => path.join(OPENCODE_LISA_RULES_SUBDIR, file));
 
   const pluginDir = path.join(
     destDir,
@@ -170,7 +191,7 @@ export async function installHooks(
   );
 
   return {
-    managedFiles: Object.freeze(managedFiles),
+    managedFiles: Object.freeze([...managedFiles, ...ruleFiles]),
     pluginCount: applicable.length,
     configCreated,
     deleted,
@@ -252,9 +273,9 @@ const FORMATTING_OPTIONS = {
 } as const;
 
 /**
- * Merge Lisa's `permission.bash` deny rules into the host's `opencode.json`,
- * preserving every other key, comment, and formatting choice. Creates the file
- * (with `$schema`) when absent.
+ * Merge Lisa's `permission.bash` deny rules and eager-rules instruction glob
+ * into the host's `opencode.json`, preserving every other key, comment, and
+ * formatting choice. Creates the file (with `$schema`) when absent.
  *
  * Edits the document surgically via `jsonc-parser` — the same host-preserving
  * approach the sibling OpenCode settings/MCP installers use, so the three
@@ -289,6 +310,7 @@ export function mergeNoVerifyDenyRules(existingJsonc: string): string {
     const fresh = {
       $schema: OPENCODE_SCHEMA_URL,
       permission: { bash: { ...NO_VERIFY_DENY_PATTERNS } },
+      instructions: [OPENCODE_EAGER_RULES_INSTRUCTION],
     };
     return `${JSON.stringify(fresh, null, 2)}\n`;
   }
@@ -319,7 +341,29 @@ export function mergeNoVerifyDenyRules(existingJsonc: string): string {
       ? upsertKey(withBash, ["$schema"], OPENCODE_SCHEMA_URL, undefined)
       : withBash;
 
-  return withSchema.endsWith("\n") ? withSchema : `${withSchema}\n`;
+  const withInstructions = addLisaRuleInstructions(withSchema);
+
+  return withInstructions.endsWith("\n")
+    ? withInstructions
+    : `${withInstructions}\n`;
+}
+
+/**
+ * Add Lisa eager rules to OpenCode's native `instructions` array.
+ * @param text - Current document text.
+ * @returns The edited document text.
+ */
+function addLisaRuleInstructions(text: string): string {
+  const current = parseJsoncOrThrow(text);
+  const instructions = current["instructions"];
+  const nextInstructions = Array.isArray(instructions)
+    ? instructions.includes(OPENCODE_EAGER_RULES_INSTRUCTION)
+      ? undefined
+      : [...instructions, OPENCODE_EAGER_RULES_INSTRUCTION]
+    : [OPENCODE_EAGER_RULES_INSTRUCTION];
+  return nextInstructions === undefined
+    ? text
+    : upsertKey(text, ["instructions"], nextInstructions, instructions);
 }
 
 /**

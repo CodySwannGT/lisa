@@ -36,16 +36,11 @@
  * @module codex/hooks-installer
  */
 import * as fse from "fs-extra";
-import {
-  chmod,
-  copyFile,
-  readFile,
-  readdir,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, copyFile, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectType } from "../core/config.js";
+import { mirrorLisaRules } from "../core/lisa-rules-mirror.js";
 import {
   type CodexHookEvent,
   type HooksFile,
@@ -258,7 +253,7 @@ export async function installHooks(
   const ruleFiles: readonly string[] = applicable.some(
     e => e.id === "inject-rules"
   )
-    ? (await mirrorRules(lisaDir, rulesDir, detectedTypes)).map(file =>
+    ? (await mirrorLisaRules(lisaDir, rulesDir, detectedTypes)).map(file =>
         path.join(LISA_RULES_SUBDIR, file)
       )
     : [];
@@ -349,117 +344,3 @@ function resolveBundledScript(filename: string): string {
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   return path.join(moduleDir, "scripts", filename);
 }
-
-/**
- * Subdirectories under each plugin's rules/ that carry rule .md files.
- * The split is:
- *   - eager/     — load-bearing prescriptions injected at every SessionStart
- *   - reference/ — long-form bodies mirrored alongside; loaded on demand via
- *                  the breadcrumb the eager head points to
- * For backward compatibility with older plugin builds, .md files directly
- * under rules/ (flat, no subdir) are also mirrored.
- */
-const RULE_SUBDIRS = ["eager", "reference"] as const;
-
-/**
- * Copy every .md file from Lisa's base and detected stack plugin `rules/`
- * directories into the host's `.codex/lisa-rules/`, preserving the
- * `eager/` and `reference/` subdir structure.
- * @param lisaDir - Absolute path to the Lisa repo / installed package
- * @param rulesDestDir - Absolute path to `<destDir>/.codex/lisa-rules/`
- * @param detectedTypes - Project types Lisa detected for the host
- * @returns Relative paths (subdir/file or file) of every rule .md file copied
- */
-async function mirrorRules(
-  lisaDir: string,
-  rulesDestDir: string,
-  detectedTypes: readonly ProjectType[]
-): Promise<readonly string[]> {
-  const pluginNames = ["lisa", ...detectedTypes.map(type => `lisa-${type}`)];
-
-  // First pass: list all .md files per plugin (eager/, reference/, and flat
-  // root for backward compat) without copying. Entries are built immutably
-  // with flatMap/concat so each plugin's collected files are a derived value
-  // rather than a mutated buffer (project functional/immutable-data rule).
-  const filesByPlugin = await Promise.all(
-    pluginNames.map(async pluginName => {
-      const rulesRoot = path.join(lisaDir, "plugins", pluginName, "rules");
-      if (!(await fse.pathExists(rulesRoot))) {
-        return { rulesRoot, entries: [] as readonly RuleFileEntry[] };
-      }
-
-      // Subdir entries: eager/*.md, reference/*.md
-      const subdirEntriesByDir = await Promise.all(
-        RULE_SUBDIRS.map(async sub => {
-          const subDir = path.join(rulesRoot, sub);
-          if (!(await fse.pathExists(subDir))) {
-            return [] as readonly RuleFileEntry[];
-          }
-          const subFiles = (await readdir(subDir)).filter(name =>
-            name.endsWith(".md")
-          );
-          return subFiles.map<RuleFileEntry>(file => ({
-            absSource: path.join(subDir, file),
-            relPath: path.join(sub, file),
-          }));
-        })
-      );
-
-      // Backward-compat: flat rules/*.md (older plugin builds that haven't
-      // adopted the eager/reference split yet). Only direct .md children
-      // count; files inside subdirs are handled by the subdir pass.
-      const rootChildren = await readdir(rulesRoot, { withFileTypes: true });
-      const flatEntries: readonly RuleFileEntry[] = rootChildren
-        .filter(d => d.isFile() && d.name.endsWith(".md"))
-        .map<RuleFileEntry>(d => ({
-          absSource: path.join(rulesRoot, d.name),
-          relPath: d.name,
-        }));
-
-      const entries: readonly RuleFileEntry[] = [
-        ...subdirEntriesByDir.flat(),
-        ...flatEntries,
-      ];
-
-      return { rulesRoot, entries };
-    })
-  );
-
-  // Detect relative-path collisions before performing any copies. Subdir
-  // structure is preserved, so two plugins shipping "eager/base-rules.md"
-  // would collide, but "eager/foo.md" and "reference/foo.md" do not.
-  const allRelPaths = filesByPlugin.flatMap(({ entries }) =>
-    entries.map(e => e.relPath)
-  );
-  if (new Set(allRelPaths).size !== allRelPaths.length) {
-    const duplicate = allRelPaths.find(
-      (name, index) => allRelPaths.indexOf(name) !== index
-    );
-    throw new Error(
-      `Duplicate Lisa rule path "${duplicate ?? "unknown"}" across plugin rules/ directories`
-    );
-  }
-
-  // Ensure destination subdirs exist before copying. fs-extra's ensureDir is
-  // idempotent and cheap.
-  await Promise.all(
-    RULE_SUBDIRS.map(sub => fse.ensureDir(path.join(rulesDestDir, sub)))
-  );
-
-  // Second pass: copy files now that we know there are no collisions.
-  await Promise.all(
-    filesByPlugin.flatMap(({ entries }) =>
-      entries.map(entry =>
-        copyFile(entry.absSource, path.join(rulesDestDir, entry.relPath))
-      )
-    )
-  );
-
-  return Object.freeze(allRelPaths);
-}
-
-/** One rule file slated for mirroring, with the destination-relative path. */
-type RuleFileEntry = {
-  readonly absSource: string;
-  readonly relPath: string;
-};

@@ -245,6 +245,19 @@ describe("opencode/skills-installer", () => {
     );
   });
 
+  it("ignores generated cursor variants so OpenCode installs canonical skills", async () => {
+    const canonicalContent = `${SAMPLE_SKILL_MD}\nCanonical skill.\n`;
+    const cursorContent = `${SAMPLE_SKILL_MD}\nCursor copy.\n`;
+    await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: canonicalContent });
+    await seedSkill("lisa-cursor", BUG_TRIAGE, { [SKILL_MD]: cursorContent });
+
+    await installSkills(lisaDir, destDir, []);
+
+    expect(await fs.readFile(installedSkillPath(BUG_TRIAGE), "utf8")).toBe(
+      canonicalContent
+    );
+  });
+
   it("deletes stale skills managed previously but not shipped now", async () => {
     await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: SAMPLE_SKILL_MD });
     const skillsDir = path.join(destDir, OPENCODE_DIR, LISA_SKILLS_SUBDIR);
