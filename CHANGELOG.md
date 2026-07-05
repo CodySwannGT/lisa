@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.11](https://github.com/CodySwannGT/lisa/compare/vv2.189.10...v2.189.11) (2026-07-05)
+
+
+### Bug Fixes
+
+* keep shared gitleaks ignore managed ([141203a](https://github.com/CodySwannGT/lisa/commit/141203a50e42db21c4a89cc073c456c6527972ec))
+* preserve stack template host hygiene ([61e9b98](https://github.com/CodySwannGT/lisa/commit/61e9b987b19d711f454aa4c7cbefff2b787ea481))
+
 ### [2.189.10](https://github.com/CodySwannGT/lisa/compare/vv2.189.9...v2.189.10) (2026-07-05)
 
 
