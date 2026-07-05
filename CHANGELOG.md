@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.190.3](https://github.com/CodySwannGT/lisa/compare/v2.190.2...v2.190.3) (2026-07-05)
+
+
+### Bug Fixes
+
+* emit Claude hook context envelope for rules ([d2fa559](https://github.com/CodySwannGT/lisa/commit/d2fa559c077d84d6de02c09f3047608e98863a80))
+
 ### [2.190.2](https://github.com/CodySwannGT/lisa/compare/v2.190.1...v2.190.2) (2026-07-05)
 
 
