@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.16](https://github.com/CodySwannGT/lisa/compare/vv2.189.15...v2.189.16) (2026-07-05)
+
+
+### Bug Fixes
+
+* avoid ruleset counter errexit footgun ([5c3f51b](https://github.com/CodySwannGT/lisa/commit/5c3f51b84ab8373713ee225e3830e96c807a8e68))
+
 ### [2.189.15](https://github.com/CodySwannGT/lisa/compare/vv2.189.14...v2.189.15) (2026-07-05)
 
 
