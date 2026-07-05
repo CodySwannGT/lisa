@@ -30,7 +30,7 @@ export const FIRST_ROUND_REQUIRED_SECTIONS = Object.freeze([
 
 const ANSI_ESCAPE_PATTERN =
   // Strip common SGR color/style escape sequences without touching regular text.
-  /\u001B\[[0-9;]*m/gu;
+  new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "gu");
 
 const SECRET_PATTERNS = Object.freeze([
   /github_pat_\w{20,}/gu,

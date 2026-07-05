@@ -50,8 +50,8 @@ function readEnvFlag(env, name) {
 
 /**
  * Detect whether the current council run is already isolated in a guarded workspace.
- * @param {string} [cwd=process.cwd()] Working directory to classify.
- * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env=defaultEnv()] Environment values to inspect.
+ * @param {string} [cwd] Working directory to classify.
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env] Environment values to inspect.
  * @returns {{ guarded: boolean; reason: string }} Guard status plus the reason it was granted.
  */
 export function detectGuardedWorkspace(
@@ -83,8 +83,8 @@ export function detectGuardedWorkspace(
 
 /**
  * Resolve whether a council run must stay read-only or may enter guarded write mode.
- * @param {{ writeMode?: string | null; cwd?: string }} [options={}] Requested execution settings.
- * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env=defaultEnv()] Environment values to inspect.
+ * @param {{ writeMode?: string | null; cwd?: string }} [options] Requested execution settings.
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env] Environment values to inspect.
  * @returns {{
  *   mode: "read-only" | "guarded-write";
  *   writeMode: string | null;

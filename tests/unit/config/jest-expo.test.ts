@@ -3,11 +3,28 @@ import {
   selectExpoJestResolver,
 } from "../../../src/configs/jest/expo.js";
 import { defaultThresholds } from "../../../src/configs/jest/base.js";
+import * as fs from "fs-extra";
+import * as path from "node:path";
 
 const SDK56_RESOLVER = "@react-native/jest-preset/jest/resolver.js";
 const LEGACY_RESOLVER = "react-native/jest/resolver.js";
 
 describe("jest.expo", () => {
+  describe("shipped Expo template", () => {
+    it("re-exports the packaged SDK-aware factory instead of forking it", async () => {
+      const template = await fs.readFile(
+        path.join(process.cwd(), "expo", "copy-overwrite", "jest.expo.ts"),
+        "utf8"
+      );
+
+      expect(template).toContain('from "@codyswann/lisa/jest/expo"');
+      expect(template).toContain("selectExpoJestResolver");
+      expect(template).not.toContain(
+        'resolver: "react-native/jest/resolver.js"'
+      );
+    });
+  });
+
   describe("getExpoJestConfig", () => {
     const config = getExpoJestConfig();
 

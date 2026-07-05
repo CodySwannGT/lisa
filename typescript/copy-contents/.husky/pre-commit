@@ -46,9 +46,26 @@ fi
 # Check for Gitleaks and run secret detection
 echo "🔐 Checking for secrets with Gitleaks..."
 if command -v gitleaks >/dev/null 2>&1; then
-  # Run gitleaks on staged files
-  gitleaks protect --staged --redact -v
-  if [ $? -ne 0 ]; then
+  # Run gitleaks on staged files. Lisa keeps the host-owned allowlist in
+  # .gitleaksignore and shared managed entries in .gitleaksignore.local.
+  GITLEAKS_IGNORE_ARGS=""
+  GITLEAKS_COMBINED_IGNORE=""
+  if [ -f ".gitleaksignore.local" ]; then
+    GITLEAKS_COMBINED_IGNORE="$(mktemp)"
+    if [ -f ".gitleaksignore" ]; then
+      cat .gitleaksignore > "$GITLEAKS_COMBINED_IGNORE"
+      printf '\n' >> "$GITLEAKS_COMBINED_IGNORE"
+    fi
+    cat .gitleaksignore.local >> "$GITLEAKS_COMBINED_IGNORE"
+    GITLEAKS_IGNORE_ARGS="--gitleaks-ignore-path=$GITLEAKS_COMBINED_IGNORE"
+  fi
+
+  gitleaks protect --staged --redact -v $GITLEAKS_IGNORE_ARGS
+  GITLEAKS_STATUS=$?
+  if [ -n "$GITLEAKS_COMBINED_IGNORE" ]; then
+    rm -f "$GITLEAKS_COMBINED_IGNORE"
+  fi
+  if [ $GITLEAKS_STATUS -ne 0 ]; then
     echo ""
     echo "❌ Secrets detected in staged files!"
     echo ""

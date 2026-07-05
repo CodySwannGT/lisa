@@ -1,5 +1,5 @@
 # This file is managed by Lisa.
-# Do not edit directly — changes will be overwritten on the next `lisa` run.
+# Do not edit directly - changes will be overwritten on the next `lisa` run.
 
 # CDK snapshot files contain asset hashes that can trigger false positives
 __tests__/infra/__snapshots__/sse-stream-stack.test.ts.snap:generic-api-key:380
