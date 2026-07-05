@@ -1,0 +1,11 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+# ast-grep configuration
+# See: https://ast-grep.github.io/reference/sgconfig.html
+ruleDirs:
+  - ast-grep/rules
+testConfigs:
+  - testDir: ast-grep/rule-tests
+utilDirs:
+  - ast-grep/utils
