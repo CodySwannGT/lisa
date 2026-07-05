@@ -10,7 +10,7 @@
 #
 # Behavior:
 #   - Exit 0: RuboCop passes or auto-fix resolved all errors
-#   - Exit 1: unfixable errors remain — blocks Claude so it fixes them immediately
+#   - Exit 2: unfixable errors remain — blocks Claude so it fixes them immediately
 #
 # @see .claude/rules/verification.md "Self-Correction Loop" section
 # =============================================================================
@@ -75,4 +75,4 @@ fi
 # Unfixable errors remain — block with feedback
 echo "RuboCop found unfixable errors in: $FILE_PATH" >&2
 echo "$OUTPUT" >&2
-exit 1
+exit 2
