@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.190.2](https://github.com/CodySwannGT/lisa/compare/v2.190.1...v2.190.2) (2026-07-05)
+
+
+### Bug Fixes
+
+* return blocking hook findings to claude ([fa70fc1](https://github.com/CodySwannGT/lisa/commit/fa70fc175c9a0817509ed4337f52bfc242d6ce54))
+
 ### [2.190.1](https://github.com/CodySwannGT/lisa/compare/v2.190.0...v2.190.1) (2026-07-05)
 
 
