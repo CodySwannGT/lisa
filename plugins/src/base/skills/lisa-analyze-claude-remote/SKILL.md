@@ -107,8 +107,14 @@ Group the findings as:
    driven by config, not by what the scan happens to find. Resolve the active integrations first:
 
    ```bash
-   TRACKER=$(jq -r '.tracker // empty' .lisa.config.json 2>/dev/null)    # tickets: jira | github | linear
-   SOURCE=$(jq -r '.source // empty'    .lisa.config.json 2>/dev/null)   # PRDs:   notion | confluence | github | linear
+   read_config() {
+     local path="$1" local_v global_v
+     local_v=$(jq -r "$path // empty" .lisa.config.local.json 2>/dev/null)
+     global_v=$(jq -r "$path // empty" .lisa.config.json 2>/dev/null)
+     printf '%s\n' "${local_v:-$global_v}"
+   }
+   TRACKER=$(read_config '.tracker')  # tickets: jira | github | linear
+   SOURCE=$(read_config '.source')    # PRDs:   notion | confluence | github | linear
    ```
    (Apply `config-resolution`: `.lisa.config.local.json` overrides `.lisa.config.json`.) For the
    **active** `tracker` and the **active** `source` — and only those — emit a `REQUIRED` credential
