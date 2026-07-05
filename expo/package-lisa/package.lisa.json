@@ -170,5 +170,10 @@
       "expo-atlas": "^0.4.0",
       "jest-expo": "~56.0.4"
     }
+  },
+  "remove": {
+    "devDependencies": [
+      "@stryker-mutator/vitest-runner"
+    ]
   }
 }

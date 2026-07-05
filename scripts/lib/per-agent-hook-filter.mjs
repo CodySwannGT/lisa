@@ -105,7 +105,9 @@ const SCRIPT_EXCLUDE_PATTERNS = [/debug/i, /\.agy\.sh$/];
 /** Hook command shape: { type: "command", command: "..." } */
 const isEntireClaudeCodeCommand = cmd =>
   typeof cmd === "string" &&
-  /^command -v entire >\/dev\/null 2>&1 && entire hooks claude-code /.test(cmd);
+  cmd.startsWith(
+    "command -v entire >/dev/null 2>&1 && entire hooks claude-code "
+  );
 
 const scriptNameFromCommand = cmd => {
   if (typeof cmd !== "string") return null;

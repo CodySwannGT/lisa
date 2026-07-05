@@ -1,0 +1,5 @@
+# This file is host-owned after Lisa creates it.
+# Add project-specific false positives here; Lisa will not overwrite them.
+#
+# Lisa-managed shared entries live in .gitleaksignore.local and are loaded by
+# the Lisa pre-commit hook when present.
