@@ -1,27 +1,42 @@
 ---
 name: phaser-asset-pipeline
-description: This skill should be used when setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets (free-tex-packer-core texture atlases, audiosprite audio sprites, BMFont bitmap fonts) and the codegen step that emits typed keys to src/assets.ts so a missing or renamed key is a compile error. Use it when adding source art, wiring packing into the build, regenerating typed keys, or eliminating raw string asset keys. Pairs with the official loading-assets skill, phaser-build-deploy, and phaser-services.
+description: This skill should be used when setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets (free-tex-packer-core texture atlases, audiosprite audio sprites, BMFont bitmap fonts) and the codegen step that emits typed keys to src/assets.ts so a missing or renamed key is a compile error. Use it when adding source art, wiring packing into the build, regenerating typed keys, or eliminating raw string asset keys. Assumes the raw art already exists — get it first via phaser-asset-sourcing (CC0 sourcing + license gate). Pairs with phaser-asset-sourcing, the official loading-assets skill, phaser-build-deploy, and phaser-services.
 ---
 
 # Phaser 4 Asset Pipeline
 
+## Where the raw art comes from (read this first)
+
+This skill **packs** raw art; it does not conjure it. The inputs under
+`assets/src/**` are **real, licensed source art you sourced first** — they do not
+magically pre-exist, and they are not procedural `generateTexture` rectangles.
+Before you can pack anything, use **[[phaser-asset-sourcing]]**: it covers where
+game art comes from (curated CC0 packs like Kenney and Ninja Adventure → deriving
+CC0 art → asking the human), the strict CC0-or-equivalent license gate with
+`assets/LICENSES.md` evidence, provenance via a committed ingest script, and why
+`generateTexture` placeholders are tracked art debt rather than a finished state.
+The rule of thumb: **source → `assets/src` → pack (this skill) → typed keys.**
+
 ## Overview
 
-Runtime assets are **generated, not hand-placed**. Raw source art lives in
-`assets/src/**` (PNGs, audio, font sources); a build step packs it into
-`public/assets/**` (atlases, audio sprites, bitmap fonts) and **codegens typed
-key constants into `src/assets.ts`**. The payoff: a missing or renamed asset is a
-**compile error**, not a green square or silent-missing audio at runtime. No raw
-string asset / scene / event keys anywhere — they all come from the generated
-module (the official `loading-assets` skill covers loading those keys at runtime).
+The pipeline turns committed source art into runtime form — it is a build step,
+not a substitute for having art. Raw source art lives in `assets/src/**` (PNGs,
+audio, font sources); a build step packs it into `public/assets/**` (atlases,
+audio sprites, bitmap fonts) and **codegens typed key constants into
+`src/assets.ts`**. The payoff: a missing or renamed asset is a **compile error**,
+not a green square or silent-missing audio at runtime. No raw string asset /
+scene / event keys anywhere — they all come from the generated module (the
+official `loading-assets` skill covers loading those keys at runtime).
 
 ## Layout
 
 | Path | Role |
 | --- | --- |
-| `assets/src/sprites/**` | Raw individual PNGs — the art source of truth |
+| `assets/src/sprites/**` | Raw individual PNGs — the art source of truth (sourced per [[phaser-asset-sourcing]]) |
 | `assets/src/audio/**` | Raw audio clips (wav/ogg sources) |
 | `assets/src/fonts/**` | Font sources for BMFont generation |
+| `assets/LICENSES.md` | License evidence per source pack (CC0 quote + evidence URL) — see [[phaser-asset-sourcing]] |
+| `scripts/ingest-assets.mjs` | The provenance record — how each frame was carved from its source pack into `assets/src` (re-runnable) |
 | `public/assets/**` | **Generated** packed output (atlases, audiosprites, fonts, `pack.json`) — git-ignored or committed as a build artifact |
 | `src/assets.ts` | **Generated** typed key constants — never edited by hand |
 | `scripts/pack-assets.mjs` | The pipeline driver (runs the three packers + codegen) |
@@ -43,16 +58,31 @@ const images = await Promise.all(
   })));
 
 const files = await packAsync(images, {
-  textureName: "game", width: 2048, height: 2048,
-  padding: 2, allowRotation: false, allowTrim: true,
-  exporter: "JsonHash", removeFileExtension: true,
+  textureName: "game", width: 4096, height: 4096,
+  packer: "MaxRectsPacker", packerMethod: "Smart", // see gotcha below
+  padding: 2, extrude: 1,                            // 1px extrude kills bleeding at integer scales
+  allowRotation: false, allowTrim: false,            // pixel-art-safe (see below)
+  detectIdentical: true,
+  exporter: "JsonHash", removeFileExtension: true, prependFolderName: true,
 });
 for (const f of files) await writeFile(`public/assets/atlases/${f.name}`, f.buffer ?? f.content);
 ```
 
 The frame names in the manifest become the atlas frame keys you reference as
 generated constants. Atlas everything that renders together — loose images break
-sprite batching (the official `loading-assets` skill).
+sprite batching (the official `loading-assets` skill). Full-screen backdrops and
+parallax layers are the exception: copy them verbatim into `public/assets/images`
+and `load.image` them — they would bloat an atlas.
+
+**Packer gotcha (verified in the reference implementation):** use
+`packer: "MaxRectsPacker"` with `packerMethod: "Smart"`. The other packer methods
+produce degenerate single-row *strip* atlases that waste enormous texture space
+and can blow past the max texture size. **For pixel art**, set `allowTrim: false`
+and `allowRotation: false`: trimming makes animation frames different sizes so
+anchors swim between frames, and rotation makes Phaser frame-flipping non-trivial.
+Add `extrude: 1` to stop edge bleeding when the game renders at integer scales.
+Keep inputs **sorted** and emit **no timestamps** so the packed output is
+deterministic and can be committed + `git diff --exit-code`-checked in CI.
 
 ## Step 2: audio sprites with audiosprite
 
@@ -133,8 +163,25 @@ generated files for immutable caching ([[phaser-build-deploy]]).
 - `assets/src/**` is the source of truth; `public/assets/**` and `src/assets.ts`
   are generated — treat them as build output (re-runnable, not hand-edited).
 - One atlas per render group, one audiosprite per SFX set, BMFont for hot text.
-- A contract test asserts every constant in `src/assets.ts` resolves to an entry
-  in the generated `pack.json`/manifests ([[phaser-testing]]).
+- A **contract test** asserts every constant in `src/assets.ts` — and every frame
+  name the game *derives by convention* (e.g. `battlerWalkFrame(ref, dir, n)`,
+  FX-strip frame lists, per-speaker portrait keys) — resolves to a real entry in
+  the committed atlas JSON under `public/assets`. This keeps the typed-key
+  guarantee honest for names built at runtime from a pattern: a renamed or missing
+  frame fails a headless Vitest assertion instead of rendering a silent black
+  square. The test reads the packed JSON directly — zero Phaser ([[phaser-testing]]):
+
+  ```ts
+  const frames = new Set(Object.keys(
+    JSON.parse(readFileSync("public/assets/atlases/battlers.json", "utf8")).frames));
+  for (const ref of BATTLER_REFS)
+    for (const dir of DIRS)
+      expect(frames).toContain(battlerWalkFrame(ref, dir, 0)); // fails on any drift
+  ```
+
+- Ship a `--check` mode on the pack script: it re-packs into a temp staging area
+  and exits non-zero if any committed output under `public/assets` or
+  `src/assets.ts` is stale, so CI proves the committed artifacts are current.
 - The generated `src/assets.ts` is the single source of asset/scene/event keys —
   the no-raw-string-keys rule depends on it existing.
 
