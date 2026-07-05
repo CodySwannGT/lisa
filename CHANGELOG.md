@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.17](https://github.com/CodySwannGT/lisa/compare/vv2.189.16...v2.189.17) (2026-07-05)
+
+
+### Bug Fixes
+
+* ship npm package template ([268c857](https://github.com/CodySwannGT/lisa/commit/268c85736b94f53512bfc67b0584eb1a3bd6b1b8))
+
 ### [2.189.16](https://github.com/CodySwannGT/lisa/compare/vv2.189.15...v2.189.16) (2026-07-05)
 
 
