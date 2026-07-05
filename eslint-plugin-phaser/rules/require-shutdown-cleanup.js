@@ -125,6 +125,23 @@ function hasShutdownMember(classNode) {
   );
 }
 
+/**
+ * Whether a class extends a Phaser Scene (superclass name ends in "Scene", e.g.
+ * Phaser.Scene, Scene, BaseScene). Keeps this lifecycle rule from firing on
+ * unrelated classes that use their own cleanup conventions.
+ * @param {object} classNode - A ClassDeclaration/ClassExpression node
+ * @returns {boolean} True if the class extends a Scene-like superclass
+ */
+function extendsScene(classNode) {
+  const sc = classNode.superClass;
+  if (!sc) return false;
+  if (sc.type === "Identifier") return /Scene$/.test(sc.name);
+  if (sc.type === "MemberExpression" && sc.property.type === "Identifier") {
+    return /Scene$/.test(sc.property.name);
+  }
+  return false;
+}
+
 module.exports = {
   meta: {
     type: "problem",
@@ -153,6 +170,7 @@ module.exports = {
     const enterClass = node =>
       classStack.push({
         node,
+        isScene: extendsScene(node),
         leaky: [],
         hasShutdown: hasShutdownMember(node),
       });
@@ -163,7 +181,7 @@ module.exports = {
      */
     const exitClass = () => {
       const frame = classStack.pop();
-      if (!frame.hasShutdown && frame.leaky.length > 0) {
+      if (frame.isScene && !frame.hasShutdown && frame.leaky.length > 0) {
         for (const leakyNode of frame.leaky) {
           context.report({ node: leakyNode, messageId: "requireShutdown" });
         }
@@ -178,6 +196,7 @@ module.exports = {
       CallExpression(node) {
         if (classStack.length === 0) return;
         const frame = classStack[classStack.length - 1];
+        if (!frame.isScene) return;
         if (isShutdownHandler(node)) {
           frame.hasShutdown = true;
           return;
