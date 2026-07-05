@@ -228,6 +228,20 @@ ruleTester.run("enforce-statement-order", rule, {
         }
       `,
     },
+
+    // Compatibility mode preserves the legacy variable/function-declaration scan
+    {
+      code: `
+        class Processor {
+          run() {
+            initialize();
+            const config = getConfig();
+            return config;
+          }
+        }
+      `,
+      options: [{ checkAllFunctionBodies: false }],
+    },
   ],
 
   invalid: [
@@ -471,6 +485,90 @@ ruleTester.run("enforce-statement-order", rule, {
     {
       code: `
         const process = () => {
+          initialize();
+          const config = getConfig();
+          return config;
+        };
+      `,
+      errors: [
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: DEFINITIONS,
+            previous: SIDE_EFFECTS,
+          },
+        },
+      ],
+    },
+
+    // Class method with side effect before definition
+    {
+      code: `
+        class Processor {
+          run() {
+            initialize();
+            const config = getConfig();
+            return config;
+          }
+        }
+      `,
+      errors: [
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: DEFINITIONS,
+            previous: SIDE_EFFECTS,
+          },
+        },
+      ],
+    },
+
+    // Object method with side effect before definition
+    {
+      code: `
+        const processor = {
+          run() {
+            initialize();
+            const config = getConfig();
+            return config;
+          },
+        };
+      `,
+      errors: [
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: DEFINITIONS,
+            previous: SIDE_EFFECTS,
+          },
+        },
+      ],
+    },
+
+    // Callback body with side effect before definition
+    {
+      code: `
+        items.map(item => {
+          track(item);
+          const label = item.label;
+          return label;
+        });
+      `,
+      errors: [
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: DEFINITIONS,
+            previous: SIDE_EFFECTS,
+          },
+        },
+      ],
+    },
+
+    // Default-exported arrow function with side effect before definition
+    {
+      code: `
+        export default () => {
           initialize();
           const config = getConfig();
           return config;

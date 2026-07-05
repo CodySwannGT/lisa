@@ -31,6 +31,9 @@ module.exports = {
           checkAwaitedCalls: {
             type: "boolean",
           },
+          checkAllFunctionBodies: {
+            type: "boolean",
+          },
         },
         additionalProperties: false,
       },
@@ -55,6 +58,7 @@ module.exports = {
     };
     const options = context.options[0] || {};
     const checkAwaitedCalls = options.checkAwaitedCalls !== false;
+    const checkAllFunctionBodies = options.checkAllFunctionBodies !== false;
 
     /**
      * Removes transparent wrappers around a candidate side-effect expression.
@@ -166,13 +170,21 @@ module.exports = {
       });
     }
 
+    if (checkAllFunctionBodies) {
+      return {
+        "FunctionDeclaration, FunctionExpression, ArrowFunctionExpression"(
+          node
+        ) {
+          checkBodyOrder(node);
+        },
+      };
+    }
+
     return {
-      // Check all function declarations
       FunctionDeclaration(node) {
         checkBodyOrder(node);
       },
 
-      // Check all arrow functions and function expressions assigned to variables
       VariableDeclarator(node) {
         if (
           node.init &&
