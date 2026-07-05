@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.189.9](https://github.com/CodySwannGT/lisa/compare/vv2.189.8...v2.189.9) (2026-07-05)
+
+
+### Bug Fixes
+
+* check statement order in all function bodies ([b250e59](https://github.com/CodySwannGT/lisa/commit/b250e598690257d8bdc025df1e02e5b56a872528))
+
 ### [2.189.8](https://github.com/CodySwannGT/lisa/compare/vv2.189.7...v2.189.8) (2026-07-04)
 
 
