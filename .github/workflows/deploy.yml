@@ -32,7 +32,7 @@ on:
 # Prevent concurrent runs of the same workflow on the same ref
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # Required permissions for creating releases and OIDC publishing
 permissions:

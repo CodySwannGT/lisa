@@ -839,7 +839,9 @@ jobs:
               -m "Correlation ID: ${{ needs.release_init.outputs.correlation_id }}"
           fi
 
-          echo "✅ Created signed tag: ${{ needs.version.outputs.tag }}"
+          git push origin "refs/tags/${{ needs.version.outputs.tag }}:refs/tags/${{ needs.version.outputs.tag }}"
+
+          echo "✅ Created and pushed signed tag: ${{ needs.version.outputs.tag }}"
 
       - name: Upload Signed Artifacts
         if: steps.sign.outputs.signed == 'true'
@@ -1111,16 +1113,16 @@ jobs:
             }')
 
           # Create release
-          RESPONSE=$(curl -X POST \
+          RESPONSE=$(curl --fail-with-body -sS -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             -d "$RELEASE_DATA" \
             "https://api.github.com/repos/${{ github.repository }}/releases")
 
           # Extract release information
-          echo "$RESPONSE" | jq -r '.html_url' > .release_url
-          echo "$RESPONSE" | jq -r '.id' > .release_id
-          echo "$RESPONSE" | jq -r '.upload_url' > .upload_url
+          echo "$RESPONSE" | jq -e -r '.html_url' > .release_url
+          echo "$RESPONSE" | jq -e -r '.id' > .release_id
+          echo "$RESPONSE" | jq -e -r '.upload_url' > .upload_url
 
           echo "html_url=$(cat .release_url)" >> $GITHUB_OUTPUT
           echo "id=$(cat .release_id)" >> $GITHUB_OUTPUT
