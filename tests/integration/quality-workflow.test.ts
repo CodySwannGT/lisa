@@ -14,6 +14,8 @@ const QUALITY_RAILS_YML = path.join(
   "workflows",
   "quality-rails.yml"
 );
+const RELEASE_YML = path.join(REPO_ROOT, ".github", "workflows", "release.yml");
+const DEPLOY_YML = path.join(REPO_ROOT, ".github", "workflows", "deploy.yml");
 
 /** Shape of a single `workflow_call` input declaration. */
 interface WorkflowInput {
@@ -56,6 +58,16 @@ interface QualityWorkflow {
   };
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
   jobs: Record<string, WorkflowJob>;
+}
+
+/** Root shape of the parsed `release.yml` reusable workflow. */
+interface ReleaseWorkflow {
+  jobs: Record<string, WorkflowJob>;
+}
+
+/** Root shape of the parsed `deploy.yml` workflow. */
+interface DeployWorkflow {
+  concurrency?: { group?: string; "cancel-in-progress"?: boolean };
 }
 
 describe("quality.yml reusable workflow", () => {
@@ -294,5 +306,48 @@ describe("quality.yml reusable workflow", () => {
       expect(run).toContain("$ghsa_ids | index($id)");
       expect(run).toContain("$cve_ids | index($cve)");
     });
+  });
+});
+
+describe("release and deploy workflows", () => {
+  let releaseWorkflow: ReleaseWorkflow;
+  let deployWorkflow: DeployWorkflow;
+
+  beforeAll(() => {
+    releaseWorkflow = yaml.load(
+      fs.readFileSync(RELEASE_YML, "utf8")
+    ) as ReleaseWorkflow;
+    deployWorkflow = yaml.load(
+      fs.readFileSync(DEPLOY_YML, "utf8")
+    ) as DeployWorkflow;
+  });
+
+  it("pushes signed release tags after creating them", () => {
+    const steps = releaseWorkflow.jobs.release_signing.steps ?? [];
+    const signTag = steps.find(s => s.name === "Create Signed Git Tag");
+    const run = signTag?.run ?? "";
+
+    expect(signTag).toBeDefined();
+    expect(run).toContain("git tag -s");
+    expect(run).toContain(
+      'git push origin "refs/tags/${{ needs.version.outputs.tag }}:refs/tags/${{ needs.version.outputs.tag }}"'
+    );
+  });
+
+  it("fails the job when GitHub release creation returns an API error", () => {
+    const steps = releaseWorkflow.jobs.github_release.steps ?? [];
+    const createRelease = steps.find(s => s.name === "Create GitHub Release");
+    const run = createRelease?.run ?? "";
+
+    expect(createRelease).toBeDefined();
+    expect(run).toContain("curl --fail-with-body -sS -X POST");
+    expect(run).toContain("jq -e -r '.html_url'");
+    expect(run).toContain("jq -e -r '.id'");
+    expect(run).toContain("jq -e -r '.upload_url'");
+  });
+
+  it("queues release deploy runs instead of cancelling in-flight publishes", () => {
+    expect(deployWorkflow.concurrency).toBeDefined();
+    expect(deployWorkflow.concurrency?.["cancel-in-progress"]).toBe(false);
   });
 });
