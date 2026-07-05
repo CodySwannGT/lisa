@@ -1,6 +1,6 @@
 {
   "ignores": [
-    "sgconfig.yml",
+    "**/sgconfig.yml",
     "build/**",
     "dist/**",
     ".build/**",
