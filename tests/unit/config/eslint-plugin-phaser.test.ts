@@ -99,29 +99,31 @@ ruleTester.run("no-allocation-in-update", noAllocationInUpdate, {
 ruleTester.run("require-shutdown-cleanup", requireShutdownCleanup, {
   valid: [
     // Persistent listener WITH a shutdown method.
-    "class S { create() { this.input.on('pointerdown', this.h); } shutdown() { this.input.off('pointerdown', this.h); } }",
+    "class S extends Phaser.Scene { create() { this.input.on('pointerdown', this.h); } shutdown() { this.input.off('pointerdown', this.h); } }",
     // Persistent listener WITH an in-place shutdown handler.
-    "class S { create() { this.input.on('pointerdown', this.h); this.events.once('shutdown', this.cleanup, this); } }",
+    "class S extends Phaser.Scene { create() { this.input.on('pointerdown', this.h); this.events.once('shutdown', this.cleanup, this); } }",
     // this.events listeners auto-clean — not leaky.
-    "class S { create() { this.events.on('update', this.h); } }",
+    "class S extends Phaser.Scene { create() { this.events.on('update', this.h); } }",
     // No external listeners at all.
-    "class S { create() { this.add.sprite(0, 0, 'k'); } }",
+    "class S extends Phaser.Scene { create() { this.add.sprite(0, 0, 'k'); } }",
+    // Not a Scene — out of scope even if it owns a different cleanup lifecycle.
+    "class Widget { mount() { window.addEventListener('resize', this.h); } dispose() { window.removeEventListener('resize', this.h); } }",
   ],
   invalid: [
     {
-      code: "class S { create() { this.input.on('pointerdown', this.h); } }",
+      code: "class S extends Phaser.Scene { create() { this.input.on('pointerdown', this.h); } }",
       errors: [{ messageId: "requireShutdown" }],
     },
     {
-      code: "class S { create() { this.scale.on('resize', this.h); } }",
+      code: "class S extends Phaser.Scene { create() { this.scale.on('resize', this.h); } }",
       errors: [{ messageId: "requireShutdown" }],
     },
     {
-      code: "class S { create() { this.game.events.on('blur', this.h); } }",
+      code: "class S extends Phaser.Scene { create() { this.game.events.on('blur', this.h); } }",
       errors: [{ messageId: "requireShutdown" }],
     },
     {
-      code: "class S { create() { window.addEventListener('resize', this.h); } }",
+      code: "class S extends Phaser.Scene { create() { window.addEventListener('resize', this.h); } }",
       errors: [{ messageId: "requireShutdown" }],
     },
   ],
