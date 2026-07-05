@@ -120,8 +120,10 @@ thing you do is establish team orchestration.
 
 Use the team tool for the current runtime:
 
-- Claude: use `TeamCreate`. If `TeamCreate` has not been loaded yet, first use `ToolSearch` with
-  `query: "select:TeamCreate"` to load its schema.
+- Claude Code >= 2.1.178: there is no `TeamCreate` tool; the team forms automatically when you spawn
+  the first teammate with `Agent`. That first spawn should be the bounded specialist needed to start
+  this flow. On older Claude Code that still exposes `TeamCreate`, the explicit team-create path is
+  also acceptable.
 - Codex: do not call `TeamCreate`; Codex does not expose that Claude tool. Use `tool_search`
   with a query like `multi-agent tools` to load `multi_agent_v1`, then use
   `multi_agent_v1.spawn_agent` for teammate delegation. Treat the first successful `spawn_agent`
@@ -134,8 +136,10 @@ orchestration is unavailable in this runtime, continue as the lead agent, and pr
 workflow's review, verification, and task-tracking obligations locally.
 
 Until the team is established, the first Codex teammate has been spawned, or the no-team
-fallback has been declared, do NOT call any of: `Agent`, `TaskCreate`, `Skill`, MCP tools
+fallback has been declared, do NOT call any of: `TaskCreate`, `Skill`, MCP tools
 (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`.
+The initial Claude `Agent` spawn described above is the only pre-team exception because it
+establishes the team.
 Scanning the queue, evaluating staleness, and dispatching per-item repairs — all of those are
 tasks for the team you are about to create, not for the lead session before orchestration
 exists.

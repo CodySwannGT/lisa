@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-build-intake
-description: "Vendor-neutral wrapper for the build-queue scanner. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-build-intake (JQL/project-key queue), lisa-github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa-linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner processes at most one eligible item per cycle and enforces the claim-time arm of the `leaf-only-lifecycle` rule — dispatch leaf work units only; move or safe-block a container with open child work (or a childless Epic) that carries a stale build-ready role according to the vendor's lifecycle semantics. Counterpart to lisa-intake's PRD-side dispatchers."
+description: "Vendor-neutral wrapper for the build-queue scanner. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-build-intake (JQL/project-key queue), lisa-github-build-intake (GitHub repo queue keyed off the `status:ready` label), or lisa-linear-build-intake (Linear team queue keyed off the `status:ready` label). Every vendor scanner processes at most one eligible item per cycle and enforces the claim-time arm of the `leaf-only-lifecycle` rule — dispatch leaf work units only; move or safe-block a container with open child work (or a childless Epic) that carries a stale build-ready role according to the vendor's lifecycle semantics. Counterpart to lisa-intake's PRD-side dispatchers."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -18,6 +18,7 @@ They also forward the narrow duplicate terminal exception from `ticket-triage`: 
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Dispatch:
+   - Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → invoke `lisa-jira-build-intake` with `$ARGUMENTS` verbatim. Arg shape: a JIRA project key (e.g., `SE`) or a JQL filter.
    - `github` → invoke `lisa-github-build-intake` with `$ARGUMENTS` verbatim. Arg shape: a GitHub `org/repo` token or a full GitHub repo URL.
    - `linear` → invoke `lisa-linear-build-intake` with `$ARGUMENTS` verbatim. Arg shape: a Linear team key (e.g., `ENG`) or the literal token `linear` (which falls back to `linear.teamKey`).

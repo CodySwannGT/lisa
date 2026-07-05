@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-write
-description: "Vendor-neutral wrapper for ticket creation and updates. Reads `tracker` from .lisa.config.json (default: jira) and dispatches to lisa-jira-write-ticket, lisa-github-write-issue, or lisa-linear-write-issue. Callers in vendor-neutral skills (notion-to-tracker, linear-to-tracker, confluence-to-tracker, github-to-tracker, implement, verify) MUST invoke this skill instead of the vendor-specific ones — that is what makes the tracker switchable per project. The Phase-5.5 validate-pre-write gate, post-write verify, and Phase-8 announce-comment behavior live in the vendor skills; this shim is dispatch only."
+description: "Vendor-neutral wrapper for ticket creation and updates. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-write-ticket, lisa-github-write-issue, or lisa-linear-write-issue. Callers in vendor-neutral skills (notion-to-tracker, linear-to-tracker, confluence-to-tracker, github-to-tracker, implement, verify) MUST invoke this skill instead of the vendor-specific ones — that is what makes the tracker switchable per project. The Phase-5.5 validate-pre-write gate, post-write verify, and Phase-8 announce-comment behavior live in the vendor skills; this shim is dispatch only."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -24,11 +24,12 @@ See the `config-resolution` rule for the full configuration schema and skill-map
    ```bash
    local_tracker=$(jq -r '.tracker // empty' .lisa.config.local.json 2>/dev/null)
    global_tracker=$(jq -r '.tracker // empty' .lisa.config.json 2>/dev/null)
-   tracker="${local_tracker:-${global_tracker:-jira}}"
+   tracker="${local_tracker:-$global_tracker}"
    ```
 
 2. **Validate the value**
 
+   - Missing / empty → stop and report: `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
    - `jira` → confirm `atlassian.cloudId` and `jira.project` are present. If either is missing, stop and report: `"tracker=jira but atlassian.cloudId and jira.project are not set in .lisa.config.json."` Continue to Step 3a.
    - `github` → confirm `github.org` and `github.repo` are present. If either is missing, stop and report: `"tracker=github but github.org and github.repo are not set in .lisa.config.json."` Continue to Step 3b.
    - `linear` → confirm `linear.workspace` and `linear.teamKey` are present. If either is missing, stop and report: `"tracker=linear but linear.workspace and linear.teamKey are not set in .lisa.config.json."` Continue to Step 3c.
