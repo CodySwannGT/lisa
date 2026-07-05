@@ -51,6 +51,7 @@
     "dist",
     "all",
     "typescript",
+    "npm-package",
     "expo",
     "nestjs",
     "cdk",
