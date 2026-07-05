@@ -23,8 +23,8 @@ Programmer-art placeholders — `generateTexture` rectangles, solid-color fills,
 untextured shapes standing in for characters/props/UI — are a **top-severity,
 blocking** result, not a stylistic nit. A scene rendered in placeholders is not
 "on style," it is **unfinished**. Flag every placeholder-only scene explicitly,
-point the team at **`phaser-asset-sourcing`** (source real CC0 art, run it through
-the pipeline), and require a linked art-debt issue for any placeholder that must
+point the team at **`phaser-asset-sourcing`** (route real, properly-licensed art
+through the pipeline), and require a linked art-debt issue for any placeholder that must
 ship temporarily. Never accept "zero binary assets / zero licensing risk" as a
 virtue — that framing is how the game ended up as wireframes. Characters must
 render with a **playing idle/walk animation**; a frozen single frame is a
