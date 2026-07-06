@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.9](https://github.com/CodySwannGT/lisa/compare/v2.191.8...v2.191.9) (2026-07-06)
+
+
+### Bug Fixes
+
+* **harper-fabric:** answer the HarperDB destination prompt in zap-baseline.sh ([ac741a7](https://github.com/CodySwannGT/lisa/commit/ac741a76adcd0f830e45e6ad6d5b0d61831ac6c4)), closes [#1460](https://github.com/CodySwannGT/lisa/issues/1460) [#9](https://github.com/CodySwannGT/lisa/issues/9)
+
 ### [2.191.8](https://github.com/CodySwannGT/lisa/compare/v2.191.7...v2.191.8) (2026-07-06)
 
 
