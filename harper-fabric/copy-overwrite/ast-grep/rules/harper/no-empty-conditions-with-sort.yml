@@ -1,0 +1,45 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+id: harper-no-empty-conditions-with-sort
+language: typescript
+severity: error
+message: |
+  A Harper `search()` with `sort` but an empty `conditions: []` array crashes
+  the query planner — it cannot seed the btree scan from the sort attribute and
+  throws at runtime (a latent 500 the first time an unfiltered, sorted page is
+  requested).
+note: >-
+  Seed a floor/sentinel condition on the sort attribute so the planner has an
+  index range to walk, e.g. `{ attribute: "lastName", comparator:
+  "greater_than_equal", value: "" }` (or `not_equal: null`), then apply the sort.
+  Centralize this in the page helper (`searchPageAndCount`) rather than
+  duplicating a sentinel at each call site. If a sort-only scan is genuinely
+  intended and the attribute is guaranteed present, suppress with an inline
+  `// ast-grep-ignore: harper-no-empty-conditions-with-sort` and a comment.
+rule:
+  kind: object
+  all:
+    - has:
+        kind: pair
+        all:
+          - has:
+              field: key
+              regex: ^conditions$
+          - has:
+              field: value
+              kind: array
+              regex: "^\\[\\s*\\]$"
+    - has:
+        kind: pair
+        has:
+          field: key
+          regex: ^sort$
+  inside:
+    kind: arguments
+    stopBy: end
+    inside:
+      kind: call_expression
+      stopBy: end
+      has:
+        field: function
+        regex: search$

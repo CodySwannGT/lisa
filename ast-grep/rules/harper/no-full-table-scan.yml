@@ -1,0 +1,33 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+id: harper-no-full-table-scan
+language: typescript
+severity: warning
+message: |
+  Possible full table scan in a Harper resource. Loading a whole table on every
+  request does not scale — one large table (e.g. an employment/event history) was
+  the root cause of multi-second `/Search` and directory responses and a day-long
+  red deploy gate in production.
+note: >-
+  Fetch only the rows you need through an indexed attribute
+  (`rowsByAttribute(tables.$TABLE, "someIndexedId", value)`), or page with
+  `searchPageAndCount` / `search({ conditions, limit, offset })`. A conditionless
+  `tables.$TABLE.search({})` / `search()` and the `allRows` / `optionalAll`
+  helpers read every row. Small lookup tables can be legitimate to scan — this is
+  a warning; if a full scan is genuinely intended (a one-off offline script, never
+  a Resource handler), suppress with an inline
+  `// ast-grep-ignore: harper-no-full-table-scan` and a comment saying why.
+rule:
+  any:
+    # Non-generic full-table reads via common directory helpers.
+    - pattern: allRows(tables.$TABLE)
+    - pattern: optionalAll(tables.$TABLE)
+    # Generic form, e.g. allRows<AdvisorRow>(tables.Advisor): the type argument
+    # nests the callee in an instantiation_expression, so the plain patterns
+    # above miss it. Any single-arg generic call passing the whole table is a
+    # full scan regardless of helper name (the scoped rowsByAttribute helper
+    # takes 3 args and is not matched).
+    - pattern: $FN<$TYPE>(tables.$TABLE)
+    # Raw unconditional table scans.
+    - pattern: tables.$TABLE.search({})
+    - pattern: tables.$TABLE.search()

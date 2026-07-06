@@ -1,0 +1,47 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+
+# Harper/Fabric override of the TypeScript dependabot template.
+# A fresh Harper/Fabric repo ships with only a `main` branch, so this file
+# omits `target-branch` — Dependabot then opens PRs against the repository's
+# default branch instead of a `dev` branch that does not exist. If a project
+# adopts a long-lived integration branch, set `target-branch` back per updater.
+
+version: 2
+updates:
+  # JavaScript/Node.js dependencies
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+    commit-message:
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: 'ci(deps)'
