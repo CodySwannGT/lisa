@@ -122,6 +122,12 @@ else
   mount_rules=""
 fi
 
+# The zaproxy image runs as the unprivileged `zap` user (uid 1000); CI
+# checkouts are owned by a different uid (e.g. 1001 on GitHub runners), so
+# without this the report writes fail with PermissionError and the scan
+# aborts with exit 3.
+chmod o+w "$(pwd)"
+
 # -I honors .zap/baseline.conf's documented policy: WARN-marked rules are
 # reported but do not fail the scan; rules marked FAIL there still fail it.
 docker run --rm \
