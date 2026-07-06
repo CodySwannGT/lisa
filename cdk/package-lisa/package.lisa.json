@@ -24,6 +24,7 @@
     },
     "devDependencies": {
       "aws-cdk": "^2.1127.0",
+      "esbuild": "^0.28.1",
       "vite": "^8.0.16",
       "vitest": "^4.1.0",
       "@vitest/coverage-v8": "^4.1.0",
@@ -39,10 +40,12 @@
     "private": true,
     "overrides": {
       "aws-cdk-lib": "$aws-cdk-lib",
+      "esbuild": "$esbuild",
       "vite": "$vite"
     },
     "resolutions": {
       "aws-cdk-lib": "$aws-cdk-lib",
+      "esbuild": "$esbuild",
       "vite": "$vite"
     }
   },
