@@ -50,12 +50,30 @@ function createComponentIndexFixture(componentName) {
 }
 
 ruleTester.run("enforce-component-structure", rule, {
-  valid: [],
+  valid: [
+    // Opt-out for projects predating the Container/View pairing requirement:
+    // the directory-shape check is skipped while the index-export check stays
+    // active (the export below still matches the required pattern).
+    {
+      code: `export { default } from "./LegacyShapeView";`,
+      filename: createComponentIndexFixture("LegacyShape"),
+      options: [{ checkRequiredComponentFiles: false }],
+    },
+  ],
   invalid: [
     {
       code: `export { default } from "./MissingSiblingsView";`,
       filename: createComponentIndexFixture("MissingSiblings"),
       errors: [{ messageId: "missingContainer" }, { messageId: "missingView" }],
+    },
+
+    // The opt-out disables only the directory-shape check — the index-export
+    // check still reports when index.tsx does not export Container/View.
+    {
+      code: `export const unrelated = true;`,
+      filename: createComponentIndexFixture("LegacyExport"),
+      options: [{ checkRequiredComponentFiles: false }],
+      errors: [{ messageId: "incorrectIndexExport" }],
     },
   ],
 });
