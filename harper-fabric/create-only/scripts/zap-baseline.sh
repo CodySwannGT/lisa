@@ -11,7 +11,6 @@ LOCAL_TARGETS=("http://localhost:9926" "http://host.docker.internal:9926")
 SCAN_TARGET_URL="$TARGET_URL"
 ZAP_RULES_FILE="${ZAP_RULES_FILE:-.zap/baseline.conf}"
 REPORT_FILE="zap-report.html"
-SERVER_PID=""
 
 cd "$PROJECT_ROOT"
 
@@ -37,9 +36,9 @@ for local_target in "${LOCAL_TARGETS[@]}"; do
 done
 
 cleanup() {
-  if [ -n "${SERVER_PID:-}" ]; then
-    echo "==> Stopping Harper app..."
-    kill "$SERVER_PID" 2>/dev/null || true
+  if [ -n "${HARPER_STARTED:-}" ]; then
+    echo "==> Stopping Harper..."
+    HDB_ROOT="$HDB_ROOT" "$HARPER_BIN" stop >/dev/null 2>&1 || true
   fi
 }
 trap cleanup EXIT
@@ -56,22 +55,36 @@ if [ "$should_start_local" = true ]; then
     exit 1
   fi
 
-  echo "==> Starting Harper app locally..."
-  # HarperDB's first run blocks on interactive prompts: Terms & Conditions,
-  # admin credentials, AND the install destination (rootPath). Supply the full
-  # non-interactive answer set (same pattern as the starter bootstrap script)
-  # so CI never hangs waiting for input. HTTP_PORT must stay 9926 to match
-  # the scan target URL above.
-  TC_AGREEMENT="${TC_AGREEMENT:-yes}" \
-  HDB_ROOT="${HDB_ROOT:-$HOME/.harperdb}" \
-  HDB_ADMIN_USERNAME="${HDB_ADMIN_USERNAME:-admin}" \
-  HDB_ADMIN_PASSWORD="${HDB_ADMIN_PASSWORD:-zap-baseline-local}" \
-  OPERATIONSAPI_NETWORK_PORT="${OPERATIONSAPI_NETWORK_PORT:-9925}" \
-  HTTP_PORT="${HTTP_PORT:-9926}" \
-  ANALYTICS_ENABLED="${ANALYTICS_ENABLED:-false}" \
-  LOGGING_LEVEL="${LOGGING_LEVEL:-warn}" \
-    "$HARPER_BIN" run harper-app &
-  SERVER_PID=$!
+  HDB_ROOT="${HDB_ROOT:-$HOME/.harperdb}"
+
+  # A bare `harper run` neither performs first-run initialization (keys,
+  # config) nor registers the app, so nothing ever listens on the scan port.
+  # Mirror the starter bootstrap flow instead: non-interactive install,
+  # register harper-app as a component, then start the Harper service.
+  if [ ! -f "$HDB_ROOT/harperdb-config.yaml" ]; then
+    echo "==> Installing HarperDB (non-interactive)..."
+    # Env answers every first-run prompt (Terms & Conditions, admin
+    # credentials, install destination). HTTP_PORT must stay 9926 to match
+    # the scan target URL above.
+    TC_AGREEMENT="${TC_AGREEMENT:-yes}" \
+    HDB_ROOT="$HDB_ROOT" \
+    HDB_ADMIN_USERNAME="${HDB_ADMIN_USERNAME:-admin}" \
+    HDB_ADMIN_PASSWORD="${HDB_ADMIN_PASSWORD:-zap-baseline-local}" \
+    OPERATIONSAPI_NETWORK_PORT="${OPERATIONSAPI_NETWORK_PORT:-9925}" \
+    HTTP_PORT="${HTTP_PORT:-9926}" \
+    ANALYTICS_ENABLED="${ANALYTICS_ENABLED:-false}" \
+    LOGGING_LEVEL="${LOGGING_LEVEL:-warn}" \
+      "$HARPER_BIN" install
+  fi
+
+  echo "==> Registering harper-app component..."
+  mkdir -p "$HDB_ROOT/components"
+  ln -sfn "$PROJECT_ROOT/harper-app" \
+    "$HDB_ROOT/components/$(basename "$PROJECT_ROOT")"
+
+  echo "==> Starting Harper..."
+  HDB_ROOT="$HDB_ROOT" "$HARPER_BIN" start
+  HARPER_STARTED=1
 
   echo "==> Waiting for Harper app..."
   retries=30
