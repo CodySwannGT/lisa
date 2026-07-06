@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.6](https://github.com/CodySwannGT/lisa/compare/v2.191.5...v2.191.6) (2026-07-06)
+
+
+### Bug Fixes
+
+* **eslint:** treat super() as constructor prologue in enforce-statement-order ([d2a498a](https://github.com/CodySwannGT/lisa/commit/d2a498ac9b80b4b3566e10f0ac783535f12a8acd))
+
 ### [2.191.5](https://github.com/CodySwannGT/lisa/compare/v2.191.4...v2.191.5) (2026-07-06)
 
 
