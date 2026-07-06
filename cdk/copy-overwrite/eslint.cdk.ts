@@ -14,7 +14,6 @@
  *   eslint.cdk.ts (this file)
  *   └── eslint.typescript.ts
  *       └── eslint.base.ts
- *
  * @see https://eslint.org/docs/latest/use/configure/configuration-files-new
  * @module eslint.cdk
  */
@@ -51,9 +50,76 @@ const cdkIgnores = [
   "*.d.ts",
 ];
 
+// CDK-specific rule adjustments layered over the shared base rules
+const cdkRules = {
+  // Code organization
+  "code-organization/enforce-statement-order": "error",
+
+  // Configuration enforcement - prevent direct process.env access
+  // All configuration should go through config module
+  // @see .claude/rules/PROJECT_RULES.md
+  "no-restricted-syntax": [
+    "error",
+    {
+      selector: "MemberExpression[object.name='process'][property.name='env']",
+      message:
+        "Direct process.env access is forbidden. Use config module for type-safe configuration. See .claude/rules/PROJECT_RULES.md.",
+    },
+  ],
+
+  // CDK uses classes for constructs and stacks
+  "functional/no-classes": "off",
+
+  // CDK constructs and stacks require documentation
+  "jsdoc/require-jsdoc": [
+    "error",
+    {
+      require: {
+        FunctionDeclaration: true,
+        MethodDefinition: true,
+        ClassDeclaration: true,
+        ArrowFunctionExpression: false,
+        FunctionExpression: false,
+      },
+      contexts: [
+        "TSInterfaceDeclaration",
+        "TSTypeAliasDeclaration",
+        "VariableDeclaration[declarations.0.init.type='ArrowFunctionExpression']:has([id.name=/^[A-Z]/])",
+      ],
+    },
+  ],
+};
+
+// Per-path rule relaxations for CDK project layout
+const cdkPathOverrides = [
+  // CDK bin files - entry points can access process.env for stage selection
+  {
+    files: ["bin/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
+
+  // Configuration files - allowed to use process.env directly
+  {
+    files: ["**/*config.*", "**/config/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
+
+  // Lambda handlers - often have different constraints
+  {
+    files: ["**/lambda/**/*.ts", "**/lambdas/**/*.ts", "**/functions/**/*.ts"],
+    rules: {
+      // Lambda cold starts benefit from simpler code
+      "sonarjs/cognitive-complexity": ["error", 15],
+    },
+  },
+];
+
 /**
  * Creates the CDK ESLint configuration.
- *
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
  * @param {string[]} [options.ignorePatterns] - Patterns to ignore
@@ -87,44 +153,7 @@ export function getCdkConfig({
       rules: {
         // Shared rules from base
         ...getSharedRules(thresholds),
-
-        // Code organization
-        "code-organization/enforce-statement-order": "error",
-
-        // Configuration enforcement - prevent direct process.env access
-        // All configuration should go through config module
-        // @see .claude/rules/PROJECT_RULES.md
-        "no-restricted-syntax": [
-          "error",
-          {
-            selector:
-              "MemberExpression[object.name='process'][property.name='env']",
-            message:
-              "Direct process.env access is forbidden. Use config module for type-safe configuration. See .claude/rules/PROJECT_RULES.md.",
-          },
-        ],
-
-        // CDK uses classes for constructs and stacks
-        "functional/no-classes": "off",
-
-        // CDK constructs and stacks require documentation
-        "jsdoc/require-jsdoc": [
-          "error",
-          {
-            require: {
-              FunctionDeclaration: true,
-              MethodDefinition: true,
-              ClassDeclaration: true,
-              ArrowFunctionExpression: false,
-              FunctionExpression: false,
-            },
-            contexts: [
-              "TSInterfaceDeclaration",
-              "TSTypeAliasDeclaration",
-              "VariableDeclaration[declarations.0.init.type='ArrowFunctionExpression']:has([id.name=/^[A-Z]/])",
-            ],
-          },
-        ],
+        ...cdkRules,
       },
     },
 
@@ -143,33 +172,7 @@ export function getCdkConfig({
     // TypeScript test files - disable immutable-data
     getTsTestFilesOverride(["**/*.test.ts", "**/*.spec.ts"]),
 
-    // CDK bin files - entry points can access process.env for stage selection
-    {
-      files: ["bin/**/*.ts"],
-      rules: {
-        "no-restricted-syntax": "off",
-      },
-    },
-
-    // Configuration files - allowed to use process.env directly
-    {
-      files: ["**/*config.*", "**/config/**/*.ts"],
-      rules: {
-        "no-restricted-syntax": "off",
-      },
-    },
-
-    // Lambda handlers - often have different constraints
-    {
-      files: [
-        "**/lambda/**/*.ts",
-        "**/lambdas/**/*.ts",
-        "**/functions/**/*.ts",
-      ],
-      rules: {
-        // Lambda cold starts benefit from simpler code
-        "sonarjs/cognitive-complexity": ["error", 15],
-      },
-    },
+    // Per-path CDK relaxations (bin, config, lambda handlers)
+    ...cdkPathOverrides,
   ];
 }
