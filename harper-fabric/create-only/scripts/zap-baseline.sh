@@ -104,12 +104,26 @@ zap_args="-t $SCAN_TARGET_URL"
 
 if [ -f "$ZAP_RULES_FILE" ]; then
   echo "    Using rules file: $ZAP_RULES_FILE"
-  zap_args="$zap_args -c /zap/wrk/$(basename "$ZAP_RULES_FILE")"
-  mount_rules="-v $(dirname "$(realpath "$ZAP_RULES_FILE")"):/zap/wrk:ro"
+  rules_abs="$(realpath "$ZAP_RULES_FILE")"
+  case "$rules_abs" in
+    "$PROJECT_ROOT"/*)
+      # The project root is already mounted at /zap/wrk — reference the rules
+      # file inside it; a second mount on /zap/wrk collides
+      # (docker: Duplicate mount point).
+      zap_args="$zap_args -c /zap/wrk/${rules_abs#"$PROJECT_ROOT"/}"
+      mount_rules=""
+      ;;
+    *)
+      zap_args="$zap_args -c /zap/rules/$(basename "$rules_abs")"
+      mount_rules="-v $(dirname "$rules_abs"):/zap/rules:ro"
+      ;;
+  esac
 else
   mount_rules=""
 fi
 
+# -I honors .zap/baseline.conf's documented policy: WARN-marked rules are
+# reported but do not fail the scan; rules marked FAIL there still fail it.
 docker run --rm \
   --add-host=host.docker.internal:host-gateway \
   -v "$(pwd)":/zap/wrk/:rw \
@@ -119,6 +133,7 @@ docker run --rm \
   -r "$REPORT_FILE" \
   -J zap-report.json \
   -w zap-report.md \
+  -I \
   -l WARN || zap_exit=$?
 
 if [ -f "$REPORT_FILE" ]; then
@@ -126,7 +141,7 @@ if [ -f "$REPORT_FILE" ]; then
 fi
 
 if [ "${zap_exit:-0}" -ne 0 ]; then
-  echo "ZAP found medium+ severity findings (exit code: $zap_exit)."
+  echo "ZAP found FAIL-level findings or errored (exit code: $zap_exit)."
   exit "$zap_exit"
 fi
 
