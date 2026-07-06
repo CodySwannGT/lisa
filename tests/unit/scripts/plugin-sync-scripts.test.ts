@@ -213,11 +213,17 @@ function run(
   args: readonly string[],
   cwd: string
 ): ReturnType<typeof spawnSync> {
+  // Git hooks export GIT_DIR/GIT_INDEX_FILE pointing at the parent repo, which
+  // would redirect the fixture repo's git commands there; strip them so the
+  // fixture stays hermetic when this suite runs under pre-push.
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
+  );
   return spawnSync(args[0] as string, args.slice(1), {
     cwd,
     encoding: "utf8",
     env: {
-      ...process.env,
+      ...env,
       HUSKY: "0",
     },
   });
