@@ -35,6 +35,44 @@ export const defaultHarperFabricIgnores = [
 ];
 
 /**
+ * Platform built-ins declared trusted-immutable leaves for the
+ * `type-declaration-immutability` check. `Date`/`URL` and the DOM
+ * node/element/event types expose mutating methods, so `is-immutable-type`
+ * rates them "Mutable" — and because Harper row types hold `Date` (returned
+ * in-process) and any web layer holds DOM refs in its readonly option bags,
+ * that caps nearly every type below `ReadonlyDeep`. A readonly field holding
+ * one of these is not a mutation vector, so treating them as opaque immutable
+ * leaves is the standard `is-immutable-type` override pattern. Project-specific
+ * leaf types belong in the consumer's `eslint.config.local.ts`.
+ */
+const immutabilityLeafOverrides = [
+  "Date",
+  "URL",
+  "Node",
+  "Element",
+  "HTMLElement",
+  "SVGElement",
+  "Event",
+  "EventTarget",
+  "Blob",
+  "HTMLInputElement",
+  "HTMLSelectElement",
+  "HTMLTextAreaElement",
+  "HTMLButtonElement",
+  "HTMLAnchorElement",
+  "HTMLFormElement",
+  "HTMLImageElement",
+  "HTMLDivElement",
+  "HTMLSpanElement",
+  "KeyboardEvent",
+  "MouseEvent",
+  "InputEvent",
+  "SubmitEvent",
+  "FocusEvent",
+  "PointerEvent",
+].map(type => ({ type, to: "Immutable" }));
+
+/**
  * Creates the Harper/Fabric ESLint configuration.
  * @param options - Configuration options
  * @param options.tsconfigRootDir - Root directory for tsconfig.json
@@ -59,12 +97,32 @@ export function getHarperFabricConfig({
     }),
     {
       files: ["src/**/*.ts"],
+      settings: { immutability: { overrides: immutabilityLeafOverrides } },
       rules: {
         "functional/immutable-data": "error",
         "functional/no-let": "error",
         "functional/prefer-readonly-type": "error",
         "functional/readonly-type": "error",
-        "functional/type-declaration-immutability": "error",
+        // Enforced at `ReadonlyDeep` (every property recursively `readonly`),
+        // NOT the plugin default of `Immutable`. `Immutable` additionally
+        // rejects function-typed properties, `Record`/index-signature bags,
+        // and mutable-method built-ins (`Date`, DOM types) — none of which a
+        // Harper app can shed without restructuring legitimate shapes, which
+        // is why projects were forced to disable this rule wholesale.
+        // `ReadonlyDeep` + the platform-leaf overrides above is the strongest
+        // achievable bar and the real immutability guarantee.
+        "functional/type-declaration-immutability": [
+          "error",
+          {
+            rules: [
+              {
+                identifiers: [".+"],
+                immutability: "ReadonlyDeep",
+                comparator: "AtLeast",
+              },
+            ],
+          },
+        ],
       },
     },
     {
@@ -75,6 +133,12 @@ export function getHarperFabricConfig({
         "functional/prefer-readonly-type": "off",
         "functional/readonly-type": "off",
         "functional/type-declaration-immutability": "off",
+        // Statement-order is a production-code discipline. Smoke/integration
+        // tests interleave arrange-act-assert with sequential awaited UI/HTTP
+        // interactions where the await ORDER is the test logic — reordering
+        // would change behavior. Exempt tests, consistent with the
+        // immutability relaxations above.
+        "code-organization/enforce-statement-order": "off",
       },
     },
     {
