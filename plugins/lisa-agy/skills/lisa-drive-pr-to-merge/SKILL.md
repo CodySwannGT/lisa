@@ -38,8 +38,28 @@ Use plain `gh` + `git` so Claude and Codex execute identically.
 
 ## 1. Enable auto-merge
 
+Before enabling auto-merge, capture the live PR head and compare it to
+`verify_commit`:
+
+```bash
+head_sha=$(gh pr view <pr> --json headRefOid -q .headRefOid)
+test "$head_sha" = "<verify_commit>"
+```
+
+If they differ, reset `verify_commit` to the live head only after confirming the
+new head contains the intended fix, or stop and report the mismatch. Never enable
+auto-merge against a stale head you have not verified.
+
 `gh pr merge <pr> --auto --<merge_method>`. Enabling auto-merge is **not terminal**
 — continue the loop below until the PR is actually `MERGED` or `CLOSED`.
+
+If any later step will push commits, temporarily remove the auto-merge latch
+before the push when GitHub exposes that mutation (`disablePullRequestAutoMerge`),
+or otherwise treat the push as a merge race: immediately re-read `headRefOid`,
+reset `verify_commit` to the pushed head, wait until that head's checks have
+started, then re-enable auto-merge. Do not leave auto-merge armed while a
+required fix, CodeRabbit follow-up, generated artifact update, or CI auto-fix is
+still in flight.
 
 - **Capability fallback**: if the repo disallows auto-merge, do not fail. Keep
   watching; once checks are green, the review gate is clear, and `mergeable == MERGEABLE`,
@@ -99,17 +119,23 @@ surface the file list and merge state.
 ### c. Failing CI / deploy checks (`statusCheckRollup` has FAILURE)
 Inspect the failing check's logs (`gh pr checks <pr>`, `gh run view <run> --log-failed`).
 Fix the underlying code inline — **never lower thresholds, skip tests, or disable
-checks** to force green. Commit, push, resume. When the root cause is an upstream
-Lisa template/postinstall bug rather than this project's code, fix it upstream and
-propagate down rather than patching only here.
+checks** to force green. Before pushing the fix, disarm auto-merge or classify the
+run as race-prone, then after the push re-read the PR head, update `verify_commit`
+to that exact SHA, wait for checks on that head to start, and only then resume
+auto-merge. When the root cause is an upstream Lisa template/postinstall bug
+rather than this project's code, fix it upstream and propagate down rather than
+patching only here.
 
 ### d. Review comments — human and bot (CodeRabbit, etc.)
 Delegate to the `pull-request-review` skill with the PR number. It owns the whole
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
 GraphQL), implement valid feedback (commit + push), reply to invalid feedback, and
 resolve every thread via `resolveReviewThread` so the branch-protection
-thread-resolution gate clears. Do not re-implement that here — it is the single
-source of truth for review-thread handling. When it returns, re-poll and continue.
+thread-resolution gate clears. If that skill needs to push a commit, auto-merge
+must be disabled first when possible; when it returns, re-read `headRefOid`, reset
+`verify_commit` to the returned/pushed head, wait for that head's checks to start,
+then re-enable auto-merge and continue. Do not re-implement review handling here
+— it is the single source of truth for review-thread handling.
 
 ### e. Review gate stall (`reviewDecision == CHANGES_REQUESTED`)
 After the requested changes are addressed and threads resolved, the prior
@@ -138,7 +164,8 @@ git merge-base --is-ancestor <verify_commit> origin/<baseRefName>   # exit 0 = s
 Also confirm the merge commit's parent is your fixed head, not a stale one. If a
 late commit (CI auto-fix, CodeRabbit follow-up) raced past the merge, it did **not**
 ship — fix forward with a new commit/PR and re-drive. Re-confirm after any commit
-that lands while auto-merge is enabled.
+that lands while auto-merge is enabled; a successful merge of an older head is a
+failed drive-to-merge outcome, not a successful closeout.
 
 ## 4. Terminal states
 
