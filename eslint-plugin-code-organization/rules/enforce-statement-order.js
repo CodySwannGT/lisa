@@ -122,6 +122,21 @@ module.exports = {
         return ORDER.DEFINITION;
       }
 
+      // super(...) is a language-mandated constructor prologue: it must run
+      // before any `this` access, so definitions that follow it are
+      // unavoidable. Treat it as order-neutral rather than a side effect.
+      if (statement.type === "ExpressionStatement") {
+        const expression = unwrapExpression(statement.expression);
+
+        if (
+          expression &&
+          expression.type === "CallExpression" &&
+          expression.callee.type === "Super"
+        ) {
+          return null;
+        }
+      }
+
       // Expression statements with function calls are side effects
       if (isFunctionCallExpression(statement)) {
         return ORDER.SIDE_EFFECT;
