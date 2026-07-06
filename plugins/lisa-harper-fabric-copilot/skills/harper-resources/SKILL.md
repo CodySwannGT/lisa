@@ -74,6 +74,41 @@ See [[harper-config-yaml]] for the extension wiring, [[harper-schema-graphql]] f
 how the schema defines the tables resources extend, and [[harper-realtime]] when
 `subscribe`, `publish`, or WebSocket behavior is part of the feature.
 
+## Throwing HTTP status errors
+
+Harper's thrown-error response writer reads **`error.statusCode`** (falling back
+to `500`). A plain `error.status` is **ignored** — throw an error with only
+`status` set and every intended `4xx` is served as a `500`. Verified on
+harperdb 4.7.32.
+
+Always set `statusCode` (keep `status` too only if callers or tests read it):
+
+```javascript
+static async post(target, data, context) {
+  if (!context.user) {
+    const error = new Error('Authentication required');
+    error.statusCode = 401; // NOT `error.status` — Harper reads statusCode
+    throw error;
+  }
+  // ...
+}
+```
+
+A shared helper keeps every throw site correct:
+
+```javascript
+function throwStatus(message, status) {
+  // Set both: `statusCode` is what Harper serves; `status` is kept for
+  // returned-response symmetry and any caller/test that reads it.
+  throw Object.assign(new Error(message), { status, statusCode: status });
+}
+```
+
+The `harper-require-statuscode-on-thrown-error` ast-grep rule flags errors that
+carry `status` without `statusCode`. Pass `context` through to `super` and nested
+table calls so authorization and the request transaction stay aligned — see
+[[harper-rest-queries]] for context propagation and iterator draining.
+
 ## Project conventions (TS is source)
 
 - **Write resources in TypeScript under `src/`. `harper-app/resources.js` is a

@@ -1,0 +1,30 @@
+id: harper-require-statuscode-on-thrown-error
+snapshots:
+  'Object.assign(error, { status: 400 });':
+    labels:
+      - source: 'Object.assign(error, { status: 400 })'
+        style: primary
+        start: 0
+        end: 37
+  class StatusError extends Error { constructor(m, s) { super(m); this.status = s; } }:
+    labels:
+      - source: this.status = s
+        style: primary
+        start: 64
+        end: 79
+      - source: Error
+        style: secondary
+        start: 26
+        end: 31
+      - source: extends Error
+        style: secondary
+        start: 18
+        end: 31
+      - source: extends Error
+        style: secondary
+        start: 18
+        end: 31
+      - source: class StatusError extends Error { constructor(m, s) { super(m); this.status = s; } }
+        style: secondary
+        start: 0
+        end: 84

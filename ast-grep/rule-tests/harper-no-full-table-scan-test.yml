@@ -1,0 +1,11 @@
+id: harper-no-full-table-scan
+valid:
+  - 'rowsByAttribute(tables.Advisor, "advisorId", value)'
+  - 'tables.Advisor.search({ conditions: [{ attribute: "id", value: 1 }] })'
+  - 'searchPageAndCount(tables.Advisor, query)'
+invalid:
+  - 'allRows(tables.EmploymentHistory)'
+  - 'optionalAll(tables.Advisor)'
+  - 'allRows<AdvisorRow>(tables.Advisor)'
+  - 'tables.Advisor.search({})'
+  - 'tables.Advisor.search()'

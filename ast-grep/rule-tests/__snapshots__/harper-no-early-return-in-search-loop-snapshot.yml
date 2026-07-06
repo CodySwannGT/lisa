@@ -1,0 +1,30 @@
+id: harper-no-early-return-in-search-loop
+snapshots:
+  'async function bad() { for await (const row of tables.Advisor.search({ conditions: [] })) { if (row.id) return row; } }':
+    labels:
+      - source: return row;
+        style: primary
+        start: 104
+        end: 115
+      - source: 'tables.Advisor.search({ conditions: [] })'
+        style: secondary
+        start: 47
+        end: 88
+      - source: 'for await (const row of tables.Advisor.search({ conditions: [] })) { if (row.id) return row; }'
+        style: secondary
+        start: 23
+        end: 117
+  async function bad() { for await (const row of tables.Advisor.search({})) { if (row.id) break; } }:
+    labels:
+      - source: break;
+        style: primary
+        start: 88
+        end: 94
+      - source: tables.Advisor.search({})
+        style: secondary
+        start: 47
+        end: 72
+      - source: for await (const row of tables.Advisor.search({})) { if (row.id) break; }
+        style: secondary
+        start: 23
+        end: 96
