@@ -242,6 +242,34 @@ ruleTester.run("enforce-statement-order", rule, {
       `,
       options: [{ checkAllFunctionBodies: false }],
     },
+
+    // super() is a language-mandated prologue, not a side effect: definitions
+    // after it must not be flagged (derived constructors cannot avoid this)
+    {
+      code: `
+        class NetworkStage extends Stage {
+          constructor(scope, id, props) {
+            super(scope, id, props);
+            const environment = props.environment;
+            const natGatewayCount = environment === "production" ? 3 : 1;
+            configureNetwork(environment, natGatewayCount);
+          }
+        }
+      `,
+    },
+
+    // super() alone with only definitions after it
+    {
+      code: `
+        class Widget extends Base {
+          constructor(options) {
+            super(options);
+            const name = options.name;
+            this.name = name;
+          }
+        }
+      `,
+    },
   ],
 
   invalid: [
@@ -509,6 +537,30 @@ ruleTester.run("enforce-statement-order", rule, {
             initialize();
             const config = getConfig();
             return config;
+          }
+        }
+      `,
+      errors: [
+        {
+          messageId: "wrongOrder",
+          data: {
+            current: DEFINITIONS,
+            previous: SIDE_EFFECTS,
+          },
+        },
+      ],
+    },
+
+    // super() neutrality must not mask real violations: a definition after a
+    // genuine side effect inside a derived constructor is still flagged
+    {
+      code: `
+        class NetworkStage extends Stage {
+          constructor(scope, id, props) {
+            super(scope, id, props);
+            configureNetwork(props);
+            const environment = props.environment;
+            this.environment = environment;
           }
         }
       `,
