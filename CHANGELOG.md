@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.11](https://github.com/CodySwannGT/lisa/compare/v2.191.10...v2.191.11) (2026-07-06)
+
+
+### Bug Fixes
+
+* **eslint:** add checkRequiredComponentFiles opt-out to enforce-component-structure ([f4f175e](https://github.com/CodySwannGT/lisa/commit/f4f175ea8886a06ae987dab3a9e42c88d8597255))
+
 ### [2.191.10](https://github.com/CodySwannGT/lisa/compare/v2.191.9...v2.191.10) (2026-07-06)
 
 
