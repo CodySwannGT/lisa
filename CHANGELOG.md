@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.3](https://github.com/CodySwannGT/lisa/compare/v2.191.2...v2.191.3) (2026-07-06)
+
+
+### Bug Fixes
+
+* **security:** allowlist historical $SONAR_TOKEN gitleaks false positives ([85e7d9a](https://github.com/CodySwannGT/lisa/commit/85e7d9addf1c512c66cc9b3b3af0138e8ae2cdb8)), closes [#1418](https://github.com/CodySwannGT/lisa/issues/1418) [#1418](https://github.com/CodySwannGT/lisa/issues/1418)
+* **tests:** keep plugin-sync fixture repo hermetic under git hooks ([1ebb51c](https://github.com/CodySwannGT/lisa/commit/1ebb51c72ee02571e768a85906a16faaefbf2052))
+
 ### [2.191.2](https://github.com/CodySwannGT/lisa/compare/v2.191.1...v2.191.2) (2026-07-06)
 
 
