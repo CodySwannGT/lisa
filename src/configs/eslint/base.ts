@@ -379,6 +379,9 @@ export const getTestFilesOverride = (additionalPatterns: string[] = []) => ({
     "no-restricted-syntax": "off",
     // Tests can be longer than typical functions
     "max-lines-per-function": "off",
+    // Arrange-act-assert tests interleave mock-setup side effects with
+    // consts that read the resulting state, so definition-order cannot apply
+    "code-organization/enforce-statement-order": "off",
   },
 });
 
