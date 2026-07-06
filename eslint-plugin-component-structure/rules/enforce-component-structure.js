@@ -16,7 +16,17 @@ module.exports = {
       recommended: true,
     },
     fixable: null,
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: {
+          checkRequiredComponentFiles: {
+            type: "boolean",
+          },
+        },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       missingContainer:
         'Component directory "{{componentName}}" is missing {{componentName}}Container.tsx file',
@@ -196,11 +206,18 @@ module.exports = {
       }
     };
 
-    // Only check once per file
+    // Only check once per file. Projects predating the Container/View pairing
+    // requirement can opt out of the directory-shape check while keeping the
+    // naming and index-export checks active.
+    const options = context.options[0] || {};
+    const checkRequiredComponentFiles =
+      options.checkRequiredComponentFiles !== false;
+
     if (
-      fileName === "index.ts" ||
-      fileName === "index.tsx" ||
-      fileName === "index.jsx"
+      checkRequiredComponentFiles &&
+      (fileName === "index.ts" ||
+        fileName === "index.tsx" ||
+        fileName === "index.jsx")
     ) {
       checkRequiredFiles();
     }
