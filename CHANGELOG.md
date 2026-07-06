@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.13](https://github.com/CodySwannGT/lisa/compare/v2.191.12...v2.191.13) (2026-07-06)
+
+
+### Bug Fixes
+
+* **harper-fabric:** make the ZAP report dir writable by the container user ([7061136](https://github.com/CodySwannGT/lisa/commit/706113608ddd80dced5158ec0cb89c2dd1b13e88)), closes [#9](https://github.com/CodySwannGT/lisa/issues/9)
+
 ### [2.191.12](https://github.com/CodySwannGT/lisa/compare/v2.191.11...v2.191.12) (2026-07-06)
 
 
