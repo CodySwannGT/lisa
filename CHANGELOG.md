@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.5](https://github.com/CodySwannGT/lisa/compare/v2.191.4...v2.191.5) (2026-07-06)
+
+
+### Bug Fixes
+
+* **eslint:** disable enforce-statement-order in shared test-file override ([20e28e5](https://github.com/CodySwannGT/lisa/commit/20e28e52e1d3792b8ffdd41e58bc4a2e7ef80959))
+
 ### [2.191.4](https://github.com/CodySwannGT/lisa/compare/v2.191.3...v2.191.4) (2026-07-06)
 
 
