@@ -31,7 +31,8 @@ const EXEMPT_LABEL = "verification-exempt";
 // A verification spec lives in a top-level e2e/ dir, a nested tests/e2e/ tree,
 // or a tests/verification/ tree — NOT an arbitrary path that merely contains an
 // "e2e" segment (e.g. src/e2e/helpers.ts must not satisfy the gate).
-const VERIFICATION_PATH = /^e2e\/|(^|\/)tests\/(e2e|verification)\//;
+const VERIFICATION_PATH =
+  /(?:^e2e\/)|(?:(?:^|\/)tests\/(?:e2e|verification)\/)/;
 
 /**
  * Parse a comma-delimited label list.
