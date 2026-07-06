@@ -15,6 +15,7 @@
     "**/node_modules/**",
     "harper-app/resources.js",
     "harper-app/resource-*.js",
+    "harper-app/*.js",
     "harper-app/web/**",
     "harper-app/lib/**"
   ],

@@ -13,7 +13,7 @@ These rules apply to Harper/Fabric component apps managed by Lisa.
 - TypeScript under `src/` is the source of truth for Harper resources, browser modules, shared libraries, and operational scripts.
 - `harper-app/config.yaml`, `harper-app/schema.graphql`, HTML, CSS, docs, and research fixtures are source assets.
 - `harper-app/config.yaml` does not merge with Harper defaults. Keep every required top-level extension declared when editing it; the Harper Fabric hook blocks accidental extension drops unless the removal is documented in `.lisa/harper-config-extension-allowlist.json`.
-- `harper-app/resources.js` and `harper-app/web/**/*.js` are generated deploy artifacts. Never edit them directly; change the matching TypeScript and run `bun run build`.
+- Every `.js` at the harper-app root (`harper-app/*.js` — `resources.js`, `resource-*.js`, and any other compiled module) plus `harper-app/web/**/*.js` and `harper-app/lib/**` are generated deploy artifacts. Never edit them directly; change the matching TypeScript and run `bun run build`. Name compiled resource modules `resource-*.ts` so their output is unambiguously generated; a hand-written `.js` kept at the harper-app root must be re-included in `.gitignore` and listed in `.lisa/harper-generated-artifact-allowlist.txt` so the block hook allows editing it.
 - Deployment, bootstrap, smoke, seed, verify, preview, token, crawl, ingest, and extraction commands must run from compiled JavaScript or generated Harper assets, not stale checked-in JavaScript.
 
 ## Harper/Fabric Deploy Surface

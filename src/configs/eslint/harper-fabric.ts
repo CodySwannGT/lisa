@@ -25,6 +25,11 @@ export const defaultHarperFabricIgnores = [
   "*.config.local.ts",
   "harper-app/resources.js",
   "harper-app/resource-*.js",
+  // Root-level compiled Harper modules (resources.js, resource-*.js, and any
+  // other build output emitted straight into harper-app/). The single-star does
+  // not cross a directory separator, so hand-written shims one level down
+  // (harper-app/<route>/index.js) are still linted.
+  "harper-app/*.js",
   "harper-app/web/**",
   "harper-app/lib/**",
 ];
