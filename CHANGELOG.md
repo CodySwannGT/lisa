@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.192.0](https://github.com/CodySwannGT/lisa/compare/v2.191.14...v2.192.0) (2026-07-06)
+
+
+### Features
+
+* **harper-fabric:** enforce empirically-verified Harper best practices ([913a4ce](https://github.com/CodySwannGT/lisa/commit/913a4ce7ee77f0c87a1029bb45d7e88c2d2ac267))
+
 ### [2.191.14](https://github.com/CodySwannGT/lisa/compare/v2.191.13...v2.191.14) (2026-07-06)
 
 ### [2.191.13](https://github.com/CodySwannGT/lisa/compare/v2.191.12...v2.191.13) (2026-07-06)
