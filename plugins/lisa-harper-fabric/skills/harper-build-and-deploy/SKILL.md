@@ -50,15 +50,30 @@ What the build actually does:
 
 Generated Harper deploy artifacts usually include:
 
-- `harper-app/resources.js`
-- `harper-app/resource-*.js`
+- `harper-app/*.js` — every compiled module the build emits to the harper-app
+  root (`resources.js`, `resource-*.js`, and any other output such as a route
+  negotiation module). The single-star does **not** cross a directory separator,
+  so it does not match hand-written shims one level down.
 - `harper-app/web/**`
 - `harper-app/lib/**`
 
+The guard surfaces (`generated-artifact-globs.txt` for the PreToolUse block hook,
+`.gitignore`, `.prettierignore`, the ESLint/oxlint/knip ignores, and
+`tsconfig.eslint.json`) all key off `harper-app/*.js` so a newly-named compiled
+module is protected automatically. **Name compiled resource modules
+`resource-*.ts`** so their JS output is unambiguously generated.
+
+If you keep a *hand-written* `.js` at the harper-app root (e.g. an SEO shell),
+the root-level rule would otherwise treat it as generated: re-include it with a
+`!harper-app/<file>.js` line below the managed gitignore block, and add it to
+`.lisa/harper-generated-artifact-allowlist.txt` so the block hook lets you edit
+it. Hand-written shims nested under `harper-app/<route>/index.js` need no
+exemption — the root-level rule never matches them.
+
 Every lint, format, dead-code, search, or generated-artifact guard must ignore
-those generated paths unless it is explicitly validating the build output itself.
-When a new generated path appears, add it to every relevant ignore surface in the
-same change; partial ignores fail later gates in non-obvious ways.
+generated paths unless it is explicitly validating the build output itself. When
+a new generated *directory* appears, add it to every relevant ignore surface in
+the same change; partial ignores fail later gates in non-obvious ways.
 
 - **TypeScript under `src/` is source.** `bun run build` produces the deployable
   Harper assets from it.

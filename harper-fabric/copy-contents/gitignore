@@ -1,6 +1,13 @@
 # BEGIN: AI GUARDRAILS HARPER-FABRIC
+# Compiled Harper modules are emitted straight into harper-app/ from src/. The
+# root-level `harper-app/*.js` rule covers resources.js, resource-*.js, and any
+# other build output (e.g. detail-shell-negotiation.js) without matching
+# hand-written shims nested one level down (harper-app/<route>/index.js). If you
+# keep a hand-written .js at the harper-app root (e.g. an SEO shell), re-include
+# it with a `!harper-app/<file>.js` line placed BELOW this managed block.
 harper-app/resources.js
 harper-app/resource-*.js
+harper-app/*.js
 harper-app/web/**
 harper-app/lib/**
 .lisabak/

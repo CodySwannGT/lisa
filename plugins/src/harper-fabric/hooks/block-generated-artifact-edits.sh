@@ -33,6 +33,7 @@ matches_glob() {
   local file="$1"
   local glob="$2"
 
+  # Recursive directory globs: "dir/**" matches everything under dir.
   if [ "${glob: -3}" = "/**" ]; then
     local dir="${glob%/**}"
     case "$file" in
@@ -41,6 +42,38 @@ matches_glob() {
     return 1
   fi
 
+  # Single-star globs like "harper-app/*.js": the star must not cross a
+  # directory separator, so a broadened root-level pattern protects compiled
+  # modules emitted straight into harper-app/ (resources.js, resource-*.js, and
+  # any other build output such as detail-shell-negotiation.js) WITHOUT matching
+  # hand-written files nested one level down (e.g. harper-app/<route>/index.js).
+  case "$glob" in
+    */\** | \**)
+      local base_glob="${glob##*/}"
+      local dir_glob=""
+      case "$glob" in
+        */*) dir_glob="${glob%/*}" ;;
+      esac
+      local file_base="${file##*/}"
+      local file_dir=""
+      case "$file" in
+        */*) file_dir="${file%/*}" ;;
+      esac
+      case "$file_base" in
+        $base_glob) ;;
+        *) return 1 ;;
+      esac
+      [ -z "$dir_glob" ] && return 0
+      # Match the directory exactly, or as a suffix so absolute/prefixed paths
+      # (e.g. /repo/harper-app/foo.js) still resolve.
+      case "$file_dir" in
+        $dir_glob | */"$dir_glob") return 0 ;;
+      esac
+      return 1
+      ;;
+  esac
+
+  # Literal (wildcard-free) globs.
   case "$file" in
     $glob | */$glob) return 0 ;;
   esac
@@ -49,6 +82,24 @@ matches_glob() {
 }
 
 NORMALIZED_FILE=$(normalize_path "$FILE_PATH")
+
+# Project-owned allowlist of hand-written files that live under harper-app/ and
+# must NOT be treated as generated (e.g. a hand-authored SEO shell, or route
+# index.js shims kept at the harper-app root). The broadened root-level
+# `harper-app/*.js` protection would otherwise block editing them. One glob per
+# line (same syntax as the globs file); blank lines and `#` comments ignored.
+# Prefer naming compiled resource modules `resource-*.ts` so their JS output is
+# unambiguously generated and never needs allowlisting.
+ALLOWLIST_FILE="${CLAUDE_PROJECT_DIR:-.}/.lisa/harper-generated-artifact-allowlist.txt"
+if [ -f "$ALLOWLIST_FILE" ]; then
+  while IFS= read -r allow || [ -n "$allow" ]; do
+    [ -n "$allow" ] || continue
+    case "$allow" in \#*) continue ;; esac
+    if matches_glob "$NORMALIZED_FILE" "$allow"; then
+      exit 0
+    fi
+  done <"$ALLOWLIST_FILE"
+fi
 
 while IFS= read -r glob || [ -n "$glob" ]; do
   [ -n "$glob" ] || continue
