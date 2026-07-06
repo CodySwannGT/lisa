@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.4](https://github.com/CodySwannGT/lisa/compare/v2.191.3...v2.191.4) (2026-07-06)
+
+
+### Bug Fixes
+
+* **cdk:** keep eslint.cdk.ts template within its own max-lines-per-function limit ([6f15815](https://github.com/CodySwannGT/lisa/commit/6f158154582181f7c6dfbdc920fb39a200a6d17e))
+
 ### [2.191.3](https://github.com/CodySwannGT/lisa/compare/v2.191.2...v2.191.3) (2026-07-06)
 
 
