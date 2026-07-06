@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.8](https://github.com/CodySwannGT/lisa/compare/v2.191.7...v2.191.8) (2026-07-06)
+
+
+### Bug Fixes
+
+* **typescript:** group regex alternatives in check-verification-coverage ([2bc89f7](https://github.com/CodySwannGT/lisa/commit/2bc89f751776aca4e3e0f7900eb560c2f7ba8d99)), closes [#259](https://github.com/CodySwannGT/lisa/issues/259)
+
 ### [2.191.7](https://github.com/CodySwannGT/lisa/compare/v2.191.6...v2.191.7) (2026-07-06)
 
 
