@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.193.0](https://github.com/CodySwannGT/lisa/compare/v2.192.1...v2.193.0) (2026-07-06)
+
+
+### Features
+
+* **harper-fabric:** default type-declaration-immutability to ReadonlyDeep, not Immutable ([86fd1b0](https://github.com/CodySwannGT/lisa/commit/86fd1b0797d645a70898f7b3da80e94f28faec15))
+
 ### [2.192.1](https://github.com/CodySwannGT/lisa/compare/v2.192.0...v2.192.1) (2026-07-06)
 
 
