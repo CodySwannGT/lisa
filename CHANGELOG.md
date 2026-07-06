@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.12](https://github.com/CodySwannGT/lisa/compare/v2.191.11...v2.191.12) (2026-07-06)
+
+
+### Bug Fixes
+
+* **harper-fabric:** honor WARN policy and fix duplicate ZAP mount ([779d5ad](https://github.com/CodySwannGT/lisa/commit/779d5ad2882ecfc4a372dc297f2726c7678e8978))
+
 ### [2.191.11](https://github.com/CodySwannGT/lisa/compare/v2.191.10...v2.191.11) (2026-07-06)
 
 
