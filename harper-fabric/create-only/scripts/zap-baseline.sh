@@ -57,7 +57,13 @@ if [ "$should_start_local" = true ]; then
   fi
 
   echo "==> Starting Harper app locally..."
-  "$HARPER_BIN" run harper-app &
+  # HarperDB's first run blocks on an interactive Terms & Conditions prompt
+  # and admin-credential setup; supply non-interactive answers (same pattern
+  # as the starter bootstrap script) so CI never hangs waiting for input.
+  TC_AGREEMENT="${TC_AGREEMENT:-yes}" \
+  HDB_ADMIN_USERNAME="${HDB_ADMIN_USERNAME:-admin}" \
+  HDB_ADMIN_PASSWORD="${HDB_ADMIN_PASSWORD:-zap-baseline-local}" \
+    "$HARPER_BIN" run harper-app &
   SERVER_PID=$!
 
   echo "==> Waiting for Harper app..."
