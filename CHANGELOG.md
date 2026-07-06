@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.2](https://github.com/CodySwannGT/lisa/compare/v2.191.1...v2.191.2) (2026-07-06)
+
+
+### Bug Fixes
+
+* guard auto-merge against stale PR heads ([ec118d6](https://github.com/CodySwannGT/lisa/commit/ec118d6e3e82bf6754939e83fb7c1bf8baf485c5))
+
 ### [2.191.1](https://github.com/CodySwannGT/lisa/compare/v2.191.0...v2.191.1) (2026-07-06)
 
 ## [2.191.0](https://github.com/CodySwannGT/lisa/compare/v2.190.5...v2.191.0) (2026-07-05)
