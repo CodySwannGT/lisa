@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.10](https://github.com/CodySwannGT/lisa/compare/v2.191.9...v2.191.10) (2026-07-06)
+
+
+### Bug Fixes
+
+* **harper-fabric:** start Harper via install+component+start in zap-baseline.sh ([9f25e27](https://github.com/CodySwannGT/lisa/commit/9f25e27813b85e9a1931cc918c4835145eb29b77)), closes [#1462](https://github.com/CodySwannGT/lisa/issues/1462) [#9](https://github.com/CodySwannGT/lisa/issues/9)
+
 ### [2.191.9](https://github.com/CodySwannGT/lisa/compare/v2.191.8...v2.191.9) (2026-07-06)
 
 
