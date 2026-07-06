@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.191.7](https://github.com/CodySwannGT/lisa/compare/v2.191.6...v2.191.7) (2026-07-06)
+
+
+### Bug Fixes
+
+* **cdk:** use $esbuild self-reference for the esbuild override ([3579957](https://github.com/CodySwannGT/lisa/commit/3579957db33b2b899718ade8c05b51068ae586ee))
+* **harper-fabric:** auto-accept HarperDB T&C in zap-baseline.sh ([089e526](https://github.com/CodySwannGT/lisa/commit/089e5262d07cd94128b3e43ab5314b581b83c25e))
+
 ### [2.191.6](https://github.com/CodySwannGT/lisa/compare/v2.191.5...v2.191.6) (2026-07-06)
 
 
