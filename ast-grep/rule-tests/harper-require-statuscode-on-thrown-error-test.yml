@@ -1,0 +1,9 @@
+id: harper-require-statuscode-on-thrown-error
+valid:
+  - 'Object.assign(error, { status, statusCode: status });'
+  - 'Object.assign(error, { statusCode: status });'
+  - 'class StatusError extends Error { constructor(m, s) { super(m); this.status = s; this.statusCode = s; } }'
+  - 'class Widget extends Base { constructor(s) { this.status = s; } }'
+invalid:
+  - 'Object.assign(error, { status: 400 });'
+  - 'class StatusError extends Error { constructor(m, s) { super(m); this.status = s; } }'

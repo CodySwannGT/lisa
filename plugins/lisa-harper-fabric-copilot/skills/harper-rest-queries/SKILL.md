@@ -121,6 +121,38 @@ const products = await tables.Products.search({
 });
 ```
 
+## Sort with no conditions crashes the planner
+
+A `search()` that carries a `sort` but an **empty `conditions: []`** array throws
+at runtime — the planner cannot seed the btree scan from the sort attribute. This
+is a latent `500` the first time an unfiltered, sorted collection page is
+requested (verified on harperdb 4.7.32).
+
+```javascript
+// ✗ crashes: sort with nothing to seed the scan
+tables.Advisor.search({
+  conditions: [],
+  sort: { attribute: 'lastName' },
+});
+```
+
+Seed a floor/sentinel condition on the sort attribute so the planner has an index
+range to walk, then apply the sort:
+
+```javascript
+// ✓ floor condition on the sort attribute seeds the scan
+tables.Advisor.search({
+  conditions: [
+    { attribute: 'lastName', comparator: 'greater_than_equal', value: '' },
+  ],
+  sort: { attribute: 'lastName' },
+});
+```
+
+Centralize this in the page helper (`searchPageAndCount`) rather than duplicating
+a sentinel at each call site. The `harper-no-empty-conditions-with-sort` ast-grep
+rule flags the crashing shape.
+
 ## Relationship queries
 
 Relationship attributes can be queried with dot syntax when the relationship is
@@ -200,9 +232,14 @@ Useful query keys:
 | `select` | Projection list. Keep admin-only fields out of public responses. |
 | `explain` | Debug execution order and index usage while tuning. |
 
-`search()` can return an `AsyncIterable`. When iterating manually or stopping
-early, drain it or call the iterator's `return()` in `finally` so Harper can
-release the read transaction:
+`search()` can return an `AsyncIterable`. An early `return`/`break` out of a
+`for await (... of tables.X.search(...))` loop abandons the iterator before the
+scan completes and **leaks the open read transaction** (verified on
+harperdb 4.7.32). When iterating manually or stopping early, drain it or call the
+iterator's `return()` in `finally` so Harper releases the read transaction — or
+bound the query (`search({ ..., limit: 1 })`) when you only need the first row.
+The `harper-no-early-return-in-search-loop` ast-grep rule flags early exits from
+these loops:
 
 ```javascript
 const iterator = tables.Products

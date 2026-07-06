@@ -1,0 +1,8 @@
+id: harper-no-empty-conditions-with-sort
+valid:
+  - 'tables.Advisor.search({ conditions: [{ attribute: "lastName", value: "A" }], sort: { attribute: "lastName" } });'
+  - 'tables.Advisor.search({ conditions: [] });'
+  - 'tables.Advisor.search({ sort: { attribute: "lastName" } });'
+invalid:
+  - 'tables.Advisor.search({ conditions: [], sort: { attribute: "lastName" } });'
+  - 'tables.Advisor.search({ sort: { attribute: "lastName" }, conditions: [] });'

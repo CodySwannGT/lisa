@@ -1,0 +1,41 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+id: harper-require-statuscode-on-thrown-error
+language: typescript
+severity: error
+message: |
+  This error carries `status` but not `statusCode`. Harper's thrown-error HTTP
+  response writer reads `error.statusCode` (falling back to 500); a plain
+  `status` is ignored, so every intended 4xx becomes a 500 on the wire.
+note: >-
+  Set `statusCode` (keep `status` too if callers/tests rely on it):
+  `Object.assign(error, { status, statusCode: status })`, or in an Error
+  subclass assign `this.statusCode = status` alongside `this.status`. Verified
+  live on harperdb 4.7.32 — a 401/403/404 thrown with only `status` was served
+  as 500. Direct `err.status = code` assignments are not auto-detected; when you
+  attach an HTTP code to a thrown error, always set `statusCode`.
+rule:
+  any:
+    # `Object.assign(error, { status })` with only a `status` property — the
+    # exact object match excludes the correct `{ status, statusCode }` form.
+    - pattern: 'Object.assign($E, { status: $S })'
+    # Error subclass that assigns `this.status` but never mentions `statusCode`
+    # anywhere in the class body.
+    - pattern: this.status = $S
+      inside:
+        kind: class_declaration
+        stopBy: end
+        all:
+          - has:
+              kind: class_heritage
+              stopBy: end
+              has:
+                kind: extends_clause
+                has:
+                  field: value
+                  regex: Error$
+          - not:
+              has:
+                kind: property_identifier
+                regex: ^statusCode$
+                stopBy: end

@@ -260,6 +260,54 @@ Guidance:
   webhook must bypass Harper auth, verify its signature first and keep its table
   writes narrowly scoped.
 
+## Session cookies are `SameSite=None` — guard state-changing POSTs
+
+Harper hardcodes the session cookie's `SameSite=None` attribute on HTTPS. The
+browser therefore attaches the session cookie to **cross-site** requests, so a
+same-origin app cannot rely on `SameSite` to block CSRF on cookie-authenticated,
+state-changing routes (`POST`/`PUT`/`PATCH`/`DELETE`).
+
+Add an app-side origin check in the resource before mutating. Reject requests
+whose `Origin` (or `Referer` fallback) is not an allowed origin:
+
+```javascript
+const ALLOWED_ORIGINS = new Set([
+  'https://app.example.com',
+]);
+
+function requireSameOrigin(context) {
+  const headers = context.requestContext?.headers ?? context.headers;
+  const origin =
+    headers?.get?.('origin') ??
+    headers?.get?.('referer');
+  const ok =
+    typeof origin === 'string' &&
+    [...ALLOWED_ORIGINS].some((allowed) => origin.startsWith(allowed));
+  if (!ok) {
+    const error = new Error('Cross-origin request rejected');
+    error.statusCode = 403; // Harper reads statusCode, not status
+    throw error;
+  }
+}
+
+export class Watchlists extends tables.Watchlists {
+  static async post(target, data, context) {
+    requireSameOrigin(context);
+    // ...authorization and write
+    return super.post(target, await data, context);
+  }
+}
+```
+
+Guidance:
+
+- Call the check on every cookie-authenticated state-changing route. Read-only
+  `GET` handlers and token/`Authorization: Bearer` APIs (not cookie-driven) do
+  not need it.
+- Prefer an allowlist of exact origins over substring matching that a lookalike
+  host could satisfy.
+- This is defense the app owns; Harper will not add it for you.
+
 ## Verification matrix
 
 Run the local app, create the test users, and check unauthenticated, reader, and

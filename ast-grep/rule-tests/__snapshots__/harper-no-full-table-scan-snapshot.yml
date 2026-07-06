@@ -1,0 +1,32 @@
+id: harper-no-full-table-scan
+snapshots:
+  allRows(tables.EmploymentHistory):
+    labels:
+      - source: allRows(tables.EmploymentHistory)
+        style: primary
+        start: 0
+        end: 33
+  allRows<AdvisorRow>(tables.Advisor):
+    labels:
+      - source: allRows<AdvisorRow>(tables.Advisor)
+        style: primary
+        start: 0
+        end: 35
+  optionalAll(tables.Advisor):
+    labels:
+      - source: optionalAll(tables.Advisor)
+        style: primary
+        start: 0
+        end: 27
+  tables.Advisor.search():
+    labels:
+      - source: tables.Advisor.search()
+        style: primary
+        start: 0
+        end: 23
+  tables.Advisor.search({}):
+    labels:
+      - source: tables.Advisor.search({})
+        style: primary
+        start: 0
+        end: 25

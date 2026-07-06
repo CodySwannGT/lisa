@@ -1,0 +1,27 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+id: harper-no-early-return-in-search-loop
+language: typescript
+severity: warning
+message: |
+  Early `return`/`break` out of a `for await (... of tables.X.search(...))` loop
+  leaves Harper's read transaction open — the iterator is abandoned before the
+  scan completes and the transaction is not released, leaking a read handle.
+note: >-
+  Drain or explicitly close the iterator on early exit. Prefer bounding the query
+  so the loop finishes naturally (`search({ ..., limit: 1 })` when you only need
+  the first row), or drive the iterator manually and call `iterator.return?.()`
+  in a `finally` block so Harper releases the read transaction. This is a
+  heuristic — a `break` that belongs to an inner `switch` or a `return` inside a
+  nested callback is a false positive; suppress those with an inline
+  `// ast-grep-ignore: harper-no-early-return-in-search-loop`.
+rule:
+  any:
+    - kind: return_statement
+    - kind: break_statement
+  inside:
+    kind: for_in_statement
+    stopBy: end
+    has:
+      field: right
+      pattern: $ITER.search($$$ARGS)

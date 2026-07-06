@@ -1,0 +1,7 @@
+id: harper-no-early-return-in-search-loop
+valid:
+  - 'async function ok() { for await (const row of tables.Advisor.search({ conditions: [] })) { doThing(row); } }'
+  - 'async function ok() { for await (const row of otherIterable) { if (row.id) return row; } }'
+invalid:
+  - 'async function bad() { for await (const row of tables.Advisor.search({ conditions: [] })) { if (row.id) return row; } }'
+  - 'async function bad() { for await (const row of tables.Advisor.search({})) { if (row.id) break; } }'
