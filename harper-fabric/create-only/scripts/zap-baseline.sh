@@ -57,12 +57,19 @@ if [ "$should_start_local" = true ]; then
   fi
 
   echo "==> Starting Harper app locally..."
-  # HarperDB's first run blocks on an interactive Terms & Conditions prompt
-  # and admin-credential setup; supply non-interactive answers (same pattern
-  # as the starter bootstrap script) so CI never hangs waiting for input.
+  # HarperDB's first run blocks on interactive prompts: Terms & Conditions,
+  # admin credentials, AND the install destination (rootPath). Supply the full
+  # non-interactive answer set (same pattern as the starter bootstrap script)
+  # so CI never hangs waiting for input. HTTP_PORT must stay 9926 to match
+  # the scan target URL above.
   TC_AGREEMENT="${TC_AGREEMENT:-yes}" \
+  HDB_ROOT="${HDB_ROOT:-$HOME/.harperdb}" \
   HDB_ADMIN_USERNAME="${HDB_ADMIN_USERNAME:-admin}" \
   HDB_ADMIN_PASSWORD="${HDB_ADMIN_PASSWORD:-zap-baseline-local}" \
+  OPERATIONSAPI_NETWORK_PORT="${OPERATIONSAPI_NETWORK_PORT:-9925}" \
+  HTTP_PORT="${HTTP_PORT:-9926}" \
+  ANALYTICS_ENABLED="${ANALYTICS_ENABLED:-false}" \
+  LOGGING_LEVEL="${LOGGING_LEVEL:-warn}" \
     "$HARPER_BIN" run harper-app &
   SERVER_PID=$!
 
