@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.192.1](https://github.com/CodySwannGT/lisa/compare/v2.192.0...v2.192.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* **harper-fabric:** protect all root-level compiled harper-app modules ([4894fd2](https://github.com/CodySwannGT/lisa/commit/4894fd21cdd0be3ca399b53952f03de7ff214682))
+
 ## [2.192.0](https://github.com/CodySwannGT/lisa/compare/v2.191.14...v2.192.0) (2026-07-06)
 
 
