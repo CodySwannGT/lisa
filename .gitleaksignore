@@ -32,3 +32,10 @@ firebase-web-prod.json:gcp-api-key:2
 
 # Quality workflow curl uses $SONAR_TOKEN variable reference, not a real secret
 .github/workflows/quality.yml:curl-auth-user:1093
+
+# Historical full-history scan findings (issue #1418): the flagged lines pass
+# the SONAR_TOKEN environment variable to curl's basic-auth flag as a shell
+# variable reference, not a literal credential, so nothing was exposed and no
+# rotation or history rewrite is needed.
+0215799854477c30dd3bf947f4cc65fe9a78fe13:.github/workflows/quality.yml:curl-auth-user:1083
+0215799854477c30dd3bf947f4cc65fe9a78fe13:typescript/copy-overwrite/.github/workflows/quality.yml:curl-auth-user:1083
