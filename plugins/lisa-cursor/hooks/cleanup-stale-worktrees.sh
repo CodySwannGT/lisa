@@ -48,12 +48,19 @@ for wt in "$wt_root"/*/; do
   [ -d "$wt" ] || continue
 
   # Age gate: skip anything recently touched (possibly a live session).
-  mtime=$(stat -f %m "$wt" 2>/dev/null || stat -c %Y "$wt" 2>/dev/null) || continue
+  # GNU `stat -c` is tried first: GNU's `-f` means "filesystem status" (not
+  # BSD's "format"), so `stat -f %m` on Linux silently misparses instead of
+  # failing cleanly, defeating the fallback. Try the GNU form first — it
+  # fails cleanly with no stdout on BSD/macOS, letting `-f %m` take over.
+  mtime=$(stat -c %Y "$wt" 2>/dev/null || stat -f %m "$wt" 2>/dev/null) || continue
   [ $((now - mtime)) -ge "$max_age_secs" ] || continue
 
   if [ -e "$wt/.git" ]; then
-    # Real work gate: modified/staged tracked files survive.
-    [ -z "$(git -C "$wt" status --porcelain --untracked-files=no 2>/dev/null)" ] || continue
+    # Real work gate: modified/staged tracked files survive. A failed
+    # `git status` (corrupted index, permission issue, etc.) must NOT be
+    # treated as clean — capture its exit status too and skip on failure.
+    status_output=$(git -C "$wt" status --porcelain --untracked-files=no 2>/dev/null) || continue
+    [ -z "$status_output" ] || continue
 
     # Unpushed gate: HEAD must be reachable from a remote ref.
     sha=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || continue
