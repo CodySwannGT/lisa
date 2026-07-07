@@ -214,15 +214,26 @@ jobs:
           # making `npm ci` fail with "can only install with an existing
           # package-lock.json (lockfileVersion >= 1)" on repos that happened to hold
           # such a cache. Bumping the version invalidates them fleet-wide.
-          CACHE_VERSION=v2
+          # v2 -> v3: keys now include the patch-package state and recognize bun's
+          # text lockfile (bun.lock). Previously a changed patches/ dir could
+          # restore node_modules still carrying the OLD patch, so the new patch
+          # failed to apply in postinstall; and bun.lock repos fell through to the
+          # package.json hash, missing lockfile-only changes.
+          CACHE_VERSION=v3
+          # patch-package mutates node_modules in place — scope every key by the
+          # patch state so caches never cross a patches/ change. hashFiles returns
+          # an empty string when the dir is absent; normalize for a stable key.
+          PATCHES_HASH="${{ hashFiles('patches/**') }}"
+          PATCHES_HASH="${PATCHES_HASH:-nopatches}"
+          echo "patches-hash=${PATCHES_HASH}" >> $GITHUB_OUTPUT
           if [ -f "package-lock.json" ]; then
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-npm-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-npm-${PATCHES_HASH}-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
           elif [ -f "yarn.lock" ]; then
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-yarn-${{ hashFiles('yarn.lock') }}" >> $GITHUB_OUTPUT
-          elif [ -f "bun.lockb" ]; then
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-bun-${{ hashFiles('bun.lockb') }}" >> $GITHUB_OUTPUT
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-yarn-${PATCHES_HASH}-${{ hashFiles('yarn.lock') }}" >> $GITHUB_OUTPUT
+          elif [ -f "bun.lock" ] || [ -f "bun.lockb" ]; then
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-bun-${PATCHES_HASH}-${{ hashFiles('bun.lock', 'bun.lockb') }}" >> $GITHUB_OUTPUT
           else
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-${{ hashFiles('package.json') }}" >> $GITHUB_OUTPUT
+            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-${PATCHES_HASH}-${{ hashFiles('package.json') }}" >> $GITHUB_OUTPUT
           fi
 
       - name: 📦 Cache node_modules
@@ -235,11 +246,13 @@ jobs:
             ~/.yarn/cache
             ~/.bun/install/cache
           key: ${{ steps.cache.outputs.cache-key }}
-          # restore-keys are package-manager-scoped only. The old cross-PM blanket
-          # (`<os>-node-`) could restore a yarn/bun cache into an npm project; dropped.
+          # restore-keys are scoped to package manager AND patch state: restoring
+          # node_modules across a patches/ change would resurrect stale patched
+          # files that the new patch cannot apply over. The old cross-PM blanket
+          # (`<os>-node-`) line is gone for the same reason it was documented as
+          # dropped: it could restore a yarn/bun cache into an npm project.
           restore-keys: |
-            v2-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-
-            v2-${{ runner.os }}-node-${{ inputs.node_version }}-
+            v3-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-${{ steps.cache.outputs.patches-hash }}-
 
       - name: 📥 Install dependencies
         if: steps.cache-modules.outputs.cache-hit != 'true'
@@ -965,7 +978,7 @@ jobs:
             ${{ inputs.working_directory || '.' }}/dist
             ${{ inputs.working_directory || '.' }}/.expo
             ${{ inputs.working_directory || '.' }}/node_modules/.cache
-          key: ${{ runner.os }}-expo-build-${{ hashFiles('**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          key: ${{ runner.os }}-expo-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
           restore-keys: |
             ${{ runner.os }}-expo-build-
 
@@ -1213,7 +1226,7 @@ jobs:
             ${{ inputs.working_directory || '.' }}/out
             ${{ inputs.working_directory || '.' }}/.expo
             ${{ inputs.working_directory || '.' }}/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ hashFiles('**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
 
