@@ -58,6 +58,11 @@ global.__fbBatchedBridgeConfig = {
   localModulesConfig: [],
 };
 
+// Stub the Fabric UI manager global — RN 0.86+ (Expo SDK 57) references
+// `nativeFabricUIManager` at renderer module scope, so it must exist before
+// any module loads. Mirrors @react-native/jest-preset's own global stub.
+global.nativeFabricUIManager = {};
+
 // Mock TurboModuleRegistry using external mock configuration
 const mockModules = require("./jest.config.react-native-mock");
 
