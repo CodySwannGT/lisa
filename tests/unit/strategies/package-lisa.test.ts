@@ -1029,7 +1029,7 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
-  describe("Expo real template: dual SDK 54/56 support", () => {
+  describe("Expo real template: dual SDK 54/57 support", () => {
     // Regression: the Expo package.lisa.json used to hard-pin the entire
     // SDK-coupled dependency set (expo, react, react-native, every expo-*,
     // jest-expo, the react-native-* runtime libs, @sentry/react-native, etc.)
@@ -1187,7 +1187,7 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies["jest-expo"]).toBe("~54.0.0");
     });
 
-    it("gives a fresh project the default SDK 56 versions", async () => {
+    it("gives a fresh project the default SDK 57 versions", async () => {
       await createExpoProject(projectDir);
       const destPath = path.join(projectDir, "package.json");
       // A fresh project that does not yet pin the SDK-coupled packages.
@@ -1205,11 +1205,11 @@ describe("PackageLisaStrategy", () => {
       );
 
       const content = await fs.readJson(destPath);
-      // Fresh projects get the sensible SDK 56 default.
-      expect(content.dependencies.expo).toBe("~56.0.0");
+      // Fresh projects get the sensible SDK 57 default.
+      expect(content.dependencies.expo).toBe("~57.0.0");
       expect(content.dependencies.react).toBe("19.2.3");
-      expect(content.dependencies["react-native"]).toBe("0.85.3");
-      expect(content.devDependencies["jest-expo"]).toBe("~56.0.4");
+      expect(content.dependencies["react-native"]).toBe("0.86.0");
+      expect(content.devDependencies["jest-expo"]).toBe("~57.0.1");
     });
 
     it("still force-applies tooling versions even when the project pins older ones", async () => {

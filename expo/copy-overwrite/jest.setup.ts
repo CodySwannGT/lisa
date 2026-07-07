@@ -23,6 +23,18 @@
  * @module jest.setup
  */
 
+// RN 0.86+ (Expo SDK 57): `expo`'s WinterCG runtime (`expo/src/winter/
+// runtime.native.ts`) imports `react-native/Libraries/Core/InitializeCore`,
+// which lazily replaces `setTimeout`/`setInterval`/`setImmediate`/
+// `requestAnimationFrame` (and other globals) with RN's JSTimers — backed by
+// the native TimingModule, which does not exist under Jest. Once installed,
+// no timer ever fires, so React's `act()`/RTLRN `render()` hang forever.
+// React Native's own jest preset solves this by mocking InitializeCore with
+// an empty module (see @react-native/jest-preset/jest/setup.js); mirror that.
+// `jest.mock` is hoisted above the imports below, so it takes effect before
+// any module can pull the real InitializeCore in.
+jest.mock("react-native/Libraries/Core/InitializeCore", () => ({}));
+
 // Project-local mocks and setup (create-only — Lisa never overwrites this)
 import "./jest.setup.local";
 

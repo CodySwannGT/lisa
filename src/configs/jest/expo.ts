@@ -159,7 +159,9 @@ export const getExpoJestConfig = ({
     ...worktreeTestPathIgnorePatterns(),
   ],
   transformIgnorePatterns: [
-    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@gluestack-ui/.*|@gluestack-style/.*|nativewind|react-native-css-interop|react-native-reanimated|react-native-worklets|lucide-react-native|@gorhom|@shopify)",
+    // `standard-navigation` (expo-router's navigation core on SDK 57) ships
+    // untranspiled ESM, so it must be transformed like the other RN packages.
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|@sentry/react-native|native-base|react-native-svg|@gluestack-ui/.*|@gluestack-style/.*|nativewind|react-native-css-interop|react-native-reanimated|react-native-worklets|lucide-react-native|@gorhom|@shopify)",
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   collectCoverageFrom: [
