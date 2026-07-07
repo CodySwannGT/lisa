@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.194.2](https://github.com/CodySwannGT/lisa/compare/v2.194.1...v2.194.2) (2026-07-07)
+
+
+### Bug Fixes
+
+* **ci:** scope node_modules cache by patch-package state and recognize bun.lock ([14ea30e](https://github.com/CodySwannGT/lisa/commit/14ea30e4f683d4c397d86c702c9b8405012c8ef6)), closes [gunnertech/tunnl-frontend#3](https://github.com/gunnertech/tunnl-frontend/issues/3)
+
 ### [2.194.1](https://github.com/CodySwannGT/lisa/compare/v2.194.0...v2.194.1) (2026-07-07)
 
 
