@@ -511,7 +511,6 @@ jobs:
           case "${{ inputs.release_strategy }}" in
             "standard-version")
               VERSION=$(npx standard-version --dry-run | grep "tagging release" | awk '{print $4}')
-              VERSION="${VERSION#v}"
               ;;
             "semantic")
               if git log --format=%B -n 50 --no-merges | grep -qE "^(BREAKING CHANGE:|.*!:)"; then
@@ -539,6 +538,9 @@ jobs:
               fi
               ;;
           esac
+
+          # Normalize any leading "v" regardless of strategy so "tag=v$VERSION" never yields "vv"
+          VERSION="${VERSION#v}"
 
           # Add prerelease suffix if specified
           if [ -n "${{ inputs.prerelease }}" ] && [ "${{ inputs.release_strategy }}" != "calendar" ]; then
@@ -1037,14 +1039,14 @@ jobs:
       - name: Generate Release Notes
         id: release_notes
         run: |
-          # Create release notes
-          cat > RELEASE_NOTES.md << 'EOF'
+          # Create release notes (unquoted delimiter so $(date ...) expands)
+          cat > RELEASE_NOTES.md << EOF
           # Release ${{ needs.version.outputs.version }}
 
           ## 📊 Release Information
           - **Version**: ${{ needs.version.outputs.version }}
           - **Environment**: ${{ inputs.environment }}
-          - **Release Date**: $(date +"%Y-%m-%d %H:%M:%S UTC")
+          - **Release Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           - **Release ID**: ${{ needs.release_init.outputs.correlation_id }}
           - **Emergency Release**: ${{ inputs.emergency_release && '⚠️ Yes' || 'No' }}
 
@@ -1547,8 +1549,8 @@ jobs:
     steps:
       - name: Generate Final Summary
         run: |
-          # Create comprehensive summary
-          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          # Create comprehensive summary (unquoted delimiter so the duration arithmetic expands)
+          cat >> $GITHUB_STEP_SUMMARY << EOF
 
           # 🎉 Enterprise Release Complete
 
