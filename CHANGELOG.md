@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.194.1](https://github.com/CodySwannGT/lisa/compare/v2.194.0...v2.194.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* **release:** expand release notes date and normalize v-prefix across strategies ([63c0c31](https://github.com/CodySwannGT/lisa/commit/63c0c31cf783fda5f40ebacd775a8b2d4fe04797))
+
 ## [2.194.0](https://github.com/CodySwannGT/lisa/compare/v2.193.0...v2.194.0) (2026-07-07)
 
 
