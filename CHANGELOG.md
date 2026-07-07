@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.194.0](https://github.com/CodySwannGT/lisa/compare/v2.193.0...v2.194.0) (2026-07-07)
+
+
+### Features
+
+* **expo:** support Expo SDK 57 / React Native 0.86 ([af14e58](https://github.com/CodySwannGT/lisa/commit/af14e581b2ebf1f558e4d8bcee15d2c4a651fa8a))
+
 ## [2.193.0](https://github.com/CodySwannGT/lisa/compare/v2.192.1...v2.193.0) (2026-07-06)
 
 
