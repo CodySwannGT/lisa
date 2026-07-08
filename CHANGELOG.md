@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.4](https://github.com/CodySwannGT/lisa/compare/v2.195.3...v2.195.4) (2026-07-08)
+
+
+### Bug Fixes
+
+* **expo:** remove always-on Maestro MCP server from the expo plugin ([b1f3efd](https://github.com/CodySwannGT/lisa/commit/b1f3efd21f55793597bc52a2bbb8ff4984ca4a28))
+
 ### [2.195.3](https://github.com/CodySwannGT/lisa/compare/v2.195.2...v2.195.3) (2026-07-08)
 
 
