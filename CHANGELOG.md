@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.1](https://github.com/CodySwannGT/lisa/compare/v2.195.0...v2.195.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **expo:** ship expo's generated include list in the tsconfig template ([9fefe76](https://github.com/CodySwannGT/lisa/commit/9fefe76d8793f0b4b83891a739f72f8837623dc6))
+* **expo:** stop forcing EXPO_ATLAS=true in start scripts ([2bed3f1](https://github.com/CodySwannGT/lisa/commit/2bed3f198a594460f5190d31fb8ada3be9ffbaa6))
+
 ## [2.195.0](https://github.com/CodySwannGT/lisa/compare/v2.194.2...v2.195.0) (2026-07-08)
 
 
