@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.3](https://github.com/CodySwannGT/lisa/compare/v2.195.2...v2.195.3) (2026-07-08)
+
+
+### Bug Fixes
+
+* scrub client project names from distributed skills ([1d40304](https://github.com/CodySwannGT/lisa/commit/1d403045fc680d030421b1b848308a69ebdb2edd))
+* scrub remaining client names from skill references ([e6ede33](https://github.com/CodySwannGT/lisa/commit/e6ede3390682d66f20add967440b4917ee7743b6))
+
 ### [2.195.2](https://github.com/CodySwannGT/lisa/compare/v2.195.1...v2.195.2) (2026-07-08)
 
 
