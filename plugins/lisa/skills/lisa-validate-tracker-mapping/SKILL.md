@@ -23,8 +23,8 @@ It is the audit/repair counterpart to `/lisa:setup:jira` (and the other `setup:*
 ## Arguments
 
 - (none) — audit the **current repo** (`./.lisa.config.json`).
-- `projects=<glob-or-path>` — batch sweep. Expands to every directory under the glob that contains a `.lisa.config.json`. Example: `projects=~/workspace/geminisportsai/projects/*`.
-- `workspaces=<file>` — batch sweep driven by a Lisa workspaces file (the `{ "<project-path>": "<branch>" }` map used by `/lisa:update-projects`). Each key is a project path to audit. Combine with `filter=<substring>` to restrict to matching paths (e.g. `filter=geminisportsai`).
+- `projects=<glob-or-path>` — batch sweep. Expands to every directory under the glob that contains a `.lisa.config.json`. Example: `projects=~/workspace/acme/projects/*`.
+- `workspaces=<file>` — batch sweep driven by a Lisa workspaces file (the `{ "<project-path>": "<branch>" }` map used by `/lisa:update-projects`). Each key is a project path to audit. Combine with `filter=<substring>` to restrict to matching paths (e.g. `filter=acme`).
 - `repair=true` — enable config repair (see confirmation policy). Default `false`.
 - `lane=build|prd|both` — which mapping family to check. Default `both`. `build` = the destination `tracker` workflow; `prd` = the PRD `source` status/label mapping.
 

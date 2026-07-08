@@ -11,7 +11,7 @@ allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "AskUserQuestion"]
 `$ARGUMENTS` is a Notion database URL (or bare database ID) — for example:
 
 ```text
-https://www.notion.so/geminisports/28fd00244d7d47c5866876f7de48c0fe?v=34eba63a2800815891a3000c643f0ea8
+https://www.notion.so/acme/<database-id>?v=<view-id>
 ```
 
 Run one intake cycle against that database. The first eligible PRD in the configured `ready` status is claimed, validated, routed to either `blocked` (with clarifying comments) or `ticketed` (with destination tickets created), then the cycle exits. Remaining ready PRDs stay queued for later scheduler invocations.
