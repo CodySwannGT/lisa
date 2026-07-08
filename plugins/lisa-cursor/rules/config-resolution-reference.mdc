@@ -253,7 +253,7 @@ Each vendor section is **conditionally required**: required only when that vendo
 | Field | Required when | Where it lives | Notes |
 |-------|---------------|----------------|-------|
 | `atlassian.cloudId` | `tracker = "jira"`, `source = "jira"`, `source = "confluence"`, or any `confluence-*` / `jira-*` skill is invoked | **committed** (`.lisa.config.json`) | Atlassian Cloud site UUID. Same for every developer on the project. Resolve once via `curl https://<site>/_edge/tenant_info` or `getAccessibleAtlassianResources`. Shared between JIRA and Confluence (same Atlassian site). |
-| `atlassian.site` | same as above | **committed** | Human-readable site URL (e.g. `propswap.atlassian.net`). Same for every developer. |
+| `atlassian.site` | same as above | **committed** | Human-readable site URL (e.g. `acme.atlassian.net`). Same for every developer. |
 | `atlassian.email` | when the developer's machine has multiple Atlassian accounts that can access the configured site | **local** (`.lisa.config.local.json`) | Per-developer. `--site` alone cannot disambiguate which acli profile to switch to when two accounts both have access to the same site (e.g., a personal account and a work account both invited to a customer's site). The setup skill writes this to the local override file, NEVER the committed file. |
 
 #### `jira`
