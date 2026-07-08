@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.2](https://github.com/CodySwannGT/lisa/compare/v2.195.1...v2.195.2) (2026-07-08)
+
+
+### Bug Fixes
+
+* **expo:** tsconfig.json becomes host-owned (create-only) with expo's stable include ([c7261a2](https://github.com/CodySwannGT/lisa/commit/c7261a29eca3b16d74e8c791860948f67c18099f))
+* **typescript:** tolerate fully-ignored staged files in lint-staged ([fb80327](https://github.com/CodySwannGT/lisa/commit/fb80327f63d5908592531e84ad947c5902844ead)), closes [gunnertech/tunnl-frontend#20](https://github.com/gunnertech/tunnl-frontend/issues/20)
+
 ### [2.195.1](https://github.com/CodySwannGT/lisa/compare/v2.195.0...v2.195.1) (2026-07-08)
 
 
