@@ -259,9 +259,9 @@ export const configuration = (): Configuration => ({
   database: {
     host: process.env.DATABASE_HOST ?? "localhost",
     port: parseInt(process.env.DATABASE_PORT ?? "5432", 10),
-    username: process.env.DATABASE_USER ?? "thumbwar",
-    password: process.env.DATABASE_PASSWORD ?? "thumbwar_local",
-    name: process.env.DATABASE_NAME ?? "thumbwar",
+    username: process.env.DATABASE_USER ?? "acme",
+    password: process.env.DATABASE_PASSWORD ?? "acme_local",
+    name: process.env.DATABASE_NAME ?? "acme",
     ssl: process.env.DATABASE_SSL === "true",
     sslRejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
     proxyHost: process.env.DATABASE_PROXY_HOST,
@@ -400,9 +400,9 @@ export default new DataSource({
 # Database Configuration
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
-DATABASE_USER=thumbwar
-DATABASE_PASSWORD=thumbwar_local
-DATABASE_NAME=thumbwar
+DATABASE_USER=acme
+DATABASE_PASSWORD=acme_local
+DATABASE_NAME=acme
 DATABASE_SSL=false
 DATABASE_SSL_REJECT_UNAUTHORIZED=true
 
@@ -410,8 +410,8 @@ DATABASE_SSL_REJECT_UNAUTHORIZED=true
 IS_OFFLINE=true
 
 # Production Only - RDS Proxy endpoints
-# DATABASE_PROXY_HOST=thumbwar-proxy.proxy-xxxxx.us-east-1.rds.amazonaws.com
-# DATABASE_PROXY_HOST_READ_1=thumbwar-proxy-read.proxy-xxxxx.us-east-1.rds.amazonaws.com
+# DATABASE_PROXY_HOST=acme-proxy.proxy-xxxxx.us-east-1.rds.amazonaws.com
+# DATABASE_PROXY_HOST_READ_1=acme-proxy-read.proxy-xxxxx.us-east-1.rds.amazonaws.com
 
 # AWS Configuration (production)
 # AWS_REGION=us-east-1

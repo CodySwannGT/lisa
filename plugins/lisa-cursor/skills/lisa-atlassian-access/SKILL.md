@@ -282,7 +282,7 @@ Substrate column meanings:
 - Multiple cells filled means tier ordering applies — try acli, then MCP, then curl, taking the first that has an adapter for the op AND is identity-matched.
 - One cell means only that substrate can perform the op.
 
-`<SITE>` = `.atlassian.site` (e.g. `propswap.atlassian.net`). `<CLOUDID>` = `.atlassian.cloudId`. `<AUTH>` = `Basic $(printf '%s:%s' "$email" "$ATLASSIAN_API_TOKEN" | base64)`. JIRA curl writes use the cloudId-bound Atlassian gateway `https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/...`; JIRA curl reads may use either that gateway or `https://<SITE>/rest/api/3/...` after the token account check. Confluence uses `/wiki/rest/api/...` (v1) or `/api/v2/...` (v2).
+`<SITE>` = `.atlassian.site` (e.g. `acme.atlassian.net`). `<CLOUDID>` = `.atlassian.cloudId`. `<AUTH>` = `Basic $(printf '%s:%s' "$email" "$ATLASSIAN_API_TOKEN" | base64)`. JIRA curl writes use the cloudId-bound Atlassian gateway `https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/...`; JIRA curl reads may use either that gateway or `https://<SITE>/rest/api/3/...` after the token account check. Confluence uses `/wiki/rest/api/...` (v1) or `/api/v2/...` (v2).
 
 | Operation | acli adapter | MCP adapter | curl adapter |
 |---|---|---|---|
