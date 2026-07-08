@@ -1,5 +1,8 @@
 {
-  "extends": ["@codyswann/lisa/tsconfig/expo", "./tsconfig.local.json"],
+  "extends": [
+    "@codyswann/lisa/tsconfig/expo",
+    "./tsconfig.local.json"
+  ],
   "compilerOptions": {
     "baseUrl": "./",
     "ignoreDeprecations": "6.0"
@@ -7,8 +10,6 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
     "nativewind-env.d.ts"
   ]
 }
