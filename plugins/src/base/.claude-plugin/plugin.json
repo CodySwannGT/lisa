@@ -1,8 +1,10 @@
 {
   "name": "lisa",
   "version": "1.0.0",
-  "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
-  "author": { "name": "Cody Swann" },
+  "description": "Universal governance \u2014 agents, skills, commands, hooks, and rules for all projects",
+  "author": {
+    "name": "Cody Swann"
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -17,13 +19,19 @@
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
+          }
         ]
       },
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
         ]
       }
     ],
@@ -31,25 +39,37 @@
       {
         "matcher": "Task",
         "hooks": [
-          { "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true" }
+          {
+            "type": "command",
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true"
+          }
         ]
       },
       {
         "matcher": "TodoWrite",
         "hooks": [
-          { "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true" }
+          {
+            "type": "command",
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true"
+          }
         ]
       },
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/shell-write-nudge.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/shell-write-nudge.sh"
+          }
         ]
       },
       {
         "matcher": "TeamCreate|Agent",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
+          }
         ]
       }
     ],
@@ -57,47 +77,161 @@
       {
         "matcher": "Task",
         "hooks": [
-          { "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true" }
+          {
+            "type": "command",
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true"
+          }
         ]
       },
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh" },
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh"
+          }
         ]
       },
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
+          }
         ]
       },
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
         ]
       }
     ],
     "Stop": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh" }] }
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      }
     ],
     "SessionStart": [
-      { "matcher": "startup", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true" }] }
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true"
+          }
+        ]
+      }
     ],
     "SubagentStart": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-flow-context.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh" }] },
-      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh" }] }
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-flow-context.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      }
     ],
     "SessionEnd": [
-      { "matcher": "", "hooks": [{ "type": "command", "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true" }] }
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/cleanup-stale-worktrees.sh",
+            "async": true,
+            "timeout": 300
+          }
+        ]
+      }
     ]
   }
 }

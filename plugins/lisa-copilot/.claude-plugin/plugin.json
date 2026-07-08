@@ -91,6 +91,19 @@
           }
         ]
       }
+    ],
+    "sessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/cleanup-stale-worktrees.sh",
+            "async": true,
+            "timeout": 300
+          }
+        ]
+      }
     ]
   },
   "mcpServers": {
