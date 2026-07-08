@@ -220,6 +220,17 @@
             "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/cleanup-stale-worktrees.sh",
+            "async": true,
+            "timeout": 300
+          }
+        ]
       }
     ]
   }

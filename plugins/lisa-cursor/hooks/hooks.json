@@ -43,6 +43,11 @@
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
       }
+    ],
+    "sessionEnd": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/cleanup-stale-worktrees.sh"
+      }
     ]
   }
 }
