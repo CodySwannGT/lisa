@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.195.0](https://github.com/CodySwannGT/lisa/compare/v2.194.2...v2.195.0) (2026-07-08)
+
+
+### Features
+
+* **hooks:** add session-end sweep of stale agent worktrees ([7d74598](https://github.com/CodySwannGT/lisa/commit/7d745981e62ffb29d523d06489338d9afb6162dd))
+
+
+### Bug Fixes
+
+* **hooks:** treat failed git status as dirty in worktree cleanup sweep ([9ef972d](https://github.com/CodySwannGT/lisa/commit/9ef972d3ab97607f831ae6353529e1c85e59314a)), closes [#1473](https://github.com/CodySwannGT/lisa/issues/1473)
+
 ### [2.194.2](https://github.com/CodySwannGT/lisa/compare/v2.194.1...v2.194.2) (2026-07-07)
 
 
