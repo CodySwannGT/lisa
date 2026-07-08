@@ -3,10 +3,6 @@
     "expo": {
       "type": "http",
       "url": "https://mcp.expo.dev/mcp"
-    },
-    "maestro": {
-      "command": "maestro",
-      "args": ["mcp"]
     }
   }
 }
