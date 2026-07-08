@@ -30,12 +30,20 @@ The accompanying `expo` MCP server in `.mcp.json` points at Expo's official
 remote server (`https://mcp.expo.dev/mcp`), replacing the previously bundled
 third-party `expo-local-docs-mcp` stdio server.
 
-The `maestro` MCP server in `.mcp.json` runs the official Maestro CLI's
-built-in MCP server (`maestro mcp`, STDIO) — nothing is bundled; it requires
-the host machine's own Maestro CLI (with a Java runtime) and exposes device
-automation tools (list_devices, inspect_screen, take_screenshot, run flows,
-cheat_sheet, and Maestro Cloud variants) to coding agents. Servers whose CLI
-is absent simply fail to start without affecting the rest of the plugin.
+The Maestro CLI's built-in MCP server (`maestro mcp`, STDIO) is intentionally
+NOT registered in `.mcp.json`. Coding agents spawn stdio servers with a
+non-login PATH, so an always-on entry fails visibly (Claude Code shows a
+"Failed to reconnect … -32000" error every session) on any machine missing the
+Maestro CLI or a resolvable Java runtime — which is most of the fleet. Opt in
+per machine instead, e.g.:
+
+```
+claude mcp add --scope local maestro -- maestro mcp
+```
+
+ensuring `maestro` and a Java runtime are on the non-interactive PATH (mise
+users: `claude mcp add --scope local maestro -- mise exec java -- maestro mcp`
+from a directory where Java is active).
 
 ### MIT License
 
