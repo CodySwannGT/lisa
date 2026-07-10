@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.5](https://github.com/CodySwannGT/lisa/compare/v2.195.4...v2.195.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* **codex:** scope Lisa plugin delivery to projects ([1b47a8c](https://github.com/CodySwannGT/lisa/commit/1b47a8cdaac6be5a28a72eab2e615e0496120d72))
+
 ### [2.195.4](https://github.com/CodySwannGT/lisa/compare/v2.195.3...v2.195.4) (2026-07-08)
 
 
