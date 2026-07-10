@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.7](https://github.com/CodySwannGT/lisa/compare/v2.195.6...v2.195.7) (2026-07-10)
+
+
+### Bug Fixes
+
+* **expo:** trigger EAS build when app.json or eas.json changes ([ec407a2](https://github.com/CodySwannGT/lisa/commit/ec407a2357cf761dc4a87ba5183a2737f956adcf))
+
 ### [2.195.6](https://github.com/CodySwannGT/lisa/compare/v2.195.5...v2.195.6) (2026-07-10)
 
 
