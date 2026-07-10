@@ -101,7 +101,8 @@ jobs:
           cache: ${{ inputs.package_manager != 'bun' && inputs.package_manager || '' }}
 
       - name: Update npm for OIDC support
-        run: npm install -g npm@latest
+        # npm 12 requires a newer Node release than the generated project may pin.
+        run: npm install -g npm@11.7.0
 
       - name: Install dependencies
         run: |
