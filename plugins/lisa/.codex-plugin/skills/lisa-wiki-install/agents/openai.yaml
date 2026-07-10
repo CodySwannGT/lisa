@@ -1,0 +1,4 @@
+display_name: "Wiki Install"
+short_description: "Bootstrap the LLM Wiki kernel…"
+default_prompt:
+  - "Use $lisa-wiki-install: Bootstrap the LLM Wiki kernel…."

@@ -1,0 +1,4 @@
+display_name: "Improve Max Lines"
+short_description: "reducing the maximum file lines…"
+default_prompt:
+  - "Use $lisa-improve-max-lines: reducing the maximum file lines…."

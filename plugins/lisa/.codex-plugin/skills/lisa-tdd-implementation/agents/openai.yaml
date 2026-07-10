@@ -1,0 +1,4 @@
+display_name: "TDD Implementation"
+short_description: "Test-Driven Development…"
+default_prompt:
+  - "Use $lisa-tdd-implementation: Test-Driven Development…."

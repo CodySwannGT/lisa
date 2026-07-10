@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Docs"
+short_description: "Ingest a local document (PDF…"
+default_prompt:
+  - "Use $lisa-wiki-connector-docs: Ingest a local document (PDF…."

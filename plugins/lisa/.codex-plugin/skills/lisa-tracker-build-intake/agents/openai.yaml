@@ -1,0 +1,4 @@
+display_name: "Tracker Build Intake"
+short_description: "Vendor-neutral wrapper for the…"
+default_prompt:
+  - "Use $lisa-tracker-build-intake: Vendor-neutral wrapper for the…."

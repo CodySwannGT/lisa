@@ -2,9 +2,10 @@
 # hook's AI co-authorship check passes (mirrors Claude Code's attribution.commit).
 # Emits: "Co-authored-by: Codex <noreply@openai.com>". Requires features.codex_git_commit.
 commit_attribution = "Codex <noreply@openai.com>"
+project_doc_max_bytes = 65536
 
 [features]
-codex_hooks = true
+hooks = true
 codex_git_commit = true
 
 [mcp_servers.linear-server]
@@ -19,3 +20,8 @@ BASH_MAX_TIMEOUT_MS = "7200000"
 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
 CLAUDE_DEBUG = "0"
 ENABLE_LSP_TOOL = "1"
+
+# >>> LISA MANAGED MCP SERVERS >>>
+[mcp_servers."sentry"]
+url = "https://mcp.sentry.dev/mcp"
+# <<< LISA MANAGED MCP SERVERS <<<

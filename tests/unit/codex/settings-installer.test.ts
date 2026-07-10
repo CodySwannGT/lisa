@@ -31,9 +31,7 @@ describe("codex/settings-installer", () => {
       for (const [key, value] of Object.entries(LISA_REQUIRED_SETTINGS)) {
         expect(parsed[key]).toBe(value);
       }
-      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
-        true
-      );
+      expect((parsed.features as Record<string, unknown>).hooks).toBe(true);
     });
 
     it("includes a managed-by-Lisa header in fresh files", () => {
@@ -49,9 +47,7 @@ describe("codex/settings-installer", () => {
       expect(parsed.approval_policy).toBe("on-request");
       // And Lisa's keys are added on top
       expect(parsed.project_doc_max_bytes).toBe(65536);
-      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
-        true
-      );
+      expect((parsed.features as Record<string, unknown>).hooks).toBe(true);
     });
 
     it("Lisa keys win on conflict with host keys", () => {
@@ -59,35 +55,43 @@ describe("codex/settings-installer", () => {
       const out = mergeSettings(existing);
       const parsed = parseToml(out) as Record<string, unknown>;
       expect(parsed.project_doc_max_bytes).toBe(65536);
-      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
-        true
-      );
+      expect((parsed.features as Record<string, unknown>).hooks).toBe(true);
     });
 
-    it("adds codex_hooks to an existing features table", () => {
+    it("adds hooks to an existing features table", () => {
       const out = mergeSettings(`[features]\nmodel_reasoning_summary = true\n`);
       const parsed = parseToml(out) as Record<string, unknown>;
       const features = parsed.features as Record<string, unknown>;
       expect(features.model_reasoning_summary).toBe(true);
-      expect(features.codex_hooks).toBe(true);
+      expect(features.hooks).toBe(true);
     });
 
-    it("preserves inline comments when updating codex_hooks", () => {
+    it("migrates codex_hooks in place and preserves its inline comment", () => {
       const out = mergeSettings(
         `[features]\ncodex_hooks = false # disabled while debugging\n`
       );
-      expect(out).toContain("codex_hooks = true # disabled while debugging");
+      expect(out).toContain("hooks = true # disabled while debugging");
+      expect(out).not.toContain("codex_hooks");
       const parsed = parseToml(out) as Record<string, unknown>;
-      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
-        true
-      );
+      expect((parsed.features as Record<string, unknown>).hooks).toBe(true);
     });
 
-    it("leaves matching codex_hooks lines unchanged", () => {
-      const existing = `[features]\ncodex_hooks = true # keep this note\n`;
+    it("leaves matching hooks lines unchanged", () => {
+      const existing = `[features]\nhooks = true # keep this note\n`;
       const out = mergeSettings(existing);
-      expect(out).toContain("codex_hooks = true # keep this note");
-      expect(out.match(/codex_hooks/g)).toHaveLength(1);
+      expect(out).toContain("hooks = true # keep this note");
+      expect(out.match(/^hooks\s*=/gm)).toHaveLength(1);
+    });
+
+    it("removes codex_hooks when hooks already exists", () => {
+      const existing = `[features]\nhooks = false # current key\ncodex_hooks = true # legacy key\nmodel_reasoning_summary = true\n`;
+      const out = mergeSettings(existing);
+      const features = (parseToml(out) as Record<string, unknown>)
+        .features as Record<string, unknown>;
+      expect(out).toContain("hooks = true # current key");
+      expect(out).toContain("model_reasoning_summary = true");
+      expect(out).not.toContain("codex_hooks");
+      expect(features.hooks).toBe(true);
     });
 
     it("preserves existing comments through round-trip", () => {
@@ -123,13 +127,11 @@ command = "linear-mcp"
     });
 
     it("preserves inline comments when updating an existing features key", () => {
-      const existing = `[features]\ncodex_hooks = false # disabled while debugging\n`;
+      const existing = `[features]\nhooks = false # disabled while debugging\n`;
       const out = mergeSettings(existing);
       expect(out).toContain("# disabled while debugging");
       const parsed = parseToml(out) as Record<string, unknown>;
-      expect((parsed.features as Record<string, unknown>).codex_hooks).toBe(
-        true
-      );
+      expect((parsed.features as Record<string, unknown>).hooks).toBe(true);
     });
   });
 

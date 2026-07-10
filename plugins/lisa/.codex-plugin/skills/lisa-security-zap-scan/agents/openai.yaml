@@ -1,0 +1,4 @@
+display_name: "Security ZAP Scan"
+short_description: "Run an OWASP ZAP baseline…"
+default_prompt:
+  - "Use $lisa-security-zap-scan: Run an OWASP ZAP baseline…."

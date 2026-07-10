@@ -1,0 +1,4 @@
+display_name: "Doctor"
+short_description: "Audit whether the current…"
+default_prompt:
+  - "Use $lisa-doctor: Audit whether the current…."

@@ -1,0 +1,4 @@
+display_name: "Improve Max Lines Per Function"
+short_description: "reducing the maximum lines per…"
+default_prompt:
+  - "Use $improve-max-lines-per-function: reducing the maximum lines per…."

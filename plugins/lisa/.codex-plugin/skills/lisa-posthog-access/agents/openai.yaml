@@ -1,0 +1,4 @@
+display_name: "PostHog Access"
+short_description: "Vendor-neutral access layer for…"
+default_prompt:
+  - "Use $lisa-posthog-access: Vendor-neutral access layer for…."

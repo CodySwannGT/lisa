@@ -93,9 +93,8 @@ export const LisaSessionBootstrap = async ({
     const project =
       process.env.JIRA_PROJECT ?? readLisaConfig(["jira", "project"]) ?? "";
     const login = process.env.JIRA_LOGIN;
-    const home = process.env.HOME;
-    if (server && login && home) {
-      const dir = `${home}/.config/.jira`;
+    if (server && login) {
+      const dir = `${root}/.lisa/jira-cli`;
       mkdirSync(dir, { recursive: true });
       const config = [
         `installation: ${process.env.JIRA_INSTALLATION ?? "cloud"}`,

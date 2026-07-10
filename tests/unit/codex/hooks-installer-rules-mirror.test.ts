@@ -67,6 +67,24 @@ describe("codex/hooks-installer rules mirror", () => {
       "# Coding Philosophy — full reference\n",
       "utf8"
     );
+
+    const harperPluginDir = path.join(lisaDir, "plugins", HARPER_FABRIC_PLUGIN);
+    await fs.outputFile(
+      path.join(harperPluginDir, "hooks", "block-generated-artifact-edits.sh"),
+      "#!/usr/bin/env bash\nexit 0\n"
+    );
+    await fs.outputFile(
+      path.join(harperPluginDir, "hooks", "enforce-config-extensions.sh"),
+      "#!/usr/bin/env bash\nexit 0\n"
+    );
+    await fs.outputFile(
+      path.join(harperPluginDir, "hooks", "enforce-config-extensions.mjs"),
+      "process.exitCode = 0;\n"
+    );
+    await fs.outputFile(
+      path.join(harperPluginDir, "generated-artifact-globs.txt"),
+      "harper-app/*.js\n"
+    );
   });
 
   afterEach(async () => {
@@ -124,6 +142,38 @@ describe("codex/hooks-installer rules mirror", () => {
     expect(
       await fs.pathExists(path.join(rulesDir, EAGER, HARPER_FABRIC_MD))
     ).toBe(true);
+  });
+
+  it("removes rules from stacks that are no longer detected", async () => {
+    const harperEagerDir = path.join(
+      lisaDir,
+      "plugins",
+      HARPER_FABRIC_PLUGIN,
+      "rules",
+      EAGER
+    );
+    await fs.ensureDir(harperEagerDir);
+    await fs.writeFile(
+      path.join(harperEagerDir, HARPER_FABRIC_MD),
+      "# Harper/Fabric Project Rules (load-bearing)\n",
+      "utf8"
+    );
+
+    const first = await installHooks(lisaDir, destDir, [HARPER_FABRIC]);
+    const staleRule = path.join(EAGER, HARPER_FABRIC_MD);
+    expect(
+      await fs.pathExists(
+        path.join(destDir, ".codex", LISA_RULES_SUBDIR, staleRule)
+      )
+    ).toBe(true);
+
+    const second = await installHooks(lisaDir, destDir, [], first.managedFiles);
+    expect(second.deleted).toContain(path.join(LISA_RULES_SUBDIR, staleRule));
+    expect(
+      await fs.pathExists(
+        path.join(destDir, ".codex", LISA_RULES_SUBDIR, staleRule)
+      )
+    ).toBe(false);
   });
 
   it("falls back to mirroring flat rules/*.md for older plugin builds", async () => {

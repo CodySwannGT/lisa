@@ -1,0 +1,4 @@
+display_name: "Ops Verify Health"
+short_description: "Health check all services…"
+default_prompt:
+  - "Use $ops-verify-health: Health check all services…."

@@ -1,0 +1,4 @@
+display_name: "Tracker Source Artifacts"
+short_description: "Canonical, vendor-neutral…"
+default_prompt:
+  - "Use $lisa-tracker-source-artifacts: Canonical, vendor-neutral…."

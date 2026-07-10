@@ -1,0 +1,4 @@
+display_name: "Intake Explain"
+short_description: "Read-only operator surface for…"
+default_prompt:
+  - "Use $lisa-intake-explain: Read-only operator surface for…."

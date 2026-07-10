@@ -144,7 +144,7 @@ the accepted trade-off recorded in the decision record. (Historical note: before
 dropped flat-layout stack rules like rails-conventions; #1052 fixed that, and the
 bake itself was later removed entirely.)
 
-The Codex variant intentionally reuses `plugins/lisa/` since Codex reads Claude-format manifests via its own `.codex-plugin/plugin.json` pointer file co-located in the same directory. No separate `plugins/lisa-codex/` is generated; the existing dual-pointer pattern (`.claude-plugin/plugin.json` for Claude + `.codex-plugin/plugin.json` for Codex) continues to work and is extended by `scripts/generate-codex-plugin-artifacts.mjs` to emit the migrated hooks block per the Wave 1 audit (see `wiki/architecture/lisa-hook-per-agent-ship-list.md`).
+The Codex variant intentionally reuses each canonical plugin directory, with a Codex-only payload under `.codex-plugin/`. No separate `plugins/lisa-codex/` is generated. `scripts/generate-codex-plugin-artifacts.mjs` emits the Codex manifest plus full native skill variants with concise discovery descriptions; other agent generators strip `.codex-plugin/`, so their payloads are unchanged.
 
 ## Generator scripts
 
@@ -187,7 +187,7 @@ Each generator follows the same shape:
 6. **Plugin-root env var rewriting**:
    - Claude: keep `${CLAUDE_PLUGIN_ROOT}`.
    - Cursor: **use the `${CURSOR_PLUGIN_ROOT}` token** in `hooks/hooks.json` commands — `${CURSOR_PLUGIN_ROOT}/hooks/<script>.sh` (issue #1055). Cursor plugin hooks execute with the OPENED PROJECT ROOT as cwd (not the plugin dir; confirmed by a Cursor maintainer), so a bare `./hooks/` would fail to resolve to the bundled script and could be shadowed by a repo-local `./hooks/*`. `${CURSOR_PLUGIN_ROOT}` is the maintainer-endorsed plugin-dir placeholder (`${CLAUDE_PLUGIN_ROOT}` also works in Cursor; the generator normalizes to the Cursor-native name).
-   - Codex: not handled here — Codex hooks ship via the Codex-specific generator (`generate-codex-plugin-artifacts.mjs`) which writes absolute paths or uses the Codex per-project hooks installer fallback.
+   - Codex: the Codex-specific generator retains Claude-compatible script bodies and adds the `PLUGIN_ROOT` fallback used by plugin-bundled hooks.
    - Copilot: keep `${CLAUDE_PLUGIN_ROOT}` in hook commands. Copilot aliases the Claude plugin-root environment variables, and the 2026-05-29 issue `#1056` probe verified that `${CLAUDE_PLUGIN_ROOT}` resolves for Copilot SessionStart hooks.
    - agy: agy exposes no plugin-root env var (`${CLAUDE_PLUGIN_ROOT}` resolves empty — verified ticket-1054), so the root `hooks.json` command uses a `$HOME`-absolute path (`$HOME/.gemini/config/plugins/<variant>/hooks/<script>`), which agy's ExpandEnv resolves.
 7. **Agent file rename for Copilot only**:
@@ -271,16 +271,12 @@ Two installers:
 
 ### `src/codex/` (EXISTING — Wave 3 changes)
 
-Extend the existing Codex installers per the decisions made in Wave 2:
-
-- `scripts/generate-codex-plugin-artifacts.mjs` — extended in THREE ways:
-  1. **Emit hooks block**: derive a `hooks` block in `.codex-plugin/plugin.json` from the Claude `plugin.json` hooks per the per-agent ship-list audit's Codex column (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Apply the absolute-path translation that `src/codex/hooks-installer.ts` already implements — import the translation helper from `src/codex/hooks-installer.ts` rather than duplicating it.
-  2. **Migrate skills surface** (per `wiki/decisions/2026-05-28-codex-skills-canonical-path.md`): the generator now copies `plugins/lisa/skills/<n>/` into the published plugin artifact AND applies the commands-to-skills transformation by importing `src/codex/command-skill-transformer.ts`. The same `lisa-<cmd>` prefix convention is preserved. The plugin manifest's `skills: "./skills/"` pointer continues to point at this directory.
-  3. **Respect the Codex skill policy denylist** at `scripts/internal-codex-skill-policy.json` during the copy step (same denylist behavior `src/codex/skills-installer.ts` honors today).
-- `src/codex/hooks-installer.ts` — marked deprecated as primary path. Kept as fallback for users who have NOT installed Lisa as a Codex plugin via marketplace. The fallback detection lives inside `hooks-installer.ts` (early return when `~/.codex/config.toml` contains `[plugins."lisa@CodySwannGT-lisa"]` enabled). Its absolute-path translation helper is exported for the generator to reuse.
-- `src/codex/skills-installer.ts` — marked deprecated as primary path per `wiki/decisions/2026-05-28-codex-skills-canonical-path.md`. Kept as fallback for users who have NOT installed Lisa as a Codex plugin. Same early-return detection pattern as `hooks-installer.ts`.
-- `src/codex/command-skill-transformer.ts` — stays in place. Imported by BOTH `scripts/generate-codex-plugin-artifacts.mjs` (primary) and `src/codex/skills-installer.ts` (fallback). Single source of transformation logic.
-- `src/codex/agents-md-installer.ts` — unchanged in primary behavior (AGENTS.md is not a plugin component on Codex). Possibly factored to share logic with new `src/claude/claude-md-installer.ts`.
+`src/codex/project-overlay.ts` is the canonical installer. It reconciles
+project-local agents, settings, MCP, and a filtered repository marketplace for
+native bundled skills, hooks, and rules. `scripts/generate-codex-plugin-artifacts.mjs`
+builds full Codex-only skill payloads under `.codex-plugin/`, including
+command-derived skills, while preserving the canonical skill bodies and all
+other agent variants. Lisa does not change user-scoped Codex plugin activation.
 
 ## Marketplace listing changes
 
@@ -304,4 +300,4 @@ Per-variant verification probes:
 | `lisa-cursor/` | `cursor-agent -p --plugin-dir plugins/lisa-cursor "list Lisa skills"` returns the full skill set. RULES (issue #1055): `cursor-agent --plugin-dir plugins/lisa-cursor --force -p "<quote an eager rule's codeword>"` returns the rule content (eager `.mdc` applied) — the old nested `.md` layout returned UNKNOWN (see `evidence/cursor-rule-probe-1055.md`). FILE-SHAPE regression is locked by `tests/unit/scripts/generate-cursor-plugin-artifacts*.test.ts`: 26 flat `rules/*.mdc` (13 eager `alwaysApply:true` + 13 `-reference.mdc` `alwaysApply:false`), `hooks/hooks.json` (camelCase, flat `{command,matcher}`), no manifest `hooks`, `mcp.json` on MCP variants. HOOK FIRING is NOT CLI-verifiable for plugin-bundled hooks (only project `.cursor/hooks.json` fires headless) — shape only. |
 | `lisa-agy/` | `agy plugin validate plugins/lisa-agy` returns [ok] for skills, agents, commands. `agy plugin install plugins/lisa-agy && agy plugin list` shows the install. `agy -p "what skills are available"` lists the Lisa skills. The base artifact ships a ROOT `hooks.json` (agy schema, `run_command`, `block-no-verify` only) + `hooks/block-no-verify.agy.sh`; stack variants ship none. NO `mcp_config.json`, NO `.mcp.json`, NO `rules/`, NO `hooks/hooks.json` subdir. Out-of-band: the user-global `~/.gemini/config/mcp_config.json` carries Lisa's MCP servers (`serverUrl` shape); AGENTS.md in a test project is the canonical, rule-free template (no `LISA_RULES_START..END` block — baking removed 2026-06-06, PR #1150). (Hook firing pending real-IDE confirmation — headless quota-blocked.) |
 | `lisa-copilot/` | `copilot -p --plugin-dir plugins/lisa-copilot "list Lisa skills and agents"` returns the full set (agents prefixed `lisa:`). After marketplace fix: `copilot plugin install lisa-copilot@CodySwannGT/lisa` succeeds. |
-| Codex hooks migration | `codex plugin marketplace add CodySwannGT/lisa && codex plugin install lisa@CodySwannGT-lisa` succeeds. `codex` interactive session in a project that does NOT have `lisa apply` run: Lisa skills work and the SessionStart hook fires (inject-rules content visible in context). |
+| Codex project marketplace | Run `lisa apply` in a throwaway project and verify `.agents/plugins/marketplace.json` contains only base plus detected or explicitly configured plugins. A fresh Codex session exposes their native namespaced skills and plugin hooks without `.codex/skills/lisa`, `.codex/hooks/lisa`, or a user-wide Lisa plugin registration. |

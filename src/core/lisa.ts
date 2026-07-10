@@ -5,17 +5,8 @@ import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
-import { discoverLisaAgents, installAgents } from "../codex/agent-installer.js";
-import { isHarnessVariantPlugin } from "./lisa-skill-sources.js";
-import { installHooks } from "../codex/hooks-installer.js";
-import {
-  readManagedManifest,
-  writeManagedManifest,
-} from "../codex/manifest.js";
 import { installAgentsMd } from "../codex/agents-md-installer.js";
-import { installSettings } from "../codex/settings-installer.js";
-import { installSkills } from "../codex/skills-installer.js";
-import { installCodexMarketplace } from "../codex/plugin-marketplace-installer.js";
+import { installCodexProjectOverlay } from "../codex/project-overlay.js";
 import { installAgyPlugin } from "../agy/plugin-installer.js";
 import {
   collectLisaMcpServers,
@@ -752,12 +743,10 @@ export class Lisa {
    * project's harness includes Codex (`codex` or `fleet`). No-op for `claude`
    * (default).
    *
-   * Codex can now ship skills, MCP servers, apps, and hooks via plugins, so
-   * Lisa emits a repo-local marketplace as the durable plugin-native path.
-   * Subagents, project settings, command-derived skills, and AGENTS.md still
-   * require a project overlay. Lisa writes those into `.codex/`, tracking
-   * ownership via `.codex/.lisa-managed.json` so updates can clean up stale
-   * entries without touching host customizations.
+   * Lisa writes the complete Codex surface and a filtered repository
+   * marketplace into the host. No user-wide plugin activation participates.
+   * Ownership is tracked via `.codex/.lisa-managed.json` so updates remove
+   * stale stack artifacts without touching host customizations.
    */
   private async processCodexEmit(): Promise<void> {
     const { harness } = this.config;
@@ -769,60 +758,22 @@ export class Lisa {
       return;
     }
 
-    const previous = await readManagedManifest(this.config.destDir);
-    const marketplaceResult = await installCodexMarketplace(
-      this.config.lisaDir,
-      this.config.destDir
-    );
-
-    // Restrict to canonical plugins — the per-harness fanout variants
-    // (`*-agy`/`*-copilot`/`*-cursor`) are reformatted copies, and the copilot
-    // variants rename agents to `*.agent.md`, which slips past id-dedup and would
-    // otherwise ship a duplicate `lisa-<name>.agent.toml` for every agent.
-    const agentSources = await discoverLisaAgents(
-      this.config.lisaDir,
-      name => !isHarnessVariantPlugin(name)
-    );
-    const agentResult = await installAgents(
-      agentSources,
-      this.config.destDir,
-      previous.files
-    );
-
-    const hooksResult = await installHooks(
+    const result = await installCodexProjectOverlay(
       this.config.lisaDir,
       this.config.destDir,
       this.detectedTypes
     );
-
-    const settingsResult = await installSettings(this.config.destDir);
-
-    const skillsResult = await installSkills(
-      this.config.lisaDir,
-      this.config.destDir,
-      previous.files
-    );
-
-    // AGENTS.md is create-only — produced once and never managed by Lisa
-    // afterward, so it's not added to the manifest (Lisa doesn't own it).
-    await installAgentsMd(this.config.destDir);
-
-    const allManagedFiles = [
-      ...agentResult.managedFiles,
-      ...hooksResult.managedFiles,
-      ...settingsResult.managedFiles,
-      ...skillsResult.managedFiles,
-    ];
-    await writeManagedManifest(this.config.destDir, allManagedFiles);
-
-    const totalStale = agentResult.deleted.length + skillsResult.deleted.length;
+    const totalStale =
+      result.staleAgentCount +
+      result.staleHookRuleCount +
+      result.staleSkillCount;
     this.deps.logger.info(
       pc.cyan(
-        `Codex emit: ${agentResult.installed.length} agents, ${hooksResult.hookEntries} hooks, ${skillsResult.installed.length} skills, settings ${settingsResult.created ? "created" : "merged"}${
+        `Codex emit: ${result.agentCount} agents, plugin-bundled hooks, ${result.modelVisibleSkillCount} native skills from ${result.marketplacePluginCount} project plugins, ${result.mcpServerCount} MCP servers, settings ${result.settingsCreated ? "created" : "merged"}${
           totalStale > 0
-            ? ` (${agentResult.deleted.length} stale agents, ${skillsResult.deleted.length} stale skills removed)`
+            ? ` (${result.staleAgentCount} stale agents, ${result.staleHookRuleCount} stale hook/rule files, ${result.staleSkillCount} stale skills removed)`
             : ""
-        }, marketplace ${marketplaceResult.created ? "created" : "merged"}`
+        }`
       )
     );
   }

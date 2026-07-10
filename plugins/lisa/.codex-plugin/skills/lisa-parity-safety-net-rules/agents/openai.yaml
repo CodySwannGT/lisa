@@ -1,0 +1,4 @@
+display_name: "Parity Safety Net Rules"
+short_description: "View, set, and verify the…"
+default_prompt:
+  - "Use $lisa-parity-safety-net-rules: View, set, and verify the…."

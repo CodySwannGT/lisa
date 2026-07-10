@@ -1,0 +1,4 @@
+display_name: "Phaser Asset Pipeline"
+short_description: "setting up or changing the…"
+default_prompt:
+  - "Use $phaser-asset-pipeline: setting up or changing the…."

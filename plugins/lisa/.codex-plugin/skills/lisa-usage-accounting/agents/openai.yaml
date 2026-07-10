@@ -1,0 +1,4 @@
+display_name: "Usage Accounting"
+short_description: "Shared usage-ledger utility for…"
+default_prompt:
+  - "Use $lisa-usage-accounting: Shared usage-ledger utility for…."

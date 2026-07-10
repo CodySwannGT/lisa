@@ -1,0 +1,4 @@
+display_name: "Ingest"
+short_description: "Ingest source material into the…"
+default_prompt:
+  - "Use $lisa-ingest: Ingest source material into the…."

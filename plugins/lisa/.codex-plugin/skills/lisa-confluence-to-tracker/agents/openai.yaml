@@ -1,0 +1,4 @@
+display_name: "Confluence To Tracker"
+short_description: "Break down a Confluence PRD…"
+default_prompt:
+  - "Use $lisa-confluence-to-tracker: Break down a Confluence PRD…."

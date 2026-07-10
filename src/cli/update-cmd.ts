@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 
-const LISA_LATEST_PACKAGE = "@codyswann/lisa@latest";
+const LISA_PACKAGE = "@codyswann/lisa";
 
 /** Options parsed for `lisa update`. */
 export interface UpdateCommandOptions {
@@ -60,7 +60,10 @@ export function detectPackageManager(
     return "npm";
   }
 
-  if (existsSync(path.join(deps.cwd, "bun.lockb"))) {
+  if (
+    existsSync(path.join(deps.cwd, "bun.lock")) ||
+    existsSync(path.join(deps.cwd, "bun.lockb"))
+  ) {
     return "bun";
   }
   if (existsSync(path.join(deps.cwd, "pnpm-lock.yaml"))) {
@@ -74,7 +77,7 @@ export function detectPackageManager(
 }
 
 /**
- * Compose the global Lisa update command for a package manager.
+ * Compose the project-local Lisa dependency update command for a package manager.
  * @param packageManager - Detected package manager
  * @returns Command and arguments ready for spawn
  */
@@ -84,21 +87,21 @@ export function getUpdateCommand(packageManager: string): {
 } {
   switch (packageManager) {
     case "bun":
-      return { command: "bun", args: ["add", "-g", LISA_LATEST_PACKAGE] };
+      return { command: "bun", args: ["update", LISA_PACKAGE] };
     case "pnpm":
       return {
         command: "pnpm",
-        args: ["add", "-g", LISA_LATEST_PACKAGE],
+        args: ["update", LISA_PACKAGE],
       };
     case "yarn":
       return {
         command: "yarn",
-        args: ["global", "add", LISA_LATEST_PACKAGE],
+        args: ["up", LISA_PACKAGE],
       };
     default:
       return {
         command: "npm",
-        args: ["install", "-g", LISA_LATEST_PACKAGE],
+        args: ["update", LISA_PACKAGE],
       };
   }
 }

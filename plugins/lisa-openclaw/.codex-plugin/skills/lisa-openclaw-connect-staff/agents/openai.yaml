@@ -1,0 +1,4 @@
+display_name: "Openclaw Connect Staff"
+short_description: "Connect staff roles to a human…"
+default_prompt:
+  - "Use $lisa-openclaw-connect-staff: Connect staff roles to a human…."

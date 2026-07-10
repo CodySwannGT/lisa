@@ -1,0 +1,4 @@
+display_name: "Ops Performance"
+short_description: "Performance analysis for Expo +…"
+default_prompt:
+  - "Use $ops-performance: Performance analysis for Expo +…."

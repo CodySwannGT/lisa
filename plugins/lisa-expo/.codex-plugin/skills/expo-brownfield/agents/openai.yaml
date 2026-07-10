@@ -1,0 +1,4 @@
+display_name: "Expo Brownfield"
+short_description: "Integrate Expo and React Native…"
+default_prompt:
+  - "Use $expo-brownfield: Integrate Expo and React Native…."

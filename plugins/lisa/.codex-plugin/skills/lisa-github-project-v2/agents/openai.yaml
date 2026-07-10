@@ -1,0 +1,4 @@
+display_name: "Github Project V2"
+short_description: "Shared GitHub ProjectV2…"
+default_prompt:
+  - "Use $lisa-github-project-v2: Shared GitHub ProjectV2…."

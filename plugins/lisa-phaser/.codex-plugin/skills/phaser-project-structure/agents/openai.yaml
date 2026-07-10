@@ -1,0 +1,4 @@
+display_name: "Phaser Project Structure"
+short_description: "creating, restructuring, or…"
+default_prompt:
+  - "Use $phaser-project-structure: creating, restructuring, or…."

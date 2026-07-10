@@ -1,0 +1,4 @@
+display_name: "Gluestack Nativewind"
+short_description: "This skill enforces Gluestack…"
+default_prompt:
+  - "Use $gluestack-nativewind: This skill enforces Gluestack…."

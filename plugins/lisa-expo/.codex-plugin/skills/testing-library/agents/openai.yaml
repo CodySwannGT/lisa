@@ -1,0 +1,4 @@
+display_name: "Testing Library"
+short_description: "Enforces best practices for…"
+default_prompt:
+  - "Use $testing-library: Enforces best practices for…."

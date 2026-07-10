@@ -1,0 +1,4 @@
+display_name: "Implement"
+short_description: "any non-trivial request —…"
+default_prompt:
+  - "Use $lisa-implement: any non-trivial request —…."

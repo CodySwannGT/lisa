@@ -1,0 +1,4 @@
+display_name: "Ops Verify Telemetry"
+short_description: "Verify OpenTelemetry traces are…"
+default_prompt:
+  - "Use $ops-verify-telemetry: Verify OpenTelemetry traces are…."

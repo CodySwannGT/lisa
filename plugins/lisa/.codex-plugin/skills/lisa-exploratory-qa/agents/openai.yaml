@@ -1,0 +1,4 @@
+display_name: "Exploratory QA"
+short_description: "First-time-user exploratory QA…"
+default_prompt:
+  - "Use $lisa-exploratory-qa: First-time-user exploratory QA…."

@@ -3,6 +3,9 @@
 # Writes jira-cli configuration from environment variables when available.
 set -euo pipefail
 
+# Drain the hook envelope before any config-dependent early return.
+cat >/dev/null 2>&1 || true
+
 read_lisa_config() {
   local query="$1"
   local value=""
@@ -41,7 +44,8 @@ if [[ -z "${JIRA_SERVER:-}" || -z "${JIRA_LOGIN:-}" ]]; then
   exit 0
 fi
 
-config_dir="${HOME}/.config/.jira"
+project_dir="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+config_dir="${project_dir}/.lisa/jira-cli"
 config_file="${config_dir}/.config.yml"
 mkdir -p "$config_dir"
 

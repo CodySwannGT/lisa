@@ -1,0 +1,4 @@
+display_name: "Add Ingest"
+short_description: "Scaffold a project-specific…"
+default_prompt:
+  - "Use $lisa-add-ingest: Scaffold a project-specific…."

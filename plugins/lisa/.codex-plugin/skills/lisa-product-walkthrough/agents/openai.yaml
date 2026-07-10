@@ -1,0 +1,4 @@
+display_name: "Product Walkthrough"
+short_description: "Methodology for evaluating the…"
+default_prompt:
+  - "Use $lisa-product-walkthrough: Methodology for evaluating the…."

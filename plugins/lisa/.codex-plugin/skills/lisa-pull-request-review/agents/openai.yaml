@@ -1,0 +1,4 @@
+display_name: "Pull Request Review"
+short_description: "address and resolve the code…"
+default_prompt:
+  - "Use $lisa-pull-request-review: address and resolve the code…."

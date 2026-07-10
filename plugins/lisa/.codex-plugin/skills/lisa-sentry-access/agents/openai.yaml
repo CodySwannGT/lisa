@@ -1,0 +1,4 @@
+display_name: "Sentry Access"
+short_description: "Vendor-neutral access layer for…"
+default_prompt:
+  - "Use $lisa-sentry-access: Vendor-neutral access layer for…."

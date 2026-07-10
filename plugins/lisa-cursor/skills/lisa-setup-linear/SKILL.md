@@ -156,7 +156,7 @@ read_role() {  # $1=namespace (build|prd) $2=role $3=default
 
 Probe with `lisa-linear-access operation: list-issue-labels` (scoped to the team). For each role's resolved name, create it via `lisa-linear-access operation: create-issue-label` only if absent. The `done` role is env-keyed — create all three defaults; collapse to a single string in config later if the project's terminal state is env-independent.
 
-| Role | Default | 
+| Role | Default |
 |------|---------|
 | `ready` | `status:ready` |
 | `claimed` | `status:in-progress` |

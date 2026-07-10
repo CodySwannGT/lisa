@@ -1,0 +1,4 @@
+display_name: "Wiki Migrate"
+short_description: "Migrate an existing…"
+default_prompt:
+  - "Use $lisa-wiki-migrate: Migrate an existing…."

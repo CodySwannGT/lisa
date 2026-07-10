@@ -16,6 +16,7 @@ const SCRIPT_PATH = path.join(
 const BASH_PATH = "/bin/bash";
 const CONFIG_PATH = "harper-app/config.yaml";
 const GIT_PATH = "/usr/bin/git";
+const EDIT_PATHS_LIB = path.resolve("src/codex/scripts/_extract-edit-paths.sh");
 
 const EXIT_BLOCKED = 2;
 const EXIT_ALLOWED = 0;
@@ -46,11 +47,17 @@ const envelope = (filePath: string): string =>
     tool_input: { file_path: filePath },
   });
 
-const run = (cwd: string, filePath = CONFIG_PATH) =>
-  spawnSync(BASH_PATH, [SCRIPT_PATH], {
+const run = (
+  cwd: string,
+  filePath = CONFIG_PATH,
+  scriptPath = SCRIPT_PATH,
+  input = envelope(filePath),
+  pluginRoot = PLUGIN_ROOT
+) =>
+  spawnSync(BASH_PATH, [scriptPath], {
     cwd,
-    env: { ...process.env, CLAUDE_PLUGIN_ROOT: PLUGIN_ROOT },
-    input: envelope(filePath),
+    env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
+    input,
     encoding: "utf-8",
   });
 
@@ -94,6 +101,36 @@ describe("enforce-config-extensions.sh", () => {
     expect(result.status).toBe(EXIT_BLOCKED);
     expect(result.stderr).toContain("graphqlSchema");
     expect(result.stderr).toContain("does not merge");
+  });
+
+  it("blocks extension drops described by a Codex apply_patch envelope", () => {
+    const hooksDir = path.join(tempDir, "codex-hooks");
+    fs.mkdirSync(hooksDir);
+    for (const source of [SCRIPT_PATH, EDIT_PATHS_LIB]) {
+      fs.copyFileSync(source, path.join(hooksDir, path.basename(source)));
+    }
+    fs.copyFileSync(
+      path.join(PLUGIN_ROOT, "hooks/enforce-config-extensions.mjs"),
+      path.join(hooksDir, "enforce-config-extensions.mjs")
+    );
+    fs.writeFileSync(path.join(tempDir, CONFIG_PATH), WITHOUT_GRAPHQL);
+
+    const result = run(
+      tempDir,
+      CONFIG_PATH,
+      path.join(hooksDir, "enforce-config-extensions.sh"),
+      JSON.stringify({
+        tool_name: "apply_patch",
+        tool_input: {
+          command:
+            "*** Begin Patch\n*** Update File: harper-app/config.yaml\n@@\n-graphqlSchema:\n-  files: '*.graphql'\n*** End Patch",
+        },
+      }),
+      path.dirname(hooksDir)
+    );
+
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain("graphqlSchema");
   });
 
   it("allows an intentional removal documented in the allowlist", () => {

@@ -1,0 +1,4 @@
+display_name: "Ops Check Logs"
+short_description: "Check application logs from…"
+default_prompt:
+  - "Use $ops-check-logs: Check application logs from…."

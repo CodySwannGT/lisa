@@ -1,0 +1,4 @@
+display_name: "Github Journey"
+short_description: "Parse a GitHub Issue's…"
+default_prompt:
+  - "Use $lisa-github-journey: Parse a GitHub Issue's…."

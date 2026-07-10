@@ -1,0 +1,4 @@
+display_name: "Git Prune"
+short_description: "pruning local branches that…"
+default_prompt:
+  - "Use $lisa-git-prune: pruning local branches that…."

@@ -1,0 +1,4 @@
+display_name: "Harper Resources"
+short_description: "writing or editing Harper…"
+default_prompt:
+  - "Use $harper-resources: writing or editing Harper…."

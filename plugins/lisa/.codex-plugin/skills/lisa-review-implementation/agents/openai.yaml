@@ -1,0 +1,4 @@
+display_name: "Review Implementation"
+short_description: "comparing a project's…"
+default_prompt:
+  - "Use $lisa-review-implementation: comparing a project's…."

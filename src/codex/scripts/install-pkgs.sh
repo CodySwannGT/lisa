@@ -4,6 +4,10 @@
 # is never bricked by a package-manager issue.
 set -uo pipefail
 
+# Codex may stream a payload larger than the OS pipe buffer. Drain it before
+# any early return so the hook runner never sees EPIPE.
+cat >/dev/null 2>&1 || true
+
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$repo_root" 2>/dev/null || exit 0
 

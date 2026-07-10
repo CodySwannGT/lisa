@@ -38,6 +38,27 @@ describe("plugin sync shell scripts (#1398)", () => {
     await cleanupTempDir(repoDir);
   });
 
+  it("executes the Codex generator through build-plugins.sh", async () => {
+    expect(
+      await fs.pathExists(
+        path.join(repoDir, PLUGINS, "lisa", ".codex-plugin", "plugin.json")
+      )
+    ).toBe(true);
+    expect(
+      await fs.pathExists(
+        path.join(
+          repoDir,
+          PLUGINS,
+          "lisa",
+          SKILLS,
+          "existing",
+          "agents",
+          "openai.yaml"
+        )
+      )
+    ).toBe(true);
+  });
+
   it("fails when a committed source-only addition creates untracked generated artifacts", async () => {
     await writeSkill(repoDir, "new-source-only", "New source-only skill");
     git(["add", path.join(SOURCE_SKILLS_ROOT, "new-source-only", "SKILL.md")]);

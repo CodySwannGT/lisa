@@ -14,7 +14,7 @@
   "dependencies": [
     "lisa-typescript"
   ],
-  "skills": "./skills/",
+  "skills": "./.codex-plugin/skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Lisa Expo",

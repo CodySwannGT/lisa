@@ -1,0 +1,4 @@
+display_name: "Setup Confluence"
+short_description: "Configure Confluence as the PRD…"
+default_prompt:
+  - "Use $lisa-setup-confluence: Configure Confluence as the PRD…."

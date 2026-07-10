@@ -1,0 +1,4 @@
+display_name: "Plan"
+short_description: "Decompose a single PRD or…"
+default_prompt:
+  - "Use $lisa-plan: Decompose a single PRD or…."

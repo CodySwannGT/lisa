@@ -1,0 +1,4 @@
+display_name: "Reproduce Bug"
+short_description: "How to create reliable bug…"
+default_prompt:
+  - "Use $lisa-reproduce-bug: How to create reliable bug…."

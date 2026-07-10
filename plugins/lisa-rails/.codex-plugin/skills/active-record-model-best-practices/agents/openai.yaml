@@ -1,0 +1,4 @@
+display_name: "Active Record Model Best Practices"
+short_description: "Best practices for Ruby on…"
+default_prompt:
+  - "Use $active-record-model-best-practices: Best practices for Ruby on…."

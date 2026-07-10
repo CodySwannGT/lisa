@@ -9,7 +9,8 @@ import type {
 
 const PACKAGE_JSON = "package.json";
 const CI_GUARD_PREFIX = '[ -n "$CI" ] || ';
-const LISA_INVOCATION = `${CI_GUARD_PREFIX}node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true`;
+const BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 ";
+const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true`;
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
 
 /**
@@ -43,7 +44,7 @@ async function readPackageJson(
  * the CI guard is introduced without duplicating the invocation.
  */
 const LEGACY_LISA_INVOCATION_RE =
-  /node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
+  /(?:\[ -n "\$CI" \] \|\| )?(?:LISA_BOOTSTRAP=1 )?node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
 
 /**
  * Guarded Lisa invocation pattern (CI guard directly gates the Lisa command).
@@ -53,7 +54,7 @@ const LEGACY_LISA_INVOCATION_RE =
  * effectively unguarded inside a `&&` chain.
  */
 const GUARDED_LISA_INVOCATION_RE =
-  /\[ -n "\$CI" \] \|\| node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
+  /\[ -n "\$CI" \] \|\| LISA_BOOTSTRAP=1 node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
 
 /**
  * Compose the new postinstall, prepending the Lisa invocation to any existing command.

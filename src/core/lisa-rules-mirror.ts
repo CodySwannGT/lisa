@@ -10,7 +10,7 @@
  * @module core/lisa-rules-mirror
  */
 import * as fse from "fs-extra";
-import { copyFile, readdir } from "node:fs/promises";
+import { copyFile, readdir, rm, symlink } from "node:fs/promises";
 import * as path from "node:path";
 import type { ProjectType } from "./config.js";
 
@@ -30,12 +30,14 @@ type RuleFileEntry = {
  * @param lisaDir - Absolute path to the Lisa repo / installed package.
  * @param rulesDestDir - Absolute path to the harness-owned rules directory.
  * @param detectedTypes - Project types Lisa detected for the host.
+ * @param mode Whether to copy or link source rules.
  * @returns Relative paths (subdir/file or file) of every rule .md file copied.
  */
 export async function mirrorLisaRules(
   lisaDir: string,
   rulesDestDir: string,
-  detectedTypes: readonly ProjectType[]
+  detectedTypes: readonly ProjectType[],
+  mode: "copy" | "link" = "copy"
 ): Promise<readonly string[]> {
   const pluginNames = ["lisa", ...detectedTypes.map(type => `lisa-${type}`)];
 
@@ -92,11 +94,33 @@ export async function mirrorLisaRules(
 
   await Promise.all(
     filesByPlugin.flatMap(({ entries }) =>
-      entries.map(entry =>
-        copyFile(entry.absSource, path.join(rulesDestDir, entry.relPath))
-      )
+      entries.map(entry => mirrorRule(entry, rulesDestDir, mode))
     )
   );
 
   return Object.freeze(allRelPaths);
+}
+
+/**
+ * Copy or link one rule while replacing an older managed representation.
+ * @param entry Source and relative destination.
+ * @param rulesDestDir Harness-owned rules root.
+ * @param mode Whether to copy or link.
+ */
+async function mirrorRule(
+  entry: RuleFileEntry,
+  rulesDestDir: string,
+  mode: "copy" | "link"
+): Promise<void> {
+  const destination = path.join(rulesDestDir, entry.relPath);
+  await rm(destination, { force: true });
+  if (mode === "copy") {
+    await copyFile(entry.absSource, destination);
+    return;
+  }
+  await symlink(
+    entry.absSource,
+    destination,
+    process.platform === "win32" ? "file" : undefined
+  );
 }

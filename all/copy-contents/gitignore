@@ -202,10 +202,16 @@ expo-env.d.ts
 .track-plan-debug.log
 
 .lisa.config.local.json
+.lisa/jira-cli/
 
-# Generated Codex plugin marketplace — points into node_modules, so a committed
-# copy breaks plugin resolution in git worktrees / fresh checkouts (lisa#1366).
-# Lisa regenerates it on apply; never commit it.
+# Lisa-generated project Codex overlay. Keep host-owned config.toml and
+# hooks.json visible so projects can commit their own merged configuration.
+.codex/.lisa-managed.json
+.codex/agents/lisa/
+.codex/hooks/lisa/
+.codex/lisa-library/
+.codex/lisa-rules/
+.codex/skills/lisa/
 .agents/plugins/marketplace.json
 
 # END: AI GUARDRAILS

@@ -1,0 +1,4 @@
+display_name: "Expo Deployment"
+short_description: "Deploying Expo apps to iOS App…"
+default_prompt:
+  - "Use $expo-deployment: Deploying Expo apps to iOS App…."

@@ -1,0 +1,4 @@
+display_name: "Project Ideation"
+short_description: "Generate practical, verifiable…"
+default_prompt:
+  - "Use $lisa-project-ideation: Generate practical, verifiable…."

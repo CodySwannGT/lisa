@@ -1,0 +1,4 @@
+display_name: "Query"
+short_description: "Answer a question from the LLM…"
+default_prompt:
+  - "Use $lisa-query: Answer a question from the LLM…."
