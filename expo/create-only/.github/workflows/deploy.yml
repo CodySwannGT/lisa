@@ -98,7 +98,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-  # Check if app.config.ts has changed
+  # Check if native app config has changed
   check_app_config_changes:
     name: Check App Config Changes
     runs-on: ubuntu-latest
@@ -111,18 +111,18 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Check if app.config.ts changed
+      - name: Check if app config changed
         id: check_changes
         run: |
-          if git diff --name-only HEAD^ HEAD | grep -q "app.config.ts"; then
+          if git diff --name-only HEAD^ HEAD | grep -qE "^(app\.config\.ts|app\.json|eas\.json)$"; then
             echo "app_config_changed=true" >> $GITHUB_OUTPUT
-            echo "app.config.ts has been modified"
+            echo "app config (app.config.ts / app.json / eas.json) has been modified"
           else
             echo "app_config_changed=false" >> $GITHUB_OUTPUT
-            echo "app.config.ts has not been modified"
+            echo "app config has not been modified"
           fi
 
-  # Trigger EAS Build if needed (only runs if app.config.ts changed)
+  # Trigger EAS Build if needed (only runs if app config changed)
   trigger_eas_build:
     name: Trigger EAS Build
     needs: [determine_environment, check_eas_setup, check_app_config_changes]
