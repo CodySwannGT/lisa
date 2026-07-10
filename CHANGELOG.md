@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.6](https://github.com/CodySwannGT/lisa/compare/v2.195.5...v2.195.6) (2026-07-10)
+
+
+### Bug Fixes
+
+* **release:** pin npm compatible with Node 22.21 ([074d9d6](https://github.com/CodySwannGT/lisa/commit/074d9d62692cbc1d76ea9755fe336535a6e778bf))
+
 ### [2.195.5](https://github.com/CodySwannGT/lisa/compare/v2.195.4...v2.195.5) (2026-07-10)
 
 
