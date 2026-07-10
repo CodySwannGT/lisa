@@ -1,0 +1,4 @@
+display_name: "Harper Component Model"
+short_description: "reasoning about how a Harper…"
+default_prompt:
+  - "Use $harper-component-model: reasoning about how a Harper…."

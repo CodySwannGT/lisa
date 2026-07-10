@@ -57,17 +57,20 @@ Without Lisa, Claude Code can:
 ### Installation
 
 ```bash
-# Install globally
-npm install -g @codyswann/lisa
+# Install into an existing project; the trusted postinstall runs lisa apply
+bun add --dev --trust @codyswann/lisa
 
 # Create a new starter-backed project
-lisa setup-project --type rails my-app
+bunx @codyswann/lisa setup-project --type rails my-app
 
 # Add or repair an embedded wiki in the current project
 lisa setup-wiki
 
 # Apply Lisa to an existing project
 lisa apply /path/to/project
+
+# Update the project dependency and reapply project-local artifacts
+bun update @codyswann/lisa
 ```
 
 The backwards-compatible positional invocation remains supported:
@@ -86,7 +89,13 @@ lisa version
 lisa update
 ```
 
-Every normal command performs a timeout-bound npm latest-version check before it runs. The check is non-fatal when offline and can be skipped with `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1`; `lisa update --yes` is the only command that executes an update.
+Every normal command performs a timeout-bound npm latest-version check before it runs. The project-local cache lives under `node_modules/.cache`; the check is non-fatal when offline and can be skipped with `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1`. `lisa update --yes` updates this project's dependency and triggers the same automatic apply path.
+
+Lisa's Codex delivery is entirely project-scoped. `lisa apply` writes only the
+base plugin content plus detected stack and explicitly configured feature
+content into `.codex/`, removes stale Lisa-owned files from prior applies, and
+preserves host-owned configuration. It never installs or enables a user-wide
+Lisa Codex marketplace plugin.
 
 ### The Workflow
 

@@ -1,0 +1,4 @@
+display_name: "Improve Max Lines"
+short_description: "reducing the maximum…"
+default_prompt:
+  - "Use $improve-max-lines: reducing the maximum…."

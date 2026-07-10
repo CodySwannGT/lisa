@@ -1,5 +1,4 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import { gt, valid } from "semver";
 import { getPackageVersion } from "./version.js";
@@ -52,10 +51,18 @@ interface UpdateCheckCache {
 
 /**
  * Resolve the default Lisa update-check cache path.
+ * @param cwd Project working directory.
  * @returns Absolute cache file path
  */
-function getDefaultCachePath(): string {
-  return path.join(os.homedir(), ".lisa", "update-check.json");
+export function getDefaultCachePath(cwd: string = process.cwd()): string {
+  return path.join(
+    cwd,
+    "node_modules",
+    ".cache",
+    "@codyswann",
+    "lisa",
+    "update-check.json"
+  );
 }
 
 /**

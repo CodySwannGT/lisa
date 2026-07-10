@@ -1,0 +1,4 @@
+display_name: "Github Create"
+short_description: "creating GitHub Issue Epics…"
+default_prompt:
+  - "Use $lisa-github-create: creating GitHub Issue Epics…."

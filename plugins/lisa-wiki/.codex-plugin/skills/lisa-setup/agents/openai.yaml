@@ -1,0 +1,4 @@
+display_name: "Setup"
+short_description: "Scaffold, repair, verify, or…"
+default_prompt:
+  - "Use $lisa-setup: Scaffold, repair, verify, or…."

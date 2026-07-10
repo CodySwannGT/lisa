@@ -52,16 +52,30 @@ These are the durable ideas. Everything concrete descends from them.
 
 ## Getting started
 
-Install once, then create a new project or adopt Lisa into an existing one:
+Install Lisa as a development dependency in each project that uses it:
 
 ```bash
-npm install -g @codyswann/lisa
+bun add --dev --trust @codyswann/lisa
 ```
+
+Lisa's dependency `postinstall` runs `lisa apply` for that project. A later
+`bun update @codyswann/lisa` reapplies the updated project-scoped artifacts.
+Lisa does not register user-wide Codex plugins, skills, hooks, rules, MCP
+servers, or configuration. Other harnesses retain their existing delivery
+behavior. For a new project, run the CLI ephemerally with
+`bunx @codyswann/lisa setup-project ...`.
+
+For Codex, apply emits a repository marketplace containing only the base Lisa
+plugin plus detected stacks and explicitly configured features. Codex loads
+native skills, hooks, and rules directly from those installed plugin bundles.
+Skill bodies are not copied into the project and unrelated Lisa stacks are not
+loaded. Project settings use `[features].hooks`; the deprecated `codex_hooks`
+key is removed during reconciliation.
 
 The supported stacks, setup flags, and exact invocation evolve as the project grows, so ask for the current set rather than copying a list that may have moved on:
 
 > **Prompt for your coding agent**
-> "Using the installed `lisa` CLI, show me how to (a) scaffold a new project and (b) apply Lisa to an existing one. List the project types it supports right now and the flags each command accepts — read `lisa --help` and the CLI source, don't guess."
+> "Using this project's `lisa` CLI, show me how to (a) scaffold a new project and (b) apply Lisa to an existing one. List the project types it supports right now and the flags each command accepts — read `lisa --help` and the CLI source, don't guess."
 
 ## The work lifecycle
 

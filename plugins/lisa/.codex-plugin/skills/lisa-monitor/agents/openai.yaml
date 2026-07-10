@@ -1,0 +1,4 @@
+display_name: "Monitor"
+short_description: "Monitor application health AND…"
+default_prompt:
+  - "Use $lisa-monitor: Monitor application health AND…."

@@ -1,0 +1,4 @@
+display_name: "OWASP ZAP"
+short_description: "running or interpreting an…"
+default_prompt:
+  - "Use $owasp-zap: running or interpreting an…."

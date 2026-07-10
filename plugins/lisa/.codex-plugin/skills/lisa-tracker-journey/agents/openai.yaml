@@ -1,0 +1,4 @@
+display_name: "Tracker Journey"
+short_description: "Vendor-neutral wrapper for…"
+default_prompt:
+  - "Use $lisa-tracker-journey: Vendor-neutral wrapper for…."

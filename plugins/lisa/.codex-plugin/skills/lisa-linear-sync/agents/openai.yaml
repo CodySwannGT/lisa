@@ -1,0 +1,4 @@
+display_name: "Linear Sync"
+short_description: "Syncs plan progress to a linked…"
+default_prompt:
+  - "Use $lisa-linear-sync: Syncs plan progress to a linked…."

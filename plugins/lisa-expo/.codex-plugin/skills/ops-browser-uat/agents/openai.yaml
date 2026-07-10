@@ -1,0 +1,4 @@
+display_name: "Ops Browser Uat"
+short_description: "Browser-based user acceptance…"
+default_prompt:
+  - "Use $ops-browser-uat: Browser-based user acceptance…."

@@ -1,0 +1,4 @@
+display_name: "Review Local"
+short_description: "performing a code review on…"
+default_prompt:
+  - "Use $lisa-review-local: performing a code review on…."

@@ -5,10 +5,7 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  LISA_SKILLS_SUBDIR,
-  installSkills,
-} from "../../../src/codex/skills-installer.js";
+import { installSkills } from "../../../src/codex/skills-installer.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Reusable bundled-skill name for the variant regression. */
@@ -80,13 +77,9 @@ describe("codex/skills-installer variant filtering", () => {
       [SKILL_MD]: cursorContent,
     });
 
-    await installSkills(lisaDir, destDir, []);
-    const skillDir = path.join(
-      destDir,
-      ".codex",
-      LISA_SKILLS_SUBDIR,
-      BUG_TRIAGE
-    );
+    const result = await installSkills(lisaDir, destDir, []);
+    const source = result.installed.find(skill => skill.name === BUG_TRIAGE);
+    const skillDir = path.join(lisaDir, source?.relativePath ?? "missing");
 
     expect(await fs.readFile(path.join(skillDir, SKILL_MD), "utf8")).toBe(
       codexContent

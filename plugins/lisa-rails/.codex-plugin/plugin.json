@@ -14,7 +14,7 @@
   "dependencies": [
     "lisa"
   ],
-  "skills": "./skills/",
+  "skills": "./.codex-plugin/skills/",
   "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "Lisa Rails",

@@ -1,0 +1,4 @@
+display_name: "Analyze Claude Remote"
+short_description: "Audit whether the current…"
+default_prompt:
+  - "Use $lisa-analyze-claude-remote: Audit whether the current…."

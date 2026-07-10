@@ -13,7 +13,7 @@ Each per-agent installer owns one or more of:
 - Tagged-merge logic when a file Lisa writes is also user-authored (Codex `.codex/hooks.json`, Cursor `enabledPlugins` map).
 - Stale-cleanup tracking through a managed-files manifest (`.codex/.lisa-managed.json` for Codex; mirrored convention for other agents).
 
-The Codex installer suite is the canonical reference and includes ten TypeScript modules: `agent-installer.ts`, `agent-transformer.ts`, `agents-md-installer.ts`, `command-skill-transformer.ts`, `hooks-installer.ts`, `hooks-merger.ts`, `manifest.ts`, `plugin-marketplace-installer.ts`, `settings-installer.ts`, and `skills-installer.ts`.
+The Codex installer suite is the canonical reference. `project-overlay.ts` reconciles project agents, settings, MCP, legacy Lisa-owned paths, and a filtered repository marketplace. Native skills and hooks remain in the selected plugin bundles rather than being copied into the project or installed user-wide.
 
 ## Plugin Payload Versus Per-Project Installer
 
@@ -44,7 +44,7 @@ Lisa's plugins are built from shared source under `plugins/src/` into per-agent 
 The build pipeline:
 
 - `scripts/build-plugins.sh` does `rm -rf plugins/lisa && cp -r plugins/src/base` to produce the Claude artifact.
-- `scripts/generate-codex-plugin-artifacts.mjs` derives the Codex-side `.codex-plugin/plugin.json` and skills pointer from the built Claude artifact.
+- `scripts/generate-codex-plugin-artifacts.mjs` derives the Codex-side `.codex-plugin/plugin.json`, full native skill variants with concise discovery descriptions, and command-derived skills from the built Claude artifact. Other agent generators strip `.codex-plugin/`.
 - Future generators (`scripts/generate-cursor-plugin-artifacts.mjs`, `scripts/generate-agy-plugin-artifacts.mjs`, `scripts/generate-copilot-plugin-artifacts.mjs`) produce per-agent variants by stripping Claude-only hooks, applying agent-specific filename adapters (Copilot `.agent.md`, agy bare `plugin.json`), and reshaping manifest fields.
 
 Plugin artifacts are generated build output. The source of truth is `plugins/src/`. Editing a generated artifact directly is overwritten on the next build.

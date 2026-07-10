@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Jira"
+short_description: "Produce sanitized JIRA source…"
+default_prompt:
+  - "Use $lisa-wiki-connector-jira: Produce sanitized JIRA source…."

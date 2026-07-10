@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Registers the Lisa marketplace and installs required Claude Code plugins.
+# Applies Lisa project configuration and installs required Claude Code plugins.
 # Runs as Lisa's postinstall lifecycle script.
 set -euo pipefail
 
@@ -42,21 +42,6 @@ sanitize_package_manager_env
 
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 
-harness_includes_codex() {
-  [ "${IS_LISA_SELF:-false}" = "true" ] && return 0
-  node -e '
-    const fs = require("fs");
-    const path = process.argv[1];
-    try {
-      const parsed = JSON.parse(fs.readFileSync(path, "utf8"));
-      const harness = parsed.harness === "all" ? "fleet" : parsed.harness;
-      process.exit(harness === "codex" || harness === "fleet" ? 0 : 1);
-    } catch {
-      process.exit(1);
-    }
-  ' "$PROJECT_ROOT/.lisa.config.json" >/dev/null 2>&1
-}
-
 detect_lisa_stack() {
   local settings_file="$1"
   [ -f "$settings_file" ] || return 0
@@ -70,33 +55,58 @@ detect_lisa_stack() {
   done
 }
 
-install_codex_lisa_plugins() {
-  harness_includes_codex || return 0
+remove_user_wide_codex_lisa_plugins() {
   command -v codex >/dev/null 2>&1 || return 0
 
-  # Codex reads the Lisa marketplace from the project/repo root. For the Lisa
-  # repo itself this points at the working tree, not node_modules, so postinstall
-  # never needs to run the full template/deletion engine just to expose skills.
-  (cd "$PROJECT_ROOT" && codex plugin marketplace add "$PROJECT_ROOT" </dev/null >/dev/null 2>&1) || true
-  (cd "$PROJECT_ROOT" && codex plugin add "lisa@lisa" </dev/null >/dev/null 2>&1) || true
-
-  local lisa_stack
-  lisa_stack="$(detect_lisa_stack "$SETTINGS_FILE")"
-  case "$lisa_stack" in
-    rails) ;;
-    *)
-      (cd "$PROJECT_ROOT" && codex plugin add "lisa-typescript@lisa" </dev/null >/dev/null 2>&1) || true
-      ;;
-  esac
-
-  if [ -n "$lisa_stack" ]; then
-    (cd "$PROJECT_ROOT" && codex plugin add "lisa-${lisa_stack}@lisa" </dev/null >/dev/null 2>&1) || true
+  # Removing a plugin relocates its cache directory. A running Codex session
+  # has already captured absolute hook paths, so removal inside that session
+  # turns every later hook invocation into an EPIPE/broken-pipe failure. Defer
+  # the one-time cleanup until the install runs outside an active Codex thread.
+  if [ -n "${CODEX_THREAD_ID:-}" ]; then
+    echo "Lisa legacy Codex plugin cleanup deferred; restart Codex and rerun bun install." >&2
+    return 0
   fi
+
+  # Lisa used to register Codex plugins in the user config from a dependency
+  # postinstall. Project-local `lisa apply` now owns every Codex artifact. Only
+  # run this migration while the known user-wide marketplace still exists.
+  local marketplaces
+  marketplaces="$(codex plugin marketplace list --json </dev/null 2>/dev/null || true)"
+  if ! printf '%s' "$marketplaces" | node -e '
+    const chunks = [];
+    process.stdin.on("data", chunk => chunks.push(chunk));
+    process.stdin.on("end", () => {
+      try {
+        const parsed = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        process.exit(parsed.marketplaces?.some(item => item?.name === "lisa") ? 0 : 1);
+      } catch {
+        process.exit(1);
+      }
+    });
+  '; then
+    return 0
+  fi
+
+  local plugin
+  for plugin in \
+    lisa \
+    lisa-typescript \
+    lisa-expo \
+    lisa-nestjs \
+    lisa-cdk \
+    lisa-harper-fabric \
+    lisa-phaser \
+    lisa-rails \
+    lisa-wiki \
+    lisa-openclaw; do
+    codex plugin remove "${plugin}@lisa" </dev/null >/dev/null 2>&1 || true
+  done
+  codex plugin marketplace remove lisa </dev/null >/dev/null 2>&1 || true
 }
 
-# Skip running Lisa on itself — the Lisa repo IS the template source.
-# Self-running the full apply causes chicken-and-egg issues (npm package
-# deletes source files). The self path below only registers plugin surfaces.
+# Skip running Lisa's full template engine on itself — the Lisa repo IS the
+# template source. The self path reconciles only the project Codex overlay and
+# retires legacy user-wide Codex registrations when no Codex thread is active.
 PACKAGE_NAME=$(node -e "console.log(require('$PROJECT_ROOT/package.json').name || '')" 2>/dev/null || true)
 IS_LISA_SELF=false
 if [ "$PACKAGE_NAME" = "@codyswann/lisa" ]; then
@@ -110,7 +120,10 @@ fi
 cd "$PROJECT_ROOT"
 
 if [ "$IS_LISA_SELF" = "true" ]; then
-  install_codex_lisa_plugins
+  remove_user_wide_codex_lisa_plugins
+  if ! node "$LISA_DIR/dist/codex/project-overlay.js" "$PROJECT_ROOT"; then
+    echo "Warning: Lisa's project-local Codex overlay reconciliation failed." >&2
+  fi
 fi
 
 # Apply Lisa templates non-interactively (init when missing, update when present),
@@ -132,13 +145,13 @@ fi
 # intermediate clobbered state to be interrupted in. See src/core/lisa.ts
 # loadCopyOverwriteOwnership.
 if [ "$IS_LISA_SELF" != "true" ] && [ -z "${CI:-}" ]; then
-  if ! node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
+  if ! LISA_BOOTSTRAP=1 node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
     echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
   fi
 fi
 
 if [ "$IS_LISA_SELF" != "true" ]; then
-  install_codex_lisa_plugins
+  remove_user_wide_codex_lisa_plugins
 fi
 
 # Strip only hook entries that reference deleted .claude/hooks/*.sh scripts

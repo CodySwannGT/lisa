@@ -1,0 +1,4 @@
+display_name: "Github To Tracker"
+short_description: "Break down a GitHub Issue PRD…"
+default_prompt:
+  - "Use $lisa-github-to-tracker: Break down a GitHub Issue PRD…."

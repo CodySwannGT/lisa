@@ -1,0 +1,4 @@
+display_name: "Ticket Triage"
+short_description: "Analytical triage gate for…"
+default_prompt:
+  - "Use $lisa-ticket-triage: Analytical triage gate for…."

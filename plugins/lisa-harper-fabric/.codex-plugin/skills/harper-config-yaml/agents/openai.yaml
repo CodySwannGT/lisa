@@ -1,0 +1,4 @@
+display_name: "Harper Config Yaml"
+short_description: "creating or editing a Harper…"
+default_prompt:
+  - "Use $harper-config-yaml: creating or editing a Harper…."

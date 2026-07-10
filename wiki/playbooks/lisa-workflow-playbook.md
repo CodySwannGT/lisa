@@ -38,9 +38,9 @@ Project ideation may document new PRD candidates while the build queue is busy, 
 
 ## Hook Delivery
 
-Claude receives Lisa plugin hooks through the GitHub marketplace copy of the plugin, which tracks committed generated plugin artifacts on `main`. Codex receives hooks when `lisa apply` installs them into a project's `.codex/hooks.json`; a package update alone is not the delivery mechanism for Codex hooks.
+Claude receives Lisa plugin hooks through the GitHub marketplace copy of the plugin, which tracks committed generated plugin artifacts on `main`. Codex receives skills, hooks, and rules directly from the selected plugin bundles referenced by the project's filtered `.agents/plugins/marketplace.json`. Lisa does not register a user-wide Codex plugin or copy skill bodies and hook scripts into the project.
 
-Codex plugin-bundled hooks now use the plugin root and hook manifest shape Codex discovers in current releases. Fleet apply paths must include Codex explicitly so `lisa apply --harness fleet` does not silently skip the Codex emitter.
+Installing or updating Lisa as a trusted Bun dependency automatically runs `lisa apply` for that project. Apply removes obsolete Lisa-owned Codex hook and skill paths, preserves host-authored entries, and uses `[features].hooks`. Fleet apply paths must include Codex explicitly so `lisa apply --harness fleet` does not silently skip the Codex emitter.
 
 ## Per-Agent Stack Variants
 

@@ -1,0 +1,4 @@
+display_name: "Github Write Issue"
+short_description: "Creates or updates a GitHub…"
+default_prompt:
+  - "Use $lisa-github-write-issue: Creates or updates a GitHub…."

@@ -41,7 +41,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
-- [2026-05-28 — Codex Skills Canonical Path](decisions/2026-05-28-codex-skills-canonical-path.md)
+- [2026-07-10 — Project-Scoped Codex Delivery](decisions/2026-05-28-codex-skills-canonical-path.md)
 - [2026-05-28 — Pattern B Per-Agent Plugin Variants](decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md)
 
 ## Playbooks

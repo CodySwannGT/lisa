@@ -1,0 +1,4 @@
+display_name: "Notion To Tracker"
+short_description: "Break down a Notion PRD into…"
+default_prompt:
+  - "Use $lisa-notion-to-tracker: Break down a Notion PRD into…."

@@ -1,0 +1,4 @@
+display_name: "Validate Tracker Mapping"
+short_description: "Detect and repair drift between…"
+default_prompt:
+  - "Use $lisa-validate-tracker-mapping: Detect and repair drift between…."

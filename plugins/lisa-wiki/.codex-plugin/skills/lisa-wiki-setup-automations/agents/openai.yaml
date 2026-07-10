@@ -1,0 +1,4 @@
+display_name: "Wiki Setup Automations"
+short_description: "Set up the recurring LLM Wiki…"
+default_prompt:
+  - "Use $lisa-wiki-setup-automations: Set up the recurring LLM Wiki…."

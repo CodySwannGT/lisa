@@ -1,0 +1,4 @@
+display_name: "Plugin Sync Explain"
+short_description: "Read-only diagnostic for Lisa…"
+default_prompt:
+  - "Use $lisa-plugin-sync-explain: Read-only diagnostic for Lisa…."

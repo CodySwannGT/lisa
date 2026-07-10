@@ -1,0 +1,4 @@
+display_name: "Harper Rest Queries"
+short_description: "building or debugging Harper…"
+default_prompt:
+  - "Use $harper-rest-queries: building or debugging Harper…."

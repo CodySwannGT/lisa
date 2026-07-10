@@ -1,0 +1,4 @@
+display_name: "Container View Pattern"
+short_description: "This skill enforces the…"
+default_prompt:
+  - "Use $container-view-pattern: This skill enforces the…."

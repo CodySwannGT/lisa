@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Roles"
+short_description: "Ingest the wiki's own…"
+default_prompt:
+  - "Use $lisa-wiki-connector-roles: Ingest the wiki's own…."

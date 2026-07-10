@@ -1,0 +1,4 @@
+display_name: "Jira Add Journey"
+short_description: "Add a Validation Journey…"
+default_prompt:
+  - "Use $jira-add-journey: Add a Validation Journey…."

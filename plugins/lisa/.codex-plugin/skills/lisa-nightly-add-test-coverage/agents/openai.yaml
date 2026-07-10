@@ -1,0 +1,4 @@
+display_name: "Nightly Add Test Coverage"
+short_description: "Nightly direct-execution skill…"
+default_prompt:
+  - "Use $lisa-nightly-add-test-coverage: Nightly direct-execution skill…."

@@ -201,6 +201,16 @@ expo-env.d.ts
 .lisa.config.local.json
 .lisa.workspaces.json
 
+# Lisa-generated project Codex overlay. Keep host-owned config.toml and
+# hooks.json visible so projects can commit their own merged configuration.
+.codex/.lisa-managed.json
+.codex/agents/lisa/
+.codex/hooks/lisa/
+.codex/lisa-library/
+.codex/lisa-rules/
+.codex/skills/lisa/
+.agents/plugins/marketplace.json
+
 # Verification verdict — runtime scratch written by /lisa:implement's Verify
 # flow and read by the enforce-verification-gate Stop hook. Never committed.
 .lisa/verification-status.json

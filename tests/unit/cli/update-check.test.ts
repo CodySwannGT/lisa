@@ -3,7 +3,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { printUpdateWarning } from "../../../src/cli/print-update-warning.js";
-import { runUpdateCheck } from "../../../src/cli/update-check.js";
+import {
+  getDefaultCachePath,
+  runUpdateCheck,
+} from "../../../src/cli/update-check.js";
 import { getPackageVersion } from "../../../src/cli/version.js";
 
 const NOW_ISO = "2026-05-28T12:00:00.000Z";
@@ -52,6 +55,19 @@ describe("getPackageVersion", () => {
 });
 
 describe("runUpdateCheck", () => {
+  it("keeps its default cache inside the current project", () => {
+    expect(getDefaultCachePath("/srv/project")).toBe(
+      path.join(
+        "/srv/project",
+        "node_modules",
+        ".cache",
+        "@codyswann",
+        "lisa",
+        "update-check.json"
+      )
+    );
+  });
+
   it("skips the registry when the env opt-out is set", async () => {
     const fetchImpl = vi.fn<typeof fetch>();
 
@@ -245,7 +261,7 @@ describe("printUpdateWarning", () => {
     expect(error).toHaveBeenCalledWith(
       [
         "Lisa 2.64.0 is available; you are running 2.63.2.",
-        "Update with: npm install -g @codyswann/lisa@latest",
+        "Update this project's dependency with: lisa update --yes",
         "Continuing with the installed version.",
       ].join("\n")
     );

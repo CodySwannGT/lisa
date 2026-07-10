@@ -1,0 +1,4 @@
+display_name: "Jira Verify"
+short_description: "verifying that a JIRA ticket…"
+default_prompt:
+  - "Use $jira-verify: verifying that a JIRA ticket…."

@@ -1,0 +1,4 @@
+display_name: "Nightly Lower Code Complexity"
+short_description: "Nightly direct-execution skill…"
+default_prompt:
+  - "Use $lisa-nightly-lower-code-complexity: Nightly direct-execution skill…."

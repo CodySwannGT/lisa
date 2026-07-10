@@ -1,0 +1,4 @@
+display_name: "Verify"
+short_description: "Ship and verify code"
+default_prompt:
+  - "Use $lisa-verify: Ship and verify code."

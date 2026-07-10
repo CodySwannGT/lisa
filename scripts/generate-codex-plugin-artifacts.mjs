@@ -5,16 +5,9 @@
  * Claude remains Lisa's production path; this script derives the .codex-plugin
  * metadata (skills + MCP pointers + hooks) every time plugins are rebuilt.
  *
- * HOOKS: as of Codex 0.125.0 (verified via codex features list showing
- * codex_hooks as `stable`), the plugin manifest accepts a `hooks` field
- * pointing at a `hooks.json`. Per the official docs + the structural analogy to
- * the working `skills`/`mcpServers` pointers, that pointer resolves RELATIVE TO
- * THE PLUGIN ROOT — but end-to-end firing is trust-gated (interactive `/hooks`,
- * no headless bypass in 0.125.0), so this is verified by docs + structure, not
- * by an automated run; the per-project installer (src/codex/hooks-installer.ts)
- * remains the verified-working Codex delivery path. `emitCodexHooks` below
- * derives the Codex-shape hooks block from the Claude manifest by applying the
- * Wave 1 per-agent ship-list audit
+ * HOOKS: current Codex releases load a plugin manifest's `hooks` pointer
+ * relative to the plugin root. `emitCodexHooks` derives the Codex hook block
+ * from the Claude manifest by applying the Wave 1 per-agent ship-list audit
  * (wiki/architecture/lisa-hook-per-agent-ship-list.md):
  *   - Drop every `entire hooks claude-code *` command (Claude-only analytics).
  *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
@@ -37,9 +30,9 @@
  * claude-code session-end` hook is stripped per the Claude-only rule above
  * regardless of event support.
  *
- * src/codex/hooks-installer.ts remains as the documented fallback for users
- * who install Lisa via `lisa apply` without enabling the marketplace plugin —
- * src/codex/lisa-plugin-detection.ts is the helper that gates that fallback.
+ * Plugin artifacts remain canonical payloads. `src/codex/project-overlay.ts`
+ * selects only the applicable bundles through the repository marketplace and
+ * reconciles the remaining project-only Codex surfaces.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -432,11 +425,16 @@ export function pruneInternalCodexSkills(
  * @returns {void} Writes files as a side effect.
  */
 export function writeSkillAgents(pluginDir) {
-  const skillsDir = path.join(pluginDir, "skills");
-  if (!fs.existsSync(skillsDir)) {
-    return;
+  for (const skillsDir of codexSkillRoots(pluginDir)) {
+    writeSkillAgentsInRoot(skillsDir);
   }
+}
 
+/**
+ * Write generated interface metadata for one concrete skill root.
+ * @param {string} skillsDir Absolute skill root.
+ */
+function writeSkillAgentsInRoot(skillsDir) {
   const entries = fs
     .readdirSync(skillsDir, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
@@ -461,6 +459,292 @@ export function writeSkillAgents(pluginDir) {
     fs.mkdirSync(path.dirname(openaiYamlPath), { recursive: true });
     fs.writeFileSync(openaiYamlPath, serializeInterfaceToYaml(iface));
   }
+}
+
+/**
+ * Return the standard authored skill root plus the Codex-only generated root.
+ * @param {string} pluginDir Built plugin directory.
+ * @returns {readonly string[]} Existing skill roots.
+ */
+function codexSkillRoots(pluginDir) {
+  return [
+    path.join(pluginDir, "skills"),
+    path.join(pluginDir, ".codex-plugin", "skills"),
+  ].filter(skillRoot => fs.existsSync(skillRoot));
+}
+
+/**
+ * Generate native Codex skills for Claude commands that do not already have an
+ * authored skill in the same plugin. The output stays inside `.codex-plugin/`
+ * so Cursor, Copilot, and Agy variant generators continue receiving exactly
+ * their existing payloads.
+ * @param {string} pluginDir Built plugin directory.
+ * @returns {readonly string[]} Generated skill names.
+ */
+export function emitCommandSkills(pluginDir) {
+  const generatedRoot = path.join(pluginDir, ".codex-plugin", "skills");
+  const commandsRoot = path.join(pluginDir, "commands");
+  if (!fs.existsSync(commandsRoot)) {
+    return [];
+  }
+
+  const authoredRoots = [
+    path.join(pluginDir, "skills"),
+    path.join(path.dirname(pluginDir), "lisa", "skills"),
+  ];
+  const generated = [];
+  for (const relativeCommand of listFilesRecursive(commandsRoot).filter(file =>
+    file.endsWith(".md")
+  )) {
+    const skillName = commandPathToSkillName(relativeCommand);
+    const normalizedSegments = relativeCommand
+      .replace(/\.md$/, "")
+      .split(path.sep)
+      .filter((segment, index) => index > 0 || segment !== "lisa");
+    if (
+      authoredRoots.some(authoredRoot =>
+        fs.existsSync(path.join(authoredRoot, skillName, "SKILL.md"))
+      )
+    ) {
+      continue;
+    }
+    const displayName = `lisa:${normalizedSegments.join(":")}`;
+    const commandSource = fs.readFileSync(
+      path.join(commandsRoot, relativeCommand),
+      "utf8"
+    );
+    const skillDir = path.join(generatedRoot, skillName);
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(skillDir, "SKILL.md"),
+      compactSkillFrontmatterDescription(
+        convertCommandToCodexSkill(commandSource, skillName, displayName)
+      )
+    );
+    generated.push(skillName);
+  }
+  return generated.sort();
+}
+
+/**
+ * Derive Codex-only variants of authored skills with concise routing metadata.
+ * Bodies and resources remain byte-identical copies inside the plugin bundle;
+ * only the `description` scalar is compacted to respect Codex's fixed metadata
+ * budget. Other agent variants strip `.codex-plugin/` entirely.
+ * @param {string} pluginDir Built plugin directory.
+ * @returns {readonly string[]} Derived skill names.
+ */
+export function emitCodexSkillVariants(pluginDir) {
+  const authoredRoot = path.join(pluginDir, "skills");
+  const codexRoot = path.join(pluginDir, ".codex-plugin", "skills");
+  fs.rmSync(codexRoot, { force: true, recursive: true });
+  if (!fs.existsSync(authoredRoot)) return [];
+
+  const derived = fs
+    .readdirSync(authoredRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .filter(skillName =>
+      fs.existsSync(path.join(authoredRoot, skillName, "SKILL.md"))
+    )
+    .sort();
+  for (const skillName of derived) {
+    const sourceDir = path.join(authoredRoot, skillName);
+    const destinationDir = path.join(codexRoot, skillName);
+    fs.cpSync(sourceDir, destinationDir, { recursive: true });
+    fs.rmSync(path.join(destinationDir, "agents", "openai.yaml"), {
+      force: true,
+    });
+    const skillPath = path.join(destinationDir, "SKILL.md");
+    fs.writeFileSync(
+      skillPath,
+      compactSkillFrontmatterDescription(fs.readFileSync(skillPath, "utf8"))
+    );
+  }
+  return derived;
+}
+
+/**
+ * Compact the frontmatter description while preserving the complete skill body.
+ * @param {string} source Full SKILL.md source.
+ * @returns {string} Source with a concise one-line routing description.
+ */
+export function compactSkillFrontmatterDescription(source) {
+  const normalized = source.replace(/\r\n/g, "\n");
+  const match = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(normalized);
+  if (!match) return source;
+  const lines = match[1].split("\n");
+  const descriptionIndex = lines.findIndex(line =>
+    /^description\s*:/.test(line)
+  );
+  if (descriptionIndex < 0) return source;
+  const rawValue = lines[descriptionIndex].replace(/^description\s*:\s*/, "");
+  let descriptionEnd = descriptionIndex;
+  let description;
+  if (rawValue === ">" || rawValue === "|") {
+    const continuation = [];
+    while (
+      descriptionEnd + 1 < lines.length &&
+      (/^\s+/.test(lines[descriptionEnd + 1]) ||
+        lines[descriptionEnd + 1].trim() === "")
+    ) {
+      descriptionEnd += 1;
+      continuation.push(lines[descriptionEnd].trim());
+    }
+    description = continuation.join(" ");
+  } else {
+    const parsed = parseCommandFrontmatterValue(rawValue);
+    description = typeof parsed === "string" ? parsed : String(parsed);
+  }
+  const compact = compactRoutingDescription(description);
+  const nextFrontmatter = [
+    ...lines.slice(0, descriptionIndex),
+    `description: ${JSON.stringify(compact)}`,
+    ...lines.slice(descriptionEnd + 1),
+  ].join("\n");
+  return `---\n${nextFrontmatter}\n---\n${match[2]}`;
+}
+
+/**
+ * Produce a short, sentence-like routing description.
+ * @param {string} description Full authored routing description.
+ * @returns {string} Compact description.
+ */
+function compactRoutingDescription(description) {
+  const cleaned = description
+    .replace(/\s+/g, " ")
+    .replace(
+      /^(this skill should be used|use this skill|use)\s+(when|to|for|whenever)\s+/i,
+      ""
+    )
+    .trim();
+  const sentence = cleaned.match(/^.*?[.!?](?:\s|$)/)?.[0] ?? cleaned;
+  const withoutPeriod = sentence.trim().replace(/[.\s]+$/, "");
+  if (withoutPeriod.length <= 32) return withoutPeriod;
+  const prefix = withoutPeriod.slice(0, 32);
+  const boundary = prefix.lastIndexOf(" ");
+  return `${(boundary > 16 ? prefix.slice(0, boundary) : prefix).replace(/[,;:.\s]+$/, "")}…`;
+}
+
+/**
+ * Convert a command-relative Markdown path into its native Lisa skill name.
+ * @param {string} relativeCommand Command path below `commands/`.
+ * @returns {string} Native Lisa skill name.
+ */
+function commandPathToSkillName(relativeCommand) {
+  const segments = relativeCommand.replace(/\.md$/, "").split(path.sep);
+  const normalized = segments[0] === "lisa" ? segments.slice(1) : segments;
+  return `lisa-${normalized.join("-")}`;
+}
+
+/** Recursively list regular files below a directory. */
+function listFilesRecursive(root, relative = "") {
+  return fs
+    .readdirSync(path.join(root, relative), { withFileTypes: true })
+    .flatMap(entry => {
+      const child = path.join(relative, entry.name);
+      return entry.isDirectory()
+        ? listFilesRecursive(root, child)
+        : entry.isFile()
+          ? [child]
+          : [];
+    });
+}
+
+/** Convert one Claude command document into an Agent Skills document. */
+export function convertCommandToCodexSkill(
+  commandSource,
+  skillName,
+  displayName
+) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(
+    commandSource
+  );
+  if (!match) {
+    throw new Error(
+      `Command source is missing YAML frontmatter for ${displayName}`
+    );
+  }
+  const frontmatter = parseCommandFrontmatter(match[1]);
+  const description =
+    typeof frontmatter.description === "string" && frontmatter.description
+      ? frontmatter.description
+      : displayName;
+  const argumentHint =
+    typeof frontmatter["argument-hint"] === "string"
+      ? frontmatter["argument-hint"]
+      : undefined;
+  const allowedTools = Array.isArray(frontmatter["allowed-tools"])
+    ? frontmatter["allowed-tools"].filter(tool => typeof tool === "string")
+    : typeof frontmatter["allowed-tools"] === "string"
+      ? frontmatter["allowed-tools"]
+          .split(",")
+          .map(tool => tool.trim())
+          .filter(Boolean)
+      : [];
+  const compatibility = [
+    "## Lisa Command Compatibility",
+    "",
+    `- Original Claude command: \`/${displayName}\``,
+    `- Codex invocation: \`$${skillName}\` or a plain-English request that matches this skill.`,
+    "- Treat the user's surrounding request as the command arguments.",
+    ...(argumentHint ? [`- Claude argument hint: \`${argumentHint}\``] : []),
+    ...(allowedTools.length
+      ? [
+          `- Claude allowed tools: ${allowedTools.map(tool => `\`${tool}\``).join(", ")}. Codex tool access is governed by the active Codex runtime and project policy.`,
+        ]
+      : []),
+  ].join("\n");
+  const body = match[2]
+    .trimStart()
+    .replace(
+      /\$ARGUMENTS/g,
+      "Use the user's surrounding request as this command's arguments."
+    )
+    .trimEnd();
+  return `---\nname: ${skillName}\ndescription: ${JSON.stringify(description)}\n---\n${compatibility}\n\n${body}\n`;
+}
+
+/**
+ * Parse Lisa command frontmatter without adding a runtime dependency to the
+ * standalone artifact generator. Command metadata uses scalar strings and
+ * JSON-shaped inline string arrays only.
+ * @param {string} rawFrontmatter YAML frontmatter body.
+ * @returns {Record<string, unknown>} Parsed command fields.
+ */
+function parseCommandFrontmatter(rawFrontmatter) {
+  return Object.fromEntries(
+    rawFrontmatter
+      .split(/\r?\n/)
+      .map(line => {
+        const separator = line.indexOf(":");
+        if (separator < 1) return undefined;
+        const key = line.slice(0, separator).trim();
+        const rawValue = line.slice(separator + 1).trim();
+        return [key, parseCommandFrontmatterValue(rawValue)];
+      })
+      .filter(entry => entry !== undefined)
+  );
+}
+
+/**
+ * Parse one supported command-frontmatter scalar or inline array.
+ * @param {string} rawValue Serialized YAML value.
+ * @returns {unknown} Parsed value.
+ */
+function parseCommandFrontmatterValue(rawValue) {
+  if (rawValue.startsWith('"') || rawValue.startsWith("[")) {
+    try {
+      return JSON.parse(rawValue);
+    } catch {
+      // Fall through to a literal string so malformed optional metadata cannot
+      // prevent the plugin build from producing a usable skill.
+    }
+  }
+  if (rawValue.startsWith("'") && rawValue.endsWith("'")) {
+    return rawValue.slice(1, -1).replace(/''/g, "'");
+  }
+  return rawValue;
 }
 
 function main() {
@@ -489,6 +773,8 @@ function main() {
 
   pruneInternalCodexSkills(pluginDir);
   emitCodexHooks(pluginDir, claudeManifest);
+  emitCodexSkillVariants(pluginDir);
+  emitCommandSkills(pluginDir);
   writeCodexManifest(pluginDir, claudeManifest, pluginName, versionArg);
   writeSkillAgents(pluginDir);
 }
@@ -585,9 +871,11 @@ function writeCodexManifest(pluginDir, claudeManifest, pluginName, version) {
 
 export function componentPointers(pluginDir) {
   return {
-    ...(fs.existsSync(path.join(pluginDir, "skills"))
-      ? { skills: "./skills/" }
-      : {}),
+    ...(fs.existsSync(path.join(pluginDir, ".codex-plugin", "skills"))
+      ? { skills: "./.codex-plugin/skills/" }
+      : fs.existsSync(path.join(pluginDir, "skills"))
+        ? { skills: "./skills/" }
+        : {}),
     ...(fs.existsSync(path.join(pluginDir, ".mcp.json"))
       ? { mcpServers: "./.mcp.json" }
       : {}),
@@ -822,6 +1110,9 @@ function metadataFor(pluginName, claudeManifest) {
 
 // Run the generator only when invoked directly (e.g. via build-plugins.sh),
 // not when this module is imported (e.g. by unit tests for the parser).
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])
+) {
   main();
 }

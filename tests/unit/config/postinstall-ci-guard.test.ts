@@ -16,6 +16,7 @@ import * as path from "node:path";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const CI_GUARD_PREFIX = '[ -n "$CI" ] ||';
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
+const LISA_BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 node";
 
 /**
  * Minimal shape of a package.lisa.json for the assertions below.
@@ -71,6 +72,7 @@ describe("package.lisa.json templates guard Lisa postinstall with CI-skip prefix
         // CI-guarded. Lisa already relies on PR diffs for drift detection;
         // silently re-applying templates in CI creates race conditions.
         expect(script.startsWith(CI_GUARD_PREFIX)).toBe(true);
+        expect(script).toContain(LISA_BOOTSTRAP_PREFIX);
       }
     }
   );

@@ -16,12 +16,13 @@ else
   HOOK_EVENT="SessionStart"
 fi
 
-RULES_DIR="${CLAUDE_PLUGIN_ROOT}/rules/eager"
+ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+RULES_DIR="$ROOT/rules/eager"
 
 # Backward compatibility: if the eager subdir is absent (older Lisa install),
 # fall back to the flat rules/ directory so a partial upgrade still ships rules.
 if [ ! -d "$RULES_DIR" ]; then
-  RULES_DIR="${CLAUDE_PLUGIN_ROOT}/rules"
+  RULES_DIR="$ROOT/rules"
 fi
 
 # Bail silently if no rules directory at all

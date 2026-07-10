@@ -1,0 +1,4 @@
+display_name: "SonarCloud Access"
+short_description: "Vendor-neutral access layer for…"
+default_prompt:
+  - "Use $lisa-sonarcloud-access: Vendor-neutral access layer for…."

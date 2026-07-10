@@ -1,0 +1,4 @@
+display_name: "Connect Repo Topic"
+short_description: "Bind a Telegram forum topic to…"
+default_prompt:
+  - "Use $lisa-connect-repo-topic: Bind a Telegram forum topic to…."

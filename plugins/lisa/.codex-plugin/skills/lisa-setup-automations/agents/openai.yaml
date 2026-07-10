@@ -1,0 +1,4 @@
+display_name: "Setup Automations"
+short_description: "Set up the recurring Lisa…"
+default_prompt:
+  - "Use $lisa-setup-automations: Set up the recurring Lisa…."

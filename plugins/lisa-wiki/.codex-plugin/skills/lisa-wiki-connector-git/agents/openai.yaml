@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Git"
+short_description: "Produce sanitized…"
+default_prompt:
+  - "Use $lisa-wiki-connector-git: Produce sanitized…."

@@ -1,0 +1,4 @@
+display_name: "Use The Product"
+short_description: "Shared methodology for actually…"
+default_prompt:
+  - "Use $lisa-use-the-product: Shared methodology for actually…."

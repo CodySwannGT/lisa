@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- installer coverage shares fixture setup */
 /**
  * Unit tests for the Codex agent installer (discovery + transform + override
  * merge + stale cleanup).
@@ -12,6 +13,10 @@ import {
   discoverLisaAgents,
   installAgents,
 } from "../../../src/codex/agent-installer.js";
+import {
+  projectPluginFilter,
+  selectProjectLisaPlugins,
+} from "../../../src/core/lisa-plugin-selection.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Common agent id reused across multiple test cases */
@@ -196,6 +201,27 @@ describe("codex/agent-installer", () => {
       );
       expect(filtered.map(r => r.id)).toEqual([BUG_FIXER]);
     });
+
+    it("uses project selection to exclude agents from unrelated stacks", async () => {
+      await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
+      await seedPlugin("lisa-expo", { "expo-agent.md": SAMPLE_AGENT_2 });
+      await seedPlugin(PLUGIN_LISA_RAILS, {
+        [OPS_SPECIALIST_MD]: SAMPLE_AGENT_2,
+      });
+      const selected = await selectProjectLisaPlugins(destDir, [
+        "typescript",
+        "expo",
+      ]);
+
+      const result = await discoverLisaAgents(
+        lisaDir,
+        projectPluginFilter(selected)
+      );
+      expect(result.map(agent => agent.pluginName)).toEqual([
+        PLUGIN_LISA,
+        "lisa-expo",
+      ]);
+    });
   });
 
   describe("installAgents", () => {
@@ -355,3 +381,4 @@ describe("codex/agent-installer", () => {
     });
   });
 });
+/* eslint-enable max-lines -- restore the repository default */

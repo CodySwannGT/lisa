@@ -122,7 +122,7 @@ describe("Lisa Integration Tests", () => {
     it("preserves host-owned config during postinstall-safe apply", async () => {
       await createTypeScriptProject(destDir);
       const guardedPostinstall =
-        '[ -n "$CI" ] || node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true';
+        '[ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true';
       const hostPackageJson = {
         name: "host-project",
         dependencies: { typescript: "^5.0.0" },

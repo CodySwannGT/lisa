@@ -12,7 +12,7 @@
     "agents",
     "chat-ops"
   ],
-  "skills": "./skills/",
+  "skills": "./.codex-plugin/skills/",
   "interface": {
     "displayName": "Lisa OpenClaw",
     "shortDescription": "Staff on Telegram/Slack via OpenClaw",

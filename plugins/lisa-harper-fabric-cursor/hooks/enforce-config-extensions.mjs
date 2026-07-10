@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -39,21 +38,20 @@ const repoRelativeConfigPath = filePath => {
   return index === -1 ? normalized : normalized.slice(index);
 };
 
-const loadYaml = () => {
-  const require = createRequire(import.meta.url);
-  return require("js-yaml");
-};
-
 const topLevelExtensionKeys = yamlText => {
-  const yaml = loadYaml();
-  let parsed;
-  try {
-    parsed = yaml.load(yamlText);
-  } catch {
-    return null;
+  const keys = [];
+  for (const line of yamlText.split(/\r?\n/)) {
+    if (/^\s*(?:#.*)?$/.test(line) || /^---\s*$/.test(line)) continue;
+    if (/^\s/.test(line)) continue;
+    if (line.startsWith("!!") || ["[", "]", "{", "}"].includes(line[0])) {
+      return null;
+    }
+    const match = line.match(/^(?:"([^"]+)"|'([^']+)'|([^:#][^:]*?)):\s*/);
+    if (!match) return null;
+    const key = match[1] ?? match[2] ?? match[3]?.trim();
+    if (key) keys.push(key);
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
-  return Object.keys(parsed).sort();
+  return Array.from(new Set(keys)).sort();
 };
 
 const gitEnv = () =>

@@ -8,7 +8,8 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const LEGACY_LISA_INVOCATION =
   "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true";
-const LISA_INVOCATION = `[ -n "$CI" ] || ${LEGACY_LISA_INVOCATION}`;
+const OLD_GUARDED_LISA_INVOCATION = `[ -n "$CI" ] || ${LEGACY_LISA_INVOCATION}`;
+const LISA_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${LEGACY_LISA_INVOCATION}`;
 const PACKAGE_JSON = "package.json";
 const PATCH_PACKAGE = "patch-package";
 
@@ -136,6 +137,13 @@ describe("EnsureLisaPostinstallMigration", () => {
     it("returns true when postinstall contains legacy (unguarded) Lisa invocation", async () => {
       await writePackageJson({
         scripts: { postinstall: LEGACY_LISA_INVOCATION },
+      });
+      expect(await migration.applies(createContext())).toBe(true);
+    });
+
+    it("returns true when postinstall has the old guard without the bootstrap override", async () => {
+      await writePackageJson({
+        scripts: { postinstall: OLD_GUARDED_LISA_INVOCATION },
       });
       expect(await migration.applies(createContext())).toBe(true);
     });
@@ -276,6 +284,17 @@ describe("EnsureLisaPostinstallMigration", () => {
       const result = await migration.apply(createContext());
 
       expect(result.action).toBe("applied");
+      const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
+      expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
+    });
+
+    it("upgrades the old guarded invocation without duplicating the CI guard", async () => {
+      await writePackageJson({
+        scripts: { postinstall: OLD_GUARDED_LISA_INVOCATION },
+      });
+
+      await migration.apply(createContext());
+
       const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
       expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
     });
