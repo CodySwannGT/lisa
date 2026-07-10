@@ -100,7 +100,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm for OIDC support
-        run: npm install -g npm@latest
+        # npm 12 requires a newer Node release than this project currently pins.
+        run: npm install -g npm@11.7.0
 
       - name: Get OIDC Token for npm
         id: npm-oidc
