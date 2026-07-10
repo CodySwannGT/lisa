@@ -18,13 +18,13 @@ Lisa is distributed for multiple coding agents. Each agent has its own CLI, plug
 - CLI: `codex` (current probed version 0.125.0).
 - Configuration home: `~/.codex/`.
 - Plugin manifest: `.codex-plugin/plugin.json` with `skills`, `mcpServers`, `apps`, and optional inline `hooks` block (plugin-bundled hooks became real in 0.125.0).
-- Marketplace: `~/.codex/config.toml` `[marketplaces.<name>]` entries plus repository-side `.agents/plugins/marketplace.json` (or `.claude-plugin/marketplace.json`).
+- Marketplace: user-scoped activation plus repository catalogs at `.agents/plugins/marketplace.json`. Lisa writes only the filtered repository catalog and does not register a user-wide Codex plugin.
 - Installed plugin location: `~/.codex/plugins/cache/<marketplace>/<plugin>/<version-or-local>/`.
-- Hook events supported in 0.125.0: `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SessionStart`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `Stop`. Hooks are gated by `[features].codex_hooks = true` in `config.toml`.
+- Hook events supported in 0.125.0: `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SessionStart`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `Stop`. Hooks are gated by `[features].hooks = true` in `config.toml`; `codex_hooks` is deprecated.
 - Unique features: app connectors via `.app.json`, computer use, browser use, in-app browser, image generation, MCP elicitation, request compression, shell snapshot, app server and app launcher, JavaScript REPL (experimental), tool-search, tool-suggest, theme picker, prompt-history search, guardian approval, personality.
 - Sub-agents are configuration-level (`[agents.<role>]` blocks), not a plugin component.
 - Slash commands are absent — Codex has no `commands` field in its plugin manifest.
-- Lisa installers: `src/codex/agent-installer.ts`, `src/codex/agents-md-installer.ts`, `src/codex/command-skill-transformer.ts`, `src/codex/hooks-installer.ts`, `src/codex/hooks-merger.ts`, `src/codex/plugin-marketplace-installer.ts`, `src/codex/settings-installer.ts`, `src/codex/skills-installer.ts`, `src/codex/manifest.ts`.
+- Lisa installers: `src/codex/project-overlay.ts`, `src/codex/agent-installer.ts`, `src/codex/agents-md-installer.ts`, `src/codex/mcp-installer.ts`, `src/codex/plugin-marketplace-installer.ts`, `src/codex/project-hooks-cleanup.ts`, `src/codex/settings-installer.ts`, `src/codex/skills-installer.ts`, and `src/codex/manifest.ts`.
 
 ## Cursor
 

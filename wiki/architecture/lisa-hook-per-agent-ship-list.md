@@ -23,7 +23,7 @@ Parenthesized name = the agent's native event-name spelling when it differs from
 
 | Event | Claude | Codex (0.125.0) | Cursor | agy | Copilot |
 | --- | --- | --- | --- | --- | --- |
-| `UserPromptSubmit` | ✅ | ✅ [VERIFIED-DOC: `codex features list` 0.125.0 lists `codex_hooks` stable] | ✅ (`beforeSubmitPrompt`) | ✅\* hooks don't fire in `-p` (verified-by-run) | ✅ (`userPromptSubmitted`) [VERIFIED-DOC: Copilot CLI plugin reference] |
+| `UserPromptSubmit` | ✅ | ✅ [VERIFIED-DOC: enabled by `[features].hooks`; `codex_hooks` is deprecated] | ✅ (`beforeSubmitPrompt`) | ✅\* hooks don't fire in `-p` (verified-by-run) | ✅ (`userPromptSubmitted`) [VERIFIED-DOC: Copilot CLI plugin reference] |
 | `PreToolUse` | ✅ | ✅ [VERIFIED-DOC: Codex hooks docs] | ✅ (`preToolUse`) | ✅\* doesn't fire in `-p` (verified-by-run) | ✅ (`preToolUse`) [VERIFIED-DOC] |
 | `PostToolUse` | ✅ | ✅ [VERIFIED-DOC] | ✅ (`postToolUse`) | ✅\* doesn't fire in `-p` | ✅ (`postToolUse`) |
 | `Stop` | ✅ | ✅ | ✅ (`stop`) | ✅\* doesn't fire in `-p` | ✅ (`agentStop`) |
@@ -87,7 +87,7 @@ The `plugin.json` also registers calls to the external `entire` CLI on multiple 
 ## Net by per-agent variant
 
 - **Claude (`plugins/lisa/`)** — ships every hook. Status quo, no change.
-- **Codex (`plugins/lisa/` via `.codex-plugin` pointer)** — ships universally-applicable + SubagentStart hooks (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Strips all `entire hooks claude-code *` calls and `enforce-team-first.sh`. Codex 0.125.0 now supports plugin-bundled hooks — migrating the Codex hooks installer from per-project `.codex/hooks.json` to plugin-bundled is Wave 3 Action 3 in the research artifact.
+- **Codex (`plugins/lisa/` via `.codex-plugin` pointer)** — ships universally-applicable + SubagentStart hooks (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Strips all `entire hooks claude-code *` calls and `enforce-team-first.sh`. `lisa apply` publishes only the base, detected-stack, and explicitly configured plugin entries in the repository `.agents/plugins/marketplace.json`; Codex loads those plugin-bundled hooks without user-wide plugin installation or duplicate project hook copies.
 - **Cursor (`plugins/lisa-cursor/`)** — ships `block-no-verify.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`, written to a standalone **`hooks/hooks.json`** in Cursor's schema (`{version:1, hooks:{<camelCaseEvent>:[{command:"${CURSOR_PLUGIN_ROOT}/hooks/<script>.sh", matcher?}]}}`; flat per-event arrays) — the manifest's `hooks` field is REMOVED. Commands use the `${CURSOR_PLUGIN_ROOT}` token (NOT a bare `./`): Cursor plugin hooks run with the opened project root as cwd, so a relative path would not resolve to the bundled script and could be shadowed by a repo-local `./hooks/*` (issue #1055). **STRIPS `inject-rules.sh`** entirely: rules are delivered as native Cursor `.mdc` files (issue #1055 — eager `rules/<name>.mdc` `alwaysApply:true`, reference `rules/<name>-reference.mdc` `alwaysApply:false`), which is the single rules-once path; Cursor does NOT auto-load the nested `.md` tree. Renames `.mcp.json` → `mcp.json`. Strips Claude-specific entire calls and enforce-team-first. Strips inject-flow-context (Cursor SubagentStart unverified — defer until research refresh). NOTE: plugin-bundled hook FIRING is not verifiable via the `cursor-agent` CLI (only project `.cursor/hooks.json` fires headless); the regression suite asserts file SHAPE.
 - **agy (`plugins/lisa-agy/`)** — only `block-no-verify` is agy-portable (PreToolUse). `install-pkgs`/`setup-jira-cli` are SessionStart, which agy hooks don't support; `inject-rules`/`enforce-team-first`/`inject-flow-context`/the `entire` calls are stripped as on Cursor. Delivery: a PLUGIN-BUNDLED root `hooks.json` (agy schema, matcher `run_command`, command → `$HOME/.gemini/config/plugins/lisa-agy/hooks/block-no-verify.agy.sh`) emitted by `generate-agy-plugin-artifacts.mjs`, plus the agy-protocol script under the variant's `hooks/`. It rides along with `agy plugin install`. The generated `plugins/lisa-agy/` artifact ships the root `hooks.json` + `hooks/block-no-verify.agy.sh` but **no `mcp_config.json`, no `.mcp.json`, no `rules/`, no `hooks/hooks.json` subdir** — MCP goes through the runtime installer (`installAgyMcpConfig` → user-global `~/.gemini/config/mcp_config.json`). Rules: as of 2026-06-06 (PR #1150) agy gets no eager-rule injection — `AGENTS.md` is rule-free and the old bake is removed (was: "rules through the AGENTS.md bake"). Stack variants carry no manifest hooks, so they emit no `hooks.json`. _(ticket-1054: superseded both the original "ships no hooks" finding and the interim "subdir hooks"/"runtime installer" approaches — agy loads a ROOT-level plugin hooks.json.)_
 - **Copilot (`plugins/lisa-copilot/`)** — ships `block-no-verify.sh`, `inject-rules.sh` (Copilot doesn't auto-load rules from plugin), `install-pkgs.sh`, `setup-jira-cli.sh`. Strips all SubagentStart hooks (Copilot doesn't have that event). Strips entire calls and enforce-team-first. The Copilot variant's `inject-rules.sh` may need its `${CLAUDE_PLUGIN_ROOT}` path reference adapted if Copilot exposes a different plugin-root env var name (e.g. `${COPILOT_PLUGIN_ROOT}` — unverified; Pattern B generator should probe and document).
@@ -121,7 +121,7 @@ The Pattern B generator scripts (`scripts/generate-cursor-plugin-artifacts.mjs`,
 6. **Rewrite plugin-root env var** in `command` strings AND in shipped script bodies per the target agent:
    - Claude: `${CLAUDE_PLUGIN_ROOT}`.
    - Cursor: `${CURSOR_PLUGIN_ROOT}/hooks/<script>.sh` in `hooks/hooks.json` (issue #1055). Plugin hooks run with the opened project root as cwd (Cursor-maintainer confirmed), so a bare `./hooks/` would not resolve and could be shadowed by a repo-local `./hooks/*`; `${CURSOR_PLUGIN_ROOT}` is the endorsed plugin-dir token (the generator normalizes `${CLAUDE_PLUGIN_ROOT}` → `${CURSOR_PLUGIN_ROOT}`).
-   - Codex: prior research found `CLAUDE_PLUGIN_ROOT` / `CODEX_PLUGIN_ROOT` are NOT set for hook commands (per `reference-codex-hooks-capabilities`). Wave 3 generator MUST translate `${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh` to an absolute path the Codex installer resolves at install time (analogous to how `src/codex/hooks-installer.ts` currently writes absolute paths into project `.codex/hooks.json`).
+   - Codex: plugin-bundled hook commands resolve through Codex's `PLUGIN_ROOT`. Hook scripts retain `${CLAUDE_PLUGIN_ROOT}` first for Claude compatibility and fall back to `${PLUGIN_ROOT}` for Codex.
    - agy: the plugin-bundled root `hooks.json` references the installed script via a `$HOME`-absolute path (`$HOME/.gemini/config/plugins/<variant>/hooks/<script>`); agy exposes no plugin-root env var, and ExpandEnv resolves `$HOME`.
    - Copilot: ⚠ env var name unverified. Community examples literally use `${CLAUDE_PLUGIN_ROOT}` for Antigravity-targeted hooks but Copilot's actual convention is undocumented. Wave 3 generator MUST probe Copilot's runtime env (`${COPILOT_PLUGIN_ROOT}` is the natural guess) before final emit; fall back to absolute paths if no env var is exposed.
 7. **Emit** the agent-appropriate `hooks` block in the variant's manifest plus the surviving `hooks/` directory.
@@ -167,12 +167,11 @@ the `reference_codex_plugin_hooks_shape_and_firing` session memory.
 - **hooks.json root shape:** events nest under a top-level `hooks` key
   (`{ "hooks": { … } }`) per the `HooksFile` contract in
   `src/codex/hooks-merger.ts`.
-- **Marketplace key:** `codex plugin marketplace add CodySwannGT/lisa` registers
-  `[marketplaces.lisa]` (name from the manifest), so the enabled-plugin key is
-  `lisa@lisa` — not the repo-slug forms previously assumed. `marketplace add`
-  reads `.claude-plugin/marketplace.json` (no install policy there) and does NOT
-  auto-install; install + trust are interactive. The per-project installer
-  (`src/codex/hooks-installer.ts`) remains the verified-working delivery path.
+- **Marketplace delivery:** `lisa apply` writes a filtered repository catalog at
+  `.agents/plugins/marketplace.json` and marks its selected entries
+  `INSTALLED_BY_DEFAULT`. Current Codex loads the selected plugin components
+  directly from the project dependency without a Lisa-managed user-wide plugin
+  registration. Legacy Lisa-tagged project hooks are removed during apply.
 
 **Copilot (corrects step 6 + agent-path assumptions):**
 

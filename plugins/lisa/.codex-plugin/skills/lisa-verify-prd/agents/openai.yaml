@@ -1,0 +1,4 @@
+display_name: "Verify PRD"
+short_description: "Initiative-level PRD acceptance…"
+default_prompt:
+  - "Use $lisa-verify-prd: Initiative-level PRD acceptance…."

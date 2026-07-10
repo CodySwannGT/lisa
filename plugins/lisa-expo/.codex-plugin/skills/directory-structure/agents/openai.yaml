@@ -1,0 +1,4 @@
+display_name: "Directory Structure"
+short_description: "This skill enforces the…"
+default_prompt:
+  - "Use $directory-structure: This skill enforces the…."

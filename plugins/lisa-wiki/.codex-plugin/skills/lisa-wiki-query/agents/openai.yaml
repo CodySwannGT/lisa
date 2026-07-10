@@ -1,0 +1,4 @@
+display_name: "Wiki Query"
+short_description: "Answer a question from the LLM…"
+default_prompt:
+  - "Use $lisa-wiki-query: Answer a question from the LLM…."

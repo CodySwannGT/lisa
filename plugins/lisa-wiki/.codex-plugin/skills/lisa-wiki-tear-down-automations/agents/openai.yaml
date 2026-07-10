@@ -1,0 +1,4 @@
+display_name: "Wiki Tear Down Automations"
+short_description: "Remove the recurring LLM Wiki…"
+default_prompt:
+  - "Use $lisa-wiki-tear-down-automations: Remove the recurring LLM Wiki…."

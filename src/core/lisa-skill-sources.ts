@@ -264,7 +264,27 @@ async function discoverSkillsInPlugin(
   pluginsDir: string,
   pluginName: string
 ): Promise<readonly BundledSkillSource[]> {
-  const skillsDir = path.join(pluginsDir, pluginName, "skills");
+  const pluginDir = path.join(pluginsDir, pluginName);
+  const skillRoots = [
+    path.join(pluginDir, "skills"),
+    path.join(pluginDir, ".codex-plugin", "skills"),
+  ];
+  const candidatesByRoot = await Promise.all(
+    skillRoots.map(skillsDir => discoverSkillsInRoot(skillsDir))
+  );
+  return candidatesByRoot.flat();
+}
+
+/**
+ * Discover skill directories under one concrete skill root. Codex-specific
+ * command-derived skills live under `.codex-plugin/skills/`; authored skills
+ * remain in the plugin's standard `skills/` directory.
+ * @param skillsDir Absolute skill root.
+ * @returns Skill sources under that root.
+ */
+async function discoverSkillsInRoot(
+  skillsDir: string
+): Promise<readonly BundledSkillSource[]> {
   if (!(await fse.pathExists(skillsDir))) {
     return [];
   }

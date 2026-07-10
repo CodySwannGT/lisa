@@ -1,12 +1,11 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawnSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
-const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
+const SAFE_COMMAND_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin";
 const setupJiraCli = path.join(
   repoRoot,
   "plugins",
@@ -74,15 +73,18 @@ describe("setup-jira-cli hook config fallback", () => {
    * Execute the canonical setup-jira-cli hook inside the temporary project.
    * @param env - Environment variables to expose to the hook process.
    */
-  async function runHook(env: NodeJS.ProcessEnv) {
-    await execFileAsync("bash", [setupJiraCli], {
+  function runHook(env: NodeJS.ProcessEnv) {
+    const result = spawnSync("/bin/bash", [setupJiraCli], {
       cwd: projectDir,
+      encoding: "utf8",
       env: {
         HOME: homeDir,
-        PATH: process.env.PATH ?? "",
+        PATH: SAFE_COMMAND_PATH,
         ...env,
       },
+      input: "{}\n",
     });
+    expect(result.status).toBe(0);
   }
 
   /**
@@ -91,7 +93,7 @@ describe("setup-jira-cli hook config fallback", () => {
    */
   async function expectJiraConfig(expectedLines: readonly string[]) {
     const config = await fs.readFile(
-      path.join(homeDir, ".config", ".jira", ".config.yml"),
+      path.join(projectDir, ".lisa", "jira-cli", ".config.yml"),
       "utf8"
     );
     for (const line of expectedLines) {

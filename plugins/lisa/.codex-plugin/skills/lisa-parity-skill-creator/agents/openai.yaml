@@ -1,0 +1,4 @@
+display_name: "Parity Skill Creator"
+short_description: "Author a new Lisa skill…"
+default_prompt:
+  - "Use $lisa-parity-skill-creator: Author a new Lisa skill…."

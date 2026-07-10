@@ -1,0 +1,4 @@
+display_name: "Fix Linter Error"
+short_description: "fixing all violations of one or…"
+default_prompt:
+  - "Use $fix-linter-error: fixing all violations of one or…."

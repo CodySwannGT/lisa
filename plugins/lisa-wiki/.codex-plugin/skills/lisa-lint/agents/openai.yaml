@@ -1,0 +1,4 @@
+display_name: "Lint"
+short_description: "Health-check the LLM Wiki…"
+default_prompt:
+  - "Use $lisa-lint: Health-check the LLM Wiki…."

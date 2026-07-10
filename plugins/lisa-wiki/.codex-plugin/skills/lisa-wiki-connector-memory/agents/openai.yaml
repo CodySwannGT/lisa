@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Memory"
+short_description: "Ingest the agent's…"
+default_prompt:
+  - "Use $lisa-wiki-connector-memory: Ingest the agent's…."

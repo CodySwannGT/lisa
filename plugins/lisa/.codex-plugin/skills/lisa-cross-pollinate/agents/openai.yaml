@@ -1,0 +1,4 @@
+display_name: "Cross Pollinate"
+short_description: "Detect a host project's…"
+default_prompt:
+  - "Use $lisa-cross-pollinate: Detect a host project's…."

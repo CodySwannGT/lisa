@@ -1,0 +1,4 @@
+display_name: "Harper Testing"
+short_description: "adding, repairing, or designing…"
+default_prompt:
+  - "Use $harper-testing: adding, repairing, or designing…."

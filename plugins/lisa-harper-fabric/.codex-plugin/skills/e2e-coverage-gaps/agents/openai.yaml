@@ -1,0 +1,4 @@
+display_name: "E2e Coverage Gaps"
+short_description: "Playwright/e2e coverage-gap…"
+default_prompt:
+  - "Use $e2e-coverage-gaps: Playwright/e2e coverage-gap…."

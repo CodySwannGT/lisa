@@ -1,0 +1,4 @@
+display_name: "Linear Create"
+short_description: "Creates Linear Projects…"
+default_prompt:
+  - "Use $lisa-linear-create: Creates Linear Projects…."

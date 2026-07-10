@@ -1,0 +1,4 @@
+display_name: "Expo Module"
+short_description: "Guide for creating and writing…"
+default_prompt:
+  - "Use $expo-module: Guide for creating and writing…."

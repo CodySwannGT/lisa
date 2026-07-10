@@ -1,0 +1,4 @@
+display_name: "Phaser Testing"
+short_description: "writing or designing tests for…"
+default_prompt:
+  - "Use $phaser-testing: writing or designing tests for…."

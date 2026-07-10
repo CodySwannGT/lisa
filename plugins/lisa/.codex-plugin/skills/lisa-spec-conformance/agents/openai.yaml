@@ -1,0 +1,4 @@
+display_name: "Spec Conformance"
+short_description: "Verifies that shipped work…"
+default_prompt:
+  - "Use $lisa-spec-conformance: Verifies that shipped work…."

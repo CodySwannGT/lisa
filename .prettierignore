@@ -34,6 +34,9 @@ coverage
 plugins/lisa/**/openai.yaml
 plugins/lisa-*/**/openai.yaml
 
+# Lisa regenerates the project Codex overlay from canonical plugin sources.
+.codex
+
 # Committed verification (UAT) evidence is agent-written proof, not source —
 # never reformat it. Enforced project types add the same ignore to their own
 # .prettierignore alongside enabling verification.

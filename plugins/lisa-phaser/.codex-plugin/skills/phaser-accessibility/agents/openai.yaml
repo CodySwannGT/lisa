@@ -1,0 +1,4 @@
+display_name: "Phaser Accessibility"
+short_description: "making a Phaser 4 game…"
+default_prompt:
+  - "Use $phaser-accessibility: making a Phaser 4 game…."

@@ -1,0 +1,4 @@
+display_name: "Playwright CI Debugging"
+short_description: "Debug Playwright E2E tests that…"
+default_prompt:
+  - "Use $playwright-ci-debugging: Debug Playwright E2E tests that…."

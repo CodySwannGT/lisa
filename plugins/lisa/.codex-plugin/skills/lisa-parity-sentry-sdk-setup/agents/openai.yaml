@@ -1,0 +1,4 @@
+display_name: "Parity Sentry SDK Setup"
+short_description: "Install and configure the…"
+default_prompt:
+  - "Use $lisa-parity-sentry-sdk-setup: Install and configure the…."

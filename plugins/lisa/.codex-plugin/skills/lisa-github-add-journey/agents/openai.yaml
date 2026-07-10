@@ -1,0 +1,4 @@
+display_name: "Github Add Journey"
+short_description: "Add a Validation Journey…"
+default_prompt:
+  - "Use $lisa-github-add-journey: Add a Validation Journey…."

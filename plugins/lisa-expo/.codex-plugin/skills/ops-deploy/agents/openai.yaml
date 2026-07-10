@@ -1,0 +1,4 @@
+display_name: "Ops Deploy"
+short_description: "Deploy Expo frontend (EAS…"
+default_prompt:
+  - "Use $ops-deploy: Deploy Expo frontend (EAS…."

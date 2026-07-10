@@ -1,0 +1,4 @@
+display_name: "Atlassian Access"
+short_description: "Vendor-neutral access layer for…"
+default_prompt:
+  - "Use $lisa-atlassian-access: Vendor-neutral access layer for…."

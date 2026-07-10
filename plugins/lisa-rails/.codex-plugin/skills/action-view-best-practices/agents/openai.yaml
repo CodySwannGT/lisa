@@ -1,0 +1,4 @@
+display_name: "Action View Best Practices"
+short_description: "Build or Refactor Rails views…"
+default_prompt:
+  - "Use $action-view-best-practices: Build or Refactor Rails views…."

@@ -1,0 +1,4 @@
+display_name: "Linear Verify"
+short_description: "Verifies a Linear work item…"
+default_prompt:
+  - "Use $lisa-linear-verify: Verifies a Linear work item…."

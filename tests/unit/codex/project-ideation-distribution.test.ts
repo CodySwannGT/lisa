@@ -67,7 +67,7 @@ describe("codex/project-ideation-distribution (#670)", () => {
       short_description?: unknown;
     };
 
-    expect(manifest.skills).toBe("./skills/");
+    expect(manifest.skills).toBe("./.codex-plugin/skills/");
     expect(metadata.display_name).toBe("Project Ideation");
     expect(metadata.short_description).toBe(
       "Generate practical, verifiable product or workflow ideas for the current host project"

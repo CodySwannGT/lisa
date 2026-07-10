@@ -1,0 +1,4 @@
+display_name: "Improve Test Coverage"
+short_description: "increasing test coverage to a…"
+default_prompt:
+  - "Use $lisa-improve-test-coverage: increasing test coverage to a…."

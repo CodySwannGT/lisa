@@ -1,0 +1,4 @@
+display_name: "Test Strategy"
+short_description: "Test strategy design"
+default_prompt:
+  - "Use $lisa-test-strategy: Test strategy design."

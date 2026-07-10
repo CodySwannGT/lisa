@@ -1,0 +1,4 @@
+display_name: "Repair Intake"
+short_description: "Vendor-agnostic repair scanner…"
+default_prompt:
+  - "Use $lisa-repair-intake: Vendor-agnostic repair scanner…."

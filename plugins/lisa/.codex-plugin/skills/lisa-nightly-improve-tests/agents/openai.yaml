@@ -1,0 +1,4 @@
+display_name: "Nightly Improve Tests"
+short_description: "Nightly direct-execution skill…"
+default_prompt:
+  - "Use $lisa-nightly-improve-tests: Nightly direct-execution skill…."

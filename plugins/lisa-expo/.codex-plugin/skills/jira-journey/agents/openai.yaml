@@ -1,0 +1,4 @@
+display_name: "Jira Journey"
+short_description: "Read a JIRA ticket's Validation…"
+default_prompt:
+  - "Use $jira-journey: Read a JIRA ticket's Validation…."

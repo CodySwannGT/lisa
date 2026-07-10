@@ -1,0 +1,4 @@
+display_name: "Use Dom"
+short_description: "Use Expo DOM components to run…"
+default_prompt:
+  - "Use $use-dom: Use Expo DOM components to run…."

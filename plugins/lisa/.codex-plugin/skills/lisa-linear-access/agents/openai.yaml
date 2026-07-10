@@ -1,0 +1,4 @@
+display_name: "Linear Access"
+short_description: "Vendor-neutral access layer for…"
+default_prompt:
+  - "Use $lisa-linear-access: Vendor-neutral access layer for…."

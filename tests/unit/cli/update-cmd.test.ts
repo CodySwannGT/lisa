@@ -9,6 +9,8 @@ import {
   runUpdate,
 } from "../../../src/cli/update-cmd.js";
 
+const LISA_PACKAGE = "@codyswann/lisa";
+
 let tempDir: string | undefined;
 
 /**
@@ -44,13 +46,29 @@ describe("detectPackageManager", () => {
 
     expect(detectPackageManager({ cwd, env: {} })).toBe("bun");
   });
+
+  it("detects bun from the current text lockfile", async () => {
+    const cwd = await getTempDir();
+    await writeFile(path.join(cwd, "bun.lock"), "");
+
+    expect(detectPackageManager({ cwd, env: {} })).toBe("bun");
+  });
 });
 
 describe("getUpdateCommand", () => {
-  it("defaults to npm global install", () => {
-    expect(getUpdateCommand("npm")).toEqual({
+  it.each([
+    ["bun", "bun", ["update", LISA_PACKAGE]],
+    ["pnpm", "pnpm", ["update", LISA_PACKAGE]],
+    ["yarn", "yarn", ["up", LISA_PACKAGE]],
+    ["npm", "npm", ["update", LISA_PACKAGE]],
+  ])("uses a project-local %s update", (manager, command, args) => {
+    expect(getUpdateCommand(manager)).toEqual({ command, args });
+  });
+
+  it("defaults unknown package managers to a local npm update", () => {
+    expect(getUpdateCommand("unknown")).toEqual({
       command: "npm",
-      args: ["install", "-g", "@codyswann/lisa@latest"],
+      args: ["update", LISA_PACKAGE],
     });
   });
 });
@@ -64,7 +82,7 @@ describe("runUpdate", () => {
       runUpdate({ yes: false }, { cwd: "/tmp", env: {}, spawn, write })
     ).resolves.toBe(0);
 
-    expect(write).toHaveBeenCalledWith("npm install -g @codyswann/lisa@latest");
+    expect(write).toHaveBeenCalledWith("npm update @codyswann/lisa");
     expect(spawn).not.toHaveBeenCalled();
   });
 
@@ -79,10 +97,8 @@ describe("runUpdate", () => {
     child.emit("exit", 7);
 
     await expect(promise).resolves.toBe(7);
-    expect(spawn).toHaveBeenCalledWith(
-      "npm",
-      ["install", "-g", "@codyswann/lisa@latest"],
-      { stdio: "inherit" }
-    );
+    expect(spawn).toHaveBeenCalledWith("npm", ["update", "@codyswann/lisa"], {
+      stdio: "inherit",
+    });
   });
 });

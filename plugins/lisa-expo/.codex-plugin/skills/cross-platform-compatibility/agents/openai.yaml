@@ -1,0 +1,4 @@
+display_name: "Cross Platform Compatibility"
+short_description: "This skill enforces…"
+default_prompt:
+  - "Use $cross-platform-compatibility: This skill enforces…."

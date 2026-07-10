@@ -1,0 +1,4 @@
+display_name: "Status"
+short_description: "Report Lisa wiki source…"
+default_prompt:
+  - "Use $lisa-status: Report Lisa wiki source…."

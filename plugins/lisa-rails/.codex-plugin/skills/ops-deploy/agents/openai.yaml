@@ -1,0 +1,4 @@
+display_name: "Ops Deploy"
+short_description: "Deploy Rails applications via…"
+default_prompt:
+  - "Use $ops-deploy: Deploy Rails applications via…."

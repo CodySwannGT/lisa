@@ -1,10 +1,11 @@
+/* eslint-disable max-lines -- hook catalog and reconciliation form one cohesive pipeline */
 /**
  * Install Lisa-managed Codex hooks into a host project.
  *
  * Pipeline:
  *   1. Filter hook catalog by detected project types
- *   2. Copy each script from `src/codex/scripts/` → `.codex/hooks/lisa/`
- *   3. For inject-rules: also mirror Lisa rules into `.codex/lisa-rules/`
+ *   2. Link each script from `src/codex/scripts/` → `.codex/hooks/lisa/`
+ *   3. For inject-rules: link Lisa rules into `.codex/lisa-rules/`
  *   4. Tagged-merge `.codex/hooks.json`
  *
  * Codex hook event support map (vs. Lisa's existing Claude Code hooks),
@@ -21,22 +22,13 @@
  * inject-rules also fires on SubagentStart under Claude; on Codex only its
  * SessionStart variant applies (Codex has no per-subagent start event).
  *
- * Codex DOES support plugin-bundled hooks (issue #1058) — they are non-managed
- * and fire only after the user trusts them via an interactive `/hooks` review
- * (Codex 0.125.0 has no headless trust bypass). The build-side counterpart
- * (scripts/generate-codex-plugin-artifacts.mjs) emits those plugin hooks to
- * `.codex-plugin/hooks.json` with a manifest `hooks` pointer — deliberately NOT
- * `<plugin-root>/hooks/hooks.json`, which is also where Claude Code (and the
- * cursor/copilot variants) auto-discover plugin hooks; a Codex-shaped
- * `${PLUGIN_ROOT}` file there is run by Claude too, where `${PLUGIN_ROOT}` is
- * undefined and expands to an empty prefix, breaking startup (issue #1058).
- * This per-project installer is retained as the no-trust-prompt fallback and
- * for users who run Lisa via `lisa apply` without enabling the marketplace
- * plugin; it writes hooks into the project's own `.codex/hooks.json` instead.
+ * Codex plugin installation has user scope, so Lisa never activates the
+ * plugin-bundled form. This installer is the canonical delivery path and writes
+ * only into the host project's `.codex/` directory.
  * @module codex/hooks-installer
  */
 import * as fse from "fs-extra";
-import { chmod, copyFile, readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, symlink, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectType } from "../core/config.js";
@@ -73,6 +65,7 @@ export const HOOKS_FILENAME = "hooks.json";
  * its three write paths (text Edit, file Write, apply_patch diff).
  */
 const WRITE_MATCHER = "Edit|Write|apply_patch";
+const HARPER_PLUGIN = "lisa-harper-fabric";
 
 /** Stable definition of one Lisa-shipped Codex hook */
 interface HookCatalogEntry {
@@ -84,6 +77,8 @@ interface HookCatalogEntry {
   readonly matcher: string;
   /** Filename inside `src/codex/scripts/` */
   readonly scriptFilename: string;
+  /** Plugin source for stack-specific scripts not bundled under src/codex. */
+  readonly sourcePlugin?: string;
   /** Project types this hook should install for. Use `["*"]` for all stacks. */
   readonly forProjectTypes: readonly (ProjectType | "*")[];
   /** Optional human-readable status message Codex shows during the hook */
@@ -194,6 +189,24 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     forProjectTypes: ["typescript"],
     statusMessage: "Checking for error-suppression directives",
   },
+  {
+    id: "block-generated-artifact-edits",
+    event: "PreToolUse",
+    matcher: WRITE_MATCHER,
+    scriptFilename: "block-generated-artifact-edits.sh",
+    sourcePlugin: HARPER_PLUGIN,
+    forProjectTypes: ["harper-fabric"],
+    needsEditPathLib: true,
+  },
+  {
+    id: "enforce-config-extensions",
+    event: "PostToolUse",
+    matcher: WRITE_MATCHER,
+    scriptFilename: "enforce-config-extensions.sh",
+    sourcePlugin: HARPER_PLUGIN,
+    forProjectTypes: ["harper-fabric"],
+    needsEditPathLib: true,
+  },
 ];
 
 /** Result of the hooks install pass */
@@ -202,6 +215,8 @@ export interface HooksInstallResult {
   readonly managedFiles: readonly string[];
   /** Number of Lisa hook entries written into hooks.json */
   readonly hookEntries: number;
+  /** Stale Lisa-owned hook/rule files removed from the project. */
+  readonly deleted: readonly string[];
 }
 
 /**
@@ -210,12 +225,14 @@ export interface HooksInstallResult {
  * @param destDir - Absolute path to the host project root
  * @param detectedTypes - Project types Lisa detected; used to filter stack-
  *   specific hooks. Always includes the universal hooks regardless.
+ * @param previousManagedFiles - Files Lisa managed on the previous run.
  * @returns Result describing what was written
  */
 export async function installHooks(
   lisaDir: string,
   destDir: string,
-  detectedTypes: readonly ProjectType[]
+  detectedTypes: readonly ProjectType[],
+  previousManagedFiles: readonly string[] = []
 ): Promise<HooksInstallResult> {
   const codexDir = path.join(destDir, ".codex");
   const hooksDir = path.join(codexDir, LISA_HOOKS_SUBDIR);
@@ -225,27 +242,31 @@ export async function installHooks(
 
   const applicable = filterCatalogByTypes(detectedTypes);
 
-  // Step 1: copy every applicable script and collect their relative paths
+  // Step 1: link every applicable script and collect their relative paths
   const scriptFiles: readonly string[] = await Promise.all(
     applicable.map(async entry => {
-      const scriptSource = resolveBundledScript(entry.scriptFilename);
+      const scriptSource = resolveHookScript(lisaDir, entry);
       const scriptDest = path.join(hooksDir, entry.scriptFilename);
-      await copyFile(scriptSource, scriptDest);
-      await chmod(scriptDest, 0o755);
+      await linkManagedFile(scriptSource, scriptDest);
       return path.join(LISA_HOOKS_SUBDIR, entry.scriptFilename);
     })
   );
 
-  // Step 1b: copy the shared edit-path helper when any installed hook sources
+  // Step 1b: link the shared edit-path helper when any installed hook sources
   // it. Edit-aware hooks (format/lint/sg-scan/rubocop/block-migration) source
   // this for apply_patch path parsing.
   const libFiles: readonly string[] = applicable.some(e => e.needsEditPathLib)
     ? await (async () => {
         const libDest = path.join(hooksDir, EDIT_PATHS_LIB);
-        await copyFile(resolveBundledScript(EDIT_PATHS_LIB), libDest);
-        await chmod(libDest, 0o755);
+        await linkManagedFile(resolveBundledScript(EDIT_PATHS_LIB), libDest);
         return [path.join(LISA_HOOKS_SUBDIR, EDIT_PATHS_LIB)];
       })()
+    : [];
+
+  const harperSupportFiles: readonly string[] = applicable.some(
+    entry => entry.sourcePlugin === HARPER_PLUGIN
+  )
+    ? await linkHarperSupportFiles(lisaDir, hooksDir)
     : [];
 
   // Step 2: mirror rules from Lisa into .codex/lisa-rules/ (only when
@@ -253,8 +274,8 @@ export async function installHooks(
   const ruleFiles: readonly string[] = applicable.some(
     e => e.id === "inject-rules"
   )
-    ? (await mirrorLisaRules(lisaDir, rulesDir, detectedTypes)).map(file =>
-        path.join(LISA_RULES_SUBDIR, file)
+    ? (await mirrorLisaRules(lisaDir, rulesDir, detectedTypes, "link")).map(
+        file => path.join(LISA_RULES_SUBDIR, file)
       )
     : [];
 
@@ -267,15 +288,56 @@ export async function installHooks(
   const merged = mergeLisaHooks(existing, lisaHookSpecs);
   await writeFile(hooksFilePath, serializeHooksFile(merged), "utf8");
 
+  const managedFiles = [
+    ...scriptFiles,
+    ...libFiles,
+    ...harperSupportFiles,
+    ...ruleFiles,
+    HOOKS_FILENAME,
+  ];
+  const deleted = await deleteStaleHookFiles(
+    previousManagedFiles,
+    new Set(managedFiles),
+    codexDir
+  );
+
   return {
-    managedFiles: Object.freeze([
-      ...scriptFiles,
-      ...libFiles,
-      ...ruleFiles,
-      HOOKS_FILENAME,
-    ]),
+    managedFiles: Object.freeze(managedFiles),
     hookEntries: lisaHookSpecs.length,
+    deleted: Object.freeze(deleted),
   };
+}
+
+/** Project-local directory prefixes wholly owned by the hook installer. */
+const MANAGED_HOOK_PREFIXES = [
+  `${LISA_HOOKS_SUBDIR}${path.sep}`,
+  `${LISA_RULES_SUBDIR}${path.sep}`,
+] as const;
+
+/**
+ * Delete hook scripts and mirrored rules that disappeared from the applicable
+ * project stack. Files outside Lisa-owned directories are never considered.
+ * @param previousManagedFiles Previous `.codex/.lisa-managed.json` file list.
+ * @param currentManagedFiles Current hook/rule file set.
+ * @param codexDir Absolute project `.codex` directory.
+ * @returns Sorted relative paths that were removed.
+ */
+async function deleteStaleHookFiles(
+  previousManagedFiles: readonly string[],
+  currentManagedFiles: ReadonlySet<string>,
+  codexDir: string
+): Promise<readonly string[]> {
+  const stale = previousManagedFiles
+    .filter(file =>
+      MANAGED_HOOK_PREFIXES.some(prefix => file.startsWith(prefix))
+    )
+    .filter(file => !currentManagedFiles.has(file))
+    .sort((left, right) => left.localeCompare(right));
+
+  await Promise.all(
+    stale.map(file => rm(path.join(codexDir, file), { force: true }))
+  );
+  return stale;
 }
 
 /**
@@ -344,3 +406,78 @@ function resolveBundledScript(filename: string): string {
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   return path.join(moduleDir, "scripts", filename);
 }
+
+/**
+ * Resolve either a bundled Codex script or a selected stack-plugin script.
+ * @param lisaDir Lisa package root.
+ * @param entry Hook catalog entry.
+ * @returns Absolute hook script path.
+ */
+function resolveHookScript(lisaDir: string, entry: HookCatalogEntry): string {
+  return entry.sourcePlugin === undefined
+    ? resolveBundledScript(entry.scriptFilename)
+    : path.join(
+        lisaDir,
+        "plugins",
+        entry.sourcePlugin,
+        "hooks",
+        entry.scriptFilename
+      );
+}
+
+/**
+ * Link Harper hook companion files beside their project-local wrappers.
+ * @param lisaDir Lisa package root.
+ * @param hooksDir Project-local hook directory.
+ * @returns Managed paths relative to `.codex/`.
+ */
+async function linkHarperSupportFiles(
+  lisaDir: string,
+  hooksDir: string
+): Promise<readonly string[]> {
+  const sources = [
+    {
+      source: path.join(
+        lisaDir,
+        "plugins",
+        HARPER_PLUGIN,
+        "hooks",
+        "enforce-config-extensions.mjs"
+      ),
+      filename: "enforce-config-extensions.mjs",
+    },
+    {
+      source: path.join(
+        lisaDir,
+        "plugins",
+        HARPER_PLUGIN,
+        "generated-artifact-globs.txt"
+      ),
+      filename: "generated-artifact-globs.txt",
+    },
+  ] as const;
+  await Promise.all(
+    sources.map(({ source, filename }) =>
+      linkManagedFile(source, path.join(hooksDir, filename))
+    )
+  );
+  return sources.map(({ filename }) => path.join(LISA_HOOKS_SUBDIR, filename));
+}
+
+/**
+ * Replace a Lisa-owned project file with a link to its package source.
+ * @param source Absolute package source path.
+ * @param destination Absolute project link path.
+ */
+async function linkManagedFile(
+  source: string,
+  destination: string
+): Promise<void> {
+  await rm(destination, { force: true });
+  await symlink(
+    source,
+    destination,
+    process.platform === "win32" ? "file" : undefined
+  );
+}
+/* eslint-enable max-lines -- restore the repository default */

@@ -1,0 +1,4 @@
+display_name: "Nestjs Graphql"
+short_description: "Comprehensive guide for NestJS…"
+default_prompt:
+  - "Use $nestjs-graphql: Comprehensive guide for NestJS…."

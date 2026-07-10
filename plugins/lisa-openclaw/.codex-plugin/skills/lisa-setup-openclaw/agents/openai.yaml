@@ -1,0 +1,4 @@
+display_name: "Setup Openclaw"
+short_description: "Set up OpenClaw as the…"
+default_prompt:
+  - "Use $lisa-setup-openclaw: Set up OpenClaw as the…."

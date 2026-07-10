@@ -1,0 +1,4 @@
+display_name: "Research"
+short_description: "Research a problem space and…"
+default_prompt:
+  - "Use $lisa-research: Research a problem space and…."

@@ -1,0 +1,4 @@
+display_name: "Connect Staff Telegram"
+short_description: "Connect staff roles to Telegram…"
+default_prompt:
+  - "Use $lisa-connect-staff-telegram: Connect staff roles to Telegram…."

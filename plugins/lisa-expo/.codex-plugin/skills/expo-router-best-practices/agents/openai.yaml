@@ -1,0 +1,4 @@
+display_name: "Expo Router Best Practices"
+short_description: "creating new routes…"
+default_prompt:
+  - "Use $expo-router-best-practices: creating new routes…."

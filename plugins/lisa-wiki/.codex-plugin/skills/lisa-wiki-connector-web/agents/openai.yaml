@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Web"
+short_description: "Ingest a public URL into a…"
+default_prompt:
+  - "Use $lisa-wiki-connector-web: Ingest a public URL into a…."

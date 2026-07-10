@@ -13,14 +13,23 @@ JSON_INPUT=$(cat)
 
 command -v jq >/dev/null 2>&1 || exit 0
 
-FILE_PATH=$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')
-[ -n "$FILE_PATH" ] || exit 0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FILE_PATHS=$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')
+if [ -z "$FILE_PATHS" ] && [ -f "$SCRIPT_DIR/_extract-edit-paths.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$SCRIPT_DIR/_extract-edit-paths.sh"
+  FILE_PATHS=$(lisa_extract_edit_paths "$JSON_INPUT")
+fi
+[ -n "$FILE_PATHS" ] || exit 0
 
 PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT:-}
 if [ -z "$PLUGIN_ROOT" ]; then
   PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
 GLOBS_FILE="$PLUGIN_ROOT/generated-artifact-globs.txt"
+if [ ! -f "$GLOBS_FILE" ]; then
+  GLOBS_FILE="$SCRIPT_DIR/generated-artifact-globs.txt"
+fi
 [ -f "$GLOBS_FILE" ] || exit 0
 
 normalize_path() {
@@ -81,8 +90,6 @@ matches_glob() {
   return 1
 }
 
-NORMALIZED_FILE=$(normalize_path "$FILE_PATH")
-
 # Project-owned allowlist of hand-written files that live under harper-app/ and
 # must NOT be treated as generated (e.g. a hand-authored SEO shell, or route
 # index.js shims kept at the harper-app root). The broadened root-level
@@ -90,34 +97,45 @@ NORMALIZED_FILE=$(normalize_path "$FILE_PATH")
 # line (same syntax as the globs file); blank lines and `#` comments ignored.
 # Prefer naming compiled resource modules `resource-*.ts` so their JS output is
 # unambiguously generated and never needs allowlisting.
-ALLOWLIST_FILE="${CLAUDE_PROJECT_DIR:-.}/.lisa/harper-generated-artifact-allowlist.txt"
-if [ -f "$ALLOWLIST_FILE" ]; then
-  while IFS= read -r allow || [ -n "$allow" ]; do
-    [ -n "$allow" ] || continue
-    case "$allow" in \#*) continue ;; esac
-    if matches_glob "$NORMALIZED_FILE" "$allow"; then
-      exit 0
-    fi
-  done <"$ALLOWLIST_FILE"
-fi
+check_file() {
+  local file_path="$1"
+  local normalized_file
+  normalized_file=$(normalize_path "$file_path")
+  local allowlist_file="${CLAUDE_PROJECT_DIR:-.}/.lisa/harper-generated-artifact-allowlist.txt"
+  if [ -f "$allowlist_file" ]; then
+    while IFS= read -r allow || [ -n "$allow" ]; do
+      [ -n "$allow" ] || continue
+      case "$allow" in \#*) continue ;; esac
+      if matches_glob "$normalized_file" "$allow"; then
+        return 0
+      fi
+    done <"$allowlist_file"
+  fi
 
-while IFS= read -r glob || [ -n "$glob" ]; do
-  [ -n "$glob" ] || continue
-  case "$glob" in \#*) continue ;; esac
-
-  if matches_glob "$NORMALIZED_FILE" "$glob"; then
-    cat >&2 <<MSG
+  while IFS= read -r glob || [ -n "$glob" ]; do
+    [ -n "$glob" ] || continue
+    case "$glob" in \#*) continue ;; esac
+    if matches_glob "$normalized_file" "$glob"; then
+      cat >&2 <<MSG
 Blocked: direct edit to generated Harper/Fabric artifact.
 
-File: $FILE_PATH
+File: $file_path
 Matched generated artifact pattern: $glob
 
 TypeScript under src/ is the source of truth for Harper resources, web assets,
 and shared libraries. Change the matching TypeScript source under src/ and run
 the project build to regenerate harper-app outputs.
 MSG
-    exit 2
-  fi
-done <"$GLOBS_FILE"
+      return 2
+    fi
+  done <"$GLOBS_FILE"
+}
+
+while IFS= read -r FILE_PATH; do
+  [ -n "$FILE_PATH" ] || continue
+  check_file "$FILE_PATH" || exit $?
+done <<EOF
+$FILE_PATHS
+EOF
 
 exit 0

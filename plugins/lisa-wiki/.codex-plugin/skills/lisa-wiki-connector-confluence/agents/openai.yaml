@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Confluence"
+short_description: "Produce sanitized Confluence…"
+default_prompt:
+  - "Use $lisa-wiki-connector-confluence: Produce sanitized Confluence…."
