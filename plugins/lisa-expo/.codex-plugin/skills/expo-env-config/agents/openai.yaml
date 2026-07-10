@@ -1,0 +1,4 @@
+display_name: "Expo Env Config"
+short_description: "creating, modifying, or…"
+default_prompt:
+  - "Use $expo-env-config: creating, modifying, or…."

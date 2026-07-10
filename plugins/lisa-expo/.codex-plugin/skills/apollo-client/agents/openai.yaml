@@ -1,0 +1,4 @@
+display_name: "Apollo Client"
+short_description: "writing or modifying GraphQL…"
+default_prompt:
+  - "Use $apollo-client: writing or modifying GraphQL…."

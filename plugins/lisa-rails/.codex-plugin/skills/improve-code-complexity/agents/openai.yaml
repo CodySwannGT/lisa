@@ -1,0 +1,4 @@
+display_name: "Improve Code Complexity"
+short_description: "reducing the code complexity…"
+default_prompt:
+  - "Use $improve-code-complexity: reducing the code complexity…."

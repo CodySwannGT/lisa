@@ -1,0 +1,4 @@
+display_name: "Phaser Build Deploy"
+short_description: "configuring the production…"
+default_prompt:
+  - "Use $phaser-build-deploy: configuring the production…."

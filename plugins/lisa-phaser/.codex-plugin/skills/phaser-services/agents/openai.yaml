@@ -1,0 +1,4 @@
+display_name: "Phaser Services"
+short_description: "wiring cross-cutting services…"
+default_prompt:
+  - "Use $phaser-services: wiring cross-cutting services…."

@@ -1,0 +1,4 @@
+display_name: "Github PRD Intake"
+short_description: "Scans a GitHub repository for…"
+default_prompt:
+  - "Use $lisa-github-prd-intake: Scans a GitHub repository for…."

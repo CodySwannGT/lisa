@@ -1,0 +1,4 @@
+display_name: "Github Validate Issue"
+short_description: "Validates a proposed GitHub…"
+default_prompt:
+  - "Use $lisa-github-validate-issue: Validates a proposed GitHub…."

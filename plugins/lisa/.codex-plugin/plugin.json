@@ -11,7 +11,7 @@
     "hooks",
     "workflow"
   ],
-  "skills": "./skills/",
+  "skills": "./.codex-plugin/skills/",
   "mcpServers": "./.mcp.json",
   "hooks": "./.codex-plugin/hooks.json",
   "interface": {

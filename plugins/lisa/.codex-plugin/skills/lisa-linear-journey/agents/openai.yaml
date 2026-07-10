@@ -1,0 +1,4 @@
+display_name: "Linear Journey"
+short_description: "Parse a Linear Issue's…"
+default_prompt:
+  - "Use $lisa-linear-journey: Parse a Linear Issue's…."

@@ -1,0 +1,4 @@
+display_name: "Jira Create"
+short_description: "creating JIRA epics, stories…"
+default_prompt:
+  - "Use $lisa-jira-create: creating JIRA epics, stories…."

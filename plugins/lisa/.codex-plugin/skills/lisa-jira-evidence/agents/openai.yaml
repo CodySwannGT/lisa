@@ -1,0 +1,4 @@
+display_name: "Jira Evidence"
+short_description: "Upload text evidence to GitHub…"
+default_prompt:
+  - "Use $lisa-jira-evidence: Upload text evidence to GitHub…."

@@ -13,6 +13,10 @@
 # the eager breadcrumb points to them.
 set -euo pipefail
 
+# This hook does not inspect the envelope, but it must still consume it before
+# any early return to keep Codex's stdin writer open.
+cat >/dev/null 2>&1 || true
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 RULES_BASE="${REPO_ROOT}/.codex/lisa-rules"
 RULES_DIR="${RULES_BASE}/eager"

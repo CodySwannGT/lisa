@@ -1,0 +1,4 @@
+display_name: "Add Role"
+short_description: "Scaffold a domain-expert…"
+default_prompt:
+  - "Use $lisa-add-role: Scaffold a domain-expert…."

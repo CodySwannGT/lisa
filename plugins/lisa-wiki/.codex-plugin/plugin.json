@@ -12,7 +12,7 @@
     "documentation",
     "llm-wiki"
   ],
-  "skills": "./skills/",
+  "skills": "./.codex-plugin/skills/",
   "interface": {
     "displayName": "LLM Wiki",
     "shortDescription": "LLM Wiki knowledge base",

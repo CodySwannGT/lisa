@@ -26,35 +26,37 @@ describe("codex/plugin-marketplace-installer", () => {
       "lisa"
     );
     destDir = path.join(tempDir, "project");
-    await fs.ensureDir(path.join(lisaDir, "plugins", "lisa"));
+    await seedPlugin("lisa");
   });
 
   afterEach(async () => {
     await cleanupTempDir(tempDir);
   });
 
-  it("creates a repo-local marketplace with Lisa plugin entries", async () => {
-    const result = await installCodexMarketplace(lisaDir, destDir);
+  /**
+   * Seed a valid built Codex plugin manifest.
+   * @param pluginName Plugin directory and manifest name.
+   */
+  async function seedPlugin(pluginName: string): Promise<void> {
+    await fs.outputJson(
+      path.join(lisaDir, "plugins", pluginName, ".codex-plugin", "plugin.json"),
+      { name: pluginName, version: "1.0.0" }
+    );
+  }
+
+  it("creates a repo-local marketplace with only selected plugin entries", async () => {
+    await seedPlugin("lisa-expo");
+    await seedPlugin("lisa-rails");
+    const result = await installCodexMarketplace(lisaDir, destDir, ["expo"]);
     expect(result.created).toBe(true);
-    expect(result.pluginEntries).toBe(10);
+    expect(result.pluginEntries).toBe(2);
 
     const marketplacePath = path.join(destDir, CODEX_MARKETPLACE_PATH);
     const parsed = JSON.parse(await fs.readFile(marketplacePath, "utf8"));
     expect(parsed.name).toBe("lisa");
     expect(
       parsed.plugins.map((plugin: { name: string }) => plugin.name)
-    ).toEqual([
-      "lisa",
-      "lisa-typescript",
-      "lisa-expo",
-      "lisa-nestjs",
-      "lisa-cdk",
-      "lisa-harper-fabric",
-      "lisa-phaser",
-      "lisa-rails",
-      "lisa-wiki",
-      "lisa-openclaw",
-    ]);
+    ).toEqual(["lisa", "lisa-expo"]);
     expect(parsed.plugins[0].source.path).toBe(
       "./node_modules/@codyswann/lisa/plugins/lisa"
     );
@@ -68,15 +70,7 @@ describe("codex/plugin-marketplace-installer", () => {
       )
     ).toEqual({
       lisa: "Productivity",
-      "lisa-typescript": "Productivity",
       "lisa-expo": "Coding",
-      "lisa-nestjs": "Coding",
-      "lisa-cdk": "Coding",
-      "lisa-harper-fabric": "Coding",
-      "lisa-phaser": "Coding",
-      "lisa-rails": "Coding",
-      "lisa-wiki": "Productivity",
-      "lisa-openclaw": "Productivity",
     });
   });
 
@@ -90,6 +84,7 @@ describe("codex/plugin-marketplace-installer", () => {
           { name: "lisa", source: "./old/path" },
         ],
       },
+      ["lisa"],
       lisaDir,
       destDir
     );

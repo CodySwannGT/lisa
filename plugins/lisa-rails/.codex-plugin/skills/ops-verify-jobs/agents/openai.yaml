@@ -1,0 +1,4 @@
+display_name: "Ops Verify Jobs"
+short_description: "Verify Solid Queue background…"
+default_prompt:
+  - "Use $ops-verify-jobs: Verify Solid Queue background…."

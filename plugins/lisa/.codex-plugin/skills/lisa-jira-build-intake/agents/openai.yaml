@@ -1,0 +1,4 @@
+display_name: "Jira Build Intake"
+short_description: "Symmetric counterpart to…"
+default_prompt:
+  - "Use $lisa-jira-build-intake: Symmetric counterpart to…."

@@ -1,8 +1,10 @@
+/* eslint-disable max-lines -- hook catalog coverage shares fixture setup */
 /**
  * Unit tests for the hooks installer (script copy + rules mirror + tagged
  * merge of hooks.json).
  */
 import * as fs from "fs-extra";
+import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -45,6 +47,11 @@ const INSTALL_PKGS_ID = "install-pkgs";
 const SETUP_JIRA_CLI_ID = "setup-jira-cli";
 /** Filename of the rubocop-on-edit hook script */
 const RUBOCOP_ON_EDIT_SH = `${RUBOCOP_ON_EDIT_ID}.sh`;
+/** Harper/Fabric hook IDs that must remain project-local. */
+const HARPER_HOOK_IDS = [
+  "block-generated-artifact-edits",
+  "enforce-config-extensions",
+] as const;
 
 describe("codex/hooks-installer", () => {
   let tempDir: string;
@@ -90,7 +97,7 @@ describe("codex/hooks-installer", () => {
     await cleanupTempDir(tempDir);
   });
 
-  it("copies the inject-rules.sh script to .codex/hooks/lisa/", async () => {
+  it("links the inject-rules.sh script into .codex/hooks/lisa/", async () => {
     await installHooks(lisaDir, destDir, []);
     const scriptPath = path.join(
       destDir,
@@ -99,6 +106,7 @@ describe("codex/hooks-installer", () => {
       INJECT_RULES_SH
     );
     expect(await fs.pathExists(scriptPath)).toBe(true);
+    expect((await fs.lstat(scriptPath)).isSymbolicLink()).toBe(true);
     const content = await fs.readFile(scriptPath, "utf8");
     expect(content).toContain("#!/usr/bin/env bash");
     expect(content).toContain("lisa-rules");
@@ -106,7 +114,7 @@ describe("codex/hooks-installer", () => {
     expect(content).not.toContain("CLAUDE_PLUGIN_ROOT");
   });
 
-  it("makes the script executable", async () => {
+  it("keeps the linked script readable by the bash hook command", async () => {
     await installHooks(lisaDir, destDir, []);
     const scriptPath = path.join(
       destDir,
@@ -114,10 +122,72 @@ describe("codex/hooks-installer", () => {
       LISA_HOOKS_SUBDIR,
       INJECT_RULES_SH
     );
-    const stat = await fs.stat(scriptPath);
-    // Owner execute bit set
+    expect(await fs.readFile(scriptPath, "utf8")).toContain(
+      "#!/usr/bin/env bash"
+    );
+  });
 
-    expect(stat.mode & 0o100).toBe(0o100);
+  it("installs Harper enforcement hooks only for Harper projects", async () => {
+    const sourceRoot = path.resolve("plugins", "src", "harper-fabric");
+    const pluginRoot = path.join(lisaDir, "plugins", "lisa-harper-fabric");
+    await fs.copy(
+      path.join(sourceRoot, "hooks"),
+      path.join(pluginRoot, "hooks")
+    );
+    await fs.copyFile(
+      path.join(sourceRoot, "generated-artifact-globs.txt"),
+      path.join(pluginRoot, "generated-artifact-globs.txt")
+    );
+
+    const baseResult = await installHooks(lisaDir, destDir, ["typescript"]);
+    expect(baseResult.managedFiles).not.toContain(
+      path.join(LISA_HOOKS_SUBDIR, "block-generated-artifact-edits.sh")
+    );
+
+    await installHooks(
+      lisaDir,
+      destDir,
+      ["typescript", "harper-fabric"],
+      baseResult.managedFiles
+    );
+    const hooks = parseHooksFile(
+      await fs.readFile(path.join(destDir, ".codex", HOOKS_FILENAME), "utf8")
+    );
+    const hookIds = Object.values(hooks.hooks ?? {})
+      .flat()
+      .flatMap(group => group.hooks ?? [])
+      .map(hook => hook[LISA_ID_MARKER]);
+    expect(hookIds).toEqual(expect.arrayContaining(HARPER_HOOK_IDS));
+    expect(
+      await fs.pathExists(
+        path.join(
+          destDir,
+          ".codex",
+          LISA_HOOKS_SUBDIR,
+          "enforce-config-extensions.mjs"
+        )
+      )
+    ).toBe(true);
+
+    const blockHook = path.join(
+      destDir,
+      ".codex",
+      LISA_HOOKS_SUBDIR,
+      "block-generated-artifact-edits.sh"
+    );
+    const blockResult = spawnSync(blockHook, [], {
+      cwd: destDir,
+      encoding: "utf8",
+      input: JSON.stringify({
+        tool_name: "apply_patch",
+        tool_input: {
+          command:
+            "*** Begin Patch\n*** Update File: harper-app/resources.js\n@@\n-old\n+new\n*** End Patch",
+        },
+      }),
+    });
+    expect(blockResult.status).toBe(2);
+    expect(blockResult.stderr).toContain("generated Harper/Fabric artifact");
   });
 
   // Rules-mirror tests (eager/reference split, stack plugins, legacy flat
@@ -323,3 +393,4 @@ async function readLisaHookIds(destDir: string): Promise<readonly string[]> {
     );
   });
 }
+/* eslint-enable max-lines -- restore the repository default */

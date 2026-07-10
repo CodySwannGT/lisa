@@ -1,0 +1,4 @@
+display_name: "Harper Auth"
+short_description: "adding or debugging Harper…"
+default_prompt:
+  - "Use $harper-auth: adding or debugging Harper…."

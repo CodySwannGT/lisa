@@ -1,0 +1,4 @@
+display_name: "Queue Status"
+short_description: "Read-only operator surface for…"
+default_prompt:
+  - "Use $lisa-queue-status: Read-only operator surface for…."

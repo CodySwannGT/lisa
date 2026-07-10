@@ -1,0 +1,4 @@
+display_name: "Ops Monitor Errors"
+short_description: "Monitor Sentry for unresolved…"
+default_prompt:
+  - "Use $ops-monitor-errors: Monitor Sentry for unresolved…."

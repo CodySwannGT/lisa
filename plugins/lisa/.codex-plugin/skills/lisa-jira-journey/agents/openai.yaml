@@ -1,0 +1,4 @@
+display_name: "Jira Journey"
+short_description: "Parse a JIRA ticket's…"
+default_prompt:
+  - "Use $lisa-jira-journey: Parse a JIRA ticket's…."

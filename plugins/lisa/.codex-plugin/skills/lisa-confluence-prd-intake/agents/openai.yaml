@@ -1,0 +1,4 @@
+display_name: "Confluence PRD Intake"
+short_description: "Scans a Confluence space (or a…"
+default_prompt:
+  - "Use $lisa-confluence-prd-intake: Scans a Confluence space (or a…."

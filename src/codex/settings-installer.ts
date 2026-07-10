@@ -10,7 +10,7 @@
  * Lisa-managed keys (currently a small set; expand as needs arise):
  *   - `project_doc_max_bytes`: bumped to 65536 so AGENTS.md content beyond
  *     Codex's 32 KiB default isn't truncated.
- *   - `[features].codex_hooks`: enabled so Lisa lifecycle checks actually run.
+ *   - `[features].hooks`: enabled so Lisa lifecycle checks actually run.
  * @module codex/settings-installer
  */
 import * as fse from "fs-extra";
@@ -39,8 +39,10 @@ export const LISA_REQUIRED_SETTINGS: Readonly<Record<string, unknown>> = {
 
 /** Lisa-required feature flags under `[features]` */
 export const LISA_REQUIRED_FEATURES: Readonly<Record<string, boolean>> = {
-  codex_hooks: true,
+  hooks: true,
 };
+
+const DEPRECATED_HOOKS_FEATURE = "codex_hooks";
 
 /** Result of a settings install pass */
 export interface SettingsInstallResult {
@@ -343,10 +345,25 @@ function applyRequiredFeatures(toml: string): string {
   }
   const featuresEnd = findNextSectionHeaderIndex(lines, featuresStart + 1);
   const sectionEnd = featuresEnd === -1 ? lines.length : featuresEnd;
+  const sectionLines = lines.slice(featuresStart + 1, sectionEnd);
+  const deprecatedOffset = sectionLines.findIndex(line =>
+    new RegExp(`^\\s*${DEPRECATED_HOOKS_FEATURE}\\s*=`).test(line)
+  );
+  const deprecatedIndex = featuresStart + 1 + deprecatedOffset;
+  const replacementExists = sectionLines.some(line =>
+    /^\s*hooks\s*=/.test(line)
+  );
+  const migrated = lines.flatMap((line, index) => {
+    if (deprecatedOffset === -1 || index !== deprecatedIndex) return [line];
+    return replacementExists
+      ? []
+      : [line.replace(DEPRECATED_HOOKS_FEATURE, "hooks")];
+  });
+  const migratedEnd = sectionEnd - (migrated.length === lines.length ? 0 : 1);
   const updated = Object.entries(LISA_REQUIRED_FEATURES).reduce<string[]>(
     (acc, [key, value]) =>
-      upsertSectionKey(acc, featuresStart, sectionEnd, key, value),
-    lines
+      upsertSectionKey(acc, featuresStart, migratedEnd, key, value),
+    migrated
   );
   return updated.join("\n");
 }

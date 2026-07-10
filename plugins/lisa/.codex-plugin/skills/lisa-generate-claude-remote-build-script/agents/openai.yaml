@@ -1,0 +1,4 @@
+display_name: "Generate Claude Remote Build Script"
+short_description: "Generate the setup/build script…"
+default_prompt:
+  - "Use $lisa-generate-claude-remote-build-script: Generate the setup/build script…."

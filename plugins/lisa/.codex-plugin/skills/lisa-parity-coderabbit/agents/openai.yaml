@@ -1,0 +1,4 @@
+display_name: "Parity Coderabbit"
+short_description: "Thorough PR-style review of the…"
+default_prompt:
+  - "Use $lisa-parity-coderabbit: Thorough PR-style review of the…."

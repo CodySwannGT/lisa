@@ -1,0 +1,4 @@
+display_name: "Migrate"
+short_description: "Migrate an existing hand-rolled…"
+default_prompt:
+  - "Use $lisa-migrate: Migrate an existing hand-rolled…."

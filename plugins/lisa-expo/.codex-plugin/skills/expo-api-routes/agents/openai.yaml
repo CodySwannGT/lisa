@@ -1,0 +1,4 @@
+display_name: "Expo API Routes"
+short_description: "Guidelines for creating API…"
+default_prompt:
+  - "Use $expo-api-routes: Guidelines for creating API…."

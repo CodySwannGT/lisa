@@ -11,7 +11,8 @@ else
   HOOK_EVENT="SessionStart"
 fi
 
-RULES_DIR="${CLAUDE_PLUGIN_ROOT}/rules"
+ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
+RULES_DIR="$ROOT/rules"
 
 # Bail silently if no rules directory
 [ -d "$RULES_DIR" ] || exit 0

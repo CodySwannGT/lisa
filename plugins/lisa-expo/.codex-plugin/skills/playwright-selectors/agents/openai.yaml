@@ -1,0 +1,4 @@
+display_name: "Playwright Selectors"
+short_description: "Best practices for writing…"
+default_prompt:
+  - "Use $playwright-selectors: Best practices for writing…."

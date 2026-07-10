@@ -1,0 +1,4 @@
+display_name: "Ops Db Ops"
+short_description: "Database migrations, reverts…"
+default_prompt:
+  - "Use $ops-db-ops: Database migrations, reverts…."

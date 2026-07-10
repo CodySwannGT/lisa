@@ -1,0 +1,4 @@
+display_name: "Phaser Asset Sourcing"
+short_description: "a Phaser 4 game needs actual…"
+default_prompt:
+  - "Use $phaser-asset-sourcing: a Phaser 4 game needs actual…."

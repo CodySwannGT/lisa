@@ -1,0 +1,4 @@
+display_name: "Expo UI SwiftUI"
+short_description: "`@expo/ui/swift-ui` package…"
+default_prompt:
+  - "Use $expo-ui-swift-ui: `@expo/ui/swift-ui` package…."

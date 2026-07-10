@@ -1,0 +1,4 @@
+display_name: "Wiki Setup"
+short_description: "Scaffold, repair, verify, or…"
+default_prompt:
+  - "Use $lisa-wiki-setup: Scaffold, repair, verify, or…."

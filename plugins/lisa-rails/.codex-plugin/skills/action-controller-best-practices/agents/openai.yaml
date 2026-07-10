@@ -1,0 +1,4 @@
+display_name: "Action Controller Best Practices"
+short_description: "Build or Refactor large Rails…"
+default_prompt:
+  - "Use $action-controller-best-practices: Build or Refactor large Rails…."

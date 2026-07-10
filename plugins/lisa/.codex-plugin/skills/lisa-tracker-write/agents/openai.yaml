@@ -1,0 +1,4 @@
+display_name: "Tracker Write"
+short_description: "Vendor-neutral wrapper for…"
+default_prompt:
+  - "Use $lisa-tracker-write: Vendor-neutral wrapper for…."

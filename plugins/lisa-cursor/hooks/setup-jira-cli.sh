@@ -16,19 +16,11 @@
 
 set -euo pipefail
 
-# Fix jira-cli installation if install-pkgs.sh failed to extract correctly.
-# Only attempt on Linux — the binary download is Linux-only.
-if [[ "$(uname -s)" == "Linux" ]] && ! command -v jira &>/dev/null; then
-  JIRA_CLI_VERSION="1.7.0"
-  TMPDIR=$(mktemp -d)
-  curl -sSfL "https://github.com/ankitpokhrel/jira-cli/releases/download/v${JIRA_CLI_VERSION}/jira_${JIRA_CLI_VERSION}_linux_x86_64.tar.gz" \
-    | tar -xz -C "${TMPDIR}"
-  cp "${TMPDIR}/jira_${JIRA_CLI_VERSION}_linux_x86_64/bin/jira" /usr/local/bin/jira
-  chmod +x /usr/local/bin/jira
-  rm -rf "${TMPDIR}"
-fi
+# Drain the hook envelope before any early return.
+cat >/dev/null 2>&1 || true
 
-CONFIG_DIR="${HOME}/.config/.jira"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+CONFIG_DIR="${PROJECT_DIR}/.lisa/jira-cli"
 CONFIG_FILE="${CONFIG_DIR}/.config.yml"
 
 read_lisa_config() {

@@ -1,0 +1,4 @@
+display_name: "Wiki Connector Notion"
+short_description: "Produce sanitized Notion source…"
+default_prompt:
+  - "Use $lisa-wiki-connector-notion: Produce sanitized Notion source…."
