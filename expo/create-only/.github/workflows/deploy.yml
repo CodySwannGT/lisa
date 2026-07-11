@@ -31,6 +31,11 @@ on:
           - main
           - staging
           - dev
+      force_build:
+        description: 'Queue an EAS build even if app config did not change in the last commit (recovers builds lost to cancelled runs)'
+        required: false
+        default: false
+        type: boolean
 
 # Prevent concurrent runs of the same workflow on the same ref
 concurrency:
@@ -126,7 +131,7 @@ jobs:
   trigger_eas_build:
     name: Trigger EAS Build
     needs: [determine_environment, check_eas_setup, check_app_config_changes]
-    if: needs.check_eas_setup.outputs.has_eas_setup == 'true' && needs.check_app_config_changes.outputs.app_config_changed == 'true'
+    if: needs.check_eas_setup.outputs.has_eas_setup == 'true' && (needs.check_app_config_changes.outputs.app_config_changed == 'true' || inputs.force_build == true)
     uses: CodySwannGT/lisa/.github/workflows/build.yml@main
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
