@@ -56,7 +56,17 @@ echo "==> Step 3/3: deploy key"
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "[DRY RUN] Would ensure a write-access deploy key + DEPLOY_KEY secret exist"
 else
-  (cd "$PROJECT_PATH" && bash "$SCRIPT_DIR/setup-deploy-key.sh" --yes)
+  deploy_output=$(cd "$PROJECT_PATH" && bash "$SCRIPT_DIR/setup-deploy-key.sh" --yes 2>&1)
+  deploy_rc=$?
+  echo "$deploy_output"
+  if [[ $deploy_rc -ne 0 ]]; then
+    if echo "$deploy_output" | grep -qi "deploy keys are disabled"; then
+      # Org policy, not a repo problem — settings/rulesets still applied.
+      echo "⚠ Deploy keys are disabled by organization policy — skipped. Release workflows needing DEPLOY_KEY will not work until an org admin re-enables deploy keys."
+    else
+      exit $deploy_rc
+    fi
+  fi
 fi
 
 echo ""

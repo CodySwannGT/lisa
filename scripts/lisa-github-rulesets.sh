@@ -344,32 +344,95 @@ apply_ruleset() {
     return 0
   fi
 
-  # Create temp file for the request body
-  local temp_file
-  temp_file=$(mktemp)
-  echo "$clean_template" > "$temp_file"
-
   if [[ -n "$existing_id" ]]; then
     log_info "Updating ruleset '$ruleset_name' (id: $existing_id)..."
-    if gh api -X PUT "repos/$repo/rulesets/$existing_id" --input "$temp_file" > /dev/null; then
-      log_success "Updated ruleset '$ruleset_name'"
-    else
-      log_error "Failed to update ruleset '$ruleset_name'"
-      rm -f "$temp_file"
-      return 1
-    fi
   else
     log_info "Creating ruleset '$ruleset_name'..."
-    if gh api -X POST "repos/$repo/rulesets" --input "$temp_file" > /dev/null; then
-      log_success "Created ruleset '$ruleset_name'"
-    else
-      log_error "Failed to create ruleset '$ruleset_name'"
-      rm -f "$temp_file"
-      return 1
-    fi
   fi
 
+  if apply_with_integration_fallback "$repo" "$ruleset_name" "$clean_template" "$existing_id"; then
+    return 0
+  fi
+  log_error "Failed to apply ruleset '$ruleset_name'"
+  return 1
+}
+
+# Send the ruleset to GitHub. App-based required checks (CodeRabbit,
+# GitGuardian, ...) are rejected with "Invalid integration ids" on repos
+# where that app is not installed — and no user-token API can list per-repo
+# installations up front. So on that specific error, retry with app-based
+# checks progressively removed: first each single app id, then all of them,
+# keeping as many checks as the repo actually supports.
+apply_with_integration_fallback() {
+  local repo="$1"
+  local ruleset_name="$2"
+  local payload="$3"
+  local existing_id="$4"
+
+  local temp_file error_output
+  temp_file=$(mktemp)
+
+  # Capture stdout AND stderr — gh prints the API error body (which carries
+  # the "Invalid integration ids" detail) on stdout, not stderr.
+  send_ruleset() {
+    echo "$1" > "$temp_file"
+    if [[ -n "$existing_id" ]]; then
+      error_output=$(gh api -X PUT "repos/$repo/rulesets/$existing_id" --input "$temp_file" 2>&1)
+    else
+      error_output=$(gh api -X POST "repos/$repo/rulesets" --input "$temp_file" 2>&1)
+    fi
+  }
+
+  if send_ruleset "$payload"; then
+    log_success "Applied ruleset '$ruleset_name'"
+    rm -f "$temp_file"
+    return 0
+  fi
+
+  if ! echo "$error_output" | grep -qi "invalid integration ids"; then
+    log_error "$error_output"
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  local app_ids
+  app_ids=$(echo "$payload" | jq --argjson actions "$ACTIONS_INTEGRATION_ID" \
+    '[.rules[]? | select(.type=="required_status_checks") | .parameters.required_status_checks[]?.integration_id | select(. != null and . != $actions)] | unique | .[]')
+
+  local drop_filter='
+    .rules |= (
+      map(
+        if .type == "required_status_checks" then
+          .parameters.required_status_checks |= map(select((.integration_id // -1) as $i | ($drop | index($i)) | not))
+        else . end
+      )
+      | map(select(.type != "required_status_checks" or (.parameters.required_status_checks | length) > 0))
+    )'
+
+  # Each single app id first (keep the most checks), then all app ids.
+  local candidates=()
+  local app_id
+  for app_id in $app_ids; do
+    candidates+=("[$app_id]")
+  done
+  candidates+=("$(echo "$app_ids" | jq -s -c .)")
+
+  local drop attempt
+  for drop in "${candidates[@]}"; do
+    attempt=$(echo "$payload" | jq --argjson drop "$drop" --argjson actions "$ACTIONS_INTEGRATION_ID" "$drop_filter")
+    if [[ $(echo "$attempt" | jq '(.rules // [1]) | length') -eq 0 ]]; then
+      continue
+    fi
+    if send_ruleset "$attempt"; then
+      log_warning "Applied ruleset '$ruleset_name' without app integration id(s) $drop — app(s) not installed on this repository"
+      rm -f "$temp_file"
+      return 0
+    fi
+  done
+
+  log_error "$error_output"
   rm -f "$temp_file"
+  return 1
 }
 
 ##############################################################################
