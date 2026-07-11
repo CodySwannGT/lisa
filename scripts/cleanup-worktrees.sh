@@ -38,7 +38,13 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --apply) APPLY=1 ;;
     --force-untracked) FORCE_UNTRACKED=1 ;;
-    --min-age-days) shift; MIN_AGE_DAYS="$1" ;;
+    --min-age-days)
+      shift
+      if [ $# -eq 0 ]; then
+        echo "ERROR: --min-age-days requires a value" >&2
+        exit 1
+      fi
+      MIN_AGE_DAYS="$1" ;;
     --delete-branches) DELETE_BRANCHES=1 ;;
     -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) REPO="$1" ;;
@@ -101,8 +107,14 @@ head_is_pushed() {
 }
 
 dir_age_ok() {
+  # GNU stat first: on Linux, `stat -f %m` succeeds but prints the MOUNT POINT
+  # (filesystem mode), which would poison the mtime arithmetic. BSD/macOS stat
+  # has no -c, so it falls through to -f %m (mtime there).
   local mtime
-  mtime=$(stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null) || return 1
+  mtime=$(stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null) || return 1
+  case "$mtime" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
   [ $((NOW - mtime)) -ge "$MIN_AGE_SECS" ]
 }
 

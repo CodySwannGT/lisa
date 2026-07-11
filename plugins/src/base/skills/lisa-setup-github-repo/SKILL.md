@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Read", "AskUserQuestion"]
 
 # Setup GitHub Repository Governance
 
-Apply the fleet-standard GitHub repository configuration to this project's repo. Everything a new repo needs used to be clicked together by hand — settings, rulesets, deploy key — this skill runs the scripted version.
+Apply the fleet-standard GitHub repository configuration to this project's repo. The settings, rulesets, and deploy key that used to be clicked together by hand for every new repo are applied here as one scripted flow.
 
 ## What gets applied
 

@@ -175,7 +175,7 @@ if [[ ${#unmerged_branches[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#merged_branches[@]} -eq 0 ]]; then
-  log_success "No merged stale branches found. Repository is clean!"
+  log_success "No merged branches found. Repository is clean!"
   exit 0
 fi
 
