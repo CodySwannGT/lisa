@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.198.2](https://github.com/CodySwannGT/lisa/compare/v2.198.1...v2.198.2) (2026-07-11)
+
+
+### Bug Fixes
+
+* **release:** prevent cross-branch tag collisions and make release creation rerun-safe ([a83dcb0](https://github.com/CodySwannGT/lisa/commit/a83dcb03d70e5d681bd0305b49b08cf923cf9136))
+
 ### [2.198.1](https://github.com/CodySwannGT/lisa/compare/v2.198.0...v2.198.1) (2026-07-11)
 
 
