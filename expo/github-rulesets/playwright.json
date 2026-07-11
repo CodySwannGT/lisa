@@ -1,0 +1,38 @@
+{
+  "name": "playwright",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": ["refs/heads/staging"]
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": null,
+      "actor_type": "DeployKey",
+      "bypass_mode": "always"
+    },
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ],
+  "rules": [
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": true,
+        "required_status_checks": [
+          {
+            "context": "🔍 Quality Checks / 🎭 Playwright E2E Tests",
+            "integration_id": 15368
+          }
+        ]
+      }
+    }
+  ]
+}
