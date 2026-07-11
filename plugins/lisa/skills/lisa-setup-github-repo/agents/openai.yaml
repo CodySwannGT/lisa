@@ -1,0 +1,4 @@
+display_name: "Setup Github Repo"
+short_description: "Apply Lisa's GitHub repository governance baseline to the current project's repo: repository settings (merge-only, auto-merge…"
+default_prompt:
+  - "Use $lisa-setup-github-repo: Apply Lisa's GitHub repository governance baseline to the current project's repo: repository settings (merge-only, auto-merge…."
