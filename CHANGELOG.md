@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.195.8](https://github.com/CodySwannGT/lisa/compare/v2.195.7...v2.195.8) (2026-07-11)
+
+
+### Bug Fixes
+
+* **expo:** add force_build dispatch input to recover skipped EAS builds ([7c9e4f9](https://github.com/CodySwannGT/lisa/commit/7c9e4f94d3c47bde933106a3d872cc5e13735fa8)), closes [PropSwapLLC/frontend#822](https://github.com/PropSwapLLC/frontend/issues/822)
+
 ### [2.195.7](https://github.com/CodySwannGT/lisa/compare/v2.195.6...v2.195.7) (2026-07-10)
 
 
