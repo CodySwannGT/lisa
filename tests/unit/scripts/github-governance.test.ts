@@ -308,4 +308,42 @@ describe("lisa-github-rulesets.sh workflow gating", () => {
     expect(rulesetsScript).toContain("strip_actions_checks_if_no_workflows");
     expect(rulesetsScript).toContain(".github/workflows");
   });
+
+  it("supports per-repo required-check opt-outs from .lisa.config.json", () => {
+    const rulesetsScript = readFileSync(
+      path.join(REPO_ROOT, "scripts", "lisa-github-rulesets.sh"),
+      "utf8"
+    );
+    expect(rulesetsScript).toContain("strip_config_dropped_checks");
+    expect(rulesetsScript).toContain("dropRequiredChecks");
+  });
+
+  it("drops config-listed contexts while keeping the rest", () => {
+    const base = readTemplate("all", RULESETS_DIR, "base.json");
+    const dropped = new Set(["CodeRabbit"]);
+    const rules = base.rules
+      .map(rule => {
+        if (rule.type !== "required_status_checks") {
+          return rule;
+        }
+        const checks = (rule.parameters?.required_status_checks ?? []).filter(
+          check => !dropped.has(check.context)
+        );
+        return {
+          ...rule,
+          parameters: { ...rule.parameters, required_status_checks: checks },
+        };
+      })
+      .filter(
+        rule =>
+          rule.type !== "required_status_checks" ||
+          (rule.parameters?.required_status_checks ?? []).length > 0
+      );
+    const contexts = (
+      rules.find(rule => rule.type === "required_status_checks")?.parameters
+        ?.required_status_checks ?? []
+    ).map(check => check.context);
+    expect(contexts).not.toContain("CodeRabbit");
+    expect(contexts).toContain("GitGuardian Security Checks");
+  });
 });

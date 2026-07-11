@@ -309,6 +309,48 @@ strip_actions_checks_if_no_workflows() {
     else . end'
 }
 
+# Per-repo opt-out: .lisa.config.json can list required-check contexts that
+# must never be required on this repository, e.g. wikis that should not gate
+# on CodeRabbit:
+#   { "github": { "rulesets": { "dropRequiredChecks": ["CodeRabbit"] } } }
+strip_config_dropped_checks() {
+  local json="$1"
+  local project_path="$2"
+  local config="$project_path/.lisa.config.json"
+
+  if [[ ! -f "$config" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  local dropped
+  if ! dropped=$(jq -c '.github.rulesets.dropRequiredChecks // []' "$config" 2>/dev/null); then
+    log_warning ".lisa.config.json could not be parsed — ignoring github.rulesets overrides" >&2
+    dropped="[]"
+  fi
+
+  if [[ "$dropped" == "[]" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  echo "$json" | jq --argjson dropped "$dropped" '
+    if .rules then
+      .rules |= (
+        map(
+          if .type == "required_status_checks" then
+            .parameters.required_status_checks |=
+              map(select(.context as $c | ($dropped | index($c)) | not))
+          else . end
+        )
+        | map(select(
+            .type != "required_status_checks"
+            or (.parameters.required_status_checks | length) > 0
+          ))
+      )
+    else . end'
+}
+
 apply_ruleset() {
   local repo="$1"
   local template_file="$2"
@@ -324,6 +366,7 @@ apply_ruleset() {
   local clean_template
   clean_template=$(strip_readonly_fields "$template_content")
   clean_template=$(strip_actions_checks_if_no_workflows "$clean_template" "$project_path")
+  clean_template=$(strip_config_dropped_checks "$clean_template" "$project_path")
 
   # A template whose rules were entirely stripped has nothing to enforce here.
   if [[ $(echo "$clean_template" | jq '(.rules // [1]) | length') -eq 0 ]]; then
