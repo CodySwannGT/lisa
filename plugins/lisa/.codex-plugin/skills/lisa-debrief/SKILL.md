@@ -10,7 +10,9 @@ Walk the original Plan for `$ARGUMENTS`, mine the completed work items and their
 
 ## Orchestration: agent team
 
-If you are NOT already operating inside an agent team (no prior successful team-creation or subagent-delegation tool call in this session, not spawned into a team context), the very first thing you do is establish team orchestration.
+You are "inside an agent team" only if you are yourself a spawned teammate or subagent — you were spawned into a team context, or your context names a team lead you report to. A lead/root session that has previously spawned subagents is still the lead and retains full authority to create this flow's team.
+
+If you are NOT inside an agent team by that definition, the very first thing you do is establish team orchestration.
 
 Use the team tool for the current runtime:
 

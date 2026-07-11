@@ -33,9 +33,9 @@ If no query is provided, stop and ask. Never run intake against a default scope 
 
 ### 2. Run the intake skill
 
-Invoke the `jira-build-intake` skill with the query as `$ARGUMENTS`. The skill owns the cycle logic — JQL execution, claim, dispatch to `jira-agent`, transition on success, summary. Do not duplicate that logic here.
+Invoke the `jira-build-intake` skill with the query as `$ARGUMENTS`. The skill owns the cycle logic — JQL execution, claim, in-session lifecycle dispatch (the jira-agent workflow culminating in the lisa-implement skill), transition on success, summary. Do not duplicate that logic here.
 
-The skill in turn invokes `jira-agent` per ticket, which owns the per-ticket lifecycle (read full graph, verify, triage, route to flow, sync progress, post evidence). You do not call `jira-agent` directly — the intake skill does.
+The skill runs the jira-agent workflow in-session per ticket — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn jira-agent (or the lifecycle flow) as a subagent — the lifecycle skill must run in the lead session so it can create its agent team.
 
 ### 3. Surface the summary
 

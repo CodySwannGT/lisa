@@ -393,7 +393,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
       );
       expect(section).toMatch(/before the claim relabel/i);
       expect(section).toMatch(/without changing lifecycle labels/i);
-      expect(section).toMatch(/without invoking `lisa-github-agent`/);
+      expect(section).toMatch(/without dispatching the lifecycle/);
     });
 
     it("defines cleared and active blocker status semantics", () => {
