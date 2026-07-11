@@ -74,7 +74,10 @@ resolved_settings() {
   local overrides="{}"
 
   if [[ -f "$project_path/.lisa.config.json" ]]; then
-    overrides=$(jq '.github.settings // {}' "$project_path/.lisa.config.json" 2>/dev/null || echo "{}")
+    if ! overrides=$(jq '.github.settings // {}' "$project_path/.lisa.config.json" 2>/dev/null); then
+      log_warning ".lisa.config.json could not be parsed — ignoring github.settings overrides" >&2
+      overrides="{}"
+    fi
   fi
 
   jq -n --argjson base "$(baseline_settings)" --argjson over "$overrides" '$base * $over'
