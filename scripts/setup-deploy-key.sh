@@ -89,8 +89,9 @@ if [[ "$YES_MODE" == "true" ]]; then
     exit 1
   fi
 
-  HAS_KEY=$(gh repo deploy-key list --repo "$OWNER/$REPO" --json title \
-    --jq --arg t "$KEY_TITLE" '[.[] | select(.title == $t)] | length' 2>/dev/null || echo 0)
+  # NOTE: gh's --jq flag does not support jq --arg; pipe through jq instead.
+  HAS_KEY=$(gh repo deploy-key list --repo "$OWNER/$REPO" --json title 2>/dev/null \
+    | jq --arg t "$KEY_TITLE" '[.[] | select(.title == $t)] | length' 2>/dev/null || echo 0)
   HAS_SECRET=$(gh secret list --repo "$OWNER/$REPO" --json name \
     --jq '[.[] | select(.name == "DEPLOY_KEY")] | length' 2>/dev/null || echo 0)
   if [[ "$HAS_KEY" -gt 0 && "$HAS_SECRET" -gt 0 ]]; then
@@ -107,8 +108,8 @@ if [[ "$YES_MODE" == "true" ]]; then
 
   # A stale key under the same title blocks re-adding; replace it.
   if [[ "$HAS_KEY" -gt 0 ]]; then
-    gh repo deploy-key list --repo "$OWNER/$REPO" --json id,title \
-      --jq --arg t "$KEY_TITLE" '.[] | select(.title == $t) | .id' 2>/dev/null \
+    gh repo deploy-key list --repo "$OWNER/$REPO" --json id,title 2>/dev/null \
+      | jq -r --arg t "$KEY_TITLE" '.[] | select(.title == $t) | .id' \
       | while read -r key_id; do
           gh repo deploy-key delete "$key_id" --repo "$OWNER/$REPO" || true
         done
