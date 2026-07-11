@@ -29,8 +29,9 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Script directory (where Lisa is installed)
+# Script directory (this file lives in scripts/; templates live one level up)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LISA_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Default options
 DRY_RUN=false
@@ -48,6 +49,7 @@ get_parent_type() {
     expo) echo "typescript" ;;
     nestjs) echo "typescript" ;;
     cdk) echo "typescript" ;;
+    rails) echo "" ;;
     *) echo "" ;;
   esac
 }
@@ -201,6 +203,11 @@ detect_project_types() {
     fi
   fi
 
+  # Rails detection
+  if [[ -f "$project_path/Gemfile" ]] && grep -q "rails" "$project_path/Gemfile" 2>/dev/null; then
+    detected_types+=("rails")
+  fi
+
   echo "${detected_types[@]}"
 }
 
@@ -259,11 +266,6 @@ get_repo_info() {
 # Ruleset Operations
 ##############################################################################
 
-get_existing_rulesets() {
-  local repo="$1"
-  gh api "repos/$repo/rulesets" 2>/dev/null || echo "[]"
-}
-
 find_ruleset_by_name() {
   local rulesets_json="$1"
   local name="$2"
@@ -276,10 +278,42 @@ strip_readonly_fields() {
   echo "$json" | jq 'del(.id, .source_type, .source, .node_id, .created_at, .updated_at, ._links, .current_user_can_bypass)'
 }
 
+# GitHub Actions integration id — its checks only ever report when the project
+# actually has workflows, so requiring them on a workflow-less repo (e.g. a
+# wiki) would block every PR forever.
+ACTIONS_INTEGRATION_ID=15368
+
+strip_actions_checks_if_no_workflows() {
+  local json="$1"
+  local project_path="$2"
+
+  if [[ -d "$project_path/.github/workflows" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  echo "$json" | jq --argjson actions "$ACTIONS_INTEGRATION_ID" '
+    if .rules then
+      .rules |= (
+        map(
+          if .type == "required_status_checks" then
+            .parameters.required_status_checks |=
+              map(select(.integration_id != $actions))
+          else . end
+        )
+        | map(select(
+            .type != "required_status_checks"
+            or (.parameters.required_status_checks | length) > 0
+          ))
+      )
+    else . end'
+}
+
 apply_ruleset() {
   local repo="$1"
   local template_file="$2"
   local existing_rulesets="$3"
+  local project_path="$4"
 
   local template_content
   template_content=$(cat "$template_file")
@@ -289,6 +323,13 @@ apply_ruleset() {
 
   local clean_template
   clean_template=$(strip_readonly_fields "$template_content")
+  clean_template=$(strip_actions_checks_if_no_workflows "$clean_template" "$project_path")
+
+  # A template whose rules were entirely stripped has nothing to enforce here.
+  if [[ $(echo "$clean_template" | jq '(.rules // [1]) | length') -eq 0 ]]; then
+    log_warning "Skipping ruleset '$ruleset_name' — no applicable rules for this project (no workflows)"
+    return 0
+  fi
 
   local existing_id
   existing_id=$(find_ruleset_by_name "$existing_rulesets" "$ruleset_name")
@@ -340,7 +381,7 @@ collect_templates() {
   local -a templates=()
 
   # Always include 'all' first
-  local all_dir="$SCRIPT_DIR/all/github-rulesets"
+  local all_dir="$LISA_ROOT/all/github-rulesets"
   if [[ -d "$all_dir" ]]; then
     for file in "$all_dir"/*.json; do
       [[ -f "$file" ]] && templates+=("$file")
@@ -349,7 +390,7 @@ collect_templates() {
 
   # Then add type-specific templates in order
   for type in "${types[@]}"; do
-    local type_dir="$SCRIPT_DIR/$type/github-rulesets"
+    local type_dir="$LISA_ROOT/$type/github-rulesets"
     if [[ -d "$type_dir" ]]; then
       for file in "$type_dir"/*.json; do
         [[ -f "$file" ]] && templates+=("$file")
@@ -465,10 +506,18 @@ main() {
     echo ""
   fi
 
-  # Get existing rulesets
+  # Get existing rulesets — a 403 here means the plan doesn't support rulesets
+  # (private repo on a free personal plan); that's a skip, not a failure.
   log_info "Fetching existing rulesets..."
   local existing_rulesets
-  existing_rulesets=$(get_existing_rulesets "$repo")
+  if ! existing_rulesets=$(gh api "repos/$repo/rulesets" 2>&1); then
+    if echo "$existing_rulesets" | grep -qi "upgrade to github\|HTTP 403"; then
+      log_warning "Rulesets are not available on this repository's plan — skipping"
+      exit 0
+    fi
+    log_error "Could not fetch rulesets: $existing_rulesets"
+    exit 1
+  fi
   local existing_count
   existing_count=$(echo "$existing_rulesets" | jq 'length')
   log_verbose "Found $existing_count existing ruleset(s)"
@@ -478,7 +527,7 @@ main() {
   local fail_count=0
 
   for template in "${templates[@]}"; do
-    if apply_ruleset "$repo" "$template" "$existing_rulesets"; then
+    if apply_ruleset "$repo" "$template" "$existing_rulesets" "$PROJECT_PATH"; then
       success_count=$((success_count + 1))
     else
       fail_count=$((fail_count + 1))

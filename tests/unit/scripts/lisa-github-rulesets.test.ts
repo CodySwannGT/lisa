@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_NAME = "lisa-github-rulesets.sh";
-const SCRIPT_PATH = path.join(REPO_ROOT, SCRIPT_NAME);
+const SCRIPT_PATH = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
 const BASH_BIN = "/bin/bash";
 const GIT_BIN = "/usr/bin/git";
 const REPO_NAME = "CodySwannGT/lisa";
@@ -73,9 +73,11 @@ function createMockGhBin(): string {
  */
 function createLisaInstall(): { scriptPath: string; root: string } {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-install-"));
-  const scriptPath = path.join(root, SCRIPT_NAME);
+  const scriptsDir = path.join(root, "scripts");
+  const scriptPath = path.join(scriptsDir, SCRIPT_NAME);
   const rulesetDir = path.join(root, "typescript", "github-rulesets");
 
+  mkdirSync(scriptsDir, { recursive: true });
   copyFileSync(SCRIPT_PATH, scriptPath);
   mkdirSync(rulesetDir, { recursive: true });
   writeFileSync(
