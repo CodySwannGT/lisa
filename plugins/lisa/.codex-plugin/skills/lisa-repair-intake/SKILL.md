@@ -112,48 +112,19 @@ The only legitimate reasons to stop early:
 - No stuck/close-out candidates, or none actionable this cycle. Exit cleanly with the idle-case
   summary.
 
-## Orchestration: agent team
+## Orchestration: thin dispatcher (no team of its own)
 
-If you are NOT already operating inside an agent team (no prior successful team-creation or
-subagent-delegation tool call in this session, not spawned into a team context), the very first
-thing you do is establish team orchestration.
+Repair-intake follows the same orchestration contract as `lisa-intake`: it creates NO agent team and spawns NO named teammates. It is a bounded scanner/dispatcher — resolve the queue, evaluate staleness, pick the actionable candidates, and run each repair in the current session.
 
-Use the team tool for the current runtime:
+The reasoning is the same as Intake's: a repair that resumes stalled build work may culminate in a team-first lifecycle skill (`lisa-implement`, `lisa-plan`), and those skills can only create their agent team from the lead session — a spawned teammate cannot add named teammates (Claude teams are flat), so pushing the repair into a subagent strands the lifecycle skill without its team and collapses it into a single inline worker. Therefore:
 
-- Claude Code >= 2.1.178: there is no `TeamCreate` tool; the team forms automatically when you spawn
-  the first teammate with `Agent`. That first spawn should be the bounded specialist needed to start
-  this flow. On older Claude Code that still exposes `TeamCreate`, the explicit team-create path is
-  also acceptable.
-- Codex: do not call `TeamCreate`; Codex does not expose that Claude tool. Use `tool_search`
-  with a query like `multi-agent tools` to load `multi_agent_v1`, then use
-  `multi_agent_v1.spawn_agent` for teammate delegation. Treat the first successful `spawn_agent`
-  call as establishing team orchestration.
-- Other runtimes: use the current runtime's tool-discovery mechanism to discover and call the
-  appropriate multi-agent/team tool.
+- **Scanning, staleness evaluation, and per-item repairs run inline in this session** (Bash / MCP / vendor skills via the Skill tool — `lisa-<source>-to-tracker` for a PRD, the `<tracker>-agent` workflow's gate skills for a build item).
+- **Any repair that dispatches a lifecycle flow does so via the Skill tool in this same session — never an `Agent` spawn** — so the lifecycle skill's team-first preamble fires exactly as a direct invocation would.
+- The only permissible `Agent` use is a bounded **anonymous** helper (`Agent` with `name` omitted) for scan-side legwork whose result returns directly to this session.
 
-If no team creation or subagent delegation tool is available, explicitly state that team
-orchestration is unavailable in this runtime, continue as the lead agent, and preserve the
-workflow's review, verification, and task-tracking obligations locally.
+Codex: the same contract applies — run the scan inline in the root session and invoke any lifecycle skill there so it can `multi_agent_v1.spawn_agent` its own team; do not `spawn_agent` the lifecycle flow itself. Other runtimes: apply the same rule through their equivalent delegation surface; if the runtime has no team/subagent tooling at all, the lifecycle skill's own no-team fallback handles it.
 
-Until the team is established, the first Codex teammate has been spawned, or the no-team
-fallback has been declared, do NOT call any of: `TaskCreate`, `Skill`, MCP tools
-(Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`.
-The initial Claude `Agent` spawn described above is the only pre-team exception because it
-establishes the team.
-Scanning the queue, evaluating staleness, and dispatching per-item repairs — all of those are
-tasks for the team you are about to create, not for the lead session before orchestration
-exists.
-
-If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill
-tool), do NOT create a second team — many harnesses reject double-creates — and do NOT collapse the nested flow into a single inline worker. A nested team-first flow must still bring in the specialists it requires by adding them to the existing team, not by doing the work itself:
-
-- **Claude:** teams are flat and only the lead can add named teammates, so do NOT call `Agent` with a `name` from a teammate (the harness rejects it: *"Teammates cannot spawn other teammates — the team roster is flat"*). Send the team lead a message naming the specialist teammate(s) this flow needs, their task assignments, and completion criteria, then coordinate through the shared task list until they finish. An anonymous subagent (`Agent` with `name` omitted) is permitted only for bounded one-shot work whose result returns directly to you — it is not a substitute for the required lifecycle specialists.
-- **Codex:** do NOT call `TeamCreate`. If the lead/root agent is addressable (you were given its id/handle), send it a request to `multi_agent_v1.spawn_agent` the specialist agent(s), including each agent's prompt, ownership, and expected result. If no lead handle exists but `spawn_agent` is available to you, spawn only the bounded specialist agent(s) this flow needs, `wait_agent` for their results, and relay those results upward to the parent/lead.
-
-Treat the first successful lead-spawn request (or, on the Codex fallback, the first specialist spawn) as preserving team orchestration. Never satisfy a team-first lifecycle flow by doing all the work inline. The cycle's outer team is created by repair-intake. Each per-item repair it runs
-(`lisa:<source>-to-tracker` for a PRD, `lisa:<tracker>-agent` for a build item) executes within
-the same team — those skills' orchestration preambles detect the existing team and skip creating
-a second one. One team per cron cycle.
+If a teammate inside an existing team somehow invokes this skill (it is a session entry point, not a nested flow), do not scan or repair from there: return a structured `delegation-request` to the team lead asking it to run the repair cycle in the lead session, and surface the misrouting.
 
 ## Source dispatch
 

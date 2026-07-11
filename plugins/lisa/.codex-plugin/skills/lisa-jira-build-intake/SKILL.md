@@ -13,7 +13,7 @@ All Atlassian operations in this skill go through `lisa-atlassian-access`. Do no
 1. A JIRA project key (e.g. `SE`) — scans that project for tickets in the configured `ready` status.
 2. A full JQL filter (e.g. `project = SE AND component = "frontend" AND Status = Ready`) — used as-is. The skill will not append a `Status = <ready>` clause if the JQL already names a status, so callers can intentionally widen. It also auto-scopes the query to the current repo (Phase 1 step 2) unless the JQL already constrains repo (a `repo:` label or `component =` term), so a multi-repo project / forwarded assignee filter is not widened to sibling repos by accident.
 
-Run one build-intake cycle. The first eligible ready ticket is claimed, built via the `lisa-jira-agent` flow, transitioned to the configured `done` status (env-aware — see below), then the cycle exits. Remaining ready tickets stay queued for later scheduler invocations.
+Run one build-intake cycle. The first eligible ready ticket is claimed, built via the `jira-agent` workflow run in-session (Phase 3c, culminating in `lisa-implement`), transitioned to the configured `done` status (env-aware — see below), then the cycle exits. Remaining ready tickets stay queued for later scheduler invocations.
 
 ## Workflow resolution
 
@@ -68,17 +68,17 @@ else
 fi
 ```
 
-Run one build-intake cycle. The first eligible ticket in `$READY` is claimed by transitioning to `$CLAIMED`, built via the `lisa-jira-agent` flow, transitioned to `$DONE` on completion, then the cycle exits.
+Run one build-intake cycle. The first eligible ticket in `$READY` is claimed by transitioning to `$CLAIMED`, built via the in-session lifecycle (Phase 3c), transitioned to `$DONE` on completion, then the cycle exits.
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a project key or JQL, run the cycle to completion — claim and dispatch the first eligible ticket through `lisa-jira-agent`, transition a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
+Do NOT ask the caller whether to proceed. Once invoked with a project key or JQL, run the cycle to completion — claim and dispatch the first eligible ticket through the in-session lifecycle (Phase 3c), transition a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
 
 Specifically forbidden:
 
 - Previewing projected scope (ticket count, projected PR count, build duration) and asking whether to continue.
 - Offering A/B/C-style choices like "proceed / skip a few / dry-run only" — the documented behavior IS the default.
-- Pausing because the queue is large, tickets look complex, or tickets are likely to be `Blocked` by `lisa-jira-agent`'s pre-flight gate. The pre-flight `Blocked` outcome is a valid terminal state of the per-ticket lifecycle (owned by `lisa-jira-agent`), not a failure mode — surfacing those tickets to humans is success.
+- Pausing because the queue is large, tickets look complex, or tickets are likely to be `Blocked` by the pre-flight gate. The pre-flight `Blocked` outcome is a valid terminal state of the per-ticket lifecycle, not a failure mode — surfacing those tickets to humans is success.
 - Pausing because the build flow looks expensive. The cost of one cycle is bounded; the cost of stalling a scheduled cron waiting on a human is unbounded.
 
 The only legitimate reasons to stop early:
@@ -155,7 +155,7 @@ A JIRA project can oversee multiple repos (`frontend` / `backend` / `infrastruct
 
 Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready status (e.g. `Ready` applied before this rule existed, or hand-applied to an Epic/Story) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa-jira-write-ticket` and the validate-time S15 gate in `lisa-jira-validate-ticket`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
 
-Run this gate **before** the claim transition, starting with the oldest/highest-priority ready candidate. Do NOT transition, comment "Claimed", or invoke `lisa-jira-agent` for a ticket that fails the gate.
+Run this gate **before** the claim transition, starting with the oldest/highest-priority ready candidate. Do NOT transition, comment "Claimed", or dispatch the lifecycle for a ticket that fails the gate.
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: a ticket is a **container** if it has **open** child work, whatever its declared type; otherwise the **issue type** decides. Resolve child work using the same hierarchy `lisa-jira-read-ticket` uses — JIRA's native Epic → Story → Sub-task parentage (Epic link / parent field for Stories under an Epic, and the subtask relationship for Sub-tasks under a Story/Task). Issue links (`blocks` / `is blocked by`) express cross-item dependencies and are **not** parentage — do not count them as children.
 
@@ -203,43 +203,39 @@ Transition the ticket from `$READY` to `$CLAIMED` by invoking `lisa-atlassian-ac
 
 If the transition fails (permission, missing transition, race), log under "Errors" in the cycle summary and skip this ticket. **Do not invoke the build flow on a ticket you didn't successfully claim.**
 
-#### 3c. Return or run the build delegation
+#### 3c. Run the per-ticket lifecycle in-session (never as a subagent)
 
-After the claim succeeds, the per-ticket build must run under `lisa-jira-agent` (the per-ticket lifecycle agent), but a teammate running this skill must not spawn that named peer itself. Claude teams are flat: only the lead can add a named teammate. Therefore:
+After the claim succeeds, run the per-ticket lifecycle defined by the `jira-agent` workflow **in the current session** — never by spawning `jira-agent` (or any named worker) via the `Agent` tool. The lifecycle culminates in a team-first flow (`lisa-implement`), and that flow can only create its agent team from the lead session: a spawned teammate cannot add named teammates (Claude teams are flat), so dispatching the build into a subagent strands `lisa-implement` without its team and collapses the build into a single inline worker. Concretely:
 
-- If you are the team lead/root agent, spawn or invoke `lisa-jira-agent` with the ticket key and wait for its structured result.
-- If you are a teammate, stop this skill's direct work and return a structured `delegation-request` to the lead instead of calling `Agent` with `name` or otherwise spawning `jira-agent` as a named peer.
-- A private anonymous helper is allowed only when the helper is not a roster peer and the `Agent` call omits `name`; it must not replace this `jira-agent` delegation.
+1. **Run the gates in-session** via their skills, exactly as `jira-agent.md` defines them and with all of its gating behaviors intact:
+   - `lisa-jira-read-ticket` — the full ticket graph (mandatory; never ad-hoc reads)
+   - `lisa-jira-verify` — pre-flight quality gate, including the draft-then-block procedure on FAIL
+   - `lisa-ticket-triage` — analytical triage gate (a `BLOCKED` verdict stops the cycle with findings posted)
+   - Intent determination from the issue type
+2. **Dispatch the flow in-session:** when the gates pass, invoke the lifecycle skill via the Skill tool — `lisa-implement <TICKET>` for Build / Fix / Improve / Investigate-Only (or `lisa-plan` for an Epic) — passing the full context bundle from the read step. `lisa-implement`'s own orchestration preamble then creates the per-item agent team (input-resolver, Roster Decision, specialist fanout) exactly as a direct invocation would.
+3. **Milestone sync and evidence** (`lisa-jira-sync`, `lisa-jira-evidence`) happen at the milestones the `jira-agent` workflow defines, within the dispatched flow.
 
-Return this payload shape to the lead:
+If you are somehow running this skill as a spawned teammate inside an existing team (nested misrouting — Intake keeps this chain in the lead session), do NOT run the lifecycle inline and do NOT spawn named peers. Return this payload to the lead so the lead session can run this Phase 3c in-session:
 
 ```json
 {
   "type": "delegation-request",
-  "agent": "jira-agent",
+  "phase": "jira-build-intake 3c",
   "workItem": "<TICKET>",
   "context": {
     "claimedStatus": "$CLAIMED",
     "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
   },
   "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
-  "onBlockedOrError": "Leave the ticket where jira-agent left it and record the surfaced outcome"
+  "onBlockedOrError": "Leave the ticket where the lifecycle left it and record the surfaced outcome"
 }
 ```
 
-`lisa-jira-agent` owns:
-- Reading the full ticket graph (`lisa-jira-read-ticket`)
-- Running its own pre-flight quality gate (`lisa-jira-verify`)
-- Running ticket triage (`lisa-ticket-triage`)
-- Routing to the appropriate flow (Build / Fix / Investigate / Improve based on type)
-- Posting progress comments via `lisa-jira-sync`
-- Posting evidence via `lisa-jira-evidence`
-
-The lead waits for `lisa-jira-agent` to return, then resumes this scanner with the returned outcome:
+The lifecycle run returns one of the following outcomes; resume this scanner with it:
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the ticket to a `done` env status.
-- **Blocked by jira-verify pre-flight gate** — `lisa-jira-agent` itself transitions the ticket to `Blocked` and reassigns to Reporter. This is correct and expected — let it stand. Record the outcome and move on.
-- **Duplicate already fixed** — `lisa-jira-agent` / `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical ticket reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` link exists, transition to the terminal `$DONE` status with resolution `Duplicate`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical ticket promotes and that recurrence is tracked by the canonical ticket; do not reopen this duplicate for that recurrence.
-- **Blocked by ticket-triage ambiguities** — `lisa-jira-agent` posts findings and stops. The ticket stays in `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors" with reason `"Triage found ambiguities — see comments on <ticket-key>"`.
+- **Blocked by jira-verify pre-flight gate** — the pre-flight gate (jira-agent workflow step 2) transitions the ticket to `Blocked` and reassigns to Reporter. This is correct and expected — let it stand. Record the outcome and move on.
+- **Duplicate already fixed** — `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical ticket reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` link exists, transition to the terminal `$DONE` status with resolution `Duplicate`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical ticket promotes and that recurrence is tracked by the canonical ticket; do not reopen this duplicate for that recurrence.
+- **Blocked by ticket-triage ambiguities** — triage posts findings and the lifecycle stops. The ticket stays in `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors" with reason `"Triage found ambiguities — see comments on <ticket-key>"`.
 - **Errored** — exception, missing config, etc. Leave the ticket in `$CLAIMED` for human investigation. Record under "Errors" with the exception summary.
 
 #### 3c.1 Close duplicate already fixed
@@ -261,7 +257,7 @@ This path is distinct from `BLOCKED`: ambiguity, open blockers, and duplicate-of
 
 A `done` env status (`On Dev`, `On Stg`, or the terminal value) asserts that the code has actually reached that environment. Never set it for a PR that is merely open: auto-merge can be blocked indefinitely (a required rebase / `BEHIND` branch, failing checks, an unaddressed review), and the change may never land. Setting `On Stg` on an open PR makes a ticket *claim* a deploy that never happened. Transition only after confirming the PR merged.
 
-If `lisa-jira-agent` returned Success:
+If the lifecycle run returned Success:
 1. **Confirm the PR merged.** Read the live state of the ticket's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
    - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before transitioning; a still-running deploy is treated like an open PR (leave in `$CLAIMED` for a later cycle), a failed deploy is recorded as an Error.
    - **Open / not yet merged** → do **not** transition. The build is sound but the change has reached no environment yet. Record the ticket under **"PR open — awaiting merge"** in the summary (with the PR URL and its `mergeStateStatus`), leave it in `$CLAIMED`, and stop. A later `lisa-repair-intake` cycle drives the open PR to merge — re-syncing a `BEHIND` branch so the already-enabled auto-merge can land, or surfacing a real blocker — and, once it is merged, applies this same env transition. Do **not** comment "Build complete" or file anything: the work is in-flight, not done.
@@ -275,7 +271,7 @@ If `lisa-jira-agent` returned Success:
 5. If `$DONE` is terminal, verify the resulting JIRA issue is natively closed/resolved: status category is `Done`, and resolution is set when the project's workflow requires one. If the transition screen requires an explicit resolution, use the configured default resolution if present; otherwise record an Error naming the missing workflow setup rather than silently landing in an unresolved Done-named status.
 6. Post a `[claude-build-intake]` comment via `lisa-atlassian-access` `operation: comment key: <TICKET> body: "Build complete. PR <URL> merged. Transitioned to $DONE."` Include whether terminal native resolution was verified, already satisfied, skipped for an intermediate env, or blocked by workflow setup.
 
-For any non-Success outcome, do NOT transition. The ticket sits in `$CLAIMED` (or wherever `lisa-jira-agent` left it for the Blocked case) — the cycle's job is done; humans take it from there.
+For any non-Success outcome, do NOT transition. The ticket sits in `$CLAIMED` (or wherever the lifecycle left it for the Blocked case) — the cycle's job is done; humans take it from there.
 
 #### 3d.1 Roll up the parent chain (forward rollup)
 
@@ -322,8 +318,8 @@ Total PRs opened: <n>
 ## Idempotency & safety
 
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic) is skipped/safe-blocked, never claimed (the `leaf-only-lifecycle` rule's claim-time arm). The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
-- **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa-jira-agent` invocation — no double-pickup.
-- **No writes outside the lifecycle**: this skill only transitions `$READY → $CLAIMED` and `$CLAIMED → $DONE`, then verifies terminal native resolution when `$DONE` is the true terminal state per `leaf-only-lifecycle`. Every other status change is owned by `lisa-jira-agent` (which suggests transitions but only auto-transitions on the verify-FAIL path).
+- **Claim-first ordering**: `$CLAIMED` set BEFORE the lifecycle dispatch — no double-pickup.
+- **No writes outside the lifecycle**: this skill only transitions `$READY → $CLAIMED` and `$CLAIMED → $DONE`, then verifies terminal native resolution when `$DONE` is the true terminal state per `leaf-only-lifecycle`. Every other status change is owned by the per-ticket lifecycle (jira-agent workflow, which suggests transitions but only auto-transitions on the verify-FAIL path).
 - **Duplicate terminal exception**: `DUPLICATE_ALREADY_FIXED` is the only triage outcome that may close a claimed ticket without a PR from this cycle. It must include a canonical ticket reference and empirical base-branch evidence, and it resolves as Duplicate rather than as completed build work.
 - **Terminal native closure**: for terminal `$DONE`, the resulting JIRA issue must be in a resolved / closed state (`statusCategory = Done` and resolution set when required). Intermediate env statuses stay unresolved / open.
 - **One item per cycle**: per-ticket exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
@@ -360,9 +356,9 @@ If a ready-equivalent status does not exist in the JIRA project's workflow, this
 - **Scope the query to the current repo.** Per `repo-scope-split`, append the repo pre-filter (Phase 1 step 2) so a multi-repo JIRA project — or a forwarded `assignee` filter — never pulls sibling repos' ready tickets into the candidate set. It is the cheap query-time arm of the same rule whose authoritative claim-time arm is the 3a.0 gate; the two must agree on how the current repo is resolved. Skip the augmentation (do not fail) only when the current repo can't be resolved or the JQL already constrains repo.
 - **Claim leaves only.** Per the `leaf-only-lifecycle` rule, never claim a container — a ticket with open child work, or a childless Epic — even if it carries the build-ready status. Skip or safe-block it (Phase 3a); never silently implement a container.
 - Never transition a ticket the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
-- Never bypass `lisa-jira-agent` to do build work directly. `lisa-jira-agent` owns the per-ticket lifecycle (read, verify, triage, route, sync, evidence). This skill is the dispatcher, not the builder.
+- Never do build work directly from this scanner — the per-ticket lifecycle (the `jira-agent` workflow culminating in `lisa-implement`) owns it (read, verify, triage, route, sync, evidence). This skill is the dispatcher, not the builder. And never spawn that lifecycle as a subagent; run it in-session per Phase 3c so `lisa-implement` can create its agent team.
 - Never auto-transition past `$DONE`. Downstream statuses are owned by QA / product / a future verification-intake skill — not this one.
 - Never resolve / close a JIRA ticket at intermediate env statuses (`On Dev`, `On Stg`, or configured equivalents). Native resolution is terminal-only.
-- If the ticket has no Validation Journey or no sign-in credentials in its description, `lisa-jira-agent`'s pre-flight verify will catch it and transition to `Blocked` — **don't try to fix the ticket from here**. Pre-flight gating is `lisa-jira-agent`'s job; running build work on a thin ticket produces broken work.
-- On any unexpected response from `lisa-jira-agent` (status it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.
+- If the ticket has no Validation Journey or no sign-in credentials in its description, the pre-flight verify gate will catch it and transition to `Blocked` — **don't try to fix the ticket from here**. Pre-flight gating is the lifecycle's job; running build work on a thin ticket produces broken work.
+- On any unexpected outcome from the lifecycle run (status it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.
 - Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.
