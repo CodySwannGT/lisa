@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.197.0](https://github.com/CodySwannGT/lisa/compare/v2.196.1...v2.197.0) (2026-07-11)
+
+
+### Features
+
+* **github:** per-repo required-check opt-out via .lisa.config.json ([4db7e3c](https://github.com/CodySwannGT/lisa/commit/4db7e3c61c75ccdd2fb388835d8cb8b121c10959))
+
 ### [2.196.1](https://github.com/CodySwannGT/lisa/compare/v2.196.0...v2.196.1) (2026-07-11)
 
 
