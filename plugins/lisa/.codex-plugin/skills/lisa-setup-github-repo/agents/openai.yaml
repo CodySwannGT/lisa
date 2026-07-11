@@ -1,0 +1,4 @@
+display_name: "Setup Github Repo"
+short_description: "Apply Lisa's GitHub repository…"
+default_prompt:
+  - "Use $lisa-setup-github-repo: Apply Lisa's GitHub repository…."
