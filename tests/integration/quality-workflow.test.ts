@@ -335,31 +335,37 @@ describe("release and deploy workflows", () => {
     );
   });
 
-  it("normalizes standard-version output before composing release tags", () => {
+  it("normalizes versions and bumps past existing tags before composing release tags", () => {
+    // Version counters are branch-local but tags are repo-global (dev and
+    // staging can compute the same next version); custom pins never bump.
     const steps = releaseWorkflow.jobs.version.steps ?? [];
-    const determineVersion = steps.find(s => s.name === "Determine Version");
-    const run = determineVersion?.run ?? "";
+    const run = steps.find(s => s.name === "Determine Version")?.run ?? "";
 
-    expect(determineVersion).toBeDefined();
     expect(run).toContain("awk '{print $4}'");
+    expect(run).toContain('npx semver -i patch "$VERSION"');
+    expect(run).toContain('!= "custom"');
+
     expect(run).toContain('VERSION="${VERSION#v}"');
-
-    const stripPrefixIndex = run.indexOf('VERSION="${VERSION#v}"');
-    const versionOutputIndex = run.indexOf('echo "version=$VERSION"');
-    const tagOutputIndex = run.indexOf('echo "tag=v$VERSION"');
-
-    expect(stripPrefixIndex).toBeGreaterThan(-1);
-    expect(versionOutputIndex).toBeGreaterThan(stripPrefixIndex);
-    expect(tagOutputIndex).toBeGreaterThan(stripPrefixIndex);
+    const guardIndex = run.indexOf("git rev-parse -q --verify");
+    expect(guardIndex).toBeGreaterThan(run.indexOf('VERSION="${VERSION#v}"'));
+    expect(run.indexOf('echo "version=$VERSION"')).toBeGreaterThan(guardIndex);
+    expect(run.indexOf('echo "tag=v$VERSION"')).toBeGreaterThan(guardIndex);
   });
 
-  it("fails the job when GitHub release creation returns an API error", () => {
+  it("fails release creation on API errors but reuses an existing release on rerun", () => {
     const steps = releaseWorkflow.jobs.github_release.steps ?? [];
     const createRelease = steps.find(s => s.name === "Create GitHub Release");
     const run = createRelease?.run ?? "";
 
     expect(createRelease).toBeDefined();
-    expect(run).toContain("curl --fail-with-body -sS -X POST");
+    expect(run).toContain('-w "%{http_code}"');
+    expect(run).toContain(
+      '[ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]'
+    );
+    expect(run).toContain("exit 1");
+    expect(run).toContain('select(.code == "already_exists")');
+    expect(run).toContain("releases/tags/${{ needs.version.outputs.tag }}");
+    expect(run).toContain('[ "$TARGET" != "${{ github.sha }}" ]');
     expect(run).toContain("jq -e -r '.html_url'");
     expect(run).toContain("jq -e -r '.id'");
     expect(run).toContain("jq -e -r '.upload_url'");
