@@ -1,16 +1,19 @@
 #!/bin/bash
 #
-# Cleanup GitHub Stale Branches
+# Cleanup GitHub Merged Branches
 #
-# Deletes remote branches that are:
-#   - NOT protected branches (main, dev, staging)
+# Deletes remote branches that have been MERGED and are safe to remove:
+#   - NOT environment branches (main, dev, staging) or the default branch
 #   - NOT associated with an open pull request
+#   - Provably merged: either a merged PR exists for the branch, or the
+#     branch is fully contained in an environment branch (compare status
+#     "behind"/"identical")
 #
-# This helps keep the repository clean by removing stale feature branches
-# that have been merged or abandoned.
+# Abandoned-but-unmerged branches are reported but never deleted — they may
+# hold real work that was simply never PR'd.
 #
 # Usage:
-#   ./scripts/cleanup-github-branches.sh <owner/repo>
+#   ./scripts/cleanup-github-branches.sh <owner/repo> [--dry-run]
 #
 # Example:
 #   ./scripts/cleanup-github-branches.sh repo-org/repo-name
@@ -23,7 +26,7 @@
 
 set -euo pipefail
 
-# Protected branches that should never be deleted
+# Environment branches that must never be deleted
 PROTECTED_BRANCHES=("main" "dev" "staging")
 
 # Colors for output
@@ -40,32 +43,14 @@ usage() {
   echo "Arguments:"
   echo "  owner/repo    GitHub repository in format 'owner/repo'"
   echo "  --dry-run     Show what would be deleted without actually deleting"
-  echo ""
-  echo "Example:"
-  echo "  $0 repo-org/repo-name"
-  echo "  $0 repo-org/repo-name --dry-run"
   exit 1
 }
 
-log_info() {
-  echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-  echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warning() {
-  echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-log_error() {
-  echo -e "${RED}[ERROR]${NC} $1"
-}
-
-log_dry_run() {
-  echo -e "${CYAN}[DRY-RUN]${NC} Would delete: $1"
-}
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_dry_run() { echo -e "${CYAN}[DRY-RUN]${NC} Would delete: $1"; }
 
 is_protected_branch() {
   local branch="$1"
@@ -74,6 +59,30 @@ is_protected_branch() {
       return 0
     fi
   done
+  return 1
+}
+
+# A branch is merged when a merged PR exists for it, or its tip is fully
+# contained in an environment branch.
+is_merged_branch() {
+  local branch="$1"
+
+  local merged_pr
+  merged_pr=$(gh pr list --repo "$REPO" --state merged --head "$branch" \
+    --limit 1 --json number --jq 'length' 2>/dev/null || echo 0)
+  if [[ "$merged_pr" -gt 0 ]]; then
+    return 0
+  fi
+
+  for base in "${EXISTING_ENV_BRANCHES[@]}"; do
+    local status
+    status=$(gh api "repos/$REPO/compare/$base...$branch" \
+      --jq '.status' 2>/dev/null || echo "unknown")
+    if [[ "$status" == "behind" || "$status" == "identical" ]]; then
+      return 0
+    fi
+  done
+
   return 1
 }
 
@@ -92,7 +101,7 @@ if [[ $# -ge 2 && "$2" == "--dry-run" ]]; then
 fi
 
 # Validate repo format
-if [[ ! "$REPO" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]; then
+if [[ ! "$REPO" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]]; then
   log_error "Invalid repository format. Expected 'owner/repo', got: $REPO"
   exit 1
 fi
@@ -106,65 +115,86 @@ fi
 log_success "GitHub CLI authenticated"
 echo ""
 
-# Verify repository access
+# Verify repository access + resolve default branch
 log_info "Verifying access to repository: $REPO"
-if ! gh repo view "$REPO" > /dev/null 2>&1; then
+DEFAULT_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null) || {
   log_error "Cannot access repository: $REPO"
-  log_error "Please check the repository name and your permissions."
   exit 1
-fi
-log_success "Repository access confirmed"
+}
+PROTECTED_BRANCHES+=("$DEFAULT_BRANCH")
+log_success "Repository access confirmed (default branch: $DEFAULT_BRANCH)"
 echo ""
-
-# Get branches with open PRs
-log_info "Fetching open pull requests..."
-open_pr_branches=$(gh pr list --repo "$REPO" --state open --json headRefName --jq '.[].headRefName' | sort)
-open_pr_count=$(echo "$open_pr_branches" | grep -c . || true)
-log_info "Found $open_pr_count branches with open PRs"
 
 # Get all remote branches
 log_info "Fetching all remote branches..."
-all_branches=$(gh api "repos/$REPO/branches" --paginate --jq '.[].name' | sort)
+all_branches=$(gh api "repos/$REPO/branches" --paginate --jq '.[].name' | sort -u)
 total_branch_count=$(echo "$all_branches" | grep -c . || true)
 log_info "Found $total_branch_count total branches"
+
+# Environment branches that exist in this repo (containment bases)
+EXISTING_ENV_BRANCHES=()
+for env_branch in main dev staging; do
+  if echo "$all_branches" | grep -qxF "$env_branch"; then
+    EXISTING_ENV_BRANCHES+=("$env_branch")
+  fi
+done
+
+# Get branches with open PRs
+log_info "Fetching open pull requests..."
+open_pr_branches=$(gh pr list --repo "$REPO" --state open --limit 500 --json headRefName --jq '.[].headRefName' | sort -u)
+open_pr_count=$(echo "$open_pr_branches" | grep -c . || true)
+log_info "Found $open_pr_count branches with open PRs"
 echo ""
 
-# Find stale branches (not protected, no open PR)
-log_info "Identifying stale branches..."
-stale_branches=$(comm -23 <(echo "$all_branches") <(echo "$open_pr_branches") | while read -r branch; do
-  if ! is_protected_branch "$branch"; then
-    echo "$branch"
+# Classify branches
+log_info "Classifying branches (merged vs unmerged)..."
+merged_branches=()
+unmerged_branches=()
+
+while IFS= read -r branch; do
+  [[ -z "$branch" ]] && continue
+  if is_protected_branch "$branch"; then
+    continue
   fi
-done)
+  if echo "$open_pr_branches" | grep -qxF "$branch"; then
+    continue
+  fi
+  if is_merged_branch "$branch"; then
+    merged_branches+=("$branch")
+  else
+    unmerged_branches+=("$branch")
+  fi
+done <<< "$all_branches"
 
-stale_count=$(echo "$stale_branches" | grep -c . || true)
+if [[ ${#unmerged_branches[@]} -gt 0 ]]; then
+  log_warning "Skipping ${#unmerged_branches[@]} unmerged branch(es) (may hold unshipped work):"
+  for branch in "${unmerged_branches[@]}"; do
+    echo "  - $branch"
+  done
+  echo ""
+fi
 
-if [[ "$stale_count" -eq 0 || -z "$stale_branches" ]]; then
-  log_success "No stale branches found. Repository is clean!"
+if [[ ${#merged_branches[@]} -eq 0 ]]; then
+  log_success "No merged stale branches found. Repository is clean!"
   exit 0
 fi
 
-log_warning "Found $stale_count stale branch(es) to delete"
+log_warning "Found ${#merged_branches[@]} merged branch(es) to delete"
 echo ""
 
-# Display stale branches
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Stale branches:"
-echo "$stale_branches" | while read -r branch; do
+echo "Merged branches:"
+for branch in "${merged_branches[@]}"; do
   echo "  - $branch"
 done
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Delete stale branches
+# Delete merged branches
 deleted_count=0
 failed_count=0
 
-echo "$stale_branches" | while read -r branch; do
-  if [[ -z "$branch" ]]; then
-    continue
-  fi
-
+for branch in "${merged_branches[@]}"; do
   # Safety check - never delete protected branches
   if is_protected_branch "$branch"; then
     log_error "Attempted to delete protected branch: $branch - SKIPPING"
@@ -177,10 +207,10 @@ echo "$stale_branches" | while read -r branch; do
     echo -n "Deleting: $branch ... "
     if gh api -X DELETE "repos/$REPO/git/refs/heads/$branch" > /dev/null 2>&1; then
       echo -e "${GREEN}done${NC}"
-      ((deleted_count++)) || true
+      deleted_count=$((deleted_count + 1))
     else
       echo -e "${RED}failed${NC}"
-      ((failed_count++)) || true
+      failed_count=$((failed_count + 1))
     fi
   fi
 done
@@ -189,14 +219,8 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [[ "$DRY_RUN" == true ]]; then
-  log_info "Dry run complete. $stale_count branch(es) would be deleted."
+  log_info "Dry run complete. ${#merged_branches[@]} branch(es) would be deleted."
 else
+  log_success "Deleted $deleted_count branch(es); $failed_count failed."
   log_success "Branch cleanup complete for $REPO"
-  echo ""
-
-  # Show remaining branches
-  log_info "Remaining branches:"
-  gh api "repos/$REPO/branches" --paginate --jq '.[].name' | sort | while read -r branch; do
-    echo "  - $branch"
-  done
 fi
