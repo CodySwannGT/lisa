@@ -33,9 +33,9 @@ If no repo is provided, stop and ask. Never run intake against a default scope �
 
 ### 2. Run the intake skill
 
-Invoke the `github-build-intake` skill with the repo as `$ARGUMENTS`. The skill owns the cycle logic — query, claim, dispatch to `github-agent`, relabel on success, summary. Do not duplicate that logic here.
+Invoke the `github-build-intake` skill with the repo as `$ARGUMENTS`. The skill owns the cycle logic — query, claim, in-session lifecycle dispatch (the github-agent workflow culminating in the lisa-implement skill), relabel on success, summary. Do not duplicate that logic here.
 
-The skill in turn invokes `github-agent` per issue, which owns the per-issue lifecycle (read full graph, verify, triage, route to flow, sync progress, post evidence). You do not call `github-agent` directly — the intake skill does.
+The skill runs the github-agent workflow in-session per issue — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn github-agent (or the lifecycle flow) as a subagent — the lifecycle skill must run in the lead session so it can create its agent team.
 
 ### 3. Surface the summary
 

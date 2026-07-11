@@ -95,7 +95,9 @@ Linear doesn't have a single "issue type" field like JIRA — type is typically 
 
 ### 5. Delegate to Flow
 
-Hand off to the appropriate flow as defined in the `intent-routing` rule. Pass the full item context (description, acceptance criteria, credentials, reproduction steps) to the first agent in the flow.
+Hand off to the appropriate flow by invoking its lifecycle skill via the Skill tool — `lisa-implement` for Build / Fix / Improve / Investigate-Only, `lisa-plan` for Plan (Epic-equivalents) — passing the full item context (description, acceptance criteria, credentials, reproduction steps). The lifecycle skill owns orchestration: invoked from the lead session, its preamble assembles the per-item agent team (input-resolver, Roster Decision, specialist fanout) as defined in the `intent-routing` rule.
+
+If this workflow is executing inside a spawned subagent or teammate (it should instead run in-session in the lead — see `lisa-linear-build-intake` Phase 3c), do NOT run the flow inline and do NOT spawn named teammates: return a structured flow-request (flow, work type, context bundle) to your caller so the lead session can invoke the lifecycle skill with full team authority.
 
 ### 6. Sync Progress at Milestones
 

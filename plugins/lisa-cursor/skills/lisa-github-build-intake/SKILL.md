@@ -1,6 +1,6 @@
 ---
 name: lisa-github-build-intake
-description: "GitHub counterpart to lisa-jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, processes the first eligible issue, runs leaf work via lisa-github-agent, relabels to the configured `done` label on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still carries a stale build-ready label is moved out of the ready pickup queue into the configured `claimed` label with a lifecycle-repair comment, never dispatched to lisa-github-agent. The `ready` label is the human-flipped signal that an issue is truly ready for direct development pickup — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "GitHub counterpart to lisa-jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, processes the first eligible issue, runs leaf work via the github-agent workflow in-session (culminating in lisa-implement), relabels to the configured `done` label on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still carries a stale build-ready label is moved out of the ready pickup queue into the configured `claimed` label with a lifecycle-repair comment, never dispatched to the build lifecycle. The `ready` label is the human-flipped signal that an issue is truly ready for direct development pickup — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -12,7 +12,7 @@ allowed-tools: ["Skill", "Bash"]
 2. A full GitHub repo URL (e.g., `https://github.com/acme/frontend-v2`).
 3. The literal token `github` — falls back to `.lisa.config.json` (`github.org` / `github.repo`).
 
-Run one build-intake cycle. The first eligible issue in the configured `ready` build label is claimed, built via the `lisa-github-agent` flow, relabeled to the configured `done` label (env-aware — see Workflow resolution), then the cycle exits. Remaining ready issues stay queued for later scheduler invocations.
+Run one build-intake cycle. The first eligible issue in the configured `ready` build label is claimed, built via the `github-agent` workflow run in-session (Phase 3c, culminating in `lisa-implement`), relabeled to the configured `done` label (env-aware — see Workflow resolution), then the cycle exits. Remaining ready issues stay queued for later scheduler invocations.
 
 This skill also accepts an optional `assignee=<github-login>` queue filter. Resolve it in this
 order:
@@ -91,13 +91,13 @@ In prose below, the role names refer to the resolved labels: e.g. "the `ready` l
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion — claim and dispatch the first eligible issue through `lisa-github-agent`, relabel a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
+Do NOT ask the caller whether to proceed. Once invoked with a repo, run the cycle to completion — claim and dispatch the first eligible issue through the in-session lifecycle (Phase 3c), relabel a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background queue.
 
 Specifically forbidden:
 
 - Previewing projected scope (issue count, projected PR count, build duration) and asking whether to continue.
 - Offering A/B/C-style choices like "proceed / skip a few / dry-run only".
-- Pausing because the queue is large, issues look complex, or issues are likely to be `Blocked` by `lisa-github-agent`'s pre-flight gate. Pre-flight `Blocked` is a valid terminal state of the per-issue lifecycle, not a failure mode.
+- Pausing because the queue is large, issues look complex, or issues are likely to be `Blocked` by the pre-flight gate. Pre-flight `Blocked` is a valid terminal state of the per-issue lifecycle, not a failure mode.
 - Pausing because the build flow looks expensive.
 
 The only legitimate reasons to stop early:
@@ -179,7 +179,7 @@ GitHub Issues live in one repo by definition, so the scanned repo's issues are u
 
 Build intake dispatches **only independently implementable leaf work units** to the build agent. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready role (e.g. `status:ready` applied before this rule existed, or hand-applied to an Epic/Story) is **never dispatched** — intake moves it out of the pickup queue by replacing `$READY` with `$CLAIMED`, then posts a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa-github-write-issue` and the validate-time S15 gate in `lisa-github-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
 
-Run this gate **before** the leaf claim relabel, starting with the oldest/highest-priority ready candidate. Do NOT comment "Claimed" or invoke `lisa-github-agent` for an issue that fails the gate. A container repair still changes labels: remove `$READY`, add `$CLAIMED`, explain that parent/container `$CLAIMED` means rollup/build-lane progress through child/leaf work rather than direct implementation, record it, and end the cycle.
+Run this gate **before** the leaf claim relabel, starting with the oldest/highest-priority ready candidate. Do NOT comment "Claimed" or dispatch the lifecycle for an issue that fails the gate. A container repair still changes labels: remove `$READY`, add `$CLAIMED`, explain that parent/container `$CLAIMED` means rollup/build-lane progress through child/leaf work rather than direct implementation, record it, and end the cycle.
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa-github-read-issue` uses — native sub-issues first, then body parentage (task-list checkboxes referencing other issues, `Parent: #<n>` references). Dependency links such as `Blocked by:` are not parentage; they are handled by the active dependency hold gate below.
 
@@ -214,7 +214,7 @@ Classify and act (first match wins). `type:` is read from the issue's labels (`t
 
 The childless-parent exception promotes every childless type **except Epic** to a dispatchable leaf: a childless Story is a directly shippable increment and a childless Spike *is* the investigation unit, so neither is stranded. Only a childless **Epic** is held back — an Epic is a pure rollup container by design, and a childless one is an incomplete decomposition or a mis-applied role, moved out of the ready pickup queue for repair/rollup and never dispatched.
 
-**Lifecycle repair (default action for a flagged container).** Move the issue out of the pickup queue by removing `$READY` and adding `$CLAIMED`, post a single lifecycle-repair comment, and record the issue under "Repaired (container)" in the summary. Do NOT invoke `lisa-github-agent`. Keep the comment idempotent — skip posting if an identical `[claude-build-intake]` lifecycle-repair comment already exists on the issue, so a re-entrant cycle doesn't spam it.
+**Lifecycle repair (default action for a flagged container).** Move the issue out of the pickup queue by removing `$READY` and adding `$CLAIMED`, post a single lifecycle-repair comment, and record the issue under "Repaired (container)" in the summary. Do NOT dispatch the lifecycle. Keep the comment idempotent — skip posting if an identical `[claude-build-intake]` lifecycle-repair comment already exists on the issue, so a re-entrant cycle doesn't spam it.
 
 ```bash
 gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$CLAIMED"
@@ -239,7 +239,7 @@ Default cleared blocker labels for GitHub build intake are:
 - `status:on-stg`
 - `status:done`
 
-A blocker is active if it is open and has no cleared status label. Treat `status:ready`, `status:in-progress`, missing status labels, and inaccessible blockers as active. Closed blockers are cleared. If any blocker is active, skip the candidate without changing lifecycle labels, without posting "Claimed", and without invoking `lisa-github-agent`. Record it under "Skipped (active blockers)" in the summary and include the active blocker refs. Keep any dependency-hold comment idempotent with a `[claude-build-intake]` prefix.
+A blocker is active if it is open and has no cleared status label. Treat `status:ready`, `status:in-progress`, missing status labels, and inaccessible blockers as active. Closed blockers are cleared. If any blocker is active, skip the candidate without changing lifecycle labels, without posting "Claimed", and without dispatching the lifecycle. Record it under "Skipped (active blockers)" in the summary and include the active blocker refs. Keep any dependency-hold comment idempotent with a `[claude-build-intake]` prefix.
 
 #### 3b. Claim
 
@@ -256,44 +256,40 @@ This is the idempotency lock — a re-entrant cycle's `--label $READY` filter wi
 
 If the relabel fails (permission, race), log under "Errors" in the cycle summary and skip this issue. **Do not invoke the build flow on an issue you didn't successfully claim.**
 
-#### 3c. Return or run the build delegation
+#### 3c. Run the per-issue lifecycle in-session (never as a subagent)
 
-After the claim succeeds, the per-issue build must run under `lisa-github-agent` (the per-issue lifecycle agent), but a teammate running this skill must not spawn that named peer itself. Claude teams are flat: only the lead can add a named teammate. Therefore:
+After the claim succeeds, run the per-issue lifecycle defined by the `github-agent` workflow **in the current session** — never by spawning `github-agent` (or any named worker) via the `Agent` tool. The lifecycle culminates in a team-first flow (`lisa-implement`), and that flow can only create its agent team from the lead session: a spawned teammate cannot add named teammates (Claude teams are flat), so dispatching the build into a subagent strands `lisa-implement` without its team and collapses the build into a single inline worker. Concretely:
 
-- If you are the team lead/root agent, spawn or invoke `lisa-github-agent` with the issue ref and wait for its structured result.
-- If you are a teammate, stop this skill's direct work and return a structured `delegation-request` to the lead instead of calling `Agent` with `name` or otherwise spawning `github-agent` as a named peer.
-- A private anonymous helper is allowed only when the helper is not a roster peer and the `Agent` call omits `name`; it must not replace this `github-agent` delegation.
+1. **Run the gates in-session** via their skills, exactly as `github-agent.md` defines them and with all of its gating behaviors intact:
+   - `lisa-github-read-issue` — the full issue graph (mandatory; never ad-hoc `gh` reads)
+   - `lisa-github-verify` — pre-flight quality gate, including the draft-then-block procedure on FAIL
+   - `lisa-ticket-triage` — analytical triage gate (a `BLOCKED` verdict stops the cycle with findings posted)
+   - Intent determination from the `type:` label
+2. **Dispatch the flow in-session:** when the gates pass, invoke the lifecycle skill via the Skill tool — `lisa-implement <org>/<repo>#<number>` for Build / Fix / Improve / Investigate-Only (or `lisa-plan` for an Epic) — passing the full context bundle from the read step. `lisa-implement`'s own orchestration preamble then creates the per-item agent team (input-resolver, Roster Decision, specialist fanout) exactly as a direct invocation would.
+3. **Milestone sync and evidence** (`lisa-github-sync`, `lisa-github-evidence`) happen at the milestones the `github-agent` workflow defines, within the dispatched flow.
 
-Return this payload shape to the lead:
+If you are somehow running this skill as a spawned teammate inside an existing team (nested misrouting — Intake keeps this chain in the lead session), do NOT run the lifecycle inline and do NOT spawn named peers. Return this payload to the lead so the lead session can run this Phase 3c in-session:
 
 ```json
 {
   "type": "delegation-request",
-  "agent": "github-agent",
+  "phase": "github-build-intake 3c",
   "workItem": "<org>/<repo>#<number>",
   "context": {
     "claimedLabel": "$CLAIMED",
     "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
   },
   "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
-  "onBlockedOrError": "Leave the issue where github-agent left it and record the surfaced outcome"
+  "onBlockedOrError": "Leave the issue where the lifecycle left it and record the surfaced outcome"
 }
 ```
 
-`lisa-github-agent` owns:
-- Reading the full issue graph (`lisa-github-read-issue`)
-- Running its own pre-flight quality gate (`lisa-github-verify`)
-- Running issue triage (`lisa-ticket-triage`)
-- Routing to the appropriate flow (Build / Fix / Investigate / Improve based on `type:` label)
-- Posting progress comments via `lisa-github-sync`
-- Posting evidence via `lisa-github-evidence`
-
-The lead waits for `lisa-github-agent` to return, then resumes this scanner with the returned outcome:
+The lifecycle run returns one of the following outcomes; resume this scanner with it:
 
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the issue to a `done` env status.
-- **Blocked by github-verify pre-flight gate** — `lisa-github-agent` itself relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
-- **Duplicate already fixed** — `lisa-github-agent` / `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when GitHub exposes it (otherwise leave an explicit cross-reference comment/body link), remove `$CLAIMED`, add the terminal `$DONE` label, close the issue with `gh issue close --reason "not planned"`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical issue promotes and that recurrence is tracked by the canonical issue; do not reopen this duplicate for that recurrence.
-- **Blocked by ticket-triage ambiguities** — `lisa-github-agent` posts findings and stops. The issue stays in `$CLAIMED`. Surface to human; do not auto-relabel. Record under "Errors".
+- **Blocked by github-verify pre-flight gate** — the pre-flight gate (github-agent workflow step 2) relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
+- **Duplicate already fixed** — `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when GitHub exposes it (otherwise leave an explicit cross-reference comment/body link), remove `$CLAIMED`, add the terminal `$DONE` label, close the issue with `gh issue close --reason "not planned"`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical issue promotes and that recurrence is tracked by the canonical issue; do not reopen this duplicate for that recurrence.
+- **Blocked by ticket-triage ambiguities** — triage posts findings and the lifecycle stops. The issue stays in `$CLAIMED`. Surface to human; do not auto-relabel. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave the issue in `$CLAIMED` for human investigation. Record under "Errors".
 
 #### 3c.1 Close duplicate already fixed
@@ -320,7 +316,7 @@ This path is distinct from `BLOCKED`: ambiguity, open blockers, and duplicate-of
 
 A `done` env state (`status:on-dev`, `status:on-stg`, or the terminal value) asserts that the code has actually reached that environment. Never set it for a PR that is merely open: auto-merge can be blocked indefinitely (a required rebase / `BEHIND` branch, failing checks, an unaddressed review), and the change may never land. Relabeling an issue `status:on-stg` on an open PR makes it *claim* a deploy that never happened. Transition only after confirming the PR merged.
 
-If `lisa-github-agent` returned Success:
+If the lifecycle run returned Success:
 
 1. **Confirm the PR merged.** Read the live state of the issue's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
    - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before relabeling; a still-running deploy is treated like an open PR (leave in `$CLAIMED`), a failed deploy is recorded as an Error.
@@ -345,7 +341,7 @@ gh issue close <number> --repo <org>/<repo> --reason completed
 
 This close is idempotent: if the issue is already closed, record that native closure was already satisfied and continue. If `$DONE` is an intermediate env state, leave the issue open by design.
 
-For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever `lisa-github-agent` left it) — humans take it from there.
+For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever the lifecycle left it) — humans take it from there.
 
 #### 3d.1 Roll up the parent chain (forward rollup)
 
@@ -376,7 +372,7 @@ Issues processed: <n>
 - PR open — awaiting merge (left in $CLAIMED for repair-intake): <n>
   - <org>/<repo>#<number> <title> → PR <URL> (mergeStateStatus: <state>)
 - Repaired (container — leaf-only-lifecycle): <n>
-  - <org>/<repo>#<number> <title> — build-ready on a parent/container; moved $READY → $CLAIMED without invoking lisa-github-agent; lifecycle-repair comment posted
+  - <org>/<repo>#<number> <title> — build-ready on a parent/container; moved $READY → $CLAIMED without dispatching the lifecycle; lifecycle-repair comment posted
 - Skipped (active blockers): <n>
   - <org>/<repo>#<number> <title> — waiting on <blocker refs>
 - Duplicate already fixed (closed as duplicate): <n>
@@ -395,8 +391,8 @@ Total PRs opened: <n>
 
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any leaf claim; a container with open child work (or a childless Epic) is moved `$READY` → `$CLAIMED` as lifecycle repair and never dispatched. The lifecycle-repair comment is idempotent — a re-entrant cycle does not re-post it.
 - **Dependency hold runs before leaf claim**: explicit `Blocked by:` relationships are resolved after container repair is ruled out but before `$READY → $CLAIMED`; active blockers leave the leaf candidate in `$READY` and are reported as skipped, not blocked.
-- **Claim-first ordering**: `$CLAIMED` set BEFORE `lisa-github-agent` invocation for leaves; containers are also moved to `$CLAIMED` to leave the ready pickup queue, but are not dispatched.
-- **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. For containers, `$READY → $CLAIMED` is a lifecycle repair, not a direct build claim. Every other label change is owned by `lisa-github-agent`.
+- **Claim-first ordering**: `$CLAIMED` set BEFORE the lifecycle dispatch for leaves; containers are also moved to `$CLAIMED` to leave the ready pickup queue, but are not dispatched.
+- **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. For containers, `$READY → $CLAIMED` is a lifecycle repair, not a direct build claim. Every other label change is owned by the per-issue lifecycle (github-agent workflow).
 - **Duplicate terminal exception**: `DUPLICATE_ALREADY_FIXED` is the only triage outcome that may close a claimed item without a PR from this cycle. It must include a canonical issue reference and empirical base-branch evidence, and it closes as duplicate/not-planned rather than as completed build work.
 - **Terminal native closure**: after `$CLAIMED → $DONE`, close the GitHub issue only when `$DONE` is the true terminal done value per `leaf-only-lifecycle`; intermediate env labels stay open.
 - **One item per cycle**: per-issue exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
@@ -421,12 +417,12 @@ If the repo has not adopted the `status:*` label namespace, this skill cannot ru
 
 - **Dispatch leaves only.** Per the `leaf-only-lifecycle` rule, never dispatch a container — an issue with open child work, or a childless Epic — even if it carries the build-ready role. Move it `$READY → $CLAIMED` as lifecycle repair (Phase 3a); never silently implement a container.
 - Never relabel an issue outside the cycle's allowed transitions. The `$CLAIMED` label is the signature of cycle ownership for leaves, and the parent/container progress state for lifecycle repairs.
-- Never bypass `lisa-github-agent` to do build work directly. `lisa-github-agent` owns the per-issue lifecycle.
+- Never do build work directly from this scanner — the per-issue lifecycle (the `github-agent` workflow culminating in `lisa-implement`) owns it. And never spawn that lifecycle as a subagent; run it in-session per Phase 3c so `lisa-implement` can create its agent team.
 - Never auto-transition past `$DONE`. Downstream labels (terminal `status:done`, etc.) are owned by QA / PM / merge automation.
 - Never close a GitHub issue at intermediate env states (`status:on-dev`, `status:on-stg`, or configured equivalents). Native close happens only at the terminal `done` value.
 - Never auto-close a `BLOCKED`, ambiguous, or duplicate-of-open issue. Auto-close is allowed only for `DUPLICATE_ALREADY_FIXED`.
-- If the issue has no Validation Journey or no sign-in credentials, `lisa-github-agent`'s pre-flight verify will catch it — **don't try to fix the issue from here**.
-- On any unexpected response from `lisa-github-agent` (status it doesn't claim, missing PR URL on success), record as Error and surface — never assume.
+- If the issue has no Validation Journey or no sign-in credentials, the pre-flight verify gate will catch it — **don't try to fix the issue from here**.
+- On any unexpected outcome from the lifecycle run (status it doesn't claim, missing PR URL on success), record as Error and surface — never assume.
 - Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.
 
 ## Adoption (one-time per repo)

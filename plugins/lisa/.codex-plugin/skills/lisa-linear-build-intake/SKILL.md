@@ -12,7 +12,7 @@ allowed-tools: ["Skill", "Bash"]
 2. The literal token `linear` — falls back to `linear.teamKey` from `.lisa.config.json`.
 3. A pre-built Linear MCP filter (advanced) — used as-is.
 
-Run one build-intake cycle. The first eligible ready Issue is claimed, built via the `lisa-linear-agent` flow, relabeled to the configured `done` label on completion, then the cycle exits. Remaining ready Issues stay queued for later scheduler invocations.
+Run one build-intake cycle. The first eligible ready Issue is claimed, built via the `linear-agent` workflow run in-session (Phase 3c, culminating in `lisa-implement`), relabeled to the configured `done` label on completion, then the cycle exits. Remaining ready Issues stay queued for later scheduler invocations.
 
 This skill is the destination of the `lisa-tracker-build-intake` shim when `tracker = "linear"`.
 
@@ -79,13 +79,13 @@ Reads `linear.workspace`, `linear.teamKey`, and `linear.labels.build.*` from `.l
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a team key, run the cycle to completion — claim and dispatch the first eligible Issue through `lisa-linear-agent`, transition a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill.
+Do NOT ask the caller whether to proceed. Once invoked with a team key, run the cycle to completion — claim and dispatch the first eligible Issue through the in-session lifecycle (Phase 3c), transition a successful build to `$DONE`, write the summary, and exit. The caller (a human or a cron) has already authorized the run by invoking the skill.
 
 Specifically forbidden:
 
 - Previewing projected scope (Issue count, projected PR count, build duration) and asking whether to continue.
 - Offering A/B/C-style choices like "proceed / skip a few / dry-run only" — the documented behavior IS the default.
-- Pausing because the queue is large, items look complex, or items are likely to be `status:blocked` by `lisa-linear-agent`'s pre-flight gate. The pre-flight `status:blocked` outcome is a valid terminal state of the per-Issue lifecycle.
+- Pausing because the queue is large, items look complex, or items are likely to be `status:blocked` by the pre-flight gate. The pre-flight `status:blocked` outcome is a valid terminal state of the per-Issue lifecycle.
 - Pausing because the build flow looks expensive.
 
 The only legitimate reasons to stop early:
@@ -105,7 +105,7 @@ ready → claimed → review → done(env-keyed) (downstream)
 
 (Defaults: `status:ready` / `status:in-progress` / `status:code-review` / `status:on-dev`/`status:on-stg`/`status:done`.)
 
-This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $DONE` on completion. It never touches `status:done`-as-terminal, `$REVIEW` (owned by `lisa-linear-agent` / `lisa-linear-evidence`), or `status:blocked` (owned by `lisa-linear-agent`'s pre-flight gate).
+This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $DONE` on completion. It never touches `status:done`-as-terminal, `$REVIEW` (owned by the lifecycle / `lisa-linear-evidence`), or `status:blocked` (owned by the pre-flight gate).
 
 **Pre-flight check**: at start of each cycle, confirm `$READY`, `$CLAIMED`, and the relevant `$DONE` variants exist on the team via `lisa-linear-access operation: list-issue-labels`. If `$READY` is missing, stop and report adoption needed. The other labels can be created on demand.
 
@@ -147,7 +147,7 @@ A Linear team can oversee multiple repos (`frontend` / `backend` / `infrastructu
 
 Build intake claims **only independently implementable leaf work units**. This enforces the claim-time arm of the vendor-neutral `leaf-only-lifecycle` rule: a parent/container that still carries a stale build-ready label (e.g. `status:ready` applied before this rule existed, or hand-applied to a Project-grouped parent Issue) is **never claimed** — intake skips it or safe-blocks it with a clear lifecycle-repair message. It is the claim-time complement to the write-time labeling in `lisa-linear-write-issue` and the validate-time S15 gate in `lisa-linear-validate-issue`; all three cite the same rule so the classification never drifts. **Never silently implement a container.**
 
-Run this gate **before** the claim relabel, starting with the oldest/highest-priority ready candidate. Do NOT relabel, comment "Claimed", or invoke `lisa-linear-agent` for an Issue that fails the gate.
+Run this gate **before** the claim relabel, starting with the oldest/highest-priority ready candidate. Do NOT relabel, comment "Claimed", or dispatch the lifecycle for an Issue that fails the gate.
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an Issue is a **container** if it has **open** child work, whatever its declared type; otherwise the **type label** decides. Resolve child work using the same hierarchy `lisa-linear-read-issue` uses — Linear's native parentage: an Issue groups **sub-issues** via `parentId`, and a **Project** (the Epic equivalent) groups Issues via `projectId`. Relations (`save_issue_relation` — `blocks` / `is blocked by`) express dependencies and are **not** parentage — do not count them as children.
 
@@ -196,43 +196,39 @@ This is the idempotency lock — a re-entrant cycle's `label: $READY` filter wil
 
 If the relabel fails (permission, race), record under "Errors" and skip. **Do not invoke the build flow on an Issue you didn't successfully claim.**
 
-#### 3c. Return or run the build delegation
+#### 3c. Run the per-Issue lifecycle in-session (never as a subagent)
 
-After the claim succeeds, the per-Issue build must run under `lisa-linear-agent` (the per-Issue lifecycle agent), but a teammate running this skill must not spawn that named peer itself. Claude teams are flat: only the lead can add a named teammate. Therefore:
+After the claim succeeds, run the per-Issue lifecycle defined by the `linear-agent` workflow **in the current session** — never by spawning `linear-agent` (or any named worker) via the `Agent` tool. The lifecycle culminates in a team-first flow (`lisa-implement`), and that flow can only create its agent team from the lead session: a spawned teammate cannot add named teammates (Claude teams are flat), so dispatching the build into a subagent strands `lisa-implement` without its team and collapses the build into a single inline worker. Concretely:
 
-- If you are the team lead/root agent, spawn or invoke `lisa-linear-agent` with the Issue identifier and wait for its structured result.
-- If you are a teammate, stop this skill's direct work and return a structured `delegation-request` to the lead instead of calling `Agent` with `name` or otherwise spawning `linear-agent` as a named peer.
-- A private anonymous helper is allowed only when the helper is not a roster peer and the `Agent` call omits `name`; it must not replace this `linear-agent` delegation.
+1. **Run the gates in-session** via their skills, exactly as `linear-agent.md` defines them and with all of its gating behaviors intact:
+   - `lisa-linear-read-issue` — the full Issue graph (mandatory; never ad-hoc reads)
+   - `lisa-linear-verify` — pre-flight quality gate, including the draft-then-block procedure on FAIL
+   - `lisa-ticket-triage` — analytical triage gate (a `BLOCKED` verdict stops the cycle with findings posted)
+   - Intent determination from the type label
+2. **Dispatch the flow in-session:** when the gates pass, invoke the lifecycle skill via the Skill tool — `lisa-implement <ISSUE-ID>` for Build / Fix / Improve / Investigate-Only (or `lisa-plan` for an Epic-equivalent) — passing the full context bundle from the read step. `lisa-implement`'s own orchestration preamble then creates the per-item agent team (input-resolver, Roster Decision, specialist fanout) exactly as a direct invocation would.
+3. **Milestone sync and evidence** (`lisa-linear-sync`, `lisa-linear-evidence`) happen at the milestones the `linear-agent` workflow defines, within the dispatched flow.
 
-Return this payload shape to the lead:
+If you are somehow running this skill as a spawned teammate inside an existing team (nested misrouting — Intake keeps this chain in the lead session), do NOT run the lifecycle inline and do NOT spawn named peers. Return this payload to the lead so the lead session can run this Phase 3c in-session:
 
 ```json
 {
   "type": "delegation-request",
-  "agent": "linear-agent",
+  "phase": "linear-build-intake 3c",
   "workItem": "<ISSUE-ID>",
   "context": {
     "claimedLabel": "$CLAIMED",
     "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
   },
   "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
-  "onBlockedOrError": "Leave the Issue where linear-agent left it and record the surfaced outcome"
+  "onBlockedOrError": "Leave the Issue where the lifecycle left it and record the surfaced outcome"
 }
 ```
 
-`lisa-linear-agent` owns:
-- Reading the full Issue graph (`lisa-linear-read-issue`)
-- Running its own pre-flight quality gate (`lisa-linear-verify`)
-- Running ticket triage (`lisa-ticket-triage`)
-- Routing to the appropriate flow (Build / Fix / Investigate / Improve based on type)
-- Posting progress comments via `lisa-linear-sync`
-- Posting evidence via `lisa-linear-evidence`
-
-The lead waits for `lisa-linear-agent` to return, then resumes this scanner with the returned outcome:
+The lifecycle run returns one of the following outcomes; resume this scanner with it:
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the Issue to a `done` env status.
-- **Blocked by linear-verify pre-flight gate** — `lisa-linear-agent` itself relabels to `status:blocked` and assigns to creator. Let it stand. Record and move on.
-- **Duplicate already fixed** — `lisa-linear-agent` / `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical Issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when Linear exposes it (otherwise leave an explicit relation/comment reference), apply the terminal `$DONE` label, move the native Issue to the configured canceled-as-duplicate or completed terminal state, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical Issue promotes and that recurrence is tracked by the canonical Issue; do not reopen this duplicate for that recurrence.
-- **Blocked by ticket-triage ambiguities** — agent posts findings and stops. The Issue stays at `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors".
+- **Blocked by linear-verify pre-flight gate** — the pre-flight gate (linear-agent workflow step 2) relabels to `status:blocked` and assigns to creator. Let it stand. Record and move on.
+- **Duplicate already fixed** — `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical Issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when Linear exposes it (otherwise leave an explicit relation/comment reference), apply the terminal `$DONE` label, move the native Issue to the configured canceled-as-duplicate or completed terminal state, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical Issue promotes and that recurrence is tracked by the canonical Issue; do not reopen this duplicate for that recurrence.
+- **Blocked by ticket-triage ambiguities** — triage posts findings and the lifecycle stops. The Issue stays at `$CLAIMED`. Surface to human; do not auto-transition. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave at `$CLAIMED`. Record with exception summary.
 
 #### 3c.1 Close duplicate already fixed
@@ -254,7 +250,7 @@ This path is distinct from `BLOCKED`: ambiguity, open blockers, and duplicate-of
 
 A `done` env state (`status:on-dev`, `status:on-stg`, or the terminal value) asserts that the code has actually reached that environment. Never set it for a PR that is merely open: auto-merge can be blocked indefinitely (a required rebase / `BEHIND` branch, failing checks, an unaddressed review), and the change may never land. Relabeling an Issue `status:on-stg` on an open PR makes it *claim* a deploy that never happened. Transition only after confirming the PR merged.
 
-If `lisa-linear-agent` returned Success:
+If the lifecycle run returned Success:
 1. **Confirm the PR merged.** Read the live state of the Issue's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
    - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before relabeling; a still-running deploy is treated like an open PR (leave at `$CLAIMED`), a failed deploy is recorded as an Error.
    - **Open / not yet merged** → do **not** transition. The build is sound but the change has reached no environment yet. Record the Issue under **"PR open — awaiting merge"** in the summary (with the PR URL and its `mergeStateStatus`), leave it at `$CLAIMED`, and stop. A later `lisa-repair-intake` cycle drives the open PR to merge — re-syncing a `BEHIND` branch so the already-enabled auto-merge can land, or surfacing a real blocker — and, once merged, applies this same env transition. Do **not** comment "Build complete" or change the native state.
@@ -268,7 +264,7 @@ If `lisa-linear-agent` returned Success:
 5. If `$DONE` is terminal, move the native Linear Issue state to the configured Done / Completed state. Resolve that state from project configuration if present; otherwise inspect the team workflow for a terminal state with `state.type = "completed"` and a name such as `Done` or `Completed`. If no terminal state can be resolved, record an Error and leave the labels as the source of truth — do not invent a state name.
 6. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL> merged. Transitioned to $DONE."` Include whether native closure was applied, already satisfied, skipped for an intermediate env, or unavailable for setup reasons.
 
-For any non-Success outcome, do NOT transition. The Issue sits where the agent left it — humans take it from there.
+For any non-Success outcome, do NOT transition. The Issue sits where the lifecycle left it — humans take it from there.
 
 #### 3d.1 Roll up the parent chain (forward rollup)
 
@@ -315,8 +311,8 @@ Total PRs opened: <n>
 ## Idempotency & safety
 
 - **Leaf-only claim gate runs first**: Phase 3a classifies each candidate before any claim; a container with open child work (or a childless Epic) is skipped/safe-blocked, never claimed (the `leaf-only-lifecycle` rule's claim-time arm). The safe-block comment is idempotent — a re-entrant cycle does not re-post it.
-- **Claim-first ordering**: `$CLAIMED` set BEFORE agent invocation — no double-pickup.
-- **No writes outside the lifecycle**: this skill only adds/removes `$READY`, `$CLAIMED`, `$DONE`, plus terminal-only native state completion required by `leaf-only-lifecycle`. Every other label change (and non-terminal native state change) is owned by the agent or `lisa-linear-evidence`.
+- **Claim-first ordering**: `$CLAIMED` set BEFORE the lifecycle dispatch — no double-pickup.
+- **No writes outside the lifecycle**: this skill only adds/removes `$READY`, `$CLAIMED`, `$DONE`, plus terminal-only native state completion required by `leaf-only-lifecycle`. Every other label change (and non-terminal native state change) is owned by the per-Issue lifecycle or `lisa-linear-evidence`.
 - **Duplicate terminal exception**: `DUPLICATE_ALREADY_FIXED` is the only triage outcome that may close a claimed Issue without a PR from this cycle. It must include a canonical Issue reference and empirical base-branch evidence, and it closes through the configured duplicate/canceled terminal path rather than as completed build work.
 - **Terminal native closure**: after the `$DONE` label is applied, move the Linear Issue to a native completed state only when `$DONE` is the true terminal done value; intermediate env labels stay open / active.
 - **One item per cycle**: per-Issue exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
@@ -338,9 +334,9 @@ If the team hasn't adopted these labels, the first run exits with an adoption hi
 
 - **Claim leaves only.** Per the `leaf-only-lifecycle` rule, never claim a container — an Issue with open child work, or a childless Epic — even if it carries the build-ready label. Skip or safe-block it (Phase 3a); never silently implement a container.
 - Never relabel an Issue the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
-- Never bypass `lisa-linear-agent` to do build work directly. The agent owns the per-Issue lifecycle.
+- Never do build work directly from this scanner — the per-Issue lifecycle (the `linear-agent` workflow culminating in `lisa-implement`) owns it. And never spawn that lifecycle as a subagent; run it in-session per Phase 3c so `lisa-implement` can create its agent team.
 - Never auto-transition past `$DONE`. Downstream labels are owned by QA / product / a future verification-intake skill.
 - Never move the native Linear state to Done / Completed for intermediate env states (`status:on-dev`, `status:on-stg`, or configured equivalents). Native completion happens only at the terminal `done` value.
-- If the Issue has no Validation Journey or no sign-in credentials in its description, `lisa-linear-agent`'s pre-flight verify will catch it and relabel to `status:blocked` — don't try to fix the Issue from here.
-- On any unexpected response from `lisa-linear-agent` (label it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.
+- If the Issue has no Validation Journey or no sign-in credentials in its description, the pre-flight verify gate will catch it and relabel to `status:blocked` — don't try to fix the Issue from here.
+- On any unexpected outcome from the lifecycle run (label it doesn't claim, missing PR URL on success, etc.), record as Error and surface — never assume.
 - Never pick an arbitrary env for `$DONE` resolution. If `done` is a map and env is ambiguous, fail loudly.

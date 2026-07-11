@@ -37,28 +37,22 @@ The only legitimate reasons to stop early:
 - The queue itself is misconfigured (Status property missing expected values, JIRA workflow can't reach required transitions). Surface and exit.
 - Empty `Ready` set. Exit cleanly with the idle-case message.
 
-## Orchestration: agent team
+## Orchestration: thin dispatcher (no team of its own)
 
-If you are NOT already operating inside an agent team (no prior successful team-creation or subagent-delegation tool call in this session, not spawned into a team context), the very first thing you do is establish team orchestration.
+Intake creates NO agent team and spawns NO named teammates. It is a bounded scanner/dispatcher: resolve the queue, find the first eligible Ready item, claim it, and hand it to the single-item lifecycle skill — all in the current session.
 
-Use the team tool for the current runtime:
+This is deliberate. The per-item lifecycle skills (`lisa-plan` for PRDs, `lisa-implement` for build tickets) are team-first flows: each contains its own orchestration preamble that creates the agent team, records the roster, and fans out specialists. That preamble only has authority when the skill runs in the lead session — a teammate cannot add named teammates (Claude teams are flat: *"Teammates cannot spawn other teammates — the team roster is flat"*), so pushing the lifecycle skill down into a spawned subagent strands it without its team and collapses the flow into the single inline worker every team-first skill forbids. Therefore:
 
-- Claude Code >= 2.1.178: there is no `TeamCreate` tool; the team forms automatically when you spawn the first teammate with `Agent`. That first spawn should be the bounded specialist needed to start this flow. On older Claude Code that still exposes `TeamCreate`, the explicit team-create path is also acceptable.
-- Codex: do not call `TeamCreate`; Codex does not expose that Claude tool. Use `tool_search` with a query like `multi-agent tools` to load `multi_agent_v1`, then use `multi_agent_v1.spawn_agent` for teammate delegation. Treat the first successful `spawn_agent` call as establishing team orchestration.
-- Other runtimes: use the current runtime's tool-discovery mechanism to discover and call the appropriate multi-agent/team tool.
+- **Scanning and claiming run inline in this session** (Bash / MCP / vendor skills via the Skill tool). This is cheap, bounded work — it does not need a team.
+- **Per-item dispatch is a Skill-tool invocation in this same session — never an `Agent` spawn.** The chain Intake → vendor batch skill → lifecycle skill stays in the lead session end-to-end, so when `lisa-plan` / `lisa-implement` starts, its team-first preamble fires exactly as if the user had invoked it directly: it creates the per-item agent team, records the Roster Decision, and fans out its specialists.
+- **Fresh context per item comes from the scheduler, not from subagent isolation.** Intake processes ONE eligible item per invocation and exits; each scheduled invocation is a fresh session. Never claim or process a second item after the first item's lifecycle flow has run in this session — exit and let the next cycle take it with clean context.
+- The only permissible `Agent` use inside an Intake cycle is a bounded **anonymous** helper (`Agent` with `name` omitted) for scan-side legwork whose result returns directly to this session — e.g., paging a large queue. Never spawn the lifecycle flow, a vendor lifecycle agent (`jira-agent` / `github-agent` / `linear-agent`), or any implementation worker as a subagent from Intake.
 
-If no team creation or subagent delegation tool is available, explicitly state that team orchestration is unavailable in this runtime, continue as the lead agent, and preserve the workflow's review, verification, and task-tracking obligations locally.
+Codex: the same contract applies — run the scan inline in the root session and invoke the lifecycle skill there so it can `multi_agent_v1.spawn_agent` its own team; do not `spawn_agent` the lifecycle flow itself. Other runtimes: apply the same rule through their equivalent delegation surface. If the runtime has no team/subagent tooling at all, the lifecycle skill's own no-team fallback handles it — Intake's job is unchanged.
 
-Until the team is established, the first Codex teammate has been spawned, or the no-team fallback has been declared, do NOT call any of: `TaskCreate`, `Skill`, MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. The initial Claude `Agent` spawn described above is the only pre-team exception because it establishes the team. Scanning the queue, claiming items, dispatching per-item flows — all of those are tasks for the team you are about to create, not for the lead session before orchestration exists.
+If a teammate inside an existing team somehow invokes Intake (this should not happen — Intake is a session entry point, not a nested flow), do not scan or claim from there: return a structured `delegation-request` to the team lead asking it to run the Intake cycle in the lead session, and surface the misrouting.
 
-If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool), do NOT create a second team — many harnesses reject double-creates — and do NOT collapse the nested flow into a single inline worker. A nested team-first flow must still bring in the specialists it requires by adding them to the existing team, not by doing the work itself:
-
-- **Claude:** teams are flat and only the lead can add named teammates, so do NOT call `Agent` with a `name` from a teammate (the harness rejects it: *"Teammates cannot spawn other teammates — the team roster is flat"*). Send the team lead a message naming the specialist teammate(s) this flow needs, their task assignments, and completion criteria, then coordinate through the shared task list until they finish. An anonymous subagent (`Agent` with `name` omitted) is permitted only for bounded one-shot work whose result returns directly to you — it is not a substitute for the required lifecycle specialists.
-- **Codex:** do NOT call `TeamCreate`. If the lead/root agent is addressable (you were given its id/handle), send it a request to `multi_agent_v1.spawn_agent` the specialist agent(s), including each agent's prompt, ownership, and expected result. If no lead handle exists but `spawn_agent` is available to you, spawn only the bounded specialist agent(s) this flow needs, `wait_agent` for their results, and relay those results upward to the parent/lead.
-
-Treat the first successful lead-spawn request (or, on the Codex fallback, the first specialist spawn) as preserving team orchestration. Never satisfy a team-first lifecycle flow by doing all the work inline.
-
-The cycle's outer team is created by Intake. The one item it processes (a PRD via `lisa-plan`, a ticket via `lisa-implement`) executes within that team — those skills' orchestration preambles detect the existing team and skip creating a second team. One team per cron cycle, one eligible Ready item per cycle.
+One item per cycle. One team per item, created and owned by the lifecycle skill. A fresh session per cycle, provided by the scheduler.
 
 ## Source dispatch
 
