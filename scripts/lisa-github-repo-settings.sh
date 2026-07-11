@@ -13,8 +13,12 @@
 #   - GitHub wiki tab disabled (Lisa projects use in-repo wiki/)
 #   - secret scanning + push protection enabled where the plan supports it
 #
+#   - default branch set to the lowest-tier environment branch that exists
+#     on the repository (dev > staging > main); repos with none of the
+#     environment branches keep their current default
+#
 # Per-repo overrides come from .lisa.config.json:
-#   { "github": { "settings": { "allow_auto_merge": false } } }
+#   { "github": { "settings": { "allow_auto_merge": false, "default_branch": "main" } } }
 # Any key in github.settings replaces the baseline value for that repo.
 #
 # Usage:
@@ -68,9 +72,23 @@ baseline_settings() {
   }'
 }
 
+# The default branch is the lowest-tier environment branch the repo has.
+resolve_default_branch() {
+  local repo="$1"
+  local branch
+  for branch in dev staging main; do
+    if gh api "repos/$repo/branches/$branch" > /dev/null 2>&1; then
+      echo "$branch"
+      return 0
+    fi
+  done
+  echo ""
+}
+
 # Merge .lisa.config.json github.settings overrides on top of the baseline.
 resolved_settings() {
   local project_path="$1"
+  local repo="$2"
   local overrides="{}"
 
   if [[ -f "$project_path/.lisa.config.json" ]]; then
@@ -80,7 +98,16 @@ resolved_settings() {
     fi
   fi
 
-  jq -n --argjson base "$(baseline_settings)" --argjson over "$overrides" '$base * $over'
+  local base
+  base=$(baseline_settings)
+
+  local default_branch
+  default_branch=$(resolve_default_branch "$repo")
+  if [[ -n "$default_branch" ]]; then
+    base=$(echo "$base" | jq --arg b "$default_branch" '. + {default_branch: $b}')
+  fi
+
+  jq -n --argjson base "$base" --argjson over "$overrides" '$base * $over'
 }
 
 main() {
@@ -115,7 +142,7 @@ main() {
   log_info "Repository: $repo"
 
   local settings
-  settings=$(resolved_settings "$PROJECT_PATH")
+  settings=$(resolved_settings "$PROJECT_PATH" "$repo")
   log_verbose "Settings payload: $(echo "$settings" | jq -c .)"
 
   if [[ "$DRY_RUN" == "true" ]]; then

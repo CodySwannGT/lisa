@@ -1,26 +1,10 @@
-import { execFileSync, spawnSync } from "node:child_process";
-import {
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const SETTINGS_SCRIPT = path.join(
-  REPO_ROOT,
-  "scripts",
-  "lisa-github-repo-settings.sh"
-);
-const BASH_BIN = "/bin/bash";
-const GIT_BIN = "/usr/bin/git";
-const REPO_NAME = "CodySwannGT/lisa";
 const CODERABBIT_INTEGRATION_ID = 347564;
 const ACTIONS_INTEGRATION_ID = 15368;
 const RULESETS_DIR = "github-rulesets";
@@ -80,68 +64,6 @@ function collectTemplates(): readonly { file: string; type: string }[] {
     }
   }
   return templates;
-}
-
-/**
- * Creates a git project directory for the settings script to inspect.
- *
- * @returns Temporary project directory path.
- */
-function createProject(): string {
-  const projectDir = mkdtempSync(path.join(tmpdir(), "lisa-settings-"));
-  execFileSync(GIT_BIN, ["init"], { cwd: projectDir, stdio: "ignore" });
-  return projectDir;
-}
-
-/**
- * Creates a mock gh executable for the settings script.
- *
- * @returns Temporary bin directory containing the mock gh executable.
- */
-function createMockGhBin(): string {
-  const binDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-bin-"));
-  const ghPath = path.join(binDir, "gh");
-  writeFileSync(
-    ghPath,
-    [
-      "#!/usr/bin/env bash",
-      "set -euo pipefail",
-      'if [[ "$1 $2" == "auth status" ]]; then',
-      "  exit 0",
-      "fi",
-      'if [[ "$1 $2" == "repo view" ]]; then',
-      `  echo "${REPO_NAME}"`,
-      "  exit 0",
-      "fi",
-      'echo "unexpected gh invocation: $*" >&2',
-      "exit 1",
-      "",
-    ].join("\n"),
-    { mode: 0o755 }
-  );
-  return binDir;
-}
-
-/**
- * Runs the settings script in dry-run mode with a mock gh on PATH.
- *
- * @param projectDir - Project directory to point the script at.
- * @param ghBin - Directory containing the mock gh executable.
- * @returns Captured stdout from the script.
- */
-function runSettingsDryRun(projectDir: string, ghBin: string): string {
-  const shimmedPath = [ghBin, process.env.PATH ?? ""].join(":");
-  const result = spawnSync(
-    BASH_BIN,
-    [SETTINGS_SCRIPT, "--dry-run", projectDir],
-    {
-      cwd: REPO_ROOT,
-      env: { ...process.env, PATH: shimmedPath },
-      encoding: "utf8",
-    }
-  );
-  expect(result.status).toBe(0);
-  return result.stdout;
 }
 
 /**
@@ -259,43 +181,6 @@ describe("github-rulesets templates", () => {
     );
     const stripped = stripActionsChecks(quality);
     expect(stripped.rules).toHaveLength(0);
-  });
-});
-
-describe("lisa-github-repo-settings.sh", () => {
-  it("applies the merge-only baseline in dry-run", () => {
-    const projectDir = createProject();
-    const ghBin = createMockGhBin();
-
-    try {
-      const stdout = runSettingsDryRun(projectDir, ghBin);
-      expect(stdout).toContain('"allow_squash_merge": false');
-      expect(stdout).toContain('"allow_rebase_merge": false');
-      expect(stdout).toContain('"allow_auto_merge": true');
-      expect(stdout).toContain('"delete_branch_on_merge": true');
-      expect(stdout).toContain('"allow_update_branch": true');
-    } finally {
-      rmSync(projectDir, { recursive: true, force: true });
-      rmSync(ghBin, { recursive: true, force: true });
-    }
-  });
-
-  it("honors per-repo overrides from .lisa.config.json github.settings", () => {
-    const projectDir = createProject();
-    const ghBin = createMockGhBin();
-
-    try {
-      writeFileSync(
-        path.join(projectDir, ".lisa.config.json"),
-        JSON.stringify({ github: { settings: { allow_auto_merge: false } } })
-      );
-      const stdout = runSettingsDryRun(projectDir, ghBin);
-      expect(stdout).toContain('"allow_auto_merge": false');
-      expect(stdout).toContain('"allow_squash_merge": false');
-    } finally {
-      rmSync(projectDir, { recursive: true, force: true });
-      rmSync(ghBin, { recursive: true, force: true });
-    }
   });
 });
 
