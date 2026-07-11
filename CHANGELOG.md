@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.196.0](https://github.com/CodySwannGT/lisa/compare/v2.195.8...v2.196.0) (2026-07-11)
+
+
+### Features
+
+* **github:** fleet-baseline ruleset templates and refreshed apply script ([71157ca](https://github.com/CodySwannGT/lisa/commit/71157ca676acb770e61fdd62c6e54a3a6ce0f9e6))
+* **github:** repo settings baseline, governance orchestrator, deploy-key --yes ([a0d83ab](https://github.com/CodySwannGT/lisa/commit/a0d83aba260efaf0ce6cadb864489f179102c237))
+* **plugins:** lisa-setup-github-repo skill and /lisa:setup:github-repo command ([8b1cbdc](https://github.com/CodySwannGT/lisa/commit/8b1cbdcd3c0d32e9ef25a11ef906a814ae05cb0c))
+* **scripts:** merged-only branch cleanup and repo-level worktree cleanup ([3695207](https://github.com/CodySwannGT/lisa/commit/3695207cf4f41511c87af606ee96f1495a2de80a))
+
+
+### Bug Fixes
+
+* address CodeRabbit review feedback ([2fa52aa](https://github.com/CodySwannGT/lisa/commit/2fa52aa29f4abf6054da1c71483712aac30dd411))
+
 ### [2.195.8](https://github.com/CodySwannGT/lisa/compare/v2.195.7...v2.195.8) (2026-07-11)
 
 
