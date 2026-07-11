@@ -33,9 +33,9 @@ If no query is provided AND no `linear.teamKey` is configured, stop and ask. Nev
 
 ### 2. Run the intake skill
 
-Invoke the `linear-build-intake` skill with the query as `$ARGUMENTS`. The skill owns the cycle logic — Linear MCP queries, claim, dispatch to `linear-agent`, transition on success, summary. Do not duplicate that logic here.
+Invoke the `linear-build-intake` skill with the query as `$ARGUMENTS`. The skill owns the cycle logic — Linear MCP queries, claim, in-session lifecycle dispatch (the linear-agent workflow culminating in the lisa-implement skill), transition on success, summary. Do not duplicate that logic here.
 
-The skill in turn invokes `linear-agent` per Issue, which owns the per-Issue lifecycle (read full graph, verify, triage, route to flow, sync progress, post evidence). You do not call `linear-agent` directly — the intake skill does.
+The skill runs the linear-agent workflow in-session per Issue — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn linear-agent (or the lifecycle flow) as a subagent — the lifecycle skill must run in the lead session so it can create its agent team.
 
 ### 3. Surface the summary
 

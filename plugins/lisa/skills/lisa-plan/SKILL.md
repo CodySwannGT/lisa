@@ -10,7 +10,9 @@ Decompose the PRD/spec at `$ARGUMENTS` into ordered work items with acceptance c
 
 ## Orchestration: agent team
 
-If you are NOT already operating inside an agent team (no prior successful team-creation or subagent-delegation tool call in this session, not spawned into a team context), the very first thing you do is establish team orchestration.
+You are "inside an agent team" only if you are yourself a spawned teammate or subagent — you were spawned into a team context, or your context names a team lead you report to. A lead/root session that has previously spawned subagents is still the lead: prior `Agent` calls in the session (e.g., an Intake cycle's bounded scan helpers) do NOT make this a nested flow, and the lead retains full authority to create this flow's team.
+
+If you are NOT inside an agent team by that definition, the very first thing you do is establish team orchestration.
 
 Use the team tool for the current runtime:
 
@@ -22,7 +24,9 @@ If no team creation or subagent delegation tool is available, explicitly state t
 
 Until the team is established, the first Codex teammate has been spawned, or the no-team fallback has been declared, do NOT call any of: `TaskCreate`, `Skill`, MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. The initial Claude `Agent` spawn described above is the only pre-team exception because it establishes the team. Reading the PRD, exploring the code, fetching context — all of those are tasks for the team you are about to create, not for the lead session before orchestration exists.
 
-If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool), do NOT create a second team — many harnesses reject double-creates — and do NOT collapse the nested flow into a single inline worker. A nested team-first flow must still bring in the specialists it requires by adding them to the existing team, not by doing the work itself:
+Note that `lisa-intake` dispatching this skill is NOT the nested case: Intake is a thin dispatcher that creates no team of its own and invokes this skill via the Skill tool in the lead session precisely so this preamble fires — treat an Intake dispatch exactly like a direct invocation and run the full team-first flow above.
+
+If you ARE already inside an agent team by the definition above (you are a teammate that was handed this skill via the Skill tool from within another flow's team), do NOT create a second team — many harnesses reject double-creates — and do NOT collapse the nested flow into a single inline worker. A nested team-first flow must still bring in the specialists it requires by adding them to the existing team, not by doing the work itself:
 
 - **Claude:** teams are flat and only the lead can add named teammates, so do NOT call `Agent` with a `name` from a teammate (the harness rejects it: *"Teammates cannot spawn other teammates — the team roster is flat"*). Send the team lead a message naming the specialist teammate(s) this flow needs, their task assignments, and completion criteria, then coordinate through the shared task list until they finish. An anonymous subagent (`Agent` with `name` omitted) is permitted only for bounded one-shot work whose result returns directly to you — it is not a substitute for the required lifecycle specialists.
 - **Codex:** do NOT call `TeamCreate`. If the lead/root agent is addressable (you were given its id/handle), send it a request to `multi_agent_v1.spawn_agent` the specialist agent(s), including each agent's prompt, ownership, and expected result. If no lead handle exists but `spawn_agent` is available to you, spawn only the bounded specialist agent(s) this flow needs, `wait_agent` for their results, and relay those results upward to the parent/lead.
