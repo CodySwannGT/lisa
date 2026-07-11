@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.198.0](https://github.com/CodySwannGT/lisa/compare/v2.197.0...v2.198.0) (2026-07-11)
+
+
+### Features
+
+* **github:** default branch resolves to lowest-tier environment branch ([49b8101](https://github.com/CodySwannGT/lisa/commit/49b81017910e738cb6fdb6a0baf2895c6dc70a41))
+
 ## [2.197.0](https://github.com/CodySwannGT/lisa/compare/v2.196.1...v2.197.0) (2026-07-11)
 
 
