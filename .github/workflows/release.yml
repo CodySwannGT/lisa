@@ -542,6 +542,21 @@ jobs:
           # Normalize any leading "v" regardless of strategy so "tag=v$VERSION" never yields "vv"
           VERSION="${VERSION#v}"
 
+          # Guard against tag collisions. Version counters are branch-local
+          # (standard-version reads package.json; semantic reads the nearest
+          # reachable tag) but tags are repo-global, so two long-lived release
+          # branches (e.g. dev and staging) can compute the same next version
+          # and the Create GitHub Release step would 422 (already_exists) and
+          # skip deployment. Bump patch until the tag is free. Skipped for the
+          # "custom" strategy — an explicitly pinned version must not be
+          # silently changed (a collision there fails loudly at release time).
+          if [ "${{ inputs.release_strategy }}" != "custom" ]; then
+            while git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; do
+              echo "::warning::Tag v$VERSION already exists (released from another branch); bumping patch"
+              VERSION=$(npx semver -i patch "$VERSION")
+            done
+          fi
+
           # Add prerelease suffix if specified
           if [ -n "${{ inputs.prerelease }}" ] && [ "${{ inputs.release_strategy }}" != "calendar" ]; then
             VERSION="${VERSION}-${{ inputs.prerelease }}.$(date +%s)"
@@ -1115,12 +1130,33 @@ jobs:
               draft: $draft
             }')
 
-          # Create release
-          RESPONSE=$(curl --fail-with-body -sS -X POST \
+          # Create release. Idempotent: a rerun after a partial failure finds
+          # the release already created for this commit — reuse it instead of
+          # dying on 422 already_exists (which would skip deployment).
+          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             -d "$RELEASE_DATA" \
             "https://api.github.com/repos/${{ github.repository }}/releases")
+
+          if [ "$HTTP_CODE" = "422" ] && jq -e '.errors[]? | select(.code == "already_exists")' response.json >/dev/null; then
+            echo "Release ${{ needs.version.outputs.tag }} already exists; fetching it"
+            curl --fail-with-body -sS \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ needs.version.outputs.tag }}" > response.json
+            TARGET=$(jq -r '.target_commitish' response.json)
+            if [ "$TARGET" != "${{ github.sha }}" ]; then
+              echo "::error::Tag ${{ needs.version.outputs.tag }} was already released from a different commit ($TARGET). This branch's version counter has fallen behind the repo's tags — align the version in package.json past the latest existing tag."
+              exit 1
+            fi
+          elif [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Create release failed with HTTP $HTTP_CODE"
+            cat response.json
+            exit 1
+          fi
+
+          RESPONSE=$(cat response.json)
 
           # Extract release information
           echo "$RESPONSE" | jq -e -r '.html_url' > .release_url
