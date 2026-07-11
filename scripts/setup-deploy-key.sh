@@ -6,14 +6,26 @@
 # with write access, enabling GitHub Actions to push to protected branches.
 #
 # Usage:
-#   ./scripts/setup-deploy-key.sh
+#   ./scripts/setup-deploy-key.sh [--yes]
+#
+# Options:
+#   -y, --yes    Non-interactive mode: skips if a deploy key + DEPLOY_KEY
+#                secret already exist, otherwise creates both without
+#                prompting and never leaves key files on disk.
 #
 # Requirements:
 #   - ssh-keygen (usually pre-installed)
-#   - gh CLI (optional, for automatic setup)
+#   - gh CLI (optional, for automatic setup; required for --yes)
 #
 
 set -euo pipefail
+
+YES_MODE=false
+for arg in "$@"; do
+  case "$arg" in
+    -y|--yes) YES_MODE=true ;;
+  esac
+done
 
 # Colors for output
 RED='\033[0;31m'
@@ -67,6 +79,53 @@ echo "=============================================="
 echo ""
 echo "Repository: $OWNER/$REPO"
 echo ""
+
+# Non-interactive mode: idempotent — skip when already configured, and keep
+# generated key material in a private temp dir that is always cleaned up.
+KEY_TITLE="GitHub Actions Deploy Key"
+if [[ "$YES_MODE" == "true" ]]; then
+  if ! command -v gh &>/dev/null || ! gh auth status &>/dev/null; then
+    print_error "--yes mode requires an authenticated gh CLI."
+    exit 1
+  fi
+
+  HAS_KEY=$(gh repo deploy-key list --repo "$OWNER/$REPO" --json title \
+    --jq --arg t "$KEY_TITLE" '[.[] | select(.title == $t)] | length' 2>/dev/null || echo 0)
+  HAS_SECRET=$(gh secret list --repo "$OWNER/$REPO" --json name \
+    --jq '[.[] | select(.name == "DEPLOY_KEY")] | length' 2>/dev/null || echo 0)
+  if [[ "$HAS_KEY" -gt 0 && "$HAS_SECRET" -gt 0 ]]; then
+    print_success "Deploy key and DEPLOY_KEY secret already configured — nothing to do."
+    exit 0
+  fi
+
+  TEMP_KEY_DIR=$(mktemp -d)
+  trap 'rm -rf "$TEMP_KEY_DIR"' EXIT
+  KEY_FILE="$TEMP_KEY_DIR/deploy_key"
+
+  print_step "Generating SSH key pair..."
+  ssh-keygen -t ed25519 -C "github-actions-deploy-key-${REPO}" -f "$KEY_FILE" -N "" -q
+
+  # A stale key under the same title blocks re-adding; replace it.
+  if [[ "$HAS_KEY" -gt 0 ]]; then
+    gh repo deploy-key list --repo "$OWNER/$REPO" --json id,title \
+      --jq --arg t "$KEY_TITLE" '.[] | select(.title == $t) | .id' 2>/dev/null \
+      | while read -r key_id; do
+          gh repo deploy-key delete "$key_id" --repo "$OWNER/$REPO" || true
+        done
+  fi
+
+  print_step "Adding deploy key to repository..."
+  gh repo deploy-key add "${KEY_FILE}.pub" --repo "$OWNER/$REPO" \
+    --title "$KEY_TITLE" --allow-write
+  print_success "Deploy key added with write access"
+
+  print_step "Adding DEPLOY_KEY secret..."
+  gh secret set DEPLOY_KEY --repo "$OWNER/$REPO" < "$KEY_FILE"
+  print_success "DEPLOY_KEY secret added"
+
+  print_success "Deploy key setup complete!"
+  exit 0
+fi
 
 # Check for existing key
 KEY_FILE="deploy_key"
