@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.198.1](https://github.com/CodySwannGT/lisa/compare/v2.198.0...v2.198.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* **orchestration:** run intake's per-item lifecycle in the lead session so implement fans out ([5d9d290](https://github.com/CodySwannGT/lisa/commit/5d9d290070ecb7a76c35784d5e10cab5d40d8c83))
+
 ## [2.198.0](https://github.com/CodySwannGT/lisa/compare/v2.197.0...v2.198.0) (2026-07-11)
 
 
