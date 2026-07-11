@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.196.1](https://github.com/CodySwannGT/lisa/compare/v2.196.0...v2.196.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* **github:** drop cdk-validation ruleset template ([5cab5e7](https://github.com/CodySwannGT/lisa/commit/5cab5e7220f367cdcbdfb1bef4e5aae85cc8eb68))
+* **github:** harden governance scripts against real fleet conditions ([acfdc18](https://github.com/CodySwannGT/lisa/commit/acfdc186bcd815701ecd0393ce85577bcf40f4bd))
+
 ## [2.196.0](https://github.com/CodySwannGT/lisa/compare/v2.195.8...v2.196.0) (2026-07-11)
 
 
