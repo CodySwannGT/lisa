@@ -20,6 +20,7 @@ Apply the fleet-standard GitHub repository configuration to this project's repo.
      (any key under `github.settings` overrides the baseline)
    - Delete head branches after merge (environment branches survive — the rulesets' `deletion` rule means GitHub refuses to delete them)
    - "Always suggest updating pull request branches" on
+   - Default branch set to the lowest-tier environment branch that exists (dev → staging → main); override with `github.settings.default_branch`
    - GitHub wiki tab off (Lisa projects use in-repo `wiki/`)
    - Secret scanning + push protection enabled where the plan supports it
 2. **Rulesets** (`scripts/lisa-github-rulesets.sh`) from Lisa's `<type>/github-rulesets/` templates, matched by project type:
