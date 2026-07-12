@@ -71,6 +71,26 @@ Inside a flow, never pause to ask a human whether to proceed — the invocation 
 Headless discipline follows: no interactive prompts, idempotent re-runs, clean exits on empty
 queues, and loud, specific failures when something is genuinely blocking.
 
+## The brownfield on-ramp
+
+Greenfield projects are agent-ready by construction. A brownfield project must earn readiness in
+two ordered steps before the automation fleet runs unattended:
+
+1. **Knowledge convergence** (`/lisa:agent-ready`): build the initial knowledge wiki from every
+   reachable source — repository, git history, tracker, connected systems — under the operating
+   premise *"starting tomorrow, you maintain this project without human input; today is your only
+   chance to ask questions."* Everything derivable is derived and written into the wiki; what only
+   a human can answer becomes a product-readable entry in `wiki/gaps.md`. Humans answer inline, a
+   **fresh session** re-runs the skill, verified answers are absorbed into wiki pages, and the loop
+   repeats until a run reports zero open gaps.
+2. **Standards adoption**: apply Lisa's full lint rules, guardrails, and thresholds — the project
+   goes red by design — then refactor to conformance **without changing business logic or
+   functionality**, via the improve/fix flows, with behavior preservation proven by tests and
+   empirical verification.
+
+Knowledge before standards: an agent refactoring a codebase it does not yet understand is exactly
+the unattended guessing the gates exist to prevent.
+
 ## Quality and parity
 
 Everything else Lisa installs — skills, hooks, quality checks, guardrails, CI gates, rulesets —

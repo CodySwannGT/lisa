@@ -89,6 +89,13 @@ The supported stacks, setup flags, and exact invocation evolve as the project gr
 > **Prompt for your coding agent**
 > "Using this project's `lisa` CLI, show me how to (a) scaffold a new project and (b) apply Lisa to an existing one. List the project types it supports right now and the flags each command accepts — read `lisa --help` and the CLI source, don't guess."
 
+### Brownfield projects: becoming agent-ready
+
+A greenfield project is agent-ready by construction. An existing codebase carries years of tacit knowledge in people's heads, so Lisa converges it before the factories run unattended — in two steps. **Knowledge first**: an onboarding command builds the initial knowledge wiki from everything the agent can reach and writes a gaps file containing the questions only a human can answer ("today is your only chance to ask"); humans answer inline, a fresh session re-runs it, and the loop repeats until no gaps remain. **Standards second**: apply Lisa's full rules and thresholds — the project will go red, deliberately — and let agents refactor to conform without changing behavior, proven by the test suite and empirical verification.
+
+> **Prompt for your coding agent**
+> "Is this project agent-ready? Run the agent-ready onboarding: build or update the knowledge wiki from what you can reach, show me the open gaps only I can answer, and tell me exactly what happens after I answer them."
+
 ## The work lifecycle
 
 Lisa organizes a piece of work as a pipeline of specialized agent roles — the factories, seen from inside. Conceptually a work item moves through five stages:
