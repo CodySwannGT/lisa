@@ -291,6 +291,45 @@ without turning the base doctor into a second `lisa-wiki-doctor`.
    - Never require a wiki plugin surface when `wiki/` is absent.
    - Never let wiki-specific checks downgrade unrelated non-wiki repositories.
 
+### Upstream Lisa change-history diagnosis
+
+A failing or warning check has two possible causes: the project drifted, or **Lisa itself changed
+upstream** since this project last updated. Doctor must distinguish them instead of blaming the
+project by default. Whenever findings need explanation — and always before proposing repairs —
+pull Lisa's own git history and read what actually changed:
+
+1. **Resolve the version window.** Determine the project's installed Lisa version (the
+   `@codyswann/lisa` entry in `package.json`/lockfile, or the plugin version stamp on the active
+   runtime) and the latest published version (`npm view @codyswann/lisa version`, or the update
+   check's cached result).
+2. **Pull the upstream history for that window** (read-only; no clone required when `gh` is
+   available):
+
+   ```bash
+   gh api "repos/CodySwannGT/lisa/compare/v<installed>...v<latest>" \
+     --jq '{total_commits, files: [.files[].filename], commits: [.commits[].commit.message | split("\n")[0]]}'
+   ```
+
+   Fallbacks, in order: `gh api repos/CodySwannGT/lisa/commits?path=<template-path>` for a
+   path-scoped view; a shallow clone (`git clone --filter=blob:none --no-checkout` then
+   `git log v<installed>..v<latest> -- <paths>`); or the local marketplace/plugin cache checkout
+   when the runtime has one. If none are reachable, report the gap as a `WARN`-level observability
+   note — never fail the audit because history was unavailable.
+3. **Scope the reading to what the finding touches.** Filter the commit list to the paths that
+   generate the failing surface: the detected stacks' template dirs (`typescript/`, `expo/`, …),
+   `plugins/src/base/` for skills/hooks/rules, `scripts/` for governance scripts, and the shipped
+   config factories (`src/configs/`). A finding about a lint rule failure reads the lint-config
+   commits, not the whole log.
+4. **Attribute the finding.** When the upstream history shows Lisa changed the contract (a
+   tightened lint rule, a renamed check context, a new required config key), say so in `Observed:`
+   with the commit subject/version, and let `Remediation:` point at the sanctioned adoption path
+   (e.g. `lisa update` + re-apply, a documented config opt-out) rather than hand-editing managed
+   files. When history shows no relevant upstream change, the project drifted — remediate on the
+   project side.
+
+This history pull is part of doctor's read-only contract: it reads Lisa's repository, never writes
+to it, and repair suggestions stay suggestions.
+
 ## Output contract
 
 The final report must:
