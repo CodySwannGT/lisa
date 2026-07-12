@@ -40,6 +40,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
+
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
@@ -162,6 +164,11 @@ export function generateAgyVariant(srcDir, outDir, version) {
       }
     }
   }
+
+  // 1b. Nest commands under commands/lisa/ — agy does not prefix plugin
+  // commands with the plugin name, so the directory manufactures the /lisa:*
+  // namespace that Claude gets from the plugin name alone.
+  nestCommandsUnderLisa(outDir);
 
   // 2. Read the Claude manifest, drop hooks + mcpServers, write bare plugin.json.
   // agy reads hooks from a root hooks.json (emitted below), not the manifest;

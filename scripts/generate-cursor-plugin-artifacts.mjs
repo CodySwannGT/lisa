@@ -49,6 +49,7 @@ import {
   buildCursorHooksJson,
   filterScriptsForAgent,
 } from "./lib/per-agent-hook-filter.mjs";
+import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -321,6 +322,11 @@ export function generateCursorVariant(srcDir, outDir, version) {
 
   // 1c. Rename .mcp.json → mcp.json (Cursor auto-discovers the un-dotted name).
   renameMcpFile(outDir);
+
+  // 1d. Nest commands under commands/lisa/ — Cursor does not prefix plugin
+  // commands with the plugin name, so the directory manufactures the /lisa:*
+  // namespace that Claude gets from the plugin name alone.
+  nestCommandsUnderLisa(outDir);
 
   // 2. Read the manifest, stamp the version, and strip the inline hook block.
   // Cursor reads hooks from hooks/hooks.json (emitted in 2a), never inline.

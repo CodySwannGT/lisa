@@ -6,7 +6,7 @@
  * `plugins/lisa` artifact ships the same surface after `bun run build:plugins`.
  *
  * This suite asserts the scaffold only:
- * 1. `commands/lisa/doctor.md` exists in both plugin roots and delegates to
+ * 1. `commands/doctor.md` exists in both plugin roots and delegates to
  *    `/lisa:doctor`.
  * 2. `skills/lisa-doctor/SKILL.md` exists in both plugin roots with the expected
  *    frontmatter and read-only readiness-audit contract.
@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 
-const COMMAND_REL = "commands/lisa/doctor.md";
+const COMMAND_REL = "commands/doctor.md";
 const SKILL_REL = "skills/lisa-doctor/SKILL.md";
 const SCRIPT_REL = "scripts/doctor-report.mjs";
 

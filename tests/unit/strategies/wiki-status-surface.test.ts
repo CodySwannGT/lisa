@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 const SOURCE_PLUGIN_ROOT = "plugins/src/wiki";
 const GENERATED_PLUGIN_ROOT = "plugins/lisa-wiki";
 const PLUGIN_ROOTS = [SOURCE_PLUGIN_ROOT, GENERATED_PLUGIN_ROOT] as const;
-const COMMAND_REL = "commands/lisa/status.md";
+const COMMAND_REL = "commands/status.md";
 const SKILL_REL = "skills/lisa-wiki-status/SKILL.md";
 const SCRIPT_REL = "scripts/wiki-status.mjs";
 
