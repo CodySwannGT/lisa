@@ -83,10 +83,13 @@ Requires `gh` authenticated with **admin** permission on the repo. A 403 on rule
 Only when `.lisa.config.json` has a `github.environments` entry with `require_approval: true` AND `.github/workflows/deploy.yml` exists but does not reference `approval_environment`:
 
 ```bash
-jq -e '[.github.environments // {} | .[] | select(.require_approval == true)] | length > 0' .lisa.config.json \
+[ -f .github/workflows/deploy.yml ] \
+  && jq -e '[.github.environments // {} | .[] | select(.require_approval == true)] | length > 0' .lisa.config.json > /dev/null 2>&1 \
   && ! grep -q 'approval_environment' .github/workflows/deploy.yml \
   && echo "deploy.yml needs approval wiring"
 ```
+
+A `grep` hit is only a first pass — before skipping the edit, read the `release` job's `with:` block and confirm it actually passes both `require_approval` and `approval_environment` from the `determine_environment` outputs (a commented-out or unrelated occurrence doesn't count as wired).
 
 `deploy.yml` is create-only — the project owns it, so Lisa never patches it automatically. Show the user the two changes from the current stack template (`<stack>/create-only/.github/workflows/deploy.yml` in the Lisa repo) and offer to apply them via Edit:
 
@@ -111,7 +114,9 @@ When environments were configured, also confirm each one carries its protection 
 
 ```bash
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/environments" \
-  --jq '.environments[] | {name, protection_rules}'
+  --jq '.environments[] | {name, protection_rules, deployment_branch_policy}'
 ```
+
+For every environment declared in `github.environments`, treat a missing `deployment_branch_policy` — or, when `require_approval` is true, an empty `protection_rules` — as a failure: the environment exists but is unprotected, so an approval gate bound to it would block nothing.
 
 Report the applied settings, ruleset names, and environments. If any step failed, surface the error — do not mark the setup complete.
