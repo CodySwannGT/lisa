@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.204.0](https://github.com/CodySwannGT/lisa/compare/v2.203.0...v2.204.0) (2026-07-12)
+
+
+### Features
+
+* **nestjs:** add optional deploy env and health smoke ([a468e4e](https://github.com/CodySwannGT/lisa/commit/a468e4e75fa702b360e8f5bc567cfed88657ae04))
+
 ## [2.203.0](https://github.com/CodySwannGT/lisa/compare/v2.202.0...v2.203.0) (2026-07-12)
 
 
