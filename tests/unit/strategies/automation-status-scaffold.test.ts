@@ -24,7 +24,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const COMMAND_REL = "commands/lisa/automation-status.md";
+const COMMAND_REL = "commands/automation-status.md";
 const SKILL_REL = "skills/lisa-automation-status/SKILL.md";
 const SCRIPT_REL = "scripts/automation-status-report.mjs";
 

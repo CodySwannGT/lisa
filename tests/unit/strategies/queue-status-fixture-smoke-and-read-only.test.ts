@@ -123,13 +123,11 @@ describe("queue-status fixture smoke coverage (#826)", () => {
 describe("queue-status source/generated parity and read-only contract (#826)", () => {
   it("keeps the distributed queue-status command in lockstep with the source asset", () => {
     const sourceCommand = readUtf8(
-      path.join(BASE_PLUGIN_ROOT, "commands", "lisa", "queue-status.md")
+      path.join(BASE_PLUGIN_ROOT, "commands", "queue-status.md")
     );
 
     expect(
-      readUtf8(
-        path.join(GENERATED_PLUGIN_ROOT, "commands", "lisa", "queue-status.md")
-      )
+      readUtf8(path.join(GENERATED_PLUGIN_ROOT, "commands", "queue-status.md"))
     ).toBe(sourceCommand);
     expect(sourceCommand).toMatch(/read-only in v1/i);
     expect(sourceCommand).toMatch(

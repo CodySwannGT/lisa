@@ -27,7 +27,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const PLUGIN_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const COMMAND_REL = "commands/lisa/queue-status.md";
+const COMMAND_REL = "commands/queue-status.md";
 const SKILL_REL = "skills/lisa-queue-status/SKILL.md";
 
 const read = (root: string, rel: string): string =>
