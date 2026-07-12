@@ -84,7 +84,8 @@ Only when `.lisa.config.json` has a `github.environments` entry with `require_ap
 
 ```bash
 jq -e '[.github.environments // {} | .[] | select(.require_approval == true)] | length > 0' .lisa.config.json \
-  && ! grep -q 'approval_environment' .github/workflows/deploy.yml \
+  && [ -f .github/workflows/deploy.yml ] \
+  && ! grep -q 'approval_environment:' .github/workflows/deploy.yml \
   && echo "deploy.yml needs approval wiring"
 ```
 
@@ -107,11 +108,13 @@ gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)" \
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/rulesets" --jq '[.[].name]'
 ```
 
-When environments were configured, also confirm each one carries its protection rules and branch policy:
+When environments were configured, also confirm each one carries its protection rules and branch policy — `protection_rules` and `deployment_branch_policy` are separate fields on the environment object, so both must be checked:
 
 ```bash
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/environments" \
-  --jq '.environments[] | {name, protection_rules}'
+  --jq '.environments[] | {name, protection_rules, deployment_branch_policy}'
 ```
+
+Treat a configured environment as incomplete if `deployment_branch_policy` is `null` (branch policy didn't apply) or `protection_rules` is missing the expected reviewers (required-reviewer rule didn't apply) — surface it as an error rather than marking the setup complete.
 
 Report the applied settings, ruleset names, and environments. If any step failed, surface the error — do not mark the setup complete.
