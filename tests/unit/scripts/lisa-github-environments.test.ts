@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { cleanGitEnv } from "../../helpers/test-utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -39,7 +40,11 @@ function writeConfig(projectDir: string, config: object | string): void {
  */
 function createProject(): string {
   const projectDir = mkdtempSync(path.join(tmpdir(), "lisa-environments-"));
-  execFileSync(GIT_BIN, ["init"], { cwd: projectDir, stdio: "ignore" });
+  execFileSync(GIT_BIN, ["init"], {
+    cwd: projectDir,
+    stdio: "ignore",
+    env: cleanGitEnv(process.env),
+  });
   return projectDir;
 }
 
@@ -104,7 +109,7 @@ function runEnvironmentsDryRun(
     [ENVIRONMENTS_SCRIPT, "--dry-run", projectDir],
     {
       cwd: REPO_ROOT,
-      env: { ...process.env, PATH: shimmedPath },
+      env: cleanGitEnv(process.env, { PATH: shimmedPath }),
       encoding: "utf8",
     }
   );
