@@ -290,6 +290,69 @@
         max-width: 26ch;
       }
 
+      .check-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      .check-item:last-child {
+        border-bottom: 0;
+      }
+      .ck {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid var(--line-strong);
+        background: none;
+        color: transparent;
+        cursor: pointer;
+        flex: none;
+        margin-top: 1px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        line-height: 1;
+      }
+      .ck::after {
+        content: "✓";
+      }
+      .ck:hover {
+        border-color: var(--good);
+      }
+      .check-item.done .ck {
+        background: var(--good);
+        border-color: var(--good);
+        color: #fff;
+      }
+      .check-content {
+        flex: 1;
+        min-width: 0;
+      }
+      .check-label {
+        font-weight: 550;
+        font-size: 13.5px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .check-content .desc {
+        color: var(--muted);
+        font-size: 12.5px;
+        margin: 2px 0 5px;
+        max-width: 62ch;
+      }
+      .check-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 3px;
+        flex: none;
+      }
+
       .app {
         display: grid;
         grid-template-columns: 250px 1fr;
@@ -446,7 +509,7 @@
         margin-top: 2px;
         max-width: 62ch;
       }
-      .row .keychip {
+      .keychip {
         font-family: var(--mono);
         font-size: 10.5px;
         color: var(--muted);
@@ -1185,6 +1248,7 @@
             label: "Project",
             sections: [
               "overview",
+              "setup",
               "health",
               "general",
               "stacks",
@@ -1194,7 +1258,14 @@
           },
           {
             label: "Delivery",
-            sections: ["tracker", "prd", "deploy", "automations", "monitor"],
+            sections: [
+              "workflow",
+              "tracker",
+              "prd",
+              "deploy",
+              "automations",
+              "monitor",
+            ],
           },
           {
             label: "Quality",
@@ -1284,6 +1355,263 @@
 
       /* ---------------------------------- General ---------------------------------- */
       /* ---------------------------------- Health ---------------------------------- */
+      /* ---------------------------------- Setup checklist ---------------------------------- */
+      DATA.sections.setup = {
+        title: "Setup checklist",
+        desc: "Everything a host project needs to be fully governed, in the order it usually happens. Each step is idempotent — re-running it is always safe.",
+        src: "lisa apply · lisa sync · /lisa:setup:* skills",
+        blocks: [
+          {
+            type: "checklist",
+            card: "Required",
+            items: [
+              {
+                label: "Install Lisa and apply templates",
+                desc: "Detects the project’s stacks, applies their templates, installs plugins and git hooks.",
+                command: "bun add -d @codyswann/lisa && bunx lisa",
+                done: true,
+              },
+              {
+                label: "Populate configuration",
+                desc: "Fills every missing .lisa.config.json setting (absorbing existing artifact values first) and syncs mirrored files. No unset configs.",
+                command: "lisa sync",
+                done: true,
+              },
+              {
+                label: "Connect the work tracker",
+                desc: "Verifies the workflow status names and writes the tracker section. This project: JIRA, project ACME.",
+                command: "/lisa:setup:jira | github | linear",
+                done: true,
+              },
+              {
+                label: "Connect the PRD source",
+                desc: "Wires the product-requirements queue and its lifecycle vocabulary. This project: Notion.",
+                command: "/lisa:setup:notion | confluence | linear | github",
+                done: true,
+              },
+              {
+                label: "Apply GitHub repository governance",
+                desc: "Repo settings (merge-only), rulesets with required checks, write deploy key, deployment environments with approval gates.",
+                command: "/lisa:setup:github-repo",
+                done: true,
+              },
+              {
+                label: "Provision CI secrets",
+                desc: "CLAUDE_CODE_OAUTH_TOKEN, GITGUARDIAN_API_KEY, SONAR_TOKEN, per-environment AWS accounts, and the optional scanners.",
+                command: "gh secret set …",
+                done: false,
+                why: "2 missing: SNYK_TOKEN, FOSSA_API_KEY",
+              },
+              {
+                label: "Schedule the automations",
+                desc: "Creates the intake, repair, and exploratory crons on the harness’s native scheduler.",
+                command: "/lisa:setup-automations",
+                done: false,
+              },
+              {
+                label: "Configure exploration environments",
+                desc: "Per-environment mutation policy and test identity so agents can use the product safely (production defaults to forbidden).",
+                command: ".lisa.config.json exploration.*",
+                done: false,
+              },
+            ],
+          },
+          {
+            type: "checklist",
+            card: "Optional",
+            items: [
+              {
+                label: "Install the LLM wiki",
+                desc: "In-repo knowledge base agents read and maintain.",
+                command: "/lisa:wiki:install",
+                done: false,
+                optional: true,
+              },
+              {
+                label: "Record starter provenance",
+                desc: "Which starter repo(s) this project descends from, enabling starter sync (planned).",
+                command: ".lisa.config.json starter.*",
+                done: false,
+                optional: true,
+              },
+            ],
+          },
+          {
+            type: "callout",
+            text: "The Health section’s in-band scan re-verifies most of these continuously once setup is complete; lisa doctor diagnoses any step that went sideways.",
+          },
+        ],
+      };
+
+      /* ---------------------------------- Core workflow ---------------------------------- */
+      DATA.sections.workflow = {
+        title: "Core workflow",
+        desc: "The slash commands that run the delivery loop — what each one does, when to reach for it yourself, and which scheduled automation already runs it for you.",
+        src: "plugins/src/base/commands/lisa/ · plugins/src/base/skills/",
+        blocks: [
+          {
+            type: "flow",
+            title: "The delivery loop these commands drive",
+            states: [
+              { name: "PRD ready" },
+              { name: "intake → plan" },
+              { name: "tickets ready" },
+              { name: "intake → implement" },
+              { name: "PR merged + deployed" },
+              { name: "verify-prd" },
+              { name: "verified", terminal: true },
+            ],
+          },
+          {
+            type: "table",
+            card: "Core commands",
+            note: "Commands marked with an automation run on a schedule — invoke them manually to force a cycle",
+            cols: ["Command", "What it does", "When to use it", "Automation"],
+            rows: [
+              [
+                { t: "mono", v: "/lisa:intake" },
+                {
+                  t: "text",
+                  v: "Scans the ready queues and processes one eligible item: a ready PRD is validated and ticketed; a ready ticket is built end-to-end; shipped PRDs roll forward to verification",
+                },
+                {
+                  t: "text",
+                  v: "Rarely by hand — the crons run it; invoke to force an immediate cycle",
+                },
+                { t: "mono", v: "intake-prd · intake-tickets" },
+              ],
+              [
+                { t: "mono", v: "/lisa:repair-intake" },
+                {
+                  t: "text",
+                  v: "Finds stuck or half-closed work — stalled builds, missed transitions, unreconciled rollups — and repairs each one",
+                },
+                {
+                  t: "text",
+                  v: "When something looks wedged; the hourly cron usually gets there first",
+                },
+                { t: "mono", v: "intake-repair" },
+              ],
+              [
+                { t: "mono", v: "/lisa:plan" },
+                {
+                  t: "text",
+                  v: "Turns a PRD or epic into a reviewed implementation plan and build-ready tickets",
+                },
+                {
+                  t: "text",
+                  v: "Plan one specific PRD now instead of waiting for intake",
+                },
+                { t: "mono", v: "via intake" },
+              ],
+              [
+                { t: "mono", v: "/lisa:implement" },
+                {
+                  t: "text",
+                  v: "Builds one ticket end-to-end: TDD implementation, parallel reviews, empirical verification, PR driven to merge",
+                },
+                { t: "text", v: "Build one specific ticket now" },
+                { t: "mono", v: "via intake" },
+              ],
+              [
+                { t: "mono", v: "/lisa:verify" },
+                {
+                  t: "text",
+                  v: "Empirically proves a change works by driving the real product — not just tests and typecheck",
+                },
+                {
+                  t: "text",
+                  v: "Before shipping anything nontrivial; build flows call it automatically",
+                },
+                { t: "mono", v: "via implement" },
+              ],
+              [
+                { t: "mono", v: "/lisa:verify-prd" },
+                {
+                  t: "text",
+                  v: "Checks a shipped PRD end-to-end and rolls it to verified — or reopens it with build-ready fix tickets",
+                },
+                { t: "text", v: "Close the loop on a shipped PRD" },
+                { t: "mono", v: "via intake" },
+              ],
+              [
+                { t: "mono", v: "/lisa:git:commit" },
+                {
+                  t: "text",
+                  v: "Groups current changes into conventional commits, all quality hooks enforced",
+                },
+                { t: "text", v: "Any time work needs committing" },
+                { t: "mono", v: "—" },
+              ],
+              [
+                { t: "mono", v: "/lisa:git:submit-pr" },
+                {
+                  t: "text",
+                  v: "Pushes, opens or updates the PR, enables auto-merge, and drives it all the way to merged — resolving reviews and fixing checks",
+                },
+                { t: "text", v: "When a branch is ready to ship" },
+                { t: "mono", v: "—" },
+              ],
+              [
+                { t: "mono", v: "/lisa:exploratory-qa" },
+                {
+                  t: "text",
+                  v: "Explores the product like a first-time user (respecting the mutation policy) and files bugs",
+                },
+                {
+                  t: "text",
+                  v: "After notable UX changes, or let the daily cron handle it",
+                },
+                { t: "mono", v: "exploratory-bugs" },
+              ],
+              [
+                { t: "mono", v: "/lisa:project-ideation" },
+                {
+                  t: "text",
+                  v: "Ideates product improvements and drafts PRDs",
+                },
+                { t: "text", v: "Fill the product pipeline" },
+                { t: "mono", v: "exploratory-prds" },
+              ],
+              [
+                { t: "mono", v: "/lisa:monitor" },
+                {
+                  t: "text",
+                  v: "Audits the connected observability providers against the alert thresholds and files regression tickets",
+                },
+                { t: "text", v: "On demand between scheduled runs" },
+                { t: "mono", v: "—" },
+              ],
+              [
+                { t: "mono", v: "/lisa:debrief" },
+                {
+                  t: "text",
+                  v: "Mines a shipped initiative — tickets, PRs, review threads — for learnings to triage",
+                },
+                { t: "text", v: "After an initiative ships" },
+                { t: "mono", v: "—" },
+              ],
+              [
+                { t: "mono", v: "/lisa:doctor" },
+                {
+                  t: "text",
+                  v: "Diagnoses Lisa, project, starter, and wiki health",
+                },
+                {
+                  t: "text",
+                  v: "When something seems off; also feeds the planned health check",
+                },
+                { t: "mono", v: "—" },
+              ],
+            ],
+          },
+          {
+            type: "callout",
+            text: "Setup commands (/lisa:setup:*) live in the Setup checklist; quality one-offs (/lisa:improve:*, /lisa:security:*, mutation testing) are stack tools rather than core workflow.",
+          },
+        ],
+      };
+
       DATA.sections.health = {
         title: "Health",
         desc: "Whether this project is on the latest Lisa and completely in band — every Lisa-managed surface matching what the installed version would emit. Version status is always visible (top bar); the in-band scan runs on demand.",
@@ -4800,6 +5128,69 @@
         return card;
       }
 
+      function buildChecklist(block) {
+        const card = el("div", "card");
+        const head = el("div", "card-head");
+        const note = el("span", "note");
+        const countDone = () =>
+          card.querySelectorAll(".check-item.done").length;
+        const refreshNote = () => {
+          note.textContent =
+            countDone() + " of " + block.items.length + " complete";
+        };
+        head.appendChild(el("h2", "", esc(block.card)));
+        head.appendChild(note);
+        card.appendChild(head);
+        const body = el("div", "card-body");
+        block.items.forEach(item => {
+          const row = el("div", "check-item" + (item.done ? " done" : ""));
+          const right = el("div", "check-right");
+          const refreshRight = () => {
+            const isDone = row.classList.contains("done");
+            right.innerHTML = "";
+            right.appendChild(
+              el(
+                "span",
+                "badge " +
+                  (isDone ? "pass" : item.optional ? "default" : "warn"),
+                isDone ? "done" : item.optional ? "not set up" : "pending"
+              )
+            );
+            if (!isDone && item.why) {
+              right.appendChild(el("span", "status-why", esc(item.why)));
+            }
+          };
+          const ck = el("button", "ck");
+          ck.type = "button";
+          ck.title = "Toggle (prototype)";
+          ck.setAttribute("aria-label", "Toggle " + item.label);
+          ck.addEventListener("click", () => {
+            row.classList.toggle("done");
+            refreshRight();
+            refreshNote();
+            markDirty("setup·" + item.label, null);
+          });
+          row.appendChild(ck);
+          const content = el("div", "check-content");
+          const lab = el("div", "check-label", esc(item.label));
+          if (item.optional) {
+            lab.appendChild(el("span", "badge default", "optional"));
+          }
+          content.appendChild(lab);
+          if (item.desc) content.appendChild(el("div", "desc", esc(item.desc)));
+          if (item.command) {
+            content.appendChild(el("span", "keychip", esc(item.command)));
+          }
+          row.appendChild(content);
+          refreshRight();
+          row.appendChild(right);
+          body.appendChild(row);
+        });
+        card.appendChild(body);
+        refreshNote();
+        return card;
+      }
+
       function buildBlock(block) {
         if (block.type === "tiles") return buildTiles(block);
         if (block.type === "flow") return buildFlow(block);
@@ -4808,6 +5199,7 @@
         if (block.type === "callout") return buildCallout(block);
         if (block.type === "table") return buildTable(block);
         if (block.type === "tabs") return buildTabs(block);
+        if (block.type === "checklist") return buildChecklist(block);
         return buildCard(block);
       }
 
