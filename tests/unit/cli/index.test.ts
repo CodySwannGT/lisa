@@ -1,3 +1,4 @@
+import type { Server } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import { createProgram } from "../../../src/cli/index.js";
 import { getPackageVersion } from "../../../src/cli/version.js";
@@ -25,6 +26,8 @@ function createTestProgram(): {
   runVersion: ReturnType<typeof vi.fn>;
   runUpdate: ReturnType<typeof vi.fn>;
   runDoctor: ReturnType<typeof vi.fn>;
+  runSync: ReturnType<typeof vi.fn>;
+  runUi: ReturnType<typeof vi.fn>;
   runUpdateCheck: ReturnType<typeof vi.fn>;
   printUpdateWarning: ReturnType<typeof vi.fn>;
 } {
@@ -34,6 +37,8 @@ function createTestProgram(): {
   const runVersion = vi.fn(async () => undefined);
   const runUpdate = vi.fn(async () => 0);
   const runDoctor = vi.fn(async () => ({ checks: [] }));
+  const runSync = vi.fn(async () => 0);
+  const runUi = vi.fn(async () => ({}) as Server);
   const runUpdateCheck = vi.fn(async () => SKIPPED_RESULT);
   const printUpdateWarning = vi.fn();
   const program = createProgram({
@@ -43,6 +48,8 @@ function createTestProgram(): {
     runVersion,
     runUpdate,
     runDoctor,
+    runSync,
+    runUi,
     runUpdateCheck,
     printUpdateWarning,
   }).exitOverride();
@@ -54,6 +61,8 @@ function createTestProgram(): {
     runVersion,
     runUpdate,
     runDoctor,
+    runSync,
+    runUi,
     runUpdateCheck,
     printUpdateWarning,
   };
@@ -247,5 +256,47 @@ describe("maintenance command invocation", () => {
       DEST,
       expect.objectContaining({ json: true, offline: true })
     );
+  });
+});
+
+describe("sync and ui invocation", () => {
+  it("registers sync and ui subcommands", () => {
+    const { program } = createTestProgram();
+    const subcommandNames = program.commands.map(command => command.name());
+    expect(subcommandNames).toEqual(expect.arrayContaining(["sync", "ui"]));
+  });
+
+  it("routes sync options to the sync action", async () => {
+    const { program, runSync } = createTestProgram();
+
+    await program.parseAsync(["sync", DEST, "--dry-run", "--json"], {
+      from: "user",
+    });
+
+    expect(runSync).toHaveBeenCalledWith(
+      DEST,
+      expect.objectContaining({ dryRun: true, json: true })
+    );
+  });
+
+  it("routes ui options to the ui action, including --no-sync", async () => {
+    const { program, runUi } = createTestProgram();
+
+    await program.parseAsync(["ui", DEST, "--port", "5001", "--no-sync"], {
+      from: "user",
+    });
+
+    expect(runUi).toHaveBeenCalledWith(
+      DEST,
+      expect.objectContaining({ port: "5001", sync: false })
+    );
+  });
+
+  it("does not run the update check for sync or ui", async () => {
+    const { program, runUpdateCheck } = createTestProgram();
+
+    await program.parseAsync(["sync", DEST], { from: "user" });
+
+    expect(runUpdateCheck).not.toHaveBeenCalled();
   });
 });
