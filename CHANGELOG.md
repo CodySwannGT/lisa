@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.201.0](https://github.com/CodySwannGT/lisa/compare/v2.200.0...v2.201.0) (2026-07-12)
+
+
+### Features
+
+* **doctor:** diagnose findings against upstream Lisa git history ([9115ba2](https://github.com/CodySwannGT/lisa/commit/9115ba26c7e6c76a3fe081a6bcf817724207c24f))
+
+
+### Bug Fixes
+
+* **tests:** sanitize git hook env in repo-settings script test ([ef18e92](https://github.com/CodySwannGT/lisa/commit/ef18e9292d926959a4f2ad121a2a4894369e6e42))
+
+
+### Documentation
+
+* **doctor:** aggregate paginated gh api output with --slurp ([3a662e5](https://github.com/CodySwannGT/lisa/commit/3a662e555bc75741ededddbdf00272033b4141f8))
+* **doctor:** harden upstream history diagnosis against truncated/unbounded results ([618afcc](https://github.com/CodySwannGT/lisa/commit/618afcc743f97d74a304df3e20d1b92cb27fa4e6))
+
 ## [2.200.0](https://github.com/CodySwannGT/lisa/compare/v2.199.0...v2.200.0) (2026-07-12)
 
 
