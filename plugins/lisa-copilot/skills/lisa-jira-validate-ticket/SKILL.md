@@ -93,6 +93,7 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | F2 Epic parent exists and is an Epic | `structural` | false |
 | F3 Linked tickets exist | `structural` | false |
 | F4 Required custom fields populated | `structural` | false |
+| F5 Required external access provable | `technical` | true |
 
 Category values are drawn from this fixed set:
 
@@ -246,6 +247,31 @@ For each entry in `links`, invoke `lisa-atlassian-access` `operation: read-ticke
 
 Use the same project-issue-type-metadata lookup from F1 (via `lisa-atlassian-access`) to learn required custom fields for the issue type. Any required custom field not provided in the spec: FAIL.
 
+#### F5 — Required external access provable
+
+The factory-gate rule: an input must not enter the pipeline unless the current runtime can actually
+reach every external surface the work requires. Enumerate the surfaces this item depends on:
+
+- artifact links in the body (documents, designs, dashboards, spreadsheets, recordings),
+- systems named by the description, acceptance criteria, or Validation Journey ("read the CloudWatch
+  alarms", "pull the copy from the Google Doc", "check the Sentry issues"),
+- tooling the work plainly implies (a deploy target, a database, a third-party API).
+
+For each surface, prove **read** access from the current runtime with the cheapest read-only probe
+through the sanctioned access layer: the matching MCP tool or `lisa-*-access` skill, CLI auth
+(`aws sts get-caller-identity`, `gh auth status`, vendor equivalents), or an authenticated fetch of
+the linked artifact. Attempt to resolve a gap before failing — an alternate substrate, a configured
+access layer, a keychain credential — mirroring the intake agent's discover-first duty.
+
+- `PASS` — every required surface is provably readable.
+- `N/A` — the item needs nothing beyond the repository and the tracker itself.
+- `FAIL` — a required surface is unreachable after the resolution attempt. Name the exact surface
+  and what was probed. Intake callers must route this to `blocked` + human escalation with the
+  missing access spelled out — an input the factory cannot execute never enters the factory.
+
+Probes are read-only and bounded (seconds, not minutes, per surface); never mutate the external
+system, and never invent or ask for credentials inline.
+
 ## Execution
 
 1. Parse `$ARGUMENTS`. If it's a ticket key, fetch the ticket via `lisa-atlassian-access` `operation: read-ticket` and derive the spec from the fetched fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa-jira-read-ticket`) so S15 can classify the ticket. When the fetched description is ADF, walk the document tree and extract section headings from ADF `heading` nodes, then collect the text between heading nodes for section-specific gates. If the fetched description is a single paragraph containing literal Markdown/wiki heading markers, treat that as a formatting failure rather than accepting substring matches. Otherwise parse the YAML spec.
@@ -283,6 +309,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] F2 Epic parent exists and is an Epic — <one-line reason>
 - [PASS|FAIL|N/A] F3 Linked tickets exist — <one-line reason>
 - [PASS|FAIL|N/A] F4 Required custom fields populated — <one-line reason>
+- [PASS|FAIL|N/A] F5 Required external access provable — <one-line reason>
 
 ### Verdict: PASS | FAIL
 ### Failures: <count>
@@ -301,7 +328,7 @@ The verdict is `PASS` if and only if every applicable gate is `PASS`. Any `FAIL`
 
 ### Failure-detail fields
 
-- **gate**: the gate ID (`S1`–`S15`, `F1`–`F4`).
+- **gate**: the gate ID (`S1`–`S15`, `F1`–`F5`).
 - **category**: the gate's fixed category from the table above. Callers use this to label or filter comments — `product-clarity`, `acceptance-criteria`, `design-ux`, `scope`, `dependency`, `data`, `technical`, or `structural`.
 - **product_relevant**: matches the gate's table entry. `false` means the failure is an internal data-quality problem (e.g., the agent built a malformed spec, an issue type is invalid in the project) and the caller should fix it without bothering the product team. `true` means the PRD needs product input to resolve.
 - **what**: plain-language description of the issue. No gate IDs, no JIRA jargon, no engineering shorthand. A product owner reading this on a Notion comment should understand what is unclear and why.
