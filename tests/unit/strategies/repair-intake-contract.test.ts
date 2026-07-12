@@ -19,7 +19,7 @@ const read = (root: string, relative: string): string =>
 describe("repair-intake contract", () => {
   describe.each(ROOTS)("%s", root => {
     const skill = read(root, "skills/lisa-repair-intake/SKILL.md");
-    const command = read(root, "commands/lisa/repair-intake.md");
+    const command = read(root, "commands/repair-intake.md");
 
     it("repairs every actionable candidate inside max_candidates", () => {
       expect(skill).toMatch(/Repair every materially actionable candidate/i);

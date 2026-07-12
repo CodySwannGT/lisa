@@ -133,17 +133,10 @@ describe("automation-status source/generated parity (#803)", () => {
   it("keeps the distributed automation-status command in lockstep with the source asset", () => {
     expect(
       readUtf8(
-        path.join(
-          GENERATED_PLUGIN_ROOT,
-          "commands",
-          "lisa",
-          "automation-status.md"
-        )
+        path.join(GENERATED_PLUGIN_ROOT, "commands", "automation-status.md")
       )
     ).toBe(
-      readUtf8(
-        path.join(BASE_PLUGIN_ROOT, "commands", "lisa", "automation-status.md")
-      )
+      readUtf8(path.join(BASE_PLUGIN_ROOT, "commands", "automation-status.md"))
     );
   });
 
