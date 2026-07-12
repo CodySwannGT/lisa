@@ -49,6 +49,7 @@
   ],
   "files": [
     "dist",
+    "ui",
     "all",
     "typescript",
     "npm-package",
