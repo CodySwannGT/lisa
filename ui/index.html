@@ -1280,9 +1280,27 @@
       /* ---------------------------------- Overview ---------------------------------- */
       DATA.sections.overview = {
         title: "Overview",
-        desc: "Everything Lisa governs for this project at a glance. Values come from .lisa.config.json, the detected stack templates, and shipped defaults.",
+        desc: "Lisa runs this project as a set of software factories — agent-operated production lines that build, verify, and ship with as few humans as possible. Everything below is what the factories are governed by.",
         src: ".lisa.config.json · .lisa.config.local.json",
         blocks: [
+          {
+            type: "flow",
+            title:
+              "The four factories — humans hand off at the gates, never inside",
+            states: [
+              { name: "Research → PRDs" },
+              { name: "⛩ gate" },
+              { name: "Plan → work units" },
+              { name: "⛩ gate" },
+              { name: "Implement → software" },
+              { name: "⛩ gate" },
+              { name: "Verify → go/no-go", terminal: true },
+            ],
+          },
+          {
+            type: "callout",
+            text: "<b>The gates are adversarial.</b> Agents, humans, and automations submit inputs; an intake agent admits only work that is unambiguous and that the factory has provable tooling access to execute — everything else is rejected and raised. Three loops feed the pipeline on schedule: <b>QA</b> (exploratory bugs), <b>Product Planning</b> (ideated PRDs), and <b>Monitoring</b> (observability regressions). Verify failures flow straight back into Implement as build-ready tickets. End users never talk to a coding agent.",
+          },
           {
             type: "tiles",
             tiles: [
@@ -1301,7 +1319,11 @@
                 v: "9",
                 s: "incl. CodeRabbit + GitGuardian",
               },
-              { k: "Automations", v: "5", s: "intake, repair, exploratory" },
+              {
+                k: "Automations",
+                v: "6",
+                s: "intake, repair, loops — all healthy",
+              },
             ],
           },
           {
@@ -1404,7 +1426,7 @@
               },
               {
                 label: "Schedule the automations",
-                desc: "Creates the intake, repair, and exploratory crons on the harness’s native scheduler.",
+                desc: "Creates the six-automation fleet — intake, repair, and the QA / Product Planning / Monitoring loops — on the harness’s native scheduler.",
                 command: "/lisa:setup-automations",
                 done: false,
               },
@@ -1580,7 +1602,7 @@
                   v: "Audits the connected observability providers against the alert thresholds and files regression tickets",
                 },
                 { t: "text", v: "On demand between scheduled runs" },
-                { t: "mono", v: "—" },
+                { t: "mono", v: "monitor" },
               ],
               [
                 { t: "mono", v: "/lisa:debrief" },
@@ -3004,17 +3026,19 @@
       /* ---------------------------------- Automations ---------------------------------- */
       DATA.sections.automations = {
         title: "Automations",
-        desc: "Recurring agents Lisa schedules on the harness’s native scheduler (Claude /schedule, Codex automations). Names carry a stable lisa-auto-<project>- prefix so teardown is precise.",
+        desc: "The scheduled fleet that runs the factories: pipeline movers (intake, repair) and the three feeding loops (QA, Product Planning, Monitoring), on the harness\u2019s native scheduler. Names carry a stable lisa-auto-<project>- prefix so teardown is precise.",
         src: "plugins/src/base/skills/lisa-setup-automations",
         blocks: [
           {
             type: "table",
             card: "Scheduled jobs",
+            note: "Status and next run are mocked \u2014 live wiring is LCW-1 (#1544)",
             cols: [
               "Automation",
               "What it does",
-              "Command",
               "Cadence",
+              "Last run",
+              "Next run",
               "Enabled",
             ],
             rows: [
@@ -3022,80 +3046,161 @@
                 { t: "mono", v: "intake-tickets" },
                 {
                   t: "text",
-                  v: "Claims the next build-ready ticket from the tracker and runs the full build flow on it — one item per cycle",
+                  v: "Claims the next build-ready ticket and runs the full build flow on it \u2014 one item per cycle",
                 },
-                { t: "mono", v: "/lisa:intake <build queue>" },
                 {
                   t: "select",
                   v: "every 10 min",
                   options: ["every 10 min", "every 30 min", "every 60 min"],
                 },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "12:50",
+                  reason: "ok \u2014 queue empty, exited clean",
+                },
+                { t: "mono", v: "13:00" },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "intake-prd" },
                 {
                   t: "text",
-                  v: "Validates the next ready PRD and either creates its destination tickets or blocks it with clarifying questions; also rolls shipped PRDs forward to verified",
+                  v: "Validates the next ready PRD at the gate and either creates its work units or blocks it with clarifying questions",
                 },
-                { t: "mono", v: "/lisa:intake <PRD queue>" },
                 {
                   t: "select",
                   v: "every 60 min",
                   options: ["every 10 min", "every 30 min", "every 60 min"],
                 },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "12:04",
+                  reason: "ok \u2014 1 PRD ticketed",
+                },
+                { t: "mono", v: "13:04" },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "intake-repair" },
                 {
                   t: "text",
-                  v: "Finds stuck work — stalled builds, half-closed items, unreconciled parent rollups — and repairs or resumes each one",
+                  v: "Finds stuck work \u2014 stalled builds, half-closed items, unreconciled rollups \u2014 and repairs each one",
                 },
-                { t: "mono", v: "/lisa:repair-intake <queue>" },
                 {
                   t: "select",
                   v: "every 60 min",
                   options: ["every 30 min", "every 60 min", "every 3 h"],
                 },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "12:04",
+                  reason: "ok \u2014 0 stuck items",
+                },
+                { t: "mono", v: "13:04" },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "exploratory-bugs" },
                 {
                   t: "text",
-                  v: "Explores the product like a first-time user (respecting the per-environment mutation policy) and files any bugs it finds",
+                  v: "QA loop: explores the product like a first-time user (respecting the mutation policy) and files bugs build-ready",
                 },
-                { t: "mono", v: "/lisa-<stack>:exploratory-qa" },
                 { t: "select", v: "daily", options: ["daily", "weekly"] },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "04:00",
+                  reason: "ok \u2014 2 bugs filed",
+                },
+                { t: "mono", v: "tomorrow 04:00" },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "exploratory-prds" },
                 {
                   t: "text",
-                  v: "Ideates product improvements from usage and codebase context and drafts PRDs for review",
+                  v: "Product Planning loop: ideates improvements and writes PRDs prd-ready",
                 },
-                { t: "mono", v: "/lisa:project-ideation" },
                 { t: "select", v: "daily", options: ["daily", "weekly"] },
+                {
+                  t: "run",
+                  ok: "warn",
+                  v: "04:15",
+                  reason: "skipped \u2014 queue pressure (1 prd-ready waiting)",
+                },
+                { t: "mono", v: "tomorrow 04:15" },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "monitor" },
+                {
+                  t: "text",
+                  v: "Monitoring loop: audits the connected observability providers against the alert thresholds and files regression tickets",
+                },
+                { t: "select", v: "daily", options: ["daily", "weekly"] },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "05:00",
+                  reason: "ok \u2014 1 regression filed",
+                },
+                { t: "mono", v: "tomorrow 05:00" },
                 { t: "toggle", v: true },
               ],
             ],
           },
           {
+            card: "Fleet controls",
+            rows: [
+              {
+                key: "",
+                label: "Fleet health",
+                desc: "From /lisa:automation-status \u2014 whether every expected automation exists, matches the setup contract, and shows healthy recent activity.",
+                control: stat(
+                  "6 of 6 present \u00b7 healthy \u00b7 checked 12:58",
+                  "mono"
+                ),
+              },
+              {
+                key: "",
+                label: "Run an intake cycle now",
+                desc: "Forces one immediate cycle of the PRD and ticket intakes without waiting for the schedule.",
+                control: {
+                  type: "button",
+                  label: "Run intake now",
+                  toast: "Prototype \u2014 fleet controls are not wired up yet",
+                },
+              },
+              {
+                key: "",
+                label: "Pause the fleet",
+                desc: "Suspends every lisa-auto-<project>-* automation; re-enable per row or resume all.",
+                control: {
+                  type: "button",
+                  label: "Pause all",
+                  toast: "Prototype \u2014 fleet controls are not wired up yet",
+                },
+              },
+            ],
+          },
+          {
             card: "Autonomy flags",
+            note: "Autonomous by default \u2014 the adversarial intake gate is the quality control",
             rows: [
               {
                 key: "auto-start-tickets",
                 label: "Auto-start exploratory bug tickets",
-                desc: "On: bugs found by exploratory QA are filed build-ready and picked up automatically. Off: they land in the backlog for human triage.",
-                control: tog(false),
+                desc: "On (default): bugs found by exploratory QA are filed build-ready and picked up automatically. Off: they land in the backlog for human triage.",
+                control: tog(true),
               },
               {
                 key: "auto-start-prds",
                 label: "Auto-start ideated PRDs",
-                desc: "On: ideated PRDs are created prd-ready and flow straight into intake. Off: they stay drafts for human review.",
-                control: tog(false),
+                desc: "On (default): ideated PRDs are created prd-ready and flow straight into intake. Off: they stay drafts for human review.",
+                control: tog(true),
               },
             ],
           },
@@ -3126,7 +3231,7 @@
           },
           {
             type: "callout",
-            text: "exploratory-bugs is only created for stacks that ship exploratory QA (expo, rails, harper-fabric).",
+            text: "exploratory-bugs is created only for stacks that ship exploratory QA (expo, rails, harper-fabric); monitor is created unconditionally \u2014 it reports observability gaps rather than failing when no provider is connected.",
           },
         ],
       };
@@ -4976,8 +5081,26 @@
                   td.appendChild(el("span", "status-why", esc(cell.reason)));
                 }
               }
+            } else if (cell.t === "run") {
+              const cls =
+                cell.ok === true
+                  ? "pass"
+                  : cell.ok === "warn"
+                    ? "warn"
+                    : "fail";
+              const mark =
+                cell.ok === true ? "✓" : cell.ok === "warn" ? "◐" : "✗";
+              td.appendChild(
+                el("span", "badge " + cls, mark + " " + esc(cell.v))
+              );
+              if (cell.reason) {
+                td.appendChild(el("span", "status-why", esc(cell.reason)));
+              }
             } else if (cell.t === "toggle" || cell.t === "select") {
-              td.appendChild(buildControl(cell, null));
+              // Table cells use {t, v}; buildControl expects {type, value}.
+              td.appendChild(
+                buildControl({ ...cell, type: cell.t, value: cell.v }, null)
+              );
             }
             tr.appendChild(td);
           });
@@ -5083,11 +5206,14 @@
       }
 
       function buildCallout(block) {
-        return el(
+        const box = el(
           "div",
-          "callout" + (block.variant === "warn" ? " warn" : ""),
-          block.text
+          "callout" + (block.variant === "warn" ? " warn" : "")
         );
+        // Single child span: the callout is flex, and multiple inline nodes
+        // would each become flex items and render as broken columns.
+        box.appendChild(el("span", "", block.text));
+        return box;
       }
 
       function buildTabs(block) {
