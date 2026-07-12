@@ -144,7 +144,11 @@ visible in the section.
 
 | Section | Source of truth in this repo |
 | --- | --- |
-| General (`harness`, `tracker`, `source`, `repo`) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |
+| Setup checklist (install → sync → tracker/PRD → repo governance → secrets → automations) | `lisa apply`, `lisa sync`, `/lisa:setup:*` skills |
+| Health (version status + planned in-band scan) | `lisa doctor`, `lisa sync --dry-run`, planned `/lisa:health` skill |
+| Core workflow (the delivery-loop slash commands and their automations) | `plugins/src/base/commands/lisa/`, `plugins/src/base/skills/` |
+| Starter templates (provenance + planned two-way sync) | `src/cli/starters.ts`, planned `starter.*` config |
+| General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |
 | Project types (8 stacks + template strategies) | `src/detection/`, `src/strategies/`, `<stack>/` template dirs |
 | Coding agents (claude/codex/cursor/agy/copilot/opencode/fleet) | `src/core/lisa.ts`, `scripts/generate-*-plugin-artifacts.mjs` |
 | Work tracker (JIRA / GitHub Issues / Linear) | `config-resolution.md`, `lisa-setup-*` skills |
