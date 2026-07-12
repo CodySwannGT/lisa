@@ -244,6 +244,44 @@
         border-radius: 99px;
         padding: 3px 10px;
       }
+      .health-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--surface2);
+        cursor: pointer;
+      }
+      .health-link:hover {
+        border-color: var(--line-strong);
+        color: var(--ink);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .dot.ok {
+        background: var(--good);
+      }
+      .dot.warn {
+        background: var(--warn);
+      }
+      .dot.fail {
+        background: var(--crit);
+      }
+      .badge.pass {
+        background: var(--good-soft);
+        color: var(--good);
+      }
+      .badge.warn {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+      .badge.fail {
+        background: var(--crit-soft);
+        color: var(--crit);
+      }
 
       .app {
         display: grid;
@@ -1071,7 +1109,15 @@
           aria-label="Filter settings"
         />
       </div>
-      <span class="version-chip">@codyswann/lisa 2.199.0</span>
+      <button
+        class="version-chip health-link"
+        id="healthChip"
+        type="button"
+        title="Lisa health — click for details"
+      >
+        <span class="dot ok" aria-hidden="true"></span> @codyswann/lisa 2.199.0
+        · up to date
+      </button>
       <button
         class="icon-btn"
         id="themeToggle"
@@ -1130,7 +1176,14 @@
         groups: [
           {
             label: "Project",
-            sections: ["overview", "general", "stacks", "starters", "agents"],
+            sections: [
+              "overview",
+              "health",
+              "general",
+              "stacks",
+              "starters",
+              "agents",
+            ],
           },
           {
             label: "Delivery",
@@ -1223,6 +1276,152 @@
       };
 
       /* ---------------------------------- General ---------------------------------- */
+      /* ---------------------------------- Health ---------------------------------- */
+      DATA.sections.health = {
+        title: "Health",
+        desc: "Whether this project is on the latest Lisa and completely in band — every Lisa-managed surface matching what the installed version would emit. Version status is always visible (top bar); the in-band scan runs on demand.",
+        src: "lisa doctor · lisa sync --dry-run · planned /lisa:health skill",
+        blocks: [
+          {
+            type: "callout",
+            variant: "warn",
+            text: "<b>Planned feature.</b> The version status is real today (lisa's npm update check). The in-band scan below documents the contract for a health-check skill that mixes deterministic checks with agentic review — not wired up yet.",
+          },
+          {
+            card: "Lisa version",
+            note: "Checked automatically on every lisa invocation",
+            rows: [
+              {
+                key: "",
+                label: "Installed",
+                desc: "",
+                control: stat("@codyswann/lisa 2.199.0", "mono"),
+              },
+              {
+                key: "",
+                label: "Latest published",
+                desc: "From the npm registry.",
+                control: stat("2.199.0 · up to date", "mono"),
+              },
+              {
+                key: "",
+                label: "Update",
+                desc: "When behind, lisa update prints (or runs with --yes) the package-manager update command.",
+                control: {
+                  type: "button",
+                  label: "Check for updates",
+                  toast: "Up to date — @codyswann/lisa 2.199.0 is the latest",
+                },
+              },
+            ],
+          },
+          {
+            card: "In-band scan",
+            note: "Deterministic checks + agentic review, packaged as a skill",
+            rows: [
+              {
+                key: "",
+                label: "Run health check",
+                desc: "Scans every Lisa-managed surface and reports drift: managed files vs templates, package.json governance, config population, hooks, plugins, CI workflows, rulesets — then an agentic pass reviews what a diff can't judge.",
+                control: {
+                  type: "button",
+                  label: "Run health check",
+                  toast:
+                    "Prototype — the health-check skill is not wired up yet",
+                },
+              },
+              {
+                key: "health.schedule",
+                label: "Scheduled scan",
+                desc: "Optionally run the health check on a cadence (a lisa-auto cron) and file a ticket when drift is found.",
+                control: sel("off", ["off", "daily", "weekly"]),
+              },
+              {
+                key: "",
+                label: "Last full check",
+                desc: "",
+                control: stat("2026-07-10 · in band (1 advisory)", "mono"),
+              },
+            ],
+          },
+          {
+            type: "table",
+            card: "Latest results",
+            note: "Sample output — what a health check reports",
+            cols: ["Check", "Layer", "Status"],
+            rows: [
+              [
+                {
+                  t: "text",
+                  v: "Managed files match templates (copy-overwrite)",
+                },
+                { t: "mono", v: "deterministic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+              [
+                {
+                  t: "text",
+                  v: "package.json governance (force/defaults/merge)",
+                },
+                { t: "mono", v: "deterministic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+              [
+                {
+                  t: "text",
+                  v: ".lisa.config.json fully populated (sync clean)",
+                },
+                { t: "mono", v: "deterministic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+              [
+                { t: "text", v: "Git hooks installed and unmodified" },
+                { t: "mono", v: "deterministic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+              [
+                { t: "text", v: "Plugins enabled and version-current" },
+                { t: "mono", v: "deterministic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+              [
+                { t: "text", v: "CI workflows drifted from stack template" },
+                { t: "mono", v: "deterministic" },
+                { t: "badge", v: "warn", cls: "warn" },
+              ],
+              [
+                {
+                  t: "text",
+                  v: "Local overrides still justified (eslint.config.local.ts)",
+                },
+                { t: "mono", v: "agentic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+              [
+                {
+                  t: "text",
+                  v: "Skipped CI jobs have a recorded reason",
+                },
+                { t: "mono", v: "agentic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+              [
+                {
+                  t: "text",
+                  v: "Grandfathered lint globs still needed",
+                },
+                { t: "mono", v: "agentic" },
+                { t: "badge", v: "pass", cls: "pass" },
+              ],
+            ],
+          },
+          {
+            type: "callout",
+            text: "<b>How it will work.</b> The deterministic layer reuses what already exists — lisa doctor, template diffing, lisa sync --dry-run, plugin reconciliation — and is fast and exact. The agentic layer reviews what a diff can't: whether local overrides still serve their original purpose, whether drift is intentional, whether skipped gates have justification. Both are packaged as one skill so the button, the cron, and the CLI share a single implementation.",
+          },
+        ],
+      };
+
       DATA.sections.general = {
         title: "General",
         desc: "Top-level project identity: which coding agents Lisa installs into, where tickets are written, and where PRDs come from.",
@@ -4522,6 +4721,10 @@
         clearDirty();
         renderAll();
         showSection(activeSection);
+      });
+
+      document.getElementById("healthChip").addEventListener("click", () => {
+        showSection("health");
       });
 
       document.getElementById("themeToggle").addEventListener("click", () => {

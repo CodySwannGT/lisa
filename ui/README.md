@@ -97,6 +97,39 @@ product features, secrets, or business logic is never proposed.
 When the engine lands, `starter.*` should join the `lisa sync` registry so
 the section above governs it like every other setting.
 
+## Health (planned — documented, not wired)
+
+The **Health** section answers two questions with different lifecycles:
+
+**Is Lisa on the latest version?** — always-on status. Lisa's CLI already
+checks npm on every invocation; the console surfaces the result permanently
+as the top-bar chip (green dot `up to date`, amber when behind) and in the
+Health section's version card. When behind, `lisa update` prints (or runs
+with `--yes`) the package-manager update command.
+
+**Is the project completely in band?** — on-demand scan behind the
+"Run health check" button (plus an optional scheduled cadence via
+`health.schedule` that files a ticket when drift is found). "In band" means
+every Lisa-managed surface matches what the installed Lisa version would
+emit. The check is a mix of deterministic and agentic verification,
+packaged as one skill (working name `/lisa:health`) so the console button,
+the cron, and the CLI share a single implementation:
+
+- **Deterministic layer** (fast, exact — reuses what exists today):
+  `lisa doctor`, template diffing for copy-overwrite/managed-block files,
+  `package.json` governance (force/defaults/merge conformance),
+  `lisa sync --dry-run` (config fully populated, artifacts in sync), git
+  hooks installed and unmodified, plugins enabled and version-current, CI
+  workflow drift vs the stack template, rulesets present.
+- **Agentic layer** (judges what a diff can't): whether local overrides
+  (`eslint.config.local.ts`, grandfathered globs) still serve their original
+  purpose, whether detected drift looks intentional or accidental, whether
+  skipped CI jobs and disabled gates have a recorded justification.
+
+Results render as a per-check table (pass / warn / fail, with the layer that
+produced each finding), and the last full check's date + verdict stays
+visible in the section.
+
 ## What it catalogs
 
 | Section | Source of truth in this repo |
