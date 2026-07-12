@@ -6,13 +6,19 @@ import { BOOTSTRAP_SKIP_NOTICE } from "../../../src/core/bootstrap-environment.j
 import { runApply } from "../../../src/cli/apply.js";
 
 describe("runApply bootstrap guard", () => {
+  const originalCi = process.env.CI;
+
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllEnvs();
+    if (originalCi === undefined) {
+      delete process.env.CI;
+    } else {
+      process.env.CI = originalCi;
+    }
   });
 
   it("exits successfully without writing in a build context", async () => {
-    vi.stubEnv("CI", "1");
+    process.env.CI = "1";
     const projectDir = await mkdtemp(join(tmpdir(), "lisa-apply-guard-"));
     const packageJson = join(projectDir, "package.json");
     await writeFile(packageJson, '{"name":"guard-fixture"}\n', "utf8");
@@ -30,7 +36,7 @@ describe("runApply bootstrap guard", () => {
   });
 
   it("skips before parsing project config in a build context", async () => {
-    vi.stubEnv("CI", "1");
+    process.env.CI = "1";
     const projectDir = await mkdtemp(join(tmpdir(), "lisa-apply-guard-"));
     const configPath = join(projectDir, ".lisa.config.json");
     await writeFile(configPath, "{not-json", "utf8");
