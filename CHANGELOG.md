@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.200.0](https://github.com/CodySwannGT/lisa/compare/v2.199.0...v2.200.0) (2026-07-12)
+
+
+### Features
+
+* **cli:** add lisa ui command and wire sync/ui subcommands ([c6ec787](https://github.com/CodySwannGT/lisa/commit/c6ec787dcd475b9f2d30fbd4a9d2f0490215524b))
+* **sync:** make .lisa.config.json the source of truth via lisa sync ([1192343](https://github.com/CodySwannGT/lisa/commit/11923435b253b03c56b92749f99299e3ac7fb10b))
+* **ui:** add Health section with version status and in-band scan contract ([d3a34af](https://github.com/CodySwannGT/lisa/commit/d3a34af4f128ee7a586ce5d5be8095c068db63bb))
+* **ui:** add Lisa settings console prototype ([c786746](https://github.com/CodySwannGT/lisa/commit/c78674674b4913f6dc249a8498a4bdc64195398c))
+* **ui:** add Setup checklist and Core workflow sections ([9d22cc8](https://github.com/CodySwannGT/lisa/commit/9d22cc8352982f1c681eee234b341bacde80a51e))
+* **ui:** apply console feedback across CI, deploy, automations, monitoring ([e367c48](https://github.com/CodySwannGT/lisa/commit/e367c487899e8b2d51bc280c3fe5e7cb7cb8be54))
+
+
+### Bug Fixes
+
+* **tests:** sanitize git hook env vars when spawning git in temp dirs ([5a16990](https://github.com/CodySwannGT/lisa/commit/5a1699013a92f78f7b3ee12b4ac9caa9a60fe45b))
+
+
+### Code Refactoring
+
+* **sync:** provider-neutral monitor threshold keys; self-populate config ([4e9a065](https://github.com/CodySwannGT/lisa/commit/4e9a0659ed552485625c60c221a2b93a2853853d))
+
 ## [2.199.0](https://github.com/CodySwannGT/lisa/compare/v2.198.2...v2.199.0) (2026-07-12)
 
 
