@@ -123,6 +123,31 @@ Enterprise-grade release management:
 - Sentry release creation
 - Jira release creation
 - Compliance validation (SOC2, ISO27001, HIPAA, PCI-DSS)
+- Optional human-approval gate (`require_approval` + `approval_environment`)
+
+**Human-approval gate**: pass `require_approval: true` and the run pauses at the
+`🚦 Release Approval` job until a required reviewer approves it in the Actions UI.
+The pause is enforced by the GitHub Environment named in `approval_environment`
+(falls back to `environment`, i.e. the branch name):
+
+```yaml
+uses: CodySwannGT/lisa/.github/workflows/release.yml@main
+with:
+  require_approval: true
+  approval_environment: 'production'
+```
+
+Because everything downstream (versioning, GitHub Release, and any deploy job
+that `needs: release`) chains off this gate, approval blocks the whole pipeline.
+The Lisa stack `deploy.yml` templates wire both inputs automatically from the
+optional `github.environments` block in `.lisa.config.json`, mapping the branch
+to its friendly environment name (`main` → `production` via `deploy.branches`).
+The environment itself — required reviewers and a deployment branch policy —
+is provisioned by `/lisa:setup:github-repo`. Provision before enabling the gate:
+GitHub auto-creates unprovisioned environments **without** protection rules, so
+an unprovisioned gate blocks nothing. Not yet wired for rails
+(`release-rails.yml` doesn't thread approval inputs) or harper-fabric (no
+release.yml call).
 
 **Blackout Periods** (configurable):
 - Production: No weekends, no late nights (10 PM - 6 AM)
@@ -576,7 +601,11 @@ with:
   approval_environment: 'production'
 ```
 
-**Note**: Create the environment in **Settings** > **Environments** first.
+**Note**: Create the environment in **Settings** > **Environments** first (or
+declare it under `github.environments` in `.lisa.config.json` and run
+`/lisa:setup:github-repo`). Unlike release.yml's environment-enforced gate,
+quality.yml's `approval_gate` job only records an audit artifact — it does not
+pause the run. For an enforced human gate, use release.yml's `require_approval`.
 
 ### Custom Node Version
 
