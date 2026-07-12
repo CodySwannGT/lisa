@@ -1,0 +1,4 @@
+display_name: "Agent Ready"
+short_description: "Make a brownfield project agent-ready: build the initial knowledge wiki from everything the agent can reach (repository, git history…"
+default_prompt:
+  - "Use $lisa-agent-ready: Make a brownfield project agent-ready: build the initial knowledge wiki from everything the agent can reach (repository, git history…."
