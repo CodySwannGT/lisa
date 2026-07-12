@@ -1,0 +1,133 @@
+# Lisa Console (UI prototype)
+
+A self-contained, zero-build prototype of the Lisa settings console. It catalogs
+every configuration surface Lisa exposes to host projects and presents it as a
+navigable, editable-looking settings UI.
+
+**Prototype scope:** every control is interactive (toggles, selects, inputs,
+tabs, dirty-state tracking, save bar), but edits are not persisted — "Save"
+only clears the in-memory dirty state. Reading real values IS wired up: see
+`lisa ui` below.
+
+## Run it
+
+The real entrypoint is the CLI, which populates and syncs the project's
+`.lisa.config.json` first (see `lisa sync`), then serves the console with the
+merged live config injected — controls whose config key exists show the
+project's actual values:
+
+```bash
+lisa ui [path] [--port 4780] [--no-sync]
+```
+
+The page is also fully standalone (no build step, no dependencies) — without
+live config it falls back to Lisa's shipped defaults:
+
+```bash
+open ui/index.html
+```
+
+## Config sync (`lisa sync`)
+
+`lisa sync [path] [--dry-run] [--json]` makes `.lisa.config.json` (with the
+gitignored `.lisa.config.local.json` overlay) the source of truth for every
+setting in `src/sync/registry.ts`:
+
+- **Populate** — a completely missing config value is absorbed from its
+  mirrored artifact file when one exists (e.g. `vitest.thresholds.json`),
+  otherwise filled with Lisa's built-in default. Vendor sections are only
+  populated when the project uses that vendor.
+- **Sync** — config values are written back into every mirrored artifact file
+  that exists on disk (config wins). Sync never scaffolds an artifact file
+  into a stack that doesn't use it.
+- **Provenance** — pure-default populations are recorded under
+  `_lisaSync.populated`, so when a later Lisa version changes a default, sync
+  can update values that are *still the default* while never touching values
+  a human chose.
+- **Required keys** (`tracker`, `jira.project`, `github.org`, …) can't be
+  invented; sync reports them (exit code 1) and points at the setup skill.
+
+Mirrored artifacts today: `vitest.thresholds.json` / `jest.thresholds.json`
+(`quality.testCoverage`), `eslint.thresholds.json` (`quality.lintBudgets`),
+`mutation.gate.json` (`quality.mutation.gate`), and the `thresholds` key of
+`stryker.conf.json` (`quality.mutation.strykerThresholds`).
+
+## Starter provenance & sync (planned — documented, not wired)
+
+The **Starter templates** section of the console documents this contract; no
+engine exists yet. A project records which starter repo(s) it was generated
+from (`lisa setup-project` already knows them — `src/cli/starters.ts`) and
+stays connected to them in both directions:
+
+```jsonc
+"starter": {
+  "templates": [
+    {
+      "repo": "CodySwannGT/expostarter",   // origin starter
+      "ref": "main",                        // ref compared on each sync
+      "lastSync": { "sha": "8c1f2ab", "at": "2026-07-01" },
+      "paths": ["**"]                       // optional glob scope
+    }
+  ],
+  "sync": {
+    "auto": false,                          // scheduled sync via a lisa-auto cron
+    "strategy": "pull-request",             // or "direct-when-clean"
+    "upstreamProposals": true,              // open issues in the starter repo
+    "proposalLabel": "starter-upstream-proposal"
+  }
+}
+```
+
+**Downstream sync (starter → project).** A sync diffs the starter's tracked
+ref since `lastSync.sha` and applies the changes to the host project,
+respecting Lisa template semantics (create-only files the project now owns
+are never clobbered; a `paths` scope limits what applies). Clean applications
+land per `strategy`; conflicts always open a PR. `lastSync` is updated after
+every successful run. Multiple templates are supported — e.g. an app starter
+plus an infrastructure starter, each with its own path scope.
+
+**Upstreaming (project → starter).** During a sync (or a standalone scan),
+Lisa looks for *generic* additions the host project made — shared utilities,
+dependency/security bumps, CI workflow fixes, config hardening with no
+project-specific identifiers — and opens an issue in the starter repo,
+labeled `proposalLabel`, containing detailed instructions on what was changed
+and how to apply it to the starter. Anything referencing project names,
+product features, secrets, or business logic is never proposed.
+
+When the engine lands, `starter.*` should join the `lisa sync` registry so
+the section above governs it like every other setting.
+
+## What it catalogs
+
+| Section | Source of truth in this repo |
+| --- | --- |
+| General (`harness`, `tracker`, `source`, `repo`) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |
+| Project types (8 stacks + template strategies) | `src/detection/`, `src/strategies/`, `<stack>/` template dirs |
+| Coding agents (claude/codex/cursor/agy/copilot/opencode/fleet) | `src/core/lisa.ts`, `scripts/generate-*-plugin-artifacts.mjs` |
+| Work tracker (JIRA / GitHub Issues / Linear) | `config-resolution.md`, `lisa-setup-*` skills |
+| PRD source (Notion / Confluence / Linear / GitHub) | `config-resolution.md`, `lisa-setup-*` skills |
+| Deploy & environments (`deploy.*`, `github.environments`) | `scripts/lisa-github-environments.sh` |
+| Automations (intake/repair/exploratory crons) | `lisa-setup-automations` skill |
+| Intake & monitoring thresholds | `.lisa.config.json` `intake.*` / `monitor.*` |
+| Linting (custom plugins, budgets, oxlint, ast-grep) | `eslint-plugin-*/`, `src/configs/eslint/`, `sgconfig.yml` |
+| Testing & coverage (runners, floors, mutation gates) | `src/configs/{vitest,jest}/`, `*.thresholds.json` |
+| Git hooks (Husky / Lefthook) | `typescript/copy-contents/.husky/`, `rails/copy-overwrite/lefthook.yml` |
+| CI quality gates (quality.yml jobs + inputs) | `.github/workflows/quality.yml` |
+| Verification & QA (exploration mutation policy, ZAP) | `lisa-use-the-product` skill |
+| GitHub repository (settings, rulesets, labels, secrets) | `scripts/lisa-github-repo-setup.sh`, `all/github-rulesets/` |
+| Plugins & MCP (Lisa + curated third-party + servers) | `.claude/settings.json`, `plugins/src/` |
+| Advanced (wiki source, usage pricing, Play Store) | `config-resolution.md` |
+
+Values shown are Lisa's real defaults (as of the version in the top bar), with
+a fictional demo project (`acme/acme-app`, typescript + expo, JIRA + Notion)
+supplying example identifiers.
+
+## Implementation notes
+
+- Single `index.html`: inline CSS (token-based light/dark theming with a
+  manual toggle) and vanilla JS. The catalog lives in a declarative `DATA`
+  structure at the top of the script; rendering is generic per block type
+  (`card`/`rows`, `table`, `tabs`, `stacks`, `hooks`, `flow`, `tiles`,
+  `callout`), so adding a setting is a data edit, not a DOM edit.
+- Search box filters rows/cards within the active section.
+- URL hash routes to a section (e.g. `ui/index.html#linting`).
