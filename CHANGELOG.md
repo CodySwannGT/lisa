@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.199.0](https://github.com/CodySwannGT/lisa/compare/v2.198.2...v2.199.0) (2026-07-12)
+
+
+### Features
+
+* **github:** provision deployment environments with human-approval gates ([52ae835](https://github.com/CodySwannGT/lisa/commit/52ae83514898cc4fbcde95cce189780910956c2a))
+* **workflows:** wire config-driven approval gates into stack deploy templates ([8c60b0a](https://github.com/CodySwannGT/lisa/commit/8c60b0ac0d393763796ae4e14a001ddf24359478))
+
+
+### Bug Fixes
+
+* **github:** harden skill's approval-wiring detection and env verification ([8ce9594](https://github.com/CodySwannGT/lisa/commit/8ce95942155281cdd58c10131cb7b4a4b598fa0d)), closes [#1491](https://github.com/CodySwannGT/lisa/issues/1491)
+
+
+### Documentation
+
+* **github:** document github.environments approval gates ([452677f](https://github.com/CodySwannGT/lisa/commit/452677fbb98ee08a7ed6504ba43a37308966a60a))
+
 ### [2.198.2](https://github.com/CodySwannGT/lisa/compare/v2.198.1...v2.198.2) (2026-07-11)
 
 
