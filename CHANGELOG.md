@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.203.0](https://github.com/CodySwannGT/lisa/compare/v2.202.0...v2.203.0) (2026-07-12)
+
+
+### Features
+
+* **onboarding:** /lisa:agent-ready — brownfield knowledge convergence before autonomy ([b133919](https://github.com/CodySwannGT/lisa/commit/b1339191520a92b60700fecd130867e81a71fb54))
+
 ## [2.202.0](https://github.com/CodySwannGT/lisa/compare/v2.201.0...v2.202.0) (2026-07-12)
 
 
