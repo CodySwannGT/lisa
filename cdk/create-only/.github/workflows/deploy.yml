@@ -1,5 +1,4 @@
-# This file is managed by Lisa.
-# Do not edit directly — changes will be overwritten on the next `lisa` run.
+# This file is created by Lisa (create-only — edit freely, Lisa won't overwrite it).
 
 name: 🚀 Release and Deploy
 
@@ -30,7 +29,11 @@ jobs:
     timeout-minutes: 5
     outputs:
       environment: ${{ steps.env.outputs.environment }}
+      approval_environment: ${{ steps.approval.outputs.approval_environment }}
+      require_approval: ${{ steps.approval.outputs.require_approval }}
     steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v6
       - name: 🔄 Set environment
         id: env
         run: |
@@ -39,6 +42,26 @@ jobs:
           else
             echo "environment=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
+      - name: 🚦 Resolve approval gate from .lisa.config.json
+        id: approval
+        run: |
+          BRANCH="${{ steps.env.outputs.environment }}"
+          CONFIG=".lisa.config.json"
+          APPROVAL_ENV="$BRANCH"
+          REQUIRE="false"
+          if [ -f "$CONFIG" ] && jq empty "$CONFIG" 2>/dev/null; then
+            # Friendly environment name for the branch: an explicit
+            # github.environments[].branch match wins, then the
+            # deploy.branches map, then the branch name itself.
+            NAME=$(jq -r --arg b "$BRANCH" '[.github.environments // {} | to_entries[] | select(.value.branch == $b) | .key] | first // empty' "$CONFIG")
+            if [ -z "$NAME" ]; then
+              NAME=$(jq -r --arg b "$BRANCH" '[.deploy.branches // {} | to_entries[] | select(.value == $b) | .key] | first // empty' "$CONFIG")
+            fi
+            APPROVAL_ENV="${NAME:-$BRANCH}"
+            REQUIRE=$(jq -r --arg e "$APPROVAL_ENV" '.github.environments[$e].require_approval // false' "$CONFIG")
+          fi
+          echo "approval_environment=$APPROVAL_ENV" >> $GITHUB_OUTPUT
+          echo "require_approval=$REQUIRE" >> $GITHUB_OUTPUT
 
   release:
     name: 📦 Release
@@ -49,7 +72,8 @@ jobs:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
       skip_jobs: 'test:e2e,test:integration'
-      require_approval: false
+      require_approval: ${{ needs.determine_environment.outputs.require_approval == 'true' }}
+      approval_environment: ${{ needs.determine_environment.outputs.approval_environment }}
       require_signatures: false
       generate_sbom: true
       override_blackout: true
