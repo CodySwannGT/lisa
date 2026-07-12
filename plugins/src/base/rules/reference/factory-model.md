@@ -1,0 +1,77 @@
+# The Factory Model
+
+Lisa's purpose is to run **software factories** in the host project: agent-operated production
+lines that research, plan, implement, and verify software with as few humans as possible. This
+reference maps the model onto the concrete Lisa surfaces so agents act on it rather than around it.
+
+## The four factories
+
+| Factory | Creates | Lisa surface | Gate (input signal) |
+|---|---|---|---|
+| **Research** | PRDs | `/lisa:research`, `/lisa:project-ideation` | Prompts and ideation are the main entry points |
+| **Plan** | Work units (epics, stories, tickets, tasks) | `/lisa:plan` → the `*-to-tracker` pipeline | PRD flipped to `prd-ready`, claimed by PRD intake |
+| **Implement** | Quality software (tests, code, UI, APIs, infrastructure) | `/lisa:implement` → build flows | Work unit flipped to `status:ready`, claimed by build intake |
+| **Verify** | A go/no-go decision | `/lisa:verify-prd` (PRD level), `/lisa:verify` (change level) | Shipped PRD rolled up by intake |
+
+Verify's no-go path is deliberate: failures re-open the PRD as `ticketed` with **build-ready** fix
+tickets that flow straight back into Implement — never `blocked`. The loop is self-healing.
+
+## The gates
+
+Handoff happens **outside** the factories. Agents, humans, and automations submit inputs; the
+intake agent (`/lisa:intake`, the `*-prd-intake` / `*-build-intake` agents) adversarially evaluates
+each one:
+
+- **Quality**: the validation gates (three-audience description, Gherkin acceptance criteria,
+  Validation Journey, structure, scope).
+- **Executability**: the factory must have the tooling *and provable read access to that tooling*
+  for everything the input requires — linked documents, dashboards, cloud resources, third-party
+  APIs (validator gate **F5 — Required external access provable**). An input the factory cannot
+  execute never enters the factory.
+- **Discover-first duty**: intake tries to resolve gaps itself (alternate substrates, configured
+  access layers, searching for the missing context). What it genuinely cannot resolve it rejects —
+  `blocked` plus a human-needed marker, with clarifying questions or the exact missing access named.
+
+## The loops
+
+Three schedules feed the pipeline continuously, created by `/lisa:setup-automations` on the
+runtime's native scheduler (Claude Routines, Codex Automations):
+
+| Loop | Automation | Feeds | Cadence |
+|---|---|---|---|
+| QA | `exploratory-bugs` (`/lisa:exploratory-qa`) | Implement gate (bug tickets) | daily |
+| Product Planning | `exploratory-prds` (`/lisa:project-ideation`) | Research/Plan gate (PRDs) | daily |
+| Monitoring | `monitor` (`/lisa:monitor`) | Implement gate (regression tickets) | daily |
+
+Plus the pipeline movers: `intake-prd` (hourly), `intake-tickets` (every 10 minutes),
+`intake-repair` (hourly). **Autonomy is the default**: `auto-start-prds` and `auto-start-tickets`
+default to `true`, so loop outputs enter the gates pickup-ready and the adversarial intake is the
+quality control. Projects opt into human triage by passing `false`.
+
+## Where humans stand
+
+Humans act only at explicit exterior gates:
+
+- flipping a draft they chose to hold back to `prd-ready` / `status:ready`,
+- approving protected deployments (`github.environments.require_approval`),
+- reviewing low-confidence learning PRs (auto-merge off),
+- answering what intake rejected and raised.
+
+Inside a flow, never pause to ask a human whether to proceed — the invocation was the authorization.
+Headless discipline follows: no interactive prompts, idempotent re-runs, clean exits on empty
+queues, and loud, specific failures when something is genuinely blocking.
+
+## Quality and parity
+
+Everything else Lisa installs — skills, hooks, quality checks, guardrails, CI gates, rulesets —
+exists to enforce enterprise-grade quality and verification standards that keep the software
+maintainable. Never weaken a gate to get work through it; fix the work, or raise the
+risk-acceptance decision to a human.
+
+Every supported coding agent is a first-class factory operator: Claude Code, Codex, Cursor,
+OpenCode, Antigravity (agy), Copilot. Behavior stays in parity across them, and anything persisted
+for agents (rules, learnings, configuration) must be visible to all of them from a single source of
+truth.
+
+End state: end users have zero direct contact with coding agents. They interact with the tracker,
+the PRD source, and the shipped software — the factories do the rest.

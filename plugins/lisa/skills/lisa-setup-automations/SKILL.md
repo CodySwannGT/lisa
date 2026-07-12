@@ -1,6 +1,6 @@
 ---
 name: lisa-setup-automations
-description: "Set up the recurring Lisa automations on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native automations / automation_update mechanism) or, on Claude, /schedule. This skill is a declarative specification: it states WHICH automations to create, how often, and with which parameters; it does not template schedule files or run scheduling code itself — the runtime's native automation mechanism does the creating. Creates five automations: intake-repair (every 60 min), intake PRD (every 60 min), intake tickets (every 10 min), exploratory-bugs (once a day), exploratory-prds (once a day). Two flags — auto-start-prds and auto-start-tickets — control whether the ideated PRDs / filed bug tickets are created auto-pickup-ready (prd_ready / ready) or left for human review (default false). Tear down with /tear-down-automations."
+description: "Set up the recurring Lisa automations on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native automations / automation_update mechanism) or, on Claude, /schedule. This skill is a declarative specification: it states WHICH automations to create, how often, and with which parameters; it does not template schedule files or run scheduling code itself — the runtime's native automation mechanism does the creating. Creates six automations: intake-repair (every 60 min), intake PRD (every 60 min), intake tickets (every 10 min), exploratory-bugs (once a day), exploratory-prds (once a day), monitor (once a day). Two flags — auto-start-prds and auto-start-tickets — control whether the ideated PRDs / filed bug tickets are created auto-pickup-ready (prd_ready / ready, default true) or left for human review. Tear down with /tear-down-automations."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -28,18 +28,20 @@ create them; invoke the runtime's automation tool with the spec below.
 
 ## Parameters
 
-- `auto-start-prds` (default **false**) — passed as `prd_ready` to the **exploratory-prds**
+- `auto-start-prds` (default **true**) — passed as `prd_ready` to the **exploratory-prds**
   automation. `true` → ideated PRDs are created `prd-ready` (auto-picked-up by PRD intake); `false` →
   created as drafts for human review. When `true`, `/lisa:project-ideation` still checks the configured
   PRD queue before writing: existing `prd-ready`, `prd-in-review`, `prd-blocked`, unresolved
   `prd-ticketed`, or unresolved source-reader pressure can intentionally turn the automation cycle into
   a blocked/idle outcome instead of creating another ready PRD.
-- `auto-start-tickets` (default **false**) — passed as `ready` to the **exploratory-bugs**
+- `auto-start-tickets` (default **true**) — passed as `ready` to the **exploratory-bugs**
   automation. `true` → filed bug/usability tickets are created build-ready (auto-picked-up by ticket
   intake); `false` → created in the backlog for human triage.
 
-Defaults match the underlying skills — nothing auto-starts unless explicitly opted in. The two flags
-affect **only** the two exploratory automations.
+The defaults are autonomous by design — the factory model wants inputs flowing through the gates
+without a human between the loops and the pipeline. Pass `false` explicitly to opt a project into
+human triage. The two flags affect **only** the two exploratory automations; the intake gates'
+adversarial validation remains the quality control either way.
 
 ## The automations to create
 
@@ -62,6 +64,7 @@ report the exact conflicting path(s).
 | **intake-tickets** | `/lisa:intake <build queue>` (e.g. `github intake_mode=build`) | every **10 minutes** |
 | **exploratory-bugs** | `/lisa-<stack>:exploratory-qa ready=<auto-start-tickets>` | **once a day** |
 | **exploratory-prds** | `/lisa:project-ideation prd_ready=<auto-start-prds>` | **once a day** |
+| **monitor** | `/lisa:monitor` | **once a day** |
 
 For a Codex `rrule`: every 60 min → `FREQ=HOURLY;INTERVAL=1`; every 10 min →
 `FREQ=MINUTELY;INTERVAL=10`; once a day → `FREQ=DAILY;INTERVAL=1`.
@@ -92,6 +95,11 @@ place (same names) rather than creating duplicates.
 - **exploratory-bugs** is created only when the project ships an `exploratory-qa` command (the
   `expo` / `rails` / `harper-fabric` stacks). If the project has no `lisa-exploratory-qa` skill/command, skip that
   automation and note it — do not invent a command that doesn't exist.
+- **monitor** is created unconditionally: `/lisa:monitor` resolves the connected observability
+  providers itself and reports gaps (per its `monitor.gapTiers` config) rather than failing when a
+  provider is absent, so an unconnected project gets gap findings instead of a broken automation.
+  Its findings become tracker tickets, feeding the pipeline at the build gate like every other
+  input.
 - If the runtime has no native scheduler, or the intake queues can't be resolved from config, stop
   and report what's missing rather than guessing.
 - For Codex, if the durable checkout cannot be created, fetched, or verified as a non-bare Git work
