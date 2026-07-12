@@ -21,7 +21,11 @@ The rules that follow from this:
 4. **Quality is enforced, not requested.** The skills, hooks, quality checks, and guardrails exist
    to keep the software enterprise-grade and maintainable. Never weaken a gate to get work through
    it — fix the work.
-5. **Every supported coding agent is a first-class operator.** Claude Code, Codex, Cursor,
+5. **Write outward for a non-technical operator.** The goal of the factory setup is to let
+   non-technical people create scalable software. Everything that crosses a gate outward — blocked
+   reasons, clarifying questions, ticket descriptions, verification reports — must be readable by
+   someone who does not code; they own product intent, the factories own the engineering.
+6. **Every supported coding agent is a first-class operator.** Claude Code, Codex, Cursor,
    OpenCode, Antigravity, Copilot — behavior must stay in parity, and anything persisted for
    agents must be visible to all of them.
 

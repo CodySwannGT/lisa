@@ -9,6 +9,16 @@ Lisa's purpose is to run **software factories** in the host project: agent-opera
 lines that research, plan, implement, and verify software with as few humans as possible. This
 reference maps the model onto the concrete Lisa surfaces so agents act on it rather than around it.
 
+## Who this is for
+
+The goal of the factory setup is to let **non-technical people create scalable, enterprise-grade
+software** by describing outcomes; the factories supply the engineering discipline. This lowers the
+floor without capping the ceiling — engineers get leverage from the same machinery — and it is why
+the validation gates carry product-readable failure text (`product_relevant`, plain-language
+`what`/`recommendation` fields): the person standing at the gate does not read stack traces. Every
+outward-facing artifact an agent produces (blocked reasons, clarifying questions, tickets,
+verification reports, console copy) is written for that operator.
+
 ## The four factories
 
 | Factory | Creates | Lisa surface | Gate (input signal) |

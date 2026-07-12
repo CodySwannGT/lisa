@@ -25,7 +25,7 @@ All four are versioned together, so "how we build software here" upgrades by bum
 
 ## The factory model
 
-Lisa's purpose is to run four **factories** in your project — production lines operated by agents, not people. **Research** creates PRDs. **Plan** turns a PRD into ordered work units. **Implement** turns work units into quality software — tests, code, UI, APIs, infrastructure. **Verify** issues a go/no-go by using the software the way a human would, and files any failures straight back into Implement as build-ready tickets, so the loop heals itself.
+Lisa's purpose is to run four **factories** in your project — production lines operated by agents, not people — so that **non-technical people can create scalable software** by describing outcomes while the factories supply the engineering discipline. **Research** creates PRDs. **Plan** turns a PRD into ordered work units. **Implement** turns work units into quality software — tests, code, UI, APIs, infrastructure. **Verify** issues a go/no-go by using the software the way a human would, and files any failures straight back into Implement as build-ready tickets, so the loop heals itself.
 
 Humans don't work inside a factory. Handoff happens outside, at the **gates**: agents, humans, and automations submit inputs, and an intake agent adversarially evaluates each one — is it high-quality and unambiguous, and does the factory have the tooling *and provable access to that tooling* to execute it? The intake agent tries to resolve gaps itself first; what it genuinely can't resolve, it rejects and raises to a human rather than guessing.
 
