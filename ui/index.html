@@ -282,6 +282,13 @@
         background: var(--crit-soft);
         color: var(--crit);
       }
+      .status-why {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+        max-width: 26ch;
+      }
 
       .app {
         display: grid;
@@ -1187,7 +1194,7 @@
           },
           {
             label: "Delivery",
-            sections: ["tracker", "prd", "deploy", "automations", "intake"],
+            sections: ["tracker", "prd", "deploy", "automations", "monitor"],
           },
           {
             label: "Quality",
@@ -1473,6 +1480,12 @@
                   mono: true,
                   placeholder: "derived from git remote",
                 }),
+              },
+              {
+                key: "packageManager",
+                label: "Package manager",
+                desc: "Used for installs, scripts, and git hooks — locally and in CI alike. CDK stacks pin npm; every other stack defaults to bun.",
+                control: sel("bun", ["bun", "npm", "yarn"]),
               },
             ],
           },
@@ -2563,6 +2576,100 @@
             type: "callout",
             text: "GitHub silently auto-creates an unprotected environment the first time a workflow references it — Lisa provisions these explicitly so an approval gate always gates on something. Deployment branch policy is always pinned to the environment’s branch.",
           },
+          {
+            card: "Pipeline",
+            note: "create-only deploy.yml calling Lisa’s reusable release workflow",
+            rows: [
+              {
+                key: "",
+                label: "CI/CD provider",
+                desc: "Where the deploy pipeline runs. GitHub Actions is the only supported runner today; the template model leaves room for more.",
+                control: sel("GitHub Actions", ["GitHub Actions"]),
+              },
+              {
+                key: "",
+                label: "Workflows",
+                desc: "deploy.yml is seeded once and project-owned; it calls Lisa’s reusable release workflow.",
+                control: stat("deploy.yml → release.yml@main", "mono"),
+              },
+            ],
+          },
+          {
+            type: "table",
+            card: "Deploy pipeline stages",
+            note: "Runs when an environment branch (dev / staging / main) receives a merge",
+            cols: ["Stage", "What it does", "Active"],
+            rows: [
+              [
+                { t: "mono", v: "🏗️ Build & package" },
+                {
+                  t: "text",
+                  v: "Builds the artifacts for the environment mapped to the pushed branch",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🚦 Release approval — production" },
+                {
+                  t: "text",
+                  v: "Pauses at the release_approval job until a configured reviewer approves the GitHub environment",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🚦 Release approval — staging" },
+                {
+                  t: "text",
+                  v: "Approval hold before staging deploys",
+                },
+                {
+                  t: "status",
+                  v: false,
+                  reason: "require_approval is off for staging",
+                },
+              ],
+              [
+                { t: "mono", v: "🚀 Deploy" },
+                {
+                  t: "text",
+                  v: "Runs the stack’s deploy (EAS / Serverless / CDK / Fabric) against the target environment",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "📝 Version bump & changelog" },
+                {
+                  t: "text",
+                  v: "standard-version tags the release and pushes the chore(release) commit through the deploy key’s ruleset bypass",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🔄 Sync-down branches" },
+                {
+                  t: "text",
+                  v: "After a promotion merges, back-merges higher environment branches into lower ones",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🧯 Deploy auto-fix" },
+                {
+                  t: "text",
+                  v: "On a failed deploy, a Claude workflow investigates and opens a fix PR",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🎫 Issue on failure" },
+                {
+                  t: "text",
+                  v: "Files a tracker issue when a deploy run fails",
+                },
+                { t: "status", v: true },
+              ],
+            ],
+          },
         ],
       };
 
@@ -2575,10 +2682,20 @@
           {
             type: "table",
             card: "Scheduled jobs",
-            cols: ["Automation", "Command", "Cadence", "Enabled"],
+            cols: [
+              "Automation",
+              "What it does",
+              "Command",
+              "Cadence",
+              "Enabled",
+            ],
             rows: [
               [
                 { t: "mono", v: "intake-tickets" },
+                {
+                  t: "text",
+                  v: "Claims the next build-ready ticket from the tracker and runs the full build flow on it — one item per cycle",
+                },
                 { t: "mono", v: "/lisa:intake <build queue>" },
                 {
                   t: "select",
@@ -2589,6 +2706,10 @@
               ],
               [
                 { t: "mono", v: "intake-prd" },
+                {
+                  t: "text",
+                  v: "Validates the next ready PRD and either creates its destination tickets or blocks it with clarifying questions; also rolls shipped PRDs forward to verified",
+                },
                 { t: "mono", v: "/lisa:intake <PRD queue>" },
                 {
                   t: "select",
@@ -2599,6 +2720,10 @@
               ],
               [
                 { t: "mono", v: "intake-repair" },
+                {
+                  t: "text",
+                  v: "Finds stuck work — stalled builds, half-closed items, unreconciled parent rollups — and repairs or resumes each one",
+                },
                 { t: "mono", v: "/lisa:repair-intake <queue>" },
                 {
                   t: "select",
@@ -2609,12 +2734,20 @@
               ],
               [
                 { t: "mono", v: "exploratory-bugs" },
+                {
+                  t: "text",
+                  v: "Explores the product like a first-time user (respecting the per-environment mutation policy) and files any bugs it finds",
+                },
                 { t: "mono", v: "/lisa-<stack>:exploratory-qa" },
                 { t: "select", v: "daily", options: ["daily", "weekly"] },
                 { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "exploratory-prds" },
+                {
+                  t: "text",
+                  v: "Ideates product improvements from usage and codebase context and drafts PRDs for review",
+                },
                 { t: "mono", v: "/lisa:project-ideation" },
                 { t: "select", v: "daily", options: ["daily", "weekly"] },
                 { t: "toggle", v: true },
@@ -2639,20 +2772,8 @@
             ],
           },
           {
-            type: "callout",
-            text: "exploratory-bugs is only created for stacks that ship exploratory QA (expo, rails, harper-fabric).",
-          },
-        ],
-      };
-
-      /* ---------------------------------- Intake & Monitoring ---------------------------------- */
-      DATA.sections.intake = {
-        title: "Intake & monitoring",
-        desc: "Tuning for the queue scanners that claim ready work, the repair scanner that unsticks stalled items, and the observability audit that files regression tickets.",
-        src: ".lisa.config.json intake.* / monitor.*",
-        blocks: [
-          {
-            card: "Intake",
+            card: "Intake tuning",
+            note: "How the intake and repair automations select and treat work",
             rows: [
               {
                 key: "intake.assignee",
@@ -2664,15 +2785,61 @@
               {
                 key: "intake.repair.staleAfterHours",
                 label: "Stale after",
-                desc: "How long an in-progress item may sit before repair-intake treats it as stalled.",
+                desc: "How long an in-progress item may sit before intake-repair treats it as stalled.",
                 control: num(2, "hours"),
               },
               {
                 key: "intake.repair.maxCandidates",
                 label: "Max repair candidates",
-                desc: "Cap on stuck items enumerated per repair run.",
+                desc: "Cap on stuck items enumerated per intake-repair run.",
                 control: num(100),
               },
+            ],
+          },
+          {
+            type: "callout",
+            text: "exploratory-bugs is only created for stacks that ship exploratory QA (expo, rails, harper-fabric).",
+          },
+        ],
+      };
+
+      /* ---------------------------------- Monitoring ---------------------------------- */
+      DATA.sections.monitor = {
+        title: "Monitoring",
+        desc: "The observability audit: scans errors, latency, and fault rates across every connected provider on a cadence and files regression tickets when thresholds are crossed. Thresholds are provider-neutral — the same limits apply whichever tools are connected.",
+        src: ".lisa.config.json monitor.*",
+        blocks: [
+          {
+            type: "table",
+            card: "Connected providers",
+            note: "Detected from credentials and instrumentation — not configured by hand",
+            cols: ["Provider", "Supplies", "Status"],
+            rows: [
+              [
+                { t: "mono", v: "Sentry" },
+                {
+                  t: "text",
+                  v: "Error events, issue volume, release health",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "AWS CloudWatch (Alarms)" },
+                {
+                  t: "text",
+                  v: "Alarm states, error-rate and latency metrics",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "AWS X-Ray" },
+                { t: "text", v: "Trace fault rates, latency percentiles" },
+                {
+                  t: "status",
+                  v: false,
+                  reason: "no traces found — X-Ray is not instrumented",
+                },
+              ],
             ],
           },
           {
@@ -2700,12 +2867,13 @@
           },
           {
             card: "Alert thresholds",
+            note: "Provider-neutral — evaluated against every connected source",
             rows: [
               {
-                key: "monitor.thresholds.sentryMinEvents24h",
-                label: "Sentry minimum events",
-                desc: "Minimum 24-hour event count before a Sentry error is fileable.",
-                control: num(10, "/24 h"),
+                key: "monitor.thresholds.minEvents24h",
+                label: "Minimum error events",
+                desc: "Minimum 24-hour event count, from any connected error provider, before an error is fileable.",
+                control: num(1, "/24 h"),
               },
               {
                 key: "monitor.thresholds.errorRateSpikeMultiplier",
@@ -2720,12 +2888,16 @@
                 control: num(1000, "ms"),
               },
               {
-                key: "monitor.thresholds.xrayFaultRatePct",
-                label: "X-Ray fault rate",
-                desc: "Fault-trace percentage above this is fileable.",
+                key: "monitor.thresholds.faultRatePct",
+                label: "Fault rate",
+                desc: "Trace or request fault percentage above this is fileable, from whichever tracing provider is connected.",
                 control: num(5, "%"),
               },
             ],
+          },
+          {
+            type: "callout",
+            text: "The runtime monitor skill still reads the legacy provider-prefixed keys (sentryMinEvents24h, xrayFaultRatePct) — renaming them to these provider-neutral keys in config-resolution.md and the lisa-monitor skill is a tracked follow-up.",
           },
         ],
       };
@@ -3350,9 +3522,27 @@
       /* ---------------------------------- CI ---------------------------------- */
       DATA.sections.ci = {
         title: "CI quality gates",
-        desc: "Every project’s ci.yml is a thin caller of Lisa’s reusable quality workflow. Job names double as the required-check contexts that rulesets enforce. Toggling a job off adds it to skip_jobs.",
+        desc: "Every project’s ci.yml is a thin caller of Lisa’s reusable quality workflow. Each job below reports a status check on the PR; branch rulesets require the critical ones to pass before merge.",
         src: ".github/workflows/quality.yml · <stack>/create-only/.github/workflows/ci.yml",
         blocks: [
+          {
+            card: "Pipeline",
+            note: "create-only ci.yml calling Lisa’s reusable quality workflow",
+            rows: [
+              {
+                key: "",
+                label: "CI provider",
+                desc: "Where quality checks run. GitHub Actions is the only supported runner today; the template model leaves room for more.",
+                control: sel("GitHub Actions", ["GitHub Actions"]),
+              },
+              {
+                key: "",
+                label: "Workflows",
+                desc: "ci.yml is seeded once and project-owned; it calls Lisa’s reusable quality workflow on every pull request.",
+                control: stat("ci.yml → quality.yml@main", "mono"),
+              },
+            ],
+          },
           {
             card: "Workflow inputs",
             rows: [
@@ -3361,12 +3551,6 @@
                 label: "Node version",
                 desc: "",
                 control: txt("22.21.1", { mono: true }),
-              },
-              {
-                key: "package_manager",
-                label: "Package manager",
-                desc: "CDK stacks use npm; everything else defaults to bun.",
-                control: sel("bun", ["bun", "npm", "yarn"]),
               },
               {
                 key: "verify_enforced",
@@ -3409,113 +3593,180 @@
           {
             type: "table",
             card: "Quality jobs",
-            note: "Job name = required-check context",
-            cols: ["Job", "Gated by", "Run"],
+            note: "A job’s name is the status check branch rulesets require — renaming one breaks the protection that references it",
+            cols: ["Job", "What it does", "Active"],
             rows: [
               [
                 { t: "mono", v: "🧹 Lint" },
-                { t: "text", v: "always" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "oxlint then ESLint over the whole repo — the fast rule set",
+                },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "🐢 Slow Lint Rules" },
-                { t: "text", v: "always" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "The expensive rules deferred from local lint (import cycles, namespace checks)",
+                },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "🔍 Type Check" },
-                { t: "text", v: "always" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "🧪 Run Unit Tests" },
-                { t: "text", v: "always" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "🧪 Run Integration Tests" },
-                { t: "text", v: "always" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "🧪 Run E2E Tests" },
-                { t: "text", v: "auto-detects playwright.config + test:e2e" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "🧬 Mutation Testing Gate" },
-                { t: "text", v: "test:mutation script + gate enabled" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "✅ Verification Coverage" },
-                { t: "text", v: "verify_enforced on PRs" },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "📱 Maestro Cloud E2E" },
-                { t: "text", v: "MAESTRO_API_KEY + project id + app file" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "🎭 Playwright E2E Tests" },
-                { t: "text", v: "expo web export; required on staging" },
-                { t: "toggle", v: true },
+                { t: "text", v: "tsc --noEmit across the project" },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "📐 Check Formatting" },
-                { t: "text", v: "always" },
-                { t: "toggle", v: true },
+                { t: "text", v: "Prettier in check mode — no writes" },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "🏗️ Build" },
-                { t: "text", v: "always" },
-                { t: "toggle", v: true },
+                { t: "text", v: "Compiles the project to catch build breaks" },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🧪 Run Unit Tests" },
+                {
+                  t: "text",
+                  v: "Unit suite with the coverage floors from Testing & coverage enforced",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🧪 Run Integration Tests" },
+                { t: "text", v: "Integration suite (30-minute timeout)" },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🧪 Run E2E Tests" },
+                {
+                  t: "text",
+                  v: "Playwright end-to-end tests, auto-detected from playwright.config + a test:e2e script",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🎭 Playwright E2E Tests" },
+                {
+                  t: "text",
+                  v: "Web-export e2e run — a required check on staging via ruleset",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "📱 Maestro Cloud E2E" },
+                {
+                  t: "text",
+                  v: "Mobile end-to-end flows on Maestro Cloud",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🧬 Mutation Testing Gate" },
+                {
+                  t: "text",
+                  v: "Diff-only Stryker run over changed files; fails below the break score",
+                },
+                {
+                  t: "status",
+                  v: false,
+                  reason:
+                    "mutation gate is disabled (quality.mutation.gate.enabled)",
+                },
+              ],
+              [
+                { t: "mono", v: "✅ Verification Coverage" },
+                {
+                  t: "text",
+                  v: "Requires feat/fix PRs to add or extend an e2e verification spec",
+                },
+                { t: "status", v: false, reason: "verify_enforced is off" },
               ],
               [
                 { t: "mono", v: "🗑️ Dead Code Detection" },
-                { t: "text", v: "knip" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "knip — unused files, exports, and dependencies",
+                },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "🔎 AST Grep Scan" },
-                { t: "text", v: "sgconfig.yml" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "Structural code rules from sgconfig.yml",
+                },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "🔒 Security Scan" },
-                { t: "text", v: "always (npm audit)" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "Dependency audit — high and critical advisories in production dependencies",
+                },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "🔍 SonarCloud SAST" },
-                { t: "text", v: "SONAR_TOKEN" },
-                { t: "toggle", v: true },
+                { t: "text", v: "Static analysis via SonarCloud" },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "🛡️ Snyk" },
-                { t: "text", v: "SNYK_TOKEN" },
-                { t: "toggle", v: false },
+                { t: "text", v: "Snyk dependency vulnerability scan" },
+                {
+                  t: "status",
+                  v: false,
+                  reason: "SNYK_TOKEN secret is not set",
+                },
               ],
               [
                 { t: "mono", v: "🔐 GitGuardian" },
-                { t: "text", v: "GITGUARDIAN_API_KEY" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "Secret scanning — also a required check via the base ruleset",
+                },
+                { t: "status", v: true },
               ],
               [
                 { t: "mono", v: "📜 FOSSA" },
-                { t: "text", v: "FOSSA_API_KEY" },
-                { t: "toggle", v: false },
+                { t: "text", v: "License compliance check" },
+                {
+                  t: "status",
+                  v: false,
+                  reason: "FOSSA_API_KEY secret is not set",
+                },
               ],
               [
                 { t: "mono", v: "🕷️ OWASP ZAP Baseline" },
-                { t: "text", v: "zap_target_url" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "DAST baseline scan against zap_target_url with per-rule IGNORE/WARN/FAIL decisions",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🧾 Compliance Validation" },
+                {
+                  t: "text",
+                  v: "SOC2 / ISO27001 / HIPAA / PCI-DSS control checks",
+                },
+                {
+                  t: "status",
+                  v: false,
+                  reason: "no compliance_framework configured",
+                },
               ],
               [
                 { t: "mono", v: "🚦 Approval Gate" },
-                { t: "text", v: "require_approval + environment" },
-                { t: "toggle", v: true },
+                {
+                  t: "text",
+                  v: "Pauses the run until the target GitHub environment’s reviewers approve",
+                },
+                { t: "status", v: true },
               ],
             ],
           },
@@ -4388,6 +4639,15 @@
               chip.appendChild(sw);
               chip.appendChild(el("span", "", esc(cell.v)));
               td.appendChild(chip);
+            } else if (cell.t === "status") {
+              if (cell.v) {
+                td.appendChild(el("span", "badge pass", "✓ active"));
+              } else {
+                td.appendChild(el("span", "badge fail", "✗ off"));
+                if (cell.reason) {
+                  td.appendChild(el("span", "status-why", esc(cell.reason)));
+                }
+              }
             } else if (cell.t === "toggle" || cell.t === "select") {
               td.appendChild(buildControl(cell, null));
             }
