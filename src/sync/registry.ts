@@ -140,11 +140,16 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
       maxCandidates: 20,
       gapTiers: "core",
       backoffHours: 24,
+      // Provider-neutral threshold names: the audit spans Sentry, CloudWatch,
+      // X-Ray, and future providers, so no key is prefixed with a vendor. The
+      // lisa-monitor skill still reads the legacy sentryMinEvents24h /
+      // xrayFaultRatePct keys — renaming those (config-resolution.md + skill)
+      // is a tracked follow-up; see ui/README.md.
       thresholds: {
-        sentryMinEvents24h: 10,
+        minEvents24h: 1,
         errorRateSpikeMultiplier: 2,
         p95LatencyMs: 1000,
-        xrayFaultRatePct: 5,
+        faultRatePct: 5,
       },
     },
     description: "Observability audit caps and alert thresholds",
