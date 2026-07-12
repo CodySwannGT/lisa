@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.202.0](https://github.com/CodySwannGT/lisa/compare/v2.201.0...v2.202.0) (2026-07-12)
+
+
+### Features
+
+* **plugins:** factory-model rule, scheduled monitor loop, autonomous defaults, F5 access gate ([842cea6](https://github.com/CodySwannGT/lisa/commit/842cea62f82ab31722b919fe7407813c69d0c933))
+* **ui:** factory model on the overview, automations status board, table-control fix ([39412a3](https://github.com/CodySwannGT/lisa/commit/39412a32efa5ae05cb9bb9d446dbd2fa2a60cf78))
+
+
+### Documentation
+
+* make the factory model Lisa's stated purpose ([c22d1db](https://github.com/CodySwannGT/lisa/commit/c22d1dbd7e41bf848c1e6aaef65a2915b93f9213))
+* **purpose:** the factory goal — non-technical people creating scalable software ([5724052](https://github.com/CodySwannGT/lisa/commit/57240524ea82db4b842a6d3cd1299f4e69717ed3)), closes [#5](https://github.com/CodySwannGT/lisa/issues/5)
+
 ## [2.201.0](https://github.com/CodySwannGT/lisa/compare/v2.200.0...v2.201.0) (2026-07-12)
 
 
