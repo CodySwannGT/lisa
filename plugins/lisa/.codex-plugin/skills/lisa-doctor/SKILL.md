@@ -291,6 +291,62 @@ without turning the base doctor into a second `lisa-wiki-doctor`.
    - Never require a wiki plugin surface when `wiki/` is absent.
    - Never let wiki-specific checks downgrade unrelated non-wiki repositories.
 
+### Upstream Lisa change-history diagnosis
+
+A failing or warning check has two possible causes: the project drifted, or **Lisa itself changed
+upstream** since this project last updated. Doctor must distinguish them instead of blaming the
+project by default. Whenever findings need explanation — and always before proposing repairs —
+pull Lisa's own git history and read what actually changed:
+
+1. **Resolve the version window.** Determine the project's installed Lisa version (the
+   `@codyswann/lisa` entry in `package.json`/lockfile, or the plugin version stamp on the active
+   runtime) and the latest published version (`npm view @codyswann/lisa version`, or the update
+   check's cached result).
+2. **Pull the upstream history for that window** (read-only; no clone required when `gh` is
+   available):
+
+   ```bash
+   gh api "repos/CodySwannGT/lisa/compare/v<installed>...v<latest>" \
+     --paginate --slurp \
+     --jq '{total_commits: .[0].total_commits, files: [.[0].files[]?.filename], commits: [.[].commits[]? | .commit.message | split("\n")[0]]}'
+   ```
+
+   `--paginate` fetches every page of commits, and `--slurp` gathers those pages into a single
+   array before `--jq` runs — without `--slurp`, `--jq` applies per page and prints one JSON object
+   per page instead of one merged result. `total_commits` and `files` only need the first page
+   (files are capped at 300 and not repeated on later pages); `commits` flattens across all pages.
+
+   The compare endpoint paginates commits (250 without `--paginate`) and only lists changed files
+   on the first page, capped at 300 total — a large version window can silently drop commits or
+   files. If `total_commits` or the file count looks truncated, re-run with the
+   `application/vnd.github.diff` accept header (`gh api ... -H "Accept: application/vnd.github.diff"`)
+   to pull the full patch text, or fall back to the shallow-clone `git log` below. When completeness
+   still can't be established, say so in the finding and mark it `WARN` rather than attributing
+   drift with unverified confidence.
+
+   Fallbacks, in order: `gh api repos/CodySwannGT/lisa/commits?path=<template-path>` for a
+   path-scoped view — note this endpoint has no way to bound results to the `v<installed>..v<latest>`
+   window, so treat its output as best-effort context only, not authoritative attribution; a shallow
+   clone (`git clone --filter=blob:none --no-checkout` then `git log v<installed>..v<latest> --
+   <paths>`), which *is* bounded to the window and should be preferred for definitive attribution; or
+   the local marketplace/plugin cache checkout when the runtime has one. If none are reachable, or
+   only the unbounded path-scoped fallback is reachable, report the gap as a `WARN`-level
+   observability note — never fail the audit because history was unavailable or incomplete.
+3. **Scope the reading to what the finding touches.** Filter the commit list to the paths that
+   generate the failing surface: the detected stacks' template dirs (`typescript/`, `expo/`, …),
+   `plugins/src/base/` for skills/hooks/rules, `scripts/` for governance scripts, and the shipped
+   config factories (`src/configs/`). A finding about a lint rule failure reads the lint-config
+   commits, not the whole log.
+4. **Attribute the finding.** When the upstream history shows Lisa changed the contract (a
+   tightened lint rule, a renamed check context, a new required config key), say so in `Observed:`
+   with the commit subject/version, and let `Remediation:` point at the sanctioned adoption path
+   (e.g. `lisa update` + re-apply, a documented config opt-out) rather than hand-editing managed
+   files. When history shows no relevant upstream change, the project drifted — remediate on the
+   project side.
+
+This history pull is part of doctor's read-only contract: it reads Lisa's repository, never writes
+to it, and repair suggestions stay suggestions.
+
 ## Output contract
 
 The final report must:
