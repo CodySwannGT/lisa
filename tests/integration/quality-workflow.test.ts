@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- workflow contract coverage intentionally exercises several reusable templates in one parse pass */
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
 import * as path from "node:path";
@@ -16,6 +17,14 @@ const QUALITY_RAILS_YML = path.join(
 );
 const RELEASE_YML = path.join(REPO_ROOT, ".github", "workflows", "release.yml");
 const DEPLOY_YML = path.join(REPO_ROOT, ".github", "workflows", "deploy.yml");
+const NESTJS_DEPLOY_YML = path.join(
+  REPO_ROOT,
+  "nestjs",
+  "create-only",
+  ".github",
+  "workflows",
+  "deploy.yml"
+);
 
 /** Shape of a single `workflow_call` input declaration. */
 interface WorkflowInput {
@@ -68,6 +77,7 @@ interface ReleaseWorkflow {
 /** Root shape of the parsed `deploy.yml` workflow. */
 interface DeployWorkflow {
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
+  jobs?: Record<string, WorkflowJob>;
 }
 
 describe("quality.yml reusable workflow", () => {
@@ -313,6 +323,8 @@ describe("quality.yml reusable workflow", () => {
 describe("release and deploy workflows", () => {
   let releaseWorkflow: ReleaseWorkflow;
   let deployWorkflow: DeployWorkflow;
+  let nestjsDeployRaw: string;
+  let nestjsDeployWorkflow: DeployWorkflow;
 
   beforeAll(() => {
     releaseWorkflow = yaml.load(
@@ -321,6 +333,8 @@ describe("release and deploy workflows", () => {
     deployWorkflow = yaml.load(
       fs.readFileSync(DEPLOY_YML, "utf8")
     ) as DeployWorkflow;
+    nestjsDeployRaw = fs.readFileSync(NESTJS_DEPLOY_YML, "utf8");
+    nestjsDeployWorkflow = yaml.load(nestjsDeployRaw) as DeployWorkflow;
   });
 
   it("pushes signed release tags after creating them", () => {
@@ -375,4 +389,43 @@ describe("release and deploy workflows", () => {
     expect(deployWorkflow.concurrency).toBeDefined();
     expect(deployWorkflow.concurrency?.["cancel-in-progress"]).toBe(false);
   });
+
+  it("keeps NestJS dotenv materialization opt-in and env-driven", () => {
+    const deploySteps = nestjsDeployWorkflow.jobs?.deploy.steps ?? [];
+    const dotenvStep = deploySteps.find(
+      step => step.name === "Materialize dotenv env file"
+    );
+
+    expect(dotenvStep).toBeDefined();
+    expect(dotenvStep?.if).toBe(
+      "${{ vars.DOTENV_ENV_MATERIALIZATION_KEYS != '' }}"
+    );
+    expect(dotenvStep?.env?.DOTENV_ENV_MATERIALIZATION_KEYS).toBe(
+      "${{ vars.DOTENV_ENV_MATERIALIZATION_KEYS }}"
+    );
+    expect(dotenvStep?.run).toContain('printf \'%s=%s\\n\' "$key" "$value"');
+    expect(dotenvStep?.run).toContain("Skipping empty dotenv key");
+    expect(nestjsDeployRaw).toContain(
+      "Optional project mapping for serverless-dotenv-plugin projects"
+    );
+  });
+
+  it("keeps NestJS post-deploy health smoke opt-in and CloudFormation-backed", () => {
+    const deploySteps = nestjsDeployWorkflow.jobs?.deploy.steps ?? [];
+    const smokeStep = deploySteps.find(
+      step => step.name === "Post-deploy health smoke"
+    );
+
+    expect(smokeStep).toBeDefined();
+    expect(smokeStep?.if).toBe(
+      "${{ vars.POST_DEPLOY_HEALTH_CHECK_ENABLED == 'true' }}"
+    );
+    expect(smokeStep?.env?.HEALTH_OUTPUT_KEY).toContain("HttpApiUrl");
+    expect(smokeStep?.env?.HEALTH_PATH).toContain("/health");
+    expect(smokeStep?.run).toContain("aws cloudformation describe-stacks");
+    expect(smokeStep?.run).toContain("curl --fail --silent --show-error");
+    expect(smokeStep?.run).toContain("HEALTH_EXPECTED_BODY");
+  });
 });
+
+/* eslint-enable max-lines -- end scoped waiver for workflow contract coverage */

@@ -54,7 +54,7 @@ describe("runSync", () => {
   });
 
   it("emits JSON when --json is passed", async () => {
-    const logSpy = vi.mocked(console.log);
+    const logSpy = vi.spyOn(console, "log");
 
     await runSync(project.dir, { json: true });
 

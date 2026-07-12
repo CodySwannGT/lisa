@@ -249,12 +249,81 @@ jobs:
           bun-version: '1.3.8'
       - name: Install dependencies
         run: bun install
+      - name: Materialize dotenv env file
+        if: ${{ vars.DOTENV_ENV_MATERIALIZATION_KEYS != '' }}
+        shell: bash
+        env:
+          DOTENV_ENV_MATERIALIZATION_KEYS: ${{ vars.DOTENV_ENV_MATERIALIZATION_KEYS }}
+          DOTENV_ENV_FILE: ${{ vars.DOTENV_ENV_FILE || '.env.local' }}
+          # Optional project mapping for serverless-dotenv-plugin projects:
+          # DOTENV_ENV_MATERIALIZATION_KEYS="API_URL JWT_SECRET"
+          # API_URL: ${{ vars.API_URL }}
+          # JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          : > "$DOTENV_ENV_FILE"
+          wrote_any=false
+
+          for key in $DOTENV_ENV_MATERIALIZATION_KEYS; do
+            value="${!key:-}"
+            if [ -z "$value" ]; then
+              echo "::notice::Skipping empty dotenv key: $key"
+              continue
+            fi
+            printf '%s=%s\n' "$key" "$value" >> "$DOTENV_ENV_FILE"
+            wrote_any=true
+          done
+
+          if [ "$wrote_any" != "true" ]; then
+            rm -f "$DOTENV_ENV_FILE"
+            echo "::notice::No dotenv values were materialized"
+          fi
       - name: serverless deploy
         run: |
           bun run serverless deploy --stage ${{ github.ref_name != 'main' && github.ref_name || 'production' }}
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_PROFILE: '' # Override serverless.yml profile with empty string for CI
+      - name: Post-deploy health smoke
+        if: ${{ vars.POST_DEPLOY_HEALTH_CHECK_ENABLED == 'true' }}
+        shell: bash
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          AWS_PROFILE: ''
+          HEALTH_OUTPUT_KEY: ${{ vars.POST_DEPLOY_HEALTH_OUTPUT_KEY || 'HttpApiUrl' }}
+          HEALTH_PATH: ${{ vars.POST_DEPLOY_HEALTH_PATH || '/health' }}
+          HEALTH_EXPECTED_BODY: ${{ vars.POST_DEPLOY_HEALTH_EXPECTED_BODY }}
+          SERVERLESS_STACK_NAME: ${{ vars.SERVERLESS_STACK_NAME }}
+          STAGE: ${{ github.ref_name != 'main' && github.ref_name || 'production' }}
+        run: |
+          set -euo pipefail
+
+          stack_name="$SERVERLESS_STACK_NAME"
+          if [ -z "$stack_name" ]; then
+            service_name=$(bun run serverless print --stage "$STAGE" --format json | jq -r '.service // empty')
+            if [ -z "$service_name" ]; then
+              echo "::error::Set SERVERLESS_STACK_NAME or make serverless print expose .service"
+              exit 1
+            fi
+            stack_name="${service_name}-${STAGE}"
+          fi
+
+          base_url=$(aws cloudformation describe-stacks \
+            --stack-name "$stack_name" \
+            --query "Stacks[0].Outputs[?OutputKey=='${HEALTH_OUTPUT_KEY}'].OutputValue | [0]" \
+            --output text)
+          if [ -z "$base_url" ] || [ "$base_url" = "None" ]; then
+            echo "::error::CloudFormation output ${HEALTH_OUTPUT_KEY} was not found on ${stack_name}"
+            exit 1
+          fi
+
+          health_url="${base_url%/}/${HEALTH_PATH#/}"
+          body=$(curl --fail --silent --show-error --max-time 20 "$health_url")
+          if [ -n "$HEALTH_EXPECTED_BODY" ] && ! grep -Fq "$HEALTH_EXPECTED_BODY" <<< "$body"; then
+            echo "::error::Health check response did not contain expected body"
+            exit 1
+          fi
+          echo "Health check passed: $health_url"
 
       - name: 📢 Notify on success
         run: echo "Successfully deployed version ${{ needs.release.outputs.version }} to ${{ needs.determine_environment.outputs.environment }}"
