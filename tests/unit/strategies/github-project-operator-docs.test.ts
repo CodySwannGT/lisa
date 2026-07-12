@@ -38,11 +38,9 @@ describe("GitHub Project coordination rollout docs (#706)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("keeps setup and doctor command descriptions explicit about Project coordination", () => {
       const setupCommand = read(
-        path.join(root, "commands", "lisa", "setup", "github.md")
+        path.join(root, "commands", "setup", "github.md")
       );
-      const doctorCommand = read(
-        path.join(root, "commands", "lisa", "doctor.md")
-      );
+      const doctorCommand = read(path.join(root, "commands", "doctor.md"));
 
       expect(setupCommand).toMatch(/optional GitHub ProjectV2 coordination/i);
       expect(setupCommand).toContain(".lisa.config.json");

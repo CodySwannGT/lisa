@@ -19,7 +19,7 @@ const read = (root: string, rel: string): string =>
 describe("intake-explain operator docs (#844)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     it("documents read-only operator entrypoints in the command surface", () => {
-      const command = read(root, "commands/lisa/intake-explain.md");
+      const command = read(root, "commands/intake-explain.md");
 
       expect(command).toContain("/lisa:intake-explain");
       expect(command).toMatch(/read-only/i);
