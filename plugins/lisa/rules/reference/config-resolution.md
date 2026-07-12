@@ -274,6 +274,12 @@ Each vendor section is **conditionally required**: required only when that vendo
 | `github.projects.v2.owner.slug` | GitHub Project coordination is enabled | Owner login for the shared ProjectV2. In v1 it MUST match the tracked repository namespace (`github.org`); cross-namespace coordination is rejected. |
 | `github.projects.v2.number` | GitHub Project coordination is enabled | Human-facing ProjectV2 number from the GitHub UI / URL. Later utilities resolve the opaque node id from this owner + number pair. |
 | `github.projects.v2.required` | no | Coordination strictness flag. Default `false` keeps Project membership best-effort; `true` makes Project membership failures block the write. Setup/doctor/runtime validation reads Project ownership + access and branches on this flag: best-effort failures warn, required-mode failures stop the write. |
+| `github.environments` | no | Optional map of friendly environment name → deployment-environment declaration, provisioned by `/lisa:setup:github-repo` (`scripts/lisa-github-environments.sh`). Absent → no environments are touched. Each declared environment gets a deployment branch policy pinned to its branch. |
+| `github.environments.<name>.branch` | no | Branch that deploys to this environment. Resolution order: this field → `deploy.branches[<name>]` → the environment name itself. |
+| `github.environments.<name>.require_approval` | no | Default `false`. `true` provisions required reviewers on the environment and makes the stack `deploy.yml` templates pass `require_approval`/`approval_environment` to `release.yml`, pausing the run at the `release_approval` job until a reviewer approves. |
+| `github.environments.<name>.reviewers` | `require_approval = true` | Array of GitHub usernames or `org/team-slug` entries (max 6) allowed to approve deployments. Mandatory with `require_approval` — an approval gate nobody can approve is refused at provision time. |
+| `github.environments.<name>.prevent_self_review` | no | Default `false`. `true` stops the person who triggered the deployment from approving it themselves. |
+| `github.environments.<name>.wait_timer` | no | Default `0`. Minutes to delay the deployment after approval. |
 
 When `tracker = "github"` AND `source = "github"` (self-host), both reads and writes hit the same GitHub repo. Label namespaces are kept separate so the two flows don't collide — see "Self-host edge case" below.
 

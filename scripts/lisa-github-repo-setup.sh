@@ -8,6 +8,9 @@
 #   3. CI deploy key + DEPLOY_KEY secret (setup-deploy-key.sh --yes),
 #      so release workflows can push version bumps through the rulesets'
 #      DeployKey bypass.
+#   4. Deployment environments with required-reviewer approval gates
+#      (lisa-github-environments.sh), from the optional
+#      github.environments block in .lisa.config.json.
 #
 # Usage:
 #   lisa-github-repo-setup.sh [options] [project-path]
@@ -35,7 +38,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     -n|--dry-run) DRY_RUN=true; PASSTHROUGH+=("--dry-run"); shift ;;
     -v|--verbose) VERBOSE=true; PASSTHROUGH+=("--verbose"); shift ;;
-    -h|--help) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "Unknown option: $1" >&2; exit 1 ;;
     *) PROJECT_PATH="$1"; shift ;;
   esac
@@ -44,15 +47,15 @@ done
 PROJECT_PATH="${PROJECT_PATH:-.}"
 PROJECT_PATH="$(cd "$PROJECT_PATH" && pwd)"
 
-echo "==> Step 1/3: repository settings"
+echo "==> Step 1/4: repository settings"
 bash "$SCRIPT_DIR/lisa-github-repo-settings.sh" "${PASSTHROUGH[@]}" "$PROJECT_PATH"
 
 echo ""
-echo "==> Step 2/3: rulesets"
+echo "==> Step 2/4: rulesets"
 bash "$SCRIPT_DIR/lisa-github-rulesets.sh" --yes "${PASSTHROUGH[@]}" "$PROJECT_PATH"
 
 echo ""
-echo "==> Step 3/3: deploy key"
+echo "==> Step 3/4: deploy key"
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "[DRY RUN] Would ensure a write-access deploy key + DEPLOY_KEY secret exist"
 else
@@ -68,6 +71,10 @@ else
     fi
   fi
 fi
+
+echo ""
+echo "==> Step 4/4: deployment environments"
+bash "$SCRIPT_DIR/lisa-github-environments.sh" "${PASSTHROUGH[@]}" "$PROJECT_PATH"
 
 echo ""
 echo "✓ GitHub repository governance setup complete"
