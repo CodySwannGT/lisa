@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { cleanGitEnv } from "../../helpers/test-utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -28,7 +29,11 @@ const ACTIVE_ENFORCEMENT = "active";
  */
 function createProject(): string {
   const projectDir = mkdtempSync(path.join(tmpdir(), "lisa-rulesets-"));
-  execFileSync(GIT_BIN, ["init"], { cwd: projectDir, stdio: "ignore" });
+  execFileSync(GIT_BIN, ["init"], {
+    cwd: projectDir,
+    stdio: "ignore",
+    env: cleanGitEnv(process.env),
+  });
   writeFileSync(path.join(projectDir, "tsconfig.json"), "{}\n");
   return projectDir;
 }
@@ -103,11 +108,10 @@ describe("lisa-github-rulesets.sh", () => {
         [lisaInstall.scriptPath, "--dry-run", projectDir],
         {
           cwd: REPO_ROOT,
-          env: {
-            ...process.env,
-            // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim injects the mock gh executable.
+          // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim injects the mock gh executable.
+          env: cleanGitEnv(process.env, {
             PATH: `${ghBin}:${process.env.PATH ?? ""}`,
-          },
+          }),
           encoding: "utf8",
         }
       );
