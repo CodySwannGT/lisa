@@ -1400,6 +1400,20 @@
                 done: true,
               },
               {
+                label: "Make the project agent-ready (brownfield)",
+                desc: "Builds the knowledge wiki from everything the agent can reach and writes wiki/gaps.md — the questions only a human can answer. Answer inline, re-run in a new session, repeat until zero gaps. Greenfield projects are ready by construction.",
+                command: "/lisa:agent-ready",
+                done: false,
+                why: "wiki/gaps.md has 2 open gaps",
+              },
+              {
+                label: "Adopt the standards (conformance refactor)",
+                desc: "Apply Lisa's full lint rules, guardrails, and thresholds — the project goes red by design — then agents refactor to conform without changing business logic, proven by tests and empirical verification.",
+                command: "/lisa:improve:* · /lisa:fix:linter-error",
+                done: false,
+                why: "blocked by agent-ready",
+              },
+              {
                 label: "Connect the work tracker",
                 desc: "Verifies the workflow status names and writes the tracker section. This project: JIRA, project ACME.",
                 command: "/lisa:setup:jira | github | linear",
@@ -1611,6 +1625,18 @@
                   v: "Mines a shipped initiative — tickets, PRs, review threads — for learnings to triage",
                 },
                 { t: "text", v: "After an initiative ships" },
+                { t: "mono", v: "—" },
+              ],
+              [
+                { t: "mono", v: "/lisa:agent-ready" },
+                {
+                  t: "text",
+                  v: "Brownfield onboarding: builds the knowledge wiki from every reachable source and writes the human-answerable gaps file; absorbs answers on re-runs until zero gaps remain",
+                },
+                {
+                  t: "text",
+                  v: "Once per brownfield adoption — re-run in a fresh session after answering gaps, until it reports agent-ready",
+                },
                 { t: "mono", v: "—" },
               ],
               [

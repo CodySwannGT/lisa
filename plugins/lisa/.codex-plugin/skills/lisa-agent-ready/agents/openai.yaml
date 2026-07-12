@@ -1,0 +1,4 @@
+display_name: "Agent Ready"
+short_description: "Make a brownfield project…"
+default_prompt:
+  - "Use $lisa-agent-ready: Make a brownfield project…."
