@@ -52,6 +52,16 @@ Mirrored artifacts today: `vitest.thresholds.json` / `jest.thresholds.json`
 `mutation.gate.json` (`quality.mutation.gate`), and the `thresholds` key of
 `stryker.conf.json` (`quality.mutation.strykerThresholds`).
 
+**Provider-neutral monitoring keys.** The observability audit spans Sentry,
+AWS CloudWatch Alarms, AWS X-Ray, and future providers, so
+`monitor.thresholds` uses vendor-free names: `minEvents24h` (default **1**)
+and `faultRatePct` replace the legacy `sentryMinEvents24h` /
+`xrayFaultRatePct`. The Monitoring section shows which providers are
+connected (detected from credentials and instrumentation, not configured by
+hand). The runtime `lisa-monitor` skill still reads the legacy keys —
+renaming them in `config-resolution.md` and the skill is a tracked
+follow-up.
+
 ## Starter provenance & sync (planned — documented, not wired)
 
 The **Starter templates** section of the console documents this contract; no
