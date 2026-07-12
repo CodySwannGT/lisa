@@ -307,9 +307,14 @@ pull Lisa's own git history and read what actually changed:
 
    ```bash
    gh api "repos/CodySwannGT/lisa/compare/v<installed>...v<latest>" \
-     --jq '{total_commits, files: [.files[].filename], commits: [.commits[].commit.message | split("\n")[0]]}' \
-     --paginate
+     --paginate --slurp \
+     --jq '{total_commits: .[0].total_commits, files: [.[0].files[]?.filename], commits: [.[].commits[]? | .commit.message | split("\n")[0]]}'
    ```
+
+   `--paginate` fetches every page of commits, and `--slurp` gathers those pages into a single
+   array before `--jq` runs — without `--slurp`, `--jq` applies per page and prints one JSON object
+   per page instead of one merged result. `total_commits` and `files` only need the first page
+   (files are capped at 300 and not repeated on later pages); `commits` flattens across all pages.
 
    The compare endpoint paginates commits (250 without `--paginate`) and only lists changed files
    on the first page, capped at 300 total — a large version window can silently drop commits or
