@@ -308,3 +308,34 @@ export async function countFiles(dir: string): Promise<number> {
 
   return (await fs.pathExists(dir)) ? walk(dir) : 0;
 }
+
+const GIT_HOOK_ENV_VARS = new Set([
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_INDEX_FILE",
+  "GIT_PREFIX",
+]);
+
+/**
+ * Return a copy of an environment with git's hook-injected variables removed.
+ *
+ * When tests run inside a git hook (pre-push runs the unit suite), git exports
+ * GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / GIT_PREFIX pointing at the REAL
+ * repository. Any spawned `git init` / script that inherits them operates on
+ * that repository instead of its temp dir — concurrent test workers then race
+ * against the same gitdir and fail intermittently. Spawn git (and scripts that
+ * call git) with this env instead of the raw process env.
+ * @param base - The environment to sanitize (callers pass process.env)
+ * @param overrides - Optional extra variables layered on top (e.g. PATH shims)
+ * @returns A sanitized environment object safe for spawning git in temp dirs
+ */
+export function cleanGitEnv(
+  base: Record<string, string | undefined>,
+  overrides: Record<string, string> = {}
+): Record<string, string | undefined> {
+  return Object.fromEntries(
+    Object.entries({ ...base, ...overrides }).filter(
+      ([key]) => !GIT_HOOK_ENV_VARS.has(key)
+    )
+  );
+}
