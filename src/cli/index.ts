@@ -10,6 +10,8 @@ import { runSetupProject } from "./setup-project.js";
 import { runSetupWiki } from "./setup-wiki.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
+import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
+import { runUi, type UiCmdOptions } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
 import { runVersion } from "./version-cmd.js";
@@ -35,6 +37,10 @@ export interface ProgramDependencies {
   runDoctor: typeof runDoctor;
   /** Cross-pollinates locally-authored agent definitions across the fleet. */
   runCrossPollinate: typeof runCrossPollinate;
+  /** Populates and syncs `.lisa.config.json` with its mirrored artifacts. */
+  runSync: typeof runSync;
+  /** Serves the Lisa settings console (after a config sync). */
+  runUi: typeof runUi;
   /** Runs the non-fatal npm update check (defaults to {@link runUpdateCheck}). */
   runUpdateCheck: typeof runUpdateCheck;
   /** Prints the update warning (defaults to {@link printUpdateWarning}). */
@@ -49,9 +55,14 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runUpdate,
   runDoctor,
   runCrossPollinate,
+  runSync,
+  runUi,
   runUpdateCheck,
   printUpdateWarning,
 };
+
+/** Shared help text for the optional project-path positional argument. */
+const PATH_ARG_DESCRIPTION = "Project path (default: current directory)";
 
 /**
  * Register CLI maintenance commands that do not run the root update warning.
@@ -94,11 +105,38 @@ function addMaintenanceCommands(
     });
 
   program
+    .command("sync")
+    .description(
+      "Populate .lisa.config.json with every missing setting and sync mirrored files (config wins)"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .option("--dry-run", "Report what would change without writing")
+    .option("--json", "Emit the report as JSON")
+    .action(async (targetPath: string | undefined, options: SyncCmdOptions) => {
+      const code = await deps.runSync(targetPath, options);
+      if (code !== 0) {
+        process.exitCode = code;
+      }
+    });
+
+  program
+    .command("ui")
+    .description(
+      "Serve the Lisa settings console for a project (runs a config sync first)"
+    )
+    .argument("[path]", PATH_ARG_DESCRIPTION)
+    .option("--port <port>", "Port to listen on", "4780")
+    .option("--no-sync", "Skip the config sync on startup")
+    .action(async (targetPath: string | undefined, options: UiCmdOptions) => {
+      await deps.runUi(targetPath, options);
+    });
+
+  program
     .command("cross-pollinate")
     .description(
       "Make locally-authored agent definitions available to the other agents this project supports"
     )
-    .argument("[path]", "Project path (default: current directory)")
+    .argument("[path]", PATH_ARG_DESCRIPTION)
     .option("--write", "Apply emits and update the lockfile (default: dry-run)")
     .action(
       async (
@@ -143,7 +181,11 @@ export function createProgram(
   // Run the npm update-check once per invocation, before the matched action.
   // It is non-fatal: a failed check never blocks the action from running.
   program.hook("preAction", async (_thisCommand, actionCommand) => {
-    if (["doctor", "update", "version"].includes(actionCommand.name())) {
+    if (
+      ["doctor", "sync", "ui", "update", "version"].includes(
+        actionCommand.name()
+      )
+    ) {
       return;
     }
     if (program.opts().updateCheck === false) {
@@ -189,7 +231,7 @@ export function createProgram(
     program
       .command("setup-wiki")
       .description("Prepare an existing project for embedded Lisa wiki setup")
-      .argument("[path]", "Project path (default: current directory)")
+      .argument("[path]", PATH_ARG_DESCRIPTION)
   ).action(async (destination: string | undefined, options: CLIOptions) => {
     await deps.runSetupWiki(destination, options);
   });

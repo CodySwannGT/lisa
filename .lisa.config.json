@@ -4,11 +4,128 @@
   "source": "github",
   "github": {
     "org": "CodySwannGT",
-    "repo": "lisa"
+    "repo": "lisa",
+    "labels": {
+      "build": {
+        "ready": "status:ready",
+        "claimed": "status:in-progress",
+        "blocked": "status:blocked",
+        "human_needed": "human-needed",
+        "done": {
+          "dev": "status:on-dev",
+          "staging": "status:on-stg",
+          "production": "status:done"
+        }
+      },
+      "prd": {
+        "draft": "prd-draft",
+        "ready": "prd-ready",
+        "in_review": "prd-in-review",
+        "blocked": "prd-blocked",
+        "ticketed": "prd-ticketed",
+        "shipped": "prd-shipped",
+        "verified": "prd-verified",
+        "sentinel": "prd-intake-feedback"
+      }
+    }
   },
   "deploy": {
     "branches": {
       "production": "main"
+    }
+  },
+  "quality": {
+    "testCoverage": {
+      "global": {
+        "statements": 74,
+        "branches": 65,
+        "functions": 60,
+        "lines": 75
+      }
+    },
+    "lintBudgets": {
+      "cognitiveComplexity": 10,
+      "maxLines": 300,
+      "maxLinesPerFunction": 75
+    },
+    "mutation": {
+      "gate": {
+        "enabled": false,
+        "since": "main"
+      },
+      "strykerThresholds": {
+        "high": 80,
+        "low": 60,
+        "break": 60
+      }
+    }
+  },
+  "_lisaSync": {
+    "populated": {
+      "quality.mutation.gate": {
+        "enabled": false,
+        "since": "main"
+      },
+      "quality.mutation.strykerThresholds": {
+        "high": 80,
+        "low": 60,
+        "break": 60
+      },
+      "intake.repair": {
+        "staleAfterHours": 2,
+        "maxCandidates": 100
+      },
+      "monitor": {
+        "maxCandidates": 20,
+        "gapTiers": "core",
+        "backoffHours": 24,
+        "thresholds": {
+          "minEvents24h": 1,
+          "errorRateSpikeMultiplier": 2,
+          "p95LatencyMs": 1000,
+          "faultRatePct": 5
+        }
+      },
+      "github.labels": {
+        "build": {
+          "ready": "status:ready",
+          "claimed": "status:in-progress",
+          "blocked": "status:blocked",
+          "human_needed": "human-needed",
+          "done": {
+            "dev": "status:on-dev",
+            "staging": "status:on-stg",
+            "production": "status:done"
+          }
+        },
+        "prd": {
+          "draft": "prd-draft",
+          "ready": "prd-ready",
+          "in_review": "prd-in-review",
+          "blocked": "prd-blocked",
+          "ticketed": "prd-ticketed",
+          "shipped": "prd-shipped",
+          "verified": "prd-verified",
+          "sentinel": "prd-intake-feedback"
+        }
+      }
+    }
+  },
+  "intake": {
+    "repair": {
+      "staleAfterHours": 2,
+      "maxCandidates": 100
+    }
+  },
+  "monitor": {
+    "maxCandidates": 20,
+    "gapTiers": "core",
+    "backoffHours": 24,
+    "thresholds": {
+      "minEvents24h": 1,
+      "errorRateSpikeMultiplier": 2,
+      "p95LatencyMs": 1000,
+      "faultRatePct": 5
     }
   }
 }
