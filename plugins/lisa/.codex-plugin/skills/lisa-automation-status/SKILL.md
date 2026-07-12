@@ -23,6 +23,7 @@ Inspect only the Lisa automation fleet for the current project:
 - `intake-tickets`
 - `exploratory-bugs` when the current stack supports `exploratory-qa`
 - `exploratory-prds`
+- `monitor`
 
 Resolve the expected project identifier, fleet naming prefix, queue arguments, cadence, and stack-support rules from the same contract used by `setup-automations` and `tear-down-automations`. Do **not** invent a second source of truth for fleet naming or queue resolution.
 

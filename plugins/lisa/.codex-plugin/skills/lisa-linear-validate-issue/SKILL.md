@@ -94,6 +94,7 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | F2 Project parent exists and is in same team | `structural` | false |
 | F3 Linked items exist | `structural` | false |
 | F4 Required labels exist (or can be created) | `structural` | false |
+| F5 Required external access provable | `technical` | true |
 
 Category values are the same fixed set as `lisa-jira-validate-ticket`:
 
@@ -253,6 +254,31 @@ For each entry in `relations`, call `lisa-linear-access operation: get-issue` to
 
 For each label referenced (`status:*`, `component:<name>`, `prd-*`), confirm via `lisa-linear-access operation: list-issue-labels` (or `lisa-linear-access operation: list-project-labels` for Project labels) that it exists OR is creatable. Linear labels are team-scoped or workspace-scoped; flag if the requested scope is wrong.
 
+#### F5 — Required external access provable
+
+The factory-gate rule: an input must not enter the pipeline unless the current runtime can actually
+reach every external surface the work requires. Enumerate the surfaces this item depends on:
+
+- artifact links in the body (documents, designs, dashboards, spreadsheets, recordings),
+- systems named by the description, acceptance criteria, or Validation Journey ("read the CloudWatch
+  alarms", "pull the copy from the Google Doc", "check the Sentry issues"),
+- tooling the work plainly implies (a deploy target, a database, a third-party API).
+
+For each surface, prove **read** access from the current runtime with the cheapest read-only probe
+through the sanctioned access layer: the matching MCP tool or `lisa-*-access` skill, CLI auth
+(`aws sts get-caller-identity`, `gh auth status`, vendor equivalents), or an authenticated fetch of
+the linked artifact. Attempt to resolve a gap before failing — an alternate substrate, a configured
+access layer, a keychain credential — mirroring the intake agent's discover-first duty.
+
+- `PASS` — every required surface is provably readable.
+- `N/A` — the item needs nothing beyond the repository and the tracker itself.
+- `FAIL` — a required surface is unreachable after the resolution attempt. Name the exact surface
+  and what was probed. Intake callers must route this to `blocked` + human escalation with the
+  missing access spelled out — an input the factory cannot execute never enters the factory.
+
+Probes are read-only and bounded (seconds, not minutes, per surface); never mutate the external
+system, and never invent or ask for credentials inline.
+
 ## Execution
 
 1. Parse `$ARGUMENTS`. If it's an identifier, fetch the item and derive the spec from the fetched fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item. Otherwise parse the YAML spec.
@@ -290,6 +316,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] F2 Project parent exists and is in same team — <one-line reason>
 - [PASS|FAIL|N/A] F3 Linked items exist — <one-line reason>
 - [PASS|FAIL|N/A] F4 Required labels exist (or can be created) — <one-line reason>
+- [PASS|FAIL|N/A] F5 Required external access provable — <one-line reason>
 
 ### Verdict: PASS | FAIL
 ### Failures: <count>

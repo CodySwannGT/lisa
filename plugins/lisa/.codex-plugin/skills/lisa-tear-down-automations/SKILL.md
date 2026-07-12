@@ -21,9 +21,9 @@ removes them with its **native** scheduling mechanism.
 
 ## Scope (remove only what setup created)
 
-- Remove the five automations `/setup-automations` creates for the current project, matched by the
+- Remove the six automations `/setup-automations` creates for the current project, matched by the
   stable `lisa-auto-<project>-` name prefix: `intake-repair`, `intake-prd`, `intake-tickets`,
-  `exploratory-bugs`, `exploratory-prds`.
+  `exploratory-bugs`, `exploratory-prds`, `monitor`.
 - **Never** remove automations for a different project, or any non-Lisa automation (e.g. unrelated
   crawlers/ingestors). Match strictly on the `lisa-auto-<project>-` prefix for THIS project; when in
   doubt about an automation's ownership, leave it and report it rather than deleting it.

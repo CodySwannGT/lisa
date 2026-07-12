@@ -152,7 +152,7 @@ describe("leaf-only build-ready invariant (#538)", () => {
 
     it("extends the gate-ID range to include S15", () => {
       // The failure-detail field doc enumerates the valid gate IDs.
-      expect(content).toMatch(/S1.*S15.*F1.*F4/);
+      expect(content).toMatch(/S1.*S15.*F1.*F5/);
     });
 
     it("FAILs a container that carries the build-ready role", () => {

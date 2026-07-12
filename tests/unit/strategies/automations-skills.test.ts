@@ -7,7 +7,7 @@
  * (Codex automations / Claude /schedule). setup creates five automations
  * (intake-repair 60m, intake-prd 60m, intake-tickets 10m, exploratory-bugs
  * daily, exploratory-prds daily); auto-start-prds/auto-start-tickets map to
- * project-ideation `prd_ready` / exploratory-qa `ready` (default false).
+ * project-ideation `prd_ready` / exploratory-qa `ready` (default true — autonomous).
  * teardown removes only the project's `lisa-auto-<project>-*` set.
  *
  * Both source and generated plugin roots are asserted.
@@ -60,11 +60,11 @@ describe("setup-automations is a runtime-branched declarative spec", () => {
       expect(content).toContain("FREQ=DAILY;INTERVAL=1");
     });
 
-    it("maps the auto-start flags to prd_ready / ready, default false", () => {
+    it("maps the auto-start flags to prd_ready / ready, default true", () => {
       expect(content).toMatch(/auto-start-prds[^]*prd_ready/i);
       expect(content).toMatch(/auto-start-tickets[^]*ready/i);
-      // Markdown may bold the value (`default **false**`); tolerate punctuation.
-      expect(content).toMatch(/default[^\w]{0,4}false/i);
+      // Markdown may bold the value (`default **true**`); tolerate punctuation.
+      expect(content).toMatch(/default[^\w]{0,4}true/i);
     });
 
     it("uses a stable lisa-auto-<project> prefix and is idempotent", () => {

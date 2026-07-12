@@ -1,6 +1,6 @@
 # Lisa
 
-Lisa is governance-as-code for AI-assisted software development. It makes one set of standards, workflows, and quality gates apply identically whether the work is done by a human, by an AI agent on a laptop, or by an automated job in CI — and it distributes those standards to every project as a versioned dependency.
+Lisa turns a repository into a set of **software factories** — agent-operated production lines (Research → Plan → Implement → Verify) that build, verify, and ship software with as few humans as possible. Underneath the factories, Lisa is governance-as-code for AI-assisted software development: one set of standards, workflows, and quality gates applies identically whether the work is done by a human, by an AI agent on a laptop, or by a scheduled job — distributed to every project as a versioned dependency, and to every major coding agent platform (Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot) from one source.
 
 > **How to read this README**
 >
@@ -11,16 +11,28 @@ Lisa is governance-as-code for AI-assisted software development. It makes one se
 
 ## What Lisa is
 
-Lisa wears three faces from a single package:
+Lisa wears four faces from a single package:
 
+- **A factory operator.** Scheduled intake agents watch queues of ready work, adversarially gate what enters the pipeline, and run each item through Research → Plan → Implement → Verify without a human in the loop.
 - **A standards engine.** It applies a curated set of configs, CI workflows, git hooks, and project rules into a target repository and keeps them current as the package updates.
-- **An operating system for coding agents.** It ships the skills, commands, agent roles, rules, and hooks that define *how* an AI agent investigates, builds, reviews, ships, and verifies work — and it delivers that same content to several different agent runtimes from one source.
+- **An operating system for coding agents.** It ships the skills, commands, agent roles, rules, and hooks that define *how* an AI agent investigates, builds, reviews, ships, and verifies work — and it delivers that same content to every supported agent runtime from one source.
 - **A configuration library.** Projects can consume Lisa's linting, testing, and TypeScript presets directly, per technology stack, without adopting the rest.
 
-All three are versioned together, so "how we build software here" upgrades by bumping one dependency.
+All four are versioned together, so "how we build software here" upgrades by bumping one dependency.
 
 > **Prompt for your coding agent**
 > "Give me a one-paragraph tour of this repository's top-level layout: where the apply/template engine lives, where the agent plugin content is authored, and where the shared config presets are exported. Read the source and cite paths."
+
+## The factory model
+
+Lisa's purpose is to run four **factories** in your project — production lines operated by agents, not people — so that **non-technical people can create scalable software** by describing outcomes while the factories supply the engineering discipline. **Research** creates PRDs. **Plan** turns a PRD into ordered work units. **Implement** turns work units into quality software — tests, code, UI, APIs, infrastructure. **Verify** issues a go/no-go by using the software the way a human would, and files any failures straight back into Implement as build-ready tickets, so the loop heals itself.
+
+Humans don't work inside a factory. Handoff happens outside, at the **gates**: agents, humans, and automations submit inputs, and an intake agent adversarially evaluates each one — is it high-quality and unambiguous, and does the factory have the tooling *and provable access to that tooling* to execute it? The intake agent tries to resolve gaps itself first; what it genuinely can't resolve, it rejects and raises to a human rather than guessing.
+
+Three loops keep the pipeline fed without anyone asking: **QA** explores the product like a first-time user and files bugs, **Product Planning** ideates PRDs, and **Monitoring** audits observability signals and files regressions. Everything runs on the coding agent's native scheduler, and by default the loops' outputs enter the gates pickup-ready — the adversarial intake is the quality control, not a human triager. Executed properly, end users have zero direct contact with coding agents: they see the tracker, the PRDs, and the shipped software.
+
+> **Prompt for your coding agent**
+> "Explain how this project's factory pipeline is wired right now: which automations exist and on what cadence, what each gate checks before admitting work, and where a human is still required. Read the installed automations and intake skills — don't guess."
 
 ## Core principles
 
@@ -79,12 +91,12 @@ The supported stacks, setup flags, and exact invocation evolve as the project gr
 
 ## The work lifecycle
 
-Lisa organizes a piece of work as a pipeline of specialized agent roles. Conceptually it moves through five stages:
+Lisa organizes a piece of work as a pipeline of specialized agent roles — the factories, seen from inside. Conceptually a work item moves through five stages:
 
-1. **Understand** — investigate the codebase and the problem, produce a spec or PRD.
-2. **Plan** — decompose the spec into ordered work items in your tracker.
-3. **Build** — take one item from spec to a merged PR: a team of agents implements, reviews, and ships it.
-4. **Prove** — deploy, verify the behavior in the target environment with real evidence, and turn a passing manual check into a regression test.
+1. **Understand** *(the Research factory)* — investigate the codebase and the problem, produce a spec or PRD.
+2. **Plan** *(the Plan factory)* — decompose the spec into ordered work items in your tracker.
+3. **Build** *(the Implement factory)* — take one item from spec to a merged PR: a team of agents implements, reviews, and ships it.
+4. **Prove** *(the Verify factory)* — deploy, verify the behavior in the target environment with real evidence, and turn a passing manual check into a regression test.
 5. **Learn** — after shipping, mine the work for edge cases and friction and fold accepted learnings back into the standards.
 
 Most people invoke only the first stages explicitly; the rest run as nested sub-flows. The same logic runs whether you trigger it by hand or a scheduled job triggers it unattended.
@@ -94,7 +106,7 @@ Most people invoke only the first stages explicitly; the rest run as nested sub-
 
 ### Unattended and batch work
 
-Lisa can watch a queue of ready work and dispatch each item through the lifecycle on its own, which is what makes it usable as a scheduled operator. It can also recover queues that are stuck and report whether the automation fleet is healthy.
+Lisa can watch a queue of ready work and dispatch each item through the lifecycle on its own, which is what makes it usable as a scheduled operator. A standard automation fleet covers the pipeline movers (PRD intake, ticket intake, queue repair) and the three feeding loops (exploratory QA, product ideation, observability monitoring); Lisa can also recover queues that are stuck and report whether the fleet is healthy.
 
 > **Prompt for your coding agent**
 > "Which commands let this Lisa scan a work queue, dispatch ready items, repair stuck ones, and report on scheduled-automation health? Show me how I'd point one at my queue and what it expects in configuration."
