@@ -165,6 +165,17 @@ export class Lisa {
   ) {}
 
   /**
+   * Postinstall applies are intentionally narrow: they refresh governance
+   * templates that must track dependency updates, but they must not regenerate
+   * project-scoped agent surfaces. Agent trees are large, committed outputs and
+   * are updated through an explicit `lisa apply` or cross-pollinate run.
+   * @returns True when the current apply should avoid agent-surface writes.
+   */
+  private shouldSkipAgentEmitDuringPostinstall(): boolean {
+    return this.config.skipGitCheck;
+  }
+
+  /**
    * Initialize services
    */
   private async initServices(): Promise<void> {
@@ -753,6 +764,12 @@ export class Lisa {
     if (!harnessIncludesAgent(harness, "codex")) {
       return;
     }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      this.deps.logger.info(
+        pc.gray("Codex emit: skipped during postinstall-safe apply")
+      );
+      return;
+    }
     if (this.config.dryRun) {
       this.deps.logger.info(pc.gray("Codex emit: skipped (dry-run mode)"));
       return;
@@ -790,6 +807,12 @@ export class Lisa {
   private async processClaudeEmit(): Promise<void> {
     const { harness } = this.config;
     if (!harnessIncludesAgent(harness, "claude")) {
+      return;
+    }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      this.deps.logger.info(
+        pc.gray("Claude emit: skipped during postinstall-safe apply")
+      );
       return;
     }
     if (this.config.dryRun) {
@@ -837,6 +860,12 @@ export class Lisa {
   private async processAgyEmit(): Promise<void> {
     const { harness } = this.config;
     if (!harnessIncludesAgent(harness, "agy")) {
+      return;
+    }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      this.deps.logger.info(
+        pc.gray("agy emit: skipped during postinstall-safe apply")
+      );
       return;
     }
     if (this.config.dryRun) {
@@ -935,6 +964,12 @@ export class Lisa {
     if (!harnessIncludesAgent(harness, "copilot")) {
       return;
     }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      this.deps.logger.info(
+        pc.gray("Copilot emit: skipped during postinstall-safe apply")
+      );
+      return;
+    }
     if (this.config.dryRun) {
       this.deps.logger.info(pc.gray("Copilot emit: skipped (dry-run mode)"));
       return;
@@ -994,6 +1029,12 @@ export class Lisa {
   private async processOpencodeEmit(): Promise<void> {
     const { harness } = this.config;
     if (!harnessIncludesAgent(harness, "opencode")) {
+      return;
+    }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      this.deps.logger.info(
+        pc.gray("OpenCode emit: skipped during postinstall-safe apply")
+      );
       return;
     }
     if (this.config.dryRun) {
@@ -1106,6 +1147,9 @@ export class Lisa {
    */
   private async processInstructionFilesMigration(): Promise<void> {
     if (this.config.dryRun) {
+      return;
+    }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
       return;
     }
     const result = await migrateInstructionFiles(this.config.destDir, {
