@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.204.8](https://github.com/CodySwannGT/lisa/compare/v2.204.7...v2.204.8) (2026-07-13)
+
+
+### Bug Fixes
+
+* pass package manager through claude templates ([5863d5b](https://github.com/CodySwannGT/lisa/commit/5863d5b5ff5a013db3404a646f44ee5e1cb0f253))
+
 ### [2.204.7](https://github.com/CodySwannGT/lisa/compare/v2.204.6...v2.204.7) (2026-07-13)
 
 
