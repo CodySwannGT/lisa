@@ -589,6 +589,24 @@ jobs:
           # Generate changelog based on strategy
           if [ "${{ inputs.release_strategy }}" == "standard-version" ]; then
             npx standard-version --release-as ${{ steps.version.outputs.version }} --skip.tag --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci]"
+
+            # standard-version rewrites the full CHANGELOG.md but the GitHub
+            # release body is built from CHANGELOG_ENTRY.md, so extract this
+            # version's section (from its heading to the next version heading).
+            # Version headings are "## [x.y.z](...)" or "### [x.y.z](...)"
+            # (patch entries share the ### level with "### Bug Fixes" sections,
+            # so match on the version token, not the heading depth).
+            awk -v ver="${{ steps.version.outputs.version }}" '
+              /^#+ \[?[0-9]+\.[0-9]+\.[0-9]+/ {
+                if (index($0, "[" ver "]") > 0 || $2 == ver) { found=1; print; next }
+                if (found) { exit }
+              }
+              found { print }
+            ' CHANGELOG.md > CHANGELOG_ENTRY.md
+
+            if [ ! -s CHANGELOG_ENTRY.md ]; then
+              echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md) for this release's changes." > CHANGELOG_ENTRY.md
+            fi
           else
             # Custom changelog generation
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -1074,9 +1092,12 @@ jobs:
           ## 📝 Changelog
           EOF
 
-          # Include changelog content
-          if [ -f "version-artifacts-${{ github.run_id }}/CHANGELOG_ENTRY.md" ]; then
+          # Include changelog content. Fall back to a pointer at the full
+          # changelog rather than publishing an empty section.
+          if [ -s "version-artifacts-${{ github.run_id }}/CHANGELOG_ENTRY.md" ]; then
             cat "version-artifacts-${{ github.run_id }}/CHANGELOG_ENTRY.md" >> RELEASE_NOTES.md
+          else
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md) for this release's changes." >> RELEASE_NOTES.md
           fi
 
           # Add verification instructions if signed
