@@ -40,6 +40,8 @@ jobs:
     name: 🌍 Determine Environment
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       environment: ${{ steps.env.outputs.environment }}
       approval_environment: ${{ steps.approval.outputs.approval_environment }}
@@ -81,6 +83,9 @@ jobs:
     name: 📦 Release
     uses: CodySwannGT/lisa/.github/workflows/release.yml@main
     needs: [determine_environment]
+    permissions:
+      contents: write
+      pull-requests: read
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
@@ -105,6 +110,8 @@ jobs:
     name: Verify AWS Credentials
     runs-on: ubuntu-latest
     needs: [release]
+    permissions:
+      contents: read
     outputs:
       has_aws_credentials: ${{ steps.check.outputs.has_aws_credentials }}
     steps:
@@ -129,6 +136,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release, verify_aws_credentials]
     if: needs.verify_aws_credentials.outputs.has_aws_credentials == 'true'
+    permissions:
+      contents: read
     outputs:
       requires_migration: ${{ steps.check.outputs.requires_migration }}
     steps:
@@ -144,13 +153,14 @@ jobs:
         shell: bash
         env:
           SKIP_MIGRATIONS: ${{ vars.SKIP_MIGRATIONS }}
-          GITHUB_OUTPUT: ${{ github.output }}
 
   verify_vpn:
     name: Verify VPN
     runs-on: ubuntu-latest
     needs: [check_migration_required]
     if: always() && needs.check_migration_required.outputs.requires_migration == 'true'
+    permissions:
+      contents: read
     outputs:
       has_vpn_setup: ${{ steps.check.outputs.has_vpn_setup }}
     steps:
@@ -168,7 +178,6 @@ jobs:
           fi
         env:
           OVPN_CONFIG: ${{ secrets[env.OVPN_CONFIG_NAME] }}
-          GITHUB_OUTPUT: ${{ github.output }}
   migrate:
     name: Schema Migrations
     runs-on: ubuntu-latest
@@ -217,13 +226,27 @@ jobs:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           AWS_PROFILE: '' # Override serverless.yml profile with empty string for CI
   deploy:
-    needs: [migrate, verify_aws_credentials]
+    needs:
+      [
+        determine_environment,
+        release,
+        check_migration_required,
+        migrate,
+        verify_aws_credentials,
+      ]
     if: |
       always() &&
       needs.verify_aws_credentials.outputs.has_aws_credentials == 'true' &&
-      (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+      needs.check_migration_required.result == 'success' &&
+      (
+        needs.migrate.result == 'success' ||
+        (needs.check_migration_required.outputs.requires_migration != 'true' && needs.migrate.result == 'skipped')
+      )
     name: Deploy
     runs-on: ubuntu-latest
+    outputs:
+      environment_url: ${{ steps.deployment_outputs.outputs.environment_url }}
+      deployment_status: ${{ steps.deployment_outputs.outputs.deployment_status }}
     permissions:
       id-token: write # needed to interact with GitHub's OIDC Token endpoint
       contents: read
@@ -324,6 +347,43 @@ jobs:
             exit 1
           fi
           echo "Health check passed: $health_url"
+
+      - name: Resolve deployment outputs
+        id: deployment_outputs
+        shell: bash
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          AWS_PROFILE: ''
+          DEPLOYMENT_URL: ${{ vars.DEPLOYMENT_URL }}
+          HEALTH_OUTPUT_KEY: ${{ vars.POST_DEPLOY_HEALTH_OUTPUT_KEY || 'HttpApiUrl' }}
+          SERVERLESS_STACK_NAME: ${{ vars.SERVERLESS_STACK_NAME }}
+          STAGE: ${{ github.ref_name != 'main' && github.ref_name || 'production' }}
+        run: |
+          set -euo pipefail
+          environment_url="$DEPLOYMENT_URL"
+
+          if [ -z "$environment_url" ]; then
+            stack_name="$SERVERLESS_STACK_NAME"
+            if [ -z "$stack_name" ]; then
+              service_name=$(bun run serverless print --stage "$STAGE" --format json | jq -r '.service // empty' 2>/dev/null || true)
+              if [ -n "$service_name" ]; then
+                stack_name="${service_name}-${STAGE}"
+              fi
+            fi
+
+            if [ -n "$stack_name" ]; then
+              environment_url=$(aws cloudformation describe-stacks \
+                --stack-name "$stack_name" \
+                --query "Stacks[0].Outputs[?OutputKey=='${HEALTH_OUTPUT_KEY}'].OutputValue | [0]" \
+                --output text 2>/dev/null || true)
+              if [ "$environment_url" = "None" ]; then
+                environment_url=""
+              fi
+            fi
+          fi
+
+          echo "environment_url=$environment_url" >> "$GITHUB_OUTPUT"
+          echo "deployment_status=success" >> "$GITHUB_OUTPUT"
 
       - name: 📢 Notify on success
         run: echo "Successfully deployed version ${{ needs.release.outputs.version }} to ${{ needs.determine_environment.outputs.environment }}"
