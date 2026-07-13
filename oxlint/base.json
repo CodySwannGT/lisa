@@ -19,7 +19,17 @@
     "no-unused-vars": "off",
     "max-lines": "off",
     "max-lines-per-function": "off",
-    "jsdoc/check-tag-names": "off"
+    "jsdoc/check-tag-names": "off",
+    "jsdoc/check-access": "error",
+    "jsdoc/check-property-names": "error",
+    "jsdoc/empty-tags": "error",
+    "jsdoc/implements-on-classes": "error",
+    "jsdoc/no-defaults": "error",
+    "jsdoc/require-param-name": "error",
+    "jsdoc/require-property": "error",
+    "jsdoc/require-property-name": "error",
+    "jsdoc/require-yields": "error",
+    "jsdoc/require-property-type": "off"
   },
   "ignorePatterns": [
     "build/**",
