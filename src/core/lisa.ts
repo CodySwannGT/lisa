@@ -1289,7 +1289,10 @@ export class Lisa {
    *    (avoids the create-then-delete ENOENT race)
    * 3. Create-only ownership conflicts (parent stack ships a path that a
    *    child stack also ships under create-only — child wins)
-   * 4. Copy-overwrite ownership conflicts (parent and child both ship a path
+   * 4. Cross-strategy ownership conflicts (a child stack ships a create-only
+   *    path that a parent stack ships under copy-overwrite — child wins before
+   *    the parent can overwrite a host-owned or soon-to-be-created child file)
+   * 5. Copy-overwrite ownership conflicts (parent and child both ship a path
    *    under copy-overwrite — only the most-specific stack writes it, so there
    *    is no parent-then-child overwrite window; see copyOverwriteOwnership)
    * @param relativePath - Path relative to the strategy's source directory
@@ -1326,15 +1329,53 @@ export class Lisa {
       }
     }
     if (strategyName === "copy-overwrite") {
-      const owner = this.copyOverwriteOwnership.get(relativePath);
-      if (owner !== undefined && owner !== currentType) {
-        this.counters.skipped++;
-        const reason = `overridden by ${owner}/copy-overwrite`;
-        this.logSkip(reason, relativePath, `Skipped (${reason})`);
-        return false;
-      }
+      return this.shouldProcessCopyOverwrite(relativePath, currentType);
     }
     return true;
+  }
+
+  /**
+   * Apply copy-overwrite-specific ownership rules.
+   * @param relativePath - Path relative to the strategy source directory
+   * @param currentType - Project type currently being processed
+   * @returns True if copy-overwrite should apply the file, false to skip
+   */
+  private shouldProcessCopyOverwrite(
+    relativePath: string,
+    currentType: string
+  ): boolean {
+    const createOnlyOwner = this.createOnlyOwnership.get(relativePath);
+    if (
+      createOnlyOwner !== undefined &&
+      createOnlyOwner !== currentType &&
+      this.isMoreSpecificType(createOnlyOwner, currentType)
+    ) {
+      this.counters.skipped++;
+      const reason = `owned by ${createOnlyOwner}/create-only`;
+      this.logSkip(reason, relativePath, `Skipped (${reason})`);
+      return false;
+    }
+    const owner = this.copyOverwriteOwnership.get(relativePath);
+    if (owner !== undefined && owner !== currentType) {
+      this.counters.skipped++;
+      const reason = `overridden by ${owner}/copy-overwrite`;
+      this.logSkip(reason, relativePath, `Skipped (${reason})`);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Determine whether one detected stack is more specific than another.
+   * `expandAndOrderTypes` orders parents before children, matching the strategy
+   * processing order, so a higher index means a more-specific owner.
+   * @param candidate - Potential child stack
+   * @param currentType - Current stack being processed
+   * @returns True when candidate is ordered after currentType
+   */
+  private isMoreSpecificType(candidate: string, currentType: string): boolean {
+    const orderedTypes = ["all", ...this.detectedTypes];
+    return orderedTypes.indexOf(candidate) > orderedTypes.indexOf(currentType);
   }
 
   /**
