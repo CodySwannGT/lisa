@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.204.7](https://github.com/CodySwannGT/lisa/compare/v2.204.6...v2.204.7) (2026-07-13)
+
+
+### Bug Fixes
+
+* **apply:** preserve expo tsconfig ownership ([a977927](https://github.com/CodySwannGT/lisa/commit/a977927fcd1711a63b43658a334acda9e28986af))
+
 ### [2.204.6](https://github.com/CodySwannGT/lisa/compare/v2.204.5...v2.204.6) (2026-07-13)
 
 
