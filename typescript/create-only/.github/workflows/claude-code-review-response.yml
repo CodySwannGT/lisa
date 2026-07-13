@@ -25,5 +25,6 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       repo_owner: ${{ github.repository_owner }}
       repo_name: ${{ github.event.repository.name }}
+      package_manager: 'bun'
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
