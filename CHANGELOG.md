@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.204.4](https://github.com/CodySwannGT/lisa/compare/v2.204.3...v2.204.4) (2026-07-13)
+
+
+### Bug Fixes
+
+* **eslint:** enforce the jsdoc rules deferred to oxlint ([881147d](https://github.com/CodySwannGT/lisa/commit/881147d53f85171beb8fbf9fdb297464a6c69930))
+
 ### [2.204.3](https://github.com/CodySwannGT/lisa/compare/v2.204.2...v2.204.3) (2026-07-13)
 
 
