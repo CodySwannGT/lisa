@@ -1,0 +1,4 @@
+display_name: "Setup AWS Accounts"
+short_description: "Provision the multi-account AWS…"
+default_prompt:
+  - "Use $setup-aws-accounts: Provision the multi-account AWS…."

@@ -1,0 +1,4 @@
+display_name: "Setup AWS Accounts"
+short_description: "Provision the multi-account AWS environment a Lisa CDK project deploys into, using the @codyswann/aws-soc2-setup CLI (AWS Organizations…"
+default_prompt:
+  - "Use $setup-aws-accounts: Provision the multi-account AWS environment a Lisa CDK project deploys into, using the @codyswann/aws-soc2-setup CLI (AWS Organizations…."
