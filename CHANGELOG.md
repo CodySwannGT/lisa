@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.204.5](https://github.com/CodySwannGT/lisa/compare/v2.204.4...v2.204.5) (2026-07-13)
+
+
+### Bug Fixes
+
+* **workflows:** populate the GitHub release changelog for standard-version releases ([50ac462](https://github.com/CodySwannGT/lisa/commit/50ac4628bd576646e10e374762b69b6915970bc3))
+
 ### [2.204.4](https://github.com/CodySwannGT/lisa/compare/v2.204.3...v2.204.4) (2026-07-13)
 
 
