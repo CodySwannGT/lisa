@@ -62,6 +62,9 @@ jobs:
     name: 📝 Create GitHub Issue
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
