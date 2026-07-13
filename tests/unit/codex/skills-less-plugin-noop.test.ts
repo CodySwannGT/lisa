@@ -9,7 +9,7 @@
  * plugin trees that ship in this repo satisfy the acceptance criteria, so a
  * future regression in the generator (or a stray hand-authored file) is caught:
  *
- *   AC1 — a skills-less built plugin (lisa-cdk, lisa-typescript) produces zero
+ *   AC1 — a skills-less built plugin (lisa-typescript) produces zero
  *         agents/openai.yaml.
  *   AC2 — no openai.yaml exists under ANY commands/ directory, across both the
  *         source-of-truth tree (plugins/src/base) and every generated plugin
@@ -31,7 +31,7 @@ const PLUGINS_DIR = path.join(REPO_ROOT, "plugins");
 /** The artifact filename the generator emits per skill. */
 const OPENAI_YAML = "openai.yaml";
 /** Built plugins that ship no skills/ directory (hooks-/rules-only). */
-const SKILLS_LESS_BUILT_PLUGINS = ["lisa-cdk", "lisa-typescript"] as const;
+const SKILLS_LESS_BUILT_PLUGINS = ["lisa-typescript"] as const;
 
 /**
  * Recursively collect every file path under `dir` whose basename equals `name`.

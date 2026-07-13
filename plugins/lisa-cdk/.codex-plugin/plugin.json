@@ -13,6 +13,7 @@
   "dependencies": [
     "lisa-typescript"
   ],
+  "skills": "./.codex-plugin/skills/",
   "interface": {
     "displayName": "Lisa CDK",
     "shortDescription": "AWS CDK workflows",
