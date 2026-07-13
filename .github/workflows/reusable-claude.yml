@@ -45,15 +45,29 @@ on:
         required: false
 
 jobs:
+  check_claude_setup:
+    name: 🔑 Check Claude Setup
+    runs-on: ubuntu-latest
+    outputs:
+      has_claude_token: ${{ steps.check.outputs.has_claude_token }}
+    steps:
+      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
+        id: check
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ]; then
+            echo "has_claude_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_claude_token=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN is not set - Claude automation will be skipped. Provision the secret to enable it."
+          fi
+
   claude:
+    needs: [check_claude_setup]
     if: |
-      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), inputs.author_association) &&
-      (
-        (inputs.event_name == 'issue_comment' && contains(inputs.comment_body, '@claude')) ||
-        (inputs.event_name == 'pull_request_review_comment' && contains(inputs.comment_body, '@claude')) ||
-        (inputs.event_name == 'pull_request_review' && contains(inputs.review_body, '@claude')) ||
-        (inputs.event_name == 'issues' && (contains(inputs.issue_body, '@claude') || contains(inputs.issue_title, '@claude')))
-      )
+      needs.check_claude_setup.outputs.has_claude_token == 'true' &&
+      (contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), inputs.author_association) && ( (inputs.event_name == 'issue_comment' && contains(inputs.comment_body, '@claude')) || (inputs.event_name == 'pull_request_review_comment' && contains(inputs.comment_body, '@claude')) || (inputs.event_name == 'pull_request_review' && contains(inputs.review_body, '@claude')) || (inputs.event_name == 'issues' && (contains(inputs.issue_body, '@claude') || contains(inputs.issue_title, '@claude'))) ))
     runs-on: ubuntu-latest
     permissions:
       contents: write
