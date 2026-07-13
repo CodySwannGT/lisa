@@ -28,11 +28,29 @@ on:
         required: false
 
 jobs:
+  check_claude_setup:
+    name: 🔑 Check Claude Setup
+    runs-on: ubuntu-latest
+    outputs:
+      has_claude_token: ${{ steps.check.outputs.has_claude_token }}
+    steps:
+      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
+        id: check
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ]; then
+            echo "has_claude_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_claude_token=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN is not set - Claude automation will be skipped. Provision the secret to enable it."
+          fi
+
   triage:
-    if: >-
-      vars.JIRA_BASE_URL != '' &&
-      vars.JIRA_USER_EMAIL != '' &&
-      vars.JIRA_PROJECT_KEY != ''
+    needs: [check_claude_setup]
+    if: |
+      needs.check_claude_setup.outputs.has_claude_token == 'true' &&
+      (vars.JIRA_BASE_URL != '' && vars.JIRA_USER_EMAIL != '' && vars.JIRA_PROJECT_KEY != '')
     runs-on: ubuntu-latest
     permissions:
       contents: read
