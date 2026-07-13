@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.204.3](https://github.com/CodySwannGT/lisa/compare/v2.204.2...v2.204.3) (2026-07-13)
+
+
+### Bug Fixes
+
+* **workflows:** skip Claude automation jobs cleanly when CLAUDE_CODE_OAUTH_TOKEN is absent ([7e43483](https://github.com/CodySwannGT/lisa/commit/7e43483b481c0891b750aae3dd29cb656cd9a176)), closes [TunnlAI/frontend#13-16](https://github.com/TunnlAI/frontend/issues/13-16) [#21](https://github.com/CodySwannGT/lisa/issues/21) [#1601](https://github.com/CodySwannGT/lisa/issues/1601)
+
 ### [2.204.2](https://github.com/CodySwannGT/lisa/compare/v2.204.1...v2.204.2) (2026-07-13)
 
 
