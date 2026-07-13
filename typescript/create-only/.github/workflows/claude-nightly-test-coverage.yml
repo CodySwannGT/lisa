@@ -25,5 +25,6 @@ jobs:
     uses: CodySwannGT/lisa/.github/workflows/reusable-claude-nightly-test-coverage.yml@main
     with:
       coverage_increment: ${{ github.event.inputs.coverage_increment || 5 }}
+      package_manager: 'bun'
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
