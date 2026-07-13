@@ -508,6 +508,12 @@ describe("release and deploy workflows", () => {
     expect(deployJob?.if).not.toContain(
       "needs.migrate.result == 'success' || needs.migrate.result == 'skipped'"
     );
+    // A failed check_migration_required job leaves requires_migration empty
+    // (which is != 'true') and its downstream jobs skipped, so without this
+    // gate deploy would run despite the migration check itself failing.
+    expect(deployJob?.if).toContain(
+      "needs.check_migration_required.result == 'success'"
+    );
 
     const outputStep = deployJob?.steps?.find(
       step => step.id === "deployment_outputs"
