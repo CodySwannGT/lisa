@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.204.6](https://github.com/CodySwannGT/lisa/compare/v2.204.5...v2.204.6) (2026-07-13)
+
+
+### Bug Fixes
+
+* skip agent emits during postinstall apply ([87e0fe1](https://github.com/CodySwannGT/lisa/commit/87e0fe13c9cd6b13ff08a64ddf59edde8e8e61e0))
+
 ### [2.204.5](https://github.com/CodySwannGT/lisa/compare/v2.204.4...v2.204.5) (2026-07-13)
 
 
