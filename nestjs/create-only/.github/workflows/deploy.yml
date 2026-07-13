@@ -237,6 +237,7 @@ jobs:
     if: |
       always() &&
       needs.verify_aws_credentials.outputs.has_aws_credentials == 'true' &&
+      needs.check_migration_required.result == 'success' &&
       (
         needs.migrate.result == 'success' ||
         (needs.check_migration_required.outputs.requires_migration != 'true' && needs.migrate.result == 'skipped')
