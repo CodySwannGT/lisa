@@ -43,11 +43,29 @@ on:
         required: false
 
 jobs:
+  check_claude_setup:
+    name: 🔑 Check Claude Setup
+    runs-on: ubuntu-latest
+    outputs:
+      has_claude_token: ${{ steps.check.outputs.has_claude_token }}
+    steps:
+      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
+        id: check
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ]; then
+            echo "has_claude_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_claude_token=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN is not set - Claude automation will be skipped. Provision the secret to enable it."
+          fi
+
   auto-fix:
+    needs: [check_claude_setup]
     if: |
-      inputs.workflow_run_conclusion == 'failure' &&
-      inputs.head_repo_full_name == inputs.repo_full_name &&
-      !startsWith(inputs.head_branch, 'claude/deploy-fix-')
+      needs.check_claude_setup.outputs.has_claude_token == 'true' &&
+      (inputs.workflow_run_conclusion == 'failure' && inputs.head_repo_full_name == inputs.repo_full_name && !startsWith(inputs.head_branch, 'claude/deploy-fix-'))
     runs-on: ubuntu-latest
     outputs:
       fixed: ${{ steps.check-fix.outputs.fixed }}
@@ -259,11 +277,10 @@ jobs:
   # of dead-ending in a bare, never-picked-up bug issue.
   escalate-to-ticket:
     name: File a build-ready ticket for the unfixed deploy failure
-    needs: [auto-fix]
+    needs: [auto-fix, check_claude_setup]
     if: |
-      always() &&
-      needs.auto-fix.result != 'skipped' &&
-      needs.auto-fix.outputs.fixed != 'true'
+      needs.check_claude_setup.outputs.has_claude_token == 'true' &&
+      (always() && needs.auto-fix.result != 'skipped' && needs.auto-fix.outputs.fixed != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read

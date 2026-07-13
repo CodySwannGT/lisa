@@ -25,8 +25,33 @@ on:
         required: false
 
 jobs:
+  check_claude_setup:
+    name: 🔑 Check Claude Setup
+    runs-on: ubuntu-latest
+    outputs:
+      has_claude_token: ${{ steps.check.outputs.has_claude_token }}
+    steps:
+      - name: Check for CLAUDE_CODE_OAUTH_TOKEN
+        id: check
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ]; then
+            echo "has_claude_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_claude_token=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN is not set - Claude automation will be skipped. Provision the secret to enable it."
+          fi
+
   sync:
-    if: github.event.pull_request.merged == true
+    needs: [check_claude_setup]
+    # Skip cleanly when CLAUDE_CODE_OAUTH_TOKEN is absent. The sync PR must be
+    # authored by claude[bot] for CI to trigger on it, so a tokenless sync would
+    # either hard-fail (when there is something to sync) or produce un-CI'd PRs.
+    # Skipping is the ratified behavior (Cody, 2026-07-13).
+    if: |
+      needs.check_claude_setup.outputs.has_claude_token == 'true' &&
+      (github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     permissions:
       contents: write
