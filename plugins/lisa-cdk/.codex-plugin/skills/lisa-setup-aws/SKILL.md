@@ -10,4 +10,4 @@ description: "Provision the dev/staging/produc…"
 - Claude argument hint: `[management-profile] [region] [dry-run]`
 - Claude allowed tools: `Skill`. Codex tool access is governed by the active Codex runtime and project policy.
 
-Use the /lisa-cdk:setup-aws-accounts skill to assess the AWS organization, run the aws-soc2-setup foundation and account vending, write the SSO profiles, cdk-bootstrap every account with cross-account trust, and wire the resulting account IDs into config/environments.ts, GitHub secrets, and .lisa.config.json. Use the user's surrounding request as this command's arguments.
+Use the setup-aws-accounts skill (/lisa-cdk:setup-aws-accounts on harnesses with plugin commands; $setup-aws-accounts on Codex) to assess the AWS organization, run the aws-soc2-setup foundation and account vending, write the SSO profiles, cdk-bootstrap every account with cross-account trust, and wire the resulting account IDs into config/environments.ts, GitHub secrets, and .lisa.config.json. Use the user's surrounding request as this command's arguments.
