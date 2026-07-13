@@ -493,6 +493,41 @@ describe("Lisa Integration Tests", () => {
       expect(finalCi).not.toBe(TS_CI);
     });
 
+    it("child stack create-only suppresses parent copy-overwrite for the same path", async () => {
+      const TSCONFIG_JSON = "tsconfig.json";
+      const TS_CONFIG = `${JSON.stringify({
+        extends: [
+          "@codyswann/lisa/tsconfig/typescript",
+          "./tsconfig.local.json",
+        ],
+      })}\n`;
+      const EXPO_CONFIG = `${JSON.stringify({
+        extends: ["@codyswann/lisa/tsconfig/expo", "./tsconfig.local.json"],
+        compilerOptions: { jsx: "react-jsx" },
+      })}\n`;
+
+      await createExpoProject(destDir);
+
+      const tsCopyOverwrite = path.join(lisaDir, "typescript", COPY_OVERWRITE);
+      await fs.ensureDir(tsCopyOverwrite);
+      await fs.writeFile(path.join(tsCopyOverwrite, TSCONFIG_JSON), TS_CONFIG);
+
+      const expoCreateOnly = path.join(lisaDir, "expo", CREATE_ONLY);
+      await fs.ensureDir(expoCreateOnly);
+      await fs.writeFile(path.join(expoCreateOnly, TSCONFIG_JSON), EXPO_CONFIG);
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      const finalConfig = await fs.readFile(
+        path.join(destDir, TSCONFIG_JSON),
+        "utf-8"
+      );
+      expect(finalConfig).toBe(EXPO_CONFIG);
+      expect(finalConfig).not.toBe(TS_CONFIG);
+      expect(result.counters.overwritten).toBe(0);
+    });
+
     it("Harper/Fabric child stack overrides TypeScript parent templates", async () => {
       const SHARED_CONFIG = "shared-stack-config.txt";
       const TS_CONFIG = "typescript parent\n";
