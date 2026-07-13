@@ -47,6 +47,8 @@ jobs:
     name: 🌍 Determine Environment
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       environment: ${{ steps.env.outputs.environment }}
       approval_environment: ${{ steps.approval.outputs.approval_environment }}
@@ -88,6 +90,9 @@ jobs:
     # Reference to the quality checks workflow
     uses: CodySwannGT/lisa/.github/workflows/release.yml@main
     needs: [determine_environment]
+    permissions:
+      contents: write
+      pull-requests: read
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
@@ -114,6 +119,8 @@ jobs:
     name: Check EAS Setup
     runs-on: ubuntu-latest
     needs: [determine_environment]
+    permissions:
+      contents: read
     outputs:
       has_eas_setup: ${{ steps.check.outputs.has_eas_setup }}
     steps:
@@ -132,6 +139,8 @@ jobs:
     name: Check App Config Changes
     runs-on: ubuntu-latest
     needs: [determine_environment]
+    permissions:
+      contents: read
     outputs:
       app_config_changed: ${{ steps.check_changes.outputs.app_config_changed }}
     steps:
@@ -157,6 +166,8 @@ jobs:
     needs: [determine_environment, check_eas_setup, check_app_config_changes]
     if: needs.check_eas_setup.outputs.has_eas_setup == 'true' && (needs.check_app_config_changes.outputs.app_config_changed == 'true' || inputs.force_build == true)
     uses: CodySwannGT/lisa/.github/workflows/build.yml@main
+    permissions:
+      contents: read
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
     secrets:
@@ -178,6 +189,8 @@ jobs:
       always() && 
       needs.check_eas_setup.outputs.has_eas_setup == 'true' &&
       needs.release.result == 'success'
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

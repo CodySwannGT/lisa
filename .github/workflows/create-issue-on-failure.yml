@@ -90,6 +90,8 @@ jobs:
     name: 🧭 Determine Issue Tracking System
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       use_sentry: ${{ steps.check.outputs.sentry }}
       use_jira: ${{ steps.check.outputs.jira }}
@@ -166,6 +168,9 @@ jobs:
     needs: [dispatch]
     if: ${{ needs.dispatch.outputs.use_github == 'true' }}
     uses: ./.github/workflows/create-github-issue-on-failure.yml
+    permissions:
+      contents: read
+      issues: write
     with:
       workflow_name: ${{ inputs.workflow_name }}
       failed_job: ${{ inputs.failed_job }}

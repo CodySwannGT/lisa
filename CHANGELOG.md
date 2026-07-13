@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.204.2](https://github.com/CodySwannGT/lisa/compare/v2.204.1...v2.204.2) (2026-07-13)
+
+
+### Bug Fixes
+
+* **nestjs-deploy:** gate deploy on check_migration_required succeeding ([af26b8d](https://github.com/CodySwannGT/lisa/commit/af26b8d5a4589d2703977d7cbdf5bcb1c6da9c38)), closes [#1604](https://github.com/CodySwannGT/lisa/issues/1604)
+* **workflows:** harden deploy template contracts ([e791987](https://github.com/CodySwannGT/lisa/commit/e791987350d1235a44b32c4519a5f9b7e9cb9f78))
+
+### [2.204.1](https://github.com/CodySwannGT/lisa/compare/v2.204.0...v2.204.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* **plugins:** flatten plugin command namespace so Claude gets /lisa:* not /lisa:lisa:* ([e87794b](https://github.com/CodySwannGT/lisa/commit/e87794ba105e894074e0d3cecb98d131c6de80a5))
+
 ## [2.204.0](https://github.com/CodySwannGT/lisa/compare/v2.203.0...v2.204.0) (2026-07-12)
 
 

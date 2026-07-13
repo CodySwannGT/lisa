@@ -8,22 +8,36 @@ import { fileURLToPath } from "node:url";
 // portable across worktrees and CI working directories.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const QUALITY_YML = path.join(REPO_ROOT, ".github", "workflows", "quality.yml");
-const QUALITY_RAILS_YML = path.join(
-  REPO_ROOT,
-  ".github",
-  "workflows",
-  "quality-rails.yml"
-);
-const RELEASE_YML = path.join(REPO_ROOT, ".github", "workflows", "release.yml");
-const DEPLOY_YML = path.join(REPO_ROOT, ".github", "workflows", "deploy.yml");
+const WORKFLOWS_DIR = path.join(REPO_ROOT, ".github", "workflows");
+const DEPLOY_WORKFLOW_FILE = "deploy.yml";
+const QUALITY_YML = path.join(WORKFLOWS_DIR, "quality.yml");
+const QUALITY_RAILS_YML = path.join(WORKFLOWS_DIR, "quality-rails.yml");
+const RELEASE_YML = path.join(WORKFLOWS_DIR, "release.yml");
+const DEPLOY_YML = path.join(WORKFLOWS_DIR, DEPLOY_WORKFLOW_FILE);
 const NESTJS_DEPLOY_YML = path.join(
   REPO_ROOT,
   "nestjs",
   "create-only",
   ".github",
   "workflows",
-  "deploy.yml"
+  DEPLOY_WORKFLOW_FILE
+);
+const EXPO_DEPLOY_YML = path.join(
+  REPO_ROOT,
+  "expo",
+  "create-only",
+  ".github",
+  "workflows",
+  DEPLOY_WORKFLOW_FILE
+);
+const EAS_BUILD_YML = path.join(WORKFLOWS_DIR, "build.yml");
+const CREATE_ISSUE_ON_FAILURE_YML = path.join(
+  WORKFLOWS_DIR,
+  "create-issue-on-failure.yml"
+);
+const CREATE_GITHUB_ISSUE_ON_FAILURE_YML = path.join(
+  WORKFLOWS_DIR,
+  "create-github-issue-on-failure.yml"
 );
 
 /** Shape of a single `workflow_call` input declaration. */
@@ -53,6 +67,7 @@ interface WorkflowJob {
   needs?: string | string[];
   if?: string;
   environment?: unknown;
+  outputs?: Record<string, string>;
   permissions?: Record<string, unknown>;
   strategy?: { matrix?: Record<string, unknown>; "fail-fast"?: boolean };
   steps?: WorkflowStep[];
@@ -78,6 +93,30 @@ interface ReleaseWorkflow {
 interface DeployWorkflow {
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
   jobs?: Record<string, WorkflowJob>;
+}
+
+/** Root shape for lightweight reusable workflow contract checks. */
+interface ReusableWorkflow {
+  on?: {
+    workflow_call?: {
+      secrets?: Record<string, { required?: boolean }>;
+    };
+  };
+  jobs?: Record<string, WorkflowJob>;
+}
+
+/**
+ * Normalize GitHub Actions' scalar-or-list `needs` value for assertions.
+ *
+ * @param job Parsed workflow job.
+ * @returns Job dependency names.
+ */
+function needsList(job: WorkflowJob | undefined): string[] {
+  if (!job?.needs) {
+    return [];
+  }
+
+  return Array.isArray(job.needs) ? job.needs : [job.needs];
 }
 
 describe("quality.yml reusable workflow", () => {
@@ -325,6 +364,10 @@ describe("release and deploy workflows", () => {
   let deployWorkflow: DeployWorkflow;
   let nestjsDeployRaw: string;
   let nestjsDeployWorkflow: DeployWorkflow;
+  let expoDeployWorkflow: DeployWorkflow;
+  let easBuildWorkflow: ReusableWorkflow;
+  let createIssueOnFailureWorkflow: ReusableWorkflow;
+  let createGithubIssueOnFailureWorkflow: ReusableWorkflow;
 
   beforeAll(() => {
     releaseWorkflow = yaml.load(
@@ -335,6 +378,18 @@ describe("release and deploy workflows", () => {
     ) as DeployWorkflow;
     nestjsDeployRaw = fs.readFileSync(NESTJS_DEPLOY_YML, "utf8");
     nestjsDeployWorkflow = yaml.load(nestjsDeployRaw) as DeployWorkflow;
+    expoDeployWorkflow = yaml.load(
+      fs.readFileSync(EXPO_DEPLOY_YML, "utf8")
+    ) as DeployWorkflow;
+    easBuildWorkflow = yaml.load(
+      fs.readFileSync(EAS_BUILD_YML, "utf8")
+    ) as ReusableWorkflow;
+    createIssueOnFailureWorkflow = yaml.load(
+      fs.readFileSync(CREATE_ISSUE_ON_FAILURE_YML, "utf8")
+    ) as ReusableWorkflow;
+    createGithubIssueOnFailureWorkflow = yaml.load(
+      fs.readFileSync(CREATE_GITHUB_ISSUE_ON_FAILURE_YML, "utf8")
+    ) as ReusableWorkflow;
   });
 
   it("pushes signed release tags after creating them", () => {
@@ -425,6 +480,128 @@ describe("release and deploy workflows", () => {
     expect(smokeStep?.run).toContain("aws cloudformation describe-stacks");
     expect(smokeStep?.run).toContain("curl --fail --silent --show-error");
     expect(smokeStep?.run).toContain("HEALTH_EXPECTED_BODY");
+  });
+
+  it("keeps NestJS deploy output plumbing and migration skip gate valid", () => {
+    const deployJob = nestjsDeployWorkflow.jobs?.deploy;
+    const deployNeeds = needsList(deployJob);
+
+    expect(deployNeeds).toEqual(
+      expect.arrayContaining([
+        "determine_environment",
+        "release",
+        "check_migration_required",
+        "migrate",
+        "verify_aws_credentials",
+      ])
+    );
+    expect(deployJob?.outputs?.environment_url).toContain(
+      "steps.deployment_outputs.outputs.environment_url"
+    );
+    expect(deployJob?.outputs?.deployment_status).toContain(
+      "steps.deployment_outputs.outputs.deployment_status"
+    );
+    expect(deployJob?.if).toContain(
+      "needs.check_migration_required.outputs.requires_migration != 'true'"
+    );
+    expect(deployJob?.if).toContain("needs.migrate.result == 'success'");
+    expect(deployJob?.if).not.toContain(
+      "needs.migrate.result == 'success' || needs.migrate.result == 'skipped'"
+    );
+    // A failed check_migration_required job leaves requires_migration empty
+    // (which is != 'true') and its downstream jobs skipped, so without this
+    // gate deploy would run despite the migration check itself failing.
+    expect(deployJob?.if).toContain(
+      "needs.check_migration_required.result == 'success'"
+    );
+
+    const outputStep = deployJob?.steps?.find(
+      step => step.id === "deployment_outputs"
+    );
+    expect(outputStep).toBeDefined();
+    expect(outputStep?.run).toContain("deployment_status=success");
+  });
+
+  it("does not clobber runner-provided GITHUB_OUTPUT in NestJS helper jobs", () => {
+    for (const jobName of ["check_migration_required", "verify_vpn"]) {
+      const job = nestjsDeployWorkflow.jobs?.[jobName];
+      for (const step of job?.steps ?? []) {
+        const envKeys = Object.keys(step.env ?? {});
+        expect(envKeys, `${jobName}: ${step.name ?? step.id}`).not.toContain(
+          "GITHUB_OUTPUT"
+        );
+      }
+    }
+  });
+
+  it("uses explicit least-privilege permissions for read-only NestJS jobs and release caller", () => {
+    expect(
+      nestjsDeployWorkflow.jobs?.determine_environment.permissions
+    ).toEqual({ contents: "read" });
+    expect(
+      nestjsDeployWorkflow.jobs?.verify_aws_credentials.permissions
+    ).toEqual({ contents: "read" });
+    expect(
+      nestjsDeployWorkflow.jobs?.check_migration_required.permissions
+    ).toEqual({ contents: "read" });
+    expect(nestjsDeployWorkflow.jobs?.verify_vpn.permissions).toEqual({
+      contents: "read",
+    });
+    expect(nestjsDeployWorkflow.jobs?.release.permissions).toEqual({
+      contents: "write",
+      "pull-requests": "read",
+    });
+  });
+
+  it("lets Expo deploy skip EAS build cleanly when EXPO_TOKEN is absent", () => {
+    const tokenSecret = easBuildWorkflow.on?.workflow_call?.secrets?.EXPO_TOKEN;
+    expect(tokenSecret).toBeDefined();
+    expect(tokenSecret?.required).toBe(false);
+
+    const check = expoDeployWorkflow.jobs?.check_eas_setup;
+    expect(check?.outputs?.has_eas_setup).toContain(
+      "steps.check.outputs.has_eas_setup"
+    );
+
+    const trigger = expoDeployWorkflow.jobs?.trigger_eas_build;
+    expect(trigger?.if).toContain(
+      "needs.check_eas_setup.outputs.has_eas_setup == 'true'"
+    );
+    expect(trigger?.permissions).toEqual({ contents: "read" });
+  });
+
+  it("grants reusable Expo release and deploy jobs the permissions they request", () => {
+    expect(expoDeployWorkflow.jobs?.release.permissions).toEqual({
+      contents: "write",
+      "pull-requests": "read",
+    });
+    expect(expoDeployWorkflow.jobs?.determine_environment.permissions).toEqual({
+      contents: "read",
+    });
+    expect(expoDeployWorkflow.jobs?.check_eas_setup.permissions).toEqual({
+      contents: "read",
+    });
+    expect(
+      expoDeployWorkflow.jobs?.check_app_config_changes.permissions
+    ).toEqual({ contents: "read" });
+    expect(expoDeployWorkflow.jobs?.deploy.permissions).toEqual({
+      contents: "read",
+    });
+  });
+
+  it("grants GitHub issue fallback workflows enough token scope for read-only repos", () => {
+    expect(
+      createIssueOnFailureWorkflow.jobs?.create_github_issue.permissions
+    ).toEqual({
+      contents: "read",
+      issues: "write",
+    });
+    expect(
+      createGithubIssueOnFailureWorkflow.jobs?.create_issue.permissions
+    ).toEqual({
+      contents: "read",
+      issues: "write",
+    });
   });
 });
 
