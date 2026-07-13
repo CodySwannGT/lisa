@@ -29,8 +29,10 @@ Not for: deploying stacks (that's `cdk deploy` / CI), or GitHub repo governance
 
 ## How the CLI behaves (read before scripting it)
 
-- Invoke as `npx -y @codyswann/aws-soc2-setup <command>`. Always set
-  `NO_COLOR=1` so output parses cleanly.
+- Invoke as `npx -y @codyswann/aws-soc2-setup@1 <command>`. Pin at least the
+  major version — an unpinned `npx` pull is a supply-chain risk for a tool that
+  runs with management-account credentials. Always set `NO_COLOR=1` so output
+  parses cleanly.
 - It is an **actuator, not an API** — no `--json` output. Drive it for side
   effects, then read authoritative state back with the plain `aws` CLI
   (`aws organizations list-accounts`, `aws sts get-caller-identity`). Never
@@ -47,8 +49,8 @@ Not for: deploying stacks (that's `cdk deploy` / CI), or GitHub repo governance
 ## Step 1 — Assess the environment (read-only)
 
 ```bash
-NO_COLOR=1 npx -y @codyswann/aws-soc2-setup whoami -p <management-profile> -r <region>
-NO_COLOR=1 npx -y @codyswann/aws-soc2-setup status -p <management-profile> -r <region>
+NO_COLOR=1 npx -y @codyswann/aws-soc2-setup@1 whoami -p <management-profile> -r <region>
+NO_COLOR=1 npx -y @codyswann/aws-soc2-setup@1 status -p <management-profile> -r <region>
 ```
 
 `status` reports five independent checks: credentials, Organizations,
@@ -82,15 +84,24 @@ defaults when running unattended):
 | Profile prefix | project name from `package.json` | Matches `AWS_PROFILE_PREFIX` used by `scripts/pre-deployment-checklist.sh` |
 | Environments | `dev`, `staging`, `production`, `shared` | `shared` hosts the pipeline and gets cross-account trust |
 | Root email pattern | ask — no safe default | Each account needs a **unique** root email; suggest plus-addressing: `aws+<prefix>-<env>@<domain>` |
-| Identity Center start URL / domain | from `status` output | Needed for the `sso-session` block in Step 5 |
+| Identity Center username | ask — no safe default | The Identity Store user that gets `AWSAdministratorAccess` on each new account in Step 5; verify it exists (create with `sso create-user` if not) |
+| Identity Center start URL | from `status` output or the console | The **full** `sso_start_url` for the `sso-session` block in Step 5 (default form `https://<domain>.awsapps.com/start`, but custom domains differ — never reconstruct it from parts) |
 
 ## Step 3 — Foundation (org, OUs, controls, security services)
 
-Show the plan first, then apply:
+Show the plan, get explicit approval, then apply:
 
 ```bash
-NO_COLOR=1 npx -y @codyswann/aws-soc2-setup setup --dry-run -p <mgmt> -r <region>
-NO_COLOR=1 npx -y @codyswann/aws-soc2-setup setup -p <mgmt> -r <region> \
+NO_COLOR=1 npx -y @codyswann/aws-soc2-setup@1 setup --dry-run -p <mgmt> -r <region>
+```
+
+Present the dry-run output and **stop for confirmation** before mutating the
+organization — `AskUserQuestion` when interactive, or an unambiguous
+apply/confirm argument from the caller when running unattended. Silence is not
+approval. Only then:
+
+```bash
+NO_COLOR=1 npx -y @codyswann/aws-soc2-setup@1 setup -p <mgmt> -r <region> \
   [--ou <workloads-ou-id>] [--central-account <id>] [--admin-account <id>] [--audit-account <id>]
 ```
 
@@ -105,17 +116,27 @@ For each environment, **first** check it doesn't already exist:
 
 ```bash
 aws organizations list-accounts --profile <mgmt> \
-  --query "Accounts[?Name=='<prefix>-<env>'].{Id:Id,Name:Name,Status:Status}" --output table
+  --query "Accounts[?Name=='<prefix>-<env>'].{Id:Id,Name:Name,State:State}" --output table
 ```
 
-Then provision the missing ones (stage accounts into the `Workloads` OU, the
-`shared` account into `Infrastructure`), one at a time, each with a unique
-root email:
+(Use `State`, not `Status` — AWS is retiring the `Status` field in favor of
+`State`.)
+
+Then provision the missing ones, one at a time, each with a unique root email.
+Stage accounts go into the `Workloads` OU:
 
 ```bash
-NO_COLOR=1 npx -y @codyswann/aws-soc2-setup controltower provision-account \
+NO_COLOR=1 npx -y @codyswann/aws-soc2-setup@1 controltower provision-account \
   -p <mgmt> -r <region> \
   -n <prefix>-<env> -e aws+<prefix>-<env>@<domain> -o Workloads --wait
+```
+
+The `shared` (pipeline) account goes into `Infrastructure` instead:
+
+```bash
+NO_COLOR=1 npx -y @codyswann/aws-soc2-setup@1 controltower provision-account \
+  -p <mgmt> -r <region> \
+  -n <prefix>-shared -e aws+<prefix>-shared@<domain> -o Infrastructure --wait
 ```
 
 `--wait` polls Account Factory (~minutes per account) and prints
@@ -125,15 +146,17 @@ every later step.
 
 ## Step 5 — Identity Center access + local AWS profiles
 
-Grant the operator admin on each new account:
+Grant the operator admin on each new account, using the Identity Center
+username collected in Step 2:
 
 ```bash
-NO_COLOR=1 npx -y @codyswann/aws-soc2-setup sso assign \
+NO_COLOR=1 npx -y @codyswann/aws-soc2-setup@1 sso assign \
   -p <mgmt> -u <username> -a <account-id> -r AWSAdministratorAccess
 ```
 
 (or `sso group -g <prefix>-admins --all-users -a <account-id> -r AWSAdministratorAccess`
-for group-based access.)
+for group-based access. If the user doesn't exist yet, create it first with
+`sso create-user`.)
 
 The CLI does **not** generate AWS CLI profiles — write them yourself. Append to
 `~/.aws/config` (never overwrite existing sections; skip blocks that already
@@ -141,7 +164,7 @@ exist):
 
 ```ini
 [sso-session <prefix>]
-sso_start_url = https://<domain>.awsapps.com/start
+sso_start_url = <start-url>
 sso_region = <region>
 sso_registration_scopes = sso:account:access
 
@@ -152,7 +175,9 @@ sso_role_name = AWSAdministratorAccess
 region = <region>
 ```
 
-One `[profile <prefix>-<env>]` block per environment — this exact naming is
+`<start-url>` is the full Identity Center start URL collected in Step 2 —
+paste it verbatim, never rebuild it from a domain fragment. One
+`[profile <prefix>-<env>]` block per environment — this exact naming is
 what `scripts/pre-deployment-checklist.sh` and the db-connect scripts resolve.
 Then authenticate and verify every profile maps to the expected account:
 
@@ -167,16 +192,22 @@ done
 
 Bootstrap the shared (pipeline) account first, then each stage account with
 trust back to shared. Honor the project's `CDK_BOOTSTRAP_QUALIFIER` and
-`CDK_BOOTSTRAP_EXECUTION_POLICY_ARN` env vars when set (`config/env.ts`
-defaults: `hnb659fds` / `arn:aws:iam::aws:policy/AdministratorAccess`):
+`CDK_BOOTSTRAP_EXECUTION_POLICY_ARN` env vars rather than hardcoding their
+defaults (`config/env.ts` defaults: `hnb659fds` /
+`arn:aws:iam::aws:policy/AdministratorAccess`):
 
 ```bash
-npx cdk bootstrap aws://<shared-id>/<region> --profile <prefix>-shared
+qualifier="${CDK_BOOTSTRAP_QUALIFIER:-hnb659fds}"
+exec_policy="${CDK_BOOTSTRAP_EXECUTION_POLICY_ARN:-arn:aws:iam::aws:policy/AdministratorAccess}"
+
+npx cdk bootstrap aws://<shared-id>/<region> --profile <prefix>-shared \
+  --qualifier "$qualifier"
 
 for env in dev staging production; do
   npx cdk bootstrap aws://<env-id>/<region> --profile <prefix>-$env \
+    --qualifier "$qualifier" \
     --trust <shared-id> \
-    --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess
+    --cloudformation-execution-policies "$exec_policy"
 done
 ```
 
