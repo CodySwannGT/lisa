@@ -174,6 +174,69 @@ describe("Lisa Integration Tests", () => {
       );
     });
 
+    it("does not regenerate committed agent trees during postinstall-safe apply", async () => {
+      await createTypeScriptProject(destDir);
+      const codexManagedPath = path.join(
+        destDir,
+        ".codex",
+        ".lisa-managed.json"
+      );
+      const codexAgentPath = path.join(
+        destDir,
+        ".codex",
+        "agents",
+        "lisa",
+        "bug-fixer.toml"
+      );
+      const opencodeManagedPath = path.join(
+        destDir,
+        ".opencode",
+        ".lisa-managed.json"
+      );
+      const opencodeSkillPath = path.join(
+        destDir,
+        ".opencode",
+        "skills",
+        "lisa",
+        "build",
+        "SKILL.md"
+      );
+      await fs.outputJson(codexManagedPath, {
+        files: ["agents/lisa/bug-fixer.toml", "agents/lisa/stale.toml"],
+      });
+      await fs.outputFile(codexAgentPath, 'name = "bug-fixer"\n');
+      await fs.outputJson(opencodeManagedPath, {
+        files: ["skills/lisa/build/SKILL.md", "skills/lisa/stale/SKILL.md"],
+      });
+      await fs.outputFile(opencodeSkillPath, "# Build\n");
+
+      const beforeCodexManifest = await fs.readFile(codexManagedPath, "utf8");
+      const beforeCodexAgent = await fs.readFile(codexAgentPath, "utf8");
+      const beforeOpencodeManifest = await fs.readFile(
+        opencodeManagedPath,
+        "utf8"
+      );
+      const beforeOpencodeSkill = await fs.readFile(opencodeSkillPath, "utf8");
+
+      const result = await createLisa({
+        harness: "fleet",
+        skipGitCheck: true,
+      }).apply();
+
+      expect(result.success).toBe(true);
+      expect(await fs.readFile(codexManagedPath, "utf8")).toBe(
+        beforeCodexManifest
+      );
+      expect(await fs.readFile(codexAgentPath, "utf8")).toBe(beforeCodexAgent);
+      expect(await fs.readFile(opencodeManagedPath, "utf8")).toBe(
+        beforeOpencodeManifest
+      );
+      expect(await fs.readFile(opencodeSkillPath, "utf8")).toBe(
+        beforeOpencodeSkill
+      );
+      expect(await fs.pathExists(path.join(destDir, "AGENTS.md"))).toBe(false);
+    });
+
     it("is a no-op on the second apply to an unchanged managed tree", async () => {
       await createTypeScriptProject(destDir);
 
