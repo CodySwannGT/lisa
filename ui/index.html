@@ -1268,6 +1268,7 @@
               "tracker",
               "prd",
               "deploy",
+              "pipelines",
               "automations",
               "monitor",
             ],
@@ -1276,7 +1277,7 @@
             label: "Quality",
             sections: ["linting", "testing", "hooks", "ci", "qa"],
           },
-          { label: "Distribution", sections: ["github", "plugins"] },
+          { label: "Distribution", sections: ["repository", "plugins"] },
           { label: "Advanced", sections: ["advanced"] },
         ],
         sections: {},
@@ -3094,19 +3095,192 @@
         ],
       };
 
-      /* ---------------------------------- Automations ---------------------------------- */
+      /* ---------------------------------- Pipelines ---------------------------------- */
+      DATA.sections.pipelines = {
+        title: "Pipelines",
+        desc: "Every pipeline Lisa seeds into the repository, what triggers it, and which section owns its configuration. Lisa always seeds a thin project-owned caller that invokes a versioned reusable pipeline, so the project can customize the caller without losing upstream fixes.",
+        src: "<stack>/create-only/.github/workflows/ · reusable pipelines on @main",
+        blocks: [
+          {
+            card: "Host",
+            note: "Where pipelines run. Pipeline files are generated per host from the same role definitions below.",
+            rows: [
+              {
+                key: "",
+                label: "Pipeline host",
+                desc: "GitHub Actions is the only host implemented today. GitLab CI and Bitbucket Pipelines are the intended next targets — the role inventory below is host-neutral, only the emitted file format changes.",
+                control: sel("GitHub Actions", [
+                  "GitHub Actions",
+                  "GitLab CI",
+                  "Bitbucket Pipelines",
+                ]),
+              },
+              {
+                key: "",
+                label: "Delivery model",
+                desc: "Callers are create-only: seeded once, then owned by the project and never overwritten. The reusable pipelines they call are versioned upstream, so fixes land without touching the caller.",
+                control: stat("create-only caller → reusable @main", "mono"),
+              },
+            ],
+          },
+          {
+            type: "table",
+            card: "Pipeline inventory",
+            note: "Renaming a caller is safe; renaming the jobs inside it is not — job names are the status checks branch protection requires (see Quality gates)",
+            cols: ["Pipeline", "Role", "Trigger", "Configured in"],
+            rows: [
+              [
+                { t: "mono", v: "ci.yml → quality.yml" },
+                { t: "text", v: "Quality — runs the full gate job matrix" },
+                { t: "mono", v: "pull_request" },
+                { t: "text", v: "Quality gates" },
+              ],
+              [
+                { t: "mono", v: "deploy.yml → release.yml" },
+                {
+                  t: "text",
+                  v: "Release — versions, promotes and deploys per environment",
+                },
+                { t: "mono", v: "push" },
+                { t: "text", v: "Deploy & environments" },
+              ],
+              [
+                { t: "mono", v: "maestro-e2e.yml → maestro-native-e2e.yml" },
+                {
+                  t: "text",
+                  v: "Quality (Expo) — native iOS + Android Maestro suite; too heavy to gate PRs, so it runs nightly and on demand. Skips with a warning until the dev-e2e EAS profile, EXPO_TOKEN and flows exist.",
+                },
+                { t: "mono", v: "schedule (09:00 daily) · workflow_dispatch" },
+                { t: "text", v: "Testing & coverage" },
+              ],
+              [
+                { t: "mono", v: "claude-nightly-test-coverage.yml" },
+                { t: "text", v: "Agent — raises test coverage overnight" },
+                { t: "mono", v: "schedule (03:00 Mon–Fri)" },
+                { t: "text", v: "Agent automations" },
+              ],
+              [
+                { t: "mono", v: "claude-nightly-test-improvement.yml" },
+                {
+                  t: "text",
+                  v: "Agent — strengthens weak assertions overnight",
+                },
+                { t: "mono", v: "schedule (04:00 Mon–Fri)" },
+                { t: "text", v: "Agent automations" },
+              ],
+              [
+                { t: "mono", v: "claude-nightly-code-complexity.yml" },
+                {
+                  t: "text",
+                  v: "Agent — reduces complexity hotspots overnight",
+                },
+                { t: "mono", v: "schedule (05:00 Mon–Fri)" },
+                { t: "text", v: "Agent automations" },
+              ],
+              [
+                { t: "mono", v: "claude-ci-auto-fix.yml" },
+                {
+                  t: "text",
+                  v: "Agent — investigates a failed quality run and pushes a fix",
+                },
+                { t: "mono", v: "workflow_run (on failure)" },
+                { t: "text", v: "—" },
+              ],
+              [
+                { t: "mono", v: "claude-deploy-auto-fix.yml" },
+                {
+                  t: "text",
+                  v: "Agent — investigates a failed deploy and opens a fix PR",
+                },
+                { t: "mono", v: "workflow_run (on failure)" },
+                { t: "text", v: "Deploy & environments" },
+              ],
+              [
+                { t: "mono", v: "claude-code-review-response.yml" },
+                {
+                  t: "text",
+                  v: "Agent — answers review feedback and pushes the accepted changes",
+                },
+                { t: "mono", v: "pull_request_review" },
+                { t: "text", v: "—" },
+              ],
+              [
+                { t: "mono", v: "claude.yml" },
+                {
+                  t: "text",
+                  v: "Agent — responds when a human @-mentions the agent on an issue or PR",
+                },
+                { t: "mono", v: "issue_comment · review_comment" },
+                { t: "text", v: "—" },
+              ],
+              [
+                { t: "mono", v: "claude-sync-down-branches.yml" },
+                {
+                  t: "text",
+                  v: "Upkeep — propagates a merge back down the environment chain",
+                },
+                { t: "mono", v: "pull_request" },
+                { t: "text", v: "Deploy & environments" },
+              ],
+              [
+                { t: "mono", v: "auto-update-pr-branches.yml" },
+                {
+                  t: "text",
+                  v: "Upkeep — keeps open PRs rebased on their base",
+                },
+                { t: "mono", v: "push · pull_request" },
+                { t: "text", v: "—" },
+              ],
+              [
+                { t: "mono", v: "auto-update-pr-branches-dispatch.yml" },
+                {
+                  t: "text",
+                  v: "Upkeep — on-demand handler for the same rebase, via repository dispatch",
+                },
+                { t: "mono", v: "repository_dispatch" },
+                { t: "text", v: "—" },
+              ],
+              [
+                { t: "mono", v: "zap-baseline.yml" },
+                {
+                  t: "text",
+                  v: "Security — DAST baseline scan against a running app",
+                },
+                { t: "mono", v: "pull_request" },
+                { t: "text", v: "Repository & protection" },
+              ],
+              [
+                { t: "mono", v: "publish-to-npm.yml" },
+                {
+                  t: "text",
+                  v: "Publish — OIDC trusted publish; called by the release pipeline, never directly",
+                },
+                { t: "mono", v: "workflow_call" },
+                { t: "text", v: "Project types (npm-package)" },
+              ],
+            ],
+          },
+          {
+            type: "callout",
+            text: "Not every stack gets every pipeline. The quality and release callers are seeded for all stacks; the agent and upkeep pipelines come from the TypeScript stack and are inherited by everything built on it; <b>zap-baseline.yml</b> is Harper Fabric and <b>publish-to-npm.yml</b> is npm-package. Rails swaps the quality caller for <b>quality-rails.yml</b>.",
+          },
+        ],
+      };
+
+      /* ---------------------------------- Agent automations ---------------------------------- */
       DATA.sections.automations = {
-        title: "Automations",
-        desc: "The scheduled fleet that runs the factories: pipeline movers (intake, repair) and the three feeding loops (QA, Product Planning, Monitoring), on the harness\u2019s native scheduler. Names carry a stable lisa-auto-<project>- prefix so teardown is precise.",
-        src: "plugins/src/base/skills/lisa-setup-automations",
+        title: "Agent automations",
+        desc: "All agent work that runs on a schedule, whichever machine fires it: the fleet that runs the factories \u2014 pipeline movers (intake, repair) and the three feeding loops (QA, Product Planning, Monitoring) \u2014 on the harness\u2019s native scheduler, plus the nightly improvement agents that run on the pipeline host. Harness names carry a stable lisa-auto-<project>- prefix so teardown is precise.",
+        src: "plugins/src/base/skills/lisa-setup-automations \u00b7 claude-nightly-*.yml",
         blocks: [
           {
             type: "table",
             card: "Scheduled jobs",
-            note: "Status and next run are mocked \u2014 live wiring is LCW-1 (#1544)",
+            note: "Status and next run are mocked \u2014 live wiring is LCW-1 (#1544). Runs on = which scheduler fires the job; the nightly agents are pipeline files, inventoried under Pipelines.",
             cols: [
               "Automation",
               "What it does",
+              "Runs on",
               "Cadence",
               "Last run",
               "Next run",
@@ -3119,6 +3293,7 @@
                   t: "text",
                   v: "Claims the next build-ready ticket and runs the full build flow on it \u2014 one item per cycle",
                 },
+                { t: "badge", v: "harness", cls: "default" },
                 {
                   t: "select",
                   v: "every 10 min",
@@ -3139,6 +3314,7 @@
                   t: "text",
                   v: "Validates the next ready PRD at the gate and either creates its work units or blocks it with clarifying questions",
                 },
+                { t: "badge", v: "harness", cls: "default" },
                 {
                   t: "select",
                   v: "every 60 min",
@@ -3159,6 +3335,7 @@
                   t: "text",
                   v: "Finds stuck work \u2014 stalled builds, half-closed items, unreconciled rollups \u2014 and repairs each one",
                 },
+                { t: "badge", v: "harness", cls: "default" },
                 {
                   t: "select",
                   v: "every 60 min",
@@ -3179,6 +3356,7 @@
                   t: "text",
                   v: "QA loop: explores the product like a first-time user (respecting the mutation policy) and files bugs build-ready",
                 },
+                { t: "badge", v: "harness", cls: "default" },
                 { t: "select", v: "daily", options: ["daily", "weekly"] },
                 {
                   t: "run",
@@ -3195,6 +3373,7 @@
                   t: "text",
                   v: "Product Planning loop: ideates improvements and writes PRDs prd-ready",
                 },
+                { t: "badge", v: "harness", cls: "default" },
                 { t: "select", v: "daily", options: ["daily", "weekly"] },
                 {
                   t: "run",
@@ -3211,12 +3390,64 @@
                   t: "text",
                   v: "Monitoring loop: audits the connected observability providers against the alert thresholds and files regression tickets",
                 },
+                { t: "badge", v: "harness", cls: "default" },
                 { t: "select", v: "daily", options: ["daily", "weekly"] },
                 {
                   t: "run",
                   ok: true,
                   v: "05:00",
                   reason: "ok \u2014 1 regression filed",
+                },
+                { t: "mono", v: "tomorrow 05:00" },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "nightly-test-coverage" },
+                {
+                  t: "text",
+                  v: "Raises test coverage toward the thresholds and opens a PR \u2014 one module per run",
+                },
+                { t: "badge", v: "pipeline host", cls: "default" },
+                { t: "mono", v: "03:00 Mon\u2013Fri" },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "03:00",
+                  reason: "ok \u2014 PR opened",
+                },
+                { t: "mono", v: "tomorrow 03:00" },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "nightly-test-improvement" },
+                {
+                  t: "text",
+                  v: "Strengthens weak assertions in existing tests and opens a PR",
+                },
+                { t: "badge", v: "pipeline host", cls: "default" },
+                { t: "mono", v: "04:00 Mon\u2013Fri" },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "04:00",
+                  reason: "ok \u2014 PR opened",
+                },
+                { t: "mono", v: "tomorrow 04:00" },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "nightly-code-complexity" },
+                {
+                  t: "text",
+                  v: "Refactors a complexity hotspot without changing behavior and opens a PR",
+                },
+                { t: "badge", v: "pipeline host", cls: "default" },
+                { t: "mono", v: "05:00 Mon\u2013Fri" },
+                {
+                  t: "run",
+                  ok: true,
+                  v: "05:00",
+                  reason: "ok \u2014 no hotspot over budget",
                 },
                 { t: "mono", v: "tomorrow 05:00" },
                 { t: "toggle", v: true },
@@ -4043,39 +4274,13 @@
 
       /* ---------------------------------- CI ---------------------------------- */
       DATA.sections.ci = {
-        title: "CI quality gates",
-        desc: "Every project’s ci.yml is a thin caller of Lisa’s reusable quality workflow. Each job below reports a status check on the PR; branch rulesets require the critical ones to pass before merge.",
-        src: ".github/workflows/quality.yml · <stack>/create-only/.github/workflows/ci.yml",
+        title: "Quality gates",
+        desc: "The merge contract: what must be true before a pull request can land. Each job below reports a status check, and branch protection requires the critical ones to pass. Which pipeline runs these jobs, and on what host, is configured under Pipelines.",
+        src: "quality.yml (reusable) · called by the project’s quality pipeline",
         blocks: [
           {
-            card: "Pipeline",
-            note: "create-only ci.yml calling Lisa’s reusable quality workflow",
-            rows: [
-              {
-                key: "",
-                label: "CI provider",
-                desc: "Where quality checks run. GitHub Actions is the only supported runner today; the template model leaves room for more.",
-                control: sel("GitHub Actions", ["GitHub Actions"]),
-              },
-              {
-                key: "",
-                label: "Workflows",
-                desc: "ci.yml is seeded once and project-owned; it calls Lisa’s reusable quality workflow on every pull request.",
-                control: stat("ci.yml → quality.yml@main", "mono"),
-              },
-              {
-                key: "",
-                label: "Native e2e workflow",
-                desc: "Expo projects: the native iOS + Android Maestro suite on GitHub-hosted runners — nightly plus on-demand, too heavy to gate PRs. Skips with a warning until the dev-e2e EAS profile, EXPO_TOKEN, and flows exist.",
-                control: stat(
-                  "maestro-e2e.yml → maestro-native-e2e.yml@main",
-                  "mono"
-                ),
-              },
-            ],
-          },
-          {
-            card: "Workflow inputs",
+            card: "Gate inputs",
+            note: "Inputs the project’s quality pipeline passes to Lisa’s reusable quality workflow",
             rows: [
               {
                 key: "node_version",
@@ -4425,11 +4630,22 @@
       };
 
       /* ---------------------------------- GitHub repo ---------------------------------- */
-      DATA.sections.github = {
-        title: "GitHub repository",
-        desc: "Repo-level governance provisioned by lisa-github-repo-setup: merge policy, rulesets with required checks, lifecycle labels, deploy key and expected secrets.",
+      DATA.sections.repository = {
+        title: "Repository & protection",
+        desc: "Repo-level governance on the git host: merge policy, branch protection with required status checks, lifecycle labels, deploy key and expected secrets. The controls below are those of the configured host — GitHub is the only one implemented today, so they are GitHub’s rulesets and settings.",
         src: "scripts/lisa-github-repo-setup.sh · all/github-rulesets/",
         blocks: [
+          {
+            card: "Host",
+            rows: [
+              {
+                key: "",
+                label: "Git host",
+                desc: "Which host this repository lives on. GitHub is the only host Lisa provisions today; GitLab and Bitbucket would map the same governance onto their own primitives (protected branches instead of rulesets). Note this is separate from the tracker — a project can host code on one and track work on another.",
+                control: sel("GitHub", ["GitHub", "GitLab", "Bitbucket"]),
+              },
+            ],
+          },
           {
             card: "Repository settings",
             note: "github.settings.* overrides the baseline per key",
