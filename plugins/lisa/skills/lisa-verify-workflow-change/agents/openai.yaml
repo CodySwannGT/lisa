@@ -1,0 +1,4 @@
+display_name: "Verify Workflow Change"
+short_description: "a GitHub Actions workflow file changed and you need pre-merge runtime proof"
+default_prompt:
+  - "Use $lisa-verify-workflow-change: a GitHub Actions workflow file changed and you need pre-merge runtime proof."
