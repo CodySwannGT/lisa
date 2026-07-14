@@ -5,12 +5,14 @@
  */
 import { beforeAll, describe, expect, it } from "vitest";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL = "expo/copy-overwrite/scripts/check-e2e-coverage.mjs";
-const THRESHOLDS_REL = "expo/create-only/e2e.thresholds.json";
+const THRESHOLDS_FILENAME = "e2e.thresholds.json";
+const THRESHOLDS_REL = `expo/create-only/${THRESHOLDS_FILENAME}`;
 const PLAYERS_ROUTE = "/players/[id]";
 const DOCS_ROUTE = "/docs/[...slug]";
 const PLAYERS_VISIT = "/players/42";
@@ -63,6 +65,7 @@ describe("check-e2e-coverage", () => {
     thresholds: E2eThresholds;
   }) => E2eCoverageResult;
   let defaultThresholds: E2eThresholds;
+  let loadThresholdOverrides: (thresholdsFile: string) => object;
 
   beforeAll(async () => {
     const url = pathToFileURL(path.join(REPO_ROOT, SCRIPT_REL)).href;
@@ -76,6 +79,7 @@ describe("check-e2e-coverage", () => {
     mergeThresholds = mod.mergeThresholds;
     evaluateE2eCoverage = mod.evaluateE2eCoverage;
     defaultThresholds = mod.defaultThresholds;
+    loadThresholdOverrides = mod.loadThresholdOverrides;
   });
 
   describe("route enumeration", () => {
@@ -199,6 +203,34 @@ describe("check-e2e-coverage", () => {
       expect(
         mergeThresholds(defaultThresholds, { maestro: { routes: 50 } })
       ).toEqual({ playwright: { routes: 80 }, maestro: { routes: 50 } });
+    });
+  });
+
+  describe("threshold file loading", () => {
+    it("returns an empty object when the thresholds file is absent", () => {
+      const missingFile = path.join(
+        os.tmpdir(),
+        "e2e-coverage-test-missing-thresholds.json"
+      );
+      expect(loadThresholdOverrides(missingFile)).toEqual({});
+    });
+
+    it("parses valid JSON thresholds", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-coverage-test-"));
+      const file = path.join(dir, THRESHOLDS_FILENAME);
+      fs.writeFileSync(file, JSON.stringify({ maestro: { routes: 50 } }));
+      expect(loadThresholdOverrides(file)).toEqual({
+        maestro: { routes: 50 },
+      });
+    });
+
+    it("throws a readable error instead of an uncaught SyntaxError on malformed JSON", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-coverage-test-"));
+      const file = path.join(dir, THRESHOLDS_FILENAME);
+      fs.writeFileSync(file, "{ not valid json");
+      expect(() => loadThresholdOverrides(file)).toThrow(
+        /e2e\.thresholds\.json is not valid JSON/
+      );
     });
   });
 
