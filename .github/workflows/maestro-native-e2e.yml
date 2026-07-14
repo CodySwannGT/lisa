@@ -1,0 +1,430 @@
+# Maestro Native E2E — reusable workflow
+#
+# Native (iOS + Android) e2e suite on GitHub-hosted runners: an Android
+# emulator on ubuntu-latest and an iOS simulator on macos-15. This is the
+# self-hosted sibling of quality.yml's maestro_e2e job, which only supports
+# Maestro Cloud and needs a paid mobile.dev account (MAESTRO_API_KEY). This
+# workflow needs only EXPO_TOKEN: binaries are built by EAS with a dedicated
+# e2e profile (default `dev-e2e` in the project's eas.json — typically a
+# non-dev-client build against the dev backend, analytics capture disabled,
+# and its own update channel so the app never pulls an OTA over the code
+# under test).
+#
+# Cadence lives in the CALLER (schedule in a reusable workflow would fire in
+# the Lisa repo, not the project). Projects get a thin caller template with a
+# nightly cron + workflow_dispatch platform picker; see
+# expo/create-only/.github/workflows/maestro-e2e.yml.
+#
+# Environment contract: every env var named MAESTRO_* that exists after the
+# `maestro_env` input is applied and `setup_command` has run is forwarded to
+# the flows as `-e` variables. Values must not contain whitespace. The
+# platform app id inputs are forwarded as MAESTRO_APP_ID per platform (they
+# may legitimately differ — e.g. `app_dev` on Android vs `app-dev` on iOS).
+#
+# Graceful degradation: when EXPO_TOKEN is not provisioned or the flows
+# directory does not exist, every job skips with a warning instead of
+# failing, so this workflow is safe to install fleet-wide before a project
+# has wired its e2e harness.
+
+name: 📱 Maestro Native E2E
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        description: 'Platform(s) to run: all, android, or ios'
+        required: false
+        default: 'all'
+        type: string
+      eas_profile:
+        description: 'EAS build profile for the e2e binaries (must exist in eas.json)'
+        required: false
+        default: 'dev-e2e'
+        type: string
+      flows_dir:
+        description: 'Maestro flows directory'
+        required: false
+        default: '.maestro/flows'
+        type: string
+      android_app_id:
+        description: 'Android application id, forwarded to flows as MAESTRO_APP_ID'
+        required: false
+        default: ''
+        type: string
+      ios_app_id:
+        description: 'iOS bundle identifier, forwarded to flows as MAESTRO_APP_ID'
+        required: false
+        default: ''
+        type: string
+      android_exclude_tags:
+        description: 'Comma-separated flow tags to exclude on Android'
+        required: false
+        default: 'ios-only'
+        type: string
+      ios_exclude_tags:
+        description: 'Comma-separated flow tags to exclude on iOS'
+        required: false
+        default: 'android-only'
+        type: string
+      maestro_env:
+        description: 'Newline-separated KEY=VALUE pairs exported before the run; MAESTRO_* keys are forwarded to flows'
+        required: false
+        default: ''
+        type: string
+      setup_command:
+        description: 'Shell command run in each test job before maestro test (e.g. resolve dynamic seed data); export values for flows by appending MAESTRO_* lines to $GITHUB_ENV'
+        required: false
+        default: ''
+        type: string
+      node_version:
+        description: 'Node.js version for setup_command tooling'
+        required: false
+        default: '22.21.1'
+        type: string
+      package_manager:
+        description: 'Package manager to use (npm, yarn, or bun)'
+        required: false
+        default: 'bun'
+        type: string
+    secrets:
+      EXPO_TOKEN:
+        description: 'Expo token for EAS builds. When absent, the whole suite skips with a warning.'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: 🔍 Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      run_android: ${{ steps.check.outputs.run_android }}
+      run_ios: ${{ steps.check.outputs.run_ios }}
+      platforms: ${{ steps.check.outputs.platforms }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔍 Check prerequisites and compute platform matrix
+        id: check
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          PLATFORM: ${{ inputs.platform }}
+          FLOWS_DIR: ${{ inputs.flows_dir }}
+        run: |
+          should_run=true
+          if [[ -z "${EXPO_TOKEN// }" ]]; then
+            echo "::warning::Maestro native e2e skipped - EXPO_TOKEN not configured"
+            should_run=false
+          fi
+          if [[ ! -d "$FLOWS_DIR" ]]; then
+            echo "::warning::Maestro native e2e skipped - flows directory '$FLOWS_DIR' not found"
+            should_run=false
+          fi
+          case "$PLATFORM" in
+            android) platforms='["android"]' ;;
+            ios) platforms='["ios"]' ;;
+            *) platforms='["android","ios"]' ;;
+          esac
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
+          echo "platforms=$platforms" >> "$GITHUB_OUTPUT"
+          if [[ "$should_run" == "true" && "$platforms" == *'"android"'* ]]; then
+            echo "run_android=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_android=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$should_run" == "true" && "$platforms" == *'"ios"'* ]]; then
+            echo "run_ios=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_ios=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: 🏗️ EAS Build (${{ matrix.platform }})
+    needs: preflight
+    if: ${{ needs.preflight.outputs.should_run == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.preflight.outputs.platforms) }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 🥟 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+
+      - name: 🔧 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          packager: ${{ inputs.package_manager }}
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🏗️ Build with EAS (${{ inputs.eas_profile }} profile)
+        # Deliberately NO `pre-build:eas` here: that script regenerates
+        # .easignore from .gitignore, whose `google-services*.json` line then
+        # excludes the committed google-services JSON from the EAS upload and
+        # the Android build dies with MISSING_GOOGLE_SERVICES_JSON. The
+        # committed .easignore is authoritative and is what the release
+        # pipeline uses.
+        run: |
+          eas build \
+            --platform ${{ matrix.platform }} \
+            --profile ${{ inputs.eas_profile }} \
+            --non-interactive \
+            --wait \
+            --json > build.json
+          BUILD_URL=$(jq -r '.[0].artifacts.buildUrl' build.json)
+          if [[ -z "$BUILD_URL" || "$BUILD_URL" == "null" ]]; then
+            echo "::error::EAS build produced no artifact URL"
+            jq '.' build.json
+            exit 1
+          fi
+          if [[ "${{ matrix.platform }}" == "android" ]]; then
+            curl -fsSL "$BUILD_URL" -o app-android.apk
+          else
+            # iOS simulator builds ship as a tarball containing the .app bundle
+            curl -fsSL "$BUILD_URL" -o app-ios.tar.gz
+          fi
+
+      - name: 📤 Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.platform }}
+          path: |
+            app-android.apk
+            app-ios.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+
+  android:
+    name: 🤖 Maestro Android
+    needs: [preflight, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # !cancelled(): `needs: build` is a matrix job, so one platform's build
+    # failure marks the whole job failed and would skip BOTH test jobs. Run
+    # whenever this platform's artifact might exist — if its own build leg
+    # failed, the download-artifact step fails fast with a clear error.
+    if: ${{ !cancelled() && needs.preflight.outputs.run_android == 'true' }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 📥 Download app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-android
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 🧰 Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: 🔓 Enable KVM for emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: 🧩 Apply maestro_env
+        if: inputs.maestro_env != ''
+        env:
+          MAESTRO_ENV_INPUT: ${{ inputs.maestro_env }}
+        run: |
+          while IFS= read -r line; do
+            [[ -z "$line" || "$line" == \#* ]] && continue
+            echo "$line" >> "$GITHUB_ENV"
+          done <<< "$MAESTRO_ENV_INPUT"
+
+      - name: 🎯 Run setup command
+        # Project-specific dynamic test data (e.g. resolving a seed entity id
+        # from the dev backend). The command exports values for the flows by
+        # appending MAESTRO_*=value lines to $GITHUB_ENV; a failure here fails
+        # the run rather than letting flows interpolate empty values.
+        if: inputs.setup_command != ''
+        run: ${{ inputs.setup_command }}
+
+      - name: 🧮 Assemble Maestro flags
+        env:
+          MAESTRO_APP_ID: ${{ inputs.android_app_id }}
+          EXCLUDE_TAGS: ${{ inputs.android_exclude_tags }}
+        run: |
+          ARGS=""
+          if [[ -n "$EXCLUDE_TAGS" ]]; then
+            ARGS="--exclude-tags=$EXCLUDE_TAGS"
+          fi
+          while IFS='=' read -r key value; do
+            [[ -z "$key" || -z "$value" || "$key" == "MAESTRO_E2E_ARGS" ]] && continue
+            ARGS="$ARGS -e $key=$value"
+          done < <(env | grep '^MAESTRO_' | sort)
+          echo "MAESTRO_E2E_ARGS=$ARGS" >> "$GITHUB_ENV"
+
+      - name: 📱 Run Maestro flows on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          # android-emulator-runner executes each script LINE as a separate
+          # `sh -c` command, so backslash line-continuations do not survive —
+          # a multi-line `maestro test ... \` runs bare and Maestro treats the
+          # trailing `\` as a flow path ("Flow path does not exist"). Keep
+          # each command on ONE line.
+          script: |
+            adb install app-android.apk
+            maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug ${{ inputs.flows_dir }}
+
+      - name: 📤 Upload Maestro debug output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-android-results
+          path: |
+            maestro-android-report.xml
+            maestro-debug
+          if-no-files-found: ignore
+          retention-days: 7
+
+  ios:
+    name: 🍎 Maestro iOS
+    needs: [preflight, build]
+    runs-on: macos-15
+    timeout-minutes: 90
+    # !cancelled(): see the android job — don't let the other platform's
+    # build failure skip this platform's tests.
+    if: ${{ !cancelled() && needs.preflight.outputs.run_ios == 'true' }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 📥 Download app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-ios
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🧰 Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: 📱 Boot simulator and install app
+        run: |
+          mkdir -p ios-app && tar -xzf app-ios.tar.gz -C ios-app
+          APP_PATH=$(find ios-app -maxdepth 2 -name "*.app" -print -quit)
+          if [[ -z "$APP_PATH" ]]; then
+            echo "::error::No .app bundle found in EAS artifact"
+            find ios-app -maxdepth 3 -print
+            exit 1
+          fi
+          # Boot the first available iPhone simulator on the runner's Xcode.
+          UDID=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices[] | .[] | select(.name | test("^iPhone"))][0].udid')
+          if [[ -z "$UDID" || "$UDID" == "null" ]]; then
+            echo "::error::No available iPhone simulator found"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          xcrun simctl boot "$UDID" || true # already-booted is fine
+          xcrun simctl bootstatus "$UDID"
+          xcrun simctl install "$UDID" "$APP_PATH"
+
+      - name: 🧩 Apply maestro_env
+        if: inputs.maestro_env != ''
+        env:
+          MAESTRO_ENV_INPUT: ${{ inputs.maestro_env }}
+        run: |
+          while IFS= read -r line; do
+            [[ -z "$line" || "$line" == \#* ]] && continue
+            echo "$line" >> "$GITHUB_ENV"
+          done <<< "$MAESTRO_ENV_INPUT"
+
+      - name: 🎯 Run setup command
+        # See the android job — the command appends MAESTRO_* lines to
+        # $GITHUB_ENV and a failure fails the run.
+        if: inputs.setup_command != ''
+        run: ${{ inputs.setup_command }}
+
+      - name: 🧮 Assemble Maestro flags
+        env:
+          MAESTRO_APP_ID: ${{ inputs.ios_app_id }}
+          EXCLUDE_TAGS: ${{ inputs.ios_exclude_tags }}
+        run: |
+          ARGS=""
+          if [[ -n "$EXCLUDE_TAGS" ]]; then
+            ARGS="--exclude-tags=$EXCLUDE_TAGS"
+          fi
+          while IFS='=' read -r key value; do
+            [[ -z "$key" || -z "$value" || "$key" == "MAESTRO_E2E_ARGS" ]] && continue
+            ARGS="$ARGS -e $key=$value"
+          done < <(env | grep '^MAESTRO_' | sort)
+          echo "MAESTRO_E2E_ARGS=$ARGS" >> "$GITHUB_ENV"
+
+      - name: 📱 Run Maestro flows on simulator
+        run: |
+          # MAESTRO_E2E_ARGS is a flag list that needs word splitting.
+          # shellcheck disable=SC2086
+          maestro test ${{ inputs.flows_dir }} \
+            $MAESTRO_E2E_ARGS \
+            --format junit \
+            --output maestro-ios-report.xml \
+            --debug-output maestro-debug
+
+      - name: 📤 Upload Maestro debug output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-results
+          path: |
+            maestro-ios-report.xml
+            maestro-debug
+          if-no-files-found: ignore
+          retention-days: 7
