@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.209.3](https://github.com/CodySwannGT/lisa/compare/v2.209.2...v2.209.3) (2026-07-14)
+
+
+### Bug Fixes
+
+* **expo:** move tailwindcss pin from force to defaults ([ddb4043](https://github.com/CodySwannGT/lisa/commit/ddb4043b2ceb3664290766d066a1dc72c5a5be7e))
+
 ### [2.209.2](https://github.com/CodySwannGT/lisa/compare/v2.209.1...v2.209.2) (2026-07-14)
 
 
