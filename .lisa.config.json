@@ -58,6 +58,14 @@
         "low": 60,
         "break": 60
       }
+    },
+    "e2eCoverage": {
+      "playwright": {
+        "routes": 80
+      },
+      "maestro": {
+        "routes": 80
+      }
     }
   },
   "_lisaSync": {
@@ -107,6 +115,14 @@
           "shipped": "prd-shipped",
           "verified": "prd-verified",
           "sentinel": "prd-intake-feedback"
+        }
+      },
+      "quality.e2eCoverage": {
+        "playwright": {
+          "routes": 80
+        },
+        "maestro": {
+          "routes": 80
         }
       }
     }
