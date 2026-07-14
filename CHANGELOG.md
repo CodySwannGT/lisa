@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.210.0](https://github.com/CodySwannGT/lisa/compare/v2.209.6...v2.210.0) (2026-07-14)
+
+
+### Features
+
+* **doctor:** flag committed legacy pre-2.198 Codex overlay ([9157c9a](https://github.com/CodySwannGT/lisa/commit/9157c9a162f0e6fbd2b0cfeda5c154fbe602bfc9)), closes [#1632](https://github.com/CodySwannGT/lisa/issues/1632)
+
 ### [2.209.6](https://github.com/CodySwannGT/lisa/compare/v2.209.5...v2.209.6) (2026-07-14)
 
 
