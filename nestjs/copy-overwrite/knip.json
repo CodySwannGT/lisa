@@ -1,7 +1,16 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/**/*.ts", "lambdas/**/*.ts", "lib/**/*.ts", "scripts/**/*.ts"],
-  "project": ["src/**/*.ts", "lambdas/**/*.ts", "lib/**/*.ts"],
+  "entry": [
+    "src/**/*.ts",
+    "lambdas/**/*.ts",
+    "lib/**/*.ts",
+    "scripts/**/*.ts"
+  ],
+  "project": [
+    "src/**/*.ts",
+    "lambdas/**/*.ts",
+    "lib/**/*.ts"
+  ],
   "ignore": [
     "**/*.test.ts",
     "**/*.spec.ts",
@@ -75,6 +84,7 @@
     "sentry-cli",
     "sls",
     "tsc",
+    "typescript7/bin/tsc",
     "tsx",
     "vitest"
   ],
