@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.207.0](https://github.com/CodySwannGT/lisa/compare/v2.206.0...v2.207.0) (2026-07-14)
+
+
+### Features
+
+* add workflow change verification skill ([a3525c5](https://github.com/CodySwannGT/lisa/commit/a3525c55a683dcc6a5b7e7b49e59ca3220760554))
+
 ## [2.206.0](https://github.com/CodySwannGT/lisa/compare/v2.205.1...v2.206.0) (2026-07-14)
 
 
