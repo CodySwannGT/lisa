@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.209.0](https://github.com/CodySwannGT/lisa/compare/v2.208.0...v2.209.0) (2026-07-14)
+
+
+### Features
+
+* **expo:** add include-tags inputs to the Maestro native e2e workflow ([2d32f8b](https://github.com/CodySwannGT/lisa/commit/2d32f8babd8eb5475c543e51d004bd45e624a2f9))
+
 ## [2.208.0](https://github.com/CodySwannGT/lisa/compare/v2.207.0...v2.208.0) (2026-07-14)
 
 
