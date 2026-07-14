@@ -761,6 +761,11 @@
         padding: 10px 18px 8px;
         border-bottom: 1px solid var(--line);
       }
+      table.grid th.th-help {
+        cursor: help;
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+      }
       table.grid td {
         padding: 9px 18px;
         border-bottom: 1px solid var(--line);
@@ -1480,6 +1485,12 @@
       };
 
       /* ---------------------------------- Core workflow ---------------------------------- */
+      // Shared header for the command tables: "Automation" is Lisa jargon, so
+      // the column carries a hover tooltip defining it.
+      const AUTOMATION_COL = {
+        v: "Automation",
+        tip: "The scheduled automation (created by /lisa:setup-automations) that already runs this command on a cadence. — means manual-only; “via intake” / “via implement” means it runs inside that command’s cycle. Invoke the command yourself to force a cycle now.",
+      };
       DATA.sections.workflow = {
         title: "Core workflow",
         desc: "The slash commands that run the delivery loop — what each one does, when to reach for it yourself, and which scheduled automation already runs it for you.",
@@ -1500,9 +1511,9 @@
           },
           {
             type: "table",
-            card: "Core commands",
+            card: "Delivery loop",
             note: "Commands marked with an automation run on a schedule — invoke them manually to force a cycle",
-            cols: ["Command", "What it does", "When to use it", "Automation"],
+            cols: ["Command", "What it does", "When to use it", AUTOMATION_COL],
             rows: [
               [
                 { t: "mono", v: "/lisa:intake" },
@@ -1570,6 +1581,13 @@
                 { t: "text", v: "Close the loop on a shipped PRD" },
                 { t: "mono", v: "via intake" },
               ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Commit & ship",
+            cols: ["Command", "What it does", "When to use it", AUTOMATION_COL],
+            rows: [
               [
                 { t: "mono", v: "/lisa:git:commit" },
                 {
@@ -1588,6 +1606,14 @@
                 { t: "text", v: "When a branch is ready to ship" },
                 { t: "mono", v: "—" },
               ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Feeder loops",
+            note: "The three scheduled loops that keep the pipeline fed — exploratory bugs, ideated PRDs, and observability regressions",
+            cols: ["Command", "What it does", "When to use it", AUTOMATION_COL],
+            rows: [
               [
                 { t: "mono", v: "/lisa:exploratory-qa" },
                 {
@@ -1618,15 +1644,13 @@
                 { t: "text", v: "On demand between scheduled runs" },
                 { t: "mono", v: "monitor" },
               ],
-              [
-                { t: "mono", v: "/lisa:debrief" },
-                {
-                  t: "text",
-                  v: "Mines a shipped initiative — tickets, PRs, review threads — for learnings to triage",
-                },
-                { t: "text", v: "After an initiative ships" },
-                { t: "mono", v: "—" },
-              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Onboarding & upkeep",
+            cols: ["Command", "What it does", "When to use it", AUTOMATION_COL],
+            rows: [
               [
                 { t: "mono", v: "/lisa:agent-ready" },
                 {
@@ -1640,6 +1664,18 @@
                 { t: "mono", v: "—" },
               ],
               [
+                { t: "mono", v: "/lisa:generate-claude-remote-build-script" },
+                {
+                  t: "text",
+                  v: "Prepares the repo to run in a remote agentic VM (Claude Code remote): inventories what the environment needs via /lisa:analyze-claude-remote, then writes the idempotent setup script, an env-var template (names only, never secrets), and the network allowlist to paste into the routine environment",
+                },
+                {
+                  t: "text",
+                  v: "Once when wiring the project into a cloud environment; re-run when tooling or required secrets change",
+                },
+                { t: "mono", v: "—" },
+              ],
+              [
                 { t: "mono", v: "/lisa:doctor" },
                 {
                   t: "text",
@@ -1649,6 +1685,15 @@
                   t: "text",
                   v: "When something seems off; also feeds the planned health check",
                 },
+                { t: "mono", v: "—" },
+              ],
+              [
+                { t: "mono", v: "/lisa:debrief" },
+                {
+                  t: "text",
+                  v: "Mines a shipped initiative — tickets, PRs, review threads — for learnings to triage",
+                },
+                { t: "text", v: "After an initiative ships" },
                 { t: "mono", v: "—" },
               ],
             ],
@@ -3832,6 +3877,24 @@
             ],
           },
           {
+            card: "E2E route coverage floors",
+            note: "e2e.thresholds.json — Expo projects; enforced statically by the E2E Route Coverage quality job on every PR",
+            rows: [
+              {
+                key: "quality.e2eCoverage.playwright.routes",
+                label: "Playwright routes",
+                desc: "% of expo-router routes reached by at least one Playwright spec (page.goto or an e2e-route annotation). 0 disables that runner’s gate.",
+                control: num(80, "%"),
+              },
+              {
+                key: "quality.e2eCoverage.maestro.routes",
+                label: "Maestro routes",
+                desc: "% of expo-router routes reached by at least one Maestro flow (openLink or an e2e-route annotation). 0 disables that runner’s gate.",
+                control: num(80, "%"),
+              },
+            ],
+          },
+          {
             card: "Mutation testing",
             note: "StrykerJS for JS/TS, mutant for Rails — both opt-in and diff-only",
             rows: [
@@ -4000,6 +4063,15 @@
                 desc: "ci.yml is seeded once and project-owned; it calls Lisa’s reusable quality workflow on every pull request.",
                 control: stat("ci.yml → quality.yml@main", "mono"),
               },
+              {
+                key: "",
+                label: "Native e2e workflow",
+                desc: "Expo projects: the native iOS + Android Maestro suite on GitHub-hosted runners — nightly plus on-demand, too heavy to gate PRs. Skips with a warning until the dev-e2e EAS profile, EXPO_TOKEN, and flows exist.",
+                control: stat(
+                  "maestro-e2e.yml → maestro-native-e2e.yml@main",
+                  "mono"
+                ),
+              },
             ],
           },
           {
@@ -4120,6 +4192,14 @@
                 {
                   t: "text",
                   v: "Mobile end-to-end flows on Maestro Cloud",
+                },
+                { t: "status", v: true },
+              ],
+              [
+                { t: "mono", v: "🧭 E2E Route Coverage" },
+                {
+                  t: "text",
+                  v: "Static gate: % of expo-router routes reached by Playwright specs and Maestro flows, against the floors in e2e.thresholds.json — auto-enabled on Expo projects, a no-op elsewhere",
                 },
                 { t: "status", v: true },
               ],
@@ -4588,6 +4668,14 @@
                 { t: "mono", v: "MAESTRO_API_KEY" },
                 { t: "text", v: "Maestro Cloud mobile E2E" },
                 { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "MAESTRO_SECRET_ENV" },
+                {
+                  t: "text",
+                  v: "Native Maestro e2e — newline-separated KEY=VALUE secrets forwarded to flows (test-account passwords)",
+                },
+                { t: "badge", v: "missing", cls: "off" },
               ],
             ],
           },
@@ -5076,7 +5164,17 @@
         const table = el("table", "grid");
         const thead = el("thead");
         const trh = el("tr");
-        block.cols.forEach(c => trh.appendChild(el("th", "", esc(c))));
+        block.cols.forEach(c => {
+          // Cols accept either a plain string or {v, tip} — tip renders as a
+          // hover tooltip on the header for jargon that needs a definition.
+          if (typeof c === "string") {
+            trh.appendChild(el("th", "", esc(c)));
+            return;
+          }
+          const th = el("th", c.tip ? "th-help" : "", esc(c.v));
+          if (c.tip) th.title = c.tip;
+          trh.appendChild(th);
+        });
         thead.appendChild(trh);
         table.appendChild(thead);
         const tbody = el("tbody");
