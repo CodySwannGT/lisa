@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.209.4](https://github.com/CodySwannGT/lisa/compare/v2.209.3...v2.209.4) (2026-07-14)
+
+
+### Bug Fixes
+
+* **expo:** give the Maestro Android job the same 90-minute budget as iOS ([b5c1b57](https://github.com/CodySwannGT/lisa/commit/b5c1b57f9ee92111a4437bb8ab24310a016f0001))
+
 ### [2.209.3](https://github.com/CodySwannGT/lisa/compare/v2.209.2...v2.209.3) (2026-07-14)
 
 
