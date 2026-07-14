@@ -16,9 +16,7 @@
       "lint:fix": "oxlint --fix && eslint . --fix"
     },
     "dependencies": {
-      "@aws-cdk/aws-amplify-alpha": "^2.246.0-alpha.0",
       "aws-cdk-github-oidc": "^2.4.1",
-      "aws-cdk-lib": "2.246.0",
       "constructs": "^10.4.5",
       "source-map-support": "^0.5.21"
     },
@@ -50,6 +48,10 @@
     }
   },
   "defaults": {
+    "dependencies": {
+      "@aws-cdk/aws-amplify-alpha": "^2.246.0-alpha.0",
+      "aws-cdk-lib": "2.246.0"
+    },
     "devDependencies": {
       "@codyswann/lisa": "^2.106.0"
     },
