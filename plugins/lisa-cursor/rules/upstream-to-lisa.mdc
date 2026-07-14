@@ -5,16 +5,21 @@ alwaysApply: true
 
 # Upstream To Lisa (load-bearing)
 
-When working in a project that has Lisa installed, you will sometimes find that the **real fix belongs upstream in Lisa**, not in this project — a bug or gap in a Lisa-distributed template, rule, skill, agent, hook, or CI workflow, or a governance pattern worth generalizing back to the templates. Tell-tale signs: the file you want to change is Lisa-managed (carries Lisa governance markers, or lives in a path Lisa owns), and any edit you make here would be **overwritten on the next `lisa apply`**.
+When working in a project that has Lisa installed, you will sometimes find that the **real fix belongs upstream in Lisa**, not in this project — a bug or gap in a Lisa-distributed template, rule, skill, agent, hook, or CI workflow, or a governance pattern worth generalizing back to the templates. The defining test: **does the root cause live in a Lisa-distributed artifact?** If yes, file upstream, regardless of whether your local fix survives the next `lisa apply`.
+
+Tell-tale signs include:
+
+- The file is Lisa-managed (carries Lisa governance markers, or lives in a path Lisa owns) and any edit you make here would be **overwritten on the next `lisa apply`**.
+- The file was created from a Lisa `create-only` template and carries language such as `Lisa will not overwrite it`. That header is a positive upstream signal: existing repos will keep their local copy, but every newly scaffolded repo still inherits the broken template until Lisa is fixed.
 
 When that happens, you have **two obligations — do both**:
 
-1. **Fix it locally so you are not blocked.** Apply the stopgap in this project so you can keep working. Treat it as temporary: it will be clobbered when the upstream fix ships and Lisa re-applies. Do not wait on the upstream fix.
+1. **Fix it locally so you are not blocked.** Apply the stopgap in this project so you can keep working. For copy-overwrite files, treat the local fix as temporary because it will be clobbered when the upstream fix ships and Lisa re-applies. For create-only files, keep the local fix because Lisa will not overwrite it, but still file upstream so new repos stop inheriting the bug.
 2. **File an upstream issue in the Lisa repository.** Use the `github-write-issue` skill (`lisa-github-write-issue`) to create an issue **in Lisa's source repo `CodySwannGT/lisa`** (pass it as the target repo, e.g. `gh ... --repo CodySwannGT/lisa`) — **not** in this project's own repo. Capture: the root cause, the symptom you hit here, and the proposed durable fix in Lisa's templates/rules/skills.
 
 ## Do not
 
-- Do **not** only fix it locally and move on — the local fix is throwaway; without the upstream issue the root cause is lost and re-breaks on the next apply.
+- Do **not** only fix it locally and move on — even when a create-only local fix survives, the broken template keeps shipping to every new repo until it is fixed upstream.
 - Do **not** try to edit Lisa's templates from inside this project — you are not in the Lisa repo; those edits don't exist upstream and get overwritten.
 - Do **not** file the issue in this project's repo — it must land in `CodySwannGT/lisa`.
 
