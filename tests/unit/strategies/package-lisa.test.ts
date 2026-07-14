@@ -1143,7 +1143,15 @@ describe("PackageLisaStrategy", () => {
       expect(template.force.dependencies["@apollo/client"]).toMatch(/^\^?3\./);
       expect(template.force.dependencies["apollo-link-sentry"]).toBe("4.4.0");
       expect(template.force.dependencies["zod"]).toBeDefined();
-      expect(template.force.dependencies["tailwindcss"]).toBeDefined();
+      // tailwindcss must stay in defaults, NEVER force: the tailwind major is
+      // coupled to the project's gluestack-ui generation (v3/v4 → tailwind ^3 +
+      // nativewind 4; v5 → tailwind ^4.2 + nativewind 5 per
+      // https://gluestack.io/ui/docs/guides/more/upgrade-to-v5), and the fleet
+      // runs both generations. A forced pin silently downgraded a tailwind-4
+      // project (TunnlAI/frontend) on every apply and broke its frozen
+      // lockfile in CI.
+      expect(template.force.dependencies["tailwindcss"]).toBeUndefined();
+      expect(template.defaults.dependencies["tailwindcss"]).toBeDefined();
       expect(template.force.devDependencies["jest"]).toBeDefined();
       expect(template.force.devDependencies["oxlint"]).toBeDefined();
       expect(template.force.devDependencies["@playwright/test"]).toBeDefined();
