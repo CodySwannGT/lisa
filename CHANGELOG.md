@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.208.0](https://github.com/CodySwannGT/lisa/compare/v2.207.0...v2.208.0) (2026-07-14)
+
+
+### Features
+
+* **expo:** forward secret and non-MAESTRO flow variables to maestro ([0d52b76](https://github.com/CodySwannGT/lisa/commit/0d52b76ca21c898671f45adf802462ed606ebde0))
+* **expo:** reusable Maestro native e2e workflow on GitHub runners ([173b691](https://github.com/CodySwannGT/lisa/commit/173b6914a085debe3c87fb86103f2d13d493a5e7))
+
 ## [2.207.0](https://github.com/CodySwannGT/lisa/compare/v2.206.0...v2.207.0) (2026-07-14)
 
 
