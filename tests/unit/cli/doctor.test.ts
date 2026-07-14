@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,9 @@ import { runDoctor } from "../../../src/cli/doctor.js";
 
 /** Lisa project marker file written into doctor test fixtures. */
 const LISA_CONFIG_FILE = ".lisa.config.json";
+
+/** Doctor check name for the legacy Codex overlay detection. */
+const CODEX_OVERLAY_CHECK = "Codex overlay current?";
 
 let tempDir: string | undefined;
 
@@ -70,6 +73,70 @@ describe("runDoctor", () => {
     );
 
     expect(setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("warns when the legacy pre-2.198 Codex overlay is still present", async () => {
+    const cwd = await getTempDir();
+    await writeFile(path.join(cwd, LISA_CONFIG_FILE), "{}\n");
+    await mkdir(path.join(cwd, ".codex", "hooks", "lisa"), {
+      recursive: true,
+    });
+    await mkdir(path.join(cwd, ".codex", "skills", "lisa"), {
+      recursive: true,
+    });
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        name: CODEX_OVERLAY_CHECK,
+        status: "warn",
+        detail: expect.stringContaining(".codex/hooks/lisa"),
+      })
+    );
+  });
+
+  it("passes the Codex overlay check when .codex has no legacy directories", async () => {
+    const cwd = await getTempDir();
+    await writeFile(path.join(cwd, LISA_CONFIG_FILE), "{}\n");
+    await mkdir(path.join(cwd, ".codex", "agents"), { recursive: true });
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        name: CODEX_OVERLAY_CHECK,
+        status: "ok",
+        detail: "No legacy project-level Codex overlay present",
+      })
+    );
+  });
+
+  it("passes the Codex overlay check when .codex is absent", async () => {
+    const cwd = await getTempDir();
+    await writeFile(path.join(cwd, LISA_CONFIG_FILE), "{}\n");
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        name: CODEX_OVERLAY_CHECK,
+        status: "ok",
+        detail: "No .codex directory present",
+      })
+    );
   });
 
   it("repairs instruction files in a Lisa project (AGENTS.md canonical + CLAUDE.md pointer)", async () => {
