@@ -55,7 +55,7 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,format,build,dead_code,sg_scan,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,format,build,dead_code,sg_scan,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -491,6 +491,46 @@ jobs:
           VERIFY_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           VERIFY_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           VERIFY_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+
+  e2e_coverage:
+    name: 🧭 E2E Route Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Aggregate e2e surface-coverage gate: % of expo-router routes reached by
+    # at least one Playwright spec / Maestro flow, thresholds from
+    # e2e.thresholds.json (default 80% per runner). Auto-enabled by the
+    # presence of the Lisa-managed script (expo projects); a no-op elsewhere.
+    if: ${{ !contains(inputs.skip_jobs, 'e2e_coverage') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🔍 Check for e2e coverage script
+        id: check_script
+        run: |
+          if [ -f "scripts/check-e2e-coverage.mjs" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧭 Require e2e route/screen coverage thresholds
+        if: steps.check_script.outputs.exists == 'true'
+        run: node scripts/check-e2e-coverage.mjs
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: ⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)
+        if: steps.check_script.outputs.exists == 'false'
+        run: echo "Skipping e2e route coverage - scripts/check-e2e-coverage.mjs not found"
 
   test_unit:
     name: 🧪 Run Unit Tests
