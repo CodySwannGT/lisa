@@ -1,0 +1,8 @@
+{
+  "playwright": {
+    "routes": 80
+  },
+  "maestro": {
+    "routes": 80
+  }
+}

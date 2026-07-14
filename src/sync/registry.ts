@@ -108,6 +108,13 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     description: "Test coverage floors (statements/branches/functions/lines)",
   },
   {
+    key: "quality.e2eCoverage",
+    defaultValue: { playwright: { routes: 80 }, maestro: { routes: 80 } },
+    artifacts: [{ file: "e2e.thresholds.json", pointer: "" }],
+    description:
+      "E2E route/screen coverage floors (Playwright web routes, Maestro screens)",
+  },
+  {
     key: "quality.lintBudgets",
     defaultValue: {
       cognitiveComplexity: 10,
