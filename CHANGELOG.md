@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.210.2](https://github.com/CodySwannGT/lisa/compare/v2.210.1...v2.210.2) (2026-07-14)
+
+
+### Bug Fixes
+
+* **nestjs:** keep typescript7/bin/tsc in knip ignoreBinaries ([d11f726](https://github.com/CodySwannGT/lisa/commit/d11f726d34218db1ca35456a979d6728bf65bc8a))
+
+### [2.210.1](https://github.com/CodySwannGT/lisa/compare/v2.210.0...v2.210.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **tsconfig:** drop baseUrl from project tsconfig templates ([871f9f5](https://github.com/CodySwannGT/lisa/commit/871f9f5314a76e8d8d9365e620789bcede23e540))
+
 ## [2.210.0](https://github.com/CodySwannGT/lisa/compare/v2.209.6...v2.210.0) (2026-07-14)
 
 
