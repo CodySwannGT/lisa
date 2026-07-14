@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.209.5](https://github.com/CodySwannGT/lisa/compare/v2.209.4...v2.209.5) (2026-07-14)
+
+
+### Bug Fixes
+
+* **nestjs,expo:** demote split-major pins from force to defaults ([2373368](https://github.com/CodySwannGT/lisa/commit/2373368a72cee14d4ad748a25ca7e07f68d987c2))
+
 ### [2.209.4](https://github.com/CodySwannGT/lisa/compare/v2.209.3...v2.209.4) (2026-07-14)
 
 
