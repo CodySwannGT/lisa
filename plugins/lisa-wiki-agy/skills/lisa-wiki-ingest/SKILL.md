@@ -21,8 +21,15 @@ performs the shared, ordered pipeline.
 
 ## Step 0 — resolve the wiki root (once per run)
 
-Before anything else, run `node scripts/ensure-wiki.mjs --json` and use the returned `wikiRoot` as the
-base for the whole pipeline — never hardcode `wiki/`. This is mode-agnostic by design:
+Before anything else, run the bundled resolver from the installed Lisa wiki plugin, not from the
+consumer repository's `scripts/` directory:
+
+```bash
+node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa-wiki}}}/scripts/ensure-wiki.mjs" --json
+```
+
+Use the returned `wikiRoot` as the base for the whole pipeline — never hardcode `wiki/`. This is
+mode-agnostic by design:
 
 - **Local wiki** (no `wiki.source` in `.lisa.config.json`) — resolves the in-repo wiki root instantly;
   the branch sync below proceeds against **this** repo's remote, exactly as before.
