@@ -244,7 +244,11 @@ jobs:
     name: 🤖 Maestro Android
     needs: [preflight, build]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 90 to match the iOS job: the 60 inherited from frontend-v2's original
+    # workflow started timing out once its suite grew (nightly 29322073759 —
+    # the Android leg was cancelled mid-suite at exactly 60:00). Jobs end when
+    # the suite ends, so fast suites pay nothing for the headroom.
+    timeout-minutes: 90
     # !cancelled(): `needs: build` is a matrix job, so one platform's build
     # failure marks the whole job failed and would skip BOTH test jobs. Run
     # whenever this platform's artifact might exist — if its own build leg
