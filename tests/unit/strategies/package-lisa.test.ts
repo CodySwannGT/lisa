@@ -1388,14 +1388,19 @@ describe("PackageLisaStrategy", () => {
       const template = readCdkTemplate();
       for (const pkg of ["aws-cdk-lib", "@aws-cdk/aws-amplify-alpha"]) {
         expect(template.force.dependencies[pkg]).toBeUndefined();
-        expect(template.defaults.dependencies[pkg]).toBeDefined();
       }
+      // Exact pins (not just "is defined") so an accidental version bump in
+      // the template is caught by this regression test.
+      expect(template.defaults.dependencies["aws-cdk-lib"]).toBe("2.246.0");
+      expect(template.defaults.dependencies["@aws-cdk/aws-amplify-alpha"]).toBe(
+        "^2.246.0-alpha.0"
+      );
     });
 
     it("keeps the aws-cdk CLI floor and $name overrides in force", () => {
       const template = readCdkTemplate();
       // A caret floor can only pull projects forward, never downgrade.
-      expect(template.force.devDependencies["aws-cdk"]).toMatch(/^\^/);
+      expect(template.force.devDependencies["aws-cdk"]).toBe("^2.1127.0");
       expect(template.force.overrides["aws-cdk-lib"]).toBe("$aws-cdk-lib");
       expect(template.force.resolutions["aws-cdk-lib"]).toBe("$aws-cdk-lib");
     });
