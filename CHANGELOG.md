@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.210.3](https://github.com/CodySwannGT/lisa/compare/v2.210.2...v2.210.3) (2026-07-14)
+
+
+### Bug Fixes
+
+* **expo:** ship copy-overwrite tsconfig so the typescript template stops clobbering expo projects ([5bc08f3](https://github.com/CodySwannGT/lisa/commit/5bc08f35d4df03b32201ac60c113162da8911ba5)), closes [#1638](https://github.com/CodySwannGT/lisa/issues/1638)
+
 ### [2.210.2](https://github.com/CodySwannGT/lisa/compare/v2.210.1...v2.210.2) (2026-07-14)
 
 
