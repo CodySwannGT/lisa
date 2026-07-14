@@ -38,6 +38,23 @@ const SCRIPT_PATH = path.resolve(
   __dirname,
   "../../../plugins/src/wiki/scripts/ensure-wiki.mjs"
 );
+/** Package-relative resolver command documented in the distributed wiki skills. */
+const PACKAGED_RESOLVER_COMMAND =
+  'node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa-wiki}}}/scripts/ensure-wiki.mjs" --json';
+/** Wiki plugin roots whose query/ingest skills must carry the portable command. */
+const WIKI_PLUGIN_ROOTS = [
+  "plugins/src/wiki",
+  "plugins/lisa-wiki",
+  "plugins/lisa-wiki/.codex-plugin",
+  "plugins/lisa-wiki-agy",
+  "plugins/lisa-wiki-copilot",
+  "plugins/lisa-wiki-cursor",
+] as const;
+/** Wiki skills that resolve the root before doing work. */
+const RESOLVER_SKILLS = [
+  "skills/lisa-wiki-query/SKILL.md",
+  "skills/lisa-wiki-ingest/SKILL.md",
+] as const;
 
 /**
  * Git env with no system/global config bleed-through.
@@ -165,6 +182,44 @@ describe("lisa-wiki ensure-wiki.mjs", () => {
     expect(fs.existsSync(path.join(tmp, ".lisa"))).toBe(false);
   });
 
+  it("LOCAL: packaged plugin command resolves from a consumer root without a consumer scripts dir", () => {
+    const consumer = path.join(tmp, "consumer");
+    const pluginScripts = path.join(
+      consumer,
+      "node_modules",
+      "@codyswann",
+      "lisa",
+      "plugins",
+      "lisa-wiki",
+      "scripts"
+    );
+    fs.mkdirSync(path.join(consumer, CUSTOM_WIKI), { recursive: true });
+    fs.mkdirSync(pluginScripts, { recursive: true });
+    fs.writeFileSync(
+      path.join(consumer, CUSTOM_WIKI, INDEX_MD),
+      "# Packaged Wiki\n"
+    );
+    fs.writeFileSync(
+      path.join(consumer, LISA_CONFIG),
+      JSON.stringify({ wiki: { source: { path: CUSTOM_WIKI } } })
+    );
+    fs.copyFileSync(SCRIPT_PATH, path.join(pluginScripts, "ensure-wiki.mjs"));
+
+    expect(
+      fs.existsSync(path.join(consumer, "scripts", "ensure-wiki.mjs"))
+    ).toBe(false);
+    const out = execFileSync("/bin/sh", ["-lc", PACKAGED_RESOLVER_COMMAND], {
+      cwd: consumer,
+      encoding: "utf8",
+      env: CLEAN_GIT_ENV,
+    });
+    const res = JSON.parse(out.trim().split("\n").pop() as string);
+    expect(res.mode).toBe("local");
+    expect(fs.realpathSync(res.wikiRoot)).toBe(
+      fs.realpathSync(path.join(consumer, CUSTOM_WIKI))
+    );
+  });
+
   it("LOCAL: wiki.source.path wins over a lisa-wiki.config.json wikiRoot", () => {
     fs.mkdirSync(path.join(tmp, "wiki"), { recursive: true });
     fs.writeFileSync(
@@ -217,5 +272,20 @@ describe("lisa-wiki ensure-wiki.mjs", () => {
   it("REMOTE: fails when offline with no mirror yet on disk", () => {
     const { consumer } = setupRemoteConsumer(tmp);
     expect(() => run(consumer, ["--offline"])).toThrow();
+  });
+});
+
+describe("lisa-wiki packaged resolver command", () => {
+  it.each(
+    WIKI_PLUGIN_ROOTS.flatMap(root =>
+      RESOLVER_SKILLS.map(skill => [root, skill])
+    )
+  )("%s/%s uses the package/runtime plugin-root resolver", (root, skill) => {
+    const content = fs.readFileSync(
+      path.join(String(root), String(skill)),
+      "utf8"
+    );
+    expect(content).toContain(PACKAGED_RESOLVER_COMMAND);
+    expect(content).not.toContain("node scripts/ensure-wiki.mjs");
   });
 });
