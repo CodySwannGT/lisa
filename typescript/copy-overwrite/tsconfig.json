@@ -1,7 +1,6 @@
 {
   "extends": ["@codyswann/lisa/tsconfig/typescript", "./tsconfig.local.json"],
   "compilerOptions": {
-    "baseUrl": "./",
     "ignoreDeprecations": "6.0"
   }
 }
