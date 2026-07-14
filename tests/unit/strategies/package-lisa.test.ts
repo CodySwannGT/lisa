@@ -1348,6 +1348,64 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  describe("CDK real template: aws-cdk-lib stays in defaults", () => {
+    // Regression: aws-cdk-lib was force-pinned EXACTLY (2.246.0), so a
+    // project that had moved ahead (qualis/infrastructure on 2.259.0) got a
+    // 13-minor downgrade on the next apply — which can break synth for
+    // stacks using newer constructs. Projects own their aws-cdk-lib pace;
+    // CVE-driven bumps go through per-repo security gates instead. The
+    // paired @aws-cdk/aws-amplify-alpha must live in the same section since
+    // its version tracks aws-cdk-lib. The $name overrides/resolutions
+    // entries stay in force and resolve against the project's own direct
+    // dep, so they remain valid with the pin in defaults.
+    const repoRoot = process.cwd();
+    const cdkSource = path.join(
+      repoRoot,
+      "cdk",
+      "package-lisa",
+      "package.lisa.json"
+    );
+
+    /**
+     * Read and parse the real shipped CDK package.lisa.json template.
+     * @returns The parsed template with force/defaults sections.
+     */
+    function readCdkTemplate(): {
+      force: {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+        overrides: Record<string, string>;
+        resolutions: Record<string, string>;
+      };
+      defaults: {
+        dependencies: Record<string, string>;
+      };
+    } {
+      return fs.readJsonSync(cdkSource);
+    }
+
+    it("keeps aws-cdk-lib and its alpha companion in defaults, not force", () => {
+      const template = readCdkTemplate();
+      for (const pkg of ["aws-cdk-lib", "@aws-cdk/aws-amplify-alpha"]) {
+        expect(template.force.dependencies[pkg]).toBeUndefined();
+      }
+      // Exact pins (not just "is defined") so an accidental version bump in
+      // the template is caught by this regression test.
+      expect(template.defaults.dependencies["aws-cdk-lib"]).toBe("2.246.0");
+      expect(template.defaults.dependencies["@aws-cdk/aws-amplify-alpha"]).toBe(
+        "^2.246.0-alpha.0"
+      );
+    });
+
+    it("keeps the aws-cdk CLI floor and $name overrides in force", () => {
+      const template = readCdkTemplate();
+      // A caret floor can only pull projects forward, never downgrade.
+      expect(template.force.devDependencies["aws-cdk"]).toBe("^2.1127.0");
+      expect(template.force.overrides["aws-cdk-lib"]).toBe("$aws-cdk-lib");
+      expect(template.force.resolutions["aws-cdk-lib"]).toBe("$aws-cdk-lib");
+    });
+  });
+
   describe("empty sections", () => {
     it("handles template with empty force section", async () => {
       await createPackageLisaTemplate("all", {
