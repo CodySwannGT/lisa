@@ -18,8 +18,10 @@ name: 📱 Maestro Native E2E
 #   3. Put flows in .maestro/flows. Until 1-3 are done, runs skip with a
 #      warning instead of failing.
 #   4. Set the app id inputs below (they are forwarded to flows as
-#      MAESTRO_APP_ID), plus any MAESTRO_* variables your flows read via
-#      maestro_env, and an optional setup_command for dynamic seed data.
+#      MAESTRO_APP_ID), plus any variables your flows read via maestro_env,
+#      and an optional setup_command for dynamic seed data. Sensitive values
+#      (test-account passwords) go in a MAESTRO_SECRET_ENV repository secret
+#      — same newline-separated KEY=VALUE format — passed through below.
 
 on:
   schedule:
@@ -58,3 +60,4 @@ jobs:
       # setup_command: node scripts/maestro/resolve-seed-data.mjs
     secrets:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      MAESTRO_SECRET_ENV: ${{ secrets.MAESTRO_SECRET_ENV }}
