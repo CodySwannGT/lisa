@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.205.1](https://github.com/CodySwannGT/lisa/compare/v2.205.0...v2.205.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **rules:** treat create-only templates as upstream Lisa ([00326f8](https://github.com/CodySwannGT/lisa/commit/00326f85c7b7bbd20cca7dad26c2ea45c3ae34a4))
+
+## [2.205.0](https://github.com/CodySwannGT/lisa/compare/v2.204.8...v2.205.0) (2026-07-13)
+
+
+### Features
+
+* **cdk:** add setup-aws-accounts skill driving the aws-soc2-setup CLI ([ce29f95](https://github.com/CodySwannGT/lisa/commit/ce29f9509f4e4ff8335e8386207353a0adc2b2ad))
+
+
+### Bug Fixes
+
+* **cdk:** address CodeRabbit review on setup-aws-accounts skill ([61ddb20](https://github.com/CodySwannGT/lisa/commit/61ddb20358d8390136402e074d2cce45ea73017b))
+
 ### [2.204.8](https://github.com/CodySwannGT/lisa/compare/v2.204.7...v2.204.8) (2026-07-13)
 
 
