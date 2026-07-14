@@ -1,0 +1,6 @@
+{
+  "extends": ["@codyswann/lisa/tsconfig/expo", "./tsconfig.local.json"],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
+}
