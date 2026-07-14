@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.211.0](https://github.com/CodySwannGT/lisa/compare/v2.210.3...v2.211.0) (2026-07-14)
+
+
+### Features
+
+* **ui:** surface e2e coverage gates and reorganize core commands in the console ([2b6b973](https://github.com/CodySwannGT/lisa/commit/2b6b9731cbabf742f3e5a97d8219327c1785bb8d))
+
+
+### Documentation
+
+* **ui:** note that 0 disables the Playwright route-coverage gate ([c193d3e](https://github.com/CodySwannGT/lisa/commit/c193d3eb5a2a3920e6719ffbfe89f90770c94d72))
+
 ### [2.210.3](https://github.com/CodySwannGT/lisa/compare/v2.210.2...v2.210.3) (2026-07-14)
 
 
