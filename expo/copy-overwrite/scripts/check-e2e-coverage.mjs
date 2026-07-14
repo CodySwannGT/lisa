@@ -233,6 +233,25 @@ export function evaluateE2eCoverage({
 }
 
 /**
+ * Load project threshold overrides from `e2e.thresholds.json`, if present.
+ * Malformed JSON is a readable, operator-facing failure rather than an
+ * uncaught SyntaxError and stack trace.
+ * @param {string} thresholdsFile - Absolute path to the thresholds file
+ * @returns {object} Parsed overrides, or {} when the file is absent
+ * @throws {Error} When the file exists but is not valid JSON
+ */
+export function loadThresholdOverrides(thresholdsFile) {
+  if (!fs.existsSync(thresholdsFile)) {
+    return {};
+  }
+  try {
+    return JSON.parse(fs.readFileSync(thresholdsFile, "utf8"));
+  } catch (error) {
+    throw new Error(`e2e.thresholds.json is not valid JSON — ${error.message}`);
+  }
+}
+
+/**
  * Recursively list files under a directory, relative to it.
  * @param {string} directory - Absolute directory path
  * @returns {string[]} Relative file paths (posix separators), or [] if absent
@@ -294,9 +313,14 @@ function main() {
   }
 
   const thresholdsFile = path.join(root, "e2e.thresholds.json");
-  const overrides = fs.existsSync(thresholdsFile)
-    ? JSON.parse(fs.readFileSync(thresholdsFile, "utf8"))
-    : {};
+  let overrides;
+  try {
+    overrides = loadThresholdOverrides(thresholdsFile);
+  } catch (error) {
+    console.error(`[e2e-coverage] FAIL: ${error.message}`);
+    process.exit(1);
+    return;
+  }
   const thresholds = mergeThresholds(defaultThresholds, overrides);
 
   const result = evaluateE2eCoverage({
