@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.209.6](https://github.com/CodySwannGT/lisa/compare/v2.209.5...v2.209.6) (2026-07-14)
+
+
+### Bug Fixes
+
+* **cdk:** move aws-cdk-lib pin from force to defaults ([2e4c4d6](https://github.com/CodySwannGT/lisa/commit/2e4c4d6188fdc6d6d9e0c2798ac1e92744c69b9f))
+
 ### [2.209.5](https://github.com/CodySwannGT/lisa/compare/v2.209.4...v2.209.5) (2026-07-14)
 
 
