@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.209.1](https://github.com/CodySwannGT/lisa/compare/v2.209.0...v2.209.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* resolve packaged wiki scripts ([8e5cbe3](https://github.com/CodySwannGT/lisa/commit/8e5cbe399f9843963cd4cc724a054806ae4f0d08))
+
 ## [2.209.0](https://github.com/CodySwannGT/lisa/compare/v2.208.0...v2.209.0) (2026-07-14)
 
 
