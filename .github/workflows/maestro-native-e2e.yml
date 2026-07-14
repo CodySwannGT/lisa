@@ -15,11 +15,14 @@
 # nightly cron + workflow_dispatch platform picker; see
 # expo/create-only/.github/workflows/maestro-e2e.yml.
 #
-# Environment contract: every env var named MAESTRO_* that exists after the
-# `maestro_env` input is applied and `setup_command` has run is forwarded to
-# the flows as `-e` variables. Values must not contain whitespace. The
-# platform app id inputs are forwarded as MAESTRO_APP_ID per platform (they
-# may legitimately differ — e.g. `app_dev` on Android vs `app-dev` on iOS).
+# Environment contract: forwarded to the flows as `-e` variables are (1)
+# every key declared in the `maestro_env` input, (2) every key declared in
+# the MAESTRO_SECRET_ENV secret (same KEY=VALUE format, for sensitive values
+# like test-account passwords — GitHub masks each line in logs), and (3)
+# every env var named MAESTRO_* after `setup_command` has run. Values must
+# not contain whitespace. The platform app id inputs are forwarded as
+# MAESTRO_APP_ID per platform (they may legitimately differ — e.g. `app_dev`
+# on Android vs `app-dev` on iOS).
 #
 # Graceful degradation: when EXPO_TOKEN is not provisioned or the flows
 # directory does not exist, every job skips with a warning instead of
@@ -89,6 +92,9 @@ on:
     secrets:
       EXPO_TOKEN:
         description: 'Expo token for EAS builds. When absent, the whole suite skips with a warning.'
+        required: false
+      MAESTRO_SECRET_ENV:
+        description: 'Newline-separated KEY=VALUE pairs of sensitive flow variables (e.g. test-account passwords), forwarded like maestro_env. GitHub masks each line in logs.'
         required: false
 
 permissions:
@@ -267,15 +273,17 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: 🧩 Apply maestro_env
-        if: inputs.maestro_env != ''
+      - name: 🧩 Apply maestro env
+        # E2E_* names (not MAESTRO_*) so the multiline inputs never leak into
+        # the MAESTRO_* scan in the assemble step below.
         env:
-          MAESTRO_ENV_INPUT: ${{ inputs.maestro_env }}
+          E2E_ENV_INPUT: ${{ inputs.maestro_env }}
+          E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
         run: |
-          while IFS= read -r line; do
-            [[ -z "$line" || "$line" == \#* ]] && continue
+          printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | while IFS= read -r line; do
+            [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
             echo "$line" >> "$GITHUB_ENV"
-          done <<< "$MAESTRO_ENV_INPUT"
+          done
 
       - name: 🎯 Run setup command
         # Project-specific dynamic test data (e.g. resolving a seed entity id
@@ -289,15 +297,25 @@ jobs:
         env:
           MAESTRO_APP_ID: ${{ inputs.android_app_id }}
           EXCLUDE_TAGS: ${{ inputs.android_exclude_tags }}
+          E2E_ENV_INPUT: ${{ inputs.maestro_env }}
+          E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
         run: |
           ARGS=""
           if [[ -n "$EXCLUDE_TAGS" ]]; then
             ARGS="--exclude-tags=$EXCLUDE_TAGS"
           fi
-          while IFS='=' read -r key value; do
-            [[ -z "$key" || -z "$value" || "$key" == "MAESTRO_E2E_ARGS" ]] && continue
+          KEYS=$(
+            {
+              printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | grep '=' | grep -v '^#' | cut -d= -f1
+              env | grep -o '^MAESTRO_[A-Za-z0-9_]*'
+            } | sort -u
+          )
+          for key in $KEYS; do
+            [[ "$key" == "MAESTRO_E2E_ARGS" ]] && continue
+            value="${!key}"
+            [[ -z "$value" ]] && continue
             ARGS="$ARGS -e $key=$value"
-          done < <(env | grep '^MAESTRO_' | sort)
+          done
           echo "MAESTRO_E2E_ARGS=$ARGS" >> "$GITHUB_ENV"
 
       - name: 📱 Run Maestro flows on emulator
@@ -377,15 +395,17 @@ jobs:
           xcrun simctl bootstatus "$UDID"
           xcrun simctl install "$UDID" "$APP_PATH"
 
-      - name: 🧩 Apply maestro_env
-        if: inputs.maestro_env != ''
+      - name: 🧩 Apply maestro env
+        # See the android job — E2E_* names keep the multiline inputs out of
+        # the MAESTRO_* scan.
         env:
-          MAESTRO_ENV_INPUT: ${{ inputs.maestro_env }}
+          E2E_ENV_INPUT: ${{ inputs.maestro_env }}
+          E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
         run: |
-          while IFS= read -r line; do
-            [[ -z "$line" || "$line" == \#* ]] && continue
+          printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | while IFS= read -r line; do
+            [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
             echo "$line" >> "$GITHUB_ENV"
-          done <<< "$MAESTRO_ENV_INPUT"
+          done
 
       - name: 🎯 Run setup command
         # See the android job — the command appends MAESTRO_* lines to
@@ -397,15 +417,25 @@ jobs:
         env:
           MAESTRO_APP_ID: ${{ inputs.ios_app_id }}
           EXCLUDE_TAGS: ${{ inputs.ios_exclude_tags }}
+          E2E_ENV_INPUT: ${{ inputs.maestro_env }}
+          E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
         run: |
           ARGS=""
           if [[ -n "$EXCLUDE_TAGS" ]]; then
             ARGS="--exclude-tags=$EXCLUDE_TAGS"
           fi
-          while IFS='=' read -r key value; do
-            [[ -z "$key" || -z "$value" || "$key" == "MAESTRO_E2E_ARGS" ]] && continue
+          KEYS=$(
+            {
+              printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | grep '=' | grep -v '^#' | cut -d= -f1
+              env | grep -o '^MAESTRO_[A-Za-z0-9_]*'
+            } | sort -u
+          )
+          for key in $KEYS; do
+            [[ "$key" == "MAESTRO_E2E_ARGS" ]] && continue
+            value="${!key}"
+            [[ -z "$value" ]] && continue
             ARGS="$ARGS -e $key=$value"
-          done < <(env | grep '^MAESTRO_' | sort)
+          done
           echo "MAESTRO_E2E_ARGS=$ARGS" >> "$GITHUB_ENV"
 
       - name: 📱 Run Maestro flows on simulator

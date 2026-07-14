@@ -101,6 +101,12 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(secrets.EXPO_TOKEN.required ?? false).toBe(false);
   });
 
+  it("accepts sensitive flow variables via an optional MAESTRO_SECRET_ENV secret", () => {
+    const secrets = workflow.on.workflow_call?.secrets ?? {};
+    expect(secrets.MAESTRO_SECRET_ENV).toBeDefined();
+    expect(secrets.MAESTRO_SECRET_ENV.required ?? false).toBe(false);
+  });
+
   it("does not depend on Maestro Cloud", () => {
     // The header comment may NAME the Cloud alternative; the workflow itself
     // must not require its secret or action.
@@ -215,7 +221,7 @@ describe("maestro-native-e2e reusable workflow", () => {
     }
   });
 
-  it("forwards MAESTRO_* env and per-platform app ids as -e flags", () => {
+  it("forwards declared env, secret env, MAESTRO_* vars, and per-platform app ids as -e flags", () => {
     for (const [job, appInput] of [
       [workflow.jobs.android, "android_app_id"],
       [workflow.jobs.ios, "ios_app_id"],
@@ -224,7 +230,11 @@ describe("maestro-native-e2e reusable workflow", () => {
         step.run?.includes("MAESTRO_E2E_ARGS")
       );
       expect(assemble?.env?.MAESTRO_APP_ID).toBe(`\${{ inputs.${appInput} }}`);
-      expect(assemble?.run).toContain("env | grep '^MAESTRO_'");
+      expect(assemble?.env?.E2E_ENV_INPUT).toBe("${{ inputs.maestro_env }}");
+      expect(assemble?.env?.E2E_SECRET_ENV_INPUT).toBe(
+        "${{ secrets.MAESTRO_SECRET_ENV }}"
+      );
+      expect(assemble?.run).toContain("grep -o '^MAESTRO_");
     }
   });
 });
@@ -256,5 +266,8 @@ describe("expo maestro-e2e caller template", () => {
     );
     expect(job.with?.platform).toBe("${{ inputs.platform || 'all' }}");
     expect(job.secrets?.EXPO_TOKEN).toBe("${{ secrets.EXPO_TOKEN }}");
+    expect(job.secrets?.MAESTRO_SECRET_ENV).toBe(
+      "${{ secrets.MAESTRO_SECRET_ENV }}"
+    );
   });
 });
