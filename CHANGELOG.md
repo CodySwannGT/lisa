@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.206.0](https://github.com/CodySwannGT/lisa/compare/v2.205.1...v2.206.0) (2026-07-14)
+
+
+### Features
+
+* **expo:** add e2e route/screen coverage gate for Playwright and Maestro ([49adfe6](https://github.com/CodySwannGT/lisa/commit/49adfe6b37e016fb185ce69d7fb36683d2b4b62a))
+
+
+### Bug Fixes
+
+* **expo:** guard malformed e2e.thresholds.json with a readable error ([fbb9aa9](https://github.com/CodySwannGT/lisa/commit/fbb9aa90ffb9907eef2c2e6e0d477efab1a81304))
+
 ### [2.205.1](https://github.com/CodySwannGT/lisa/compare/v2.205.0...v2.205.1) (2026-07-14)
 
 
