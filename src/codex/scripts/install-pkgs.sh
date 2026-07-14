@@ -18,14 +18,23 @@ fi
 link_primary_worktree_node_modules() {
   [ ! -e "node_modules" ] && [ ! -L "node_modules" ] || return 1
 
-  case "$repo_root" in
-    */.claude/worktrees/*)
-      primary_root="${repo_root%%/.claude/worktrees/*}"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  # A linked worktree's --git-common-dir is <primary>/.git no matter where the
+  # worktree lives (.claude/worktrees, ~/.codex/worktrees, plain
+  # `git worktree add`), so derive the primary checkout from it. Fall back to
+  # the legacy .claude path parse on git <2.31 (no --path-format support).
+  git_common_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [ -n "$git_common_dir" ]; then
+    primary_root="$(dirname "$git_common_dir")"
+  else
+    case "$repo_root" in
+      */.claude/worktrees/*)
+        primary_root="${repo_root%%/.claude/worktrees/*}"
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  fi
 
   [ "$primary_root" != "$repo_root" ] || return 1
   [ -d "$primary_root/node_modules" ] || return 1
