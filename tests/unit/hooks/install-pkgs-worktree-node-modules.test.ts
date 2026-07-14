@@ -10,6 +10,11 @@ const CLAUDE_INSTALL_PKGS = path.join(
   "plugins/src/base/hooks/install-pkgs.sh"
 );
 const CODEX_INSTALL_PKGS = path.join(ROOT, "src/codex/scripts/install-pkgs.sh");
+const PACKAGE_JSON = "package.json";
+const HOOK_SCRIPTS: ReadonlyArray<readonly [string, string]> = [
+  ["Claude/plugin", CLAUDE_INSTALL_PKGS],
+  ["Codex", CODEX_INSTALL_PKGS],
+];
 
 describe("install-pkgs worktree node_modules handoff", () => {
   let tempDir: string;
@@ -28,7 +33,7 @@ describe("install-pkgs worktree node_modules handoff", () => {
     await fs.ensureDir(path.join(primaryRoot, "node_modules", ".bin"));
     await fs.ensureDir(worktreeRoot);
     await fs.writeFile(
-      path.join(worktreeRoot, "package.json"),
+      path.join(worktreeRoot, PACKAGE_JSON),
       '{"name":"fixture"}\n',
       "utf8"
     );
@@ -54,10 +59,7 @@ describe("install-pkgs worktree node_modules handoff", () => {
     await cleanupTempDir(tempDir);
   });
 
-  it.each([
-    ["Claude/plugin", CLAUDE_INSTALL_PKGS],
-    ["Codex", CODEX_INSTALL_PKGS],
-  ])(
+  it.each(HOOK_SCRIPTS)(
     "%s hook links primary node_modules before installing",
     (_name, script) => {
       // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim fakes git and package managers.
@@ -75,16 +77,50 @@ describe("install-pkgs worktree node_modules handoff", () => {
     }
   );
 
-  it.each([
-    ["Claude/plugin", CLAUDE_INSTALL_PKGS],
-    ["Codex", CODEX_INSTALL_PKGS],
-  ])(
+  it.each(HOOK_SCRIPTS)(
+    "%s hook links primary node_modules for worktrees outside .claude via --git-common-dir",
+    async (_name, script) => {
+      const codexWorktree = path.join(
+        tempDir,
+        "codex-worktrees",
+        "ticket",
+        "project"
+      );
+      await fs.ensureDir(codexWorktree);
+      await fs.writeFile(
+        path.join(codexWorktree, PACKAGE_JSON),
+        '{"name":"fixture"}\n',
+        "utf8"
+      );
+      await writeExecutable(
+        path.join(fakeBin, "git"),
+        "#!/usr/bin/env bash\n" +
+          'if [ "$1" = "rev-parse" ] && [ "$2" = "--show-toplevel" ]; then pwd; exit 0; fi\n' +
+          `if [ "$1" = "rev-parse" ] && [ "$2" = "--path-format=absolute" ] && [ "$3" = "--git-common-dir" ]; then echo "${primaryRoot}/.git"; exit 0; fi\n` +
+          "exit 1\n"
+      );
+
+      const output = execFileSync("/bin/bash", [script], {
+        cwd: codexWorktree,
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+        stdio: "pipe",
+      });
+
+      expect(output.toString("utf8")).toBe("");
+      expect(fs.realpathSync(path.join(codexWorktree, "node_modules"))).toBe(
+        fs.realpathSync(path.join(primaryRoot, "node_modules"))
+      );
+      expect(fs.existsSync(installMarker)).toBe(false);
+    }
+  );
+
+  it.each(HOOK_SCRIPTS)(
     "%s hook keeps package-manager output off stdout",
     async (_name, script) => {
       const projectRoot = path.join(tempDir, `install-${_name}`);
       fs.ensureDirSync(projectRoot);
       fs.writeFileSync(
-        path.join(projectRoot, "package.json"),
+        path.join(projectRoot, PACKAGE_JSON),
         '{"name":"fixture","engines":{"npm":"please-use-npm"}}\n',
         "utf8"
       );
