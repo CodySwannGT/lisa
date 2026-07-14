@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.211.1](https://github.com/CodySwannGT/lisa/compare/v2.211.0...v2.211.1) (2026-07-14)
+
+
+### Code Refactoring
+
+* **ui:** split pipelines from quality gates, make hosting host-neutral ([5ac2230](https://github.com/CodySwannGT/lisa/commit/5ac22301ee3c49e2e7a6fe61be96c7ecfe8aaa4f))
+
 ## [2.211.0](https://github.com/CodySwannGT/lisa/compare/v2.210.3...v2.211.0) (2026-07-14)
 
 
