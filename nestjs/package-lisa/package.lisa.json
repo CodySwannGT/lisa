@@ -1,7 +1,10 @@
 {
   "defaults": {
     "devDependencies": {
-      "@codyswann/lisa": "^2.106.0"
+      "@codyswann/lisa": "^2.106.0",
+      "@graphql-codegen/cli": "^6.1.0",
+      "@graphql-codegen/typescript": "^4.1.6",
+      "@graphql-codegen/typescript-operations": "^4.4.2"
     },
     "scripts": {
       "migration:generate": "tsx ./node_modules/typeorm/cli.js migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
@@ -9,6 +12,7 @@
       "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d typeorm.config.ts"
     },
     "dependencies": {
+      "class-validator": "^0.14.3",
       "graphql": "15.10.1"
     }
   },
@@ -63,7 +67,6 @@
       "aws-jwt-verify": "^5.1.1",
       "aws-xray-sdk-core": "^3.12.0",
       "class-transformer": "^0.5.1",
-      "class-validator": "^0.14.3",
       "dataloader": "^2.2.3",
       "graphql-query-complexity": "^1.1.0",
       "graphql-subscriptions": "^3.0.0",
@@ -76,9 +79,6 @@
       "typeorm-naming-strategies": "^4.1.0"
     },
     "devDependencies": {
-      "@graphql-codegen/cli": "^6.1.0",
-      "@graphql-codegen/typescript": "^4.1.6",
-      "@graphql-codegen/typescript-operations": "^4.4.2",
       "@nestjs/cli": "^11.0.14",
       "@nestjs/schematics": "^11.0.9",
       "@nestjs/testing": "^11.1.11",

@@ -75,10 +75,6 @@
     "devDependencies": {
       "@babel/core": "^7.20.0",
       "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
-      "@graphql-codegen/cli": "^6.1.0",
-      "@graphql-codegen/typescript": "^4.1.6",
-      "@graphql-codegen/typescript-operations": "^4.4.2",
-      "@graphql-codegen/typescript-react-apollo": "^4.3.4",
       "@lhci/cli": "^0.15.1",
       "@playwright/test": "^1.57.0",
       "@types/base-64": "^1.0.2",
@@ -163,6 +159,10 @@
     },
     "devDependencies": {
       "@codyswann/lisa": "^2.106.0",
+      "@graphql-codegen/cli": "^6.1.0",
+      "@graphql-codegen/typescript": "^4.1.6",
+      "@graphql-codegen/typescript-operations": "^4.4.2",
+      "@graphql-codegen/typescript-react-apollo": "^4.3.4",
       "@react-native-community/cli": "^20.0.2",
       "@react-native-community/cli-platform-android": "^20.0.2",
       "@react-native-community/cli-platform-ios": "^20.0.2",
