@@ -128,6 +128,8 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(inputs.flows_dir?.default).toBe(".maestro/flows");
     expect(inputs.android_exclude_tags?.default).toBe("ios-only");
     expect(inputs.ios_exclude_tags?.default).toBe("android-only");
+    expect(inputs.android_include_tags?.default).toBe("");
+    expect(inputs.ios_include_tags?.default).toBe("");
     expect(inputs.maestro_env).toBeDefined();
     expect(inputs.setup_command).toBeDefined();
     expect(inputs.android_app_id).toBeDefined();
@@ -235,6 +237,7 @@ describe("maestro-native-e2e reusable workflow", () => {
         "${{ secrets.MAESTRO_SECRET_ENV }}"
       );
       expect(assemble?.run).toContain("grep -o '^MAESTRO_");
+      expect(assemble?.run).toContain("--include-tags=$INCLUDE_TAGS");
     }
   });
 });

@@ -69,6 +69,16 @@ on:
         required: false
         default: 'android-only'
         type: string
+      android_include_tags:
+        description: 'Comma-separated flow tags to include on Android (empty = all flows)'
+        required: false
+        default: ''
+        type: string
+      ios_include_tags:
+        description: 'Comma-separated flow tags to include on iOS (empty = all flows)'
+        required: false
+        default: ''
+        type: string
       maestro_env:
         description: 'Newline-separated KEY=VALUE pairs exported before the run; MAESTRO_* keys are forwarded to flows'
         required: false
@@ -297,12 +307,16 @@ jobs:
         env:
           MAESTRO_APP_ID: ${{ inputs.android_app_id }}
           EXCLUDE_TAGS: ${{ inputs.android_exclude_tags }}
+          INCLUDE_TAGS: ${{ inputs.android_include_tags }}
           E2E_ENV_INPUT: ${{ inputs.maestro_env }}
           E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
         run: |
           ARGS=""
           if [[ -n "$EXCLUDE_TAGS" ]]; then
             ARGS="--exclude-tags=$EXCLUDE_TAGS"
+          fi
+          if [[ -n "$INCLUDE_TAGS" ]]; then
+            ARGS="$ARGS --include-tags=$INCLUDE_TAGS"
           fi
           KEYS=$(
             {
@@ -417,12 +431,16 @@ jobs:
         env:
           MAESTRO_APP_ID: ${{ inputs.ios_app_id }}
           EXCLUDE_TAGS: ${{ inputs.ios_exclude_tags }}
+          INCLUDE_TAGS: ${{ inputs.ios_include_tags }}
           E2E_ENV_INPUT: ${{ inputs.maestro_env }}
           E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
         run: |
           ARGS=""
           if [[ -n "$EXCLUDE_TAGS" ]]; then
             ARGS="--exclude-tags=$EXCLUDE_TAGS"
+          fi
+          if [[ -n "$INCLUDE_TAGS" ]]; then
+            ARGS="$ARGS --include-tags=$INCLUDE_TAGS"
           fi
           KEYS=$(
             {
