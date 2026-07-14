@@ -1152,6 +1152,21 @@ describe("PackageLisaStrategy", () => {
       // lockfile in CI.
       expect(template.force.dependencies["tailwindcss"]).toBeUndefined();
       expect(template.defaults.dependencies["tailwindcss"]).toBeDefined();
+      // @graphql-codegen/* must stay in defaults, NEVER force: the fleet is
+      // split across codegen generations (backend-v2 on cli 6/typescript 4,
+      // tunnl/gunnertech/nestjsstarter on cli 7/typescript 6), and a forced
+      // pin downgrades whichever side the template doesn't match. Frontends
+      // can drift the same way, so the expo template gets the same treatment
+      // as the nestjs one.
+      for (const pkg of [
+        "@graphql-codegen/cli",
+        "@graphql-codegen/typescript",
+        "@graphql-codegen/typescript-operations",
+        "@graphql-codegen/typescript-react-apollo",
+      ]) {
+        expect(template.force.devDependencies[pkg]).toBeUndefined();
+        expect(template.defaults.devDependencies[pkg]).toBeDefined();
+      }
       expect(template.force.devDependencies["jest"]).toBeDefined();
       expect(template.force.devDependencies["oxlint"]).toBeDefined();
       expect(template.force.devDependencies["@playwright/test"]).toBeDefined();
@@ -1268,6 +1283,68 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies["@stryker-mutator/jest-runner"]).toBe(
         "^9.0.0"
       );
+    });
+  });
+
+  describe("NestJS real template: split-major pins stay in defaults", () => {
+    // Regression: class-validator and the @graphql-codegen/* toolchain used
+    // to sit in `force`, but the fleet is legitimately split across their
+    // majors (geminisportsai/backend-v2 on codegen cli 6/typescript 4 +
+    // class-validator 0.14; tunnl-backend, gunnertech/backend and
+    // nestjsstarter on codegen cli 7/typescript 6 + class-validator 0.15).
+    // Because force REPLACES project values, whichever side the template
+    // didn't match got a silent major downgrade/upgrade on every apply, plus
+    // a frozen-lockfile CI break. These packages live in `defaults` (project
+    // value wins); the convergent framework core (@nestjs/*, typeorm, pg)
+    // legitimately stays in force.
+    const repoRoot = process.cwd();
+    const nestSource = path.join(
+      repoRoot,
+      "nestjs",
+      "package-lisa",
+      "package.lisa.json"
+    );
+
+    /**
+     * Read and parse the real shipped NestJS package.lisa.json template.
+     * @returns The parsed template with force/defaults sections.
+     */
+    function readNestTemplate(): {
+      force: {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+      defaults: {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+      };
+    } {
+      return fs.readJsonSync(nestSource);
+    }
+
+    it("keeps class-validator in defaults, not force", () => {
+      const template = readNestTemplate();
+      expect(template.force.dependencies["class-validator"]).toBeUndefined();
+      expect(template.defaults.dependencies["class-validator"]).toBeDefined();
+    });
+
+    it("keeps @graphql-codegen/* in defaults, not force", () => {
+      const template = readNestTemplate();
+      for (const pkg of [
+        "@graphql-codegen/cli",
+        "@graphql-codegen/typescript",
+        "@graphql-codegen/typescript-operations",
+      ]) {
+        expect(template.force.devDependencies[pkg]).toBeUndefined();
+        expect(template.defaults.devDependencies[pkg]).toBeDefined();
+      }
+    });
+
+    it("keeps the convergent NestJS framework core in force", () => {
+      const template = readNestTemplate();
+      for (const pkg of ["@nestjs/common", "@nestjs/core", "typeorm", "pg"]) {
+        expect(template.force.dependencies[pkg]).toBeDefined();
+      }
     });
   });
 
