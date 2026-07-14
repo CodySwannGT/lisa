@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.205.1](https://github.com/CodySwannGT/lisa/compare/v2.205.0...v2.205.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **rules:** treat create-only templates as upstream Lisa ([00326f8](https://github.com/CodySwannGT/lisa/commit/00326f85c7b7bbd20cca7dad26c2ea45c3ae34a4))
+
 ## [2.205.0](https://github.com/CodySwannGT/lisa/compare/v2.204.8...v2.205.0) (2026-07-13)
 
 
