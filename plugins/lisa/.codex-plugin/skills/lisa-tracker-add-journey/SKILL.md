@@ -23,5 +23,5 @@ See the `config-resolution` rule for configuration and dispatch table.
 
 ## Rules
 
-- The Validation Journey content format is identical across all vendors (markdown sections with `[EVIDENCE: name]` markers). The only difference is how the section is appended — JIRA via `editJiraIssue` (Jira wiki markup), GitHub via `gh issue edit --body-file` (markdown), Linear via `save_issue` (markdown).
+- The Validation Journey content format is identical across all vendors (markdown sections with typed `[EVIDENCE: <artifact-type>: <name>]` markers per the `verification` rule taxonomy). The only difference is how the section is appended — JIRA via `editJiraIssue` (Jira wiki markup), GitHub via `gh issue edit --body-file` (markdown), Linear via `save_issue` (markdown).
 - If the ticket already has a Validation Journey, the vendor skill reports it and stops. This shim does not retry.

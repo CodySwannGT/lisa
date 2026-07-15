@@ -100,12 +100,48 @@ Every change requires one or more verification types. Classify the change first,
 
 Every **leaf work unit** — an individually implementable ticket with no child tickets (issue types Bug, Task, Sub-task, Improvement) — that changes runtime behavior must declare, at creation time, the exact evidence that proves it is done. Epics, Stories, and Spikes are coordination containers, not work units: their evidence is the rollup of their children, so this contract does not apply to them.
 
-The declaration is not a separate field — it is the set of `[EVIDENCE: name]` markers in the work unit's **Validation Journey**. Those markers are the work unit's **evidence manifest**: an enumerated, named list of the artifacts a verifier must capture. The manifest binds both ends of the ticket lifecycle:
+The declaration is not a separate field — it is the set of `[EVIDENCE: <artifact-type>: <name>]` markers in the work unit's **Validation Journey**. Those markers are the work unit's **evidence manifest**: an enumerated, typed list of the artifacts a verifier must capture. The manifest binds both ends of the ticket lifecycle:
 
-- **At creation** — the work unit cannot be written without a Validation Journey that names at least one `[EVIDENCE: name]` artifact (enforced by gate S14 in `tracker-validate` and the vendor `*-validate-*` skills). A behavior-changing unit should name both a success artifact and an error/edge artifact.
-- **At completion** — the work unit cannot be marked complete, nor transitioned to its review/Done state, until every `[EVIDENCE: name]` marker in its manifest has a captured, non-empty artifact attached to the ticket (enforced by the Task Completion Rules and Definition of Done in `verification-lifecycle`, and by the evidence-manifest gate in `tracker-evidence`). A manifest with a missing or empty artifact blocks completion exactly like a failed verification.
+- **At creation** — the work unit cannot be written without a Validation Journey that declares at least one typed `[EVIDENCE: <artifact-type>: <name>]` artifact (enforced by gate S14 in `tracker-validate` and the vendor `*-validate-*` skills). A behavior-changing unit should declare both a success artifact and an error/edge artifact.
+- **At completion** — the work unit cannot be marked complete, nor transitioned to its review/Done state, until every marker in its manifest has a captured, non-empty artifact **of the declared type** attached to the ticket (enforced by the Task Completion Rules and Definition of Done in `verification-lifecycle`, and by the evidence-manifest gate in `tracker-evidence`). A manifest with a missing, empty, or wrong-type artifact blocks completion exactly like a failed verification.
 
-The manifest is the single source of truth for "what evidence is required": authored once in the Validation Journey, enforced at write time, replayed during `tracker-journey`, and checked again before the ticket closes. There is no second list to keep in sync.
+### Marker grammar: the type is the evidence
+
+**A marker names an artifact, not an assertion.** `[EVIDENCE: load-failure-handled-gracefully]` is a claim — there is nothing to capture, so it degenerates into a checkbox someone ticks. Evidence is empirical: a screenshot, a curl transcript, a log snippet, a frame-timing trace. The marker therefore carries two parts:
+
+```text
+[EVIDENCE: <artifact-type>: <kebab-case-name>]
+```
+
+- `<artifact-type>` — HOW the proof is captured, from the fixed taxonomy below.
+- `<kebab-case-name>` — WHAT it proves, unique within the ticket.
+
+Example transformation (the failure mode this grammar exists to prevent):
+
+| Assertion label (invalid) | Typed artifact (valid) |
+|---|---|
+| `[EVIDENCE: pipeline-load-under-3s]` | `[EVIDENCE: perf-trace: pipeline-load-tti]` |
+| `[EVIDENCE: long-column-virtualized]` | `[EVIDENCE: perf-trace: long-column-frame-timing]` |
+| `[EVIDENCE: load-failure-handled-gracefully]` | `[EVIDENCE: screenshot: load-failure-error-state]` |
+
+### Artifact-type taxonomy (fixed set)
+
+| Type | The captured artifact is |
+|---|---|
+| `screenshot` | an image of the observed UI/state (Playwright, simulator, device) |
+| `recording` | a video of the playthrough |
+| `http-transcript` | the exact request (curl command or client call) plus the full response — status, headers of interest, body |
+| `cli-output` | the command plus its stdout/stderr and exit code |
+| `log-snippet` | correlated log lines captured from the running system |
+| `db-query-output` | the query plus the returned rows |
+| `perf-trace` | benchmark / frame-timing / profiler output, with the methodology (device profile, dataset size) noted |
+| `test-run-log` | reporter output naming the spec and showing it ran and passed |
+| `deploy-log` | deployment output or a health-check response from the target environment |
+| `state-dump` | machine-readable observed state (e.g. the `state.json` asserted against) |
+
+Do not invent types inline; if none fits, propose extending this table. The legacy `[SCREENSHOT: name]` marker is equivalent to `[EVIDENCE: screenshot: name]`.
+
+The manifest is the single source of truth for "what evidence is required": authored once in the Validation Journey, enforced at write time, replayed during `tracker-journey` (which captures each artifact **in its declared type**), and checked again before the ticket closes. There is no second list to keep in sync.
 
 ---
 
@@ -141,13 +177,15 @@ Verification **is** UAT — one gate, not two. This section makes the single
 verification process concrete so "an agent actually exercised the running
 software against the acceptance criteria" is durable and re-checkable, not a
 one-off claim. It builds on the **Per-Work-Unit Evidence Contract** above (the
-`[EVIDENCE: name]` manifest), adding three concrete requirements:
+typed `[EVIDENCE: <artifact-type>: <name>]` manifest), adding three concrete requirements:
 
 **1. The codified proof re-runs in CI.** After local verification passes,
 `codify-verification` encodes it where the project's e2e/Playwright tests live
 (`tests/e2e/**`). That suite runs in CI (the existing e2e/Playwright job); for a
 project type with verification **enforced**, it is a required check — so the proof
 re-runs on every PR instead of being proven once by hand.
+
+For **frontend work**, codification is dual-runner: a Playwright spec in the project's Playwright test runner AND a Maestro flow in the Maestro test runner whenever the project supports Maestro (`.maestro/` directory, `maestro:test` script, or Maestro CI workflow) — both encoding the same verified journey, neither a substitute for the other. The dual-runner requirement is non-demotable: a missing runner is either a recorded absence (the project genuinely has no such harness) or a linked build-ready follow-up ticket — never a silent skip (see "Frontend dual-runner codification" in `codify-verification`).
 
 **2. Evidence is committed to the repo.** The named artifacts from the work
 unit's evidence manifest are committed under `evidence/<ticket>/` (in addition to

@@ -59,7 +59,7 @@ The **Rails** ops-specialist composes a different subset (`ops-run-local`, `ops-
 After report, file what was found — **only when run standalone**, never under `--report-only`/`--dry-run` and never when nested inside `lisa-verify` (which passes `--report-only`):
 
 - **Anomalies** (live signals over the conservative bar) → `Bug` leaves. **Gaps** (in-scope MISSING rubric dimensions) → `Task`/`Improvement` leaves.
-- Every ticket is filed via the vendor-neutral `lisa-tracker-write` shim with `build_ready: true` (never a vendor write skill directly), as a **single-repo leaf** stamped `repo:<current>`, with a real three-audience description, Gherkin AC, Target Backend Environment, and a Validation Journey + `EVIDENCE:` marker so it passes the `tracker-validate` gates.
+- Every ticket is filed via the vendor-neutral `lisa-tracker-write` shim with `build_ready: true` (never a vendor write skill directly), as a **single-repo leaf** stamped `repo:<current>`, with a real three-audience description, Gherkin AC, Target Backend Environment, and a Validation Journey + typed `[EVIDENCE: <artifact-type>: <name>]` marker (e.g. `[EVIDENCE: log-snippet: alert-cleared]`) so it passes the `tracker-validate` gates.
 - **Idempotent:** embed the `<!-- lisa:monitor-finding: <fingerprint> -->` sentinel and search-before-create; never duplicate a live or just-resolved finding.
 - **Capped** at `max_candidates` (default 20), `core`/high-severity first; report how many were filed vs dropped.
 - **`--dry-run`** previews would-file tickets and creates nothing. **`--all-gaps`** widens gap filing to `recommended` tiers.
