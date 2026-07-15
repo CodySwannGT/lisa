@@ -1,0 +1,126 @@
+---
+description: "Tool Access Gate"
+alwaysApply: false
+---
+
+# Tool Access Gate
+
+A flow may only take on work it can actually finish. If completing a work item —
+including its empirical verification — requires an external tool or system the
+agent cannot access, the flow must **break out and report the missing access on
+the work item**, never work around it. This is the flow-side arm of the factory
+contract: intake validates that the factory has "the tooling *and provable
+access to that tooling*"; this gate re-proves that promise at execution time and
+enforces it for tools discovered mid-flow.
+
+"Tool" means any external surface the work depends on, for example:
+
+- Cloud/provider CLIs and APIs: AWS (CloudWatch logs, S3, …), GCP, Azure
+- Design sources: Figma
+- Bug/session capture: Jam
+- Observability: Sentry, PostHog, CloudWatch
+- Quality gates: SonarCloud
+- Trackers and docs: JIRA/Confluence, Linear, Notion, GitHub
+- Device/browser harnesses: Playwright, Maestro, Detox, simulators/emulators
+- Databases, deploy targets, and protected environments
+
+## When the gate runs
+
+1. **Preflight** — after the completion condition is defined and before any
+   implementation task starts, enumerate every tool required by (a) the
+   implementation itself, (b) the proof command / verification plan, and
+   (c) remote verification and post-deploy checks. Sources for the enumeration:
+   the work item (description, comments, attachments — a Figma link or Jam
+   capture implies that tool), acceptance criteria, `testing_requirements`,
+   the `verification` metadata, and the deploy pipeline for the target
+   environment.
+2. **Continuously** — the moment a previously unknown tool requirement surfaces
+   mid-flow (e.g. verification turns out to need CloudWatch log capture), probe
+   it right then and record the new tool + probe result in the same places the
+   preflight wrote to (the plan/tracker artifact and the affected tasks'
+   `metadata.required_access`) before continuing. Discovery timing changes
+   nothing about the protocol.
+
+## Proving access
+
+Access is proven by a **cheap, read-only probe that actually exercises the
+authenticated surface** — tool presence on PATH is not access.
+
+- Vendors with an access layer MUST be probed through their `*-access` skill
+  (see the `integration-access-layer` rule): `lisa-atlassian-access`,
+  `lisa-notion-access`, `lisa-linear-access`, `lisa-jam-access`,
+  `lisa-sonarcloud-access`, `lisa-sentry-access`, `lisa-posthog-access`,
+  `lisa-expo:play-store-access`. A loud access-skill failure naming a missing
+  env var IS a failed probe.
+- Vendors without an access layer are probed with the cheapest authenticated
+  read the runtime offers (an MCP tool call, a CLI read, a REST GET).
+
+Example probes:
+
+| Tool | Probe |
+|---|---|
+| AWS CLI | `aws sts get-caller-identity`, plus the service-level read the task needs (e.g. `aws logs describe-log-groups --max-items 1`) |
+| GitHub | a repository-scoped read against the target repo (e.g. `gh api repos/<owner>/<repo> --jq .full_name`, or the exact read the work item needs) — `gh auth status` alone only proves host auth, not access to the repository |
+| Figma | a read call against the linked file via the available Figma MCP/API surface |
+| Sentry / Jam / SonarCloud / PostHog / Atlassian / Linear / Notion | the matching `*-access` skill's resolve/auth check |
+| Database | the project's documented read-only connection check |
+| Deploy target | reach the target environment with the credentials the verify step will use |
+| Device/browser harness | the harness's own doctor/smoke entry (e.g. `playwright --version` plus a trivial headless launch) |
+
+A probe failure only counts **after exhausting the documented credential
+sources** (the same order the `verification` rule mandates): project e2e
+config/fixtures, `.lisa.config.local.json` and environment variables, then
+documented work-item credentials (e.g. `Sign-in Required`). Missing access you
+could have resolved from those sources is not a blocker — resolve it and
+proceed.
+
+Record the enumeration and probe results in the flow's plan/tracker artifact
+(and task `metadata.required_access` where the flow's task contract carries
+it), so the verifier can confirm the gate ran.
+
+## On failure: break out, never work around
+
+When a required tool fails its probe:
+
+1. **Stop the affected work immediately.** Do not start (or continue)
+   implementation whose completion condition cannot be proven.
+2. **Update the work item with an "Access Needed" comment** containing, for
+   each missing tool:
+   - a one-sentence plain-English summary a non-technical operator can act on
+     ("Lisa needs read access to the app's AWS logs to prove this fix works");
+   - the tool and the operation it is needed for (which acceptance criterion /
+     verification step);
+   - the exact access to grant: env var name, credential/role/permission, or
+     account invitation required;
+   - the probe command that must pass once access is granted.
+3. **Transition the work item to the configured blocked state** and apply the
+   configured `human_needed` / needs-human marker — missing access is a
+   **human-only blocker** (someone must provision credentials or grant access);
+   do not fabricate a build-ready ticket for it.
+4. **Release the verification gate honestly**: write the verdict with
+   `status: "blocked"`, and mark each acceptance criterion whose proof depends
+   on the missing tool as `status: "blocked"` with the missing-access
+   diagnosis as its `evidence`; unaffected criteria keep their real
+   `pass`/`fail` result.
+5. **Resume only when the probe passes.** When access is granted, re-run the
+   recorded probe before continuing; `repair-intake` re-validates blocked items
+   whose blockers cleared.
+
+### Forbidden workarounds
+
+None of the following ever substitutes for missing access:
+
+- Swapping the verification for a weaker one the agent *can* run (unit tests or
+  code reading instead of the required log capture / UI observation).
+- Mocking, stubbing, or simulating the inaccessible system to make the proof
+  "pass".
+- Marking work done on artifact-only evidence, or asserting success without the
+  runtime evidence the completion condition demands.
+- Guessing at the tool's contents (e.g. implementing a design without reading
+  the linked Figma file, or "fixing" a bug without the Jam/Sentry evidence the
+  ticket points at).
+- Silently narrowing scope so the inaccessible part is "out of scope".
+
+If a *partial* set of tasks is unaffected by the missing access, those tasks may
+complete, but the work item as a whole must not be marked terminal-done while
+any acceptance criterion's proof is blocked on access.

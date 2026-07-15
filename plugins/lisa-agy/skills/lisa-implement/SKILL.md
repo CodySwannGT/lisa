@@ -138,9 +138,18 @@ This condition is the contract the Verify flow proves and records in the verific
    1. Direct deploy the changes to dev and then Write a simple API client and call the offending API
    2. Start the server on localhost and then Use the Playwright CLI or Chrome DevTools
 
+Using the general-purpose agent in Team Lead session, run the **tool access preflight** per the `tool-access-gate` rule (loaded via the lisa plugin) before any implementation task is created or started:
+
+1. Enumerate every external tool or system this flow will need — for the implementation itself, for the proof command, and for remote verification (AWS CLI/CloudWatch, Figma, Jam, Sentry, SonarCloud, PostHog, device/browser harnesses, databases, deploy targets, trackers, …). Derive the list from the resolved work item (a linked Figma file, Jam capture, or Sentry issue implies that tool), the acceptance criteria, the testing requirements, and the completion condition above.
+2. Prove access to each with its cheapest read-only probe, routing through the matching `*-access` skill where one exists (`integration-access-layer` rule). Tool presence on PATH is not access; a probe failure counts only after exhausting the documented credential sources (project e2e config/fixtures, `.lisa.config.local.json` / env vars, documented work-item credentials).
+3. Record the enumeration and probe results in the plan artifact and in each task's `metadata.required_access`.
+4. If any required tool fails its probe, do NOT start implementation — follow the break-out protocol in the `tool-access-gate` rule: post an "Access Needed" comment on the work item (plain-English summary, the exact credential/role/env var to grant, the probe that must pass), transition the item to the configured blocked state with the `human_needed` marker, write the verification verdict with `status: "blocked"`, and stop. Working around missing access — substituting weaker verification, mocking the inaccessible system, guessing at tool contents, or narrowing scope — is never permitted, for any tool.
+
+The same gate applies **continuously**: if a tool requirement surfaces mid-flow (e.g. verification turns out to need CloudWatch log capture the runtime cannot authenticate to), probe it the moment it is discovered, record the new tool and probe result in the plan artifact and the affected tasks' `metadata.required_access` before continuing, and break out identically on failure.
+
 Using the general-purpose agent in Team Lead session, create tasks needed to complete the request.
 
-Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none), `learnings` (use `[]` if none) or `verification`.
+Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none), `learnings` (use `[]` if none), `required_access` (use `[]` if the task needs no external tool) or `verification`.
 
 ```json
 {
@@ -151,6 +160,9 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
   "testing_requirements": ["..."],
   "skills": ["..."],
   "learnings": ["..."],
+  "required_access": [
+    { "tool": "<external tool/system this task or its verification needs>", "probe": "<the read-only command or *-access check that proves access>", "status": "pass|fail" }
+  ],
   "verification": {
     "type": "ui-recording|api-test|cli-test|database-check|manual-check|documentation",
     "command": "the proof command — must run the actual system and surface its result in the transcript (NOT test/typecheck/lint, those are quality gates). Phrase it so an independent verifier sees the evidence, e.g. `curl -s localhost:3000/health` not `check that health works`",
@@ -177,7 +189,7 @@ Before shutting down the team, execute the Verify flow:
       "plan": "<plan-name>",
       "status": "pass | fail | blocked | in_progress",
       "criteria": [
-        { "task": "<task id or title>", "criterion": "<the completion condition>", "status": "pass | fail", "evidence": "<the proof command run and the observed result>" }
+        { "task": "<task id or title>", "criterion": "<the completion condition>", "status": "pass | fail | blocked", "evidence": "<the proof command run and the observed result; for a blocked criterion, the blocker diagnosis (e.g. the missing access and the probe that must pass)>" }
       ],
       "updated_at": "<ISO8601 UTC>"
     }
@@ -185,10 +197,10 @@ Before shutting down the team, execute the Verify flow:
 
     Set `status: "pass"` only when every criterion is `pass` with real evidence (output from running the system, not a claim). The verdict must be judged by an agent that did NOT implement the change (the `verification-specialist`), never self-certified by the implementer. This is runtime scratch — it is gitignored and MUST NOT be committed (treat it like the secrets exclusion in the commit step).
 
-    On Claude, the `enforce-verification-gate.sh` Stop hook reads this file and **will not let the flow stop** until it shows a terminal, all-`pass` verdict — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion, write the verdict with `status: "blocked"` and the reason — that records the outcome and releases the gate instead of leaving it to spin. But a `blocked` verdict is a last resort, not a shortcut around fillable work: **first resolve every gap you can resolve yourself.** If the work item is thin — missing its Validation Journey, acceptance criteria, or other derivable detail — enrich it: derive the missing detail from the ticket context and the codebase, write it back, and proceed. Do **not** block on a gap you could have filled. Only a blocker that survives that attempt is real, and it is one of two kinds:
+    On Claude, the `enforce-verification-gate.sh` Stop hook reads this file and **will not let the flow stop** until it shows a terminal, all-`pass` verdict — carrying over the non-bypassable completion gate of the `/goal` primitive, but checked deterministically against real evidence rather than by a transcript-only evaluator model. If you must stop before completion, write the verdict with `status: "blocked"` and the reason — marking each criterion whose proof is blocked as `status: "blocked"` with the blocker diagnosis as its `evidence`, while unaffected criteria keep their real `pass`/`fail` result — that records the outcome and releases the gate instead of leaving it to spin. But a `blocked` verdict is a last resort, not a shortcut around fillable work: **first resolve every gap you can resolve yourself.** If the work item is thin — missing its Validation Journey, acceptance criteria, or other derivable detail — enrich it: derive the missing detail from the ticket context and the codebase, write it back, and proceed. Do **not** block on a gap you could have filled. Only a blocker that survives that attempt is real, and it is one of two kinds:
 
     - **Actionable blocker** — an unresolved dependency or fixable technical gap that some team or repository could build (a missing or changed schema field, an unbuilt sibling work item, a required upstream fix), **including cross-repo dependencies**. Before writing the blocked verdict you MUST (1) file a build-ready fix/dependency ticket capturing the diagnosis — in the dependency's own repository/tracker when it is cross-repo (e.g. a `[<repo>] …` ticket in the shared project, or the sibling tracker) — and (2) link the current work item to it as `is blocked by`. Only then write the verdict. This is the same discipline as the regression-spec blocker and the remote-verification-fail exits above, and it is what makes the block machine-recoverable: `repair-intake` re-dispatches a blocked item once its linked `is blocked by` dependency closes, but it cannot act on a prose-only comment. Recommending the ticket "as a human follow-up" without filing and linking it is **not** a permitted exit.
-    - **Human-only blocker** — an input the agent genuinely cannot obtain or produce no matter what it does: credentials or secrets it has no access to, or a product/design decision only a human can make. Record the blocked verdict, mark it `human_needed` (the marker `repair-intake` recognizes, so it won't churn re-dispatching it), and surface or reassign to a human; do **not** fabricate a build-ready ticket, because there is no build-ready work.
+    - **Human-only blocker** — an input the agent genuinely cannot obtain or produce no matter what it does: credentials, secrets, or **tool access** it does not have (AWS/CloudWatch, Figma, Jam, Sentry, SonarCloud, a database, a protected deploy target, …), or a product/design decision only a human can make. For missing tool access, follow the `tool-access-gate` rule's break-out protocol: post the "Access Needed" comment naming the exact credential/role/env var to grant and the probe that must pass — never work around the gap by substituting weaker verification, mocking the inaccessible system, or narrowing scope. Record the blocked verdict, mark it `human_needed` (the marker `repair-intake` recognizes, so it won't churn re-dispatching it), and surface or reassign to a human; do **not** fabricate a build-ready ticket, because there is no build-ready work.
 
     Other harnesses fall back to this prose obligation.
 3. Write the highest-practical-observation regression test encoding the verification. For user-visible bugs or user-visible Build changes with an available browser/device/e2e harness, this means a deterministic spec on the reported surface. Prove the new spec actually executed and passed in PR CI by recording a named spec log/reporter line or equivalent execution record; green CI without that named evidence does not satisfy this step.
