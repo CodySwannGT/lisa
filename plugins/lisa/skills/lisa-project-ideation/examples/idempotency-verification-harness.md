@@ -50,8 +50,8 @@ The harness performs the acceptance check in three phases:
 
 Capture the harness JSON output as:
 
-- `[EVIDENCE: marker-count-one]` from the first and second marker-count checks.
-- `[EVIDENCE: memory-recreated-after-rerun]` from the missing-memory variant.
+- `[EVIDENCE: cli-output: marker-count-one]` from the first and second marker-count checks.
+- `[EVIDENCE: cli-output: memory-recreated-after-rerun]` from the missing-memory variant.
 
 The run passes only when all reported counts are `1`, the issue URL is the same across phases, and
 `memoryRecreated` and `memoryFieldsRecorded` are `true` when `--memory-file` is supplied.

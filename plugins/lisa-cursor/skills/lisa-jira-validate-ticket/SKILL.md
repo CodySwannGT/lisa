@@ -197,9 +197,16 @@ A ticket with zero links and no documented search: FAIL.
 
 #### S14 — Evidence manifest binding (leaf work units)
 
-When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_change = true`, the `h2. Validation Journey` must declare at least one `[EVIDENCE: name]` marker. Each marker name must be kebab-case and unique within the ticket. These markers are the work unit's **evidence manifest** — the exact, enumerated set of artifacts that must be captured and attached before the ticket may be marked complete (see the "Per-Work-Unit Evidence Contract" section of the `verification` rule, the Definition of Done in `verification-lifecycle`, and the evidence-manifest gate in `tracker-evidence`).
+When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_change = true`, the `h2. Validation Journey` must declare at least one **typed** `[EVIDENCE: <artifact-type>: <name>]` marker. These markers are the work unit's **evidence manifest** — the exact, enumerated set of artifacts that must be captured and attached before the ticket may be marked complete (see the "Per-Work-Unit Evidence Contract" section of the `verification` rule, the Definition of Done in `verification-lifecycle`, and the evidence-manifest gate in `tracker-evidence`).
 
-FAIL when the Validation Journey is present but declares zero `[EVIDENCE: name]` markers, or when any marker name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
+Each marker must satisfy ALL of:
+
+- `<artifact-type>` is one of the fixed taxonomy: `screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`, `perf-trace`, `test-run-log`, `deploy-log`, `state-dump`. (The legacy `[SCREENSHOT: name]` form is accepted as `screenshot`.)
+- `<name>` is kebab-case and unique within the ticket.
+
+**A marker names an artifact, not an assertion.** An untyped marker (`[EVIDENCE: load-failure-handled-gracefully]`) is an assertion label with nothing to capture and must FAIL, with a remediation that shows the typed transformation (e.g. → `[EVIDENCE: screenshot: load-failure-error-state]`, `[EVIDENCE: perf-trace: pipeline-load-tti]`).
+
+FAIL when the Validation Journey is present but declares zero markers, when any marker is untyped or uses a type outside the taxonomy, or when any name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
 
 This gate depends on S11. It is `N/A` for containers — an **Epic**, or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-jira-add-journey`.
 
