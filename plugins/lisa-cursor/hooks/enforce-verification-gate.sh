@@ -32,7 +32,7 @@
 #     "plan": "<plan-name>",
 #     "status": "pass" | "fail" | "blocked" | "in_progress",
 #     "criteria": [
-#       { "task": "...", "criterion": "...", "status": "pass" | "fail", "evidence": "..." }
+#       { "task": "...", "criterion": "...", "status": "pass" | "fail" | "blocked", "evidence": "..." }
 #     ],
 #     "updated_at": "<ISO8601 UTC>"
 #   }
