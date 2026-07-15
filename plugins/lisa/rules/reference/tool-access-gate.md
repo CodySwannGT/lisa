@@ -31,7 +31,10 @@ enforces it for tools discovered mid-flow.
    environment.
 2. **Continuously** — the moment a previously unknown tool requirement surfaces
    mid-flow (e.g. verification turns out to need CloudWatch log capture), probe
-   it right then. Discovery timing changes nothing about the protocol.
+   it right then and record the new tool + probe result in the same places the
+   preflight wrote to (the plan/tracker artifact and the affected tasks'
+   `metadata.required_access`) before continuing. Discovery timing changes
+   nothing about the protocol.
 
 ## Proving access
 
@@ -52,7 +55,7 @@ Example probes:
 | Tool | Probe |
 |---|---|
 | AWS CLI | `aws sts get-caller-identity`, plus the service-level read the task needs (e.g. `aws logs describe-log-groups --max-items 1`) |
-| GitHub | `gh auth status` |
+| GitHub | a repository-scoped read against the target repo (e.g. `gh api repos/<owner>/<repo> --jq .full_name`, or the exact read the work item needs) — `gh auth status` alone only proves host auth, not access to the repository |
 | Figma | a read call against the linked file via the available Figma MCP/API surface |
 | Sentry / Jam / SonarCloud / PostHog / Atlassian / Linear / Notion | the matching `*-access` skill's resolve/auth check |
 | Database | the project's documented read-only connection check |
@@ -90,7 +93,10 @@ When a required tool fails its probe:
    **human-only blocker** (someone must provision credentials or grant access);
    do not fabricate a build-ready ticket for it.
 4. **Release the verification gate honestly**: write the verdict with
-   `status: "blocked"` and the missing-access diagnosis.
+   `status: "blocked"`, and mark each acceptance criterion whose proof depends
+   on the missing tool as `status: "blocked"` with the missing-access
+   diagnosis as its `evidence`; unaffected criteria keep their real
+   `pass`/`fail` result.
 5. **Resume only when the probe passes.** When access is granted, re-run the
    recorded probe before continuing; `repair-intake` re-validates blocked items
    whose blockers cleared.
