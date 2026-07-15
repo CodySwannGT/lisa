@@ -8,7 +8,7 @@ allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 
 All Atlassian operations in this skill go through `lisa-atlassian-access`. Do not call MCP tools or `acli` directly. Note: the helper scripts (`scripts/parse-plan.py`, `scripts/jira-evidence/post-evidence.sh`) currently use direct API calls and are pending migration to route through `atlassian-access`.
 
-Parse a JIRA ticket's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each `[EVIDENCE: name]` marker, and post to JIRA + GitHub PR.
+Parse a JIRA ticket's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each typed `[EVIDENCE: <artifact-type>: <name>]` marker, and post to JIRA + GitHub PR.
 
 ## Arguments
 
@@ -57,14 +57,25 @@ Execute each step sequentially. For each step, determine the verification approa
 - **Library/utility changes** → Run tests, capture output to `evidence/NN-name.txt`
 - **Security fixes** → Reproduce exploit attempt, verify fix, capture output to `evidence/NN-name.txt`
 
-At each `[EVIDENCE: name]` marker, capture stdout/stderr to a numbered file:
+At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact **of the declared type** — the type is the contract, not a suggestion:
+
+- `screenshot` / `recording` → an actual image/video file from the driven UI (Playwright, simulator), never a text description of what was seen
+- `http-transcript` → the exact request (curl command or client call) plus the full response
+- `cli-output` → the command plus stdout/stderr and exit code
+- `log-snippet` → the correlated log lines pulled from the running system
+- `db-query-output` → the query plus returned rows
+- `perf-trace` → the benchmark/frame-timing/profiler output with methodology (device profile, dataset size)
+- `test-run-log` → reporter output naming the spec and showing it ran and passed
+- `deploy-log` / `state-dump` → the deployment/health-check output or observed-state JSON
+
+A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
 
 #### Evidence Naming Convention
 
-Evidence files are named: `{NN}-{evidence-name}.txt` (or `.json` for structured data)
+Evidence files are named: `{NN}-{evidence-name}.{ext}` — extension matches the declared artifact type (`.png`/`.webm` for screenshot/recording, `.txt` for transcripts/logs/output, `.json` for structured state)
 
 - `NN`: zero-padded sequential number (01, 02, 03...)
-- `evidence-name`: the value from `[EVIDENCE: name]` in the JIRA step
+- `evidence-name`: the `<name>` part of the typed marker in the JIRA step
 
 Example:
 

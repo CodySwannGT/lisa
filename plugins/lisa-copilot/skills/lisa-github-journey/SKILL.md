@@ -51,14 +51,25 @@ Execute each step sequentially. Determine the verification approach based on the
 - **Library/utility changes** → Run tests, capture output.
 - **Security fixes** → Reproduce exploit attempt, verify fix, capture output.
 
-At each `[EVIDENCE: name]` marker, capture stdout/stderr to a numbered file:
+At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact **of the declared type** — the type is the contract, not a suggestion:
+
+- `screenshot` / `recording` → an actual image/video file from the driven UI (Playwright, simulator), never a text description of what was seen
+- `http-transcript` → the exact request (curl command or client call) plus the full response
+- `cli-output` → the command plus stdout/stderr and exit code
+- `log-snippet` → the correlated log lines pulled from the running system
+- `db-query-output` → the query plus returned rows
+- `perf-trace` → the benchmark/frame-timing/profiler output with methodology (device profile, dataset size)
+- `test-run-log` → reporter output naming the spec and showing it ran and passed
+- `deploy-log` / `state-dump` → the deployment/health-check output or observed-state JSON
+
+A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
 
 #### Evidence Naming Convention
 
 `{NN}-{evidence-name}.txt` (or `.json` for structured data):
 
 - `NN`: zero-padded sequential number (01, 02, 03...).
-- `evidence-name`: the value from `[EVIDENCE: <name>]` (kebab-case).
+- `evidence-name`: the `<name>` part of the typed marker (kebab-case).
 
 Example:
 

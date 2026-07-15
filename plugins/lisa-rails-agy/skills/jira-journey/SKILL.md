@@ -38,7 +38,7 @@ Before starting the journey, verify each prerequisite listed in the parsed outpu
 
 ### Step 3: Execute Steps
 
-Execute each step sequentially. At each step with an evidence marker (`[SCREENSHOT: name]` or `[EVIDENCE: name]`), capture the appropriate evidence.
+Execute each step sequentially. At each step with an evidence marker (`[SCREENSHOT: name]`, or typed `[EVIDENCE: <artifact-type>: <name>]` per the `verification` rule — `[SCREENSHOT: name]` is shorthand for `[EVIDENCE: screenshot: name]`), capture an artifact of the declared type.
 
 The execution method depends on the project type:
 - **UI projects**: Use Playwright MCP browser tools, capture screenshots at each viewport

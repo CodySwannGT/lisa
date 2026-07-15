@@ -68,7 +68,7 @@ Based on the change type, generate verification steps using patterns from `verfi
 
 ### Step 5: Draft the Validation Journey
 
-Compose the journey with `[EVIDENCE: name]` markers at key verification points:
+Compose the journey with typed `[EVIDENCE: <artifact-type>: <name>]` markers at key verification points. The type says HOW the proof is captured (`screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`, `perf-trace`, `test-run-log`, `deploy-log`, `state-dump` — the fixed taxonomy in the `verification` rule); the name says WHAT it proves:
 
 ```text
 h2. Validation Journey
@@ -79,9 +79,9 @@ h3. Prerequisites
 h3. Steps
 1. Verify current state before changes
 2. Apply the change
-3. Verify expected new state [EVIDENCE: state-name]
-4. Test error/edge cases [EVIDENCE: error-case]
-5. Verify rollback if applicable [EVIDENCE: rollback]
+3. Verify expected new state [EVIDENCE: http-transcript: health-endpoint-200]
+4. Test error/edge cases [EVIDENCE: screenshot: invalid-input-error-state]
+5. Verify rollback if applicable [EVIDENCE: db-query-output: rows-restored-after-rollback]
 
 h3. Assertions
 - Describe what must be true after verification
@@ -92,10 +92,10 @@ h3. Assertions
 1. **2-5 evidence markers** — Focus on proving the change works and handles errors
 2. **Concrete, runnable steps** — "Run `curl -s localhost:3000/health | jq .status`" not "Check the endpoint"
 3. **Include environment setup** — Database connection, running services, env vars
-4. **Evidence names in kebab-case** — `api-response`, `schema-check`, `rate-limit-hit`
+4. **Markers are typed artifacts, not assertion labels** — `[EVIDENCE: <artifact-type>: <kebab-name>]`. `[EVIDENCE: load-failure-handled-gracefully]` names a claim with nothing to capture; write `[EVIDENCE: screenshot: load-failure-error-state]` or `[EVIDENCE: perf-trace: pipeline-load-tti]`. Names are kebab-case and unique within the ticket.
 5. **Assertions are measurable** — "Returns 200 with `{status: ok}`" not "API works correctly"
 6. **Cover happy path and error path** — At minimum, one success and one failure evidence marker
-7. **On a leaf work unit, the markers are binding** — For a Bug / Task / Sub-task / Improvement, every `[EVIDENCE: name]` here is the ticket's evidence manifest: validation gate S14 requires at least one, and the ticket cannot be closed until each named artifact is captured and attached (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Name only evidence you intend to capture — and name all of it.
+7. **On a leaf work unit, the markers are binding** — For a Bug / Task / Sub-task / Improvement, every typed `[EVIDENCE: <artifact-type>: <name>]` here is the ticket's evidence manifest: validation gate S14 requires at least one, and the ticket cannot be closed until each named artifact is captured **in its declared type** and attached (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Name only evidence you intend to capture — and name all of it.
 
 ### Step 6: Present to User for Approval
 

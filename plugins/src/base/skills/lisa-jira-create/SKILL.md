@@ -55,7 +55,7 @@ Skip the Validation Journey for:
 
 ### How to Write
 
-Design the journey based on the **change type**. The agent executing the journey determines how to verify each step using patterns from the project's `verfication.md`. Place `[EVIDENCE: name]` markers at key verification points.
+Design the journey based on the **change type**. The agent executing the journey determines how to verify each step using patterns from the project's `verfication.md`. Place typed `[EVIDENCE: <artifact-type>: <name>]` markers at key verification points (types: `screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`, `perf-trace`, `test-run-log`, `deploy-log`, `state-dump` — see the `verification` rule).
 
 Add this section to the ticket description:
 
@@ -70,9 +70,9 @@ h3. Prerequisites
 h3. Steps
 1. Verify the current state before changes
 2. Apply the change (run migration, deploy, etc.)
-3. Verify the expected new state [EVIDENCE: state-after-change]
-4. Test error/edge cases [EVIDENCE: error-handling]
-5. Verify rollback or cleanup if applicable [EVIDENCE: rollback-check]
+3. Verify the expected new state [EVIDENCE: http-transcript: state-after-change]
+4. Test error/edge cases [EVIDENCE: screenshot: error-state-rendered]
+5. Verify rollback or cleanup if applicable [EVIDENCE: db-query-output: rows-restored-after-rollback]
 
 h3. Assertions
 - Describe what must be true after verification
@@ -82,7 +82,7 @@ h3. Assertions
 ### Guidelines
 
 1. **Steps must be concrete and verifiable** — "Run `curl -s localhost:3000/health`" not "Check the API"
-2. **Evidence markers at verification points** — Place `[EVIDENCE: name]` at states that prove the change works. Use descriptive kebab-case names (e.g., `api-response`, `schema-check`, `rate-limit-hit`)
+2. **Evidence markers at verification points** — Place typed `[EVIDENCE: <artifact-type>: <name>]` at states that prove the change works. The type names HOW the proof is captured, the kebab-case name WHAT it proves (e.g., `[EVIDENCE: http-transcript: api-response-200]`, `[EVIDENCE: screenshot: error-state-rendered]`). An untyped assertion label like `[EVIDENCE: works-gracefully]` fails validation gate S14
 3. **Include 2-5 evidence markers** — Enough to prove the change works across happy path and error cases
 4. **Assertions are testable statements** — "Health check returns 200 with status ok" not "API works"
 5. **Prerequisites include environment setup** — Database connection, env vars, running services

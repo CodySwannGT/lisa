@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 
 # Linear Validation Journey
 
-Parse a Linear Issue's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each `[EVIDENCE: name]` marker, and post to Linear + GitHub PR.
+Parse a Linear Issue's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each typed `[EVIDENCE: <artifact-type>: <name>]` marker, and post to Linear + GitHub PR.
 
 This skill is the destination of the `lisa-tracker-journey` shim when `tracker = "linear"`.
 
@@ -34,7 +34,7 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 Fetch the Issue via `lisa-linear-access operation: get-issue` and extract the `## Validation Journey` section from the markdown description. Parse:
 
 - `### Prerequisites` — list of required services / env / setup
-- `### Steps` — numbered steps, each potentially containing `[EVIDENCE: name]` markers
+- `### Steps` — numbered steps, each potentially containing typed `[EVIDENCE: <artifact-type>: <name>]` markers
 - `### Assertions` — what must be true after verification
 
 If the section is missing or has no steps, report `"No Validation Journey on <IDENTIFIER>. Run /linear-add-journey first."` and stop.
@@ -61,14 +61,25 @@ Execute each step sequentially. Determine the verification approach based on the
 - **Security fixes** → Reproduce exploit attempt, verify fix
 - **UI / frontend** → Playwright browser flow, capture screenshots / DOM state
 
-At each `[EVIDENCE: name]` marker, capture stdout / stderr to a numbered file:
+At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact **of the declared type** — the type is the contract, not a suggestion:
+
+- `screenshot` / `recording` → an actual image/video file from the driven UI (Playwright, simulator), never a text description of what was seen
+- `http-transcript` → the exact request (curl command or client call) plus the full response
+- `cli-output` → the command plus stdout/stderr and exit code
+- `log-snippet` → the correlated log lines pulled from the running system
+- `db-query-output` → the query plus returned rows
+- `perf-trace` → the benchmark/frame-timing/profiler output with methodology (device profile, dataset size)
+- `test-run-log` → reporter output naming the spec and showing it ran and passed
+- `deploy-log` / `state-dump` → the deployment/health-check output or observed-state JSON
+
+A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
 
 #### Evidence Naming Convention
 
 `{NN}-{evidence-name}.{ext}`
 
 - `NN`: zero-padded sequential number (`01`, `02`, `03`...)
-- `evidence-name`: the value from `[EVIDENCE: name]`
+- `evidence-name`: the `<name>` part of the typed marker
 - `ext`: `.txt` for plain output, `.json` for structured data
 
 Example:
