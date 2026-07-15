@@ -53,8 +53,10 @@ Execute the **Research** flow as defined in the `intent-routing` rule (loaded vi
 ## Output
 
 A PRD **created in the configured PRD source** (per the intent-routing rule's Research flow
-definition) containing: context, problem statement, user flows, acceptance criteria, technical
-feasibility notes, open questions, and the "Recommended Tooling for Plan Phase" section. The final
+definition) structured as: problem statement, high-level solution description, links (if needed),
+user stories (each with its own functional/non-functional requirements and, only for stories with
+new UI/visual work, a design-file pointer), overall acceptance criteria, open questions, and the
+"Recommended Tooling for Plan Phase" section. The final
 flow step invokes `lisa-prd-source-write`, which creates the PRD in the configured `source` (Notion
 page in the PRD database, Confluence page under the lifecycle parent, GitHub issue, or Linear
 project) in the `draft` role by default or `ready` when `prd_ready=true`. **The PRD lives in the
