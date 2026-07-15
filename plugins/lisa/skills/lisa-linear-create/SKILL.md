@@ -58,7 +58,7 @@ Items that change runtime behavior should include a `## Validation Journey` sect
 
 ### How to Write
 
-Design the journey based on the **change type**. Place `[EVIDENCE: name]` markers at key verification points.
+Design the journey based on the **change type**. Place typed `[EVIDENCE: <artifact-type>: <name>]` markers at key verification points (types: `screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`, `perf-trace`, `test-run-log`, `deploy-log`, `state-dump` — see the `verification` rule).
 
 ```markdown
 ## Validation Journey
@@ -71,9 +71,9 @@ Design the journey based on the **change type**. Place `[EVIDENCE: name]` marker
 ### Steps
 1. Verify the current state before changes
 2. Apply the change (run migration, deploy, etc.)
-3. Verify the expected new state [EVIDENCE: state-after-change]
-4. Test error/edge cases [EVIDENCE: error-handling]
-5. Verify rollback or cleanup if applicable [EVIDENCE: rollback-check]
+3. Verify the expected new state [EVIDENCE: http-transcript: state-after-change]
+4. Test error/edge cases [EVIDENCE: screenshot: error-state-rendered]
+5. Verify rollback or cleanup if applicable [EVIDENCE: db-query-output: rows-restored-after-rollback]
 
 ### Assertions
 - Describe what must be true after verification

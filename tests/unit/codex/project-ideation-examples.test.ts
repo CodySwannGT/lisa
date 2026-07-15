@@ -62,8 +62,10 @@ describe("codex/project-ideation-examples (#669)", () => {
         const content = readExample(root, file);
 
         if (file === IDEMPOTENCY_HARNESS_EXAMPLE) {
-          expect(content).toContain("[EVIDENCE: marker-count-one]");
-          expect(content).toContain("[EVIDENCE: memory-recreated-after-rerun]");
+          expect(content).toContain("[EVIDENCE: cli-output: marker-count-one]");
+          expect(content).toContain(
+            "[EVIDENCE: cli-output: memory-recreated-after-rerun]"
+          );
           continue;
         }
 

@@ -250,7 +250,7 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 3. **If verification fails**: Fix and re-run, don't mark complete
 4. **If verification blocked** (missing tools, services, etc.): Mark as blocked, not complete
 5. **Must not be dependent on CI/CD** if necessary, you may use local deploy methods found in the project manifest, but the verification methods must be listed in the pull request and therefore cannot be dependent on CI/CD completing
-6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every `[EVIDENCE: name]` marker declared on the ticket has a corresponding captured, non-empty artifact attached to the ticket. A missing or empty artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
+6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared on the ticket has a corresponding captured, non-empty artifact **of the declared type** attached to the ticket (an image for `screenshot`, request + response for `http-transcript`, measured output for `perf-trace`, …). A missing, empty, or wrong-type artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
 7. **No artifact-only completion for required runtime verification**: If empirical verification is required and cannot run because credentials are missing, do not mark the item done on artifact-only evidence. Exhaust the credential lookup order first; if still blocked, post the blocker comment, move the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label.
 
 ---
@@ -357,7 +357,7 @@ A task is done only when:
 - Required verification surfaces and tooling surfaces are used or explicitly unavailable
 - Proof artifacts are captured
 - Every passing empirical verification is codified as a regression test (or has an explicit, documented skip reason from the allowed set)
-- For a leaf work unit, every `[EVIDENCE: name]` marker declared in its Validation Journey has a captured, non-empty artifact attached to the ticket (the evidence manifest is fully satisfied)
+- For a leaf work unit, every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared in its Validation Journey has a captured, non-empty artifact of the declared type attached to the ticket (the evidence manifest is fully satisfied)
 - Spec conformance verdict is `CONFORMS` (not `PARTIAL`, not `DIVERGES`)
 - Verification level is declared
 - Risks and gaps are documented
