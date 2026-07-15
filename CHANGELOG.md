@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.214.0](https://github.com/CodySwannGT/lisa/compare/v2.213.0...v2.214.0) (2026-07-15)
+
+
+### Features
+
+* **verification:** evidence markers must declare a typed empirical artifact ([e33c151](https://github.com/CodySwannGT/lisa/commit/e33c151268827a78a66f0452715b884ec23c9b3e))
+* **verification:** frontend codification is dual-runner — Playwright + Maestro when supported ([e6ec318](https://github.com/CodySwannGT/lisa/commit/e6ec318d902aa68711318c3ff1cb6ff7ee95a199))
+
 ## [2.213.0](https://github.com/CodySwannGT/lisa/compare/v2.212.0...v2.213.0) (2026-07-15)
 
 
