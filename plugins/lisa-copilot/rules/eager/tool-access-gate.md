@@ -1,0 +1,21 @@
+# Tool Access Gate (load-bearing)
+
+Only take on work you can finish. Before implementation starts — and again the
+moment a new requirement surfaces mid-flow — enumerate every external tool the
+work item needs (implementation, proof command, remote verification: AWS CLI,
+Figma, Jam, Sentry, SonarCloud, PostHog, device/browser harnesses, databases,
+deploy targets, …) and **prove access with a cheap read-only probe**, routing
+through the matching `*-access` skill where one exists. Presence on PATH is not
+access; a probe failure counts only after exhausting documented credential
+sources.
+
+If a required tool is inaccessible: **break out — never work around it.** Post
+an "Access Needed" comment on the work item (plain-English summary, the exact
+credential/role/env var to grant, and the probe that must pass), transition it
+to the configured blocked state with the `human_needed` marker, and write a
+`blocked` verification verdict. Substituting weaker verification, mocking the
+inaccessible system, guessing at tool contents, or narrowing scope to dodge the
+gap are all forbidden.
+
+Full contract (probe table, comment format, resume path):
+[reference/tool-access-gate.md](../reference/tool-access-gate.md).
