@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.212.0](https://github.com/CodySwannGT/lisa/compare/v2.211.3...v2.212.0) (2026-07-15)
+
+
+### Features
+
+* **implement:** add tool-access gate — block on missing tool access, never work around ([f63b6b3](https://github.com/CodySwannGT/lisa/commit/f63b6b3fa3aaf2841d883ac85455a96b5f2c2ad5))
+
+
+### Bug Fixes
+
+* **implement:** address CodeRabbit review on tool-access gate ([9995543](https://github.com/CodySwannGT/lisa/commit/999554335539e2873eb5ed039b9887107915e97c))
+
 ### [2.211.3](https://github.com/CodySwannGT/lisa/compare/v2.211.2...v2.211.3) (2026-07-15)
 
 
