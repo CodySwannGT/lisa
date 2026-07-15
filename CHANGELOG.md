@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.213.0](https://github.com/CodySwannGT/lisa/compare/v2.212.0...v2.213.0) (2026-07-15)
+
+
+### Features
+
+* **research:** restructure PRD synthesis to a per-user-story layout ([e89fadc](https://github.com/CodySwannGT/lisa/commit/e89fadc10ff2f592df675a7b737498ecbd43f229))
+
 ## [2.212.0](https://github.com/CodySwannGT/lisa/compare/v2.211.3...v2.212.0) (2026-07-15)
 
 
