@@ -57,6 +57,7 @@ Do NOT install a new framework if one already exists for the verification type. 
 |---|---|
 | UI (web) | Playwright > Cypress > Selenium |
 | UI (mobile) | Maestro > Detox > Playwright (mobile emulation) |
+| UI (frontend, project supports multiple runners) | **ALL supported UI runners** — see "Frontend dual-runner codification" below |
 | API | project's integration test runner (Vitest / Jest / RSpec / pytest) with HTTP client (supertest / fetch / faraday) |
 | Database | integration test with real DB + migrations applied |
 | Auth | API or UI test asserting role-gated access (multi-role coverage) |
@@ -70,6 +71,20 @@ Do NOT install a new framework if one already exists for the verification type. 
 | Infrastructure | test or script asserting infra state (terraform plan diff, CDK snapshot test) |
 
 If the project lacks the preferred framework AND no acceptable substitute exists, escalate.
+
+### 2a. Frontend dual-runner codification (non-demotable)
+
+For **frontend work** — any verification whose validation journey exercised a user-facing UI surface — codification is not one-runner-or-the-other. After the validation journey is complete and verified, the verified behavior MUST be codified in **every UI runner the project supports**:
+
+1. **A Playwright spec in the project's Playwright test runner** (where its web e2e tests live, e.g. `tests/e2e/**` / `e2e/**`) — required whenever the project has a Playwright (or equivalent web e2e) harness.
+2. **A Maestro flow in the project's Maestro test runner** — required whenever the project supports Maestro. Detect support by any of: a `.maestro/` directory (flows live in `.maestro/flows/`), a `maestro:test` script in `package.json`, or a Maestro CI workflow (e.g. `maestro-native-e2e`). Wire the new flow where the runner picks it up (`maestro test .maestro/flows`), tagging per the project's tier convention (e.g. `smoke`) when one exists.
+
+Both artifacts encode the SAME verified journey — the Playwright spec drives the web surface, the Maestro flow drives the native surface. One is not a substitute for the other: they guard different platforms of the same behavior.
+
+Permitted exits, mirroring the regression-spec rule in `lisa-implement` (never a silent skip, never "optional"):
+
+- The project genuinely has no runner of that kind (no web e2e harness, or no Maestro support by the detection above) → record the checked locations and the absence in the codification evidence; that runner is N/A.
+- A runner is supported but the flow/spec cannot be added or executed in this PR (genuine technical blocker) → create a linked build-ready follow-up ticket before merge, reference it from the PR and work item, and record the blocker — the same follow-up path as the regression-spec blocker.
 
 ### 3. Generate the test
 
@@ -103,6 +118,7 @@ requires a verification-spec delta on every behavioral change. See the
 Run only the new test, using whatever per-test invocation the project supports:
 
 - Playwright: `npx playwright test path/to/new.spec.ts`
+- Maestro: `maestro test .maestro/flows/new-flow.yaml`
 - Vitest: `npx vitest run path/to/new.spec.ts`
 - Jest: `npx jest path/to/new.test.ts`
 - RSpec: `bundle exec rspec path/to/new_spec.rb`
@@ -139,6 +155,7 @@ Append to the verification report (or PR description):
 | # | Verification | Framework | Test file | Status |
 |---|--------------|-----------|-----------|--------|
 | 1 | <description> | Playwright | `e2e/checkout.spec.ts::displays order confirmation after checkout` | PASS |
+| 2 | <same journey, native surface> | Maestro | `.maestro/flows/checkout-confirmation.yaml` | PASS |
 ```
 
 This evidence shows the verification is now guarded.

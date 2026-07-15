@@ -35,7 +35,7 @@ Treat the first successful lead-spawn request (or, on the Codex fallback, the fi
 
 Execute the **Verify** flow as defined in the `intent-routing` rule (loaded via the lisa plugin). The flow includes:
 
-1. **Pre-flight: codification gate** — confirm that every passing local empirical verification on this branch was codified as a regression test (the Implement flow's codify step). If any verification has no committed test and no allowed skip reason (PR / Documentation / Deploy / Investigate-Only), invoke `codify-verification` now and amend the PR before shipping. A change cannot ship until its verifications are guarded.
+1. **Pre-flight: codification gate** — confirm that every passing local empirical verification on this branch was codified as a regression test (the Implement flow's codify step). If any verification has no committed test and no allowed skip reason (PR / Documentation / Deploy / Investigate-Only), invoke `codify-verification` now and amend the PR before shipping. For frontend work the gate is dual-runner: a Playwright spec AND, when the project supports Maestro (`.maestro/`, `maestro:test` script, or Maestro CI workflow), a Maestro flow for the same journey — a missing runner needs a recorded absence or a linked build-ready follow-up ticket, never a silent skip. A change cannot ship until its verifications are guarded.
 2. **Commit** any pending changes via `lisa-git-commit`
 3. **Push and PR** via `lisa-git-submit-pr`
 4. **Review loop** — handle CodeRabbit / human review comments via `lisa-pull-request-review`

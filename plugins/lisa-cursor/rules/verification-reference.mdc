@@ -190,6 +190,8 @@ typed `[EVIDENCE: <artifact-type>: <name>]` manifest), adding three concrete req
 project type with verification **enforced**, it is a required check — so the proof
 re-runs on every PR instead of being proven once by hand.
 
+For **frontend work**, codification is dual-runner: a Playwright spec in the project's Playwright test runner AND a Maestro flow in the Maestro test runner whenever the project supports Maestro (`.maestro/` directory, `maestro:test` script, or Maestro CI workflow) — both encoding the same verified journey, neither a substitute for the other. The dual-runner requirement is non-demotable: a missing runner is either a recorded absence (the project genuinely has no such harness) or a linked build-ready follow-up ticket — never a silent skip (see "Frontend dual-runner codification" in `codify-verification`).
+
 **2. Evidence is committed to the repo.** The named artifacts from the work
 unit's evidence manifest are committed under `evidence/<ticket>/` (in addition to
 any tracker attachment), so the proof lives with the code and is reviewable in the
