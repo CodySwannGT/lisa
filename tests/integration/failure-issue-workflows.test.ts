@@ -121,7 +121,7 @@ describe("config-driven issue dispatcher", () => {
       step => step.id === "check"
     );
     expect(check?.run).toContain(
-      "not passed through by the calling workflow's secrets mapping"
+      "(unset, or not passed through by the calling workflow's secrets mapping)"
     );
   });
 });
