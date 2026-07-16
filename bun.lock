@@ -106,13 +106,16 @@
   ],
   "overrides": {
     "@isaacs/brace-expansion": "^5.0.1",
-    "axios": ">=1.15.0",
+    "axios": ">=1.15.2",
     "esbuild": ">=0.28.1",
     "flatted": "^3.4.2",
+    "form-data": ">=4.0.6",
     "handlebars": ">=4.7.9",
     "lodash": ">=4.18.1",
+    "multer": ">=2.2.0",
+    "undici": ">=6.27.0",
     "vite": "^8.0.16",
-    "ws": ">=8.20.1",
+    "ws": ">=8.21.0",
   },
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
