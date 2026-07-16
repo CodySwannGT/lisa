@@ -291,6 +291,14 @@ function validateProjectRulesFile(value: unknown, source: string): string {
       `Invalid projectRulesFile in ${source}: expected a Markdown file`
     );
   }
+  if (
+    path.posix.basename(value).toLowerCase() ===
+    PROJECT_LEARNINGS_FILENAME.toLowerCase()
+  ) {
+    throw new Error(
+      `Invalid projectRulesFile in ${source}: ${PROJECT_LEARNINGS_FILENAME} is reserved for machine-managed learnings`
+    );
+  }
   return value;
 }
 
