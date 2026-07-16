@@ -31,6 +31,7 @@ import {
   SYNC_REGISTRY,
   type SyncedSetting,
 } from "./registry.js";
+import { aliasCompatibleDefault, hasLegacyAlias } from "./legacy-aliases.js";
 
 /** Key holding sync provenance metadata inside `.lisa.config.json`. */
 export const SYNC_METADATA_KEY = "_lisaSync";
@@ -217,6 +218,7 @@ function populateMissing(
  * @param state - Current sync state
  * @param entry - Registry entry
  * @param merged - Merged config view (local overlay applied)
+ * @param local - Local config overlay
  * @param artifactValue - Value found in an existing artifact, if any
  * @returns Updated state
  */
@@ -224,17 +226,23 @@ function populateEntry(
   state: SyncState,
   entry: SyncedSetting,
   merged: JsonObject,
+  local: JsonObject,
   artifactValue: JsonValue | undefined
 ): SyncState {
   const configValue = getAtPath(merged, entry.key);
   if (configValue === undefined) {
     return populateMissing(state, entry, artifactValue);
   }
+  const committedValue = getAtPath(state.committed, entry.key);
+  const localValue = getAtPath(local, entry.key);
   const recorded = recordedPopulation(state.committed, entry.key);
+  const evolutionValue =
+    entry.legacyAliases === undefined ? configValue : committedValue;
   if (
     recorded !== undefined &&
-    jsonEquals(configValue, recorded) &&
-    !jsonEquals(configValue, entry.defaultValue)
+    jsonEquals(evolutionValue, recorded) &&
+    !jsonEquals(evolutionValue, entry.defaultValue) &&
+    !hasLegacyAlias(localValue, entry.legacyAliases)
   ) {
     const committed = recordPopulation(
       setAtPath(state.committed, entry.key, entry.defaultValue),
@@ -247,8 +255,22 @@ function populateEntry(
       detail: "value still matched the old default; updated to the new one",
     });
   }
-  const filled = fillMissing(configValue, entry.defaultValue);
-  if (!jsonEquals(filled, configValue)) {
+  const hasEffectiveAlias = hasLegacyAlias(configValue, entry.legacyAliases);
+  if (hasEffectiveAlias && committedValue === undefined) {
+    return state;
+  }
+  // Compatibility fills are based only on committed state. Each present alias
+  // prunes its own mapped current default while unrelated defaults still fill.
+  const fillSource = hasEffectiveAlias ? committedValue : configValue;
+  const fallback = hasEffectiveAlias
+    ? aliasCompatibleDefault(
+        configValue,
+        entry.defaultValue,
+        entry.legacyAliases
+      )
+    : entry.defaultValue;
+  const filled = fillMissing(fillSource, fallback);
+  if (!jsonEquals(filled, fillSource)) {
     return withAction(state, setAtPath(state.committed, entry.key, filled), {
       key: entry.key,
       kind: "filled-missing",
@@ -364,7 +386,13 @@ export async function runConfigSync(
         return state;
       }
       const artifactValue = await readArtifactValue(destDir, entry);
-      const populated = populateEntry(state, entry, merged, artifactValue);
+      const populated = populateEntry(
+        state,
+        entry,
+        merged,
+        local,
+        artifactValue
+      );
       return syncArtifacts(populated, entry, destDir, local);
     },
     Promise.resolve(initial)

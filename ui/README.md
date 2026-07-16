@@ -58,9 +58,11 @@ AWS CloudWatch Alarms, AWS X-Ray, and future providers, so
 and `faultRatePct` replace the legacy `sentryMinEvents24h` /
 `xrayFaultRatePct`. The Monitoring section shows which providers are
 connected (detected from credentials and instrumentation, not configured by
-hand). The runtime `lisa-monitor` skill still reads the legacy keys —
-renaming them in `config-resolution.md` and the skill is a tracked
-follow-up.
+hand). `lisa sync` migrates a legacy monitor block when provenance proves Lisa
+auto-populated the old default, while leaving human-chosen legacy values
+untouched. The runtime keeps accepting those deprecated aliases, prefers the
+provider-neutral key when both are present, and `lisa doctor` warns until a
+project finishes migrating.
 
 ## Starter provenance & sync (planned — documented, not wired)
 

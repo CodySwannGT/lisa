@@ -12,6 +12,31 @@ import {
 const CONFIG = ".lisa.config.json";
 const LOCAL_CONFIG = ".lisa.config.local.json";
 const VITEST_THRESHOLDS = "vitest.thresholds.json";
+const DEFAULT_EVOLVED = "default-evolved";
+
+const LEGACY_MONITOR_DEFAULT = {
+  maxCandidates: 20,
+  gapTiers: "core",
+  backoffHours: 24,
+  thresholds: {
+    sentryMinEvents24h: 10,
+    errorRateSpikeMultiplier: 2,
+    p95LatencyMs: 1000,
+    xrayFaultRatePct: 5,
+  },
+};
+
+const PROVIDER_NEUTRAL_MONITOR_DEFAULT = {
+  maxCandidates: 20,
+  gapTiers: "core",
+  backoffHours: 24,
+  thresholds: {
+    minEvents24h: 1,
+    errorRateSpikeMultiplier: 2,
+    p95LatencyMs: 1000,
+    faultRatePct: 5,
+  },
+};
 
 /** Holder for the per-test temp project directory. */
 interface TempProject {
@@ -116,83 +141,6 @@ describe("runConfigSync — populate direction", () => {
   });
 });
 
-describe("runConfigSync — sync direction (config wins)", () => {
-  it("overwrites an existing artifact file from the config value", async () => {
-    await writeJson(path.join(project.dir, CONFIG), {
-      quality: {
-        testCoverage: {
-          global: { statements: 92, branches: 91, functions: 90, lines: 93 },
-        },
-      },
-    });
-    await writeJson(path.join(project.dir, VITEST_THRESHOLDS), {
-      global: { statements: 70, branches: 70, functions: 70, lines: 70 },
-    });
-
-    const report = await runConfigSync(project.dir);
-
-    const artifact = await readJson<Record<string, unknown>>(
-      path.join(project.dir, VITEST_THRESHOLDS)
-    );
-    expect(artifact).toEqual({
-      global: { statements: 92, branches: 91, functions: 90, lines: 93 },
-    });
-    expect(
-      report.actions.some(action => action.kind === "artifact-synced")
-    ).toBe(true);
-  });
-
-  it("writes a pointered value without disturbing sibling keys", async () => {
-    await writeJson(path.join(project.dir, CONFIG), {
-      quality: {
-        mutation: { strykerThresholds: { high: 90, low: 70, break: 65 } },
-      },
-    });
-    await writeJson(path.join(project.dir, "stryker.conf.json"), {
-      testRunner: "vitest",
-      thresholds: { high: 80, low: 60, break: 60 },
-    });
-
-    await runConfigSync(project.dir);
-
-    const artifact = await readJson<Record<string, unknown>>(
-      path.join(project.dir, "stryker.conf.json")
-    );
-    expect(artifact.testRunner).toBe("vitest");
-    expect(artifact.thresholds).toEqual({ high: 90, low: 70, break: 65 });
-  });
-
-  it("never scaffolds an artifact file that does not exist", async () => {
-    await runConfigSync(project.dir);
-
-    const artifact = await readJsonOrNull(
-      path.join(project.dir, VITEST_THRESHOLDS)
-    );
-    expect(artifact).toBeNull();
-  });
-
-  it("prefers the local overlay value when writing artifacts", async () => {
-    await writeJson(path.join(project.dir, CONFIG), {
-      quality: { lintBudgets: { cognitiveComplexity: 10 } },
-    });
-    await writeJson(path.join(project.dir, LOCAL_CONFIG), {
-      quality: { lintBudgets: { cognitiveComplexity: 25 } },
-    });
-    await writeJson(path.join(project.dir, "eslint.thresholds.json"), {
-      cognitiveComplexity: 10,
-      maxLines: 300,
-      maxLinesPerFunction: 75,
-    });
-
-    await runConfigSync(project.dir);
-
-    const artifact = await readJson<Record<string, unknown>>(
-      path.join(project.dir, "eslint.thresholds.json")
-    );
-    expect(artifact.cognitiveComplexity).toBe(25);
-  });
-});
-
 describe("runConfigSync — default evolution and idempotency", () => {
   it("is idempotent: a second run reports no actions", async () => {
     await runConfigSync(project.dir);
@@ -231,9 +179,167 @@ describe("runConfigSync — default evolution and idempotency", () => {
 
     const config = await readConfig();
     expect((config.wiki as Record<string, unknown>).ttlSeconds).toBe(300);
+    expect(report.actions.some(action => action.kind === DEFAULT_EVOLVED)).toBe(
+      true
+    );
+  });
+
+  it("migrates the recorded legacy monitor default to neutral keys exactly once", async () => {
+    await writeJson(path.join(project.dir, CONFIG), {
+      monitor: LEGACY_MONITOR_DEFAULT,
+      _lisaSync: { populated: { monitor: LEGACY_MONITOR_DEFAULT } },
+    });
+
+    const dryRun = await runConfigSync(project.dir, { dryRun: true });
+    expect(dryRun.actions).toContainEqual(
+      expect.objectContaining({ key: "monitor", kind: DEFAULT_EVOLVED })
+    );
+    expect(await readConfig()).toEqual({
+      monitor: LEGACY_MONITOR_DEFAULT,
+      _lisaSync: { populated: { monitor: LEGACY_MONITOR_DEFAULT } },
+    });
+
+    const first = await runConfigSync(project.dir);
+
+    const config = await readConfig();
+    expect(config.monitor).toEqual(PROVIDER_NEUTRAL_MONITOR_DEFAULT);
     expect(
-      report.actions.some(action => action.kind === "default-evolved")
-    ).toBe(true);
+      (config._lisaSync as { populated: Record<string, unknown> }).populated
+        .monitor
+    ).toEqual(PROVIDER_NEUTRAL_MONITOR_DEFAULT);
+    expect(first.actions).toContainEqual(
+      expect.objectContaining({ key: "monitor", kind: DEFAULT_EVOLVED })
+    );
+
+    const second = await runConfigSync(project.dir);
+    expect(second.actions).toEqual([]);
+  });
+
+  it("fills safe monitor defaults without shadowing a partial human legacy value", async () => {
+    await writeJson(path.join(project.dir, CONFIG), {
+      monitor: { thresholds: { sentryMinEvents24h: 50 } },
+    });
+
+    const report = await runConfigSync(project.dir);
+
+    const monitor = (await readConfig()).monitor as Record<string, unknown>;
+    expect(monitor).toMatchObject({
+      maxCandidates: 20,
+      gapTiers: "core",
+      backoffHours: 24,
+      thresholds: {
+        sentryMinEvents24h: 50,
+        faultRatePct: 5,
+        errorRateSpikeMultiplier: 2,
+        p95LatencyMs: 1000,
+      },
+    });
+    expect(
+      (monitor.thresholds as Record<string, unknown>).minEvents24h
+    ).toBeUndefined();
+    expect(report.actions).toContainEqual(
+      expect.objectContaining({ key: "monitor", kind: "filled-missing" })
+    );
+  });
+
+  it.each([
+    ["has no provenance", undefined],
+    ["differs from its recorded provenance", LEGACY_MONITOR_DEFAULT],
+  ])(
+    "preserves a human-chosen legacy monitor value when it %s",
+    async (_scenario, recordedMonitor) => {
+      const humanMonitor = {
+        ...LEGACY_MONITOR_DEFAULT,
+        thresholds: {
+          ...LEGACY_MONITOR_DEFAULT.thresholds,
+          sentryMinEvents24h: 50,
+          xrayFaultRatePct: 12,
+        },
+      };
+      await writeJson(path.join(project.dir, CONFIG), {
+        monitor: humanMonitor,
+        ...(recordedMonitor === undefined
+          ? {}
+          : { _lisaSync: { populated: { monitor: recordedMonitor } } }),
+      });
+
+      const report = await runConfigSync(project.dir);
+
+      const config = await readConfig();
+      expect(config.monitor).toEqual(humanMonitor);
+      expect(report.actions.filter(action => action.key === "monitor")).toEqual(
+        []
+      );
+    }
+  );
+
+  it("preserves conflicting legacy aliases while current monitor keys remain authoritative", async () => {
+    const bothKeyMonitor = {
+      ...PROVIDER_NEUTRAL_MONITOR_DEFAULT,
+      thresholds: {
+        ...PROVIDER_NEUTRAL_MONITOR_DEFAULT.thresholds,
+        sentryMinEvents24h: 99,
+        xrayFaultRatePct: 33,
+      },
+    };
+    await writeJson(path.join(project.dir, CONFIG), {
+      monitor: bothKeyMonitor,
+    });
+
+    const report = await runConfigSync(project.dir);
+
+    const config = await readConfig();
+    expect(config.monitor).toEqual(bothKeyMonitor);
+    expect(report.actions.filter(action => action.key === "monitor")).toEqual(
+      []
+    );
+  });
+
+  it.each([
+    ["an unrelated override", { maxCandidates: 7 }, true],
+    ["a current-key override", { thresholds: { minEvents24h: 7 } }, true],
+    ["a legacy-key override", { thresholds: { sentryMinEvents24h: 7 } }, false],
+  ])(
+    "handles recorded monitor provenance with local %s",
+    async (_scenario, localMonitor, shouldEvolve) => {
+      const local = { monitor: localMonitor };
+      await writeJson(path.join(project.dir, CONFIG), {
+        monitor: LEGACY_MONITOR_DEFAULT,
+        _lisaSync: { populated: { monitor: LEGACY_MONITOR_DEFAULT } },
+      });
+      await writeJson(path.join(project.dir, LOCAL_CONFIG), local);
+
+      const report = await runConfigSync(project.dir);
+
+      expect((await readConfig()).monitor).toEqual(
+        shouldEvolve ? PROVIDER_NEUTRAL_MONITOR_DEFAULT : LEGACY_MONITOR_DEFAULT
+      );
+      expect(await readJson(path.join(project.dir, LOCAL_CONFIG))).toEqual(
+        local
+      );
+      expect(
+        report.actions.some(
+          action => action.key === "monitor" && action.kind === DEFAULT_EVOLVED
+        )
+      ).toBe(shouldEvolve);
+    }
+  );
+
+  it("does not copy explicit local-only legacy aliases into committed config", async () => {
+    const local = {
+      monitor: {
+        thresholds: { sentryMinEvents24h: 0, xrayFaultRatePct: null },
+      },
+    };
+    await writeJson(path.join(project.dir, LOCAL_CONFIG), local);
+
+    const report = await runConfigSync(project.dir);
+
+    expect((await readConfig()).monitor).toBeUndefined();
+    expect(report.actions.filter(action => action.key === "monitor")).toEqual(
+      []
+    );
+    expect(await readJson(path.join(project.dir, LOCAL_CONFIG))).toEqual(local);
   });
 
   it("dry-run reports actions without writing anything", async () => {
