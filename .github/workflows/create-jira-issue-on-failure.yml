@@ -118,6 +118,50 @@ jobs:
           # Create Jira description with properly escaped values
           FAILED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+          # Dedupe: comment on an existing non-Done issue with the same
+          # summary instead of filing a duplicate. Summaries are
+          # deterministic per workflow+job, so one persistent breakage
+          # stays one issue.
+          SEARCH_JQL=$(jq -n \
+            --arg key "${{ inputs.JIRA_PROJECT_KEY }}" \
+            --arg summary "${SUMMARY}" \
+            '{
+              jql: ("project = " + $key + " AND labels = ci-failure AND statusCategory != Done AND summary ~ " + ($summary | tojson)),
+              fields: ["summary"],
+              maxResults: 10
+            }')
+          SEARCH_RESPONSE=$(curl -s \
+            -u "${{ inputs.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            --data "${SEARCH_JQL}" \
+            "${{ inputs.JIRA_BASE_URL }}/rest/api/2/search")
+          # `summary ~` is a fuzzy text match; require an exact title match.
+          EXISTING_KEY=$(echo "$SEARCH_RESPONSE" | jq -r \
+            --arg summary "${SUMMARY}" \
+            '(.issues // []) | map(select(.fields.summary == $summary)) | .[0].key // empty')
+
+          if [ -n "$EXISTING_KEY" ]; then
+            COMMENT_PAYLOAD=$(jq -n \
+              --arg run_url "${RUN_URL}" \
+              --arg failed_at "${FAILED_AT}" \
+              --arg commit "${{ github.sha }}" \
+              '{ body: ("Recurred: [new failing run|" + $run_url + "] at " + $failed_at + " (commit " + $commit + ").") }')
+            COMMENT_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -u "${{ inputs.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
+              -X POST \
+              -H "Content-Type: application/json" \
+              --data "${COMMENT_PAYLOAD}" \
+              "${{ inputs.JIRA_BASE_URL }}/rest/api/2/issue/${EXISTING_KEY}/comment")
+            if [ "$COMMENT_RESPONSE" = "201" ]; then
+              echo "Deduped into existing Jira issue: $EXISTING_KEY"
+              echo "issue_key=$EXISTING_KEY" >> $GITHUB_OUTPUT
+              echo "issue_url=${{ inputs.JIRA_BASE_URL }}/browse/$EXISTING_KEY" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Failed to comment on existing issue $EXISTING_KEY (HTTP $COMMENT_RESPONSE); creating a new issue instead."
+          fi
+
           # Create JSON payload for Jira API using jq for proper escaping
           # All dynamic content is passed as jq arguments to ensure proper escaping
           PAYLOAD=$(jq -n \
