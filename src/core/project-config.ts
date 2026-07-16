@@ -15,6 +15,7 @@ import {
   DEFAULT_HARNESS,
   HARNESS_ALIASES,
   HARNESS_VALUES,
+  LEGACY_HARNESS_ALIASES,
   type Harness,
 } from "./config.js";
 
@@ -183,8 +184,19 @@ function validateProjectConfig(
   if (obj.harness === undefined) {
     return {};
   }
+  // A persisted, retired legacy value (e.g. "both") is migrated to its
+  // canonical form rather than rejected — apply rewrites the file (see
+  // detectLegacyHarnessMigration). This keeps pre-fleet projects applying
+  // instead of hard-failing every run on a value newer Lisa versions removed.
+  const legacy =
+    typeof obj.harness === "string"
+      ? LEGACY_HARNESS_ALIASES[obj.harness]
+      : undefined;
   const normalized =
-    typeof obj.harness === "string" ? normalizeHarness(obj.harness) : undefined;
+    legacy ??
+    (typeof obj.harness === "string"
+      ? normalizeHarness(obj.harness)
+      : undefined);
   if (normalized === undefined) {
     const allowed = ACCEPTED_HARNESS_INPUTS.join(" | ");
     throw new Error(
@@ -209,12 +221,46 @@ export function isHarness(value: unknown): value is Harness {
 /**
  * Normalize a raw user-supplied harness string to its canonical Harness,
  * resolving input aliases (e.g. `all` → `fleet`). Returns undefined when the
- * value is neither a canonical harness nor a known alias, so callers can raise
- * a single consistent validation error.
+ * value is neither a canonical harness nor an advertised alias, so callers can
+ * raise a single consistent validation error.
+ *
+ * Retired legacy values (e.g. `both`) are intentionally NOT resolved here: the
+ * CLI (`--harness`) stays strict so a user typing a removed value is steered to
+ * the current one. Persisted legacy values in `.lisa.config.json` are migrated
+ * separately on read (see {@link validateProjectConfig} /
+ * {@link detectLegacyHarnessMigration}).
  * @param value - Raw harness string from the CLI flag or `.lisa.config.json`
  * @returns The canonical Harness, or undefined if unrecognized
  */
 export function normalizeHarness(value: string): Harness | undefined {
   const canonical = HARNESS_ALIASES[value] ?? value;
   return isHarness(canonical) ? canonical : undefined;
+}
+
+/**
+ * Inspect a project's persisted `.lisa.config.json` for a retired legacy
+ * harness value (e.g. `both`) that apply should silently migrate to its
+ * canonical form and rewrite back to disk.
+ *
+ * Only {@link LEGACY_HARNESS_ALIASES} values trigger a migration — the friendly
+ * `all` alias is a valid, advertised input and is intentionally left as-is so
+ * routine applies don't churn a project's committed config. Returns undefined
+ * when the file is absent, unreadable, or its harness is already canonical.
+ * @param destDir - Absolute path to the destination project root
+ * @returns The `{ from, to }` migration mapping, or undefined when none applies
+ */
+export async function detectLegacyHarnessMigration(
+  destDir: string
+): Promise<{ readonly from: string; readonly to: Harness } | undefined> {
+  const configPath = path.join(destDir, PROJECT_CONFIG_FILENAME);
+  if (!(await fse.pathExists(configPath))) {
+    return undefined;
+  }
+  const raw = await readRawObject(configPath);
+  const value = raw.harness;
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const to = LEGACY_HARNESS_ALIASES[value];
+  return to === undefined ? undefined : { from: value, to };
 }

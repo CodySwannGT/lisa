@@ -5,6 +5,7 @@ import { getBootstrapApplySkipNotice } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
 import {
+  detectLegacyHarnessMigration,
   projectConfigExists,
   readProjectConfig,
   resolveHarness,
@@ -111,6 +112,25 @@ async function persistProjectConfigIfNeeded(
 }
 
 /**
+ * Rewrite a retired legacy harness value (e.g. `both`) in `.lisa.config.json`
+ * to its canonical form so the file stops carrying a value Lisa no longer
+ * accepts verbatim. Logs a notice describing the migration.
+ * @param destDir - Destination project directory
+ * @param logger - Logger for the migration notice
+ */
+async function migrateLegacyHarnessIfNeeded(
+  destDir: string,
+  logger: ConsoleLogger
+): Promise<void> {
+  const migration = await detectLegacyHarnessMigration(destDir);
+  if (migration === undefined) return;
+  await writeProjectConfig(destDir, { harness: migration.to });
+  logger.info(
+    `Migrated legacy harness "${migration.from}" to "${migration.to}" in .lisa.config.json`
+  );
+}
+
+/**
  * Apply Lisa to the given destination with the given options.
  *
  * This is the relocated action that previously lived inline in
@@ -177,6 +197,9 @@ export async function runApply(
         existingHarness: projectConfig.harness,
         resolvedHarness: harness,
       });
+      // Rewrite retired legacy harness values (e.g. "both") in place so the
+      // committed config stops carrying a value newer Lisa versions reject.
+      await migrateLegacyHarnessIfNeeded(destDir, logger);
     }
 
     // After a real apply, surface (read-only) whether any locally-authored
