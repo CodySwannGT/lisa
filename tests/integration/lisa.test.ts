@@ -40,6 +40,9 @@ const SAFETY_NET_JSON = ".safety-net.json";
 const HARPER_FABRIC_TYPE = "harper-fabric";
 const HARPER_FABRIC_TXT = "harper-fabric.txt";
 const JEST_CONFIG_LOCAL = "jest.config.local.ts";
+const PACKAGE_LISA_DIR = "package-lisa";
+const LISA_MANIFEST = ".lisa-manifest";
+const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
 const WORKFLOWS_DIR = path.join(".github", "workflows");
 const CLAUDE_PACKAGE_MANAGER_WORKFLOWS = [
   "claude-ci-auto-fix.yml",
@@ -126,6 +129,55 @@ describe("Lisa Integration Tests", () => {
       // Check that files were copied
       expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(true);
       expect(await fs.pathExists(path.join(destDir, TSCONFIG_BASE))).toBe(true);
+    });
+
+    // Regression (#1659): a self-apply against the Lisa source repo must skip
+    // template application and deletions.json processing (which would delete
+    // repo-internal files) while STILL applying package.lisa.json dependency
+    // governance to Lisa's own package.json.
+    it("self-apply (Lisa source repo): skips templates/deletions, keeps dependency governance", async () => {
+      await createTypeScriptProject(destDir);
+      // Mark the destination AS the Lisa source repo and give it hand-authored
+      // scripts the template must not clobber.
+      await fs.writeJson(path.join(destDir, PACKAGE_JSON), {
+        name: "@codyswann/lisa",
+        dependencies: { typescript: "^5.0.0" },
+        scripts: { build: TSC_BUILD_SCRIPT },
+        resolutions: { ws: "^8.0.0" },
+      });
+      // A package.lisa.json forcing a security pin (must apply) plus a script
+      // (must NOT overwrite Lisa's own).
+      await fs.ensureDir(path.join(lisaDir, "typescript", PACKAGE_LISA_DIR));
+      await fs.writeJson(
+        path.join(lisaDir, "typescript", PACKAGE_LISA_DIR, "package.lisa.json"),
+        {
+          force: {
+            resolutions: { ws: ">=8.21.0" },
+            scripts: { build: "template build" },
+          },
+        }
+      );
+      // Files a template application / deletions run would touch.
+      await fs.writeFile(path.join(destDir, LISA_MANIFEST), "legacy\n");
+      await fs.writeFile(path.join(destDir, LEGACY_WORKFLOW), "legacy\n");
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      // Template application skipped: template-shipped files are NOT created.
+      expect(await fs.pathExists(path.join(destDir, TEST_TXT))).toBe(false);
+      expect(await fs.pathExists(path.join(destDir, TSCONFIG_BASE))).toBe(
+        false
+      );
+      // Deletions skipped: repo-internal files survive.
+      expect(await fs.pathExists(path.join(destDir, LISA_MANIFEST))).toBe(true);
+      expect(await fs.pathExists(path.join(destDir, LEGACY_WORKFLOW))).toBe(
+        true
+      );
+      // Dependency governance still applied; Lisa's own scripts preserved.
+      const pkg = await fs.readJson(path.join(destDir, PACKAGE_JSON));
+      expect(pkg.resolutions.ws).toBe(">=8.21.0");
+      expect(pkg.scripts.build).toBe(TSC_BUILD_SCRIPT);
     });
 
     it("scaffolds TypeScript Claude callers with the bun package manager", async () => {

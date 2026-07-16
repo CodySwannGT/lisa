@@ -119,6 +119,20 @@ export const ACCEPTED_HARNESS_INPUTS: readonly string[] = [
 ];
 
 /**
+ * Retired harness values that Lisa no longer accepts verbatim but silently
+ * migrates to a canonical {@link Harness} rather than hard-failing the apply.
+ *
+ * `both` predates the multi-agent fleet: it was the "Claude + Codex" value
+ * removed in c0978c9f. Projects that still carry it in `.lisa.config.json`
+ * (e.g. from a pre-fleet install) would otherwise fail every `lisa apply` with
+ * an "Invalid harness" error. It is intentionally NOT advertised in
+ * {@link ACCEPTED_HARNESS_INPUTS} — it is a migration target, not a valid input.
+ */
+export const LEGACY_HARNESS_ALIASES: Readonly<Record<string, Harness>> = {
+  both: "fleet",
+};
+
+/**
  * Per-project emit agents that have a dispatch path in `lisa apply`.
  * (Cursor is intentionally absent — it needs no per-project writes; it consumes
  * the `lisa-cursor` plugin variant directly via its marketplace/loader.)
