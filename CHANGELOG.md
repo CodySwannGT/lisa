@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.216.0](https://github.com/CodySwannGT/lisa/compare/v2.215.0...v2.216.0) (2026-07-16)
+
+
+### Features
+
+* **ci:** harden review-response and deploy-auto-fix workflows ([87f86ab](https://github.com/CodySwannGT/lisa/commit/87f86ab504c6b956e626f049d495a47f12d47a07))
+
 ## [2.215.0](https://github.com/CodySwannGT/lisa/compare/v2.214.0...v2.215.0) (2026-07-16)
 
 
