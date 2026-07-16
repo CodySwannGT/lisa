@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.217.1](https://github.com/CodySwannGT/lisa/compare/v2.217.0...v2.217.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **ci:** cover missing secrets block in migration; assert full diagnostic phrase ([45df1db](https://github.com/CodySwannGT/lisa/commit/45df1db359f89acb81ff7e25e2087b331b342768))
+* **ci:** least-privilege secrets mapping for auto-fix callers ([ea589fd](https://github.com/CodySwannGT/lisa/commit/ea589fd6afbf3d1e937d830f66f6dca9ad49f0c3)), closes [PropSwapLLC/backend#900](https://github.com/PropSwapLLC/backend/issues/900)
+
 ## [2.217.0](https://github.com/CodySwannGT/lisa/compare/v2.216.0...v2.217.0) (2026-07-16)
 
 
