@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.217.0](https://github.com/CodySwannGT/lisa/compare/v2.216.0...v2.217.0) (2026-07-16)
+
+
+### Features
+
+* **skills:** add PRD requirement traceability to ticket decomposition ([95f94ef](https://github.com/CodySwannGT/lisa/commit/95f94efcbb3cad090dc338a88aeb1046def95adb))
+
 ## [2.216.0](https://github.com/CodySwannGT/lisa/compare/v2.215.0...v2.216.0) (2026-07-16)
 
 
