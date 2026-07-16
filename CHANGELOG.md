@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.217.3](https://github.com/CodySwannGT/lisa/compare/v2.217.2...v2.217.3) (2026-07-16)
+
+
+### Bug Fixes
+
+* **monitor:** preserve legacy threshold keys ([c1d8ad5](https://github.com/CodySwannGT/lisa/commit/c1d8ad5fe1acf30c488e3b901504b4ae9004e3ee))
+
 ### [2.217.2](https://github.com/CodySwannGT/lisa/compare/v2.217.1...v2.217.2) (2026-07-16)
 
 
