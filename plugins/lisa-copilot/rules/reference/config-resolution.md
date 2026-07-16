@@ -163,10 +163,10 @@ fi
     "gapTiers": "core",
     "backoffHours": 24,
     "thresholds": {
-      "sentryMinEvents24h": 10,
+      "minEvents24h": 1,
       "errorRateSpikeMultiplier": 2,
       "p95LatencyMs": 1000,
-      "xrayFaultRatePct": 5
+      "faultRatePct": 5
     }
   }
 }
@@ -418,10 +418,10 @@ contract: the `observability-audit` rule.
 | `monitor.maxCandidates` | no | `20` | Cap on tickets filed per standalone run (`core`/high-severity first). Overridable per-run via `max_candidates=<n>` in `$ARGUMENTS`, which always wins. |
 | `monitor.gapTiers` | no | `core` | Which gap tier files tickets by default: `core` (operationally load-bearing dimensions only) or `all` (also `recommended`). The `--all-gaps` run flag forces `all` for that invocation. |
 | `monitor.backoffHours` | no | `24` | How long after a finding's ticket is closed/resolved to keep suppressing a re-file (the recently-resolved dedup window), so a just-fixed regression isn't re-filed before its signal drains. Distinct from `intake.repair.staleAfterHours` (2h). |
-| `monitor.thresholds.sentryMinEvents24h` | no | `10` | Minimum 24h event count for an unresolved Sentry error to be fileable. |
+| `monitor.thresholds.minEvents24h` | no | `1` | Minimum 24h event count for an unresolved monitored error to be fileable. |
 | `monitor.thresholds.errorRateSpikeMultiplier` | no | `2` | Error rate must be ≥ this × the prior-window baseline (and above an absolute floor) to file. |
 | `monitor.thresholds.p95LatencyMs` | no | `1000` | p95 latency at/above this (or up ≥ 50% vs prior window) is a fileable regression. |
-| `monitor.thresholds.xrayFaultRatePct` | no | `5` | X-Ray fault traces above this % of traces in the window is a fileable anomaly. |
+| `monitor.thresholds.faultRatePct` | no | `5` | Fault observations above this percentage of observations in the window constitute a fileable anomaly. |
 
 Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.config.local.json` →
 `.lisa.config.json` → built-in default. `monitor` files only within the current repo (type-scoped
