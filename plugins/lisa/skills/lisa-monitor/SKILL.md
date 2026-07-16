@@ -15,6 +15,15 @@ Spot-check application health, **audit observability completeness**, and **file 
 - `--all-gaps` — also file `recommended`-tier gaps (session replay, product analytics, etc.), not just `core`. Does not change anomaly thresholds.
 - `max_candidates=<n>` — cap tickets filed this run (default 20; config `monitor.maxCandidates`).
 
+## Threshold compatibility
+
+Resolve monitor thresholds from `.lisa.config.local.json` first and `.lisa.config.json` second, using the local-overrides-global semantics from the `config-resolution` rule. For renamed thresholds, prefer the provider-neutral key when present, then fall back to the legacy provider-named key, then fall back to the documented default:
+
+- `monitor.thresholds.minEvents24h` falls back to `monitor.thresholds.sentryMinEvents24h`, then default `1`.
+- `monitor.thresholds.faultRatePct` falls back to `monitor.thresholds.xrayFaultRatePct`, then default `5`.
+
+A project carrying both keys uses the provider-neutral value. A project carrying only the legacy key keeps using that explicit legacy value; never silently substitute the new default just because the new key is absent.
+
 ## Orchestration: agent team
 
 You are "inside an agent team" only if you are yourself a spawned teammate or subagent — you were spawned into a team context, or your context names a team lead you report to. A lead/root session that has previously spawned subagents is still the lead and retains full authority to create this flow's team.
