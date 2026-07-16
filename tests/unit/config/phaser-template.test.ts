@@ -370,6 +370,30 @@ describe("Phaser templates", () => {
     expect(verify).toContain("scripts/check-verification-coverage.mjs");
     // Local escape hatch (no PR labels available on pre-push).
     expect(verify).toContain("VERIFY_LABELS=verification-exempt");
+    // Sourced by .husky/pre-push: an inner `|| exit 1` would kill the parent
+    // hook before it prints its own message, so the check runs bare.
+    expect(verify).not.toContain("check-verification-coverage.mjs || exit 1");
+  });
+
+  it("CI re-runs on label toggles so verification-exempt takes effect", () => {
+    const ci = loadYaml(
+      readText("phaser/copy-overwrite/.github/workflows/ci.yml")
+    ) as {
+      readonly on?: { readonly pull_request?: { readonly types?: string[] } };
+    };
+    const types = ci.on?.pull_request?.types ?? [];
+    expect(types).toContain("labeled");
+    expect(types).toContain("unlabeled");
+  });
+
+  it("gitignore re-includes committed example art the base `example/` rule ignores", () => {
+    // The base guardrails block ignores any `example/` directory. The Phaser
+    // block must re-include the committed example asset folders (after the base
+    // block, so last-match-wins keeps them tracked).
+    const gitignore = readText("phaser/copy-contents/gitignore");
+    expect(gitignore).toContain("!assets/src/sprites/example/**");
+    expect(gitignore).toContain("!assets/src/images/example/**");
+    expect(gitignore).toContain("!public/assets/images/example/**");
   });
 
   it("base pre-push sources the managed verification slot (per-type opt-in)", () => {
