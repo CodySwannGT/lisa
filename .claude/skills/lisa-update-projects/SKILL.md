@@ -34,7 +34,7 @@ Updates local Lisa projects in batches by running the package manager update com
      - `claude*.yml`/`claude*.yaml` → `typescript/create-only/.github/workflows/` (e.g., `claude.yml` → `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → `reusable-claude-ci-auto-fix.yml@main`)
      - `auto-update-pr-branches.yml`/`auto-update-pr-branches.yaml` → `typescript/create-only/.github/workflows/` (calls `reusable-auto-update-pr-branches.yml@main`)
    - The create-only templates are the source of truth for the correct caller format.
-   - **Secrets-propagation migration**: if `claude-ci-auto-fix.yml` or `claude-deploy-auto-fix.yml` has a `secrets:` block that is either `secrets: inherit` or a mapping missing the tracker tokens (e.g. only `CLAUDE_CODE_OAUTH_TOKEN`), replace the entire block with the least-privilege mapping from the current create-only templates:
+   - **Secrets-propagation migration**: if `claude-ci-auto-fix.yml` or `claude-deploy-auto-fix.yml` has a `secrets:` block that is `secrets: inherit`, a mapping missing the tracker tokens (e.g. only `CLAUDE_CODE_OAUTH_TOKEN`), or **no `secrets:` block at all** (which forwards none of the credentials), replace/insert the entire block with the least-privilege mapping from the current create-only templates:
 
      ```yaml
      secrets:
