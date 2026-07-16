@@ -15,14 +15,69 @@ Spot-check application health, **audit observability completeness**, and **file 
 - `--all-gaps` — also file `recommended`-tier gaps (session replay, product analytics, etc.), not just `core`. Does not change anomaly thresholds.
 - `max_candidates=<n>` — cap tickets filed this run (default 20; config `monitor.maxCandidates`).
 
-## Threshold compatibility
+## Monitor threshold compatibility
 
-Resolve monitor thresholds from `.lisa.config.local.json` first and `.lisa.config.json` second, using the local-overrides-global semantics from the `config-resolution` rule. For renamed thresholds, prefer the provider-neutral key when present, then fall back to the legacy provider-named key, then fall back to the documented default:
+Before resolving anomaly thresholds, inspect the committed
+`.lisa.config.json` and local `.lisa.config.local.json` separately with `jq`.
+Use a literal, fixed-path projection that returns presence and value for only
+these four exact paths; do not use `Read`, `cat`, interpolation, or a filter
+that emits either entire config into agent context:
 
-- `monitor.thresholds.minEvents24h` falls back to `monitor.thresholds.sentryMinEvents24h`, then default `1`.
-- `monitor.thresholds.faultRatePct` falls back to `monitor.thresholds.xrayFaultRatePct`, then default `5`.
+- `monitor.thresholds.minEvents24h`, then
+  `monitor.thresholds.sentryMinEvents24h`.
+- `monitor.thresholds.faultRatePct`, then
+  `monitor.thresholds.xrayFaultRatePct`.
 
-A project carrying both keys uses the provider-neutral value. A project carrying only the legacy key keeps using that explicit legacy value; never silently substitute the new default just because the new key is absent.
+Run this fixed filter once with literal final argument `.lisa.config.json` and
+once with literal final argument `.lisa.config.local.json` when the respective
+file exists:
+
+```bash
+jq 'def threshold($object; $name):
+    if ($object | has($name)) then
+      ($object[$name] | type) as $type |
+      if $type == "number" then
+        if ($object[$name] | isfinite and (isnan | not)) then
+          {present: true, valid: true, type: "number", value: $object[$name]}
+        else
+          {present: true, valid: false, type: "non-finite-number"}
+        end
+      else
+        {present: true, valid: false, type: $type}
+      end
+    else
+      {present: false, valid: false, type: "missing"}
+    end;
+  (.monitor.thresholds | if type == "object" then . else {} end) as $t |
+  {
+    "monitor.thresholds.minEvents24h": threshold($t; "minEvents24h"),
+    "monitor.thresholds.sentryMinEvents24h": threshold($t; "sentryMinEvents24h"),
+    "monitor.thresholds.faultRatePct": threshold($t; "faultRatePct"),
+    "monitor.thresholds.xrayFaultRatePct": threshold($t; "xrayFaultRatePct")
+  }' .lisa.config.json
+```
+
+A nonzero `jq` result fails threshold collection; do not treat an uninspectable
+present file as if it were absent.
+
+For each exact path, keep the raw `jq` presence/value result from each file;
+do not inject defaults during this merge. Local presence overrides committed
+presence per path. After that merge, resolve the current key before the legacy
+key, then use default `1` for `monitor.thresholds.minEvents24h` or default `5`
+for `monitor.thresholds.faultRatePct`. Current key wins over legacy key even
+when its configured value is invalid.
+
+Every configured threshold must be a finite JSON number. If the selected path
+is null, a string, a boolean, an object, an array, or otherwise non-finite,
+fail threshold collection and report the exact path and source without echoing
+the invalid value; never fall through to a legacy value or default. Never quote
+or report either whole config. The fixed `jq` projection itself must redact
+invalid configured content: it emits only presence, validity, and a fixed type
+classification, and includes the numeric `value` field only for a finite number.
+For a valid resolution, the monitor report must include the resolved value and
+source. Report only a validated numeric resolved value and one fixed source enum:
+`local-current`, `committed-current`, `local-legacy`, `committed-legacy`, or
+`default`.
 
 ## Orchestration: agent team
 
