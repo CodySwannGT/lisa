@@ -11,6 +11,7 @@
  * @module sync/registry
  */
 import type { JsonValue } from "./json-path.js";
+import type { LegacyAliasMapping } from "./legacy-aliases.js";
 
 /**
  * A project file that mirrors a synced setting. Artifact files are only ever
@@ -30,6 +31,11 @@ export interface SyncedSetting {
   readonly key: string;
   /** Built-in default used when neither config nor artifact has a value */
   readonly defaultValue: JsonValue;
+  /**
+   * Internal relative-path mappings for deprecated keys that remain readable.
+   * Sync uses these to avoid filling a new default beside a human-owned alias.
+   */
+  readonly legacyAliases?: readonly LegacyAliasMapping[];
   /** Files that mirror this value (written from config on every sync) */
   readonly artifacts?: readonly ArtifactBinding[];
   /**
@@ -148,10 +154,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
       gapTiers: "core",
       backoffHours: 24,
       // Provider-neutral threshold names: the audit spans Sentry, CloudWatch,
-      // X-Ray, and future providers, so no key is prefixed with a vendor. The
-      // lisa-monitor skill still reads the legacy sentryMinEvents24h /
-      // xrayFaultRatePct keys — renaming those (config-resolution.md + skill)
-      // is a tracked follow-up; see ui/README.md.
+      // X-Ray, and future providers, so no key is prefixed with a vendor.
       thresholds: {
         minEvents24h: 1,
         errorRateSpikeMultiplier: 2,
@@ -159,6 +162,16 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
         faultRatePct: 5,
       },
     },
+    legacyAliases: [
+      {
+        currentPath: "thresholds.minEvents24h",
+        legacyPath: "thresholds.sentryMinEvents24h",
+      },
+      {
+        currentPath: "thresholds.faultRatePct",
+        legacyPath: "thresholds.xrayFaultRatePct",
+      },
+    ],
     description: "Observability audit caps and alert thresholds",
   },
   {

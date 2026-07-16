@@ -3632,7 +3632,7 @@
           },
           {
             type: "callout",
-            text: "The runtime monitor skill still reads the legacy provider-prefixed keys (sentryMinEvents24h, xrayFaultRatePct) — renaming them to these provider-neutral keys in config-resolution.md and the lisa-monitor skill is a tracked follow-up.",
+            text: "lisa sync migrates a legacy monitor block when provenance proves Lisa auto-populated the old default, while preserving human-chosen legacy values. The runtime keeps accepting the deprecated aliases, prefers the provider-neutral key when both are present, and lisa doctor warns until migration is complete.",
           },
         ],
       };
