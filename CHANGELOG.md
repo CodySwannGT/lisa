@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.217.6](https://github.com/CodySwannGT/lisa/compare/v2.217.5...v2.217.6) (2026-07-16)
+
+
+### Bug Fixes
+
+* **sync:** migrate legacy monitor thresholds ([80180ab](https://github.com/CodySwannGT/lisa/commit/80180abea91a2e3e26b42004103c37d7fe557977))
+
 ### [2.217.5](https://github.com/CodySwannGT/lisa/compare/v2.217.4...v2.217.5) (2026-07-16)
 
 
