@@ -185,7 +185,10 @@ If an open PR from `claude-auto-fix-<headRefName>` targets this PR's head
 branch (the CI auto-fix workflow engaged before this session took the lease),
 adjudicate it: merge it into the head branch if the fix is correct and still
 needed, otherwise close it and delete the side branch. Never leave it dangling
-— it represents a competing writer's pending work.
+— it represents a competing writer's pending work. Merging it mutates the
+driven branch, so treat it like any other push: disarm auto-merge first,
+re-read `headRefOid`, reset `verify_commit` to the merged head, wait for that
+head's checks to start, then re-enable auto-merge (section 1).
 
 ## 3. Merge and verify it actually shipped (ancestry check)
 

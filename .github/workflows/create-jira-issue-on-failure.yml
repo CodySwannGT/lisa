@@ -96,13 +96,18 @@ jobs:
         id: create_jira_issue
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'N/A' }}
+          # Inputs pass through env so GitHub expressions are never expanded
+          # into shell syntax (injection hardening).
+          WORKFLOW_NAME: ${{ inputs.workflow_name }}
+          FAILED_JOB_INPUT: ${{ inputs.failed_job }}
+          ISSUE_TYPE: ${{ inputs.issue_type }}
         run: |
           cd "${{ inputs.working_directory || '.' }}"
 
           # Set variables
-          WORKFLOW_NAME="${{ inputs.workflow_name }}"
-          FAILED_JOB="${{ inputs.failed_job || 'Unknown' }}"
-          ISSUE_TYPE="${{ inputs.issue_type }}"
+          WORKFLOW_NAME="${WORKFLOW_NAME}"
+          FAILED_JOB="${FAILED_JOB_INPUT:-Unknown}"
+          ISSUE_TYPE="${ISSUE_TYPE}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           # Get commit message from env so GitHub expressions are never expanded inside shell.

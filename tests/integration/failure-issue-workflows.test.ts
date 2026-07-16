@@ -183,6 +183,8 @@ describe("issue deduplication", () => {
       )?.with?.script ?? ""
     );
     expect(script).toContain("search.issuesAndPullRequests");
+    // Terminal issues must not swallow recurrences — only open issues dedupe.
+    expect(script).toContain("is:issue is:open in:title");
     expect(script).toContain("issue.title === title");
     expect(script).toContain("createComment");
   });
@@ -214,6 +216,11 @@ describe("issue deduplication", () => {
       stepsOf(workflow).find(step => step.id === "create_linear_issue")?.run ??
       "";
     expect(run).toContain("title: { eq: $title }");
+    // Terminal issues must not swallow recurrences — completed/canceled
+    // Linear states are excluded from the dedupe search.
+    expect(run).toContain(
+      'state: { type: { nin: [\\"completed\\", \\"canceled\\"] } }'
+    );
     expect(run).toContain("commentCreate");
   });
 });
@@ -235,7 +242,14 @@ describe("claude ci auto-fix ownership and fix detection", () => {
     expect(preClaudeIndex).toBeLessThan(claudeIndex);
 
     const checkFix = autoFixSteps.find(step => step.id === "check-fix");
-    expect(checkFix?.run).toContain("steps.pre-claude.outputs.pre_sha");
+    expect(checkFix?.env?.PRE_SHA).toBe(
+      "${{ steps.pre-claude.outputs.pre_sha }}"
+    );
+    // A stale side branch from an earlier attempt must not count as a fix.
+    expect(checkFix?.env?.PRE_SIDE_SHA).toBe(
+      "${{ steps.pre-claude.outputs.pre_side_sha }}"
+    );
+    expect(checkFix?.run).toContain('"$SIDE_SHA" != "$PRE_SIDE_SHA"');
     // The old logic compared post-commit local HEAD to the remote — always
     // equal after a successful push, misreporting every fix as a failure.
     expect(checkFix?.run).not.toContain("CURRENT_SHA=$(git rev-parse HEAD)");
@@ -264,12 +278,18 @@ describe("claude ci auto-fix ownership and fix detection", () => {
   });
 
   it("falls back to a non-frozen install so lockfile failures still reach Claude", () => {
-    const install = autoFixSteps.find(
-      step => step.name === "Install dependencies"
+    const run =
+      autoFixSteps.find(step => step.name === "Install dependencies")?.run ??
+      "";
+    // Each frozen install must fall back to the real non-frozen command,
+    // not merely tolerate failure.
+    expect(run).toMatch(/npm ci \|\| \{[^}]*npm install --no-audit --no-fund/);
+    expect(run).toMatch(
+      /bun install --frozen-lockfile \|\| \{[^}]*bun install/
     );
-    expect(install?.run).toContain("npm ci ||");
-    expect(install?.run).toContain("bun install --frozen-lockfile ||");
-    expect(install?.run).toContain("yarn install --frozen-lockfile ||");
+    expect(run).toMatch(
+      /yarn install --frozen-lockfile \|\| \{[^}]*yarn install/
+    );
   });
 
   it("files escalation tickets with honest titles about whether Claude ran", () => {

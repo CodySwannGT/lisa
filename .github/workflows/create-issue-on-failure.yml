@@ -138,9 +138,16 @@ jobs:
           # Intent comes from .lisa.config.json; credentials only validate it.
           TRACKER=""
           LINEAR_TEAM_KEY=""
+          CONFIG_PARSE_ERROR=""
           if [ -f .lisa.config.json ]; then
-            TRACKER=$(jq -r '.tracker // empty' .lisa.config.json)
-            LINEAR_TEAM_KEY=$(jq -r '.linear.teamKey // empty' .lisa.config.json)
+            # A malformed config must route to misconfiguration reporting,
+            # not kill this fail-fast step before outputs are written.
+            if jq -e . .lisa.config.json > /dev/null 2>&1; then
+              TRACKER=$(jq -r '.tracker // empty' .lisa.config.json)
+              LINEAR_TEAM_KEY=$(jq -r '.linear.teamKey // empty' .lisa.config.json)
+            else
+              CONFIG_PARSE_ERROR=$(jq . .lisa.config.json 2>&1 >/dev/null | head -1)
+            fi
           fi
 
           JIRA="false"
@@ -148,6 +155,26 @@ jobs:
           LINEAR="false"
           MODE="failure"
           MISSING=""
+
+          if [ -n "$CONFIG_PARSE_ERROR" ]; then
+            MODE="misconfiguration"
+            GITHUB_ROUTE="true"
+            TRACKER="unparseable"
+            MISSING=".lisa.config.json is not valid JSON and could not be read: ${CONFIG_PARSE_ERROR}"
+            echo "✗ .lisa.config.json is not valid JSON"
+            {
+              echo "jira=$JIRA"
+              echo "github=$GITHUB_ROUTE"
+              echo "linear=$LINEAR"
+              echo "mode=$MODE"
+              echo "tracker=$TRACKER"
+              echo "linear_team_key="
+              echo "missing<<MISSING_EOF"
+              echo "$MISSING"
+              echo "MISSING_EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           jira_missing() {
             local out=""
