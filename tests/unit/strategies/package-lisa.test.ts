@@ -332,6 +332,194 @@ describe("PackageLisaStrategy", () => {
     });
   });
 
+  // Regression (CDK fleet break, 4/4 repos): a force.overrides/resolutions
+  // `$name` self-reference must be accompanied by the backing direct dependency,
+  // otherwise the postinstall (skip-git-check) apply writes a dangling `$esbuild`
+  // that passes local checks but fails `npm ci` in CI only. See the fleet ledger:
+  // qualis-infra #177, gemini infra-v2 #335, cdkstarter #13.
+  describe("$name self-reference backing dependency", () => {
+    it("materializes the forced devDependency backing a $ref under skip-git-check", async () => {
+      await createPackageLisaTemplate("cdk", {
+        force: {
+          overrides: { esbuild: "$esbuild" },
+          resolutions: { esbuild: "$esbuild" },
+          devDependencies: { esbuild: "^0.28.1" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "cdk",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      // A CDK project that has NO esbuild direct devDependency yet.
+      await createCDKProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "cdk-host",
+        dependencies: { "aws-cdk-lib": "^2.0.0" },
+        devDependencies: { typescript: "^5.0.0" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext({ skipGitCheck: true })
+      );
+
+      expect(_result.action).toBe("merged");
+      const content = await fs.readJson(destPath);
+      // BOTH the override AND the backing direct devDependency must be present.
+      expect(content.overrides.esbuild).toBe("$esbuild");
+      expect(content.resolutions.esbuild).toBe("$esbuild");
+      expect(content.devDependencies.esbuild).toBe("^0.28.1");
+      // Host devDependency untouched.
+      expect(content.devDependencies.typescript).toBe("^5.0.0");
+    });
+
+    it("materializes the backing devDependency on a full (non-skip-git-check) apply", async () => {
+      await createPackageLisaTemplate("cdk", {
+        force: {
+          overrides: { esbuild: "$esbuild" },
+          devDependencies: { esbuild: "^0.28.1" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "cdk",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createCDKProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "cdk-host",
+        dependencies: { "aws-cdk-lib": "^2.0.0" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.overrides.esbuild).toBe("$esbuild");
+      expect(content.devDependencies.esbuild).toBe("^0.28.1");
+    });
+
+    it("fails the apply when a $ref has no backing direct dependency", async () => {
+      await createPackageLisaTemplate("cdk", {
+        force: {
+          // $esbuild referenced but NO force.devDependencies.esbuild, and the
+          // host has no esbuild direct dep either — a dangling $ref.
+          overrides: { esbuild: "$esbuild" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "cdk",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createCDKProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "cdk-host",
+        dependencies: { "aws-cdk-lib": "^2.0.0" },
+      });
+
+      await expect(
+        strategy.apply(sourcePath, destPath, "package.json", createContext())
+      ).rejects.toThrow(/Dangling \$esbuild/);
+    });
+
+    it("passes when the host already provides the $ref-backing direct dep", async () => {
+      await createPackageLisaTemplate("cdk", {
+        force: {
+          overrides: { esbuild: "$esbuild" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "cdk",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createCDKProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "cdk-host",
+        dependencies: { "aws-cdk-lib": "^2.0.0" },
+        // Host already declares esbuild directly, so $esbuild resolves.
+        devDependencies: { esbuild: "^0.25.0" },
+      });
+
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.overrides.esbuild).toBe("$esbuild");
+      expect(content.devDependencies.esbuild).toBe("^0.25.0");
+    });
+  });
+
+  // Regression (#1659): running the apply inside the Lisa source repo must
+  // apply only dependency governance (security floors) to Lisa's own
+  // package.json — never overwrite Lisa's hand-authored scripts/defaults with
+  // the templates it ships. Detected via package.json name === @codyswann/lisa.
+  describe("self-apply against the Lisa source repo", () => {
+    it("applies only dependency governance, preserving Lisa's own scripts", async () => {
+      await createPackageLisaTemplate("typescript", {
+        force: {
+          resolutions: { ws: ">=8.21.0" },
+          overrides: { ws: ">=8.21.0" },
+          scripts: { test: "template test" },
+        },
+      });
+
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "@codyswann/lisa",
+        scripts: { test: "vitest run", "build:dist": "tsc" },
+        resolutions: { ws: "^8.0.0" },
+      });
+
+      // No skip-git-check flag: self-apply must restrict regardless.
+      const _result = await strategy.apply(
+        sourcePath,
+        destPath,
+        "package.json",
+        createContext()
+      );
+
+      const content = await fs.readJson(destPath);
+      // Security pins ARE forced even on the source repo.
+      expect(content.resolutions.ws).toBe(">=8.21.0");
+      expect(content.overrides.ws).toBe(">=8.21.0");
+      // Lisa's own scripts are NOT clobbered by the template's force.scripts.
+      expect(content.scripts.test).toBe("vitest run");
+      expect(content.scripts["build:dist"]).toBe("tsc");
+    });
+  });
+
   describe("defaults behavior", () => {
     it("only sets defaults when key missing from project", async () => {
       await createPackageLisaTemplate("all", {
