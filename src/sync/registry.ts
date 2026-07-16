@@ -10,6 +10,7 @@
  * completely missing.
  * @module sync/registry
  */
+import { DEFAULT_PROJECT_RULES_FILE } from "../core/project-config.js";
 import type { JsonValue } from "./json-path.js";
 import type { LegacyAliasMapping } from "./legacy-aliases.js";
 
@@ -103,6 +104,11 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     key: "harness",
     defaultValue: "claude",
     description: "Target coding-agent harness(es)",
+  },
+  {
+    key: "projectRulesFile",
+    defaultValue: DEFAULT_PROJECT_RULES_FILE,
+    description: "Project rules file used to derive PROJECT_LEARNINGS.md",
   },
   {
     key: "quality.testCoverage",
