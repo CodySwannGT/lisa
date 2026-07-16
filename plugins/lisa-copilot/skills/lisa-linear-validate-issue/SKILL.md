@@ -63,6 +63,7 @@ relations: [{ id: "ENG-99", type: "blocked_by" }]   # known issue relations (may
 remote_links: [{ url: "https://github.com/...", title: "PR #42" }]
 build_ready: true                 # caller asserts the build-ready role (status:ready) is/would be applied — see S15
 child_refs: ["ENG-601", "ENG-602"]   # known child work (sub-issues / project-member issues / blocked_by parentage) — see S15
+prd_source: "https://notion.so/..."    # set when the Issue was generated from a PRD — requires the Source Requirement section, see S16
 ```
 
 If the caller passes only an identifier, fetch the item via `lisa-linear-access operation: get-issue` (Issue) or `lisa-linear-access operation: get-project` (Project), derive the same fields from the fetched data — including `build_ready` (label set contains `status:ready`) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item — then run gates.
@@ -90,6 +91,7 @@ Each gate is tagged with a fixed `category` and a `product_relevant` boolean. Ca
 | S13 Relationship Search | `dependency` | true |
 | S14 Evidence manifest binding (leaf work units) | `acceptance-criteria` | true |
 | S15 Leaf-only build-ready | `structural` | false |
+| S16 Source Requirement traceability | `product-clarity` | true |
 | F1 Issue type valid in team | `structural` | false |
 | F2 Project parent exists and is in same team | `structural` | false |
 | F3 Linked items exist | `structural` | false |
@@ -239,6 +241,34 @@ Remediation: `"Build-ready (status:ready) is leaf-only per leaf-only-lifecycle. 
 
 `product_relevant: false` — a build-ready container is a lifecycle/decomposition error for the caller to repair, not a product question.
 
+#### S16 — Source Requirement traceability (PRD-sourced Issues)
+
+Answers "why was this done?": every Issue generated from a PRD must carry
+the requirement it exists to satisfy, quoted verbatim, at every level of
+the hierarchy — sub-issues included, so a leaf claimed by build-intake in
+isolation is self-explanatory.
+
+**When the gate applies.** Run S16 whenever the spec declares `prd_source`
+(all `*-to-tracker` decomposition paths set it). Without `prd_source`
+(ad-hoc issues with no PRD lineage) the gate is `N/A` — but if a
+`Source Requirement` section is present anyway, still validate its shape
+so a malformed section never passes silently.
+
+**What must be present.** a `Source Requirement` section (`##` markdown heading) containing:
+
+1. A link to the source PRD (the `**PRD**:` line), and
+2. At least one `**Requirement` line with **verbatim quoted text**, or the
+   explicit derived-work form (`Derived work supporting R3, R7 — no single
+   PRD section.`).
+
+Missing section, missing PRD link, empty/paraphrased requirement text
+(quotes shorter than a few words, or prose with no quotation), or a bare
+R-id with no quote: FAIL with remediation
+`"Add a Source Requirement section citing the PRD link and quoting the requirement(s) this issue satisfies verbatim (see the Source Requirement shared format in the *-to-tracker skills). Derived work must name the requirements it supports."`
+
+`product_relevant: true` — a issue whose requirement cannot be traced is
+a product-clarity problem: nobody can tell why the work exists.
+
 ### Feasibility Gates (require Linear lookups; skip in dry-run if requested)
 
 #### F1 — Issue type valid in team
@@ -317,6 +347,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S13 Relationship Search — <one-line reason>
 - [PASS|FAIL|N/A] S14 Evidence manifest binding — <one-line reason>
 - [PASS|FAIL|N/A] S15 Leaf-only build-ready — <one-line reason>
+- [PASS|FAIL|N/A] S16 Source Requirement traceability — <one-line reason>
 
 ### Feasibility Gates  (omit when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type valid in team — <one-line reason>

@@ -96,6 +96,21 @@ PRD item id  →  [ticket keys that cover it]
 
 Matching rules (in priority order):
 
+0. **Declared trace (deterministic — preferred)**: tickets created after
+   requirement traceability landed carry a `Source Requirement` section
+   (verbatim requirement quotes + register `R-ids`), and the PRD's
+   `## Tickets` section carries the same ids in its `lisa:gw … reqs=`
+   tokens. When present, the declared trace IS the mapping — match the
+   quoted text against the extracted atomic items (match on the verbatim
+   quote, not the `R-id`: ids are per-generation and may have shifted if
+   the PRD was re-planned; quotes are the durable anchor). A declared
+   trace is definitive: do not second-guess it with keyword inference,
+   but DO flag a declared quote that no longer appears anywhere in the
+   PRD (the requirement was edited or removed — surface it as a drift
+   finding, not silently). The derived-work form ("Derived work
+   supporting R3, R7") counts as a trace to the named requirements.
+   Fall back to rules 1–4 only for tickets with no Source Requirement
+   section (created before traceability existed).
 1. **Direct quote / strong keyword overlap**: the ticket's summary or AC explicitly names the PRD item's keywords. High confidence.
 2. **Domain match**: PRD item describes a UI affordance ("Tasks widget") and a ticket scopes that affordance (`[CU-2.1] Tasks widget — empty state`). Medium-high confidence.
 3. **Scope inheritance**: PRD item is a sub-detail of a parent (e.g. an AC under a user story); the ticket covers the parent user story. Medium confidence — flag for review if no more specific ticket exists.
@@ -106,6 +121,8 @@ Items with **zero** matching tickets are coverage gaps.
 ### Phase 4 — Detect scope creep (informational)
 
 For each created ticket, identify any tickets whose scope_signals do NOT trace back to a PRD item, AND are not justifiable as standard infrastructure tasks (e.g. `X.0 Setup` stories for data model / migrations are typically infrastructure scaffolding, not scope creep).
+
+With declared traces this becomes precise: a ticket whose `Source Requirement` section is absent (on a post-traceability ticket set), or whose declared quotes match nothing in the PRD, is an orphan — the strongest scope-creep signal available. A ticket using the derived-work form is by definition not scope creep; it declares which requirements it supports.
 
 Scope creep is informational, not blocking — but worth surfacing because it usually indicates the agent invented work.
 
