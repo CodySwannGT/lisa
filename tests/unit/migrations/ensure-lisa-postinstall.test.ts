@@ -106,6 +106,18 @@ describe("EnsureLisaPostinstallMigration", () => {
       expect(await migration.applies(createContext())).toBe(false);
     });
 
+    it("returns false for the Lisa source repo itself (self-apply guard)", async () => {
+      // Even with a Node stack and no Lisa invocation in postinstall, the
+      // source repo must never chain the bootstrap into its own package.json.
+      await writePackageJson({
+        name: "@codyswann/lisa",
+        scripts: { postinstall: "patch-package" },
+      });
+      expect(await migration.applies(createContext(["typescript"]))).toBe(
+        false
+      );
+    });
+
     it("returns true when postinstall is missing", async () => {
       await writePackageJson({ scripts: { test: "vitest" } });
       expect(await migration.applies(createContext())).toBe(true);
