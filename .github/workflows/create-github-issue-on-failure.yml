@@ -6,19 +6,21 @@
 # ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
 # Any changes may be overwritten by the generation process.
 # This workflow creates a GitHub issue when another workflow fails.
-# It captures details about the failure and creates a standardized issue
-# to help track and resolve CI/CD problems.
+# It deduplicates: if an open issue with the same title already exists, it
+# comments the new run URL on that issue instead of filing a duplicate.
+#
+# In `mode: misconfiguration` it files a `lisa-misconfiguration` issue that
+# names exactly which variables/secrets are missing for the tracker the
+# project declared in .lisa.config.json, instead of a failure issue.
 #
 # Example usage in another workflow:
 # ```yaml
 # create_github_issue_on_failure:
 #   if: failure()
-#   uses: ./.github/workflows/github-issue-on-failure.yml
+#   uses: ./.github/workflows/create-github-issue-on-failure.yml
 #   with:
 #     workflow_name: 'My Workflow'
 #     failed_job: 'build_and_test'
-#   secrets:
-#     PAT: ${{ secrets.PAT }}
 # ```
 
 name: 🚨 GitHub Issue on Workflow Failure
@@ -34,6 +36,21 @@ on:
         required: false
         type: string
         description: 'Name of the job that failed (optional)'
+      mode:
+        required: false
+        type: string
+        default: 'failure'
+        description: "'failure' files a workflow-failure issue; 'misconfiguration' files a tracker-misconfiguration issue"
+      misconfig_tracker:
+        required: false
+        type: string
+        default: ''
+        description: 'The tracker declared in .lisa.config.json (misconfiguration mode only)'
+      misconfig_missing:
+        required: false
+        type: string
+        default: ''
+        description: 'Newline-separated list of missing variables/secrets (misconfiguration mode only)'
       node_version:
         description: 'Node.js version to use'
         required: false
@@ -52,7 +69,7 @@ on:
     secrets:
       PAT:
         required: false
-        description: 'Personal Access Token with repo scope (falls back to GITHUB_TOKEN)'
+        description: 'Personal Access Token (optional, falls back to GITHUB_TOKEN)'
 
 # Concurrency is managed by the parent workflow that calls this one
 # This avoids deadlocks between parent and child workflows
@@ -75,8 +92,10 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
-      - name: 🔖 Create Issue
+      - name: 🔖 Create or Update Issue
         uses: actions/github-script@v8
+        env:
+          MISCONFIG_MISSING: ${{ inputs.misconfig_missing }}
         with:
           github-token: ${{ secrets.PAT || github.token }}
           script: |
@@ -86,12 +105,47 @@ jobs:
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 
             // Get workflow information from inputs
-            const workflowName = '${{ inputs.workflow_name }}';
-            const failedJob = '${{ inputs.failed_job }}' || 'Unknown';
+            const workflowName = ${{ toJSON(inputs.workflow_name) }};
+            const failedJob = ${{ toJSON(inputs.failed_job) }} || 'Unknown';
+            const mode = ${{ toJSON(inputs.mode) }} || 'failure';
+            const misconfigTracker = ${{ toJSON(inputs.misconfig_tracker) }};
+            const misconfigMissing = (process.env.MISCONFIG_MISSING || '')
+              .split('\n')
+              .map(line => line.trim())
+              .filter(Boolean);
 
-            // Create standardized issue title and body
-            const title = `🚨 Workflow Failure: ${workflowName}${failedJob !== 'Unknown' ? ` - ${failedJob}` : ''}`;
-            const body = `
+            let title;
+            let body;
+            let labels;
+
+            if (mode === 'misconfiguration') {
+              // Deterministic title so repeated failures dedupe into one issue.
+              title = `🚨 Lisa misconfiguration: CI failure tickets cannot reach tracker "${misconfigTracker}"`;
+              labels = ['lisa-misconfiguration', 'automation'];
+              body = `
+            ## Tracker misconfiguration
+
+            This project's \`.lisa.config.json\` says work items belong in **${misconfigTracker}**, but the automation that files CI failure tickets cannot reach ${misconfigTracker} from GitHub Actions. Until this is fixed, CI failures will be reported here instead of in ${misconfigTracker}.
+
+            ### What is missing
+
+            ${misconfigMissing.map(item => `- ${item}`).join('\n            ')}
+
+            ### How to fix it
+
+            Add the missing repository variables/secrets under **Settings → Secrets and variables → Actions** (or re-run the tracker setup: \`/lisa:setup:jira\`, \`/lisa:setup:linear\`). If a secret is already set on the repository, the calling workflow may not be passing it through — its \`secrets:\` block needs \`secrets: inherit\`.
+
+            ### The failure that triggered this report
+
+            - **Workflow**: ${workflowName}${failedJob !== 'Unknown' ? ` (job: **${failedJob}**)` : ''}
+            - **Workflow Run**: [View Run Details](${runUrl})
+            - **Commit**: ${context.sha}
+            `;
+            } else {
+              // Create standardized issue title and body
+              title = `🚨 Workflow Failure: ${workflowName}${failedJob !== 'Unknown' ? ` - ${failedJob}` : ''}`;
+              labels = ['bug', 'automation', 'ci-failure'];
+              body = `
             ## Workflow Failure
 
             The "${workflowName}" workflow has failed${failedJob !== 'Unknown' ? ` in job: **${failedJob}**` : ''}.
@@ -105,14 +159,32 @@ jobs:
 
             Please investigate the workflow logs for more details on the failure.
             `;
+            }
 
-            // Create the issue
-            await github.rest.issues.create({
-              owner,
-              repo,
-              title,
-              body,
-              labels: ['bug', 'automation', 'ci-failure']
+            // Dedupe: comment on an existing open issue with the same title
+            // instead of filing a duplicate. Titles are deterministic per
+            // workflow+job, so one persistent breakage stays one issue.
+            const { data: search } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue is:open in:title ${JSON.stringify(title)}`,
+              per_page: 10,
             });
+            const existing = search.items.find(issue => issue.title === title);
 
-            console.log(`Issue created for workflow failure: ${runUrl}`);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `Recurred: [new failing run](${runUrl}) at ${new Date().toISOString()} (commit ${context.sha}).`,
+              });
+              console.log(`Deduped into existing issue #${existing.number}: ${runUrl}`);
+            } else {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels,
+              });
+              console.log(`Issue created for workflow failure: ${runUrl}`);
+            }
