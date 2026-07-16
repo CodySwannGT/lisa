@@ -41,6 +41,7 @@ Resolve `<ORG>` and `<REPO>` from the ref or from `.lisa.config.json`.
 | Target backend environment | Runtime-behavior changes | Recorded under `## Target Backend Environment`. Skip only for doc / config / type-only. |
 | Sign-in account / credentials | Authenticated-surface tickets | Recorded under `## Sign-in Required`. |
 | Repository | Bug, Task, Sub-task | GitHub Issues live in exactly one repo by definition — record the repo name under `## Repository`, and reject any AC bullet that references a different repo. |
+| Source Requirement | PRD-sourced issues (`prd_source` provided) | `## Source Requirement` with PRD link + verbatim requirement quote(s) — see Phase 3; enforced at every level, sub-issues included. |
 
 Optional but recommended: assignee, milestone, components (label `component:<name>`), story points (label `points:<n>`), labels.
 
@@ -51,6 +52,20 @@ Use `gh api repos/<org>/<repo>/labels --paginate` to discover existing labels be
 The description (issue body) MUST address three audiences. Reject and rewrite if any are missing.
 
 ```markdown
+## Source Requirement
+[Required whenever the issue originates from a PRD (the caller passes
+ `prd_source`). Answers "why was this done?" — cite the PRD and quote the
+ requirement(s) VERBATIM, never paraphrased:
+ - **PRD**: <PRD title + link> §"<section heading>"
+ - **Requirement (R3)**: "<verbatim requirement text from the PRD>"
+ One Requirement line per satisfied requirement. Derived / cross-cutting
+ work that traces to no single requirement uses the supporting form:
+ "Derived work supporting R3, R7 — no single PRD section." Close with:
+ "This issue exists to satisfy the quoted requirement. If implementation
+ scope drifts from the quoted text, the PRD is the authority — raise the
+ conflict rather than silently reinterpreting it." Omit the section only
+ for ad-hoc issues with no PRD lineage.]
+
 ## Context / Business Value
 [Why this matters. Stakeholder-facing. Concrete user impact or business outcome.
  Link to the originating Slack thread, PRD page, incident, or customer report.]
@@ -115,6 +130,7 @@ Scenario: <name>
 ```
 
 Rules:
+- PRD-sourced issues (caller passed `prd_source`) MUST carry the Source Requirement section with verbatim quotes — paraphrases are rejected (validator gate S16). This applies at every level, sub-issues included: a leaf claimed in isolation must explain its own "why".
 - Every acceptance criterion uses Given/When/Then. No vague "should work" language.
 - Every criterion is independently verifiable.
 - If the issue is a Bug, include reproduction steps, expected vs. actual behavior, and environment.

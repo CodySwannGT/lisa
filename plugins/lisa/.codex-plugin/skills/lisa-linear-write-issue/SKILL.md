@@ -60,6 +60,7 @@ Required fields (stop and ask if missing — never invent values):
 | Target backend environment | Runtime-behavior changes | `dev` / `staging` / `prod`; recorded in description (Phase 3). Skip only for doc/config/type-only items. |
 | Sign-in account / credentials | Items that touch authenticated surfaces | Name the account (or source — 1Password item, env var, seeded fixture) and role; recorded in description. Omit when sign-in is not required. |
 | Single-repo scope | Bug, Task, Sub-task | These types MUST cover one repo only. If the work crosses repos, split it before creating. Epic / Spike / Story may span repos. |
+| Source Requirement | PRD-sourced Issues (`prd_source` provided) | `## Source Requirement` with PRD link + verbatim requirement quote(s) — see Phase 3; enforced at every level, sub-issues included. |
 
 Optional but recommended: assignee, estimate (story points), labels, project milestone (fix-version equivalent), cycle.
 
@@ -68,6 +69,20 @@ Optional but recommended: assignee, estimate (story points), labels, project mil
 Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, use `##` instead). The description MUST address three audiences. Reject and rewrite if any are missing.
 
 ```markdown
+## Source Requirement
+[Required whenever the Issue originates from a PRD (the caller passes
+ `prd_source`). Answers "why was this done?" — cite the PRD and quote the
+ requirement(s) VERBATIM, never paraphrased:
+ - **PRD**: <PRD title + link> §"<section heading>"
+ - **Requirement (R3)**: "<verbatim requirement text from the PRD>"
+ One Requirement line per satisfied requirement. Derived / cross-cutting
+ work that traces to no single requirement uses the supporting form:
+ "Derived work supporting R3, R7 — no single PRD section." Close with:
+ "This Issue exists to satisfy the quoted requirement. If implementation
+ scope drifts from the quoted text, the PRD is the authority — raise the
+ conflict rather than silently reinterpreting it." Omit the section only
+ for ad-hoc Issues with no PRD lineage.]
+
 ## Context / Business Value
 [Why this matters. Stakeholder-facing. Concrete user impact or business outcome.
  Link to the originating Slack thread, Notion doc, incident, or customer report.]
@@ -108,6 +123,7 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
 ```
 
 Rules:
+- PRD-sourced Issues (caller passed `prd_source`) MUST carry the Source Requirement section with verbatim quotes — paraphrases are rejected (validator gate S16). This applies at every level, sub-issues included: a leaf claimed in isolation must explain its own "why".
 - Every acceptance criterion uses Given/When/Then. No vague "should work" language.
 - Every criterion is independently verifiable (UI, API, data, or performance check).
 - If the item is a Bug, include reproduction steps, expected vs. actual behavior, and environment.
