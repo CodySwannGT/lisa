@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.217.8](https://github.com/CodySwannGT/lisa/compare/v2.217.7...v2.217.8) (2026-07-16)
+
+
+### Bug Fixes
+
+* **apply:** materialize forced devDependencies, migrate legacy harness, guard source-repo self-apply ([242a28d](https://github.com/CodySwannGT/lisa/commit/242a28deda611c4773d45fb00b2ab8cb4eeef00f)), closes [#177](https://github.com/CodySwannGT/lisa/issues/177) [#335](https://github.com/CodySwannGT/lisa/issues/335) [#13](https://github.com/CodySwannGT/lisa/issues/13) [#38](https://github.com/CodySwannGT/lisa/issues/38) [#1659](https://github.com/CodySwannGT/lisa/issues/1659)
+
 ### [2.217.7](https://github.com/CodySwannGT/lisa/compare/v2.217.6...v2.217.7) (2026-07-16)
 
 ### [2.217.6](https://github.com/CodySwannGT/lisa/compare/v2.217.5...v2.217.6) (2026-07-16)
