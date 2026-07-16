@@ -25,9 +25,17 @@ jobs:
       head_branch: ${{ github.event.workflow_run.head_branch }}
       run_id: ${{ github.event.workflow_run.id }}
       package_manager: 'bun'
-    # `secrets: inherit` (not an explicit mapping) is load-bearing: the
-    # reusable workflow forwards secrets to the issue dispatcher, which needs
-    # JIRA_API_TOKEN / LINEAR_API_KEY to file failure tickets in the tracker
-    # declared in .lisa.config.json. An explicit CLAUDE_CODE_OAUTH_TOKEN-only
-    # mapping silently strands those tickets in GitHub Issues.
-    secrets: inherit
+    # Least-privilege mapping — exactly the secrets the auto-fix chain uses.
+    # The tracker tokens are load-bearing: the reusable workflow forwards them
+    # to the failure-issue dispatcher, which needs JIRA_API_TOKEN /
+    # LINEAR_API_KEY to file tickets in the tracker declared in
+    # .lisa.config.json. A CLAUDE_CODE_OAUTH_TOKEN-only mapping silently
+    # strands those tickets in GitHub Issues. Unset secrets pass as empty —
+    # safe on repos that don't use that tracker. (`secrets: inherit` would
+    # also work but hands the chain every repo secret and trips
+    # SonarCloud/security-scanner gates.)
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      PAT: ${{ secrets.PAT }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}

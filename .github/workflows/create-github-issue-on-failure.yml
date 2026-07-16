@@ -133,7 +133,7 @@ jobs:
 
             ### How to fix it
 
-            Add the missing repository variables/secrets under **Settings → Secrets and variables → Actions** (or re-run the tracker setup: \`/lisa:setup:jira\`, \`/lisa:setup:linear\`). If a secret is already set on the repository, the calling workflow may not be passing it through — its \`secrets:\` block needs \`secrets: inherit\`.
+            Add the missing repository variables/secrets under **Settings → Secrets and variables → Actions** (or re-run the tracker setup: \`/lisa:setup:jira\`, \`/lisa:setup:linear\`). If a secret is already set on the repository, the calling workflow may not be passing it through — its \`secrets:\` block must map the token explicitly (see the claude-*-auto-fix caller templates).
 
             ### The failure that triggered this report
 
