@@ -36,6 +36,35 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
 Resolve `<owner>/<repo>` from `gh repo view --json nameWithOwner` (or the PR URL).
 Use plain `gh` + `git` so Claude and Codex execute identically.
 
+## 0. Take the babysitter lease
+
+This skill is the branch's owner while it runs. Declare that ownership so the
+CI auto-fix workflow (`reusable-claude-ci-auto-fix.yml`) stands down instead of
+pushing competing fixes to the same branch (the single-writer rule):
+
+```bash
+gh label create "lisa:babysitter-on-duty" \
+  --description "A drive-pr-to-merge session is actively driving this PR; CI auto-fix must stand down" \
+  --color FBCA04 2>/dev/null || true
+gh pr edit <pr> --add-label "lisa:babysitter-on-duty"
+```
+
+The auto-fix workflow reads freshness from the label's most recent `labeled`
+timeline event and treats stamps older than its TTL (default 90 minutes) as
+stale. **Refresh the lease** whenever more than ~30 minutes have passed since
+the last stamp while the watch loop is still running — a refresh is a
+remove + re-add (re-adding an existing label does not create a new timeline
+event):
+
+```bash
+gh pr edit <pr> --remove-label "lisa:babysitter-on-duty"
+gh pr edit <pr> --add-label "lisa:babysitter-on-duty"
+```
+
+**Release the lease** (remove the label) at every terminal state — merged,
+closed, or a hard block handed to a human. A crashed session that never
+releases is why the TTL exists; do not rely on it as the normal release path.
+
 ## 1. Enable auto-merge
 
 Before enabling auto-merge, capture the live PR head and compare it to
@@ -74,7 +103,8 @@ gh pr view <pr> --json state,mergeStateStatus,mergeable,reviewDecision,statusChe
 ```
 
 Handle every blocker class; after any fix, re-poll and continue. Do not stop while
-the PR is still open and progress is possible.
+the PR is still open and progress is possible. On each iteration, refresh the
+babysitter lease if its last stamp is older than ~30 minutes (section 0).
 
 In **`on_blocker=report`** mode, only the mechanical step (a) and auto-merge enabling
 apply; for any of (b)–(e) do not act — classify the blocker and return per the input
@@ -150,6 +180,13 @@ Some org rulesets allow 0 approvals yet a bot `CHANGES_REQUESTED` still blocks
 auto-merge — dismissing the stale review after resolving all threads is what
 unblocks it.
 
+### f. Pending auto-fix PR into this branch
+If an open PR from `claude-auto-fix-<headRefName>` targets this PR's head
+branch (the CI auto-fix workflow engaged before this session took the lease),
+adjudicate it: merge it into the head branch if the fix is correct and still
+needed, otherwise close it and delete the side branch. Never leave it dangling
+— it represents a competing writer's pending work.
+
 ## 3. Merge and verify it actually shipped (ancestry check)
 
 Enabling auto-merge + green checks + resolved threads is **not** proof the merge
@@ -177,3 +214,8 @@ Loop until one of:
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
   and report exactly what is blocking and what was already tried — never force the
   merge or weaken a gate to get past it.
+
+At every terminal state, release the babysitter lease
+(`gh pr edit <pr> --remove-label "lisa:babysitter-on-duty"`) so the CI
+auto-fix workflow can take over as fixer of last resort if the branch goes
+red later with nobody driving it.
