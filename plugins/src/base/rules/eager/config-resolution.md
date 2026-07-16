@@ -25,6 +25,15 @@ Project tracker (`jira` / `github` / `linear`) is read from `.lisa.config.json` 
 
 `repo:<name>` is the canonical label for which repo a work item belongs to. Resolve current-repo identity in this priority order: `.lisa.config.local.json` `repo` → `.lisa.config.json` `repo` → `.lisa.config.json` `github.repo` → `basename -s .git "$(git remote get-url origin)"`. If none resolve, stop with a clear error.
 
+## Project rules and learnings
+
+Resolve hand-authored project rules from `.lisa.config.json`
+`projectRulesFile`, defaulting to `.claude/rules/PROJECT_RULES.md`. Automated
+learnings never append to that file: they use the separate
+`PROJECT_LEARNINGS.md` sibling derived from the configured rules directory.
+Both writers and budget checks import the executable contract from
+`@codyswann/lisa/learnings`; they must not copy its numeric limits.
+
 ## Env → base branch
 
 For implementation work, map the work item's `## Target Backend Environment` to

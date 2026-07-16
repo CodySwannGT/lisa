@@ -33,6 +33,7 @@ fi
 {
   "tracker": "jira",
   "source":  "notion",
+  "projectRulesFile": ".claude/rules/PROJECT_RULES.md",
 
   "atlassian":  { "cloudId": "<uuid>", "site": "<host>" },
   "jira": {
@@ -178,6 +179,7 @@ fi
 |-------|----------|---------|-------|
 | `tracker` | **yes** | — | Destination for ticket writes. One of `"jira"`, `"github"`, `"linear"`. Missing → fail with instruction to run the matching `/lisa:setup:*` skill. |
 | `source` | no | — | Default PRD source for batch skills (`/lisa:intake`) and arg-less single-PRD skills. One of `"notion"`, `"confluence"`, `"linear"`, `"github"`, `"jira"`. Explicit URLs/keys passed to a skill always win over `source`; this is a default, not a lock. |
+| `projectRulesFile` | no | `.claude/rules/PROJECT_RULES.md` | Safe repo-relative Markdown path for hand-authored project rules. The bounded learning writer derives a separate `PROJECT_LEARNINGS.md` sibling in the same directory; there is intentionally no second path setting. |
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
 | `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
 
