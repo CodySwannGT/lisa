@@ -103,6 +103,31 @@ describe("CreateOnlyStrategy", () => {
     expect(await fs.readFile(destFile, "utf-8")).toBe("# Custom Content\n");
   });
 
+  it("preserves a concurrent writer when exclusive creation reports EEXIST", async () => {
+    const srcFile = path.join(srcDir, "README.md");
+    const destFile = path.join(destDir, "README.md");
+    await fs.writeFile(srcFile, "# Default\n");
+    const racingStrategy = new CreateOnlyStrategy(
+      async (_sourcePath, destinationPath, mode) => {
+        expect(mode).not.toBe(0);
+        await fs.writeFile(destinationPath, "# Concurrent Writer\n");
+        throw Object.assign(new Error("destination won the race"), {
+          code: "EEXIST",
+        });
+      }
+    );
+
+    const result = await racingStrategy.apply(
+      srcFile,
+      destFile,
+      "README.md",
+      createContext()
+    );
+
+    expect(result.action).toBe("skipped");
+    expect(await fs.readFile(destFile, "utf-8")).toBe("# Concurrent Writer\n");
+  });
+
   it("creates parent directories when needed", async () => {
     const srcFile = path.join(srcDir, "docs", "README.md");
     const destFile = path.join(destDir, "docs", "README.md");

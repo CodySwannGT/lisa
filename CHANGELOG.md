@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.218.0](https://github.com/CodySwannGT/lisa/compare/v2.217.8...v2.218.0) (2026-07-16)
+
+
+### Features
+
+* **learnings:** define bounded project learning contract ([d692467](https://github.com/CodySwannGT/lisa/commit/d6924673c6a43415c0656716863485a12fcc5bd2))
+
+
+### Bug Fixes
+
+* **learnings:** harden contract review findings ([eff9326](https://github.com/CodySwannGT/lisa/commit/eff9326bd704f4e0fd700533d8f352c5a4ac5008))
+
 ### [2.217.8](https://github.com/CodySwannGT/lisa/compare/v2.217.7...v2.217.8) (2026-07-16)
 
 
