@@ -106,6 +106,7 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
+    "./learnings": "./dist/core/learnings.js",
     "./eslint": "./dist/configs/eslint/index.js",
     "./eslint/base": "./dist/configs/eslint/base.js",
     "./eslint/typescript": "./dist/configs/eslint/typescript.js",
