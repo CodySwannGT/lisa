@@ -24,8 +24,8 @@
 # issue labeled `lisa-misconfiguration` is filed naming exactly which
 # variables/secrets are missing, with the original failure details attached.
 # Note: a secret can be "missing" here either because it is unset on the
-# repository or because a caller workflow did not propagate it
-# (`secrets: inherit`) — the two are indistinguishable from inside a
+# repository or because a caller workflow did not pass it through its
+# `secrets:` mapping — the two are indistinguishable from inside a
 # reusable workflow.
 #
 # Sentry was removed from the dispatch cascade: CI failures are work items
@@ -40,7 +40,10 @@
 #   with:
 #     workflow_name: 'My Workflow'
 #     failed_job: 'build_and_test'
-#   secrets: inherit
+#   secrets:
+#     JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+#     LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+#     PAT: ${{ secrets.PAT }}
 # ```
 
 name: 📌 Create Issue on Failure (Auto-Dispatch)
@@ -181,14 +184,14 @@ jobs:
             [ "$HAS_JIRA_BASE_URL" = "true" ] || out="${out}repository variable JIRA_BASE_URL\n"
             [ "$HAS_JIRA_USER_EMAIL" = "true" ] || out="${out}repository variable JIRA_USER_EMAIL\n"
             [ "$HAS_JIRA_PROJECT_KEY" = "true" ] || out="${out}repository variable JIRA_PROJECT_KEY\n"
-            [ "$HAS_JIRA_API_TOKEN" = "true" ] || out="${out}secret JIRA_API_TOKEN (unset, or not propagated by the calling workflow via 'secrets: inherit')\n"
+            [ "$HAS_JIRA_API_TOKEN" = "true" ] || out="${out}secret JIRA_API_TOKEN (unset, or not passed through by the calling workflow's secrets mapping)\n"
             printf '%b' "$out"
           }
 
           linear_missing() {
             local out=""
             [ -n "$LINEAR_TEAM_KEY" ] || out="${out}'linear.teamKey' in .lisa.config.json\n"
-            [ "$HAS_LINEAR_API_KEY" = "true" ] || out="${out}secret LINEAR_API_KEY (unset, or not propagated by the calling workflow via 'secrets: inherit')\n"
+            [ "$HAS_LINEAR_API_KEY" = "true" ] || out="${out}secret LINEAR_API_KEY (unset, or not passed through by the calling workflow's secrets mapping)\n"
             printf '%b' "$out"
           }
 
