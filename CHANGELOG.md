@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.217.2](https://github.com/CodySwannGT/lisa/compare/v2.217.1...v2.217.2) (2026-07-16)
+
+
+### Documentation
+
+* **rules:** use provider-neutral monitor thresholds ([dd97ba7](https://github.com/CodySwannGT/lisa/commit/dd97ba77f305a8e0fc6ce45451b0d8d0ea248b47))
+
 ### [2.217.1](https://github.com/CodySwannGT/lisa/compare/v2.217.0...v2.217.1) (2026-07-16)
 
 
