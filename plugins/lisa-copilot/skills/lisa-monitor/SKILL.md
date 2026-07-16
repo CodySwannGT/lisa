@@ -15,7 +15,7 @@ Spot-check application health, **audit observability completeness**, and **file 
 - `--all-gaps` — also file `recommended`-tier gaps (session replay, product analytics, etc.), not just `core`. Does not change anomaly thresholds.
 - `max_candidates=<n>` — cap tickets filed this run (default 20; config `monitor.maxCandidates`).
 
-## Monitor threshold compatibility
+## Deprecated monitor threshold aliases
 
 Before resolving anomaly thresholds, inspect the committed
 `.lisa.config.json` and local `.lisa.config.local.json` separately with `jq`.
@@ -27,6 +27,10 @@ that emits either entire config into agent context:
   `monitor.thresholds.sentryMinEvents24h`.
 - `monitor.thresholds.faultRatePct`, then
   `monitor.thresholds.xrayFaultRatePct`.
+
+The provider-neutral keys are the current contract. The legacy
+provider-prefixed keys are deprecated compatibility aliases and are used only
+when the matching provider-neutral key is absent.
 
 Run this fixed filter once with literal final argument `.lisa.config.json` and
 once with literal final argument `.lisa.config.local.json` when the respective
