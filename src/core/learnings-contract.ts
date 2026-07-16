@@ -23,6 +23,7 @@ export const LEARNINGS_CONTRACT = Object.freeze({
   ] as const),
   maxRuleCharacters: 240,
   maxRuleLines: 2,
+  maxProvenanceReferences: 20,
   maxEntries: 20,
   maxTokens: 4000,
   measurement: "utf8-bytes-upper-bound",
