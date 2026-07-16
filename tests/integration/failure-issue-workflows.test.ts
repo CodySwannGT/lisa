@@ -116,11 +116,13 @@ describe("config-driven issue dispatcher", () => {
     );
   });
 
-  it("names both possible causes for a missing secret (unset vs not propagated)", () => {
+  it("names both possible causes for a missing secret (unset vs not passed through)", () => {
     const check = (dispatcher.jobs.dispatch.steps ?? []).find(
       step => step.id === "check"
     );
-    expect(check?.run).toContain("secrets: inherit");
+    expect(check?.run).toContain(
+      "(unset, or not passed through by the calling workflow's secrets mapping)"
+    );
   });
 });
 
