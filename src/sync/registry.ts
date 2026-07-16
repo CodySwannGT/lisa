@@ -105,6 +105,11 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     description: "Target coding-agent harness(es)",
   },
   {
+    key: "projectRulesFile",
+    defaultValue: ".claude/rules/PROJECT_RULES.md",
+    description: "Project rules file used to derive PROJECT_LEARNINGS.md",
+  },
+  {
     key: "quality.testCoverage",
     defaultValue: COVERAGE_DEFAULTS,
     artifacts: [

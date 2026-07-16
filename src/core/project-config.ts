@@ -22,6 +22,12 @@ import {
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
 
+/** Default durable project-rules destination used by governance skills. */
+export const DEFAULT_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
+
+/** Fixed sibling filename for machine-managed project learnings. */
+export const PROJECT_LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
+
 /**
  * Schema of `.lisa.config.json`. Additional fields may be added in future
  * versions; unknown fields are preserved on round-trip.
@@ -29,6 +35,33 @@ export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
 export interface ProjectConfig {
   /** Target harness(es) for emitted artifacts */
   readonly harness?: Harness;
+  /** Relative path to the project's durable rules file. */
+  readonly projectRulesFile?: string;
+}
+
+/**
+ * Resolve the validated project-rules path from config or its default.
+ * @param config - Parsed project configuration
+ * @returns Safe project-relative Markdown path
+ */
+export function resolveProjectRulesFile(config: ProjectConfig): string {
+  return validateProjectRulesFile(
+    config.projectRulesFile ?? DEFAULT_PROJECT_RULES_FILE,
+    PROJECT_CONFIG_FILENAME
+  );
+}
+
+/**
+ * Keep learned rules separate from hand-authored rules while honoring the same
+ * configured directory.
+ * @param config - Parsed project configuration
+ * @returns Safe project-relative learnings Markdown path
+ */
+export function resolveProjectLearningsFile(config: ProjectConfig): string {
+  return path.posix.join(
+    path.posix.dirname(resolveProjectRulesFile(config)),
+    PROJECT_LEARNINGS_FILENAME
+  );
 }
 
 /**
@@ -175,35 +208,103 @@ function validateProjectConfig(
   parsed: unknown,
   configPath: string
 ): ProjectConfig {
-  if (parsed === null || typeof parsed !== "object") {
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(
       `Invalid ${PROJECT_CONFIG_FILENAME} at ${configPath}: expected JSON object`
     );
   }
   const obj = parsed as Record<string, unknown>;
-  if (obj.harness === undefined) {
-    return {};
+  const harness = validateOptionalHarness(obj.harness, configPath);
+  const projectRulesFile =
+    obj.projectRulesFile === undefined
+      ? undefined
+      : validateProjectRulesFile(obj.projectRulesFile, configPath);
+  return {
+    ...(harness === undefined ? {} : { harness }),
+    ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
+  };
+}
+
+/**
+ * Validate the optional harness while preserving an absent value.
+ * @param value - Raw harness value
+ * @param configPath - Config source for errors
+ * @returns Normalized harness or undefined
+ */
+function validateOptionalHarness(
+  value: unknown,
+  configPath: string
+): Harness | undefined {
+  if (value === undefined) {
+    return undefined;
   }
   // A persisted, retired legacy value (e.g. "both") is migrated to its
   // canonical form rather than rejected — apply rewrites the file (see
   // detectLegacyHarnessMigration). This keeps pre-fleet projects applying
   // instead of hard-failing every run on a value newer Lisa versions removed.
   const legacy =
-    typeof obj.harness === "string"
-      ? LEGACY_HARNESS_ALIASES[obj.harness]
-      : undefined;
+    typeof value === "string" ? LEGACY_HARNESS_ALIASES[value] : undefined;
   const normalized =
     legacy ??
-    (typeof obj.harness === "string"
-      ? normalizeHarness(obj.harness)
-      : undefined);
-  if (normalized === undefined) {
-    const allowed = ACCEPTED_HARNESS_INPUTS.join(" | ");
+    (typeof value === "string" ? normalizeHarness(value) : undefined);
+  if (normalized !== undefined) {
+    return normalized;
+  }
+  const allowed = ACCEPTED_HARNESS_INPUTS.join(" | ");
+  throw new Error(
+    `Invalid harness in ${configPath}: expected ${allowed}, got ${JSON.stringify(value)}`
+  );
+}
+
+/**
+ * Validate the configurable rules destination as a safe Markdown path.
+ * @param value - Raw configured path
+ * @param source - Config source for errors
+ * @returns Validated project-relative path
+ */
+function validateProjectRulesFile(value: unknown, source: string): string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.trim() !== value ||
+    value.includes("\\") ||
+    containsControlCharacter(value) ||
+    /^[a-z]:/iu.test(value) ||
+    path.posix.isAbsolute(value) ||
+    path.win32.isAbsolute(value)
+  ) {
     throw new Error(
-      `Invalid harness in ${configPath}: expected ${allowed}, got ${JSON.stringify(obj.harness)}`
+      `Invalid projectRulesFile in ${source}: expected a safe relative POSIX path`
     );
   }
-  return { harness: normalized };
+  const segments = value.split("/");
+  if (
+    segments.some(
+      segment => segment === "" || segment === "." || segment === ".."
+    )
+  ) {
+    throw new Error(
+      `Invalid projectRulesFile in ${source}: path traversal is not allowed`
+    );
+  }
+  if (path.posix.extname(value).toLowerCase() !== ".md") {
+    throw new Error(
+      `Invalid projectRulesFile in ${source}: expected a Markdown file`
+    );
+  }
+  return value;
+}
+
+/**
+ * Whether a path contains an ASCII control character.
+ * @param value - Configured path
+ * @returns True when any control character is present
+ */
+function containsControlCharacter(value: string): boolean {
+  return Array.from(value).some(character => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }
 
 /**
