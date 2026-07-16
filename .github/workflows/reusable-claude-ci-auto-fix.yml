@@ -161,9 +161,10 @@ jobs:
             fi
             # Freshness comes from the most recent `labeled` timeline event
             # for the lease label; the babysitter refreshes it by
-            # removing + re-adding the label.
+            # removing + re-adding the label. `--paginate` emits one JSON
+            # array per page, so slurp + add flattens them before `last`.
             STAMP=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate \
-              | jq -r --arg label "$LEASE_LABEL" '[.[] | select(.event == "labeled" and .label.name == $label)] | last | .created_at // empty')
+              | jq -r -s --arg label "$LEASE_LABEL" 'add | [.[] | select(.event == "labeled" and .label.name == $label)] | last | .created_at // empty')
             if [ -z "$STAMP" ]; then
               # Label present but no readable stamp — treat as fresh (fail safe).
               echo "Lease label present on PR #$PR_NUMBER with no readable stamp; standing down."
@@ -275,6 +276,10 @@ jobs:
       - name: Record pre-fix state and create side branch
         id: pre-claude
         if: steps.loop-guard.outputs.skip != 'true' && steps.ownership-guard.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ inputs.repo_full_name }}
+          HEAD_BRANCH: ${{ inputs.head_branch }}
         run: |
           # PRE_SHA is the baseline for detecting whether Claude produced a
           # fix. It must be captured BEFORE Claude runs: comparing the local
@@ -282,10 +287,15 @@ jobs:
           # workspace makes them always equal, which misreports every
           # successful fix as a failure.
           PRE_SHA=$(git rev-parse HEAD)
-          FIX_BRANCH="claude-auto-fix-${{ inputs.head_branch }}"
+          FIX_BRANCH="claude-auto-fix-${HEAD_BRANCH}"
           git checkout -B "$FIX_BRANCH"
+          # A side branch left over from an earlier attempt must not count
+          # as this run's fix — record its current remote SHA (if any) so
+          # the post-Claude check requires the ref to actually move.
+          PRE_SIDE_SHA=$(gh api "repos/$REPO/git/ref/heads/$FIX_BRANCH" --jq '.object.sha' 2>/dev/null || echo "")
           {
             echo "pre_sha=$PRE_SHA"
+            echo "pre_side_sha=$PRE_SIDE_SHA"
             echo "fix_branch=$FIX_BRANCH"
           } >> "$GITHUB_OUTPUT"
 
@@ -370,21 +380,25 @@ jobs:
         if: steps.loop-guard.outputs.skip != 'true' && steps.ownership-guard.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ inputs.repo_full_name }}
+          HEAD_BRANCH: ${{ inputs.head_branch }}
+          PRE_SHA: ${{ steps.pre-claude.outputs.pre_sha }}
+          PRE_SIDE_SHA: ${{ steps.pre-claude.outputs.pre_side_sha }}
+          FIX_BRANCH: ${{ steps.pre-claude.outputs.fix_branch }}
         run: |
           # Reaching this step means the Claude step executed (everything
           # before it would have failed the job).
           echo "claude_ran=true" >> "$GITHUB_OUTPUT"
 
-          PRE_SHA="${{ steps.pre-claude.outputs.pre_sha }}"
-          FIX_BRANCH="${{ steps.pre-claude.outputs.fix_branch }}"
+          # A fix exists iff a remote ref moved DURING this run: the side
+          # branch advanced past its pre-run remote SHA (expected path), or
+          # the failing branch moved past the pre-Claude baseline (legacy
+          # path, in case Claude pushed there anyway). A stale side branch
+          # from an earlier attempt does not count.
+          SIDE_SHA=$(gh api "repos/$REPO/git/ref/heads/$FIX_BRANCH" --jq '.object.sha' 2>/dev/null || echo "")
+          HEAD_SHA=$(gh api "repos/$REPO/git/ref/heads/$HEAD_BRANCH" --jq '.object.sha' 2>/dev/null || echo "")
 
-          # A fix exists iff a remote ref now points past the pre-Claude
-          # baseline: the side branch (expected path), or the failing branch
-          # itself (legacy path, in case Claude pushed there anyway).
-          SIDE_SHA=$(gh api "repos/${{ inputs.repo_full_name }}/git/ref/heads/$FIX_BRANCH" --jq '.object.sha' 2>/dev/null || echo "")
-          HEAD_SHA=$(gh api "repos/${{ inputs.repo_full_name }}/git/ref/heads/${{ inputs.head_branch }}" --jq '.object.sha' 2>/dev/null || echo "")
-
-          if [ -n "$SIDE_SHA" ] && [ "$SIDE_SHA" != "$PRE_SHA" ]; then
+          if [ -n "$SIDE_SHA" ] && [ "$SIDE_SHA" != "$PRE_SHA" ] && [ "$SIDE_SHA" != "$PRE_SIDE_SHA" ]; then
             echo "fixed=true" >> "$GITHUB_OUTPUT"
             echo "Claude pushed a fix to $FIX_BRANCH."
           elif [ -n "$HEAD_SHA" ] && [ "$HEAD_SHA" != "$PRE_SHA" ]; then
@@ -457,20 +471,21 @@ jobs:
             console.log(`Opened fix PR #${pr.number}: ${pr.html_url}`);
 
   # Escalation: file a deduplicated, config-routed ticket when no fix was
-  # produced. The title states honestly whether Claude ever ran.
+  # produced. The title states honestly whether Claude ever ran. Loop-guard
+  # stand-downs (bot-authored head commit) escalate too — the failure still
+  # exists and nobody else will report it.
   create-issue:
     name: Create issue for unfixed CI failure
     needs: [auto-fix]
     if: |
       always() &&
       needs.auto-fix.result != 'skipped' &&
-      needs.auto-fix.outputs.skipped_loop != 'true' &&
       needs.auto-fix.outputs.skipped_ownership != 'true' &&
       needs.auto-fix.outputs.fixed != 'true'
     uses: CodySwannGT/lisa/.github/workflows/create-issue-on-failure.yml@main
     with:
       workflow_name: 'CI Quality Checks'
-      failed_job: ${{ needs.auto-fix.outputs.claude_ran == 'true' && 'Claude auto-fix ran and could not fix — manual intervention needed' || 'Auto-fix harness failed before Claude ran — see the auto-fix run logs' }}
+      failed_job: ${{ needs.auto-fix.outputs.skipped_loop == 'true' && 'CI failed but auto-fix stood down (bot-authored head commit) — manual attention needed' || needs.auto-fix.outputs.claude_ran == 'true' && 'Claude auto-fix ran and could not fix — manual intervention needed' || 'Auto-fix harness failed before Claude ran — see the auto-fix run logs' }}
       package_manager: ${{ inputs.package_manager }}
     secrets: inherit
 
