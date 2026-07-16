@@ -72,13 +72,27 @@ import {
   harnessIncludesAgent,
 } from "./config.js";
 import { migrateInstructionFiles } from "./instruction-files-migration.js";
+import {
+  assertSafeLearningParents,
+  resolveSafeLearningTarget,
+} from "./learnings-file-safety.js";
 import type { IGitService } from "./git-service.js";
+import {
+  readProjectConfig,
+  resolveProjectLearningsFile,
+} from "./project-config.js";
 
 /**
  * Log fragment used when a create-only instruction file already exists and is
  * therefore left untouched (the host owns it).
  */
 const HOST_OWNED_LABEL = "already present (host-owned)";
+const CREATE_ONLY_STRATEGY = "create-only" as const;
+const PROJECT_LEARNINGS_TEMPLATE_PATH = path.join(
+  ".claude",
+  "rules",
+  "PROJECT_LEARNINGS.md"
+);
 
 /**
  * Dependencies for Lisa operations
@@ -152,6 +166,10 @@ export class Lisa {
    * skips existing files, so without help the parent would win).
    */
   private copyOverwriteOwnership: Map<string, string> = new Map();
+  /** Destination selected by the host project's projectRulesFile setting. */
+  private projectLearningsFile = PROJECT_LEARNINGS_TEMPLATE_PATH;
+  /** Whether the canonical all/create-only learnings source is registered. */
+  private projectLearningsTemplateRegistered = false;
   private readonly separator = "========================================";
   private readonly lisaignoreSuffix = "(.lisaignore)";
 
@@ -278,10 +296,27 @@ export class Lisa {
     for (const type of ["all", ...this.detectedTypes]) {
       const paths = await this.readPendingDeletionsForType(type);
       for (const p of paths) {
-        pending.add(p);
+        pending.add(path.normalize(p));
       }
     }
     this.pendingDeletions = pending;
+  }
+
+  /**
+   * Resolve the host-owned learnings destination before template ownership is
+   * computed. The canonical source stays at its stable package path while its
+   * destination follows the configured project-rules directory.
+   */
+  private async loadProjectLearningsFile(): Promise<void> {
+    const relativeFile = resolveProjectLearningsFile(
+      await readProjectConfig(this.config.destDir)
+    );
+    const { root, target } = resolveSafeLearningTarget(
+      this.config.destDir,
+      relativeFile
+    );
+    await assertSafeLearningParents(root, path.dirname(target));
+    this.projectLearningsFile = path.normalize(relativeFile);
   }
 
   /**
@@ -310,16 +345,37 @@ export class Lisa {
   private async loadCreateOnlyOwnership(): Promise<void> {
     const ownership = new Map<string, string>();
     for (const type of ["all", ...this.detectedTypes]) {
-      const createOnlyDir = path.join(this.config.lisaDir, type, "create-only");
+      const createOnlyDir = path.join(
+        this.config.lisaDir,
+        type,
+        CREATE_ONLY_STRATEGY
+      );
       if (!(await fse.pathExists(createOnlyDir))) {
         continue;
       }
       const files = await listFilesRecursive(createOnlyDir);
       for (const file of files) {
-        const relativePath = path.relative(createOnlyDir, file);
+        const sourceRelativePath = path.relative(createOnlyDir, file);
+        const relativePath = this.resolveTemplateDestination(
+          sourceRelativePath,
+          CREATE_ONLY_STRATEGY,
+          type
+        );
         // Later types overwrite earlier ones, so child wins over parent.
         ownership.set(relativePath, type);
       }
+    }
+    const canonicalSource = path.join(
+      this.config.lisaDir,
+      "all",
+      CREATE_ONLY_STRATEGY,
+      PROJECT_LEARNINGS_TEMPLATE_PATH
+    );
+    this.projectLearningsTemplateRegistered =
+      await fse.pathExists(canonicalSource);
+    if (this.projectLearningsTemplateRegistered) {
+      // Durable project memory is a single contract, not a stack override.
+      ownership.set(this.projectLearningsFile, "all");
     }
     this.createOnlyOwnership = ownership;
   }
@@ -450,6 +506,15 @@ export class Lisa {
    */
   private async processSingleDeletion(relativePath: string): Promise<void> {
     const { logger } = this.deps;
+    const normalizedRelativePath = path.normalize(relativePath);
+    if (
+      this.projectLearningsTemplateRegistered &&
+      normalizedRelativePath === this.projectLearningsFile
+    ) {
+      logger.info(`Kept (host-owned project learnings): ${relativePath}`);
+      this.counters.skipped++;
+      return;
+    }
     const targetPath = path.join(this.config.destDir, relativePath);
 
     const resolvedTarget = path.resolve(targetPath);
@@ -711,6 +776,7 @@ export class Lisa {
       await this.initServices();
       await this.detectTypes();
       await this.detectSelfApply();
+      await this.loadProjectLearningsFile();
       await this.loadPendingDeletions();
       await this.loadCreateOnlyOwnership();
       await this.loadCopyOverwriteOwnership();
@@ -1290,13 +1356,21 @@ export class Lisa {
     currentType: string
   ): Promise<void> {
     const allFiles = await listFilesRecursive(srcDir);
-    const files = allFiles.filter(srcFile =>
-      this.shouldProcessFile(
-        path.relative(srcDir, srcFile),
-        strategy.name,
-        currentType
-      )
-    );
+    const files = allFiles
+      .map(srcFile => {
+        const sourceRelativePath = path.relative(srcDir, srcFile);
+        return {
+          srcFile,
+          relativePath: this.resolveTemplateDestination(
+            sourceRelativePath,
+            strategy.name,
+            currentType
+          ),
+        };
+      })
+      .filter(({ relativePath }) =>
+        this.shouldProcessFile(relativePath, strategy.name, currentType)
+      );
 
     const context: StrategyContext = {
       config: this.config,
@@ -1309,8 +1383,7 @@ export class Lisa {
       },
     };
 
-    for (const srcFile of files) {
-      const relativePath = path.relative(srcDir, srcFile);
+    for (const { srcFile, relativePath } of files) {
       const destFile = path.join(this.config.destDir, relativePath);
 
       const result = await strategy.apply(
@@ -1322,6 +1395,42 @@ export class Lisa {
       this.updateCounters(result);
       this.logResult(result);
     }
+  }
+
+  /**
+   * Map the stable canonical learnings source to the project's configured
+   * sibling path. No other template source is redirected.
+   * @param sourceRelativePath - Path relative to the strategy source directory
+   * @param strategyName - Strategy delivering the source file
+   * @param currentType - Project type that owns the source directory
+   * @returns Destination path relative to the host project
+   */
+  private resolveTemplateDestination(
+    sourceRelativePath: string,
+    strategyName: CopyStrategy,
+    currentType: string
+  ): string {
+    if (
+      currentType === "all" &&
+      strategyName === CREATE_ONLY_STRATEGY &&
+      sourceRelativePath === PROJECT_LEARNINGS_TEMPLATE_PATH
+    ) {
+      return this.projectLearningsFile;
+    }
+    return sourceRelativePath;
+  }
+
+  /**
+   * Identify the single machine-managed file that remains host-owned after
+   * creation, regardless of later stack templates or deletion manifests.
+   * @param relativePath - Candidate destination path
+   * @returns Whether the path is the registered project learnings destination
+   */
+  private isProjectLearningsPath(relativePath: string): boolean {
+    return (
+      this.projectLearningsTemplateRegistered &&
+      relativePath === this.projectLearningsFile
+    );
   }
 
   /**
@@ -1355,7 +1464,8 @@ export class Lisa {
       this.logSkip(`ignored`, relativePath, "Ignored");
       return false;
     }
-    if (this.pendingDeletions.has(relativePath)) {
+    const isProjectLearnings = this.isProjectLearningsPath(relativePath);
+    if (this.pendingDeletions.has(relativePath) && !isProjectLearnings) {
       this.counters.skipped++;
       this.logSkip(
         "pending deletion by detected type",
@@ -1364,7 +1474,16 @@ export class Lisa {
       );
       return false;
     }
-    if (strategyName === "create-only") {
+    if (isProjectLearnings && strategyName !== CREATE_ONLY_STRATEGY) {
+      this.counters.skipped++;
+      this.logSkip(
+        "owned by all/create-only",
+        relativePath,
+        "Skipped (host-owned project learnings)"
+      );
+      return false;
+    }
+    if (strategyName === CREATE_ONLY_STRATEGY) {
       const owner = this.createOnlyOwnership.get(relativePath);
       if (owner !== undefined && owner !== currentType) {
         this.counters.skipped++;

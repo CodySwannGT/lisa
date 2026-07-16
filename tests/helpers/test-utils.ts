@@ -1,6 +1,7 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import * as os from "node:os";
+import { renderLearningsFile } from "../../src/core/learnings-writer.js";
 
 const PACKAGE_JSON = "package.json";
 const TSCONFIG_JSON = "tsconfig.json";
@@ -190,26 +191,7 @@ async function createMockHarperFabricTemplates(dir: string): Promise<void> {
  * @param dir - Directory to create Lisa structure in
  */
 export async function createMockLisaDir(dir: string): Promise<void> {
-  // Create all/ directory with test files
-  const allCopyOverwrite = path.join(dir, "all", COPY_OVERWRITE);
-  const allCopyContents = path.join(dir, "all", COPY_CONTENTS);
-  const allCreateOnly = path.join(dir, "all", CREATE_ONLY);
-  const allMerge = path.join(dir, "all", "merge");
-
-  await fs.ensureDir(allCopyOverwrite);
-  await fs.ensureDir(allCopyContents);
-  await fs.ensureDir(allCreateOnly);
-  await fs.ensureDir(allMerge);
-
-  await fs.writeFile(path.join(allCopyOverwrite, "test.txt"), "test content\n");
-  await fs.writeFile(
-    path.join(allCopyContents, ".gitignore"),
-    "node_modules\n.env\n"
-  );
-  await fs.writeFile(path.join(allCreateOnly, "README.md"), "# Test\n");
-  await fs.writeJson(path.join(allMerge, PACKAGE_JSON), {
-    scripts: { test: "echo test" },
-  });
+  await createMockAllTemplates(dir);
 
   // Create all/deletions.json to mirror the real Lisa deletion of legacy manifest
   await fs.writeJson(path.join(dir, "all", DELETIONS_JSON), {
@@ -278,6 +260,34 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   // Create rails/deletions.json
   await fs.writeJson(path.join(dir, "rails", DELETIONS_JSON), {
     paths: [".overcommit.yml"],
+  });
+}
+
+/**
+ * Create the mock all/ strategy tree, including the canonical learnings seed.
+ * @param dir - Absolute mock Lisa package root
+ */
+async function createMockAllTemplates(dir: string): Promise<void> {
+  const allCopyOverwrite = path.join(dir, "all", COPY_OVERWRITE);
+  const allCopyContents = path.join(dir, "all", COPY_CONTENTS);
+  const allCreateOnly = path.join(dir, "all", CREATE_ONLY);
+  const allMerge = path.join(dir, "all", "merge");
+  await fs.ensureDir(allCopyOverwrite);
+  await fs.ensureDir(allCopyContents);
+  await fs.ensureDir(allCreateOnly);
+  await fs.ensureDir(allMerge);
+  await fs.writeFile(path.join(allCopyOverwrite, "test.txt"), "test content\n");
+  await fs.writeFile(
+    path.join(allCopyContents, ".gitignore"),
+    "node_modules\n.env\n"
+  );
+  await fs.writeFile(path.join(allCreateOnly, "README.md"), "# Test\n");
+  await fs.outputFile(
+    path.join(allCreateOnly, ".claude", "rules", "PROJECT_LEARNINGS.md"),
+    renderLearningsFile([])
+  );
+  await fs.writeJson(path.join(allMerge, PACKAGE_JSON), {
+    scripts: { test: "echo test" },
   });
 }
 

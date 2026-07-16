@@ -108,6 +108,8 @@ describe("learnings contract", () => {
       "C:rules/PROJECT_RULES.md",
       "rules/\tPROJECT_RULES.md",
       "rules/\nPROJECT_RULES.md",
+      "rules/PROJECT_LEARNINGS.md",
+      "rules/project_learnings.md",
       path.resolve(tempDir, "ABSOLUTE_RULES.md"),
     ]) {
       expect(() => resolveProjectRulesFile({ projectRulesFile })).toThrow(
