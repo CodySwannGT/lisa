@@ -10,6 +10,7 @@ import { AGENTS_MD_FILENAME } from "../codex/agents-md-installer.js";
 import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
 import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
 import { createDetectorRegistry } from "../detection/index.js";
+import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
 import { STARTERS } from "./starters.js";
 import { runUpdateCheck } from "./update-check.js";
 
@@ -363,6 +364,7 @@ export async function runDoctor(
   const checks = [
     await checkVersion(deps, options.offline === true),
     await checkProjectConfig(resolvedTarget),
+    await checkLegacyMonitorThresholds(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
     checkLegacyCodexOverlay(resolvedTarget),
