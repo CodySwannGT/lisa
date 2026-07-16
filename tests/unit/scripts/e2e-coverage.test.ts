@@ -289,12 +289,18 @@ describe("check-e2e-coverage", () => {
       expect(fs.existsSync(path.join(REPO_ROOT, SCRIPT_REL))).toBe(true);
     });
 
-    it("ships the project-tunable thresholds file at the 80% default", () => {
-      const thresholds = JSON.parse(read(THRESHOLDS_REL));
-      expect(thresholds).toEqual({
-        playwright: { routes: 80 },
-        maestro: { routes: 80 },
-      });
+    it("ships the project-tunable thresholds file at the 0% brownfield-safe default", () => {
+      // Shipped defaults are 0/0 so adopting Lisa on a brownfield Expo app does
+      // not red-gate CI before any e2e specs exist. It is a ratchet: projects
+      // raise the floor as coverage grows. A `_comment` documents that intent.
+      const thresholds = JSON.parse(read(THRESHOLDS_REL)) as {
+        readonly _comment?: string;
+        readonly playwright: { readonly routes: number };
+        readonly maestro: { readonly routes: number };
+      };
+      expect(thresholds.playwright.routes).toBe(0);
+      expect(thresholds.maestro.routes).toBe(0);
+      expect(typeof thresholds._comment).toBe("string");
     });
 
     it("wires the e2e_coverage CI job behind script presence", () => {

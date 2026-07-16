@@ -81,7 +81,7 @@ export function enumerateRoutes(files) {
   const routes = files
     .map(file => routeFromFile(file))
     .filter(route => route !== null);
-  return [...new Set(routes)].sort();
+  return [...new Set(routes)].sort((a, b) => a.localeCompare(b));
 }
 
 /**
