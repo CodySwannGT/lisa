@@ -245,8 +245,7 @@ function validateOptionalHarness(
   const legacy =
     typeof value === "string" ? LEGACY_HARNESS_ALIASES[value] : undefined;
   const normalized =
-    legacy ??
-    (typeof value === "string" ? normalizeHarness(value) : undefined);
+    legacy ?? (typeof value === "string" ? normalizeHarness(value) : undefined);
   if (normalized !== undefined) {
     return normalized;
   }

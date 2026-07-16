@@ -171,6 +171,32 @@ describe("learnings writer", () => {
     expect(await fs.pathExists(lockPath)).toBe(false);
   });
 
+  it.each([0, -1])("reclaims a malformed lock-owner pid %i", async pid => {
+    const lockPath = `${learningsPath}.lock`;
+    await fs.outputJson(lockPath, {
+      token: "invalid-pid-owner",
+      pid,
+      createdAt: Date.now() - 60_000,
+    });
+    const stale = new Date(Date.now() - 60_000);
+    await fs.utimes(lockPath, stale, stale);
+    await persistLearningEntry(tempDir, VALID_ENTRY);
+    expect(await fs.pathExists(lockPath)).toBe(false);
+  });
+
+  it("rejects provenance beyond its dedicated reference cap", () => {
+    const provenance = Array.from(
+      { length: LEARNINGS_CONTRACT.maxProvenanceReferences + 1 },
+      (_unused, index) => `issue:#${index}`
+    );
+    expect(() => validateLearningEntry({ ...VALID_ENTRY, provenance })).toThrow(
+      new RegExp(
+        `provenance.*${LEARNINGS_CONTRACT.maxProvenanceReferences}`,
+        "i"
+      )
+    );
+  });
+
   it.each(["", "{"])(
     "reclaims stale partial lock content %j after a crashed acquisition",
     async partial => {

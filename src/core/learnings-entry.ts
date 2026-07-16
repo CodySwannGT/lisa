@@ -163,10 +163,10 @@ function requireProvenance(value: unknown): readonly string[] {
     typeof length !== "number" ||
     !Number.isSafeInteger(length) ||
     length < 1 ||
-    length > LEARNINGS_CONTRACT.maxEntries
+    length > LEARNINGS_CONTRACT.maxProvenanceReferences
   ) {
     throw new Error(
-      `Invalid provenance: expected 1-${LEARNINGS_CONTRACT.maxEntries} references`
+      `Invalid provenance: expected 1-${LEARNINGS_CONTRACT.maxProvenanceReferences} references`
     );
   }
   const provenance = Array.from({ length }, (_unused, index) =>

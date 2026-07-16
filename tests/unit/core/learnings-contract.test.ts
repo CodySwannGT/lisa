@@ -42,6 +42,7 @@ describe("learnings contract", () => {
   it.each([
     "maxRuleCharacters",
     "maxRuleLines",
+    "maxProvenanceReferences",
     "maxEntries",
     "maxTokens",
   ] as const)("exports %s as a positive checkable integer", limit => {
@@ -54,6 +55,7 @@ describe("learnings contract", () => {
     expect(LEARNINGS_CONTRACT).toMatchObject({
       maxRuleCharacters: 240,
       maxRuleLines: 2,
+      maxProvenanceReferences: 20,
       maxEntries: 20,
       maxTokens: 4000,
       measurement: "utf8-bytes-upper-bound",

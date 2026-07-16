@@ -30,7 +30,7 @@ For every row marked **Accept**:
 | Recurring gotcha | Memory file (`project_*.md`) | Write a new memory entry with `type: project`, structured as: rule, **Why:**, **How to apply:**. Add an index line to `MEMORY.md`. |
 | Process friction | Configured project rules file | Append a one-line guideline to the `.lisa.config.json` `projectRulesFile` destination (default `PROJECT_RULES.md`) under an appropriate heading (or create one). |
 | Tooling gap | Configured tracker | Create a new ticket via `lisa-tracker-write` with `issue_type: Task`, summary derived from the row's `Summary`, description citing the evidence and the originating debrief doc. Label appropriately (`type:tooling`, `lifecycle-improvement`, etc.). |
-| Convention drift | `CLAUDE.md` (project) or configured project rules file | Append the convention as a one-paragraph note under the relevant section. If no relevant section exists, create one. |
+| Convention drift | `CLAUDE.md` for project-wide agent operating instructions; otherwise the configured project rules file for codebase conventions | Append the convention as a one-paragraph note under the relevant section. If no relevant section exists, create one. |
 
 For every row marked **Reject** or **Defer**: no action. Defer is a no-op for `apply` but worth surfacing in the run summary — the human may want to revisit at the next debrief.
 

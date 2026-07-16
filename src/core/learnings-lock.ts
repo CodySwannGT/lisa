@@ -236,6 +236,7 @@ function isLockOwner(value: unknown): value is LockOwner {
     typeof owner.token === "string" &&
     typeof owner.pid === "number" &&
     Number.isSafeInteger(owner.pid) &&
+    owner.pid > 0 &&
     typeof owner.createdAt === "number" &&
     Number.isSafeInteger(owner.createdAt)
   );
