@@ -60,11 +60,11 @@ jobs:
       actions: read
       id-token: write
     steps:
-      # When no explicit `chain` input is given, the chain is derived from the
-      # project's .lisa.config.json. Reading that file requires a checkout of the
-      # merged branch. Skipped entirely when `chain` is provided explicitly.
-      - name: Checkout source branch (to derive chain from config)
-        if: inputs.chain == ''
+      # Always checkout the merged branch so .lisa.config.json is available: it
+      # is authoritative for whether this repo is single-environment (in which
+      # case the run is skipped even when an explicit `chain` input is provided),
+      # and it is the source for deriving the chain when no input is given.
+      - name: Checkout source branch (to read deploy config)
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.base.ref }}
@@ -76,6 +76,22 @@ jobs:
         env:
           INPUT_CHAIN: ${{ inputs.chain }}
         run: |
+          # Config is authoritative on environment topology. If .lisa.config.json
+          # declares a single environment (deploy.branches resolves to <= 1
+          # DISTINCT branch, or has <= 1 entry), there is nothing to back-sync —
+          # skip the run with a clear notice EVEN when an explicit `chain` input
+          # was passed. Hardcoded multi-env chains on a single-env repo are dead
+          # wiring, and honoring them would create sync PRs to branches that do
+          # not exist. Only a present-but-multi-env config (or an absent config)
+          # falls through to the explicit-chain / derive paths below.
+          if [ -f .lisa.config.json ]; then
+            DISTINCT=$(jq -r '((.deploy.branches // {}) | [.[]] | unique | length)' .lisa.config.json 2>/dev/null || echo "")
+            if [ "$DISTINCT" = "0" ] || [ "$DISTINCT" = "1" ]; then
+              echo "::notice::.lisa.config.json declares a single environment — nothing to back-sync. Skipping (any explicit chain input is ignored; config is authoritative)."
+              echo "value={}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
           if [ -n "$INPUT_CHAIN" ]; then
             echo "Using explicit chain input."
             echo "value=$INPUT_CHAIN" >> "$GITHUB_OUTPUT"
