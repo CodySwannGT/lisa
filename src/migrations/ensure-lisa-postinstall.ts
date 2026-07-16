@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import type { ProjectType } from "../core/config.js";
+import { LISA_PACKAGE_NAME } from "../core/self-apply.js";
 import { readJsonOrNull, writeJson } from "../utils/json-utils.js";
 import type {
   Migration,
@@ -122,6 +123,12 @@ export class EnsureLisaPostinstallMigration implements Migration {
   async applies(ctx: MigrationContext): Promise<boolean> {
     const pkg = await readPackageJson(ctx.projectDir);
     if (!pkg) {
+      return false;
+    }
+    // Never chain the bootstrap invocation into Lisa's own package.json — a
+    // self-apply against the source repo must not inject the postinstall force
+    // script (it would make Lisa re-apply itself on every install).
+    if (pkg.name === LISA_PACKAGE_NAME) {
       return false;
     }
     const postinstall = pkg.scripts?.postinstall;
