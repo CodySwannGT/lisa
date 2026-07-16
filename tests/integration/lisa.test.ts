@@ -10,6 +10,10 @@ import { SilentLogger } from "../../src/logging/silent-logger.js";
 import { MigrationRegistry } from "../../src/migrations/index.js";
 import { StrategyRegistry } from "../../src/strategies/index.js";
 import {
+  parseLearningsFile,
+  renderLearningsFile,
+} from "../../src/core/learnings-writer.js";
+import {
   BackupService,
   DryRunBackupService,
 } from "../../src/transaction/index.js";
@@ -42,6 +46,7 @@ const HARPER_FABRIC_TXT = "harper-fabric.txt";
 const JEST_CONFIG_LOCAL = "jest.config.local.ts";
 const PACKAGE_LISA_DIR = "package-lisa";
 const LISA_MANIFEST = ".lisa-manifest";
+const PROJECT_LEARNINGS = "PROJECT_LEARNINGS.md";
 const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
 const WORKFLOWS_DIR = path.join(".github", "workflows");
 const CLAUDE_PACKAGE_MANAGER_WORKFLOWS = [
@@ -118,6 +123,129 @@ describe("Lisa Integration Tests", () => {
   }
 
   describe("apply", () => {
+    it("creates, preserves, and repeatedly leaves the default project learnings file byte-identical", async () => {
+      await createTypeScriptProject(destDir);
+      const learningsPath = path.join(
+        destDir,
+        ".claude",
+        "rules",
+        PROJECT_LEARNINGS
+      );
+
+      const first = await createLisa().apply();
+
+      expect(first.success).toBe(true);
+      const emptySeed = await fs.readFile(learningsPath, "utf8");
+      expect(emptySeed).toBe(renderLearningsFile([]));
+      expect(parseLearningsFile(emptySeed)).toEqual([]);
+
+      const populated = renderLearningsFile([
+        {
+          id: "learning-1576-sentinel",
+          rule: "Preserve the host-owned project learnings file.",
+          why: "Lisa apply must not erase durable project memory.",
+          provenance: ["https://github.com/CodySwannGT/lisa/issues/1576"],
+          first_learned: "2026-07-16T12:00:00.000Z",
+          last_confirmed: "2026-07-16T12:00:00.000Z",
+          confidence: "high",
+        },
+      ]);
+      await fs.writeFile(learningsPath, populated);
+
+      const second = await createLisa().apply();
+      const third = await createLisa().apply();
+
+      expect(second.success).toBe(true);
+      expect(third.success).toBe(true);
+      expect(await fs.readFile(learningsPath, "utf8")).toBe(populated);
+    });
+
+    it("uses only the configured project-rules sibling for project learnings", async () => {
+      await createTypeScriptProject(destDir);
+      await fs.writeJson(path.join(destDir, ".lisa.config.json"), {
+        harness: "claude",
+        projectRulesFile: "rules/CUSTOM_RULES.md",
+      });
+      const configuredPath = path.join(destDir, "rules", PROJECT_LEARNINGS);
+      const defaultPath = path.join(
+        destDir,
+        ".claude",
+        "rules",
+        PROJECT_LEARNINGS
+      );
+
+      const first = await createLisa().apply();
+
+      expect(first.success).toBe(true);
+      expect(await fs.readFile(configuredPath, "utf8")).toBe(
+        renderLearningsFile([])
+      );
+      expect(await fs.pathExists(defaultPath)).toBe(false);
+
+      const sentinel = `${renderLearningsFile([])}<!-- custom sentinel -->\n`;
+      await fs.writeFile(configuredPath, sentinel);
+      await createLisa().apply();
+      expect(await fs.readFile(configuredPath, "utf8")).toBe(sentinel);
+      expect(await fs.pathExists(defaultPath)).toBe(false);
+    });
+
+    it("rejects a configured learnings seed whose parent symlink escapes the host project", async () => {
+      await createTypeScriptProject(destDir);
+      const externalDir = path.join(tempDir, "external-rules");
+      await fs.ensureDir(externalDir);
+      await fs.symlink(externalDir, path.join(destDir, "rules"), "dir");
+      await fs.writeJson(path.join(destDir, ".lisa.config.json"), {
+        harness: "claude",
+        projectRulesFile: "rules/CUSTOM_RULES.md",
+      });
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual([
+        expect.stringMatching(/parent escapes project root/i),
+      ]);
+      expect(
+        await fs.pathExists(path.join(externalDir, PROJECT_LEARNINGS))
+      ).toBe(false);
+    });
+
+    it("negative control: copy-overwrite registration clobbers populated learnings", async () => {
+      await createTypeScriptProject(destDir);
+      const createOnlySource = path.join(
+        lisaDir,
+        "all",
+        CREATE_ONLY,
+        ".claude",
+        "rules",
+        PROJECT_LEARNINGS
+      );
+      const overwriteSource = path.join(
+        lisaDir,
+        "all",
+        COPY_OVERWRITE,
+        ".claude",
+        "rules",
+        PROJECT_LEARNINGS
+      );
+      await fs.outputFile(overwriteSource, renderLearningsFile([]));
+      await fs.remove(createOnlySource);
+      const destination = path.join(
+        destDir,
+        ".claude",
+        "rules",
+        PROJECT_LEARNINGS
+      );
+      await fs.outputFile(destination, "persisted sentinel\n");
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      expect(await fs.readFile(destination, "utf8")).toBe(
+        renderLearningsFile([])
+      );
+    });
+
     it("applies configurations to TypeScript project", async () => {
       await createTypeScriptProject(destDir);
 
