@@ -1,7 +1,15 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 # -----------------------------------------------------------------------------
-# Sentry Issue Creation Workflow
+# Sentry Issue Creation Workflow (DEPRECATED)
+# -----------------------------------------------------------------------------
+# ⚠️ DEPRECATED: Sentry is no longer a dispatch destination for CI failures.
+# CI failures are work items for the tracker declared in .lisa.config.json
+# (jira | github | linear) — see create-issue-on-failure.yml. Sentry is
+# observability for runtime errors; filing synthetic CI-failure events there
+# pollutes release health and exits the Lisa work-item lifecycle entirely.
+# This file is kept only so legacy callers that reference it directly by path
+# do not hard-fail at run startup. Do not add new callers.
 # -----------------------------------------------------------------------------
 # ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
 # Any changes may be overwritten by the generation process.

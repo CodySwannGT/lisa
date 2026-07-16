@@ -1,17 +1,36 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 # -----------------------------------------------------------------------------
-# Cascading Issue Creation Workflow
+# Config-Driven Issue Creation Workflow
 # -----------------------------------------------------------------------------
 # ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
 # Any changes may be overwritten by the generation process.
 #
-# This is a dispatcher workflow that intelligently routes failures to the
-# appropriate issue tracking system based on available credentials:
+# This is a dispatcher workflow that routes workflow failures to the issue
+# tracker the project has *declared* in `.lisa.config.json` (`tracker`:
+# jira | github | linear). Credentials are used to VALIDATE the declared
+# destination, never to silently pick one:
 #
-# 1. If Sentry credentials exist → Create Sentry issue
-# 2. Else if Jira credentials exist → Create Jira issue
-# 3. Else → Create GitHub issue (fallback)
+# 1. `tracker: jira`   → requires JIRA_BASE_URL / JIRA_USER_EMAIL /
+#    JIRA_PROJECT_KEY vars + JIRA_API_TOKEN secret.
+# 2. `tracker: linear` → requires `linear.teamKey` in .lisa.config.json +
+#    LINEAR_API_KEY secret.
+# 3. `tracker: github` → always available.
+# 4. No .lisa.config.json / no `tracker` key (pre-config repos) → legacy
+#    credential cascade: Jira if fully configured, else GitHub Issues.
+#
+# If the declared tracker's credentials are NOT reachable from this workflow,
+# the failure is NOT silently rerouted. Instead a single deduplicated GitHub
+# issue labeled `lisa-misconfiguration` is filed naming exactly which
+# variables/secrets are missing, with the original failure details attached.
+# Note: a secret can be "missing" here either because it is unset on the
+# repository or because a caller workflow did not propagate it
+# (`secrets: inherit`) — the two are indistinguishable from inside a
+# reusable workflow.
+#
+# Sentry was removed from the dispatch cascade: CI failures are work items
+# for the configured tracker, not runtime telemetry. See
+# create-sentry-issue-on-failure.yml (deprecated) for the old leg.
 #
 # Example usage in another workflow:
 # ```yaml
@@ -23,9 +42,6 @@
 #     failed_job: 'build_and_test'
 #   secrets: inherit
 # ```
-#
-# The workflow automatically detects which system to use based on repository
-# variables and secrets. No configuration needed in the calling workflow.
 
 name: 📌 Create Issue on Failure (Auto-Dispatch)
 
@@ -73,10 +89,13 @@ on:
     secrets:
       SENTRY_AUTH_TOKEN:
         required: false
-        description: 'Sentry Auth Token (if using Sentry)'
+        description: 'Deprecated — Sentry is no longer a dispatch destination. Kept so legacy callers do not break.'
       JIRA_API_TOKEN:
         required: false
         description: 'Jira API token (if using Jira)'
+      LINEAR_API_KEY:
+        required: false
+        description: 'Linear API key (if using Linear)'
       PAT:
         required: false
         description: 'Personal Access Token (if using GitHub Issues)'
@@ -85,7 +104,8 @@ on:
 # This avoids deadlocks between parent and child workflows
 
 jobs:
-  # Dispatch job determines which system to use based on available credentials
+  # Dispatch job reads the declared tracker from .lisa.config.json and
+  # validates that the credentials for that tracker are reachable.
   dispatch:
     name: 🧭 Determine Issue Tracking System
     runs-on: ubuntu-latest
@@ -93,57 +113,116 @@ jobs:
     permissions:
       contents: read
     outputs:
-      use_sentry: ${{ steps.check.outputs.sentry }}
       use_jira: ${{ steps.check.outputs.jira }}
       use_github: ${{ steps.check.outputs.github }}
+      use_linear: ${{ steps.check.outputs.linear }}
+      mode: ${{ steps.check.outputs.mode }}
+      tracker: ${{ steps.check.outputs.tracker }}
+      linear_team_key: ${{ steps.check.outputs.linear_team_key }}
+      missing: ${{ steps.check.outputs.missing }}
     steps:
-      - name: 🔍 Check Available Credentials
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: 🔍 Read declared tracker and validate credentials
         id: check
+        env:
+          HAS_JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL != '' }}
+          HAS_JIRA_USER_EMAIL: ${{ vars.JIRA_USER_EMAIL != '' }}
+          HAS_JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY != '' }}
+          HAS_JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN != '' }}
+          HAS_LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY != '' }}
         run: |
-          # Check for Sentry (highest priority)
-          if [ -n "${{ vars.SENTRY_ORG }}" ] && [ -n "${{ vars.SENTRY_PROJECT }}" ] && [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
-            echo "sentry=true" >> $GITHUB_OUTPUT
-            echo "jira=false" >> $GITHUB_OUTPUT
-            echo "github=false" >> $GITHUB_OUTPUT
-            echo "✓ Using Sentry for issue tracking"
-            exit 0
+          # Intent comes from .lisa.config.json; credentials only validate it.
+          TRACKER=""
+          LINEAR_TEAM_KEY=""
+          if [ -f .lisa.config.json ]; then
+            TRACKER=$(jq -r '.tracker // empty' .lisa.config.json)
+            LINEAR_TEAM_KEY=$(jq -r '.linear.teamKey // empty' .lisa.config.json)
           fi
 
-          # Check for Jira (second priority)
-          if [ -n "${{ vars.JIRA_BASE_URL }}" ] && [ -n "${{ vars.JIRA_USER_EMAIL }}" ] && [ -n "${{ vars.JIRA_PROJECT_KEY }}" ] && [ -n "${{ secrets.JIRA_API_TOKEN }}" ]; then
-            echo "sentry=false" >> $GITHUB_OUTPUT
-            echo "jira=true" >> $GITHUB_OUTPUT
-            echo "github=false" >> $GITHUB_OUTPUT
-            echo "✓ Using Jira for issue tracking"
-            exit 0
-          fi
+          JIRA="false"
+          GITHUB_ROUTE="false"
+          LINEAR="false"
+          MODE="failure"
+          MISSING=""
 
-          # Fall back to GitHub (always available)
-          echo "sentry=false" >> $GITHUB_OUTPUT
-          echo "jira=false" >> $GITHUB_OUTPUT
-          echo "github=true" >> $GITHUB_OUTPUT
-          echo "✓ Using GitHub Issues for issue tracking (fallback)"
+          jira_missing() {
+            local out=""
+            [ "$HAS_JIRA_BASE_URL" = "true" ] || out="${out}repository variable JIRA_BASE_URL\n"
+            [ "$HAS_JIRA_USER_EMAIL" = "true" ] || out="${out}repository variable JIRA_USER_EMAIL\n"
+            [ "$HAS_JIRA_PROJECT_KEY" = "true" ] || out="${out}repository variable JIRA_PROJECT_KEY\n"
+            [ "$HAS_JIRA_API_TOKEN" = "true" ] || out="${out}secret JIRA_API_TOKEN (unset, or not propagated by the calling workflow via 'secrets: inherit')\n"
+            printf '%b' "$out"
+          }
 
-  # Create Sentry issue (if available)
-  create_sentry_issue:
-    name: 📌 Create Sentry Issue
-    needs: [dispatch]
-    if: ${{ needs.dispatch.outputs.use_sentry == 'true' }}
-    uses: ./.github/workflows/create-sentry-issue-on-failure.yml
-    with:
-      workflow_name: ${{ inputs.workflow_name }}
-      failed_job: ${{ inputs.failed_job }}
-      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-      environment: ${{ inputs.environment }}
-      level: ${{ inputs.level }}
-      node_version: ${{ inputs.node_version }}
-      package_manager: ${{ inputs.package_manager }}
-      working_directory: ${{ inputs.working_directory }}
-    secrets:
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          linear_missing() {
+            local out=""
+            [ -n "$LINEAR_TEAM_KEY" ] || out="${out}'linear.teamKey' in .lisa.config.json\n"
+            [ "$HAS_LINEAR_API_KEY" = "true" ] || out="${out}secret LINEAR_API_KEY (unset, or not propagated by the calling workflow via 'secrets: inherit')\n"
+            printf '%b' "$out"
+          }
 
-  # Create Jira issue (if available)
+          case "$TRACKER" in
+            jira)
+              MISSING=$(jira_missing)
+              if [ -z "$MISSING" ]; then
+                JIRA="true"
+                echo "✓ Tracker declared as Jira and credentials are reachable"
+              else
+                MODE="misconfiguration"
+                GITHUB_ROUTE="true"
+                echo "✗ Tracker declared as Jira but credentials are missing"
+              fi
+              ;;
+            linear)
+              MISSING=$(linear_missing)
+              if [ -z "$MISSING" ]; then
+                LINEAR="true"
+                echo "✓ Tracker declared as Linear and credentials are reachable"
+              else
+                MODE="misconfiguration"
+                GITHUB_ROUTE="true"
+                echo "✗ Tracker declared as Linear but credentials are missing"
+              fi
+              ;;
+            github)
+              GITHUB_ROUTE="true"
+              echo "✓ Tracker declared as GitHub Issues"
+              ;;
+            "")
+              # Pre-config repo: legacy credential cascade (Jira, else GitHub).
+              if [ -z "$(jira_missing)" ]; then
+                JIRA="true"
+                echo "✓ No tracker declared; Jira credentials found (legacy cascade)"
+              else
+                GITHUB_ROUTE="true"
+                echo "✓ No tracker declared; using GitHub Issues (legacy cascade)"
+              fi
+              ;;
+            *)
+              MODE="misconfiguration"
+              GITHUB_ROUTE="true"
+              MISSING="'.tracker' in .lisa.config.json is \"${TRACKER}\", which is not a supported value (jira | github | linear)"
+              echo "✗ Unknown tracker value: ${TRACKER}"
+              ;;
+          esac
+
+          {
+            echo "jira=$JIRA"
+            echo "github=$GITHUB_ROUTE"
+            echo "linear=$LINEAR"
+            echo "mode=$MODE"
+            echo "tracker=${TRACKER:-none}"
+            echo "linear_team_key=$LINEAR_TEAM_KEY"
+            echo "missing<<MISSING_EOF"
+            echo "$MISSING"
+            echo "MISSING_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  # Create Jira issue (declared tracker, credentials validated)
   create_jira_issue:
     name: 📌 Create Jira Issue
     needs: [dispatch]
@@ -162,7 +241,23 @@ jobs:
     secrets:
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
-  # Create GitHub issue (fallback)
+  # Create Linear issue (declared tracker, credentials validated)
+  create_linear_issue:
+    name: 📌 Create Linear Issue
+    needs: [dispatch]
+    if: ${{ needs.dispatch.outputs.use_linear == 'true' }}
+    uses: ./.github/workflows/create-linear-issue-on-failure.yml
+    with:
+      workflow_name: ${{ inputs.workflow_name }}
+      failed_job: ${{ inputs.failed_job }}
+      team_key: ${{ needs.dispatch.outputs.linear_team_key }}
+      node_version: ${{ inputs.node_version }}
+      working_directory: ${{ inputs.working_directory }}
+    secrets:
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+
+  # Create GitHub issue (declared tracker, legacy fallback, or loud
+  # misconfiguration report when the declared tracker is unreachable)
   create_github_issue:
     name: 📌 Create GitHub Issue
     needs: [dispatch]
@@ -174,6 +269,9 @@ jobs:
     with:
       workflow_name: ${{ inputs.workflow_name }}
       failed_job: ${{ inputs.failed_job }}
+      mode: ${{ needs.dispatch.outputs.mode }}
+      misconfig_tracker: ${{ needs.dispatch.outputs.tracker }}
+      misconfig_missing: ${{ needs.dispatch.outputs.missing }}
       node_version: ${{ inputs.node_version }}
       package_manager: ${{ inputs.package_manager }}
       working_directory: ${{ inputs.working_directory }}

@@ -1,0 +1,195 @@
+# This file is managed by Lisa.
+# Do not edit directly — changes will be overwritten on the next `lisa` run.
+# -----------------------------------------------------------------------------
+# Linear Issue Creation Workflow
+# -----------------------------------------------------------------------------
+# ⚠️ WARNING: THIS FILE IS AUTO-GENERATED. DO NOT EDIT MANUALLY! ⚠️
+# Any changes may be overwritten by the generation process.
+# This workflow creates a Linear issue when another workflow fails.
+# It deduplicates: if a non-terminal Linear issue with the same title already
+# exists in the team, it comments the new run URL on that issue instead of
+# filing a duplicate.
+#
+# Example usage in another workflow:
+# ```yaml
+# create_linear_issue_on_failure:
+#   if: failure()
+#   uses: ./.github/workflows/create-linear-issue-on-failure.yml
+#   with:
+#     workflow_name: 'My Workflow'
+#     failed_job: 'build_and_test'
+#     team_key: 'ENG'
+#   secrets:
+#     LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+# ```
+
+name: 📐 Linear Issue on Workflow Failure
+
+on:
+  workflow_call:
+    inputs:
+      workflow_name:
+        required: true
+        type: string
+        description: 'Name of the workflow that failed'
+      failed_job:
+        required: false
+        type: string
+        description: 'Name of the job that failed (optional)'
+      team_key:
+        required: true
+        type: string
+        description: 'Linear team key (e.g., ENG) — usually linear.teamKey from .lisa.config.json'
+      node_version:
+        description: 'Node.js version to use'
+        required: false
+        default: '22.21.1'
+        type: string
+      working_directory:
+        description: 'Directory to run commands in (if not root)'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      LINEAR_API_KEY:
+        required: true
+        description: 'Linear API key for authentication'
+
+# Concurrency is managed by the parent workflow that calls this one
+# This avoids deadlocks between parent and child workflows
+
+jobs:
+  create_linear_issue:
+    name: 📝 Create Linear Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 📐 Create Linear Issue
+        id: create_linear_issue
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'N/A' }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          cd "${{ inputs.working_directory || '.' }}"
+
+          # Set variables
+          WORKFLOW_NAME="${{ inputs.workflow_name }}"
+          FAILED_JOB="${{ inputs.failed_job || 'Unknown' }}"
+          TEAM_KEY="${{ inputs.team_key }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Get commit message from env so GitHub expressions are never expanded inside shell.
+          COMMIT_MESSAGE="${COMMIT_MESSAGE:-N/A}"
+
+          # Deterministic title so repeated failures dedupe into one issue
+          if [ "$FAILED_JOB" != "Unknown" ]; then
+            TITLE="🚨 Workflow Failure: ${WORKFLOW_NAME} - ${FAILED_JOB}"
+          else
+            TITLE="🚨 Workflow Failure: ${WORKFLOW_NAME}"
+          fi
+
+          FAILED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          linear_api() {
+            curl -s \
+              -H "Authorization: ${LINEAR_API_KEY}" \
+              -H "Content-Type: application/json" \
+              --data "$1" \
+              "https://api.linear.app/graphql"
+          }
+
+          # Resolve the team id from the team key
+          TEAM_QUERY=$(jq -n --arg key "$TEAM_KEY" '{
+            query: "query($key: String!) { teams(filter: { key: { eq: $key } }) { nodes { id key } } }",
+            variables: { key: $key }
+          }')
+          TEAM_RESPONSE=$(linear_api "$TEAM_QUERY")
+          TEAM_ID=$(echo "$TEAM_RESPONSE" | jq -r '.data.teams.nodes[0].id // empty')
+
+          if [ -z "$TEAM_ID" ]; then
+            echo "Failed to resolve Linear team for key: $TEAM_KEY"
+            echo "API response:"
+            echo "$TEAM_RESPONSE" | jq . || echo "$TEAM_RESPONSE"
+            exit 1
+          fi
+
+          # Dedupe: comment on an existing non-terminal issue with the same
+          # title instead of filing a duplicate.
+          SEARCH_QUERY=$(jq -n --arg key "$TEAM_KEY" --arg title "$TITLE" '{
+            query: "query($key: String!, $title: String!) { issues(filter: { team: { key: { eq: $key } }, title: { eq: $title }, state: { type: { nin: [\"completed\", \"canceled\"] } } }, first: 1) { nodes { id identifier url } } }",
+            variables: { key: $key, title: $title }
+          }')
+          SEARCH_RESPONSE=$(linear_api "$SEARCH_QUERY")
+          EXISTING_ID=$(echo "$SEARCH_RESPONSE" | jq -r '.data.issues.nodes[0].id // empty')
+          EXISTING_IDENTIFIER=$(echo "$SEARCH_RESPONSE" | jq -r '.data.issues.nodes[0].identifier // empty')
+          EXISTING_URL=$(echo "$SEARCH_RESPONSE" | jq -r '.data.issues.nodes[0].url // empty')
+
+          if [ -n "$EXISTING_ID" ]; then
+            COMMENT_BODY="Recurred: [new failing run](${RUN_URL}) at ${FAILED_AT} (commit ${{ github.sha }})."
+            COMMENT_MUTATION=$(jq -n --arg issueId "$EXISTING_ID" --arg body "$COMMENT_BODY" '{
+              query: "mutation($issueId: String!, $body: String!) { commentCreate(input: { issueId: $issueId, body: $body }) { success } }",
+              variables: { issueId: $issueId, body: $body }
+            }')
+            COMMENT_RESPONSE=$(linear_api "$COMMENT_MUTATION")
+            SUCCESS=$(echo "$COMMENT_RESPONSE" | jq -r '.data.commentCreate.success // false')
+            if [ "$SUCCESS" = "true" ]; then
+              echo "Deduped into existing Linear issue: $EXISTING_IDENTIFIER"
+              echo "issue_identifier=$EXISTING_IDENTIFIER" >> $GITHUB_OUTPUT
+              echo "issue_url=$EXISTING_URL" >> $GITHUB_OUTPUT
+            else
+              echo "Failed to comment on existing Linear issue $EXISTING_IDENTIFIER. API response:"
+              echo "$COMMENT_RESPONSE" | jq . || echo "$COMMENT_RESPONSE"
+              exit 1
+            fi
+            exit 0
+          fi
+
+          # Build the issue description from properly escaped values
+          DESCRIPTION=$(jq -n \
+            --arg workflow_name "${WORKFLOW_NAME}" \
+            --arg failed_job "${FAILED_JOB}" \
+            --arg run_url "${RUN_URL}" \
+            --arg repository "${{ github.repository }}" \
+            --arg commit "${{ github.sha }}" \
+            --arg commit_message "${COMMIT_MESSAGE}" \
+            --arg triggered_by "${{ github.actor }}" \
+            --arg failed_at "${FAILED_AT}" \
+            -r '"## Workflow Failure\n\nThe \"" + $workflow_name + "\" workflow has failed" + (if $failed_job != "Unknown" then " in job: **" + $failed_job + "**" else "" end) + ".\n\n### Details\n- **Workflow Run**: [View Run Details](" + $run_url + ")\n- **Repository**: " + $repository + "\n- **Commit**: " + $commit + "\n- **Commit Message**: " + $commit_message + "\n- **Triggered by**: " + $triggered_by + "\n- **Failed at**: " + $failed_at + "\n\nPlease investigate the workflow logs for more details on the failure."')
+
+          CREATE_MUTATION=$(jq -n \
+            --arg teamId "$TEAM_ID" \
+            --arg title "$TITLE" \
+            --arg description "$DESCRIPTION" \
+            '{
+              query: "mutation($teamId: String!, $title: String!, $description: String!) { issueCreate(input: { teamId: $teamId, title: $title, description: $description }) { success issue { id identifier url } } }",
+              variables: { teamId: $teamId, title: $title, description: $description }
+            }')
+          CREATE_RESPONSE=$(linear_api "$CREATE_MUTATION")
+          ISSUE_IDENTIFIER=$(echo "$CREATE_RESPONSE" | jq -r '.data.issueCreate.issue.identifier // empty')
+          ISSUE_URL=$(echo "$CREATE_RESPONSE" | jq -r '.data.issueCreate.issue.url // empty')
+
+          if [ -n "$ISSUE_IDENTIFIER" ]; then
+            echo "Successfully created Linear issue: $ISSUE_IDENTIFIER"
+            echo "issue_identifier=$ISSUE_IDENTIFIER" >> $GITHUB_OUTPUT
+            echo "issue_url=$ISSUE_URL" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to create Linear issue. API response:"
+            echo "$CREATE_RESPONSE" | jq . || echo "$CREATE_RESPONSE"
+            exit 1
+          fi
+
+      - name: 📢 Report Issue Creation
+        if: steps.create_linear_issue.outputs.issue_identifier
+        run: |
+          cd "${{ inputs.working_directory || '.' }}"
+          echo "Created/updated Linear issue: ${{ steps.create_linear_issue.outputs.issue_identifier }}"
+          echo "Issue URL: ${{ steps.create_linear_issue.outputs.issue_url }}"
