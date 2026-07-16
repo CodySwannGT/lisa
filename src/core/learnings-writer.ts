@@ -97,7 +97,7 @@ export function parseLearningsFile(content: string): LearningEntry[] {
   const jsonStart = FILE_HEADER.length + JSON_FENCE_START.length;
   const jsonEnd = content.length - JSON_FENCE_END.length;
   const entries = parseJsonLines(content.slice(jsonStart, jsonEnd)).map(
-    validateLearningEntry
+    validateParsedLearningEntry
   );
   if (new Set(entries.map(entry => entry.id)).size !== entries.length) {
     throw new Error("Invalid project learnings payload: duplicate ids");
@@ -142,7 +142,7 @@ function assertDocumentBudget(
 ): void {
   if (entryCount > LEARNINGS_CONTRACT.maxEntries) {
     throw new Error(
-      `${context} exceeds maxEntries ${LEARNINGS_CONTRACT.maxEntries}`
+      `${context} exceeds maxEntries: measured ${entryCount}, allowed ${LEARNINGS_CONTRACT.maxEntries}`
     );
   }
   const estimatedTokens = estimateLearningTokens(content);
@@ -151,6 +151,45 @@ function assertDocumentBudget(
       `${context} exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens} (measured ${estimatedTokens})`
     );
   }
+}
+
+/**
+ * Add a stable entry identifier to validation failures without evaluating
+ * untrusted accessors from parsed JSON.
+ * @param candidate - Parsed JSONL value
+ * @param index - Zero-based JSONL entry index
+ * @returns Validated learning entry
+ */
+function validateParsedLearningEntry(
+  candidate: unknown,
+  index: number
+): LearningEntry {
+  try {
+    return validateLearningEntry(candidate);
+  } catch (error) {
+    const id = readDiagnosticEntryId(candidate);
+    const label =
+      id === undefined ? `entry ${index + 1}` : `entry ${JSON.stringify(id)}`;
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid learning ${label}: ${detail}`);
+  }
+}
+
+/**
+ * Read a parsed entry id only when it is an inert own data property.
+ * @param candidate - Parsed JSONL value
+ * @returns Safe diagnostic id, when present
+ */
+function readDiagnosticEntryId(candidate: unknown): string | undefined {
+  if (candidate === null || typeof candidate !== "object") {
+    return undefined;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(candidate, "id");
+  return descriptor !== undefined &&
+    "value" in descriptor &&
+    typeof descriptor.value === "string"
+    ? descriptor.value
+    : undefined;
 }
 
 /**
