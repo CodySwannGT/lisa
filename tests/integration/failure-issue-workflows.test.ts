@@ -1,7 +1,6 @@
-import * as fs from "fs-extra";
-import yaml from "js-yaml";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadWorkflow, stepsOf } from "../helpers/workflow-test-utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -26,55 +25,6 @@ const CREATE_GITHUB_ISSUE_YML = path.join(
   WORKFLOWS_DIR,
   "create-github-issue-on-failure.yml"
 );
-const CLAUDE_CI_AUTO_FIX_YML = path.join(
-  WORKFLOWS_DIR,
-  "reusable-claude-ci-auto-fix.yml"
-);
-
-/** Shape of a single step inside a workflow job's `steps:` list. */
-interface WorkflowStep {
-  id?: string;
-  name?: string;
-  run?: string;
-  uses?: string;
-  if?: string;
-  env?: Record<string, unknown>;
-  with?: Record<string, unknown>;
-}
-
-/** Shape of a single job inside a workflow's `jobs:` map. */
-interface WorkflowJob {
-  steps?: WorkflowStep[];
-  if?: string;
-  uses?: string;
-  with?: Record<string, unknown>;
-  outputs?: Record<string, string>;
-}
-
-/** Root shape of the parsed failure issue workflows. */
-interface FailureIssueWorkflow {
-  jobs: Record<string, WorkflowJob>;
-}
-
-/**
- * Parses a workflow YAML file into the shape the assertions consume.
- * @param workflowPath Absolute path to the workflow file.
- * @returns The parsed workflow.
- */
-function loadWorkflow(workflowPath: string): FailureIssueWorkflow {
-  return yaml.load(
-    fs.readFileSync(workflowPath, "utf8")
-  ) as FailureIssueWorkflow;
-}
-
-/**
- * Flattens every job's steps into a single list.
- * @param workflow The parsed workflow.
- * @returns All steps across all jobs.
- */
-function stepsOf(workflow: FailureIssueWorkflow): WorkflowStep[] {
-  return Object.values(workflow.jobs).flatMap(job => job.steps ?? []);
-}
 
 describe("failure issue workflows", () => {
   it.each([
@@ -222,84 +172,5 @@ describe("issue deduplication", () => {
       'state: { type: { nin: [\\"completed\\", \\"canceled\\"] } }'
     );
     expect(run).toContain("commentCreate");
-  });
-});
-
-describe("claude ci auto-fix ownership and fix detection", () => {
-  const workflow = loadWorkflow(CLAUDE_CI_AUTO_FIX_YML);
-  const autoFixSteps = workflow.jobs["auto-fix"]?.steps ?? [];
-
-  it("captures the pre-fix SHA before Claude runs and compares the remote against it", () => {
-    const PRE_CLAUDE_STEP_ID = "pre-claude";
-    const claudeIndex = autoFixSteps.findIndex(
-      step => step.id === "claude-fix"
-    );
-    const preClaudeIndex = autoFixSteps.findIndex(
-      step => step.id === PRE_CLAUDE_STEP_ID
-    );
-
-    expect(preClaudeIndex).toBeGreaterThanOrEqual(0);
-    expect(preClaudeIndex).toBeLessThan(claudeIndex);
-
-    const checkFix = autoFixSteps.find(step => step.id === "check-fix");
-    expect(checkFix?.env?.PRE_SHA).toBe(
-      "${{ steps.pre-claude.outputs.pre_sha }}"
-    );
-    // A stale side branch from an earlier attempt must not count as a fix.
-    expect(checkFix?.env?.PRE_SIDE_SHA).toBe(
-      "${{ steps.pre-claude.outputs.pre_side_sha }}"
-    );
-    expect(checkFix?.run).toContain('"$SIDE_SHA" != "$PRE_SIDE_SHA"');
-    // The old logic compared post-commit local HEAD to the remote — always
-    // equal after a successful push, misreporting every fix as a failure.
-    expect(checkFix?.run).not.toContain("CURRENT_SHA=$(git rev-parse HEAD)");
-  });
-
-  it("stands down for a fresh babysitter lease or activity during the quiet period", () => {
-    const guard = autoFixSteps.find(step => step.id === "ownership-guard");
-    expect(guard).toBeDefined();
-    expect(guard?.run).toContain("lease_is_fresh");
-    expect(guard?.run).toContain("QUIET_PERIOD_MINUTES");
-    expect(guard?.env?.LEASE_LABEL).toBe("${{ inputs.lease_label }}");
-  });
-
-  it("works on a side branch and never pushes to the failing branch", () => {
-    const preClaude = autoFixSteps.find(step => step.id === "pre-claude");
-    expect(preClaude?.run).toContain("claude-auto-fix-");
-
-    const claudeFix = autoFixSteps.find(step => step.id === "claude-fix");
-    const prompt = String(claudeFix?.with?.prompt ?? "");
-    expect(prompt).toContain("NEVER push to");
-
-    const ensurePr = autoFixSteps.find(
-      step => step.name === "Ensure fix PR exists"
-    );
-    expect(ensurePr).toBeDefined();
-  });
-
-  it("falls back to a non-frozen install so lockfile failures still reach Claude", () => {
-    const run =
-      autoFixSteps.find(step => step.name === "Install dependencies")?.run ??
-      "";
-    // Each frozen install must fall back to the real non-frozen command,
-    // not merely tolerate failure.
-    expect(run).toMatch(/npm ci \|\| \{[^}]*npm install --no-audit --no-fund/);
-    expect(run).toMatch(
-      /bun install --frozen-lockfile \|\| \{[^}]*bun install/
-    );
-    expect(run).toMatch(
-      /yarn install --frozen-lockfile \|\| \{[^}]*yarn install/
-    );
-  });
-
-  it("files escalation tickets with honest titles about whether Claude ran", () => {
-    const createIssue = workflow.jobs["create-issue"];
-    expect(createIssue?.if).toContain("skipped_ownership != 'true'");
-    const failedJob = String(createIssue?.with?.failed_job ?? "");
-    expect(failedJob).toContain("Claude auto-fix ran and could not fix");
-    expect(failedJob).toContain("Auto-fix harness failed before Claude ran");
-
-    const fixPrEscalation = workflow.jobs["create-issue-for-failed-fix-pr"];
-    expect(fixPrEscalation?.if).toContain("claude-auto-fix-");
   });
 });
