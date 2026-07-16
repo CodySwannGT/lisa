@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.217.5](https://github.com/CodySwannGT/lisa/compare/v2.217.4...v2.217.5) (2026-07-16)
+
+
+### Bug Fixes
+
+* **sync:** preserve human legacy monitor values ([cb2f4f2](https://github.com/CodySwannGT/lisa/commit/cb2f4f25955ba0f64832a2ac8824534bfe3d2729))
+
 ### [2.217.4](https://github.com/CodySwannGT/lisa/compare/v2.217.3...v2.217.4) (2026-07-16)
 
 
