@@ -9,6 +9,7 @@ const LISA_CONFIG_FILE = ".lisa.config.json";
 
 /** Doctor check name for the legacy Codex overlay detection. */
 const CODEX_OVERLAY_CHECK = "Codex overlay current?";
+const MONITOR_THRESHOLD_KEYS_CHECK = "Monitor threshold keys current?";
 
 let tempDir: string | undefined;
 
@@ -73,6 +74,103 @@ describe("runDoctor", () => {
     );
 
     expect(setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("warns when legacy monitor threshold keys are present", async () => {
+    const cwd = await getTempDir();
+    await writeFile(
+      path.join(cwd, LISA_CONFIG_FILE),
+      JSON.stringify({
+        monitor: {
+          thresholds: {
+            sentryMinEvents24h: 50,
+            xrayFaultRatePct: 12,
+          },
+        },
+      })
+    );
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        name: MONITOR_THRESHOLD_KEYS_CHECK,
+        status: "warn",
+        detail: expect.stringContaining(
+          "monitor.thresholds.sentryMinEvents24h -> monitor.thresholds.minEvents24h"
+        ),
+      })
+    );
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        detail: expect.stringContaining(
+          "monitor.thresholds.xrayFaultRatePct -> monitor.thresholds.faultRatePct"
+        ),
+      })
+    );
+  });
+
+  it("does not warn when only current monitor threshold keys are present", async () => {
+    const cwd = await getTempDir();
+    await writeFile(
+      path.join(cwd, LISA_CONFIG_FILE),
+      JSON.stringify({
+        monitor: {
+          thresholds: {
+            minEvents24h: 50,
+            faultRatePct: 12,
+          },
+        },
+      })
+    );
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        name: MONITOR_THRESHOLD_KEYS_CHECK,
+        status: "ok",
+      })
+    );
+  });
+
+  it("warns on legacy leftovers even when current monitor keys are present", async () => {
+    const cwd = await getTempDir();
+    await writeFile(
+      path.join(cwd, LISA_CONFIG_FILE),
+      JSON.stringify({
+        monitor: {
+          thresholds: {
+            minEvents24h: 5,
+            sentryMinEvents24h: 50,
+          },
+        },
+      })
+    );
+
+    const result = await runDoctor(
+      cwd,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn() }
+    );
+
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        name: MONITOR_THRESHOLD_KEYS_CHECK,
+        status: "warn",
+        detail: expect.stringContaining(
+          "monitor.thresholds.sentryMinEvents24h -> monitor.thresholds.minEvents24h"
+        ),
+      })
+    );
   });
 
   it("warns when the legacy pre-2.198 Codex overlay is still present", async () => {
