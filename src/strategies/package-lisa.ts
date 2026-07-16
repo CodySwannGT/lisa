@@ -13,6 +13,7 @@ import {
   readJsonOrNull,
 } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
+import { LISA_PACKAGE_NAME } from "../core/self-apply.js";
 import type {
   PackageLisaTemplate,
   ResolvedPackageLisaTemplate,
@@ -220,24 +221,47 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // Load and merge all package.lisa.json templates from type hierarchy
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
 
+    // A self-apply against the Lisa source repo must apply only dependency
+    // governance (security floors), never Lisa's own scripts/defaults — those
+    // are hand-authored, not template-derived. Same restriction as a
+    // skip-git-check apply, regardless of the git-check flag.
+    const isLisaSelfApply = projectJson.name === LISA_PACKAGE_NAME;
+
     // During a skip-git-check apply on an existing package.json, restrict to the
     // security-critical force.resolutions/force.overrides sections so host
     // scripts/deps/defaults are preserved while dependency pins still land.
-    const effective = securityPinsOnly
-      ? this.restrictToSecurityPins(merged)
-      : merged;
+    const effective =
+      securityPinsOnly || isLisaSelfApply
+        ? this.restrictToSecurityPins(merged)
+        : merged;
 
     // Apply force/defaults/merge logic to project's package.json
-    return this.applyTemplate(projectJson, effective);
+    const result = this.applyTemplate(projectJson, effective);
+
+    // Never emit a package.json whose overrides/resolutions carry a `$name`
+    // self-reference without the backing direct dependency — npm ci fails in
+    // CI with a dangling $ref. Fail the apply loudly instead.
+    assertNoDanglingDollarRefs(result, path.basename(packageJsonPath));
+
+    return result;
   }
 
   /**
    * Reduce a resolved template to only the security-critical force sections
-   * (`resolutions` and `overrides`), dropping force.scripts/devDependencies,
-   * defaults, merge, and remove. Used during skip-git-check (postinstall)
-   * applies so dependency pins still apply without clobbering host config.
+   * (`resolutions` and `overrides`), dropping force.scripts, defaults, merge,
+   * and remove. Used during skip-git-check (postinstall) applies so dependency
+   * pins still apply without clobbering host config.
+   *
+   * The retained overrides/resolutions may contain `$name` self-references,
+   * which npm resolves against a direct dependency of that name. If the project
+   * lacks that direct dep, `npm ci` fails in CI with a dangling $ref. So we also
+   * pull the referenced package's forced pin from force.dependencies /
+   * force.devDependencies into the restricted set, materializing the backing
+   * direct dependency alongside the override. Force devDeps that back no $ref
+   * are still dropped, preserving the host's own dev-dep versions.
    * @param template - Fully merged template from the type hierarchy
-   * @returns Template carrying only force.resolutions and force.overrides
+   * @returns Template carrying force.resolutions/force.overrides plus the direct
+   *   dependencies that back any `$name` reference within them
    * @private
    */
   private restrictToSecurityPins(
@@ -250,7 +274,48 @@ export class PackageLisaStrategy implements ICopyStrategy {
     if (template.force.overrides !== undefined) {
       force.overrides = template.force.overrides;
     }
+    this.includeBackingDirectDeps(template, force);
     return { force, defaults: {}, merge: {}, remove: {} };
+  }
+
+  /**
+   * For every `$name` reference in the restricted overrides/resolutions, copy
+   * the forced pin for `name` from the full template's force.dependencies /
+   * force.devDependencies into the restricted force section so the backing
+   * direct dependency is materialized. A devDependencies pin wins over a
+   * dependencies pin when both exist.
+   * @param template - Fully merged template (source of the forced dep pins)
+   * @param force - Restricted force section being assembled (mutated in place)
+   * @private
+   */
+  private includeBackingDirectDeps(
+    template: ResolvedPackageLisaTemplate,
+    force: Record<string, unknown>
+  ): void {
+    const referenced = collectDollarReferences([
+      force.resolutions,
+      force.overrides,
+    ]);
+    if (referenced.size === 0) {
+      return;
+    }
+    const forceDeps = asRecord(template.force.dependencies);
+    const forceDevDeps = asRecord(template.force.devDependencies);
+    const deps: Record<string, unknown> = {};
+    const devDeps: Record<string, unknown> = {};
+    for (const name of referenced) {
+      if (forceDevDeps[name] !== undefined) {
+        devDeps[name] = forceDevDeps[name];
+      } else if (forceDeps[name] !== undefined) {
+        deps[name] = forceDeps[name];
+      }
+    }
+    if (Object.keys(devDeps).length > 0) {
+      force.devDependencies = devDeps;
+    }
+    if (Object.keys(deps).length > 0) {
+      force.dependencies = deps;
+    }
   }
 
   /**
@@ -678,5 +743,107 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
     return result;
   }
+}
+
+/** package.json sections whose keys are treated as direct dependencies. */
+const DIRECT_DEPENDENCY_SECTIONS = [
+  "dependencies",
+  "devDependencies",
+  "optionalDependencies",
+  "peerDependencies",
+] as const;
+
+/**
+ * Narrow an unknown value to a plain object record, returning {} otherwise.
+ * @param value - Candidate value
+ * @returns The value as a record, or an empty record when it is not a plain object
+ */
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+/**
+ * Recursively collect every `$name` reference found in a single JSON value. npm
+ * overrides/resolutions use a `"$name"` string value to mean "resolve to the
+ * version of the direct dependency `name`", and the reference may appear at any
+ * nesting depth (npm allows nested override objects).
+ * @param value - JSON value to scan
+ * @returns Referenced package names (without the leading `$`), possibly with dups
+ */
+function collectRefsFromValue(value: unknown): readonly string[] {
+  if (typeof value === "string") {
+    const match = /^\$(.+)$/.exec(value);
+    return match?.[1] !== undefined ? [match[1]] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(collectRefsFromValue);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.values(value).flatMap(collectRefsFromValue);
+  }
+  return [];
+}
+
+/**
+ * Collect the distinct `$name` references across the given sections (typically
+ * overrides and resolutions).
+ * @param sections - Values to scan
+ * @returns Set of referenced package names (without the leading `$`)
+ */
+function collectDollarReferences(sections: readonly unknown[]): Set<string> {
+  return new Set(sections.flatMap(collectRefsFromValue));
+}
+
+/**
+ * Collect the names of every direct dependency declared across a package.json's
+ * dependency sections.
+ * @param pkg - Merged package.json object
+ * @returns Set of direct dependency names
+ */
+function collectDirectDependencyNames(
+  pkg: Record<string, unknown>
+): Set<string> {
+  return new Set(
+    DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
+      Object.keys(asRecord(pkg[section]))
+    )
+  );
+}
+
+/**
+ * Fail the apply when the merged package.json carries a `$name` self-reference
+ * in overrides/resolutions without the backing direct dependency. Writing such
+ * a file leaves a dangling $ref that passes local checks but breaks `npm ci` in
+ * CI only. Throwing here surfaces the misconfiguration at apply time instead.
+ * @param pkg - Merged package.json about to be written
+ * @param fileName - Basename used in the error message
+ * @throws JsonMergeError when any `$name` reference lacks a matching direct dep
+ */
+function assertNoDanglingDollarRefs(
+  pkg: Record<string, unknown>,
+  fileName: string
+): void {
+  const referenced = collectDollarReferences([pkg.overrides, pkg.resolutions]);
+  if (referenced.size === 0) {
+    return;
+  }
+  const directDeps = collectDirectDependencyNames(pkg);
+  const missing = Array.from(referenced).filter(name => !directDeps.has(name));
+  if (missing.length === 0) {
+    return;
+  }
+  const refs = missing.map(name => `$${name}`).join(", ");
+  const isPlural = missing.length > 1;
+  throw new JsonMergeError(
+    fileName,
+    `Dangling ${refs} in overrides/resolutions: a "$name" self-reference ` +
+      `requires "name" to be a direct dependency, but ${missing.join(", ")} ` +
+      `${isPlural ? "are" : "is"} not present in ` +
+      `dependencies/devDependencies. Add a force.devDependencies entry for ` +
+      `${isPlural ? "each" : "it"} in package.lisa.json, or drop the reference.`
+  );
 }
 /* eslint-enable max-lines -- Re-enable after comprehensive package merge strategy */

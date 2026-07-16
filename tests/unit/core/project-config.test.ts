@@ -91,19 +91,16 @@ describe("project-config", () => {
       expect(result).toEqual({ harness: "fleet" });
     });
 
-    it.each(["windsurf", "both"])(
-      "throws on an invalid or removed harness value (%p)",
-      async harness => {
-        await fs.writeFile(
-          path.join(tempDir, PROJECT_CONFIG_FILENAME),
-          JSON.stringify({ harness }),
-          "utf8"
-        );
-        await expect(readProjectConfig(tempDir)).rejects.toThrow(
-          /Invalid harness/
-        );
-      }
-    );
+    it("throws on an invalid harness value", async () => {
+      await fs.writeFile(
+        path.join(tempDir, PROJECT_CONFIG_FILENAME),
+        JSON.stringify({ harness: "windsurf" }),
+        "utf8"
+      );
+      await expect(readProjectConfig(tempDir)).rejects.toThrow(
+        /Invalid harness/
+      );
+    });
 
     it("throws on non-string harness value", async () => {
       await fs.writeFile(
@@ -303,11 +300,13 @@ describe("project-config", () => {
   });
 
   describe("normalizeHarness", () => {
-    it("passes canonical values through, maps 'all' to 'fleet', rejects the rest", () => {
+    it("passes canonical values through, maps aliases, rejects the rest", () => {
       for (const value of HARNESS_VALUES) {
         expect(normalizeHarness(value)).toBe(value);
       }
       expect(normalizeHarness("all")).toBe("fleet");
+      // The CLI normalizer stays strict on retired values; the config-read path
+      // migrates "both" separately (see readProjectConfig / detectLegacyHarnessMigration).
       expect(normalizeHarness("both")).toBeUndefined();
       expect(normalizeHarness("windsurf")).toBeUndefined();
       expect(normalizeHarness("")).toBeUndefined();
