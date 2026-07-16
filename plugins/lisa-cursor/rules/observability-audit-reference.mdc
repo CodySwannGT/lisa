@@ -60,11 +60,11 @@ Collect live signals via the stack `ops-specialist` when present (Expo/Rails), e
 
 | Signal | Fileable when |
 |---|---|
-| Sentry issue | `is:unresolved` **and** `level:error|fatal` **and** events in last 24h ≥ `sentryMinEvents24h` (default 10). Skip resolved/ignored/muted and below-floor noise. |
+| Error event | Unresolved error/fatal signal **and** events in last 24h ≥ `monitor.thresholds.minEvents24h` (default 1). Skip resolved, ignored, muted, and below-floor noise. |
 | Error-rate spike | error rate ≥ `errorRateSpikeMultiplier`× (default 2×) the prior-window baseline **and** above an absolute floor (not 1-of-2 requests). |
 | Latency regression | p95 ≥ `p95LatencyMs` (default 1000ms) sustained, **or** p95 up ≥ 50% vs the prior window. |
 | CloudWatch alarm | any alarm in `ALARM` state. |
-| X-Ray fault rate | fault traces > `xrayFaultRatePct` (default 5%) of traces in the window. |
+| Fault rate | fault observations > `monitor.thresholds.faultRatePct` (default 5%) of observations in the window. |
 | Client-side (Playwright) | repeated console `error` or a 5xx network response on a smoke flow. |
 
 Everything below the bar is reported (so the human sees it) but **not** ticketed. `--all-gaps` does not lower anomaly thresholds — it only widens *gap* tiers.
