@@ -1,111 +1,110 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
-import type { DoctorCheck } from "./doctor.js";
 
-const CHECK_NAME = "Monitor threshold keys current?";
-const COMMITTED_CONFIG = ".lisa.config.json";
-const LOCAL_CONFIG = ".lisa.config.local.json";
-const MONITOR_THRESHOLDS_PREFIX = "monitor.thresholds.";
-const LEGACY_MONITOR_THRESHOLD_KEYS = [
+const MONITOR_THRESHOLD_CONFIG_CHECK_NAME = "Monitor threshold keys current?";
+
+const CONFIG_FILES = [".lisa.config.json", ".lisa.config.local.json"] as const;
+
+const LEGACY_MONITOR_THRESHOLDS = [
   {
-    legacy: `${MONITOR_THRESHOLDS_PREFIX}sentryMinEvents24h`,
-    replacement: `${MONITOR_THRESHOLDS_PREFIX}minEvents24h`,
+    legacy: "monitor.thresholds.sentryMinEvents24h",
+    current: "monitor.thresholds.minEvents24h",
+    property: "sentryMinEvents24h",
   },
   {
-    legacy: `${MONITOR_THRESHOLDS_PREFIX}xrayFaultRatePct`,
-    replacement: `${MONITOR_THRESHOLDS_PREFIX}faultRatePct`,
+    legacy: "monitor.thresholds.xrayFaultRatePct",
+    current: "monitor.thresholds.faultRatePct",
+    property: "xrayFaultRatePct",
   },
 ] as const;
 
-/**
- * Safely parse a Lisa config file for non-blocking advisory checks.
- * @param configPath - Config path to parse
- * @returns Parsed config or undefined when unavailable/malformed
- */
-async function readConfigForAdvisoryCheck(
-  configPath: string
-): Promise<unknown | undefined> {
-  if (!existsSync(configPath)) {
-    return undefined;
-  }
-  try {
-    return JSON.parse(await readFile(configPath, "utf8")) as unknown;
-  } catch {
-    return undefined;
-  }
+/** Result of inspecting one optional config file. */
+interface ConfigInspection {
+  findings: string[];
+  uninspectable?: string;
 }
 
 /**
- * Determine whether an object owns a dotted config path.
- * @param value - Object to inspect
- * @param segments - Config key path segments
- * @returns True when every segment exists as an own property
+ * Return an object-shaped value as a string-keyed record.
+ * @param value - Value to narrow
+ * @returns Record for objects, otherwise undefined
  */
-function hasConfigPathSegments(value: unknown, segments: string[]): boolean {
-  if (segments.length === 0) {
-    return true;
-  }
-  if (value === null || typeof value !== "object") {
-    return false;
-  }
-  const segment = segments[0];
-  const remaining = segments.slice(1);
-  if (segment === undefined) {
-    return true;
-  }
-  if (!Object.prototype.hasOwnProperty.call(value, segment)) {
-    return false;
-  }
-  return hasConfigPathSegments(
-    (value as Record<string, unknown>)[segment],
-    remaining
-  );
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 /**
- * Determine whether an object owns a dotted config path.
- * @param value - Object to inspect
- * @param dottedPath - Dot-separated config key path
- * @returns True when every segment exists as an own property
- */
-function hasConfigPath(value: unknown, dottedPath: string): boolean {
-  return hasConfigPathSegments(value, dottedPath.split("."));
-}
-
-/**
- * Warn when projects still carry deprecated monitor threshold keys.
+ * Find legacy monitor threshold keys in one raw config file.
+ * Parse failures are reported by doctor's existing project-config check.
  * @param targetPath - Project path to inspect
- * @returns Doctor check result
+ * @param fileName - Raw config file to inspect
+ * @returns Legacy-path migration findings
+ */
+async function legacyFindingsForFile(
+  targetPath: string,
+  fileName: (typeof CONFIG_FILES)[number]
+): Promise<ConfigInspection> {
+  const configPath = path.join(targetPath, fileName);
+  if (!existsSync(configPath)) return { findings: [] };
+
+  try {
+    const config = asRecord(JSON.parse(await readFile(configPath, "utf8")));
+    const monitor = asRecord(config?.["monitor"]);
+    const thresholds = asRecord(monitor?.["thresholds"]);
+
+    return {
+      findings: LEGACY_MONITOR_THRESHOLDS.filter(threshold =>
+        Object.hasOwn(thresholds ?? {}, threshold.property)
+      ).map(
+        threshold => `${fileName}: ${threshold.legacy} -> ${threshold.current}`
+      ),
+    };
+  } catch {
+    return { findings: [], uninspectable: fileName };
+  }
+}
+
+/**
+ * Find legacy monitor keys in committed and local config independently.
+ * @param targetPath - Project path to inspect
+ * @returns One named doctor check result
  */
 export async function checkLegacyMonitorThresholds(
   targetPath: string
-): Promise<DoctorCheck> {
-  const configs = await Promise.all(
-    [COMMITTED_CONFIG, LOCAL_CONFIG].map(async fileName => ({
-      fileName,
-      config: await readConfigForAdvisoryCheck(path.join(targetPath, fileName)),
-    }))
+): Promise<{
+  name: string;
+  status: "ok" | "warn";
+  detail: string;
+}> {
+  const inspections = await Promise.all(
+    CONFIG_FILES.map(fileName => legacyFindingsForFile(targetPath, fileName))
   );
-  const findings = configs.flatMap(({ fileName, config }) =>
-    LEGACY_MONITOR_THRESHOLD_KEYS.filter(({ legacy }) =>
-      hasConfigPath(config, legacy)
-    ).map(
-      ({ legacy, replacement }) => `${fileName}: ${legacy} -> ${replacement}`
-    )
+  const findings = inspections.flatMap(inspection => inspection.findings);
+  const uninspectable = inspections.flatMap(inspection =>
+    inspection.uninspectable ? [inspection.uninspectable] : []
   );
 
-  if (findings.length === 0) {
-    return {
-      name: CHECK_NAME,
-      status: "ok",
-      detail: "No legacy monitor threshold keys present",
-    };
-  }
-
-  return {
-    name: CHECK_NAME,
-    status: "warn",
-    detail: `Legacy monitor threshold keys found; migrate ${findings.join(", ")}`,
-  };
+  return findings.length === 0 && uninspectable.length === 0
+    ? {
+        name: MONITOR_THRESHOLD_CONFIG_CHECK_NAME,
+        status: "ok",
+        detail: "No legacy monitor threshold keys found",
+      }
+    : {
+        name: MONITOR_THRESHOLD_CONFIG_CHECK_NAME,
+        status: "warn",
+        detail: [
+          findings.length > 0
+            ? `Replace legacy monitor threshold keys: ${findings.join(", ")}`
+            : undefined,
+          uninspectable.length > 0
+            ? `Could not inspect monitor threshold keys in: ${uninspectable.join(", ")}`
+            : undefined,
+        ]
+          .filter((message): message is string => message !== undefined)
+          .join(". "),
+      };
 }
