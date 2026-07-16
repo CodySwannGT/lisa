@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.215.0](https://github.com/CodySwannGT/lisa/compare/v2.214.0...v2.215.0) (2026-07-16)
+
+
+### Features
+
+* **ci:** config-driven failure-issue dispatcher with Linear leg and dedupe ([876ef11](https://github.com/CodySwannGT/lisa/commit/876ef11b02e36bceec0329e95527a245d9caf687))
+* **ci:** ownership-aware Claude CI auto-fix with side-branch fix PRs ([61f5a46](https://github.com/CodySwannGT/lisa/commit/61f5a46b5aeb22d9c61018cf7142078cc4e15310)), closes [#5](https://github.com/CodySwannGT/lisa/issues/5)
+* **templates:** inherit secrets in auto-fix callers and add babysitter lease to drive-pr-to-merge ([ef6fd36](https://github.com/CodySwannGT/lisa/commit/ef6fd368fd880672a109afc495e7e86a47dd776a))
+
+
+### Bug Fixes
+
+* **ci:** address CodeRabbit review findings on failure routing and auto-fix ([248dd8d](https://github.com/CodySwannGT/lisa/commit/248dd8d26010210d0e6001c704e6d6e97d49278f))
+* **skills:** verify the babysitter lease attached before driving the PR ([9c0d38e](https://github.com/CodySwannGT/lisa/commit/9c0d38ecb97f553b8becfcd5d53c052602e5e518))
+
 ## [2.214.0](https://github.com/CodySwannGT/lisa/compare/v2.213.0...v2.214.0) (2026-07-15)
 
 
