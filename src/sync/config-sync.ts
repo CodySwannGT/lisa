@@ -32,9 +32,8 @@ import {
   type SyncedSetting,
 } from "./registry.js";
 import { aliasCompatibleDefault, hasLegacyAlias } from "./legacy-aliases.js";
-
-/** Key holding sync provenance metadata inside `.lisa.config.json`. */
-export const SYNC_METADATA_KEY = "_lisaSync";
+import { applyLegacyMonitorThresholdMigration } from "./legacy-monitor-thresholds.js";
+import { recordedPopulation, recordPopulation } from "./sync-population.js";
 
 /** What sync did (or would do, in dry-run) for one setting. */
 export type SyncActionKind =
@@ -42,8 +41,7 @@ export type SyncActionKind =
   | "populated-default"
   | "filled-missing"
   | "default-evolved"
-  | "artifact-synced"
-  | "unchanged";
+  | "artifact-synced";
 
 /** One reportable sync action. */
 export interface SyncAction {
@@ -103,9 +101,7 @@ function isRelevant(
   merged: JsonObject,
   relevantWhen: readonly string[] | undefined
 ): boolean {
-  if (relevantWhen === undefined) {
-    return true;
-  }
+  if (relevantWhen === undefined) return true;
   return relevantWhen.some(condition => conditionMatches(merged, condition));
 }
 
@@ -127,42 +123,6 @@ async function readArtifactValue(
     })
   );
   return reads.find(value => value !== undefined);
-}
-
-/**
- * Read the recorded populated-default value for a key, if any. Provenance
- * keys are stored literally (dots included) inside `_lisaSync.populated`.
- * @param committed - Committed config object
- * @param key - Config key
- * @returns The value recorded at population time, or undefined
- */
-function recordedPopulation(
-  committed: JsonObject,
-  key: string
-): JsonValue | undefined {
-  const populated = getAtPath(committed, `${SYNC_METADATA_KEY}.populated`);
-  return isJsonObject(populated) ? populated[key] : undefined;
-}
-
-/**
- * Record that a key was auto-populated with a default value, storing the key
- * literally (dots included) so later runs can detect default evolution.
- * @param committed - Committed config object
- * @param key - Config key
- * @param value - The default value written
- * @returns Updated committed config
- */
-function recordPopulation(
-  committed: JsonObject,
-  key: string,
-  value: JsonValue
-): JsonObject {
-  const populated = getAtPath(committed, `${SYNC_METADATA_KEY}.populated`);
-  const populatedObject = isJsonObject(populated) ? populated : {};
-  return setAtPath(committed, `${SYNC_METADATA_KEY}.populated`, {
-    ...populatedObject,
-    [key]: value,
-  });
 }
 
 /**
@@ -229,13 +189,21 @@ function populateEntry(
   local: JsonObject,
   artifactValue: JsonValue | undefined
 ): SyncState {
-  const configValue = getAtPath(merged, entry.key);
+  const stateAfterMigration = applyLegacyMonitorThresholdMigration(
+    state,
+    entry.key
+  );
+  const mergedAfterMigration =
+    stateAfterMigration === state
+      ? merged
+      : (deepMerge(stateAfterMigration.committed, local) as JsonObject);
+  const configValue = getAtPath(mergedAfterMigration, entry.key);
   if (configValue === undefined) {
-    return populateMissing(state, entry, artifactValue);
+    return populateMissing(stateAfterMigration, entry, artifactValue);
   }
-  const committedValue = getAtPath(state.committed, entry.key);
+  const committedValue = getAtPath(stateAfterMigration.committed, entry.key);
   const localValue = getAtPath(local, entry.key);
-  const recorded = recordedPopulation(state.committed, entry.key);
+  const recorded = recordedPopulation(stateAfterMigration.committed, entry.key);
   const evolutionValue =
     entry.legacyAliases === undefined ? configValue : committedValue;
   if (
@@ -245,11 +213,11 @@ function populateEntry(
     !hasLegacyAlias(localValue, entry.legacyAliases)
   ) {
     const committed = recordPopulation(
-      setAtPath(state.committed, entry.key, entry.defaultValue),
+      setAtPath(stateAfterMigration.committed, entry.key, entry.defaultValue),
       entry.key,
       entry.defaultValue
     );
-    return withAction(state, committed, {
+    return withAction(stateAfterMigration, committed, {
       key: entry.key,
       kind: "default-evolved",
       detail: "value still matched the old default; updated to the new one",
@@ -257,7 +225,7 @@ function populateEntry(
   }
   const hasEffectiveAlias = hasLegacyAlias(configValue, entry.legacyAliases);
   if (hasEffectiveAlias && committedValue === undefined) {
-    return state;
+    return stateAfterMigration;
   }
   // Compatibility fills are based only on committed state. Each present alias
   // prunes its own mapped current default while unrelated defaults still fill.
@@ -271,13 +239,17 @@ function populateEntry(
     : entry.defaultValue;
   const filled = fillMissing(fillSource, fallback);
   if (!jsonEquals(filled, fillSource)) {
-    return withAction(state, setAtPath(state.committed, entry.key, filled), {
-      key: entry.key,
-      kind: "filled-missing",
-      detail: "missing sub-keys filled with defaults",
-    });
+    return withAction(
+      stateAfterMigration,
+      setAtPath(stateAfterMigration.committed, entry.key, filled),
+      {
+        key: entry.key,
+        kind: "filled-missing",
+        detail: "missing sub-keys filled with defaults",
+      }
+    );
   }
-  return state;
+  return stateAfterMigration;
 }
 
 /**
