@@ -45,9 +45,17 @@ pushing competing fixes to the same branch (the single-writer rule):
 ```bash
 gh label create "lisa:babysitter-on-duty" \
   --description "A drive-pr-to-merge session is actively driving this PR; CI auto-fix must stand down" \
-  --color FBCA04 2>/dev/null || true
+  --color FBCA04 || true  # tolerate only already-exists; check the next step
 gh pr edit <pr> --add-label "lisa:babysitter-on-duty"
+gh pr view <pr> --json labels \
+  --jq '[.labels[].name] | contains(["lisa:babysitter-on-duty"])'
 ```
+
+Verify the final command prints `true` before driving. If the label could not
+be attached (for example, no label-write permission), retry once; if it still
+fails, surface a warning that the branch is unleased — the CI auto-fix
+workflow may engage in parallel — and watch for its `claude-auto-fix-*` PR
+per section 2f while driving.
 
 The auto-fix workflow reads freshness from the label's most recent `labeled`
 timeline event and treats stamps older than its TTL (default 90 minutes) as
