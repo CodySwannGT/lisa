@@ -77,6 +77,12 @@ on:
       PAT:
         required: false
         description: 'Personal Access Token used to open the fix PR so its checks trigger (falls back to GITHUB_TOKEN, whose PRs do not trigger workflows)'
+      JIRA_API_TOKEN:
+        required: false
+        description: 'Forwarded to the failure-issue dispatcher so escalation tickets reach a Jira tracker declared in .lisa.config.json'
+      LINEAR_API_KEY:
+        required: false
+        description: 'Forwarded to the failure-issue dispatcher so escalation tickets reach a Linear tracker declared in .lisa.config.json'
 
 jobs:
   check_claude_setup:

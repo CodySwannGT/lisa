@@ -183,7 +183,7 @@ Fixer of last resort for red CI on unattended branches: Claude analyzes error lo
 - Falls back to a non-frozen dependency install when the lockfile itself is broken, so Claude can repair and commit the lockfile
 - When no fix can be produced, files a deduplicated ticket in the tracker declared in `.lisa.config.json` (`tracker`: jira | github | linear) with a title that says whether Claude ran at all
 - Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops); failing checks on an auto-fix PR escalate to a ticket instead of re-entering
-- Requires `secrets: inherit` in the caller so tracker credentials (`JIRA_API_TOKEN` / `LINEAR_API_KEY`) reach the issue dispatcher
+- Requires the caller to map `JIRA_API_TOKEN` / `LINEAR_API_KEY` (and `PAT`) explicitly in its `secrets:` block so tracker credentials reach the issue dispatcher — least-privilege by design; `secrets: inherit` also works mechanically but hands the chain every repo secret and trips SonarCloud security gates
 
 ### Claude Code Review Response (`claude-code-review-response.yml`)
 

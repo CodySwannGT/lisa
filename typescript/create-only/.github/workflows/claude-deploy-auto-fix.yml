@@ -25,7 +25,14 @@ jobs:
       head_branch: ${{ github.event.workflow_run.head_branch }}
       run_id: ${{ github.event.workflow_run.id }}
       package_manager: 'bun'
-    # `secrets: inherit` (not an explicit mapping) is load-bearing: the
-    # reusable workflow needs tracker credentials (JIRA_API_TOKEN /
-    # LINEAR_API_KEY) to reach the tracker declared in .lisa.config.json.
-    secrets: inherit
+    # Least-privilege mapping — exactly the secrets the deploy-fix chain
+    # uses. The tracker tokens are load-bearing: the reusable workflow needs
+    # JIRA_API_TOKEN / LINEAR_API_KEY to reach the tracker declared in
+    # .lisa.config.json. Unset secrets pass as empty. (`secrets: inherit`
+    # would also work but hands the chain every repo secret and trips
+    # SonarCloud/security-scanner gates.)
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      PAT: ${{ secrets.PAT }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
