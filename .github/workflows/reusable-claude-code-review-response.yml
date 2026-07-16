@@ -40,6 +40,16 @@ on:
         required: false
         default: 'npm'
         type: string
+      lease_label:
+        description: 'PR label that marks a babysitter lease (stamped by drive-pr-to-merge)'
+        required: false
+        default: 'lisa:babysitter-on-duty'
+        type: string
+      lease_ttl_minutes:
+        description: 'How long a lease stamp stays fresh before it is considered stale'
+        required: false
+        default: 90
+        type: number
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
@@ -77,7 +87,60 @@ jobs:
       actions: write
       id-token: write
     steps:
+      # Runs BEFORE checkout: a merged/closed PR usually means the head ref
+      # is already deleted, and checking out a missing ref fails the job red
+      # instead of skipping cleanly.
+      - name: Check PR is open, head ref exists, and branch is unleased
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ inputs.repo_owner }}/${{ inputs.repo_name }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          HEAD_REF: ${{ inputs.pr_head_ref }}
+          LEASE_LABEL: ${{ inputs.lease_label }}
+          LEASE_TTL_MINUTES: ${{ inputs.lease_ttl_minutes }}
+        run: |
+          PR_STATE=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.state' 2>/dev/null || echo "missing")
+          if [ "$PR_STATE" != "open" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "PR #$PR_NUMBER is $PR_STATE — nothing to respond to; standing down."
+            exit 0
+          fi
+
+          if ! gh api "repos/$REPO/git/ref/heads/$HEAD_REF" --jq '.object.sha' >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Head ref $HEAD_REF no longer exists — standing down."
+            exit 0
+          fi
+
+          # A fresh babysitter lease means a drive-pr-to-merge session is
+          # already handling this review (its section d owns review-comment
+          # handling) — a second writer on the same branch would race it.
+          HAS_LABEL=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" \
+            | jq -r --arg label "$LEASE_LABEL" '[.[] | select(.name == $label)] | length')
+          if [ "$HAS_LABEL" != "0" ]; then
+            STAMP=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate \
+              | jq -r -s --arg label "$LEASE_LABEL" 'add | [.[] | select(.event == "labeled" and .label.name == $label)] | last | .created_at // empty')
+            if [ -z "$STAMP" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Lease label present with no readable stamp; standing down (fail safe)."
+              exit 0
+            fi
+            STAMP_EPOCH=$(date -d "$STAMP" +%s)
+            NOW_EPOCH=$(date +%s)
+            AGE_MINUTES=$(( (NOW_EPOCH - STAMP_EPOCH) / 60 ))
+            if [ "$AGE_MINUTES" -lt "$LEASE_TTL_MINUTES" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Fresh babysitter lease (stamped ${AGE_MINUTES}m ago, TTL ${LEASE_TTL_MINUTES}m) — that session owns review handling; standing down."
+              exit 0
+            fi
+            echo "Lease is stale (stamped ${AGE_MINUTES}m ago, TTL ${LEASE_TTL_MINUTES}m); engaging."
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
       - name: Checkout PR branch
+        if: steps.guard.outputs.skip != 'true'
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.pr_head_ref }}
@@ -85,6 +148,7 @@ jobs:
           persist-credentials: false
       - name: Read plugins from project settings
         id: plugins
+        if: steps.guard.outputs.skip != 'true'
         run: |
           if [ -f .claude/settings.json ]; then
             MARKETPLACES=$(jq -r '(.extraKnownMarketplaces // {}) | to_entries[] | .value.source | if .source == "github" then "https://github.com/\(.repo).git" else empty end' .claude/settings.json 2>/dev/null || echo "")
@@ -109,33 +173,40 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
+        if: steps.guard.outputs.skip != 'true'
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
       - name: Setup Bun
-        if: inputs.package_manager == 'bun'
+        if: inputs.package_manager == 'bun' && steps.guard.outputs.skip != 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.8'
 
       - name: Install dependencies
+        if: steps.guard.outputs.skip != 'true'
         run: |
+          # Fall back to a non-frozen install on lockfile drift — the review
+          # being responded to may be about the lockfile itself, and Claude
+          # needs a working environment to fix and commit it.
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
+            npm ci || { echo "::warning::npm ci failed (likely lockfile drift); falling back to npm install."; npm install --no-audit --no-fund; }
           elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
+            yarn install --frozen-lockfile || { echo "::warning::Frozen yarn install failed (likely lockfile drift); falling back to yarn install."; yarn install; }
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
+            bun install --frozen-lockfile || { echo "::warning::Frozen bun install failed (likely lockfile drift); falling back to bun install."; bun install; }
           fi
 
       - name: Setup git identity
+        if: steps.guard.outputs.skip != 'true'
         run: |
           git config --global user.email "claude[bot]@users.noreply.github.com"
           git config --global user.name "claude[bot]"
 
       - name: Run Claude Code to respond to review
+        if: steps.guard.outputs.skip != 'true'
         continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
