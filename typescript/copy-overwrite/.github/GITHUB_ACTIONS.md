@@ -174,12 +174,16 @@ AI-powered code assistance that can:
 
 **Triggers**: CI Quality Checks workflow failure (non-environment branches)
 
-Automatically fixes CI failures by having Claude analyze error logs and push fixes. Replaces the previous `create-issue-on-failure` workflow.
+Fixer of last resort for red CI on unattended branches: Claude analyzes error logs and prepares a fix as a pull request into the failing branch.
 
+- Stands down when the branch has an active owner: a fresh `lisa:babysitter-on-duty` lease label on the branch's open PR (stamped by drive-pr-to-merge sessions), or any push during a quiet-period wait (default 20 minutes)
 - Fetches failed job names and error logs from the CI run
 - Runs Claude with full context to diagnose and fix the root cause
-- Commits and pushes the fix to the failing branch
-- Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops)
+- Never pushes to the failing branch — commits land on a `claude-auto-fix-<branch>` side branch and a PR is opened into the failing branch
+- Falls back to a non-frozen dependency install when the lockfile itself is broken, so Claude can repair and commit the lockfile
+- When no fix can be produced, files a deduplicated ticket in the tracker declared in `.lisa.config.json` (`tracker`: jira | github | linear) with a title that says whether Claude ran at all
+- Skips environment branches (`main`, `staging`, `dev`) and auto-fix branches (prevents infinite loops); failing checks on an auto-fix PR escalate to a ticket instead of re-entering
+- Requires `secrets: inherit` in the caller so tracker credentials (`JIRA_API_TOKEN` / `LINEAR_API_KEY`) reach the issue dispatcher
 
 ### Claude Code Review Response (`claude-code-review-response.yml`)
 
