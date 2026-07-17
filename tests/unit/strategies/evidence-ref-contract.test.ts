@@ -34,6 +34,8 @@ const JOURNEY_WRITER_SKILLS = [
 
 const EVIDENCE_REF_GRAMMAR =
   "[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]";
+const LEGACY_EVIDENCE_REF_GRAMMAR =
+  "[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]";
 
 const read = (filePath: string): string =>
   readFileSync(path.resolve(filePath), "utf8");
@@ -49,11 +51,14 @@ describe("EVIDENCE-REF non-binding cross-reference contract (#1595)", () => {
     const eagerRule = read("plugins/src/base/rules/eager/verification.md");
 
     expect(referenceRule).toContain(EVIDENCE_REF_GRAMMAR);
+    expect(referenceRule).toContain(LEGACY_EVIDENCE_REF_GRAMMAR);
     expect(referenceRule).toMatch(/pointer only/);
     expect(referenceRule).toMatch(
       /rather than quoting a sibling's `\[EVIDENCE: \.\.\.\]` marker/
     );
     expect(eagerRule).toContain(EVIDENCE_REF_GRAMMAR);
+    expect(eagerRule).toContain(LEGACY_EVIDENCE_REF_GRAMMAR);
+    expect(eagerRule).toMatch(/must not be newly authored/);
     expect(eagerRule).toMatch(
       /never enters or satisfies the local S14 manifest/
     );
@@ -65,7 +70,10 @@ describe("EVIDENCE-REF non-binding cross-reference contract (#1595)", () => {
 
       it("ignores EVIDENCE-REF markers while deriving S14's manifest", () => {
         expect(content).toContain(EVIDENCE_REF_GRAMMAR);
-        expect(content).toMatch(/exclude it from the manifest/);
+        expect(content).toContain(LEGACY_EVIDENCE_REF_GRAMMAR);
+        expect(content).toMatch(/accepted as a legacy non-claiming alias/);
+        expect(content).toMatch(/parse it from the right/);
+        expect(content).toMatch(/Exclude both forms from the manifest/);
         expect(content).toMatch(/malformed reference FAILs S14/);
         expect(content).toMatch(
           /contains only `EVIDENCE-REF` entries FAILs S14/
