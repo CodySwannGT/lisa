@@ -151,7 +151,7 @@ describe("per-agent-hook-filter", () => {
       ).toBe(false);
     });
 
-    it("strips inject-rules.sh hook on agy (rules delivered via AGENTS.md bake)", () => {
+    it("strips inject-rules.sh hook on agy (no full rules tree)", () => {
       const hook = {
         type: "command",
         command: INJECT_RULES_HOOK_CMD,

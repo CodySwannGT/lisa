@@ -25,7 +25,7 @@
  *     agy doesn't support SessionStart, so install-pkgs / setup-jira-cli can't
  *     ship as agy hooks. The agy column below is retained only as conceptual
  *     ship-list documentation (block-no-verify.sh, install-pkgs.sh,
- *     setup-jira-cli.sh; strips inject-rules.sh — rules-once via AGENTS.md bake
+ *     setup-jira-cli.sh; strips inject-rules.sh — no full rules tree on agy
  *     — enforce-team-first.sh, inject-flow-context.sh, and `entire ...` calls).
  *   - Copilot: strip SubagentStart hooks (event missing), strip Claude-team-specific
  *     scripts, conditionally strip inject-rules.sh if the rules-auto-load probe is
@@ -54,7 +54,7 @@ const SCRIPT_RULES = {
     claude: true,
     codex: true,
     cursor: false, // rules ship as native rules/*.mdc (single delivery path); injecting would double-deliver
-    agy: false, // rules delivered via AGENTS.md bake, not a hook (rules-once invariant)
+    agy: false, // no full rules tree on agy; AGENTS.md carries only bounded bridges
     copilot: true, // conservative default; conditionally stripped if rules-auto-load probe positive
   },
   "inject-flow-context.sh": {
