@@ -5,6 +5,15 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import type * as LearningsModule from "@codyswann/lisa/learnings";
 
+type LearningsCheckerModule = Pick<
+  typeof LearningsModule,
+  | "LEARNINGS_CONTRACT"
+  | "estimateLearningTokens"
+  | "parseLearningsFile"
+  | "renderLearningsFile"
+  | "validateLearningEntry"
+>;
+
 const DEFAULT_LEARNINGS_FILE = path.resolve(
   import.meta.dir,
   "..",
@@ -174,7 +183,7 @@ async function readBoundedRegularFile(
  * runtime dependency on the excluded `src` tree.
  * @returns Canonical executable learnings module
  */
-async function loadLearningsModule(): Promise<typeof LearningsModule> {
+async function loadLearningsModule(): Promise<LearningsCheckerModule> {
   const packageRoot = path.resolve(import.meta.dir, "..");
   const sourceTypescript = path.join(
     packageRoot,
@@ -182,12 +191,23 @@ async function loadLearningsModule(): Promise<typeof LearningsModule> {
     "core",
     "learnings.ts"
   );
-  const runtimeModule = existsSync(sourceTypescript)
-    ? path.join(packageRoot, "src", "core", "learnings.js")
-    : path.join(packageRoot, "dist", "core", "learnings.js");
-  return import(pathToFileURL(runtimeModule).href) as Promise<
-    typeof LearningsModule
-  >;
+  const runtimeRoot = path.join(
+    packageRoot,
+    existsSync(sourceTypescript) ? "src" : "dist",
+    "core"
+  );
+  const [contract, document, entry] = await Promise.all([
+    import(pathToFileURL(path.join(runtimeRoot, "learnings-contract.js")).href),
+    import(pathToFileURL(path.join(runtimeRoot, "learnings-document.js")).href),
+    import(pathToFileURL(path.join(runtimeRoot, "learnings-entry.js")).href),
+  ]);
+  return {
+    LEARNINGS_CONTRACT: contract.LEARNINGS_CONTRACT,
+    estimateLearningTokens: contract.estimateLearningTokens,
+    parseLearningsFile: document.parseLearningsFile,
+    renderLearningsFile: document.renderLearningsFile,
+    validateLearningEntry: entry.validateLearningEntry,
+  } as LearningsCheckerModule;
 }
 
 /** Print one deterministic failure diagnostic and exit non-zero. */
