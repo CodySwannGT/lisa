@@ -36,6 +36,7 @@ export {
 export const DEFAULT_UI_PORT = 4780;
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
 const NO_STORE = "no-store";
+const TEXT_CONTENT_TYPE = "text/plain; charset=utf-8";
 
 /** CLI options for `lisa ui`. */
 export interface UiCmdOptions {
@@ -148,7 +149,7 @@ function serveStatus(
     response.writeHead(405, {
       allow: "GET, HEAD",
       "cache-control": NO_STORE,
-      "content-type": "text/plain; charset=utf-8",
+      "content-type": TEXT_CONTENT_TYPE,
     });
     response.end("Method not allowed");
     return;
@@ -188,6 +189,33 @@ function requestPathname(requestUrl: string): string | undefined {
 }
 
 /**
+ * Restrict loopback requests to the authority advertised by `lisa ui`.
+ * @param host - Incoming HTTP Host header
+ * @returns Whether the authority is 127.0.0.1 with an optional valid port
+ */
+function isLoopbackHost(host: string | undefined): boolean {
+  if (host === "127.0.0.1") {
+    return true;
+  }
+  const prefix = "127.0.0.1:";
+  if (host === undefined || !host.startsWith(prefix)) {
+    return false;
+  }
+  const portText = host.slice(prefix.length);
+  const digitsOnly = Array.from(portText).every(
+    character => character >= "0" && character <= "9"
+  );
+  const port = Number(portText);
+  return (
+    portText.length > 0 &&
+    portText.length <= 5 &&
+    digitsOnly &&
+    port > 0 &&
+    port <= 65_535
+  );
+}
+
+/**
  * Build the request handler after validating the complete probe registry.
  * @param page - Hydrated settings console HTML
  * @param probes - Live-status probes registered for this server
@@ -200,9 +228,14 @@ function createUiRequestHandler(
   const readSnapshot = createStatusSnapshotReader(probes);
   validateStatusProbes(probes);
   return (request, response) => {
+    if (!isLoopbackHost(request.headers.host)) {
+      response.writeHead(400, { "content-type": TEXT_CONTENT_TYPE });
+      response.end("Bad request");
+      return;
+    }
     const pathname = requestPathname(request.url ?? "/");
     if (pathname === undefined) {
-      response.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
+      response.writeHead(400, { "content-type": TEXT_CONTENT_TYPE });
       response.end("Bad request");
       return;
     }

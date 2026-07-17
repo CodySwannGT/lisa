@@ -67,4 +67,23 @@ describe("lisa ui malformed request handling", () => {
     expect(response).toMatch(/^HTTP\/1\.1 400 Bad Request\r\n/u);
     expect(response).toContain("Bad request");
   });
+
+  it("rejects a non-loopback Host header before routing", async () => {
+    resources.server = await runUi(
+      resources.dir,
+      { port: "0", sync: false },
+      { probes: [] }
+    );
+    const address = resources.server.address();
+    const port =
+      typeof address === "object" && address !== null ? address.port : 0;
+
+    const response = await sendRawRequest(
+      port,
+      "GET /api/status HTTP/1.1\r\nHost: attacker.example\r\nConnection: close\r\n\r\n"
+    );
+
+    expect(response).toMatch(/^HTTP\/1\.1 400 Bad Request\r\n/u);
+    expect(response).toContain("Bad request");
+  });
 });
