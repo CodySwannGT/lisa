@@ -67,6 +67,10 @@ and artifact refs. Callers do not get to omit the "unavailable" case; when trust
 missing they still pass an explicit entry with `source: unavailable` and nullable token/cost
 fields.
 
+When the runtime exposes only a trustworthy subtotal, callers MUST use `source: measured-subset`,
+write the subtotal to `measured_subset_tokens`, and leave `total_tokens: null`. Do not coerce a
+known subset into `total_tokens`; rollups use `total_tokens` only for complete totals.
+
 ## Return shape
 
 Return structured output so callers can persist or log what happened without reparsing prose:

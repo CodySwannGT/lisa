@@ -16,7 +16,8 @@ Every artifact with inline body content gets exactly one section:
 
 Each direct entry records ONE logical Lisa run on ONE artifact. `entry_id` is the stable dedupe key — rewriting the same logical run with the same `entry_id` updates in place; a different run gets a different `entry_id`.
 
-- **`source`**: `observed` (runtime supplied) / `estimated` (derived from trustworthy metadata + pricing contract) / `unavailable`.
+- **`source`**: `observed` (runtime supplied) / `estimated` (derived from trustworthy metadata + pricing contract) / `measured-subset` (a trustworthy subtotal exists, but the complete run total is unknown) / `unavailable`.
+- **`measured_subset_tokens`**: measured subtotal for `measured-subset` entries only. Keep `total_tokens = null` so rollups do not treat a subset as a complete total.
 - **`pricing_status`**: same trinary plus `missing` (cost not known but should be).
 - **Absence ≠ zero.** `null` means unknown; `0` means explicitly zero. Always write the entry — never silently omit.
 - Do NOT replace observed counts with estimates.
@@ -25,4 +26,4 @@ Each direct entry records ONE logical Lisa run on ONE artifact. `entry_id` is th
 
 Container artifacts (Epic, PRD, etc.) roll up usage from their direct children. Roll-up is recursive — a parent's `## Lisa Usage` aggregates its descendants' direct entries. Re-writes are idempotent: re-running an intake or lifecycle skill must not duplicate entries.
 
-Full schema (all 17 fields, pricing semantics, rollup math, idempotent-rewrite rules): [reference/usage-accounting.md](../reference/usage-accounting.md).
+Full schema (all 18 fields, pricing semantics, rollup math, idempotent-rewrite rules): [reference/usage-accounting.md](../reference/usage-accounting.md).

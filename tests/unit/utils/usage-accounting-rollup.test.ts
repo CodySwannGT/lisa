@@ -26,6 +26,7 @@ function makeEntry(
     entryId: overrides.entryId,
     flow: "lisa-plan",
     inputTokens: 100,
+    measuredSubsetTokens: null,
     model: "gpt-5",
     outputTokens: 20,
     parentArtifactRef: null,
