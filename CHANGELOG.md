@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.221.0](https://github.com/CodySwannGT/lisa/compare/v2.220.1...v2.221.0) (2026-07-17)
+
+
+### Features
+
+* **learnings:** fan out project learnings rules ([5e87eda](https://github.com/CodySwannGT/lisa/commit/5e87eda1cb4b7c26a70c06cd11129070249c8ce9))
+
+
+### Bug Fixes
+
+* reject duplicate agy project-learnings markers before editing AGENTS.md ([1b1258b](https://github.com/CodySwannGT/lisa/commit/1b1258b2dd1cbe7bdfa883a2e8260667fba8fbaa)), closes [#1666](https://github.com/CodySwannGT/lisa/issues/1666)
+
 ### [2.220.1](https://github.com/CodySwannGT/lisa/compare/v2.220.0...v2.220.1) (2026-07-17)
 
 ## [2.220.0](https://github.com/CodySwannGT/lisa/compare/v2.219.1...v2.220.0) (2026-07-17)
