@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.220.0](https://github.com/CodySwannGT/lisa/compare/v2.219.1...v2.220.0) (2026-07-17)
+
+
+### Features
+
+* **learnings:** enforce project memory budgets ([bb1c0a0](https://github.com/CodySwannGT/lisa/commit/bb1c0a044efa6f1605c73121a94b13bfd8b0fb68))
+
 ### [2.219.1](https://github.com/CodySwannGT/lisa/compare/v2.219.0...v2.219.1) (2026-07-17)
 
 
