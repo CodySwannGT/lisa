@@ -18,8 +18,8 @@
  * hooks.json must be at root; the command points at the absolute installed path
  * via `$HOME`). Only events agy supports map: PreToolUse / PostToolUse /
  * PreInvocation / PostInvocation / Stop. SessionStart is NOT supported, so
- * install-pkgs / setup-jira-cli CANNOT ship as agy hooks — only block-no-verify
- * (PreToolUse) maps. Only the BASE plugin manifest carries the universal hooks,
+ * install-pkgs / setup-jira-cli CANNOT ship as agy hooks. Portable PreToolUse
+ * guards map through thin agy-protocol adapters. Only the BASE plugin manifest carries the universal hooks,
  * so only `lisa-agy` gets a hooks.json; stack variants emit none.
  *
  * MCP (user-global, NOT plugin-bundled): agy ignores plugin-bundled MCP and only
@@ -216,6 +216,15 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-no-verify.agy.sh",
+    supportScripts: [],
+  },
+  {
+    sourceScript: "parity-safety-net.sh",
+    hookName: "lisa-parity-safety-net",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "parity-safety-net.agy.sh",
+    supportScripts: ["parity-safety-net.sh", "parity-safety-net-heredoc.py"],
   },
 ];
 
@@ -257,11 +266,13 @@ function sourceReferencesScript(sourceHooks, scriptName) {
 function emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName) {
   const applicable = AGY_PLUGIN_HOOKS.filter(h => {
     if (!sourceReferencesScript(sourceHooks, h.sourceScript)) return false;
-    const scriptSource = path.join(srcDir, "hooks", h.agyScript);
-    if (!fs.existsSync(scriptSource)) {
-      throw new Error(
-        `Missing agy hook script for ${h.sourceScript}: ${scriptSource}`
-      );
+    for (const script of [h.agyScript, ...(h.supportScripts ?? [])]) {
+      const scriptSource = path.join(srcDir, "hooks", script);
+      if (!fs.existsSync(scriptSource)) {
+        throw new Error(
+          `Missing agy hook script for ${h.sourceScript}: ${scriptSource}`
+        );
+      }
     }
     return true;
   });
@@ -293,9 +304,12 @@ function emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName) {
   // Copy the agy-protocol scripts into the variant's hooks/ subdir.
   const hooksDir = path.join(outDir, "hooks");
   fs.mkdirSync(hooksDir, { recursive: true });
-  for (const h of applicable) {
-    const scriptSource = path.join(srcDir, "hooks", h.agyScript);
-    const scriptDest = path.join(hooksDir, h.agyScript);
+  const scripts = new Set(
+    applicable.flatMap(h => [h.agyScript, ...(h.supportScripts ?? [])])
+  );
+  for (const script of scripts) {
+    const scriptSource = path.join(srcDir, "hooks", script);
+    const scriptDest = path.join(hooksDir, script);
     fs.copyFileSync(scriptSource, scriptDest);
     fs.chmodSync(scriptDest, 0o755);
   }
