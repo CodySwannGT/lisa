@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 
 # GitHub Validation Journey
 
-Parse a GitHub Issue's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each `[EVIDENCE: <name>]` marker, and post to the issue + GitHub PR.
+Parse a GitHub Issue's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each canonical `[EVIDENCE: <artifact-type>: <name>]` marker (while still accepting the documented legacy untyped form), and post to the issue + GitHub PR.
 
 ## Arguments
 

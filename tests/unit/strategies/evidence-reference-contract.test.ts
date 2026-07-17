@@ -132,6 +132,17 @@ describe("non-claiming evidence references (#1595)", () => {
     }
   );
 
+  it.each(["plugins/src/base/skills", ...GENERATED_SKILL_ROOTS])(
+    "%s advertises the canonical typed local marker",
+    root => {
+      const journey = read(`${root}/lisa-github-journey/SKILL.md`);
+      expect(journey).toContain(
+        "canonical `[EVIDENCE: <artifact-type>: <name>]` marker"
+      );
+      expect(journey).toMatch(/accepting the documented legacy untyped form/);
+    }
+  );
+
   it("installs built canonical skills into OpenCode verbatim", () => {
     const installer = read("src/opencode/skills-installer.ts");
 
