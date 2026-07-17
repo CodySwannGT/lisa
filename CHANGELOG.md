@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.222.1](https://github.com/CodySwannGT/lisa/compare/v2.222.0...v2.222.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **usage-accounting:** preserve explicit rollup state ([ae94225](https://github.com/CodySwannGT/lisa/commit/ae942253fe95c0a4e479cb77065c9e023af39d9f))
+* **usage-accounting:** preserve legacy ledgers ([#1550](https://github.com/CodySwannGT/lisa/issues/1550)) ([9a3fa24](https://github.com/CodySwannGT/lisa/commit/9a3fa24a1e82e212854c03004350fd478c5aa07d))
+
 ## [2.222.0](https://github.com/CodySwannGT/lisa/compare/v2.221.6...v2.222.0) (2026-07-17)
 
 

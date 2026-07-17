@@ -35,6 +35,57 @@ const runHook = (
 };
 
 describe("parity-safety-net.sh — force-push guard", () => {
+  describe("ignores prose-only heredoc payloads", () => {
+    it("allows an issue body that quotes rm -rf plugins/lisa", () => {
+      const cmd = [
+        "gh issue create --body-file - <<'EOF'",
+        "The build step runs `rm -rf plugins/lisa` before regenerating artifacts.",
+        "EOF",
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_ALLOWED);
+    });
+
+    it("still blocks a destructive command before a heredoc body", () => {
+      const cmd = [
+        "rm -rf /",
+        "gh issue create --body-file - <<'EOF'",
+        "This payload is not the executable statement.",
+        "EOF",
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("still blocks a destructive command following a quoted '<<' that looks like a heredoc marker", () => {
+      // The `<<MARKER` sequence here is inside a double-quoted echo argument, not
+      // a real heredoc start. A quote-unaware heredoc parser mistakes it for one
+      // and then treats the real `rm -rf /` command (up to the "MARKER" line) as
+      // heredoc body content, stripping it from what the guards see — hiding a
+      // real destructive command from the safety net.
+      const cmd = ['echo "hello <<MARKER"', "rm -rf /", "MARKER"].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("fully consumes chained same-line heredocs so the second body doesn't leak into the guard input", () => {
+      // `cat <<A <<B` opens two heredocs on one line. A parser that stops
+      // tracking after the first terminator lets the second heredoc's body
+      // "leak" back into the text that the destructive-pattern guards scan,
+      // which can cause the guard to misfire on data that was never a command.
+      const cmd = [
+        "cat <<A <<B",
+        "body A",
+        "A",
+        "body B with rm -rf /",
+        "B",
+        'echo "done"',
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_ALLOWED);
+    });
+  });
+
   describe("blocks force-pushing a protected branch", () => {
     it("blocks git push --force origin main", () => {
       expect(runHook("Bash", "git push --force origin main").status).toBe(
