@@ -1,6 +1,7 @@
 import {
   createLisaUsageRollup,
   parseLisaUsageSection,
+  type LisaUsageChildArtifact,
   type LisaUsageEntry,
   upsertLisaUsageSection,
 } from "../../../src/utils/usage-accounting.js";
@@ -76,6 +77,54 @@ describe("usage-accounting rollup merging", () => {
       directTokens: 180,
       totalCost: 0.18,
       totalTokens: 180,
+    });
+  });
+
+  it("preserves parsed child incompleteness when a legacy caller supplies an explicit rollup without children refreshed", () => {
+    const directEntry = makeEntry({
+      entryId: EXISTING_ENTRY_ID,
+      runId: "run-existing",
+    });
+    const partialChildEntry = makeEntry({
+      entryId: "child-partial",
+      runId: "run-child",
+      measuredSubsetTokens: 42,
+      totalTokens: null,
+      cost: null,
+      currency: null,
+    });
+    const childArtifacts: readonly LisaUsageChildArtifact[] = [
+      {
+        artifactRef: "github:issue:child",
+        entries: [partialChildEntry],
+      },
+    ];
+    const firstWrite = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [directEntry],
+      childArtifacts,
+    });
+
+    expect(parseLisaUsageSection(firstWrite).rollup).toMatchObject({
+      childTokensIncomplete: true,
+    });
+
+    const secondEntry = makeEntry({
+      entryId: NEW_ENTRY_ID,
+      runId: "run-new",
+    });
+    // Simulate a legacy caller that supplies an explicit rollup payload
+    // computed without any knowledge of the (optional) childTokensIncomplete
+    // field, and without refreshing child artifacts on this call.
+    const legacyRollup = createLisaUsageRollup([secondEntry]);
+    expect(legacyRollup).not.toHaveProperty("childTokensIncomplete");
+
+    const updated = upsertLisaUsageSection(firstWrite, {
+      entries: [secondEntry],
+      rollup: legacyRollup,
+    });
+
+    expect(parseLisaUsageSection(updated).rollup).toMatchObject({
+      childTokensIncomplete: true,
     });
   });
 });
