@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.219.1](https://github.com/CodySwannGT/lisa/compare/v2.219.0...v2.219.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **ci:** skip back-sync on single-environment repos even with a hardcoded chain ([8db6223](https://github.com/CodySwannGT/lisa/commit/8db6223a980d59303c1f40d3234bfc5d23e1da06))
+* **eslint:** annotate config default exports and merge optional local ignores ([f464ed6](https://github.com/CodySwannGT/lisa/commit/f464ed6765ce38d1cda9f385c024669c35b7e135)), closes [gunnertech/wiki#206](https://github.com/gunnertech/wiki/issues/206)
+* **expo:** ship brownfield-safe e2e thresholds and a stable route sort ([1582257](https://github.com/CodySwannGT/lisa/commit/15822577607c54bb21da522591c48c077cbe4fd9))
+* **gitignore:** make tasks/tasks.json re-include effective and ignore .build-boot ([1289a6d](https://github.com/CodySwannGT/lisa/commit/1289a6dd9723aeded239fc161e38fa77407551f7))
+* **husky:** use a portable mktemp template in the gitleaks pre-commit hook ([225fd34](https://github.com/CodySwannGT/lisa/commit/225fd34a62e6edd8db7ae5e3056c16dc2de0d925))
+* **phaser:** bubble pre-push failures, re-run CI on label toggles, keep example art ([423ab4e](https://github.com/CodySwannGT/lisa/commit/423ab4ec73c669c20f5525464b72a254c26f79ec))
+* **rails:** grant CI caller the write permissions quality-rails.yml needs ([de58f9e](https://github.com/CodySwannGT/lisa/commit/de58f9e999404375672a0494b1359d82276a3246)), closes [railsstarter#59](https://github.com/CodySwannGT/railsstarter/issues/59)
+* **security:** add force-governed CVE floors for systeminformation and websocket-driver ([ff4ac6f](https://github.com/CodySwannGT/lisa/commit/ff4ac6f66df7e0af7d620c3ecdb29b1713a730bc)), closes [harperstarter#11](https://github.com/CodySwannGT/harperstarter/issues/11)
+* **security:** drop withdrawn esbuild advisory GHSA-gv7w-rqvm-qjhr from audit ignore ([42f8157](https://github.com/CodySwannGT/lisa/commit/42f8157d46b2a09deef19ca17797c37ffcad3744))
+
 ## [2.219.0](https://github.com/CodySwannGT/lisa/compare/v2.218.0...v2.219.0) (2026-07-16)
 
 
