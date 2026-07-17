@@ -15,5 +15,8 @@
 #
 if [ -f scripts/check-verification-coverage.mjs ]; then
   echo "✅ Verification (UAT) coverage check..."
-  node scripts/check-verification-coverage.mjs || exit 1
+  # No `|| exit 1`: this file is sourced by .husky/pre-push. A hard `exit`
+  # here would terminate the parent hook before it can print its own failure
+  # message — let the non-zero status bubble up to the caller's handler.
+  node scripts/check-verification-coverage.mjs
 fi

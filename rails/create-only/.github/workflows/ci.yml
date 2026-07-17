@@ -11,7 +11,19 @@ on:
 jobs:
   quality:
     name: Quality Checks
+    # quality-rails.yml declares checks:write + pull-requests:write. A reusable
+    # workflow can only use permissions the caller grants, so on repos whose
+    # default GITHUB_TOKEN is read-only this block is required — without it the
+    # called workflow fails at startup (startup_failure) and required checks
+    # never report.
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main
+    # Rails projects default to PostgreSQL. For a MySQL app, uncomment:
+    # with:
+    #   database_type: 'mysql'
     secrets:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
       FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}

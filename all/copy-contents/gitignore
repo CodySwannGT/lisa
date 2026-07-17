@@ -9,6 +9,8 @@ jspm_packages
 dist/
 dist
 .build/
+# NestJS pre-push AppModule boot-check scratch dir (untracked; keep out of `git add -A`)
+.build-boot/
 .serverless/
 .serverless
 cdk.out/
@@ -157,8 +159,11 @@ service-key.json
 # Task files
 .windsurfrules
 .taskmasterconfig
-!tasks/tasks.json
+# Ignore stray tasks.json anywhere, but keep the tracked tasks/tasks.json.
+# The broad ignore MUST precede the re-include — gitignore is last-match-wins,
+# so a `tasks.json` rule after `!tasks/tasks.json` would re-ignore it.
 tasks.json
+!tasks/tasks.json
 
 # AI Assistant and MCP
 **/.claude/settings.local.json
