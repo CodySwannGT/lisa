@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.221.2](https://github.com/CodySwannGT/lisa/compare/v2.221.1...v2.221.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* clarify browser verification evidence ([1ca2d9b](https://github.com/CodySwannGT/lisa/commit/1ca2d9b198ad0d9a5faeacb6e244cf0aee99fdb0))
+
 ### [2.221.1](https://github.com/CodySwannGT/lisa/compare/v2.221.0...v2.221.1) (2026-07-17)
 
 
