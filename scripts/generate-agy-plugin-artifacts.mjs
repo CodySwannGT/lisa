@@ -266,7 +266,7 @@ function sourceReferencesScript(sourceHooks, scriptName) {
 function emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName) {
   const applicable = AGY_PLUGIN_HOOKS.filter(h => {
     if (!sourceReferencesScript(sourceHooks, h.sourceScript)) return false;
-    for (const script of [h.agyScript, ...h.supportScripts]) {
+    for (const script of [h.agyScript, ...(h.supportScripts ?? [])]) {
       const scriptSource = path.join(srcDir, "hooks", script);
       if (!fs.existsSync(scriptSource)) {
         throw new Error(
@@ -305,7 +305,7 @@ function emitAgyPluginHooks(srcDir, outDir, sourceHooks, installDirName) {
   const hooksDir = path.join(outDir, "hooks");
   fs.mkdirSync(hooksDir, { recursive: true });
   const scripts = new Set(
-    applicable.flatMap(h => [h.agyScript, ...h.supportScripts])
+    applicable.flatMap(h => [h.agyScript, ...(h.supportScripts ?? [])])
   );
   for (const script of scripts) {
     const scriptSource = path.join(srcDir, "hooks", script);
