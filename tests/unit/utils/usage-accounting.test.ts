@@ -39,6 +39,7 @@ function makeEntry(
     entryId: overrides.entryId,
     flow: "lisa-plan",
     inputTokens: 100,
+    measuredSubsetTokens: null,
     model: "gpt-5",
     outputTokens: 20,
     parentArtifactRef: null,
@@ -329,6 +330,7 @@ describe("usage-accounting utilities", () => {
       cost: null,
       currency: null,
       inputTokens: null,
+      measuredSubsetTokens: null,
       outputTokens: null,
       pricingSource: null,
       pricingStatus: "unavailable",
@@ -352,6 +354,7 @@ describe("usage-accounting utilities", () => {
       cost: null,
       currency: null,
       inputTokens: null,
+      measuredSubsetTokens: null,
       outputTokens: null,
       pricingSource: null,
       pricingStatus: "unavailable",
@@ -361,6 +364,40 @@ describe("usage-accounting utilities", () => {
     });
     expect(parsed.rollup?.directTokens).toBeNull();
     expect(parsed.rollup?.totalCost).toBeNull();
+  });
+
+  it("preserves measured subsets without rolling them up as complete totals", () => {
+    const partialEntry = makeEntry({
+      cost: null,
+      currency: null,
+      entryId: "entry-measured-subset",
+      inputTokens: null,
+      measuredSubsetTokens: 1_023_299,
+      outputTokens: null,
+      pricingSource: null,
+      pricingStatus: "unavailable",
+      reasoningTokens: null,
+      runId: "run-measured-subset",
+      source: "measured-subset",
+      totalTokens: null,
+    });
+
+    const updated = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [partialEntry],
+      rollup: createLisaUsageRollup([partialEntry]),
+    });
+    const parsed = parseLisaUsageSection(updated);
+
+    expect(updated).toContain("source=measured-subset");
+    expect(updated).toContain("measured_subset_tokens=1023299");
+    expect(updated).toContain("1023299 measured subset");
+    expect(parsed.entries[0]).toMatchObject({
+      measuredSubsetTokens: 1_023_299,
+      source: "measured-subset",
+      totalTokens: null,
+    });
+    expect(parsed.rollup?.directTokens).toBeNull();
+    expect(parsed.rollup?.totalTokens).toBeNull();
   });
 
   it("rejects corrupted numeric tokens instead of rewriting them as null", () => {

@@ -22,6 +22,7 @@ const ARTIFACT_REF = "CodySwannGT/lisa#727";
 const MODEL_NAME = "gpt-5";
 const PROVIDER_NAME = "openai";
 const SOURCE_ESTIMATED = "estimated";
+const SOURCE_MEASURED_SUBSET = "measured-subset";
 const SOURCE_UNAVAILABLE = "unavailable";
 const DIRECT_COST = "0.60";
 const DIRECT_TOKENS = 400;
@@ -48,6 +49,7 @@ type UsageEntry = {
   readonly entryId: string;
   readonly flow: string;
   readonly inputTokens: number | null;
+  readonly measuredSubsetTokens: number | null;
   readonly model: string;
   readonly outputTokens: number | null;
   readonly parentArtifactRef: string | null;
@@ -94,7 +96,7 @@ const renderCsv = (values: readonly string[]): string =>
   values.map(value => encodeURIComponent(value)).join(",");
 
 const renderEntryToken = (entry: UsageEntry): string =>
-  `<!-- lisa:usage-entry entry_id=${encodeURIComponent(entry.entryId)} flow=${encodeURIComponent(entry.flow)} run_id=${encodeURIComponent(entry.runId)} provider=${encodeURIComponent(entry.provider)} model=${encodeURIComponent(entry.model)} source=${encodeURIComponent(entry.source)} input_tokens=${renderValue(entry.inputTokens)} cached_input_tokens=${renderValue(entry.cachedInputTokens)} output_tokens=${renderValue(entry.outputTokens)} reasoning_tokens=${renderValue(entry.reasoningTokens)} total_tokens=${renderValue(entry.totalTokens)} cost=${renderValue(entry.cost)} currency=${renderValue(entry.currency)} pricing_status=${encodeURIComponent(entry.pricingStatus)} pricing_source=${renderValue(entry.pricingSource)} artifact_ref=${encodeURIComponent(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeURIComponent(entry.parentArtifactRef)} -->`;
+  `<!-- lisa:usage-entry entry_id=${encodeURIComponent(entry.entryId)} flow=${encodeURIComponent(entry.flow)} run_id=${encodeURIComponent(entry.runId)} provider=${encodeURIComponent(entry.provider)} model=${encodeURIComponent(entry.model)} source=${encodeURIComponent(entry.source)} input_tokens=${renderValue(entry.inputTokens)} cached_input_tokens=${renderValue(entry.cachedInputTokens)} output_tokens=${renderValue(entry.outputTokens)} reasoning_tokens=${renderValue(entry.reasoningTokens)} total_tokens=${renderValue(entry.totalTokens)} measured_subset_tokens=${renderValue(entry.measuredSubsetTokens)} cost=${renderValue(entry.cost)} currency=${renderValue(entry.currency)} pricing_status=${encodeURIComponent(entry.pricingStatus)} pricing_source=${renderValue(entry.pricingSource)} artifact_ref=${encodeURIComponent(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeURIComponent(entry.parentArtifactRef)} -->`;
 
 const renderRollupToken = (
   directEntryIds: readonly string[],
@@ -149,7 +151,7 @@ const renderSection = (entries: readonly UsageEntry[]): string => {
 
 const parseEntries = (section: string): readonly ParsedEntry[] => {
   const tokenPattern =
-    /<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=\S+ provider=\S+ model=\S+ source=(\S+) input_tokens=\S+ cached_input_tokens=\S+ output_tokens=\S+ reasoning_tokens=\S+ total_tokens=(\S+) cost=\S+ currency=\S+ pricing_status=\S+ pricing_source=\S+ artifact_ref=\S+ parent_artifact_ref=\S* -->/g;
+    /<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=\S+ provider=\S+ model=\S+ source=(\S+) input_tokens=\S+ cached_input_tokens=\S+ output_tokens=\S+ reasoning_tokens=\S+ total_tokens=(\S+) measured_subset_tokens=\S+ cost=\S+ currency=\S+ pricing_status=\S+ pricing_source=\S+ artifact_ref=\S+ parent_artifact_ref=\S* -->/g;
   const entries: ParsedEntry[] = [];
   let match = tokenPattern.exec(section);
   while (match !== null) {
@@ -202,6 +204,8 @@ describe("usage-accounting contract docs", () => {
       expect(content).toContain("artifact_ref");
       expect(content).toMatch(/observed/i);
       expect(content).toMatch(/estimated/i);
+      expect(content).toMatch(/measured-subset/i);
+      expect(content).toContain("measured_subset_tokens");
       expect(content).toMatch(/unavailable/i);
       expect(content).toMatch(/missing telemetry/i);
     });
@@ -243,6 +247,7 @@ describe("usage-accounting token format is parseable and idempotent", () => {
       entryId: IMPLEMENT_ENTRY_ID,
       flow: IMPLEMENT_FLOW,
       inputTokens: 150,
+      measuredSubsetTokens: null,
       model: MODEL_NAME,
       outputTokens: 250,
       parentArtifactRef: null,
@@ -262,6 +267,7 @@ describe("usage-accounting token format is parseable and idempotent", () => {
       entryId: RESEARCH_ENTRY_ID,
       flow: RESEARCH_FLOW,
       inputTokens: null,
+      measuredSubsetTokens: 1_023_299,
       model: MODEL_NAME,
       outputTokens: null,
       parentArtifactRef: null,
@@ -270,7 +276,7 @@ describe("usage-accounting token format is parseable and idempotent", () => {
       provider: PROVIDER_NAME,
       reasoningTokens: null,
       runId: RESEARCH_RUN_ID,
-      source: SOURCE_UNAVAILABLE,
+      source: SOURCE_MEASURED_SUBSET,
       totalTokens: null,
     },
   ];

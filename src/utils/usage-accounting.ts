@@ -16,6 +16,7 @@ export interface LisaUsageEntry {
   entryId: string;
   flow: string;
   inputTokens: number | null;
+  measuredSubsetTokens: number | null;
   model: string;
   outputTokens: number | null;
   parentArtifactRef: string | null;
@@ -63,7 +64,7 @@ export interface ParsedLisaUsageSection {
 }
 
 const ENTRY_PATTERN =
-  /<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->/g;
+  /<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) (?:measured_subset_tokens=(\S+) )?cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->/g;
 
 const ROLLUP_PATTERN =
   /<!-- lisa:usage-rollup direct_entry_ids=(\S*) child_entry_ids=(\S*) child_refs=(\S*) direct_tokens=(\S+) child_tokens=(\S+) total_tokens=(\S+) direct_cost=(\S+) child_cost=(\S+) total_cost=(\S+) currency=(\S+)(?: child_currency=(\S+))? -->/;
@@ -265,6 +266,23 @@ function formatTokens(value: number | null): string {
 }
 
 /**
+ * Render the token-count cell for human readers without making a measured
+ * subset look like a complete total.
+ *
+ * @param entry Usage entry to display.
+ * @returns A deterministic display string.
+ */
+function formatEntryTokens(entry: LisaUsageEntry): string {
+  if (entry.totalTokens !== null) {
+    return formatTokens(entry.totalTokens);
+  }
+
+  return entry.measuredSubsetTokens === null
+    ? "null"
+    : `${entry.measuredSubsetTokens} measured subset`;
+}
+
+/**
  * Render a cost value for the human-readable table.
  *
  * @param value Cost amount to format.
@@ -454,7 +472,7 @@ export function createLisaUsageRollup(
  * @returns The canonical `lisa:usage-entry` token line.
  */
 export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
-  return `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
+  return `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} measured_subset_tokens=${renderNullable(entry.measuredSubsetTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
 }
 
 /**
@@ -486,7 +504,7 @@ export function renderLisaUsageSection(input: {
       ? ["| _No direct entries recorded_ | | | | |"]
       : entries.map(
           entry =>
-            `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${formatTokens(entry.totalTokens)} | ${formatCost(entry.cost, entry.currency)} | ${renderLisaUsageEntryToken(entry)}`
+            `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${formatEntryTokens(entry)} | ${formatCost(entry.cost, entry.currency)} | ${renderLisaUsageEntryToken(entry)}`
         );
   const lines = [
     LISA_USAGE_HEADING,
@@ -526,12 +544,14 @@ export function parseLisaUsageSection(
     outputTokens: parseNullableNumber(match[9] ?? ""),
     reasoningTokens: parseNullableNumber(match[10] ?? ""),
     totalTokens: parseNullableNumber(match[11] ?? ""),
-    cost: parseNullableNumber(match[12] ?? ""),
-    currency: parseNullableString(match[13] ?? ""),
-    pricingStatus: decodeTokenValue(match[14] ?? ""),
-    pricingSource: parseNullableString(match[15] ?? ""),
-    artifactRef: decodeTokenValue(match[16] ?? ""),
-    parentArtifactRef: parseNullableString(match[17] ?? ""),
+    measuredSubsetTokens:
+      match[12] === undefined ? null : parseNullableNumber(match[12]),
+    cost: parseNullableNumber(match[13] ?? ""),
+    currency: parseNullableString(match[14] ?? ""),
+    pricingStatus: decodeTokenValue(match[15] ?? ""),
+    pricingSource: parseNullableString(match[16] ?? ""),
+    artifactRef: decodeTokenValue(match[17] ?? ""),
+    parentArtifactRef: parseNullableString(match[18] ?? ""),
   }));
 
   const rollupMatch = ROLLUP_PATTERN.exec(section);
