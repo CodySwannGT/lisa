@@ -289,6 +289,45 @@
         margin-top: 3px;
         max-width: 26ch;
       }
+      .live-status-panel {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 42px;
+        padding: 7px 20px;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--line);
+      }
+      .live-status-panel h2 {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .live-status-list {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .live-status-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 9px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        background: var(--surface);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+      .live-status-item .status-why {
+        display: inline;
+        margin: 0;
+        max-width: 48ch;
+        overflow-wrap: anywhere;
+      }
 
       .check-item {
         display: flex;
@@ -1203,6 +1242,18 @@
         ◐
       </button>
     </header>
+    <section
+      class="live-status-panel"
+      aria-labelledby="liveStatusHeading"
+      aria-live="polite"
+      aria-atomic="true"
+      role="status"
+    >
+      <h2 id="liveStatusHeading">Live status</h2>
+      <div class="live-status-list" id="liveStatusList" role="list">
+        <span class="live-status-item" role="listitem">Loading…</span>
+      </div>
+    </section>
     <div class="app">
       <nav class="sidebar" id="nav" aria-label="Settings sections"></nav>
       <main class="main" id="main"></main>
@@ -5799,10 +5850,115 @@
         }
       }
 
+      /* --- live-status hydration (same-origin GET /api/status) --- */
+      function liveStatusValue(value) {
+        if (typeof value === "string") return value;
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return String(value);
+        }
+      }
+      function normalizeLiveStatusResult(result) {
+        if (!result || typeof result !== "object" || Array.isArray(result)) {
+          return {
+            state: "unknown",
+            reason: "invalid-result",
+            message: "Probe returned an invalid status result",
+          };
+        }
+        const keys = Object.keys(result).sort().join(",");
+        if (result.state === "value" && keys === "state,value") return result;
+        if (result.state === "not-applicable" && keys === "state")
+          return result;
+        if (
+          result.state === "unknown" &&
+          keys === "message,reason,state" &&
+          typeof result.reason === "string" &&
+          result.reason.trim().length > 0 &&
+          typeof result.message === "string" &&
+          result.message.trim().length > 0
+        ) {
+          return result;
+        }
+        return {
+          state: "unknown",
+          reason: "invalid-result",
+          message: "Probe returned an invalid status result",
+        };
+      }
+      function liveStatusProbeMap(snapshot) {
+        if (
+          !snapshot ||
+          typeof snapshot !== "object" ||
+          Array.isArray(snapshot) ||
+          !Object.hasOwn(snapshot, "probes") ||
+          !snapshot.probes ||
+          typeof snapshot.probes !== "object" ||
+          Array.isArray(snapshot.probes)
+        ) {
+          throw new TypeError("Status response omitted a valid probes map");
+        }
+        return snapshot.probes;
+      }
+      function renderLiveStatuses(probes) {
+        const list = document.getElementById("liveStatusList");
+        list.innerHTML = "";
+        const entries = Object.entries(probes || {});
+        if (entries.length === 0) {
+          const empty = el("span", "live-status-item", "No probes");
+          empty.setAttribute("role", "listitem");
+          list.appendChild(empty);
+          return;
+        }
+        entries.forEach(([id, candidate]) => {
+          const result = normalizeLiveStatusResult(candidate);
+          const item = el("span", "live-status-item");
+          item.setAttribute("role", "listitem");
+          item.appendChild(el("b", "", esc(id)));
+          if (result.state === "value") {
+            item.appendChild(
+              el("span", "badge pass", esc(liveStatusValue(result.value)))
+            );
+          } else if (result.state === "not-applicable") {
+            item.appendChild(el("span", "badge default", "not applicable"));
+          } else {
+            item.appendChild(el("span", "badge warn", "unknown"));
+            item.appendChild(
+              el(
+                "span",
+                "status-why",
+                esc(result.reason + ": " + result.message)
+              )
+            );
+          }
+          list.appendChild(item);
+        });
+      }
+      async function hydrateLiveStatuses() {
+        try {
+          const response = await fetch("/api/status", {
+            headers: { accept: "application/json" },
+          });
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          const snapshot = await response.json();
+          renderLiveStatuses(liveStatusProbeMap(snapshot));
+        } catch (error) {
+          renderLiveStatuses({
+            transport: {
+              state: "unknown",
+              reason: "status-unavailable",
+              message: error instanceof Error ? error.message : String(error),
+            },
+          });
+        }
+      }
+
       /* --- boot (deferred so an injected live-config tag after this script is seen) --- */
       function boot() {
         hydrateFromLiveConfig();
         renderAll();
+        void hydrateLiveStatuses();
         showSection(location.hash ? location.hash.slice(1) : "overview");
         if (!document.getElementById("section-" + activeSection))
           showSection("overview");
