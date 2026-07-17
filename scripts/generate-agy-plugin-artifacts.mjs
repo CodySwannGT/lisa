@@ -25,7 +25,8 @@
  * MCP (user-global, NOT plugin-bundled): agy ignores plugin-bundled MCP and only
  * reads the user-global `~/.gemini/config/mcp_config.json`, so MCP is delivered
  * by the runtime installer (`src/agy/mcp-installer.ts`), and this generator
- * drops `.mcp.json`. Rules use the AGENTS.md bake (rules-once invariant).
+ * drops `.mcp.json`. Rules remain out of agy artifacts; the runtime reconciles
+ * only a bounded AGENTS.md project-learnings bridge.
  *
  * Net: the agy variant ships a root `hooks.json` (base only) + its agy-protocol
  * script under `hooks/`, but NO `mcp_config.json`, NO `.mcp.json`, NO `rules/`,
@@ -132,7 +133,7 @@ export function generateAgyVariant(srcDir, outDir, version) {
     // hooks.json (root) + the agy-protocol script are re-emitted by
     // emitAgyPluginHooks below.
     if (relPath.startsWith("hooks/") || relPath === "hooks") return false;
-    if (relPath.startsWith("rules/") || relPath === "rules") return false; // rules delivered via AGENTS.md bake
+    if (relPath.startsWith("rules/") || relPath === "rules") return false; // no full rules tree in agy artifacts
     // Drop the untranslated Claude .mcp.json — agy ignores it (and the agy
     // MCP shape differs); MCP is delivered by the user-global runtime MCP installer.
     if (relPath === ".mcp.json") return false;
@@ -206,7 +207,7 @@ export function generateAgyVariant(srcDir, outDir, version) {
  * agy-protocol script copied into the variant's hooks/ and referenced by the
  * command. NOTE: install-pkgs / setup-jira-cli are SessionStart-only, which agy
  * hooks don't support, so they are intentionally absent. inject-rules is absent
- * too (rules-once via the AGENTS.md bake).
+ * too (rules stay out of agy artifacts).
  */
 const AGY_PLUGIN_HOOKS = [
   {

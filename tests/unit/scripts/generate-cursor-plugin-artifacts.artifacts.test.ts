@@ -36,7 +36,19 @@ const REPO_ROOT = path.resolve(
 );
 const CURSOR_BASE = path.join(REPO_ROOT, "plugins", "lisa-cursor");
 const CURSOR_EXPO = path.join(REPO_ROOT, "plugins", "lisa-expo-cursor");
+const SOURCE_RULES_BASE = path.join(
+  REPO_ROOT,
+  "plugins",
+  "src",
+  "base",
+  "rules"
+);
 const REFERENCE_SUFFIX = "-reference.mdc";
+
+const sourceRuleCount = (tier: "eager" | "reference"): number =>
+  fs
+    .readdirSync(path.join(SOURCE_RULES_BASE, tier))
+    .filter(f => f.endsWith(".md")).length;
 
 describe("committed Cursor artifacts (regression — issue #1055)", () => {
   describe("base lisa-cursor — rules", () => {
@@ -44,7 +56,7 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
     const mdcFiles = (): readonly string[] =>
       fs.readdirSync(rulesDir).filter(f => f.endsWith(".mdc"));
 
-    it("ships 38 flat .mdc (19 eager + 19 reference), no nested dirs, no plain .md", () => {
+    it("ships one flat .mdc per source rule, no nested dirs, no plain .md", () => {
       expect(fs.existsSync(rulesDir)).toBe(true);
       expect(fs.existsSync(path.join(rulesDir, "eager"))).toBe(false);
       expect(fs.existsSync(path.join(rulesDir, "reference"))).toBe(false);
@@ -53,9 +65,15 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
         expect(e.name.endsWith(".mdc")).toBe(true);
       }
       const mdc = mdcFiles();
-      expect(mdc.length).toBe(38);
-      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(19);
-      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(19);
+      const eagerCount = sourceRuleCount("eager");
+      const referenceCount = sourceRuleCount("reference");
+      expect(mdc.length).toBe(eagerCount + referenceCount);
+      expect(mdc.filter(f => f.endsWith(REFERENCE_SUFFIX)).length).toBe(
+        referenceCount
+      );
+      expect(mdc.filter(f => !f.endsWith(REFERENCE_SUFFIX)).length).toBe(
+        eagerCount
+      );
     });
 
     it("eager rules carry alwaysApply:true; reference rules alwaysApply:false + description", () => {

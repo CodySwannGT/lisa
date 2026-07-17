@@ -8,12 +8,24 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CLAUDE_MD_AGENTS_IMPORT } from "../../../src/claude/claude-md-installer.js";
 import {
+  LISA_PROJECT_LEARNINGS_END_MARKER,
+  LISA_PROJECT_LEARNINGS_START_MARKER,
   LISA_RULES_END_MARKER,
   LISA_RULES_START_MARKER,
+  buildAgyProjectLearningsBridge,
   migrateInstructionFiles,
+  stripAgyProjectLearningsBridge,
   stripBakedAgyRulesBlock,
 } from "../../../src/core/instruction-files-migration.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+
+const CONFIG_PATH = ".lisa.config.json";
+const CUSTOM_RULES_PATH = "rules/CUSTOM_RULES.md";
+const DEFAULT_LEARNINGS_LINE =
+  "Resolved path for this project: `.claude/rules/PROJECT_LEARNINGS.md`.";
+const CUSTOM_LEARNINGS_LINE =
+  "Resolved path for this project: `rules/PROJECT_LEARNINGS.md`.";
+const CUSTOM_LEARNINGS_PATH = "rules/PROJECT_LEARNINGS.md";
 
 describe("core/instruction-files-migration", () => {
   let dir: string;
@@ -107,6 +119,90 @@ describe("core/instruction-files-migration", () => {
     expect(second.actions).toEqual([]);
   });
 
+  it("adds the bounded agy project-learnings bridge for agy harnesses", async () => {
+    await fs.writeJson(path.join(dir, CONFIG_PATH), {
+      harness: "agy",
+    });
+
+    const result = await migrateInstructionFiles(dir);
+
+    const agents = await fs.readFile(agentsPath(), "utf8");
+    expect(result.actions.some(a => a.includes("project-learnings"))).toBe(
+      true
+    );
+    expect(agents).toContain(LISA_PROJECT_LEARNINGS_START_MARKER);
+    expect(agents).toContain(DEFAULT_LEARNINGS_LINE);
+    expect(agents).not.toContain(LISA_RULES_START_MARKER);
+  });
+
+  it("replaces the agy bridge when projectRulesFile moves the learnings sibling", async () => {
+    await fs.writeJson(path.join(dir, CONFIG_PATH), {
+      harness: "agy",
+    });
+    await migrateInstructionFiles(dir);
+    await fs.writeJson(path.join(dir, CONFIG_PATH), {
+      harness: "agy",
+      projectRulesFile: CUSTOM_RULES_PATH,
+    });
+
+    const result = await migrateInstructionFiles(dir);
+
+    const agents = await fs.readFile(agentsPath(), "utf8");
+    expect(result.changed).toBe(true);
+    expect(agents.match(/LISA_PROJECT_LEARNINGS_START/g)).toHaveLength(1);
+    expect(agents).toContain(CUSTOM_LEARNINGS_LINE);
+    expect(agents).not.toContain(DEFAULT_LEARNINGS_LINE);
+  });
+
+  it("removes the agy bridge when the harness no longer includes agy", async () => {
+    await fs.writeFile(
+      agentsPath(),
+      `Host\n\n${buildAgyProjectLearningsBridge(CUSTOM_LEARNINGS_PATH)}\n\nAfter\n`,
+      "utf8"
+    );
+    await fs.writeJson(path.join(dir, CONFIG_PATH), {
+      harness: "codex",
+    });
+
+    const result = await migrateInstructionFiles(dir);
+
+    const agents = await fs.readFile(agentsPath(), "utf8");
+    expect(result.actions.some(a => a.includes("removed agy"))).toBe(true);
+    expect(agents).not.toContain(LISA_PROJECT_LEARNINGS_START_MARKER);
+    expect(agents).toContain("Host");
+    expect(agents).toContain("After");
+  });
+
+  it("removes legacy baked rules while preserving the bounded agy learnings bridge", async () => {
+    await fs.writeFile(
+      agentsPath(),
+      [
+        "Host before.",
+        "",
+        LISA_RULES_START_MARKER,
+        "Full eager rule body that must not survive.",
+        LISA_RULES_END_MARKER,
+        "",
+        buildAgyProjectLearningsBridge(CUSTOM_LEARNINGS_PATH),
+        "",
+        "Host after.",
+      ].join("\n"),
+      "utf8"
+    );
+    await fs.writeJson(path.join(dir, CONFIG_PATH), {
+      harness: "agy",
+      projectRulesFile: CUSTOM_RULES_PATH,
+    });
+
+    await migrateInstructionFiles(dir);
+
+    const agents = await fs.readFile(agentsPath(), "utf8");
+    expect(agents).not.toContain("Full eager rule body");
+    expect(agents).toContain(LISA_PROJECT_LEARNINGS_START_MARKER);
+    expect(agents).toContain("Host before.");
+    expect(agents).toContain("Host after.");
+  });
+
   it("does not re-add the import when CLAUDE.md already points at AGENTS.md", async () => {
     await fs.writeFile(claudePath(), "# Claude\n\n@AGENTS.md\n", "utf8");
 
@@ -131,6 +227,43 @@ describe("core/instruction-files-migration", () => {
       expect(stripped).toContain("Before");
       expect(stripped).toContain("After");
       expect(stripped).not.toMatch(/\n\n\n/);
+    });
+  });
+
+  describe("stripAgyProjectLearningsBridge", () => {
+    it("removes a well-formed managed bridge and preserves surrounding text", () => {
+      const body = `Before\n\n${buildAgyProjectLearningsBridge(CUSTOM_LEARNINGS_PATH)}\n\nAfter\n`;
+      const stripped = stripAgyProjectLearningsBridge(body);
+      expect(stripped).not.toContain(LISA_PROJECT_LEARNINGS_START_MARKER);
+      expect(stripped).toContain("Before");
+      expect(stripped).toContain("After");
+    });
+
+    it("leaves malformed markers unchanged", () => {
+      const body = `Before\n${LISA_PROJECT_LEARNINGS_START_MARKER}\nAfter\n`;
+      expect(stripAgyProjectLearningsBridge(body)).toBe(body);
+    });
+
+    it("leaves duplicate marker pairs unchanged rather than deleting only the first pair", () => {
+      const bridge = buildAgyProjectLearningsBridge(CUSTOM_LEARNINGS_PATH);
+      // Two full bridge blocks back to back is malformed for this managed-block
+      // contract: indexOf would only find the first pair, silently stranding the
+      // second block's markers and text as stale host content.
+      const body = `Before\n\n${bridge}\n\n${bridge}\n\nAfter\n`;
+      expect(stripAgyProjectLearningsBridge(body)).toBe(body);
+    });
+
+    it("leaves a duplicated start marker unchanged even with a single end marker", () => {
+      const body = [
+        "Before",
+        LISA_PROJECT_LEARNINGS_START_MARKER,
+        "first",
+        LISA_PROJECT_LEARNINGS_START_MARKER,
+        "second",
+        LISA_PROJECT_LEARNINGS_END_MARKER,
+        "After",
+      ].join("\n");
+      expect(stripAgyProjectLearningsBridge(body)).toBe(body);
     });
   });
 });
