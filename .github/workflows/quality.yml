@@ -130,7 +130,7 @@ on:
         default: 1
         type: number
       cache_build:
-        description: 'Cache the Expo web build output between runs to skip `expo export` and `<pm> run build` when source unchanged. Default false = full rebuild every run (unchanged behavior). When true, cache key hashes lockfiles + app/components/features sources + Expo/Metro/Babel/TS configs; invalidates when any of those change.'
+        description: 'Cache build output between runs to skip `expo export` and `<pm> run build` when source unchanged. Default false = full rebuild every run (unchanged behavior). When true, cache key hashes lockfiles + src/app/components/features sources + Expo/Metro/Babel/TS configs; invalidates when any of those change.'
         required: false
         default: false
         type: boolean
@@ -1002,7 +1002,7 @@ jobs:
       #
       # Cache invalidation contract:
       #   Key hashes (in order): lockfiles → source directories → config files.
-      #   Any change to a lockfile, app/components/features source, or
+      #   Any change to a lockfile, src/app/components/features source, or
       #   Expo/Metro/Babel/TS config will miss the cache and force a rebuild.
       #   Runner OS is part of the key to prevent cross-OS cache reuse.
       # Cached paths:
@@ -1018,7 +1018,7 @@ jobs:
             ${{ inputs.working_directory || '.' }}/dist
             ${{ inputs.working_directory || '.' }}/.expo
             ${{ inputs.working_directory || '.' }}/node_modules/.cache
-          key: ${{ runner.os }}-expo-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          key: ${{ runner.os }}-expo-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/src/**', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
           restore-keys: |
             ${{ runner.os }}-expo-build-
 
@@ -1250,7 +1250,7 @@ jobs:
       # Build output cache — opt-in via `cache_build: true`.
       #
       # Cache invalidation contract (same as playwright_e2e):
-      #   Key hashes lockfiles → app/components/features sources →
+      #   Key hashes lockfiles → src/app/components/features sources →
       #   Expo/Metro/Babel/TS configs. Any change forces a rebuild.
       # Cached paths cover common build output directories (dist, build,
       # .next, out) plus bundler caches. Default false = unchanged behavior.
@@ -1266,7 +1266,7 @@ jobs:
             ${{ inputs.working_directory || '.' }}/out
             ${{ inputs.working_directory || '.' }}/.expo
             ${{ inputs.working_directory || '.' }}/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('**/bun.lock', '**/bun.lockb', '**/package-lock.json', '**/yarn.lock', '**/src/**', '**/app/**', '**/components/**', '**/features/**', '**/app.json', '**/package.json', '**/babel.config.js', '**/babel.config.ts', '**/metro.config.js', '**/metro.config.ts', '**/tsconfig.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
 

@@ -143,6 +143,18 @@ describe("quality.yml reusable workflow", () => {
       expect(input?.default).toBe(false);
       expect(input?.type).toBe("boolean");
     });
+
+    it("includes the source root in build cache keys", () => {
+      const playwrightExpoCache = workflow.jobs.playwright_e2e.steps?.find(
+        step => step.id === "expo_cache"
+      );
+      const buildCache = workflow.jobs.build.steps?.find(
+        step => step.id === "build_cache"
+      );
+
+      expect(playwrightExpoCache?.with?.key).toContain("'**/src/**'");
+      expect(buildCache?.with?.key).toContain("'**/src/**'");
+    });
   });
 
   describe("cross-run concurrency mutex (opt-in)", () => {
