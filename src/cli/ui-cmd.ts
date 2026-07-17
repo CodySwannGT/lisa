@@ -26,6 +26,7 @@ import {
 export {
   createGithubAuthProbe,
   runProbe,
+  type GitRemoteReader,
   type GithubAuthCheck,
   type ProbeResult,
   type StatusProbe,
