@@ -128,8 +128,10 @@ export const getExpoJestConfig = ({
   testEnvironment: "jsdom",
   haste: {
     defaultPlatform: "ios",
+    forceNodeFilesystemAPI: true,
     platforms: ["android", "ios", "native"],
   },
+  modulePathIgnorePatterns: ["<rootDir>/\\.claude/"],
   // This resolver teaches Jest to resolve platform-extension files
   // (`.ios`/`.native`/`.web`); without it those variants do not resolve.
   // Its location moved between SDK 54 and SDK 56, so the path is chosen at
