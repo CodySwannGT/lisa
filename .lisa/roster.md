@@ -1,25 +1,19 @@
 # Lisa Implement Roster Decision
 
-Work item: `CodySwannGT/lisa#1549`
+Work item: `CodySwannGT/lisa#1550` (post-release compatibility repair)
 
 Runtime delegation inventory:
 
-`INCLUDE - general-purpose collaboration agent - Codex exposes no enumerated specialist agent types; this is the only available delegation type and will be constrained by role-specific prompts.`
+`INCLUDE - general-purpose collaboration agent - Codex exposes one delegation type, constrained here by fresh role-specific prompts.`
 
-Runtime gap: Codex's collaboration surface does not expose separate built-in `Explore`, reproducer, implementer, reviewer, learner, verifier, release, or ops agent types. The general-purpose type is therefore assigned the following bounded specialist roles for this issue:
+`INCLUDE - input resolver - Confirmed #1550 was initially ready and later reopened after empirical npm verification.`
 
-`INCLUDE - input-resolver / Explore-equivalent - Completed the required live ticket, hierarchy, access, duplicate, and base-branch readiness pass.`
+`INCLUDE - reproducer and parity mapper - Reproduced the original gap, mapped canonical/generated surfaces, and now pins the released backward-compatibility regression.`
 
-`INCLUDE - reproduction and research specialist - Required to reproduce both F2 and F4 contradictions and inventory the canonical validator, generator parity surfaces, tests, documentation, and history before implementation.`
+`INCLUDE - implementer - Repairs the released 2.222.0 compatibility failure and mixed-rollup semantics from clean main.`
 
-`INCLUDE - implementation specialist - Required to correct the canonical contract and every generated coding-agent surface with focused regression coverage.`
+`INCLUDE - reviewer and learner - Independently gate contract correctness, source compatibility, and maintainability.`
 
-`INCLUDE - review specialist - Required independent contract, parity, scope, and regression review.`
-
-`INCLUDE - learner specialist - Required independent review of task learnings before team shutdown.`
-
-`INCLUDE - verification specialist - Required independent empirical validation and machine-readable verdict.`
-
-`INCLUDE - release and ops specialist - Required PR, CI, merge, package-release, and post-release health monitoring.`
+`INCLUDE - verifier and release operations - Validate local behavior, merged CI, release, and public npm artifact before terminal closeout.`
 
 No available delegation type is excluded.
