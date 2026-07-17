@@ -22,6 +22,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Plugin template basenames (de-duplicated for sonarjs/no-duplicate-string). */
 const SESSION = "lisa-session-bootstrap.ts";
+const PARITY = "lisa-parity-safety-net.ts";
 const LINT = "lisa-lint-on-edit.ts";
 const SUPPRESS = "lisa-block-suppress-directives.ts";
 const SGSCAN = "lisa-sg-scan-on-edit.ts";
@@ -249,7 +250,7 @@ describe("opencode/hooks-installer", () => {
     it("ships the typescript guards for a typescript project", async () => {
       await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([SUPPRESS, LINT, SESSION, SGSCAN]);
+      expect(files).toEqual([SUPPRESS, LINT, PARITY, SESSION, SGSCAN]);
     });
 
     it("adds the migration guard for a nestjs project", async () => {
@@ -263,7 +264,7 @@ describe("opencode/hooks-installer", () => {
     it("ships the rails guards for a rails project", async () => {
       await installHooks(lisaDir, destDir, ["rails"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([RUBOCOP, SESSION, SGSCAN]);
+      expect(files).toEqual([PARITY, RUBOCOP, SESSION, SGSCAN]);
     });
 
     it("does not ship typescript guards to a rails-only project", async () => {
@@ -309,7 +310,7 @@ describe("opencode/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
-      expect(result.managedFiles).toHaveLength(files.length);
+      expect(result.managedFiles).toHaveLength(files.length + 2);
     });
   });
 
