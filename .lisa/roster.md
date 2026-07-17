@@ -1,9 +1,23 @@
-# Roster Decision: Project-Scoped Codex Delivery
+# Lisa Implement Roster Decision
 
-INCLUDE - Explore - The runtime exposes only general-purpose agents, so one will be assigned a bounded read-only architecture and test-surface investigation.
-INCLUDE - Builder - The runtime exposes only general-purpose agents, so one will implement a bounded source-and-test slice after research completes.
-INCLUDE - Reviewer - The runtime exposes only general-purpose agents, so one will independently review the completed diff for behavioral regressions.
-INCLUDE - Verifier - The runtime exposes only general-purpose agents, so one will independently run the empirical Bun install/update and Codex prompt checks.
-EXCLUDE - Named repository specialists - Codex collaboration exposes no selectable specialist type; repository agent files cannot be selected through the available spawn API.
+Work item: `CodySwannGT/lisa#1472`
 
-Resolved request: keep all Lisa Codex delivery project-scoped; install only base plus detected-stack artifacts without duplication; prevent unrelated stack hooks and rules; and automatically reconcile the invoking project when Bun installs or updates Lisa.
+Runtime delegation inventory:
+
+`INCLUDE - general-purpose collaboration agent - Codex exposes no enumerated specialist agent types; this is the only available delegation type and will be constrained by role-specific prompts.`
+
+Runtime gap: Codex's collaboration surface does not expose separate built-in `Explore`, reviewer, learner, verifier, or ops agent types. The general-purpose type is therefore assigned the following bounded specialist roles for this issue:
+
+`INCLUDE - Explore-equivalent - Required read-only codebase, documentation, test, and git-history research before implementation.`
+
+`INCLUDE - implementation specialist - Required to implement the approved task and its regression coverage after research and access gates pass.`
+
+`INCLUDE - review specialist - Required independent correctness, scope, quality, and regression review.`
+
+`INCLUDE - learner specialist - Required independent review of task learnings before team shutdown.`
+
+`INCLUDE - verification specialist - Required independent local and remote empirical verification and machine-readable verdict.`
+
+`INCLUDE - ops specialist - Required PR/deploy lifecycle monitoring and post-deploy health evidence.`
+
+No available delegation type is excluded.
