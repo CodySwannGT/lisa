@@ -25,6 +25,13 @@ export type GithubAuthCheck = (
   hostname: string
 ) => Promise<"authenticated" | "not-authenticated">;
 
+/** Injectable effective-origin reader used by the GitHub reference probe. */
+export type GitRemoteReader = (
+  cwd: string,
+  timeoutMs: number,
+  signal: AbortSignal
+) => Promise<string>;
+
 /** Error used internally to distinguish a bounded probe timeout. */
 class ProbeTimeoutError extends Error {
   /**
@@ -177,9 +184,19 @@ function remoteHostname(remote: string): string {
     const normalized = hostname.toLowerCase();
     return normalized.endsWith(".") ? normalized.slice(0, -1) : normalized;
   };
-  const scp = /^[^@\s]+@([^:\s]+):/u.exec(remote);
-  if (scp?.[1] !== undefined) {
-    return normalize(scp[1]);
+  if (!remote.includes("://")) {
+    const separator = remote.indexOf(":");
+    const authority = separator > 0 ? remote.slice(0, separator) : "";
+    const host = authority.slice(authority.lastIndexOf("@") + 1);
+    const looksLikeWindowsPath =
+      authority.length === 1 && /[A-Za-z]/u.test(authority);
+    if (
+      host.length > 0 &&
+      !looksLikeWindowsPath &&
+      !Array.from(host).some(character => /\s/u.test(character))
+    ) {
+      return normalize(host);
+    }
   }
   try {
     const hostname = new URL(remote).hostname;
@@ -196,18 +213,20 @@ function remoteHostname(remote: string): string {
  * Create the reference GitHub authentication probe.
  * @param cwd - Project root used as the command working directory
  * @param check - Injectable command check used by focused tests
+ * @param readRemote - Injectable effective-origin reader used by focused tests
  * @returns Reference probe for the live-status transport
  */
 export function createGithubAuthProbe(
   cwd: string,
-  check: GithubAuthCheck = runGithubAuthStatus
+  check: GithubAuthCheck = runGithubAuthStatus,
+  readRemote: GitRemoteReader = readOriginRemote
 ): StatusProbe<boolean> {
   const timeoutMs = 5_000;
   return {
     id: "github-auth",
     timeoutMs,
     run: async signal => {
-      const remote = await readOriginRemote(cwd, timeoutMs + 250, signal);
+      const remote = await readRemote(cwd, timeoutMs + 250, signal);
       const hostname = remoteHostname(remote);
       const state = await check(cwd, timeoutMs + 250, signal, hostname);
       return state === "authenticated"

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -52,29 +52,6 @@ function probe<T extends JsonValue>(
   timeoutMs = 50
 ): StatusProbe<T> {
   return { id, run, timeoutMs };
-}
-
-/**
- * Write the active project's origin remote without invoking git.
- * @param remote - Origin URL stored in .git/config
- * @param additionalConfig - Extra git config sections used by the fixture
- */
-async function writeOriginRemote(
-  remote: string,
-  additionalConfig = ""
-): Promise<void> {
-  await mkdir(path.join(resources.dir, ".git", "objects"), {
-    recursive: true,
-  });
-  await mkdir(path.join(resources.dir, ".git", "refs"));
-  await writeFile(
-    path.join(resources.dir, ".git", "HEAD"),
-    "ref: refs/heads/main\n"
-  );
-  await writeFile(
-    path.join(resources.dir, ".git", "config"),
-    `[core]\n\trepositoryformatversion = 0\n\tbare = false\n[remote "origin"]\n\turl = ${remote}\n${additionalConfig}`
-  );
 }
 
 describe("runProbe", () => {
@@ -229,10 +206,11 @@ describe("createGithubAuthProbe", () => {
   ])(
     "scopes gh authentication to the project remote host: %s",
     async remote => {
-      await writeOriginRemote(remote);
       const check = vi.fn(async () => "authenticated" as const);
 
-      await uiCmd.runProbe(uiCmd.createGithubAuthProbe(resources.dir, check));
+      await uiCmd.runProbe(
+        uiCmd.createGithubAuthProbe(resources.dir, check, async () => remote)
+      );
 
       expect(check).toHaveBeenCalledWith(
         resources.dir,
@@ -244,10 +222,15 @@ describe("createGithubAuthProbe", () => {
   );
 
   it("normalizes a case-insensitive scp-style DNS hostname", async () => {
-    await writeOriginRemote("git@GitHub.Enterprise.Example.:acme/widget.git");
     const check = vi.fn(async () => "authenticated" as const);
 
-    await uiCmd.runProbe(uiCmd.createGithubAuthProbe(resources.dir, check));
+    await uiCmd.runProbe(
+      uiCmd.createGithubAuthProbe(
+        resources.dir,
+        check,
+        async () => "git@GitHub.Enterprise.Example.:acme/widget.git"
+      )
+    );
 
     expect(check).toHaveBeenCalledWith(
       resources.dir,
@@ -257,14 +240,35 @@ describe("createGithubAuthProbe", () => {
     );
   });
 
-  it("uses Git's effective URL after insteadOf rewriting", async () => {
-    await writeOriginRemote(
-      "gh:acme/widget.git",
-      `[url "https://${ENTERPRISE_HOSTNAME}/"]\n\tinsteadOf = gh:\n`
-    );
+  it("accepts an scp-style hostname without an explicit user", async () => {
     const check = vi.fn(async () => "authenticated" as const);
 
-    await uiCmd.runProbe(uiCmd.createGithubAuthProbe(resources.dir, check));
+    await uiCmd.runProbe(
+      uiCmd.createGithubAuthProbe(
+        resources.dir,
+        check,
+        async () => `${ENTERPRISE_HOSTNAME}:acme/widget.git`
+      )
+    );
+
+    expect(check).toHaveBeenCalledWith(
+      resources.dir,
+      5_250,
+      expect.any(AbortSignal),
+      ENTERPRISE_HOSTNAME
+    );
+  });
+
+  it("uses the effective URL returned by Git remote resolution", async () => {
+    const check = vi.fn(async () => "authenticated" as const);
+
+    await uiCmd.runProbe(
+      uiCmd.createGithubAuthProbe(
+        resources.dir,
+        check,
+        async () => `https://${ENTERPRISE_HOSTNAME}/acme/widget.git`
+      )
+    );
 
     expect(check).toHaveBeenCalledWith(
       resources.dir,
@@ -275,11 +279,14 @@ describe("createGithubAuthProbe", () => {
   });
 
   it("returns a real value only after gh confirms authentication", async () => {
-    await writeOriginRemote(`https://${GITHUB_HOSTNAME}/acme/widget.git`);
     const check = vi.fn(async () => "authenticated" as const);
 
     const result = await uiCmd.runProbe(
-      uiCmd.createGithubAuthProbe(resources.dir, check)
+      uiCmd.createGithubAuthProbe(
+        resources.dir,
+        check,
+        async () => `https://${GITHUB_HOSTNAME}/acme/widget.git`
+      )
     );
 
     expect(result).toEqual({ state: "value", value: true });
@@ -292,11 +299,11 @@ describe("createGithubAuthProbe", () => {
   });
 
   it("maps a real gh auth nonzero result to not-authenticated", async () => {
-    await writeOriginRemote(`https://${GITHUB_HOSTNAME}/acme/widget.git`);
     const result = await uiCmd.runProbe(
       uiCmd.createGithubAuthProbe(
         resources.dir,
-        async () => "not-authenticated"
+        async () => "not-authenticated",
+        async () => `https://${GITHUB_HOSTNAME}/acme/widget.git`
       )
     );
 
@@ -309,11 +316,14 @@ describe("createGithubAuthProbe", () => {
   });
 
   it("does not misreport a command execution failure as logged out", async () => {
-    await writeOriginRemote(`https://${GITHUB_HOSTNAME}/acme/widget.git`);
     const result = await uiCmd.runProbe(
-      uiCmd.createGithubAuthProbe(resources.dir, async () => {
-        throw new Error("spawn gh ENOENT");
-      })
+      uiCmd.createGithubAuthProbe(
+        resources.dir,
+        async () => {
+          throw new Error("spawn gh ENOENT");
+        },
+        async () => `https://${GITHUB_HOSTNAME}/acme/widget.git`
+      )
     );
 
     expect(result).toMatchObject({
