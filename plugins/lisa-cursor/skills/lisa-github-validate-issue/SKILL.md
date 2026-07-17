@@ -25,7 +25,7 @@ org: my-org
 repo: my-repo
 summary: "[CU-1.2] Upload contract PDF from settings"
 priority: medium
-parent_ref: "my-org/my-repo#1234"   # Parent Epic for non-Bug/non-Epic; Story for Sub-task
+parent_ref: "my-org/my-repo#1234"   # Parent Epic for ordinary children; PRD for an Epic only in the same-repo GitHub self-host shape; Story/etc. for Sub-task
 body: |
   ## Context / Business Value
   ...
@@ -63,7 +63,7 @@ artifacts_attached: true          # → requires Source Precedence section
 links: [{ ref: "my-org/my-repo#99", type: "is blocked by" }]   # known issue links (may be empty)
 remote_links: [{ url: "https://github.com/.../pull/42", title: "PR #42" }]
 journey_followup: auto            # auto | none — see S11
-build_ready: true                 # caller asserts the build-ready role (status:ready) is/would be applied — see S15
+build_ready: true                 # caller asserts the configured build-ready role (github.labels.build.ready, default status:ready) is/would be applied — see S15
 child_refs: ["my-org/my-repo#601", "my-org/my-repo#602"]   # known child work (sub-issues / task-list / "Blocked by" parentage) — see S15
 prd_source: "https://notion.so/..."    # set when the issue was generated from a PRD — requires the Source Requirement section, see S16
 ```
@@ -213,9 +213,11 @@ This gate depends on S11. It is `N/A` for containers — an **Epic**, or any ite
 
 #### S15 — Leaf-only build-ready
 
-Enforces the build-side of the vendor-neutral `leaf-only-lifecycle` rule: **only a leaf work unit may carry the build-ready role.** This is the symmetric write-side guard for the GitHub validator — a stale or hand-applied `status:ready` on a container is a lifecycle error and must FAIL here, regardless of how the issue was produced. (Mirrors the "Build-ready label is leaf-only" rule that `lisa-github-write-issue` applies at write time.)
+Enforces the build-side of the vendor-neutral `leaf-only-lifecycle` rule: **only a leaf work unit may carry the build-ready role.** Before evaluating this gate, resolve `READY_ROLE` from merged project config (`.lisa.config.local.json` over `.lisa.config.json`) at `github.labels.build.ready`, defaulting to `status:ready` per `config-resolution`. Use that resolved value everywhere this validator interprets build readiness; a project-specific label is not an alias for the literal default.
 
-**When the gate applies.** Run S15 whenever the issue is build-ready — i.e. `build_ready = true`, or the spec/live labels include `status:ready`. If the issue is not build-ready, S15 is `N/A` (nothing claims a non-ready issue, so the invariant is vacuous).
+This is the symmetric write-side guard for the GitHub validator — a stale or hand-applied `READY_ROLE` on a container is a lifecycle error and must FAIL here, regardless of how the issue was produced. (Mirrors the "Build-ready label is leaf-only" rule that `lisa-github-write-issue` applies at write time.)
+
+**When the gate applies.** Run S15 whenever the issue is build-ready — i.e. `build_ready = true`, or the spec/live labels include the resolved `READY_ROLE`. If the issue is not build-ready, S15 is `N/A` (nothing claims a non-ready issue, so the invariant is vacuous). For example, if `github.labels.build.ready = "queue:approved"`, a container carrying `queue:approved` FAILs S15 even when it does not carry the literal `status:ready` default.
 
 **Resolve container vs. leaf — structural first, then nominal.** Per `leaf-only-lifecycle` the classification is structural: an item is a **container** if it has child work, whatever its declared type; otherwise the **type label** decides. Determine child work from (in order) `child_refs`, native sub-issues, body task-list checkboxes, and `Blocked by #<n>` / parent references — the same hierarchy resolution `lisa-github-read-issue` uses. When validating a live ref, query sub-issues alongside the issue fetch.
 
@@ -233,7 +235,7 @@ PASS (the childless-parent exception) when the issue is build-ready and is a **l
 | Epic | no | yes | **FAIL** (childless Epic — pure rollup container, exception does not apply) |
 | any | any | no | **N/A** (not build-ready) |
 
-Remediation: `"Build-ready (status:ready) is leaf-only per leaf-only-lifecycle. Move status:ready off this container onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
+Remediation (render `<READY_ROLE>` as the resolved configured label, never as a hard-coded default): `"Build-ready (<READY_ROLE>; status:ready by default) is leaf-only per leaf-only-lifecycle. Move <READY_ROLE> off this container onto its leaf children (or, for a childless Epic, decompose it into leaf children or reclassify it to a leaf type); a parent's lifecycle state rolls up from its children and is never set to ready directly."`
 
 `product_relevant: false` — a build-ready container is a lifecycle/decomposition error for the caller to repair, not a product question.
 
@@ -284,8 +286,37 @@ gh issue view <number> --repo <org>/<repo> --json number,labels,state
 ```
 
 Confirm the parent issue exists and:
-- For non-Sub-task children: parent has `type:Epic` label.
-- For Sub-task children: parent has `type:Story`, `type:Task`, `type:Bug`, or `type:Improvement` (anything that can host sub-tasks).
+
+- For an `Epic` child, first resolve whether the validator can prove the native PRD-parent shape
+  allowed by `prd-lifecycle-rollup`: merged project config has `source = github` and
+  `tracker = github`; the spec/live child's `org` and `repo` match configured `github.org` and
+  `github.repo`; and `parent_ref` names that same `org/repo`. These facts are available from the
+  existing spec/live ref plus project config; do not infer the exception from label spelling alone.
+  Only in that proven same-repository GitHub self-host shape may the parent qualify by having one of
+  the configured PRD lifecycle labels from
+  `github.labels.prd` (`draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`, or
+  `verified`; defaults use the `prd-*` namespace). Resolve the configured values from
+  `.lisa.config.local.json` over `.lisa.config.json`, using the defaults from `config-resolution`.
+  The `sentinel` label is not a lifecycle role and does not qualify. This is the native
+  PRD→generated-Epic hierarchy used when GitHub is both source and tracker in one repository; the
+  PRD parent does **not** need `type:Epic`. If any self-host/same-repository predicate is false, a
+  PRD label does not grant the exception: native hierarchy cannot cross repositories or source
+  systems, so a PRD-labelled parent alone FAILs F2.
+- For a `Sub-task` child: the parent has `type:Story`, `type:Task`, `type:Bug`, or
+  `type:Improvement` (anything that can host sub-tasks). This allowlist is unchanged; a PRD
+  lifecycle label or `type:Epic` alone does not qualify.
+- For every other non-Sub-task child: the parent has `type:Epic`. A PRD lifecycle label alone does
+  not qualify, so the Epic→Story (and Epic→ordinary-leaf) hierarchy remains enforced.
+
+| child type | relationship shape | qualifying parent label | F2 |
+|---|---|---|---|
+| `Epic` | source GitHub + tracker GitHub + configured child repo = parent repo | configured PRD lifecycle label | **PASS** |
+| `Epic` | cross-repository or source/tracker is not same-repo GitHub | PRD lifecycle label only | **FAIL** |
+| `Epic` | permitted self-host shape | unconfigured `prd-*` lookalike or `prd-intake-feedback` sentinel only | **FAIL** |
+| `Sub-task` | any | `type:Story`, `type:Task`, `type:Bug`, or `type:Improvement` | **PASS** |
+| `Sub-task` | any | PRD lifecycle label or `type:Epic` only | **FAIL** |
+| any other non-Sub-task | any | `type:Epic` | **PASS** |
+| any other non-Sub-task | any | PRD lifecycle label only | **FAIL** |
 
 #### F3 — Linked issues exist
 
@@ -293,7 +324,35 @@ For each entry in `links`, run `gh issue view <number> --repo <link-org>/<link-r
 
 #### F4 — Required labels populated
 
-Per `Phase 5` of `lisa-github-write-issue`, every issue MUST carry: `type:<issue_type>`, `status:<status>`, `priority:<priority>`. If any are missing from the spec / live issue, FAIL with the missing label name.
+Per `Phase 5` of `lisa-github-write-issue`, every issue MUST carry
+`type:<issue_type>` and `priority:<priority>`. These two labels are unconditional: if either is
+missing from the proposed spec or live issue, FAIL with the missing label name.
+
+The `status:*` requirement uses this validator's S15 leaf/container classification while preserving
+the writer's documented `build_ready` control-input defaults:
+
+1. Classify the issue structurally using the S15 child-resolution rules. A container (any issue
+   with child work, plus a childless `Epic`) may omit `status:*`; its state rolls up rather than
+   being assigned directly.
+2. For a proposed leaf spec, normalize omitted `build_ready` to `true`, preserving the writer's
+   backward-compatible default-ready behavior. Explicit `build_ready: false` means backlog mode.
+3. For a live issue ref, derive `build_ready` from the labels (`true` exactly when the S15-resolved
+   `READY_ROLE` from `github.labels.build.ready`, default `status:ready`, is present). A live backlog leaf without a status label
+   therefore validates as `build_ready: false`; live data cannot distinguish an explicit false from
+   a historical write that omitted the label.
+4. A leaf with normalized `build_ready: true` MUST carry that same resolved `READY_ROLE`. A leaf with `build_ready: false` may omit
+   `status:*`.
+
+| classification | normalized build_ready | status label | F4 |
+|---|---:|---|---|
+| container | any | omitted | **PASS** |
+| leaf | `false` | omitted | **PASS** |
+| leaf | `true` | configured build-ready role (`status:ready` by default) | **PASS** |
+| leaf | `true` | omitted or a different `status:*` label | **FAIL** |
+
+F4 does not make a container build-ready. S15 remains the independent lifecycle prohibition: any
+container carrying the build-ready role still FAILs S15, even though F4's status-presence check is
+not applicable to containers.
 
 #### F5 — Required external access provable
 
@@ -322,7 +381,7 @@ system, and never invent or ask for credentials inline.
 
 ## Execution
 
-1. Parse `$ARGUMENTS`. If it's an issue ref, fetch via `gh issue view --json` and derive the spec fields — including `build_ready` (label set contains `status:ready`) and `child_refs` (native sub-issues plus body task-list / `Blocked by #<n>` parentage, resolved as in `lisa-github-read-issue`) so S15 can classify the issue. Otherwise parse the YAML spec.
+1. Parse `$ARGUMENTS`. Resolve `READY_ROLE` from merged `github.labels.build.ready` config (default `status:ready`). If the input is an issue ref, fetch via `gh issue view --json` and derive the spec fields — including `build_ready` (label set contains the resolved `READY_ROLE`, not a hard-coded label) and `child_refs` (native sub-issues plus body task-list / `Blocked by #<n>` parentage, resolved as in `lisa-github-read-issue`) so S15 can classify the issue. Otherwise parse the YAML spec and preserve the proposed `build_ready` value for S15/F4 normalization.
 2. Confirm `gh auth status` succeeds before any feasibility gate runs.
 3. Run every Specification gate in order. Collect PASS / FAIL / N/A with a one-line reason.
 4. Unless the caller passed `--spec-only`, run every Feasibility gate.
