@@ -1579,9 +1579,9 @@ describe("PackageLisaStrategy", () => {
       }
       // Exact pins (not just "is defined") so an accidental version bump in
       // the template is caught by this regression test.
-      expect(template.defaults.dependencies["aws-cdk-lib"]).toBe("2.246.0");
+      expect(template.defaults.dependencies["aws-cdk-lib"]).toBe("2.259.0");
       expect(template.defaults.dependencies["@aws-cdk/aws-amplify-alpha"]).toBe(
-        "^2.246.0-alpha.0"
+        "^2.259.0-alpha.0"
       );
     });
 
