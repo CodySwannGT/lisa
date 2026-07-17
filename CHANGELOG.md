@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.221.6](https://github.com/CodySwannGT/lisa/compare/v2.221.5...v2.221.6) (2026-07-17)
+
+
+### Bug Fixes
+
+* **validate:** align F2/F4 with lifecycle hierarchy ([#1549](https://github.com/CodySwannGT/lisa/issues/1549)) ([7279e21](https://github.com/CodySwannGT/lisa/commit/7279e21cb10c2491338a4ff0d3794a40032a3bef))
+
+
+### Documentation
+
+* **plan:** require successful regression execution ([9f87d7b](https://github.com/CodySwannGT/lisa/commit/9f87d7bab2a4c9e1ad524502014c3de37d6f034c))
+
 ### [2.221.5](https://github.com/CodySwannGT/lisa/compare/v2.221.4...v2.221.5) (2026-07-17)
 
 
