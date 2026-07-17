@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.221.5](https://github.com/CodySwannGT/lisa/compare/v2.221.4...v2.221.5) (2026-07-17)
+
+
+### Bug Fixes
+
+* **workflows:** hash source root in build caches ([a61a95b](https://github.com/CodySwannGT/lisa/commit/a61a95ba4c3727137df71417bb7de1ea09f96f9a))
+
 ### [2.221.4](https://github.com/CodySwannGT/lisa/compare/v2.221.3...v2.221.4) (2026-07-17)
 
 
