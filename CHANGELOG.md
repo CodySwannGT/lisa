@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.221.4](https://github.com/CodySwannGT/lisa/compare/v2.221.3...v2.221.4) (2026-07-17)
+
+
+### Bug Fixes
+
+* **lighthouse:** support numeric metric budgets ([5a2bf5e](https://github.com/CodySwannGT/lisa/commit/5a2bf5e9008f1e5fea9e3a6a0dbfacc7ea9d8758))
+
 ### [2.221.3](https://github.com/CodySwannGT/lisa/compare/v2.221.2...v2.221.3) (2026-07-17)
 
 
