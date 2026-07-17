@@ -68,8 +68,8 @@ const defaults = {
     unusedJavascript: { maxLength: 2 },
     unusedCssRules: { maxLength: 0 },
     usesRelPreconnect: { maxLength: 0 },
-    bootupTime: { minScore: 0.9 },
-    mainthreadWorkBreakdown: { minScore: 0.9 },
+    bootupTime: { maxNumericValue: 2000 },
+    mainthreadWorkBreakdown: { maxNumericValue: 3000 },
     maxPotentialFid: { minScore: 1 },
     legacyJavascript: { maxLength: 2 },
     legacyJavascriptInsight: { minScore: 0.4 },
@@ -178,6 +178,29 @@ function buildExtraAssertions(assertions, handled) {
   return extra;
 }
 
+/**
+ * Returns a Lighthouse assertion options object from the configured threshold.
+ * Explicit mappings must not lock projects to score-based thresholds: some
+ * binary-scored audits are only stable when gated by their numeric value.
+ *
+ * @param {object} value - Threshold config for one assertion
+ * @returns {object} Lighthouse assertion options
+ */
+function assertionOptions(value) {
+  const options = {};
+  for (const key of [
+    "minScore",
+    "maxNumericValue",
+    "maxLength",
+    "aggregationMethod",
+  ]) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) {
+      options[key] = value[key];
+    }
+  }
+  return options;
+}
+
 module.exports = {
   ci: {
     collect: {
@@ -194,93 +217,72 @@ module.exports = {
         "geolocation-on-start": "off",
 
         // Accessibility
-        "button-name": ["error", { minScore: a.buttonName.minScore }],
-        "valid-source-maps": [
-          "error",
-          { minScore: a.validSourceMaps.minScore },
-        ],
-        "errors-in-console": ["warn", { minScore: a.errorsInConsole.minScore }],
+        "button-name": ["error", assertionOptions(a.buttonName)],
+        "valid-source-maps": ["error", assertionOptions(a.validSourceMaps)],
+        "errors-in-console": ["warn", assertionOptions(a.errorsInConsole)],
 
         // Performance Score
         "categories:performance": [
           "error",
-          { minScore: a.performance.minScore, aggregationMethod: "median" },
+          { ...assertionOptions(a.performance), aggregationMethod: "median" },
         ],
 
         // Core Web Vitals - Timing Metrics
         "first-contentful-paint": [
           "error",
-          { maxNumericValue: a.firstContentfulPaint.maxNumericValue },
+          assertionOptions(a.firstContentfulPaint),
         ],
         "largest-contentful-paint": [
           "warn",
-          { maxNumericValue: a.largestContentfulPaint.maxNumericValue },
+          assertionOptions(a.largestContentfulPaint),
         ],
-        interactive: [
-          "error",
-          { maxNumericValue: a.interactive.maxNumericValue },
-        ],
+        interactive: ["error", assertionOptions(a.interactive)],
         "cumulative-layout-shift": [
           "error",
-          { maxNumericValue: a.cumulativeLayoutShift.maxNumericValue },
+          assertionOptions(a.cumulativeLayoutShift),
         ],
 
         // Resource Budgets
-        "total-byte-weight": [
-          "error",
-          { maxNumericValue: a.totalByteWeight.maxNumericValue },
-        ],
+        "total-byte-weight": ["error", assertionOptions(a.totalByteWeight)],
         "resource-summary:script:size": [
           "error",
-          { maxNumericValue: a.scriptSize.maxNumericValue },
+          assertionOptions(a.scriptSize),
         ],
 
         // Best Practices
-        "font-display": ["error", { minScore: a.fontDisplay.minScore }],
-        "image-aspect-ratio": [
-          "warn",
-          { minScore: a.imageAspectRatio.minScore },
-        ],
+        "font-display": ["error", assertionOptions(a.fontDisplay)],
+        "image-aspect-ratio": ["warn", assertionOptions(a.imageAspectRatio)],
 
         // SEO
-        "meta-description": ["warn", { minScore: a.metaDescription.minScore }],
+        "meta-description": ["warn", assertionOptions(a.metaDescription)],
 
         // Performance Insights
-        "unused-javascript": [
-          "error",
-          { maxLength: a.unusedJavascript.maxLength },
-        ],
-        "bootup-time": ["error", { minScore: a.bootupTime.minScore }],
+        "unused-javascript": ["error", assertionOptions(a.unusedJavascript)],
+        "bootup-time": ["error", assertionOptions(a.bootupTime)],
         "mainthread-work-breakdown": [
           "error",
-          { minScore: a.mainthreadWorkBreakdown.minScore },
+          assertionOptions(a.mainthreadWorkBreakdown),
         ],
-        "max-potential-fid": ["warn", { minScore: a.maxPotentialFid.minScore }],
-        "legacy-javascript": [
-          "error",
-          { maxLength: a.legacyJavascript.maxLength },
-        ],
+        "max-potential-fid": ["warn", assertionOptions(a.maxPotentialFid)],
+        "legacy-javascript": ["error", assertionOptions(a.legacyJavascript)],
         "legacy-javascript-insight": [
           "warn",
-          { minScore: a.legacyJavascriptInsight.minScore },
+          assertionOptions(a.legacyJavascriptInsight),
         ],
-        "speed-index": ["error", { minScore: a.speedIndex.minScore }],
-        "unused-css-rules": ["warn", { maxLength: a.unusedCssRules.maxLength }],
-        "uses-rel-preconnect": [
-          "warn",
-          { maxLength: a.usesRelPreconnect.maxLength },
-        ],
+        "speed-index": ["error", assertionOptions(a.speedIndex)],
+        "unused-css-rules": ["warn", assertionOptions(a.unusedCssRules)],
+        "uses-rel-preconnect": ["warn", assertionOptions(a.usesRelPreconnect)],
         "font-display-insight": [
           "warn",
-          { minScore: a.fontDisplayInsight.minScore },
+          assertionOptions(a.fontDisplayInsight),
         ],
         "network-dependency-tree-insight": [
           "warn",
-          { minScore: a.networkDependencyTreeInsight.minScore },
+          assertionOptions(a.networkDependencyTreeInsight),
         ],
         "duplicated-javascript-insight": [
           "warn",
-          { minScore: a.duplicatedJavascriptInsight.minScore },
+          assertionOptions(a.duplicatedJavascriptInsight),
         ],
 
         // Dynamic overrides for any extra config keys not handled above.
