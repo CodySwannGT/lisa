@@ -15,6 +15,8 @@ const read = (relativePath: string): string =>
 
 const REFERENCE_GRAMMAR =
   "[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]";
+const LEGACY_REFERENCE_GRAMMAR =
+  "[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]";
 const PYTHON = "/usr/bin/python3";
 
 const VALIDATORS = [
@@ -80,8 +82,11 @@ describe("non-claiming evidence references (#1595)", () => {
       const validator = read(validatorPath);
 
       expect(validator).toContain(REFERENCE_GRAMMAR);
+      expect(validator).toContain(LEGACY_REFERENCE_GRAMMAR);
+      expect(validator).toMatch(/accepted as a legacy non-claiming alias/);
+      expect(validator).toMatch(/parse it from the right/);
       expect(validator).toMatch(/exact `\[EVIDENCE:` prefix/);
-      expect(validator).toMatch(/exclude it from the manifest/);
+      expect(validator).toMatch(/Exclude both forms from the manifest/);
       expect(validator).toMatch(/minimum-marker count/);
       expect(validator).toMatch(/duplicate-name checks/);
       expect(validator).toMatch(/malformed reference FAILs S14/);
@@ -118,11 +123,23 @@ describe("non-claiming evidence references (#1595)", () => {
       for (const skillName of VALIDATOR_SKILL_NAMES) {
         const validator = read(`${root}/${skillName}/SKILL.md`);
         expect(validator).toContain(REFERENCE_GRAMMAR);
+        expect(validator).toContain(LEGACY_REFERENCE_GRAMMAR);
         expect(validator).toMatch(/malformed reference FAILs S14/);
         expect(validator).toMatch(
           /contains only `EVIDENCE-REF` entries FAILs S14/
         );
       }
+    }
+  );
+
+  it.each(["plugins/src/base/skills", ...GENERATED_SKILL_ROOTS])(
+    "%s advertises the canonical typed local marker",
+    root => {
+      const journey = read(`${root}/lisa-github-journey/SKILL.md`);
+      expect(journey).toContain(
+        "canonical `[EVIDENCE: <artifact-type>: <name>]` marker"
+      );
+      expect(journey).toMatch(/accepting the documented legacy untyped form/);
     }
   );
 
@@ -154,6 +171,7 @@ describe("non-claiming evidence references (#1595)", () => {
       const consumer = read(consumerPath);
 
       expect(consumer).toContain(REFERENCE_GRAMMAR);
+      expect(consumer).toContain(LEGACY_REFERENCE_GRAMMAR);
       expect(consumer).toMatch(/(?:do not|never|exclude)/i);
       expect(consumer).toMatch(/(?:capture|artifact lookup|local manifest)/i);
       expect(consumer).toMatch(/(?:S14|runtime-changing leaf)/i);
@@ -175,7 +193,8 @@ nodes = [{"type": "orderedList", "content": [
     item("Reuse [EVIDENCE-REF: ENG-123 | cli-output: shared-log]"),
     item("Compare [EVIDENCE-REF: ENG-123 | cli-output: shared-log] and verify [EVIDENCE: cli-output: shared-log]"),
     item("Quote \`[EVIDENCE: cli-output: quoted-local]\`"),
-    item("Keep malformed [EVIDENCE-REF: ENG-123 | nope] as prose")
+    item("Keep malformed [EVIDENCE-REF: ENG-123 | nope] as prose"),
+    item("Reuse legacy [EVIDENCE-REF: https://github.com/acme/app/issues/12: cli-output: shipped-log]")
 ]}]
 print(json.dumps(module.parse_steps(nodes)))
 `;
@@ -204,6 +223,11 @@ print(json.dumps(module.parse_steps(nodes)))
       {
         number: 4,
         text: "Keep malformed [EVIDENCE-REF: ENG-123 | nope] as prose",
+        screenshot: null,
+      },
+      {
+        number: 5,
+        text: "Reuse legacy [EVIDENCE-REF: https://github.com/acme/app/issues/12: cli-output: shipped-log]",
         screenshot: null,
       },
     ]);

@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 
 # GitHub Validation Journey
 
-Parse a GitHub Issue's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each `[EVIDENCE: <name>]` marker, and post to the issue + GitHub PR.
+Parse a GitHub Issue's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each canonical `[EVIDENCE: <artifact-type>: <name>]` marker (while still accepting the documented legacy untyped form), and post to the issue + GitHub PR.
 
 ## Arguments
 
@@ -64,7 +64,7 @@ At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact 
 
 A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
 
-Treat only exact `[EVIDENCE: ...]` markers (plus the legacy local `[SCREENSHOT: ...]` form) as capture instructions. `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` points to another work item's artifact: preserve it as explanatory text, but do not capture it, assign it a sequence number, include it in duplicate-name checks, or count it as a local manifest entry. If a runtime-changing leaf has references but no local claiming marker, stop because S14 is unsatisfied.
+Treat only exact `[EVIDENCE: ...]` markers (plus the legacy local `[SCREENSHOT: ...]` form) as capture instructions. Both the canonical `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` and the Lisa 2.223.0 legacy alias `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` point to another work item's artifact: preserve either as explanatory text, but do not capture it, assign it a sequence number, include it in duplicate-name checks, or count it as a local manifest entry. If a runtime-changing leaf has references but no local claiming marker, stop because S14 is unsatisfied.
 
 #### Evidence Naming Convention
 
