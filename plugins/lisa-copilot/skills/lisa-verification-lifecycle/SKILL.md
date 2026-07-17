@@ -35,6 +35,8 @@ For each required verification type, discover what tools are available in the pr
 
 Report what is available for each required type. If a required type has no available tool, proceed to step 4.
 
+For UI verification, treat the browser controller as implementation-neutral. Check for an in-app Browser/Chrome tool, interactive Playwright control (MCP, API, or ad hoc script), CDP, computer use, or an equivalent controller that can drive a real browser session. Do not require one named backend, and do not declare a tooling block while any capable interactive controller is available. Running an automated Playwright or Maestro test is not a substitute for this live interaction; it becomes the regression gate only after the empirical journey passes.
+
 If a required verification type needs sign-in or other credentials, exhaust credential sources before declaring the verification blocked. Check credential sources in this order:
 
 1. Project e2e / Playwright config and fixtures, including files such as `e2e/constants.ts`, `e2e/fixtures/api-login.ts`, seeded test users, and OTP-bypass patterns such as `555555`.
@@ -45,7 +47,7 @@ Report which sources were checked. Do not say credentials are unavailable until 
 
 ### 4. Fail Fast
 
-If a required verification type has no available tool and no reasonable alternative, escalate immediately using the Escalation Protocol. Do not begin implementation without a verification plan for every required type.
+If a required verification type has no available tool and no reasonable alternative, escalate immediately using the Escalation Protocol. For UI work, absence of a preferred Browser, Chrome, or Playwright-MCP backend is not itself a blocker when another interactive browser controller can perform the same journey. Do not begin implementation without a verification plan for every required type.
 
 If credentials are genuinely unavailable after the credential lookup order above is exhausted, treat the work item as blocked rather than done. Post a clear tracker comment stating exactly what runtime behavior could not be verified and which credential sources were checked, transition the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label, creating that label if the tracker supports label creation and it is missing.
 

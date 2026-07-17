@@ -20,6 +20,12 @@ Never assume something works because the code "looks correct." Run a command, ob
 
 **If all you did was run tests, typecheck, and lint — you have NOT verified.** You have only confirmed quality checks pass. Verification requires running the actual system and observing the results: making HTTP requests, clicking through the UI, executing CLI commands, querying the database, or otherwise interacting with the running software as an end user would.
 
+### Browser-controller neutrality
+
+For UI work, the agent must control a live browser and use the product the way a human would: navigate, click, type, submit, and observe the rendered result. **The browser controller is an implementation detail.** An in-app Browser/Chrome tool, interactive Playwright control (MCP, API, or an ad hoc script), CDP, computer use, or an equivalent controller is valid when it drives a real browser session and captures the declared runtime artifacts. Do not block solely because a preferred browser backend is unavailable while another capable interactive controller is available.
+
+Running an automated Playwright or Maestro test is still a quality gate, **not the initial empirical verification evidence**. The distinction is how the browser is used, not the library name: interactive Playwright control that performs and observes the Validation Journey is valid empirical verification; invoking a prewritten Playwright spec and reporting its green result alone is not. After the live journey passes, codify that observed behavior in the project's Playwright and/or Maestro runner as required below so CI can prevent regressions.
+
 Verification is mandatory. Never skip it, defer it, or claim it was unnecessary. Every task must be verified before claiming completion.
 
 Before starting implementation, state your verification plan — how you will use the resulting software to prove it works. A verification plan that only lists test/typecheck/lint commands is not a verification plan. Do not begin implementation until the plan is confirmed.
