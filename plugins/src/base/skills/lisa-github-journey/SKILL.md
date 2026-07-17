@@ -64,6 +64,8 @@ At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact 
 
 A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
 
+Treat only exact `[EVIDENCE: ...]` markers (plus the legacy local `[SCREENSHOT: ...]` form) as capture instructions. `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` points to another work item's artifact: preserve it as explanatory text, but do not capture it, assign it a sequence number, include it in duplicate-name checks, or count it as a local manifest entry. If a runtime-changing leaf has references but no local claiming marker, stop because S14 is unsatisfied.
+
 #### Evidence Naming Convention
 
 `{NN}-{evidence-name}.txt` (or `.json` for structured data):

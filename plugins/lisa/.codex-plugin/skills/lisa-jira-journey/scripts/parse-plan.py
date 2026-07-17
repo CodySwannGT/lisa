@@ -35,6 +35,12 @@ from base64 import b64encode
 from pathlib import Path
 
 
+# Intentionally matches the exact local-claim prefixes only. EVIDENCE-REF is a
+# cross-work-item pointer and must remain visible in step prose without becoming
+# a capture obligation.
+LOCAL_EVIDENCE_PATTERN = re.compile(r'\[(SCREENSHOT|EVIDENCE):\s*([^\]]+)\]')
+
+
 def get_jira_config():
     """Read JIRA server and login from jira-cli config."""
     config_path = Path.home() / ".config" / ".jira" / ".config.yml"
@@ -153,7 +159,7 @@ def parse_prerequisites(nodes):
 def clean_step_text(text, screenshot_name):
     """Remove [SCREENSHOT: ...] or [EVIDENCE: ...] marker from step text and deduplicate."""
     # Remove the marker itself
-    cleaned = re.sub(r'\[(SCREENSHOT|EVIDENCE):\s*[^\]]+\]\s*', '', text).strip()
+    cleaned = LOCAL_EVIDENCE_PATTERN.sub('', text).strip()
 
     # Deduplicate: if the same phrase appears twice consecutively, keep one
     # This handles ADF text node concatenation artifacts
@@ -177,7 +183,7 @@ def parse_steps(nodes):
                 text = extract_text_from_adf(item).strip()
 
                 screenshot = None
-                match = re.search(r'\[(SCREENSHOT|EVIDENCE):\s*([^\]]+)\]', text)
+                match = LOCAL_EVIDENCE_PATTERN.search(text)
                 if match:
                     screenshot = match.group(2).strip()
 
@@ -193,7 +199,7 @@ def parse_steps(nodes):
             if text and re.match(r'^\d+\.?\s', text):
                 step_number += 1
                 screenshot = None
-                match = re.search(r'\[(SCREENSHOT|EVIDENCE):\s*([^\]]+)\]', text)
+                match = LOCAL_EVIDENCE_PATTERN.search(text)
                 if match:
                     screenshot = match.group(2).strip()
 
