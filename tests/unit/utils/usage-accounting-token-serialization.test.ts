@@ -24,6 +24,7 @@ function makeEntry(overrides: Partial<LisaUsageEntry> = {}): LisaUsageEntry {
     entryId: "entry-869",
     flow: "lisa-implement",
     inputTokens: 100,
+    measuredSubsetTokens: null,
     model: "gpt-5",
     outputTokens: 20,
     parentArtifactRef: null,
