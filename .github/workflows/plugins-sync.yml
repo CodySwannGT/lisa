@@ -23,7 +23,16 @@ on:
       - 'scripts/internal-*-skill-policy.json'
       - 'scripts/internal-copilot-runtime-probe.json'
       - 'scripts/check-plugins-sync.sh'
+      - 'scripts/check-learnings-budget.ts'
       - 'scripts/check-rules-pairing.sh'
+      - 'all/create-only/.claude/rules/PROJECT_LEARNINGS.md'
+      - 'src/core/**'
+      - 'scripts/clean-dist.mjs'
+      - 'tsconfig.json'
+      - 'tsconfig.local.json'
+      - 'tsconfig/**'
+      - 'bun.lock'
+      - 'package.json'
       - '.github/workflows/plugins-sync.yml'
   workflow_dispatch:
 
@@ -43,3 +52,5 @@ jobs:
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
         run: bun run check:rules-pairing
+      - name: Check canonical project learnings budget
+        run: bun run check:learnings-budget

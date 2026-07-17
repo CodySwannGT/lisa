@@ -2,11 +2,12 @@
 import * as fse from "fs-extra";
 import { rename, writeFile } from "node:fs/promises";
 import * as path from "node:path";
+import { type LearningEntry } from "./learnings-contract.js";
 import {
-  LEARNINGS_CONTRACT,
-  estimateLearningTokens,
-  type LearningEntry,
-} from "./learnings-contract.js";
+  assertDocumentBudget,
+  parseLearningsFile,
+  renderLearningsFile,
+} from "./learnings-document.js";
 import { validateLearningEntry } from "./learnings-entry.js";
 import {
   assertSafeLearningParents,
@@ -18,14 +19,6 @@ import {
   readProjectConfig,
   resolveProjectLearningsFile,
 } from "./project-config.js";
-
-const FILE_HEADER = `# Project Learnings
-
-<!-- lisa-learnings-contract:v${LEARNINGS_CONTRACT.version} -->
-
-`;
-const JSON_FENCE_START = "```jsonl\n";
-const JSON_FENCE_END = "\n```\n";
 
 /**
  * Persist one already-selected learning without generating or truncating it.
@@ -67,45 +60,10 @@ export async function persistLearningEntry(
   });
 }
 
-/**
- * Render the complete file in one stable, machine-readable Markdown form.
- * @param entries - Validated entries to serialize
- * @returns Canonical Markdown plus JSONL document
- */
-export function renderLearningsFile(entries: readonly LearningEntry[]): string {
-  const lines = entries.map(entry => JSON.stringify(entry)).join("\n");
-  return `${FILE_HEADER}${JSON_FENCE_START}${lines}${JSON_FENCE_END}`;
-}
-
-/**
- * Parse and revalidate an existing file before it participates in a write.
- * @param content - Existing learnings document
- * @returns Revalidated entries from the document
- */
-export function parseLearningsFile(content: string): LearningEntry[] {
-  if (estimateLearningTokens(content) > LEARNINGS_CONTRACT.maxTokens) {
-    throw new Error(
-      `Project learnings payload exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens}`
-    );
-  }
-  if (
-    !content.startsWith(`${FILE_HEADER}${JSON_FENCE_START}`) ||
-    !content.endsWith(JSON_FENCE_END)
-  ) {
-    throw new Error("Invalid project learnings file format");
-  }
-  const jsonStart = FILE_HEADER.length + JSON_FENCE_START.length;
-  const jsonEnd = content.length - JSON_FENCE_END.length;
-  const entries = parseJsonLines(content.slice(jsonStart, jsonEnd)).map(
-    validateLearningEntry
-  );
-  if (new Set(entries.map(entry => entry.id)).size !== entries.length) {
-    throw new Error("Invalid project learnings payload: duplicate ids");
-  }
-  assertDocumentBudget(content, entries.length, "Project learnings payload");
-  return entries;
-}
-
+export {
+  parseLearningsFile,
+  renderLearningsFile,
+} from "./learnings-document.js";
 export { validateLearningEntry } from "./learnings-entry.js";
 
 /**
@@ -127,44 +85,4 @@ function buildNextDocument(
   const rendered = renderLearningsFile(nextEntries);
   assertDocumentBudget(rendered, nextEntries.length, "Learnings file");
   return rendered;
-}
-
-/**
- * Enforce the shared entry-count and model-agnostic token upper bounds.
- * @param content - Canonical document
- * @param entryCount - Number of entries in the document
- * @param context - Error-message prefix
- */
-function assertDocumentBudget(
-  content: string,
-  entryCount: number,
-  context: string
-): void {
-  if (entryCount > LEARNINGS_CONTRACT.maxEntries) {
-    throw new Error(
-      `${context} exceeds maxEntries ${LEARNINGS_CONTRACT.maxEntries}`
-    );
-  }
-  const estimatedTokens = estimateLearningTokens(content);
-  if (estimatedTokens > LEARNINGS_CONTRACT.maxTokens) {
-    throw new Error(
-      `${context} exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens} (measured ${estimatedTokens})`
-    );
-  }
-}
-
-/**
- * Parse the strict JSONL payload with a stable, user-facing error.
- * @param payload - JSONL payload
- * @returns Parsed unknown entry values
- */
-function parseJsonLines(payload: string): unknown[] {
-  if (payload === "") {
-    return [];
-  }
-  try {
-    return payload.split("\n").map(line => JSON.parse(line) as unknown);
-  } catch {
-    throw new Error("Invalid project learnings JSONL payload");
-  }
 }

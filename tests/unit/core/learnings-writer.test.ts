@@ -300,7 +300,7 @@ describe("learnings writer", () => {
 
   it("imports the executable contract instead of copying cap constants", async () => {
     const source = await readFile(
-      path.resolve("src/core/learnings-writer.ts"),
+      path.resolve("src/core/learnings-document.ts"),
       "utf8"
     );
     expect(source).toMatch(/import\s+\{[^}]*LEARNINGS_CONTRACT/s);
