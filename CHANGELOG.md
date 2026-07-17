@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.219.0](https://github.com/CodySwannGT/lisa/compare/v2.218.0...v2.219.0) (2026-07-16)
+
+
+### Features
+
+* **learnings:** preserve create-only project memory ([5d9c7af](https://github.com/CodySwannGT/lisa/commit/5d9c7aff9136c57c960afb96b7ed868644d803bc))
+
 ## [2.218.0](https://github.com/CodySwannGT/lisa/compare/v2.217.8...v2.218.0) (2026-07-16)
 
 
