@@ -33,6 +33,11 @@ import {
   CLAUDE_MD_FILENAME,
   installClaudeMd,
 } from "../claude/claude-md-installer.js";
+import { harnessIncludesAgent } from "./config.js";
+import {
+  readProjectConfig,
+  resolveProjectLearningsFile,
+} from "./project-config.js";
 
 /**
  * Marker that opened the legacy agy "baked rules" block in `AGENTS.md`. Retained
@@ -42,6 +47,12 @@ import {
 export const LISA_RULES_START_MARKER = "<!-- LISA_RULES_START -->";
 /** Marker that closed the legacy agy "baked rules" block in `AGENTS.md`. */
 export const LISA_RULES_END_MARKER = "<!-- LISA_RULES_END -->";
+/** Marker opening Lisa's bounded Antigravity project-learnings bridge. */
+export const LISA_PROJECT_LEARNINGS_START_MARKER =
+  "<!-- LISA_PROJECT_LEARNINGS_START -->";
+/** Marker closing Lisa's bounded Antigravity project-learnings bridge. */
+export const LISA_PROJECT_LEARNINGS_END_MARKER =
+  "<!-- LISA_PROJECT_LEARNINGS_END -->";
 
 /** Outcome of an instruction-files migration pass. */
 export interface InstructionFilesMigrationResult {
@@ -62,6 +73,17 @@ export interface MigrateInstructionFilesOptions {
    * way.
    */
   readonly createClaudePointer?: boolean;
+  /**
+   * Whether to reconcile the agy project-learnings bridge in `AGENTS.md`.
+   * Defaults from `.lisa.config.json`: enabled only when the effective harness
+   * includes agy.
+   */
+  readonly reconcileAgyProjectLearnings?: boolean;
+  /**
+   * Resolved project-relative learnings path. Defaults to the sibling of the
+   * configured `projectRulesFile`.
+   */
+  readonly projectLearningsFile?: string;
 }
 
 /**
@@ -84,24 +106,141 @@ export function stripBakedAgyRulesBlock(body: string): string {
 }
 
 /**
+ * Remove a managed project-learnings bridge from AGENTS.md. Malformed marker
+ * pairs are left unchanged so Lisa never guesses which host bytes to delete.
+ * @param body - Existing `AGENTS.md` contents.
+ * @returns The body with the managed bridge removed, when a full block exists.
+ */
+export function stripAgyProjectLearningsBridge(body: string): string {
+  return replaceManagedAgyProjectLearningsBridge(body, "");
+}
+
+/**
+ * Build the exact bounded Antigravity project-learnings bridge block.
+ * @param projectLearningsFile - Project-relative resolved learnings path.
+ * @returns Managed bridge block with surrounding markers.
+ */
+export function buildAgyProjectLearningsBridge(
+  projectLearningsFile: string
+): string {
+  return [
+    LISA_PROJECT_LEARNINGS_START_MARKER,
+    "Antigravity startup bridge: before normal task work, resolve the canonical",
+    "project-learnings file from `.lisa.config.json` (`projectRulesFile`'s sibling",
+    "`PROJECT_LEARNINGS.md`; default `.claude/rules/PROJECT_LEARNINGS.md`). If it",
+    "exists and satisfies the Lisa learnings contract, read and apply its entries.",
+    "If it is absent, continue silently. If it is malformed, warn once and ignore it.",
+    "",
+    `Resolved path for this project: \`${projectLearningsFile}\`.`,
+    LISA_PROJECT_LEARNINGS_END_MARKER,
+  ].join("\n");
+}
+
+/**
+ * Add, replace, or remove the managed project-learnings bridge. If exactly one
+ * marker is present, return the original body unchanged to preserve host bytes.
+ * @param body - Existing AGENTS.md body.
+ * @param replacement - Full replacement block, or empty string to remove.
+ * @returns Updated body, or the original body for malformed markers.
+ */
+function replaceManagedAgyProjectLearningsBridge(
+  body: string,
+  replacement: string
+): string {
+  const startIdx = body.indexOf(LISA_PROJECT_LEARNINGS_START_MARKER);
+  const endIdx = body.indexOf(LISA_PROJECT_LEARNINGS_END_MARKER);
+  const hasStart = startIdx !== -1;
+  const hasEnd = endIdx !== -1;
+  if (hasStart !== hasEnd || (hasStart && endIdx < startIdx)) {
+    return body;
+  }
+  if (!hasStart) {
+    if (replacement === "") {
+      return body;
+    }
+    const separator = body.endsWith("\n") ? "\n" : "\n\n";
+    return `${body}${separator}${replacement}\n`;
+  }
+  const before = body.slice(0, startIdx);
+  const after = body.slice(endIdx + LISA_PROJECT_LEARNINGS_END_MARKER.length);
+  const next = `${before}${replacement}${after}`;
+  return `${next.replace(/\n\n\n+/g, "\n\n").trim()}\n`;
+}
+
+/**
  * Ensure a canonical `AGENTS.md` exists and carries no legacy agy baked-rules
  * block.
  * @param destDir - Absolute path to the host project root.
+ * @param agyProjectLearnings - Desired state for the Antigravity bridge.
+ * @param agyProjectLearnings.enabled - Whether the bridge should be present.
+ * @param agyProjectLearnings.projectLearningsFile - Resolved project-relative
+ *   learnings file path to include in the bridge.
  * @returns Action strings describing what changed (empty when nothing did).
  */
-async function reconcileAgentsMd(destDir: string): Promise<string[]> {
+async function reconcileAgentsMd(
+  destDir: string,
+  agyProjectLearnings: {
+    readonly enabled: boolean;
+    readonly projectLearningsFile: string;
+  }
+): Promise<string[]> {
   const filePath = path.join(destDir, AGENTS_MD_FILENAME);
   if (!existsSync(filePath)) {
     const result = await installAgentsMd(destDir);
-    return result.created ? [`created ${AGENTS_MD_FILENAME}`] : [];
+    const actions = result.created ? [`created ${AGENTS_MD_FILENAME}`] : [];
+    return [
+      ...actions,
+      ...(await reconcileAgyProjectLearningsBridge(
+        filePath,
+        agyProjectLearnings
+      )),
+    ];
   }
+  return reconcileAgyProjectLearningsBridge(filePath, agyProjectLearnings);
+}
+
+/**
+ * Reconcile the removable legacy bake and the bounded agy learnings bridge.
+ * @param filePath - Absolute AGENTS.md path.
+ * @param agyProjectLearnings - Desired bridge state.
+ * @param agyProjectLearnings.enabled - Whether the bridge should be present.
+ * @param agyProjectLearnings.projectLearningsFile - Resolved project-relative
+ *   learnings file path to include in the bridge.
+ * @returns Action strings describing changed state.
+ */
+async function reconcileAgyProjectLearningsBridge(
+  filePath: string,
+  agyProjectLearnings: {
+    readonly enabled: boolean;
+    readonly projectLearningsFile: string;
+  }
+): Promise<string[]> {
   const existing = await readFile(filePath, "utf8");
   const stripped = stripBakedAgyRulesBlock(existing);
-  if (stripped === existing) {
+  const desired = agyProjectLearnings.enabled
+    ? replaceManagedAgyProjectLearningsBridge(
+        stripped,
+        buildAgyProjectLearningsBridge(agyProjectLearnings.projectLearningsFile)
+      )
+    : stripAgyProjectLearningsBridge(stripped);
+  if (desired === existing) {
     return [];
   }
-  await writeFile(filePath, stripped, "utf8");
-  return [`removed legacy baked-rules block from ${AGENTS_MD_FILENAME}`];
+  await writeFile(filePath, desired, "utf8");
+  const bakedRuleActions =
+    stripped !== existing
+      ? [`removed legacy baked-rules block from ${AGENTS_MD_FILENAME}`]
+      : [];
+  const bridgeActions =
+    desired !== stripped
+      ? [
+          agyProjectLearnings.enabled
+            ? `reconciled agy project-learnings bridge in ${AGENTS_MD_FILENAME}`
+            : `removed agy project-learnings bridge from ${AGENTS_MD_FILENAME}`,
+        ]
+      : [];
+  const actions = [...bakedRuleActions, ...bridgeActions];
+  return actions;
 }
 
 /**
@@ -145,8 +284,17 @@ export async function migrateInstructionFiles(
   destDir: string,
   options: MigrateInstructionFilesOptions = {}
 ): Promise<InstructionFilesMigrationResult> {
+  const projectConfig = await readProjectConfig(destDir);
   const createClaudePointer = options.createClaudePointer ?? true;
-  const agentsActions = await reconcileAgentsMd(destDir);
+  const agyProjectLearnings = {
+    enabled:
+      options.reconcileAgyProjectLearnings ??
+      harnessIncludesAgent(projectConfig.harness ?? "claude", "agy"),
+    projectLearningsFile:
+      options.projectLearningsFile ??
+      resolveProjectLearningsFile(projectConfig),
+  };
+  const agentsActions = await reconcileAgentsMd(destDir, agyProjectLearnings);
   const claudeActions = await reconcileClaudeMd(destDir, createClaudePointer);
   const actions = [...agentsActions, ...claudeActions];
   return { changed: actions.length > 0, actions };
