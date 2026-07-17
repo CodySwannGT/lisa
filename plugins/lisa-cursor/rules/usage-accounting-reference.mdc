@@ -36,7 +36,7 @@ Each direct usage entry records one logical Lisa run or sub-run on one artifact.
 | `output_tokens` | Output/completion tokens, or `null` when unavailable. |
 | `reasoning_tokens` | Reasoning/internal tokens, or `null` when unavailable/not exposed. |
 | `total_tokens` | Total trustworthy tokens for the entry, or `null`. |
-| `measured_subset_tokens` | Trustworthy measured subtotal for a known subset of the run, or `null`. |
+| `measured_subset_tokens` | Optional trustworthy measured subtotal for a known subset of the run. Omission is normalized to `null` so callers written before this field remain source-compatible. |
 | `cost` | Observed or estimated cost for this entry, or `null`. |
 | `currency` | ISO currency code when `cost` is known, otherwise `null`. |
 | `pricing_status` | `observed`, `estimated`, `missing`, or `unavailable`. |
@@ -74,16 +74,34 @@ total.
 - `unavailable`: the runtime exposed neither trustworthy cost nor enough trustworthy token data to estimate cost.
 
 Runtime-observed cost always wins over estimates. Estimated cost never overwrites an observed value. Missing pricing preserves token counts and a `null` cost.
+Token completeness and cost trust are independent: a `measured-subset` entry may still carry an
+observed trustworthy whole-run cost. Token rollups remain unknown, but that cost participates in
+cost rollups under the normal pricing and currency rules.
 
 ## Machine-readable tokens
 
-Every visible direct entry row ends with exactly one machine-readable token:
+Every visible direct entry row contains the backward-compatible 17-field primary token:
 
 ```text
-<!-- lisa:usage-entry entry_id=<id> flow=<flow> run_id=<run-id> provider=<provider> model=<model> source=<source> input_tokens=<n|null> cached_input_tokens=<n|null> output_tokens=<n|null> reasoning_tokens=<n|null> total_tokens=<n|null> measured_subset_tokens=<n|null> cost=<decimal|null> currency=<code|null> pricing_status=<status> pricing_source=<ref|null> artifact_ref=<ref> parent_artifact_ref=<ref-or-empty> -->
+<!-- lisa:usage-entry entry_id=<id> flow=<flow> run_id=<run-id> provider=<provider> model=<model> source=<source> input_tokens=<n|null> cached_input_tokens=<n|null> output_tokens=<n|null> reasoning_tokens=<n|null> total_tokens=<n|null> cost=<decimal|null> currency=<code|null> pricing_status=<status> pricing_source=<ref|null> artifact_ref=<ref> parent_artifact_ref=<ref-or-empty> -->
 ```
 
-Field order is fixed. A reader parses the usage ledger by matching `<!-- lisa:usage-entry ` lines only; it never needs to scrape prose or table cell positions. String fields are percent-encoded before rendering and decoded after parsing, so whitespace, commas, and HTML comment terminators inside source values cannot split or truncate the token.
+The row immediately follows it with a correlated measured-subset extension. Writers serialize an
+omitted value as `null` instead of `undefined`:
+
+```text
+<!-- lisa:usage-entry-measured-subset entry_id=<id> measured_subset_tokens=<n|null> -->
+```
+
+The primary field order is fixed and deliberately matches the pre-measured-subset contract so
+legacy 17-field readers continue to enumerate entries. Current readers correlate the extension by
+its percent-encoded `entry_id`. They also accept the `@codyswann/lisa@2.222.0` transitional marker,
+which placed `measured_subset_tokens` between `total_tokens` and `cost`, and migrate it to the
+primary-plus-extension layout on rewrite. Only that transitional additive field accepts the literal
+`undefined` emitted by an older caller and normalizes it to `null`; established numeric fields
+remain strict. String fields are percent-encoded before rendering and decoded after parsing, so
+whitespace, commas, and HTML comment terminators inside source values cannot split or truncate the
+token.
 
 Every managed section also ends with exactly one rollup token:
 
@@ -95,6 +113,23 @@ Every managed section also ends with exactly one rollup token:
 - `child_entry_ids` enumerates deduped descendant entry ids included in the rollup.
 - `child_refs` enumerates the child artifacts consulted for the rollup.
 - `total_*` fields equal direct plus child totals over the deduped entry set.
+
+If a direct entry or freshly resolved child entry is `measured-subset`, the corresponding token
+scope and combined `total_tokens` are `null`; a measured subtotal is never added to complete token
+counts. Other established nullable-entry behavior is unchanged. Cost rollups are computed
+independently, so a trustworthy whole-run cost is not discarded merely because token completeness
+is unknown.
+
+When freshly resolved child work contains a measured subset, the primary rollup token is followed
+by this optional backward-compatible extension:
+
+```text
+<!-- lisa:usage-rollup-token-status child_tokens_incomplete=true -->
+```
+
+The extension preserves child-token incompleteness across ordinary direct-entry rewrites that do
+not resolve children again. It is omitted when child token totals are not known to be incomplete,
+so legacy rollup objects and readers retain their established shape.
 
 The rollup token is the machine-readable summary. The visible rollup table mirrors it for humans. List fields are comma-delimited after encoding each item independently; commas inside an item are encoded as data, not treated as separators.
 
@@ -148,7 +183,9 @@ The rollup contract is additive across the hierarchy: PRDs may roll up Epics/Sto
 - Recompute the entire section on every write; never append ad hoc rows.
 - Sort direct entries deterministically by `(flow, run_id, entry_id)`.
 - Preserve existing entries with unchanged `entry_id` and refreshed field values.
-- Re-running with the same logical entry set must produce byte-identical output.
+- Re-running with the same logical entry set must produce byte-identical output. Rewriting a legacy
+  primary-only marker or the 2.222.0 transitional marker migrates once to the canonical
+  primary-plus-extension layout; subsequent rewrites are byte-identical.
 - Do not include timestamps in the section preamble or token lines.
 
 Idempotency is enforced by `entry_id` for direct entries and by the fixed rollup token field order for totals.
