@@ -137,8 +137,10 @@ export function buildAgyProjectLearningsBridge(
 }
 
 /**
- * Add, replace, or remove the managed project-learnings bridge. If exactly one
- * marker is present, return the original body unchanged to preserve host bytes.
+ * Add, replace, or remove the managed project-learnings bridge. Returns the
+ * original body unchanged whenever the markers are malformed: only one of the
+ * pair is present, the end precedes the start, or either marker occurs more
+ * than once.
  * @param body - Existing AGENTS.md body.
  * @param replacement - Full replacement block, or empty string to remove.
  * @returns Updated body, or the original body for malformed markers.
@@ -151,7 +153,24 @@ function replaceManagedAgyProjectLearningsBridge(
   const endIdx = body.indexOf(LISA_PROJECT_LEARNINGS_END_MARKER);
   const hasStart = startIdx !== -1;
   const hasEnd = endIdx !== -1;
-  if (hasStart !== hasEnd || (hasStart && endIdx < startIdx)) {
+  const hasDuplicateStart =
+    hasStart &&
+    body.indexOf(
+      LISA_PROJECT_LEARNINGS_START_MARKER,
+      startIdx + LISA_PROJECT_LEARNINGS_START_MARKER.length
+    ) !== -1;
+  const hasDuplicateEnd =
+    hasEnd &&
+    body.indexOf(
+      LISA_PROJECT_LEARNINGS_END_MARKER,
+      endIdx + LISA_PROJECT_LEARNINGS_END_MARKER.length
+    ) !== -1;
+  if (
+    hasStart !== hasEnd ||
+    (hasStart && endIdx < startIdx) ||
+    hasDuplicateStart ||
+    hasDuplicateEnd
+  ) {
     return body;
   }
   if (!hasStart) {

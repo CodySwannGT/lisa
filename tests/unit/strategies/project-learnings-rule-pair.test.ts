@@ -16,8 +16,8 @@ describe("project-learnings eager/reference rule pair", () => {
 
     expect(reference).toContain("# Project Learnings");
     expect(reference).toContain("@codyswann/lisa/learnings");
-    expect(reference).toContain("id");
-    expect(reference).toContain("confidence");
+    expect(reference).toMatch(/^-\s*`id`\s*$/m);
+    expect(reference).toMatch(/^-\s*`confidence`\s*$/m);
     expect(reference).not.toMatch(/maxEntries|maxTokens|maxRuleCharacters/);
   });
 });
