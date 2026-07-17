@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.222.0](https://github.com/CodySwannGT/lisa/compare/v2.221.6...v2.222.0) (2026-07-17)
+
+
+### Features
+
+* **usage-accounting:** record measured subsets ([6b7d642](https://github.com/CodySwannGT/lisa/commit/6b7d64209cb3fbadaeaced3fea44c2141421b7f6))
+
 ### [2.221.6](https://github.com/CodySwannGT/lisa/compare/v2.221.5...v2.221.6) (2026-07-17)
 
 
