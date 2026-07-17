@@ -17,7 +17,7 @@ Every artifact with inline body content gets exactly one section:
 Each direct entry records ONE logical Lisa run on ONE artifact. `entry_id` is the stable dedupe key — rewriting the same logical run with the same `entry_id` updates in place; a different run gets a different `entry_id`.
 
 - **`source`**: `observed` (runtime supplied) / `estimated` (derived from trustworthy metadata + pricing contract) / `measured-subset` (a trustworthy subtotal exists, but the complete run total is unknown) / `unavailable`.
-- **`measured_subset_tokens`**: measured subtotal for `measured-subset` entries only. Keep `total_tokens = null` so rollups do not treat a subset as a complete total.
+- **`measured_subset_tokens`**: optional measured subtotal for `measured-subset` entries only. Omission is normalized to `null` for backward-compatible callers. Keep `total_tokens = null` so rollups do not treat a subset as a complete total.
 - **`pricing_status`**: same trinary plus `missing` (cost not known but should be).
 - **Absence ≠ zero.** `null` means unknown; `0` means explicitly zero. Always write the entry — never silently omit.
 - Do NOT replace observed counts with estimates.
@@ -26,4 +26,8 @@ Each direct entry records ONE logical Lisa run on ONE artifact. `entry_id` is th
 
 Container artifacts (Epic, PRD, etc.) roll up usage from their direct children. Roll-up is recursive — a parent's `## Lisa Usage` aggregates its descendants' direct entries. Re-writes are idempotent: re-running an intake or lifecycle skill must not duplicate entries.
 
-Full schema (all 18 fields, pricing semantics, rollup math, idempotent-rewrite rules): [reference/usage-accounting.md](../reference/usage-accounting.md).
+Measured-child incompleteness is durable across ordinary rewrites through the optional
+`lisa:usage-rollup-token-status` extension. Do not infer completeness merely because a rewrite did
+not re-fetch child ledgers.
+
+Full schema (backward-compatible 17-field primary marker, correlated measured-subset extension, pricing semantics, rollup math, idempotent-migration rules): [reference/usage-accounting.md](../reference/usage-accounting.md).
