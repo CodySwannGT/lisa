@@ -100,3 +100,33 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     expect(merged).toContain("node_modules");
   });
 });
+
+describe("all/copy-contents/gitignore shipped content", () => {
+  const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+  const readShared = (): string =>
+    fs.readFileSync(
+      path.join(REPO_ROOT, "all/copy-contents/gitignore"),
+      "utf-8"
+    );
+
+  it("orders the broad tasks.json ignore before the re-include (last-match-wins)", () => {
+    // gitignore is last-match-wins: a broad `tasks.json` after `!tasks/tasks.json`
+    // would re-ignore the tracked file. The broad rule must come first. Compare
+    // the actual rule lines (comments may mention either token).
+    const rules = readShared()
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith("#"));
+    const broad = rules.indexOf("tasks.json");
+    const reinclude = rules.indexOf("!tasks/tasks.json");
+    expect(broad).toBeGreaterThan(-1);
+    expect(reinclude).toBeGreaterThan(-1);
+    expect(broad).toBeLessThan(reinclude);
+  });
+
+  it("ignores the NestJS boot-check scratch dir", () => {
+    // .build-boot/ is written by the NestJS pre-push AppModule boot check and
+    // must not be caught by `git add -A`.
+    expect(readShared()).toContain(".build-boot/");
+  });
+});

@@ -48,4 +48,22 @@ describe("gitleaks allowlist templates", () => {
     expect(hook).toContain(".gitleaksignore.local");
     expect(hook).toContain("--gitleaks-ignore-path=$GITLEAKS_COMBINED_IGNORE");
   });
+
+  it("uses a portable mktemp template (bare mktemp errors on BSD/macOS)", async () => {
+    const hook = await fs.readFile(
+      path.join(
+        repoRoot,
+        "typescript",
+        "copy-contents",
+        ".husky",
+        "pre-commit"
+      ),
+      "utf8"
+    );
+
+    // BSD/macOS `mktemp` requires an explicit template argument with a trailing
+    // X run; bare `$(mktemp)` errors there. GNU mktemp accepts the template too.
+    expect(hook).toContain('mktemp "${TMPDIR:-/tmp}/gitleaks-ignore.XXXXXXXX"');
+    expect(hook).not.toContain('"$(mktemp)"');
+  });
 });

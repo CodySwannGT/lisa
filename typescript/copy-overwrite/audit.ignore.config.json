@@ -147,11 +147,6 @@
       "id": "GHSA-q3j6-qgpj-74h6",
       "package": "fast-uri",
       "reason": "Path traversal via percent-encoded dot segments in fast-uri parser. Reachable transitively via eslint > @eslint/eslintrc > ajv > fast-uri and (in CDK projects) via aws-cdk-lib's bundled JSON Schema validator. aws-cdk-lib is invoked only at build/synth/deploy time \u2014 its ajv usage validates CloudFormation/CDK schemas authored by the developer, not attacker-controlled URIs. No runtime/production code path passes attacker-controlled URIs through ajv schema validation that relies on fast-uri parsing."
-    },
-    {
-      "id": "GHSA-gv7w-rqvm-qjhr",
-      "package": "esbuild",
-      "reason": "Missing binary integrity verification in esbuild's Deno install module enables RCE via a malicious NPM_CONFIG_REGISTRY. esbuild is dev/build-time only \u2014 transitive via tsx, vitest, and esbuild-register \u2014 and is never in a shipped bundle or runtime code path. Lisa-managed projects install via bun/npm (not the Deno module path) and do not use attacker-controlled NPM_CONFIG_REGISTRY at install. Remove once the tsx/vitest/esbuild-register chain bumps esbuild >= 0.28.1."
     }
   ]
 }
