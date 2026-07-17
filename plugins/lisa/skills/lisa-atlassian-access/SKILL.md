@@ -14,6 +14,8 @@ The caller passes one operation plus its arguments. Operations are listed in the
 
 ```text
 operation: read-ticket  key: PROJ-123
+operation: changelog    key: PROJ-123
+operation: history      key: PROJ-123
 operation: write-ticket payload: {...}
 operation: transition   key: PROJ-123  to: "In Review"
 operation: comment      key: PROJ-123  body: "..."
@@ -288,6 +290,7 @@ Substrate column meanings:
 |---|---|---|---|
 | **JIRA ops** | | | |
 | `read-ticket key:<K>` | `acli jira workitem view <K> --fields '*all' --json` | `mcp__plugin_atlassian_atlassian__getJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>?fields=*all` |
+| `changelog key:<K>` / `history key:<K>` | (not exposed; `transitions` is not history) | `mcp__plugin_atlassian_atlassian__getJiraIssue` with changelog expansion when supported, otherwise fall through | `GET https://<SITE>/rest/api/3/issue/<K>?expand=changelog&fields=summary,status` |
 | `write-ticket payload:<P>` (create) | guarded fallback only: `acli jira workitem create --from-json <P>` + response tenant assertion | `mcp__plugin_atlassian_atlassian__createJiraIssue` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue` body=`<P>` |
 | `write-ticket payload:<P>` (edit) | guarded fallback only: `acli jira workitem edit <K> --from-json <P>` + response tenant assertion | `mcp__plugin_atlassian_atlassian__editJiraIssue` | `PUT https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>` body=`<P>` |
 | `transition key:<K> to:<S>` | guarded fallback only: `acli jira workitem transition --key <K> --status "<S>" --yes` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__transitionJiraIssue` | resolve transition id then `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/transitions` |
@@ -315,6 +318,28 @@ Substrate column meanings:
 **Confluence v1 vs v2:** every Confluence curl path above uses **v1** (`/wiki/rest/api/...`). v1 is deprecated by Atlassian but as of writing remains functional for API-token Basic auth. The v2 API (`/api/v2/...`) requires *granular* OAuth scopes that aren't issued to Basic-auth API tokens consistently — so v1 is the safer path for now. When Atlassian fully retires v1, this table must move to v2 (the dispatch is the only thing that changes; the substrate-selection logic is unaffected).
 
 **acli flag note:** acli's `--output` flag does not exist; the correct flag is `--json`. List commands require `--paginate` or `--limit` (no implicit fetch-all). `acli jira workitem view` defaults to a restricted field set (`key,issuetype,summary,status,assignee,description`), so `read-ticket` MUST pass `--fields '*all'` or an explicit equivalent that includes every downstream dependency: parent, subtasks, issue links, components, labels, priority, status, issue type, summary, description, fix versions, affected versions, attachments, comments, estimates, sprint/story-point fields, and project-required custom fields. Never rely on the default view fields; they hide parent/components/labels and corrupt leaf-only, relationship-search, build-ready, and required-custom-field gates. Several documented adapters are nominal — verify against `acli <subcmd> --help` before relying on them. When acli's adapter is broken or missing for a specific op, fall through to MCP (if identity-matched) then curl per the tier ordering.
+
+**JIRA changelog/history note:** `transitions` is a false friend. It returns available next transitions from the current status, not the past status changes an issue already took. `read-ticket fields=*all` also does not imply `expand=changelog`. For `changelog` / `history`, explicitly request the JIRA changelog expansion and normalize only status-change items into an oldest-to-newest `statusChanges` array:
+
+```json
+{
+  "key": "PROJ-123",
+  "historyStatus": "known",
+  "statusChanges": [
+    {
+      "from": "Ready",
+      "to": "In Review",
+      "at": "2026-07-17T12:00:00.000+0000",
+      "actor": {
+        "accountId": "abc123",
+        "displayName": "Ada Lovelace"
+      }
+    }
+  ]
+}
+```
+
+If the issue has changelog histories but none of them changed `status`, return `historyStatus:"known"` with `statusChanges:[]`; empty history is a valid result. If the changelog fetch or parse fails after a substrate was selected, return `historyStatus:"unknown"`, `statusChanges:[]`, and an `error` string in the structured result instead of failing the build caller. Missing all Atlassian substrates is still a setup error per Step 1.
 
 **JIRA write tenant-safety rule:** create, edit, transition, comment, and link are write operations. They MUST prefer the curl adapter whenever token auth is available because the URL includes `<CLOUDID>` and cannot be redirected by the user-global acli active account. If the flow must fall back to acli for a write, it is a guarded fallback, not the normal path:
 
