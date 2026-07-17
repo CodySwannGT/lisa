@@ -45,8 +45,14 @@ def strip_heredocs(text: str) -> str:
     lines = text.splitlines()
     output = []
     pending = []
+    # Quoted strings are matched (and thereby skipped over) as plain,
+    # non-capturing alternatives BEFORE the heredoc-marker alternative gets a
+    # chance to run, so a "<<MARKER"-looking sequence inside a string literal
+    # (e.g. `echo "hello <<MARKER"`) is never mistaken for a real heredoc
+    # start. Only the heredoc-marker alternative captures a group.
     marker_pattern = re.compile(
-        r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
+        r'"(?:\\.|[^"])*"|\'[^\']*\''
+        r"|<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
     )
     index = 0
     while index < len(lines):
@@ -55,14 +61,19 @@ def strip_heredocs(text: str) -> str:
         pending.extend(
             next(group for group in match.groups() if group)
             for match in marker_pattern.finditer(line)
+            if any(match.groups())
         )
         index += 1
+        # Consume every pending heredoc body in order (chained same-line
+        # heredocs, e.g. `cat <<A <<B`, push more than one marker at once).
+        # Do NOT stop after the first terminator — dropping the `break` lets
+        # this loop keep dropping body lines until each pending marker is
+        # matched, instead of leaking the second body back into `output`
+        # where the destructive-pattern guards would see it.
         while pending and index < len(lines):
             if lines[index].strip() == pending[0]:
                 output.append(lines[index])
                 pending.pop(0)
-                index += 1
-                break
             index += 1
     return "\n".join(output)
 
