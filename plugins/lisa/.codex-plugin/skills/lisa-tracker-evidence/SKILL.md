@@ -42,7 +42,7 @@ The checklist is tracker-agnostic — the same shape works on JIRA, GitHub Issue
    - Login creds shape — e.g. `(000) 000-0002` + OTP `555555`
    - Exact record/player name, exact button labels as they appear on screen
    - Full happy-path **and** any non-obvious edge state worth showing (empty state, loading, post-completion)
-4. **One screenshot per step**, captured live via Playwright MCP at the matching viewport. Upload via `gh release upload pr-assets <files> --clobber` and reference each one as a **plain URL** in the comment body — *not* `![alt](url)` markdown embeds. Plain URLs render as smartlinks/auto-embeds across all three trackers and stay individually viewable; markdown embeds collapse on JIRA when there are ≥2.
+4. **One screenshot per step**, captured live through the interactive browser controller at the matching viewport. The controller may be an in-app Browser/Chrome tool, interactive Playwright control, CDP, computer use, or an equivalent; do not require one named backend. Upload via `gh release upload pr-assets <files> --clobber` and reference each one as a **plain URL** in the comment body — *not* `![alt](url)` markdown embeds. Plain URLs render as smartlinks/auto-embeds across all three trackers and stay individually viewable; markdown embeds collapse on JIRA when there are ≥2.
 5. **"What this shows" section.** Tailor to ticket type:
    - **Bug repro:** state plainly whether the bug reproduces or not, and the most likely 1–2 reasons their retest still failed (different env, native app vs. web, stuck backend row, etc.).
    - **Feature/UX completion:** state plainly which acceptance criteria each screenshot covers, and call out any deferred or out-of-scope surface explicitly so QA/PM doesn't have to infer.
