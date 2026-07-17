@@ -5,6 +5,9 @@ name: 🔍 CI Quality Checks
 
 on:
   pull_request:
+    # Include labeled/unlabeled so toggling the verification-exempt label
+    # re-runs CI (the verification gate keys on PR labels).
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   workflow_dispatch:
 
 jobs:

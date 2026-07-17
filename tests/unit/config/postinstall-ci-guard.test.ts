@@ -123,6 +123,37 @@ describe("package.lisa.json prepare scripts install hooks after successful build
   });
 });
 
+describe("package.lisa.json templates carry force-governed CVE floors", () => {
+  // Security floors must live in BOTH force.overrides and force.resolutions so
+  // the pin holds under npm (overrides) and yarn/bun (resolutions). Because the
+  // whole force block is authoritative, a downstream project cannot pin these
+  // itself — a missing floor here silently ships the vulnerable transitive dep
+  // fleet-wide and cannot be fixed downstream (the next apply wipes it).
+  /** Minimal shape exposing the force override/resolution maps. */
+  interface OverridesShape {
+    readonly force?: {
+      readonly overrides?: Readonly<Record<string, string>>;
+      readonly resolutions?: Readonly<Record<string, string>>;
+    };
+  }
+
+  it("typescript template floors systeminformation (harperdb GHSA-5xpp-75jx-m839)", () => {
+    const template = readTemplateJson(
+      "typescript/package-lisa/package.lisa.json"
+    ) as OverridesShape;
+    expect(template.force?.overrides?.systeminformation).toBe(">=5.27.14");
+    expect(template.force?.resolutions?.systeminformation).toBe(">=5.27.14");
+  });
+
+  it("expo template floors websocket-driver (RN-firebase GHSA-xv26-6w52-cph6)", () => {
+    const template = readTemplateJson(
+      "expo/package-lisa/package.lisa.json"
+    ) as OverridesShape;
+    expect(template.force?.overrides?.["websocket-driver"]).toBe(">=0.7.5");
+    expect(template.force?.resolutions?.["websocket-driver"]).toBe(">=0.7.5");
+  });
+});
+
 describe("EnsureLisaPostinstallMigration injects CI-guarded invocation", () => {
   it("the migration's LISA_INVOCATION constant starts with the CI guard", async () => {
     // Read the compiled source verbatim — we want to guard the literal

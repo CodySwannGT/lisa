@@ -51,7 +51,10 @@ if command -v gitleaks >/dev/null 2>&1; then
   GITLEAKS_IGNORE_ARGS=""
   GITLEAKS_COMBINED_IGNORE=""
   if [ -f ".gitleaksignore.local" ]; then
-    GITLEAKS_COMBINED_IGNORE="$(mktemp)"
+    # Explicit template with a trailing X run keeps this portable: BSD/macOS
+    # `mktemp` requires a template argument (bare `mktemp` errors), while GNU
+    # `mktemp` accepts it too.
+    GITLEAKS_COMBINED_IGNORE="$(mktemp "${TMPDIR:-/tmp}/gitleaks-ignore.XXXXXXXX")"
     if [ -f ".gitleaksignore" ]; then
       cat .gitleaksignore > "$GITLEAKS_COMBINED_IGNORE"
       printf '\n' >> "$GITLEAKS_COMBINED_IGNORE"
