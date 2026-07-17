@@ -127,6 +127,14 @@ The declaration is not a separate field — it is the set of `[EVIDENCE: <artifa
 - `<artifact-type>` — HOW the proof is captured, from the fixed taxonomy below.
 - `<kebab-case-name>` — WHAT it proves, unique within the ticket.
 
+To reference a sibling or parent artifact without adding it to the current work unit's manifest, use the non-binding cross-reference form:
+
+```text
+[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]
+```
+
+`<tracker-ref>` is the owning ticket or issue (`#123`, `PROJ-123`, `ENG-123`, `owner/repo#123`, or a tracker URL). Validators and journey runners MUST ignore `EVIDENCE-REF` markers when building the current work unit's evidence manifest. Never quote a sibling's `[EVIDENCE: ...]` marker directly in prose; that syntax always belongs to the current work unit.
+
 Example transformation (the failure mode this grammar exists to prevent):
 
 | Assertion label (invalid) | Typed artifact (valid) |
