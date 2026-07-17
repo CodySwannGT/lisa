@@ -20,6 +20,7 @@ const NOT_APPLICABLE_STATE = "not-applicable" as const;
 const GITHUB_AUTH_PROBE_ID = "github-auth";
 const NOT_AUTHENTICATED_REASON = "not-authenticated";
 const GITHUB_NOT_AUTHENTICATED = "GitHub CLI is not authenticated";
+const CACHE_CONTROL_HEADER = "cache-control";
 
 beforeEach(async () => {
   resources.dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-status-api-"));
@@ -65,6 +66,7 @@ async function readStatus(): Promise<Record<string, ProbeResult>> {
   };
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toMatch(/^application\/json/);
+  expect(response.headers.get(CACHE_CONTROL_HEADER)).toBe("no-store");
   return body.probes;
 }
 
@@ -166,7 +168,9 @@ describe("GET /api/status", () => {
     const posted = await fetch(base, { method: "POST" });
 
     expect(queried.status).toBe(200);
+    expect(queried.headers.get(CACHE_CONTROL_HEADER)).toBe("no-store");
     expect(head.status).toBe(200);
+    expect(head.headers.get(CACHE_CONTROL_HEADER)).toBe("no-store");
     expect(posted.status).toBe(405);
     expect(posted.headers.get("allow")).toBe("GET, HEAD");
   });

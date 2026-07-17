@@ -45,6 +45,33 @@ class ProbeTimeoutError extends Error {
 }
 
 /**
+ * Convert arbitrary thrown data into a stable failure classification.
+ * @param error - Value thrown by a probe
+ * @returns Timeout classification and non-empty human-readable message
+ */
+function classifyProbeError(error: unknown): {
+  readonly timedOut: boolean;
+  readonly message: string;
+} {
+  try {
+    const timedOut = error instanceof ProbeTimeoutError;
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    return {
+      timedOut,
+      message:
+        rawMessage.trim().length > 0
+          ? rawMessage
+          : "Probe failed without an error message",
+    };
+  } catch {
+    return {
+      timedOut: false,
+      message: "Probe failed with an unreadable error",
+    };
+  }
+}
+
+/**
  * Run one probe without allowing it to block siblings or fabricate data.
  * @param probe - Probe to execute
  * @returns Explicit result, or unknown for invalid input, failure, or timeout
@@ -75,11 +102,11 @@ export async function runProbe<T extends JsonValue>(
     const result = await Promise.race([probe.run(controller.signal), timeout]);
     return normalizeProbeResult(result);
   } catch (error) {
-    const timedOut = error instanceof ProbeTimeoutError;
+    const { timedOut, message } = classifyProbeError(error);
     return {
       state: "unknown",
       reason: timedOut ? "timeout" : "probe-failed",
-      message: error instanceof Error ? error.message : String(error),
+      message,
     };
   } finally {
     clearTimeout(timer);
@@ -101,9 +128,10 @@ const runGithubAuthStatus: GithubAuthCheck = async (
   hostname
 ) =>
   await new Promise((resolve, reject) => {
-    /* eslint-disable sonarjs/no-os-command-from-path -- fixed user-installed gh invocation */
+    const ghExecutable = "gh";
     execFile(
-      "gh",
+      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed gh executable
+      ghExecutable,
       ["auth", "status", "--active", "--hostname", hostname, "--json", "hosts"],
       { cwd, signal, timeout: timeoutMs, encoding: "utf8" },
       (error, stdout) => {
@@ -136,7 +164,6 @@ const runGithubAuthStatus: GithubAuthCheck = async (
         }
       }
     );
-    /* eslint-enable sonarjs/no-os-command-from-path -- fixed invocation ends */
   });
 
 /**
@@ -152,9 +179,10 @@ async function readOriginRemote(
   signal: AbortSignal
 ): Promise<string> {
   return await new Promise((resolve, reject) => {
-    /* eslint-disable sonarjs/no-os-command-from-path -- fixed user-installed git invocation */
+    const gitExecutable = "git";
     execFile(
-      "git",
+      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed git executable
+      gitExecutable,
       ["-C", cwd, "remote", "get-url", "origin"],
       { cwd, signal, timeout: timeoutMs, encoding: "utf8" },
       (error, stdout) => {
@@ -170,7 +198,6 @@ async function readOriginRemote(
         resolve(remote);
       }
     );
-    /* eslint-enable sonarjs/no-os-command-from-path -- fixed invocation ends */
   });
 }
 
