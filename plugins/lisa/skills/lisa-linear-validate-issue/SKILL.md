@@ -209,9 +209,11 @@ Each marker must satisfy ALL of:
 - `<artifact-type>` is one of the fixed taxonomy: `screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`, `perf-trace`, `test-run-log`, `deploy-log`, `state-dump`. (The legacy `[SCREENSHOT: name]` form is accepted as `screenshot`.)
 - `<name>` is kebab-case and unique within the item.
 
+Non-binding cross-references use `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <name>]`, where `<tracker-ref>` is the owning item or issue (`ENG-123`, `PROJ-123`, `#123`, `owner/repo#123`, or a tracker URL). S14 MUST ignore `EVIDENCE-REF` markers when deriving this item's manifest, and a valid `EVIDENCE-REF` does not satisfy the "at least one marker" requirement. Agents must use `EVIDENCE-REF` instead of quoting a sibling item's `[EVIDENCE: ...]` marker in prose.
+
 **A marker names an artifact, not an assertion.** An untyped marker (`[EVIDENCE: load-failure-handled-gracefully]`) is an assertion label with nothing to capture and must FAIL, with a remediation that shows the typed transformation (e.g. → `[EVIDENCE: screenshot: load-failure-error-state]`, `[EVIDENCE: perf-trace: pipeline-load-tti]`).
 
-FAIL when the Validation Journey is present but declares zero markers, when any marker is untyped or uses a type outside the taxonomy, or when any name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
+FAIL when the Validation Journey is present but declares zero binding `[EVIDENCE: ...]` markers, when any binding marker is untyped or uses a type outside the taxonomy, or when any binding name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one binding marker passes but the remediation should recommend adding the error/edge case.
 
 This gate depends on S11. It is `N/A` for containers — a **Project** (the Epic equivalent), or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-linear-add-journey`.
 
