@@ -24,6 +24,9 @@ const CLAUDE_PLUGIN_DIR = ".claude-plugin";
 const HOOKS_JSON = "hooks.json";
 const BLOCK_NO_VERIFY = "block-no-verify.sh";
 const BLOCK_NO_VERIFY_AGY = "block-no-verify.agy.sh";
+const PARITY_SAFETY_NET = "parity-safety-net.sh";
+const PARITY_SAFETY_NET_AGY = "parity-safety-net.agy.sh";
+const PARITY_HEREDOC = "parity-safety-net-heredoc.py";
 const INSTALL_PKGS = "install-pkgs.sh";
 const SETUP_JIRA = "setup-jira-cli.sh";
 
@@ -35,7 +38,12 @@ const scriptEntry = (...scripts: readonly string[]) => ({
 // Base manifest hook block: block-no-verify (PreToolUse) is the only agy-portable
 // one; the SessionStart scripts must be ignored by the agy hooks emission.
 const BASE_HOOK_BLOCK = {
-  PreToolUse: [{ ...scriptEntry(BLOCK_NO_VERIFY), matcher: "Bash" }],
+  PreToolUse: [
+    {
+      ...scriptEntry(BLOCK_NO_VERIFY, PARITY_SAFETY_NET),
+      matcher: "Bash",
+    },
+  ],
   SessionStart: [scriptEntry(INSTALL_PKGS, SETUP_JIRA)],
 };
 
@@ -66,6 +74,17 @@ async function scaffoldSource(
     '#!/usr/bin/env bash\necho \'{"decision":"allow"}\'\n',
     "utf8"
   );
+  for (const script of [
+    PARITY_SAFETY_NET_AGY,
+    PARITY_SAFETY_NET,
+    PARITY_HEREDOC,
+  ]) {
+    await fs.writeFile(
+      path.join(srcDir, "hooks", script),
+      '#!/usr/bin/env bash\necho \'{"decision":"allow"}\'\n',
+      "utf8"
+    );
+  }
   // A stale Codex-shaped hooks/hooks.json that must NOT survive.
   await fs.writeJson(path.join(srcDir, "hooks", HOOKS_JSON), { hooks: {} });
   await fs.ensureDir(path.join(srcDir, "rules", "eager"));
@@ -101,10 +120,22 @@ describe("generate-agy-plugin-artifacts (plugin-bundled root hooks.json)", () =>
 
     it("emits a root hooks.json in agy schema (hook-name → PreToolUse → run_command)", () => {
       const cfg = fs.readJsonSync(path.join(outDir, HOOKS_JSON));
-      expect(Object.keys(cfg)).toEqual(["lisa-block-no-verify"]);
+      expect(Object.keys(cfg)).toEqual([
+        "lisa-block-no-verify",
+        "lisa-parity-safety-net",
+      ]);
       const group = cfg["lisa-block-no-verify"].PreToolUse[0];
       expect(group.matcher).toBe("run_command");
       expect(group.hooks[0].type).toBe("command");
+    });
+
+    it("maps parity-safety-net through its agy adapter", () => {
+      const cfg = fs.readJsonSync(path.join(outDir, HOOKS_JSON));
+      const group = cfg["lisa-parity-safety-net"].PreToolUse[0];
+      expect(group.matcher).toBe("run_command");
+      expect(group.hooks[0].command).toBe(
+        `bash "$HOME/.gemini/config/plugins/lisa-test/hooks/${PARITY_SAFETY_NET_AGY}"`
+      );
     });
 
     it("command path uses the manifest NAME (the agy install-dir), not the source dir basename", () => {
@@ -132,6 +163,15 @@ describe("generate-agy-plugin-artifacts (plugin-bundled root hooks.json)", () =>
       const scriptPath = path.join(outDir, "hooks", BLOCK_NO_VERIFY_AGY);
       expect(fs.existsSync(scriptPath)).toBe(true);
       expect(fs.statSync(scriptPath).mode & 0o100).toBe(0o100);
+      for (const script of [
+        PARITY_SAFETY_NET_AGY,
+        PARITY_SAFETY_NET,
+        PARITY_HEREDOC,
+      ]) {
+        const supportPath = path.join(outDir, "hooks", script);
+        expect(fs.existsSync(supportPath)).toBe(true);
+        expect(fs.statSync(supportPath).mode & 0o100).toBe(0o100);
+      }
       // The stale Codex-shaped hooks/hooks.json must NOT survive.
       expect(fs.existsSync(path.join(outDir, "hooks", HOOKS_JSON))).toBe(false);
     });

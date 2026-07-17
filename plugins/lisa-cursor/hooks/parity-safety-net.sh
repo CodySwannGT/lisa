@@ -32,57 +32,6 @@ if [ -z "$command_str" ]; then
   exit 0
 fi
 
-command_for_guards="$command_str"
-if command -v python3 >/dev/null 2>&1; then
-  command_for_guards="$(SAFETY_NET_COMMAND="$command_str" python3 - <<'PY'
-import os
-import re
-
-command = os.environ.get("SAFETY_NET_COMMAND", "")
-
-
-def strip_heredocs(text: str) -> str:
-    lines = text.splitlines()
-    output = []
-    pending = []
-    # Quoted strings are matched (and thereby skipped over) as plain,
-    # non-capturing alternatives BEFORE the heredoc-marker alternative gets a
-    # chance to run, so a "<<MARKER"-looking sequence inside a string literal
-    # (e.g. `echo "hello <<MARKER"`) is never mistaken for a real heredoc
-    # start. Only the heredoc-marker alternative captures a group.
-    marker_pattern = re.compile(
-        r'"(?:\\.|[^"])*"|\'[^\']*\''
-        r"|<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
-    )
-    index = 0
-    while index < len(lines):
-        line = lines[index]
-        output.append(line)
-        pending.extend(
-            next(group for group in match.groups() if group)
-            for match in marker_pattern.finditer(line)
-            if any(match.groups())
-        )
-        index += 1
-        # Consume every pending heredoc body in order (chained same-line
-        # heredocs, e.g. `cat <<A <<B`, push more than one marker at once).
-        # Do NOT stop after the first terminator — dropping the `break` lets
-        # this loop keep dropping body lines until each pending marker is
-        # matched, instead of leaking the second body back into `output`
-        # where the destructive-pattern guards would see it.
-        while pending and index < len(lines):
-            if lines[index].strip() == pending[0]:
-                output.append(lines[index])
-                pending.pop(0)
-            index += 1
-    return "\n".join(output)
-
-
-print(strip_heredocs(command), end="")
-PY
-)"
-fi
-
 # block() prints the reason to stderr (surfaced to the model) and exits 2 so the
 # Bash tool call is denied. $1 = human-readable reason for the block.
 block() {
@@ -95,6 +44,39 @@ narrow the command so it no longer matches the guard.
 EOF
   exit 2
 }
+
+# Heredoc payloads are data only for a deliberately narrow set of GitHub CLI
+# write commands. A companion parser proves that shape before removing payload
+# text from the destructive-command scans below. Unknown executable heredocs
+# remain visible to every built-in and custom rule. Ambiguous or malformed
+# heredocs fail closed instead of guessing which text the shell would execute.
+command_for_guards="$command_str"
+case "$command_str" in
+  *'<<'*)
+    hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    heredoc_parser="$hook_dir/parity-safety-net-heredoc.py"
+    if ! command -v python3 >/dev/null 2>&1 || [ ! -r "$heredoc_parser" ]; then
+      block "cannot safely classify heredoc command because its parser runtime is unavailable"
+    fi
+    if ! printf '%s\n' "$command_str" | /bin/bash -n >/dev/null 2>&1; then
+      block "malformed heredoc command failed shell syntax validation"
+    fi
+
+    parser_status=0
+    if parser_output="$(printf '%s' "$command_str" | python3 "$heredoc_parser" 2>/dev/null)"; then
+      parser_status=0
+    else
+      parser_status=$?
+    fi
+
+    case "$parser_status" in
+      0) command_for_guards="$parser_output" ;;
+      10) command_for_guards="$command_str" ;;
+      20) block "malformed or ambiguous heredoc command cannot be safely classified" ;;
+      *) block "heredoc parser failed; command was denied fail-closed" ;;
+    esac
+    ;;
+esac
 
 # 1. Recursive forced delete (`rm -rf`) of a filesystem root, home, or top-level
 #    wildcard. Two gates ANDed: the command must invoke `rm` with BOTH a
