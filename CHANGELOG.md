@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.221.3](https://github.com/CodySwannGT/lisa/compare/v2.221.2...v2.221.3) (2026-07-17)
+
+
+### Bug Fixes
+
+* prune Expo Jest agent worktrees ([87cad5a](https://github.com/CodySwannGT/lisa/commit/87cad5a40584749a88fc9d3b8bf2420dbc2f652e)), closes [#1472](https://github.com/CodySwannGT/lisa/issues/1472)
+
 ### [2.221.2](https://github.com/CodySwannGT/lisa/compare/v2.221.1...v2.221.2) (2026-07-17)
 
 
