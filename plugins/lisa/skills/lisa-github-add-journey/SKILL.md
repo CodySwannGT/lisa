@@ -83,9 +83,10 @@ Compose the journey with typed `[EVIDENCE: <artifact-type>: <name>]` markers at 
 2. **Concrete, runnable steps** — `Run \`curl -s localhost:3000/health | jq .status\`` not "Check the endpoint".
 3. **Include environment setup** — Database connection, running services, env vars.
 4. **Markers are typed artifacts, not assertion labels** — `[EVIDENCE: <artifact-type>: <kebab-name>]`. `[EVIDENCE: load-failure-handled-gracefully]` names a claim with nothing to capture; write `[EVIDENCE: screenshot: load-failure-error-state]` or `[EVIDENCE: perf-trace: pipeline-load-tti]`. Names are kebab-case and unique within the ticket.
-5. **Assertions are measurable** — `Returns 200 with {status: ok}` not "API works correctly".
-6. **Cover happy path AND error path** — At minimum, one success and one failure marker.
-7. **On a leaf work unit, the markers are binding** — For a Bug / Task / Sub-task / Improvement, every typed `[EVIDENCE: <artifact-type>: <name>]` here is the issue's evidence manifest: validation gate S14 requires at least one, and the issue cannot be closed until each named artifact is captured **in its declared type** and attached (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Name only evidence you intend to capture — and name all of it.
+5. **Cross-ticket references are non-binding** — If the journey needs to mention another issue's artifact, use `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-name>]` (for example, `[EVIDENCE-REF: #123: cli-output: upstream-contract-pass]`). Do not paste a sibling issue's `[EVIDENCE: ...]` marker into this issue; S14 treats `[EVIDENCE: ...]` as this issue's own manifest and ignores `EVIDENCE-REF`.
+6. **Assertions are measurable** — `Returns 200 with {status: ok}` not "API works correctly".
+7. **Cover happy path AND error path** — At minimum, one success and one failure marker.
+8. **On a leaf work unit, the markers are binding** — For a Bug / Task / Sub-task / Improvement, every typed `[EVIDENCE: <artifact-type>: <name>]` here is the issue's evidence manifest: validation gate S14 requires at least one, and the issue cannot be closed until each named artifact is captured **in its declared type** and attached (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Name only evidence you intend to capture — and name all of it; `EVIDENCE-REF` never satisfies or extends the manifest.
 
 ### Step 6: Present to User for Approval
 
