@@ -32,6 +32,46 @@ if [ -z "$command_str" ]; then
   exit 0
 fi
 
+command_for_guards="$command_str"
+if command -v python3 >/dev/null 2>&1; then
+  command_for_guards="$(SAFETY_NET_COMMAND="$command_str" python3 - <<'PY'
+import os
+import re
+
+command = os.environ.get("SAFETY_NET_COMMAND", "")
+
+
+def strip_heredocs(text: str) -> str:
+    lines = text.splitlines()
+    output = []
+    pending = []
+    marker_pattern = re.compile(
+        r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
+    )
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        output.append(line)
+        pending.extend(
+            next(group for group in match.groups() if group)
+            for match in marker_pattern.finditer(line)
+        )
+        index += 1
+        while pending and index < len(lines):
+            if lines[index].strip() == pending[0]:
+                output.append(lines[index])
+                pending.pop(0)
+                index += 1
+                break
+            index += 1
+    return "\n".join(output)
+
+
+print(strip_heredocs(command), end="")
+PY
+)"
+fi
+
 # block() prints the reason to stderr (surfaced to the model) and exits 2 so the
 # Bash tool call is denied. $1 = human-readable reason for the block.
 block() {
@@ -49,11 +89,11 @@ EOF
 #    wildcard. Two gates ANDed: the command must invoke `rm` with BOTH a
 #    recursive and a force flag, AND name a catastrophic target. Splitting the
 #    flag check from the target check keeps each regex legible and testable.
-if printf '%s' "$command_str" \
+if printf '%s' "$command_for_guards" \
   | grep -Eiq '(^|[^[:alnum:]_./-])rm([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)([[:space:]]|$)' \
-  || printf '%s' "$command_str" \
+  || printf '%s' "$command_for_guards" \
   | grep -Eiq '(^|[^[:alnum:]_./-])rm[[:space:]].*(-r\b.*[[:space:]]-f\b|-f\b.*[[:space:]]-r\b|--recursive\b.*--force\b|--force\b.*--recursive\b)'; then
-  if printf '%s' "$command_str" \
+  if printf '%s' "$command_for_guards" \
     | grep -Eq '([[:space:]]|=)(/|/\*|/\.\*?|~|~/\*?|\$HOME\b|\$\{HOME\}|\*)([[:space:]]|/?\*?$)'; then
     block "recursive forced delete of a root, home, or wildcard path (rm -rf)"
   fi
@@ -76,7 +116,7 @@ fi
 # \<newline>main" splits into a segment matching --force but not `main`, letting a
 # protected force-push slip past. Uses awk (POSIX) instead of a GNU-only
 # `sed ':a;N;$!ba;…'`, which errors on BSD sed (macOS) and there silently no-ops.
-normalized_command_str="$(printf '%s' "$command_str" \
+normalized_command_str="$(printf '%s' "$command_for_guards" \
   | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
 
 while IFS= read -r push_stmt; do
@@ -93,7 +133,7 @@ done < <(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
 # 3. `git reset --hard` while the working tree has uncommitted changes — this
 #    silently discards them. Only blocks when the tree is actually dirty, so a
 #    clean-tree reset (a legitimate workflow) still passes.
-if printf '%s' "$command_str" | grep -Eiq '(^|[^[:alnum:]_-])git[[:space:]]+reset\b.*--hard\b'; then
+if printf '%s' "$command_for_guards" | grep -Eiq '(^|[^[:alnum:]_-])git[[:space:]]+reset\b.*--hard\b'; then
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
     block "git reset --hard on a dirty working tree would discard uncommitted changes (stash or commit first)"
@@ -101,7 +141,7 @@ if printf '%s' "$command_str" | grep -Eiq '(^|[^[:alnum:]_-])git[[:space:]]+rese
 fi
 
 # 4. Dropping or truncating a database / schema / table.
-if printf '%s' "$command_str" \
+if printf '%s' "$command_for_guards" \
   | grep -Eiq '\b(drop[[:space:]]+(database|schema|table)|truncate[[:space:]]+(table[[:space:]]+)?[[:alnum:]_."`]+)\b'; then
   block "destructive SQL (DROP/TRUNCATE) detected"
 fi
@@ -113,7 +153,7 @@ if [ -f "$rules_file" ]; then
     case "$rule" in
       '' | '#'*) continue ;;
     esac
-    if printf '%s' "$command_str" | grep -Eiq -- "$rule"; then
+    if printf '%s' "$command_for_guards" | grep -Eiq -- "$rule"; then
       block "matched a project custom safety rule (${rules_file##*/}): $rule"
     fi
   done <"$rules_file"
