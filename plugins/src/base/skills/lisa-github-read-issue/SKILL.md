@@ -139,15 +139,64 @@ If the primary issue has a parent sub-issue (i.e., is a Story / Task / Sub-task 
 
 If the primary issue IS an Epic, capture all children via Phase 3's `subIssues` traversal (already done).
 
-## Phase 6 — Fetch Linked PRs (Native `Resolves` / Cross-references)
+## Phase 6 — Fetch Linked PRs and Label-Event History
 
-GitHub's native `closingIssuesReferences` and timeline give the canonical PR↔Issue relationship:
+GitHub's native `closingIssuesReferences` and timeline give the canonical PR↔Issue relationship. The same timeline read also exposes label events, which are Lisa's GitHub-native transition history. Keep this as one GraphQL read path; do not add a second REST timeline fetch.
 
 ```bash
-gh api graphql -f query='query($org:String!,$repo:String!,$number:Int!){repository(owner:$org,name:$repo){issue(number:$number){closedByPullRequestsReferences(first:50){nodes{number title state merged mergedAt url repository{nameWithOwner}}}timelineItems(first:100,itemTypes:[CROSS_REFERENCED_EVENT]){nodes{...on CrossReferencedEvent{source{...on PullRequest{number title state url repository{nameWithOwner}}}}}}}}}' -F org=<org> -F repo=<repo> -F number=<number>
+query='query($org:String!,$repo:String!,$number:Int!,$cursor:String){
+  repository(owner:$org,name:$repo){
+    issue(number:$number){
+      closedByPullRequestsReferences(first:50){
+        nodes{number title state merged mergedAt url repository{nameWithOwner}}
+      }
+      timelineItems(
+        first:100
+        after:$cursor
+        itemTypes:[CROSS_REFERENCED_EVENT,LABELED_EVENT,UNLABELED_EVENT]
+      ){
+        pageInfo{hasNextPage endCursor}
+        nodes{
+          ...on CrossReferencedEvent{
+            createdAt
+            actor{login}
+            source{...on PullRequest{number title state url repository{nameWithOwner}}}
+          }
+          ...on LabeledEvent{
+            createdAt
+            actor{login}
+            label{name}
+          }
+          ...on UnlabeledEvent{
+            createdAt
+            actor{login}
+            label{name}
+          }
+        }
+      }
+    }
+  }
+}'
+
+cursor=null
+while :; do
+  if [ "$cursor" = null ]; then
+    page=$(gh api graphql -f query="$query" -F org=<org> -F repo=<repo> -F number=<number>)
+  else
+    page=$(gh api graphql -f query="$query" -F org=<org> -F repo=<repo> -F number=<number> -f cursor="$cursor")
+  fi
+  printf '%s\n' "$page"
+  has_next=$(printf '%s\n' "$page" | jq -r '.data.repository.issue.timelineItems.pageInfo.hasNextPage')
+  cursor=$(printf '%s\n' "$page" | jq -r '.data.repository.issue.timelineItems.pageInfo.endCursor')
+  [ "$has_next" = true ] || break
+done
 ```
 
-Capture: PR number, title, state, mergedAt, repo, url. Dedupe with PRs found in Phase 4.
+Capture:
+- **Linked PRs**: PR number, title, state, mergedAt, repo, url. Dedupe with PRs found in Phase 4. Preserve the existing `CrossReferencedEvent` behavior for PR linkage; widening the query must not change that consumer shape.
+- **Label-event history**: chronological `LabeledEvent` and `UnlabeledEvent` entries with event kind, label name, actor login, and `createdAt`. Preserve oldest→newest order across all pages. Status labels (`status:*`) are the GitHub transition history that downstream rejection detection consumes, but keep non-status label events too so callers can audit the full label stream.
+
+Pagination is mandatory. `timelineItems(first:100)` silently truncates busy issues unless `pageInfo.hasNextPage` / `endCursor` is followed. If a page fetch fails, record label-event history as `unknown` with the error and continue assembling the bundle; a history read failure must never block the build.
 
 For each PR, fetch unresolved review comments via `gh pr view <num> --repo <org>/<repo> --json reviews,reviewThreads`.
 
@@ -226,6 +275,12 @@ Produce a single structured output that the caller can pass verbatim to downstre
 
 ### Body-referenced (`Resolves #<n>`)
 <per-PR block>
+
+## Label-Event History
+- Status: <known|unknown>
+- Events:
+  - <ISO> — <labeled|unlabeled> — <label-name> — <actor-login>
+  - ...
 
 ## Sibling Sub-issues (other children of the same parent, <count>)
 - <ref> — <type> — <status> — <assignee> — <title>  **[FLAG: in progress by other assignee]**
