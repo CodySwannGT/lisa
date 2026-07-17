@@ -38,7 +38,7 @@ Run the parser to see if a Validation Journey already exists:
 python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID> 2>&1
 ```
 
-If the parser succeeds and returns steps, the ticket already has a journey. Report this to the user and stop.
+If the parser succeeds and returns steps, inspect the journey source for at least one local typed `[EVIDENCE: <artifact-type>: <name>]` marker. Stop only when that local marker exists. An `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` is a non-claiming pointer and does not count; if the journey has references but no local claiming marker, continue drafting the missing local journey evidence.
 
 ### Step 3: Analyze the Change Type
 
@@ -92,18 +92,19 @@ h3. Assertions
 1. **2-5 evidence markers** — Focus on proving the change works and handles errors
 2. **Concrete, runnable steps** — "Run `curl -s localhost:3000/health | jq .status`" not "Check the endpoint"
 3. **Include environment setup** — Database connection, running services, env vars
-4. **Markers are typed artifacts, not assertion labels** — `[EVIDENCE: <artifact-type>: <kebab-name>]`. `[EVIDENCE: load-failure-handled-gracefully]` names a claim with nothing to capture; write `[EVIDENCE: screenshot: load-failure-error-state]` or `[EVIDENCE: perf-trace: pipeline-load-tti]`. Names are kebab-case and unique within the ticket.
+4. **Markers are typed artifacts, not assertion labels** — `[EVIDENCE: <artifact-type>: <kebab-case-name>]`. `[EVIDENCE: load-failure-handled-gracefully]` names a claim with nothing to capture; write `[EVIDENCE: screenshot: load-failure-error-state]` or `[EVIDENCE: perf-trace: pipeline-load-tti]`. Names are kebab-case and unique within the ticket.
 5. **Assertions are measurable** — "Returns 200 with `{status: ok}`" not "API works correctly"
 6. **Cover happy path and error path** — At minimum, one success and one failure evidence marker
 7. **On a leaf work unit, the markers are binding** — For a Bug / Task / Sub-task / Improvement, every typed `[EVIDENCE: <artifact-type>: <name>]` here is the ticket's evidence manifest: validation gate S14 requires at least one, and the ticket cannot be closed until each named artifact is captured **in its declared type** and attached (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Name only evidence you intend to capture — and name all of it.
+8. **Reference sibling evidence without claiming it** — Use only `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` when prose points to an artifact declared by another ticket. Never paste, quote, or code-format the sibling's `[EVIDENCE: ...]` marker: that exact prefix creates a local obligation. `EVIDENCE-REF` never satisfies this ticket's S14 minimum, uniqueness check, capture list, or completion gate; a runtime-changing leaf still needs at least one local `[EVIDENCE: ...]` marker.
 
 ### Step 6: Present to User for Approval
 
-Display the drafted Validation Journey to the user and ask for confirmation before appending it to the ticket.
+Display the drafted Validation Journey change to the user and ask for confirmation before updating the ticket.
 
-### Step 7: Append to Ticket Description
+### Step 7: Merge into Ticket Description
 
-After user approval, use the JIRA REST API to append the Validation Journey to the existing ticket description.
+After user approval, use the JIRA REST API to update the ticket description. If no journey exists, append one section. If a reference-only journey exists, preserve all existing prose and `EVIDENCE-REF` pointers and append only the missing local steps/markers inside that existing section. Never create a second `Validation Journey` heading; the parser selects the existing section and duplicate headings make S14 evaluation ambiguous.
 
 ### Step 8: Verify
 
@@ -112,6 +113,8 @@ Run the parser again to confirm the journey was added correctly:
 ```bash
 python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID>
 ```
+
+Confirm the journey has at least one local `[EVIDENCE: <artifact-type>: <name>]` marker. An `EVIDENCE-REF` alone does not count.
 
 ## When to Use This Skill
 
