@@ -681,6 +681,38 @@ export function parseLisaUsageSection(
 }
 
 /**
+ * Resolve the prior rollup to seed a rewrite with, preserving a parsed
+ * document's child-incompleteness marker when a caller supplies an explicit
+ * rollup that omits the (optional) `childTokensIncomplete` field and does not
+ * refresh child artifacts on this call. Without this merge, a legacy caller's
+ * direct-only rollup would silently clear a previously recorded incomplete
+ * child status, letting a stale total be published as complete.
+ *
+ * @param suppliedRollup Explicit rollup payload passed by the caller, if any.
+ * @param parsedRollup Rollup parsed from the existing document, if any.
+ * @param childArtifacts Child ledgers supplied on this call, if any.
+ * @returns The rollup to treat as the prior state for this rewrite.
+ */
+function resolvePreviousRollup(
+  suppliedRollup: LisaUsageRollup | null | undefined,
+  parsedRollup: LisaUsageRollup | null | undefined,
+  childArtifacts: readonly LisaUsageChildArtifact[] | undefined
+): LisaUsageRollup | null | undefined {
+  if (!suppliedRollup) {
+    return parsedRollup;
+  }
+
+  const childrenRefreshedOrExplicit =
+    suppliedRollup.childTokensIncomplete !== undefined ||
+    childArtifacts !== undefined;
+  if (childrenRefreshedOrExplicit || !parsedRollup?.childTokensIncomplete) {
+    return suppliedRollup;
+  }
+
+  return { ...suppliedRollup, childTokensIncomplete: true };
+}
+
+/**
  * Append or replace the canonical `## Lisa Usage` section in a markdown
  * artifact while preserving prior entries that are not being refreshed.
  *
@@ -701,12 +733,17 @@ export function upsertLisaUsageSection(
 ): string {
   const parsed = parseLisaUsageSection(document);
   const mergedEntries = mergeLisaUsageEntries(parsed.entries, input.entries);
+  const previousRollup = resolvePreviousRollup(
+    input.rollup,
+    parsed.rollup,
+    input.childArtifacts
+  );
   const rollup =
-    mergedEntries.length === 0 && input.rollup
-      ? input.rollup
+    mergedEntries.length === 0 && previousRollup
+      ? previousRollup
       : createLisaUsageRollup(
           mergedEntries,
-          input.rollup ?? parsed.rollup,
+          previousRollup,
           input.childArtifacts
         );
   const usageSection = renderLisaUsageSection({
