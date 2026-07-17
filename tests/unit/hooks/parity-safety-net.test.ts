@@ -35,6 +35,29 @@ const runHook = (
 };
 
 describe("parity-safety-net.sh — force-push guard", () => {
+  describe("ignores prose-only heredoc payloads", () => {
+    it("allows an issue body that quotes rm -rf plugins/lisa", () => {
+      const cmd = [
+        "gh issue create --body-file - <<'EOF'",
+        "The build step runs `rm -rf plugins/lisa` before regenerating artifacts.",
+        "EOF",
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_ALLOWED);
+    });
+
+    it("still blocks a destructive command before a heredoc body", () => {
+      const cmd = [
+        "rm -rf /",
+        "gh issue create --body-file - <<'EOF'",
+        "This payload is not the executable statement.",
+        "EOF",
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+  });
+
   describe("blocks force-pushing a protected branch", () => {
     it("blocks git push --force origin main", () => {
       expect(runHook("Bash", "git push --force origin main").status).toBe(
