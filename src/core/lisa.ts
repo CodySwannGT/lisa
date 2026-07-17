@@ -956,11 +956,12 @@ export class Lisa {
    *      tagged-merge preserving host entries). Cross-project caveat: the most
    *      recent `lisa apply` carrying MCP wins globally.
    *   4. Instruction file → the canonical create-only `AGENTS.md` (the same file
-   *      every other agent reads). Lisa no longer bakes eager rule bodies into
-   *      AGENTS.md: a giant generated file is not worth carrying just to polyfill
-   *      agy's headless (`-p`) mode, where SessionStart hooks don't fire. agy
-   *      gets the thin host-owned AGENTS.md like everyone else; in interactive
-   *      mode it still receives Lisa's plugin (skills/agents/MCP) above.
+   *      every other agent reads), plus a bounded project-learnings bridge
+   *      reconciled by `processInstructionFilesMigration`. Lisa does not bake
+   *      eager rule bodies into AGENTS.md: a giant generated file is not worth
+   *      carrying just to polyfill agy's headless (`-p`) mode, where SessionStart
+   *      hooks don't fire. In interactive mode it still receives Lisa's plugin
+   *      (skills/agents/MCP) above.
    */
   private async processAgyEmit(): Promise<void> {
     const { harness } = this.config;
@@ -1017,7 +1018,8 @@ export class Lisa {
     // agy variant (emitted at build time by generate-agy-plugin-artifacts.mjs,
     // installed via `agy plugin install` above) — NOT written here at apply time.
 
-    // Instruction file: the canonical, create-only AGENTS.md (no baked rules).
+    // Instruction file: the canonical, create-only AGENTS.md. The bounded
+    // project-learnings bridge is reconciled after all emit paths run.
     const agentsMdResult = await installAgentsMd(this.config.destDir);
 
     const attempted = pluginResults.some(r => r.attempted);
