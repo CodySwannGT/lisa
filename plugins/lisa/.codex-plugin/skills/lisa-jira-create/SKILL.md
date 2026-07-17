@@ -83,6 +83,7 @@ h3. Assertions
 
 1. **Steps must be concrete and verifiable** — "Run `curl -s localhost:3000/health`" not "Check the API"
 2. **Evidence markers at verification points** — Place typed `[EVIDENCE: <artifact-type>: <name>]` at states that prove the change works. The type names HOW the proof is captured, the kebab-case name WHAT it proves (e.g., `[EVIDENCE: http-transcript: api-response-200]`, `[EVIDENCE: screenshot: error-state-rendered]`). An untyped assertion label like `[EVIDENCE: works-gracefully]` fails validation gate S14
+   - To point at evidence owned by another work item, use exactly `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`. It is non-claiming and cannot satisfy S14; never paste or quote the sibling's `[EVIDENCE: ...]` marker into this ticket.
 3. **Include 2-5 evidence markers** — Enough to prove the change works across happy path and error cases
 4. **Assertions are testable statements** — "Health check returns 200 with status ok" not "API works"
 5. **Prerequisites include environment setup** — Database connection, env vars, running services
