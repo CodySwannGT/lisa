@@ -3,10 +3,13 @@ import {
   parseLisaUsageSection,
   type LisaUsageChildArtifact,
   type LisaUsageEntry,
+  type LisaUsageRollup,
   upsertLisaUsageSection,
 } from "../../../src/utils/usage-accounting.js";
 
 const ARTIFACT_DOCUMENT = "# Artifact\n";
+const CHILD_ARTIFACT_REF = "github:issue:child";
+const PARTIAL_CHILD_ENTRY_ID = "partial-child";
 const UNDEFINED_MEASURED_SUBSET = "measured_subset_tokens=undefined";
 const LEGACY_FIXED_ORDER_ENTRY_PATTERN = new RegExp(
   [
@@ -215,8 +218,8 @@ describe("usage-accounting backward compatibility", () => {
   it("keeps artifact totals unknown when child work is only a subset", () => {
     const childArtifacts: readonly LisaUsageChildArtifact[] = [
       {
-        artifactRef: "github:issue:child",
-        entries: [makeMeasuredSubsetEntry("partial-child")],
+        artifactRef: CHILD_ARTIFACT_REF,
+        entries: [makeMeasuredSubsetEntry(PARTIAL_CHILD_ENTRY_ID)],
       },
     ];
     const rollup = createLisaUsageRollup(
@@ -238,8 +241,8 @@ describe("usage-accounting backward compatibility", () => {
   it("preserves measured-child incompleteness across ordinary rewrites", () => {
     const childArtifacts: readonly LisaUsageChildArtifact[] = [
       {
-        artifactRef: "github:issue:child",
-        entries: [makeMeasuredSubsetEntry("partial-child")],
+        artifactRef: CHILD_ARTIFACT_REF,
+        entries: [makeMeasuredSubsetEntry(PARTIAL_CHILD_ENTRY_ID)],
       },
     ];
     const firstWrite = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
@@ -259,6 +262,48 @@ describe("usage-accounting backward compatibility", () => {
     });
     expect(upsertLisaUsageSection(firstWrite, { entries: [] })).toBe(
       firstWrite
+    );
+  });
+
+  it("preserves measured-child state when an explicit legacy rollup omits it", () => {
+    const childArtifacts: readonly LisaUsageChildArtifact[] = [
+      {
+        artifactRef: CHILD_ARTIFACT_REF,
+        entries: [makeMeasuredSubsetEntry(PARTIAL_CHILD_ENTRY_ID)],
+      },
+    ];
+    const directEntry = makeCompleteEntry();
+    const firstWrite = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [directEntry],
+      childArtifacts,
+    });
+    const parsedRollup = parseLisaUsageSection(firstWrite).rollup;
+    if (parsedRollup === null) {
+      throw new Error("Expected the first write to contain a rollup");
+    }
+    const legacyRollup: LisaUsageRollup = { ...parsedRollup };
+    delete legacyRollup.childTokensIncomplete;
+
+    const rewritten = upsertLisaUsageSection(firstWrite, {
+      entries: [directEntry],
+      rollup: legacyRollup,
+    });
+
+    expect(rewritten).toBe(firstWrite);
+    expect(parseLisaUsageSection(rewritten).rollup).toMatchObject({
+      childTokens: null,
+      childTokensIncomplete: true,
+      totalCost: 0.12,
+      totalTokens: null,
+    });
+
+    const explicitlyComplete = upsertLisaUsageSection(firstWrite, {
+      entries: [directEntry],
+      rollup: { ...legacyRollup, childTokensIncomplete: false },
+    });
+    expect(explicitlyComplete).not.toContain("lisa:usage-rollup-token-status");
+    expect(parseLisaUsageSection(explicitlyComplete).rollup?.totalTokens).toBe(
+      120
     );
   });
 });
