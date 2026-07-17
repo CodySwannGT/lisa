@@ -701,12 +701,20 @@ export function upsertLisaUsageSection(
 ): string {
   const parsed = parseLisaUsageSection(document);
   const mergedEntries = mergeLisaUsageEntries(parsed.entries, input.entries);
+  const previousRollup =
+    input.childArtifacts === undefined &&
+    input.rollup !== null &&
+    input.rollup !== undefined &&
+    input.rollup.childTokensIncomplete === undefined &&
+    parsed.rollup?.childTokensIncomplete === true
+      ? { ...input.rollup, childTokensIncomplete: true }
+      : (input.rollup ?? parsed.rollup);
   const rollup =
     mergedEntries.length === 0 && input.rollup
-      ? input.rollup
+      ? (previousRollup ?? input.rollup)
       : createLisaUsageRollup(
           mergedEntries,
-          input.rollup ?? parsed.rollup,
+          previousRollup,
           input.childArtifacts
         );
   const usageSection = renderLisaUsageSection({
