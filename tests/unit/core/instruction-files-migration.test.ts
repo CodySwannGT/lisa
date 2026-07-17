@@ -8,6 +8,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CLAUDE_MD_AGENTS_IMPORT } from "../../../src/claude/claude-md-installer.js";
 import {
+  LISA_PROJECT_LEARNINGS_END_MARKER,
   LISA_PROJECT_LEARNINGS_START_MARKER,
   LISA_RULES_END_MARKER,
   LISA_RULES_START_MARKER,
@@ -240,6 +241,28 @@ describe("core/instruction-files-migration", () => {
 
     it("leaves malformed markers unchanged", () => {
       const body = `Before\n${LISA_PROJECT_LEARNINGS_START_MARKER}\nAfter\n`;
+      expect(stripAgyProjectLearningsBridge(body)).toBe(body);
+    });
+
+    it("leaves duplicate marker pairs unchanged rather than deleting only the first pair", () => {
+      const bridge = buildAgyProjectLearningsBridge(CUSTOM_LEARNINGS_PATH);
+      // Two full bridge blocks back to back is malformed for this managed-block
+      // contract: indexOf would only find the first pair, silently stranding the
+      // second block's markers and text as stale host content.
+      const body = `Before\n\n${bridge}\n\n${bridge}\n\nAfter\n`;
+      expect(stripAgyProjectLearningsBridge(body)).toBe(body);
+    });
+
+    it("leaves a duplicated start marker unchanged even with a single end marker", () => {
+      const body = [
+        "Before",
+        LISA_PROJECT_LEARNINGS_START_MARKER,
+        "first",
+        LISA_PROJECT_LEARNINGS_START_MARKER,
+        "second",
+        LISA_PROJECT_LEARNINGS_END_MARKER,
+        "After",
+      ].join("\n");
       expect(stripAgyProjectLearningsBridge(body)).toBe(body);
     });
   });
