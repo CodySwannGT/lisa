@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.222.2](https://github.com/CodySwannGT/lisa/compare/v2.222.1...v2.222.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **hooks:** ignore heredoc prose in safety net ([5396118](https://github.com/CodySwannGT/lisa/commit/5396118ace931cfadec187536b42a5400d345f61))
+* **hooks:** make heredoc stripping quote-aware and chain-safe ([4615d6a](https://github.com/CodySwannGT/lisa/commit/4615d6aa041de30cefb205f0c31eb9e8dd2b5941))
+
 ### [2.222.1](https://github.com/CodySwannGT/lisa/compare/v2.222.0...v2.222.1) (2026-07-17)
 
 
