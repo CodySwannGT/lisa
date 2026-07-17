@@ -232,11 +232,48 @@ def unquoted_code_and_comment(line: str) -> tuple[str, str]:
     return "".join(code), ""
 
 
+def collapse_line_continuations(command: str) -> str:
+    """Remove Bash backslash-newline pairs outside single-quoted text."""
+    result: list[str] = []
+    state = "plain"
+    escaped = False
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if escaped:
+            result.append(char)
+            escaped = False
+        elif state == "single":
+            result.append(char)
+            if char == "'":
+                state = "plain"
+        elif char == "\\" and command.startswith("\n", index + 1):
+            index += 2
+            continue
+        elif char == "\\":
+            result.append(char)
+            escaped = True
+        elif char == "'" and state == "plain":
+            result.append(char)
+            state = "single"
+        elif char == '"':
+            result.append(char)
+            state = "plain" if state == "double" else "double"
+        else:
+            result.append(char)
+        index += 1
+    return "".join(result)
+
+
 def writer_owns_real_marker(command: str, markers: list[Marker]) -> bool:
     """Detect a supported writer on a line containing a real heredoc marker."""
-    lines = command.splitlines()
-    for marker in markers:
-        line_index = command.count("\n", 0, marker.start)
+    logical_command = collapse_line_continuations(command)
+    logical_markers = (
+        markers if logical_command == command else top_level_markers(logical_command)
+    )
+    lines = logical_command.splitlines()
+    for marker in logical_markers:
+        line_index = logical_command.count("\n", 0, marker.start)
         if line_has_allowed_writer(lines[line_index]):
             return True
     return False
@@ -346,29 +383,32 @@ def main() -> int:
         print(sanitized, end="")
         return SAFE
 
-    markers = top_level_markers(command)
-    if writer_has_commented_marker_and_following_code(command):
+    logical_command = collapse_line_continuations(command)
+    markers = top_level_markers(logical_command)
+    if writer_has_commented_marker_and_following_code(logical_command):
         return MALFORMED
-    if markers and writer_owns_real_marker(command, markers):
+    if writer_owns_real_marker(logical_command, markers):
         return MALFORMED
     # Textual operators inside quotes or comments are not heredocs. Leave the
     # raw command unchanged so ordinary guard matching proceeds normally.
-    if not markers and not has_active_command_substitution(command):
+    if not markers and not has_active_command_substitution(logical_command):
         return UNSUPPORTED
 
     # A supported writer that failed the exact safe grammar is ambiguous: do
     # not let chaining, alternate redirects, or an expanding delimiter turn a
     # would-be payload exemption into a bypass.
-    if command.splitlines() and line_has_allowed_writer(command.splitlines()[0]):
+    if logical_command.splitlines() and line_has_allowed_writer(
+        logical_command.splitlines()[0]
+    ):
         return MALFORMED
 
     # Nested substitution plus a heredoc is executable shell syntax unless it
     # matched the one exact quoted `--body "$(cat ...)"` form above.
-    if has_active_command_substitution(command):
+    if has_active_command_substitution(logical_command):
         return MALFORMED
     if len(markers) > 1:
         return MALFORMED
-    if markers and not marker_is_closed(command, markers[0]):
+    if markers and not marker_is_closed(logical_command, markers[0]):
         return MALFORMED
     return UNSUPPORTED
 
