@@ -56,6 +56,34 @@ describe("parity-safety-net.sh — force-push guard", () => {
 
       expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
     });
+
+    it("still blocks a destructive command following a quoted '<<' that looks like a heredoc marker", () => {
+      // The `<<MARKER` sequence here is inside a double-quoted echo argument, not
+      // a real heredoc start. A quote-unaware heredoc parser mistakes it for one
+      // and then treats the real `rm -rf /` command (up to the "MARKER" line) as
+      // heredoc body content, stripping it from what the guards see — hiding a
+      // real destructive command from the safety net.
+      const cmd = ['echo "hello <<MARKER"', "rm -rf /", "MARKER"].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("fully consumes chained same-line heredocs so the second body doesn't leak into the guard input", () => {
+      // `cat <<A <<B` opens two heredocs on one line. A parser that stops
+      // tracking after the first terminator lets the second heredoc's body
+      // "leak" back into the text that the destructive-pattern guards scan,
+      // which can cause the guard to misfire on data that was never a command.
+      const cmd = [
+        "cat <<A <<B",
+        "body A",
+        "A",
+        "body B with rm -rf /",
+        "B",
+        'echo "done"',
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_ALLOWED);
+    });
   });
 
   describe("blocks force-pushing a protected branch", () => {
