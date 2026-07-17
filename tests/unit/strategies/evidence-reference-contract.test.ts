@@ -46,6 +46,12 @@ const CONSUMERS = [
   "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md",
 ] as const;
 
+const JOURNEY_FILES = [
+  "plugins/src/base/skills/lisa-github-journey/SKILL.md",
+  "plugins/src/base/skills/lisa-jira-journey/SKILL.md",
+  "plugins/src/base/skills/lisa-linear-journey/SKILL.md",
+] as const;
+
 const GENERATED_SKILL_ROOTS = [
   "plugins/lisa/skills",
   "plugins/lisa/.codex-plugin/skills",
@@ -164,6 +170,17 @@ describe("non-claiming evidence references (#1595)", () => {
       expect(consumer).toMatch(/(?:do not|never|exclude)/i);
       expect(consumer).toMatch(/(?:capture|artifact lookup|local manifest)/i);
       expect(consumer).toMatch(/(?:S14|runtime-changing leaf)/i);
+    }
+  );
+
+  it.each(JOURNEY_FILES)(
+    "%s's opening summary uses the typed EVIDENCE marker grammar, not the untyped form",
+    journeyPath => {
+      const journey = read(journeyPath);
+      const introSection = journey.split("## Arguments")[0];
+
+      expect(introSection).toMatch(/\[EVIDENCE: <artifact-type>: <name>\]/);
+      expect(introSection).not.toContain("[EVIDENCE: <name>]");
     }
   );
 
