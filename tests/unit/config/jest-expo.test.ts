@@ -1,5 +1,6 @@
 import {
   getExpoJestConfig,
+  mergeConfigs,
   selectExpoJestResolver,
 } from "../../../src/configs/jest/expo.js";
 import { defaultThresholds } from "../../../src/configs/jest/base.js";
@@ -37,8 +38,31 @@ describe("jest.expo", () => {
     it("configures haste for React Native platforms", () => {
       expect(config.haste).toEqual({
         defaultPlatform: "ios",
+        forceNodeFilesystemAPI: true,
         platforms: ["android", "ios", "native"],
       });
+    });
+
+    it("root-anchors .claude exclusion for the haste crawl", () => {
+      expect(config.modulePathIgnorePatterns).toEqual(["<rootDir>/\\.claude/"]);
+    });
+
+    it("preserves haste crawl safety when merged with local config", () => {
+      const merged = mergeConfigs(config, {
+        haste: { computeSha1: true },
+        modulePathIgnorePatterns: ["<rootDir>/generated/"],
+      });
+
+      expect(merged.haste).toEqual({
+        computeSha1: true,
+        defaultPlatform: "ios",
+        forceNodeFilesystemAPI: true,
+        platforms: ["android", "ios", "native"],
+      });
+      expect(merged.modulePathIgnorePatterns).toEqual([
+        "<rootDir>/\\.claude/",
+        "<rootDir>/generated/",
+      ]);
     });
 
     it("uses a valid React Native resolver path for the installed SDK", () => {
