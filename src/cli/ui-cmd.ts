@@ -16,9 +16,25 @@ import { runConfigSync } from "../sync/config-sync.js";
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
 import { deepMerge, readJsonOrNull } from "../utils/index.js";
 import { printSyncReport } from "./sync-cmd.js";
+import {
+  createGithubAuthProbe,
+  readStatusSnapshot,
+  validateStatusProbes,
+  type ProbeResult,
+  type StatusProbe,
+} from "./ui-status.js";
+export {
+  createGithubAuthProbe,
+  runProbe,
+  type GithubAuthCheck,
+  type ProbeResult,
+  type StatusProbe,
+} from "./ui-status.js";
 
 /** Default port for the settings console. */
 export const DEFAULT_UI_PORT = 4780;
+const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
+const NO_STORE = "no-store";
 
 /** CLI options for `lisa ui`. */
 export interface UiCmdOptions {
@@ -26,6 +42,12 @@ export interface UiCmdOptions {
   readonly port?: string;
   /** Set false (via --no-sync) to skip the config sync on startup */
   readonly sync?: boolean;
+}
+
+/** Injectable runtime collaborators for `lisa ui`. */
+export interface UiRuntimeDependencies {
+  /** Status probes exposed by GET /api/status. */
+  readonly probes?: readonly StatusProbe[];
 }
 
 /**
@@ -78,14 +100,136 @@ export function injectLiveConfig(html: string, config: JsonObject): string {
 }
 
 /**
+ * Create a single-flight reader that coalesces concurrent status requests.
+ * @param probes - Validated live-status probes
+ * @returns Snapshot reader shared by one UI server
+ */
+function createStatusSnapshotReader(
+  probes: readonly StatusProbe[]
+): () => Promise<Record<string, ProbeResult>> {
+  // eslint-disable-next-line functional/no-let -- single-flight state clears after settlement
+  let inFlight: Promise<Record<string, ProbeResult>> | undefined;
+  return () => {
+    if (inFlight === undefined) {
+      const pending = readStatusSnapshot(probes);
+      inFlight = pending;
+      const clear = (): void => {
+        if (inFlight === pending) {
+          inFlight = undefined;
+        }
+      };
+      void pending.then(clear, clear);
+    }
+    return inFlight;
+  };
+}
+
+/**
+ * Serve the same-origin live-status endpoint.
+ * @param request - Incoming loopback request
+ * @param response - Response associated with the request
+ * @param readSnapshot - Single-flight status snapshot reader
+ */
+function serveStatus(
+  request: http.IncomingMessage,
+  response: http.ServerResponse,
+  readSnapshot: () => Promise<Record<string, ProbeResult>>
+): void {
+  if (request.method === "HEAD") {
+    response.writeHead(200, {
+      "cache-control": NO_STORE,
+      "content-type": JSON_CONTENT_TYPE,
+    });
+    response.end();
+    return;
+  }
+  if (request.method !== "GET") {
+    response.writeHead(405, {
+      allow: "GET, HEAD",
+      "cache-control": NO_STORE,
+      "content-type": "text/plain; charset=utf-8",
+    });
+    response.end("Method not allowed");
+    return;
+  }
+  void readSnapshot()
+    .then(snapshot => {
+      response.writeHead(200, {
+        "cache-control": NO_STORE,
+        "content-type": JSON_CONTENT_TYPE,
+      });
+      response.end(JSON.stringify({ probes: snapshot }));
+    })
+    .catch(error => {
+      response.writeHead(500, {
+        "cache-control": NO_STORE,
+        "content-type": JSON_CONTENT_TYPE,
+      });
+      response.end(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : String(error),
+        })
+      );
+    });
+}
+
+/**
+ * Parse an HTTP request target without allowing malformed input to escape.
+ * @param requestUrl - Raw request target supplied by Node HTTP
+ * @returns Parsed pathname, or undefined for an invalid target
+ */
+function requestPathname(requestUrl: string): string | undefined {
+  try {
+    return new URL(requestUrl, "http://127.0.0.1").pathname;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Build the request handler after validating the complete probe registry.
+ * @param page - Hydrated settings console HTML
+ * @param probes - Live-status probes registered for this server
+ * @returns Loopback HTTP request handler
+ */
+function createUiRequestHandler(
+  page: string,
+  probes: readonly StatusProbe[]
+): http.RequestListener {
+  const readSnapshot = createStatusSnapshotReader(probes);
+  validateStatusProbes(probes);
+  return (request, response) => {
+    const pathname = requestPathname(request.url ?? "/");
+    if (pathname === undefined) {
+      response.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
+      response.end("Bad request");
+      return;
+    }
+    if (pathname === "/api/status") {
+      serveStatus(request, response, readSnapshot);
+      return;
+    }
+    if (pathname === "/" || pathname === "/index.html") {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(page);
+      return;
+    }
+    response.writeHead(404, { "content-type": "text/plain" });
+    response.end("Not found");
+  };
+}
+
+/**
  * Run the `lisa ui` command: sync, then serve the console until interrupted.
  * @param targetPath - Project path argument (defaults to the current directory)
  * @param options - CLI options
+ * @param dependencies - Optional status probes for tests and extensions
  * @returns The listening server (callers/tests are responsible for closing it)
  */
 export async function runUi(
   targetPath: string | undefined,
-  options: UiCmdOptions = {}
+  options: UiCmdOptions = {},
+  dependencies: UiRuntimeDependencies = {}
 ): Promise<http.Server> {
   const destDir = path.resolve(targetPath ?? ".");
   const port = Number.parseInt(options.port ?? `${DEFAULT_UI_PORT}`, 10);
@@ -101,17 +245,8 @@ export async function runUi(
   const html = await readFile(htmlPath, "utf8");
   const config = await readMergedConfig(destDir);
   const page = injectLiveConfig(html, config);
-
-  const server = http.createServer((request, response) => {
-    const url = request.url ?? "/";
-    if (url === "/" || url.startsWith("/index.html") || url.startsWith("/#")) {
-      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      response.end(page);
-      return;
-    }
-    response.writeHead(404, { "content-type": "text/plain" });
-    response.end("Not found");
-  });
+  const probes = dependencies.probes ?? [createGithubAuthProbe(destDir)];
+  const server = http.createServer(createUiRequestHandler(page, probes));
   await new Promise<void>(resolve => {
     server.listen(port, "127.0.0.1", resolve);
   });
