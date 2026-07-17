@@ -122,14 +122,6 @@ The declaration is not a separate field — it is the set of `[EVIDENCE: <artifa
 - `<artifact-type>` — HOW the proof is captured, from the fixed taxonomy below.
 - `<kebab-case-name>` — WHAT it proves, unique within the ticket.
 
-To reference a sibling or parent artifact without adding it to the current work unit's manifest, use the non-binding cross-reference form:
-
-```text
-[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]
-```
-
-`<tracker-ref>` is the owning ticket or issue (`#123`, `PROJ-123`, `ENG-123`, `owner/repo#123`, or a tracker URL). Validators and journey runners MUST ignore `EVIDENCE-REF` markers when building the current work unit's evidence manifest. Never quote a sibling's `[EVIDENCE: ...]` marker directly in prose; that syntax always belongs to the current work unit.
-
 Example transformation (the failure mode this grammar exists to prevent):
 
 | Assertion label (invalid) | Typed artifact (valid) |
@@ -156,6 +148,18 @@ Example transformation (the failure mode this grammar exists to prevent):
 Do not invent types inline; if none fits, propose extending this table. The legacy `[SCREENSHOT: name]` marker is equivalent to `[EVIDENCE: screenshot: name]`.
 
 The manifest is the single source of truth for "what evidence is required": authored once in the Validation Journey, enforced at write time, replayed during `tracker-journey` (which captures each artifact **in its declared type**), and checked again before the ticket closes. There is no second list to keep in sync.
+
+### Cross-work-item evidence references are non-claiming
+
+When prose needs to point at evidence declared by another work item, use the dedicated reference form:
+
+```text
+[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]
+```
+
+For example, `[EVIDENCE-REF: CodySwannGT/lisa#1548 | test-run-log: plugin-parity]` or `[EVIDENCE-REF: ENG-123 | screenshot: empty-state]`. The work-item reference must be a native, unambiguous tracker reference; the artifact type and name use the same taxonomy and kebab-case grammar as a manifest marker.
+
+`EVIDENCE-REF` is a pointer only. It never adds an artifact to the current work item's manifest, never satisfies S14, never participates in marker-name uniqueness or duplicate checks, and is never captured or checked by journey, evidence-posting, or completion flows. Only the exact claiming prefix `[EVIDENCE: ...]` declares an obligation on the current work item (with the legacy `[SCREENSHOT: name]` form still treated as a local screenshot obligation). A runtime-changing leaf whose journey contains references but no local claiming marker still fails S14. Writers must use `EVIDENCE-REF` rather than quoting a sibling's `[EVIDENCE: ...]` marker, because quoted or code-formatted claiming markers still belong to the current work item.
 
 ---
 

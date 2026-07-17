@@ -36,6 +36,8 @@ Analyze the provided file(s) and plan a GitHub Issue hierarchy. **This skill pla
 
 Issues that change runtime behavior should include a `## Validation Journey` section. This section is consumed by `lisa-github-journey` to automate verification. Use `lisa-github-add-journey` to draft + append the section after creation.
 
+When the issue needs to point at evidence owned by another work item, pass the exact non-claiming form `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` to the writer. Never quote the sibling's `[EVIDENCE: ...]` marker. A reference is informational only and does not replace the runtime-changing leaf's own S14 evidence marker.
+
 ## Source Artifacts
 
 If `$ARGUMENTS` references any external artifact — PRD, design doc, Figma URL, Lovable prototype, Loom walkthrough, screenshot, example payload — those references MUST be preserved as `## Links` and `## Source Artifacts` sections on the created issues. Silent artifact loss is the single most common quality failure in this pipeline.
