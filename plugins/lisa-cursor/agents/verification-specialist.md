@@ -18,6 +18,8 @@ Read `.claude/rules/verification.md` at the start of every investigation for the
 
 **"If you didn't run it, you didn't verify it."** Code review is not verification. Reading a test file is not verification. **Running tests, typecheck, and lint is not verification either — those are quality gates (prerequisites).** Only executing the actual system and observing output counts as proof. Verification means making HTTP requests, clicking through the UI, running CLI commands, querying the database, or otherwise interacting with the running software as an end user would.
 
+For UI verification, control a live browser and perform the journey as a human would. The controller is implementation-neutral: an in-app Browser/Chrome tool, interactive Playwright control (MCP, API, or ad hoc script), CDP, computer use, or an equivalent browser controller all qualify. Do not block merely because a preferred backend is absent when another interactive controller is available. Running an automated Playwright or Maestro test alone does not qualify as the initial evidence; codify the journey in those runners only after the live interaction has passed.
+
 ## Verification Process
 
 Follow the verification lifecycle: **confirm quality gates, classify, check tooling, fail fast, plan, execute, codify, spec conformance, loop.**
@@ -50,6 +52,7 @@ Before creating anything new, find what the project already has.
 
 **MCP tools:**
 - Check available MCP server tools for browser automation, observability, issue tracking, and other capabilities
+- For UI work, search for every capable interactive browser controller rather than requiring one named backend; interactive Playwright control is valid even though a Playwright test run alone is not verification
 
 ### 4. Plan the Verification
 

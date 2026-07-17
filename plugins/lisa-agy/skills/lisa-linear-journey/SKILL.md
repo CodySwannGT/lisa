@@ -128,7 +128,7 @@ Use patterns from the project's `verification.md`:
 | Library / utility | `bun run test -- path/to/test` | Test output |
 | Security fix | Reproduce + verify fix | Request / response |
 | Auth/authz | Multi-role verification | Status codes per role |
-| UI / frontend | Playwright `browser_*` MCP tools | Screenshot + DOM |
+| UI / frontend | Any capable interactive browser controller (in-app Browser/Chrome, Playwright MCP/API/ad hoc script, CDP, computer use, or equivalent) | Screenshot + DOM |
 
 ## Troubleshooting
 
