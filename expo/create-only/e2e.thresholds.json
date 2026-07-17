@@ -1,8 +1,9 @@
 {
+  "_comment": "Shipped defaults are 0/0 so adopting Lisa on a brownfield Expo app does not red-gate CI before any e2e specs exist. Treat these as a ratchet: raise each value toward 100 as Playwright/Maestro coverage grows, and never lower an achieved floor. This file is create-only — Lisa writes it once and never overwrites your tuned values.",
   "playwright": {
-    "routes": 80
+    "routes": 0
   },
   "maestro": {
-    "routes": 80
+    "routes": 0
   }
 }
