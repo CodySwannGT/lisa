@@ -2,4 +2,17 @@
 .vite/
 .lisabak/
 .lisabak
+
+# The base guardrails block ignores any `example/` directory, which would
+# otherwise re-ignore the committed Phaser example art. Re-include the example
+# asset folders here (this block is written after the base block, so
+# last-match-wins keeps them tracked). Both the folder and a `/**` recursion
+# are needed — git will not re-include files inside an ignored directory
+# unless the directory itself is un-ignored first.
+!assets/src/sprites/example/
+!assets/src/sprites/example/**
+!assets/src/images/example/
+!assets/src/images/example/**
+!public/assets/images/example/
+!public/assets/images/example/**
 # END: AI GUARDRAILS PHASER
