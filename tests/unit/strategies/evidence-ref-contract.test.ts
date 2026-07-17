@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 const SKILL_ROOTS = [
   "plugins/src/base/skills",
   "plugins/lisa/skills",
+  "plugins/lisa/.codex-plugin/skills",
   "plugins/lisa-agy/skills",
   "plugins/lisa-copilot/skills",
   "plugins/lisa-cursor/skills",
@@ -31,7 +32,8 @@ const JOURNEY_WRITER_SKILLS = [
   "lisa-linear-add-journey",
 ] as const;
 
-const EVIDENCE_REF_PREFIX = "[EVIDENCE-REF: <tracker-ref>";
+const EVIDENCE_REF_GRAMMAR =
+  "[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]";
 
 const read = (filePath: string): string =>
   readFileSync(path.resolve(filePath), "utf8");
@@ -46,15 +48,15 @@ describe("EVIDENCE-REF non-binding cross-reference contract (#1595)", () => {
     );
     const eagerRule = read("plugins/src/base/rules/eager/verification.md");
 
-    expect(referenceRule).toContain(
-      "[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]"
-    );
-    expect(referenceRule).toMatch(/MUST ignore `EVIDENCE-REF`/);
+    expect(referenceRule).toContain(EVIDENCE_REF_GRAMMAR);
+    expect(referenceRule).toMatch(/pointer only/);
     expect(referenceRule).toMatch(
-      /Never quote a sibling's `\[EVIDENCE: \.\.\.\]`/
+      /rather than quoting a sibling's `\[EVIDENCE: \.\.\.\]` marker/
     );
-    expect(eagerRule).toContain(EVIDENCE_REF_PREFIX);
-    expect(eagerRule).toMatch(/validators ignore `EVIDENCE-REF`/);
+    expect(eagerRule).toContain(EVIDENCE_REF_GRAMMAR);
+    expect(eagerRule).toMatch(
+      /never enters or satisfies the local S14 manifest/
+    );
   });
 
   describe.each(SKILL_ROOTS)("%s validators", root => {
@@ -62,12 +64,12 @@ describe("EVIDENCE-REF non-binding cross-reference contract (#1595)", () => {
       const content = readSkill(root, skill);
 
       it("ignores EVIDENCE-REF markers while deriving S14's manifest", () => {
-        expect(content).toContain(EVIDENCE_REF_PREFIX);
-        expect(content).toMatch(/S14 MUST ignore `EVIDENCE-REF`/);
+        expect(content).toContain(EVIDENCE_REF_GRAMMAR);
+        expect(content).toMatch(/exclude it from the manifest/);
+        expect(content).toMatch(/malformed reference FAILs S14/);
         expect(content).toMatch(
-          /does not satisfy the "at least one marker" requirement/
+          /contains only `EVIDENCE-REF` entries FAILs S14/
         );
-        expect(content).toMatch(/zero binding `\[EVIDENCE: \.\.\.\]` markers/);
       });
     });
   });
@@ -77,16 +79,12 @@ describe("EVIDENCE-REF non-binding cross-reference contract (#1595)", () => {
       const content = readSkill(root, skill);
 
       it("requires EVIDENCE-REF for sibling artifact citations", () => {
-        expect(content).toContain(EVIDENCE_REF_PREFIX);
+        expect(content).toContain(EVIDENCE_REF_GRAMMAR);
         expect(content).toMatch(
-          /Do not paste a sibling (issue|ticket|item)'s `\[EVIDENCE: \.\.\.\]` marker/
+          /Never paste, quote, or code-format the sibling's/
         );
-        expect(content).toMatch(
-          /S14 treats `\[EVIDENCE: \.\.\.\]` as this (issue|ticket|item)'s own manifest/
-        );
-        expect(content).toMatch(
-          /`EVIDENCE-REF` never satisfies or extends the manifest/
-        );
+        expect(content).toMatch(/exact prefix creates a local obligation/);
+        expect(content).toMatch(/`EVIDENCE-REF` never satisfies/);
       });
     });
   });

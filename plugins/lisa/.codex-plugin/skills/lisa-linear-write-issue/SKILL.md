@@ -119,7 +119,9 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
 
 ## Validation Journey
 [Delegate to /linear-add-journey if the item changes runtime behavior.
- Skip only for doc-only, config-only, or type-only items.]
+ Skip only for doc-only, config-only, or type-only items. Cross-work-item
+ evidence pointers use `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`;
+ they never replace this item's local S14 marker.]
 ```
 
 Rules:

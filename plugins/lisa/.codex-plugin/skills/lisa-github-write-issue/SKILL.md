@@ -126,7 +126,9 @@ Scenario: <name>
 
 ## Validation Journey
 [Delegate to /github-add-journey if the issue changes runtime behavior.
- Skip only for doc-only, config-only, or type-only issues.]
+ Skip only for doc-only, config-only, or type-only issues. Cross-work-item
+ evidence pointers use `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`;
+ they never replace this issue's local S14 marker.]
 ```
 
 Rules:
