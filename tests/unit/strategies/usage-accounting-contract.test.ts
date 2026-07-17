@@ -96,7 +96,7 @@ const renderCsv = (values: readonly string[]): string =>
   values.map(value => encodeURIComponent(value)).join(",");
 
 const renderEntryToken = (entry: UsageEntry): string =>
-  `<!-- lisa:usage-entry entry_id=${encodeURIComponent(entry.entryId)} flow=${encodeURIComponent(entry.flow)} run_id=${encodeURIComponent(entry.runId)} provider=${encodeURIComponent(entry.provider)} model=${encodeURIComponent(entry.model)} source=${encodeURIComponent(entry.source)} input_tokens=${renderValue(entry.inputTokens)} cached_input_tokens=${renderValue(entry.cachedInputTokens)} output_tokens=${renderValue(entry.outputTokens)} reasoning_tokens=${renderValue(entry.reasoningTokens)} total_tokens=${renderValue(entry.totalTokens)} measured_subset_tokens=${renderValue(entry.measuredSubsetTokens)} cost=${renderValue(entry.cost)} currency=${renderValue(entry.currency)} pricing_status=${encodeURIComponent(entry.pricingStatus)} pricing_source=${renderValue(entry.pricingSource)} artifact_ref=${encodeURIComponent(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeURIComponent(entry.parentArtifactRef)} -->`;
+  `<!-- lisa:usage-entry entry_id=${encodeURIComponent(entry.entryId)} flow=${encodeURIComponent(entry.flow)} run_id=${encodeURIComponent(entry.runId)} provider=${encodeURIComponent(entry.provider)} model=${encodeURIComponent(entry.model)} source=${encodeURIComponent(entry.source)} input_tokens=${renderValue(entry.inputTokens)} cached_input_tokens=${renderValue(entry.cachedInputTokens)} output_tokens=${renderValue(entry.outputTokens)} reasoning_tokens=${renderValue(entry.reasoningTokens)} total_tokens=${renderValue(entry.totalTokens)} cost=${renderValue(entry.cost)} currency=${renderValue(entry.currency)} pricing_status=${encodeURIComponent(entry.pricingStatus)} pricing_source=${renderValue(entry.pricingSource)} artifact_ref=${encodeURIComponent(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeURIComponent(entry.parentArtifactRef)} --> <!-- lisa:usage-entry-measured-subset entry_id=${encodeURIComponent(entry.entryId)} measured_subset_tokens=${renderValue(entry.measuredSubsetTokens)} -->`;
 
 const renderRollupToken = (
   directEntryIds: readonly string[],
@@ -151,7 +151,7 @@ const renderSection = (entries: readonly UsageEntry[]): string => {
 
 const parseEntries = (section: string): readonly ParsedEntry[] => {
   const tokenPattern =
-    /<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=\S+ provider=\S+ model=\S+ source=(\S+) input_tokens=\S+ cached_input_tokens=\S+ output_tokens=\S+ reasoning_tokens=\S+ total_tokens=(\S+) measured_subset_tokens=\S+ cost=\S+ currency=\S+ pricing_status=\S+ pricing_source=\S+ artifact_ref=\S+ parent_artifact_ref=\S* -->/g;
+    /<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=\S+ provider=\S+ model=\S+ source=(\S+) input_tokens=\S+ cached_input_tokens=\S+ output_tokens=\S+ reasoning_tokens=\S+ total_tokens=(\S+) cost=\S+ currency=\S+ pricing_status=\S+ pricing_source=\S+ artifact_ref=\S+ parent_artifact_ref=\S* -->/g;
   const entries: ParsedEntry[] = [];
   let match = tokenPattern.exec(section);
   while (match !== null) {
@@ -206,6 +206,7 @@ describe("usage-accounting contract docs", () => {
       expect(content).toMatch(/estimated/i);
       expect(content).toMatch(/measured-subset/i);
       expect(content).toContain("measured_subset_tokens");
+      expect(content).toContain("lisa:usage-entry-measured-subset");
       expect(content).toMatch(/unavailable/i);
       expect(content).toMatch(/missing telemetry/i);
     });
@@ -213,6 +214,7 @@ describe("usage-accounting contract docs", () => {
     it("documents fixed-order usage-entry and usage-rollup tokens", () => {
       expect(content).toContain("<!-- lisa:usage-entry entry_id=");
       expect(content).toContain("<!-- lisa:usage-rollup");
+      expect(content).toContain("lisa:usage-rollup-token-status");
       expect(content).toMatch(/Field order is fixed/i);
       expect(content).toMatch(/machine-readable summary/i);
       expect(content).toMatch(/percent-encoded/i);
