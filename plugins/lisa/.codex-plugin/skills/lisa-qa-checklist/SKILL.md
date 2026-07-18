@@ -21,10 +21,15 @@ moment the tester asks.
    journeys silently.
 2. **Automated coverage** — scan the repo's E2E suites (Playwright specs, Maestro flows;
    locate via the project's e2e/test directories). A journey counts as covered only when
-   its `automation:` line names a spec file that exists AND is not skipped
-   (`test.skip`, commented-out flow, or excluded from CI). A deleted or skipped spec
-   silently un-covers its journey — that is exactly the regression this check exists to
-   catch; call it out loudly.
+   its `automation:` line names a spec file that exists, is not skipped
+   (`test.skip`, commented-out flow, or excluded from CI), AND contains a
+   `describe`/`test` block whose title or steps recognizably map to the journey — the
+   file existing is not sufficient; it must actually exercise the journey it claims to
+   cover. A deleted, skipped, or semantically mismatched spec silently un-covers its
+   journey — that is exactly the regression this check exists to catch; call it out
+   loudly. When the file-to-journey mapping is ambiguous (no block clearly matches, or
+   more than one plausibly does), treat the journey as uncovered and flag the ambiguity
+   for operator review rather than guessing.
 
 ## Serving the sweep
 
