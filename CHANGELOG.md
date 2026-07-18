@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.225.4](https://github.com/CodySwannGT/lisa/compare/v2.225.3...v2.225.4) (2026-07-18)
+
+
+### Bug Fixes
+
+* **rules:** scope force-push approval to SHA ([4348e6e](https://github.com/CodySwannGT/lisa/commit/4348e6e160efd05b674971e53e125d3b271adffb)), closes [#1626](https://github.com/CodySwannGT/lisa/issues/1626)
+
 ### [2.225.3](https://github.com/CodySwannGT/lisa/compare/v2.225.2...v2.225.3) (2026-07-18)
 
 
