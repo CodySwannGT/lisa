@@ -1,0 +1,4 @@
+display_name: "QA Queue"
+short_description: "QA acceptance queue for human…"
+default_prompt:
+  - "Use $lisa-qa-queue: QA acceptance queue for human…."
