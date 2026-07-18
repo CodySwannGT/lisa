@@ -13,11 +13,6 @@ import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
  */
 export class CopyOverwriteStrategy implements ICopyStrategy {
   readonly name = "copy-overwrite" as const;
-  private readonly postinstallHostOwnedPaths = new Set([
-    ".lintstagedrc.json",
-    ".safety-net.json",
-    "knip.json",
-  ]);
 
   /**
    * Apply copy-overwrite strategy: Create, skip, or prompt to overwrite file
@@ -48,10 +43,7 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
-    if (
-      config.skipGitCheck &&
-      this.postinstallHostOwnedPaths.has(relativePath)
-    ) {
+    if (config.skipGitCheck) {
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
