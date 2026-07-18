@@ -31,6 +31,7 @@ import {
   type StatusProbe,
 } from "./ui-status.js";
 import { createEnabledPluginsProbe } from "./ui-enabled-plugins.js";
+import { createObservabilityProviderProbes } from "./ui-observability-providers.js";
 import { serveConfigWrite } from "./ui-config-write.js";
 export {
   createGithubAuthProbe,
@@ -69,6 +70,7 @@ export {
   type CiWorkflowInputs,
   type RepoSecretsPresence,
 } from "./ui-ci-quality-jobs.js";
+export { createObservabilityProviderProbes } from "./ui-observability-providers.js";
 export { inspectRemoteEnvironment } from "./remote-environment.js";
 
 /** Default port for the settings console. */
@@ -358,6 +360,7 @@ export async function runUi(
     createLisaVersionProbe(),
     createCiQualityJobsProbe(destDir, config),
     createDeployPipelineProbe(destDir),
+    ...createObservabilityProviderProbes(),
   ];
   const server = http.createServer(
     createUiRequestHandler(page, probes, destDir)
