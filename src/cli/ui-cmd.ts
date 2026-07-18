@@ -28,6 +28,65 @@ export interface UiCmdOptions {
   readonly sync?: boolean;
 }
 
+/** Secret/variable and generated-artifact status exposed to the console. */
+export interface RemoteEnvironmentStatus {
+  /** Whether each supported variable is visible to the `lisa ui` process. */
+  readonly variables: Readonly<Record<string, boolean>>;
+  /** Whether each remote-environment startup artifact exists in the project. */
+  readonly artifacts: Readonly<Record<string, boolean>>;
+}
+
+/** Variables the remote AWS bootstrap understands. Values are never exposed. */
+export const REMOTE_ENVIRONMENT_VARIABLES = [
+  "LISA_AWS_BOOTSTRAP_JSON",
+  "LISA_REMOTE_AGENT",
+  "LISA_AWS_DEFAULT_PROFILE",
+] as const;
+
+/** Project-relative artifacts used by remote coding environments. */
+export const REMOTE_ENVIRONMENT_ARTIFACTS = [
+  "scripts/remote-agent-aws-setup.sh",
+  ".cursor/environment.json",
+  ".github/workflows/copilot-setup-steps.yml",
+] as const;
+
+/**
+ * Read the CLI process environment through one explicit, reviewable exception.
+ * Only boolean presence checks derived from this map reach the browser.
+ * @returns Current process environment
+ */
+function getProcessEnvironment(): NodeJS.ProcessEnv {
+  // eslint-disable-next-line no-restricted-syntax -- CLI status view must inspect externally supplied remote-environment variables once
+  return process.env;
+}
+
+/**
+ * Inspect remote-environment readiness without ever reading a variable value
+ * into the browser payload.
+ * @param destDir - Project root
+ * @param environment - Environment visible to the Lisa process
+ * @returns Boolean-only variable and artifact status
+ */
+export function inspectRemoteEnvironment(
+  destDir: string,
+  environment: NodeJS.ProcessEnv = getProcessEnvironment()
+): RemoteEnvironmentStatus {
+  return {
+    variables: Object.fromEntries(
+      REMOTE_ENVIRONMENT_VARIABLES.map(name => [
+        name,
+        typeof environment[name] === "string" && environment[name]!.length > 0,
+      ])
+    ),
+    artifacts: Object.fromEntries(
+      REMOTE_ENVIRONMENT_ARTIFACTS.map(relativePath => [
+        relativePath,
+        existsSync(path.join(destDir, relativePath)),
+      ])
+    ),
+  };
+}
+
 /**
  * Locate the packaged `ui/index.html` by walking up from this module until a
  * directory containing `ui/index.html` is found (works from both `src/` and
@@ -69,11 +128,23 @@ async function readMergedConfig(destDir: string): Promise<JsonObject> {
  * escaped so a value containing `</script>` cannot break out of the tag.
  * @param html - Packaged console HTML
  * @param config - Merged live config
+ * @param remoteEnvironment - Boolean-only secret and startup-artifact status
  * @returns HTML with the injected config
  */
-export function injectLiveConfig(html: string, config: JsonObject): string {
+export function injectLiveConfig(
+  html: string,
+  config: JsonObject,
+  remoteEnvironment: RemoteEnvironmentStatus = {
+    variables: {},
+    artifacts: {},
+  }
+): string {
   const payload = JSON.stringify(config).replace(/<\//g, "<\\/");
-  const tag = `<script>window.LISA_LIVE_CONFIG = ${payload};</script>`;
+  const remotePayload = JSON.stringify(remoteEnvironment).replace(
+    /<\//g,
+    "<\\/"
+  );
+  const tag = `<script>window.LISA_LIVE_CONFIG = ${payload}; window.LISA_REMOTE_ENVIRONMENT = ${remotePayload};</script>`;
   return html.replace("</body>", `${tag}\n</body>`);
 }
 
@@ -100,7 +171,8 @@ export async function runUi(
   const htmlPath = findUiHtml(moduleDir);
   const html = await readFile(htmlPath, "utf8");
   const config = await readMergedConfig(destDir);
-  const page = injectLiveConfig(html, config);
+  const remoteEnvironment = inspectRemoteEnvironment(destDir);
+  const page = injectLiveConfig(html, config, remoteEnvironment);
 
   const server = http.createServer((request, response) => {
     const url = request.url ?? "/";
