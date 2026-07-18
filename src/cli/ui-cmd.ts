@@ -33,6 +33,7 @@ import {
   type StatusProbe,
 } from "./ui-status.js";
 import { createEnabledPluginsProbe } from "./ui-enabled-plugins.js";
+import { createAutomationsProbe } from "./ui-automations.js";
 import { createObservabilityProviderProbes } from "./ui-observability-providers.js";
 import { serveConfigWrite } from "./ui-config-write.js";
 export {
@@ -370,6 +371,7 @@ export async function runUi(
     createDeployPipelineProbe(destDir),
     createGithubRepoProbe(destDir, config),
     ...createObservabilityProviderProbes(),
+    createAutomationsProbe({ cwd: destDir }),
   ];
   const server = http.createServer(
     createUiRequestHandler(page, probes, destDir)

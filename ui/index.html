@@ -3377,183 +3377,14 @@
           {
             type: "table",
             card: "Scheduled jobs",
-            note: "Status and next run are mocked \u2014 live wiring is LCW-1 (#1544). Runs on = which scheduler fires the job; the nightly agents are pipeline files, inventoried under Pipelines.",
-            cols: [
-              "Automation",
-              "What it does",
-              "Runs on",
-              "Cadence",
-              "Last run",
-              "Next run",
-              "Enabled",
-            ],
-            rows: [
-              [
-                { t: "mono", v: "intake-tickets" },
-                {
-                  t: "text",
-                  v: "Claims the next build-ready ticket and runs the full build flow on it \u2014 one item per cycle",
-                },
-                { t: "badge", v: "harness", cls: "default" },
-                {
-                  t: "select",
-                  v: "every 10 min",
-                  options: ["every 10 min", "every 30 min", "every 60 min"],
-                },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "12:50",
-                  reason: "ok \u2014 queue empty, exited clean",
-                },
-                { t: "mono", v: "13:00" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "intake-prd" },
-                {
-                  t: "text",
-                  v: "Validates the next ready PRD at the gate and either creates its work units or blocks it with clarifying questions",
-                },
-                { t: "badge", v: "harness", cls: "default" },
-                {
-                  t: "select",
-                  v: "every 60 min",
-                  options: ["every 10 min", "every 30 min", "every 60 min"],
-                },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "12:04",
-                  reason: "ok \u2014 1 PRD ticketed",
-                },
-                { t: "mono", v: "13:04" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "intake-repair" },
-                {
-                  t: "text",
-                  v: "Finds stuck work \u2014 stalled builds, half-closed items, unreconciled rollups \u2014 and repairs each one",
-                },
-                { t: "badge", v: "harness", cls: "default" },
-                {
-                  t: "select",
-                  v: "every 60 min",
-                  options: ["every 30 min", "every 60 min", "every 3 h"],
-                },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "12:04",
-                  reason: "ok \u2014 0 stuck items",
-                },
-                { t: "mono", v: "13:04" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "exploratory-bugs" },
-                {
-                  t: "text",
-                  v: "QA loop: explores the product like a first-time user (respecting the mutation policy) and files bugs build-ready",
-                },
-                { t: "badge", v: "harness", cls: "default" },
-                { t: "select", v: "daily", options: ["daily", "weekly"] },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "04:00",
-                  reason: "ok \u2014 2 bugs filed",
-                },
-                { t: "mono", v: "tomorrow 04:00" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "exploratory-prds" },
-                {
-                  t: "text",
-                  v: "Product Planning loop: ideates improvements and writes PRDs prd-ready",
-                },
-                { t: "badge", v: "harness", cls: "default" },
-                { t: "select", v: "daily", options: ["daily", "weekly"] },
-                {
-                  t: "run",
-                  ok: "warn",
-                  v: "04:15",
-                  reason: "skipped \u2014 queue pressure (1 prd-ready waiting)",
-                },
-                { t: "mono", v: "tomorrow 04:15" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "monitor" },
-                {
-                  t: "text",
-                  v: "Monitoring loop: audits the connected observability providers against the alert thresholds and files regression tickets",
-                },
-                { t: "badge", v: "harness", cls: "default" },
-                { t: "select", v: "daily", options: ["daily", "weekly"] },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "05:00",
-                  reason: "ok \u2014 1 regression filed",
-                },
-                { t: "mono", v: "tomorrow 05:00" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "nightly-test-coverage" },
-                {
-                  t: "text",
-                  v: "Raises test coverage toward the thresholds and opens a PR \u2014 one module per run",
-                },
-                { t: "badge", v: "pipeline host", cls: "default" },
-                { t: "mono", v: "03:00 Mon\u2013Fri" },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "03:00",
-                  reason: "ok \u2014 PR opened",
-                },
-                { t: "mono", v: "tomorrow 03:00" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "nightly-test-improvement" },
-                {
-                  t: "text",
-                  v: "Strengthens weak assertions in existing tests and opens a PR",
-                },
-                { t: "badge", v: "pipeline host", cls: "default" },
-                { t: "mono", v: "04:00 Mon\u2013Fri" },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "04:00",
-                  reason: "ok \u2014 PR opened",
-                },
-                { t: "mono", v: "tomorrow 04:00" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "nightly-code-complexity" },
-                {
-                  t: "text",
-                  v: "Refactors a complexity hotspot without changing behavior and opens a PR",
-                },
-                { t: "badge", v: "pipeline host", cls: "default" },
-                { t: "mono", v: "05:00 Mon\u2013Fri" },
-                {
-                  t: "run",
-                  ok: true,
-                  v: "05:00",
-                  reason: "ok \u2014 no hotspot over budget",
-                },
-                { t: "mono", v: "tomorrow 05:00" },
-                { t: "toggle", v: true },
-              ],
-            ],
+            id: "automations-scheduled-jobs",
+            note: "Live from the harness scheduler (Codex automations or Claude /schedule). Only lisa-auto-<project>-* jobs are listed. Cadence is read-only in this phase \u2014 change jobs with /lisa:setup-automations. Nightly agents are pipeline files, inventoried under Pipelines.",
+            cols: ["Automation", "Runs on", "Cadence", "Last run", "Status"],
+            rows: [],
+            empty: {
+              state: "loading",
+              message: "Loading harness scheduler\u2026",
+            },
           },
           {
             card: "Fleet controls",
@@ -5570,12 +5401,26 @@
 
       function buildTable(block) {
         const card = el("div", "card");
-        if (block.id) card.id = block.id;
+        if (block.id) {
+          card.id = block.id;
+          card.dataset.testid = block.id;
+        }
         if (block.card) {
           const head = el("div", "card-head");
           head.appendChild(el("h2", "", esc(block.card)));
           if (block.note) head.appendChild(el("span", "note", esc(block.note)));
           card.appendChild(head);
+        }
+        if (block.empty && (!block.rows || block.rows.length === 0)) {
+          const empty = el(
+            "div",
+            "status-why automations-empty",
+            esc(block.empty.message || "No rows")
+          );
+          empty.dataset.testid = (block.id || "table") + "-empty";
+          if (block.empty.state) empty.dataset.state = block.empty.state;
+          card.appendChild(empty);
+          return card;
         }
         const scroll = el("div", "table-scroll");
         const table = el("table", "grid");
@@ -5597,6 +5442,9 @@
         const tbody = el("tbody");
         block.rows.forEach(cells => {
           const tr = el("tr");
+          if (cells && cells._automationId) {
+            tr.dataset.automationId = cells._automationId;
+          }
           cells.forEach(cell => {
             if (cell.t === "status") {
               tr.appendChild(buildStatusCell(cell));
@@ -7027,6 +6875,76 @@
         };
         refreshStacks();
       }
+      function automationsScheduledJobsBlock() {
+        const blocks =
+          (DATA.sections.automations && DATA.sections.automations.blocks) || [];
+        return blocks.find(block => block.id === "automations-scheduled-jobs");
+      }
+      function automationRowFromProbe(entry) {
+        const cadence =
+          typeof entry.cadence === "string" && entry.cadence.trim().length > 0
+            ? entry.cadence
+            : "unknown";
+        const lastRun =
+          typeof entry.lastRunAt === "string" &&
+          entry.lastRunAt.trim().length > 0
+            ? entry.lastRunAt
+            : "—";
+        const status =
+          typeof entry.status === "string" && entry.status.trim().length > 0
+            ? entry.status
+            : "unknown";
+        const runtime =
+          entry.runtime === "claude" ? "claude /schedule" : "codex";
+        const row = [
+          { t: "mono", v: entry.id },
+          { t: "badge", v: runtime, cls: "default" },
+          { t: "mono", v: cadence },
+          { t: "mono", v: lastRun },
+          {
+            t: "badge",
+            v: status,
+            cls: status.toUpperCase() === "ACTIVE" ? "pass" : "default",
+          },
+        ];
+        row._automationId = entry.id;
+        return row;
+      }
+      function hydrateAutomationsSection(probeResult) {
+        const block = automationsScheduledJobsBlock();
+        if (!block) return;
+        const result = normalizeLiveStatusResult(probeResult);
+        if (result.state === "value") {
+          const automations = Array.isArray(result.value.automations)
+            ? result.value.automations
+            : [];
+          block.rows = automations.map(automationRowFromProbe);
+          if (block.rows.length === 0) {
+            block.empty = {
+              state: "empty",
+              message:
+                "No lisa-auto-<project>- automations found in the harness scheduler",
+            };
+          } else {
+            delete block.empty;
+          }
+        } else if (result.state === "not-applicable") {
+          block.rows = [];
+          block.empty = {
+            state: "not-applicable",
+            message: "Automations are not applicable on this machine",
+          };
+        } else {
+          block.rows = [];
+          block.empty = {
+            state: "unknown",
+            message: result.reason + ": " + result.message,
+          };
+        }
+        renderAll();
+        showSection(activeSection);
+      }
+
       async function hydrateLiveStatuses() {
         try {
           const response = await fetch("/api/status", {
@@ -7038,8 +6956,15 @@
           renderLiveStatuses(probes);
           applyEnabledPlugins(probes);
           applyDetectedStacks(probes);
-          // Quality jobs re-renders the page; paint the version chip after.
+          // Quality jobs / automations re-render the page; paint the version chip after.
           applyCiQualityJobs(probes);
+          hydrateAutomationsSection(
+            probes.automations || {
+              state: "unknown",
+              reason: "probe-missing",
+              message: "Automations probe was omitted from /api/status",
+            }
+          );
           applyLisaVersion(probes);
           const repoResult = normalizeLiveStatusResult(
             probes["github-repo"] || {
@@ -7063,6 +6988,7 @@
           renderLiveStatuses({ transport: unavailable });
           applyEnabledPlugins({ "enabled-plugins": unavailable });
           applyCiQualityJobs({ "ci-quality-jobs": unavailable });
+          hydrateAutomationsSection(unavailable);
           applyLisaVersion({ "lisa-version": unavailable });
           applyGithubRepoPanel(unavailable);
           reRenderAfterGithubRepoHydration();
