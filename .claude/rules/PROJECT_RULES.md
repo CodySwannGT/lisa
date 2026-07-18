@@ -277,3 +277,8 @@ Before declaring any auto-merge PR done — do NOT rely on "pushed + thread reso
 3. Confirm the merge commit's parent is your fixed commit, not a stale head.
 
 If CI or CodeRabbit forces another commit after auto-merge is enabled, re-confirm the merged head includes it.
+
+## Local `lisa ui` verification
+
+- CLI entrypoint is `bun src/index.ts ui` (or `bun dist/index.js ui` after build). Do not use `bun src/cli/index.ts ui` — that module has no `main()`.
+- After source changes that register new `/api/status` probes, rebuild (`bun run build:dist`) or run via the source entrypoint before trusting live `dist/` output; a stale `dist/` can omit newly added probe modules.
