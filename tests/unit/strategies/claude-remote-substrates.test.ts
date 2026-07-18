@@ -85,5 +85,15 @@ describe("generate-claude-remote-build-script substrate output", () => {
       );
       expect(content).toContain("mcpHeaders");
     });
+
+    it("writes a names-only project-aware console contract", () => {
+      expect(content).toContain(".lisa/remote-environment.json");
+      expect(content).toMatch(/only entries that are `required: true`/i);
+      expect(content).toMatch(/omit optional, conditional, and dormant/i);
+      expect(content).toMatch(/never a value/i);
+      expect(content).toMatch(
+        /Do\s+not add AWS merely because Lisa ships AWS support/i
+      );
+    });
   });
 });
