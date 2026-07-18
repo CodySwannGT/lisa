@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   findUiHtml,
   injectLiveConfig,
+  inspectRemoteEnvironment,
   runUi,
 } from "../../../src/cli/ui-cmd.js";
 import { writeJson } from "../../../src/utils/index.js";
@@ -53,6 +54,47 @@ describe("injectLiveConfig", () => {
     expect(injected).not.toContain("</script><script>alert(1)");
     expect(injected).toContain("<\\/script>");
   });
+
+  it("injects boolean-only remote environment status", () => {
+    const injected = injectLiveConfig(
+      "</body>",
+      { harness: "codex" },
+      {
+        variables: { LISA_AWS_BOOTSTRAP_JSON: true },
+        artifacts: { "scripts/remote-agent-aws-setup.sh": false },
+      }
+    );
+
+    expect(injected).toContain("window.LISA_REMOTE_ENVIRONMENT");
+    expect(injected).toContain('"LISA_AWS_BOOTSTRAP_JSON":true');
+    expect(injected).not.toContain("secretAccessKey");
+  });
+});
+
+describe("inspectRemoteEnvironment", () => {
+  it("reports variable presence and project startup artifacts without values", async () => {
+    await mkdir(path.join(resources.dir, ".cursor"));
+    await writeJson(path.join(resources.dir, ".cursor", "environment.json"), {
+      install: "bootstrap",
+    });
+
+    const status = inspectRemoteEnvironment(resources.dir, {
+      LISA_AWS_BOOTSTRAP_JSON: "sensitive-value",
+      LISA_REMOTE_AGENT: "",
+    });
+
+    expect(status.variables).toEqual({
+      LISA_AWS_BOOTSTRAP_JSON: true,
+      LISA_REMOTE_AGENT: false,
+      LISA_AWS_DEFAULT_PROFILE: false,
+    });
+    expect(status.artifacts).toMatchObject({
+      ".cursor/environment.json": true,
+      "scripts/remote-agent-aws-setup.sh": false,
+      ".github/workflows/copilot-setup-steps.yml": false,
+    });
+    expect(JSON.stringify(status)).not.toContain("sensitive-value");
+  });
 });
 
 describe("findUiHtml", () => {
@@ -88,6 +130,7 @@ describe("runUi", () => {
     expect(response.status).toBe(200);
     expect(body).toContain('"tracker":"linear"');
     expect(body).toContain("Lisa Console");
+    expect(body).toContain("window.LISA_REMOTE_ENVIRONMENT");
     const missing = await fetch(`http://127.0.0.1:${port}/nope`);
     expect(missing.status).toBe(404);
   });
