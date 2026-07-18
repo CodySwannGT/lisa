@@ -298,4 +298,23 @@ describe("runUi", () => {
       runUi(resources.dir, { port: "not-a-port", sync: false })
     ).rejects.toThrow("Invalid --port value");
   });
+
+  it("includes enabled-plugins among the default /api/status probes", async () => {
+    resources.server = await runUi(resources.dir, { port: "0", sync: false });
+
+    const address = resources.server.address();
+    const port =
+      typeof address === "object" && address !== null ? address.port : 0;
+    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+    expect(response.status).toBe(200);
+    const snapshot = (await response.json()) as {
+      probes: Record<string, unknown>;
+    };
+    expect(snapshot.probes).toHaveProperty("github-auth");
+    expect(snapshot.probes).toHaveProperty("enabled-plugins");
+    expect(snapshot.probes["enabled-plugins"]).toEqual({
+      state: "value",
+      value: { settingsPresent: false, plugins: [] },
+    });
+  });
 });

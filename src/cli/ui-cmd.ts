@@ -30,6 +30,7 @@ import {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+import { createEnabledPluginsProbe } from "./ui-enabled-plugins.js";
 import { serveConfigWrite } from "./ui-config-write.js";
 export {
   createGithubAuthProbe,
@@ -39,6 +40,14 @@ export {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+export {
+  createEnabledPluginsProbe,
+  buildEnabledPluginsValue,
+  listMarketplacePluginsFromDisk,
+  type EnabledPluginRow,
+  type EnabledPluginsValue,
+  type MarketplacePlugin,
+} from "./ui-enabled-plugins.js";
 export {
   createDeployPipelineProbe,
   DEPLOY_PIPELINE_PROBE_ID,
@@ -345,6 +354,7 @@ export async function runUi(
   const page = injectLiveConfig(html, config, remoteEnvironment);
   const probes = dependencies.probes ?? [
     createGithubAuthProbe(destDir),
+    createEnabledPluginsProbe(destDir),
     createLisaVersionProbe(),
     createCiQualityJobsProbe(destDir, config),
     createDeployPipelineProbe(destDir),
