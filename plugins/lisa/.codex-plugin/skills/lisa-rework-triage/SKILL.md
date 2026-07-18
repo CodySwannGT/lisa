@@ -24,9 +24,9 @@ If none confirm, output `## Verdict: NOT_REWORK` and stop — this skill takes n
 first-attempt work.
 
 1. **Status history shows a post-implementation regression transition.** The ticket's
-   changelog contains a transition from a post-build state (the configured `claimed`, any
-   `done.*` environment state — e.g. `On Dev`, `On Stg` — or a review state) back to the
-   configured `ready` state.
+   changelog contains a transition from a post-build state (the configured `claimed`,
+   any configured `done.*` environment state, or a review state) back to the configured
+   `ready` state.
    - JIRA: fetch the changelog via the `lisa-atlassian-access` REST substrate —
      `GET /rest/api/3/issue/<KEY>/changelog` — and scan `items[].field == "status"` entries.
    - GitHub: `gh issue view <n> --json timelineItems` (or the timeline API) — scan for the
