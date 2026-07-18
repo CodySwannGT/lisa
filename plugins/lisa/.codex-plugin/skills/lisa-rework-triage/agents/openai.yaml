@@ -1,0 +1,4 @@
+display_name: "Rework Triage"
+short_description: "Rework detection and…"
+default_prompt:
+  - "Use $lisa-rework-triage: Rework detection and…."
