@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.225.5](https://github.com/CodySwannGT/lisa/compare/v2.225.4...v2.225.5) (2026-07-18)
+
+
+### Bug Fixes
+
+* sync npm lifecycle lockfiles before exit ([b04b68c](https://github.com/CodySwannGT/lisa/commit/b04b68c0c0509c61bb3d015d4bc6b1f1d02a801b))
+
 ### [2.225.4](https://github.com/CodySwannGT/lisa/compare/v2.225.3...v2.225.4) (2026-07-18)
 
 
