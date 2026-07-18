@@ -168,6 +168,7 @@ visible in the section.
 | General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |
 | Project types (8 stacks + template strategies) | `src/detection/`, `src/strategies/`, `<stack>/` template dirs |
 | Coding agents (claude/codex/cursor/agy/copilot/opencode/fleet) | `src/core/lisa.ts`, `scripts/generate-*-plugin-artifacts.mjs` |
+| Remote Environment (variable presence + active-agent startup scripts) | `src/cli/ui-cmd.ts`, `plugins/src/base/scripts/remote-agent-aws-setup.sh` |
 | Work tracker (JIRA / GitHub Issues / Linear) | `config-resolution.md`, `lisa-setup-*` skills |
 | PRD source (Notion / Confluence / Linear / GitHub) | `config-resolution.md`, `lisa-setup-*` skills |
 | Deploy & environments (`deploy.*`, `github.environments`) | `scripts/lisa-github-environments.sh` |
