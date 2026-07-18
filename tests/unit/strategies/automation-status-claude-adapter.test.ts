@@ -25,11 +25,11 @@ const REPAIR_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-repair";
 const BUILD_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-tickets";
 const PRD_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-prd";
 const REPAIR_SCHEDULE_COMMAND =
-  '/schedule "every 60 minutes" /lisa:repair-intake github intake_mode=both build_queue=CodySwannGT/lisa';
+  '/schedule "every 60 minutes" /lisa:repair-intake CodySwannGT/lisa intake_mode=both build_queue=CodySwannGT/lisa';
 const BUILD_SCHEDULE_COMMAND =
   '/schedule "every 10 minutes" /lisa:intake CodySwannGT/lisa intake_mode=build';
 const PRD_SCHEDULE_COMMAND =
-  '/schedule "every 60 minutes" /lisa:intake github intake_mode=prd';
+  '/schedule "every 60 minutes" /lisa:intake CodySwannGT/lisa intake_mode=prd';
 const CLAUDE_RUNTIME_LABEL = "Claude /schedule";
 const ACTIVE_STATUS = "ACTIVE";
 const DETECTED_TYPES = ["typescript"];
@@ -256,7 +256,7 @@ Status: ACTIVE
     expect(
       deriveClaudeObservedCommand(`Command: ${REPAIR_SCHEDULE_COMMAND}`)
     ).toBe(
-      "/lisa:repair-intake github intake_mode=both build_queue=CodySwannGT/lisa"
+      "/lisa:repair-intake CodySwannGT/lisa intake_mode=both build_queue=CodySwannGT/lisa"
     );
 
     expect(

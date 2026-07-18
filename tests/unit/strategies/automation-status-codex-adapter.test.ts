@@ -44,14 +44,14 @@ describe("automation-status Codex adapter (#801)", () => {
       id: "lisa-auto-codyswanngt-lisa-intake-repair",
       rrule: "FREQ=HOURLY;INTERVAL=1",
       prompt:
-        "Run one cron-safe Lisa repair-intake cycle. Use the Lisa repair-intake skill with arguments `github intake_mode=both build_queue=CodySwannGT/lisa`.",
+        "Run one cron-safe Lisa repair-intake cycle. Use the Lisa repair-intake skill with arguments `CodySwannGT/lisa intake_mode=both build_queue=CodySwannGT/lisa`.",
       memory: `2026-05-26T11:10:00Z\n\n- Repaired one blocked build issue cleanly.\n`,
     });
     await writeAutomationFixture(automationsDir, {
       id: "lisa-auto-codyswanngt-lisa-intake-prd",
       rrule: "FREQ=HOURLY;INTERVAL=1",
       prompt:
-        "Run one cron-safe Lisa PRD-intake cycle. Use the Lisa intake skill with arguments `github intake_mode=prd`.",
+        "Run one cron-safe Lisa PRD-intake cycle. Use the Lisa intake skill with arguments `CodySwannGT/lisa intake_mode=prd`.",
       memory: `2026-05-26T06:00:00Z\n\n- Found no ready PRDs.\n`,
     });
     await writeAutomationFixture(automationsDir, {

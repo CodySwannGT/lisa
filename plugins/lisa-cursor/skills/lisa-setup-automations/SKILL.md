@@ -59,9 +59,9 @@ report the exact conflicting path(s).
 
 | Automation | Command it runs | Cadence |
 |---|---|---|
-| **intake-repair** | `/lisa:repair-intake <queue>` | every **60 minutes** |
-| **intake-prd** | `/lisa:intake <PRD queue>` (e.g. `github intake_mode=prd`) | every **60 minutes** |
-| **intake-tickets** | `/lisa:intake <build queue>` (e.g. `github intake_mode=build`) | every **10 minutes** |
+| **intake-repair** | `/lisa:repair-intake <resolved repair queue>` (GitHub self-host example: `acme/frontend intake_mode=both build_queue=acme/planning`) | every **60 minutes** |
+| **intake-prd** | `/lisa:intake <PRD queue>` (e.g. `acme/frontend intake_mode=prd`) | every **60 minutes** |
+| **intake-tickets** | `/lisa:intake <build queue>` (e.g. `acme/planning intake_mode=build`) | every **10 minutes** |
 | **exploratory-bugs** | `/lisa-<stack>:exploratory-qa ready=<auto-start-tickets>` | **once a day** |
 | **exploratory-prds** | `/lisa:project-ideation prd_ready=<auto-start-prds>` | **once a day** |
 | **monitor** | `/lisa:monitor` | **once a day** |
@@ -76,13 +76,14 @@ lifecycle when the PRD queue has capacity," not "always create a new ready PRD."
 smallest next action, usually `/lisa:intake <PRD queue>`, without invoking research or writing a PRD.
 
 **Queue resolution.** Resolve the intake/repair queue from merged config — `source` for the PRD
-queue, `tracker` for the build queue. For GitHub, resolve `github.queueRepo` and fall back to
-identity `github.org/github.repo`, but keep automation naming tied to the identity repo. Bake the
-canonical resolved `owner/repo` into every GitHub scheduled command (for example
-`/lisa:intake acme/planning intake_mode=build` and
-`/lisa:repair-intake github intake_mode=both build_queue=acme/planning`) so a later config/read-context failure cannot
-silently redirect the cron. A short queueRepo is normalized to `github.org` before writing the
-automation.
+queue, `tracker` for the build queue. For GitHub, the PRD command uses canonical identity
+`github.org/github.repo`; the build command resolves `github.queueRepo` and falls back to that
+identity. Keep automation naming tied to the identity repo. Bake every resolved `owner/repo` into
+the scheduled commands (for example `/lisa:intake acme/frontend intake_mode=prd`,
+`/lisa:intake acme/planning intake_mode=build`, and
+`/lisa:repair-intake acme/frontend intake_mode=both build_queue=acme/planning`) so a later
+config/read-context failure cannot silently redirect the cron. A short queueRepo is normalized to
+`github.org` before writing the automation.
 
 **Naming + scope (so teardown is precise).** Name each automation with the stable prefix
 `lisa-auto-<project>-` (e.g. `lisa-auto-<project>-intake-tickets`), where `<project>` identifies this

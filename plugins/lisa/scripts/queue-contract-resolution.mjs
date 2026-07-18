@@ -179,10 +179,7 @@ export function resolveBuildQueueArgument(
   switch (tracker) {
     case "github": {
       const queue = resolveGithubQueueRepoRef(config, options);
-      if (options.explicitQueue) {
-        return `${queue.owner}/${queue.repo} intake_mode=build`;
-      }
-      if (config.github?.queueRepo) {
+      if (options.explicitQueue || config.github?.queueRepo) {
         return `${queue.owner}/${queue.repo} intake_mode=build`;
       }
       return "github intake_mode=build";

@@ -120,6 +120,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
 
   const tracker = config.tracker;
   const source = resolvePrdSource(config);
+  const explicitGithubIdentity = `${identity.owner}/${identity.repo}`;
   const githubQueue =
     tracker === "github"
       ? resolveGithubQueueRepoRef(config, {
@@ -129,7 +130,10 @@ export function resolveExpectedAutomationFleet(input = {}) {
   const explicitGithubQueue = githubQueue
     ? `${githubQueue.owner}/${githubQueue.repo}`
     : undefined;
-  const prdQueue = resolvePrdQueueArgument(config, source);
+  const prdQueue =
+    source === "github"
+      ? `${explicitGithubIdentity} intake_mode=prd`
+      : resolvePrdQueueArgument(config, source);
   const buildQueue = resolveBuildQueueArgument(config, tracker, {
     explicitQueue: tracker === "github" ? explicitGithubQueue : undefined,
     gitRemoteUrl: input.gitRemoteUrl,
@@ -138,6 +142,7 @@ export function resolveExpectedAutomationFleet(input = {}) {
     config,
     source,
     tracker,
+    explicitGithubIdentity,
     explicitGithubQueue,
     buildQueue
   );
@@ -260,12 +265,13 @@ function resolveRepairQueueArgument(
   config,
   source,
   tracker,
+  explicitGithubIdentity,
   explicitGithubQueue,
   resolvedBuildQueue
 ) {
   if (tracker === "github" && source === "github") {
     requireGithubRepo(config);
-    return `github intake_mode=both build_queue=${explicitGithubQueue}`;
+    return `${explicitGithubIdentity} intake_mode=both build_queue=${explicitGithubQueue}`;
   }
 
   if (tracker === "linear" && source === "linear") {
@@ -285,7 +291,7 @@ function resolveRepairQueueArgument(
 
   if (tracker === "github" && source === undefined) {
     requireGithubRepo(config);
-    return `github intake_mode=both build_queue=${explicitGithubQueue}`;
+    return `${explicitGithubIdentity} intake_mode=both build_queue=${explicitGithubQueue}`;
   }
 
   return resolvedBuildQueue.includes("intake_mode=")
