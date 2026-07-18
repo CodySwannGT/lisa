@@ -5,6 +5,7 @@ import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
+import { getPackageVersion } from "../cli/version.js";
 import { installAgentsMd } from "../codex/agents-md-installer.js";
 import { installCodexProjectOverlay } from "../codex/project-overlay.js";
 import { installAgyPlugin } from "../agy/plugin-installer.js";
@@ -106,6 +107,14 @@ export interface LisaDependencies {
   readonly gitService: IGitService;
   readonly migrationRegistry: MigrationRegistry;
 }
+
+/**
+ * Shape of the promisified exec function used for Claude CLI plugin commands.
+ */
+type PluginExecAsync = (
+  cmd: string,
+  opts: Record<string, unknown>
+) => Promise<unknown>;
 
 /**
  * Main Lisa orchestrator
@@ -659,54 +668,214 @@ export class Lisa {
   }
 
   /**
-   * Install each plugin and refresh the Lisa marketplace cache
+   * Install each plugin and refresh the Lisa marketplace cache.
+   *
+   * Version-gated (perf): `claude plugin marketplace update` is a network git
+   * pull of the Lisa repo and every `claude plugin install` spawns the Claude
+   * CLI (seconds each); re-running all of it on every apply made a single
+   * `bun add` cost minutes across the repeated apply passes. A full sync
+   * (marketplace refresh + install every plugin) still runs whenever the
+   * installed Lisa version differs from the `.claude/.lisa-plugins-synced`
+   * marker; between version changes only plugins missing for this project are
+   * installed, so the self-heal property (a removed plugin comes back on the
+   * next install) survives at the cost of one `claude plugin list` call.
    * @param execAsync - Promisified exec function for running shell commands
    * @param plugins - Plugin identifiers from enabledPlugins (e.g. "lisa@lisa")
    */
   private async installPluginsAndUpdateMarketplace(
-    execAsync: (cmd: string, opts: Record<string, unknown>) => Promise<unknown>,
+    execAsync: PluginExecAsync,
     plugins: readonly string[]
   ): Promise<void> {
     const { logger } = this.deps;
     const validPluginName = /^[\w@./-]+$/;
+    const { fullSync, toInstall, version } = await this.computePluginSyncPlan(
+      execAsync,
+      plugins
+    );
+
+    if (!fullSync && toInstall.length === 0) {
+      logger.info(
+        pc.gray(`Plugins already in sync for Lisa ${version}; skipping`)
+      );
+      return;
+    }
 
     logger.info("Registering plugins with Claude Code (project scope)...");
 
-    try {
-      await execAsync("claude plugin marketplace update lisa", {
-        cwd: this.config.destDir,
-        shell: "/bin/sh",
-      });
-    } catch {
+    if (fullSync) {
       // Best-effort cache refresh. Individual plugin installs below will still
       // report whether the marketplace entry is available.
+      await this.updateLisaMarketplace(execAsync, false);
     }
 
-    for (const plugin of plugins) {
+    for (const plugin of toInstall) {
       if (!validPluginName.test(plugin)) {
         logger.warn(`Skipping invalid plugin name: ${plugin}`);
         continue;
       }
-
-      try {
-        await execAsync(`claude plugin install ${plugin} --scope project`, {
-          cwd: this.config.destDir,
-          shell: "/bin/sh",
-        });
-        logger.success(`Registered plugin: ${plugin}`);
-      } catch {
-        logger.warn(`Could not register plugin: ${plugin}`);
-      }
+      await this.installPlugin(execAsync, plugin);
     }
 
+    // Post-install refresh must run whenever installs happened: installing can
+    // register the marketplace for the first time, and without a refresh newly
+    // added skills are not discovered ("Unknown skill" in nightly CI — #320).
+    await this.updateLisaMarketplace(execAsync, true);
+
+    if (fullSync) {
+      await this.writePluginSyncMarker(version);
+    }
+  }
+
+  /**
+   * Decide whether this apply needs a full plugin sync and which plugins to
+   * install.
+   * @param execAsync - Promisified exec function for running shell commands
+   * @param plugins - Plugin identifiers from enabledPlugins
+   * @returns Sync plan: fullSync (version changed), plugins to install, and
+   *   the current Lisa version
+   */
+  private async computePluginSyncPlan(
+    execAsync: PluginExecAsync,
+    plugins: readonly string[]
+  ): Promise<{
+    readonly fullSync: boolean;
+    readonly toInstall: readonly string[];
+    readonly version: string;
+  }> {
+    const version = getPackageVersion();
+    const syncedVersion = await readFile(this.pluginSyncMarkerPath(), "utf-8")
+      .then(content => content.trim())
+      .catch(() => null);
+    const fullSync = syncedVersion !== version;
+    const installed = fullSync
+      ? null
+      : await this.readInstalledPluginIds(execAsync);
+    const toInstall =
+      installed === null
+        ? plugins
+        : plugins.filter(plugin => !installed.has(plugin));
+    return { fullSync, toInstall, version };
+  }
+
+  /**
+   * Refresh the cached Lisa marketplace via the Claude CLI.
+   * @param execAsync - Promisified exec function for running shell commands
+   * @param announce - Whether to log the outcome (silent for the pre-install
+   *   best-effort refresh)
+   * @returns Promise that resolves when the refresh attempt completes
+   */
+  private async updateLisaMarketplace(
+    execAsync: PluginExecAsync,
+    announce: boolean
+  ): Promise<void> {
+    const { logger } = this.deps;
     try {
-      await execAsync("claude plugin marketplace update lisa", {
+      await execAsync(
+        "claude plugin marketplace update lisa",
+        this.pluginExecOptions()
+      );
+      if (announce) {
+        logger.success("Updated marketplace: lisa");
+      }
+    } catch {
+      if (announce) {
+        logger.warn("Could not update marketplace: lisa");
+      }
+    }
+  }
+
+  /**
+   * Install a single plugin at project scope via the Claude CLI.
+   * @param execAsync - Promisified exec function for running shell commands
+   * @param plugin - Plugin identifier (already validated)
+   * @returns Promise that resolves when the install attempt completes
+   */
+  private async installPlugin(
+    execAsync: PluginExecAsync,
+    plugin: string
+  ): Promise<void> {
+    const { logger } = this.deps;
+    try {
+      await execAsync(
+        `claude plugin install ${plugin} --scope project`,
+        this.pluginExecOptions()
+      );
+      logger.success(`Registered plugin: ${plugin}`);
+    } catch {
+      logger.warn(`Could not register plugin: ${plugin}`);
+    }
+  }
+
+  /**
+   * Exec options shared by all Claude CLI plugin commands.
+   * @returns Options object with the project cwd and POSIX shell
+   */
+  private pluginExecOptions(): Record<string, unknown> {
+    return { cwd: this.config.destDir, shell: "/bin/sh" };
+  }
+
+  /**
+   * Absolute path of the plugin sync marker recording the last fully-synced
+   * Lisa version for this project. Shared with install-claude-plugins.sh.
+   * @returns Marker path under the project's .claude directory
+   */
+  private pluginSyncMarkerPath(): string {
+    return path.join(this.config.destDir, ".claude", ".lisa-plugins-synced");
+  }
+
+  /**
+   * Absolute path of the host project's package.json.
+   * @returns package.json path under the destination directory
+   */
+  private hostPackageJsonPath(): string {
+    return path.join(this.config.destDir, "package.json");
+  }
+
+  /**
+   * Read the plugin ids already installed for this project via
+   * `claude plugin list --json`.
+   * @param execAsync - Promisified exec function for running shell commands
+   * @returns Set of installed plugin ids, or null when the list cannot be
+   *   obtained (older CLI, parse failure) so callers fall back to installing
+   *   everything — the pre-existing behavior
+   */
+  private async readInstalledPluginIds(
+    execAsync: PluginExecAsync
+  ): Promise<ReadonlySet<string> | null> {
+    try {
+      const result = (await execAsync("claude plugin list --json", {
         cwd: this.config.destDir,
         shell: "/bin/sh",
-      });
-      logger.success("Updated marketplace: lisa");
+      })) as { stdout?: unknown };
+      const parsed: unknown = JSON.parse(String(result.stdout ?? ""));
+      if (!Array.isArray(parsed)) {
+        return null;
+      }
+      const destPath = path.resolve(this.config.destDir);
+      const ids = parsed
+        .filter(
+          (entry): entry is { id: string; projectPath: string } =>
+            typeof (entry as { id?: unknown }).id === "string" &&
+            (entry as { projectPath?: unknown }).projectPath === destPath
+        )
+        .map(entry => entry.id);
+      return new Set(ids);
     } catch {
-      logger.warn("Could not update marketplace: lisa");
+      return null;
+    }
+  }
+
+  /**
+   * Record the Lisa version whose plugin set was last fully synced.
+   * @param version - Lisa package version to record
+   * @returns Promise that resolves when the marker is written (best-effort)
+   */
+  private async writePluginSyncMarker(version: string): Promise<void> {
+    try {
+      await fse.ensureDir(path.join(this.config.destDir, ".claude"));
+      await fse.writeFile(this.pluginSyncMarkerPath(), `${version}\n`, "utf-8");
+    } catch {
+      // Best-effort: a missing marker only costs a redundant full sync next run.
     }
   }
   /* v8 ignore stop */
@@ -780,10 +949,12 @@ export class Lisa {
       await this.loadPendingDeletions();
       await this.loadCreateOnlyOwnership();
       await this.loadCopyOverwriteOwnership();
+      // Captured BEFORE any mutation (migrations included): the hash gates both
+      // the detached trampoline and the in-process lockfile reconcile, and
+      // before-strategies migrations can wire scripts.postinstall — a change the
+      // package manager's end-of-command rewrite would clobber (#383).
+      const prePackageJsonHash = hashFile(this.hostPackageJsonPath());
       await this.runMigrationsBeforeStrategies();
-      const prePackageJsonHash = hashFile(
-        path.join(this.config.destDir, "package.json")
-      );
       await this.processConfigurations();
       if (this.selfApply) {
         this.deps.logger.info(
@@ -805,7 +976,7 @@ export class Lisa {
       await this.finalize();
       this.printSummary();
       await this.printMigrationNotices(this.config.destDir);
-      await this.schedulePostinstallReconciliation();
+      await this.schedulePostinstallReconciliation(prePackageJsonHash);
       await this.reconcileLockfilesInProcess(prePackageJsonHash);
       return this.getSuccessResult();
     } catch (error) {
@@ -839,7 +1010,7 @@ export class Lisa {
     if (this.config.dryRun) return;
     if (isRunningAsTrampoline()) return;
     if (shouldSchedulePostinstallReconciliation(this.config.dryRun)) return;
-    const pkgPath = path.join(this.config.destDir, "package.json");
+    const pkgPath = this.hostPackageJsonPath();
     const postHash = hashFile(pkgPath);
     if (
       prePackageJsonHash === null ||
@@ -1279,9 +1450,28 @@ export class Lisa {
    * The trampoline is always fully detached so the package manager can exit
    * normally; the child then detects the exit and re-runs Lisa. See
    * utils/postinstall-trampoline.ts for details.
+   *
+   * Skipped when this apply did not mutate package.json: the trampoline exists
+   * solely to redo package.json changes that the parent package manager's
+   * end-of-command rewrite clobbers (#383). With no mutation there is nothing
+   * to clobber — the rewrite restores identical content — and scheduling a
+   * detached re-apply (plus its lockfile regen) is pure waste. File-based
+   * template writes are not clobbered and need no reconciliation.
+   * @param prePackageJsonHash - Hash of package.json captured before apply mutated anything (null if the file did not exist)
    * @returns Promise that resolves immediately after the detached child is spawned
    */
-  private async schedulePostinstallReconciliation(): Promise<void> {
+  private async schedulePostinstallReconciliation(
+    prePackageJsonHash: string | null
+  ): Promise<void> {
+    const postHash = hashFile(this.hostPackageJsonPath());
+    if (prePackageJsonHash === postHash) {
+      this.deps.logger.info(
+        pc.gray(
+          "Postinstall reconciliation skipped: package.json unchanged by this apply"
+        )
+      );
+      return;
+    }
     if (!shouldSchedulePostinstallReconciliation(this.config.dryRun)) {
       return;
     }
