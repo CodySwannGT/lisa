@@ -10,7 +10,13 @@ allowed-tools: ["Skill", "Bash"]
 
 1. A GitHub `org/repo` token (e.g., `acme/frontend-v2`).
 2. A full GitHub repo URL (e.g., `https://github.com/acme/frontend-v2`).
-3. The literal token `github` — falls back to `.lisa.config.json` (`github.org` / `github.repo`).
+3. The literal token `github` (or an omitted repo) — resolves merged config
+   `github.queueRepo`, falling back to the identity `github.org/github.repo`.
+
+An explicit `org/repo` token or GitHub URL always wins. `github.queueRepo` may be canonical
+`owner/repo` or a short repo name normalized to `github.org`. It changes only the scanned queue;
+the Phase 3a.0 `repo:<current>` gate still resolves the code repository from `repo` /
+`github.repo` / the git remote.
 
 Run one build-intake cycle. The first eligible issue in the configured `ready` build label is claimed, built via the `github-agent` workflow run in-session (Phase 3c, culminating in `lisa-implement`), relabeled to the configured `done` label (env-aware — see Workflow resolution), then the cycle exits. Remaining ready issues stay queued for later scheduler invocations.
 
@@ -133,7 +139,10 @@ A "transition" means: remove the old role label and add the new one, in two `gh 
 1. Parse `$ARGUMENTS`:
    - `org/repo` token → use as-is.
    - GitHub URL → extract `org` and `repo`.
-   - Literal `github` → resolve from `.lisa.config.json` (`github.org`, `github.repo`); error if not set.
+   - Literal `github` or omitted repo → resolve local then global `github.queueRepo`, falling back
+     to `github.org/github.repo`; normalize a short `queueRepo` to `github.org`; error if the
+     resulting identity/queue cannot be resolved.
+   - Never replace current-repo identity with the queue repo. An umbrella queue is only a scan target.
 2. Confirm `gh auth status` succeeds.
 3. Confirm the repo is reachable: `gh repo view <org>/<repo> --json name --jq '.name'`.
 
@@ -405,7 +414,8 @@ Total PRs opened: <n>
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `.lisa.config.json` `github.org` | (from `$ARGUMENTS`) | GitHub org for the default queue |
-| `.lisa.config.json` `github.repo` | (from `$ARGUMENTS`) | GitHub repo for the default queue |
+| `.lisa.config.json` `github.repo` | (from `$ARGUMENTS`) | Current code-repo identity and `repo:<current>` scope |
+| `.lisa.config.json` `github.queueRepo` | `github.org/github.repo` | Default GitHub scan repo when no explicit repo/URL is passed |
 | `.lisa.config.json` `github.labels.build.ready` | `status:ready` | The label that signals "human says this is buildable" |
 | `.lisa.config.json` `github.labels.build.claimed` | `status:in-progress` | The label set on pickup |
 | `.lisa.config.json` `github.labels.build.done` | env-keyed map or string | The label set after a successful build; env-aware |

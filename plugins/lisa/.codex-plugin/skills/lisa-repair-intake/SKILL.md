@@ -73,13 +73,14 @@ lifecycle state with provider-native closure and rollup state.
 ## Public contract
 
 ```text
-/lisa:repair-intake <queue> [intake_mode=prd|build|both] [stale_after=2h] [max_candidates=100] [force=true]
+/lisa:repair-intake <queue> [intake_mode=prd|build|both] [build_queue=owner/repo] [stale_after=2h] [max_candidates=100] [force=true]
 ```
 
 | Token | Meaning | Default |
 |-------|---------|---------|
 | `<queue>` | Same queue identifier `lisa-intake` accepts (see Source dispatch). Required. | — |
 | `intake_mode` | `prd` \| `build` \| `both`. Only meaningful for a GitHub `org/repo` (or bare `github`) that hosts both PRD and build label namespaces. `both` is unique to repair — a repair sweep usefully covers both lifecycles in one schedule. Absent → `both` when both namespaces exist, else whichever lifecycle exists. | `both` for dual GitHub queues; otherwise infer |
+| `build_queue` | GitHub build scan target used with literal `github`, especially `intake_mode=both`. Explicit `owner/repo` or URL for a build-only invocation wins over this token; otherwise this wins over `github.queueRepo`. It never redirects the PRD scan. | `github.queueRepo`, then `github.org/github.repo` |
 | `stale_after` | How long since the last state-changing transition into the in-progress role, or since the last human / PR-side forward-progress activity, before an in-progress item counts as stalled. Automation self-comments do not reset this clock. Accepts `24h`, `90m`, `2d`, or `0` (treat any in-progress item as stalled — manual recovery, also the only way to resume work on a provider that exposes no reliable timestamp). Overrides config. | `2h` |
 | `max_candidates` | Cap on how many stuck/close-out candidates to enumerate and evaluate. Repair every materially actionable candidate within this bounded set, then stop. Overrides config. | `100` |
 | `force` | `true` bypasses the loop-prevention backoff window (so a manual re-run re-attempts items even if their fingerprint is unchanged). It does **not** change the staleness rule — use `stale_after=0` for that. | `false` |
@@ -142,7 +143,7 @@ claim-and-advance). The essentials, inlined here so this skill is self-complete:
 | GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked`, terminal/open PRDs, missing PRD child links, all-terminal generated-work rollups |
 | GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked`, terminal/open issues, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
 | GitHub **repo** URL / `org/repo` with an open issue missing configured lifecycle labels | GitHub label normalization | per classified lifecycle | add configured `prd.ready` or build `ready` |
-| Literal `github` | GitHub; route by `intake_mode` (`prd` / `build` / `both`) | per lifecycle | per lifecycle above, plus GitHub ready-label normalization |
+| Literal `github` or omitted GitHub repo | GitHub; PRD scans identity, build scans `build_queue` → merged `github.queueRepo` → identity; `both` runs those two lane-specific targets | per lifecycle | per lifecycle above, plus GitHub ready-label normalization |
 | JIRA project key or full JQL | Build (JIRA) | tracker=jira | `claimed`, `blocked`, terminal/closure verification, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
 
 Disambiguation (same as `lisa-intake`): a `notion.so`/`notion.site` URL → Notion; an Atlassian
@@ -152,6 +153,14 @@ token / literal `github` → GitHub; a bare token matching the JIRA project-key 
 (else try Confluence space, then Linear team); a string with JQL operators → JQL. **A single-item
 URL is out of scope** — this skill is batch-only; repair one item by hand via `lisa-implement`
 (build) or by re-running `lisa:<source>-to-tracker` (PRD).
+
+For GitHub build mode, an explicit URL or `owner/repo` wins. Otherwise resolve `build_queue`, then
+local/global `github.queueRepo`, falling back to `github.org/github.repo`; a short queueRepo is
+normalized to `github.org`. PRD mode remains on the identity/source repo. Therefore `intake_mode=both`
+is a bounded split scan: PRD candidates at `github.org/github.repo`, build candidates at the
+resolved build queue, combined into one summary. Never apply both lifecycle namespaces to the
+umbrella repo merely because `github.queueRepo` is set. Repository identity remains distinct and
+continues to drive `repo:<current>` filtering, writes, and automation names.
 
 Role names for every vendor are resolved from `.lisa.config.json` per the `config-resolution`
 rule — never hardcode status/label strings. The relevant repair roles:

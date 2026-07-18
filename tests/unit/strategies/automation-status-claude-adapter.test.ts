@@ -25,9 +25,9 @@ const REPAIR_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-repair";
 const BUILD_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-tickets";
 const PRD_AUTOMATION_ID = "lisa-auto-codyswanngt-lisa-intake-prd";
 const REPAIR_SCHEDULE_COMMAND =
-  '/schedule "every 60 minutes" /lisa:repair-intake github intake_mode=both';
+  '/schedule "every 60 minutes" /lisa:repair-intake github intake_mode=both build_queue=CodySwannGT/lisa';
 const BUILD_SCHEDULE_COMMAND =
-  '/schedule "every 10 minutes" /lisa:intake github intake_mode=build';
+  '/schedule "every 10 minutes" /lisa:intake CodySwannGT/lisa intake_mode=build';
 const PRD_SCHEDULE_COMMAND =
   '/schedule "every 60 minutes" /lisa:intake github intake_mode=prd';
 const CLAUDE_RUNTIME_LABEL = "Claude /schedule";
@@ -78,7 +78,7 @@ describe("automation-status Claude adapter (#802)", () => {
             name: "lisa-auto-unrelated-other-repo-intake-tickets",
             cadence: TEN_MINUTE_SCHEDULE,
             command:
-              '/schedule "every 10 minutes" /lisa:intake github intake_mode=build',
+              '/schedule "every 10 minutes" /lisa:intake CodySwannGT/lisa intake_mode=build',
             status: ACTIVE_STATUS,
           },
         ],
@@ -176,7 +176,7 @@ ID: lisa-auto-codyswanngt-lisa-exploratory-prds
 Status: ACTIVE
 
 ID: ${BUILD_AUTOMATION_ID}
-/schedule "hourly" /lisa:intake github intake_mode=build
+/schedule "hourly" /lisa:intake CodySwannGT/lisa intake_mode=build
 Status: ACTIVE
       `.trim(),
       now: FIXTURE_NOW,
@@ -250,12 +250,14 @@ Status: ACTIVE
 
   it("derives normalized Lisa slash commands from Claude schedule entries", () => {
     expect(deriveClaudeObservedCommand(BUILD_SCHEDULE_COMMAND)).toBe(
-      "/lisa:intake github intake_mode=build"
+      "/lisa:intake CodySwannGT/lisa intake_mode=build"
     );
 
     expect(
       deriveClaudeObservedCommand(`Command: ${REPAIR_SCHEDULE_COMMAND}`)
-    ).toBe("/lisa:repair-intake github intake_mode=both");
+    ).toBe(
+      "/lisa:repair-intake github intake_mode=both build_queue=CodySwannGT/lisa"
+    );
 
     expect(
       deriveClaudeObservedCommand("/lisa:project-ideation prd_ready=true")

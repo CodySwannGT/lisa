@@ -58,23 +58,75 @@ const HIGHLIGHT_COPY = {
  *   readonly queueResolved?: boolean
  *   readonly queueArgument?: string
  *   readonly resolutionError?: string | null
+ *   readonly currentRepo?: string | null
  * }} input
  */
 export function readGithubBuildQueueSnapshot(input = {}) {
   const roles = input.roles ?? resolveBuildLifecycleRoles({}, "github").roles;
-  const normalizedItems = (input.issues ?? [])
+  const issues = input.issues ?? [];
+  const normalizedItems = issues
+    .filter(
+      issue =>
+        classifyGithubIssueRepoScope(issue, input.currentRepo) === "current"
+    )
+    .map(issue => normalizeGithubBuildIssue(issue, roles))
+    .filter(Boolean);
+  const unscopedCandidates = issues
+    .filter(
+      issue =>
+        classifyGithubIssueRepoScope(issue, input.currentRepo) === "unscoped"
+    )
     .map(issue => normalizeGithubBuildIssue(issue, roles))
     .filter(Boolean);
 
-  return createBuildQueueSnapshot({
-    tracker: "github",
-    items: normalizedItems,
-    roles,
-    namespaceAdopted: input.namespaceAdopted,
-    queueResolved: input.queueResolved,
-    queueArgument: input.queueArgument,
-    resolutionError: input.resolutionError,
-  });
+  return {
+    ...createBuildQueueSnapshot({
+      tracker: "github",
+      items: normalizedItems,
+      roles,
+      namespaceAdopted: input.namespaceAdopted,
+      queueResolved: input.queueResolved,
+      queueArgument: input.queueArgument,
+      resolutionError: input.resolutionError,
+    }),
+    unscopedCount: unscopedCandidates.length,
+    unscopedCandidates,
+  };
+}
+
+/**
+ * Classify current-repo, unlabeled, and sibling-only candidates. Unlabeled work
+ * remains separately visible because build intake must determine and stamp its
+ * repo, but it must not inflate current-repo lifecycle counts. Containers
+ * carrying multiple repo labels are current when one label matches.
+ *
+ * @param {Record<string, any>} issue
+ * @param {string | null | undefined} currentRepo
+ * @returns {"current" | "unscoped" | "sibling"}
+ */
+function classifyGithubIssueRepoScope(issue, currentRepo) {
+  if (typeof currentRepo !== "string" || currentRepo.trim().length === 0) {
+    return "current";
+  }
+
+  const repoLabels = (Array.isArray(issue?.labels) ? issue.labels : [])
+    .map(label =>
+      typeof label === "string"
+        ? label
+        : typeof label?.name === "string"
+          ? label.name
+          : ""
+    )
+    .map(label => label.trim().toLowerCase())
+    .filter(label => label.startsWith("repo:") && label.length > 5);
+
+  if (repoLabels.length === 0) {
+    return "unscoped";
+  }
+
+  return repoLabels.includes(`repo:${currentRepo.trim().toLowerCase()}`)
+    ? "current"
+    : "sibling";
 }
 
 /**

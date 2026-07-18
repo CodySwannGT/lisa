@@ -1,0 +1,29 @@
+{
+  "tracker": "github",
+  "items": [
+    {
+      "number": 1617,
+      "title": "Current repo work",
+      "labels": [{ "name": "status:ready" }, { "name": "repo:frontend" }]
+    },
+    {
+      "number": 1618,
+      "title": "Sibling repo work",
+      "labels": [{ "name": "status:ready" }, { "name": "repo:backend" }]
+    },
+    {
+      "number": 1619,
+      "title": "Unlabeled work still awaiting intake classification",
+      "labels": [{ "name": "status:blocked" }]
+    },
+    {
+      "number": 1620,
+      "title": "Multi-repo container visible to frontend",
+      "labels": [
+        { "name": "status:in-progress" },
+        { "name": "repo:backend" },
+        { "name": "REPO:FRONTEND" }
+      ]
+    }
+  ]
+}
