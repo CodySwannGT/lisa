@@ -6593,6 +6593,183 @@
         renderAll();
         showSection(current);
       }
+      function githubRepoHostBlock() {
+        return {
+          card: "Host",
+          rows: [
+            {
+              key: "",
+              label: "Git host",
+              desc: "Which host this repository lives on. GitHub is the only host Lisa provisions today.",
+              control: sel("GitHub", ["GitHub", "GitLab", "Bitbucket"]),
+            },
+          ],
+        };
+      }
+      function githubRepoSettingsRows(settings) {
+        return [
+          {
+            label: "Allow merge commits",
+            desc: "The fleet is merge-only — squash and rebase are disabled because squashing flattens release commits and breaks promotion.",
+            control: tog(!!settings.allow_merge_commit),
+          },
+          {
+            label: "Allow squash merge",
+            desc: "",
+            control: tog(!!settings.allow_squash_merge),
+          },
+          {
+            label: "Allow rebase merge",
+            desc: "",
+            control: tog(!!settings.allow_rebase_merge),
+          },
+          {
+            label: "Auto-merge",
+            desc: "Lisa PRs enable auto-merge and drive themselves to green.",
+            control: tog(!!settings.allow_auto_merge),
+          },
+          {
+            label: "Suggest updating PR branches",
+            desc: "",
+            control: tog(!!settings.allow_update_branch),
+          },
+          {
+            label: "Delete head branch on merge",
+            desc: "Environment branches survive via the prevent-delete ruleset.",
+            control: tog(!!settings.delete_branch_on_merge),
+          },
+          {
+            label: "Merge commit title",
+            desc: "",
+            control: sel(String(settings.merge_commit_title || ""), [
+              "MERGE_MESSAGE",
+              "PR_TITLE",
+            ]),
+          },
+          {
+            label: "Issues tab",
+            desc: "",
+            control: tog(!!settings.has_issues),
+          },
+          {
+            label: "Wiki tab",
+            desc: "Off — Lisa uses the in-repo wiki/ directory instead.",
+            control: tog(!!settings.has_wiki),
+          },
+          {
+            label: "Secret scanning + push protection",
+            desc: "Best-effort; skipped when the plan lacks GitHub Advanced Security.",
+            control: tog(!!settings.secret_scanning),
+          },
+          {
+            label: "Default branch",
+            desc: "Live default branch from the repository.",
+            control: txt(String(settings.default_branch || ""), {
+              mono: true,
+            }),
+          },
+        ];
+      }
+      function applyGithubRepoPanel(result) {
+        const host = githubRepoHostBlock();
+        if (result.state !== "value") {
+          const reason =
+            result.state === "unknown"
+              ? result.reason + ": " + result.message
+              : "not applicable";
+          DATA.sections.repository.blocks = [
+            host,
+            {
+              type: "callout",
+              variant: "warn",
+              text:
+                "<b>unknown — not authenticated / unavailable</b> — " +
+                esc(reason) +
+                ". No setting, ruleset, label, or secret state is shown as a concrete value.",
+            },
+          ];
+          return;
+        }
+        const value = result.value || {};
+        const settings = value.settings || {};
+        const rulesets = Array.isArray(value.rulesets) ? value.rulesets : [];
+        const labels = Array.isArray(value.labels) ? value.labels : [];
+        const secrets = Array.isArray(value.secrets) ? value.secrets : [];
+        DATA.sections.repository.blocks = [
+          host,
+          {
+            card: "Repository settings",
+            note:
+              "Live from gh api repos/" +
+              String(value.owner || "") +
+              "/" +
+              String(value.repo || ""),
+            rows: githubRepoSettingsRows(settings),
+          },
+          {
+            type: "table",
+            card: "Rulesets",
+            note: "Live from gh api repos/{owner}/{repo}/rulesets",
+            cols: ["Ruleset", "Applies to", "Enforces", "Active"],
+            rows: rulesets.map(row => [
+              { t: "mono", v: String(row.name || "") },
+              { t: "text", v: String(row.appliesTo || "—") },
+              { t: "text", v: String(row.enforces || "—") },
+              {
+                t: "badge",
+                v: row.active ? "active" : "disabled",
+                cls: row.active ? "on" : "off",
+              },
+            ]),
+          },
+          {
+            type: "table",
+            card: "Lifecycle labels",
+            note: "Config-expected labels vs live gh label list",
+            cols: ["Label", "Role", "Color", "Status"],
+            rows: labels.map(row => [
+              { t: "mono", v: String(row.name || "") },
+              { t: "text", v: String(row.role || "") },
+              row.present && row.color
+                ? {
+                    t: "color",
+                    v: "#" + String(row.color).replace(/^#/u, ""),
+                  }
+                : { t: "text", v: "—" },
+              {
+                t: "badge",
+                v: row.present ? "present" : "missing",
+                cls: row.present ? "on" : "off",
+              },
+            ]),
+          },
+          {
+            type: "table",
+            card: "Secrets",
+            note: "Presence only from gh secret list — values are never read",
+            cols: ["Secret", "Purpose", "Status"],
+            rows: secrets.map(row => [
+              { t: "mono", v: String(row.name || "") },
+              { t: "text", v: String(row.purpose || "") },
+              {
+                t: "badge",
+                v: row.set ? "set" : "missing",
+                cls: row.set ? "on" : "off",
+              },
+            ]),
+          },
+        ];
+      }
+      function reRenderAfterGithubRepoHydration() {
+        const current = activeSection;
+        renderAll();
+        showSection(current || "overview");
+      }
+      /**
+       * Replace the Deploy pipeline stages table from the live probe.
+       * Never leaves demo hold/no-hold claims in place.
+       * @param probes - Live-status probe map from /api/status
+       */
       /**
        * Replace the Deploy pipeline stages table from the live probe.
        * Never leaves demo hold/no-hold claims in place.
@@ -6702,6 +6879,15 @@
           // Quality jobs re-renders the page; paint the version chip after.
           applyCiQualityJobs(probes);
           applyLisaVersion(probes);
+          const repoResult = normalizeLiveStatusResult(
+            probes["github-repo"] || {
+              state: "unknown",
+              reason: "probe-missing",
+              message: "GitHub repository probe did not run",
+            }
+          );
+          applyGithubRepoPanel(repoResult);
+          reRenderAfterGithubRepoHydration();
           applyDeployPipelineStages(probes);
           applyObservabilityProviders(probes);
         } catch (error) {
@@ -6716,6 +6902,8 @@
           applyEnabledPlugins({ "enabled-plugins": unavailable });
           applyCiQualityJobs({ "ci-quality-jobs": unavailable });
           applyLisaVersion({ "lisa-version": unavailable });
+          applyGithubRepoPanel(unavailable);
+          reRenderAfterGithubRepoHydration();
           applyDeployPipelineStages({
             "deploy-pipeline-stages": unavailable,
           });

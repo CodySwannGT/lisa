@@ -22,6 +22,7 @@ import {
 } from "./remote-environment.js";
 import { createCiQualityJobsProbe } from "./ui-ci-quality-jobs.js";
 import { createDeployPipelineProbe } from "./ui-deploy-pipeline.js";
+import { createGithubRepoProbe } from "./ui-github-repo.js";
 import { createLisaVersionProbe } from "./ui-lisa-version.js";
 import {
   createGithubAuthProbe,
@@ -41,6 +42,7 @@ export {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+export { createGithubRepoProbe } from "./ui-github-repo.js";
 export {
   createEnabledPluginsProbe,
   buildEnabledPluginsValue,
@@ -360,6 +362,7 @@ export async function runUi(
     createLisaVersionProbe(),
     createCiQualityJobsProbe(destDir, config),
     createDeployPipelineProbe(destDir),
+    createGithubRepoProbe(destDir, config),
     ...createObservabilityProviderProbes(),
   ];
   const server = http.createServer(
