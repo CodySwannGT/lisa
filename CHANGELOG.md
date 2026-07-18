@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.229.2](https://github.com/CodySwannGT/lisa/compare/v2.229.1...v2.229.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* **release:** retry changelog push after rebase ([97ee442](https://github.com/CodySwannGT/lisa/commit/97ee4429b5bbbacbab0a45ee8b7416b371e283da))
+
 ### [2.229.1](https://github.com/CodySwannGT/lisa/compare/v2.229.0...v2.229.1) (2026-07-18)
 
 
