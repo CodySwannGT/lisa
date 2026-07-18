@@ -1,0 +1,4 @@
+display_name: "Setup Remote AWS"
+short_description: "Install and validate Lisa's drop-in AWS CLI bootstrap for remote coding environments"
+default_prompt:
+  - "Use $lisa-setup-remote-aws: Install and validate Lisa's drop-in AWS CLI bootstrap for remote coding environments."

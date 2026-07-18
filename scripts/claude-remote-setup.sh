@@ -23,6 +23,9 @@
 #     #          Pull requests R/W, Metadata R (+Workflows R/W if editing .github/workflows,
 #     #          +Projects R/W if using ProjectV2). Identity needs WRITE+ on the repo.
 #     - GH_TOKEN=<token>        # REQUIRED unless the routine's repo connection already auths `gh`
+#   AWS (when this routine needs account access):
+#     - LISA_AWS_BOOTSTRAP_JSON=<complete remote-agent-credentials SecretString>
+#     - LISA_REMOTE_AGENT=claude
 #   Dormant (set ONLY if you switch .lisa.config.json tracker/source):
 #     - JIRA_API_TOKEN / JIRA_SERVER / JIRA_LOGIN / JIRA_PROJECT   # tracker=jira
 #     - ATLASSIAN_API_TOKEN                                        # source=confluence (8 Confluence scopes)
@@ -69,6 +72,12 @@ if ! need gh; then
 fi
 require jq
 require gh
+
+# --- AWS CLI + renewable role profiles (when configured) ---
+if [ -n "${LISA_AWS_BOOTSTRAP_JSON:-}" ]; then
+  LISA_REMOTE_AGENT="${LISA_REMOTE_AGENT:-claude}" \
+    bash scripts/remote-agent-aws-setup.sh
+fi
 
 # --- gitleaks (REQUIRED: pre-commit secret scan) ---
 if ! need gitleaks; then
@@ -133,8 +142,6 @@ if [ "$INCLUDE_OPTIONAL" = "1" ]; then
   # Chromium for Lighthouse/Playwright (heavy — can strain the cache budget)
   npx playwright install chromium || echo "WARN: chromium install failed (optional)"
 
-  # aws CLI (cleanup scripts)
-  need aws || apt_get install -y awscli || echo "WARN: awscli install failed (optional)"
 fi
 
 echo "claude-remote-setup: done."
