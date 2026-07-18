@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.232.0](https://github.com/CodySwannGT/lisa/compare/v2.231.0...v2.232.0) (2026-07-18)
+
+
+### Features
+
+* **hardening:** self-hardening rework-triage loop ([b33f664](https://github.com/CodySwannGT/lisa/commit/b33f6646353adb9719036e3225713a6a9fef921e))
+
+
+### Bug Fixes
+
+* **hardening:** address CodeRabbit review on rework-triage ([b832f5b](https://github.com/CodySwannGT/lisa/commit/b832f5bce706ded148522466e9ff35050151eafe))
+
 ## [2.231.0](https://github.com/CodySwannGT/lisa/compare/v2.230.1...v2.231.0) (2026-07-18)
 
 

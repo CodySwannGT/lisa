@@ -1,0 +1,4 @@
+display_name: "QA Checklist"
+short_description: "Serve the current manual regression checklist to a human QA tester"
+default_prompt:
+  - "Use $lisa-qa-checklist: Serve the current manual regression checklist to a human QA tester."
