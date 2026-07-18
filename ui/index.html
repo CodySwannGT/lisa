@@ -366,6 +366,13 @@
         border-color: var(--good);
         color: #fff;
       }
+      .ck:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+      }
+      .ck:disabled:hover {
+        border-color: var(--line-strong);
+      }
       .check-content {
         flex: 1;
         min-width: 0;
@@ -732,6 +739,17 @@
       .action-btn:hover {
         background: var(--accent-soft);
       }
+      .action-btn:disabled {
+        border-color: var(--line-strong);
+        color: var(--muted);
+        background: var(--surface2);
+        cursor: not-allowed;
+      }
+      .readonly-reason {
+        display: block;
+        margin-top: 6px;
+        max-width: 28ch;
+      }
 
       .envmap {
         display: grid;
@@ -1078,6 +1096,11 @@
         background: var(--accent);
         color: var(--accent-ink);
       }
+      .savebar .save:disabled {
+        background: var(--surface2);
+        color: var(--muted);
+        cursor: not-allowed;
+      }
 
       .toast {
         position: fixed;
@@ -1265,11 +1288,21 @@
         ></span
       >
       <button class="discard" id="discardBtn" type="button">Discard</button>
-      <button class="save" id="saveBtn" type="button">Save changes</button>
+      <button
+        class="save"
+        id="saveBtn"
+        type="button"
+        disabled
+        title="read-only: the write-path has not shipped yet"
+        aria-describedby="saveReadonlyReason"
+      >
+        Save changes
+      </button>
+      <span class="status-why readonly-reason" id="saveReadonlyReason">
+        read-only: the write-path has not shipped yet
+      </span>
     </div>
-    <div class="toast" id="toast">
-      Saved — prototype only, nothing was written
-    </div>
+    <div class="toast" id="toast"></div>
     <script>
       "use strict";
       document.title = "Lisa Console — Project Settings";
@@ -1807,8 +1840,8 @@
                 control: {
                   type: "button",
                   label: "Run health check",
-                  toast:
-                    "Prototype — the health-check skill is not wired up yet",
+                  disabled: true,
+                  reason: "read-only: the health engine has not shipped yet",
                 },
               },
               {
@@ -2280,7 +2313,8 @@
                 control: {
                   type: "button",
                   label: "Sync now",
-                  toast: "Prototype — starter sync is not wired up yet",
+                  disabled: true,
+                  reason: "read-only: starter sync has not shipped yet",
                 },
               },
             ],
@@ -5399,10 +5433,27 @@
         } else if (control.type === "button") {
           const b = el("button", "action-btn", esc(control.label));
           b.type = "button";
-          b.addEventListener("click", () =>
-            showToast(control.toast || "Prototype action")
-          );
+          if (control.disabled) {
+            b.disabled = true;
+            if (control.reason) {
+              b.title = control.reason;
+              b.setAttribute("aria-describedby", id + "-reason");
+            }
+          } else {
+            b.addEventListener("click", () =>
+              showToast(control.toast || "Prototype action")
+            );
+          }
           wrap.appendChild(b);
+          if (control.disabled && control.reason) {
+            const reason = el(
+              "span",
+              "status-why readonly-reason",
+              esc(control.reason)
+            );
+            reason.id = id + "-reason";
+            wrap.appendChild(reason);
+          }
         } else if (control.type === "static") {
           wrap.appendChild(
             el("span", control.cls === "mono" ? "mono" : "", esc(control.value))
@@ -5704,17 +5755,19 @@
             if (!isDone && item.why) {
               right.appendChild(el("span", "status-why", esc(item.why)));
             }
+            right.appendChild(
+              el(
+                "span",
+                "status-why",
+                "read-only: setup checklist state has not shipped yet"
+              )
+            );
           };
           const ck = el("button", "ck");
           ck.type = "button";
-          ck.title = "Toggle (prototype)";
-          ck.setAttribute("aria-label", "Toggle " + item.label);
-          ck.addEventListener("click", () => {
-            row.classList.toggle("done");
-            refreshRight();
-            refreshNote();
-            markDirty("setup·" + item.label, null);
-          });
+          ck.disabled = true;
+          ck.title = "read-only: setup checklist state has not shipped yet";
+          ck.setAttribute("aria-label", item.label + " checklist status");
           row.appendChild(ck);
           const content = el("div", "check-content");
           const lab = el("div", "check-label", esc(item.label));
@@ -6078,13 +6131,6 @@
         }
       });
 
-      document.getElementById("saveBtn").addEventListener("click", () => {
-        clearDirty();
-        document
-          .querySelectorAll(".row.modified")
-          .forEach(r => r.classList.remove("modified"));
-        showToast("Saved — prototype only, nothing was written");
-      });
       document.getElementById("discardBtn").addEventListener("click", () => {
         clearDirty();
         renderAll();

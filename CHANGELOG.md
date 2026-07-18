@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.230.1](https://github.com/CodySwannGT/lisa/compare/v2.230.0...v2.230.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **ui:** render readonly console affordances ([7be4f4d](https://github.com/CodySwannGT/lisa/commit/7be4f4dd8aac48e92b5c9b643f97afeb23f15bc9))
+
+## [2.230.0](https://github.com/CodySwannGT/lisa/compare/v2.229.2...v2.230.0) (2026-07-18)
+
+
+### Features
+
+* **ui:** make remote requirements project-aware ([e41390a](https://github.com/CodySwannGT/lisa/commit/e41390a945bab6fc33e6244c29d4b01f58f0c201))
+
 ### [2.229.2](https://github.com/CodySwannGT/lisa/compare/v2.229.1...v2.229.2) (2026-07-18)
 
 
