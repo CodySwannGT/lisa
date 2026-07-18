@@ -5652,9 +5652,9 @@
          stack installs — NOT the detection result; only ids the probe reports
          are rendered from it. */
       function stackCatalog(block) {
-        const catalog = {};
+        const catalog = new Map();
         block.items.forEach(s => {
-          catalog[s.id] = s;
+          catalog.set(s.id, s);
         });
         return catalog;
       }
@@ -5739,7 +5739,7 @@
         const catalog = stackCatalog(block);
         const grid = el("div", "stack-grid");
         d.ids.forEach(id => {
-          grid.appendChild(stackCard(catalog[id] || minimalStackMeta(id)));
+          grid.appendChild(stackCard(catalog.get(id) || minimalStackMeta(id)));
         });
         wrap.appendChild(grid);
         wrap.appendChild(el("div", "", "&nbsp;"));
