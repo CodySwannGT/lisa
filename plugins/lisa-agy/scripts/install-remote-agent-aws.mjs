@@ -98,9 +98,12 @@ function installCopilotAdapter(project) {
   );
   mkdirSync(path.dirname(workflowPath), { recursive: true });
   const marker = "Lisa remote AWS bootstrap";
+  const secretEnvironment =
+    "          LISA_AWS_BOOTSTRAP_JSON: ${{ secrets.LISA_AWS_BOOTSTRAP_JSON }}";
   const step = [
     `      - name: ${marker}`,
     "        env:",
+    secretEnvironment,
     "          LISA_REMOTE_AGENT: copilot",
     `        run: ${INSTALL_COMMAND}`,
   ].join("\n");
@@ -127,8 +130,31 @@ function installCopilotAdapter(project) {
   }
 
   const current = readFileSync(workflowPath, "utf8");
-  if (current.includes(marker)) return path.relative(project, workflowPath);
   const lines = current.split("\n");
+  const markerIndex = lines.findIndex(line => line.includes(marker));
+  if (markerIndex >= 0) {
+    const nextStepIndex = lines.findIndex(
+      (line, index) => index > markerIndex && /^\s{6}-\s/.test(line)
+    );
+    const managedStepEnd = nextStepIndex < 0 ? lines.length : nextStepIndex;
+    const managedStep = lines.slice(markerIndex, managedStepEnd);
+    if (!managedStep.includes(secretEnvironment)) {
+      const environmentIndex = lines.findIndex(
+        (line, index) =>
+          index > markerIndex &&
+          index < managedStepEnd &&
+          /^\s{8}env:\s*$/.test(line)
+      );
+      if (environmentIndex < 0) {
+        throw new Error(
+          "Existing Lisa remote AWS bootstrap step must contain an env block"
+        );
+      }
+      lines.splice(environmentIndex + 1, 0, secretEnvironment);
+      writeFileSync(workflowPath, lines.join("\n"));
+    }
+    return path.relative(project, workflowPath);
+  }
   const jobIndex = lines.findIndex(line =>
     /^\s{2}copilot-setup-steps:\s*$/.test(line)
   );
@@ -161,13 +187,20 @@ function writeGuide(project, platform, secretName) {
     guidePath,
     `# Remote coding-agent AWS access
 
+## Context
+
 This repository uses Lisa's vendor-neutral AWS bootstrap. Configure the complete
 Secrets Manager SecretString as the secret \`LISA_AWS_BOOTSTRAP_JSON\`; do not
 split it into \`AWS_ACCESS_KEY_ID\` and \`AWS_SECRET_ACCESS_KEY\` environment
 variables. The setup script writes a named source profile whose only permission
 is \`sts:AssumeRole\`, then creates automatically refreshed role profiles.
 
-## Runtime configuration
+## Goal
+
+Give supported remote coding agents renewable, least-privilege AWS CLI access
+without borrowing a developer identity or granting direct production repair.
+
+## Changes
 
 | Runtime | Setup |
 |---|---|
@@ -180,7 +213,7 @@ is \`sts:AssumeRole\`, then creates automatically refreshed role profiles.
 
 Generated for: \`${platform}\`.
 
-## Profiles
+## Implementation
 
 The bootstrap bundle defines the available profile names. \`dev\` is the
 default when present. Select another account explicitly, for example:
@@ -192,8 +225,6 @@ aws --profile production cloudformation describe-stacks
 
 Production and shared profiles are observer-only. Production repair remains a
 human-driven local-workstation operation.
-
-## Administrator rollout
 
 After the infrastructure pipeline deploys the remote-agent IAM stacks, retrieve
 the complete bundle from the shared account. Do not extract or distribute its
@@ -209,6 +240,8 @@ aws --profile shared secretsmanager get-secret-value \\
 Store that exact output as the masked secret \`LISA_AWS_BOOTSTRAP_JSON\` on each
 remote-agent platform. Run the setup command and require its live
 \`sts:GetCallerIdentity\` check to pass before considering the platform ready.
+
+## Notes
 
 Rotate by replacing the bootstrap IAM access key through infrastructure and
 then updating this one secret on every configured platform. Disabling or

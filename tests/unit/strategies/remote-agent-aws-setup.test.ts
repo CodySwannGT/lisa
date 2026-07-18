@@ -25,6 +25,10 @@ const REMOTE_SETUP_SCRIPT_PATH =
 const CURSOR_ENVIRONMENT_PATH = ".cursor/environment.json";
 const COPILOT_WORKFLOW_PATH = ".github/workflows/copilot-setup-steps.yml";
 const REMOTE_AWS_GUIDE_PATH = "docs/remote-agent-aws.md";
+const COPILOT_PLATFORM_ARGUMENT = "--platform=copilot";
+const NPM_INSTALL_STEP = "- run: npm ci";
+const COPILOT_BOOTSTRAP_SECRET =
+  "LISA_AWS_BOOTSTRAP_JSON: ${{ secrets.LISA_AWS_BOOTSTRAP_JSON }}";
 const GENERATED_PLUGIN_ROOTS = [
   "plugins/lisa",
   "plugins/lisa-cursor",
@@ -75,11 +79,23 @@ describe("remote AWS platform installer", () => {
       "utf8"
     );
     expect(workflow).toContain("Lisa remote AWS bootstrap");
+    expect(workflow).toContain(COPILOT_BOOTSTRAP_SECRET);
     expect(workflow).toContain("LISA_REMOTE_AGENT: copilot");
     expect(workflow).not.toContain("  push:");
-    expect(
-      readFileSync(path.join(project, REMOTE_AWS_GUIDE_PATH), "utf8")
-    ).toContain("--secret-id company-remote-agent");
+    const guide = readFileSync(
+      path.join(project, REMOTE_AWS_GUIDE_PATH),
+      "utf8"
+    );
+    expect(guide).toContain("--secret-id company-remote-agent");
+    for (const heading of [
+      "## Context",
+      "## Goal",
+      "## Changes",
+      "## Implementation",
+      "## Notes",
+    ]) {
+      expect(guide).toContain(heading);
+    }
   });
 
   it("preserves an existing Cursor install command and is idempotent", () => {
@@ -110,13 +126,41 @@ describe("remote AWS platform installer", () => {
       "jobs:\n  copilot-setup-steps:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm ci\n"
     );
 
-    installRemoteAgentAws([`--project=${project}`, "--platform=copilot"]);
-    installRemoteAgentAws([`--project=${project}`, "--platform=copilot"]);
+    installRemoteAgentAws([`--project=${project}`, COPILOT_PLATFORM_ARGUMENT]);
+    installRemoteAgentAws([`--project=${project}`, COPILOT_PLATFORM_ARGUMENT]);
 
     const workflow = readFileSync(workflowPath, "utf8");
     expect(workflow.match(/Lisa remote AWS bootstrap/g)).toHaveLength(1);
     expect(workflow.match(/actions\/checkout@v4/g)).toHaveLength(1);
-    expect(workflow).toContain("- run: npm ci");
+    expect(workflow).toContain(NPM_INSTALL_STEP);
+    expect(workflow).toContain(COPILOT_BOOTSTRAP_SECRET);
+  });
+
+  it("upgrades an existing Lisa Copilot step with the bootstrap secret", () => {
+    const project = temporaryDirectory();
+    const workflowPath = path.join(project, COPILOT_WORKFLOW_PATH);
+    mkdirSync(path.dirname(workflowPath), { recursive: true });
+    writeFileSync(
+      workflowPath,
+      [
+        "jobs:",
+        "  copilot-setup-steps:",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - name: Lisa remote AWS bootstrap",
+        "        env:",
+        "          LISA_REMOTE_AGENT: copilot",
+        "        run: bash scripts/remote-agent-aws-setup.sh",
+        "      - run: npm ci",
+        "",
+      ].join("\n")
+    );
+
+    installRemoteAgentAws([`--project=${project}`, COPILOT_PLATFORM_ARGUMENT]);
+
+    const workflow = readFileSync(workflowPath, "utf8");
+    expect(workflow.match(/LISA_AWS_BOOTSTRAP_JSON/g)).toHaveLength(2);
+    expect(workflow).toContain(`      ${NPM_INSTALL_STEP}`);
   });
 });
 
