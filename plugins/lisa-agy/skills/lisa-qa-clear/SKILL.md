@@ -41,9 +41,17 @@ Read `.lisa.config.json`:
    - **Every** touched repo is non-user-facing → eligible to clear.
    - Any user-facing repo in scope (including mixed-scope) → stays in the queue for the
      human pass via `lisa-qa-queue`.
-4. For each eligible ticket: transition to the certified status and post
-   `[lisa-qa-clear] Certified without human QA: scope is <repo(s)>, not observable with
-   end-user access. Verified by the automated lifecycle pre-promotion.`
+4. For each eligible ticket, perform both steps and confirm both succeeded before
+   counting the ticket as moved:
+   a. Post the audit comment: `[lisa-qa-clear] Certified without human QA: scope is
+      <repo(s)>, not observable with end-user access. Verified by the automated
+      lifecycle pre-promotion.` Skip this step if this sweep's comment is already
+      present (retry/repair case — see Rules).
+   b. Transition to the certified status. Skip this step if the ticket is already in
+      the certified status.
+   If either step fails, leave the ticket exactly as it is (do not report it as moved)
+   so the next sweep retries only the missing step — never report success when only one
+   of the two has landed.
 5. Report the batch:
 
 ```text
@@ -62,6 +70,11 @@ marks exactly what was auto-cleared.
 - Never clear a mixed-scope ticket — partial human-verifiability means human QA.
 - Never bulk-move on an inferred repo list without explicit operator confirmation.
 - Every cleared ticket carries the audit comment; a transition without the comment is a
-  bug in this procedure.
-- Idempotent: tickets already in the certified status, or already carrying this sweep's
-  `[lisa-qa-clear]` comment, are skipped silently.
+  bug in this procedure. A ticket certified without the comment (partial write from a
+  prior failed sweep) is not "done" — repair it by posting the missing comment, not by
+  leaving it silently uncertified-in-spirit.
+- Idempotent per step, not per ticket: a ticket already in the certified status skips
+  only the transition step; a ticket already carrying this sweep's `[lisa-qa-clear]`
+  comment skips only the comment step. A ticket with just one of the two done is
+  repaired (the missing step only) on the next sweep — it is never treated as fully
+  processed until both have landed.
