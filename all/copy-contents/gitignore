@@ -208,6 +208,9 @@ expo-env.d.ts
 
 .lisa.config.local.json
 .lisa/jira-cli/
+# Transient verification verdict used by Lisa's completion gate. Durable
+# verification evidence belongs under evidence/<ticket>/ and remains trackable.
+.lisa/verification-status.json
 
 # Lisa-generated project Codex overlay. Keep host-owned config.toml and
 # hooks.json visible so projects can commit their own merged configuration.
