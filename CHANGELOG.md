@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.226.0](https://github.com/CodySwannGT/lisa/compare/v2.225.5...v2.226.0) (2026-07-18)
+
+
+### Features
+
+* add remote-agent AWS bootstrap ([2094e48](https://github.com/CodySwannGT/lisa/commit/2094e48791f22fd1d6949956e38e21a2c41e1cf8))
+
 ### [2.225.5](https://github.com/CodySwannGT/lisa/compare/v2.225.4...v2.225.5) (2026-07-18)
 
 
