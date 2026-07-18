@@ -27,6 +27,7 @@ import {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+import { createEnabledPluginsProbe } from "./ui-enabled-plugins.js";
 import { serveConfigWrite } from "./ui-config-write.js";
 export {
   createGithubAuthProbe,
@@ -36,6 +37,14 @@ export {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+export {
+  createEnabledPluginsProbe,
+  buildEnabledPluginsValue,
+  listMarketplacePluginsFromDisk,
+  type EnabledPluginRow,
+  type EnabledPluginsValue,
+  type MarketplacePlugin,
+} from "./ui-enabled-plugins.js";
 export { inspectRemoteEnvironment } from "./remote-environment.js";
 
 /** Default port for the settings console. */
@@ -319,7 +328,10 @@ export async function runUi(
     getProcessEnvironment()
   );
   const page = injectLiveConfig(html, config, remoteEnvironment);
-  const probes = dependencies.probes ?? [createGithubAuthProbe(destDir)];
+  const probes = dependencies.probes ?? [
+    createGithubAuthProbe(destDir),
+    createEnabledPluginsProbe(destDir),
+  ];
   const server = http.createServer(
     createUiRequestHandler(page, probes, destDir)
   );
