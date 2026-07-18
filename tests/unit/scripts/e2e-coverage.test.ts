@@ -98,6 +98,7 @@ describe("check-e2e-coverage", () => {
     it("keeps dynamic and catch-all segments", () => {
       expect(routeFromFile("players/[id].tsx")).toBe(PLAYERS_ROUTE);
       expect(routeFromFile("docs/[...slug].tsx")).toBe(DOCS_ROUTE);
+      expect(routeFromFile("players/[🚀🚀id].tsx")).toBe("/players/[🚀🚀id]");
     });
 
     it("maps Metro platform files to their shared route", () => {
@@ -114,6 +115,7 @@ describe("check-e2e-coverage", () => {
       expect(routeFromFile("index.test.tsx")).toBeNull();
       expect(routeFromFile("spike/indexability.spec.ts")).toBeNull();
       expect(routeFromFile("players/[id].test.tsx")).toBeNull();
+      expect(routeFromFile("players/[🚀🚀id].test.tsx")).toBeNull();
       expect(routeFromFile("docs/[...slug].stories.tsx")).toBeNull();
       expect(routeFromFile("Card.stories.web.tsx")).toBeNull();
     });
