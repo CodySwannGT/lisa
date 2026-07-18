@@ -38,9 +38,11 @@ unavailable integration cannot block the page or cause a value to be invented.
 Concurrent requests share one in-flight snapshot. In-process probes must be
 asynchronous and cooperate with the supplied abort signal; JSON depth and size
 budgets also bound result normalization. The first reference probe scopes
-`gh auth status --active` to the project's origin hostname; the
-remaining live integrations are delivered by the console work that builds on
-this transport.
+`gh auth status --active` to the project's origin hostname. The Automations
+section reads the harness scheduler through the `automations` probe (Codex
+`~/.codex/automations/` or an injected Claude `/schedule` listing), matching
+only `lisa-auto-<project>-*` jobs and never fabricating demo rows when the
+scheduler is absent or unreadable.
 
 ## Config sync (`lisa sync`)
 
