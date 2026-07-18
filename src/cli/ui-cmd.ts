@@ -27,6 +27,7 @@ import {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+import { serveConfigWrite } from "./ui-config-write.js";
 export {
   createGithubAuthProbe,
   runProbe,
@@ -247,11 +248,13 @@ function isLoopbackHost(host: string | undefined): boolean {
  * Build the request handler after validating the complete probe registry.
  * @param page - Hydrated settings console HTML
  * @param probes - Live-status probes registered for this server
+ * @param destDir - Project root served by this UI process
  * @returns Loopback HTTP request handler
  */
 function createUiRequestHandler(
   page: string,
-  probes: readonly StatusProbe[]
+  probes: readonly StatusProbe[],
+  destDir: string
 ): http.RequestListener {
   const readSnapshot = createStatusSnapshotReader(probes);
   validateStatusProbes(probes);
@@ -269,6 +272,10 @@ function createUiRequestHandler(
     }
     if (pathname === "/api/status") {
       serveStatus(request, response, readSnapshot);
+      return;
+    }
+    if (pathname === "/api/config") {
+      serveConfigWrite(request, response, destDir);
       return;
     }
     if (pathname === "/" || pathname === "/index.html") {
@@ -313,7 +320,9 @@ export async function runUi(
   );
   const page = injectLiveConfig(html, config, remoteEnvironment);
   const probes = dependencies.probes ?? [createGithubAuthProbe(destDir)];
-  const server = http.createServer(createUiRequestHandler(page, probes));
+  const server = http.createServer(
+    createUiRequestHandler(page, probes, destDir)
+  );
   await new Promise<void>(resolve => {
     server.listen(port, "127.0.0.1", resolve);
   });
