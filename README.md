@@ -84,6 +84,13 @@ Skill bodies are not copied into the project and unrelated Lisa stacks are not
 loaded. Project settings use `[features].hooks`; the deprecated `codex_hooks`
 key is removed during reconciliation.
 
+Remote coding environments use one vendor-neutral AWS bootstrap rather than
+repository-specific or agent-specific IAM users. Run `/lisa:setup-remote-aws`
+to install the common setup script and native Cursor/Copilot adapters; Claude,
+Codex, Cursor, Copilot, and user-managed Antigravity/OpenCode hosts all consume
+the same `LISA_AWS_BOOTSTRAP_JSON` bundle. See
+[Remote coding-agent AWS access](docs/remote-agent-aws.md).
+
 The supported stacks, setup flags, and exact invocation evolve as the project grows, so ask for the current set rather than copying a list that may have moved on:
 
 > **Prompt for your coding agent**
