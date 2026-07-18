@@ -289,6 +289,7 @@ describe("runUi", () => {
 
     expect(response.status).toBe(200);
     expect(snapshot.probes).toHaveProperty("github-auth");
+    expect(snapshot.probes).toHaveProperty("detected-stacks");
     expect(snapshot.probes).toHaveProperty("lisa-version");
     expect(snapshot.probes).toHaveProperty("deploy-pipeline-stages");
   });

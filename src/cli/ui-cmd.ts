@@ -22,6 +22,7 @@ import {
 } from "./remote-environment.js";
 import { createCiQualityJobsProbe } from "./ui-ci-quality-jobs.js";
 import { createDeployPipelineProbe } from "./ui-deploy-pipeline.js";
+import { createDetectedStacksProbe } from "./ui-detected-stacks.js";
 import { createGithubRepoProbe } from "./ui-github-repo.js";
 import { createLisaVersionProbe } from "./ui-lisa-version.js";
 import {
@@ -56,6 +57,10 @@ export {
   type DeployPipelineStage,
   type DeployPipelineValue,
 } from "./ui-deploy-pipeline.js";
+export {
+  createDetectedStacksProbe,
+  DETECTED_STACKS_PROBE_ID,
+} from "./ui-detected-stacks.js";
 export {
   createLisaVersionProbe,
   mapLisaVersionCheck,
@@ -357,6 +362,7 @@ export async function runUi(
   const probes = dependencies.probes ?? [
     createGithubAuthProbe(destDir),
     createEnabledPluginsProbe(destDir),
+    createDetectedStacksProbe(destDir),
     createLisaVersionProbe(),
     createCiQualityJobsProbe(destDir, config),
     createDeployPipelineProbe(destDir),
