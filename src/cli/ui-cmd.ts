@@ -36,50 +36,7 @@ import { createEnabledPluginsProbe } from "./ui-enabled-plugins.js";
 import { createAutomationsProbe } from "./ui-automations.js";
 import { createObservabilityProviderProbes } from "./ui-observability-providers.js";
 import { serveConfigWrite } from "./ui-config-write.js";
-export {
-  createGithubAuthProbe,
-  runProbe,
-  type GitRemoteReader,
-  type GithubAuthCheck,
-  type ProbeResult,
-  type StatusProbe,
-} from "./ui-status.js";
-export { createGithubRepoProbe } from "./ui-github-repo.js";
-export {
-  createEnabledPluginsProbe,
-  buildEnabledPluginsValue,
-  listMarketplacePluginsFromDisk,
-  type EnabledPluginRow,
-  type EnabledPluginsValue,
-  type MarketplacePlugin,
-} from "./ui-enabled-plugins.js";
-export {
-  createDeployPipelineProbe,
-  DEPLOY_PIPELINE_PROBE_ID,
-  type DeployPipelineStage,
-  type DeployPipelineValue,
-} from "./ui-deploy-pipeline.js";
-export {
-  createDetectedStacksProbe,
-  DETECTED_STACKS_PROBE_ID,
-} from "./ui-detected-stacks.js";
-export {
-  createLisaVersionProbe,
-  mapLisaVersionCheck,
-  type LisaVersionValue,
-} from "./ui-lisa-version.js";
-export {
-  createCiQualityJobsProbe,
-  computeCiQualityJobs,
-  parseCiWorkflowInputs,
-  CI_QUALITY_JOBS_PROBE_ID,
-  type CiQualityJobEntry,
-  type CiQualityJobsValue,
-  type CiWorkflowInputs,
-  type RepoSecretsPresence,
-} from "./ui-ci-quality-jobs.js";
-export { createObservabilityProviderProbes } from "./ui-observability-providers.js";
-export { inspectRemoteEnvironment } from "./remote-environment.js";
+export * from "./ui-cmd-reexports.js";
 
 /** Default port for the settings console. */
 export const DEFAULT_UI_PORT = 4780;
