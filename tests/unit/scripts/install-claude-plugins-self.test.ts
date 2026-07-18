@@ -34,6 +34,12 @@ const COMMAND_LOG = "commands.log";
 const CODEX_PLUGIN_ADD = "codex plugin add";
 const CODEX_REMOVE_LISA = "codex plugin remove lisa@lisa";
 const CODEX_MARKETPLACE_ADD = "codex plugin marketplace add";
+const PACKAGE_JSON_FILE = "package.json";
+const LISA_PACKAGE_NAME = "@codyswann/lisa";
+const CLAUDE_INSTALL_BASE = "claude plugin install lisa@lisa --scope project";
+const CLAUDE_DIR = ".claude";
+const PLUGIN_SYNC_MARKER_FILE = ".lisa-plugins-synced";
+const FAKE_LISA_VERSION = "9.9.9";
 
 let tempRoots: string[] = [];
 
@@ -65,8 +71,8 @@ async function writeExecutable(filePath: string, body: string): Promise<void> {
  */
 async function writeSelfProject(root: string): Promise<void> {
   await writeFile(
-    path.join(root, "package.json"),
-    `${JSON.stringify({ name: "@codyswann/lisa" }, null, 2)}\n`,
+    path.join(root, PACKAGE_JSON_FILE),
+    `${JSON.stringify({ name: LISA_PACKAGE_NAME }, null, 2)}\n`,
     "utf8"
   );
   await mkdir(path.join(root, "dist", "codex"), { recursive: true });
@@ -80,9 +86,9 @@ async function writeSelfProject(root: string): Promise<void> {
     `${JSON.stringify({ harness: "fleet" }, null, 2)}\n`,
     "utf8"
   );
-  await mkdir(path.join(root, ".claude"), { recursive: true });
+  await mkdir(path.join(root, CLAUDE_DIR), { recursive: true });
   await writeFile(
-    path.join(root, ".claude", "settings.json"),
+    path.join(root, CLAUDE_DIR, "settings.json"),
     `${JSON.stringify(
       { enabledPlugins: { "lisa@lisa": true, "lisa-typescript@lisa": true } },
       null,
@@ -105,7 +111,7 @@ async function writeSelfProject(root: string): Promise<void> {
  */
 async function writeDownstreamProject(root: string): Promise<void> {
   await writeFile(
-    path.join(root, "package.json"),
+    path.join(root, PACKAGE_JSON_FILE),
     `${JSON.stringify({ name: "consumer-project" }, null, 2)}\n`,
     "utf8"
   );
@@ -220,7 +226,7 @@ if [ "$1" = "plugin" ] && [ "$2" = "marketplace" ] && [ "$3" = "list" ]; then
   printf '[]\\n'
 fi
 if [ "$1" = "plugin" ] && [ "$2" = "list" ]; then
-  printf '[]\\n'
+  printf '%s\\n' "\${LISA_TEST_INSTALLED_PLUGINS:-[]}"
 fi
 exit 0
 `
@@ -246,6 +252,9 @@ describe("install-claude-plugins self postinstall path", () => {
     await execFileAsync("bash", [selfScriptPath], {
       env: {
         ...process.env,
+        // Sandbox HOME: the script writes the one-time Codex retire marker to
+        // $HOME/.codex, which must never leak onto the developer's machine.
+        HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
         LISA_TEST_COMMAND_LOG: commandLog,
@@ -259,7 +268,7 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(log).toContain("codex plugin marketplace remove lisa");
     expect(log).not.toContain(CODEX_PLUGIN_ADD);
     expect(log).not.toContain(CODEX_MARKETPLACE_ADD);
-    expect(log).toContain("claude plugin install lisa@lisa --scope project");
+    expect(log).toContain(CLAUDE_INSTALL_BASE);
     expect(log).toContain(CODEX_SELF_OVERLAY_LOG);
     expect(log).not.toContain("apply self");
   });
@@ -275,6 +284,9 @@ describe("install-claude-plugins self postinstall path", () => {
     await execFileAsync("bash", [installedScriptPath], {
       env: {
         ...process.env,
+        // Sandbox HOME: the script writes the one-time Codex retire marker to
+        // $HOME/.codex, which must never leak onto the developer's machine.
+        HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
         LISA_TEST_COMMAND_LOG: commandLog,
@@ -301,6 +313,9 @@ describe("install-claude-plugins self postinstall path", () => {
     await execFileAsync("bash", [selfScriptPath], {
       env: {
         ...process.env,
+        // Sandbox HOME: the script writes the one-time Codex retire marker to
+        // $HOME/.codex, which must never leak onto the developer's machine.
+        HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
         LISA_TEST_COMMAND_LOG: commandLog,
@@ -327,6 +342,9 @@ describe("install-claude-plugins self postinstall path", () => {
     await execFileAsync("bash", [installedScriptPath], {
       env: {
         ...process.env,
+        // Sandbox HOME: the script writes the one-time Codex retire marker to
+        // $HOME/.codex, which must never leak onto the developer's machine.
+        HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
         INIT_CWD: leakedRoot,
@@ -354,6 +372,9 @@ describe("install-claude-plugins self postinstall path", () => {
     await execFileAsync("bash", [pnpmScriptPath], {
       env: {
         ...process.env,
+        // Sandbox HOME: the script writes the one-time Codex retire marker to
+        // $HOME/.codex, which must never leak onto the developer's machine.
+        HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "",
         LISA_TEST_COMMAND_LOG: commandLog,
@@ -379,6 +400,9 @@ describe("install-claude-plugins self postinstall path", () => {
     const result = await execFileAsync("bash", [selfScriptPath], {
       env: {
         ...process.env,
+        // Sandbox HOME: the script writes the one-time Codex retire marker to
+        // $HOME/.codex, which must never leak onto the developer's machine.
+        HOME: projectRoot,
         CI: "",
         CODEX_THREAD_ID: "active-thread",
         LISA_TEST_COMMAND_LOG: commandLog,
@@ -389,6 +413,185 @@ describe("install-claude-plugins self postinstall path", () => {
     const log = await readFile(commandLog, "utf8");
     expect(result.stderr).toContain("cleanup deferred");
     expect(log).not.toContain(CODEX_REMOVE_LISA);
+  });
+
+  it("skips the package-side apply when the host postinstall already invokes Lisa", async () => {
+    const projectRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeDownstreamProject(projectRoot);
+    await writeFile(
+      path.join(projectRoot, PACKAGE_JSON_FILE),
+      `${JSON.stringify(
+        {
+          name: "consumer-project",
+          scripts: {
+            postinstall:
+              '[ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true',
+          },
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    const installedScriptPath = await writeInstalledLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+
+    const result = await execFileAsync("bash", [installedScriptPath], {
+      env: {
+        ...process.env,
+        HOME: projectRoot,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    const log = await readFile(commandLog, "utf8");
+    expect(result.stdout).toContain("deferred to the host");
+    expect(log).not.toContain(APPLY_DOWNSTREAM_LOG);
+    // The rest of the lifecycle (plugin section) still runs.
+    expect(log).toContain(CLAUDE_INSTALL_BASE);
+  });
+
+  it("skips plugin installs when the same Lisa version is already synced", async () => {
+    const projectRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeDownstreamProject(projectRoot);
+    const installedScriptPath = await writeInstalledLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+    await writeFile(
+      path.join(
+        projectRoot,
+        "node_modules",
+        CODYSWANN_SCOPE,
+        LISA_PACKAGE_DIR_NAME,
+        PACKAGE_JSON_FILE
+      ),
+      `${JSON.stringify({ name: LISA_PACKAGE_NAME, version: FAKE_LISA_VERSION }, null, 2)}\n`,
+      "utf8"
+    );
+    await mkdir(path.join(projectRoot, CLAUDE_DIR), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+      FAKE_LISA_VERSION,
+      "utf8"
+    );
+    await writeFile(
+      path.join(projectRoot, CLAUDE_DIR, ".lisa-marketplace-heal-v2"),
+      "",
+      "utf8"
+    );
+    const installedPlugins = [
+      "lisa@lisa",
+      "lisa-typescript@lisa",
+      "typescript-lsp@claude-plugins-official",
+      "code-simplifier@claude-plugins-official",
+      "code-review@claude-plugins-official",
+      "coderabbit@claude-plugins-official",
+      "sentry@claude-plugins-official",
+      "skill-creator@claude-plugins-official",
+      "atlassian@claude-plugins-official",
+      "safety-net@cc-marketplace",
+    ].map(id => ({ id, projectPath: projectRoot }));
+
+    await execFileAsync("bash", [installedScriptPath], {
+      env: {
+        ...process.env,
+        HOME: projectRoot,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        LISA_TEST_INSTALLED_PLUGINS: JSON.stringify(installedPlugins),
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    const log = await readFile(commandLog, "utf8");
+    expect(log).toContain("claude plugin list --json");
+    expect(log).not.toContain("claude plugin install");
+    expect(log).not.toContain("claude plugin marketplace update");
+    expect(log).not.toContain("claude plugin marketplace list");
+  });
+
+  it("performs a full plugin sync and records the marker when the Lisa version changes", async () => {
+    const projectRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeDownstreamProject(projectRoot);
+    const installedScriptPath = await writeInstalledLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+    await writeFile(
+      path.join(
+        projectRoot,
+        "node_modules",
+        CODYSWANN_SCOPE,
+        LISA_PACKAGE_DIR_NAME,
+        PACKAGE_JSON_FILE
+      ),
+      `${JSON.stringify({ name: LISA_PACKAGE_NAME, version: FAKE_LISA_VERSION }, null, 2)}\n`,
+      "utf8"
+    );
+    await mkdir(path.join(projectRoot, CLAUDE_DIR), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+      "1.0.0",
+      "utf8"
+    );
+    const installedPlugins = [{ id: "lisa@lisa", projectPath: projectRoot }];
+
+    await execFileAsync("bash", [installedScriptPath], {
+      env: {
+        ...process.env,
+        HOME: projectRoot,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        LISA_TEST_INSTALLED_PLUGINS: JSON.stringify(installedPlugins),
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    const log = await readFile(commandLog, "utf8");
+    // Version changed: even already-installed plugins are reinstalled so the
+    // refreshed marketplace content is picked up.
+    expect(log).toContain(CLAUDE_INSTALL_BASE);
+    expect(log).toContain("claude plugin marketplace update lisa");
+    const marker = await readFile(
+      path.join(projectRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
+      "utf8"
+    );
+    expect(marker).toBe(FAKE_LISA_VERSION);
+  });
+
+  it("does not probe codex again once the retire marker exists", async () => {
+    const projectRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeSelfProject(projectRoot);
+    const selfScriptPath = await writeSelfLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+    const env = {
+      ...process.env,
+      HOME: projectRoot,
+      CI: "",
+      CODEX_THREAD_ID: "",
+      LISA_TEST_COMMAND_LOG: commandLog,
+      PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+    };
+
+    await execFileAsync("bash", [selfScriptPath], { env });
+    const firstLog = await readFile(commandLog, "utf8");
+    expect(firstLog).toContain(CODEX_REMOVE_LISA);
+
+    await rm(commandLog);
+    await execFileAsync("bash", [selfScriptPath], { env });
+    const secondLog = await readFile(commandLog, "utf8");
+    expect(secondLog).not.toContain("codex plugin marketplace list");
+    expect(secondLog).not.toContain(CODEX_REMOVE_LISA);
   });
 });
 /* eslint-enable max-lines -- restore the repository default */
