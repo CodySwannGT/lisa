@@ -2,6 +2,170 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.227.0](https://github.com/CodySwannGT/lisa/compare/v2.226.2...v2.227.0) (2026-07-18)
+
+
+### Features
+
+* **rules:** add history-audit rule for behavior-removal changes ([7795371](https://github.com/CodySwannGT/lisa/commit/779537183ae4c8212fb12a711c7a4bda08d9dbde)), closes [#1017](https://github.com/CodySwannGT/lisa/issues/1017) [#383](https://github.com/CodySwannGT/lisa/issues/383)
+
+### [2.226.2](https://github.com/CodySwannGT/lisa/compare/v2.226.1...v2.226.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* **remote-aws:** clear stale session token ([fe96a4e](https://github.com/CodySwannGT/lisa/commit/fe96a4e8e37826edf46fc5ff4032aeb60497b697))
+* **remote-aws:** reserve bootstrap profile ([3980233](https://github.com/CodySwannGT/lisa/commit/39802333b3a5f7fa642bc1c59af9a34beb983111))
+
+### [2.226.1](https://github.com/CodySwannGT/lisa/compare/v2.226.0...v2.226.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **remote-aws:** verify AWS CLI installer ([5126160](https://github.com/CodySwannGT/lisa/commit/5126160d4523759398e4d5d324b1e4011f62816e))
+* **remote-aws:** wire Copilot bootstrap secret ([445b0e8](https://github.com/CodySwannGT/lisa/commit/445b0e853acb273426e9e0695fa307df992a9ed0))
+
+## [2.226.0](https://github.com/CodySwannGT/lisa/compare/v2.225.5...v2.226.0) (2026-07-18)
+
+
+### Features
+
+* add remote-agent AWS bootstrap ([2094e48](https://github.com/CodySwannGT/lisa/commit/2094e48791f22fd1d6949956e38e21a2c41e1cf8))
+
+### [2.225.5](https://github.com/CodySwannGT/lisa/compare/v2.225.4...v2.225.5) (2026-07-18)
+
+
+### Bug Fixes
+
+* sync npm lifecycle lockfiles before exit ([b04b68c](https://github.com/CodySwannGT/lisa/commit/b04b68c0c0509c61bb3d015d4bc6b1f1d02a801b))
+
+### [2.225.4](https://github.com/CodySwannGT/lisa/compare/v2.225.3...v2.225.4) (2026-07-18)
+
+
+### Bug Fixes
+
+* **rules:** scope force-push approval to SHA ([4348e6e](https://github.com/CodySwannGT/lisa/commit/4348e6e160efd05b674971e53e125d3b271adffb)), closes [#1626](https://github.com/CodySwannGT/lisa/issues/1626)
+
+### [2.225.3](https://github.com/CodySwannGT/lisa/compare/v2.225.2...v2.225.3) (2026-07-18)
+
+
+### Bug Fixes
+
+* **expo:** pin Maestro platform scripts ([f769e03](https://github.com/CodySwannGT/lisa/commit/f769e03f4db812af6cec04a98a108cf3fcf33af5)), closes [#1625](https://github.com/CodySwannGT/lisa/issues/1625)
+
+### [2.225.2](https://github.com/CodySwannGT/lisa/compare/v2.225.1...v2.225.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* **expo:** align route character indices ([d338bd2](https://github.com/CodySwannGT/lisa/commit/d338bd226c3092cfedf897ea9b8d260db88f7313)), closes [#1624](https://github.com/CodySwannGT/lisa/issues/1624)
+* **expo:** ignore companion route files ([b664504](https://github.com/CodySwannGT/lisa/commit/b664504a546a3d889a4bb44b83f885a8e1e56ed5)), closes [#1624](https://github.com/CodySwannGT/lisa/issues/1624)
+
+### [2.225.1](https://github.com/CodySwannGT/lisa/compare/v2.225.0...v2.225.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **skills:** harden distributed validation guidance ([d4a1bd1](https://github.com/CodySwannGT/lisa/commit/d4a1bd1eb95c7ec581fd17c61720674fa227eef5)), closes [#1622](https://github.com/CodySwannGT/lisa/issues/1622)
+
+## [2.225.0](https://github.com/CodySwannGT/lisa/compare/v2.224.0...v2.225.0) (2026-07-18)
+
+
+### Features
+
+* **agent-ready:** harden source ingestion readiness ([63ac17a](https://github.com/CodySwannGT/lisa/commit/63ac17a0295c129c39c7aff31d047476a3bb095e)), closes [#1620](https://github.com/CodySwannGT/lisa/issues/1620)
+
+## [2.224.0](https://github.com/CodySwannGT/lisa/compare/v2.223.3...v2.224.0) (2026-07-18)
+
+
+### Features
+
+* **config:** support GitHub umbrella build queues ([70d02bc](https://github.com/CodySwannGT/lisa/commit/70d02bc26b239f3ddb4dc9ff929e83270bf998c1))
+
+
+### Bug Fixes
+
+* **config:** clarify umbrella queue automation contracts ([51ca59c](https://github.com/CodySwannGT/lisa/commit/51ca59c85e6e74f5484f16449c82c345b7c26194))
+
+### [2.223.3](https://github.com/CodySwannGT/lisa/compare/v2.223.2...v2.223.3) (2026-07-18)
+
+
+### Bug Fixes
+
+* **gitignore:** exclude verification verdict ([7c81142](https://github.com/CodySwannGT/lisa/commit/7c811420baf7210ad14c59e5661a0ea26cd85719))
+
+### [2.223.2](https://github.com/CodySwannGT/lisa/compare/v2.223.1...v2.223.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **verification:** clarify typed evidence marker ([a2f97b8](https://github.com/CodySwannGT/lisa/commit/a2f97b827b87e91db42aa2fc6352751c8b52a000))
+* **verification:** preserve legacy evidence refs ([436d05d](https://github.com/CodySwannGT/lisa/commit/436d05d0156af99a54727a8e362dea832b83fd4a))
+
+### [2.223.1](https://github.com/CodySwannGT/lisa/compare/v2.223.0...v2.223.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **verification:** add non-claiming evidence references ([195ed99](https://github.com/CodySwannGT/lisa/commit/195ed9918423c0645f8811aa53d09eb506fdffad))
+
+## [2.223.0](https://github.com/CodySwannGT/lisa/compare/v2.222.3...v2.223.0) (2026-07-17)
+
+
+### Features
+
+* **validate:** add evidence reference markers ([3de2332](https://github.com/CodySwannGT/lisa/commit/3de2332ef83c8f79781931a557b34924644fa871))
+
+### [2.222.3](https://github.com/CodySwannGT/lisa/compare/v2.222.2...v2.222.3) (2026-07-17)
+
+
+### Bug Fixes
+
+* apply CodeRabbit auto-fixes ([267757a](https://github.com/CodySwannGT/lisa/commit/267757aeee10d827458754864349ad14fab62361))
+* **hooks:** fail closed on heredoc classification ([#1594](https://github.com/CodySwannGT/lisa/issues/1594)) ([5450387](https://github.com/CodySwannGT/lisa/commit/5450387ee562c5d9959c228c00b2690b487f5d10))
+
+### [2.222.2](https://github.com/CodySwannGT/lisa/compare/v2.222.1...v2.222.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **hooks:** ignore heredoc prose in safety net ([5396118](https://github.com/CodySwannGT/lisa/commit/5396118ace931cfadec187536b42a5400d345f61))
+* **hooks:** make heredoc stripping quote-aware and chain-safe ([4615d6a](https://github.com/CodySwannGT/lisa/commit/4615d6aa041de30cefb205f0c31eb9e8dd2b5941))
+
+### [2.222.1](https://github.com/CodySwannGT/lisa/compare/v2.222.0...v2.222.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **usage-accounting:** preserve explicit rollup state ([ae94225](https://github.com/CodySwannGT/lisa/commit/ae942253fe95c0a4e479cb77065c9e023af39d9f))
+* **usage-accounting:** preserve legacy ledgers ([#1550](https://github.com/CodySwannGT/lisa/issues/1550)) ([9a3fa24](https://github.com/CodySwannGT/lisa/commit/9a3fa24a1e82e212854c03004350fd478c5aa07d))
+
+## [2.222.0](https://github.com/CodySwannGT/lisa/compare/v2.221.6...v2.222.0) (2026-07-17)
+
+
+### Features
+
+* **usage-accounting:** record measured subsets ([6b7d642](https://github.com/CodySwannGT/lisa/commit/6b7d64209cb3fbadaeaced3fea44c2141421b7f6))
+
+### [2.221.6](https://github.com/CodySwannGT/lisa/compare/v2.221.5...v2.221.6) (2026-07-17)
+
+
+### Bug Fixes
+
+* **validate:** align F2/F4 with lifecycle hierarchy ([#1549](https://github.com/CodySwannGT/lisa/issues/1549)) ([7279e21](https://github.com/CodySwannGT/lisa/commit/7279e21cb10c2491338a4ff0d3794a40032a3bef))
+
+
+### Documentation
+
+* **plan:** require successful regression execution ([9f87d7b](https://github.com/CodySwannGT/lisa/commit/9f87d7bab2a4c9e1ad524502014c3de37d6f034c))
+
+### [2.221.5](https://github.com/CodySwannGT/lisa/compare/v2.221.4...v2.221.5) (2026-07-17)
+
+
+### Bug Fixes
+
+* **workflows:** hash source root in build caches ([a61a95b](https://github.com/CodySwannGT/lisa/commit/a61a95ba4c3727137df71417bb7de1ea09f96f9a))
+
 ### [2.221.4](https://github.com/CodySwannGT/lisa/compare/v2.221.3...v2.221.4) (2026-07-17)
 
 

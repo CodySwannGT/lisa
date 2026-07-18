@@ -211,7 +211,9 @@ Each marker must satisfy ALL of:
 
 **A marker names an artifact, not an assertion.** An untyped marker (`[EVIDENCE: load-failure-handled-gracefully]`) is an assertion label with nothing to capture and must FAIL, with a remediation that shows the typed transformation (e.g. → `[EVIDENCE: screenshot: load-failure-error-state]`, `[EVIDENCE: perf-trace: pipeline-load-tti]`).
 
-FAIL when the Validation Journey is present but declares zero markers, when any marker is untyped or uses a type outside the taxonomy, or when any name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one marker passes but the remediation should recommend adding the error/edge case.
+FAIL when the Validation Journey is present but declares zero binding `[EVIDENCE: ...]` markers, when any binding marker is untyped or uses a type outside the taxonomy, or when any binding name is empty, duplicated, or not kebab-case. A behavior-changing work unit SHOULD declare both a success marker and an error/edge marker; a journey with only one binding marker passes but the remediation should recommend adding the error/edge case.
+
+Parse claiming markers by the exact `[EVIDENCE:` prefix. A cross-work-item pointer in the canonical form `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` is non-claiming. The Lisa 2.223.0 form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` is also accepted as a legacy non-claiming alias; parse it from the right so the final two fields are type/name and a tracker URL may contain `:`. Exclude both forms from the manifest, S14's minimum-marker count, local marker type/name validation, and duplicate-name checks. Independently validate every `EVIDENCE-REF`: the native work-item reference must be non-empty and unambiguous, the artifact type must use the fixed taxonomy, and the name must be non-empty kebab-case. A malformed reference FAILs S14 as an invalid pointer but never becomes a local evidence obligation. A valid canonical or legacy reference may point to a sibling's artifact, but it never satisfies S14 for this item. Therefore a runtime-changing leaf whose journey contains only `EVIDENCE-REF` entries FAILs S14 for zero local claiming markers, not because a valid legacy reference is malformed. Quoting or code-formatting another item's `[EVIDENCE: ...]` marker does not make it a reference; writers must convert it to the canonical pipe form.
 
 This gate depends on S11. It is `N/A` for containers — a **Project** (the Epic equivalent), or any item with open child work (coordination containers, not work units) — and for leaf units with `runtime_behavior_change = false` (doc-only / config-only / type-only). If S11 fails because the Validation Journey is absent, S14 also FAILs (there is no manifest to bind) with remediation pointing back to `lisa-linear-add-journey`.
 
@@ -301,13 +303,23 @@ reach every external surface the work requires. Enumerate the surfaces this item
   alarms", "pull the copy from the Google Doc", "check the Sentry issues"),
 - tooling the work plainly implies (a deploy target, a database, a third-party API).
 
-For each surface, prove **read** access from the current runtime with the cheapest read-only probe
-through the sanctioned access layer: the matching MCP tool or `lisa-*-access` skill, CLI auth
-(`aws sts get-caller-identity`, `gh auth status`, vendor equivalents), or an authenticated fetch of
-the linked artifact. Attempt to resolve a gap before failing — an alternate substrate, a configured
-access layer, a keychain credential — mirroring the intake agent's discover-first duty.
+For each surface, prove **read** access from the current runtime with a target-resource-specific,
+read-only probe through its sanctioned access layer: the matching MCP tool or `lisa-*-access` skill,
+or an authenticated fetch using environment-injected authentication. Identity-only commands such as
+`aws sts get-caller-identity`, `gh auth status`, and vendor equivalents are preflight checks only;
+they never satisfy F5 by themselves. A successful probe for one surface does not cover another:
+reading the named GitHub repository, CloudWatch log group, Sentry project, or linked document must
+each succeed separately when that surface is required.
 
-- `PASS` — every required surface is provably readable.
+Attempt to resolve a gap before failing, but only through another configured brokered access layer
+or environment-injected authentication. A sanctioned broker may use its own credential store
+internally; the validator must never autonomously inspect, read, copy, print, or export raw
+credentials, keychains, credential files, or token stores, and must never invoke low-level secret
+tools to recover them. This preserves the intake agent's discover-first duty without exposing
+credential material.
+
+- `PASS` — every required surface has its own successful target-resource read probe or authenticated
+  fetch through the sanctioned access layer.
 - `N/A` — the item needs nothing beyond the repository and the tracker itself.
 - `FAIL` — a required surface is unreachable after the resolution attempt. Name the exact surface
   and what was probed. Intake callers must route this to `blocked` + human escalation with the

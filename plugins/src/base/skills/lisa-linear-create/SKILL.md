@@ -60,6 +60,8 @@ Items that change runtime behavior should include a `## Validation Journey` sect
 
 Design the journey based on the **change type**. Place typed `[EVIDENCE: <artifact-type>: <name>]` markers at key verification points (types: `screenshot`, `recording`, `http-transcript`, `cli-output`, `log-snippet`, `db-query-output`, `perf-trace`, `test-run-log`, `deploy-log`, `state-dump` — see the `verification` rule).
 
+To point at evidence owned by another work item, use exactly `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`. It is non-claiming and cannot satisfy S14; never paste or quote the sibling's `[EVIDENCE: ...]` marker into this item.
+
 ```markdown
 ## Validation Journey
 

@@ -16,6 +16,7 @@ export interface LisaUsageEntry {
   entryId: string;
   flow: string;
   inputTokens: number | null;
+  measuredSubsetTokens?: number | null;
   model: string;
   outputTokens: number | null;
   parentArtifactRef: string | null;
@@ -37,6 +38,7 @@ export interface LisaUsageRollup {
   childEntryIds: readonly string[];
   childRefs: readonly string[];
   childTokens: number | null;
+  childTokensIncomplete?: boolean;
   currency: string | null;
   directCost: number | null;
   directEntryIds: readonly string[];
@@ -62,11 +64,22 @@ export interface ParsedLisaUsageSection {
   rollup: LisaUsageRollup | null;
 }
 
-const ENTRY_PATTERN =
-  /<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->/g;
+const ENTRY_TOKEN_PATTERN = /<!-- lisa:usage-entry [^\r\n]*? -->/g;
+
+const LEGACY_ENTRY_PATTERN =
+  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
+
+const RELEASED_MIDDLE_FIELD_ENTRY_PATTERN =
+  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) measured_subset_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
+
+const MEASURED_SUBSET_PATTERN =
+  /<!-- lisa:usage-entry-measured-subset entry_id=(\S+) measured_subset_tokens=(\S+) -->/g;
 
 const ROLLUP_PATTERN =
   /<!-- lisa:usage-rollup direct_entry_ids=(\S*) child_entry_ids=(\S*) child_refs=(\S*) direct_tokens=(\S+) child_tokens=(\S+) total_tokens=(\S+) direct_cost=(\S+) child_cost=(\S+) total_cost=(\S+) currency=(\S+)(?: child_currency=(\S+))? -->/;
+
+const ROLLUP_TOKEN_STATUS_PATTERN =
+  /<!-- lisa:usage-rollup-token-status child_tokens_incomplete=true -->/;
 
 const MIXED_CURRENCY = "mixed";
 
@@ -87,6 +100,18 @@ function parseNullableNumber(value: string): number | null {
   }
 
   return parsed;
+}
+
+/**
+ * Parse the additive field from the published 2.222.0 marker. Legacy callers
+ * could serialize an omitted property as the literal `undefined`; no other
+ * numeric field receives this compatibility exception.
+ *
+ * @param value Transitional measured-subset token value.
+ * @returns The parsed subtotal, or null for the published undefined omission.
+ */
+function parseReleasedMeasuredSubset(value: string): number | null {
+  return value === "undefined" ? null : parseNullableNumber(value);
 }
 
 /**
@@ -183,6 +208,19 @@ function sumNullable(values: readonly (number | null)[]): number | null {
 }
 
 /**
+ * Detect an entry whose recorded count is explicitly only part of a run.
+ *
+ * @param entry Usage entry to inspect.
+ * @returns Whether token rollups must remain incomplete for this entry.
+ */
+function hasMeasuredSubset(entry: LisaUsageEntry): boolean {
+  return (
+    entry.source === "measured-subset" ||
+    (entry.measuredSubsetTokens ?? null) !== null
+  );
+}
+
+/**
  * Resolve the only currency represented by present cost values.
  *
  * @param entries Usage entries to inspect.
@@ -265,6 +303,23 @@ function formatTokens(value: number | null): string {
 }
 
 /**
+ * Render the token-count cell for human readers without making a measured
+ * subset look like a complete total.
+ *
+ * @param entry Usage entry to display.
+ * @returns A deterministic display string.
+ */
+function formatEntryTokens(entry: LisaUsageEntry): string {
+  if (entry.totalTokens !== null) {
+    return formatTokens(entry.totalTokens);
+  }
+
+  return (entry.measuredSubsetTokens ?? null) === null
+    ? "null"
+    : `${entry.measuredSubsetTokens} measured subset`;
+}
+
+/**
  * Render a cost value for the human-readable table.
  *
  * @param value Cost amount to format.
@@ -324,6 +379,7 @@ function resolveChildRollupParts(
   childEntryIds: readonly string[];
   childRefs: readonly string[];
   childTokens: number | null;
+  childTokensIncomplete: boolean;
 } {
   if (childArtifacts !== undefined) {
     const collected = collectLisaUsageChildArtifacts(
@@ -332,11 +388,15 @@ function resolveChildRollupParts(
     );
     const deduped = collected.childEntries;
     const childCurrency = resolveDirectCostCurrency(deduped);
+    const childTokensIncomplete = deduped.some(hasMeasuredSubset);
     const rawChildCost = sumNullableDecimals(deduped.map(entry => entry.cost));
     return {
       childEntryIds: deduped.map(entry => entry.entryId),
       childRefs: collected.childRefs,
-      childTokens: sumNullable(deduped.map(entry => entry.totalTokens)),
+      childTokens: childTokensIncomplete
+        ? null
+        : sumNullable(deduped.map(entry => entry.totalTokens)),
+      childTokensIncomplete,
       childCurrency,
       childCost: childCurrency === MIXED_CURRENCY ? null : rawChildCost,
     };
@@ -356,6 +416,7 @@ function resolveChildRollupParts(
     childEntryIds: previousRollup?.childEntryIds ?? [],
     childRefs: previousRollup?.childRefs ?? [],
     childTokens: previousRollup?.childTokens ?? null,
+    childTokensIncomplete: previousRollup?.childTokensIncomplete ?? false,
     childCurrency,
     childCost: childCurrency === MIXED_CURRENCY ? null : rawChildCost,
   };
@@ -407,20 +468,31 @@ export function createLisaUsageRollup(
   childArtifacts?: readonly LisaUsageChildArtifact[]
 ): LisaUsageRollup {
   const directEntryIds = entries.map(entry => entry.entryId);
-  const directTokens = sumNullable(entries.map(entry => entry.totalTokens));
+  const directTokensIncomplete = entries.some(hasMeasuredSubset);
+  const directTokens = directTokensIncomplete
+    ? null
+    : sumNullable(entries.map(entry => entry.totalTokens));
   const directCurrency = resolveDirectCostCurrency(entries);
   const directCost =
     directCurrency === MIXED_CURRENCY
       ? null
       : sumNullableDecimals(entries.map(entry => entry.cost));
 
-  const { childEntryIds, childRefs, childTokens, childCurrency, childCost } =
-    resolveChildRollupParts(previousRollup, childArtifacts, directEntryIds);
+  const {
+    childEntryIds,
+    childRefs,
+    childTokens,
+    childTokensIncomplete,
+    childCurrency,
+    childCost,
+  } = resolveChildRollupParts(previousRollup, childArtifacts, directEntryIds);
 
   const totalTokens =
-    directTokens === null && childTokens === null
+    directTokensIncomplete || childTokensIncomplete
       ? null
-      : (directTokens ?? 0) + (childTokens ?? 0);
+      : directTokens === null && childTokens === null
+        ? null
+        : (directTokens ?? 0) + (childTokens ?? 0);
   const currency = resolveRollupCurrency(
     directCurrency,
     childCurrency,
@@ -438,6 +510,7 @@ export function createLisaUsageRollup(
     childRefs,
     directTokens,
     childTokens,
+    ...(childTokensIncomplete ? { childTokensIncomplete: true } : {}),
     totalTokens,
     directCost,
     childCost,
@@ -451,10 +524,12 @@ export function createLisaUsageRollup(
  * Render the machine-readable token for a single direct usage row.
  *
  * @param entry Direct usage entry to serialize.
- * @returns The canonical `lisa:usage-entry` token line.
+ * @returns The legacy-readable primary token plus its measured-subset extension.
  */
 export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
-  return `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
+  const primaryToken = `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
+  const measuredSubsetToken = `<!-- lisa:usage-entry-measured-subset entry_id=${encodeTokenValue(entry.entryId)} measured_subset_tokens=${renderNullable(entry.measuredSubsetTokens ?? null)} -->`;
+  return `${primaryToken} ${measuredSubsetToken}`;
 }
 
 /**
@@ -464,7 +539,10 @@ export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
  * @returns The canonical `lisa:usage-rollup` token line.
  */
 export function renderLisaUsageRollupToken(rollup: LisaUsageRollup): string {
-  return `<!-- lisa:usage-rollup direct_entry_ids=${renderCsv(rollup.directEntryIds)} child_entry_ids=${renderCsv(rollup.childEntryIds)} child_refs=${renderCsv(rollup.childRefs)} direct_tokens=${renderNullable(rollup.directTokens)} child_tokens=${renderNullable(rollup.childTokens)} total_tokens=${renderNullable(rollup.totalTokens)} direct_cost=${renderNullable(rollup.directCost)} child_cost=${renderNullable(rollup.childCost)} total_cost=${renderNullable(rollup.totalCost)} currency=${renderNullable(rollup.currency)} child_currency=${renderNullable(rollup.childCurrency)} -->`;
+  const primaryToken = `<!-- lisa:usage-rollup direct_entry_ids=${renderCsv(rollup.directEntryIds)} child_entry_ids=${renderCsv(rollup.childEntryIds)} child_refs=${renderCsv(rollup.childRefs)} direct_tokens=${renderNullable(rollup.directTokens)} child_tokens=${renderNullable(rollup.childTokens)} total_tokens=${renderNullable(rollup.totalTokens)} direct_cost=${renderNullable(rollup.directCost)} child_cost=${renderNullable(rollup.childCost)} total_cost=${renderNullable(rollup.totalCost)} currency=${renderNullable(rollup.currency)} child_currency=${renderNullable(rollup.childCurrency)} -->`;
+  return rollup.childTokensIncomplete === true
+    ? `${primaryToken} <!-- lisa:usage-rollup-token-status child_tokens_incomplete=true -->`
+    : primaryToken;
 }
 
 /**
@@ -486,7 +564,7 @@ export function renderLisaUsageSection(input: {
       ? ["| _No direct entries recorded_ | | | | |"]
       : entries.map(
           entry =>
-            `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${formatTokens(entry.totalTokens)} | ${formatCost(entry.cost, entry.currency)} | ${renderLisaUsageEntryToken(entry)}`
+            `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${formatEntryTokens(entry)} | ${formatCost(entry.cost, entry.currency)} | ${renderLisaUsageEntryToken(entry)}`
         );
   const lines = [
     LISA_USAGE_HEADING,
@@ -504,6 +582,36 @@ export function renderLisaUsageSection(input: {
 }
 
 /**
+ * Parse the managed rollup and its optional token-completeness extension.
+ *
+ * @param section Managed usage section text.
+ * @returns The parsed rollup, or null when the section has no rollup token.
+ */
+function parseLisaUsageRollup(section: string): LisaUsageRollup | null {
+  const match = ROLLUP_PATTERN.exec(section);
+  if (match === null) {
+    return null;
+  }
+
+  return {
+    directEntryIds: parseCsv(match[1] ?? ""),
+    childEntryIds: parseCsv(match[2] ?? ""),
+    childRefs: parseCsv(match[3] ?? ""),
+    directTokens: parseNullableNumber(match[4] ?? ""),
+    childTokens: parseNullableNumber(match[5] ?? ""),
+    ...(ROLLUP_TOKEN_STATUS_PATTERN.test(section)
+      ? { childTokensIncomplete: true }
+      : {}),
+    totalTokens: parseNullableNumber(match[6] ?? ""),
+    directCost: parseNullableNumber(match[7] ?? ""),
+    childCost: parseNullableNumber(match[8] ?? ""),
+    totalCost: parseNullableNumber(match[9] ?? ""),
+    currency: parseNullableString(match[10] ?? ""),
+    childCurrency: parseNullableString(match[11] ?? ""),
+  };
+}
+
+/**
  * Parse the managed usage section out of an artifact body or comment.
  *
  * @param document Artifact markdown to inspect.
@@ -514,44 +622,62 @@ export function parseLisaUsageSection(
 ): ParsedLisaUsageSection {
   const range = findUsageSectionRange(document);
   const section = range ? document.slice(range.start, range.end) : "";
-  const entries = Array.from(section.matchAll(ENTRY_PATTERN), match => ({
-    entryId: decodeTokenValue(match[1] ?? ""),
-    flow: decodeTokenValue(match[2] ?? ""),
-    runId: decodeTokenValue(match[3] ?? ""),
-    provider: decodeTokenValue(match[4] ?? ""),
-    model: decodeTokenValue(match[5] ?? ""),
-    source: decodeTokenValue(match[6] ?? ""),
-    inputTokens: parseNullableNumber(match[7] ?? ""),
-    cachedInputTokens: parseNullableNumber(match[8] ?? ""),
-    outputTokens: parseNullableNumber(match[9] ?? ""),
-    reasoningTokens: parseNullableNumber(match[10] ?? ""),
-    totalTokens: parseNullableNumber(match[11] ?? ""),
-    cost: parseNullableNumber(match[12] ?? ""),
-    currency: parseNullableString(match[13] ?? ""),
-    pricingStatus: decodeTokenValue(match[14] ?? ""),
-    pricingSource: parseNullableString(match[15] ?? ""),
-    artifactRef: decodeTokenValue(match[16] ?? ""),
-    parentArtifactRef: parseNullableString(match[17] ?? ""),
-  }));
-
-  const rollupMatch = ROLLUP_PATTERN.exec(section);
-  const rollup: LisaUsageRollup | null = rollupMatch
-    ? {
-        directEntryIds: parseCsv(rollupMatch[1] ?? ""),
-        childEntryIds: parseCsv(rollupMatch[2] ?? ""),
-        childRefs: parseCsv(rollupMatch[3] ?? ""),
-        directTokens: parseNullableNumber(rollupMatch[4] ?? ""),
-        childTokens: parseNullableNumber(rollupMatch[5] ?? ""),
-        totalTokens: parseNullableNumber(rollupMatch[6] ?? ""),
-        directCost: parseNullableNumber(rollupMatch[7] ?? ""),
-        childCost: parseNullableNumber(rollupMatch[8] ?? ""),
-        totalCost: parseNullableNumber(rollupMatch[9] ?? ""),
-        currency: parseNullableString(rollupMatch[10] ?? ""),
-        childCurrency: parseNullableString(rollupMatch[11] ?? ""),
+  const measuredSubsets = new Map(
+    Array.from(
+      section.matchAll(MEASURED_SUBSET_PATTERN),
+      match =>
+        [
+          decodeTokenValue(match[1] ?? ""),
+          parseNullableNumber(match[2] ?? ""),
+        ] as const
+    )
+  );
+  const entries = Array.from(
+    section.matchAll(ENTRY_TOKEN_PATTERN),
+    tokenMatch => {
+      const token = tokenMatch[0];
+      const releasedMatch = RELEASED_MIDDLE_FIELD_ENTRY_PATTERN.exec(token);
+      const match = releasedMatch ?? LEGACY_ENTRY_PATTERN.exec(token);
+      if (match === null) {
+        throw new Error(`Invalid Lisa usage entry token: ${token}`);
       }
-    : null;
 
-  return { entries, rollup, range };
+      const releasedFieldOffset = releasedMatch === null ? 0 : 1;
+      const entryId = decodeTokenValue(match[1] ?? "");
+      const embeddedMeasuredSubset =
+        releasedMatch === null
+          ? null
+          : parseReleasedMeasuredSubset(match[12] ?? "");
+      return {
+        entryId,
+        flow: decodeTokenValue(match[2] ?? ""),
+        runId: decodeTokenValue(match[3] ?? ""),
+        provider: decodeTokenValue(match[4] ?? ""),
+        model: decodeTokenValue(match[5] ?? ""),
+        source: decodeTokenValue(match[6] ?? ""),
+        inputTokens: parseNullableNumber(match[7] ?? ""),
+        cachedInputTokens: parseNullableNumber(match[8] ?? ""),
+        outputTokens: parseNullableNumber(match[9] ?? ""),
+        reasoningTokens: parseNullableNumber(match[10] ?? ""),
+        totalTokens: parseNullableNumber(match[11] ?? ""),
+        measuredSubsetTokens: measuredSubsets.has(entryId)
+          ? (measuredSubsets.get(entryId) ?? null)
+          : embeddedMeasuredSubset,
+        cost: parseNullableNumber(match[12 + releasedFieldOffset] ?? ""),
+        currency: parseNullableString(match[13 + releasedFieldOffset] ?? ""),
+        pricingStatus: decodeTokenValue(match[14 + releasedFieldOffset] ?? ""),
+        pricingSource: parseNullableString(
+          match[15 + releasedFieldOffset] ?? ""
+        ),
+        artifactRef: decodeTokenValue(match[16 + releasedFieldOffset] ?? ""),
+        parentArtifactRef: parseNullableString(
+          match[17 + releasedFieldOffset] ?? ""
+        ),
+      };
+    }
+  );
+
+  return { entries, rollup: parseLisaUsageRollup(section), range };
 }
 
 /**
@@ -575,12 +701,20 @@ export function upsertLisaUsageSection(
 ): string {
   const parsed = parseLisaUsageSection(document);
   const mergedEntries = mergeLisaUsageEntries(parsed.entries, input.entries);
+  const previousRollup =
+    input.childArtifacts === undefined &&
+    input.rollup !== null &&
+    input.rollup !== undefined &&
+    input.rollup.childTokensIncomplete === undefined &&
+    parsed.rollup?.childTokensIncomplete === true
+      ? { ...input.rollup, childTokensIncomplete: true }
+      : (input.rollup ?? parsed.rollup);
   const rollup =
     mergedEntries.length === 0 && input.rollup
-      ? input.rollup
+      ? (previousRollup ?? input.rollup)
       : createLisaUsageRollup(
           mergedEntries,
-          input.rollup ?? parsed.rollup,
+          previousRollup,
           input.childArtifacts
         );
   const usageSection = renderLisaUsageSection({

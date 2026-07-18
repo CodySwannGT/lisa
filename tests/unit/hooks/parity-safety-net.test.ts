@@ -11,6 +11,14 @@
  * @module tests/unit/hooks/parity-safety-net
  */
 import { spawnSync } from "child_process";
+import {
+  chmodSync,
+  copyFileSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
+import { tmpdir } from "os";
 import path from "path";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
@@ -18,28 +26,224 @@ const BASH_PATH = "/bin/bash";
 
 const EXIT_BLOCKED = 2;
 const EXIT_ALLOWED = 0;
+const DIRECT_ISSUE_HEREDOC = "gh issue create --body-file - <<'EOF'";
+const HEREDOC_TERMINATOR = "EOF";
+const DESTRUCTIVE_DELETE = "rm -rf /";
+const PROTECTED_FORCE_PUSH = "git push --force origin main";
 
 const runHook = (
   toolName: string,
-  command: string
+  command: string,
+  options: { hookPath?: string; env?: NodeJS.ProcessEnv } = {}
 ): { status: number | null; stderr: string } => {
   const input = JSON.stringify({
     tool_name: toolName,
     tool_input: { command },
   });
-  const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+  const result = spawnSync(BASH_PATH, [options.hookPath ?? HOOK_PATH], {
     input,
     encoding: "utf-8",
+    env: { ...process.env, ...options.env },
   });
   return { status: result.status, stderr: result.stderr };
 };
 
 describe("parity-safety-net.sh — force-push guard", () => {
+  describe("ignores prose-only heredoc payloads", () => {
+    it("allows a direct issue body that quotes every built-in destructive form", () => {
+      const cmd = [
+        DIRECT_ISSUE_HEREDOC,
+        DESTRUCTIVE_DELETE,
+        PROTECTED_FORCE_PUSH,
+        "git reset --hard",
+        "DROP TABLE users",
+        HEREDOC_TERMINATOR,
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_ALLOWED);
+    });
+
+    it("allows the exact quoted --body cat-substitution form", () => {
+      const cmd = [
+        "gh pr comment 1678 --body \"$(cat <<'EOF'",
+        "Document `rm -rf /` without executing it.",
+        HEREDOC_TERMINATOR,
+        ')"',
+      ].join("\n");
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_ALLOWED);
+    });
+
+    it("blocks destructive executable bash and python heredocs", () => {
+      for (const interpreter of ["bash", "python3"]) {
+        const cmd = [
+          `${interpreter} <<'EOF'`,
+          DESTRUCTIVE_DELETE,
+          HEREDOC_TERMINATOR,
+        ].join("\n");
+        expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+      }
+    });
+
+    it("blocks a destructive command following a quoted fake marker", () => {
+      const cmd = ['echo "hello <<MARKER"', DESTRUCTIVE_DELETE, "MARKER"].join(
+        "\n"
+      );
+
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("does not exempt a heredoc-looking marker after a shell comment", () => {
+      const cmd = [
+        "gh issue create --body-file - # <<'EOF'",
+        DESTRUCTIVE_DELETE,
+        HEREDOC_TERMINATOR,
+      ].join("\n");
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("allows harmless quoted operator and substitution prose", () => {
+      expect(
+        runHook(
+          "Bash",
+          "gh issue create --title 'Document C++ << operators' --body harmless"
+        ).status
+      ).toBe(EXIT_ALLOWED);
+      expect(
+        runHook("Bash", "echo 'Discuss $(name), `ticks`, and << operators'")
+          .status
+      ).toBe(EXIT_ALLOWED);
+    });
+
+    it("blocks an unquoted expanding heredoc", () => {
+      const cmd = [
+        "gh issue create --body-file - <<EOF",
+        "$(rm -rf /)",
+        HEREDOC_TERMINATOR,
+      ].join("\n");
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+
+    it.each([
+      [
+        "multiple heredocs",
+        ["cat <<'A' <<'B'", "one", "A", "two", "B"].join("\n"),
+      ],
+      ["unclosed heredoc", [DIRECT_ISSUE_HEREDOC, "prose"].join("\n")],
+      [
+        "trailing command",
+        [DIRECT_ISSUE_HEREDOC, "prose", HEREDOC_TERMINATOR, "echo done"].join(
+          "\n"
+        ),
+      ],
+      [
+        "piped writer",
+        [
+          "gh issue create --body-file - <<'EOF' | bash",
+          DESTRUCTIVE_DELETE,
+          HEREDOC_TERMINATOR,
+        ].join("\n"),
+      ],
+      [
+        "writer chained on its header",
+        [
+          "gh issue create --body-file - <<'EOF'; echo done",
+          "prose",
+          HEREDOC_TERMINATOR,
+        ].join("\n"),
+      ],
+      [
+        "destructive command before a writer",
+        [
+          DESTRUCTIVE_DELETE,
+          DIRECT_ISSUE_HEREDOC,
+          "prose",
+          HEREDOC_TERMINATOR,
+        ].join("\n"),
+      ],
+    ])("fails closed for %s", (_name, cmd) => {
+      expect(runHook("Bash", cmd).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("fails closed when the parser is missing or crashes", () => {
+      const fixture = mkdtempSync(path.join(tmpdir(), "lisa-safety-net-"));
+      const hookPath = path.join(fixture, "parity-safety-net.sh");
+      const parserPath = path.join(fixture, "parity-safety-net-heredoc.py");
+      try {
+        copyFileSync(HOOK_PATH, hookPath);
+        chmodSync(hookPath, 0o755);
+        const cmd = [
+          DIRECT_ISSUE_HEREDOC,
+          "harmless prose",
+          HEREDOC_TERMINATOR,
+        ].join("\n");
+        expect(runHook("Bash", cmd, { hookPath }).status).toBe(EXIT_BLOCKED);
+
+        writeFileSync(parserPath, "raise RuntimeError('parser crash')\n");
+        expect(runHook("Bash", cmd, { hookPath }).status).toBe(EXIT_BLOCKED);
+      } finally {
+        rmSync(fixture, { recursive: true, force: true });
+      }
+    });
+
+    it("keeps custom rules active outside the exempt payload", () => {
+      const fixture = mkdtempSync(path.join(tmpdir(), "lisa-safety-rule-"));
+      const rulesPath = path.join(fixture, "rules.txt");
+      try {
+        writeFileSync(rulesPath, "DO_NOT_EXECUTE\n");
+        const safeBody = [
+          "gh issue comment 1594 --body-file - <<'EOF'",
+          "DO_NOT_EXECUTE is documentation.",
+          HEREDOC_TERMINATOR,
+        ].join("\n");
+        expect(
+          runHook("Bash", safeBody, {
+            env: { SAFETY_NET_RULES_FILE: rulesPath },
+          }).status
+        ).toBe(EXIT_ALLOWED);
+        expect(
+          runHook("Bash", "echo DO_NOT_EXECUTE", {
+            env: { SAFETY_NET_RULES_FILE: rulesPath },
+          }).status
+        ).toBe(EXIT_BLOCKED);
+        const executableBody = [
+          "bash <<'EOF'",
+          "DO_NOT_EXECUTE",
+          HEREDOC_TERMINATOR,
+        ].join("\n");
+        expect(
+          runHook("Bash", executableBody, {
+            env: { SAFETY_NET_RULES_FILE: rulesPath },
+          }).status
+        ).toBe(EXIT_BLOCKED);
+        const commentFakeMarker = [
+          "gh issue create --body-file - # <<'EOF'",
+          "DO_NOT_EXECUTE",
+          HEREDOC_TERMINATOR,
+        ].join("\n");
+        expect(
+          runHook("Bash", commentFakeMarker, {
+            env: { SAFETY_NET_RULES_FILE: rulesPath },
+          }).status
+        ).toBe(EXIT_BLOCKED);
+      } finally {
+        rmSync(fixture, { recursive: true, force: true });
+      }
+    });
+
+    it("leaves ordinary non-heredoc commands unchanged", () => {
+      expect(runHook("Bash", "echo ordinary").status).toBe(EXIT_ALLOWED);
+      expect(runHook("Bash", DESTRUCTIVE_DELETE).status).toBe(EXIT_BLOCKED);
+    });
+
+    it("is valid syntax on the system Bash", () => {
+      expect(spawnSync(BASH_PATH, ["-n", HOOK_PATH]).status).toBe(EXIT_ALLOWED);
+    });
+  });
+
   describe("blocks force-pushing a protected branch", () => {
     it("blocks git push --force origin main", () => {
-      expect(runHook("Bash", "git push --force origin main").status).toBe(
-        EXIT_BLOCKED
-      );
+      expect(runHook("Bash", PROTECTED_FORCE_PUSH).status).toBe(EXIT_BLOCKED);
     });
 
     it("blocks git push -f origin master", () => {
@@ -137,9 +341,7 @@ describe("parity-safety-net.sh — force-push guard", () => {
 
   describe("ignores non-Bash tools", () => {
     it("allows a non-Bash tool even with force-push text in input", () => {
-      expect(runHook("Read", "git push --force origin main").status).toBe(
-        EXIT_ALLOWED
-      );
+      expect(runHook("Read", PROTECTED_FORCE_PUSH).status).toBe(EXIT_ALLOWED);
     });
   });
 });

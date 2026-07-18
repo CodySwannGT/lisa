@@ -84,6 +84,13 @@ Skill bodies are not copied into the project and unrelated Lisa stacks are not
 loaded. Project settings use `[features].hooks`; the deprecated `codex_hooks`
 key is removed during reconciliation.
 
+Remote coding environments use one vendor-neutral AWS bootstrap rather than
+repository-specific or agent-specific IAM users. Run `/lisa:setup-remote-aws`
+to install the common setup script and native Cursor/Copilot adapters; Claude,
+Codex, Cursor, Copilot, and user-managed Antigravity/OpenCode hosts all consume
+the same `LISA_AWS_BOOTSTRAP_JSON` bundle. See
+[Remote coding-agent AWS access](docs/remote-agent-aws.md).
+
 The supported stacks, setup flags, and exact invocation evolve as the project grows, so ask for the current set rather than copying a list that may have moved on:
 
 > **Prompt for your coding agent**
@@ -91,10 +98,10 @@ The supported stacks, setup flags, and exact invocation evolve as the project gr
 
 ### Brownfield projects: becoming agent-ready
 
-A greenfield project is agent-ready by construction. An existing codebase carries years of tacit knowledge in people's heads, so Lisa converges it before the factories run unattended — in two steps. **Knowledge first**: an onboarding command builds the initial knowledge wiki from everything the agent can reach and writes a gaps file containing the questions only a human can answer ("today is your only chance to ask"); humans answer inline, a fresh session re-runs it, and the loop repeats until no gaps remain. **Standards second**: apply Lisa's full rules and thresholds — the project will go red, deliberately — and let agents refactor to conform without changing behavior, proven by the test suite and empirical verification.
+A greenfield project is agent-ready by construction. An existing codebase carries years of tacit knowledge in people's heads, so Lisa converges it before the factories run unattended — in two steps. **Knowledge first**: an onboarding command reads every inventoried source without mutating it, redacts secrets, credentials, and policy-detected sensitive PII, omits or aggregates ordinary person-level user data before wiki persistence, and records each source as complete, partial, or unavailable. Partial and unavailable sources remain open gaps; humans answer gaps inline, a fresh session re-runs the ingest, and convergence requires both every source complete and zero open gaps. **Standards second**: apply Lisa's full rules and thresholds — the project will go red, deliberately — and let agents refactor to conform without changing behavior, proven by the test suite and empirical verification.
 
 > **Prompt for your coding agent**
-> "Is this project agent-ready? Run the agent-ready onboarding: build or update the knowledge wiki from what you can reach, show me the open gaps only I can answer, and tell me exactly what happens after I answer them."
+> "Is this project agent-ready? Run the agent-ready onboarding: inventory every connected source, ingest it read-only with redaction, show me each source's coverage status and the open gaps only I can answer, and tell me exactly what happens after I answer them."
 
 ## The work lifecycle
 

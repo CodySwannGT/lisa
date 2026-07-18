@@ -28,6 +28,8 @@ const LIFECYCLE_ENV_VAR = "npm_package_json";
  * re-run does not itself attempt to re-schedule (prevents infinite trampolines).
  */
 const TRAMPOLINE_ENV_VAR = "LISA_POSTINSTALL_TRAMPOLINE";
+const NPM_USER_AGENT_ENV_VAR = "npm_config_user_agent";
+const NPM_EXEC_PATH_ENV_VAR = "npm_execpath";
 
 /**
  * How long the trampoline will wait for the parent package manager to exit before
@@ -93,6 +95,30 @@ export function isRunningAsTrampoline(): boolean {
 }
 
 /**
+ * Determine whether the current lifecycle parent is npm itself.
+ *
+ * npm writes package-lock.json before dependency package postinstall scripts run,
+ * and it does not repair the lock after a child script mutates the host
+ * package.json. A detached trampoline fixes that eventually, but an immediate
+ * `npm ci` can race it. For npm lifecycle runs we can safely reuse Lisa's
+ * existing in-process lockfile regeneration before the install command exits.
+ *
+ * Bun/yarn/pnpm lifecycle behavior remains on the detached trampoline path
+ * because those managers can still rewrite package.json after scripts finish.
+ * @returns true when npm lifecycle env identifies npm as the parent package manager
+ */
+function isNpmLifecycleParent(): boolean {
+  const userAgent = readEnv(NPM_USER_AGENT_ENV_VAR);
+  if (userAgent?.startsWith("npm/")) {
+    return true;
+  }
+  const execPath = readEnv(NPM_EXEC_PATH_ENV_VAR);
+  return (
+    execPath !== undefined && /(?:^|[/\\])npm(?:-cli\.js)?$/.test(execPath)
+  );
+}
+
+/**
  * Detect whether Lisa is running inside a CI environment.
  *
  * Returns false when running inside a Vitest or Jest test runner, even if
@@ -146,6 +172,7 @@ export function shouldSchedulePostinstallReconciliation(
   // package-manager processes and the trampoline must not spawn from them.
   if (readEnv("VITEST") !== undefined) return false;
   if (readEnv("JEST_WORKER_ID") !== undefined) return false;
+  if (isNpmLifecycleParent()) return false;
   return isRunningAsLifecycleScript();
 }
 

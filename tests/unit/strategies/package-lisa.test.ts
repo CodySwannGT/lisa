@@ -1235,6 +1235,13 @@ describe("PackageLisaStrategy", () => {
       "package-lisa",
       "package.lisa.json"
     );
+    const expectedMaestroScripts = {
+      "maestro:test": "maestro test .maestro/flows",
+      "maestro:test:ios": "maestro test -p ios .maestro/flows",
+      "maestro:test:android": "maestro test -p android .maestro/flows",
+      "maestro:test:smoke":
+        "maestro test -p ios --include-tags=smoke .maestro/flows",
+    } as const;
 
     /**
      * Read and parse the real shipped Expo package.lisa.json template.
@@ -1242,6 +1249,7 @@ describe("PackageLisaStrategy", () => {
      */
     function readExpoTemplate(): {
       force: {
+        scripts: Record<string, string>;
         dependencies: Record<string, string>;
         devDependencies: Record<string, string>;
       };
@@ -1252,6 +1260,38 @@ describe("PackageLisaStrategy", () => {
     } {
       return fs.readJsonSync(expoSource);
     }
+
+    it("pins each platform-specific Maestro command to its intended device type", () => {
+      const template = readExpoTemplate();
+
+      expect(template.force.scripts).toMatchObject(expectedMaestroScripts);
+    });
+
+    it("repairs unpinned Maestro commands when applying the Expo template", async () => {
+      await createExpoProject(projectDir);
+      const destPath = path.join(projectDir, "package.json");
+      await fs.writeJson(destPath, {
+        dependencies: {},
+        devDependencies: {},
+        scripts: {
+          "maestro:test": "maestro test custom-flows",
+          "maestro:test:ios": "maestro test .maestro/flows",
+          "maestro:test:android": "maestro test .maestro/flows",
+          "maestro:test:smoke":
+            "maestro test --include-tags=smoke .maestro/flows",
+        },
+      });
+
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.scripts).toMatchObject(expectedMaestroScripts);
+    });
 
     it("keeps SDK-version-coupled packages in defaults, not force", () => {
       const template = readExpoTemplate();
