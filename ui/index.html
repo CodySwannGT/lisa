@@ -6711,11 +6711,6 @@
        * Never leaves demo hold/no-hold claims in place.
        * @param probes - Live-status probe map from /api/status
        */
-      /**
-       * Replace the Deploy pipeline stages table from the live probe.
-       * Never leaves demo hold/no-hold claims in place.
-       * @param probes - Live-status probe map from /api/status
-       */
       function applyDeployPipelineStages(probes) {
         const section = DATA.sections.deploy;
         if (!section || !Array.isArray(section.blocks)) return;
