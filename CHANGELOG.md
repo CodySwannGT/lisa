@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.225.0](https://github.com/CodySwannGT/lisa/compare/v2.224.0...v2.225.0) (2026-07-18)
+
+
+### Features
+
+* **agent-ready:** harden source ingestion readiness ([63ac17a](https://github.com/CodySwannGT/lisa/commit/63ac17a0295c129c39c7aff31d047476a3bb095e)), closes [#1620](https://github.com/CodySwannGT/lisa/issues/1620)
+
 ## [2.224.0](https://github.com/CodySwannGT/lisa/compare/v2.223.3...v2.224.0) (2026-07-18)
 
 
