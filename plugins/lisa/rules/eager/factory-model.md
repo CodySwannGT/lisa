@@ -30,8 +30,9 @@ The rules that follow from this:
    agents must be visible to all of them.
 
 Brownfield on-ramp: an existing codebase becomes agent-ready **before** the fleet runs unattended
-— `/lisa:agent-ready` converges human knowledge into the wiki (gaps loop until none remain), then
-standards adoption refactors to conformance without behavior change.
+— `/lisa:agent-ready` converges human knowledge through read-only, redacted source ingestion (every
+source must be complete and the gaps loop must reach none), then standards adoption refactors to
+conformance without behavior change.
 
 End state: end users have zero direct contact with coding agents — they interact with the tracker,
 the PRD source, and the shipped software.
