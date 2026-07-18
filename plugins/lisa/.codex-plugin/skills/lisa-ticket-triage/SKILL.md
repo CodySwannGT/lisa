@@ -67,6 +67,23 @@ Note which phases other repos have already covered and what findings they posted
 - Do NOT duplicate findings already posted by another repo
 - DO add supplementary findings specific to THIS repo's codebase
 
+## Phase 2.5 -- Rework Detection & Failure Classification
+
+Invoke `lisa-rework-triage` with the context bundle. It detects whether this ticket is
+**rework** — previously implemented work bounced back from QA/staging — and, when it is,
+classifies why the previous agent attempt failed (decomposition infidelity, PRD defect,
+missing tool access, implementation defect, environment/data, verification gap), posts the
+`[lisa-rework-triage]` comment, and routes the cause to its hardening destination (upstream
+Lisa issue, provisioning ticket, or PRD defect flag). See that skill for the taxonomy,
+evidence requirements, and routing table.
+
+- `NOT_REWORK` → proceed to Phase 3; nothing to carry forward.
+- `REWORK_CLASSIFIED` / `ALREADY_TRIAGED` → carry the classification into the output
+  structure (see below) and proceed to Phase 3 — a classified rework still gets fixed;
+  hardening runs alongside the fix, never in front of it. Exception: a `missing-tool-access`
+  cause whose gap is **still present** must be raised as a Phase 3 ambiguity ("prior attempt
+  lacked <tool>; it is still unavailable"), which blocks per the normal rules.
+
 ## Phase 3 -- Ambiguity Detection
 
 Examine the ticket summary, description, and acceptance criteria. Look for:
@@ -174,6 +191,9 @@ Structure all output with clear section headers so the caller can parse and post
 
 ### Verification Methodology
 [Phase 5 table, or "No acceptance criteria to verify."]
+
+### Rework Classification
+[Phase 2.5 verdict block from lisa-rework-triage, or "Not rework (first attempt)."]
 
 ## Verdict: [NOT_RELEVANT | DUPLICATE_ALREADY_FIXED | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
 ```

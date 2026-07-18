@@ -29,8 +29,11 @@ For every row marked **Accept**:
 | Edge case | Edge Case Brainstorm checklist in `intent-routing.md` | Append the new pattern + question to the matching group (Navigation, Data, Failure, Input, Auth, or a new group if none fit). Use the row's `Summary` and `Evidence` link as a citation comment. |
 | Recurring gotcha | Memory file (`project_*.md`) | Write a new memory entry with `type: project`, structured as: rule, **Why:**, **How to apply:**. Add an index line to `MEMORY.md`. |
 | Process friction | Configured project rules file | Append a one-line guideline to the `.lisa.config.json` `projectRulesFile` destination (default `PROJECT_RULES.md`) under an appropriate heading (or create one). |
-| Tooling gap | Configured tracker | Create a new ticket via `lisa-tracker-write` with `issue_type: Task`, summary derived from the row's `Summary`, description citing the evidence and the originating debrief doc. Label appropriately (`type:tooling`, `lifecycle-improvement`, etc.). |
+| Tooling gap | Configured tracker — or upstream Lisa when harness-level | **Split by level.** Project-level (a missing project script, hook, or automation) → create a ticket via `lisa-tracker-write` with `issue_type: Task`, summary derived from the row's `Summary`, description citing the evidence and the originating debrief doc, labeled `type:tooling` / `lifecycle-improvement`. Harness-level (a Lisa skill/gate/agent that should have caught the issue but didn't) → file an upstream Lisa issue exactly per the "Filing upstream" procedure in `lisa-rework-triage` (dedupe search first, three-audience description, evidence chain, `self-hardening` label; repo from `.lisa.config.json` `hardening.upstreamRepo`, default `CodySwannGT/lisa`). |
 | Convention drift | `CLAUDE.md` for project-wide agent operating instructions; otherwise the configured project rules file for codebase conventions | Append the convention as a one-paragraph note under the relevant section. If no relevant section exists, create one. |
+| Decomposition infidelity | Upstream Lisa repo | File an upstream Lisa issue per the "Filing upstream" procedure in `lisa-rework-triage`, citing the PRD text vs. the distorted ticket AC and naming the gate that passed it. |
+| PRD defect | Source PRD | Comment on the PRD via the `lisa-prd-backlink` lineage quoting the defective requirement and the failure it missed; flag for product review. Never silently edit the spec. |
+| Missing tool access | Configured tracker | Create a provisioning ticket via `lisa-tracker-write` (`issue_type: Task`, `type:tooling`) describing the missing tool/credential/environment and which flow needs it. |
 
 For every row marked **Reject** or **Defer**: no action. Defer is a no-op for `apply` but worth surfacing in the run summary — the human may want to revisit at the next debrief.
 
@@ -51,8 +54,12 @@ Applied <n> learnings:
   <n> edge cases → intent-routing.md
   <n> gotchas → memory
   <n> friction → PROJECT_RULES.md
-  <n> tooling gaps → <tracker> (<key1>, <key2>, ...)
+  <n> tooling gaps (project) → <tracker> (<key1>, <key2>, ...)
+  <n> tooling gaps (harness) → upstream Lisa (<issue-url1>, ...)
   <n> convention drift → CLAUDE.md
+  <n> decomposition infidelity → upstream Lisa (<issue-url1>, ...)
+  <n> PRD defects → PRD comments (<prd-link1>, ...)
+  <n> missing tool access → <tracker> (<key1>, ...)
 Skipped:
   <n> rejected, <n> deferred, <n> already-applied
 Failed:

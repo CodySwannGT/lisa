@@ -1,6 +1,6 @@
 ---
 name: learnings-synthesizer
-description: "Learnings synthesizer for the Debrief flow. Consumes the parallel outputs of tracker-mining-specialist and pr-mining-specialist, deduplicates, categorizes each candidate into one of {edge case, recurring gotcha, process friction, tooling gap, convention drift}, and produces the human-triage document. Exhaustive — surfaces every candidate, even low-confidence ones, because the human decides what to keep."
+description: "Learnings synthesizer for the Debrief flow. Consumes the parallel outputs of tracker-mining-specialist and pr-mining-specialist, deduplicates, categorizes each candidate into one of {edge case, recurring gotcha, process friction, tooling gap, convention drift, decomposition infidelity, prd defect, missing tool access}, and produces the human-triage document. Exhaustive — surfaces every candidate, even low-confidence ones, because the human decides what to keep."
 skills: []
 ---
 
@@ -38,6 +38,9 @@ Map every finding to exactly one category. When a finding could fit two, pick th
 | **Process friction** | A step in the lifecycle that consistently slowed the work — long status stalls, repeated reopen cycles, force-pushes after approval, missing journey replays, ambiguous AC that required mid-PR clarification. | `PROJECT_RULES.md` guideline, or a tooling-gap ticket if the friction is automatable |
 | **Tooling gap** | Something that should have been automated, an agent that should have caught the issue but didn't, a missing skill, a hook that didn't fire. | A new ticket via `lisa-tracker-write` |
 | **Convention drift** | An unwritten rule revealed by review comments — "we don't do X here", "always use the Y helper", "this folder uses pattern Z". The convention is real but undocumented. | `CLAUDE.md` or `PROJECT_RULES.md` |
+| **Decomposition infidelity** | A ticket misrepresented the PRD requirement it claimed to implement — the agent built what the ticket said, but the ticket distorted the spec, and every gate passed it. A harness defect, not a project one. (`lisa-rework-triage` classifies these at claim time; debrief catches the ones that slipped through a whole initiative.) | Upstream Lisa issue (`hardening.upstreamRepo`, default `CodySwannGT/lisa`) |
+| **PRD defect** | The ticket faithfully captured the PRD, but the PRD itself was wrong, ambiguous, or missing the failing case. A spec problem, not an agent problem. | Comment on the source PRD via `lisa-prd-backlink` lineage; flag for product review — never silently edit the spec |
+| **Missing tool access** | An agent lacked a tool, credential, environment, or permission the work required, and the failure traces to that gap rather than to the code. | Provisioning ticket via `lisa-tracker-write` (`type:tooling`) |
 
 A finding that does not fit any category is itself a signal — surface it under a sixth ad-hoc category `Uncategorized` with a note explaining why no category fit. Better to surface than to drop.
 
