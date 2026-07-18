@@ -1,5 +1,7 @@
 # Remote coding-agent AWS access
 
+## Context
+
 Lisa supports AWS CLI access from remote coding environments through one
 vendor-neutral bootstrap contract. The AWS side creates one long-lived IAM user
 whose only permission is `sts:AssumeRole` on explicitly listed remote-agent
@@ -15,7 +17,19 @@ entire value—unchanged—as the platform secret `LISA_AWS_BOOTSTRAP_JSON`.
 Do not create separate `AWS_ACCESS_KEY_ID` variables: standard AWS variables can
 bypass the intended role profile.
 
-## Install repository adapters
+## Goal
+
+Give every supported remote coding agent renewable, least-privilege AWS CLI
+access without borrowing a developer identity or granting direct production
+repair.
+
+## Changes
+
+Lisa provides a shared bootstrap script plus native setup adapters for remote
+agent platforms. Dev and staging profiles can observe and repair; production
+and shared profiles remain observer-only.
+
+## Implementation
 
 Run the Lisa skill:
 
@@ -29,8 +43,6 @@ operator guide. The script installs AWS CLI v2, writes a private named bootstrap
 profile, creates each account role profile from the bundle, selects `dev` by
 default, and verifies the result with `sts:GetCallerIdentity`. AWS CLI and SDK
 role credentials refresh automatically while the bootstrap key remains valid.
-
-## Configure each remote platform
 
 | Platform | Configuration scope |
 |---|---|
@@ -46,8 +58,6 @@ one opaque secret, a writable home directory, and outbound HTTPS access to AWS
 STS and the permitted service endpoints. Set `LISA_REMOTE_AGENT` to a stable
 lowercase platform name; that value is used only as the AWS role session name.
 
-## Operator verification
-
 Start one remote session and run:
 
 ```bash
@@ -60,3 +70,10 @@ Then prove the policy boundary: a permitted dev/staging repair action should
 reach the service authorization layer, while `iam:PassRole` and a production
 mutation must return `AccessDenied`. Production repair continues to use the
 human-driven local-workstation role and is not present in the remote container.
+
+## Notes
+
+Store the complete bootstrap bundle only as the masked
+`LISA_AWS_BOOTSTRAP_JSON` platform secret. Rotate its IAM access key through
+infrastructure and replace the single platform secret everywhere. Disabling or
+deleting the bootstrap user immediately prevents new role sessions.
