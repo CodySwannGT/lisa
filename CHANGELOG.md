@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.226.2](https://github.com/CodySwannGT/lisa/compare/v2.226.1...v2.226.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* **remote-aws:** clear stale session token ([fe96a4e](https://github.com/CodySwannGT/lisa/commit/fe96a4e8e37826edf46fc5ff4032aeb60497b697))
+* **remote-aws:** reserve bootstrap profile ([3980233](https://github.com/CodySwannGT/lisa/commit/39802333b3a5f7fa642bc1c59af9a34beb983111))
+
 ### [2.226.1](https://github.com/CodySwannGT/lisa/compare/v2.226.0...v2.226.1) (2026-07-18)
 
 
