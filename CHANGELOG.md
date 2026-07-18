@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.235.0](https://github.com/CodySwannGT/lisa/compare/v2.234.0...v2.235.0) (2026-07-18)
+
+
+### Features
+
+* **ui:** compute CI quality-jobs Active column from live probes ([25308fc](https://github.com/CodySwannGT/lisa/commit/25308fca9002015e53d93f81dd79e29698429165)), closes [#1541](https://github.com/CodySwannGT/lisa/issues/1541)
+
 ## [2.234.0](https://github.com/CodySwannGT/lisa/compare/v2.233.1...v2.234.0) (2026-07-18)
 
 
