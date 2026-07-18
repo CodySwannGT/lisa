@@ -184,6 +184,7 @@ describe("remote AWS runtime parity", () => {
     );
     expect(canonicalScript).toContain("gpg --batch --homedir");
     expect(canonicalScript).toContain("--verify");
+    expect(canonicalScript).toContain(".key != $bootstrap_profile");
     for (const root of GENERATED_PLUGIN_ROOTS) {
       expect(
         existsSync(path.join(root, "skills/lisa-setup-remote-aws/SKILL.md"))
