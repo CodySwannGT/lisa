@@ -157,6 +157,33 @@ Results render as a per-check table (pass / warn / fail, with the layer that
 produced each finding), and the last full check's date + verdict stays
 visible in the section.
 
+### Remote-environment requirements
+
+The console derives required remote-environment variables from the active
+tracker/source, detected project types, and integration signals in the host
+project. Projects can extend or override startup-artifact discovery with
+`.lisa/remote-environment.json`:
+
+```json
+{
+  "variables": [
+    {
+      "name": "PROJECT_API_TOKEN",
+      "reason": "Project-specific service access",
+      "secret": true,
+      "required": true
+    }
+  ],
+  "startupScripts": {
+    "claude": "scripts/claude-remote-setup.sh",
+    "codex": "scripts/codex-remote-setup.sh"
+  }
+}
+```
+
+Only required entries are displayed. Secret values are never read into the
+browser payload; the server exposes names and boolean presence only.
+
 ## What it catalogs
 
 | Section | Source of truth in this repo |
@@ -168,7 +195,7 @@ visible in the section.
 | General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |
 | Project types (8 stacks + template strategies) | `src/detection/`, `src/strategies/`, `<stack>/` template dirs |
 | Coding agents (claude/codex/cursor/agy/copilot/opencode/fleet) | `src/core/lisa.ts`, `scripts/generate-*-plugin-artifacts.mjs` |
-| Remote Environment (variable presence + active-agent startup scripts) | `src/cli/ui-cmd.ts`, `plugins/src/base/scripts/remote-agent-aws-setup.sh` |
+| Remote Environment (project-aware variable presence + active-agent startup scripts) | `src/cli/remote-environment.ts`, `.lisa/remote-environment.json`, detected config/types/integrations |
 | Work tracker (JIRA / GitHub Issues / Linear) | `config-resolution.md`, `lisa-setup-*` skills |
 | PRD source (Notion / Confluence / Linear / GitHub) | `config-resolution.md`, `lisa-setup-*` skills |
 | Deploy & environments (`deploy.*`, `github.environments`) | `scripts/lisa-github-environments.sh` |
