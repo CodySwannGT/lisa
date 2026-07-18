@@ -39,7 +39,10 @@ describe("GitHub umbrella build queue contract (#1617)", () => {
     expect(githubSetup).toContain('LABEL_ORG="$ORG"');
     expect(githubSetup).toContain("del(.github.queueRepo)");
     expect(automationSetup).toContain(
-      "/lisa:repair-intake github intake_mode=both build_queue=acme/planning"
+      "/lisa:repair-intake acme/frontend intake_mode=both build_queue=acme/planning"
+    );
+    expect(automationSetup).toContain(
+      "/lisa:intake acme/frontend intake_mode=prd"
     );
     expect(automationSetup).toContain(
       "/lisa:intake acme/planning intake_mode=build"

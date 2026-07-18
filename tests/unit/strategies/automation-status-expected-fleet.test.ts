@@ -14,7 +14,7 @@ import {
 } from "../../../plugins/src/base/scripts/automation-status-expected-fleet.mjs";
 
 const GITHUB_TRACKER = "github";
-const INTAKE_PRD_COMMAND = "/lisa:intake github intake_mode=prd";
+const INTAKE_PRD_COMMAND = "/lisa:intake CodySwannGT/lisa intake_mode=prd";
 const INTAKE_PRD_ID = "intake-prd";
 const INTAKE_REPAIR_ID = "intake-repair";
 const INTAKE_TICKETS_ID = "intake-tickets";
@@ -41,7 +41,7 @@ describe("automation-status expected fleet (#799)", () => {
         expectedCadence: "every 60 minutes",
         expectedRRule: "FREQ=HOURLY;INTERVAL=1",
         expectedCommand:
-          "/lisa:repair-intake github intake_mode=both build_queue=CodySwannGT/lisa",
+          "/lisa:repair-intake CodySwannGT/lisa intake_mode=both build_queue=CodySwannGT/lisa",
       }),
       expect.objectContaining({
         id: INTAKE_PRD_ID,
@@ -86,7 +86,7 @@ describe("automation-status expected fleet (#799)", () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: INTAKE_PRD_ID,
-          expectedCommand: INTAKE_PRD_COMMAND,
+          expectedCommand: "/lisa:intake Acme/frontend intake_mode=prd",
         }),
         expect.objectContaining({
           id: INTAKE_TICKETS_ID,
@@ -95,7 +95,7 @@ describe("automation-status expected fleet (#799)", () => {
         expect.objectContaining({
           id: INTAKE_REPAIR_ID,
           expectedCommand:
-            "/lisa:repair-intake github intake_mode=both build_queue=Program/backlog",
+            "/lisa:repair-intake Acme/frontend intake_mode=both build_queue=Program/backlog",
         }),
       ])
     );
@@ -144,7 +144,7 @@ describe("automation-status expected fleet (#799)", () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: INTAKE_PRD_ID,
-          expectedCommand: INTAKE_PRD_COMMAND,
+          expectedCommand: "/lisa:intake Acme/product intake_mode=prd",
         }),
         expect.objectContaining({
           id: INTAKE_TICKETS_ID,

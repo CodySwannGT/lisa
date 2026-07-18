@@ -94,7 +94,7 @@ gh repo view "$QUEUE_ORG/$QUEUE_REPO" --json name,viewerPermission \
 
 Store `github.queueRepo` only when the canonical queue `owner/repo` differs from `$ORG/$REPO`.
 This choice changes queue scans, not repository identity: `github.repo`, `repo:<current>` claim
-scoping, issue destinations, and automation naming remain tied to the code repo.
+scoping, issue destinations, and automation naming remain tied to the identity/tracker repo.
 
 ### Step 3 — Scaffold the lifecycle label namespaces
 
@@ -233,7 +233,19 @@ Both are project-wide switches that change every downstream skill's default — 
 
 ```bash
 jq -e '.github.org and .github.repo' .lisa.config.json >/dev/null
-QUEUE_REF=$(jq -r '.github.queueRepo // (.github.org + "/" + .github.repo)' .lisa.config.json)
+EFFECTIVE_ORG=$(jq -r '.github.org // empty' .lisa.config.local.json 2>/dev/null)
+EFFECTIVE_ORG=${EFFECTIVE_ORG:-$(jq -r '.github.org' .lisa.config.json)}
+EFFECTIVE_REPO=$(jq -r '.github.repo // empty' .lisa.config.local.json 2>/dev/null)
+EFFECTIVE_REPO=${EFFECTIVE_REPO:-$(jq -r '.github.repo' .lisa.config.json)}
+QUEUE_VALUE=$(jq -r '.github.queueRepo // empty' .lisa.config.local.json 2>/dev/null)
+QUEUE_VALUE=${QUEUE_VALUE:-$(jq -r '.github.queueRepo // empty' .lisa.config.json)}
+if [ -z "$QUEUE_VALUE" ]; then
+  QUEUE_REF="$EFFECTIVE_ORG/$EFFECTIVE_REPO"
+elif [[ "$QUEUE_VALUE" == */* ]]; then
+  QUEUE_REF="$QUEUE_VALUE"
+else
+  QUEUE_REF="$EFFECTIVE_ORG/$QUEUE_VALUE"
+fi
 gh repo view "$QUEUE_REF" --json nameWithOwner --jq .nameWithOwner
 gh label list --repo "$ORG/$REPO" --limit 200 --json name --jq '.[].name' \
   | grep -E 'prd-' || true
