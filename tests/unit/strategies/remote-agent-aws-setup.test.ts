@@ -29,6 +29,8 @@ const COPILOT_PLATFORM_ARGUMENT = "--platform=copilot";
 const NPM_INSTALL_STEP = "- run: npm ci";
 const COPILOT_BOOTSTRAP_SECRET =
   "LISA_AWS_BOOTSTRAP_JSON: ${{ secrets.LISA_AWS_BOOTSTRAP_JSON }}";
+const COPILOT_BOOTSTRAP_MARKER = "Lisa remote AWS bootstrap";
+const CHECKOUT_CREDENTIAL_ISOLATION = "persist-credentials: false";
 const GENERATED_PLUGIN_ROOTS = [
   "plugins/lisa",
   "plugins/lisa-cursor",
@@ -78,9 +80,10 @@ describe("remote AWS platform installer", () => {
       path.join(project, COPILOT_WORKFLOW_PATH),
       "utf8"
     );
-    expect(workflow).toContain("Lisa remote AWS bootstrap");
+    expect(workflow).toContain(COPILOT_BOOTSTRAP_MARKER);
     expect(workflow).toContain(COPILOT_BOOTSTRAP_SECRET);
     expect(workflow).toContain("LISA_REMOTE_AGENT: copilot");
+    expect(workflow).toContain(CHECKOUT_CREDENTIAL_ISOLATION);
     expect(workflow).not.toContain("  push:");
     const guide = readFileSync(
       path.join(project, REMOTE_AWS_GUIDE_PATH),
@@ -123,7 +126,7 @@ describe("remote AWS platform installer", () => {
     mkdirSync(path.dirname(workflowPath), { recursive: true });
     writeFileSync(
       workflowPath,
-      "jobs:\n  copilot-setup-steps:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm ci\n"
+      "jobs:\n  copilot-setup-steps:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci\n"
     );
 
     installRemoteAgentAws([`--project=${project}`, COPILOT_PLATFORM_ARGUMENT]);
@@ -134,6 +137,13 @@ describe("remote AWS platform installer", () => {
     expect(workflow.match(/actions\/checkout@v4/g)).toHaveLength(1);
     expect(workflow).toContain(NPM_INSTALL_STEP);
     expect(workflow).toContain(COPILOT_BOOTSTRAP_SECRET);
+    expect(workflow).toContain(CHECKOUT_CREDENTIAL_ISOLATION);
+    expect(workflow.indexOf("actions/checkout@v4")).toBeLessThan(
+      workflow.indexOf(COPILOT_BOOTSTRAP_MARKER)
+    );
+    expect(workflow.indexOf(COPILOT_BOOTSTRAP_MARKER)).toBeLessThan(
+      workflow.indexOf(NPM_INSTALL_STEP)
+    );
   });
 
   it("upgrades an existing Lisa Copilot step with the bootstrap secret", () => {
@@ -161,12 +171,19 @@ describe("remote AWS platform installer", () => {
     const workflow = readFileSync(workflowPath, "utf8");
     expect(workflow.match(/LISA_AWS_BOOTSTRAP_JSON/g)).toHaveLength(2);
     expect(workflow).toContain(`      ${NPM_INSTALL_STEP}`);
+    expect(workflow).toContain(CHECKOUT_CREDENTIAL_ISOLATION);
   });
 });
 
 describe("remote AWS runtime parity", () => {
   it("ships the setup skill and executable through every generated runtime", () => {
     const canonicalScript = readFileSync(REMOTE_SETUP_SCRIPT_PATH, "utf8");
+    expect(canonicalScript).toContain('AWS_CLI_VERSION="2.36.2"');
+    expect(canonicalScript).toContain(
+      "awscli-exe-linux-${aws_architecture}-${AWS_CLI_VERSION}.zip"
+    );
+    expect(canonicalScript).toContain("gpg --batch --homedir");
+    expect(canonicalScript).toContain("--verify");
     for (const root of GENERATED_PLUGIN_ROOTS) {
       expect(
         existsSync(path.join(root, "skills/lisa-setup-remote-aws/SKILL.md"))
