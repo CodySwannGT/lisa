@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.227.0](https://github.com/CodySwannGT/lisa/compare/v2.226.2...v2.227.0) (2026-07-18)
+
+
+### Features
+
+* **rules:** add history-audit rule for behavior-removal changes ([7795371](https://github.com/CodySwannGT/lisa/commit/779537183ae4c8212fb12a711c7a4bda08d9dbde)), closes [#1017](https://github.com/CodySwannGT/lisa/issues/1017) [#383](https://github.com/CodySwannGT/lisa/issues/383)
+
 ### [2.226.2](https://github.com/CodySwannGT/lisa/compare/v2.226.1...v2.226.2) (2026-07-18)
 
 
