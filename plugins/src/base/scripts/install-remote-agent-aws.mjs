@@ -100,6 +100,11 @@ function installCopilotAdapter(project) {
   const marker = "Lisa remote AWS bootstrap";
   const secretEnvironment =
     "          LISA_AWS_BOOTSTRAP_JSON: ${{ secrets.LISA_AWS_BOOTSTRAP_JSON }}";
+  const checkoutStep = [
+    "      - uses: actions/checkout@v4",
+    "        with:",
+    "          persist-credentials: false",
+  ].join("\n");
   const step = [
     `      - name: ${marker}`,
     "        env:",
@@ -121,7 +126,7 @@ function installCopilotAdapter(project) {
         "    permissions:",
         "      contents: read",
         "    steps:",
-        "      - uses: actions/checkout@v4",
+        checkoutStep,
         step,
         "",
       ].join("\n")
@@ -131,6 +136,67 @@ function installCopilotAdapter(project) {
 
   const current = readFileSync(workflowPath, "utf8");
   const lines = current.split("\n");
+  const jobIndex = lines.findIndex(line =>
+    /^\s{2}copilot-setup-steps:\s*$/.test(line)
+  );
+  const jobEndIndex = lines.findIndex(
+    (line, index) => index > jobIndex && /^\s{2}\S[^:]*:\s*$/.test(line)
+  );
+  const stepsIndex = lines.findIndex(
+    (line, index) =>
+      index > jobIndex &&
+      (jobEndIndex < 0 || index < jobEndIndex) &&
+      /^\s{4}steps:\s*$/.test(line)
+  );
+  if (jobIndex < 0 || stepsIndex < 0) {
+    throw new Error(
+      "Existing copilot-setup-steps.yml must contain jobs.copilot-setup-steps.steps before Lisa can merge the AWS bootstrap step"
+    );
+  }
+
+  let changed = false;
+  const checkoutIndex = lines.findIndex(
+    (line, index) =>
+      index > stepsIndex &&
+      (jobEndIndex < 0 || index < jobEndIndex) &&
+      /^\s{6}-\s+uses:\s+actions\/checkout@/.test(line)
+  );
+  if (checkoutIndex >= 0) {
+    const nextStepIndex = lines.findIndex(
+      (line, index) => index > checkoutIndex && /^\s{6}-\s/.test(line)
+    );
+    const checkoutEnd = nextStepIndex < 0 ? lines.length : nextStepIndex;
+    const withIndex = lines.findIndex(
+      (line, index) =>
+        index > checkoutIndex &&
+        index < checkoutEnd &&
+        /^\s{8}with:\s*$/.test(line)
+    );
+    const persistenceIndex = lines.findIndex(
+      (line, index) =>
+        index > checkoutIndex &&
+        index < checkoutEnd &&
+        /^\s{10}persist-credentials:\s*/.test(line)
+    );
+    if (persistenceIndex >= 0) {
+      if (lines[persistenceIndex] !== "          persist-credentials: false") {
+        lines[persistenceIndex] = "          persist-credentials: false";
+        changed = true;
+      }
+    } else if (withIndex >= 0) {
+      lines.splice(withIndex + 1, 0, "          persist-credentials: false");
+      changed = true;
+    } else {
+      lines.splice(
+        checkoutIndex + 1,
+        0,
+        "        with:",
+        "          persist-credentials: false"
+      );
+      changed = true;
+    }
+  }
+
   const markerIndex = lines.findIndex(line => line.includes(marker));
   if (markerIndex >= 0) {
     const nextStepIndex = lines.findIndex(
@@ -151,31 +217,31 @@ function installCopilotAdapter(project) {
         );
       }
       lines.splice(environmentIndex + 1, 0, secretEnvironment);
-      writeFileSync(workflowPath, lines.join("\n"));
+      changed = true;
     }
+    if (checkoutIndex < 0) {
+      lines.splice(stepsIndex + 1, 0, ...checkoutStep.split("\n"));
+      changed = true;
+    }
+    if (changed) writeFileSync(workflowPath, lines.join("\n"));
     return path.relative(project, workflowPath);
   }
-  const jobIndex = lines.findIndex(line =>
-    /^\s{2}copilot-setup-steps:\s*$/.test(line)
+  const additions = checkoutIndex >= 0 ? [step] : [checkoutStep, step];
+  const nextCheckoutStepIndex = lines.findIndex(
+    (line, index) => index > checkoutIndex && /^\s{6}-\s/.test(line)
   );
-  const jobEndIndex = lines.findIndex(
+  const updatedJobEndIndex = lines.findIndex(
     (line, index) => index > jobIndex && /^\s{2}\S[^:]*:\s*$/.test(line)
   );
-  const stepsIndex = lines.findIndex(
-    (line, index) =>
-      index > jobIndex &&
-      (jobEndIndex < 0 || index < jobEndIndex) &&
-      /^\s{4}steps:\s*$/.test(line)
-  );
-  if (jobIndex < 0 || stepsIndex < 0) {
-    throw new Error(
-      "Existing copilot-setup-steps.yml must contain jobs.copilot-setup-steps.steps before Lisa can merge the AWS bootstrap step"
-    );
-  }
-  const additions = current.includes("actions/checkout@")
-    ? [step]
-    : ["      - uses: actions/checkout@v4", step];
-  lines.splice(stepsIndex + 1, 0, ...additions);
+  const additionIndex =
+    checkoutIndex < 0
+      ? stepsIndex + 1
+      : nextCheckoutStepIndex >= 0
+        ? nextCheckoutStepIndex
+        : updatedJobEndIndex >= 0
+          ? updatedJobEndIndex
+          : lines.length;
+  lines.splice(additionIndex, 0, ...additions);
   writeFileSync(workflowPath, lines.join("\n"));
   return path.relative(project, workflowPath);
 }
