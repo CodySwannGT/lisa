@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.224.0](https://github.com/CodySwannGT/lisa/compare/v2.223.3...v2.224.0) (2026-07-18)
+
+
+### Features
+
+* **config:** support GitHub umbrella build queues ([70d02bc](https://github.com/CodySwannGT/lisa/commit/70d02bc26b239f3ddb4dc9ff929e83270bf998c1))
+
+
+### Bug Fixes
+
+* **config:** clarify umbrella queue automation contracts ([51ca59c](https://github.com/CodySwannGT/lisa/commit/51ca59c85e6e74f5484f16449c82c345b7c26194))
+
 ### [2.223.3](https://github.com/CodySwannGT/lisa/compare/v2.223.2...v2.223.3) (2026-07-18)
 
 
