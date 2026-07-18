@@ -20,6 +20,7 @@ import {
   inspectRemoteEnvironment,
   type RemoteEnvironmentStatus,
 } from "./remote-environment.js";
+import { createGithubRepoProbe } from "./ui-github-repo.js";
 import { createLisaVersionProbe } from "./ui-lisa-version.js";
 import {
   createGithubAuthProbe,
@@ -37,6 +38,7 @@ export {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+export { createGithubRepoProbe } from "./ui-github-repo.js";
 export {
   createLisaVersionProbe,
   mapLisaVersionCheck,
@@ -328,6 +330,7 @@ export async function runUi(
   const probes = dependencies.probes ?? [
     createGithubAuthProbe(destDir),
     createLisaVersionProbe(),
+    createGithubRepoProbe(destDir, config),
   ];
   const server = http.createServer(
     createUiRequestHandler(page, probes, destDir)

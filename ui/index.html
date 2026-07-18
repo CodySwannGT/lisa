@@ -4746,9 +4746,10 @@
       };
 
       /* ---------------------------------- GitHub repo ---------------------------------- */
+      /* Demo values are never shown — the panel hydrates from the github-repo probe. */
       DATA.sections.repository = {
         title: "Repository & protection",
-        desc: "Repo-level governance on the git host: merge policy, branch protection with required status checks, lifecycle labels, deploy key and expected secrets. The controls below are those of the configured host — GitHub is the only one implemented today, so they are GitHub’s rulesets and settings.",
+        desc: "Repo-level governance on the git host: merge policy, branch protection with required status checks, lifecycle labels, deploy key and expected secrets. Values come from live gh api reads against the configured github.org / github.repo — never from demo data.",
         src: "scripts/lisa-github-repo-setup.sh · all/github-rulesets/",
         blocks: [
           {
@@ -4763,253 +4764,9 @@
             ],
           },
           {
-            card: "Repository settings",
-            note: "github.settings.* overrides the baseline per key",
-            rows: [
-              {
-                key: "allow_merge_commit",
-                label: "Allow merge commits",
-                desc: "The fleet is merge-only — squash and rebase are disabled because squashing flattens release commits and breaks promotion.",
-                control: tog(true),
-              },
-              {
-                key: "allow_squash_merge",
-                label: "Allow squash merge",
-                desc: "",
-                control: tog(false),
-              },
-              {
-                key: "allow_rebase_merge",
-                label: "Allow rebase merge",
-                desc: "",
-                control: tog(false),
-              },
-              {
-                key: "allow_auto_merge",
-                label: "Auto-merge",
-                desc: "Lisa PRs enable auto-merge and drive themselves to green.",
-                control: tog(true),
-              },
-              {
-                key: "allow_update_branch",
-                label: "Suggest updating PR branches",
-                desc: "",
-                control: tog(true),
-              },
-              {
-                key: "delete_branch_on_merge",
-                label: "Delete head branch on merge",
-                desc: "Environment branches survive via the prevent-delete ruleset.",
-                control: tog(true),
-              },
-              {
-                key: "merge_commit_title",
-                label: "Merge commit title",
-                desc: "",
-                control: sel("MERGE_MESSAGE", ["MERGE_MESSAGE", "PR_TITLE"]),
-              },
-              {
-                key: "has_issues",
-                label: "Issues tab",
-                desc: "",
-                control: tog(true),
-              },
-              {
-                key: "has_wiki",
-                label: "Wiki tab",
-                desc: "Off — Lisa uses the in-repo wiki/ directory instead.",
-                control: tog(false),
-              },
-              {
-                key: "secret_scanning",
-                label: "Secret scanning + push protection",
-                desc: "Best-effort; skipped when the plan lacks GitHub Advanced Security.",
-                control: tog(true),
-              },
-              {
-                key: "github.settings.default_branch",
-                label: "Default branch",
-                desc: "Lowest-tier existing environment branch wins: dev, then staging, then main.",
-                control: txt("dev", { mono: true }),
-              },
-            ],
-          },
-          {
-            type: "table",
-            card: "Rulesets",
-            note: "Bypass: deploy key + repo admins (prevent-delete has no bypass)",
-            cols: ["Ruleset", "Applies to", "Enforces", "Active"],
-            rows: [
-              [
-                { t: "mono", v: "base" },
-                { t: "text", v: "dev · staging · main" },
-                {
-                  t: "text",
-                  v: "No deletion/force-push; PRs with thread resolution; CodeRabbit + GitGuardian required",
-                },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "quality checks" },
-                { t: "text", v: "dev · staging · main" },
-                {
-                  t: "text",
-                  v: "Lint, Type Check, Build, Formatting, Security Scan, Unit + Integration Tests",
-                },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "playwright" },
-                { t: "text", v: "staging" },
-                { t: "text", v: "Playwright E2E required (expo stacks)" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "prevent delete" },
-                { t: "text", v: "dev · staging · main" },
-                { t: "text", v: "Deletion + force-push blocked, no bypass" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "protect tags" },
-                { t: "text", v: "refs/tags/v*" },
-                { t: "text", v: "Tag deletion + moves blocked" },
-                { t: "toggle", v: true },
-              ],
-            ],
-          },
-          {
-            card: "Ruleset adjustments",
-            rows: [
-              {
-                key: "github.rulesets.dropRequiredChecks",
-                label: "Dropped required checks",
-                desc: "Contexts removed from required checks for this repo — e.g. an app integration not installed here.",
-                control: tags([]),
-              },
-              {
-                key: "pull_request.required_review_thread_resolution",
-                label: "Require review-thread resolution",
-                desc: "PRs stay blocked until every conversation (including CodeRabbit’s) is resolved.",
-                control: tog(true),
-              },
-              {
-                key: "pull_request.required_approving_review_count",
-                label: "Required approvals",
-                desc: "Zero — quality is enforced by checks and reviews-by-agents rather than human approval count.",
-                control: num(0),
-              },
-            ],
-          },
-          {
-            type: "table",
-            card: "Lifecycle labels",
-            note: "Created idempotently by /lisa:setup:github",
-            cols: ["Label", "Role", "Color"],
-            rows: [
-              [
-                { t: "mono", v: "status:ready" },
-                { t: "text", v: "build · ready" },
-                { t: "color", v: "#FBCA04" },
-              ],
-              [
-                { t: "mono", v: "status:in-progress" },
-                { t: "text", v: "build · claimed" },
-                { t: "color", v: "#0E8A16" },
-              ],
-              [
-                { t: "mono", v: "status:blocked" },
-                { t: "text", v: "build · blocked" },
-                { t: "color", v: "#D93F0B" },
-              ],
-              [
-                { t: "mono", v: "status:on-dev / status:on-stg" },
-                { t: "text", v: "build · done (dev/staging)" },
-                { t: "color", v: "#1D76DB" },
-              ],
-              [
-                { t: "mono", v: "status:done" },
-                { t: "text", v: "build · done (production)" },
-                { t: "color", v: "#0E8A16" },
-              ],
-              [
-                { t: "mono", v: "prd-draft → prd-verified" },
-                { t: "text", v: "PRD lifecycle (8 labels)" },
-                { t: "color", v: "#5319E7" },
-              ],
-            ],
-          },
-          {
-            type: "table",
-            card: "Secrets",
-            note: "DEPLOY_KEY is the only secret Lisa creates; the rest are expected by workflows",
-            cols: ["Secret", "Purpose", "Status"],
-            rows: [
-              [
-                { t: "mono", v: "DEPLOY_KEY" },
-                {
-                  t: "text",
-                  v: "Write deploy key so CI can push version bumps through ruleset bypass",
-                },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "CLAUDE_CODE_OAUTH_TOKEN" },
-                {
-                  t: "text",
-                  v: "Claude Code Action workflows (nightly, review response, auto-fix)",
-                },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "AWS_ACCOUNT_ID_DEV / _STAGING / _PRODUCTION" },
-                { t: "text", v: "Per-environment AWS accounts for deploys" },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "GITGUARDIAN_API_KEY" },
-                { t: "text", v: "Secret scanning check" },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "SONAR_TOKEN" },
-                { t: "text", v: "SonarCloud SAST" },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "SNYK_TOKEN" },
-                { t: "text", v: "Snyk dependency scan" },
-                { t: "badge", v: "missing", cls: "off" },
-              ],
-              [
-                { t: "mono", v: "FOSSA_API_KEY" },
-                { t: "text", v: "License compliance" },
-                { t: "badge", v: "missing", cls: "off" },
-              ],
-              [
-                { t: "mono", v: "SENTRY_AUTH_TOKEN / ORG / PROJECT" },
-                { t: "text", v: "Sentry releases and sourcemaps" },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "EXPO_TOKEN" },
-                { t: "text", v: "EAS builds" },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "MAESTRO_API_KEY" },
-                { t: "text", v: "Maestro Cloud mobile E2E" },
-                { t: "badge", v: "set", cls: "on" },
-              ],
-              [
-                { t: "mono", v: "MAESTRO_SECRET_ENV" },
-                {
-                  t: "text",
-                  v: "Native Maestro e2e — newline-separated KEY=VALUE secrets forwarded to flows (test-account passwords)",
-                },
-                { t: "badge", v: "missing", cls: "off" },
-              ],
-            ],
+            type: "callout",
+            variant: "warn",
+            text: "<b>Live repository status</b> — waiting for gh api probe…",
           },
         ],
       };
@@ -6152,6 +5909,178 @@
           "@codyswann/lisa · unknown (invalid-value: lisa-version probe returned an unusable value)"
         );
       }
+      function githubRepoHostBlock() {
+        return {
+          card: "Host",
+          rows: [
+            {
+              key: "",
+              label: "Git host",
+              desc: "Which host this repository lives on. GitHub is the only host Lisa provisions today.",
+              control: sel("GitHub", ["GitHub", "GitLab", "Bitbucket"]),
+            },
+          ],
+        };
+      }
+      function githubRepoSettingsRows(settings) {
+        return [
+          {
+            label: "Allow merge commits",
+            desc: "The fleet is merge-only — squash and rebase are disabled because squashing flattens release commits and breaks promotion.",
+            control: tog(!!settings.allow_merge_commit),
+          },
+          {
+            label: "Allow squash merge",
+            desc: "",
+            control: tog(!!settings.allow_squash_merge),
+          },
+          {
+            label: "Allow rebase merge",
+            desc: "",
+            control: tog(!!settings.allow_rebase_merge),
+          },
+          {
+            label: "Auto-merge",
+            desc: "Lisa PRs enable auto-merge and drive themselves to green.",
+            control: tog(!!settings.allow_auto_merge),
+          },
+          {
+            label: "Suggest updating PR branches",
+            desc: "",
+            control: tog(!!settings.allow_update_branch),
+          },
+          {
+            label: "Delete head branch on merge",
+            desc: "Environment branches survive via the prevent-delete ruleset.",
+            control: tog(!!settings.delete_branch_on_merge),
+          },
+          {
+            label: "Merge commit title",
+            desc: "",
+            control: sel(String(settings.merge_commit_title || ""), [
+              "MERGE_MESSAGE",
+              "PR_TITLE",
+            ]),
+          },
+          {
+            label: "Issues tab",
+            desc: "",
+            control: tog(!!settings.has_issues),
+          },
+          {
+            label: "Wiki tab",
+            desc: "Off — Lisa uses the in-repo wiki/ directory instead.",
+            control: tog(!!settings.has_wiki),
+          },
+          {
+            label: "Secret scanning + push protection",
+            desc: "Best-effort; skipped when the plan lacks GitHub Advanced Security.",
+            control: tog(!!settings.secret_scanning),
+          },
+          {
+            label: "Default branch",
+            desc: "Live default branch from the repository.",
+            control: txt(String(settings.default_branch || ""), {
+              mono: true,
+            }),
+          },
+        ];
+      }
+      function applyGithubRepoPanel(result) {
+        const host = githubRepoHostBlock();
+        if (result.state !== "value") {
+          const reason =
+            result.state === "unknown"
+              ? result.reason + ": " + result.message
+              : "not applicable";
+          DATA.sections.repository.blocks = [
+            host,
+            {
+              type: "callout",
+              variant: "warn",
+              text:
+                "<b>unknown — not authenticated / unavailable</b> — " +
+                esc(reason) +
+                ". No setting, ruleset, label, or secret state is shown as a concrete value.",
+            },
+          ];
+          return;
+        }
+        const value = result.value || {};
+        const settings = value.settings || {};
+        const rulesets = Array.isArray(value.rulesets) ? value.rulesets : [];
+        const labels = Array.isArray(value.labels) ? value.labels : [];
+        const secrets = Array.isArray(value.secrets) ? value.secrets : [];
+        DATA.sections.repository.blocks = [
+          host,
+          {
+            card: "Repository settings",
+            note:
+              "Live from gh api repos/" +
+              String(value.owner || "") +
+              "/" +
+              String(value.repo || ""),
+            rows: githubRepoSettingsRows(settings),
+          },
+          {
+            type: "table",
+            card: "Rulesets",
+            note: "Live from gh api repos/{owner}/{repo}/rulesets",
+            cols: ["Ruleset", "Applies to", "Enforces", "Active"],
+            rows: rulesets.map(row => [
+              { t: "mono", v: String(row.name || "") },
+              { t: "text", v: String(row.appliesTo || "—") },
+              { t: "text", v: String(row.enforces || "—") },
+              {
+                t: "badge",
+                v: row.active ? "active" : "disabled",
+                cls: row.active ? "on" : "off",
+              },
+            ]),
+          },
+          {
+            type: "table",
+            card: "Lifecycle labels",
+            note: "Config-expected labels vs live gh label list",
+            cols: ["Label", "Role", "Color", "Status"],
+            rows: labels.map(row => [
+              { t: "mono", v: String(row.name || "") },
+              { t: "text", v: String(row.role || "") },
+              row.present && row.color
+                ? {
+                    t: "color",
+                    v: "#" + String(row.color).replace(/^#/u, ""),
+                  }
+                : { t: "text", v: "—" },
+              {
+                t: "badge",
+                v: row.present ? "present" : "missing",
+                cls: row.present ? "on" : "off",
+              },
+            ]),
+          },
+          {
+            type: "table",
+            card: "Secrets",
+            note: "Presence only from gh secret list — values are never read",
+            cols: ["Secret", "Purpose", "Status"],
+            rows: secrets.map(row => [
+              { t: "mono", v: String(row.name || "") },
+              { t: "text", v: String(row.purpose || "") },
+              {
+                t: "badge",
+                v: row.set ? "set" : "missing",
+                cls: row.set ? "on" : "off",
+              },
+            ]),
+          },
+        ];
+      }
+      function reRenderAfterGithubRepoHydration() {
+        const current = activeSection;
+        renderAll();
+        showSection(current || "overview");
+      }
       async function hydrateLiveStatuses() {
         try {
           const response = await fetch("/api/status", {
@@ -6162,6 +6091,15 @@
           const probes = liveStatusProbeMap(snapshot);
           renderLiveStatuses(probes);
           applyLisaVersion(probes);
+          const repoResult = normalizeLiveStatusResult(
+            probes["github-repo"] || {
+              state: "unknown",
+              reason: "probe-missing",
+              message: "GitHub repository probe did not run",
+            }
+          );
+          applyGithubRepoPanel(repoResult);
+          reRenderAfterGithubRepoHydration();
         } catch (error) {
           const unavailable = {
             state: "unknown",
@@ -6170,6 +6108,8 @@
           };
           renderLiveStatuses({ transport: unavailable });
           applyLisaVersion({ "lisa-version": unavailable });
+          applyGithubRepoPanel(unavailable);
+          reRenderAfterGithubRepoHydration();
         }
       }
 
