@@ -3640,7 +3640,7 @@
                   t: "text",
                   v: "Error events, issue volume, release health",
                 },
-                { t: "status", v: true },
+                { t: "status", v: true, provider: "sentry" },
               ],
               [
                 { t: "mono", v: "AWS CloudWatch (Alarms)" },
@@ -3648,7 +3648,11 @@
                   t: "text",
                   v: "Alarm states, error-rate and latency metrics",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  v: true,
+                  provider: "cloudwatch-alarms",
+                },
               ],
               [
                 { t: "mono", v: "AWS X-Ray" },
@@ -3656,6 +3660,7 @@
                 {
                   t: "status",
                   v: false,
+                  provider: "x-ray",
                   reason: "no traces found — X-Ray is not instrumented",
                 },
               ],
@@ -5483,9 +5488,48 @@
         return card;
       }
 
+      function paintProviderStatus(td, cell) {
+        td.innerHTML = "";
+        if (cell.v === true || cell.v === "connected") {
+          td.appendChild(el("span", "badge pass", "✓ connected"));
+          return;
+        }
+        if (cell.v === "connected-but-empty") {
+          td.appendChild(el("span", "badge warn", "◐ connected-but-empty"));
+          if (cell.reason) {
+            td.appendChild(el("span", "status-why", esc(cell.reason)));
+          }
+          return;
+        }
+        if (cell.v === "pending") {
+          td.appendChild(el("span", "badge default", "checking…"));
+          return;
+        }
+        if (cell.v === "unknown") {
+          td.appendChild(el("span", "badge warn", "unknown"));
+          if (cell.reason) {
+            td.appendChild(el("span", "status-why", esc(cell.reason)));
+          }
+          return;
+        }
+        if (cell.v) {
+          td.appendChild(el("span", "badge pass", "✓ active"));
+          return;
+        }
+        td.appendChild(el("span", "badge fail", "✗ off"));
+        if (cell.reason) {
+          td.appendChild(el("span", "status-why", esc(cell.reason)));
+        }
+      }
       function buildStatusCell(cell) {
         const td = el("td");
-        if (cell.v === "unknown") {
+        if (cell.provider) td.dataset.provider = cell.provider;
+        if (cell.jobId) td.dataset.jobId = cell.jobId;
+        if (cell.provider) {
+          paintProviderStatus(td, cell);
+          return td;
+        }
+        if (cell.v === "unknown" || cell.v === null || cell.v === undefined) {
           td.appendChild(el("span", "badge warn", "unknown"));
           if (cell.reason) {
             td.appendChild(el("span", "status-why", esc(cell.reason)));
@@ -6132,6 +6176,7 @@
               if (value !== undefined) hydrateControl(row.control, value);
             });
           });
+          markObservabilityProvidersPending();
         }
         configureRemoteEnvironment(cfg);
         const repoEl = document.querySelector(".project-switch .repo");
@@ -6190,6 +6235,115 @@
           throw new TypeError("Status response omitted a valid probes map");
         }
         return snapshot.probes;
+      }
+      function connectedProvidersBlock() {
+        const blocks = DATA.sections.monitor && DATA.sections.monitor.blocks;
+        if (!Array.isArray(blocks)) return null;
+        return (
+          blocks.find(
+            block =>
+              block &&
+              block.type === "table" &&
+              block.card === "Connected providers"
+          ) || null
+        );
+      }
+      function setProviderStatusCell(provider, cell) {
+        const block = connectedProvidersBlock();
+        if (!block || !Array.isArray(block.rows)) return;
+        block.rows.forEach(row => {
+          if (!Array.isArray(row)) return;
+          row.forEach((entry, index) => {
+            if (entry && entry.t === "status" && entry.provider === provider) {
+              row[index] = cell;
+            }
+          });
+        });
+        const td = document.querySelector(
+          'td[data-provider="' + provider + '"]'
+        );
+        if (td) paintProviderStatus(td, cell);
+      }
+      function markObservabilityProvidersPending() {
+        ["sentry", "cloudwatch-alarms", "x-ray"].forEach(provider => {
+          setProviderStatusCell(provider, {
+            t: "status",
+            v: "pending",
+            provider,
+          });
+        });
+      }
+      /**
+       * Paint Connected providers from sentry / cloudwatch-alarms / x-ray probes.
+       * unknown ≠ disconnected — never invent an unevidenced "off" claim.
+       * @param probes - Live-status probe map from /api/status
+       */
+      function applyObservabilityProviders(probes) {
+        const specs = [
+          {
+            id: "sentry",
+            emptyReason: "reachable — no Sentry data observed",
+          },
+          {
+            id: "cloudwatch-alarms",
+            emptyReason: "connected — no alarms",
+          },
+          {
+            id: "x-ray",
+            emptyReason: "connected — no traces",
+          },
+        ];
+        specs.forEach(spec => {
+          const raw =
+            probes && Object.hasOwn(probes, spec.id)
+              ? probes[spec.id]
+              : undefined;
+          const result =
+            raw === undefined
+              ? {
+                  state: "unknown",
+                  reason: "missing-probe",
+                  message: "The " + spec.id + " probe was not reported",
+                }
+              : normalizeLiveStatusResult(raw);
+          if (
+            result.state === "value" &&
+            result.value &&
+            typeof result.value === "object" &&
+            result.value.status === "connected"
+          ) {
+            setProviderStatusCell(spec.id, {
+              t: "status",
+              v: "connected",
+              provider: spec.id,
+            });
+            return;
+          }
+          if (
+            result.state === "value" &&
+            result.value &&
+            typeof result.value === "object" &&
+            result.value.status === "connected-but-empty"
+          ) {
+            setProviderStatusCell(spec.id, {
+              t: "status",
+              v: "connected-but-empty",
+              provider: spec.id,
+              reason: spec.emptyReason,
+            });
+            return;
+          }
+          const reason =
+            result.state === "unknown"
+              ? result.reason + ": " + result.message
+              : "invalid-value: provider probe returned an unusable value";
+          setProviderStatusCell(spec.id, {
+            t: "status",
+            v: "unknown",
+            provider: spec.id,
+            reason,
+          });
+        });
       }
       function renderLiveStatuses(probes) {
         const list = document.getElementById("liveStatusList");
@@ -6549,6 +6703,7 @@
           applyCiQualityJobs(probes);
           applyLisaVersion(probes);
           applyDeployPipelineStages(probes);
+          applyObservabilityProviders(probes);
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
@@ -6563,6 +6718,11 @@
           applyLisaVersion({ "lisa-version": unavailable });
           applyDeployPipelineStages({
             "deploy-pipeline-stages": unavailable,
+          });
+          applyObservabilityProviders({
+            sentry: unavailable,
+            "cloudwatch-alarms": unavailable,
+            "x-ray": unavailable,
           });
         }
       }

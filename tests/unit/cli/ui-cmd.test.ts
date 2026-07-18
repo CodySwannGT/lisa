@@ -317,4 +317,23 @@ describe("runUi", () => {
       value: { settingsPresent: false, plugins: [] },
     });
   });
+
+  it("registers observability provider probes in the default status snapshot", async () => {
+    resources.server = await runUi(resources.dir, { port: "0", sync: false });
+
+    const address = resources.server.address();
+    const port =
+      typeof address === "object" && address !== null ? address.port : 0;
+    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+    const body = (await response.json()) as {
+      probes: Record<string, unknown>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.probes).toHaveProperty("github-auth");
+    expect(body.probes).toHaveProperty("sentry");
+    expect(body.probes).toHaveProperty("cloudwatch-alarms");
+    expect(body.probes).toHaveProperty("x-ray");
+  });
+
 });
