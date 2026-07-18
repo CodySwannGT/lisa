@@ -15,9 +15,9 @@ plus any screenshots).
 
 - **Tied report** (invoked from `lisa-qa-queue` with a key): use it.
 - **Untied report** ("I found something broken: …"): run duplicate-discovery BEFORE any
-  write, reusing the mandatory relationship-discovery searches from the tracker write
-  path (`lisa-jira-write-ticket` Phase 4 semantics): search open and recently-closed
-  tickets in the affected area, and the current QA-queue set. If an existing ticket
+  write, reusing the mandatory relationship-discovery searches defined by the configured
+  tracker's write skill (dispatched through `lisa-tracker-write`): search open and
+  recently-closed tickets in the affected area, and the current QA-queue set. If an existing ticket
   covers it, that ticket is the target — update it, never file a twin. Only when the
   search documents no match, create a new Bug via `lisa-tracker-write` (which enforces
   the full quality gates) and treat it as the target. Report which path was taken.

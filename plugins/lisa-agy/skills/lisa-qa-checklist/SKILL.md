@@ -20,11 +20,15 @@ moment the tester asks.
    blocks, write the draft, and ask the operator to curate it once. Never invent
    journeys silently.
 2. **Automated coverage** — scan the repo's E2E suites (Playwright specs, Maestro flows;
-   locate via the project's e2e/test directories). A journey counts as covered only when
-   its `automation:` line names a spec file that exists AND is not skipped
-   (`test.skip`, commented-out flow, or excluded from CI). A deleted or skipped spec
-   silently un-covers its journey — that is exactly the regression this check exists to
-   catch; call it out loudly.
+   locate via the project's e2e/test directories). An `automation:` line must name BOTH
+   the spec file and the specific test within it (the Playwright `describe`/`test` title
+   or Maestro flow name): `automation: <spec-path> :: <test-or-flow-name>`. A journey
+   counts as covered only when that spec file exists, the named test/flow is present in
+   it, and it is not skipped (`test.skip`, commented-out flow, or excluded from CI). A
+   file-only line, a named test that no longer matches, or any ambiguous mapping is
+   treated as **uncovered** — a live filename proves nothing about what the spec
+   exercises. A deleted, renamed, or skipped test silently un-covers its journey — the
+   very regression this check exists to catch; call it out loudly.
 
 ## Serving the sweep
 
@@ -50,8 +54,9 @@ can resume mid-sweep.
   (this skill may apply the edit on request; it is a repo file, so changes ride normal
   review).
 - When a journey gains automation (e.g. `lisa-codify-verification` lands a spec), add its
-  `automation:` line — on request this skill locates the covering spec and writes the
-  line itself.
+  `automation: <spec-path> :: <test-or-flow-name>` line — on request this skill locates
+  the covering spec and test, confirms the named test actually drives the journey's
+  steps, and writes the line itself.
 - Never maintain per-tester copies; the file is the single source of truth and the
   computed view is always derived fresh.
 

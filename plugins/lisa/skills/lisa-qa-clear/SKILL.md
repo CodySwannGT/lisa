@@ -41,9 +41,14 @@ Read `.lisa.config.json`:
    - **Every** touched repo is non-user-facing → eligible to clear.
    - Any user-facing repo in scope (including mixed-scope) → stays in the queue for the
      human pass via `lisa-qa-queue`.
-4. For each eligible ticket: transition to the certified status and post
-   `[lisa-qa-clear] Certified without human QA: scope is <repo(s)>, not observable with
-   end-user access. Verified by the automated lifecycle pre-promotion.`
+4. For each eligible ticket, in this order — the pairing must be failure-safe:
+   1. Post the audit comment first:
+      `[lisa-qa-clear] Certified without human QA: scope is <repo(s)>, not observable
+      with end-user access. Verified by the automated lifecycle pre-promotion.`
+   2. Then transition to the certified status.
+   3. Verify both halves landed before counting the ticket as moved. A comment without
+      the transition, or a transition without the comment, is a **partial** — report it
+      as such, never as completed.
 5. Report the batch:
 
 ```text
@@ -63,5 +68,7 @@ marks exactly what was auto-cleared.
 - Never bulk-move on an inferred repo list without explicit operator confirmation.
 - Every cleared ticket carries the audit comment; a transition without the comment is a
   bug in this procedure.
-- Idempotent: tickets already in the certified status, or already carrying this sweep's
-  `[lisa-qa-clear]` comment, are skipped silently.
+- Idempotent by repair, not by skip: a ticket is complete only when it has BOTH the
+  `[lisa-qa-clear]` comment AND the certified status. Re-runs finish partials — comment
+  present but not certified → transition it; certified but no comment → post the
+  comment. Only fully-complete tickets are skipped silently.
