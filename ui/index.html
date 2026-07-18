@@ -3157,77 +3157,22 @@
           },
           {
             type: "table",
+            id: "deploy-pipeline-stages",
             card: "Deploy pipeline stages",
-            note: "Runs when an environment branch (dev / staging / main) receives a merge",
+            note: "Live from deploy.yml + GitHub environment protection rules — never fabricated",
             cols: ["Stage", "What it does", "Active"],
             rows: [
               [
-                { t: "mono", v: "🏗️ Build & package" },
+                { t: "mono", v: "…" },
                 {
                   t: "text",
-                  v: "Builds the artifacts for the environment mapped to the pushed branch",
-                },
-                { t: "status", v: true },
-              ],
-              [
-                { t: "mono", v: "🚦 Release approval — production" },
-                {
-                  t: "text",
-                  v: "Pauses at the release_approval job until a configured reviewer approves the GitHub environment",
-                },
-                { t: "status", v: true },
-              ],
-              [
-                { t: "mono", v: "🚦 Release approval — staging" },
-                {
-                  t: "text",
-                  v: "Approval hold before staging deploys",
+                  v: "Loading live deploy pipeline stages…",
                 },
                 {
                   t: "status",
-                  v: false,
-                  reason: "require_approval is off for staging",
+                  v: "unknown",
+                  reason: "waiting for deploy-pipeline-stages probe",
                 },
-              ],
-              [
-                { t: "mono", v: "🚀 Deploy" },
-                {
-                  t: "text",
-                  v: "Runs the stack’s deploy (EAS / Serverless / CDK / Fabric) against the target environment",
-                },
-                { t: "status", v: true },
-              ],
-              [
-                { t: "mono", v: "📝 Version bump & changelog" },
-                {
-                  t: "text",
-                  v: "standard-version tags the release and pushes the chore(release) commit through the deploy key’s ruleset bypass",
-                },
-                { t: "status", v: true },
-              ],
-              [
-                { t: "mono", v: "🔄 Sync-down branches" },
-                {
-                  t: "text",
-                  v: "After a promotion merges, back-merges higher environment branches into lower ones",
-                },
-                { t: "status", v: true },
-              ],
-              [
-                { t: "mono", v: "🧯 Deploy auto-fix" },
-                {
-                  t: "text",
-                  v: "On a failed deploy, a Claude workflow investigates and opens a fix PR",
-                },
-                { t: "status", v: true },
-              ],
-              [
-                { t: "mono", v: "🎫 Issue on failure" },
-                {
-                  t: "text",
-                  v: "Files a tracker issue when a deploy run fails",
-                },
-                { t: "status", v: true },
               ],
             ],
           },
@@ -5538,8 +5483,29 @@
         return card;
       }
 
+      function buildStatusCell(cell) {
+        const td = el("td");
+        if (cell.v === "unknown") {
+          td.appendChild(el("span", "badge warn", "unknown"));
+          if (cell.reason) {
+            td.appendChild(el("span", "status-why", esc(cell.reason)));
+          }
+          return td;
+        }
+        if (cell.v) {
+          td.appendChild(el("span", "badge pass", "✓ active"));
+          return td;
+        }
+        td.appendChild(el("span", "badge fail", "✗ off"));
+        if (cell.reason) {
+          td.appendChild(el("span", "status-why", esc(cell.reason)));
+        }
+        return td;
+      }
+
       function buildTable(block) {
         const card = el("div", "card");
+        if (block.id) card.id = block.id;
         if (block.card) {
           const head = el("div", "card-head");
           head.appendChild(el("h2", "", esc(block.card)));
@@ -5567,6 +5533,10 @@
         block.rows.forEach(cells => {
           const tr = el("tr");
           cells.forEach(cell => {
+            if (cell.t === "status") {
+              tr.appendChild(buildStatusCell(cell));
+              return;
+            }
             const td = el("td");
             if (cell.t === "mono") td.className = "mono";
             if (cell.t === "text" || cell.t === "mono") {
@@ -5597,8 +5567,7 @@
                 if (cell.reason) {
                   td.appendChild(el("span", "status-why", esc(cell.reason)));
                 }
-              }
-            } else if (cell.t === "run") {
+              }            } else if (cell.t === "run") {
               const cls =
                 cell.ok === true
                   ? "pass"
@@ -6468,7 +6437,101 @@
         const current = activeSection;
         renderAll();
         showSection(current);
-      }
+
+       * Replace the Deploy pipeline stages table from the live probe.
+       * Never leaves demo hold/no-hold claims in place.
+       * @param probes - Live-status probe map from /api/status
+       */
+      function applyDeployPipelineStages(probes) {
+        const section = DATA.sections.deploy;
+        if (!section || !Array.isArray(section.blocks)) return;
+        const block = section.blocks.find(
+          candidate =>
+            candidate &&
+            candidate.type === "table" &&
+            candidate.id === "deploy-pipeline-stages"
+        );
+        if (!block) return;
+        const raw =
+          probes && Object.hasOwn(probes, "deploy-pipeline-stages")
+            ? probes["deploy-pipeline-stages"]
+            : undefined;
+        const result =
+          raw === undefined
+            ? {
+                state: "unknown",
+                reason: "missing-probe",
+                message: "The deploy-pipeline-stages probe was not reported",
+              }
+            : normalizeLiveStatusResult(raw);
+        if (result.state === "not-applicable") {
+          block.rows = [
+            [
+              { t: "mono", v: "—" },
+              {
+                t: "text",
+                v: "No deploy.yml or github.environments configured for this project",
+              },
+              { t: "status", v: "unknown", reason: "not-applicable" },
+            ],
+          ];
+        } else if (
+          result.state === "value" &&
+          result.value &&
+          typeof result.value === "object" &&
+          Array.isArray(result.value.stages)
+        ) {
+          block.rows = result.value.stages.map(stage => [
+            {
+              t: "mono",
+              v: String(stage.name || stage.id || "stage"),
+            },
+            {
+              t: "text",
+              v: String(stage.description || ""),
+            },
+            {
+              t: "status",
+              v: stage.active === "unknown" ? "unknown" : stage.active === true,
+              reason:
+                typeof stage.reason === "string" && stage.reason.length > 0
+                  ? stage.reason
+                  : undefined,
+            },
+          ]);
+          if (block.rows.length === 0) {
+            block.rows = [
+              [
+                { t: "mono", v: "—" },
+                { t: "text", v: "Deploy pipeline reported zero stages" },
+                {
+                  t: "status",
+                  v: "unknown",
+                  reason: "empty-stages",
+                },
+              ],
+            ];
+          }
+        } else {
+          const reason =
+            result.state === "unknown"
+              ? result.reason + ": " + result.message
+              : "invalid-value: deploy-pipeline-stages probe returned an unusable value";
+          block.rows = [
+            [
+              { t: "mono", v: "—" },
+              {
+                t: "text",
+                v: "Deploy pipeline stages unavailable",
+              },
+              { t: "status", v: "unknown", reason: reason },
+            ],
+          ];
+        }
+        const existing = document.getElementById("deploy-pipeline-stages");
+        if (existing) {
+          existing.replaceWith(buildTable(block));
+        }      }
       async function hydrateLiveStatuses() {
         try {
           const response = await fetch("/api/status", {
@@ -6482,6 +6545,7 @@
           // Quality jobs re-renders the page; paint the version chip after.
           applyCiQualityJobs(probes);
           applyLisaVersion(probes);
+          applyDeployPipelineStages(probes);
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
@@ -6494,6 +6558,9 @@
           applyEnabledPlugins({ "enabled-plugins": unavailable });
           applyCiQualityJobs({ "ci-quality-jobs": unavailable });
           applyLisaVersion({ "lisa-version": unavailable });
+          applyDeployPipelineStages({
+            "deploy-pipeline-stages": unavailable,
+          });
         }
       }
 

@@ -276,7 +276,7 @@ describe("runUi", () => {
     });
   });
 
-  it("includes lisa-version among the default runUi probes", async () => {
+  it("includes lisa-version and deploy-pipeline-stages among default probes", async () => {
     resources.server = await runUi(resources.dir, { port: "0", sync: false });
 
     const address = resources.server.address();
@@ -288,8 +288,9 @@ describe("runUi", () => {
     };
 
     expect(response.status).toBe(200);
-    expect(snapshot.probes).toHaveProperty("lisa-version");
     expect(snapshot.probes).toHaveProperty("github-auth");
+    expect(snapshot.probes).toHaveProperty("lisa-version");
+    expect(snapshot.probes).toHaveProperty("deploy-pipeline-stages");
   });
 
   it("rejects an invalid port", async () => {
