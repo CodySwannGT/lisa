@@ -20,6 +20,7 @@ import {
   inspectRemoteEnvironment,
   type RemoteEnvironmentStatus,
 } from "./remote-environment.js";
+import { createCiQualityJobsProbe } from "./ui-ci-quality-jobs.js";
 import { createLisaVersionProbe } from "./ui-lisa-version.js";
 import {
   createGithubAuthProbe,
@@ -42,6 +43,16 @@ export {
   mapLisaVersionCheck,
   type LisaVersionValue,
 } from "./ui-lisa-version.js";
+export {
+  createCiQualityJobsProbe,
+  computeCiQualityJobs,
+  parseCiWorkflowInputs,
+  CI_QUALITY_JOBS_PROBE_ID,
+  type CiQualityJobEntry,
+  type CiQualityJobsValue,
+  type CiWorkflowInputs,
+  type RepoSecretsPresence,
+} from "./ui-ci-quality-jobs.js";
 export { inspectRemoteEnvironment } from "./remote-environment.js";
 
 /** Default port for the settings console. */
@@ -328,6 +339,7 @@ export async function runUi(
   const probes = dependencies.probes ?? [
     createGithubAuthProbe(destDir),
     createLisaVersionProbe(),
+    createCiQualityJobsProbe(destDir, config),
   ];
   const server = http.createServer(
     createUiRequestHandler(page, probes, destDir)
