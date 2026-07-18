@@ -93,10 +93,19 @@ describe("rework-triage self-hardening loop", () => {
       expect(skill).toMatch(/gh issue create -R/);
     });
 
-    it("is idempotent per bounce via a comment fingerprint", () => {
+    it("is idempotent per bounce via an explicit posted fingerprint", () => {
       expect(skill).toContain("[lisa-rework-triage]");
-      expect(skill).toMatch(/fingerprint/i);
+      expect(skill).toContain("Fingerprint:");
+      expect(skill).toMatch(/`none` as the PR component/);
       expect(skill).toContain("ALREADY_TRIAGED");
+    });
+
+    it("routes secondary verification gaps upstream and scopes the claim marker", () => {
+      expect(skill).toMatch(/Secondary causes route too/);
+      expect(skill).not.toContain("`[lisa-*]` evidence comment");
+      expect(skill).toMatch(
+        /\[lisa-rework-triage\]` comments and other unrelated/
+      );
     });
 
     it("never blocks the fix on hardening", () => {

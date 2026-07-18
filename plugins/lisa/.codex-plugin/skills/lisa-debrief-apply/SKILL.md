@@ -54,8 +54,12 @@ Applied <n> learnings:
   <n> edge cases → intent-routing.md
   <n> gotchas → memory
   <n> friction → PROJECT_RULES.md
-  <n> tooling gaps → <tracker> (<key1>, <key2>, ...)
+  <n> tooling gaps (project) → <tracker> (<key1>, <key2>, ...)
+  <n> tooling gaps (harness) → upstream Lisa (<issue-url1>, ...)
   <n> convention drift → CLAUDE.md
+  <n> decomposition infidelity → upstream Lisa (<issue-url1>, ...)
+  <n> PRD defects → PRD comments (<prd-link1>, ...)
+  <n> missing tool access → <tracker> (<key1>, ...)
 Skipped:
   <n> rejected, <n> deferred, <n> already-applied
 Failed:
