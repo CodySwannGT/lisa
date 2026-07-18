@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.226.1](https://github.com/CodySwannGT/lisa/compare/v2.226.0...v2.226.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **remote-aws:** verify AWS CLI installer ([5126160](https://github.com/CodySwannGT/lisa/commit/5126160d4523759398e4d5d324b1e4011f62816e))
+* **remote-aws:** wire Copilot bootstrap secret ([445b0e8](https://github.com/CodySwannGT/lisa/commit/445b0e853acb273426e9e0695fa307df992a9ed0))
+
 ## [2.226.0](https://github.com/CodySwannGT/lisa/compare/v2.225.5...v2.226.0) (2026-07-18)
 
 
