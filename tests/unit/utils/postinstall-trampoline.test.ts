@@ -109,10 +109,23 @@ describe("postinstall-trampoline", () => {
   describe("shouldSchedulePostinstallReconciliation", () => {
     it("returns true inside a lifecycle script when not a trampoline and not dry-run", () => {
       process.env.npm_package_json = FAKE_PACKAGE_JSON_PATH;
+      delete process.env.npm_config_user_agent;
+      delete process.env.npm_execpath;
       delete process.env.LISA_POSTINSTALL_TRAMPOLINE;
       delete process.env.VITEST;
       delete process.env.JEST_WORKER_ID;
       expect(shouldSchedulePostinstallReconciliation(false)).toBe(true);
+    });
+
+    it("returns false for npm lifecycle scripts so package-lock regeneration runs synchronously", () => {
+      process.env.npm_package_json = FAKE_PACKAGE_JSON_PATH;
+      process.env.npm_config_user_agent =
+        "npm/10.9.0 node/v22.21.1 darwin arm64 workspaces/false";
+      delete process.env.npm_execpath;
+      delete process.env.LISA_POSTINSTALL_TRAMPOLINE;
+      delete process.env.VITEST;
+      delete process.env.JEST_WORKER_ID;
+      expect(shouldSchedulePostinstallReconciliation(false)).toBe(false);
     });
 
     it("returns false when in dry-run mode", () => {
