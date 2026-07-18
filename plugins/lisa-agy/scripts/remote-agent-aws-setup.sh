@@ -14,6 +14,7 @@ set -euo pipefail
 umask 077
 
 BOOTSTRAP_PROFILE="lisa-remote-agent-bootstrap"
+AWS_CLI_VERSION="2.36.2"
 
 fail() {
   echo "remote-agent-aws-setup: $*" >&2
@@ -35,17 +36,17 @@ as_root() {
 }
 
 install_base_tools() {
-  need curl && need unzip && need jq && return 0
+  need curl && need unzip && need jq && need gpg && return 0
 
   if need apt-get; then
     as_root apt-get update -y
-    as_root apt-get install -y curl unzip jq
+    as_root apt-get install -y curl unzip jq gnupg
   elif need dnf; then
-    as_root dnf install -y curl unzip jq
+    as_root dnf install -y curl unzip jq gnupg2
   elif need yum; then
-    as_root yum install -y curl unzip jq
+    as_root yum install -y curl unzip jq gnupg2
   else
-    fail "install curl, unzip, and jq in the remote image before running this script"
+    fail "install curl, unzip, jq, and gpg in the remote image before running this script"
   fi
 }
 
@@ -62,9 +63,49 @@ install_aws_cli() {
 
   temporary_directory="$(mktemp -d)"
   trap 'rm -rf "${temporary_directory:-}"' EXIT
+  local installer_url
+  installer_url="https://awscli.amazonaws.com/awscli-exe-linux-${aws_architecture}-${AWS_CLI_VERSION}.zip"
   curl -fsSL \
-    "https://awscli.amazonaws.com/awscli-exe-linux-${aws_architecture}.zip" \
+    "$installer_url" \
     -o "$temporary_directory/awscliv2.zip"
+  curl -fsSL "$installer_url.sig" -o "$temporary_directory/awscliv2.sig"
+  cat >"$temporary_directory/aws-cli-public-key.asc" <<'AWS_CLI_PUBLIC_KEY'
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBF2Cr7UBEADJZHcgusOJl7ENSyumXh85z0TRV0xJorM2B/JL0kHOyigQluUG
+ZMLhENaG0bYatdrKP+3H91lvK050pXwnO/R7fB/FSTouki4ciIx5OuLlnJZIxSzx
+PqGl0mkxImLNbGWoi6Lto0LYxqHN2iQtzlwTVmq9733zd3XfcXrZ3+LblHAgEt5G
+TfNxEKJ8soPLyWmwDH6HWCnjZ/aIQRBTIQ05uVeEoYxSh6wOai7ss/KveoSNBbYz
+gbdzoqI2Y8cgH2nbfgp3DSasaLZEdCSsIsK1u05CinE7k2qZ7KgKAUIcT/cR/grk
+C6VwsnDU0OUCideXcQ8WeHutqvgZH1JgKDbznoIzeQHJD238GEu+eKhRHcz8/jeG
+94zkcgJOz3KbZGYMiTh277Fvj9zzvZsbMBCedV1BTg3TqgvdX4bdkhf5cH+7NtWO
+lrFj6UwAsGukBTAOxC0l/dnSmZhJ7Z1KmEWilro/gOrjtOxqRQutlIqG22TaqoPG
+fYVN+en3Zwbt97kcgZDwqbuykNt64oZWc4XKCa3mprEGC3IbJTBFqglXmZ7l9ywG
+EEUJYOlb2XrSuPWml39beWdKM8kzr1OjnlOm6+lpTRCBfo0wa9F8YZRhHPAkwKkX
+XDeOGpWRj4ohOx0d2GWkyV5xyN14p2tQOCdOODmz80yUTgRpPVQUtOEhXQARAQAB
+tCFBV1MgQ0xJIFRlYW0gPGF3cy1jbGlAYW1hem9uLmNvbT6JAlQEEwEIAD4CGwMF
+CwkIBwIGFQoJCAsCBBYCAwECHgECF4AWIQT7Xbd/1cEYuAURraimMQrMRnJHXAUC
+akV0ygUJDqP4lQAKCRCmMQrMRnJHXFHjD/9eyZLYcKuQOlLvtqSDtUBiEZf6ZZjM
+i3ygYH8rJNtuToUH+HvSpe819urJCquXhDrlK6N+aqW0hCLtNABJG/vsafIgvIYJ
+hSGgpgtNnQyMV1jViRWqPjbouw8OkYKBThUfT1i2Y+wn58ifs6ODBCmTexWtXspA
+Si+Gt49xDOW0APmbOPnI+a4HJW6tVEo6MWS0WjzpiBayR3d1A4pt4YrPfSdDgpLo
+h2SLQqlRqvvVZJaWBjhkErNFpfsBA06sDcPEOb0G8LBUbR4WOcdvhe5LubJbZuxC
+AG9kNPCVeQP1ixwjgjXKysaxeQ6rv0VzIQgRp6tLVLWhy6AKDNvLjFSsmXZ1Wl08
+Y/RlOHXlzLuQMRE6sR1wOdRxc9TsrNWTGiBK65cvSWOy03JeBkQQ8pesqltiyxI9
+U21kkgiXtTSKNGfKK8pO27D81YANhRqPK7iTp6kuFiY2WtOg90KTMNlIT+Ff85Y2
+b1rHj6Z0SrCkJujhWk3IBPic/wJgz01LEc/OAdUPlby90RJZcIBhSlWhT7mXnXIO
+c0HWlNQrns2s3CTyYwZSiSlYe9ApeLwhjDo8NhbFuCAy61l6O5UsR4AfZxx/rGKv
+2wFb1/RN/P4gNe6vmxZAPjR0AQcwD3tc2McimOLr/22kmPz8IH3I0X7WoSFr0Biz
+E91G7bb0hOb/cA==
+=knv7
+-----END PGP PUBLIC KEY BLOCK-----
+AWS_CLI_PUBLIC_KEY
+  mkdir -m 700 "$temporary_directory/gnupg"
+  gpg --batch --homedir "$temporary_directory/gnupg" \
+    --import "$temporary_directory/aws-cli-public-key.asc" >/dev/null 2>&1
+  gpg --batch --homedir "$temporary_directory/gnupg" \
+    --verify "$temporary_directory/awscliv2.sig" \
+    "$temporary_directory/awscliv2.zip"
   unzip -q "$temporary_directory/awscliv2.zip" -d "$temporary_directory"
   as_root "$temporary_directory/aws/install" \
     --install-dir /usr/local/aws-cli \
