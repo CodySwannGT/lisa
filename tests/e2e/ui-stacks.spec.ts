@@ -236,6 +236,29 @@ test("renders a hostile detected id as inert text without executing it", async (
   }
 });
 
+test("renders a minimal card for a detected id that shadows an inherited object property", async ({
+  page,
+}) => {
+  // "constructor" is not an own property of the plain-object catalog but IS
+  // resolvable via the prototype chain. A lookup that isn't own-key-safe
+  // would resolve Object.prototype.constructor instead of falling back to
+  // minimalStackMeta, producing a malformed card.
+  const hostileId = "constructor";
+  const ui = await launchConsole(await makeProjectDir(), [
+    detectedStacksProbe({ state: "value", value: ["typescript", hostileId] }),
+  ]);
+  try {
+    await page.goto(`${ui.base}/#stacks`);
+    await expect(page.locator(stackCardNames)).toHaveText([
+      "TypeScript",
+      hostileId,
+    ]);
+    await expect(page.locator(stackCards)).toHaveCount(2);
+  } finally {
+    await ui.close();
+  }
+});
+
 test("hydrates from the real default probe against a project with tsconfig.json", async ({
   page,
 }) => {
