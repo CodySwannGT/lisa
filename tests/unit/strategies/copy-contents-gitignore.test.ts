@@ -1,5 +1,7 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { devNull } from "node:os";
 import { CopyContentsStrategy } from "../../../src/strategies/copy-contents.js";
 import type { StrategyContext } from "../../../src/strategies/strategy.interface.js";
 import type { LisaConfig } from "../../../src/core/config.js";
@@ -9,6 +11,29 @@ const GITIGNORE = ".gitignore";
 const DOTLESS = "gitignore";
 const BEGIN_MARKER = "# BEGIN: AI GUARDRAILS";
 const END_MARKER = "# END: AI GUARDRAILS";
+const GIT_BIN = "/usr/bin/git";
+const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+const VERIFICATION_STATUS = ".lisa/verification-status.json";
+const ROSTER = ".lisa/roster.md";
+const CROSS_POLLINATION_LOCK = ".lisa/cross-pollination.lock.json";
+const CHECK_IGNORE = "check-ignore";
+
+/**
+ * Return an isolated environment for git commands run inside temp fixtures.
+ * @returns Process environment without hook-provided repository overrides.
+ */
+function cleanGitEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: devNull,
+    GIT_CONFIG_NOSYSTEM: "1",
+  };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  delete env.GIT_INDEX_FILE;
+  delete env.GIT_PREFIX;
+  return env;
+}
 
 describe("CopyContentsStrategy — dotless gitignore shipping", () => {
   let strategy: CopyContentsStrategy;
@@ -99,10 +124,87 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     expect(merged).toContain("custom-entry");
     expect(merged).toContain("node_modules");
   });
+
+  it("ignores only the transient verification verdict and preserves host rules on re-apply", async () => {
+    const srcFile = path.join(REPO_ROOT, "all/copy-contents/gitignore");
+    const destFile = path.join(destDir, DOTLESS);
+    const destGitignore = path.join(destDir, GITIGNORE);
+    const hostRule = "host-owned-cache/";
+    await fs.writeFile(
+      destGitignore,
+      [
+        "# Host rules before Lisa",
+        hostRule,
+        "",
+        BEGIN_MARKER,
+        "old-lisa-rule/",
+        END_MARKER,
+        "",
+        "# Host rules after Lisa",
+        "host-owned-output/",
+        "",
+      ].join("\n")
+    );
+
+    const first = await strategy.apply(
+      srcFile,
+      destFile,
+      DOTLESS,
+      createContext()
+    );
+    const second = await strategy.apply(
+      srcFile,
+      destFile,
+      DOTLESS,
+      createContext()
+    );
+
+    expect(first.action).toBe("merged");
+    expect(second.action).toBe("skipped");
+    const merged = await fs.readFile(destGitignore, "utf-8");
+    expect(merged).toContain("# Host rules before Lisa\nhost-owned-cache/");
+    expect(merged).toContain("# Host rules after Lisa\nhost-owned-output/");
+    expect(merged).not.toContain("old-lisa-rule/");
+
+    await fs.outputFile(path.join(destDir, VERIFICATION_STATUS), "{}\n");
+    await fs.outputFile(path.join(destDir, ROSTER), "# Roster\n");
+    await fs.outputFile(path.join(destDir, CROSS_POLLINATION_LOCK), "{}\n");
+    const gitEnv = cleanGitEnv();
+    execFileSync(GIT_BIN, ["init", "-q"], {
+      cwd: destDir,
+      env: gitEnv,
+    });
+
+    const verdict = spawnSync(
+      GIT_BIN,
+      [CHECK_IGNORE, "-q", VERIFICATION_STATUS],
+      { cwd: destDir, env: gitEnv }
+    );
+    const roster = spawnSync(GIT_BIN, [CHECK_IGNORE, "-q", ROSTER], {
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const lock = spawnSync(
+      GIT_BIN,
+      [CHECK_IGNORE, "-q", CROSS_POLLINATION_LOCK],
+      { cwd: destDir, env: gitEnv }
+    );
+    const status = execFileSync(
+      GIT_BIN,
+      ["status", "--short", "--untracked-files=all"],
+      { cwd: destDir, env: gitEnv, encoding: "utf8" }
+    );
+
+    expect(verdict.status).toBe(0);
+    expect(roster.status).toBe(1);
+    expect(lock.status).toBe(1);
+    expect(status).not.toContain(VERIFICATION_STATUS);
+    expect(status).toContain(ROSTER);
+    expect(status).toContain(CROSS_POLLINATION_LOCK);
+  });
 });
 
 describe("all/copy-contents/gitignore shipped content", () => {
-  const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
   const readShared = (): string =>
     fs.readFileSync(
       path.join(REPO_ROOT, "all/copy-contents/gitignore"),
@@ -128,5 +230,14 @@ describe("all/copy-contents/gitignore shipped content", () => {
     // .build-boot/ is written by the NestJS pre-push AppModule boot check and
     // must not be caught by `git add -A`.
     expect(readShared()).toContain(".build-boot/");
+  });
+
+  it("ignores the verification verdict without ignoring the whole .lisa directory", () => {
+    const rules = readShared()
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith("#"));
+    expect(rules).toContain(VERIFICATION_STATUS);
+    expect(rules).not.toContain(".lisa/");
   });
 });

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.223.2](https://github.com/CodySwannGT/lisa/compare/v2.223.1...v2.223.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **verification:** clarify typed evidence marker ([a2f97b8](https://github.com/CodySwannGT/lisa/commit/a2f97b827b87e91db42aa2fc6352751c8b52a000))
+* **verification:** preserve legacy evidence refs ([436d05d](https://github.com/CodySwannGT/lisa/commit/436d05d0156af99a54727a8e362dea832b83fd4a))
+
 ### [2.223.1](https://github.com/CodySwannGT/lisa/compare/v2.223.0...v2.223.1) (2026-07-17)
 
 
