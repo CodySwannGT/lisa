@@ -27,6 +27,21 @@ live config it falls back to Lisa's shipped defaults:
 open ui/index.html
 ```
 
+## Live status contract
+
+When served by `lisa ui`, the page fetches `GET /api/status` from the same
+loopback origin and renders each probe in a compact status strip. A probe has
+exactly one of three states: a real `value`, `unknown` with both a
+machine-readable reason and human-readable message, or `not-applicable`.
+Throwing and timing-out probes degrade independently to `unknown`, so one
+unavailable integration cannot block the page or cause a value to be invented.
+Concurrent requests share one in-flight snapshot. In-process probes must be
+asynchronous and cooperate with the supplied abort signal; JSON depth and size
+budgets also bound result normalization. The first reference probe scopes
+`gh auth status --active` to the project's origin hostname; the
+remaining live integrations are delivered by the console work that builds on
+this transport.
+
 ## Config sync (`lisa sync`)
 
 `lisa sync [path] [--dry-run] [--json]` makes `.lisa.config.json` (with the
