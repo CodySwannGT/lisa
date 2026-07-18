@@ -173,12 +173,20 @@ export function resolvePrdQueueArgument(
  */
 export function resolveBuildQueueArgument(
   config = {},
-  tracker = resolveBuildTracker(config)
+  tracker = resolveBuildTracker(config),
+  options = {}
 ) {
   switch (tracker) {
-    case "github":
-      requireGithubRepo(config);
+    case "github": {
+      const queue = resolveGithubQueueRepoRef(config, options);
+      if (options.explicitQueue) {
+        return `${queue.owner}/${queue.repo} intake_mode=build`;
+      }
+      if (config.github?.queueRepo) {
+        return `${queue.owner}/${queue.repo} intake_mode=build`;
+      }
       return "github intake_mode=build";
+    }
     case "linear":
       requireLinearWorkspace(config);
       return "linear";
@@ -340,6 +348,14 @@ export function resolveQueueContract(input = {}) {
   const source = resolvePrdSource(config);
   const tracker = resolveBuildTracker(config);
 
+  const githubIdentity = resolveGithubRepoRef(config, input.gitRemoteUrl);
+  const githubQueue =
+    tracker === "github"
+      ? resolveGithubQueueRepoRef(config, {
+          gitRemoteUrl: input.gitRemoteUrl,
+        })
+      : null;
+
   return {
     currentRepo: resolveCurrentRepo(input),
     source,
@@ -349,7 +365,15 @@ export function resolveQueueContract(input = {}) {
       ...resolvePrdLifecycleRoles(config, source),
     },
     buildQueue: {
-      argument: resolveBuildQueueArgument(config, tracker),
+      argument: resolveBuildQueueArgument(config, tracker, {
+        gitRemoteUrl: input.gitRemoteUrl,
+      }),
+      ...(tracker === "github"
+        ? {
+            identityRepo: `${githubIdentity.owner}/${githubIdentity.repo}`,
+            queueRepo: `${githubQueue.owner}/${githubQueue.repo}`,
+          }
+        : {}),
       ...resolveBuildLifecycleRoles(config, tracker),
     },
   };
@@ -406,6 +430,54 @@ export function resolveGithubRepoRef(config = {}, gitRemoteUrl) {
   }
 
   return null;
+}
+
+/**
+ * Resolve the GitHub queue without changing the repository identity used
+ * for automation names and `repo:<name>` claim scoping. An explicit invocation
+ * target wins, followed by `github.queueRepo`, then the identity repo.
+ *
+ * `github.queueRepo` may be a short repo name (normalized to the identity
+ * owner) or an `owner/repo` reference. Cross-owner queues therefore remain
+ * explicit while the common same-organization umbrella layout stays concise.
+ *
+ * @param {Record<string, any>} config
+ * @param {{ readonly explicitQueue?: string, readonly gitRemoteUrl?: string }} [options]
+ * @returns {{ readonly owner: string, readonly repo: string }}
+ */
+export function resolveGithubQueueRepoRef(config = {}, options = {}) {
+  const identity = resolveGithubRepoRef(config, options.gitRemoteUrl);
+  if (!identity) {
+    throw new Error(
+      "Unable to resolve the GitHub repository identity: github.org/github.repo or a GitHub origin remote is required."
+    );
+  }
+
+  const configured = options.explicitQueue ?? config.github?.queueRepo;
+  if (configured === undefined || configured === null || configured === "") {
+    return identity;
+  }
+  if (typeof configured !== "string") {
+    throw new Error(
+      "Unable to resolve the GitHub queue: github.queueRepo must be a repo name or owner/repo."
+    );
+  }
+
+  const value = configured
+    .trim()
+    .replace(/^https:\/\/github\.com\//i, "")
+    .replace(/\.git$/i, "");
+  const parts = value.split("/").filter(Boolean);
+  if (parts.length === 1) {
+    return { owner: identity.owner, repo: parts[0] };
+  }
+  if (parts.length === 2) {
+    return { owner: parts[0], repo: parts[1] };
+  }
+
+  throw new Error(
+    "Unable to resolve the GitHub queue: github.queueRepo must be a repo name or owner/repo."
+  );
 }
 
 /**

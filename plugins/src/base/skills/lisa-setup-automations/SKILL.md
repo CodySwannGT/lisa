@@ -75,10 +75,14 @@ lifecycle when the PRD queue has capacity," not "always create a new ready PRD."
 `/lisa:queue-status`; if pressure exists, the cycle should report the blocking role/ref and the
 smallest next action, usually `/lisa:intake <PRD queue>`, without invoking research or writing a PRD.
 
-**Queue resolution.** Resolve the intake/repair queue from `.lisa.config.json` — `source` for the
-PRD queue, `tracker` for the build queue (for the common GitHub case these are `github
-intake_mode=prd` and `github intake_mode=build`, matching how the existing Lisa intake automations
-are written).
+**Queue resolution.** Resolve the intake/repair queue from merged config — `source` for the PRD
+queue, `tracker` for the build queue. For GitHub, resolve `github.queueRepo` and fall back to
+identity `github.org/github.repo`, but keep automation naming tied to the identity repo. Bake the
+canonical resolved `owner/repo` into every GitHub scheduled command (for example
+`/lisa:intake acme/planning intake_mode=build` and
+`/lisa:repair-intake github intake_mode=both build_queue=acme/planning`) so a later config/read-context failure cannot
+silently redirect the cron. A short queueRepo is normalized to `github.org` before writing the
+automation.
 
 **Naming + scope (so teardown is precise).** Name each automation with the stable prefix
 `lisa-auto-<project>-` (e.g. `lisa-auto-<project>-intake-tickets`), where `<project>` identifies this

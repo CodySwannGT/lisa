@@ -10,6 +10,7 @@
 
 import {
   resolveBuildQueueArgument,
+  resolveGithubQueueRepoRef,
   resolveGithubRepoRef,
   resolvePrdQueueArgument,
   resolvePrdSource,
@@ -119,9 +120,27 @@ export function resolveExpectedAutomationFleet(input = {}) {
 
   const tracker = config.tracker;
   const source = resolvePrdSource(config);
+  const githubQueue =
+    tracker === "github"
+      ? resolveGithubQueueRepoRef(config, {
+          gitRemoteUrl: input.gitRemoteUrl,
+        })
+      : null;
+  const explicitGithubQueue = githubQueue
+    ? `${githubQueue.owner}/${githubQueue.repo}`
+    : undefined;
   const prdQueue = resolvePrdQueueArgument(config, source);
-  const buildQueue = resolveBuildQueueArgument(config, tracker);
-  const repairQueue = resolveRepairQueueArgument(config, source, tracker);
+  const buildQueue = resolveBuildQueueArgument(config, tracker, {
+    explicitQueue: tracker === "github" ? explicitGithubQueue : undefined,
+    gitRemoteUrl: input.gitRemoteUrl,
+  });
+  const repairQueue = resolveRepairQueueArgument(
+    config,
+    source,
+    tracker,
+    explicitGithubQueue,
+    buildQueue
+  );
 
   const expected = [
     createExpectedEntry(
@@ -237,10 +256,16 @@ function createUnsupportedEntry(identity, id, reason) {
  * @param {string | undefined} tracker
  * @returns {string}
  */
-function resolveRepairQueueArgument(config, source, tracker) {
+function resolveRepairQueueArgument(
+  config,
+  source,
+  tracker,
+  explicitGithubQueue,
+  resolvedBuildQueue
+) {
   if (tracker === "github" && source === "github") {
     requireGithubRepo(config);
-    return "github intake_mode=both";
+    return `github intake_mode=both build_queue=${explicitGithubQueue}`;
   }
 
   if (tracker === "linear" && source === "linear") {
@@ -260,13 +285,12 @@ function resolveRepairQueueArgument(config, source, tracker) {
 
   if (tracker === "github" && source === undefined) {
     requireGithubRepo(config);
-    return "github intake_mode=both";
+    return `github intake_mode=both build_queue=${explicitGithubQueue}`;
   }
 
-  const buildQueue = resolveBuildQueueArgument(config, tracker);
-  return buildQueue.includes("intake_mode=")
-    ? buildQueue
-    : `${buildQueue} intake_mode=build`;
+  return resolvedBuildQueue.includes("intake_mode=")
+    ? resolvedBuildQueue
+    : `${resolvedBuildQueue} intake_mode=build`;
 }
 
 /**
