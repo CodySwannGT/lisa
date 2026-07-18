@@ -20,6 +20,7 @@ import {
   inspectRemoteEnvironment,
   type RemoteEnvironmentStatus,
 } from "./remote-environment.js";
+import { createLisaVersionProbe } from "./ui-lisa-version.js";
 import {
   createGithubAuthProbe,
   readStatusSnapshot,
@@ -36,6 +37,11 @@ export {
   type ProbeResult,
   type StatusProbe,
 } from "./ui-status.js";
+export {
+  createLisaVersionProbe,
+  mapLisaVersionCheck,
+  type LisaVersionValue,
+} from "./ui-lisa-version.js";
 export { inspectRemoteEnvironment } from "./remote-environment.js";
 
 /** Default port for the settings console. */
@@ -319,7 +325,10 @@ export async function runUi(
     getProcessEnvironment()
   );
   const page = injectLiveConfig(html, config, remoteEnvironment);
-  const probes = dependencies.probes ?? [createGithubAuthProbe(destDir)];
+  const probes = dependencies.probes ?? [
+    createGithubAuthProbe(destDir),
+    createLisaVersionProbe(),
+  ];
   const server = http.createServer(
     createUiRequestHandler(page, probes, destDir)
   );

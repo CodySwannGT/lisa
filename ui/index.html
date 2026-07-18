@@ -260,6 +260,7 @@
         height: 8px;
         border-radius: 50%;
         flex: none;
+        background: var(--muted);
       }
       .dot.ok {
         background: var(--good);
@@ -269,6 +270,9 @@
       }
       .dot.fail {
         background: var(--crit);
+      }
+      .dot.unknown {
+        background: var(--muted);
       }
       .badge.pass {
         background: var(--good-soft);
@@ -1252,8 +1256,7 @@
         type="button"
         title="Lisa health — click for details"
       >
-        <span class="dot ok" aria-hidden="true"></span> @codyswann/lisa 2.199.0
-        · up to date
+        <span class="dot" aria-hidden="true"></span> @codyswann/lisa · checking…
       </button>
       <button
         class="icon-btn"
@@ -6082,6 +6085,73 @@
           list.appendChild(item);
         });
       }
+      /**
+       * Paint `#healthChip` from the lisa-version probe.
+       * green=ok (up to date), amber=warn (behind), unknown≠ok.
+       * READ-ONLY — never offers an upgrade action.
+       * @param probes - Live-status probe map from /api/status
+       */
+      function applyLisaVersion(probes) {
+        const chip = document.getElementById("healthChip");
+        if (!chip) return;
+        const raw =
+          probes && Object.hasOwn(probes, "lisa-version")
+            ? probes["lisa-version"]
+            : undefined;
+        const result =
+          raw === undefined
+            ? {
+                state: "unknown",
+                reason: "missing-probe",
+                message: "The lisa-version probe was not reported",
+              }
+            : normalizeLiveStatusResult(raw);
+        const setChip = (dotClass, label) => {
+          chip.innerHTML = "";
+          const dot = el("span", "dot" + (dotClass ? " " + dotClass : ""));
+          dot.setAttribute("aria-hidden", "true");
+          chip.appendChild(dot);
+          chip.appendChild(document.createTextNode(" " + label));
+        };
+        if (
+          result.state === "value" &&
+          result.value &&
+          typeof result.value === "object"
+        ) {
+          const current = result.value.current;
+          const latest = result.value.latest;
+          const outdated = result.value.outdated === true;
+          if (
+            typeof current === "string" &&
+            typeof latest === "string" &&
+            current.length > 0 &&
+            latest.length > 0
+          ) {
+            if (outdated) {
+              setChip(
+                "warn",
+                "@codyswann/lisa " + current + " · latest " + latest
+              );
+              return;
+            }
+            setChip("ok", "@codyswann/lisa " + current + " · up to date");
+            return;
+          }
+        }
+        if (result.state === "unknown") {
+          const reason = result.reason || "unknown";
+          const message = result.message || "Version status unavailable";
+          setChip(
+            "unknown",
+            "@codyswann/lisa · unknown (" + reason + ": " + message + ")"
+          );
+          return;
+        }
+        setChip(
+          "unknown",
+          "@codyswann/lisa · unknown (invalid-value: lisa-version probe returned an unusable value)"
+        );
+      }
       async function hydrateLiveStatuses() {
         try {
           const response = await fetch("/api/status", {
@@ -6089,15 +6159,17 @@
           });
           if (!response.ok) throw new Error("HTTP " + response.status);
           const snapshot = await response.json();
-          renderLiveStatuses(liveStatusProbeMap(snapshot));
+          const probes = liveStatusProbeMap(snapshot);
+          renderLiveStatuses(probes);
+          applyLisaVersion(probes);
         } catch (error) {
-          renderLiveStatuses({
-            transport: {
-              state: "unknown",
-              reason: "status-unavailable",
-              message: error instanceof Error ? error.message : String(error),
-            },
-          });
+          const unavailable = {
+            state: "unknown",
+            reason: "status-unavailable",
+            message: error instanceof Error ? error.message : String(error),
+          };
+          renderLiveStatuses({ transport: unavailable });
+          applyLisaVersion({ "lisa-version": unavailable });
         }
       }
 
