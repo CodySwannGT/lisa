@@ -69,11 +69,13 @@ export function routeFromFile(relativePath) {
   // Companion files are not screens. Ignore bracket contents before checking
   // for a remaining dot so catch-all routes such as `[...slug]` stay valid.
   if (
-    [...basename].some(
-      (character, index) =>
-        character === "." &&
-        basename.lastIndexOf("[", index) <= basename.lastIndexOf("]", index)
-    )
+    basename
+      .split("")
+      .some(
+        (character, index) =>
+          character === "." &&
+          basename.lastIndexOf("[", index) <= basename.lastIndexOf("]", index)
+      )
   ) {
     return null;
   }
