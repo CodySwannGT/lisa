@@ -100,6 +100,24 @@ describe("check-e2e-coverage", () => {
       expect(routeFromFile("docs/[...slug].tsx")).toBe(DOCS_ROUTE);
     });
 
+    it("maps Metro platform files to their shared route", () => {
+      expect(routeFromFile("index.web.tsx")).toBe("/");
+      expect(routeFromFile("profile/index.ios.tsx")).toBe("/profile");
+      expect(routeFromFile("settings.native.tsx")).toBe("/settings");
+      expect(routeFromFile("players/[id].android.tsx")).toBe(PLAYERS_ROUTE);
+      expect(routeFromFile("docs/[...slug].web.tsx")).toBe(DOCS_ROUTE);
+    });
+
+    it("excludes double-extension companion files", () => {
+      expect(routeFromFile("global.d.ts")).toBeNull();
+      expect(routeFromFile("Card.stories.tsx")).toBeNull();
+      expect(routeFromFile("index.test.tsx")).toBeNull();
+      expect(routeFromFile("spike/indexability.spec.ts")).toBeNull();
+      expect(routeFromFile("players/[id].test.tsx")).toBeNull();
+      expect(routeFromFile("docs/[...slug].stories.tsx")).toBeNull();
+      expect(routeFromFile("Card.stories.web.tsx")).toBeNull();
+    });
+
     it("excludes layouts, private files, special files, and API routes", () => {
       expect(routeFromFile("_layout.tsx")).toBeNull();
       expect(routeFromFile("(tabs)/_layout.tsx")).toBeNull();
