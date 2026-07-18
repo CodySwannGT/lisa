@@ -1259,6 +1259,7 @@
               "stacks",
               "starters",
               "agents",
+              "remote",
             ],
           },
           {
@@ -2344,6 +2345,33 @@
           {
             type: "callout",
             text: "<b>Parity guarantee.</b> Claude is the reference harness. Every other agent receives an equivalent generated surface; where a capability cannot be represented, the gap is documented rather than silently dropped.",
+          },
+        ],
+      };
+
+      /* -------------------------- Remote environment -------------------------- */
+      DATA.sections.remote = {
+        title: "Remote Environment",
+        desc: "AWS CLI bootstrap readiness for the project's active remote coding agents. Secret values are never sent to the browser — the console receives presence checks only.",
+        src: "scripts/remote-agent-aws-setup.sh · remote platform environments",
+        blocks: [
+          {
+            type: "table",
+            card: "Variables",
+            note: "Set status reflects variables visible to the lisa ui process; values remain hidden",
+            cols: ["Variable", "Purpose", "Status"],
+            rows: [],
+          },
+          {
+            type: "table",
+            card: "Startup Script",
+            note: "Only agents enabled by the current harness are listed",
+            cols: ["Agent", "Remote environment setup", "Project artifact"],
+            rows: [],
+          },
+          {
+            type: "callout",
+            text: "<b>One bootstrap bundle, renewable sessions.</b> Store the complete Secrets Manager value as <code>LISA_AWS_BOOTSTRAP_JSON</code>. Each startup command writes the assume-only source credential and renewable role profiles; do not configure <code>AWS_ACCESS_KEY_ID</code> or <code>AWS_SECRET_ACCESS_KEY</code> directly.",
           },
         ],
       };
@@ -5783,16 +5811,123 @@
         if (control.type === "static" && typeof value === "string")
           control.value = value;
       }
-      function hydrateFromLiveConfig() {
-        const cfg = window.LISA_LIVE_CONFIG;
-        if (!cfg) return;
-        Object.values(DATA.sections).forEach(section => {
-          walkRows(section.blocks, row => {
-            if (!row.key || !row.control) return;
-            const value = liveGet(cfg, row.key);
-            if (value !== undefined) hydrateControl(row.control, value);
-          });
+      const REMOTE_AGENT_ORDER = [
+        "claude",
+        "codex",
+        "cursor",
+        "agy",
+        "copilot",
+        "opencode",
+      ];
+      const REMOTE_STARTUP = {
+        claude: {
+          command:
+            "LISA_REMOTE_AGENT=claude bash scripts/remote-agent-aws-setup.sh",
+          artifacts: ["scripts/remote-agent-aws-setup.sh"],
+        },
+        codex: {
+          command:
+            "LISA_REMOTE_AGENT=codex bash scripts/remote-agent-aws-setup.sh",
+          artifacts: ["scripts/remote-agent-aws-setup.sh"],
+        },
+        cursor: {
+          command:
+            ".cursor/environment.json → LISA_REMOTE_AGENT=cursor bash scripts/remote-agent-aws-setup.sh",
+          artifacts: [
+            "scripts/remote-agent-aws-setup.sh",
+            ".cursor/environment.json",
+          ],
+        },
+        agy: {
+          command:
+            "LISA_REMOTE_AGENT=agy bash scripts/remote-agent-aws-setup.sh (user-managed host)",
+          artifacts: ["scripts/remote-agent-aws-setup.sh"],
+        },
+        copilot: {
+          command:
+            ".github/workflows/copilot-setup-steps.yml → bash scripts/remote-agent-aws-setup.sh",
+          artifacts: [
+            "scripts/remote-agent-aws-setup.sh",
+            ".github/workflows/copilot-setup-steps.yml",
+          ],
+        },
+        opencode: {
+          command:
+            "LISA_REMOTE_AGENT=opencode bash scripts/remote-agent-aws-setup.sh (opencode serve host)",
+          artifacts: ["scripts/remote-agent-aws-setup.sh"],
+        },
+      };
+      function configureRemoteEnvironment(cfg) {
+        const snapshot = window.LISA_REMOTE_ENVIRONMENT || {
+          variables: {},
+          artifacts: {},
+        };
+        const harness = cfg && cfg.harness ? cfg.harness : "fleet";
+        const activeAgents =
+          harness === "fleet" || harness === "all"
+            ? REMOTE_AGENT_ORDER
+            : REMOTE_AGENT_ORDER.includes(harness)
+              ? [harness]
+              : ["claude"];
+        const variableRows = [
+          [
+            "LISA_AWS_BOOTSTRAP_JSON",
+            "Required secret — complete vendor-neutral bootstrap bundle",
+          ],
+          [
+            "LISA_REMOTE_AGENT",
+            "Platform label used as the AWS role session name (startup commands set it inline)",
+          ],
+          [
+            "LISA_AWS_DEFAULT_PROFILE",
+            "Optional default account profile; dev is used when unset",
+          ],
+        ].map(([name, purpose]) => {
+          const isSet = snapshot.variables[name] === true;
+          return [
+            { t: "mono", v: name },
+            { t: "text", v: purpose },
+            {
+              t: "badge",
+              v: isSet ? "set" : "not set",
+              cls: isSet
+                ? "pass"
+                : name.endsWith("DEFAULT_PROFILE")
+                  ? "warn"
+                  : "fail",
+            },
+          ];
         });
+        const startupRows = activeAgents.map(agent => {
+          const startup = REMOTE_STARTUP[agent];
+          const ready = startup.artifacts.every(
+            artifact => snapshot.artifacts[artifact] === true
+          );
+          return [
+            { t: "mono", v: agent },
+            { t: "mono", v: startup.command },
+            {
+              t: "badge",
+              v: ready ? "installed" : "missing",
+              cls: ready ? "pass" : "fail",
+            },
+          ];
+        });
+        DATA.sections.remote.blocks[0].rows = variableRows;
+        DATA.sections.remote.blocks[1].rows = startupRows;
+      }
+      function hydrateFromLiveConfig() {
+        const cfg = window.LISA_LIVE_CONFIG || {};
+        if (window.LISA_LIVE_CONFIG) {
+          Object.values(DATA.sections).forEach(section => {
+            walkRows(section.blocks, row => {
+              if (!row.key || !row.control) return;
+              const value = liveGet(cfg, row.key);
+              if (value !== undefined) hydrateControl(row.control, value);
+            });
+          });
+        }
+        configureRemoteEnvironment(cfg);
         const repoEl = document.querySelector(".project-switch .repo");
         if (repoEl && cfg.github && cfg.github.org && cfg.github.repo) {
           repoEl.textContent = cfg.github.org + "/" + cfg.github.repo;
