@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.233.1](https://github.com/CodySwannGT/lisa/compare/v2.233.0...v2.233.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* make postinstall bootstrap idempotent ([efdb108](https://github.com/CodySwannGT/lisa/commit/efdb1085921770417c08e93e2e670086cd94a5d6))
+
 ## [2.233.0](https://github.com/CodySwannGT/lisa/compare/v2.232.0...v2.233.0) (2026-07-18)
 
 
