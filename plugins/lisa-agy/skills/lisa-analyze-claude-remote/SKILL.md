@@ -150,24 +150,27 @@ Group the findings as:
      Terraform providers).
    - `aws sso login`, `aws:signin:*`, `sso_start_url`, `sso_account_id`, `sso_role_name`, or
      `sso_session` in docs or config.
-   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_DEFAULT_REGION`,
-     `AWS_PROFILE`, role ARN, external ID, account, or CloudWatch/STS references.
+   - `LISA_AWS_BOOTSTRAP_JSON`, legacy `AWS_ACCESS_KEY_ID` /
+     `AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`, role ARN, external ID, account, or
+     CloudWatch/STS references.
 
    If AWS is present, emit an AWS credential finding and inventory entry. If the repo's current
    local path is `aws sso login` or an `aws:signin:*` script, classify that local path as a `GAP`
    for headless remote routines: it is an interactive browser/device-authorization flow and cannot
    complete in the cloud. Route to the AWS row in the Credential reference instead of suggesting
-   SSO auth. The finding must name the headless substrate: a dedicated IAM principal (user or role)
-   with only permission to `sts:AssumeRole`, environment credentials in the routine UI, and
-   `~/.aws/config` profiles using `role_arn`, `credential_source = Environment`, optional
-   `external_id`, and `region`.
+   SSO auth. The finding must name Lisa's headless substrate: one dedicated IAM
+   user with only `sts:AssumeRole`; one complete Secrets Manager SecretString
+   set as `LISA_AWS_BOOTSTRAP_JSON`; and `/lisa:setup-remote-aws`, which writes a
+   named source profile plus automatically refreshed role profiles. Explicitly
+   reject standard `AWS_ACCESS_KEY_ID` variables because they can bypass the
+   intended assume-role profile.
 
    When the repository contains concrete non-secret AWS metadata (role ARNs, account aliases,
    profile names, regions, or ExternalId values), include it in an `awsProfiles` inventory array so
    `/lisa:generate-claude-remote-build-script` can write matching `~/.aws/config` profiles. Never
-   invent account IDs, ExternalIds, role names, or regions. If AWS is detected but profile metadata
-   is absent, emit the required AWS secret names plus an action to add project-specific profile
-   metadata to the generated artifact or environment notes.
+   invent account IDs, ExternalIds, role names, or regions. If AWS is detected
+   but profile metadata is absent, require a cdkstarter bootstrap bundle rather
+   than asking the repository to reconstruct account metadata by hand.
 
 5. **MCP servers** — read every committed `.mcp.json`. For each server report transport and auth.
    Project-scoped HTTP/SSE servers with no interactive auth are `OK`. Flag stdio servers as
@@ -276,14 +279,14 @@ unsuffixed `…_TOKEN`/`…_KEY` is the simplest to set in a single-account rout
 - Access: the personal API key inherits the user's workspace permissions — the user must be able to read/create/update Issues in the destination team.
 
 ### AWS — host-project operations, logs, deploys, CDK/Serverless/SST, or AWS SDK usage
-- Headless substrate: a dedicated IAM principal (user or role) with long-lived bootstrap credentials
-  stored in the routine environment, used only to call `sts:AssumeRole` into per-account operational
-  roles. The routine writes `~/.aws/config` profiles with `role_arn`, `credential_source =
-  Environment`, optional `external_id`, and `region`; agents use `aws --profile <profile> ...`.
-- Env: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`; optional `AWS_SESSION_TOKEN` for temporary
-  bootstrap credentials; `AWS_DEFAULT_REGION` when no profile region is provided. Role ARNs,
-  ExternalIds, profile names, and regions are non-secret project metadata and belong in generated
-  artifacts or project docs, not in the skill's global guidance.
+- Headless substrate: cdkstarter's vendor-neutral remote-agent kit. Its single
+  Secrets Manager SecretString contains the assume-only access key, ExternalId,
+  and per-account role metadata. `/lisa:setup-remote-aws` writes a private named
+  source profile and renewable role profiles; agents use
+  `aws --profile <profile> ...`.
+- Env: `LISA_AWS_BOOTSTRAP_JSON` (secret, required) and
+  `LISA_REMOTE_AGENT` (plain platform label). Do not set `AWS_ACCESS_KEY_ID` or
+  `AWS_SECRET_ACCESS_KEY` in the remote environment.
 - Allowlist: `*.amazonaws.com`, or narrower service hosts such as `sts.amazonaws.com`,
   `logs.<region>.amazonaws.com`, `cloudwatch.<region>.amazonaws.com`,
   `xray.<region>.amazonaws.com`, `ssm.<region>.amazonaws.com`, and service-specific endpoints the
@@ -366,7 +369,7 @@ so the generator can render acquisition comments into its template:
     {
       "name": "dev",
       "roleArn": "arn:aws:iam::<account-id>:role/<role-name>",
-      "credentialSource": "Environment",
+      "credentialSource": "lisa-remote-agent-bootstrap",
       "externalId": "<project-external-id>",
       "region": "us-east-1"
     }
