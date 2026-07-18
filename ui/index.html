@@ -5628,7 +5628,8 @@
                 if (cell.reason) {
                   td.appendChild(el("span", "status-why", esc(cell.reason)));
                 }
-              }            } else if (cell.t === "run") {
+              }
+            } else if (cell.t === "run") {
               const cls =
                 cell.ok === true
                   ? "pass"
@@ -6277,7 +6278,8 @@
         const current = activeSection;
         renderAll();
         showSection(current);
-
+      }
+      /**
        * Replace the Deploy pipeline stages table from the live probe.
        * Never leaves demo hold/no-hold claims in place.
        * @param probes - Live-status probe map from /api/status
@@ -6371,7 +6373,8 @@
         const existing = document.getElementById("deploy-pipeline-stages");
         if (existing) {
           existing.replaceWith(buildTable(block));
-        }      }
+        }
+      }
       async function hydrateLiveStatuses() {
         try {
           const response = await fetch("/api/status", {
