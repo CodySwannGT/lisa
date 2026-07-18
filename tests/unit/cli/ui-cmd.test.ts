@@ -278,9 +278,8 @@ describe("runUi", () => {
     });
   });
 
-  it("includes lisa-version and deploy-pipeline-stages among default probes", async () => {
+  it("registers sibling live-status probes in the default /api/status snapshot", async () => {
     resources.server = await runUi(resources.dir, { port: "0", sync: false });
-
     const address = resources.server.address();
     const port =
       typeof address === "object" && address !== null ? address.port : 0;
@@ -288,53 +287,28 @@ describe("runUi", () => {
     const snapshot = (await response.json()) as {
       probes: Record<string, unknown>;
     };
-
     expect(response.status).toBe(200);
-    expect(snapshot.probes).toHaveProperty(GITHUB_AUTH_PROBE_ID);
-    expect(snapshot.probes).toHaveProperty("lisa-version");
-    expect(snapshot.probes).toHaveProperty("deploy-pipeline-stages");
-  });
-
-  it("rejects an invalid port", async () => {
-    await expect(
-      runUi(resources.dir, { port: "not-a-port", sync: false })
-    ).rejects.toThrow("Invalid --port value");
-  });
-
-  it("includes enabled-plugins among the default /api/status probes", async () => {
-    resources.server = await runUi(resources.dir, { port: "0", sync: false });
-
-    const address = resources.server.address();
-    const port =
-      typeof address === "object" && address !== null ? address.port : 0;
-    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
-    expect(response.status).toBe(200);
-    const snapshot = (await response.json()) as {
-      probes: Record<string, unknown>;
-    };
-    expect(snapshot.probes).toHaveProperty(GITHUB_AUTH_PROBE_ID);
-    expect(snapshot.probes).toHaveProperty("enabled-plugins");
+    for (const id of [
+      GITHUB_AUTH_PROBE_ID,
+      "detected-stacks",
+      "lisa-version",
+      "deploy-pipeline-stages",
+      "enabled-plugins",
+      "sentry",
+      "cloudwatch-alarms",
+      "x-ray",
+    ]) {
+      expect(snapshot.probes).toHaveProperty(id);
+    }
     expect(snapshot.probes["enabled-plugins"]).toEqual({
       state: "value",
       value: { settingsPresent: false, plugins: [] },
     });
   });
 
-  it("registers observability provider probes in the default status snapshot", async () => {
-    resources.server = await runUi(resources.dir, { port: "0", sync: false });
-
-    const address = resources.server.address();
-    const port =
-      typeof address === "object" && address !== null ? address.port : 0;
-    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
-    const body = (await response.json()) as {
-      probes: Record<string, unknown>;
-    };
-
-    expect(response.status).toBe(200);
-    expect(body.probes).toHaveProperty(GITHUB_AUTH_PROBE_ID);
-    expect(body.probes).toHaveProperty("sentry");
-    expect(body.probes).toHaveProperty("cloudwatch-alarms");
-    expect(body.probes).toHaveProperty("x-ray");
+  it("rejects an invalid port", async () => {
+    await expect(
+      runUi(resources.dir, { port: "not-a-port", sync: false })
+    ).rejects.toThrow("Invalid --port value");
   });
 });
