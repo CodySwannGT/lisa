@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -56,13 +56,24 @@ function detectedStacksProbe(
   return { id: "detected-stacks", timeoutMs: 1_000, run: async () => result };
 }
 
+/** Temp project dirs created this test, removed in afterEach. */
+const createdDirs: string[] = [];
+
 /**
- * Create a fresh temporary project directory.
+ * Create a fresh temporary project directory, tracked for teardown.
  * @returns Absolute path to the new directory
  */
 async function makeProjectDir(): Promise<string> {
-  return mkdtemp(path.join(tmpdir(), "lisa-ui-stacks-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-stacks-"));
+  createdDirs.push(dir);
+  return dir;
 }
+
+test.afterEach(async () => {
+  await Promise.all(
+    createdDirs.splice(0).map(dir => rm(dir, { recursive: true, force: true }))
+  );
+});
 
 const stackCards = "#section-stacks .stack-card";
 const stackCardNames = "#section-stacks .stack-card .t b";
@@ -156,6 +167,33 @@ test("renders the unknown state when the snapshot omits the detected-stacks prob
   }
 });
 
+test("renders the unknown state for an array carrying a non-string element", async ({
+  page,
+}) => {
+  const ui = await launchConsole(await makeProjectDir(), [
+    // A non-string element makes the array untrustworthy; the section must not
+    // collapse it to a fabricated "no stacks" empty state.
+    detectedStacksProbe({
+      state: "value",
+      value: [1, 2] as unknown as string[],
+    }),
+  ]);
+  try {
+    await page.goto(`${ui.base}/#stacks`);
+    const unknown = page.locator("#section-stacks .stacks-state.unknown");
+    await expect(unknown).toBeVisible();
+    await expect(unknown.locator(".status-why")).toHaveText(
+      "invalid-value: detected-stacks did not return a string array"
+    );
+    await expect(
+      page.locator("#section-stacks .stacks-state.empty")
+    ).toHaveCount(0);
+    await expect(page.locator(stackCards)).toHaveCount(0);
+  } finally {
+    await ui.close();
+  }
+});
+
 test("renders a minimal card for a detected id absent from the catalog", async ({
   page,
 }) => {
@@ -172,6 +210,27 @@ test("renders a minimal card for a detected id absent from the catalog", async (
       "not-a-real-stack",
     ]);
     await expect(page.locator(stackCards)).toHaveCount(2);
+  } finally {
+    await ui.close();
+  }
+});
+
+test("renders a hostile detected id as inert text without executing it", async ({
+  page,
+}) => {
+  const hostileId = "<img src=x onerror=window.__xss=1>";
+  const ui = await launchConsole(await makeProjectDir(), [
+    detectedStacksProbe({ state: "value", value: ["typescript", hostileId] }),
+  ]);
+  try {
+    await page.goto(`${ui.base}/#stacks`);
+    await expect(page.locator(stackCards)).toHaveCount(2);
+    const minimalCard = page.locator(stackCards).nth(1);
+    // The id survives as a visible literal, not as parsed markup.
+    await expect(minimalCard.locator(".t b")).toHaveText(hostileId);
+    await expect(minimalCard.locator("img")).toHaveCount(0);
+    const xss = await page.evaluate(() => (window as { __xss?: number }).__xss);
+    expect(xss).toBeUndefined();
   } finally {
     await ui.close();
   }

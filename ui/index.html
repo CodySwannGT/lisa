@@ -6825,10 +6825,21 @@
         const result = normalizeLiveStatusResult(raw);
         if (result.state === "value" && Array.isArray(result.value)) {
           const ids = result.value.filter(v => typeof v === "string");
-          stackDetection =
-            ids.length > 0
-              ? { status: "value", ids }
-              : { status: "empty", ids: [] };
+          if (ids.length !== result.value.length) {
+            // Any non-string element makes the whole array untrustworthy;
+            // an empty state here would fabricate a "no stacks" certainty.
+            stackDetection = {
+              status: "unknown",
+              ids: [],
+              reason: "invalid-value",
+              message: "detected-stacks did not return a string array",
+            };
+          } else {
+            stackDetection =
+              ids.length > 0
+                ? { status: "value", ids }
+                : { status: "empty", ids: [] };
+          }
         } else if (result.state === "value") {
           stackDetection = {
             status: "unknown",
