@@ -877,6 +877,23 @@
           grid-template-columns: 1fr;
         }
       }
+      .stacks-state {
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        padding: 16px 18px;
+        color: var(--muted);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .stacks-state.unknown {
+        border-color: var(--warn, #c99a2e);
+        border-style: solid;
+      }
+      .stacks-state.unknown b {
+        color: var(--ink);
+      }
       .stack-card {
         border: 1px solid var(--line);
         border-radius: 10px;
@@ -5279,6 +5296,10 @@
         settingsPresent: false,
         plugins: [],
       };
+      /* Live detected-stacks state, hydrated from GET /api/status. Starts as
+         "detecting" so the Stacks section never presents the metadata catalog
+         as if it were the detection result. */
+      let stackDetection = { status: "detecting", ids: [] };
 
       function el(tag, cls, html) {
         const node = document.createElement(tag);
@@ -5671,44 +5692,116 @@
         return card;
       }
 
-      function buildStacks(block) {
-        const grid = el("div", "stack-grid");
+      /* The 8-entry stack metadata, keyed by id. This is a catalog of what each
+         stack installs — NOT the detection result; only ids the probe reports
+         are rendered from it. */
+      function stackCatalog(block) {
+        const catalog = new Map();
         block.items.forEach(s => {
-          const card = el("div", "stack-card" + (s.on ? " on" : ""));
-          const head = el("div", "head");
-          head.appendChild(el("span", "glyph", esc(s.glyph)));
-          const t = el("div", "t");
-          t.appendChild(el("b", "", esc(s.name)));
-          t.appendChild(el("i", "", esc(s.tagline)));
-          head.appendChild(t);
-          const toggleWrap = buildControl(
-            { type: "toggle", value: s.on },
-            "stack." + s.id
-          );
-          toggleWrap.querySelector("input").addEventListener("change", e => {
-            card.classList.toggle("on", e.target.checked);
-            markDirty("stack." + s.id, null);
-          });
-          head.appendChild(toggleWrap);
-          card.appendChild(head);
-          const meta = el("div", "meta");
-          s.badges.forEach(b => meta.appendChild(el("span", "tag", esc(b))));
-          card.appendChild(meta);
-          card.appendChild(el("div", "detect", s.detect));
-          if (s.more && s.more.length) {
-            const det = el("details", "stack-more");
-            det.appendChild(el("summary", "", "What this stack installs"));
-            const ul = el("ul");
-            s.more.forEach(m => ul.appendChild(el("li", "", esc(m))));
-            det.appendChild(ul);
-            card.appendChild(det);
-          }
-          grid.appendChild(card);
+          catalog.set(s.id, s);
         });
-        const wrap = el("div");
+        return catalog;
+      }
+
+      /* A detected id with no catalog entry still gets a card (id as name) so
+         detection truth is never dropped just because copy is missing. */
+      function minimalStackMeta(id) {
+        return {
+          id,
+          glyph: id.slice(0, 2).toUpperCase(),
+          name: id,
+          tagline: "",
+          detect: "",
+          badges: [],
+          more: [],
+        };
+      }
+
+      function stackCard(s) {
+        const card = el("div", "stack-card on");
+        const head = el("div", "head");
+        head.appendChild(el("span", "glyph", esc(s.glyph)));
+        const t = el("div", "t");
+        t.appendChild(el("b", "", esc(s.name)));
+        t.appendChild(el("i", "", esc(s.tagline)));
+        head.appendChild(t);
+        const toggleWrap = buildControl(
+          { type: "toggle", value: true },
+          "stack." + s.id
+        );
+        toggleWrap.querySelector("input").addEventListener("change", e => {
+          card.classList.toggle("on", e.target.checked);
+          markDirty("stack." + s.id, null);
+        });
+        head.appendChild(toggleWrap);
+        card.appendChild(head);
+        const meta = el("div", "meta");
+        (s.badges || []).forEach(b =>
+          meta.appendChild(el("span", "tag", esc(b)))
+        );
+        card.appendChild(meta);
+        card.appendChild(el("div", "detect", s.detect || ""));
+        if (s.more && s.more.length) {
+          const det = el("details", "stack-more");
+          det.appendChild(el("summary", "", "What this stack installs"));
+          const ul = el("ul");
+          s.more.forEach(m => ul.appendChild(el("li", "", esc(m))));
+          det.appendChild(ul);
+          card.appendChild(det);
+        }
+        return card;
+      }
+
+      function renderStacksInto(wrap, block) {
+        wrap.innerHTML = "";
+        const d = stackDetection;
+        if (d.status === "detecting") {
+          wrap.appendChild(
+            el("div", "stacks-state detecting", "Detecting project stacks…")
+          );
+          return;
+        }
+        if (d.status === "unknown") {
+          const box = el("div", "stacks-state unknown");
+          box.appendChild(el("b", "", "Stack detection unavailable"));
+          box.appendChild(
+            el("span", "status-why", esc(d.reason + ": " + d.message))
+          );
+          wrap.appendChild(box);
+          return;
+        }
+        if (!d.ids || d.ids.length === 0) {
+          wrap.appendChild(
+            el(
+              "div",
+              "stacks-state empty",
+              "No Lisa stack detected in this project."
+            )
+          );
+          return;
+        }
+        const catalog = stackCatalog(block);
+        const grid = el("div", "stack-grid");
+        d.ids.forEach(id => {
+          grid.appendChild(stackCard(catalog.get(id) || minimalStackMeta(id)));
+        });
         wrap.appendChild(grid);
         wrap.appendChild(el("div", "", "&nbsp;"));
+      }
+
+      function buildStacks(block) {
+        const wrap = el("div", "stacks-block");
+        renderStacksInto(wrap, block);
         return wrap;
+      }
+
+      /* Re-render the Stacks section in place after detection hydrates. */
+      function refreshStacks() {
+        const block = DATA.sections.stacks.blocks.find(
+          b => b.type === "stacks"
+        );
+        const wrap = document.querySelector(".stacks-block");
+        if (block && wrap) renderStacksInto(wrap, block);
       }
 
       function buildHooks(block) {
@@ -6865,6 +6958,74 @@
         if (existing) {
           existing.replaceWith(buildTable(block));
         }
+      /* Map the detected-stacks probe into stackDetection. A missing probe or a
+         non-value/non-array result becomes an explicit unknown state — never a
+         false empty and never the metadata catalog. */
+      function applyDetectedStacks(probes) {
+        const raw =
+          probes && Object.hasOwn(probes, "detected-stacks")
+            ? probes["detected-stacks"]
+            : undefined;
+        if (raw === undefined) {
+          stackDetection = {
+            status: "unknown",
+            ids: [],
+            reason: "missing-probe",
+            message: "The detected-stacks probe was not reported",
+          };
+          refreshStacks();
+          return;
+        }
+        const result = normalizeLiveStatusResult(raw);
+        if (result.state === "value" && Array.isArray(result.value)) {
+          const ids = result.value.filter(v => typeof v === "string");
+          if (ids.length !== result.value.length) {
+            // Any non-string element makes the whole array untrustworthy;
+            // an empty state here would fabricate a "no stacks" certainty.
+            stackDetection = {
+              status: "unknown",
+              ids: [],
+              reason: "invalid-value",
+              message: "detected-stacks did not return a string array",
+            };
+          } else {
+            stackDetection =
+              ids.length > 0
+                ? { status: "value", ids }
+                : { status: "empty", ids: [] };
+          }
+        } else if (result.state === "value") {
+          stackDetection = {
+            status: "unknown",
+            ids: [],
+            reason: "invalid-value",
+            message: "detected-stacks did not return a string array",
+          };
+        } else if (result.state === "not-applicable") {
+          stackDetection = {
+            status: "unknown",
+            ids: [],
+            reason: "not-applicable",
+            message: "detected-stacks reported not applicable",
+          };
+        } else {
+          stackDetection = {
+            status: "unknown",
+            ids: [],
+            reason: result.reason,
+            message: result.message,
+          };
+        }
+        refreshStacks();
+      }
+      function markStacksUnreachable(error) {
+        stackDetection = {
+          status: "unknown",
+          ids: [],
+          reason: "status-unavailable",
+          message: error instanceof Error ? error.message : String(error),
+        };
+        refreshStacks();
       }
       async function hydrateLiveStatuses() {
         try {
@@ -6876,6 +7037,7 @@
           const probes = liveStatusProbeMap(snapshot);
           renderLiveStatuses(probes);
           applyEnabledPlugins(probes);
+          applyDetectedStacks(probes);
           // Quality jobs re-renders the page; paint the version chip after.
           applyCiQualityJobs(probes);
           applyLisaVersion(probes);
@@ -6912,6 +7074,7 @@
             "cloudwatch-alarms": unavailable,
             "x-ray": unavailable,
           });
+          markStacksUnreachable(error);
         }
       }
 
