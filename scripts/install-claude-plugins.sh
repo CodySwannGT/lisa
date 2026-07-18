@@ -55,8 +55,22 @@ detect_lisa_stack() {
   done
 }
 
+# One-time migration marker: once the user-wide Codex registrations are
+# confirmed retired, skip the `codex plugin marketplace list` probe (a codex
+# CLI spawn) on every subsequent install.
+CODEX_RETIRE_MARKER="$HOME/.codex/.lisa-legacy-plugins-retired"
+
+write_codex_retire_marker() {
+  mkdir -p "$HOME/.codex" 2>/dev/null && touch "$CODEX_RETIRE_MARKER" 2>/dev/null || true
+}
+
 remove_user_wide_codex_lisa_plugins() {
   command -v codex >/dev/null 2>&1 || return 0
+
+  # The marker is written only after the cleanup actually ran or was confirmed
+  # unnecessary — never on the CODEX_THREAD_ID deferral below, which must
+  # retry on a later install (see fix/defer-codex-retirement-postinstall).
+  [ -f "$CODEX_RETIRE_MARKER" ] && return 0
 
   # Removing a plugin relocates its cache directory. A running Codex session
   # has already captured absolute hook paths, so removal inside that session
@@ -84,6 +98,7 @@ remove_user_wide_codex_lisa_plugins() {
       }
     });
   '; then
+    write_codex_retire_marker
     return 0
   fi
 
@@ -102,6 +117,7 @@ remove_user_wide_codex_lisa_plugins() {
     codex plugin remove "${plugin}@lisa" </dev/null >/dev/null 2>&1 || true
   done
   codex plugin marketplace remove lisa </dev/null >/dev/null 2>&1 || true
+  write_codex_retire_marker
 }
 
 # Skip running Lisa's full template engine on itself — the Lisa repo IS the
@@ -144,8 +160,23 @@ fi
 # each path is written exactly once by its most-specific stack — there is no
 # intermediate clobbered state to be interrupted in. See src/core/lisa.ts
 # loadCopyOverwriteOwnership.
+# Dedup guard: when the host's own package.json postinstall already invokes
+# Lisa (wired by the ensure-lisa-postinstall migration), the package manager
+# will run that root lifecycle script in this same install — running the full
+# apply here too doubles the work for no benefit. The package-side apply
+# exists for the bootstrap chicken-and-egg (#1017: a never-applied project
+# has no postinstall to wire itself), so it still runs whenever the marker is
+# absent. Detection matches LISA_MARKER in ensure-lisa-postinstall.ts.
+HOST_HAS_LISA_POSTINSTALL="$(node -e "
+  const scripts = require('$PROJECT_ROOT/package.json').scripts || {};
+  const postinstall = scripts.postinstall || '';
+  process.stdout.write(postinstall.includes('node_modules/@codyswann/lisa/dist/index.js') ? 'true' : 'false');
+" 2>/dev/null || echo false)"
+
 if [ "$IS_LISA_SELF" != "true" ] && [ -z "${CI:-}" ]; then
-  if ! LISA_BOOTSTRAP=1 node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
+  if [ "$HOST_HAS_LISA_POSTINSTALL" = "true" ]; then
+    echo "Lisa apply deferred to the host project's own postinstall script."
+  elif ! LISA_BOOTSTRAP=1 node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
     echo "⚠️  Warning: Lisa template application failed. Migration may be incomplete." >&2
   fi
 fi
@@ -259,6 +290,38 @@ fi
 # Install plugins only when claude CLI is available
 if ! command -v claude &>/dev/null; then exit 0; fi
 
+# Version-gated plugin sync (perf). `claude plugin marketplace update` is a
+# network git pull of the whole Lisa repo and every `claude plugin install`
+# spawns the Claude CLI (seconds each); re-running all of it on every install
+# made a single `bun add` cost minutes. A full sync still runs whenever the
+# installed Lisa version differs from the .claude/.lisa-plugins-synced marker
+# (shared with Lisa.apply's registerPlugins); between version changes only
+# plugins missing for this project are installed, so the self-heal property
+# (a removed plugin comes back on the next install) survives at the cost of a
+# single `claude plugin list` call.
+LISA_VERSION="$(node -e "console.log(require('$LISA_DIR/package.json').version || '')" 2>/dev/null || true)"
+PLUGIN_SYNC_MARKER="$PROJECT_ROOT/.claude/.lisa-plugins-synced"
+FORCE_PLUGIN_SYNC=true
+if [ -n "$LISA_VERSION" ] && [ -f "$PLUGIN_SYNC_MARKER" ] \
+  && [ "$(cat "$PLUGIN_SYNC_MARKER" 2>/dev/null)" = "$LISA_VERSION" ]; then
+  FORCE_PLUGIN_SYNC=false
+fi
+
+INSTALLED_PLUGINS_FOR_PROJECT=""
+if command -v jq >/dev/null 2>&1; then
+  INSTALLED_PLUGINS_FOR_PROJECT="$(claude plugin list --json 2>/dev/null \
+    | jq -r --arg cwd "$PROJECT_ROOT" '.[] | select(.projectPath == $cwd) | .id' 2>/dev/null || true)"
+fi
+
+install_plugin_if_missing() {
+  local plugin="$1"
+  if [ "$FORCE_PLUGIN_SYNC" != "true" ] && [ -n "$INSTALLED_PLUGINS_FOR_PROJECT" ] \
+    && printf '%s\n' "$INSTALLED_PLUGINS_FOR_PROJECT" | grep -qxF "$plugin"; then
+    return 0
+  fi
+  claude plugin install "$plugin" --scope project </dev/null 2>&1 || true
+}
+
 # The Lisa marketplace is registered via extraKnownMarketplaces in .claude/settings.json
 # pointing to the GitHub repo (CodySwannGT/lisa). Built plugins are committed to the repo
 # so relative paths in marketplace.json resolve correctly.
@@ -272,7 +335,10 @@ if ! command -v claude &>/dev/null; then exit 0; fi
 # "Update now" action with: "Local plugins cannot be updated remotely."
 # If we detect a non-github marketplace named "lisa", uninstall the plugins
 # sourced from it and remove the registration so the github source can take over.
-if command -v jq >/dev/null 2>&1; then
+# Gated on version change: the stale registration can only exist in state
+# written by an older Lisa, so re-probing it on every same-version install
+# spends a claude CLI spawn to re-confirm a fact that cannot have changed.
+if [ "$FORCE_PLUGIN_SYNC" = "true" ] && command -v jq >/dev/null 2>&1; then
   STALE_LISA_SOURCE=$(claude plugin marketplace list --json 2>/dev/null \
     | jq -r '.[] | select(.name == "lisa" and .source != "github") | .source' 2>/dev/null \
     | head -n 1)
@@ -339,7 +405,12 @@ heal_local_classification() {
 
 if command -v jq >/dev/null 2>&1; then
   # Refresh the cached marketplace.json so we're reading the latest schema.
-  claude plugin marketplace update lisa </dev/null >/dev/null 2>&1 || true
+  # Gated: the pull is a network git fetch of the whole Lisa repo; once this
+  # version's plugins are synced and the project's heal-v2 marker exists, a
+  # fresh pull cannot change the outcome of the schema check below.
+  if [ "$FORCE_PLUGIN_SYNC" = "true" ] || [ ! -f "$PROJECT_ROOT/.claude/$HEAL_V2_MARKER_NAME" ]; then
+    claude plugin marketplace update lisa </dev/null >/dev/null 2>&1 || true
+  fi
 
   MARKETPLACE_JSON_PATH="$HOME/.claude/plugins/marketplaces/lisa/.claude-plugin/marketplace.json"
   NEW_SCHEMA="false"
@@ -364,8 +435,8 @@ if command -v jq >/dev/null 2>&1; then
   fi
 fi
 
-# Always install the base plugin (universal governance for all projects)
-claude plugin install "lisa@lisa" --scope project </dev/null 2>&1 || true
+# Always ensure the base plugin (universal governance for all projects)
+install_plugin_if_missing "lisa@lisa"
 
 # Detect which stack plugin to install from .claude/settings.json
 LISA_STACK="$(detect_lisa_stack "$SETTINGS_FILE")"
@@ -374,13 +445,13 @@ LISA_STACK="$(detect_lisa_stack "$SETTINGS_FILE")"
 case "$LISA_STACK" in
   rails) ;; # Rails doesn't get typescript plugin
   *)
-    claude plugin install "lisa-typescript@lisa" --scope project </dev/null 2>&1 || true
+    install_plugin_if_missing "lisa-typescript@lisa"
     ;;
 esac
 
 # Install stack-specific plugin if not plain typescript
 if [ -n "$LISA_STACK" ]; then
-  claude plugin install "lisa-${LISA_STACK}@lisa" --scope project </dev/null 2>&1 || true
+  install_plugin_if_missing "lisa-${LISA_STACK}@lisa"
 fi
 
 # Uninstall old monolithic plugins during migration
@@ -403,7 +474,7 @@ for plugin in \
   "skill-creator@claude-plugins-official" \
   "atlassian@claude-plugins-official" \
   "safety-net@cc-marketplace"; do
-  claude plugin install "$plugin" --scope project </dev/null 2>&1 || true
+  install_plugin_if_missing "$plugin"
 done
 
 # Install stack-specific third-party plugins
@@ -411,6 +482,15 @@ if [ "$LISA_STACK" = "expo" ] || [ "$LISA_STACK" = "harper-fabric" ]; then
   for plugin in \
     "playwright@claude-plugins-official" \
     "posthog@claude-plugins-official"; do
-    claude plugin install "$plugin" --scope project </dev/null 2>&1 || true
+    install_plugin_if_missing "$plugin"
   done
+fi
+
+# Record the fully-synced Lisa version so same-version installs skip the
+# marketplace pulls and forced reinstalls above. Written last so any earlier
+# failure exits (set -e) without recording a sync that did not finish.
+if [ -n "$LISA_VERSION" ]; then
+  mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
+    && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \
+    || true
 fi
