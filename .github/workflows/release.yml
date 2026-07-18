@@ -662,7 +662,30 @@ jobs:
       - name: Push Changelog Changes
         if: inputs.release_strategy == 'standard-version'
         run: |
-          git push origin HEAD:${{ github.ref_name }}
+          source ./release-logger.sh
+
+          target_ref="${{ github.ref_name }}"
+
+          for attempt in 1 2 3; do
+            git fetch origin "$target_ref"
+            git rebase "origin/$target_ref"
+
+            if git push origin "HEAD:$target_ref"; then
+              log_release_event "changelog_push" "completed" "Changelog changes pushed successfully" \
+                "target_ref" "$target_ref" \
+                "attempt" "$attempt"
+              exit 0
+            fi
+
+            echo "::warning::Changelog push attempt $attempt failed; retrying after refreshing $target_ref"
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 5))
+          done
+
+          log_release_event "changelog_push" "failed" "Changelog push failed after bounded retries" \
+            "target_ref" "$target_ref" \
+            "attempts" "3"
+          exit 1
 
       - name: Generate SBOM
         if: ${{ inputs.generate_sbom == true }}
