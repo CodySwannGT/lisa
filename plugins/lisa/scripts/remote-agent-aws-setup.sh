@@ -114,6 +114,27 @@ AWS_CLI_PUBLIC_KEY
   trap - EXIT
 }
 
+remove_profile_setting() {
+  local credentials_file profile setting temporary_file
+  credentials_file="$1"
+  profile="$2"
+  setting="$3"
+  [ -f "$credentials_file" ] || return 0
+
+  temporary_file="$(mktemp "${credentials_file}.XXXXXX")"
+  awk -v profile="$profile" -v setting="$setting" '
+    /^\[[^]]+\][[:space:]]*$/ {
+      section = $0
+      sub(/^\[/, "", section)
+      sub(/\][[:space:]]*$/, "", section)
+      in_profile = section == profile
+    }
+    !(in_profile && $0 ~ "^[[:space:]]*" setting "[[:space:]]*=") { print }
+  ' "$credentials_file" >"$temporary_file"
+  chmod 600 "$temporary_file"
+  mv "$temporary_file" "$credentials_file"
+}
+
 sanitize_session_name() {
   local candidate
   candidate="$(printf '%s' "${LISA_REMOTE_AGENT:-remote-agent}" \
@@ -164,13 +185,20 @@ printf '%s' "$profiles_json" | jq -e --arg bootstrap_profile "$BOOTSTRAP_PROFILE
   )
 ' >/dev/null || fail "bootstrap profiles must map safe names to roleArn and region"
 
-mkdir -p "$HOME/.aws"
+credentials_file="${AWS_SHARED_CREDENTIALS_FILE:-$HOME/.aws/credentials}"
+config_file="${AWS_CONFIG_FILE:-$HOME/.aws/config}"
+mkdir -p "$HOME/.aws" "$(dirname "$credentials_file")" "$(dirname "$config_file")"
 chmod 700 "$HOME/.aws"
 
 aws configure set aws_access_key_id "$access_key_id" --profile "$BOOTSTRAP_PROFILE"
 aws configure set aws_secret_access_key "$secret_access_key" --profile "$BOOTSTRAP_PROFILE"
 if [ -n "$session_token" ]; then
   aws configure set aws_session_token "$session_token" --profile "$BOOTSTRAP_PROFILE"
+else
+  remove_profile_setting \
+    "$credentials_file" \
+    "$BOOTSTRAP_PROFILE" \
+    "aws_session_token"
 fi
 
 session_name="$(sanitize_session_name)"
@@ -195,7 +223,7 @@ aws configure set external_id "$external_id" --profile default
 aws configure set role_session_name "$session_name" --profile default
 aws configure set region "$default_region" --profile default
 
-chmod 600 "$HOME/.aws/credentials" "$HOME/.aws/config"
+chmod 600 "$credentials_file" "$config_file"
 
 if [ "${LISA_AWS_SKIP_VERIFY:-0}" != "1" ]; then
   AWS_PAGER="" aws sts get-caller-identity --profile "$default_profile" >/dev/null
