@@ -1,0 +1,4 @@
+display_name: "QA Fail"
+short_description: "QA failure front door"
+default_prompt:
+  - "Use $lisa-qa-fail: QA failure front door."
