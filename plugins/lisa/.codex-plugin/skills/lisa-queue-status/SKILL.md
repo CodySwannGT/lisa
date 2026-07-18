@@ -58,11 +58,14 @@ Render the report in **grouped sections** so operators can scan it top-down with
 For each inspected queue, report:
 
 1. The queue source or tracker Lisa resolved.
-2. Lifecycle counts using the repo's configured role names.
-3. Whether the queue appears `IDLE`, `HEALTHY`, `ATTENTION_NEEDED`, or `MISCONFIGURED`.
-4. Whether the lifecycle namespace appears adopted versus absent.
-5. The oldest or most actionable blocked, in-review, claimed, shipped, or similar stuck items Lisa can surface without mutating work.
-6. A concise remediation hint when attention is needed.
+2. For GitHub, both `Identity repo: <owner/repo>` and `Queue repo: <owner/repo>`, even when equal.
+3. Lifecycle counts using the repo's configured role names. GitHub umbrella-queue build counts
+   must be scoped to `repo:<currentRepo>` from the repo-scoping ladder; the queue repo is never
+   current-repo identity.
+4. Whether the queue appears `IDLE`, `HEALTHY`, `ATTENTION_NEEDED`, or `MISCONFIGURED`.
+5. Whether the lifecycle namespace appears adopted versus absent.
+6. The oldest or most actionable blocked, in-review, claimed, shipped, or similar stuck items Lisa can surface without mutating work.
+7. A concise remediation hint when attention is needed.
 
 The report should stay terminal-first and immediately actionable: observable queue facts first, then the smallest useful next step.
 
@@ -92,6 +95,11 @@ Queue sections should stay visually grouped. Do not interleave PRD and build fac
 ## Runtime and vendor expectations
 
 - Reuse the same config-resolution defaults and queue-routing rules that `intake` and `repair-intake` use.
+- For GitHub, resolve an explicit repo/URL first, then merged `github.queueRepo`, then
+  `github.org/github.repo`; accept a short queueRepo by normalizing it to `github.org`.
+- Pass the contract's `currentRepo` into `readGithubBuildQueueSnapshot`; lifecycle counts include
+  only `repo:<current>` work. Report its `unscopedCount` / `unscopedCandidates` separately because
+  intake still needs to determine and stamp unlabeled work; exclude sibling-only issues.
 - Work from the current repo's `.lisa.config.json` instead of hardcoding one vendor's lifecycle names.
 - Support the vendor families already served by Lisa intake: GitHub, Linear, JIRA, Notion, and Confluence.
 - If a queue cannot be resolved or its lifecycle namespace has not been adopted, report that explicitly as `MISCONFIGURED` rather than pretending the queue is empty.

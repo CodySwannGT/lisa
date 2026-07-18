@@ -170,6 +170,34 @@ describe("queue-status build readers (#825)", () => {
     expect(snapshot.counts.ready).toBe(1);
   });
 
+  it("scopes umbrella counts to current-repo labels while retaining unlabeled candidates", () => {
+    const fixture = readFixture("github-umbrella");
+    const snapshot = readGithubBuildQueueSnapshot({
+      namespaceAdopted: true,
+      currentRepo: "frontend",
+      issues: fixture.items,
+    });
+
+    expect(snapshot.counts).toMatchObject({
+      ready: 1,
+      claimed: 1,
+      blocked: 0,
+    });
+    expect(snapshot.highlights.map(highlight => highlight.ref)).toContain(
+      "#1617"
+    );
+    expect(snapshot.highlights.map(highlight => highlight.ref)).not.toContain(
+      "#1618"
+    );
+    expect(snapshot.highlights.map(highlight => highlight.ref)).not.toContain(
+      "#1619"
+    );
+    expect(snapshot.unscopedCount).toBe(1);
+    expect(snapshot.unscopedCandidates).toEqual([
+      expect.objectContaining({ ref: "#1619", role: "blocked" }),
+    ]);
+  });
+
   it("fails loudly when a non-GitHub tracker has no raw reader input", () => {
     const snapshot = createBuildQueueSnapshot({
       tracker: "linear",
