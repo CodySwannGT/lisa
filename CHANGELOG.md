@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.225.3](https://github.com/CodySwannGT/lisa/compare/v2.225.2...v2.225.3) (2026-07-18)
+
+
+### Bug Fixes
+
+* **expo:** pin Maestro platform scripts ([f769e03](https://github.com/CodySwannGT/lisa/commit/f769e03f4db812af6cec04a98a108cf3fcf33af5)), closes [#1625](https://github.com/CodySwannGT/lisa/issues/1625)
+
 ### [2.225.2](https://github.com/CodySwannGT/lisa/compare/v2.225.1...v2.225.2) (2026-07-18)
 
 
