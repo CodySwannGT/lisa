@@ -28,6 +28,8 @@ Do not begin work if there are blockers, ambiguities, access requirements, or un
 - When a hook or quality gate fails, fix the root cause first. If no fix is genuinely possible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never use a blanket bypass.
 - **Never bypass branch protection** — no `--admin`, `--force`, no merging a PR with failing CI. "Green in CI" is the definition of done.
 - Never commit directly to environment branches (`dev`, `staging`, `main`).
+- **Never use plain `git push --force`.** When a history rewrite is explicitly approved, use `--force-with-lease`; prefer the SHA-bound form `--force-with-lease=<ref>:<sha>`, where `<sha>` is the exact remote tip the approval covered.
+- **History-rewrite approval is SHA-scoped, not durable.** If the remote ref moves or the lease rejects, the approval is void. Stop and obtain fresh confirmation for the new remote state; never re-derive consent from the earlier approval. Fetching again does not renew consent.
 - Prefix `git push` with `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"`.
 - When opening a PR, watch it. Fix every failing check and every valid bot review comment. Resolve threads. Loop until merged.
 - After merging into an environment branch, watch the deploy. If it fails, fix it and open a new PR.
