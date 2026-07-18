@@ -154,9 +154,10 @@ profiles_json="$(printf '%s' "$bootstrap_json" | jq -c '
   end
 ')"
 
-printf '%s' "$profiles_json" | jq -e '
+printf '%s' "$profiles_json" | jq -e --arg bootstrap_profile "$BOOTSTRAP_PROFILE" '
   type == "object" and length > 0 and
   all(to_entries[];
+    (.key != $bootstrap_profile) and
     (.key | test("^[A-Za-z0-9_-]+$")) and
     (.value.roleArn | type == "string" and startswith("arn:aws:iam::")) and
     (.value.region | type == "string" and length > 0)
