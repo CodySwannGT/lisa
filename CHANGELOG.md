@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.233.0](https://github.com/CodySwannGT/lisa/compare/v2.232.0...v2.233.0) (2026-07-18)
+
+
+### Features
+
+* **qa:** human-QA acceptance skill family ([2e7d41f](https://github.com/CodySwannGT/lisa/commit/2e7d41f53362fa3c5f86ab1c594d878d60edc1eb))
+
+
+### Bug Fixes
+
+* **qa:** address CodeRabbit review on QA skill family ([61b7a0b](https://github.com/CodySwannGT/lisa/commit/61b7a0b64963812ba542e2b10af821f38c40d44f))
+
 ## [2.232.0](https://github.com/CodySwannGT/lisa/compare/v2.231.0...v2.232.0) (2026-07-18)
 
 
