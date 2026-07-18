@@ -10,6 +10,7 @@ const LEGACY_LISA_INVOCATION =
   "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true";
 const OLD_GUARDED_LISA_INVOCATION = `[ -n "$CI" ] || ${LEGACY_LISA_INVOCATION}`;
 const LISA_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${LEGACY_LISA_INVOCATION}`;
+const DUPLICATED_GUARD_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${LISA_INVOCATION}`;
 const PACKAGE_JSON = "package.json";
 const PATCH_PACKAGE = "patch-package";
 
@@ -309,6 +310,19 @@ describe("EnsureLisaPostinstallMigration", () => {
 
       const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
       expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
+      expect(await migration.applies(createContext())).toBe(false);
+    });
+
+    it("repairs duplicated guard/bootstrap prefixes without extending them", async () => {
+      await writePackageJson({
+        scripts: { postinstall: DUPLICATED_GUARD_INVOCATION },
+      });
+
+      await migration.apply(createContext());
+
+      const pkg = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
+      expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
+      expect(await migration.applies(createContext())).toBe(false);
     });
 
     it("replaces legacy Lisa invocation preserving chained commands", async () => {
