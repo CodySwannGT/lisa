@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.231.0](https://github.com/CodySwannGT/lisa/compare/v2.230.1...v2.231.0) (2026-07-18)
+
+
+### Features
+
+* add secure lisa ui config write endpoint ([2f3aae4](https://github.com/CodySwannGT/lisa/commit/2f3aae4def41651cd3f3b1a8f099c9b7d7cf8960))
+
+
+### Bug Fixes
+
+* harden lisa ui config writes ([eb45cc8](https://github.com/CodySwannGT/lisa/commit/eb45cc88df6fccb6cd37e08709ae4affe92311ee))
+
 ### [2.230.1](https://github.com/CodySwannGT/lisa/compare/v2.230.0...v2.230.1) (2026-07-18)
 
 
