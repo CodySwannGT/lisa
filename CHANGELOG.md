@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.229.1](https://github.com/CodySwannGT/lisa/compare/v2.229.0...v2.229.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **deps:** promote js-yaml to a runtime dependency ([c8864ab](https://github.com/CodySwannGT/lisa/commit/c8864ab52764de8953e40c76a824560a9190f453)), closes [#1696](https://github.com/CodySwannGT/lisa/issues/1696)
+
 ## [2.229.0](https://github.com/CodySwannGT/lisa/compare/v2.228.0...v2.229.0) (2026-07-18)
 
 
