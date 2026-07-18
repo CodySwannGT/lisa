@@ -7,8 +7,9 @@ allowed-tools: ["Skill", "Bash", "Read", "Write", "Glob", "Grep"]
 # Generate Claude Remote Build Script: $ARGUMENTS
 
 Produce the artifacts a user pastes into a **Claude Code remote routine environment** so this repo
-runs in the cloud: a setup/build script that installs everything the environment needs, plus an
-environment-variable template and a network-allowlist list.
+runs in the cloud: a setup/build script that installs everything the environment needs, an
+environment-variable template, a network-allowlist list, and the names-only
+`.lisa/remote-environment.json` contract consumed by `lisa ui`.
 
 ## Purpose
 
@@ -97,6 +98,17 @@ tracker/source, plus the host project's own package manager and tooling — not 
    profile implementation. Add `bash scripts/remote-agent-aws-setup.sh` to the
    generated cloud setup after required package installation.
 
+3c. **Write the project-aware console contract.** Write
+   `.lisa/remote-environment.json` from the same fresh inventory. Its `variables`
+   array must contain only entries that are `required: true` for this project and
+   its active integrations; omit optional, conditional, and dormant integrations.
+   Each entry contains `name`, `reason`, `source`, `secret`, and `required`, but
+   never a value. Set `startupScripts.claude` to the generated `--out` path. Do
+   not add AWS merely because Lisa ships AWS support: add
+   `LISA_AWS_BOOTSTRAP_JSON` only when the inventory reports active AWS usage.
+   Preserve any valid startup-script entries for other agents that already exist
+   in the manifest.
+
 4. **Emit the allowlist + gaps notice.** List any custom domains the setup or runtime reaches
    (from `networkAccess.allowlistDomains`, falling back to legacy `allowlistDomains`) that the user
    must add when the environment needs Custom network access. Do not include default Trusted domains
@@ -106,10 +118,13 @@ tracker/source, plus the host project's own package manager and tooling — not 
    **cannot** fix.
 
 5. **Write and report.** Write the script to `--out` (default `scripts/claude-remote-setup.sh`),
-   `chmod +x` it, and print: the path, a one-line summary of what it installs and which env vars to
-   set, and the exact next step (paste its contents — or a `bash scripts/claude-remote-setup.sh`
-   invocation — into the routine environment's setup script, and add the env vars in the
-   environment config). When `--print` is passed, print to stdout and do not write a file.
+   `chmod +x` it, and write `.lisa/remote-environment.json`. Print both paths, a
+   one-line summary of what the script installs and which env vars to set, and
+   the exact next step (paste its contents — or a
+   `bash scripts/claude-remote-setup.sh` invocation — into the routine
+   environment's setup script, and add the env vars in the environment config).
+   When `--print` is passed, print the script to stdout and do not write either
+   file.
 
 ## Generated script shape
 
@@ -192,8 +207,8 @@ to stop are: the analysis could not run, or the `--out` path is not writable.
 
 ## Rules
 
-- Always derive the script from a fresh `/lisa:analyze-claude-remote` run — never from a stale or
-  assumed inventory.
+- Always derive the script and `.lisa/remote-environment.json` from a fresh
+  `/lisa:analyze-claude-remote` run — never from a stale or assumed inventory.
 - Never write real secret values into the script or template — names and placeholders only.
 - For active tracker/source credentials, carry the analysis's `Acquire:` URL and `Access:` scope into
   the template as comments, and emit only the env-var form of the name — never a keychain command.

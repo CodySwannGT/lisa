@@ -2403,26 +2403,26 @@
       /* -------------------------- Remote environment -------------------------- */
       DATA.sections.remote = {
         title: "Remote Environment",
-        desc: "AWS CLI bootstrap readiness for the project's active remote coding agents. Secret values are never sent to the browser — the console receives presence checks only.",
-        src: "scripts/remote-agent-aws-setup.sh · remote platform environments",
+        desc: "Remote coding-environment requirements detected for this project, its project types, and its active integrations. Values are never sent to the browser — the console receives presence checks only.",
+        src: ".lisa/remote-environment.json · project config · detected integrations",
         blocks: [
           {
             type: "table",
             card: "Variables",
-            note: "Set status reflects variables visible to the lisa ui process; values remain hidden",
-            cols: ["Variable", "Purpose", "Status"],
+            note: "Only required variables are listed; status reflects the lisa ui process and values remain hidden",
+            cols: ["Variable", "Why required", "Detected from", "Status"],
             rows: [],
           },
           {
             type: "table",
             card: "Startup Script",
             note: "Only agents enabled by the current harness are listed",
-            cols: ["Agent", "Remote environment setup", "Project artifact"],
+            cols: ["Agent", "Project startup artifact", "Status"],
             rows: [],
           },
           {
             type: "callout",
-            text: "<b>One bootstrap bundle, renewable sessions.</b> Store the complete Secrets Manager value as <code>LISA_AWS_BOOTSTRAP_JSON</code>. Each startup command writes the assume-only source credential and renewable role profiles; do not configure <code>AWS_ACCESS_KEY_ID</code> or <code>AWS_SECRET_ACCESS_KEY</code> directly.",
+            text: "<b>Project-aware by design.</b> Lisa combines the active tracker/source, detected project types, integration signals, and an optional <code>.lisa/remote-environment.json</code> project contract. A credential is never listed merely because Lisa knows how to support it.",
           },
         ],
       };
@@ -5870,48 +5870,11 @@
         "copilot",
         "opencode",
       ];
-      const REMOTE_STARTUP = {
-        claude: {
-          command:
-            "LISA_REMOTE_AGENT=claude bash scripts/remote-agent-aws-setup.sh",
-          artifacts: ["scripts/remote-agent-aws-setup.sh"],
-        },
-        codex: {
-          command:
-            "LISA_REMOTE_AGENT=codex bash scripts/remote-agent-aws-setup.sh",
-          artifacts: ["scripts/remote-agent-aws-setup.sh"],
-        },
-        cursor: {
-          command:
-            ".cursor/environment.json → LISA_REMOTE_AGENT=cursor bash scripts/remote-agent-aws-setup.sh",
-          artifacts: [
-            "scripts/remote-agent-aws-setup.sh",
-            ".cursor/environment.json",
-          ],
-        },
-        agy: {
-          command:
-            "LISA_REMOTE_AGENT=agy bash scripts/remote-agent-aws-setup.sh (user-managed host)",
-          artifacts: ["scripts/remote-agent-aws-setup.sh"],
-        },
-        copilot: {
-          command:
-            ".github/workflows/copilot-setup-steps.yml → bash scripts/remote-agent-aws-setup.sh",
-          artifacts: [
-            "scripts/remote-agent-aws-setup.sh",
-            ".github/workflows/copilot-setup-steps.yml",
-          ],
-        },
-        opencode: {
-          command:
-            "LISA_REMOTE_AGENT=opencode bash scripts/remote-agent-aws-setup.sh (opencode serve host)",
-          artifacts: ["scripts/remote-agent-aws-setup.sh"],
-        },
-      };
       function configureRemoteEnvironment(cfg) {
         const snapshot = window.LISA_REMOTE_ENVIRONMENT || {
-          variables: {},
-          artifacts: {},
+          projectTypes: [],
+          variables: [],
+          startupScripts: [],
         };
         const harness = cfg && cfg.harness ? cfg.harness : "fleet";
         const activeAgents =
@@ -5920,50 +5883,46 @@
             : REMOTE_AGENT_ORDER.includes(harness)
               ? [harness]
               : ["claude"];
-        const variableRows = [
-          [
-            "LISA_AWS_BOOTSTRAP_JSON",
-            "Required secret — complete vendor-neutral bootstrap bundle",
-          ],
-          [
-            "LISA_REMOTE_AGENT",
-            "Platform label used as the AWS role session name (startup commands set it inline)",
-          ],
-          [
-            "LISA_AWS_DEFAULT_PROFILE",
-            "Optional default account profile; dev is used when unset",
-          ],
-        ].map(([name, purpose]) => {
-          const isSet = snapshot.variables[name] === true;
-          return [
-            { t: "mono", v: name },
-            { t: "text", v: purpose },
+        const variableRows = snapshot.variables.map(variable => [
+          { t: "mono", v: variable.name },
+          { t: "text", v: variable.reason },
+          { t: "text", v: variable.source },
+          {
+            t: "badge",
+            v: variable.set ? "set" : "not set",
+            cls: variable.set ? "pass" : "fail",
+          },
+        ]);
+        if (variableRows.length === 0) {
+          variableRows.push([
             {
-              t: "badge",
-              v: isSet ? "set" : "not set",
-              cls: isSet
-                ? "pass"
-                : name.endsWith("DEFAULT_PROFILE")
-                  ? "warn"
-                  : "fail",
+              t: "text",
+              v: "No project-specific remote variables detected",
             },
-          ];
-        });
+            { t: "text", v: "—" },
+            { t: "text", v: "—" },
+            { t: "badge", v: "none", cls: "default" },
+          ]);
+        }
         const startupRows = activeAgents.map(agent => {
-          const startup = REMOTE_STARTUP[agent];
-          const ready = startup.artifacts.every(
-            artifact => snapshot.artifacts[artifact] === true
-          );
+          const startup = snapshot.startupScripts.find(
+            candidate => candidate.agent === agent
+          ) || { agent, installed: false };
           return [
             { t: "mono", v: agent },
-            { t: "mono", v: startup.command },
+            { t: "mono", v: startup.artifact || "Not configured" },
             {
               t: "badge",
-              v: ready ? "installed" : "missing",
-              cls: ready ? "pass" : "fail",
+              v: startup.installed ? "installed" : "missing",
+              cls: startup.installed ? "pass" : "fail",
             },
           ];
         });
+        const projectTypes = snapshot.projectTypes || [];
+        DATA.sections.remote.blocks[0].note =
+          "Required for this project (" +
+          (projectTypes.length ? projectTypes.join(", ") : "no Lisa type") +
+          "); values remain hidden";
         DATA.sections.remote.blocks[0].rows = variableRows;
         DATA.sections.remote.blocks[1].rows = startupRows;
       }
