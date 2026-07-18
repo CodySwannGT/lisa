@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.225.1](https://github.com/CodySwannGT/lisa/compare/v2.225.0...v2.225.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **skills:** harden distributed validation guidance ([d4a1bd1](https://github.com/CodySwannGT/lisa/commit/d4a1bd1eb95c7ec581fd17c61720674fa227eef5)), closes [#1622](https://github.com/CodySwannGT/lisa/issues/1622)
+
 ## [2.225.0](https://github.com/CodySwannGT/lisa/compare/v2.224.0...v2.225.0) (2026-07-18)
 
 
