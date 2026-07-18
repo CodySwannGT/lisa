@@ -59,11 +59,13 @@ const DEFAULT_DEPENDENCIES: DoctorDependencies = {
 
 /**
  * Check Lisa's installed version against npm.
+ * Exported so the console live-status probe can reuse the same check as
+ * `lisa doctor` — never invent a second npm update-check path.
  * @param deps - Runtime dependencies
  * @param offline - Skip network check
  * @returns Doctor check result
  */
-async function checkVersion(
+export async function checkVersion(
   deps: DoctorDependencies,
   offline: boolean
 ): Promise<DoctorCheck> {

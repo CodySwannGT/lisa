@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.234.0](https://github.com/CodySwannGT/lisa/compare/v2.233.1...v2.234.0) (2026-07-18)
+
+
+### Features
+
+* **ui:** add lisa-version probe reusing doctor checkVersion ([1d315aa](https://github.com/CodySwannGT/lisa/commit/1d315aa6da3ceb6da325c518c62f53cdfab7a2d7))
+* **ui:** wire top-bar #healthChip to lisa-version status ([a0fb64c](https://github.com/CodySwannGT/lisa/commit/a0fb64ca4408e3d952f79086d4cc787aacbab6ae))
+
 ### [2.233.1](https://github.com/CodySwannGT/lisa/compare/v2.233.0...v2.233.1) (2026-07-18)
 
 

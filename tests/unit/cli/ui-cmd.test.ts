@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  createLisaVersionProbe,
   findUiHtml,
   injectLiveConfig,
   inspectRemoteEnvironment,
@@ -241,6 +242,54 @@ describe("runUi", () => {
     expect(body).toContain("window.LISA_REMOTE_ENVIRONMENT");
     const missing = await fetch(`http://127.0.0.1:${port}/nope`);
     expect(missing.status).toBe(404);
+  });
+
+  it("registers the lisa-version probe in the default status snapshot", async () => {
+    resources.server = await runUi(
+      resources.dir,
+      { port: "0", sync: false },
+      {
+        probes: [
+          createLisaVersionProbe({
+            runUpdateCheck: vi.fn(async () => ({
+              current: "2.200.0",
+              latest: "2.200.0",
+              isOutdated: false,
+            })),
+          }),
+        ],
+      }
+    );
+
+    const address = resources.server.address();
+    const port =
+      typeof address === "object" && address !== null ? address.port : 0;
+    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+    const snapshot = (await response.json()) as {
+      probes: Record<string, unknown>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(snapshot.probes["lisa-version"]).toEqual({
+      state: "value",
+      value: { current: "2.200.0", latest: "2.200.0", outdated: false },
+    });
+  });
+
+  it("includes lisa-version among the default runUi probes", async () => {
+    resources.server = await runUi(resources.dir, { port: "0", sync: false });
+
+    const address = resources.server.address();
+    const port =
+      typeof address === "object" && address !== null ? address.port : 0;
+    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+    const snapshot = (await response.json()) as {
+      probes: Record<string, unknown>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(snapshot.probes).toHaveProperty("lisa-version");
+    expect(snapshot.probes).toHaveProperty("github-auth");
   });
 
   it("rejects an invalid port", async () => {

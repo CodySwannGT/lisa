@@ -44,3 +44,13 @@ The factories run on the current runtime's native scheduler (Claude Routines, Co
 **Brownfield projects earn their way in.** Greenfield projects start agent-ready; an existing codebase must be made ready first, in two steps. First, **knowledge convergence**: `/lisa:agent-ready` builds the initial knowledge wiki from everything the agent can reach (repository, git history, connected systems) under the premise "starting tomorrow you maintain this with zero human input — today is your only chance to ask questions," and writes `wiki/gaps.md` with the questions only a human can answer. Humans answer inline, a fresh session re-runs the skill, answers are absorbed into the wiki, and the loop repeats until zero gaps remain. Second, **standards adoption**: apply Lisa's full lint rules, guardrails, and thresholds — expect the project to go red — then agents refactor to conform **without changing business logic or functionality**, proving behavior is preserved. Only then does the automation fleet run unattended.
 
 Everything else in Lisa — the skills, hooks, quality checks, and guardrails — exists to enforce enterprise-grade quality and verification standards that keep the software maintainable, across every major coding agent platform. When executed properly, end users have zero direct contact with coding agents.
+
+<!-- LISA_PROJECT_LEARNINGS_START -->
+Antigravity startup bridge: before normal task work, resolve the canonical
+project-learnings file from `.lisa.config.json` (`projectRulesFile`'s sibling
+`PROJECT_LEARNINGS.md`; default `.claude/rules/PROJECT_LEARNINGS.md`). If it
+exists and satisfies the Lisa learnings contract, read and apply its entries.
+If it is absent, continue silently. If it is malformed, warn once and ignore it.
+
+Resolved path for this project: `.claude/rules/PROJECT_LEARNINGS.md`.
+<!-- LISA_PROJECT_LEARNINGS_END -->
