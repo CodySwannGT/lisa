@@ -21,6 +21,7 @@ import {
   type RemoteEnvironmentStatus,
 } from "./remote-environment.js";
 import { createCiQualityJobsProbe } from "./ui-ci-quality-jobs.js";
+import { createDeployPipelineProbe } from "./ui-deploy-pipeline.js";
 import { createGithubRepoProbe } from "./ui-github-repo.js";
 import { createLisaVersionProbe } from "./ui-lisa-version.js";
 import {
@@ -40,6 +41,12 @@ export {
   type StatusProbe,
 } from "./ui-status.js";
 export { createGithubRepoProbe } from "./ui-github-repo.js";
+export {
+  createDeployPipelineProbe,
+  DEPLOY_PIPELINE_PROBE_ID,
+  type DeployPipelineStage,
+  type DeployPipelineValue,
+} from "./ui-deploy-pipeline.js";
 export {
   createLisaVersionProbe,
   mapLisaVersionCheck,
@@ -342,6 +349,7 @@ export async function runUi(
     createGithubAuthProbe(destDir),
     createLisaVersionProbe(),
     createCiQualityJobsProbe(destDir, config),
+    createDeployPipelineProbe(destDir),
     createGithubRepoProbe(destDir, config),
   ];
   const server = http.createServer(
