@@ -34,6 +34,7 @@ const PACKAGE_JSON = "package.json";
 const SETTINGS_JSON = "settings.json";
 const TEST_TXT = "test.txt";
 const TSCONFIG_BASE = "tsconfig.base.json";
+const TSCONFIG_JSON = "tsconfig.json";
 const LISAIGNORE = ".lisaignore";
 const LEGACY_WORKFLOW = "legacy-workflow.yml";
 const CREATE_ONLY = "create-only";
@@ -41,6 +42,9 @@ const COPY_OVERWRITE = "copy-overwrite";
 const KNIP_JSON = "knip.json";
 const LINT_STAGED_JSON = ".lintstagedrc.json";
 const SAFETY_NET_JSON = ".safety-net.json";
+const GITIGNORE = ".gitignore";
+const ESLINT_IGNORE_CONFIG = "eslint.ignore.config.json";
+const GITHUB_ACTIONS_MD = path.join(".github", "GITHUB_ACTIONS.md");
 const HARPER_FABRIC_TYPE = "harper-fabric";
 const HARPER_FABRIC_TXT = "harper-fabric.txt";
 const JEST_CONFIG_LOCAL = "jest.config.local.ts";
@@ -342,20 +346,45 @@ describe("Lisa Integration Tests", () => {
       await createTypeScriptProject(destDir);
       const guardedPostinstall =
         '[ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true';
+      const duplicatedPostinstall = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${guardedPostinstall}`;
       const hostPackageJson = {
         name: "host-project",
         dependencies: { typescript: "^5.0.0" },
-        scripts: { postinstall: guardedPostinstall, test: "host test" },
+        scripts: { postinstall: duplicatedPostinstall, test: "host test" },
         devDependencies: { oxlint: "^0.1.0" },
+      };
+      const expectedPackageJson = {
+        ...hostPackageJson,
+        scripts: {
+          ...hostPackageJson.scripts,
+          postinstall: guardedPostinstall,
+        },
       };
       const hostKnip = { ignoreDependencies: ["shell-quote"] };
       const hostLintStaged = { "*.ts": "host-lint" };
       const hostSafetyNet = { rules: [] };
+      const hostGitignore = "node_modules/\n.env.local\n";
+      const hostEslintIgnore = { ignores: ["dist/**", "host-owned/**"] };
+      const hostTsconfig = {
+        compilerOptions: { strict: true },
+        include: ["src/**/*.ts", "host/**/*.ts"],
+      };
+      const hostGithubActions = "# Host GitHub Actions guidance\n";
 
       await fs.writeJson(path.join(destDir, PACKAGE_JSON), hostPackageJson);
       await fs.writeJson(path.join(destDir, KNIP_JSON), hostKnip);
       await fs.writeJson(path.join(destDir, LINT_STAGED_JSON), hostLintStaged);
       await fs.writeJson(path.join(destDir, SAFETY_NET_JSON), hostSafetyNet);
+      await fs.writeFile(path.join(destDir, GITIGNORE), hostGitignore);
+      await fs.writeJson(
+        path.join(destDir, ESLINT_IGNORE_CONFIG),
+        hostEslintIgnore
+      );
+      await fs.writeJson(path.join(destDir, TSCONFIG_JSON), hostTsconfig);
+      await fs.outputFile(
+        path.join(destDir, GITHUB_ACTIONS_MD),
+        hostGithubActions
+      );
 
       const tsCopyOverwrite = path.join(lisaDir, "typescript", COPY_OVERWRITE);
       await fs.writeJson(path.join(tsCopyOverwrite, KNIP_JSON), {
@@ -367,6 +396,17 @@ describe("Lisa Integration Tests", () => {
       await fs.writeJson(path.join(tsCopyOverwrite, SAFETY_NET_JSON), {
         rules: [{ match: "no-verify" }],
       });
+      await fs.writeFile(path.join(tsCopyOverwrite, GITIGNORE), "dist/\n");
+      await fs.writeJson(path.join(tsCopyOverwrite, ESLINT_IGNORE_CONFIG), {
+        ignores: ["lisa-template/**"],
+      });
+      await fs.writeJson(path.join(tsCopyOverwrite, TSCONFIG_JSON), {
+        extends: "./tsconfig.base.json",
+      });
+      await fs.outputFile(
+        path.join(tsCopyOverwrite, GITHUB_ACTIONS_MD),
+        "# Lisa GitHub Actions guidance\n"
+      );
       const packageLisaDir = path.join(lisaDir, "typescript", "package-lisa");
       await fs.ensureDir(packageLisaDir);
       await fs.writeJson(path.join(packageLisaDir, "package.lisa.json"), {
@@ -380,7 +420,7 @@ describe("Lisa Integration Tests", () => {
 
       expect(result.success).toBe(true);
       expect(await fs.readJson(path.join(destDir, PACKAGE_JSON))).toEqual(
-        hostPackageJson
+        expectedPackageJson
       );
       expect(await fs.readJson(path.join(destDir, KNIP_JSON))).toEqual(
         hostKnip
@@ -391,6 +431,18 @@ describe("Lisa Integration Tests", () => {
       expect(await fs.readJson(path.join(destDir, SAFETY_NET_JSON))).toEqual(
         hostSafetyNet
       );
+      expect(await fs.readFile(path.join(destDir, GITIGNORE), "utf8")).toBe(
+        hostGitignore
+      );
+      expect(
+        await fs.readJson(path.join(destDir, ESLINT_IGNORE_CONFIG))
+      ).toEqual(hostEslintIgnore);
+      expect(await fs.readJson(path.join(destDir, TSCONFIG_JSON))).toEqual(
+        hostTsconfig
+      );
+      expect(
+        await fs.readFile(path.join(destDir, GITHUB_ACTIONS_MD), "utf8")
+      ).toBe(hostGithubActions);
     });
 
     it("does not regenerate committed agent trees during postinstall-safe apply", async () => {
@@ -713,7 +765,6 @@ describe("Lisa Integration Tests", () => {
     });
 
     it("child stack create-only suppresses parent copy-overwrite for the same path", async () => {
-      const TSCONFIG_JSON = "tsconfig.json";
       const TS_CONFIG = `${JSON.stringify({
         extends: [
           "@codyswann/lisa/tsconfig/typescript",
