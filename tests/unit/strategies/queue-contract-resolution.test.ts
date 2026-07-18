@@ -12,8 +12,10 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  resolveBuildQueueArgument,
   resolveBuildLifecycleRoles,
   resolveCurrentRepo,
+  resolveGithubQueueRepoRef,
   resolvePrdLifecycleRoles,
   resolveQueueContract,
 } from "../../../plugins/src/base/scripts/queue-contract-resolution.mjs";
@@ -61,6 +63,73 @@ describe("queue contract resolution (#822)", () => {
         },
       },
     });
+  });
+
+  it("keeps the no-key GitHub build argument backward compatible", () => {
+    expect(
+      resolveBuildQueueArgument({
+        tracker: "github",
+        github: { org: "Acme", repo: "frontend" },
+      })
+    ).toBe("github intake_mode=build");
+  });
+
+  it("normalizes a short umbrella queue to the identity owner without changing currentRepo", () => {
+    const config = {
+      tracker: "github",
+      github: { org: "Acme", repo: "frontend", queueRepo: "planning" },
+    };
+    const contract = resolveQueueContract({ config });
+
+    expect(resolveGithubQueueRepoRef(config)).toEqual({
+      owner: "Acme",
+      repo: "planning",
+    });
+    expect(contract.currentRepo).toBe("frontend");
+    expect(contract.buildQueue).toMatchObject({
+      argument: "Acme/planning intake_mode=build",
+      identityRepo: "Acme/frontend",
+      queueRepo: "Acme/planning",
+    });
+  });
+
+  it("accepts a cross-owner queue and lets an explicit target win", () => {
+    const config = {
+      tracker: "github",
+      github: {
+        org: "Acme",
+        repo: "frontend",
+        queueRepo: "ProgramOffice/backlog",
+      },
+    };
+
+    expect(resolveGithubQueueRepoRef(config)).toEqual({
+      owner: "ProgramOffice",
+      repo: "backlog",
+    });
+    expect(
+      resolveBuildQueueArgument(config, "github", {
+        explicitQueue: "OtherOrg/hotfixes",
+      })
+    ).toBe("OtherOrg/hotfixes intake_mode=build");
+    expect(
+      resolveBuildQueueArgument(config, "github", {
+        explicitQueue: "https://github.com/UrlOrg/urgent.git",
+      })
+    ).toBe("UrlOrg/urgent intake_mode=build");
+  });
+
+  it("rejects malformed queueRepo values loudly", () => {
+    expect(() =>
+      resolveGithubQueueRepoRef({
+        github: { org: "Acme", repo: "frontend", queueRepo: "a/b/c" },
+      })
+    ).toThrow(/queueRepo must be a repo name or owner\/repo/i);
+    expect(() =>
+      resolveGithubQueueRepoRef({
+        github: { org: "Acme", repo: "frontend", queueRepo: 42 },
+      })
+    ).toThrow(/queueRepo must be a repo name or owner\/repo/i);
   });
 
   it("resolves mixed notion/jira queues with explicit overrides and repo override precedence", () => {

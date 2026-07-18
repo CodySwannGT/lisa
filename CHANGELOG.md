@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.223.3](https://github.com/CodySwannGT/lisa/compare/v2.223.2...v2.223.3) (2026-07-18)
+
+
+### Bug Fixes
+
+* **gitignore:** exclude verification verdict ([7c81142](https://github.com/CodySwannGT/lisa/commit/7c811420baf7210ad14c59e5661a0ea26cd85719))
+
 ### [2.223.2](https://github.com/CodySwannGT/lisa/compare/v2.223.1...v2.223.2) (2026-07-17)
 
 

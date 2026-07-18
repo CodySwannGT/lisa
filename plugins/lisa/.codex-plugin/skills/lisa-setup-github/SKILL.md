@@ -79,6 +79,23 @@ gh repo view "$ORG/$REPO" --json name,viewerPermission \
 
 If permission is `READ` / `TRIAGE`, stop — lisa cannot create labels or issues. Surface and exit.
 
+### Step 2b — Choose the queue repository
+
+When GitHub is selected as the destination tracker, initialize the choice from an existing
+`github.queueRepo`, or `$ORG/$REPO` when absent, then ask whether the build backlog lives there, in
+the identity repo, or in another umbrella/planning repo. If the user gives an umbrella repo, accept a short name by normalizing it to `$ORG/<name>` or accept a full
+`owner/repo`, then verify it is reachable and the authenticated identity can manage the lifecycle
+labels Lisa needs:
+
+```bash
+gh repo view "$QUEUE_ORG/$QUEUE_REPO" --json name,viewerPermission \
+  --jq 'if (.viewerPermission | IN("ADMIN","MAINTAIN","WRITE")) then "ok" else error("insufficient permission: \(.viewerPermission)") end'
+```
+
+Store `github.queueRepo` only when the canonical queue `owner/repo` differs from `$ORG/$REPO`.
+This choice changes queue scans, not repository identity: `github.repo`, `repo:<current>` claim
+scoping, issue destinations, and automation naming remain tied to the identity/tracker repo.
+
 ### Step 3 — Scaffold the lifecycle label namespaces
 
 Read role → label mappings with the same default-fallback ladder the intake skills use, so the labels created here exactly match what they look for. Only the namespaces selected in Step 0 are scaffolded.
@@ -92,12 +109,13 @@ read_role() {  # $1=namespace (build|prd) $2=role $3=default
 }
 
 # Idempotent label creator: create if missing, leave untouched if present.
+# LABEL_ORG/LABEL_REPO select the repo for the namespace being scaffolded.
 ensure_label() {  # $1=name $2=hex-color $3=description
   local name="$1" color="$2" desc="$3"
-  if gh label list --repo "$ORG/$REPO" --limit 200 --json name --jq '.[].name' | grep -qxF "$name"; then
+  if gh label list --repo "$LABEL_ORG/$LABEL_REPO" --limit 200 --json name --jq '.[].name' | grep -qxF "$name"; then
     echo "  = $name (exists)"
   else
-    gh label create "$name" --repo "$ORG/$REPO" --color "$color" --description "$desc" \
+    gh label create "$name" --repo "$LABEL_ORG/$LABEL_REPO" --color "$color" --description "$desc" \
       && echo "  + $name (created)"
   fi
 }
@@ -108,6 +126,8 @@ ensure_label() {  # $1=name $2=hex-color $3=description
 Defaults from `config-resolution`. The `done` role is **env-keyed** — create all three by default; a project whose terminal state is env-independent can later collapse `github.labels.build.done` to a single string.
 
 ```bash
+LABEL_ORG="$QUEUE_ORG"
+LABEL_REPO="$QUEUE_REPO"
 ensure_label "$(read_role build ready    status:ready)"        FBCA04 "Ready for build (human signal)"
 ensure_label "$(read_role build claimed  status:in-progress)"  0E8A16 "Build in progress (agent owns)"
 ensure_label "$(read_role build blocked  status:blocked)"      D93F0B "Blocked — human attention required"
@@ -119,6 +139,8 @@ ensure_label "$(read_role build done.production status:done)"   0E8A16 "Shipped 
 #### 3b. PRD-lifecycle labels (only if GitHub is the PRD source)
 
 ```bash
+LABEL_ORG="$ORG"
+LABEL_REPO="$REPO"
 ensure_label "$(read_role prd draft     prd-draft)"            C5DEF5 "PRD in progress (product owns)"
 ensure_label "$(read_role prd ready     prd-ready)"            FBCA04 "PRD ready for ticketing"
 ensure_label "$(read_role prd in_review prd-in-review)"        5319E7 "Claude is reviewing this PRD"
@@ -144,6 +166,19 @@ touch .lisa.config.json
 jq --arg org "$ORG" --arg repo "$REPO" \
    '.github = ((.github // {}) | .org = $org | .repo = $repo)' \
    .lisa.config.json > .lisa.config.json.tmp && mv .lisa.config.json.tmp .lisa.config.json
+
+# Queue repo is canonical owner/repo and omitted for the identity/default case.
+# A source-only setup rerun preserves any existing build-queue choice.
+if [ "$GITHUB_TRACKER_SELECTED" = "true" ]; then
+  if [ "$QUEUE_ORG/$QUEUE_REPO" = "$ORG/$REPO" ]; then
+    jq 'del(.github.queueRepo)' .lisa.config.json > .lisa.config.json.tmp \
+      && mv .lisa.config.json.tmp .lisa.config.json
+  else
+    jq --arg queue "$QUEUE_ORG/$QUEUE_REPO" '.github.queueRepo = $queue' \
+      .lisa.config.json > .lisa.config.json.tmp \
+      && mv .lisa.config.json.tmp .lisa.config.json
+  fi
+fi
 
 # Conditionally write label overrides (only roles the user mapped to non-default names).
 # $LABEL_OVERRIDES_JSON is e.g. {"build":{"ready":"ready-for-dev"}} — {} if all defaults.
@@ -198,8 +233,24 @@ Both are project-wide switches that change every downstream skill's default — 
 
 ```bash
 jq -e '.github.org and .github.repo' .lisa.config.json >/dev/null
+EFFECTIVE_ORG=$(jq -r '.github.org // empty' .lisa.config.local.json 2>/dev/null)
+EFFECTIVE_ORG=${EFFECTIVE_ORG:-$(jq -r '.github.org' .lisa.config.json)}
+EFFECTIVE_REPO=$(jq -r '.github.repo // empty' .lisa.config.local.json 2>/dev/null)
+EFFECTIVE_REPO=${EFFECTIVE_REPO:-$(jq -r '.github.repo' .lisa.config.json)}
+QUEUE_VALUE=$(jq -r '.github.queueRepo // empty' .lisa.config.local.json 2>/dev/null)
+QUEUE_VALUE=${QUEUE_VALUE:-$(jq -r '.github.queueRepo // empty' .lisa.config.json)}
+if [ -z "$QUEUE_VALUE" ]; then
+  QUEUE_REF="$EFFECTIVE_ORG/$EFFECTIVE_REPO"
+elif [[ "$QUEUE_VALUE" == */* ]]; then
+  QUEUE_REF="$QUEUE_VALUE"
+else
+  QUEUE_REF="$EFFECTIVE_ORG/$QUEUE_VALUE"
+fi
+gh repo view "$QUEUE_REF" --json nameWithOwner --jq .nameWithOwner
 gh label list --repo "$ORG/$REPO" --limit 200 --json name --jq '.[].name' \
-  | grep -E 'status:|prd-' || true   # show the scaffolded namespaces
+  | grep -E 'prd-' || true
+gh label list --repo "$QUEUE_REF" --limit 200 --json name --jq '.[].name' \
+  | grep -E 'status:' || true
 ```
 
 If `github.projects.v2` is configured, setup verification MUST also run the shared Project utility in
