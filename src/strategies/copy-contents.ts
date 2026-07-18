@@ -225,6 +225,14 @@ export class CopyContentsStrategy implements ICopyStrategy {
       };
     }
 
+    if (context.config.skipGitCheck) {
+      return {
+        relativePath: realRelativePath,
+        strategy: this.name,
+        action: "skipped",
+      };
+    }
+
     const sourceContent = await readFile(sourcePath, "utf-8");
     const destContent = await readFile(realDestPath, "utf-8");
 

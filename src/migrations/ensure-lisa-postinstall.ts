@@ -44,18 +44,8 @@ async function readPackageJson(
  * have this form chained with other commands; we detect and replace it so
  * the CI guard is introduced without duplicating the invocation.
  */
-const LEGACY_LISA_INVOCATION_RE =
-  /(?:\[ -n "\$CI" \] \|\| )?(?:LISA_BOOTSTRAP=1 )?node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
-
-/**
- * Guarded Lisa invocation pattern (CI guard directly gates the Lisa command).
- * Used to detect when the migration has already been applied. Avoids false
- * positives where the CI guard precedes an unrelated command (e.g.
- * `[ -n "$CI" ] || patch-package && node ...lisa...`), which would leave Lisa
- * effectively unguarded inside a `&&` chain.
- */
-const GUARDED_LISA_INVOCATION_RE =
-  /\[ -n "\$CI" \] \|\| LISA_BOOTSTRAP=1 node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
+const LISA_INVOCATION_RE =
+  /(?:(?:\[ -n "\$CI" \] \|\| )|(?:LISA_BOOTSTRAP=1 ))*node node_modules\/@codyswann\/lisa\/dist\/index\.js --yes --skip-git-check \. 2>\/dev\/null \|\| true/;
 
 /**
  * Compose the new postinstall, prepending the Lisa invocation to any existing command.
@@ -70,7 +60,7 @@ function composePostinstall(existing: string | undefined): string {
     return LISA_INVOCATION;
   }
   if (trimmed.includes(LISA_MARKER)) {
-    return trimmed.replace(LEGACY_LISA_INVOCATION_RE, LISA_INVOCATION);
+    return trimmed.replace(LISA_INVOCATION_RE, LISA_INVOCATION);
   }
   return `${LISA_INVOCATION} && ${trimmed}`;
 }
@@ -132,17 +122,17 @@ export class EnsureLisaPostinstallMigration implements Migration {
       return false;
     }
     const postinstall = pkg.scripts?.postinstall;
+    if (!postinstall) {
+      return hasNodePostinstallType(ctx.detectedTypes);
+    }
+    const normalizedPostinstall = composePostinstall(postinstall);
     if (!hasNodePostinstallType(ctx.detectedTypes)) {
       return (
-        !!postinstall &&
         postinstall.includes(LISA_MARKER) &&
-        !GUARDED_LISA_INVOCATION_RE.test(postinstall)
+        normalizedPostinstall !== postinstall
       );
     }
-    if (postinstall && GUARDED_LISA_INVOCATION_RE.test(postinstall)) {
-      return false;
-    }
-    return true;
+    return normalizedPostinstall !== postinstall;
   }
 
   /**

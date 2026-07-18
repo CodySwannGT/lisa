@@ -169,7 +169,7 @@ describe("CopyOverwriteStrategy", () => {
     });
   });
 
-  it("still overwrites other Lisa-managed files during skip-git-check applies", async () => {
+  it("preserves any existing host file during skip-git-check applies", async () => {
     const srcFile = path.join(srcDir, TSCONFIG_JSON);
     const destFile = path.join(destDir, TSCONFIG_JSON);
     await fs.writeJson(srcFile, { extends: "./tsconfig.base.json" });
@@ -182,10 +182,8 @@ describe("CopyOverwriteStrategy", () => {
       createContext({ skipGitCheck: true })
     );
 
-    expect(result.action).toBe("overwritten");
-    expect(await fs.readJson(destFile)).toEqual({
-      extends: "./tsconfig.base.json",
-    });
+    expect(result.action).toBe("skipped");
+    expect(await fs.readJson(destFile)).toEqual({});
   });
 
   it("creates parent directories when needed", async () => {
