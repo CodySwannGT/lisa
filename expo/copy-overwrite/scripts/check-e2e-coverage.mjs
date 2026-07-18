@@ -37,6 +37,7 @@ export const defaultThresholds = {
 };
 
 const ROUTE_FILE_PATTERN = /\.(?:tsx|ts|jsx|js)$/;
+const PLATFORM_SUFFIX_PATTERN = /\.(?:ios|android|native|web)$/;
 const SPEC_FILE_PATTERN = /\.(?:tsx|ts|jsx|js|mjs)$/;
 const FLOW_FILE_PATTERN = /\.(?:yaml|yml)$/;
 // `e2e-route: /path` inside any comment declares a route as covered even when
@@ -58,14 +59,30 @@ export function routeFromFile(relativePath) {
   }
   const withoutExtension = relativePath.replace(ROUTE_FILE_PATTERN, "");
   const rawSegments = withoutExtension.split("/");
-  const basename = rawSegments[rawSegments.length - 1];
+  const basename = rawSegments[rawSegments.length - 1].replace(
+    PLATFORM_SUFFIX_PATTERN,
+    ""
+  );
   if (basename.startsWith("+") || basename.endsWith("+api")) {
+    return null;
+  }
+  // Companion files are not screens. Ignore bracket contents before checking
+  // for a remaining dot so catch-all routes such as `[...slug]` stay valid.
+  if (
+    basename
+      .split("")
+      .some(
+        (character, index) =>
+          character === "." &&
+          basename.lastIndexOf("[", index) <= basename.lastIndexOf("]", index)
+      )
+  ) {
     return null;
   }
   if (rawSegments.some(segment => segment.startsWith("_"))) {
     return null;
   }
-  const segments = rawSegments
+  const segments = [...rawSegments.slice(0, -1), basename]
     // Route groups like "(tabs)" organize files without affecting the URL.
     .filter(segment => !(segment.startsWith("(") && segment.endsWith(")")))
     .filter(segment => segment !== "index");
