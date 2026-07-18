@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.225.2](https://github.com/CodySwannGT/lisa/compare/v2.225.1...v2.225.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* **expo:** align route character indices ([d338bd2](https://github.com/CodySwannGT/lisa/commit/d338bd226c3092cfedf897ea9b8d260db88f7313)), closes [#1624](https://github.com/CodySwannGT/lisa/issues/1624)
+* **expo:** ignore companion route files ([b664504](https://github.com/CodySwannGT/lisa/commit/b664504a546a3d889a4bb44b83f885a8e1e56ed5)), closes [#1624](https://github.com/CodySwannGT/lisa/issues/1624)
+
 ### [2.225.1](https://github.com/CodySwannGT/lisa/compare/v2.225.0...v2.225.1) (2026-07-18)
 
 
