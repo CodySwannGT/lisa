@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.228.0](https://github.com/CodySwannGT/lisa/compare/v2.227.0...v2.228.0) (2026-07-18)
+
+
+### Features
+
+* **ui:** show remote environment readiness ([549e263](https://github.com/CodySwannGT/lisa/commit/549e263a17fc2c9657912b35ad9d9f9c140357d5))
+
+
+### Performance Improvements
+
+* **postinstall:** dedupe applies and version-gate plugin sync ([7159632](https://github.com/CodySwannGT/lisa/commit/71596323c99837f529b9bb6aa27ef8452b82d158)), closes [#1017](https://github.com/CodySwannGT/lisa/issues/1017) [#383](https://github.com/CodySwannGT/lisa/issues/383) [#320](https://github.com/CodySwannGT/lisa/issues/320)
+
 ## [2.227.0](https://github.com/CodySwannGT/lisa/compare/v2.226.2...v2.227.0) (2026-07-18)
 
 
