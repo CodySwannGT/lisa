@@ -4,19 +4,24 @@
  */
 import * as http from "node:http";
 import * as path from "node:path";
+import { readFile } from "node:fs/promises";
 import {
   isJsonObject,
   setAtPath,
   type JsonObject,
   type JsonValue,
 } from "../sync/json-path.js";
-import { readJsonOrNull, writeJson } from "../utils/index.js";
+import { writeJson } from "../utils/index.js";
 
 const CONFIG_FILE = ".lisa.config.json";
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
 const MAX_CONFIG_WRITE_BYTES = 128 * 1024;
 const NO_STORE = "no-store";
 const TEXT_CONTENT_TYPE = "text/plain; charset=utf-8";
+const configWriteQueues = new Map<string, Promise<void>>();
+
+/** Error raised for malformed request bodies that should return 400. */
+class RequestBodyError extends Error {}
 
 /**
  * Read the project's committed config file.
@@ -24,10 +29,24 @@ const TEXT_CONTENT_TYPE = "text/plain; charset=utf-8";
  * @returns Committed config object, or an empty config if absent/malformed
  */
 async function readCommittedConfig(destDir: string): Promise<JsonObject> {
-  const committed = await readJsonOrNull<unknown>(
-    path.join(destDir, CONFIG_FILE)
-  );
-  return isJsonObject(committed) ? committed : {};
+  const configPath = path.join(destDir, CONFIG_FILE);
+  try {
+    const committed = JSON.parse(await readFile(configPath, "utf8")) as unknown;
+    if (!isJsonObject(committed)) {
+      throw new Error(`${CONFIG_FILE} must contain a JSON object`);
+    }
+    return committed;
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return {};
+    }
+    throw error;
+  }
 }
 
 /**
@@ -73,6 +92,7 @@ function isExpectedLoopbackOrigin(
   try {
     const parsed = new URL(origin);
     return (
+      origin === parsed.origin &&
       parsed.protocol === "http:" &&
       parsed.host === host &&
       isLoopbackHost(parsed.host)
@@ -185,17 +205,45 @@ async function readJsonBody(request: http.IncomingMessage): Promise<unknown> {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     received += buffer.byteLength;
     if (received > MAX_CONFIG_WRITE_BYTES) {
-      throw new Error("Payload exceeds 128 KiB limit");
+      throw new RequestBodyError("Payload exceeds 128 KiB limit");
     }
     chunks = [...chunks, buffer];
   }
   if (chunks.length === 0) {
-    throw new Error("Payload body is required");
+    throw new RequestBodyError("Payload body is required");
   }
   try {
     return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
   } catch {
-    throw new Error("Payload body must be valid JSON");
+    throw new RequestBodyError("Payload body must be valid JSON");
+  }
+}
+
+/**
+ * Serialize committed-config writes per project root.
+ * @param destDir - Project root whose committed config is being written
+ * @param operation - Read-modify-write operation to run after prior writes
+ * @returns Result of the queued operation
+ */
+async function withConfigWriteLock<T>(
+  destDir: string,
+  operation: () => Promise<T>
+): Promise<T> {
+  const previous = configWriteQueues.get(destDir) ?? Promise.resolve();
+  const running = previous.catch(() => undefined).then(operation);
+  const marker = running.then(
+    () => undefined,
+    () => undefined
+  );
+  // eslint-disable-next-line functional/immutable-data -- per-project async write queue
+  configWriteQueues.set(destDir, marker);
+  try {
+    return await running;
+  } finally {
+    if (configWriteQueues.get(destDir) === marker) {
+      // eslint-disable-next-line functional/immutable-data -- queue entry is complete
+      configWriteQueues.delete(destDir);
+    }
   }
 }
 
@@ -209,13 +257,15 @@ async function writeConfigChanges(
   destDir: string,
   changes: Record<string, JsonValue>
 ): Promise<JsonObject> {
-  const original = await readCommittedConfig(destDir);
-  const next = Object.entries(changes).reduce<JsonObject>(
-    (state, [key, value]) => setAtPath(state, key, value),
-    original
-  );
-  await writeJson(path.join(destDir, CONFIG_FILE), next);
-  return next;
+  return await withConfigWriteLock(destDir, async () => {
+    const original = await readCommittedConfig(destDir);
+    const next = Object.entries(changes).reduce<JsonObject>(
+      (state, [key, value]) => setAtPath(state, key, value),
+      original
+    );
+    await writeJson(path.join(destDir, CONFIG_FILE), next);
+    return next;
+  });
 }
 
 /**
@@ -269,13 +319,16 @@ export function serveConfigWrite(
       response.end(JSON.stringify({ ok: true, config: committed }));
     })
     .catch(error => {
-      response.writeHead(400, {
+      const isRequestBodyError = error instanceof RequestBodyError;
+      response.writeHead(isRequestBodyError ? 400 : 500, {
         "cache-control": NO_STORE,
         "content-type": JSON_CONTENT_TYPE,
       });
       response.end(
         JSON.stringify({
-          error: error instanceof Error ? error.message : String(error),
+          error: isRequestBodyError
+            ? error.message
+            : "Unable to write Lisa config",
         })
       );
     });

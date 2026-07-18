@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -27,6 +27,7 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   if (resources.server !== undefined) {
+    resources.server.closeAllConnections();
     await new Promise(resolve => resources.server?.close(resolve));
     resources.server = undefined;
   }
@@ -93,8 +94,8 @@ describe("POST /api/config", () => {
 
     expect(response.status).toBe(403);
     expect(body.error).toContain("http://127.0.0.1");
-    expect(after.committed.equals(before.committed)).toBe(true);
-    expect(after.local.equals(before.local)).toBe(true);
+    expect(after.committed).toStrictEqual(before.committed);
+    expect(after.local).toStrictEqual(before.local);
   });
 
   it("rejects a different loopback origin port without writing config files", async () => {
@@ -120,8 +121,35 @@ describe("POST /api/config", () => {
     const after = await readConfigBytes();
 
     expect(response.status).toBe(403);
-    expect(after.committed.equals(before.committed)).toBe(true);
-    expect(after.local.equals(before.local)).toBe(true);
+    expect(after.committed).toStrictEqual(before.committed);
+    expect(after.local).toStrictEqual(before.local);
+  });
+
+  it("rejects origins with credentials or extra URL components", async () => {
+    await writeConfigPair();
+    resources.server = await runUi(
+      resources.dir,
+      { port: "0", sync: false },
+      { probes: [] }
+    );
+    const before = await readConfigBytes();
+
+    const response = await fetch(
+      `http://127.0.0.1:${serverPort()}/api/config`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": CONTENT_TYPE_JSON,
+          origin: `http://user@127.0.0.1:${serverPort()}/path`,
+        },
+        body: JSON.stringify({ changes: { tracker: "jira" } }),
+      }
+    );
+    const after = await readConfigBytes();
+
+    expect(response.status).toBe(403);
+    expect(after.committed).toStrictEqual(before.committed);
+    expect(after.local).toStrictEqual(before.local);
   });
 
   it("rejects malformed write payloads before touching config files", async () => {
@@ -149,8 +177,40 @@ describe("POST /api/config", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("empty path segment");
-    expect(after.committed.equals(before.committed)).toBe(true);
-    expect(after.local.equals(before.local)).toBe(true);
+    expect(after.committed).toStrictEqual(before.committed);
+    expect(after.local).toStrictEqual(before.local);
+  });
+
+  it("rejects sparse writes when the committed config is malformed", async () => {
+    await writeFile(path.join(resources.dir, CONFIG_FILE), "{bad json");
+    await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {
+      github: { repo: PRIVATE_LOCAL_REPO },
+    });
+    resources.server = await runUi(
+      resources.dir,
+      { port: "0", sync: false },
+      { probes: [] }
+    );
+    const before = await readConfigBytes();
+
+    const response = await fetch(
+      `http://127.0.0.1:${serverPort()}/api/config`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": CONTENT_TYPE_JSON,
+          origin: `http://127.0.0.1:${serverPort()}`,
+        },
+        body: JSON.stringify({ changes: { tracker: "linear" } }),
+      }
+    );
+    const body = (await response.json()) as { error: string };
+    const after = await readConfigBytes();
+
+    expect(response.status).toBe(500);
+    expect(body.error).toBe("Unable to write Lisa config");
+    expect(after.committed).toStrictEqual(before.committed);
+    expect(after.local).toStrictEqual(before.local);
   });
 
   it("accepts a same-origin sparse config write", async () => {
@@ -190,8 +250,54 @@ describe("POST /api/config", () => {
 
     expect(response.status).toBe(200);
     expect(result.ok).toBe(true);
-    expect(committed.tracker).toBe("linear");
-    expect(committed.quality.testCoverage.global.statements).toBe(80);
-    expect(local.github.repo).toBe(PRIVATE_LOCAL_REPO);
+    expect(committed).toEqual({
+      tracker: "linear",
+      quality: { testCoverage: { global: { statements: 80 } } },
+    });
+    expect(local).toEqual({ github: { repo: PRIVATE_LOCAL_REPO } });
+  });
+
+  it("serializes concurrent sparse writes so changes are not lost", async () => {
+    await writeConfigPair();
+    resources.server = await runUi(
+      resources.dir,
+      { port: "0", sync: false },
+      { probes: [] }
+    );
+
+    const [trackerResponse, thresholdResponse] = await Promise.all([
+      fetch(`http://127.0.0.1:${serverPort()}/api/config`, {
+        method: "POST",
+        headers: {
+          "content-type": CONTENT_TYPE_JSON,
+          origin: `http://127.0.0.1:${serverPort()}`,
+        },
+        body: JSON.stringify({ changes: { tracker: "linear" } }),
+      }),
+      fetch(`http://127.0.0.1:${serverPort()}/api/config`, {
+        method: "POST",
+        headers: {
+          "content-type": CONTENT_TYPE_JSON,
+          origin: `http://127.0.0.1:${serverPort()}`,
+        },
+        body: JSON.stringify({
+          changes: { "quality.testCoverage.global.statements": 81 },
+        }),
+      }),
+    ]);
+    const committed = JSON.parse(
+      await readFile(path.join(resources.dir, CONFIG_FILE), "utf8")
+    ) as {
+      tracker: string;
+      quality: { testCoverage: { global: { statements: number } } };
+    };
+
+    expect([trackerResponse.status, thresholdResponse.status]).toEqual([
+      200, 200,
+    ]);
+    expect(committed).toEqual({
+      tracker: "linear",
+      quality: { testCoverage: { global: { statements: 81 } } },
+    });
   });
 });
