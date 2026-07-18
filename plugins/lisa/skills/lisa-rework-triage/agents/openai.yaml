@@ -1,0 +1,4 @@
+display_name: "Rework Triage"
+short_description: "Rework detection and agent-failure classification"
+default_prompt:
+  - "Use $lisa-rework-triage: Rework detection and agent-failure classification."
