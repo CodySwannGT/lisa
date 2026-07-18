@@ -1,0 +1,4 @@
+display_name: "QA Checklist"
+short_description: "Serve the current manual…"
+default_prompt:
+  - "Use $lisa-qa-checklist: Serve the current manual…."

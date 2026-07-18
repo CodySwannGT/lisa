@@ -1,0 +1,4 @@
+display_name: "QA Clear"
+short_description: "Bulk-clear tickets a human QA tester cannot verify"
+default_prompt:
+  - "Use $lisa-qa-clear: Bulk-clear tickets a human QA tester cannot verify."
