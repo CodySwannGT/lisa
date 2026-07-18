@@ -326,6 +326,29 @@
         font-family: var(--mono);
         font-size: 11px;
       }
+      .plugins-state {
+        padding: 18px 20px;
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        background: var(--surface2);
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .plugins-state.unknown {
+        border-style: solid;
+        border-color: var(--warn, #c9872a);
+      }
+      .plugins-state.unknown b {
+        display: block;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .plugins-live-block .plugin-status-badge.available {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
       .live-status-item .status-why {
         display: inline;
         margin: 0;
@@ -4789,10 +4812,9 @@
       };
 
       /* ---------------------------------- GitHub repo ---------------------------------- */
-      /* Demo values are never shown — the panel hydrates from the github-repo probe. */
       DATA.sections.repository = {
         title: "Repository & protection",
-        desc: "Repo-level governance on the git host: merge policy, branch protection with required status checks, lifecycle labels, deploy key and expected secrets. Values come from live gh api reads against the configured github.org / github.repo — never from demo data.",
+        desc: "Repo-level governance on the git host: merge policy, branch protection with required status checks, lifecycle labels, deploy key and expected secrets. The controls below are those of the configured host — GitHub is the only one implemented today, so they are GitHub’s rulesets and settings.",
         src: "scripts/lisa-github-repo-setup.sh · all/github-rulesets/",
         blocks: [
           {
@@ -4807,183 +4829,335 @@
             ],
           },
           {
-            type: "callout",
-            variant: "warn",
-            text: "<b>Live repository status</b> — waiting for gh api probe…",
+            card: "Repository settings",
+            note: "github.settings.* overrides the baseline per key",
+            rows: [
+              {
+                key: "allow_merge_commit",
+                label: "Allow merge commits",
+                desc: "The fleet is merge-only — squash and rebase are disabled because squashing flattens release commits and breaks promotion.",
+                control: tog(true),
+              },
+              {
+                key: "allow_squash_merge",
+                label: "Allow squash merge",
+                desc: "",
+                control: tog(false),
+              },
+              {
+                key: "allow_rebase_merge",
+                label: "Allow rebase merge",
+                desc: "",
+                control: tog(false),
+              },
+              {
+                key: "allow_auto_merge",
+                label: "Auto-merge",
+                desc: "Lisa PRs enable auto-merge and drive themselves to green.",
+                control: tog(true),
+              },
+              {
+                key: "allow_update_branch",
+                label: "Suggest updating PR branches",
+                desc: "",
+                control: tog(true),
+              },
+              {
+                key: "delete_branch_on_merge",
+                label: "Delete head branch on merge",
+                desc: "Environment branches survive via the prevent-delete ruleset.",
+                control: tog(true),
+              },
+              {
+                key: "merge_commit_title",
+                label: "Merge commit title",
+                desc: "",
+                control: sel("MERGE_MESSAGE", ["MERGE_MESSAGE", "PR_TITLE"]),
+              },
+              {
+                key: "has_issues",
+                label: "Issues tab",
+                desc: "",
+                control: tog(true),
+              },
+              {
+                key: "has_wiki",
+                label: "Wiki tab",
+                desc: "Off — Lisa uses the in-repo wiki/ directory instead.",
+                control: tog(false),
+              },
+              {
+                key: "secret_scanning",
+                label: "Secret scanning + push protection",
+                desc: "Best-effort; skipped when the plan lacks GitHub Advanced Security.",
+                control: tog(true),
+              },
+              {
+                key: "github.settings.default_branch",
+                label: "Default branch",
+                desc: "Lowest-tier existing environment branch wins: dev, then staging, then main.",
+                control: txt("dev", { mono: true }),
+              },
+            ],
+          },
+          {
+            type: "table",
+            card: "Rulesets",
+            note: "Bypass: deploy key + repo admins (prevent-delete has no bypass)",
+            cols: ["Ruleset", "Applies to", "Enforces", "Active"],
+            rows: [
+              [
+                { t: "mono", v: "base" },
+                { t: "text", v: "dev · staging · main" },
+                {
+                  t: "text",
+                  v: "No deletion/force-push; PRs with thread resolution; CodeRabbit + GitGuardian required",
+                },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "quality checks" },
+                { t: "text", v: "dev · staging · main" },
+                {
+                  t: "text",
+                  v: "Lint, Type Check, Build, Formatting, Security Scan, Unit + Integration Tests",
+                },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "playwright" },
+                { t: "text", v: "staging" },
+                { t: "text", v: "Playwright E2E required (expo stacks)" },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "prevent delete" },
+                { t: "text", v: "dev · staging · main" },
+                { t: "text", v: "Deletion + force-push blocked, no bypass" },
+                { t: "toggle", v: true },
+              ],
+              [
+                { t: "mono", v: "protect tags" },
+                { t: "text", v: "refs/tags/v*" },
+                { t: "text", v: "Tag deletion + moves blocked" },
+                { t: "toggle", v: true },
+              ],
+            ],
+          },
+          {
+            card: "Ruleset adjustments",
+            rows: [
+              {
+                key: "github.rulesets.dropRequiredChecks",
+                label: "Dropped required checks",
+                desc: "Contexts removed from required checks for this repo — e.g. an app integration not installed here.",
+                control: tags([]),
+              },
+              {
+                key: "pull_request.required_review_thread_resolution",
+                label: "Require review-thread resolution",
+                desc: "PRs stay blocked until every conversation (including CodeRabbit’s) is resolved.",
+                control: tog(true),
+              },
+              {
+                key: "pull_request.required_approving_review_count",
+                label: "Required approvals",
+                desc: "Zero — quality is enforced by checks and reviews-by-agents rather than human approval count.",
+                control: num(0),
+              },
+            ],
+          },
+          {
+            type: "table",
+            card: "Lifecycle labels",
+            note: "Created idempotently by /lisa:setup:github",
+            cols: ["Label", "Role", "Color"],
+            rows: [
+              [
+                { t: "mono", v: "status:ready" },
+                { t: "text", v: "build · ready" },
+                { t: "color", v: "#FBCA04" },
+              ],
+              [
+                { t: "mono", v: "status:in-progress" },
+                { t: "text", v: "build · claimed" },
+                { t: "color", v: "#0E8A16" },
+              ],
+              [
+                { t: "mono", v: "status:blocked" },
+                { t: "text", v: "build · blocked" },
+                { t: "color", v: "#D93F0B" },
+              ],
+              [
+                { t: "mono", v: "status:on-dev / status:on-stg" },
+                { t: "text", v: "build · done (dev/staging)" },
+                { t: "color", v: "#1D76DB" },
+              ],
+              [
+                { t: "mono", v: "status:done" },
+                { t: "text", v: "build · done (production)" },
+                { t: "color", v: "#0E8A16" },
+              ],
+              [
+                { t: "mono", v: "prd-draft → prd-verified" },
+                { t: "text", v: "PRD lifecycle (8 labels)" },
+                { t: "color", v: "#5319E7" },
+              ],
+            ],
+          },
+          {
+            type: "table",
+            card: "Secrets",
+            note: "DEPLOY_KEY is the only secret Lisa creates; the rest are expected by workflows",
+            cols: ["Secret", "Purpose", "Status"],
+            rows: [
+              [
+                { t: "mono", v: "DEPLOY_KEY" },
+                {
+                  t: "text",
+                  v: "Write deploy key so CI can push version bumps through ruleset bypass",
+                },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "CLAUDE_CODE_OAUTH_TOKEN" },
+                {
+                  t: "text",
+                  v: "Claude Code Action workflows (nightly, review response, auto-fix)",
+                },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "AWS_ACCOUNT_ID_DEV / _STAGING / _PRODUCTION" },
+                { t: "text", v: "Per-environment AWS accounts for deploys" },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "GITGUARDIAN_API_KEY" },
+                { t: "text", v: "Secret scanning check" },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "SONAR_TOKEN" },
+                { t: "text", v: "SonarCloud SAST" },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "SNYK_TOKEN" },
+                { t: "text", v: "Snyk dependency scan" },
+                { t: "badge", v: "missing", cls: "off" },
+              ],
+              [
+                { t: "mono", v: "FOSSA_API_KEY" },
+                { t: "text", v: "License compliance" },
+                { t: "badge", v: "missing", cls: "off" },
+              ],
+              [
+                { t: "mono", v: "SENTRY_AUTH_TOKEN / ORG / PROJECT" },
+                { t: "text", v: "Sentry releases and sourcemaps" },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "EXPO_TOKEN" },
+                { t: "text", v: "EAS builds" },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "MAESTRO_API_KEY" },
+                { t: "text", v: "Maestro Cloud mobile E2E" },
+                { t: "badge", v: "set", cls: "on" },
+              ],
+              [
+                { t: "mono", v: "MAESTRO_SECRET_ENV" },
+                {
+                  t: "text",
+                  v: "Native Maestro e2e — newline-separated KEY=VALUE secrets forwarded to flows (test-account passwords)",
+                },
+                { t: "badge", v: "missing", cls: "off" },
+              ],
+            ],
           },
         ],
       };
 
       /* ---------------------------------- Plugins ---------------------------------- */
+      /* Catalog copy only — enablement comes from the enabled-plugins probe.
+         Demo toggles are never rendered as a fallback. */
       DATA.sections.plugins = {
         title: "Plugins & MCP",
         desc: "Lisa’s own plugin set (base + one per detected stack), curated third-party plugins, and the MCP servers each one carries. Non-Claude agents receive generated equivalents of everything here.",
         src: ".claude/settings.json enabledPlugins · plugins/src/",
         blocks: [
           {
-            type: "table",
-            card: "Lisa plugins",
-            cols: ["Plugin", "Bundles", "Enabled"],
-            rows: [
-              [
-                { t: "mono", v: "lisa@lisa" },
-                {
-                  t: "text",
-                  v: "Base governance: ~145 skills, 26 agents, 12 hooks, /lisa:* commands, rules, Sentry MCP",
-                },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "lisa-typescript@lisa" },
-                {
-                  t: "text",
-                  v: "format-on-edit, lint-on-edit, ast-grep-on-edit, suppress-directive blocking",
-                },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "lisa-expo@lisa" },
-                {
-                  t: "text",
-                  v: "~40 skills (EAS, expo-router, gluestack), ops-specialist agent, Expo MCP",
-                },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "lisa-nestjs@lisa" },
-                {
-                  t: "text",
-                  v: "GraphQL/TypeORM skills, migration-edit blocking",
-                },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "lisa-phaser@lisa" },
-                { t: "text", v: "8 skills, 20 game-dev agents, Phaser rules" },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "lisa-rails@lisa" },
-                {
-                  t: "text",
-                  v: "20 skills, rubocop-on-edit, Rails conventions",
-                },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "lisa-harper-fabric@lisa" },
-                { t: "text", v: "12 skills, generated-artifact protection" },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "lisa-wiki@lisa" },
-                {
-                  t: "text",
-                  v: "In-repo LLM wiki: 22 skills, ingestion connectors (default-on for phaser only)",
-                },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "lisa-openclaw@lisa" },
-                {
-                  t: "text",
-                  v: "Telegram/Slack routing via OpenClaw (opt-in)",
-                },
-                { t: "toggle", v: false },
-              ],
-            ],
-          },
-          {
-            type: "table",
-            card: "Curated third-party plugins",
-            note: "Flip an entry to enable or disable; Lisa never touches third-party keys on re-apply",
-            cols: ["Plugin", "Purpose", "Enabled"],
-            rows: [
-              [
-                { t: "mono", v: "code-review@claude-plugins-official" },
-                { t: "text", v: "Pre-ship diff defect hunt" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "code-simplifier@claude-plugins-official" },
-                { t: "text", v: "Behavior-preserving cleanup" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "coderabbit@claude-plugins-official" },
-                { t: "text", v: "AI PR review (also a required check)" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "sentry@claude-plugins-official" },
-                { t: "text", v: "Issue debugging, Seer, instrumentation" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "safety-net@cc-marketplace" },
-                { t: "text", v: "Guardrail rulebooks" },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "typescript-lsp@claude-plugins-official" },
-                { t: "text", v: "TypeScript language server" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "playwright@claude-plugins-official" },
-                { t: "text", v: "Browser automation MCP" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "posthog@claude-plugins-official" },
-                { t: "text", v: "Product analytics" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "impeccable@impeccable" },
-                { t: "text", v: "UI design polish" },
-                { t: "toggle", v: true },
-              ],
-              [
-                { t: "mono", v: "skill-creator@claude-plugins-official" },
-                { t: "text", v: "Author and optimize skills" },
-                { t: "toggle", v: false },
-              ],
-              [
-                { t: "mono", v: "ruby-lsp@claude-plugins-official" },
-                { t: "text", v: "Ruby language server (rails stacks)" },
-                { t: "toggle", v: false },
-              ],
-            ],
+            type: "plugins-live",
+            lisaCatalog: {
+              "lisa@lisa":
+                "Base governance: ~145 skills, 26 agents, 12 hooks, /lisa:* commands, rules, Sentry MCP",
+              "lisa-typescript@lisa":
+                "format-on-edit, lint-on-edit, ast-grep-on-edit, suppress-directive blocking",
+              "lisa-expo@lisa":
+                "~40 skills (EAS, expo-router, gluestack), ops-specialist agent, Expo MCP",
+              "lisa-nestjs@lisa":
+                "GraphQL/TypeORM skills, migration-edit blocking",
+              "lisa-phaser@lisa": "8 skills, 20 game-dev agents, Phaser rules",
+              "lisa-rails@lisa":
+                "20 skills, rubocop-on-edit, Rails conventions",
+              "lisa-harper-fabric@lisa":
+                "12 skills, generated-artifact protection",
+              "lisa-wiki@lisa":
+                "In-repo LLM wiki: 22 skills, ingestion connectors (default-on for phaser only)",
+              "lisa-openclaw@lisa":
+                "Telegram/Slack routing via OpenClaw (opt-in)",
+              "lisa-cdk@lisa": "AWS CDK plugin",
+            },
+            thirdPartyCatalog: {
+              "code-review@claude-plugins-official":
+                "Pre-ship diff defect hunt",
+              "code-simplifier@claude-plugins-official":
+                "Behavior-preserving cleanup",
+              "coderabbit@claude-plugins-official":
+                "AI PR review (also a required check)",
+              "sentry@claude-plugins-official":
+                "Issue debugging, Seer, instrumentation",
+              "safety-net@cc-marketplace": "Guardrail rulebooks",
+              "typescript-lsp@claude-plugins-official":
+                "TypeScript language server",
+              "playwright@claude-plugins-official": "Browser automation MCP",
+              "posthog@claude-plugins-official": "Product analytics",
+              "impeccable@impeccable": "UI design polish",
+              "skill-creator@claude-plugins-official":
+                "Author and optimize skills",
+              "ruby-lsp@claude-plugins-official":
+                "Ruby language server (rails stacks)",
+              "atlassian@claude-plugins-official": "Jira / Confluence access",
+              "hookify@claude-plugins-official": "Custom hook authoring",
+            },
           },
           {
             type: "table",
             card: "MCP servers",
-            cols: ["Server", "Transport", "Enablement", "Enabled"],
+            note: "Catalog of MCP servers commonly carried by plugins — enablement follows the hosting plugin (read-only in this phase).",
+            cols: ["Server", "Transport", "Enablement"],
             rows: [
               [
                 { t: "mono", v: "sentry" },
                 { t: "mono", v: "http" },
                 { t: "text", v: "always-on via base plugin" },
-                { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "expo" },
                 { t: "mono", v: "http" },
                 { t: "text", v: "on when the expo stack is detected" },
-                { t: "toggle", v: true },
               ],
               [
                 { t: "mono", v: "linear-server" },
                 { t: "mono", v: "http" },
                 { t: "text", v: "project-level .mcp.json" },
-                { t: "toggle", v: false },
               ],
               [
                 { t: "mono", v: "phaser-editor" },
                 { t: "mono", v: "stdio" },
                 { t: "text", v: "shipped disabled (disabledMcpjsonServers)" },
-                { t: "toggle", v: false },
               ],
             ],
           },
@@ -5092,6 +5266,14 @@
       const $savebar = document.getElementById("savebar");
       const $toast = document.getElementById("toast");
       const dirty = new Set();
+
+      /* Live enabled-plugins state, hydrated from GET /api/status. Starts as
+         "loading" so the Plugins section never presents demo toggles as truth. */
+      let pluginsLive = {
+        status: "loading",
+        settingsPresent: false,
+        plugins: [],
+      };
 
       function el(tag, cls, html) {
         const node = document.createElement(tag);
@@ -5624,6 +5806,131 @@
         return card;
       }
 
+      function pluginDescription(id, probeDescription, catalog) {
+        if (Object.hasOwn(catalog, id) && typeof catalog[id] === "string") {
+          return catalog[id];
+        }
+        return typeof probeDescription === "string" ? probeDescription : "";
+      }
+
+      function pluginTableRows(entries, catalog) {
+        return entries.map(plugin => {
+          const enabled = plugin.status === "enabled";
+          return [
+            { t: "mono", v: plugin.id },
+            {
+              t: "text",
+              v: pluginDescription(plugin.id, plugin.description, catalog),
+            },
+            {
+              t: "badge",
+              v: enabled ? "enabled" : "available, not enabled",
+              cls: enabled ? "on" : "plugin-status-badge available",
+            },
+          ];
+        });
+      }
+
+      function renderPluginsInto(wrap, block) {
+        wrap.innerHTML = "";
+        const state = pluginsLive;
+        if (state.status === "loading") {
+          wrap.appendChild(
+            el("div", "plugins-state loading", "Loading plugin enablement…")
+          );
+          return;
+        }
+        if (state.status === "unknown") {
+          const box = el("div", "plugins-state unknown");
+          box.appendChild(el("b", "", "Plugin enablement unavailable"));
+          box.appendChild(
+            el(
+              "span",
+              "status-why",
+              esc((state.reason || "unknown") + ": " + (state.message || ""))
+            )
+          );
+          wrap.appendChild(box);
+          return;
+        }
+        if (!state.settingsPresent) {
+          wrap.appendChild(
+            el(
+              "div",
+              "plugins-state empty",
+              "No .claude/settings.json in this project — plugin enablement is not configured."
+            )
+          );
+          return;
+        }
+        const plugins = Array.isArray(state.plugins) ? state.plugins : [];
+        const lisaCatalog =
+          block.lisaCatalog && typeof block.lisaCatalog === "object"
+            ? block.lisaCatalog
+            : {};
+        const thirdPartyCatalog =
+          block.thirdPartyCatalog && typeof block.thirdPartyCatalog === "object"
+            ? block.thirdPartyCatalog
+            : {};
+        const lisa = [];
+        const thirdParty = [];
+        plugins.forEach(plugin => {
+          if (!plugin || typeof plugin !== "object") return;
+          const id = plugin.id;
+          if (typeof id !== "string" || id.trim().length === 0) return;
+          if (id.endsWith("@lisa") || Object.hasOwn(lisaCatalog, id)) {
+            lisa.push(plugin);
+          } else {
+            thirdParty.push(plugin);
+          }
+        });
+        if (lisa.length === 0 && thirdParty.length === 0) {
+          wrap.appendChild(
+            el(
+              "div",
+              "plugins-state empty",
+              "No plugins enabled or available in the marketplace catalog."
+            )
+          );
+          return;
+        }
+        if (lisa.length > 0) {
+          wrap.appendChild(
+            buildTable({
+              type: "table",
+              card: "Lisa plugins",
+              cols: ["Plugin", "Bundles", "Status"],
+              rows: pluginTableRows(lisa, lisaCatalog),
+            })
+          );
+        }
+        if (thirdParty.length > 0) {
+          wrap.appendChild(
+            buildTable({
+              type: "table",
+              card: "Third-party plugins",
+              note: "Read-only: enablement comes from .claude/settings.json enabledPlugins",
+              cols: ["Plugin", "Purpose", "Status"],
+              rows: pluginTableRows(thirdParty, thirdPartyCatalog),
+            })
+          );
+        }
+      }
+
+      function buildPluginsLive(block) {
+        const wrap = el("div", "plugins-live-block");
+        renderPluginsInto(wrap, block);
+        return wrap;
+      }
+
+      function refreshPlugins() {
+        const block = DATA.sections.plugins.blocks.find(
+          b => b.type === "plugins-live"
+        );
+        const wrap = document.querySelector(".plugins-live-block");
+        if (block && wrap) renderPluginsInto(wrap, block);
+      }
+
       function buildBlock(block) {
         if (block.type === "tiles") return buildTiles(block);
         if (block.type === "flow") return buildFlow(block);
@@ -5633,6 +5940,7 @@
         if (block.type === "table") return buildTable(block);
         if (block.type === "tabs") return buildTabs(block);
         if (block.type === "checklist") return buildChecklist(block);
+        if (block.type === "plugins-live") return buildPluginsLive(block);
         return buildCard(block);
       }
 
@@ -5916,6 +6224,101 @@
           }
           list.appendChild(item);
         });
+      }
+      /**
+       * Map the enabled-plugins probe into pluginsLive. A missing probe or an
+       * unusable value becomes an explicit unknown state — never demo toggles.
+       * @param probes - Live-status probe map from /api/status
+       */
+      function applyEnabledPlugins(probes) {
+        const raw =
+          probes && Object.hasOwn(probes, "enabled-plugins")
+            ? probes["enabled-plugins"]
+            : undefined;
+        if (raw === undefined) {
+          pluginsLive = {
+            status: "unknown",
+            settingsPresent: false,
+            plugins: [],
+            reason: "missing-probe",
+            message: "The enabled-plugins probe was not reported",
+          };
+          refreshPlugins();
+          return;
+        }
+        const result = normalizeLiveStatusResult(raw);
+        if (
+          result.state === "value" &&
+          result.value &&
+          typeof result.value === "object"
+        ) {
+          const settingsPresent = result.value.settingsPresent === true;
+          const plugins = result.value.plugins;
+          if (!Array.isArray(plugins)) {
+            pluginsLive = {
+              status: "unknown",
+              settingsPresent: false,
+              plugins: [],
+              reason: "invalid-value",
+              message: "enabled-plugins did not return a plugins array",
+            };
+          } else {
+            const rows = [];
+            let invalid = false;
+            for (const entry of plugins) {
+              if (
+                !entry ||
+                typeof entry !== "object" ||
+                typeof entry.id !== "string" ||
+                entry.id.trim().length === 0 ||
+                (entry.status !== "enabled" && entry.status !== "available")
+              ) {
+                invalid = true;
+                break;
+              }
+              rows.push({
+                id: entry.id,
+                status: entry.status,
+                description:
+                  typeof entry.description === "string"
+                    ? entry.description
+                    : "",
+              });
+            }
+            if (invalid) {
+              pluginsLive = {
+                status: "unknown",
+                settingsPresent: false,
+                plugins: [],
+                reason: "invalid-value",
+                message: "enabled-plugins returned an unusable plugin row",
+              };
+            } else {
+              pluginsLive = {
+                status: "value",
+                settingsPresent,
+                plugins: rows,
+              };
+            }
+          }
+        } else if (result.state === "not-applicable") {
+          pluginsLive = {
+            status: "unknown",
+            settingsPresent: false,
+            plugins: [],
+            reason: "not-applicable",
+            message: "enabled-plugins reported not applicable",
+          };
+        } else {
+          pluginsLive = {
+            status: "unknown",
+            settingsPresent: false,
+            plugins: [],
+            reason: result.reason || "unknown",
+            message: result.message || "Plugin enablement unavailable",
+          };
+        }
+        refreshPlugins();
       }
       /**
        * Paint `#healthChip` from the lisa-version probe.
@@ -6213,6 +6616,11 @@
        * Never leaves demo hold/no-hold claims in place.
        * @param probes - Live-status probe map from /api/status
        */
+      /**
+       * Replace the Deploy pipeline stages table from the live probe.
+       * Never leaves demo hold/no-hold claims in place.
+       * @param probes - Live-status probe map from /api/status
+       */
       function applyDeployPipelineStages(probes) {
         const section = DATA.sections.deploy;
         if (!section || !Array.isArray(section.blocks)) return;
@@ -6313,6 +6721,7 @@
           const snapshot = await response.json();
           const probes = liveStatusProbeMap(snapshot);
           renderLiveStatuses(probes);
+          applyEnabledPlugins(probes);
           // Quality jobs re-renders the page; paint the version chip after.
           applyCiQualityJobs(probes);
           applyLisaVersion(probes);
@@ -6335,6 +6744,7 @@
             message,
           };
           renderLiveStatuses({ transport: unavailable });
+          applyEnabledPlugins({ "enabled-plugins": unavailable });
           applyCiQualityJobs({ "ci-quality-jobs": unavailable });
           applyLisaVersion({ "lisa-version": unavailable });
           applyGithubRepoPanel(unavailable);
