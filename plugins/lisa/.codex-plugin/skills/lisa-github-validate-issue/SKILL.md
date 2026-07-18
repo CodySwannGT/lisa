@@ -366,13 +366,23 @@ reach every external surface the work requires. Enumerate the surfaces this issu
   alarms", "pull the copy from the Google Doc", "check the Sentry issues"),
 - tooling the work plainly implies (a deploy target, a database, a third-party API).
 
-For each surface, prove **read** access from the current runtime with the cheapest read-only probe
-through the sanctioned access layer: the matching MCP tool or `lisa-*-access` skill, CLI auth
-(`aws sts get-caller-identity`, `gh auth status`, vendor equivalents), or an authenticated fetch of
-the linked artifact. Attempt to resolve a gap before failing — an alternate substrate, a configured
-access layer, a keychain credential — mirroring the intake agent's discover-first duty.
+For each surface, prove **read** access from the current runtime with a target-resource-specific,
+read-only probe through its sanctioned access layer: the matching MCP tool or `lisa-*-access` skill,
+or an authenticated fetch using environment-injected authentication. Identity-only commands such as
+`aws sts get-caller-identity`, `gh auth status`, and vendor equivalents are preflight checks only;
+they never satisfy F5 by themselves. A successful probe for one surface does not cover another:
+reading the named GitHub repository, CloudWatch log group, Sentry project, or linked document must
+each succeed separately when that surface is required.
 
-- `PASS` — every required surface is provably readable.
+Attempt to resolve a gap before failing, but only through another configured brokered access layer
+or environment-injected authentication. A sanctioned broker may use its own credential store
+internally; the validator must never autonomously inspect, read, copy, print, or export raw
+credentials, keychains, credential files, or token stores, and must never invoke low-level secret
+tools to recover them. This preserves the intake agent's discover-first duty without exposing
+credential material.
+
+- `PASS` — every required surface has its own successful target-resource read probe or authenticated
+  fetch through the sanctioned access layer.
 - `N/A` — the issue needs nothing beyond the repository and the tracker itself.
 - `FAIL` — a required surface is unreachable after the resolution attempt. Name the exact surface
   and what was probed. Intake callers must route this to `blocked` + human escalation with the
