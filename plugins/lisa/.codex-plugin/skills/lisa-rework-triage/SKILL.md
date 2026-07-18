@@ -36,8 +36,11 @@ first-attempt work.
 2. **Merged linked PR + build-ready again.** The bundle shows at least one linked PR that is
    `MERGED`, while the ticket currently carries the build-ready role. First-attempt tickets
    never have merged PRs.
-3. **Prior lifecycle claim marker.** The comments contain a prior `[claude-build-intake]`
-   claim or `[lisa-*]` evidence comment from an earlier cycle.
+3. **Prior lifecycle claim marker.** The comments contain a prior implementation-cycle
+   marker for THIS ticket: a `[claude-build-intake]` claim comment, or a build-evidence
+   comment posted by `lisa-tracker-evidence` (`[lisa-evidence]` / the vendor evidence
+   header). Only markers proving a prior *implementation* attempt qualify —
+   `[lisa-rework-triage]` comments and other unrelated `[lisa-*]` annotations never do.
 4. **Explicit rework marker.** A `rework`, `qa-fail`, or `regression` label applied by QA or
    the verify lifecycle.
 
@@ -69,15 +72,18 @@ operation: comment`, `gh issue comment`, or the Linear comment mutation):
 
 ```text
 [lisa-rework-triage] Rework detected (signal: <signal>)
+Fingerprint: <ticket-key>|<last merged PR number, or none>|<primary cause>
 Primary cause: <cause>
 Secondary cause: <cause or none>
 Evidence: <2-4 lines citing the specific PRD text / AC / comment / PR review / environment fact>
 Hardening action: <what Phase 4 filed, with link — or "none required (implementation-defect)">
 ```
 
-**Idempotency:** the fingerprint is `<ticket-key> + <last merged PR number> + <primary cause>`.
-Before posting, scan existing comments for a `[lisa-rework-triage]` block with the same
-fingerprint — if present, skip posting and report `already-triaged`. One triage per bounce,
+**Idempotency:** the fingerprint is the literal `Fingerprint:` line —
+`<ticket-key>|<last merged PR number>|<primary cause>`, with `none` as the PR component
+when detection fired on a claim marker or label and no merged PR exists. Before posting,
+scan existing comments for a `[lisa-rework-triage]` block whose `Fingerprint:` line
+matches — if present, skip posting and report `already-triaged`. One triage per bounce,
 never one per cycle re-entry.
 
 ## Phase 4 — Route the cause to its hardening destination
@@ -94,6 +100,13 @@ Lisa work item.
 | `environment-data` | Project tracker | Create an environment-hardening ticket via `lisa-tracker-write` citing the drift/fixture/shared-state evidence. Link `relates to` the rework ticket. |
 | `prd-defect` | Source PRD | Comment on the PRD (via the `lisa-prd-backlink` lineage) quoting the defective requirement and the QA failure; flag for product review. Do NOT silently edit the PRD — spec changes are a human gate. |
 | `implementation-defect` (no secondary) | None | Normal fix path; the classification comment is the record. Pass the pattern to the `learner` phase — repeated implementation defects of the same shape escalate to `verification-gap`. |
+
+**Secondary causes route too.** A recorded secondary cause triggers its own row's
+destination in addition to the primary's: `implementation-defect` with a
+`verification-gap` secondary files the upstream Lisa issue per the `verification-gap`
+row — the code being wrong does not excuse the verification lifecycle for passing it.
+Deduplicate against the primary's filing (one upstream issue per failure class, not one
+per cause slot).
 | `UNCLASSIFIED` | Surface to human | Include in the triage comment and the caller's summary; a human decides. Never guess a cause to avoid this outcome. |
 
 ### Filing upstream
