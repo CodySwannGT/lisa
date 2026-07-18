@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.229.0](https://github.com/CodySwannGT/lisa/compare/v2.228.0...v2.229.0) (2026-07-18)
+
+
+### Features
+
+* **ui:** add live status probe contract ([dcb3ee8](https://github.com/CodySwannGT/lisa/commit/dcb3ee84fa81520ac9023d290e04d0ab3b698840))
+
+
+### Bug Fixes
+
+* **ui:** address live status review findings ([59e8b07](https://github.com/CodySwannGT/lisa/commit/59e8b076ee9ffcd5f9df2c50b335774e3338868a))
+* **ui:** harden live status edge cases ([17addca](https://github.com/CodySwannGT/lisa/commit/17addcab40889221d71e6579b31a0a6cc837ef1b))
+
+
+### Documentation
+
+* **plan:** reconcile live browser verification ([c222588](https://github.com/CodySwannGT/lisa/commit/c222588fb941bf26aeaa2fd0f9f0816ac973d11e))
+
 ## [2.228.0](https://github.com/CodySwannGT/lisa/compare/v2.227.0...v2.228.0) (2026-07-18)
 
 
