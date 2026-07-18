@@ -6,7 +6,10 @@ allowed-tools: ["Skill", "Bash", "mcp__claude_ai_Notion__notion-fetch", "mcp__cl
 
 # Intake: $ARGUMENTS
 
-Run one intake cycle against the queue identified by `$ARGUMENTS`. Scans for `Status = Ready`, claims the first eligible item, dispatches it to the appropriate single-item lifecycle skill, then exits. Remaining Ready items are left for later scheduler invocations.
+Run one intake cycle against the queue identified by `$ARGUMENTS`, or by merged GitHub config when
+the repo argument is omitted and a GitHub source/tracker default is resolvable. Scan for
+`Status = Ready`, claim the first eligible item, dispatch it to the appropriate single-item
+lifecycle skill, then exit. Remaining Ready items are left for later scheduler invocations.
 
 For build-queue runs, Intake also accepts an optional `assignee=<vendor-user-id-or-login>` filter.
 Resolution order is:
@@ -22,7 +25,9 @@ as part of this filter.
 
 ## Confirmation policy
 
-Do NOT ask the caller whether to proceed. Once invoked with a queue, run the cycle to completion. The caller (a human at the CLI or a scheduled cron) has already authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
+Do NOT ask the caller whether to proceed. Once invoked, resolve the explicit or config-backed queue
+and run the cycle to completion. The caller (a human at the CLI or a scheduled cron) has already
+authorized the run by invoking the skill; re-prompting defeats the purpose of a background batch.
 
 Specifically forbidden:
 
@@ -33,7 +38,8 @@ Specifically forbidden:
 
 The only legitimate reasons to stop early:
 
-- Missing required input (no queue argument, missing project configuration). Surface the missing value and exit.
+- Missing required input (no queue argument **and** no resolvable GitHub default, or missing project
+  configuration). Surface the missing value and exit.
 - The queue itself is misconfigured (Status property missing expected values, JIRA workflow can't reach required transitions). Surface and exit.
 - Empty `Ready` set. Exit cleanly with the idle-case message.
 
@@ -70,7 +76,7 @@ Detect the queue type from `$ARGUMENTS` and route:
 | A full JQL filter (e.g. `project = SE AND component = "frontend"`) | Work queue (JIRA, narrowed) | Invoke `lisa-jira-build-intake` with the JQL |
 | A GitHub **repository** URL or `org/repo` token (e.g. `https://github.com/acme/product-prds` or `acme/product-prds`) when used for **PRDs** | PRD queue (GitHub) | Invoke `lisa-github-prd-intake` (which queries `gh issue list --label prd-ready`, claims the first eligible PRD by relabeling to `prd-in-review`, runs the dry-run validate → branch → write pipeline, then exits). PRD discovery is independent of the destination tracker — the resulting tickets land wherever `.lisa.config.json` `tracker` says. |
 | A GitHub **repository** URL or `org/repo` token when `tracker = github` is configured (build-queue mode) | Work queue (GitHub) | Invoke `lisa-tracker-build-intake` which dispatches to `lisa-github-build-intake` (which queries `gh issue list --label status:ready`, optionally narrows by the resolved assignee filter, claims the first eligible issue via `status:in-progress`, runs `lisa-implement`, relabels to `status:on-dev` on success, then exits). |
-| The literal token `github` | Defaults to `.lisa.config.json` `github.org` / `github.repo`. Routes by **the `intake_mode` flag** in `$ARGUMENTS` (`prd` or `build`); if the flag is absent, prefer the PRD queue when both label namespaces are present, otherwise pick whichever exists. | Invoke the matching skill (`lisa-github-prd-intake` or `lisa-tracker-build-intake`). |
+| The literal token `github` or omitted GitHub repo when merged config resolves a GitHub source/tracker and identity | Routes by **the `intake_mode` flag** in `$ARGUMENTS` (`prd` or `build`). Build mode defaults to merged `github.queueRepo`, then identity `github.org/github.repo`; PRD mode keeps its existing identity source. If the flag is absent, prefer the PRD queue when both label namespaces are present, otherwise pick whichever exists. | Invoke the matching skill (`lisa-github-prd-intake` or `lisa-tracker-build-intake`). |
 
 Disambiguation rules:
 
@@ -80,7 +86,13 @@ Disambiguation rules:
 - A `linear.app` URL → Linear queue. If the path is `/<workspace>` only or `/<workspace>/team/<KEY>/...`, route here. If the path includes `/project/<slug>-<id>` it's a single-PRD URL — direct the caller to `lisa-plan` instead, this skill is batch-only.
 - The literal token `linear` (case-insensitive) → Linear queue, default workspace from `linear.workspace` in `.lisa.config.json`.
 - A `github.com` URL or an `<org>/<repo>` token → GitHub queue. The PRD-vs-build dispatch is determined by which label namespace the repo currently uses: PRD-side (`prd-ready`) → `lisa-github-prd-intake`; build-side (`status:ready` and `tracker = github` in `.lisa.config.json`) → `lisa-tracker-build-intake`. If both namespaces are present, prefer the PRD queue unless `$ARGUMENTS` includes `intake_mode=build`. If the URL points at a single issue (`https://github.com/<org>/<repo>/issues/<n>`), this skill is batch-only — direct the caller to `lisa-plan` (for a single PRD issue) or `lisa-implement` (for a single build issue).
-- The literal token `github` (case-insensitive) → GitHub queue, default repo from `.lisa.config.json` `github.org` / `github.repo`.
+- A GitHub URL or `owner/repo` token is an explicit queue and always wins. The literal token
+  `github` (case-insensitive), or an omitted repo when merged config resolves a GitHub source/tracker
+  and identity, resolves local then global `github.queueRepo`, then identity
+  `github.org/github.repo` **for build dispatch**. Normalize a short queueRepo to `github.org`. PRD
+  dispatch remains on the configured GitHub PRD source. Without an explicit queue or resolvable
+  GitHub default, stop with the missing-input error. Do not use the build queue repo as current-repo
+  identity for `repo:<name>` scoping.
 - A bare alphanumeric token that matches the JIRA project key regex (uppercase letters / digits / hyphen, ≤10 chars — typically the value of `jira.project` in `.lisa.config.json`) is treated as a JIRA project key by default. A token that does not match the regex is treated as a Confluence space key. If it does not resolve as a Confluence space key either, attempt to resolve as a Linear team key via `lisa-linear-access operation: list-teams({query})` before giving up. The only time to stop and ask is when the token resolves to more than one of {JIRA project, Confluence space, Linear team, GitHub `org/repo`} simultaneously — in that overlap the user must disambiguate which queue to scan.
 - An `<org>/<repo>` token (slash-separated, both halves are GitHub-name-shaped) → GitHub queue.
 - A string starting with `project = ` or containing JQL operators (`AND`, `OR`, `=`, `!=`, `~`, etc.) → JQL filter.

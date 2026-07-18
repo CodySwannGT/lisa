@@ -149,6 +149,20 @@ Do not invent types inline; if none fits, propose extending this table. The lega
 
 The manifest is the single source of truth for "what evidence is required": authored once in the Validation Journey, enforced at write time, replayed during `tracker-journey` (which captures each artifact **in its declared type**), and checked again before the ticket closes. There is no second list to keep in sync.
 
+### Cross-work-item evidence references are non-claiming
+
+When prose needs to point at evidence declared by another work item, use the dedicated reference form:
+
+```text
+[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]
+```
+
+For example, `[EVIDENCE-REF: CodySwannGT/lisa#1548 | test-run-log: plugin-parity]` or `[EVIDENCE-REF: ENG-123 | screenshot: empty-state]`. The work-item reference must be a native, unambiguous tracker reference; the artifact type and name use the same taxonomy and kebab-case grammar as a manifest marker.
+
+For compatibility with Lisa 2.223.0, validators and consumers also accept the legacy form `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` as a non-claiming pointer. Parse that legacy payload from the right: the final two colon-delimited fields are the fixed artifact type and kebab-case name, and everything before them is the non-empty tracker reference (which may itself contain `:` as part of a URL). Writers must never emit the legacy form; normalize it to the pipe form whenever editing the journey.
+
+`EVIDENCE-REF` is a pointer only. It never adds an artifact to the current work item's manifest, never satisfies S14, never participates in marker-name uniqueness or duplicate checks, and is never captured or checked by journey, evidence-posting, or completion flows. Only the exact claiming prefix `[EVIDENCE: ...]` declares an obligation on the current work item (with the legacy `[SCREENSHOT: name]` form still treated as a local screenshot obligation). A runtime-changing leaf whose journey contains references but no local claiming marker still fails S14. Writers must use `EVIDENCE-REF` rather than quoting a sibling's `[EVIDENCE: ...]` marker, because quoted or code-formatted claiming markers still belong to the current work item.
+
 ---
 
 ## Local vs Remote Verification

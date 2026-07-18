@@ -104,7 +104,9 @@ list multiple repos.]
 
 h2. Validation Journey
 [Delegate to /jira-add-journey if the ticket changes runtime behavior.
- Skip only for doc-only, config-only, or type-only tickets.]
+ Skip only for doc-only, config-only, or type-only tickets. Cross-work-item
+ evidence pointers use `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`;
+ they never replace this ticket's local S14 marker.]
 ```
 
 Rules:

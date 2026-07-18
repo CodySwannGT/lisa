@@ -14,7 +14,10 @@ import {
 } from "../../../plugins/src/base/scripts/automation-status-expected-fleet.mjs";
 
 const GITHUB_TRACKER = "github";
+const INTAKE_PRD_COMMAND = "/lisa:intake CodySwannGT/lisa intake_mode=prd";
+const INTAKE_PRD_ID = "intake-prd";
 const INTAKE_REPAIR_ID = "intake-repair";
+const INTAKE_TICKETS_ID = "intake-tickets";
 
 describe("automation-status expected fleet (#799)", () => {
   it("resolves the self-host GitHub Lisa fleet and flags unsupported exploratory-bugs", () => {
@@ -37,17 +40,18 @@ describe("automation-status expected fleet (#799)", () => {
         automationId: "lisa-auto-codyswanngt-lisa-intake-repair",
         expectedCadence: "every 60 minutes",
         expectedRRule: "FREQ=HOURLY;INTERVAL=1",
-        expectedCommand: "/lisa:repair-intake github intake_mode=both",
+        expectedCommand:
+          "/lisa:repair-intake CodySwannGT/lisa intake_mode=both build_queue=CodySwannGT/lisa",
       }),
       expect.objectContaining({
-        id: "intake-prd",
-        expectedCommand: "/lisa:intake github intake_mode=prd",
+        id: INTAKE_PRD_ID,
+        expectedCommand: INTAKE_PRD_COMMAND,
       }),
       expect.objectContaining({
-        id: "intake-tickets",
+        id: INTAKE_TICKETS_ID,
         expectedCadence: "every 10 minutes",
         expectedRRule: "FREQ=MINUTELY;INTERVAL=10",
-        expectedCommand: "/lisa:intake github intake_mode=build",
+        expectedCommand: "/lisa:intake CodySwannGT/lisa intake_mode=build",
       }),
       expect.objectContaining({
         id: "exploratory-prds",
@@ -62,6 +66,92 @@ describe("automation-status expected fleet (#799)", () => {
           "This repository does not ship an exploratory-qa command surface.",
       }),
     ]);
+  });
+
+  it("bakes the umbrella build queue without redirecting PRD intake or identity naming", () => {
+    const fleet = resolveExpectedAutomationFleet({
+      config: {
+        tracker: "github",
+        source: "github",
+        github: {
+          org: "Acme",
+          repo: "frontend",
+          queueRepo: "Program/backlog",
+        },
+      },
+    });
+
+    expect(fleet.project).toBe("acme-frontend");
+    expect(fleet.expected).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: INTAKE_PRD_ID,
+          expectedCommand: "/lisa:intake Acme/frontend intake_mode=prd",
+        }),
+        expect.objectContaining({
+          id: INTAKE_TICKETS_ID,
+          expectedCommand: "/lisa:intake Program/backlog intake_mode=build",
+        }),
+        expect.objectContaining({
+          id: INTAKE_REPAIR_ID,
+          expectedCommand:
+            "/lisa:repair-intake Acme/frontend intake_mode=both build_queue=Program/backlog",
+        }),
+      ])
+    );
+  });
+
+  it("bakes the identity build queue for mixed Notion and GitHub automation fleets", () => {
+    const fleet = resolveExpectedAutomationFleet({
+      config: {
+        tracker: "github",
+        source: "notion",
+        notion: { prdDatabaseId: "db-123" },
+        github: { org: "Acme", repo: "frontend" },
+      },
+    });
+
+    expect(fleet.expected).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: INTAKE_TICKETS_ID,
+          expectedCommand: "/lisa:intake Acme/frontend intake_mode=build",
+        }),
+        expect.objectContaining({
+          id: INTAKE_REPAIR_ID,
+          expectedCommand:
+            "/lisa:repair-intake Acme/frontend intake_mode=build",
+        }),
+      ])
+    );
+  });
+
+  it("does not apply the build-only queueRepo to a GitHub PRD source with a JIRA tracker", () => {
+    const fleet = resolveExpectedAutomationFleet({
+      config: {
+        tracker: "jira",
+        source: "github",
+        jira: { project: "ENG" },
+        github: {
+          org: "Acme",
+          repo: "product",
+          queueRepo: "not/a/valid/build/repo",
+        },
+      },
+    });
+
+    expect(fleet.expected).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: INTAKE_PRD_ID,
+          expectedCommand: "/lisa:intake Acme/product intake_mode=prd",
+        }),
+        expect.objectContaining({
+          id: INTAKE_TICKETS_ID,
+          expectedCommand: "/lisa:intake ENG",
+        }),
+      ])
+    );
   });
 
   it("emits the stack-specific exploratory command and auto-start flags when supported", () => {
@@ -128,7 +218,8 @@ describe("automation-status expected fleet (#799)", () => {
     expect(fleet.expected).toContainEqual(
       expect.objectContaining({
         id: INTAKE_REPAIR_ID,
-        expectedCommand: "/lisa:repair-intake github intake_mode=build",
+        expectedCommand:
+          "/lisa:repair-intake CodySwannGT/lisa intake_mode=build",
       })
     );
   });

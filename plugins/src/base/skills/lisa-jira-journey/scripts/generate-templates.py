@@ -21,6 +21,12 @@ import sys
 from pathlib import Path
 
 
+# Strip local capture claims from rendered step prose. EVIDENCE-REF is a
+# cross-work-item pointer, so it must remain visible in both JIRA and GitHub
+# evidence comments.
+LOCAL_EVIDENCE_PATTERN = re.compile(r'\s*\[(SCREENSHOT|EVIDENCE):\s*[^\]]+\]')
+
+
 def get_jira_server():
     """Read JIRA server URL from jira-cli config."""
     config_path = Path.home() / ".config" / ".jira" / ".config.yml"
@@ -115,7 +121,7 @@ def generate_jira_wiki(ticket_id, pr_number, branch, evidence_files, journey, gh
         lines.append("")
         for step in journey["steps"]:
             text = step["text"]
-            clean_text = re.sub(r'\s*\[(SCREENSHOT|EVIDENCE):\s*[^\]]+\]', '', text).strip()
+            clean_text = LOCAL_EVIDENCE_PATTERN.sub('', text).strip()
             lines.append(f"# {clean_text}")
         lines.append("")
 
@@ -175,7 +181,7 @@ def generate_github_md(ticket_id, pr_number, branch, evidence_files, journey, gh
         lines.append("")
         for step in journey["steps"]:
             text = step["text"]
-            clean_text = re.sub(r'\s*\[(SCREENSHOT|EVIDENCE):\s*[^\]]+\]', '', text).strip()
+            clean_text = LOCAL_EVIDENCE_PATTERN.sub('', text).strip()
             lines.append(f"{step['number']}. {clean_text}")
         lines.append("")
 

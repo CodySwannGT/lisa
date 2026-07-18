@@ -15,6 +15,11 @@ import path from "node:path";
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const sourceDir = path.join(repoRoot, "src", "opencode", "plugin-templates");
 const destDir = path.join(repoRoot, "dist", "opencode", "plugin-templates");
+const canonicalHookDir = path.join(repoRoot, "plugins", "src", "base", "hooks");
+const canonicalSupportFiles = [
+  "parity-safety-net.sh",
+  "parity-safety-net-heredoc.py",
+];
 
 fs.rmSync(destDir, { recursive: true, force: true });
 fs.mkdirSync(destDir, { recursive: true });
@@ -26,4 +31,11 @@ for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
   const sourcePath = path.join(sourceDir, entry.name);
   const destPath = path.join(destDir, entry.name);
   fs.copyFileSync(sourcePath, destPath);
+}
+
+for (const filename of canonicalSupportFiles) {
+  fs.copyFileSync(
+    path.join(canonicalHookDir, filename),
+    path.join(destDir, filename)
+  );
 }

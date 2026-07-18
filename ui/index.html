@@ -1458,7 +1458,7 @@
               },
               {
                 label: "Make the project agent-ready (brownfield)",
-                desc: "Builds the knowledge wiki from everything the agent can reach and writes wiki/gaps.md — the questions only a human can answer. Answer inline, re-run in a new session, repeat until zero gaps. Greenfield projects are ready by construction.",
+                desc: "Builds the knowledge wiki through read-only, redacted ingestion; records every source as complete, partial, or unavailable; and writes wiki/gaps.md. Answer inline, re-run in a new session, repeat until every source is complete and zero gaps remain. Greenfield projects are ready by construction.",
                 command: "/lisa:agent-ready",
                 done: false,
                 why: "wiki/gaps.md has 2 open gaps",
@@ -1707,7 +1707,7 @@
                 { t: "mono", v: "/lisa:agent-ready" },
                 {
                   t: "text",
-                  v: "Brownfield onboarding: builds the knowledge wiki from every reachable source and writes the human-answerable gaps file; absorbs answers on re-runs until zero gaps remain",
+                  v: "Brownfield onboarding: read-only, redacted ingest records complete/partial/unavailable coverage for every source and writes the human-answerable gaps file; re-runs converge only when every source is complete and zero gaps remain",
                 },
                 {
                   t: "text",

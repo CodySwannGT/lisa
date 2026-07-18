@@ -41,6 +41,7 @@ import type { ProjectType } from "../core/config.js";
 import { mirrorLisaRules } from "../core/lisa-rules-mirror.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 import { OPENCODE_SCHEMA_URL } from "./settings-installer.js";
+import { resolveSupportFile } from "./support-file-resolver.js";
 
 /** Subdirectory inside `.opencode/` where OpenCode discovers project plugins */
 export const OPENCODE_PLUGIN_SUBDIR = "plugin";
@@ -86,6 +87,11 @@ interface PluginCatalogEntry {
  */
 const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
   {
+    id: "parity-safety-net",
+    templateFilename: "lisa-parity-safety-net.ts",
+    forProjectTypes: ["*"],
+  },
+  {
     id: "session-bootstrap",
     templateFilename: "lisa-session-bootstrap.ts",
     forProjectTypes: ["*"],
@@ -116,6 +122,12 @@ const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
     forProjectTypes: ["rails"],
   },
 ];
+
+/** Canonical policy files used by universal OpenCode adapters. */
+const PLUGIN_SUPPORT_FILES = [
+  "parity-safety-net.sh",
+  "parity-safety-net-heredoc.py",
+] as const;
 
 /** Result of the OpenCode hooks install pass */
 export interface OpencodeHooksInstallResult {
@@ -172,12 +184,20 @@ export async function installHooks(
   await fse.ensureDir(pluginDir);
 
   const applicable = filterCatalogByTypes(detectedTypes);
-  const managedFiles = await Promise.all(
+  const managedPlugins = await Promise.all(
     applicable.map(async entry => {
       const source = resolveTemplate(entry.templateFilename);
       const dest = path.join(pluginDir, entry.templateFilename);
       await copyFile(source, dest);
       return path.join(OPENCODE_PLUGIN_SUBDIR, entry.templateFilename);
+    })
+  );
+  const managedSupportFiles = await Promise.all(
+    PLUGIN_SUPPORT_FILES.map(async filename => {
+      const source = resolveSupportFile(import.meta.url, filename);
+      const dest = path.join(pluginDir, filename);
+      await copyFile(source, dest);
+      return path.join(OPENCODE_PLUGIN_SUBDIR, filename);
     })
   );
 
@@ -191,7 +211,11 @@ export async function installHooks(
   );
 
   return {
-    managedFiles: Object.freeze([...managedFiles, ...ruleFiles]),
+    managedFiles: Object.freeze([
+      ...managedPlugins,
+      ...managedSupportFiles,
+      ...ruleFiles,
+    ]),
     pluginCount: applicable.length,
     configCreated,
     deleted,

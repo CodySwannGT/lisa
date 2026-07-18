@@ -253,6 +253,7 @@ Agents must follow this sequence unless explicitly instructed otherwise:
 4. **If verification blocked** (missing tools, services, etc.): Mark as blocked, not complete
 5. **Must not be dependent on CI/CD** if necessary, you may use local deploy methods found in the project manifest, but the verification methods must be listed in the pull request and therefore cannot be dependent on CI/CD completing
 6. **Evidence manifest satisfied (leaf work units)**: For a leaf work unit (Bug / Task / Sub-task / Improvement) whose ticket carries a Validation Journey, do not mark the ticket complete or transition it out of in-progress until every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared on the ticket has a corresponding captured, non-empty artifact **of the declared type** attached to the ticket (an image for `screenshot`, request + response for `http-transcript`, measured output for `perf-trace`, …). A missing, empty, or wrong-type artifact for any declared marker blocks completion exactly like a failed verification — fix and re-capture, or escalate; never close with an unsatisfied manifest. Epics / Stories / Spikes are exempt (coordination containers, not work units).
+   - Extract local obligations using the exact `[EVIDENCE:` prefix (plus legacy local `[SCREENSHOT:`). Both the canonical `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` and the Lisa 2.223.0 legacy alias `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` are non-claiming pointers to another work item: never capture either, match it to a local artifact, include it in duplicates, or count it toward S14. A reference-only runtime-changing leaf remains incomplete.
 7. **No artifact-only completion for required runtime verification**: If empirical verification is required and cannot run because credentials are missing, do not mark the item done on artifact-only evidence. Exhaust the credential lookup order first; if still blocked, post the blocker comment, move the item to the configured blocked state, and apply the configured `needs-human` / `human-review` label.
 
 ---
@@ -360,6 +361,7 @@ A task is done only when:
 - Proof artifacts are captured
 - Every passing empirical verification is codified as a regression test (or has an explicit, documented skip reason from the allowed set)
 - For a leaf work unit, every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared in its Validation Journey has a captured, non-empty artifact of the declared type attached to the ticket (the evidence manifest is fully satisfied)
+- Cross-work-item `EVIDENCE-REF` pointers were excluded from the local manifest and did not satisfy S14 or completion; a runtime-changing leaf has at least one local claiming marker
 - Spec conformance verdict is `CONFORMS` (not `PARTIAL`, not `DIVERGES`)
 - Verification level is declared
 - Risks and gaps are documented

@@ -67,6 +67,13 @@ and artifact refs. Callers do not get to omit the "unavailable" case; when trust
 missing they still pass an explicit entry with `source: unavailable` and nullable token/cost
 fields.
 
+When the runtime exposes only a trustworthy subtotal, callers MUST use `source: measured-subset`,
+write the subtotal to `measured_subset_tokens`, and leave `total_tokens: null`. Do not coerce a
+known subset into `total_tokens`; rollups use `total_tokens` only for complete totals. The
+`measured_subset_tokens` field is optional for backward compatibility with callers that construct
+ordinary observed, estimated, or unavailable entries; the shared serializer normalizes omission
+to `null`. A trustworthy whole-run cost remains valid independently of incomplete token telemetry.
+
 ## Return shape
 
 Return structured output so callers can persist or log what happened without reparsing prose:
@@ -164,6 +171,11 @@ failures into a generic "usage update failed."
   canonical `usage-accounting` rule.
 - Never append a second `## Lisa Usage` section or a second managed usage comment.
 - Never treat missing usage as zero. Callers must record explicit `source: unavailable` entries.
+- Never add a measured subset to complete token totals. A mixed complete-plus-measured-subset
+  direct or child scope has `null` token rollups, while trustworthy whole-run cost rolls up
+  independently.
+- Never discard the optional child-token incompleteness state parsed from an existing rollup when
+  `child_refs` were not refreshed. Preserve it through ordinary direct-entry rewrites.
 - Never skip rollup dedupe. Child totals are keyed by stable `entry_id`, not by child ref count.
 - Never silently drop to comments. Return `outcome: comment-fallback` so the caller can surface the
   writable surface that actually holds the ledger.
