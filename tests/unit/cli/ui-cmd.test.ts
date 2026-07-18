@@ -20,6 +20,8 @@ interface TestResources {
 
 const resources: TestResources = { dir: "", server: undefined };
 
+const GITHUB_AUTH_PROBE_ID = "github-auth";
+
 beforeEach(async () => {
   resources.dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-cmd-"));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -288,7 +290,7 @@ describe("runUi", () => {
     };
 
     expect(response.status).toBe(200);
-    expect(snapshot.probes).toHaveProperty("github-auth");
+    expect(snapshot.probes).toHaveProperty(GITHUB_AUTH_PROBE_ID);
     expect(snapshot.probes).toHaveProperty("lisa-version");
     expect(snapshot.probes).toHaveProperty("deploy-pipeline-stages");
   });
@@ -310,7 +312,7 @@ describe("runUi", () => {
     const snapshot = (await response.json()) as {
       probes: Record<string, unknown>;
     };
-    expect(snapshot.probes).toHaveProperty("github-auth");
+    expect(snapshot.probes).toHaveProperty(GITHUB_AUTH_PROBE_ID);
     expect(snapshot.probes).toHaveProperty("enabled-plugins");
     expect(snapshot.probes["enabled-plugins"]).toEqual({
       state: "value",
@@ -330,10 +332,9 @@ describe("runUi", () => {
     };
 
     expect(response.status).toBe(200);
-    expect(body.probes).toHaveProperty("github-auth");
+    expect(body.probes).toHaveProperty(GITHUB_AUTH_PROBE_ID);
     expect(body.probes).toHaveProperty("sentry");
     expect(body.probes).toHaveProperty("cloudwatch-alarms");
     expect(body.probes).toHaveProperty("x-ray");
   });
-
 });
