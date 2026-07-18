@@ -4454,7 +4454,12 @@
                   t: "text",
                   v: "oxlint then ESLint over the whole repo — the fast rule set",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "lint",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🐢 Slow Lint Rules" },
@@ -4462,22 +4467,42 @@
                   t: "text",
                   v: "The expensive rules deferred from local lint (import cycles, namespace checks)",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "lint_slow",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🔍 Type Check" },
                 { t: "text", v: "tsc --noEmit across the project" },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "typecheck",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "📐 Check Formatting" },
                 { t: "text", v: "Prettier in check mode — no writes" },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "format",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🏗️ Build" },
                 { t: "text", v: "Compiles the project to catch build breaks" },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "build",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🧪 Run Unit Tests" },
@@ -4485,12 +4510,22 @@
                   t: "text",
                   v: "Unit suite with the coverage floors from Testing & coverage enforced",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "test:unit",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🧪 Run Integration Tests" },
                 { t: "text", v: "Integration suite (30-minute timeout)" },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "test:integration",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🧪 Run E2E Tests" },
@@ -4498,7 +4533,12 @@
                   t: "text",
                   v: "Playwright end-to-end tests, auto-detected from playwright.config + a test:e2e script",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "test:e2e",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🎭 Playwright E2E Tests" },
@@ -4506,7 +4546,12 @@
                   t: "text",
                   v: "Web-export e2e run — a required check on staging via ruleset",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "playwright_e2e",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "📱 Maestro Cloud E2E" },
@@ -4514,7 +4559,12 @@
                   t: "text",
                   v: "Mobile end-to-end flows on Maestro Cloud",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "maestro_e2e",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🧭 E2E Route Coverage" },
@@ -4522,7 +4572,12 @@
                   t: "text",
                   v: "Static gate: % of expo-router routes reached by Playwright specs and Maestro flows, against the floors in e2e.thresholds.json — auto-enabled on Expo projects, a no-op elsewhere",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "e2e_coverage",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🧬 Mutation Testing Gate" },
@@ -4532,9 +4587,9 @@
                 },
                 {
                   t: "status",
-                  v: false,
-                  reason:
-                    "mutation gate is disabled (quality.mutation.gate.enabled)",
+                  jobId: "test:mutation",
+                  v: null,
+                  reason: "checking…",
                 },
               ],
               [
@@ -4543,7 +4598,12 @@
                   t: "text",
                   v: "Requires feat/fix PRs to add or extend an e2e verification spec",
                 },
-                { t: "status", v: false, reason: "verify_enforced is off" },
+                {
+                  t: "status",
+                  jobId: "verification_coverage",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🗑️ Dead Code Detection" },
@@ -4551,7 +4611,12 @@
                   t: "text",
                   v: "knip — unused files, exports, and dependencies",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "dead_code",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🔎 AST Grep Scan" },
@@ -4559,7 +4624,12 @@
                   t: "text",
                   v: "Structural code rules from sgconfig.yml",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "sg_scan",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🔒 Security Scan" },
@@ -4567,20 +4637,31 @@
                   t: "text",
                   v: "Dependency audit — high and critical advisories in production dependencies",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "npm_security_scan",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🔍 SonarCloud SAST" },
                 { t: "text", v: "Static analysis via SonarCloud" },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "sonarcloud",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🛡️ Snyk" },
                 { t: "text", v: "Snyk dependency vulnerability scan" },
                 {
                   t: "status",
-                  v: false,
-                  reason: "SNYK_TOKEN secret is not set",
+                  jobId: "snyk",
+                  v: null,
+                  reason: "checking…",
                 },
               ],
               [
@@ -4589,15 +4670,21 @@
                   t: "text",
                   v: "Secret scanning — also a required check via the base ruleset",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "secret_scanning",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "📜 FOSSA" },
                 { t: "text", v: "License compliance check" },
                 {
                   t: "status",
-                  v: false,
-                  reason: "FOSSA_API_KEY secret is not set",
+                  jobId: "license_compliance",
+                  v: null,
+                  reason: "checking…",
                 },
               ],
               [
@@ -4606,7 +4693,12 @@
                   t: "text",
                   v: "DAST baseline scan against zap_target_url with per-rule IGNORE/WARN/FAIL decisions",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "zap_baseline",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
               [
                 { t: "mono", v: "🧾 Compliance Validation" },
@@ -4616,8 +4708,9 @@
                 },
                 {
                   t: "status",
-                  v: false,
-                  reason: "no compliance_framework configured",
+                  jobId: "compliance_validation",
+                  v: null,
+                  reason: "checking…",
                 },
               ],
               [
@@ -4626,7 +4719,12 @@
                   t: "text",
                   v: "Pauses the run until the target GitHub environment’s reviewers approve",
                 },
-                { t: "status", v: true },
+                {
+                  t: "status",
+                  jobId: "approval_gate",
+                  v: null,
+                  reason: "checking…",
+                },
               ],
             ],
           },
@@ -5546,10 +5644,17 @@
               chip.appendChild(el("span", "", esc(cell.v)));
               td.appendChild(chip);
             } else if (cell.t === "status") {
-              if (cell.v) {
+              if (cell.jobId) td.dataset.jobId = cell.jobId;
+              if (cell.v === true) {
                 td.appendChild(el("span", "badge pass", "✓ active"));
-              } else {
+              } else if (cell.v === false) {
                 td.appendChild(el("span", "badge fail", "✗ off"));
+                if (cell.reason) {
+                  td.appendChild(el("span", "status-why", esc(cell.reason)));
+                }
+              } else {
+                // null/undefined = unknown — never fabricate "off" or "active"
+                td.appendChild(el("span", "badge warn", "unknown"));
                 if (cell.reason) {
                   td.appendChild(el("span", "status-why", esc(cell.reason)));
                 }
@@ -6152,6 +6257,58 @@
           "@codyswann/lisa · unknown (invalid-value: lisa-version probe returned an unusable value)"
         );
       }
+      /**
+       * Paint the CI Quality jobs Active column from the ci-quality-jobs probe.
+       * Never leaves a fabricated active/off value when the probe is unknown.
+       * @param probes - Live-status probe map from /api/status
+       */
+      function applyCiQualityJobs(probes) {
+        const table = (DATA.sections.ci.blocks || []).find(
+          block => block.type === "table" && block.card === "Quality jobs"
+        );
+        if (!table) return;
+        const result = normalizeLiveStatusResult(
+          probes && Object.hasOwn(probes, "ci-quality-jobs")
+            ? probes["ci-quality-jobs"]
+            : {
+                state: "unknown",
+                reason: "missing-probe",
+                message: "The ci-quality-jobs probe was not reported",
+              }
+        );
+        const byId = new Map();
+        if (
+          result.state === "value" &&
+          result.value &&
+          typeof result.value === "object" &&
+          Array.isArray(result.value.jobs)
+        ) {
+          result.value.jobs.forEach(job => {
+            if (job && typeof job.id === "string") byId.set(job.id, job);
+          });
+        }
+        table.rows.forEach(cells => {
+          const status = cells.find(cell => cell.t === "status" && cell.jobId);
+          if (!status) return;
+          if (result.state !== "value") {
+            status.v = null;
+            status.reason =
+              result.reason + (result.message ? ": " + result.message : "");
+            return;
+          }
+          const job = byId.get(status.jobId);
+          if (!job) {
+            status.v = null;
+            status.reason = "missing-job: probe omitted " + status.jobId;
+            return;
+          }
+          status.v = job.active;
+          status.reason = typeof job.reason === "string" ? job.reason : "";
+        });
+        const current = activeSection;
+        renderAll();
+        showSection(current);
+      }
       async function hydrateLiveStatuses() {
         try {
           const response = await fetch("/api/status", {
@@ -6161,14 +6318,19 @@
           const snapshot = await response.json();
           const probes = liveStatusProbeMap(snapshot);
           renderLiveStatuses(probes);
+          // Quality jobs re-renders the page; paint the version chip after.
+          applyCiQualityJobs(probes);
           applyLisaVersion(probes);
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           const unavailable = {
             state: "unknown",
             reason: "status-unavailable",
-            message: error instanceof Error ? error.message : String(error),
+            message,
           };
           renderLiveStatuses({ transport: unavailable });
+          applyCiQualityJobs({ "ci-quality-jobs": unavailable });
           applyLisaVersion({ "lisa-version": unavailable });
         }
       }
