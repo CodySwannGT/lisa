@@ -277,6 +277,7 @@ Each vendor section is **conditionally required**: required only when that vendo
 |-------|---------------|-------|
 | `github.org` | `tracker = "github"` or `source = "github"` or any `github-*` skill is invoked | GitHub organization or user name. |
 | `github.repo` | same as above | GitHub repository name. |
+| `github.queueRepo` | no | Optional GitHub **build** queue repository, distinct from this repo's identity and PRD source. Store the canonical `owner/repo`. A short repo name is accepted at runtime and normalized to `github.org`. Explicit GitHub repo/URL arguments always win; otherwise GitHub build intake, build repair, build queue status, and scheduled ticket commands use this value, falling back to `github.org/github.repo` when absent. This never changes `repo:<name>` scoping, PRD intake, or automation naming, which remain tied to `repo` / `github.repo`. |
 | `github.projects.v2.owner.kind` | GitHub Project coordination is enabled | Owner type for the shared ProjectV2. Supported values are `organization` and `user`. |
 | `github.projects.v2.owner.slug` | GitHub Project coordination is enabled | Owner login for the shared ProjectV2. In v1 it MUST match the tracked repository namespace (`github.org`); cross-namespace coordination is rejected. |
 | `github.projects.v2.number` | GitHub Project coordination is enabled | Human-facing ProjectV2 number from the GitHub UI / URL. Later utilities resolve the opaque node id from this owner + number pair. |
@@ -289,6 +290,13 @@ Each vendor section is **conditionally required**: required only when that vendo
 | `github.environments.<name>.wait_timer` | no | Default `0`. Minutes to delay the deployment after approval. |
 
 When `tracker = "github"` AND `source = "github"` (self-host), both reads and writes hit the same GitHub repo. Label namespaces are kept separate so the two flows don't collide — see "Self-host edge case" below.
+
+When `github.queueRepo` points at an umbrella repository, build-queue **scans** happen there while the
+current repository's identity remains `github.org/github.repo`. Resolve a GitHub queue in this
+order for a build-mode scan: explicit `owner/repo` or GitHub URL argument, merged-config `github.queueRepo`, then
+`github.org/github.repo`. Queue status must show both identity and queue; build counts and claims
+remain filtered to `repo:<github.repo>`. Setup writes the canonical `owner/repo` form and omits the
+key when the queue is the identity repo.
 
 `github.projects.v2` is optional. When absent, GitHub issue / PR writes remain repository-local exactly as they work today. When present, the shared Project is a coordination view layered on top of real issues and pull requests; it does not replace lifecycle labels, comments, dependencies, or native issue / PR state as Lisa's durable source of truth.
 
