@@ -32,7 +32,9 @@ reimplement a semver-versioned upstream plugin.
 
 If the knowledge is narrow or one-off, prefer a rule in `.claude/rules/` instead
 — skills are for broad, repeatable capabilities. When unsure whether content
-warrants a skill, run it past the `skill-evaluator` agent first.
+warrants a skill, run it past the `skill-evaluator` agent first — it is the
+six-rung ladder router, a skill is only one rung, and it may recommend a
+cheaper or stronger destination instead.
 
 ## Where skills live
 

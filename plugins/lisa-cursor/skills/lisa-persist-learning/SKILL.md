@@ -39,7 +39,7 @@ FP="sll4-$(printf '%s\n%s' "$NORM" "$TRIGGERING_ISSUE" | shasum -a 1 | cut -c1-1
 
 ## Phase 1 — Judge (mandatory, never skipped)
 
-Invoke the `learning-judge` agent (via the Agent/Task tool with `subagent_type: "learning-judge"` — the same invoke pattern `learner` uses for `skill-evaluator`) with the full candidate including the fingerprint. It returns a verdict: `classification`, `cited_evidence[]`, `rationale`, `confidence` (durable only), `disposition`.
+Invoke the `learning-judge` agent (via the Agent/Task tool with `subagent_type: "learning-judge"` — the same invoke pattern the gardener uses for the `skill-evaluator` ladder router) with the full candidate including the fingerprint. It returns a verdict: `classification`, `cited_evidence[]`, `rationale`, `confidence` (durable only), `disposition`.
 
 **Respect the verdict — do not override it.** Never re-run the judge hoping for a different answer, and never persist anything the judge did not classify `durable-learning`.
 
