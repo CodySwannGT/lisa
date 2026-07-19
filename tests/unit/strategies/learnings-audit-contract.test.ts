@@ -167,9 +167,7 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
   });
 
   it("dedupes on the surface prefix first, hash as disambiguation only", () => {
-    expect(skill).toContain(
-      'gh search issues "[lisa-gardener] key=<surface>" --state all'
-    );
+    expect(skill).toContain("searches open AND closed by default");
     expect(skill).toMatch(/prefix.*first|first.*prefix/i);
     expect(skill).toMatch(/disambiguation only/i);
     // Body-enumeration fallback covers search-index lag.
