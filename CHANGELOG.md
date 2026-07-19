@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.247.0](https://github.com/CodySwannGT/lisa/compare/v2.246.0...v2.247.0) (2026-07-19)
+
+
+### Features
+
+* **agents:** extend skill-evaluator into the six-rung ladder router (LLG-5) ([41700c6](https://github.com/CodySwannGT/lisa/commit/41700c6261ce40c9c23748f3bed428d0ed8a76db)), closes [#1729](https://github.com/CodySwannGT/lisa/issues/1729) [#1735](https://github.com/CodySwannGT/lisa/issues/1735) [#1731](https://github.com/CodySwannGT/lisa/issues/1731) [#1731](https://github.com/CodySwannGT/lisa/issues/1731) [#1734](https://github.com/CodySwannGT/lisa/issues/1734)
+* **rules:** add promotion-contract pair and template-candidate lane (LLG-7) ([a95a8b6](https://github.com/CodySwannGT/lisa/commit/a95a8b6a7e88fa0447f9435ef387241c92293971)), closes [#1736](https://github.com/CodySwannGT/lisa/issues/1736)
+* **skills:** add lisa-learnings-audit — the gardener (LLG-6) ([52862d9](https://github.com/CodySwannGT/lisa/commit/52862d97ab54a6571e6cbd8535a65501d451a404)), closes [#1735](https://github.com/CodySwannGT/lisa/issues/1735)
+
+
+### Bug Fixes
+
+* **skills:** correct the gardener dedupe search command (LLG-6) ([c0d9ecd](https://github.com/CodySwannGT/lisa/commit/c0d9ecd77f6bf465dcee7fd01e70361f30fd0806))
+* **skills:** honest gardener concurrency + stateless retirement condition ([4cd8ed1](https://github.com/CodySwannGT/lisa/commit/4cd8ed123e8ff9fe5726e4868d47a3db359f0129)), closes [#1779](https://github.com/CodySwannGT/lisa/issues/1779) [#1735](https://github.com/CodySwannGT/lisa/issues/1735) [#1736](https://github.com/CodySwannGT/lisa/issues/1736)
+* **skills:** review fixes — deterministic gardener fingerprints, batch contract, doc freshness ([0abf59c](https://github.com/CodySwannGT/lisa/commit/0abf59c9c095f9bc2881b270babf48b67c2ae7bf)), closes [#1735](https://github.com/CodySwannGT/lisa/issues/1735) [#1736](https://github.com/CodySwannGT/lisa/issues/1736) [#1735](https://github.com/CodySwannGT/lisa/issues/1735) [#1736](https://github.com/CodySwannGT/lisa/issues/1736)
+
 ## [2.246.0](https://github.com/CodySwannGT/lisa/compare/v2.245.1...v2.246.0) (2026-07-19)
 
 
