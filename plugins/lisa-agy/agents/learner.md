@@ -15,7 +15,7 @@ Why this shape: promotion without a human gate lets agents unilaterally rewrite 
 
 1. Read all tasks using `TaskList` and `TaskGet`.
 2. For each completed task, read `metadata.learnings`.
-3. Honor the MLD kind-tags (documented by #1732): each learning may be tagged `mistake`, `learning`, or `desire`. A **plain string remains valid** and is treated as `kind: learning`. A tagged item may arrive as an object (e.g. `{ kind, text, why?, provenance? }`) or as a string prefixed with its kind (e.g. `mistake: ...`); read whichever shape is present and default an untagged item to `kind: learning`.
+3. Honor the MLD kind-tags (documented by #1732): each learning may be tagged `mistake`, `learning`, or `desire`. A **plain string remains valid** and is treated as `kind: learning`. A tagged item may arrive as an object of the shape `{ kind, note, evidence? }` (`note` is the learning text; `evidence` is the optional refs behind it) or as a string prefixed with its kind (e.g. `mistake: ...`); read whichever shape is present and default an untagged item to `kind: learning`.
    - `mistake` and `learning` → candidate ledger entries (Steps 2–3).
    - `desire` → **not** a ledger entry; routed to a tooling-gap marker (Step 3, "Desires").
 4. Compile a **deduplicated** list — never process the same insight twice. Deduplicate on normalized rule text (lowercased, whitespace collapsed) so the same learning surfaced by two tasks collapses to one candidate that cites both tasks in its provenance.
@@ -32,7 +32,7 @@ For each `mistake`/`learning` candidate, build the ledger entry the executable c
 - `provenance` — stable refs behind the candidate: the originating task id(s), plus any PR/issue/commit refs the task recorded. At most 20 entries. This is also where scope markers live (below).
 - `first_learned` — today (ISO `YYYY-MM-DD`). On consolidation, keep the **earliest** `first_learned` of the entries being merged.
 - `last_confirmed` — today (ISO `YYYY-MM-DD`).
-- `confidence` — `high` only when the failure **class** is corroborated by more than one occurrence (a prior issue/PR/revert/rejection on a different occasion) or by an independent evidence ref. A single-occurrence learning is **`low`** — default to `low` unless corroboration is present.
+- `confidence` — one of `low` | `medium` | `high`. Use `high` only when the failure **class** is corroborated by more than one occurrence (a prior issue/PR/revert/rejection on a different occasion). Use `medium` for a single occurrence that nonetheless carries independent corroborating evidence (a cited failure log, an external doc, or a reviewer confirmation) — stronger than a lone observation, short of a proven recurring class. Otherwise a single-occurrence learning is **`low`** — default to `low` unless corroboration is present.
 
 **Upstream candidates are marked, never filed.** When a learning's root cause is a Lisa-managed surface (a Lisa skill, gate, agent, hook, or template misbehaved), the classification does not disappear — you record it for the gardener to route. Add the literal token `scope:upstream-candidate` to the entry's `provenance[]`. That marker is the documented handoff: the gardener reads it and decides how to route it (a local fix or an upstream ticket). **You never file an issue.**
 

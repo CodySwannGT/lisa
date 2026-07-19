@@ -131,8 +131,12 @@ describe.each(REFERENCE_RULE_PATHS)(
       expect(rule).toContain("Who writes the ledger");
       expect(rule).toMatch(/learner/);
       expect(rule).toMatch(/capture time/);
-      expect(rule).toContain("lisa-debrief-apply");
       expect(rule).toContain("confirmLearningEntry");
+      // debrief-apply is not a contract writer yet — it becomes one only once
+      // #1733 ships; until then it is a legacy writer outside the contract.
+      expect(rule).toContain("lisa-debrief-apply");
+      expect(rule).toMatch(/#1733/);
+      expect(rule).toMatch(/legacy writer/);
       // Promotion is the gardener's ticket-gated job, not a writer here.
       expect(rule).toContain("gardener");
       expect(rule).toMatch(/status:ready/);
