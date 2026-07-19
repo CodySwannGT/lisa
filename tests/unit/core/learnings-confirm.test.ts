@@ -95,7 +95,11 @@ describe("confirmLearningEntry", () => {
       "learning-missing",
       CONFIRM_DATE
     );
-    expect(result).toEqual({ status: "not-found", id: "learning-missing" });
+    expect(result).toEqual({
+      status: "not-found",
+      id: "learning-missing",
+      file: learningsPath,
+    });
     expect(await readFile(learningsPath, "utf8")).toBe(before);
   });
 

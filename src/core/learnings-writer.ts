@@ -98,7 +98,11 @@ export interface ConfirmLearningResult {
   readonly status: ConfirmLearningStatus;
   /** The entry id the caller asked to confirm. */
   readonly id: string;
-  /** Absolute learnings file path when the file exists. */
+  /**
+   * Absolute learnings file path whenever the file exists — including an
+   * in-file `not-found` id — so callers can report a consistent target.
+   * Absent only when the learnings file itself does not exist.
+   */
   readonly file?: string;
   /** Previous `last_confirmed` value when the entry was advanced. */
   readonly previous?: string;
@@ -143,7 +147,7 @@ export async function confirmLearningEntry(
     const entries = existing === undefined ? [] : parseLearningsFile(existing);
     const current = entries.find(entry => entry.id === id);
     if (current === undefined) {
-      return { status: "not-found", id };
+      return { status: "not-found", id, file: target };
     }
     if (confirmedDate <= current.last_confirmed) {
       return { status: "unchanged", id, file: target };
