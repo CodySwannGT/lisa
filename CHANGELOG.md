@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.243.0](https://github.com/CodySwannGT/lisa/compare/v2.242.0...v2.243.0) (2026-07-19)
+
+
+### Features
+
+* **learnings:** add bounded projection serving slice (LLG-1) ([89fbf8a](https://github.com/CodySwannGT/lisa/commit/89fbf8a450d983f7ebb6880c924694de0f8287ff)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+* **learnings:** default ledger to .lisa/ + learnings.file override (LLG-1) ([ec3c6a6](https://github.com/CodySwannGT/lisa/commit/ec3c6a64a31df19deab2c7522c4bd1523c500226)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+* **learnings:** relocate legacy ledger during apply/doctor (LLG-1) ([c1b77bc](https://github.com/CodySwannGT/lisa/commit/c1b77bce973b63da8d021911c1aeebaaabd116ac)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+
+
+### Bug Fixes
+
+* **learnings:** exact wrapper accounting + deterministic projection tiebreak (LLG-1) ([e1d0f75](https://github.com/CodySwannGT/lisa/commit/e1d0f7579d205d16ef4e69d5f86247c5824c5df5)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+* **learnings:** harden ledger relocation + override rejection (LLG-1) ([b1b0f3c](https://github.com/CodySwannGT/lisa/commit/b1b0f3c15e0ee2ea67a9830a605d5900b72f2669)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+* **learnings:** never strand a populated legacy ledger on the fleet-upgrade path (LLG-1) ([b545ebf](https://github.com/CodySwannGT/lisa/commit/b545ebfadb8ec242fbbf5e27d497db46a01e1d83)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+
+
+### Code Refactoring
+
+* **learnings:** relocate canonical ledger template to .lisa/ (LLG-1) ([7a81646](https://github.com/CodySwannGT/lisa/commit/7a8164600162f87c89d2cfe4f7aaf61831a8e427)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+
+
+### Documentation
+
+* **learnings:** prose parity for relocated, projection-only ledger (LLG-1) ([54ec601](https://github.com/CodySwannGT/lisa/commit/54ec601607409a86dd8e344702f1cf716187dca3)), closes [#1730](https://github.com/CodySwannGT/lisa/issues/1730)
+
 ## [2.242.0](https://github.com/CodySwannGT/lisa/compare/v2.241.0...v2.242.0) (2026-07-19)
 
 
