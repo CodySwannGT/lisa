@@ -38,10 +38,16 @@ create them; invoke the runtime's automation tool with the spec below.
   automation. `true` → filed bug/usability tickets are created build-ready (auto-picked-up by ticket
   intake); `false` → created in the backlog for human triage.
 
+- `learnings-audit` (default **false**) — opt-in: when `true`, additionally create the weekly
+  `lisa-auto-<project>-learnings-audit` automation running `/lisa:learnings:audit` (the gardener —
+  see "Optional automation" below). Default `false` because the gardener's output is human-gated
+  tracker tickets: a project opts into the recurring audit stream deliberately rather than
+  receiving recommendation tickets by surprise.
+
 The defaults are autonomous by design — the factory model wants inputs flowing through the gates
 without a human between the loops and the pipeline. Pass `false` explicitly to opt a project into
-human triage. The two flags affect **only** the two exploratory automations; the intake gates'
-adversarial validation remains the quality control either way.
+human triage. The two auto-start flags affect **only** the two exploratory automations; the intake
+gates' adversarial validation remains the quality control either way.
 
 ## The automations to create
 
@@ -67,7 +73,21 @@ report the exact conflicting path(s).
 | **monitor** | `/lisa:monitor` | **once a day** |
 
 For a Codex `rrule`: every 60 min → `FREQ=HOURLY;INTERVAL=1`; every 10 min →
-`FREQ=MINUTELY;INTERVAL=10`; once a day → `FREQ=DAILY;INTERVAL=1`.
+`FREQ=MINUTELY;INTERVAL=10`; once a day → `FREQ=DAILY;INTERVAL=1`; once a week →
+`FREQ=WEEKLY;INTERVAL=1`.
+
+**Optional automation — the gardener.** When the operator opts in
+(`learnings-audit=true`; default **false** — this one is opt-in, unlike the six
+defaults above), additionally create `lisa-auto-<project>-learnings-audit`
+running `/lisa:learnings:audit` once a **week**. It audits the project's
+knowledge surfaces (learnings ledger, rules trees, skills, wiki) and files
+human-gated promote/demote/confirm/retire tickets per the
+`lisa-learnings-audit` skill. Register at most ONE learnings-audit automation
+per project — the gardener's marker dedupe assumes a single scheduled runner
+and guarantees convergence (a transient duplicate from a concurrent run is
+closed by the next run's dedupe or the human), not mutual exclusion; manual
+runs should first confirm the cron is not due or running. Tear-down removes
+it with the rest of the `lisa-auto-<project>-*` set.
 
 **Exploratory PRD pressure gate.** `auto-start-prds=true` means "create PRDs in the ready PRD
 lifecycle when the PRD queue has capacity," not "always create a new ready PRD." The
