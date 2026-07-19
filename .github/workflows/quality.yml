@@ -55,7 +55,7 @@ on:
         default: 'npm'
         type: string
       skip_jobs:
-        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,format,build,dead_code,sg_scan,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip (comma-separated: lint,lint_slow,typecheck,test,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,learnings_budget,format,build,dead_code,sg_scan,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -531,6 +531,32 @@ jobs:
       - name: ⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)
         if: steps.check_script.outputs.exists == 'false'
         run: echo "Skipping e2e route coverage - scripts/check-e2e-coverage.mjs not found"
+
+  learnings_budget:
+    name: 📚 Learnings Budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Hard budget gate for the project learnings surface (per-entry length cap,
+    # entry count, and token ceiling). The learnings file is loaded eagerly by
+    # every coding agent in every session, so an over-budget file degrades them
+    # all — this job fails the build when it grows too large. The check reads the
+    # learnings file resolved from .lisa.config.json; a project that has never
+    # recorded a learning has no file and passes silently.
+    if: ${{ !contains(inputs.skip_jobs, 'learnings_budget') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📚 Check learnings budget
+        run: bunx @codyswann/lisa check-learnings-budget
+        working-directory: ${{ inputs.working_directory || '.' }}
 
   test_unit:
     name: 🧪 Run Unit Tests
