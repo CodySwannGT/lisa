@@ -109,6 +109,21 @@ describe("rejection-detection rule contract", () => {
       );
     });
 
+    it("fallback candidate comment is visible prose, not a bare marker", () => {
+      for (const doc of [eager, reference]) {
+        expect(doc).toContain(
+          "Recorded a candidate learning from this rejection"
+        );
+        expect(doc).toMatch(/empty comment bubble|empty bubble/i);
+      }
+      for (const skill of BUILD_INTAKES) {
+        const doc = read(root, `skills/${skill}/SKILL.md`);
+        expect(doc).toContain(
+          "Recorded a candidate learning from this rejection"
+        );
+      }
+    });
+
     it("build-intake arms carry the reflection routing on rejection-reclaim", () => {
       for (const skill of BUILD_INTAKES) {
         const doc = read(root, `skills/${skill}/SKILL.md`);
