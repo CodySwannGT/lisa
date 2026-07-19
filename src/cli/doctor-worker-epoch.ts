@@ -204,13 +204,17 @@ function normalizeWorkerAgents(
 }
 
 /**
- * Infer a stable worker signature from explicit Lisa variables first.
+ * Infer a stable worker signature from explicit Lisa variables first,
+ * falling back to `LISA_REMOTE_AGENT` (set by the remote-agent bootstrap for
+ * Cursor, Copilot, OpenCode, and Antigravity) and then Codex/Claude-specific
+ * markers.
  * @returns Current runtime signature
  */
 function currentRuntimeWorkerSignature(): RuntimeWorkerSignature {
   const env = process["env"];
   const host =
     env.LISA_WORKER_HOST ??
+    env.LISA_REMOTE_AGENT ??
     (env.CODEX_HOME || env.CODEX_SANDBOX
       ? "codex"
       : env.CLAUDECODE
@@ -265,7 +269,7 @@ async function countWorkerWorkaroundCandidates(
  * @returns True when content is a subtraction-pass candidate
  */
 function isWorkerWorkaround(content: string): boolean {
-  return /\b(model|worker|host|epoch|claude|codex|cursor|opencode|copilot|agy)\b[\s\S]{0,160}\b(workaround|limitation|quirk|scaffold|temporary|native capability)\b/iu.test(
+  return /\b(model|worker|host|epoch|claude|codex|cursor|opencode|copilot|agy|antigravity)\b[\s\S]{0,160}\b(workaround|limitation|quirk|scaffold|temporary|native capability)\b/iu.test(
     content
   );
 }

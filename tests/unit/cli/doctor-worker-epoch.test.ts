@@ -98,6 +98,57 @@ describe("checkWorkerEpoch", () => {
       ),
     });
   });
+
+  it("recognizes non-Codex/Claude hosts via LISA_REMOTE_AGENT", async () => {
+    const cwd = await getTempDir();
+    setEnv("LISA_REMOTE_AGENT", "cursor");
+    setEnv("LISA_WORKER_MODEL", CURRENT_MODEL);
+    setEnv("LISA_WORKER_VERSION", CURRENT_VERSION);
+    await seedWorkerRecord(cwd, {
+      agents: {
+        cursor: {
+          host: "cursor",
+          modelId: CURRENT_MODEL,
+          version: CURRENT_VERSION,
+          evidence: "runs/cursor.md",
+        },
+      },
+    });
+
+    await expect(checkWorkerEpoch(cwd)).resolves.toMatchObject({
+      name: WORKER_EPOCH_CHECK,
+      status: "ok",
+      detail: expect.stringContaining("qualification evidence: runs/cursor.md"),
+    });
+  });
+
+  it("counts a rationale mentioning Antigravity (without the agy token) as a subtraction candidate", async () => {
+    const cwd = await getTempDir();
+    setWorkerEnv();
+    await seedWorkerRecord(cwd, {
+      agents: [
+        {
+          host: CODEX_HOST,
+          model: "gpt-5.1",
+          version: "26.7.0",
+          qualificationEvidence: "runs/previous.md",
+        },
+      ],
+    });
+    await mkdir(path.join(cwd, "plugins", "src", "base", "rules"), {
+      recursive: true,
+    });
+    await writeFile(
+      path.join(cwd, "plugins", "src", "base", "rules", "worker.md"),
+      "Antigravity needs a scaffold to package skills for its runtime.\n"
+    );
+
+    const check = await checkWorkerEpoch(cwd);
+
+    expect(check.detail).toContain(
+      "Scaffolding-subtraction candidates surfaced: 1"
+    );
+  });
 });
 
 /**
