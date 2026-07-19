@@ -34,16 +34,18 @@ Each persisted entry has seven fields:
 
 ## Who writes the ledger
 
-The ledger has exactly three machine writers, all going through the executable
-contract (`@codyswann/lisa/learnings`) — never a hand-edit:
+The ledger's contract-mediated writers — all going through the executable
+contract (`@codyswann/lisa/learnings`), never a hand-edit — are:
 
 - The **learner agent** at capture time appends or consolidates new entries
   (`persistLearningEntry` / `persistConsolidatedLearning`) from task learnings.
   It is capture-only: it never appends to `PROJECT_RULES.md`, creates skills, or
   files upstream issues — promotion is the gardener's ticket-gated job.
-- **`lisa-debrief-apply`** reroutes debrief findings into the same ledger.
 - The **build-intake flows** advance `last_confirmed` at claim time
   (`confirmLearningEntry`, below).
+- **`lisa-debrief-apply`** reroutes debrief findings into the ledger once #1733
+  ships; until then it is a legacy writer outside the contract (it still routes
+  to machine-local memory and `PROJECT_RULES.md`).
 
 Promotion to a higher rung (skill, eager rule, executable control, upstream
 ticket) is never a writer here — it is the gardener's job, gated by a human
