@@ -91,7 +91,7 @@ describe.each(RULE_PAIR_ROOTS)("promotion-contract rule pair (%s)", root => {
 
   it("reference states the diagnostic-quality bar: invariant + why + concrete fix", () => {
     expect(reference).toMatch(/violated invariant/i);
-    expect(reference).toMatch(/why/i);
+    expect(reference).toMatch(/why the invariant holds/i);
     expect(reference).toMatch(/concrete fix/i);
     expect(reference).toMatch(/teach(es)? the repair/i);
   });
