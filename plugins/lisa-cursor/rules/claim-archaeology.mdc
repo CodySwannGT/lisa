@@ -37,6 +37,6 @@ The pass runs inside a hard budget: `.lisa.config.json` `archaeology.maxSteps` (
 
 ## On `retry-of-done-issue`
 
-Reconstruct what the ancestor's PR shipped (merged PR, review threads, evidence comments) and derive **ONE** candidate learning citing the **delta** between what was done and what this issue proves was needed — routed to `lisa-persist-learning` exactly like the rejection-reflection path. Fallback when that skill is absent: a comment with a visible prose line plus `<!-- [lisa-archaeology-candidate] key=<issue>-<ancestor> -->` (marker-dedupe; re-claims produce no duplicate). `fresh` → no candidate, zero comments.
+Reconstruct what the ancestor's PR shipped (merged PR, review threads, evidence comments) and derive **ONE** candidate learning citing the **delta** between what was done and what this issue proves was needed — routed to `lisa-persist-learning` exactly like the rejection-reflection path. Fallback when that skill is absent: a comment with a visible prose line plus `<!-- [lisa-archaeology-candidate] key=<issue>::<ancestor> -->` (marker-dedupe; re-claims produce no duplicate). `fresh` → no candidate, zero comments.
 
 Full contract (signal bindings, classification table, candidate derivation, budget mechanics): [reference/claim-archaeology.md](claim-archaeology-reference.mdc).

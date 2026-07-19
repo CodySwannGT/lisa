@@ -18,6 +18,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { SYNC_REGISTRY } from "../../../src/sync/registry.js";
+
 const ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 const BUILD_INTAKES = [
   "lisa-jira-build-intake",
@@ -132,7 +134,7 @@ describe("claim-archaeology rule contract", () => {
 
     it("routes the candidate to lisa-persist-learning with a marker fallback", () => {
       expect(reference).toContain("lisa-persist-learning");
-      expect(reference).toMatch(/key=<issue>-<ancestor>/);
+      expect(reference).toMatch(/key=<issue>::<ancestor>/);
       expect(reference).toMatch(/visible prose/i);
       expect(reference).toMatch(
         /Recorded a candidate learning from this retry/
@@ -147,6 +149,13 @@ describe("claim-archaeology rule contract", () => {
     it("a fresh classification produces no candidate and zero comments", () => {
       expect(reference).toMatch(/no candidate/i);
       expect(reference).toMatch(/zero comments|no comment/i);
+    });
+
+    it("sync registry seeds the budget default the rule pair documents", () => {
+      const entry = SYNC_REGISTRY.find(
+        setting => setting.key === "archaeology"
+      );
+      expect(entry?.defaultValue).toEqual({ maxSteps: 8 });
     });
 
     it("every build-intake arm cites the one shared slug in the claim window", () => {
