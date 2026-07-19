@@ -135,10 +135,10 @@ describe("rework-triage self-hardening loop", () => {
     const learner = read(SOURCE_ROOT, LEARNER_REL);
     const synthesizer = read(SOURCE_ROOT, SYNTHESIZER_REL);
 
-    it("gives the learner an UPSTREAM decision", () => {
-      expect(learner).toContain("**UPSTREAM**");
-      expect(learner).toContain(UPSTREAM_CONFIG_KEY);
-      expect(learner).toContain(
+    it("has the learner mark upstream candidates instead of filing them (LLG-2)", () => {
+      expect(learner).toContain("scope:upstream-candidate");
+      expect(learner).not.toContain("**UPSTREAM**");
+      expect(learner).not.toContain(
         "CREATE SKILL / ADD TO RULES / UPSTREAM / OMIT"
       );
     });
