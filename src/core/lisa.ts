@@ -1459,6 +1459,9 @@ export class Lisa {
     }
     const result = await migrateInstructionFiles(this.config.destDir, {
       createClaudePointer: harnessIncludesAgent(this.config.harness, "claude"),
+      // apply already relocated the ledger in processLearningsRelocation (an
+      // earlier phase); skip it here so a both-exist conflict warns only once.
+      relocateLearnings: false,
     });
     if (result.changed) {
       this.deps.logger.info(
