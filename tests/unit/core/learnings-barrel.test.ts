@@ -7,22 +7,28 @@
  * though each function exists on its own module.
  */
 import { describe, expect, it } from "vitest";
-import * as learnings from "../../../src/core/learnings.js";
+import {
+  parseLearningsFile,
+  persistConsolidatedLearning,
+  persistLearningEntry,
+  readProjectConfig,
+  resolveProjectLearningsFile,
+} from "../../../src/core/learnings.js";
 
 /** Every symbol the skill's documented snippets invoke on the barrel. */
 const REQUIRED_BARREL_FUNCTIONS = [
-  "readProjectConfig",
-  "resolveProjectLearningsFile",
-  "parseLearningsFile",
-  "persistLearningEntry",
-  "persistConsolidatedLearning",
+  ["readProjectConfig", readProjectConfig],
+  ["resolveProjectLearningsFile", resolveProjectLearningsFile],
+  ["parseLearningsFile", parseLearningsFile],
+  ["persistLearningEntry", persistLearningEntry],
+  ["persistConsolidatedLearning", persistConsolidatedLearning],
 ] as const;
 
 describe("learnings barrel surface", () => {
   it.each(REQUIRED_BARREL_FUNCTIONS)(
     "exposes %s as a callable export",
-    name => {
-      expect(typeof learnings[name]).toBe("function");
+    (_name, fn) => {
+      expect(typeof fn).toBe("function");
     }
   );
 });
