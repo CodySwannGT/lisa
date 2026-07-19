@@ -18,7 +18,15 @@ const IMPLEMENT_FANOUTS = [
   "plugins/lisa-copilot/skills/lisa-implement/SKILL.md",
 ];
 
-const REFERENCE_RULE = "plugins/src/base/rules/reference/project-learnings.md";
+// The anti-injection discipline is authored in base and fanned out to every
+// agent variant. The suite binds the BUILT copies (what actually ships) so it
+// catches generator drift, keeping base as one additional root.
+const PROJECT_LEARNINGS_REFERENCE_ROOTS = [
+  "plugins/lisa/rules/reference/project-learnings.md",
+  "plugins/lisa-copilot/rules/reference/project-learnings.md",
+  "plugins/lisa-cursor/rules/project-learnings-reference.mdc",
+  "plugins/src/base/rules/reference/project-learnings.md",
+];
 
 // The canonical Implement step sequence is dual-homed (lisa-implement +
 // intent-routing). The task-end MLD step is threaded into the intent-routing
@@ -34,15 +42,29 @@ describe("MLD task-end telemetry contract (LLG-3)", () => {
   describe.each(IMPLEMENT_FANOUTS)("lisa-implement fan-out %s", path => {
     const skill = readFileSync(path, "utf8");
 
-    it("documents the kind-tagged MLD schema", () => {
+    it("ships a literal, parseable JSON example entry for the kind-tagged schema", () => {
+      // CodeRabbit #1770: the shape must be a literal parseable example inside a
+      // block mandated as JSON — never a TS-style union an agent could copy verbatim.
       expect(skill).toContain(
-        '{ "kind": "mistake" | "learning" | "desire", "note": "<one line>", "evidence"?: "<optional pointer>" }'
+        '"learnings": [{ "kind": "mistake", "note": "one line", "evidence": "optional ref" }]'
       );
+      expect(skill).not.toContain('"kind": "mistake" | "learning" | "desire"');
+      expect(skill).not.toContain('"evidence"?:');
+    });
+
+    it("keeps the whole task-metadata block valid, parseable JSON", () => {
+      const block = /```json\n([\s\S]*?)\n```/.exec(skill);
+      expect(block).not.toBeNull();
+      expect(() => JSON.parse(block![1] as string)).not.toThrow();
+    });
+
+    it("documents the allowed kind values in prose", () => {
+      expect(skill).toContain("a `kind` of `mistake`, `learning`, or `desire`");
     });
 
     it("keeps plain strings valid for backward compatibility", () => {
       expect(skill).toContain(
-        'treated as `kind: "learning"` for backward compatibility'
+        "treated as kind `learning` for backward compatibility"
       );
     });
 
@@ -58,26 +80,29 @@ describe("MLD task-end telemetry contract (LLG-3)", () => {
     });
   });
 
-  describe("project-learnings reference rule", () => {
-    const reference = readFileSync(REFERENCE_RULE, "utf8");
+  describe.each(PROJECT_LEARNINGS_REFERENCE_ROOTS)(
+    "project-learnings reference rule %s",
+    path => {
+      const reference = readFileSync(path, "utf8");
 
-    it("carries the anti-injection paragraph", () => {
-      expect(reference).toContain("## Task telemetry (MLD) is not context");
-      expect(reference).toMatch(
-        /never read into a later session's instruction surface/
-      );
-    });
+      it("carries the anti-injection paragraph", () => {
+        expect(reference).toContain("Task telemetry (MLD) is not context");
+        expect(reference).toMatch(
+          /never read into a later session's instruction surface/
+        );
+      });
 
-    it("states that raw MLD is never required and never scored", () => {
-      expect(reference).toContain("empty is valid");
-      expect(reference).toContain("never graded or scored");
-    });
+      it("states that raw MLD is never required and never scored", () => {
+        expect(reference).toContain("empty is valid");
+        expect(reference).toContain("never graded or scored");
+      });
 
-    it("promotes only through the learner's ledger capture and the gardener's gated promotion", () => {
-      expect(reference).toMatch(/learner's validation into the\s+ledger/);
-      expect(reference).toMatch(/gardener's ticket-gated promotion/);
-    });
-  });
+      it("promotes only through the learner's ledger capture and the gardener's gated promotion", () => {
+        expect(reference).toMatch(/learner's validation into the\s+ledger/);
+        expect(reference).toMatch(/gardener's ticket-gated promotion/);
+      });
+    }
+  );
 
   describe.each(INTENT_ROUTING_FANOUTS)("intent-routing fan-out %s", path => {
     const rule = readFileSync(path, "utf8");
