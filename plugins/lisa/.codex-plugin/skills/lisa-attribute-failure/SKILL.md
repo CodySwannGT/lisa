@@ -137,6 +137,6 @@ This is the #1494 doctor procedure, unchanged in behavior — here it is the thi
 
 - **Read-only.** This skill reads the project and Lisa's repository; it never writes to either, never files issues, and never remediates. Filing the upstream ticket on a `lisa` verdict is the caller's flow (`lisa-persist-learning`, `handoff-upstream` disposition); doctor maps verdicts into its findings; remediation stays with whoever called.
 - **Never block.** Attribution failure, missing tooling (`gh` unavailable), or degraded history degrades to `ambiguous` with the gap named in the evidence — it never raises an error that stops the caller's build or audit.
-- **Every verdict cites its evidence.** An attribution without a named signal and concrete citation is invalid — return `ambiguous` instead.
+- **Every verdict cites its evidence.** An attribution without a named signal and concrete citation is invalid — return `ambiguous` instead. Evidence destined for upstream surfaces quotes ONLY Lisa-owned surface text (never host env values, tokens/credentials, PII, or proprietary host code — link the host issue instead of quoting it); the binding redaction procedure lives in `lisa-persist-learning`'s `handoff-upstream` step.
 - **Ambiguous never escalates.** `ambiguous` is a terminal local verdict: low-confidence, no upstream filing, no durable local rule derived from it.
 - **Headless-safe and idempotent**: no prompts, no side effects, same event in → same verdict out.

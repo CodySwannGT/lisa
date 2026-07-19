@@ -67,6 +67,35 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
     expect(handoff).toMatch(/never drop silently/);
   });
 
+  it("binds evidence redaction for the public upstream repo", () => {
+    expect(handoff).toMatch(/\*\*Evidence redaction \(binding\)\.\*\*/);
+    expect(handoff).toMatch(/world-readable/);
+    expect(handoff).toMatch(/Quote ONLY Lisa-owned surface text/);
+    expect(handoff).toMatch(/must be REDACTED/);
+    expect(handoff).toMatch(
+      /Never paste host environment values, tokens\/credentials/
+    );
+    expect(handoff).toMatch(/LINK the host-project issue instead of quoting/);
+    expect(handoff).toMatch(/high-entropy values/);
+    expect(handoff).toMatch(/strip on match/);
+  });
+
+  it("never claims a filing before attribution and resolves inconclusive paths", () => {
+    expect(handoff).toMatch(
+      /Candidate routed for upstream attribution \(root cause suspected in Lisa\)/
+    );
+    expect(handoff).not.toMatch(/routed upstream\)/);
+    expect(handoff).toContain(
+      "[lisa-learning-upstream-handoff] key=<fingerprint>-resolution"
+    );
+    expect(handoff).toMatch(
+      /Attribution was inconclusive — nothing was filed upstream and nothing was persisted locally\./
+    );
+    expect(handoff).toMatch(
+      /Upstream filing did not complete — nothing was filed upstream/
+    );
+  });
+
   it("files nothing on ambiguous and keeps the local trace a note, not a rule", () => {
     expect(handoff).toMatch(/`ambiguous` verdict[\s\S]*files \*\*NOTHING\*\*/);
     expect(handoff).toMatch(/stays local and low-confidence/);
