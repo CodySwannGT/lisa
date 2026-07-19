@@ -49,7 +49,7 @@ describe("confirmLearningEntry", () => {
 
   beforeEach(async () => {
     tempDir = await createTempDir();
-    learningsPath = path.join(tempDir, ".claude", "rules", LEARNINGS_FILENAME);
+    learningsPath = path.join(tempDir, ".lisa", LEARNINGS_FILENAME);
     await persistLearningEntry(tempDir, APPLIED_ENTRY);
     await persistLearningEntry(tempDir, BYSTANDER_ENTRY);
   });
