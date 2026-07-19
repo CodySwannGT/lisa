@@ -1,0 +1,4 @@
+display_name: "Attribute Failure"
+short_description: "Event-triggered root-cause…"
+default_prompt:
+  - "Use $lisa-attribute-failure: Event-triggered root-cause…."

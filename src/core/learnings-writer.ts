@@ -8,7 +8,7 @@ import {
   parseLearningsFile,
   renderLearningsFile,
 } from "./learnings-document.js";
-import { validateLearningEntry } from "./learnings-entry.js";
+import { requireIsoDate, validateLearningEntry } from "./learnings-entry.js";
 import {
   assertSafeLearningParents,
   readExistingLearnings,
@@ -89,11 +89,114 @@ export async function persistConsolidatedLearning(
   });
 }
 
+/** Outcome vocabulary for {@link confirmLearningEntry}. */
+export type ConfirmLearningStatus = "confirmed" | "unchanged" | "not-found";
+
+/** Structured no-throw outcome of a surgical `last_confirmed` bump. */
+export interface ConfirmLearningResult {
+  /** What happened: written, already-current no-op, or missing-target no-op. */
+  readonly status: ConfirmLearningStatus;
+  /** The entry id the caller asked to confirm. */
+  readonly id: string;
+  /**
+   * Absolute learnings file path whenever the file exists — including an
+   * in-file `not-found` id — so callers can report a consistent target.
+   * Absent only when the learnings file itself does not exist.
+   */
+  readonly file?: string;
+  /** Previous `last_confirmed` value when the entry was advanced. */
+  readonly previous?: string;
+}
+
+/**
+ * Surgically advance ONLY one entry's `last_confirmed` timestamp — the
+ * claim-time "this rule demonstrably applied" confirmation (#1579). Uses the
+ * same lock/safety/atomic machinery as the persist writers, but is monotonic
+ * and non-blocking by design: a missing file or unknown id returns a
+ * structured no-op result instead of throwing, and a date at or before the
+ * stored `last_confirmed` never rewrites the file (idempotent within a claim,
+ * never regresses). Every other entry field is preserved byte-for-byte; the
+ * updated entry is re-validated so the `last_confirmed >= first_learned`
+ * invariant and all budgets still hold.
+ * @param projectRoot - Absolute path to the host project root
+ * @param id - Stable id of the entry to confirm
+ * @param date - Confirmation date (real ISO `YYYY-MM-DD`)
+ * @returns Structured outcome; never throws for a missing entry or file
+ */
+export async function confirmLearningEntry(
+  projectRoot: string,
+  id: string,
+  date: string
+): Promise<ConfirmLearningResult> {
+  if (typeof id !== "string" || id.trim() === "") {
+    throw new Error("Invalid learning id: expected a non-empty string");
+  }
+  const confirmedDate = requireIsoDate(date, "last_confirmed");
+  const config = await readProjectConfig(projectRoot);
+  const relativeFile = resolveProjectLearningsFile(config);
+  const { root, target } = resolveSafeLearningTarget(projectRoot, relativeFile);
+  await assertSafeLearningParents(root, path.dirname(target));
+  // Probe outside the lock so a missing file creates no directories or locks.
+  const probe = await readExistingLearnings(target);
+  if (probe === undefined) {
+    return { status: "not-found", id };
+  }
+  return withLearningTargetLock(target, async () => {
+    await assertSafeLearningParents(root, path.dirname(target));
+    const existing = await readExistingLearnings(target);
+    const entries = existing === undefined ? [] : parseLearningsFile(existing);
+    const current = entries.find(entry => entry.id === id);
+    if (current === undefined) {
+      return { status: "not-found", id, file: target };
+    }
+    if (confirmedDate <= current.last_confirmed) {
+      return { status: "unchanged", id, file: target };
+    }
+    const confirmed = validateLearningEntry({
+      ...current,
+      last_confirmed: confirmedDate,
+    });
+    const nextEntries = entries.map(entry =>
+      entry.id === id ? confirmed : entry
+    );
+    const rendered = renderConfirmedDocument(nextEntries);
+    const temporary = path.join(
+      path.dirname(target),
+      `.${path.basename(target)}.${process.pid}.${crypto.randomUUID()}.tmp`
+    );
+    try {
+      await writeFile(temporary, rendered, { encoding: "utf8", flag: "wx" });
+      await assertSafeLearningParents(root, path.dirname(target));
+      await rename(temporary, target);
+    } finally {
+      await fse.remove(temporary);
+    }
+    return {
+      status: "confirmed",
+      id,
+      file: target,
+      previous: current.last_confirmed,
+    };
+  });
+}
+
 export {
   parseLearningsFile,
   renderLearningsFile,
 } from "./learnings-document.js";
 export { validateLearningEntry } from "./learnings-entry.js";
+
+/**
+ * Render and budget-check the post-confirmation document so the write path
+ * stays a pure definitions-then-write sequence.
+ * @param entries - Entries with the confirmed entry already substituted
+ * @returns Next canonical document
+ */
+function renderConfirmedDocument(entries: readonly LearningEntry[]): string {
+  const rendered = renderLearningsFile(entries);
+  assertDocumentBudget(rendered, entries.length, "Learnings file");
+  return rendered;
+}
 
 /**
  * Build and budget-check the next canonical document, dropping superseded

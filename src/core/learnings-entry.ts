@@ -253,12 +253,14 @@ function requireNonBlankText(value: unknown, field: string): string {
 }
 
 /**
- * Require a real calendar date in ISO date form.
+ * Require a real calendar date in ISO date form. Exported so the surgical
+ * `last_confirmed` writer can validate a caller-supplied date up front instead
+ * of duplicating the calendar check.
  * @param value - Untrusted date value
  * @param field - Field name for errors
  * @returns Valid ISO date
  */
-function requireIsoDate(value: unknown, field: string): string {
+export function requireIsoDate(value: unknown, field: string): string {
   const result = requireNonEmptyString(value, field);
   const date = new Date(`${result}T00:00:00.000Z`);
   if (

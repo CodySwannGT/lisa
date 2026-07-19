@@ -1,6 +1,6 @@
 ---
 name: lisa-persist-learning
-description: This skill should be used when a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed. It computes a stable fingerprint, runs the candidate through the hostile-default learning-judge gate, and performs exactly the verdict's side effects — a dropped-with-reason note on the triggering issue (drop), an upstream handoff marker (lisa-upstream), or a confidence-routed pull request that touches only the learnings surface (durable-learning). Idempotent via marker dedupe; headless-safe; never blocks the primary build flow.
+description: This skill should be used when a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed. It computes a stable fingerprint, runs the candidate through the hostile-default learning-judge gate, and performs exactly the verdict's side effects — a dropped-with-reason note on the triggering issue (drop), an automatically filed upstream Lisa ticket with marker dedupe, evidence, and a per-run cap (lisa-upstream), or a confidence-routed pull request that touches only the learnings surface (durable-learning). Idempotent via marker dedupe; headless-safe; never blocks the primary build flow.
 ---
 
 # Persist Learning
@@ -62,20 +62,73 @@ The note is one line naming the classification (with its fixed plain-language gl
 |----------------|-------|
 | `one-off` | a one-time fluke, not a recurring pattern |
 | `misunderstanding/spec-gap` | traced to an unclear requirement, not a durable lesson |
-| `lisa-upstream` | root cause is Lisa itself; routed upstream |
+| `lisa-upstream` | root cause suspected in Lisa; routed for upstream attribution |
 
-(The `lisa-upstream` gloss is used by the handoff note below, not by a drop note.) Dedupe before posting: if any comment on the triggering issue already carries `[lisa-learning-drop] key=<fingerprint>`, do not post again — report the existing note.
+(A `lisa-upstream` classification never produces a drop note — it routes through the `handoff-upstream` flow below, whose step-1 note uses this pre-attribution wording because filing only happens after attribution confirms the Lisa surface.) Dedupe before posting: if any comment on the triggering issue already carries `[lisa-learning-drop] key=<fingerprint>`, do not post again — report the existing note.
 
 ### `handoff-upstream` (classification `lisa-upstream`)
 
-Emit the handoff marker only — file **nothing** (no upstream issue, no local rule; the upstream filing flow [SLL-5] consumes this marker later):
+This disposition completes the SLL-5 loop (#1583): on a Lisa-attributed failure the upstream Lisa ticket is filed **automatically**. Filing lives here — not in `lisa-attribute-failure` — because that skill is deliberately read-only (doctor delegates to it inside its own read-only contract), while this skill already owns exactly the verdict's side effects and the marker-dedupe discipline. Never persist a local rule for a Lisa-attributed failure; the host project's only durable trace is the brief linking note in step 6.
 
-```markdown
-<!-- [lisa-learning-upstream-handoff] key=<fingerprint> -->
-Upstream handoff (lisa-upstream — root cause is Lisa itself; routed upstream): <reason>. Nothing persisted locally; upstream filing is a separate flow.
-```
+1. **Post the handoff marker** on the triggering issue (same one-comment marker dedupe; the marker key is unchanged). The visible line must not claim a filing that has not happened yet — attribution and filing come after this step:
 
-Same one-comment marker dedupe on the triggering issue.
+   ```markdown
+   <!-- [lisa-learning-upstream-handoff] key=<fingerprint> -->
+   Candidate routed for upstream attribution (root cause suspected in Lisa): <reason>.
+   ```
+
+2. **Require a confirmed `lisa` verdict from `lisa-attribute-failure` — always.** Run the `lisa-attribute-failure` skill on the failure event before any filing. The judge's `cited_evidence` seeds the event (implicated files, surface in play, failure class) but never substitutes for the verdict — a path or commit reference alone is not attribution. File **only** when the skill returns a conclusive `lisa` verdict that names the Lisa surface with cited evidence. Any other outcome — `ambiguous`, `project`, or a verdict that cannot name a concrete Lisa surface — files **NOTHING** upstream: the candidate stays local and low-confidence, the run summary says attribution was inconclusive, and the step-1 note is resolved with one corrective follow-up comment on the triggering issue (marker-deduped so re-runs never repeat it; the suffix is distinct from the filing-failure marker in step 8 so one outcome never suppresses the other):
+
+   ```markdown
+   <!-- [lisa-learning-upstream-handoff] key=<fingerprint>-inconclusive -->
+   Attribution was inconclusive — nothing was filed upstream and nothing was persisted locally.
+   ```
+
+3. **Derive the root-cause key from the LISA SURFACE, never the host project or the local issue.** Two projects hitting the same Lisa bug MUST collide on the same key — that collision is the design (update, not duplicate):
+
+   ```text
+   root-cause-key = <lisa-surface>#<failure-class>
+   ```
+
+   - `<lisa-surface>` — the Lisa-relative path of the surface at fault (e.g. `plugins/src/base/skills/lisa-doctor/SKILL.md`, `typescript/copy-overwrite/.github/workflows/quality.yml`), or the canonical rule/skill/hook name when no single file applies (e.g. `lisa-doctor`, `block-no-verify`).
+   - `<failure-class>` — a short lowercase hyphen-slug for the class of failure (e.g. `pagination-truncation`, `stale-artifact-overwrite`).
+   - Normalize: lowercase, trim, collapse every whitespace run to a single `-`. The key must contain no host-project name, no local issue number, and no fingerprint — those vary per project and would defeat fleet-wide dedupe.
+
+4. **Enforce the per-run cap.** Resolve `hardening.maxUpstreamFilingsPerRun` from `.lisa.config.json` (default `5` — a conservative bound modeled on `lisa-repair-intake`'s `max_candidates` precedent). Count every upstream create **and** update this run performs; once the cap is reached, drop the remaining candidates and **note each dropped candidate visibly** (in the run summary, naming its root-cause key) — never queue a spam burst and never drop silently. A later run picks the dropped candidates up idempotently.
+
+5. **Evidence redaction (binding).** The upstream repo is PUBLIC by default (`hardening.upstreamRepo` → `CodySwannGT/lisa`) and this filing runs headless on crons — treat every drafted upstream body and comment as world-readable:
+
+   - Quote ONLY Lisa-owned surface text: template/rule/skill/hook excerpts and upstream commit references. The reproduction must be REDACTED — generic placeholders, never the host project's real values.
+   - Never paste host environment values, tokens/credentials, connection strings, API keys, PII (names, emails, customer data), or proprietary host code/payloads.
+   - The evidence chain names the Lisa surface and the failure class — never project payloads. When host context is essential to understand the failure, LINK the host-project issue instead of quoting it.
+   - Before filing or commenting, scan the drafted body for common secret shapes — `key=value` pairs with high-entropy values, token prefixes (`AKIA`, `ghp_`, `xox`), email addresses — and strip on match. When in doubt, leave it out: a thinner upstream ticket is recoverable; a leaked secret is not.
+
+6. **Dedupe by marker, then file or update.** The upstream marker is:
+
+   ```markdown
+   <!-- [lisa-upstream-attribution] key=<root-cause-key> -->
+   ```
+
+   Resolve the upstream repo from `.lisa.config.json` `hardening.upstreamRepo` (default `CodySwannGT/lisa`). Search **all issue states** for an existing issue carrying the marker — a closed marker-bearing ticket still owns this root cause, and searching only open issues would mint a duplicate the moment the original closes. Match on the **MARKER, never the title** — with the same eventual-consistency guard as above (`gh issue list -R <upstream> --state all --search '"<marker>" in:body' --json number,state,url`, and when the search index returns nothing, also `gh issue list -R <upstream> --state all --json number,state,body` and grep the bodies for the marker before concluding no ticket exists).
+
+   - **No existing ticket** → file via `lisa-github-write-issue` targeting the upstream repo, following the `lisa-rework-triage` "Filing upstream" discipline: a three-audience description (what failed for the operator, what the harness did wrong, what to change), the redacted evidence chain (Lisa-owned text only, per step 5: defect → Lisa surface → attribution evidence → redacted reproduction), the affected project named, and the `self-hardening` label. The body carries **exactly one** dedupe marker; **never write a markerless body** — it permanently breaks all future dedupe.
+   - **Existing ticket (open or closed)** → this is a repeat encounter: comment the new occurrence on the existing issue with this project's evidence, marker-deduped per occurrence via `<!-- [lisa-upstream-attribution-occurrence] key=<fingerprint> -->` so re-runs never duplicate the occurrence comment. Never open a second issue, and never match on the title — evidence compounds on one ticket. When the match is **CLOSED**, still comment the occurrence there and reference it in the local trace instead of filing a duplicate; do not reopen it yourself — recurrence evidence on a closed ticket signals the shipped fix may not cover this case, and reopening is the upstream maintainer's call.
+
+7. **Leave the local trace — a note, never a rule.** Post one follow-up comment on the triggering issue linking the upstream ticket:
+
+   ```markdown
+   <!-- [lisa-upstream-filed] key=<fingerprint> -->
+   Upstream ticket: <url> (root-cause key `<root-cause-key>`). No local rule persisted — the fix ships fleet-wide through Lisa.
+   ```
+
+   The learnings surface gains **no durable local rule** for a Lisa-attributed failure. Agents avoid the trap via the upstream ticket link until the fix ships.
+
+8. **Degrade gracefully.** If filing fails (auth, rate limit, network), report the failure in the run summary and continue shipping the host issue — a later run retries idempotently. Never block the primary build flow. So the step-1 note is not left dangling, post a marker-deduped corrective follow-up on the triggering issue — with its own suffix, distinct from step 2's `-inconclusive`, so an earlier inconclusive note can never suppress a filing-failure note (or vice versa):
+
+   ```markdown
+   <!-- [lisa-learning-upstream-handoff] key=<fingerprint>-filing-failed -->
+   Upstream filing did not complete — nothing was filed upstream and nothing was persisted locally; a later run retries.
+   ```
 
 ### `persist` (classification `durable-learning`)
 

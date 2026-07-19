@@ -296,88 +296,39 @@ without turning the base doctor into a second `lisa-wiki-doctor`.
 A failing or warning check has two possible causes: the project drifted, or **Lisa itself changed
 upstream** since this project last updated. Doctor must distinguish them instead of blaming the
 project by default. Whenever findings need explanation — and always before proposing repairs —
-pull Lisa's own git history and read what actually changed:
+attribute the finding with real evidence.
+
+The attribution procedure itself is shared: it lives in the `lisa-attribute-failure` skill
+(extracted from this section so any failure event can be attributed, not only doctor findings).
+Doctor invokes it per finding:
 
 1. **Resolve the version window.** Determine the project's installed Lisa version (the
    `@codyswann/lisa` entry in `package.json`/lockfile, or the plugin version stamp on the active
    runtime) and the latest published version (`npm view @codyswann/lisa version`, or the update
    check's cached result).
-2. **Pull the upstream history for that window** (read-only; no clone required when `gh` is
-   available):
+2. **Invoke `lisa-attribute-failure`** with the finding as the failure event: the defect
+   description, the implicated template/config paths, the rule/skill/hook in play, and the
+   resolved version window. The skill evaluates its three ordered signals — Lisa-managed surface
+   ownership, shipped rule/skill/hook behavior, and the upstream change-history window (the
+   version-window compare procedure formerly documented inline here, preserved verbatim in that
+   skill: pagination/`--slurp` handling, targeted per-SHA diff context, truncation caveats, and
+   the bounded explicit-tag fetch fallback) — and returns `lisa` | `project` | `ambiguous` plus
+   the cited evidence.
+3. **Map the verdict into the finding.**
+   - `lisa` — Lisa changed the contract (a tightened lint rule, a renamed check context, a new
+     required config key) or shipped the defective surface. Say so in `Observed:` with the cited
+     evidence (commit subject/version or managed-surface proof), and let `Remediation:` point at
+     the sanctioned adoption path (e.g. `lisa update` + re-apply, a documented config opt-out)
+     rather than hand-editing managed files.
+   - `project` — history shows no relevant upstream change and the surface is project-owned: the
+     project drifted, so remediate on the project side.
+   - `ambiguous` — history was unavailable, truncated, or otherwise inconclusive: report the gap
+     as a `WARN`-level observability note with the evidence gap named — never fail the audit
+     because history was unavailable or incomplete, and never attribute drift with unverified
+     confidence.
 
-   ```bash
-   gh api "repos/CodySwannGT/lisa/compare/v<installed>...v<latest>" \
-     --paginate --slurp |
-     jq '{total_commits: .[0].total_commits, files: [.[0].files[]?.filename], commits: [.[].commits[]? | {sha, subject: (.commit.message | split("\n")[0]), api_url: .url, html_url, parents: [.parents[]?.sha]}]}'
-   ```
-
-   `--paginate` fetches every page of commits, and `--slurp` gathers those pages into a single
-   array before the external `jq` projection runs. GitHub CLI does not permit its built-in `--jq`
-   flag together with `--slurp`, so keep the pipe as shown; without `--slurp`, paginated responses
-   are not one merged input. `total_commits` and `files` only need the first page
-   (files are capped at 300 and not repeated on later pages); `commits` flattens across all pages
-   while retaining each commit SHA and URLs needed for accurate follow-up.
-
-   After path-scoping identifies a candidate commit, fetch its targeted file-level diff context by
-   the retained SHA rather than attributing from the subject alone:
-
-   ```bash
-   gh api "repos/CodySwannGT/lisa/commits/<sha>" \
-     --jq '{sha, files: [.files[]? | select(.filename == "<relevant-path>" or (.filename | startswith("<relevant-prefix>/"))) | {filename, status, additions, deletions, changes, patch}]}'
-   ```
-
-   Preserve the returned filename, status, counts, and available patch with the SHA in the
-   upstream-history projection. A missing or truncated `patch` is not proof of no relevant change;
-   use the compare diff fallback below or downgrade attribution to `WARN` when commit-level context
-   cannot be established.
-
-   The compare endpoint paginates commits (250 without `--paginate`) and only lists changed files
-   on the first page, capped at 300 total — a large version window can silently drop commits or
-   files. If `total_commits` or the file count looks truncated, re-run with the
-   `application/vnd.github.diff` accept header (`gh api ... -H "Accept: application/vnd.github.diff"`)
-   to pull the full patch text, or fall back to the bounded-fetch `git log` below. When completeness
-   still can't be established, say so in the finding and mark it `WARN` rather than attributing
-   drift with unverified confidence.
-
-   Fallbacks, in order: `gh api repos/CodySwannGT/lisa/commits?path=<template-path>` for a
-   path-scoped view — note this endpoint has no way to bound results to the `v<installed>..v<latest>`
-   window, so treat its output as best-effort context only, not authoritative attribution; a
-   finite-depth, explicit-tag fetch, which is bounded to the two version refs and should be preferred
-   for definitive attribution; or the local marketplace/plugin cache checkout when the runtime has
-   one. For the fetch fallback, use a temporary directory and a fixed history ceiling:
-
-   ```bash
-   lisa_history_dir="$(mktemp -d)"
-   git init "$lisa_history_dir"
-   git -C "$lisa_history_dir" remote add origin https://github.com/CodySwannGT/lisa.git
-   git -C "$lisa_history_dir" fetch --no-tags --filter=blob:none --depth=256 origin \
-     refs/tags/v<installed>:refs/tags/v<installed> \
-     refs/tags/v<latest>:refs/tags/v<latest>
-   git -C "$lisa_history_dir" merge-base --is-ancestor v<installed> v<latest>
-   git -C "$lisa_history_dir" log --format='%H%x09%s' v<installed>..v<latest> -- <paths>
-   git -C "$lisa_history_dir" show --format=fuller --stat --patch <relevant-sha> -- <paths>
-   ```
-
-   The explicit tag refspecs, `--no-tags`, and finite `--depth=256` make this fetch bounded. Do not
-   silently deepen beyond that ceiling. If `merge-base --is-ancestor` fails, the shallow window is
-   incomplete (or the tags are not on one ancestry line): do not make definitive attribution from
-   it. If none of the bounded sources are reachable, or only the unbounded path-scoped fallback is
-   reachable, report the gap as a `WARN`-level observability note — never fail the audit because
-   history was unavailable or incomplete.
-3. **Scope the reading to what the finding touches.** Filter the commit list to the paths that
-   generate the failing surface: the detected stacks' template dirs (`typescript/`, `expo/`, …),
-   `plugins/src/base/` for skills/hooks/rules, `scripts/` for governance scripts, and the shipped
-   config factories (`src/configs/`). A finding about a lint rule failure reads the lint-config
-   commits, not the whole log.
-4. **Attribute the finding.** When the upstream history shows Lisa changed the contract (a
-   tightened lint rule, a renamed check context, a new required config key), say so in `Observed:`
-   with the commit subject/version, and let `Remediation:` point at the sanctioned adoption path
-   (e.g. `lisa update` + re-apply, a documented config opt-out) rather than hand-editing managed
-   files. When history shows no relevant upstream change, the project drifted — remediate on the
-   project side.
-
-This history pull is part of doctor's read-only contract: it reads Lisa's repository, never writes
-to it, and repair suggestions stay suggestions.
+This diagnosis remains part of doctor's read-only contract: the attribution skill reads Lisa's
+repository, never writes to it, and repair suggestions stay suggestions.
 
 ## Output contract
 
