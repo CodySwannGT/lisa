@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.242.0](https://github.com/CodySwannGT/lisa/compare/v2.241.0...v2.242.0) (2026-07-19)
+
+
+### Features
+
+* **quality:** add threshold ratchet — gates may tighten, never weaken ([7b6e3e9](https://github.com/CodySwannGT/lisa/commit/7b6e3e9b45dc50fe0c5e646794cedc36065c47f5))
+
+
+### Bug Fixes
+
+* **quality:** address CodeRabbit review on the threshold ratchet ([929b357](https://github.com/CodySwannGT/lisa/commit/929b3571cc40847fe98d502e722b0ba2cbedb845))
+
 ## [2.241.0](https://github.com/CodySwannGT/lisa/compare/v2.240.0...v2.241.0) (2026-07-19)
 
 
