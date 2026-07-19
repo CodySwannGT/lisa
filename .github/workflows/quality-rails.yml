@@ -43,7 +43,7 @@ on:
         type: string
         default: 'test'
       skip_jobs:
-        description: 'Comma-separated list of jobs to skip (lint, security, test, mutation, code_quality, secret_scanning, sg_scan, learnings_budget, license_compliance, zap_baseline)'
+        description: 'Comma-separated list of jobs to skip (lint, security, test, mutation, code_quality, secret_scanning, sg_scan, learnings_budget, threshold_ratchet, license_compliance, zap_baseline)'
         required: false
         type: string
         default: ''
@@ -84,6 +84,43 @@ jobs:
 
       - name: 🔍 Run RuboCop
         run: bundle exec rubocop --format github
+
+  # Threshold ratchet: quality thresholds (simplecov minimums, rubocop Metrics
+  # maximums) may tighten, never weaken. Same deterministic comparator as the
+  # agent-time hooks and the lefthook pre-commit layer; this is the
+  # non-bypassable layer. Human-approved exceptions live in .lisa.config.json
+  # (thresholdRatchet.allow) and are honored only once merged into the base.
+  threshold_ratchet:
+    name: 📐 Threshold Ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ !contains(inputs.skip_jobs, 'threshold_ratchet') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # fetch-depth 0 brings all branches, so the base ref is available
+          # without a credentialed fetch later in the job.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 📐 Compare thresholds against merge-base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -z "$BASE_REF" ]; then
+            echo "Not a pull request — nothing to ratchet against."
+            exit 0
+          fi
+          if [ ! -f scripts/check-threshold-ratchet.mjs ]; then
+            echo "scripts/check-threshold-ratchet.mjs not present — project not yet on the ratchet template; skipping."
+            exit 0
+          fi
+          if ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
+            echo "Base ref origin/$BASE_REF is not available in this checkout — cannot evaluate the ratchet."
+            exit 1
+          fi
+          node scripts/check-threshold-ratchet.mjs --base "origin/$BASE_REF"
 
   security:
     name: Security

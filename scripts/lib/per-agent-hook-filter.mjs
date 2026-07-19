@@ -78,6 +78,13 @@ const SCRIPT_RULES = {
     agy: true,
     copilot: true,
   },
+  "threshold-ratchet.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false, // agy hooks ship only via AGY_PLUGIN_HOOKS (root hooks.json) and don't fire headless; the pre-commit + CI ratchet layers carry parity there
+    copilot: true,
+  },
   // Unregistered scripts — exclude by default until classified.
   "ticket-sync-reminder.sh": {
     claude: false,
