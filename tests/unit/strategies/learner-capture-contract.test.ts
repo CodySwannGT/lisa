@@ -132,12 +132,15 @@ describe.each(REFERENCE_RULE_PATHS)(
       expect(rule).toMatch(/learner/);
       expect(rule).toMatch(/capture time/);
       expect(rule).toContain("confirmLearningEntry");
-      // debrief-apply is not a contract writer yet — it becomes one only once
-      // #1733 ships; until then it is a legacy writer outside the contract.
+      // #1733 shipped: debrief-apply is now a contract-mediated ledger writer,
+      // not the pending "legacy writer" it was before the reroute. The old
+      // "#1733 pending" / "legacy writer" / "NOT contract-mediated" framing is
+      // gone; debrief-apply sits in the contract-mediated writers list.
+      expect(rule).toContain("Contract-mediated writers");
       expect(rule).toContain("lisa-debrief-apply");
-      expect(rule).toMatch(/#1733/);
-      expect(rule).toMatch(/legacy writer/i);
-      expect(rule).toMatch(/NOT contract-mediated/);
+      expect(rule).not.toMatch(/pending #1733/);
+      expect(rule).not.toMatch(/Legacy writer/);
+      expect(rule).not.toMatch(/NOT contract-mediated/);
       // Promotion is the gardener's ticket-gated job, not a writer here.
       expect(rule).toContain("gardener");
       expect(rule).toMatch(/status:ready/);
