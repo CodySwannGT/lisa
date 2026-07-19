@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.246.0](https://github.com/CodySwannGT/lisa/compare/v2.245.1...v2.246.0) (2026-07-19)
+
+
+### Features
+
+* **debrief-apply:** reroute knowledge categories to the ledger (LLG-4, [#1733](https://github.com/CodySwannGT/lisa/issues/1733)) ([25c60f6](https://github.com/CodySwannGT/lisa/commit/25c60f68b5f5dc91e5f4c94faf501dce9fca0f2a))
+
 ### [2.245.1](https://github.com/CodySwannGT/lisa/compare/v2.245.0...v2.245.1) (2026-07-19)
 
 
