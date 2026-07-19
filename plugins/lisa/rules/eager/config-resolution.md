@@ -29,9 +29,12 @@ Project tracker (`jira` / `github` / `linear`) is read from `.lisa.config.json` 
 
 Resolve hand-authored project rules from `.lisa.config.json`
 `projectRulesFile`, defaulting to `.claude/rules/PROJECT_RULES.md`. Automated
-learnings never append to that file: they use the separate
-`PROJECT_LEARNINGS.md` sibling derived from the configured rules directory.
-Both writers and budget checks import the executable contract from
+learnings never append to that file: they use the separate machine-managed
+ledger resolved from `.lisa.config.json` — the optional `learnings.file`
+override, else the default `.lisa/PROJECT_LEARNINGS.md`. The ledger lives in the
+cold `.lisa/` tree (never an auto-loaded rules directory) and is consumed only
+through the contract's bounded projection, never read raw wholesale. Both
+writers and budget checks import the executable contract from
 `@codyswann/lisa/learnings`; they must not copy its numeric limits.
 
 ## Env → base branch
